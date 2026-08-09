@@ -1,0 +1,45 @@
+{
+  "schema_version": "world-state/1.0",
+  "world_id": "world-01",
+  "cycle": 12,
+  "sequence": 31,
+  "active_agents": {
+    "agent.nacre": {
+      "room_id": "room.civic-exchange",
+      "budgets": {
+        "attention": 2,
+        "compute": 63,
+        "energy": 78,
+        "influence": 39,
+        "storage": 18
+      }
+    }
+  },
+  "organizations": {
+    "org.relay-repair": {
+      "name": "Relay Repair Collective",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "agent_id": "agent.nacre",
+          "role": "founder"
+        },
+        {
+          "agent_id": "agent.vesper",
+          "role": "advisor"
+        }
+      ]
+    }
+  },
+  "entities_present": [
+    "entity.relay-7",
+    "entity.storage-cell-cache",
+    "entity.archive-ledger-obsolescing",
+    "entity.repair-procedure-v1"
+  ],
+  "destroyed_entities": [
+    "entity.temp-marker"
+  ],
+  "last_event_digest": "sha256:401d2ab80e31e3f032616f90f6968261d5fd6f134177f855bc76d8c9bf88424c",
+  "event_count": 31
+}

@@ -1,0 +1,59 @@
+{
+  "boundary_version": "equivalence-boundary/v1",
+  "profile": "noema-v0.1-mandatory",
+  "exact_paths": [
+    "/room_states",
+    "/resource_balances",
+    "/active_agents",
+    "/organizations",
+    "/entities",
+    "/messages",
+    "/trades"
+  ],
+  "ignored_paths": [
+    "/runtime/host_pid",
+    "/runtime/wall_clock"
+  ],
+  "ordered_collection_paths": [
+    "/message_delivery",
+    "/event_ledger"
+  ],
+  "unordered_collection_paths": [
+    {
+      "path": "/room_states/*/entity_ids",
+      "identity": "entity_id"
+    },
+    {
+      "path": "/organizations/*/members",
+      "identity": "agent_id"
+    }
+  ],
+  "numeric_tolerances": {},
+  "semantic_predicates": [],
+  "observation_points": [
+    {
+      "cycle": 1,
+      "phase": "after-LOOK",
+      "agent_id": "agent.nacre",
+      "observation_id": "obs.look-1"
+    },
+    {
+      "cycle": 2,
+      "phase": "after-INSPECT",
+      "agent_id": "agent.nacre",
+      "observation_id": "obs.inspect-relay"
+    },
+    {
+      "cycle": 12,
+      "phase": "cycle-commit",
+      "agent_id": "agent.nacre"
+    }
+  ],
+  "divergence_policy": "stop-first",
+  "claim_invalidation": "any-required-mismatch",
+  "required_comparisons": [
+    "identical ordered event digests",
+    "identical final canonical WorldState digest",
+    "identical observation digests at every declared focal-agent observation point"
+  ]
+}
