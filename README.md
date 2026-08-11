@@ -3,57 +3,39 @@
 Modular monolith for the frozen NOEMA core loop:
 
 ```text
-PLAY → NOTICE (Frontier + Observatory) → TEST (Lab) → CAPTURE (Compiler)
+PLAY → NOTICE → TEST → CAPTURE → LEARN
 ```
 
-Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
-Claims: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`. No consciousness scores.
-
-## Spec pin
-
-See [`spec-compat.json`](spec-compat.json).
-
-| Surface | Fixtures |
+| Phase | Status |
 |---|---|
-| Chamber | `fixtures/v01-seed` |
-| Frontier | `fixtures/v02-*` |
-| Observatory | `fixtures/v03-*` |
-| Lab | `fixtures/v04-*` |
-| Compiler | `fixtures/v05-compiler` + `fixtures/v05-catalogs` |
+| Chamber PLAY | Complete |
+| Frontier + Observatory NOTICE | Complete |
+| Lab TEST | Complete |
+| Compiler CAPTURE | Complete |
+| **LEARN Capability Graph** | **This branch** |
+| Deep Time / Genesis | Deferred |
 
-## Phase status
-
-| Phase | Loop | Status |
-|---|---|---|
-| 1 Chamber | PLAY | Complete |
-| 2A Frontier | NOTICE conditions | Complete |
-| 2B Observatory | NOTICE detection | Complete |
-| 3 Lab | TEST | Complete |
-| **4 Compiler** | **CAPTURE** | **This branch** |
-| 5 LEARN / Deep Time | LEARN / history | Deferred |
+Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
+Claims: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.
 
 ## Architecture
 
 ```text
-PLAY ── production ledger (fenced writer)
-  ├─ research capture
-  ├─ Frontier → SITUATION_INJECTED only
-  ├─ Observatory → candidates (no world writes)
-  ├─ Lab → experimental forks only
-  └─ Compiler → CAPTURE AS TEST (research partition only)
+PLAY ── production ledger
+  ├─ Frontier / Observatory / Lab / Compiler (research)
+  └─ LEARN projection (rebuildable disposable index)
 ```
 
-Compiler never mutates production worlds or rewrites Lab/Observatory history.
+LEARN answers: what was reproduced, by whom, under which conditions, where it generalizes/fails, what remains untested.  
+It does **not** modify gameplay or create evidence.
 
-## Ordinary capture flow
+## Closed edge taxonomy
 
-```text
-STUDY test result (READY) → CAPTURE AS TEST → Capturing… → CAPTURED TEST
-```
+`OBSERVED_IN` · `REPRODUCED_BY` · `DEPENDS_ON` · `FAILS_WITHOUT` · `GENERALIZES_TO` · `DIFFERS_ACROSS_VERSION`
 
-Machine path: admission → compilation request → units/deps → hierarchical ddmin → behavioral oracle → receipt + captured-test + progressive views.
+No transitive automatic edges. Not-tested ≠ failed.
 
-## Quick start (PLAY)
+## Quick start
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -62,42 +44,26 @@ pytest -q
 noema-replay
 ```
 
-Research layers are optional for local PLAY.
-
 ## Research endpoints
 
 | Path | Role |
 |---|---|
-| `POST /research/frontier/run` | RESEARCHER/ADMIN |
-| `POST /research/observatory/run` | RESEARCHER/ADMIN |
-| `POST /research/lab/run` | RESEARCHER/ADMIN |
-| `POST /research/lab/capture-gate` | READY gate only |
 | `POST /research/compiler/capture` | CAPTURE AS TEST |
-| `GET /research/view` | research overlays |
+| `POST /research/learn/rebuild` | rebuild LEARN index |
+| `GET/POST /research/learn/view` | LEARN projection |
+| `GET /research/view` | all research indexes |
 | `GET /watch/live` | public redacted |
 
 ## Tests
 
 ```bash
 pytest -q
-pytest -q tests/test_phase4_compiler.py
-noema-replay
+pytest -q tests/test_phase5_learn.py
 ```
-
-## Compiler notes
-
-- Admission requires `compiler_readiness == READY` + passing controls
-- Deterministic capture defaults (`capture-defaults/0.5.0`); no hidden LLM planning
-- Dependency-closed hierarchical ddmin; **1-minimal ≠ global minimum**
-- Oracle: `PRESERVED|NOT_PRESERVED|INCONCLUSIVE|INVALID` — only PRESERVED authorizes removal
-- Over-minimization of protected units blocked
-- Budget exhaustion → `PARTIALLY_MINIMIZED`, not silent success
-- Simple/advanced/reproducibility views share the same captured-test record
-- Regression FAIL is not a global ranking
 
 ## Explicit deferrals
 
-Deep Time · Genesis · LEARN / Capability Graph · Atlas · microservices · worker fleets · scalar benchmarks
+Deep Time · Genesis · v0.8 Phenomena · graph DB/service · model rankings · consciousness scores
 
 ## License
 

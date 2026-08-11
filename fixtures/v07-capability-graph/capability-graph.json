@@ -1,0 +1,30 @@
+{
+  "schema_version": "capability-graph/0.7",
+  "graph_version": "capability-graph/0.7.0",
+  "generated_from": [
+    "examples/v05-compiler/captured-test.json",
+    "examples/v04-lab/lab-result.json",
+    "examples/v05-compiler/regression-result.json",
+    "examples/v07-capability-graph/behavior-node.json",
+    "examples/v07-capability-graph/edges.json"
+  ],
+  "behavior_node_ids": [
+    "behavior.shared-ledger-coordination"
+  ],
+  "edge_ids": [
+    "edge.repro.2.1",
+    "edge.repro.2.2",
+    "edge.dep.messaging",
+    "edge.dep.ledger",
+    "edge.fail.messaging",
+    "edge.gen.scarcity-alt",
+    "edge.gen.scarcity-high",
+    "edge.gen.region-alt",
+    "edge.ver.diff.partial",
+    "edge.dep.messaging.contested"
+  ],
+  "generated_at_cycle": 0,
+  "rebuildable": true,
+  "mutable_source_of_truth": false,
+  "digest": "sha256:947126376cbea93d10943480d302c15c59e7fd3c5fbcb73fe8f469007f295d83"
+}

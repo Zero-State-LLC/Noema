@@ -1,0 +1,8 @@
+{
+  "behavior_id": "behavior.shared-ledger-coordination",
+  "context_ref": "context.social.topology.alternate",
+  "status": "NOT_TESTED",
+  "distinct_from": "FAILED",
+  "simple_label": "different social topology",
+  "evidence_refs": []
+}

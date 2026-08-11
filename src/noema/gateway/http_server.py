@@ -6,7 +6,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
@@ -68,6 +68,13 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     if not session_id:
                         return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
                     return self._json(200, runtime.research_view(session_id))
+                if path == "/research/learn/view":
+                    session_id = self.headers.get("X-Session-Id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    qs = parse_qs(urlparse(self.path).query)
+                    bid = (qs.get("behavior_id") or [None])[0]
+                    return self._json(200, runtime.learn_view(session_id, behavior_id=bid))
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})
@@ -170,6 +177,16 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         max_oracle_calls=body.get("max_oracle_calls"),
                     )
                     return self._json(200, result)
+                if path == "/research/learn/rebuild":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.rebuild_learn(session_id, sources=body.get("sources")))
+                if path == "/research/learn/view":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.learn_view(session_id, behavior_id=body.get("behavior_id")))
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})

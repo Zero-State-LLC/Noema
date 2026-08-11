@@ -1,0 +1,5 @@
+{
+  "note": "Alternate scenario reported coordination without messaging under different topology \u2014 does not auto-invalidate primary ablation boundary.",
+  "claim_label": "INFERRED",
+  "does_not_overwrite_primary": true
+}

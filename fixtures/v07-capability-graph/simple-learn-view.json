@@ -1,0 +1,44 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.learn.shared-ledger.simple",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "behavior.shared-ledger-coordination",
+    "capability-graph/0.7.0"
+  ],
+  "presentation": {
+    "title": "LEARN",
+    "behavior_title": "Shared-ledger coordination",
+    "reproduced_by": [
+      "Agent 2.1",
+      "Agent 2.2"
+    ],
+    "depends_on": [
+      "messaging",
+      "shared ledger"
+    ],
+    "works_in": [
+      "high-scarcity scenario",
+      "moderate-scarcity scenario",
+      "alternate region"
+    ],
+    "fails_when": [
+      "messaging is removed"
+    ],
+    "not_yet_tested": [
+      "different social topology"
+    ],
+    "evidence_count": "7 captured/research evidence refs",
+    "claim_label_display": "Evidence suggests"
+  },
+  "allowed_actions": [
+    "VIEW_EVIDENCE",
+    "COMPARE_VERSIONS",
+    "TECHNICAL_DETAILS"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:e665d1ef1b824361a75fc1bb2b0d14b1cc3fa6139a964f3ae5a67a9e2415a832"
+}

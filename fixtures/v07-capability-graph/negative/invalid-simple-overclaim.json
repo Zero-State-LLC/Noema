@@ -1,0 +1,18 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "bad",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "behavior.shared-ledger-coordination"
+  ],
+  "presentation": {
+    "title": "LEARN",
+    "message": "General collective intelligence proven."
+  },
+  "allowed_actions": [],
+  "research_detail": true,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+}

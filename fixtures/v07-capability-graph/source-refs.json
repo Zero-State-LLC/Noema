@@ -1,0 +1,26 @@
+{
+  "behavior_id": "behavior.shared-ledger-coordination",
+  "captured_tests": [
+    "examples/v05-compiler/captured-test.json"
+  ],
+  "lab_results": [
+    "examples/v04-lab/lab-result.json",
+    "examples/v05-compiler/source-lab-result-ready.json"
+  ],
+  "regression_results": [
+    "examples/v05-compiler/regression-result.json",
+    "examples/v05-compiler/regression-result-fail.json"
+  ],
+  "edges": [
+    "examples/v07-capability-graph/edges/edge-repro-2-1.json",
+    "examples/v07-capability-graph/edges/edge-repro-2-2.json",
+    "examples/v07-capability-graph/edges/edge-dep-messaging.json",
+    "examples/v07-capability-graph/edges/edge-dep-ledger.json",
+    "examples/v07-capability-graph/edges/edge-fail-messaging.json",
+    "examples/v07-capability-graph/edges/edge-gen-scarcity-alt.json",
+    "examples/v07-capability-graph/edges/edge-gen-scarcity-high.json",
+    "examples/v07-capability-graph/edges/edge-gen-region-alt.json",
+    "examples/v07-capability-graph/edges/edge-ver-diff-partial.json",
+    "examples/v07-capability-graph/edges/edge-dep-messaging-contested.json"
+  ]
+}

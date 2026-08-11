@@ -1,0 +1,21 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.gen.scarcity-high",
+  "edge_type": "GENERALIZES_TO",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "context.scarcity.high",
+  "target_class": "CONTEXT",
+  "evidence_refs": [
+    "examples/v05-compiler/captured-test.json"
+  ],
+  "claim_label": "OBSERVED",
+  "relationship_status": "SUPPORTED",
+  "tested_boundary": {
+    "context_id": "context.scarcity.high"
+  },
+  "known_confounds": [],
+  "counterevidence_refs": [],
+  "simple_label": "high-scarcity scenario",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:bb1fb9419b91416a3c958fa351a9245b00d4c5e1e558095895c20aaa1ab1fbb3"
+}

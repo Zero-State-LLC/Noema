@@ -1,0 +1,25 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.ver.diff.partial",
+  "edge_type": "DIFFERS_ACROSS_VERSION",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "agentver.nacre.2.3",
+  "target_class": "AGENT_VERSION",
+  "evidence_refs": [
+    "examples/v05-compiler/regression-result-fail.json"
+  ],
+  "claim_label": "OBSERVED",
+  "relationship_status": "SUPPORTED",
+  "tested_boundary": {
+    "from_version": "agentver.nacre.2.2",
+    "to_version": "agentver.nacre.2.3",
+    "outcome": "PARTIAL"
+  },
+  "known_confounds": [
+    "provider nondeterminism residual"
+  ],
+  "counterevidence_refs": [],
+  "simple_label": "2.3 partial / latency increased",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:aaa74c880516fc274352b3338ba5b446a597d140ef5d4c17e3d747987cc3026e"
+}

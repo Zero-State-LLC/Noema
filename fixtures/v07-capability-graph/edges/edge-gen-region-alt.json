@@ -1,0 +1,21 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.gen.region-alt",
+  "edge_type": "GENERALIZES_TO",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "context.region.alternate",
+  "target_class": "CONTEXT",
+  "evidence_refs": [
+    "examples/v05-compiler/captured-test.json"
+  ],
+  "claim_label": "OBSERVED",
+  "relationship_status": "SUPPORTED",
+  "tested_boundary": {
+    "context_id": "context.region.alternate"
+  },
+  "known_confounds": [],
+  "counterevidence_refs": [],
+  "simple_label": "alternate region",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:51a999a4f28ed74bd7c9235af17596b0bb59e07435a7d0666e7dfe3d7966d561"
+}
