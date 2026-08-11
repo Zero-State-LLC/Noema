@@ -1,0 +1,29 @@
+"""Minimal role model for Phase 1."""
+
+from __future__ import annotations
+
+from enum import Enum
+
+
+class Role(str, Enum):
+    ADMIN = "ADMIN"
+    PLAYER = "PLAYER"
+    AGENT = "AGENT"
+    SPECTATOR = "SPECTATOR"
+    RESEARCHER = "RESEARCHER"
+
+
+class Principal:
+    def __init__(self, principal_id: str, role: Role, agent_id: str | None = None):
+        self.principal_id = principal_id
+        self.role = role
+        self.agent_id = agent_id
+
+    def can_mutate_world(self) -> bool:
+        return self.role in (Role.PLAYER, Role.AGENT, Role.ADMIN)
+
+    def can_admin(self) -> bool:
+        return self.role == Role.ADMIN
+
+    def is_spectator(self) -> bool:
+        return self.role == Role.SPECTATOR

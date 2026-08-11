@@ -1,0 +1,104 @@
+"""Minimal stdlib HTTP gateway for Chamber MVP."""
+
+from __future__ import annotations
+
+import json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any, Callable
+from urllib.parse import urlparse
+
+from noema.actions.errors import ActionError
+from noema.app.runtime import NoemaRuntime
+from noema.auth.roles import Role
+from noema.protocol.agent_v1 import AgentProtocolV1
+
+
+def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
+    protocol = AgentProtocolV1(runtime)
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, fmt: str, *args: Any) -> None:  # quieter tests
+            pass
+
+        def _json(self, code: int, body: dict[str, Any]) -> None:
+            raw = json.dumps(body, sort_keys=True).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
+        def _read_json(self) -> dict[str, Any]:
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0:
+                return {}
+            data = self.rfile.read(length)
+            return json.loads(data.decode("utf-8") or "{}")
+
+        def do_GET(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            try:
+                if path == "/health":
+                    return self._json(200, runtime.health())
+                if path == "/ready":
+                    body = runtime.ready()
+                    return self._json(200 if body.get("ready") else 503, body)
+                if path == "/version":
+                    return self._json(200, runtime.version())
+                if path == "/watch/live":
+                    session_id = self.headers.get("X-Session-Id")
+                    if not session_id:
+                        # auto spectator session for MVP convenience
+                        session_id = runtime.create_session(role=Role.SPECTATOR)["session_id"]
+                    return self._json(200, runtime.watch_live(session_id))
+                return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
+            except ActionError as exc:
+                return self._json(400, {"error": exc.as_dict()})
+
+        def do_POST(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            try:
+                body = self._read_json()
+                if path == "/admin/start":
+                    seed = body.get("seed_path") or str(Path.cwd() / "fixtures" / "v01-seed" / "world-seed.json")
+                    result = runtime.start_world(seed)
+                    return self._json(200, result)
+                if path == "/session":
+                    role = Role(body.get("role") or "PLAYER")
+                    sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))
+                    return self._json(200, sess)
+                if path == "/play/action":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    result = runtime.apply_player_action(session_id, body.get("action") or body)
+                    return self._json(200, result)
+                if path == "/play/observe":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.observe(session_id, body.get("agent_id")))
+                if path == "/protocol/v1":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    # AUTH establishes session; others need header
+                    if body.get("type") == "AUTH":
+                        resp = protocol.handle(body)
+                        if resp.get("type") == "AUTH_ACK":
+                            session_id = resp.get("body", {}).get("session_id")
+                        return self._json(200, {**resp, "session_id": session_id})
+                    resp = protocol.handle(body, session_id=session_id)
+                    return self._json(200, resp)
+                return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
+            except ActionError as exc:
+                return self._json(400, {"error": exc.as_dict()})
+            except Exception as exc:  # pragma: no cover
+                return self._json(500, {"error": {"code": "INTERNAL", "message": str(exc)}})
+
+    return Handler
+
+
+def serve(runtime: NoemaRuntime, host: str = "127.0.0.1", port: int = 8080) -> ThreadingHTTPServer:
+    handler = make_handler(runtime)
+    httpd = ThreadingHTTPServer((host, port), handler)
+    return httpd

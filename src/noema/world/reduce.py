@@ -24,6 +24,36 @@ def _agent(state: WorldState, agent_id: str) -> dict[str, Any]:
     return state.active_agents[agent_id]
 
 
+def _holder_resource_slot(state: WorldState, holder_id: str, resource: str) -> tuple[dict[str, Any], str]:
+    """Return the mutable balance bucket and key for a holder.
+
+    Holders can be active agents or live entities. Agents use ``budgets`` with
+    per-resource keys. Entities store a resource bucket in ``state`` and often
+    use ``available`` for the active amount.
+    """
+
+    if holder_id in state.active_agents:
+        return state.active_agents[holder_id]["budgets"], ""
+
+    ent = state.entities.get(holder_id)
+    _require(ent is not None, f"holder missing: {holder_id}")
+    _require(ent.get("status", "LIVE") == "LIVE", f"holder inactive: {holder_id}")
+
+    props = ent.get("properties") or {}
+    state_bucket = ent.setdefault("state", {})
+
+    # Most entities in v0.1 use a single ``available`` slot, constrained by
+    # a declared resource kind in properties.
+    if "resource" in props:
+        _require(props.get("resource") == resource, f"holder resource mismatch: {holder_id}")
+        _require("available" in state_bucket, f"holder missing available: {holder_id}")
+        return state_bucket, "available"
+
+    # Fall back to a direct resource key for other entity shapes.
+    _require(resource in state_bucket, f"holder missing resource {resource}: {holder_id}")
+    return state_bucket, resource
+
+
 def _debit(budgets: dict[str, float], costs: dict[str, float]) -> None:
     for resource, amount in costs.items():
         avail = float(budgets.get(resource, 0))
@@ -270,12 +300,22 @@ def reduce_RESOURCE_TRANSFER(state: WorldState, event: dict[str, Any]) -> WorldS
     from_id = p["from_id"]
     to_id = p["to_id"]
     _require(from_id != to_id, "self-transfer")
-    _require(from_id in state.active_agents, "from inactive")
-    _require(to_id in state.active_agents, "to inactive")
     amount = float(p["amount"])
     resource = p["resource"]
-    src = state.active_agents[from_id]
-    dst = state.active_agents[to_id]
+
+    from_bucket, from_key = _holder_resource_slot(state, from_id, resource)
+    to_bucket, to_key = _holder_resource_slot(state, to_id, resource)
+
+    if from_key:
+        _require(from_key in from_bucket, "from missing resource")
+        src_avail = float(from_bucket[from_key])
+    else:
+        src_avail = float(from_bucket.get(resource, 0))
+
+    if to_key:
+        # to_bucket may be a fresh map, but recipient must support the resource.
+        _require(to_key in to_bucket or to_key == "", "to missing resource")
+
     trade_id = p.get("trade_id")
     if trade_id:
         trade = state.trades.get(trade_id)
@@ -288,12 +328,12 @@ def reduce_RESOURCE_TRANSFER(state: WorldState, event: dict[str, Any]) -> WorldS
             _require(reserved >= amount, "reservation insufficient")
             trade["reserved"][resource] = reserved - amount
             # reserved already debited at propose time — credit counterparty only
-            dst["budgets"][resource] = float(dst["budgets"].get(resource, 0)) + amount
+            to_bucket[to_key if to_key else resource] = float(to_bucket.get(to_key if to_key else resource, 0)) + amount
         else:
             # requested side: debit accepter free balance
-            _require(float(src["budgets"].get(resource, 0)) >= amount, "insufficient funds")
-            src["budgets"][resource] = float(src["budgets"][resource]) - amount
-            dst["budgets"][resource] = float(dst["budgets"].get(resource, 0)) + amount
+            _require(src_avail >= amount, "insufficient funds")
+            from_bucket[from_key if from_key else resource] = float(from_bucket.get(from_key if from_key else resource, 0)) - amount
+            to_bucket[to_key if to_key else resource] = float(to_bucket.get(to_key if to_key else resource, 0)) + amount
         # close trade when both sides settled (simple: after any pair of transfers leave status)
         if all(v <= 0 for v in (trade.get("reserved") or {}).values()):
             # still may need requested transfer; mark settled only if both directions done via audit count
@@ -302,9 +342,9 @@ def reduce_RESOURCE_TRANSFER(state: WorldState, event: dict[str, Any]) -> WorldS
             if trade["transfers"] >= 2:
                 trade["status"] = "SETTLED"
     else:
-        _require(float(src["budgets"].get(resource, 0)) >= amount, "insufficient funds")
-        src["budgets"][resource] = float(src["budgets"][resource]) - amount
-        dst["budgets"][resource] = float(dst["budgets"].get(resource, 0)) + amount
+        _require(src_avail >= amount, "insufficient funds")
+        from_bucket[from_key if from_key else resource] = float(from_bucket.get(from_key if from_key else resource, 0)) - amount
+        to_bucket[to_key if to_key else resource] = float(to_bucket.get(to_key if to_key else resource, 0)) + amount
     return state
 
 

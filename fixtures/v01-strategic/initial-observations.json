@@ -1,0 +1,12 @@
+[
+  {
+    "observation_id": "obs.strat.001",
+    "agent_id": "agent.nacre",
+    "summary": "Relay Quarter; relay-7 degraded; generator present"
+  },
+  {
+    "observation_id": "obs.strat.002",
+    "agent_id": "agent.quill",
+    "summary": "Archive ledger public excerpt; private annotations redacted"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "schema_version": "agent-manifest/1.0",
+    "agent_id": "agent.nacre",
+    "display_name": "envoy.nacre",
+    "owner_id": "user.strategic",
+    "protocol_version": "agent-protocol/v1"
+  },
+  {
+    "schema_version": "agent-manifest/1.0",
+    "agent_id": "agent.vesper",
+    "display_name": "technician.vesper",
+    "owner_id": "user.strategic",
+    "protocol_version": "agent-protocol/v1"
+  },
+  {
+    "schema_version": "agent-manifest/1.0",
+    "agent_id": "agent.helix",
+    "display_name": "broker.helix",
+    "owner_id": "user.strategic",
+    "protocol_version": "agent-protocol/v1"
+  },
+  {
+    "schema_version": "agent-manifest/1.0",
+    "agent_id": "agent.quill",
+    "display_name": "archivist.quill",
+    "owner_id": "user.strategic",
+    "protocol_version": "agent-protocol/v1"
+  }
+]

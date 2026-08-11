@@ -1,0 +1,50 @@
+{
+  "boundary_version": "equivalence-boundary/v1",
+  "profile": "noema-v0.1-strategic",
+  "exact_paths": [
+    "/active_agents",
+    "/organizations",
+    "/entities_present",
+    "/infrastructure",
+    "/resource_nodes",
+    "/cycle",
+    "/sequence",
+    "/event_count"
+  ],
+  "ignored_paths": [
+    "/runtime/host_pid",
+    "/runtime/wall_clock"
+  ],
+  "ordered_collection_paths": [
+    "/event_ledger"
+  ],
+  "unordered_collection_paths": [
+    {
+      "path": "/organizations/*/members",
+      "identity": "agent_id"
+    }
+  ],
+  "numeric_tolerances": {},
+  "semantic_predicates": [],
+  "observation_points": [
+    {
+      "cycle": 1,
+      "phase": "after-LOOK",
+      "agent_id": "agent.nacre",
+      "observation_id": "obs.strat.001"
+    },
+    {
+      "cycle": 1,
+      "phase": "after-INSPECT",
+      "agent_id": "agent.quill",
+      "observation_id": "obs.strat.002"
+    }
+  ],
+  "divergence_policy": "stop-first",
+  "claim_invalidation": "any-required-mismatch",
+  "required_comparisons": [
+    "identical ordered event digests",
+    "identical final canonical WorldState digest",
+    "identical observation digests at every declared focal-agent observation point"
+  ]
+}

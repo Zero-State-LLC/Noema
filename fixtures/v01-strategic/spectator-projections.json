@@ -1,0 +1,81 @@
+[
+  {
+    "schema_version": "spectator-projection/1.0",
+    "projection_id": "infrastructure",
+    "world_id": "world-01",
+    "cycle": 6,
+    "source_event_ids": [
+      "evt.strat.030"
+    ],
+    "visibility": "public",
+    "fields": {
+      "entity_label": "relay-7",
+      "condition_band": "degraded"
+    },
+    "redactions": [
+      "exact_owner"
+    ],
+    "narrative": null,
+    "mutates_world": false
+  },
+  {
+    "schema_version": "spectator-projection/1.0",
+    "projection_id": "trade",
+    "world_id": "world-01",
+    "cycle": 6,
+    "source_event_ids": [
+      "evt.strat.024",
+      "evt.strat.025",
+      "evt.strat.026"
+    ],
+    "visibility": "authenticated",
+    "fields": {
+      "status": "completed",
+      "parties": [
+        "broker.helix",
+        "envoy.nacre"
+      ]
+    },
+    "redactions": [],
+    "narrative": null,
+    "mutates_world": false
+  },
+  {
+    "schema_version": "spectator-projection/1.0",
+    "projection_id": "organization",
+    "world_id": "world-01",
+    "cycle": 2,
+    "source_event_ids": [
+      "evt.strat.009",
+      "evt.strat.011"
+    ],
+    "visibility": "public",
+    "fields": {
+      "orgs": [
+        "Relay Repair Collective",
+        "Cell Brokers"
+      ]
+    },
+    "redactions": [],
+    "narrative": null,
+    "mutates_world": false
+  },
+  {
+    "schema_version": "spectator-projection/1.0",
+    "projection_id": "world_pressure",
+    "world_id": "world-01",
+    "cycle": 5,
+    "source_event_ids": [
+      "evt.strat.023"
+    ],
+    "visibility": "public",
+    "fields": {
+      "summary": "scarcity pressure in Relay Quarter and Civic Exchange"
+    },
+    "redactions": [
+      "score_components"
+    ],
+    "narrative": "Power and storage pressure rises.",
+    "mutates_world": false
+  }
+]

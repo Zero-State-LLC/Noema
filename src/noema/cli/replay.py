@@ -56,6 +56,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"events: {result.event_count}")
         print(f"final_digest: {result.final_state_digest}")
         print(f"expected:     {result.expected_final_state_digest}")
+        if result.warnings:
+            print("warnings:")
+            for w in result.warnings:
+                print(f"  - {w}")
         if result.divergences:
             print("divergences:")
             for d in result.divergences:

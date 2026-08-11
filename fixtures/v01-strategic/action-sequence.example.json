@@ -1,0 +1,92 @@
+{
+  "schema_version": "action-sequence-example/1.0",
+  "note": "Example trajectory of actions; not a single normative strategy",
+  "steps": [
+    {
+      "agent_id": "agent.nacre",
+      "verb": "LOOK",
+      "client_action_sequence": 1,
+      "action_priority": 30
+    },
+    {
+      "agent_id": "agent.quill",
+      "verb": "INSPECT",
+      "target": "entity.archive-ledger-obsolescing",
+      "client_action_sequence": 1,
+      "action_priority": 30
+    },
+    {
+      "agent_id": "agent.nacre",
+      "verb": "COMMIT",
+      "parameters": {
+        "operation": "ORG_CREATE"
+      },
+      "client_action_sequence": 2,
+      "action_priority": 60
+    },
+    {
+      "agent_id": "agent.helix",
+      "verb": "COMMIT",
+      "parameters": {
+        "operation": "ORG_CREATE"
+      },
+      "client_action_sequence": 1,
+      "action_priority": 60
+    },
+    {
+      "agent_id": "agent.vesper",
+      "verb": "MOVE",
+      "target": "DOWN",
+      "client_action_sequence": 1,
+      "action_priority": 20
+    },
+    {
+      "agent_id": "agent.vesper",
+      "verb": "COMMIT",
+      "parameters": {
+        "operation": "HARVEST"
+      },
+      "client_action_sequence": 2,
+      "action_priority": 70
+    },
+    {
+      "agent_id": "agent.helix",
+      "verb": "COMMIT",
+      "parameters": {
+        "operation": "HARVEST"
+      },
+      "client_action_sequence": 2,
+      "action_priority": 70
+    },
+    {
+      "agent_id": "agent.helix",
+      "verb": "TRADE",
+      "parameters": {
+        "phase": "propose"
+      },
+      "client_action_sequence": 3,
+      "action_priority": 50
+    },
+    {
+      "agent_id": "agent.nacre",
+      "verb": "TRADE",
+      "parameters": {
+        "phase": "accept"
+      },
+      "client_action_sequence": 3,
+      "action_priority": 50
+    },
+    {
+      "agent_id": "agent.nacre",
+      "verb": "COMMIT",
+      "parameters": {
+        "operation": "REPAIR",
+        "entity_id": "entity.relay-7"
+      },
+      "client_action_sequence": 4,
+      "action_priority": 70
+    }
+  ],
+  "alternative_strategy_note": "Agents MAY harvest only, repair only, or refuse trade; fixtures do not score strategies",
+  "ordering_note": "Frozen-cycle canonical order is (action_priority, agent_id, client_action_sequence, action_id); action_priority is server-assigned world-rules metadata."
+}
