@@ -1,0 +1,23 @@
+{
+  "schema_version": "frontier-plan/0.2",
+  "plan_id": "fdplan.v02.empty",
+  "request_id": "fdrq.v02.001",
+  "input_digests": {
+    "request": "sha256:1ee255ff3c040d4e034daa3daca872a1dbcb8bb13127a9d09ff8eb07e18a38b5",
+    "config": "sha256:8ceb65463914f92a3425aa04280971018a26fabfdf1df21d1a3f3f03d3ca2283"
+  },
+  "selected_candidates": [],
+  "expected_information_gain": {
+    "claim_label": "NOT_COMPUTABLE"
+  },
+  "claim_label": "NOT_COMPUTABLE",
+  "budgets_reserved": {
+    "candidates": 1
+  },
+  "anti_repetition_constraints": {
+    "solved_distance": 50,
+    "pairwise_diversity_min": 120
+  },
+  "stop_reason": "no-safe-candidate",
+  "director_version": "frontier-director/0.2"
+}

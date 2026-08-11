@@ -62,6 +62,26 @@ class WorldStore:
               epoch INTEGER NOT NULL DEFAULT 1,
               data_json TEXT NOT NULL
             );
+            -- Research indexes (rebuildable; not world truth)
+            CREATE TABLE IF NOT EXISTS research_trajectories (
+              trajectory_id TEXT PRIMARY KEY,
+              world_id TEXT NOT NULL,
+              from_cycle INTEGER NOT NULL,
+              to_cycle INTEGER NOT NULL,
+              content_digest TEXT NOT NULL,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_frontier_audit (
+              digest TEXT PRIMARY KEY,
+              request_id TEXT NOT NULL,
+              record_index INTEGER NOT NULL,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_frontier_plans (
+              plan_id TEXT PRIMARY KEY,
+              request_id TEXT NOT NULL,
+              plan_json TEXT NOT NULL
+            );
             """
         )
         self._conn.commit()
@@ -260,6 +280,88 @@ class WorldStore:
                     problems.append("ledger head does not match last event digest")
         return problems
 
+    # --- Research indexes (disposable; rebuildable from ledger) ---
+
+    def save_trajectory(self, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_trajectories(
+                  trajectory_id, world_id, from_cycle, to_cycle, content_digest, record_json
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record["trajectory_id"],
+                    record["world_id"],
+                    int(record["from_cycle"]),
+                    int(record["to_cycle"]),
+                    record.get("content_digest") or "",
+                    json.dumps(record, sort_keys=True),
+                ),
+            )
+            self._conn.commit()
+
+    def list_trajectories(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT record_json FROM research_trajectories ORDER BY from_cycle, to_cycle"
+            ).fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
+
+    def clear_research_indexes(self) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM research_trajectories")
+            self._conn.execute("DELETE FROM research_frontier_audit")
+            self._conn.execute("DELETE FROM research_frontier_plans")
+            self._conn.commit()
+
+    def save_frontier_plan(self, plan: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_frontier_plans(plan_id, request_id, plan_json)
+                VALUES (?, ?, ?)
+                """,
+                (plan.get("plan_id") or "", plan.get("request_id") or "", json.dumps(plan, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_frontier_audit(self, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_frontier_audit(digest, request_id, record_index, record_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    record.get("digest") or "",
+                    record.get("request_id") or "",
+                    int(record.get("record_index") or 0),
+                    json.dumps(record, sort_keys=True),
+                ),
+            )
+            self._conn.commit()
+
+    def list_frontier_audit(self, request_id: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            if request_id:
+                rows = self._conn.execute(
+                    "SELECT record_json FROM research_frontier_audit WHERE request_id=? ORDER BY record_index",
+                    (request_id,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT record_json FROM research_frontier_audit ORDER BY request_id, record_index"
+                ).fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
+
+    def get_frontier_audit(self, digest: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT record_json FROM research_frontier_audit WHERE digest=?", (digest,)
+            ).fetchone()
+            return json.loads(row["record_json"]) if row else None
+
     def _set_meta(self, key: str, value: str, cur: sqlite3.Cursor | None = None) -> None:
         c = cur or self._conn.cursor()
         c.execute(
@@ -287,6 +389,7 @@ class WorldStore:
             "pending_observations": state.pending_observations,
             "observation_digests": state.observation_digests,
             "destroyed_entities": state.destroyed_entities,
+            "situations": state.situations,
             "last_event_digest": state.last_event_digest,
             "event_count": state.event_count,
         }

@@ -1,0 +1,55 @@
+{
+  "schema_version": "frontier-request/0.2",
+  "request_id": "fdrq.v02.001",
+  "decision_cycle": 10,
+  "director_version": "frontier-director/0.2",
+  "world_version": "world/v1",
+  "capability_snapshot": {
+    "primitives": [
+      "EPISTEMIC_RESTRAINT",
+      "CAUSAL_INFERENCE"
+    ],
+    "uncertain_regions": [
+      "dual-signal-shortage"
+    ],
+    "evidence_complete": false
+  },
+  "trajectory_window": {
+    "recent_success_digests": [],
+    "recent_failure_digests": [],
+    "attempted_situation_digests": []
+  },
+  "targets": [
+    {
+      "capability_id": "EPISTEMIC_RESTRAINT",
+      "priority_weight": 700
+    },
+    {
+      "capability_id": "CAUSAL_INFERENCE",
+      "priority_weight": 500
+    }
+  ],
+  "novelty_axes_version": "novelty-axes/0.2",
+  "candidate_sources": [
+    {
+      "template_id": "template.strategic-baseline",
+      "digest": "sha256:11c4efb6d5178a60ce2399160d6381501f7e473db3711f5a0ffc9aa552605db4"
+    }
+  ],
+  "budgets": {
+    "max_candidates": 32,
+    "max_select": 1,
+    "max_risk_class": 3,
+    "max_cost_millipoints": 800
+  },
+  "safety_rules": {
+    "sandbox": "strict",
+    "no_truth_rewrite": true
+  },
+  "research_constraints": {
+    "consent_required": true,
+    "public_dataset_opt_in": false
+  },
+  "seed": "noema-frontier-v02-seed",
+  "seed_digest": "sha256:d2c9aea8665ae8cfc65f820aad1c535f5d61e7e1c9aadc380a4870e43f6c9810"
+}

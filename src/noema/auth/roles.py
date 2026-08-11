@@ -27,3 +27,10 @@ class Principal:
 
     def is_spectator(self) -> bool:
         return self.role == Role.SPECTATOR
+
+    def can_operate_frontier(self) -> bool:
+        """Frontier is a system/research function — not PLAYER/AGENT play surface."""
+        return self.role in (Role.ADMIN, Role.RESEARCHER)
+
+    def can_view_research_overlay(self) -> bool:
+        return self.role in (Role.ADMIN, Role.RESEARCHER)

@@ -52,6 +52,22 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         # auto spectator session for MVP convenience
                         session_id = runtime.create_session(role=Role.SPECTATOR)["session_id"]
                     return self._json(200, runtime.watch_live(session_id))
+                if path.startswith("/research/frontier/audit/"):
+                    session_id = self.headers.get("X-Session-Id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    audit_id = path.rsplit("/", 1)[-1]
+                    rec = runtime.get_frontier_audit(audit_id)
+                    if not rec:
+                        return self._json(404, {"error": {"code": "NOT_FOUND", "message": audit_id}})
+                    # permission check via research_view gate
+                    runtime.research_view(session_id)
+                    return self._json(200, rec)
+                if path == "/research/view":
+                    session_id = self.headers.get("X-Session-Id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.research_view(session_id))
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})
@@ -89,11 +105,26 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         return self._json(200, {**resp, "session_id": session_id})
                     resp = protocol.handle(body, session_id=session_id)
                     return self._json(200, resp)
+                if path == "/research/frontier/run":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    templates = body.get("templates") or {}
+                    result = runtime.run_frontier(
+                        session_id,
+                        body.get("request") or body,
+                        templates,
+                        inject=bool(body.get("inject")),
+                        explicit_mutation_plans=body.get("explicit_mutation_plans"),
+                        follow_on=body.get("follow_on"),
+                    )
+                    return self._json(200, result)
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})
             except Exception as exc:  # pragma: no cover
-                return self._json(500, {"error": {"code": "INTERNAL", "message": str(exc)}})
+                return self._json(500, {"error": {"code": "INTERNAL", "message": str(type(exc).__name__)}})
+
 
     return Handler
 

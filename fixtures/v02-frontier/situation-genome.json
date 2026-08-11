@@ -1,0 +1,136 @@
+{
+  "schema_version": "situation-genome/0.2",
+  "genome_id": "genome.frontier.scarcity-conflict.1",
+  "genome_version": "1",
+  "parent_genome_id": "genome.template.strategic-baseline",
+  "world_rules_version": "world/v1",
+  "template_id": "template.strategic-baseline",
+  "mutation_lineage": [
+    {
+      "operator_id": "MUT_RESOURCE_SCARCITY",
+      "params": {
+        "intensity_millipoints": 700
+      }
+    },
+    {
+      "operator_id": "MUT_FALSE_SIGNAL",
+      "params": {
+        "intensity_millipoints": 500
+      }
+    },
+    {
+      "operator_id": "MUT_COMMUNICATION_TOPOLOGY",
+      "params": {
+        "intensity_millipoints": 400
+      }
+    },
+    {
+      "operator_id": "MUT_INFRA_CONDITION",
+      "params": {
+        "intensity_millipoints": 600
+      }
+    }
+  ],
+  "affected_rooms": [
+    "room.relay-quarter",
+    "room.civic-exchange",
+    "room.infrastructure-vault"
+  ],
+  "affected_entities": [
+    "entity.relay-7",
+    "entity.storage-cell-cache",
+    "entity.vault-production-node"
+  ],
+  "participants": {
+    "eligible_agent_ids": [
+      "agent.nacre",
+      "agent.vesper",
+      "agent.helix",
+      "agent.quill"
+    ],
+    "asymmetric_private_evidence": [
+      "agent.quill"
+    ]
+  },
+  "resource_conditions": {
+    "storage_node_available_target": 2,
+    "production_modifier_pressure": 700
+  },
+  "information_distribution": {
+    "public": [
+      "relay_degraded_band"
+    ],
+    "private_to": {
+      "agent.quill": [
+        "archive_excerpt_conflicting"
+      ]
+    }
+  },
+  "social_topology": "two-org-rivalry-with-broker",
+  "temporal_structure": {
+    "duration_cycles": 8,
+    "decision_deadline_cycle_offset": 5
+  },
+  "goal_structure": {
+    "world_incentives": [
+      "stabilize_power",
+      "control_storage_trade"
+    ],
+    "no_scripted_agent_actions": true
+  },
+  "constraints": [
+    "no_forced_capability_outcome",
+    "sandbox_strict"
+  ],
+  "noise_model": {
+    "version": "noise-model/0.2",
+    "default": "quantization"
+  },
+  "contradictory_evidence": {
+    "contradiction_set_id": "cset.v02.001"
+  },
+  "tool_availability": [
+    "LOOK",
+    "MOVE",
+    "INSPECT",
+    "MESSAGE",
+    "TRADE",
+    "COMMIT",
+    "WAIT"
+  ],
+  "risk_class": 2,
+  "control_role": "none",
+  "novelty_vector": {
+    "semantic": 420,
+    "causal": 710,
+    "social_topology": 550,
+    "temporal": 380,
+    "tool": 200,
+    "epistemic": 820,
+    "goal_structure": 640,
+    "resource": 750,
+    "constraint": 300
+  },
+  "seed_streams": {
+    "frontier": "frontier.seed.v02",
+    "noise": "noise.seed.v02"
+  },
+  "visibility_policy": {
+    "player_forbidden": [
+      "target_capabilities",
+      "novelty_vector",
+      "control_role",
+      "selection_rationale"
+    ],
+    "research_overlay_allowed": true
+  },
+  "duration_cycles": 8,
+  "termination": {
+    "type": "cycle_elapsed_or_natural"
+  },
+  "provenance": {
+    "created_for": "v02-frontier-fixture",
+    "baseline": "examples/v01-strategic"
+  },
+  "content_digest": "sha256:20b858acd459a45a298ef7fe43bfa63d17dd4b136b8e530d092b6a59f0b2d2c2"
+}

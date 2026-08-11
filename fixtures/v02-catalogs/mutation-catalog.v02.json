@@ -1,0 +1,390 @@
+{
+  "schema_version": "mutation-catalog/0.2",
+  "operators": [
+    {
+      "operator_id": "MUT_RESOURCE_SCARCITY",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "resource_conditions",
+        "affected_entities"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_RESOURCE_SCARCITY with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "resource"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_RESOURCE_DISTRIBUTION",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "resource_conditions"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_RESOURCE_DISTRIBUTION with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "resource",
+        "social_topology"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_INFORMATION_VISIBILITY",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "information_distribution",
+        "visibility_policy"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_INFORMATION_VISIBILITY with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "epistemic"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_FALSE_SIGNAL",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "contradictory_evidence"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_FALSE_SIGNAL with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "epistemic",
+        "semantic"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_COMMUNICATION_TOPOLOGY",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "affected_entities",
+        "social_topology"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_COMMUNICATION_TOPOLOGY with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "social_topology",
+        "tool"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_ORG_RELATION",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "participants",
+        "social_topology"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_ORG_RELATION with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "social_topology",
+        "goal_structure"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_TIME_PRESSURE",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "temporal_structure"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_TIME_PRESSURE with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "temporal"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_TOOL_AVAILABILITY",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "tool_availability"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_TOOL_AVAILABILITY with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "tool"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_INFRA_CONDITION",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "affected_entities",
+        "resource_conditions"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_INFRA_CONDITION with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "resource",
+        "constraint"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_GOAL_CONFLICT",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "goal_structure"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_GOAL_CONFLICT with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "goal_structure",
+        "social_topology"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    },
+    {
+      "operator_id": "MUT_PARTICIPANT_TOPOLOGY",
+      "version": "mutation-catalog/0.2",
+      "allowed_paths": [
+        "participants"
+      ],
+      "preconditions": [
+        "parent_genome_valid"
+      ],
+      "parameter_domain": {
+        "intensity_millipoints": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "canonical_parameter_order": [
+        "intensity_millipoints"
+      ],
+      "mutation": "apply MUT_PARTICIPANT_TOPOLOGY with intensity to allowed paths",
+      "forbidden_paths": [
+        "research_labels",
+        "evidence",
+        "history",
+        "private_cognition",
+        "claim_labels"
+      ],
+      "risk_effect": 1,
+      "novelty_axes_affected": [
+        "social_topology"
+      ],
+      "inverse_or_restore_rule": "none_in_v02_emit_new_genome",
+      "replay_rule": "same_parent_digest+params+seed => same_child_digest"
+    }
+  ]
+}

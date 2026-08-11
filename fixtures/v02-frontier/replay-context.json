@@ -1,0 +1,25 @@
+{
+  "schema_version": "frontier-replay-context/0.2",
+  "request_id": "fdrq.v02.001",
+  "director_version": "frontier-director/0.2",
+  "novelty_axes_version": "novelty-axes/0.2",
+  "mutation_catalog_version": "mutation-catalog/0.2",
+  "noise_model_version": "noise-model/0.2",
+  "seed_digest": "sha256:d2c9aea8665ae8cfc65f820aad1c535f5d61e7e1c9aadc380a4870e43f6c9810",
+  "input_digests": {
+    "request": "sha256:1ee255ff3c040d4e034daa3daca872a1dbcb8bb13127a9d09ff8eb07e18a38b5",
+    "config": "sha256:8ceb65463914f92a3425aa04280971018a26fabfdf1df21d1a3f3f03d3ca2283"
+  },
+  "selected_situation_digests": [
+    "sha256:20b858acd459a45a298ef7fe43bfa63d17dd4b136b8e530d092b6a59f0b2d2c2"
+  ],
+  "equivalence_boundary": {
+    "decision_equivalent_fields": [
+      "candidate_digest_set",
+      "dispositions",
+      "scores",
+      "selected_order",
+      "stop_reason"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": "spectator-projection/1.0",
+  "projection_id": "world_pressure",
+  "world_id": "world-01",
+  "cycle": 10,
+  "source_event_ids": [
+    "evt.frontier.v02.001",
+    "evt.frontier.v02.002"
+  ],
+  "visibility": "public",
+  "fields": {
+    "summary": "Power and storage pressure rises in Relay Quarter",
+    "must_not_include": [
+      "target_capabilities",
+      "novelty_vector",
+      "selection_rationale"
+    ]
+  },
+  "redactions": [
+    "research_targets"
+  ],
+  "narrative": "The relay falters; rumors circulate in the Exchange.",
+  "mutates_world": false
+}

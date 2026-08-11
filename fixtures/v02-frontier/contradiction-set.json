@@ -1,0 +1,24 @@
+{
+  "schema_version": "contradiction-set/0.2",
+  "contradiction_set_id": "cset.v02.001",
+  "member_refs": [
+    "obs.v02.public-relay",
+    "obs.v02.private-archive",
+    "msg.v02.rumor"
+  ],
+  "source_identities": [
+    "public_board",
+    "archive",
+    "agent.helix"
+  ],
+  "known_truth_relationship": {
+    "matches_world_truth": [
+      "obs.v02.public-relay"
+    ],
+    "claim_label": "INFERRED",
+    "note": "research partition only"
+  },
+  "agent_visible_relationship": "unresolved_conflict",
+  "research_visible_relationship": "public_board_aligns_with_infra_state",
+  "resolution_status": "open"
+}

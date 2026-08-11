@@ -100,6 +100,16 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
         {"room_id": rid, "name": r.get("name"), "entity_count": len(r.get("entity_ids") or [])}
         for rid, r in list(state.rooms.items())[:limit]
     ]
+    # Public situations: existence/pressure only — no research targeting metadata
+    public_situations = []
+    for sid, sit in (state.situations or {}).items():
+        public_situations.append(
+            {
+                "situation_id": sid,
+                "status": sit.get("status"),
+                "target_room_ids": list(sit.get("target_room_ids") or []),
+            }
+        )
     return {
         "surface": "LIVE",
         "world_id": state.world_id,
@@ -109,5 +119,7 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
         "agents": agents,
         "organizations": orgs,
         "rooms": rooms,
+        "world_pressures": public_situations,
         "read_only": True,
     }
+

@@ -1,0 +1,24 @@
+{
+  "schema_version": "world-event/1.0",
+  "event_id": "evt.frontier.v02.002",
+  "event_type": "ENTITY_UPDATE",
+  "world_id": "world-01",
+  "cycle": 10,
+  "sequence": 101,
+  "occurred_at": "2026-08-10T18:00:01Z",
+  "actor_id": "system",
+  "payload": {
+    "entity_id": "entity.relay-7",
+    "set": {
+      "state.condition": 28,
+      "state.responding": false
+    },
+    "unset": []
+  },
+  "provenance": {
+    "source": "v02-frontier",
+    "caused_by_situation": "sit.frontier.v02.001"
+  },
+  "previous_digest": "sha256:32c8b64fc430e52e241625574f56585a4d162c78c6d5d716d9e08858dece1790",
+  "digest": "sha256:118632417150591f4902c0eb5b35d760a2b67ed2bb0a80dc9a25e0f59fb470b8"
+}

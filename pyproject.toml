@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.1.0"
-description = "NOEMA World Engine runtime — v0.1 The Chamber (Phase 1 MVP)"
+version = "0.2.0a1"
+description = "NOEMA World Engine runtime — Chamber + Phase 2A Frontier research spine"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "LicenseRef-Zero-State-Proprietary" }

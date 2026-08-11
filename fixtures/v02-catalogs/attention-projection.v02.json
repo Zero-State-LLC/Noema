@@ -1,0 +1,28 @@
+{
+  "schema_version": "attention-projection/0.2",
+  "threshold_full": 6,
+  "threshold_reduced": 3,
+  "threshold_minimal": 1,
+  "look_cost": 1,
+  "inspect_cost": 2,
+  "reduced_look_fields": [
+    "room_id",
+    "name",
+    "exits.direction",
+    "co_located_display_names"
+  ],
+  "reduced_inspect_fields": [
+    "entity_id",
+    "label",
+    "entity_type",
+    "condition_band"
+  ],
+  "minimal_look_fields": [
+    "room_id",
+    "name"
+  ],
+  "minimal_inspect_fields": [
+    "entity_id",
+    "label"
+  ]
+}

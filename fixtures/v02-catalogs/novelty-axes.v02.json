@@ -1,0 +1,154 @@
+{
+  "schema_version": "novelty-axes/0.2",
+  "scale": "millipoints",
+  "min": 0,
+  "max": 1000,
+  "solved_distance": 50,
+  "pairwise_diversity_min": 120,
+  "axes": [
+    {
+      "axis_id": "semantic",
+      "meaning": "domain/content framing difference",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high semantic novelty"
+      ],
+      "counterexamples": [
+        "identical semantic signature"
+      ]
+    },
+    {
+      "axis_id": "causal",
+      "meaning": "causal mechanism difference",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high causal novelty"
+      ],
+      "counterexamples": [
+        "identical causal signature"
+      ]
+    },
+    {
+      "axis_id": "social_topology",
+      "meaning": "network structure difference",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high social_topology novelty"
+      ],
+      "counterexamples": [
+        "identical social_topology signature"
+      ]
+    },
+    {
+      "axis_id": "temporal",
+      "meaning": "timing/deadline structure",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high temporal novelty"
+      ],
+      "counterexamples": [
+        "identical temporal signature"
+      ]
+    },
+    {
+      "axis_id": "tool",
+      "meaning": "tool/verb availability difference",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high tool novelty"
+      ],
+      "counterexamples": [
+        "identical tool signature"
+      ]
+    },
+    {
+      "axis_id": "epistemic",
+      "meaning": "information completeness/noise/contradiction",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high epistemic novelty"
+      ],
+      "counterexamples": [
+        "identical epistemic signature"
+      ]
+    },
+    {
+      "axis_id": "goal_structure",
+      "meaning": "incentive/goal conflict structure",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high goal_structure novelty"
+      ],
+      "counterexamples": [
+        "identical goal_structure signature"
+      ]
+    },
+    {
+      "axis_id": "resource",
+      "meaning": "scarcity/distribution pattern",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high resource novelty"
+      ],
+      "counterexamples": [
+        "identical resource signature"
+      ]
+    },
+    {
+      "axis_id": "constraint",
+      "meaning": "hard constraints/containment",
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "distance_rule": "abs_diff_millipoints",
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "maximum_contribution": 1000,
+      "weight": 1,
+      "examples": [
+        "high constraint novelty"
+      ],
+      "counterexamples": [
+        "identical constraint signature"
+      ]
+    }
+  ]
+}
