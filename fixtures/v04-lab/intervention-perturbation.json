@@ -1,0 +1,31 @@
+{
+  "schema_version": "intervention/0.4",
+  "intervention_id": "int.perturb-noise-1",
+  "type": "PERTURBATION",
+  "target": {
+    "kind": "VARIABLE",
+    "id": "observation.noise.level"
+  },
+  "application_point": "BEFORE_OBSERVATION",
+  "before_reference": 100,
+  "after_reference": 400,
+  "scope": "RUN",
+  "duration": {
+    "kind": "CYCLES",
+    "cycles": 5
+  },
+  "restore_rule": "AUTO_ON_RUN_END",
+  "seed_policy": "SAME_SEED",
+  "expected_mechanical_effect": "Raise observation noise millipoints 100 to 400",
+  "forbidden_side_effects": [
+    "PRODUCTION_WORLD_MUTATION",
+    "LEDGER_APPEND_TO_SOURCE"
+  ],
+  "authorization": {
+    "authorized_by": "system.lab"
+  },
+  "digest": "sha256:1ac5c34d5994f07b8e95b4ee2f837fd96b439808fdcd82fba56a6ca58fb68091",
+  "catalog_entry_id": "OBSERVATION_NOISE",
+  "target_version": "1.0",
+  "authorization_class": "WORLD_SAFE"
+}

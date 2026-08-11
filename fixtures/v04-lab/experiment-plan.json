@@ -1,0 +1,107 @@
+{
+  "schema_version": "experiment-plan/0.4",
+  "plan_id": "plan.tool-ablation-1",
+  "experiment_id": "exp.tool-ablation-1",
+  "runs": [
+    {
+      "run_id": "run.baseline.1",
+      "run_role": "BASELINE",
+      "order": 0
+    },
+    {
+      "run_id": "run.sham.1",
+      "run_role": "SHAM_CONTROL",
+      "order": 1,
+      "depends_on": [
+        "run.baseline.1"
+      ]
+    },
+    {
+      "run_id": "run.intervention.1",
+      "run_role": "INTERVENTION",
+      "order": 2,
+      "depends_on": [
+        "run.baseline.1"
+      ]
+    },
+    {
+      "run_id": "run.replication.1",
+      "run_role": "REPLICATION",
+      "order": 3,
+      "depends_on": [
+        "run.intervention.1"
+      ]
+    }
+  ],
+  "analysis": {
+    "comparison_rule": "compare intervention tool_usage mean vs baseline mean",
+    "stopping_rule": "fixed 4 runs",
+    "required_controls_pass": true
+  },
+  "plan_digest": "sha256:18db6a66b73e1e7f0489699ec5ec0a015e3029d176c23be3dda3984c2fbe7fb6",
+  "nodes": [
+    {
+      "node_id": "node.baseline",
+      "node_type": "BASELINE",
+      "run_id": "run.baseline.1",
+      "run_role": "BASELINE",
+      "order": 0,
+      "depends_on": []
+    },
+    {
+      "node_id": "node.sham",
+      "node_type": "CONTROL",
+      "run_id": "run.sham.1",
+      "run_role": "SHAM_CONTROL",
+      "order": 1,
+      "depends_on": [
+        "node.baseline"
+      ]
+    },
+    {
+      "node_id": "node.ablation",
+      "node_type": "INTERVENTION",
+      "run_id": "run.intervention.1",
+      "run_role": "INTERVENTION",
+      "order": 2,
+      "depends_on": [
+        "node.baseline",
+        "node.sham"
+      ]
+    },
+    {
+      "node_id": "node.replication",
+      "node_type": "REPLICATION",
+      "run_id": "run.replication.1",
+      "run_role": "REPLICATION",
+      "order": 3,
+      "depends_on": [
+        "node.ablation"
+      ]
+    },
+    {
+      "node_id": "node.version-differential",
+      "node_type": "REPLICATION",
+      "run_id": "run.version-differential.1",
+      "run_role": "REPLICATION",
+      "order": 4,
+      "depends_on": [
+        "node.ablation"
+      ]
+    },
+    {
+      "node_id": "node.analysis",
+      "node_type": "ANALYSIS",
+      "run_id": "run.analysis.1",
+      "order": 5,
+      "depends_on": [
+        "node.baseline",
+        "node.sham",
+        "node.ablation",
+        "node.replication",
+        "node.version-differential"
+      ]
+    }
+  ],
+  "max_concurrent_runs": 1
+}

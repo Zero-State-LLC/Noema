@@ -1,0 +1,18 @@
+{
+  "schema_version": "lab-audit/0.4",
+  "audit_id": "laudit.1",
+  "experiment_id": "exp.tool-ablation-1",
+  "event_kind": "RESULT_CLASSIFICATION",
+  "previous_state": "RUNNING",
+  "new_state": "COMPLETE",
+  "reason_code": "ALL_RUNS_FINISHED",
+  "actor": "system.lab",
+  "evidence_refs": [
+    "labres.tool-ablation-1"
+  ],
+  "cycle": 12,
+  "occurred_at": "2026-08-10T18:00:00Z",
+  "previous_digest": null,
+  "digest": "sha256:4268f7be0ef59c8ba5709954d3463ee90884279af4e330674c1c357bb1b40688",
+  "actor_or_system": "system.lab"
+}

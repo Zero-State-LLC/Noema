@@ -1,0 +1,21 @@
+{
+  "counterfactual_id": "cf.contradictory-report-remove-one",
+  "source_trajectory_id": "traj.v03.nacre.001",
+  "fork_point": "AFTER_OBSERVATION",
+  "changed_variables": [
+    {
+      "variable_id": "information.visibility",
+      "before_value_or_ref": "reports/contradictory-two",
+      "after_value_or_ref": "reports/contradictory-one"
+    }
+  ],
+  "held_constant_variables": [
+    "world.resource_level",
+    "protocol.agent_version",
+    "observation.noise"
+  ],
+  "seed_policy": "SAME_SEED",
+  "agent_version": "agentver.nacre.1",
+  "world_version": "world/v1",
+  "equivalence_boundary": "equivalence-boundary/v1"
+}

@@ -1,0 +1,109 @@
+{
+  "schema_version": "experiment/0.4",
+  "experiment_id": "exp.tool-ablation-1",
+  "experiment_version": "0.4.0",
+  "experiment_design_version": "experiment-design/0.4",
+  "identity": {
+    "source_candidate_ids": [
+      "cand.cap.tool-use-1"
+    ],
+    "source_trajectory_ids": [
+      "traj.world-01.agent.nacre.1"
+    ],
+    "world_version": "world/v1",
+    "world_rules_version": "world/v1",
+    "event_catalog_version": "event-catalog/0.1",
+    "agent_id": "agent.nacre",
+    "agent_version": "agent.nacre@1.2.0",
+    "fork_point": "CYCLE_BOUNDARY",
+    "intervention_set_digest": "sha256:1fae34c27f77460d9f46556707496ba77519f375dc31d3da881a0a6a66b6a879",
+    "control_set_digest": "sha256:ab399b5d2b73dbbbccf96d799aab9559e5b176fa172e6af76d78934290c2aba0",
+    "metric_versions": {
+      "behavior-features": "behavior-features/0.3"
+    },
+    "feature_catalog_version": "behavior-features/0.3",
+    "seed_policy": "SAME_SEED",
+    "equivalence_boundary_version": "equivalence-boundary/v1",
+    "consent_basis": "research-export-consent.agent.nacre",
+    "research_policy_version": "claims-policy/0.1",
+    "input_digest": "sha256:6efa883bc2fd40c22c657701f3c54dae390b9475c463bb43b1ab068754738ac6"
+  },
+  "hypothesis": {
+    "natural_language": "If browser tool access is removed, tool-use features degrade.",
+    "machine": {
+      "predicted_outcome_class": "DEGRADED",
+      "predicted_feature_deltas": {
+        "tool_usage": -200
+      }
+    }
+  },
+  "question": "Does the observed tool-mediated behavior persist when tool.browser is ablated?",
+  "independent_variables": [],
+  "dependent_measures": [
+    {
+      "measure_id": "m.tool_usage",
+      "feature_id": "tool_usage",
+      "feature_version": "behavior-features/0.3",
+      "window": {
+        "type": "cycles",
+        "length": 10
+      },
+      "aggregation": "MEAN",
+      "comparison_rule": "DELTA"
+    }
+  ],
+  "controlled_variables": [
+    "world.infra.condition",
+    "protocol.agent_version"
+  ],
+  "interventions": [
+    "int.ablate-tool-1"
+  ],
+  "controls": [
+    "ctrl.baseline-1",
+    "ctrl.sham-1"
+  ],
+  "runs": [
+    "run.baseline.1",
+    "run.sham.1",
+    "run.intervention.1",
+    "run.replication.1"
+  ],
+  "replication": {
+    "classes": [
+      "EXACT_REPLAY",
+      "SAME_AGENT_VERSION"
+    ],
+    "min_runs": 2
+  },
+  "success_criteria": {
+    "rule": "DEGRADED_OR_DISAPPEARED_WITH_CONTROLS_PASS"
+  },
+  "failure_criteria": {
+    "required_control_fail": "INVALID"
+  },
+  "equivalence_boundary": {
+    "exact_paths": [
+      "agents.budgets",
+      "tools.available"
+    ],
+    "ignored_paths": [
+      "occurred_at"
+    ]
+  },
+  "confounds": [
+    "provider nondeterminism",
+    "memory drift"
+  ],
+  "authorization": {
+    "authorized_by": "system.lab",
+    "mode": "EXPERIMENTAL_FORK_ONLY"
+  },
+  "consent_basis": "research-export-consent.agent.nacre",
+  "status": "COMPLETE",
+  "interpretation": "SUPPORTED",
+  "provenance": {
+    "created_from": "observatory.cand.cap.tool-use-1"
+  },
+  "input_digest": "sha256:6efa883bc2fd40c22c657701f3c54dae390b9475c463bb43b1ab068754738ac6"
+}

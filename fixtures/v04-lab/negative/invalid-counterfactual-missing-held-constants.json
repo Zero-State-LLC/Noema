@@ -1,0 +1,7 @@
+{
+  "counterfactual_id": "cf.invalid",
+  "source_trajectory_id": "traj.world-01.agent.nacre.1",
+  "fork_point": "AFTER_OBSERVATION",
+  "changed_variables": [],
+  "seed_policy": "SAME_SEED"
+}

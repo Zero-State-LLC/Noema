@@ -28,6 +28,7 @@ from noema.research.errors import (
 from noema.research.frontier.director import FrontierDirector, FrontierResult
 from noema.research.frontier.injection import build_follow_on_entity_update, build_situation_injected_event
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
+from noema.research.lab.lab import Lab, LabSessionResult
 from noema.research.observatory.analysis import Observatory, ObservatoryResult
 from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
 from noema.research.observatory.trajectory_v03 import upgrade_v01_capture_to_v03
@@ -54,8 +55,10 @@ class NoemaRuntime:
         self.research = ResearchCapture(self.store, enabled=research_capture)
         self.frontier = FrontierDirector(frontier_config)
         self.observatory = Observatory()
+        self.lab = Lab()
         self._last_frontier: FrontierResult | None = None
         self._last_observatory: ObservatoryResult | None = None
+        self._last_lab: LabSessionResult | None = None
         self._research_overlays: list[dict[str, Any]] = []
 
     def _load_compat(self, path: Path | None) -> dict[str, Any]:
@@ -490,4 +493,104 @@ class NoemaRuntime:
             "audit": self.store.list_frontier_audit(),
             "observatory_runs": self.store.list_observatory_runs(),
             "observatory_candidates": self.store.list_observatory_candidates(),
+            "lab_results": self.store.list_lab_results(),
+            "last_lab": (
+                {
+                    "experiment_id": self._last_lab.experiment.get("experiment_id"),
+                    "lab_result_id": (self._last_lab.result or {}).get("lab_result_id"),
+                    "compiler_readiness": (self._last_lab.result or {}).get("compiler_readiness"),
+                }
+                if self._last_lab
+                else None
+            ),
         }
+
+    def run_lab(
+        self,
+        session_id: str,
+        *,
+        intent: dict[str, Any] | None = None,
+        experiment: dict[str, Any] | None = None,
+        interventions: list[dict[str, Any]] | None = None,
+        plan: dict[str, Any] | None = None,
+        agent_id: str | None = None,
+        max_runs: int | None = None,
+        confounds: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Run isolated Lab experiment. Never mutates production ledger/state."""
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "Lab requires RESEARCHER or ADMIN")
+        self.ensure_ready()
+        state = self.store.get_state()
+        seq_before = state.sequence
+        head_before = state.last_event_digest
+        ivs = list(interventions or [])
+        if intent is not None:
+            session = self.lab.run_from_intent(
+                intent=intent,
+                source_state=state,
+                interventions=ivs,
+                agent_id=agent_id,
+                plan=plan,
+                confounds=confounds,
+                max_runs=max_runs,
+            )
+        elif experiment is not None:
+            session = self.lab.run_experiment(
+                experiment=experiment,
+                source_state=state,
+                interventions=ivs,
+                agent_id=agent_id or "agent.unknown",
+                plan=plan,
+                confounds=confounds,
+                max_runs=max_runs,
+            )
+        else:
+            raise ResearchError(INSUFFICIENT_RESEARCH_INPUT, "intent or experiment required")
+        self._last_lab = session
+        self.store.save_lab_experiment(session.experiment)
+        if session.result:
+            self.store.save_lab_result(session.result)
+        for rec in session.audit:
+            self.store.save_lab_audit(rec)
+        # prove production isolation
+        state_after = self.store.get_state()
+        isolated = (
+            state_after.sequence == seq_before
+            and state_after.last_event_digest == head_before
+            and session.production_sequence_before == session.production_sequence_after
+        )
+        return {
+            "experiment": session.experiment,
+            "plan": session.plan,
+            "fork": session.fork,
+            "runs": [
+                {
+                    "run_id": r.get("run_id"),
+                    "run_role": r.get("run_role"),
+                    "measures": r.get("measures"),
+                    "production_mutated": r.get("production_mutated"),
+                    "status": r.get("status"),
+                }
+                for r in session.runs
+            ],
+            "result": session.result,
+            "audit": session.audit,
+            "simple_projection": session.simple_projection,
+            "study_view": self.lab.study_view(session),
+            "production_isolated": isolated,
+            "production_sequence": seq_before,
+            "status": session.status,
+        }
+
+    def lab_capture_gate(self, session_id: str, lab_result: dict[str, Any] | None = None) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "Lab requires RESEARCHER or ADMIN")
+        result = lab_result
+        if result is None:
+            if not self._last_lab or not self._last_lab.result:
+                raise ResearchError(INSUFFICIENT_RESEARCH_INPUT, "no lab result")
+            result = self._last_lab.result
+        return self.lab.capture_gate(result)

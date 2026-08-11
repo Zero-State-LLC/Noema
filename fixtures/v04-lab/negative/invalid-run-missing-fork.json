@@ -1,0 +1,26 @@
+{
+  "schema_version": "experiment-run/0.4",
+  "run_id": "run.bad",
+  "experiment_id": "exp.tool-ablation-1",
+  "run_role": "INTERVENTION",
+  "agent_version": "agent.nacre@1.2.0",
+  "agent_determinism": "SEED_CONTROLLED",
+  "interventions": [
+    "int.ablate-tool-1"
+  ],
+  "control_role": null,
+  "seed_policy": "SAME_SEED",
+  "seed": "noema-lab-seed-1",
+  "config_digest": "sha256:11ab7d4b5c87fe5631520d43b61ee9e9e6026ce534ab264d1b08bc230f0ff818",
+  "start_state_digest": "sha256:884a0941ee60fd8837b179f5adea4d0a6c96110b9f04fca5c32e541e713c30fe",
+  "end_state_digest": "sha256:14972ba6c4cf4ff273cdf32e120546eb4baaacfae7aab828ace12464200ee632",
+  "trajectory_id": "traj.run.bad",
+  "status": "COMPLETE",
+  "divergence_markers": [],
+  "metric_outputs": {
+    "tool_usage": 120
+  },
+  "outcome_class": "DEGRADED",
+  "confounds": [],
+  "audit_digest": "sha256:ccfeab3486925b29abf8d919ad268c140ccfa8548df1e27d83858703ec838e39"
+}

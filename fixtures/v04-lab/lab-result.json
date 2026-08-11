@@ -1,0 +1,48 @@
+{
+  "schema_version": "lab-result/0.4",
+  "lab_result_id": "labres.tool-ablation-1",
+  "experiment_id": "exp.tool-ablation-1",
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "run_ids": [
+    "run.baseline.1",
+    "run.sham.1",
+    "run.intervention.1",
+    "run.replication.1",
+    "run.version-differential.1"
+  ],
+  "control_outcomes": {
+    "BASELINE": "PASS",
+    "SHAM_CONTROL": "PASS"
+  },
+  "intervention_outcomes": {
+    "int.ablate-tool-1": "DEGRADED"
+  },
+  "replication_outcomes": {
+    "EXACT_REPLAY": "REPRODUCED",
+    "SAME_AGENT_VERSION": "REPRODUCED",
+    "CROSS_AGENT_VERSION": "PARTIALLY_REPRODUCED"
+  },
+  "generalization_outcomes": {
+    "new_tool_set": "NOT_COMPARABLE"
+  },
+  "supporting_evidence": [
+    "tool_usage baseline 420 vs intervention 120",
+    "replication matched degraded band"
+  ],
+  "counterevidence": [
+    "sham control showed no degradation",
+    "agentver.nacre.2 created the ledger less frequently; this is bounded version-differential evidence"
+  ],
+  "confounds": [
+    "provider nondeterminism residual"
+  ],
+  "execution_status": "COMPLETE",
+  "interpretation": "SUPPORTED",
+  "claim_label": "INFERRED",
+  "compiler_readiness": "NOT_READY",
+  "digest": "sha256:27d487a37c1feefe62bce79563b716503f2b0a1188c5164ed6bf36d13f8c50ec",
+  "failed_experiments_retained": true,
+  "source_intent_id": "intent.shared-ledger-dependency-1"
+}

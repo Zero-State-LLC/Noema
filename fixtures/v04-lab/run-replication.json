@@ -1,0 +1,40 @@
+{
+  "schema_version": "experiment-run/0.4",
+  "run_id": "run.replication.1",
+  "experiment_id": "exp.tool-ablation-1",
+  "run_role": "REPLICATION",
+  "fork": {
+    "source_world_id": "world-01",
+    "source_world_version": "world/v1",
+    "source_snapshot_id": "snap.world-01.c12",
+    "source_ledger_head": "sha256:fdce2d5b40deab88f80503f5c3f61f483586572f23b7b36af73a852cbe9d627c",
+    "fork_cycle": 12,
+    "fork_event_boundary": 31,
+    "experimental_world_id": "world-01.exp.run.replication.1"
+  },
+  "agent_version": "agentver.nacre.1",
+  "agent_determinism": "SEED_CONTROLLED",
+  "interventions": [
+    "int.ablate-tool-1"
+  ],
+  "control_role": null,
+  "seed_policy": "SAME_SEED",
+  "seed": "noema-lab-seed-1",
+  "config_digest": "sha256:79b13d06a8ddc6a09c8994e07d236d38495ee6ebda5538129dd739d4652c2321",
+  "start_state_digest": "sha256:5c4788bb49465299171680bf0ebff7af05aae8faf86760e3bb5e0ce489b9b707",
+  "end_state_digest": "sha256:5f4e9ffd7e2e0d2a052e4350ad8dc5ff0436ade5b7dfc3247ca200d0818627f1",
+  "trajectory_id": "traj.run.replication.1",
+  "status": "COMPLETE",
+  "divergence_markers": [],
+  "metric_outputs": {
+    "tool_usage": 120
+  },
+  "outcome_class": "DEGRADED",
+  "confounds": [],
+  "audit_digest": "sha256:3e63c2969f90355312d15eab0e05e0574c56e5cd1963fe5cb32917894c37481c",
+  "world_fork_id": "fork.lab.1",
+  "intervention_ids": [
+    "int.ablate-tool-1"
+  ],
+  "control_roles": []
+}

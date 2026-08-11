@@ -1,0 +1,16 @@
+{
+  "schema_version": "experiment-intent/0.4",
+  "intent_record_id": "intent.shared-ledger-dependency-1",
+  "intent_id": "UNKNOWN_INTENT",
+  "source_candidate_id": "UNKNOWN_BEHAVIOR_shared-ledger-protocol",
+  "question": "Does the coordination pattern require the shared ledger?",
+  "target_dependency_or_condition": "EXTERNAL_MEMORY_ARTIFACT.shared-ledger",
+  "user_overrides": {},
+  "experience_level": "SIMPLE",
+  "created_by": "researcher.example",
+  "provenance": {
+    "intent_catalog_version": "experiment-intent-catalog/1.1.0",
+    "candidate_version": "capability-candidate/0.3",
+    "source_trajectory_id": "traj.v03.nacre.001"
+  }
+}

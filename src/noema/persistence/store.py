@@ -98,6 +98,20 @@ class WorldStore:
               record_index INTEGER NOT NULL,
               record_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS research_lab_experiments (
+              experiment_id TEXT PRIMARY KEY,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_lab_results (
+              lab_result_id TEXT PRIMARY KEY,
+              experiment_id TEXT NOT NULL,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_lab_audit (
+              digest TEXT PRIMARY KEY,
+              experiment_id TEXT NOT NULL,
+              record_json TEXT NOT NULL
+            );
             """
         )
         self._conn.commit()
@@ -438,7 +452,52 @@ class WorldStore:
             self._conn.execute("DELETE FROM research_observatory_runs")
             self._conn.execute("DELETE FROM research_observatory_candidates")
             self._conn.execute("DELETE FROM research_observatory_audit")
+            self._conn.execute("DELETE FROM research_lab_experiments")
+            self._conn.execute("DELETE FROM research_lab_results")
+            self._conn.execute("DELETE FROM research_lab_audit")
             self._conn.commit()
+
+    def save_lab_experiment(self, experiment: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_lab_experiments(experiment_id, record_json)
+                VALUES (?, ?)
+                """,
+                (experiment.get("experiment_id") or "", json.dumps(experiment, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_lab_result(self, result: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_lab_results(lab_result_id, experiment_id, record_json)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    result.get("lab_result_id") or "",
+                    result.get("experiment_id") or "",
+                    json.dumps(result, sort_keys=True),
+                ),
+            )
+            self._conn.commit()
+
+    def save_lab_audit(self, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_lab_audit(digest, experiment_id, record_json)
+                VALUES (?, ?, ?)
+                """,
+                (record.get("digest") or "", record.get("experiment_id") or "", json.dumps(record, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def list_lab_results(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT record_json FROM research_lab_results").fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
 
     def _set_meta(self, key: str, value: str, cur: sqlite3.Cursor | None = None) -> None:
         c = cur or self._conn.cursor()

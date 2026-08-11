@@ -1,0 +1,9 @@
+{
+  "source_path": "examples/v03-observatory/trajectory.json",
+  "trajectory_id": "traj.v03.nacre.001",
+  "world_id": "world-01",
+  "world_version": "world/v1",
+  "agent_id": "agent.nacre",
+  "agent_version": "agentver.nacre.1",
+  "frontier_genome_id": "genome.frontier.scarcity-conflict.1"
+}

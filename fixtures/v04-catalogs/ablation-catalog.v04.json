@@ -1,0 +1,59 @@
+{
+  "schema_version": "ablation-catalog/0.4.0",
+  "entries": [
+    {
+      "affordance_id": "TOOL_ACCESS",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    },
+    {
+      "affordance_id": "MESSAGE_CHANNEL",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    },
+    {
+      "affordance_id": "MAP_ACCESS",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    },
+    {
+      "affordance_id": "EXTERNAL_MEMORY_ARTIFACT",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    },
+    {
+      "affordance_id": "ORGANIZATION_SUPPORT",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    },
+    {
+      "affordance_id": "INFORMATION_SOURCE",
+      "target_kind": "EXTERNAL",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "authorization_class": "AGENT_EXTERNAL"
+    }
+  ]
+}

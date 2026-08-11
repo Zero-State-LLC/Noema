@@ -1,120 +1,93 @@
 # NOEMA Runtime
 
-World Engine runtime for **NOEMA** — Chamber PLAY + Frontier NOTICE + Observatory detection in a single modular monolith.
+Modular monolith for **NOEMA** core loop through Lab TEST:
+
+```text
+PLAY → NOTICE (Frontier + Observatory) → TEST (Lab)
+```
 
 Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
-Does **not** claim consciousness measurement. Claim labels remain `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.
+Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`. No consciousness scores.
 
 ## Spec pin
 
 See [`spec-compat.json`](spec-compat.json).
 
-| Field | Value |
+| Surface | Package |
 |---|---|
-| Specs repo | `Zero-State-LLC/Noema-Specs` |
-| Authority | core-loop freeze + v0.2 Frontier + v0.3 Observatory |
-| Chamber fixtures | `fixtures/v01-seed` |
-| Frontier fixtures | `fixtures/v02-frontier` + `fixtures/v02-catalogs` |
-| Observatory fixtures | `fixtures/v03-observatory` + `fixtures/v03-catalogs` |
-| Event catalog | `event-catalog/0.1` |
-| Frontier director | `frontier-director/0.2` |
-| Observatory | `observatory/0.3` |
-| Canonicalization | `noema-jcs/1` |
+| Chamber | `fixtures/v01-seed` |
+| Frontier | `fixtures/v02-frontier` |
+| Observatory | `fixtures/v03-observatory` |
+| Lab | `fixtures/v04-lab` + `fixtures/v04-catalogs` |
 
 ## Phase status
 
 | Phase | Status |
 |---|---|
-| Phase 0 / 1 Chamber MVP | **Complete** — seed replay EQUIVALENT |
-| Phase 2A Research capture + Frontier | **Complete** |
-| **Phase 2B Observatory** | **This branch** |
-| Lab / Compiler / LEARN / Deep Time | Deferred |
+| 1 Chamber PLAY | Complete |
+| 2A Frontier | Complete |
+| 2B Observatory | Complete |
+| **3 Lab TEST** | **This branch** |
+| 4 Compiler CAPTURE | Deferred |
+| LEARN / Deep Time | Deferred |
 
-## Architecture (modular monolith)
+## Architecture
 
 ```text
-PLAY (validate → schedule → reduce → persist → project)
-        ↓ post-persist seam
-research capture → trajectory indexes (rebuildable)
-        ↓
-Frontier Director (conditions) ──→ SITUATION_INJECTED → ledger
-        ↓
-Observatory (features → baselines → detectors → candidates)
-        ↓ research partition only
-anomaly / shift / capability / unknown candidates + audit
+PLAY ── fenced writer ── production ledger
+                │
+                ├─ research capture (trajectories)
+                ├─ Frontier (SITUATION_INJECTED only via reducer)
+                ├─ Observatory (candidates; no world writes)
+                └─ Lab (experimental forks only; never production ledger)
 ```
 
-**WORLD TRUTH ≠ RESEARCH DERIVATION.**
+**Lab isolation:** `mutates_production: false`. Experimental worlds use separate `storage_namespace` and experimental ledger identity.
 
-| Module | May write world? |
-|---|---|
-| PLAY actions | Yes (via reducer) |
-| Frontier injection | Yes (`SITUATION_INJECTED` only) |
-| Observatory | **No** |
-
-## Quick start (PLAY only)
+## Quick start (PLAY)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
 noema-replay
 noema-play
 ```
 
-Frontier and Observatory are **not** required for local PLAY.
+Lab/Frontier/Observatory are **not** required for local PLAY.
 
-### HTTP
+## Research endpoints
 
-```bash
-noema-serve --port 8080
-```
-
-| Method | Path | Notes |
+| Method | Path | Role |
 |---|---|---|
-| GET | `/health` `/ready` `/version` | PLAY readiness ignores optional research |
-| POST | `/play/action` | PLAY only |
-| GET | `/watch/live` | public; research metrics redacted |
 | POST | `/research/frontier/run` | RESEARCHER/ADMIN |
-| POST | `/research/observatory/run` | RESEARCHER/ADMIN; offline analysis |
+| POST | `/research/observatory/run` | RESEARCHER/ADMIN |
+| POST | `/research/lab/run` | RESEARCHER/ADMIN |
+| POST | `/research/lab/capture-gate` | RESEARCHER/ADMIN (`READY` only) |
 | GET | `/research/view` | RESEARCHER/ADMIN |
+| GET | `/watch/live` | public (redacted) |
 
 ## Tests
 
 ```bash
 pytest -q
-pytest -q tests/test_phase2a_frontier.py
-pytest -q tests/test_phase2b_observatory.py
+pytest -q tests/test_phase3_lab.py
 noema-replay
 ```
 
-## Observatory notes
+## Lab notes
 
-- Deterministic claim-bearing path only (no opaque ML authority)
-- Baselines frozen per analysis run (silent rebuild forbidden)
-- Capability candidates are `SPECULATIVE` + `replication_required`
-- UNKNOWN_* markers need not map to a primitive
-- WATCH never receives anomaly scores / detector metadata
+- Intent → deterministic design compile (no hidden methodology)
+- Fork only at legal points; mid-reducer forbidden
+- Ablation / perturbation closed catalogs; unsupported lesion → `NOT_COMPUTABLE`
+- Controls (baseline + sham), replication classification, confounds retained
+- Simple result projection never strengthens claim labels
+- `CAPTURE AS TEST` gated on `compiler_readiness: READY` (no fixture creation)
 
 ## Explicit deferrals
 
-Lab · Compiler · LEARN · Deep Time · Genesis · microservices · graph DB · worker fleets · LLM planner · embeddings · scalar intelligence scores
-
-## Layout
-
-```text
-src/noema/
-  world/                 pure reducers + state
-  research/
-    capture.py           post-persist trajectories
-    frontier/            v0.2 Frontier Director
-    observatory/         v0.3 features/baselines/detectors
-  persistence/           SQLite world + research_* tables
-  app/                   composition root
-fixtures/v01-seed|v02-*|v03-*
-```
+Phenomenon Compiler · Deep Time · LEARN · microservices · worker fleets · LLM claim path · live-world intervention
 
 ## License
 
-Copyright © 2026 Zero State LLC. Licensed under the Zero State Proprietary License v1.0. See [`LICENSE`](LICENSE).
+Copyright © 2026 Zero State LLC. Zero State Proprietary License v1.0 — see [`LICENSE`](LICENSE).
