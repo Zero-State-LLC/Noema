@@ -1,0 +1,46 @@
+{
+  "schema_version": "institution-lineage/0.6",
+  "lineage_id": "lineage.nacre-relay",
+  "nodes": [
+    {
+      "institution_id": "inst.nacre-relay-stewardship",
+      "status": "EMERGING",
+      "from_cycle": 180,
+      "to_cycle": 200,
+      "identity_class": "SAME_ENTITY_EVOLVED"
+    },
+    {
+      "institution_id": "inst.nacre-relay-stewardship",
+      "status": "ACTIVE",
+      "from_cycle": 200,
+      "to_cycle": 1900,
+      "identity_class": "SAME_ENTITY_EVOLVED"
+    },
+    {
+      "institution_id": "inst.nacre-relay-stewardship",
+      "status": "DORMANT",
+      "from_cycle": 1900,
+      "to_cycle": null,
+      "identity_class": "SAME_ENTITY_EVOLVED"
+    },
+    {
+      "institution_id": "inst.aster-relay-revival",
+      "status": "EMERGING",
+      "from_cycle": 18400,
+      "to_cycle": null,
+      "identity_class": "SUCCESSOR_ENTITY"
+    }
+  ],
+  "edges": [
+    {
+      "from": "inst.nacre-relay-stewardship",
+      "to": "inst.aster-relay-revival",
+      "relation": "INSPIRED",
+      "at_cycle": 18400,
+      "evidence_refs": [
+        "recon.relay-south.era5"
+      ]
+    }
+  ],
+  "digest": "sha256:6f59c2b6068a6e304b9c08ec3e703fc16bad6403311b74d8480e63c43e51c06a"
+}

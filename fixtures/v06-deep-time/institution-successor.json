@@ -1,0 +1,64 @@
+{
+  "schema_version": "institution/0.6",
+  "institution_id": "inst.aster-relay-revival",
+  "display_name": "Aster Relay Maintenance Compact",
+  "origin": {
+    "origin_type": "REPEATED_CUSTOM",
+    "origin_cycle": 18400,
+    "source_org_id": "org.aster-builders",
+    "source_refs": [
+      "event.org_create.aster",
+      "recon.relay-south.era5"
+    ]
+  },
+  "purpose": "Restore Relay South under a new maintenance compact.",
+  "persistent_practices": [
+    {
+      "practice_id": "prac.relay-repair",
+      "description": "Repair and re-energize Relay South",
+      "required": true
+    }
+  ],
+  "participant_refs": [
+    "agent.aster.lead"
+  ],
+  "inheritor_refs": [
+    "org.aster-builders"
+  ],
+  "assets": [
+    {
+      "asset_ref": "entity.infra.relay-south",
+      "kind": "INFRASTRUCTURE"
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "role.custodian",
+      "role_name": "Relay Custodian",
+      "holder_ref": "agent.aster.lead",
+      "vacant": false
+    }
+  ],
+  "status": "EMERGING",
+  "succession_mechanism": "INHERITED_BY_ORGANIZATION",
+  "continuity": {
+    "identity_class": "SUCCESSOR_ENTITY",
+    "survives_participant_departure": true,
+    "requires_active_custodian": true,
+    "predecessor_institution_id": "inst.nacre-relay-stewardship",
+    "successor_institution_id": null
+  },
+  "archive_ref": null,
+  "evidence_refs": [
+    "recon.relay-south.era5",
+    "name.burnt-relay"
+  ],
+  "known_limits": [
+    "Interprets old stewardship differently; not the same institution"
+  ],
+  "provenance": {
+    "world_id": "world.aster-reach",
+    "canonicalization": "noema-jcs/1"
+  },
+  "digest": "sha256:5eb73b182011f00a5bcbde641ac5a3f1d018faa75412a4c82a4cf18d2e350b9f"
+}

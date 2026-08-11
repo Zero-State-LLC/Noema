@@ -1,0 +1,14 @@
+{
+  "schema_version": "historical-name/0.6",
+  "name_record_id": "name.relay-south",
+  "canonical_id": "room.relay_south.004",
+  "surface_name": "Relay South",
+  "used_by_ref": "org.nacre-collective",
+  "from_cycle": 200,
+  "to_cycle": 1699,
+  "source_refs": [
+    "event.infra.create.relay-south"
+  ],
+  "canonical_id_immutable": true,
+  "digest": "sha256:7decc53db162a392ea63cacb2c9169bb5493533a751de6719a9c5567e5fda49c"
+}

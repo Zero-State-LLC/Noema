@@ -1,0 +1,27 @@
+{
+  "schema_version": "genesis-cycle0-summary/0.6",
+  "world_id": "world.aster-reach",
+  "cycle": 0,
+  "ordinary_world_valid": true,
+  "functioning_relays": [
+    "entity.infra.civic-relay"
+  ],
+  "damaged_relays": [
+    "entity.infra.relay-south"
+  ],
+  "dormant_institutions": [
+    "inst.nacre-relay-stewardship"
+  ],
+  "active_institutions": [
+    "inst.civic-exchange-practice"
+  ],
+  "old_market_route": "route.east-abandoned",
+  "archive_fragment": "artifact.archive.nacre-relay",
+  "unresolved_territorial_claim": "claim.relay-south-ownership",
+  "uneven_resources": true,
+  "deep_time_fixture_refs": [
+    "examples/v06-deep-time/institution.json",
+    "examples/v06-deep-time/world-scar.json",
+    "examples/v06-deep-time/artifact-archive.json"
+  ]
+}

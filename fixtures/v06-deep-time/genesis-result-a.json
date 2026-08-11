@@ -1,0 +1,104 @@
+{
+  "schema_version": "genesis-result/0.6",
+  "genesis_id": "genesis.aster-reach.a",
+  "world_id": "world.aster-reach",
+  "world_name": "Aster Reach",
+  "status": "ACTIVATED",
+  "world_seed": "seed.aster-reach.alpha",
+  "genesis_profile_id": "FRACTURED_OLD_WORLD",
+  "story_seed_ids": [
+    "OLD_TRADE_NETWORK",
+    "LOST_ARCHIVE"
+  ],
+  "rules_versions": {
+    "deep_time": "deep-time/0.6",
+    "chamber_world": "world/v1",
+    "canonicalization": "noema-jcs/1",
+    "genesis_profiles": "genesis-profiles/0.6.0",
+    "story_seeds": "story-seeds/0.6.0"
+  },
+  "cycle0_snapshot_ref": "examples/v06-deep-time/genesis-cycle0-a.json",
+  "cycle0_world_state_digest": "sha256:1e09672b330c8fa773ca792e2e52380f217818eea60018c7d7da67e42adb7fc1",
+  "ordinary_world_valid": true,
+  "admin_only": true,
+  "activated": true,
+  "activation_cycle": 0,
+  "genesis_config_immutable_after_activation": true,
+  "cannot_rerun_on_active_world": true,
+  "prehistory_record_refs": [
+    "prehist.nacre-stewardship-founded",
+    "prehist.trade-route-abandoned",
+    "prehist.archive-fragmented",
+    "prehist.relay-damaged"
+  ],
+  "deep_time_refs": {
+    "institutions": [
+      "inst.nacre-relay-stewardship"
+    ],
+    "artifacts": [
+      "artifact.archive.nacre-relay",
+      "artifact.marker.nacre-maker"
+    ],
+    "scars": [
+      "scar.relay-south.damage"
+    ],
+    "claims": [
+      "claim.peaceful-transfer",
+      "claim.conflict-transfer"
+    ]
+  },
+  "starting_opportunities": [
+    "EXPLORE",
+    "REPAIR",
+    "TRADE",
+    "INVESTIGATE_RUIN",
+    "JOIN_OR_REVIVE_INSTITUTION",
+    "CONTEST_CLAIM",
+    "RECOVER_ARTIFACT"
+  ],
+  "player_visible_summary": {
+    "entry": "You enter Aster Reach.",
+    "facts": [
+      "Relay South is damaged.",
+      "The Civic Exchange is active.",
+      "An abandoned route extends east.",
+      "Some structures here predate every current realm."
+    ]
+  },
+  "admin_preview": {
+    "starting_conditions": [
+      "3 inhabited regions",
+      "2 abandoned sites",
+      "uneven energy reserves",
+      "1 active institution context (Civic Exchange market practice)",
+      "1 dormant institution (Nacre Relay Stewardship)"
+    ],
+    "historical_traces": [
+      "damaged relay network",
+      "incomplete archive",
+      "abandoned trade route"
+    ],
+    "starting_tensions": [
+      "Relay South ownership unresolved",
+      "eastern energy supply unstable"
+    ]
+  },
+  "hidden_from_players": {
+    "genesis_profile": true,
+    "story_seeds": true,
+    "world_seed": true,
+    "full_prehistory": true
+  },
+  "provenance": {
+    "operator_role": "ADMIN",
+    "inputs": [
+      "world_seed",
+      "genesis_profile_id",
+      "story_seed_ids",
+      "rules_versions"
+    ],
+    "rfc0003": "noema-jcs/1"
+  },
+  "supersedes_genesis_id": null,
+  "digest": "sha256:02c5bd5c0aea219cdf46f3dae0a7e31d6e888ec13370ce2e7f6e7cf89fe0272b"
+}

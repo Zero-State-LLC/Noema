@@ -1,0 +1,29 @@
+{
+  "schema_version": "historical-claim/0.6",
+  "historical_claim_id": "claim.peaceful-transfer",
+  "claim": "Relay-7 (Relay South) transferred peacefully to Vesper stewardship.",
+  "claim_type": "TRANSFER",
+  "subject_refs": [
+    "entity.infra.relay-south",
+    "inst.nacre-relay-stewardship"
+  ],
+  "time_range": {
+    "start_cycle": 1180,
+    "end_cycle": 1220,
+    "uncertain": false
+  },
+  "source_refs": [
+    "artifact.archive.nacre-relay"
+  ],
+  "evidence_status": "CONTESTED",
+  "claim_label": "INFERRED",
+  "evidence_grade": "ARTIFACT",
+  "contradicting_claim_refs": [
+    "claim.conflict-transfer"
+  ],
+  "canonical_event_refs": [],
+  "provenance": {
+    "source": "archive fragment A"
+  },
+  "digest": "sha256:3ae8b57ecdc6db6342ae1fb9bd759fd1511dcb27efad526bedc4622a9055b95e"
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": "succession-record/0.6",
+  "succession_id": "succ.nacre-1",
+  "subject_type": "INSTITUTION_CUSTODIANSHIP",
+  "subject_ref": "inst.nacre-relay-stewardship",
+  "role_id": "role.custodian",
+  "mechanism": "DESIGNATED",
+  "from_holder": "agent.nacre.founder",
+  "to_holder": "agent.vesper.steward",
+  "cycle": 1200,
+  "outcome": "TRANSFERRED",
+  "designation_ref": "artifact.record.designation-1",
+  "evidence_refs": [
+    "event.org_member_remove.founder",
+    "artifact.record.designation-1"
+  ],
+  "institution_continues": true,
+  "digest": "sha256:5235a97b9e42e22f1b4fcd26646421737c146a093326127caed38984dc1039e1"
+}

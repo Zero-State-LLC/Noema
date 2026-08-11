@@ -1,69 +1,57 @@
 # NOEMA Runtime
 
-Modular monolith for the frozen NOEMA core loop:
+Modular monolith for the frozen NOEMA core loop **and** Deep Time / Genesis foundation:
 
 ```text
 PLAY → NOTICE → TEST → CAPTURE → LEARN
+Admin Genesis → Cycle 0 ordinary world → Deep Time history layers
 ```
 
-| Phase | Status |
+| Area | Status |
 |---|---|
-| Chamber PLAY | Complete |
-| Frontier + Observatory NOTICE | Complete |
-| Lab TEST | Complete |
-| Compiler CAPTURE | Complete |
-| **LEARN Capability Graph** | **This branch** |
-| Deep Time / Genesis | Deferred |
+| Chamber / Frontier / Observatory / Lab / Compiler / LEARN | Complete |
+| **Deep Time + Genesis** | **This branch** |
 
-Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
-Claims: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.
+Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).
 
-## Architecture
+## Deep Time
+
+Derived historical records (institutions, succession, artifacts, claims, scars, names, reconstruction).
+
+- Lore is **presentation**, not a second world truth  
+- Artifact claims `claims_are_not_world_truth: true`  
+- Decay never mutates the canonical event ledger  
+- Contested claims retained without forced resolution  
+- PLAY projections use plain language  
+
+## Genesis (admin-only)
 
 ```text
-PLAY ── production ledger
-  ├─ Frontier / Observatory / Lab / Compiler (research)
-  └─ LEARN projection (rebuildable disposable index)
+ADMIN → profile + seed + story seeds → PREVIEW → ACTIVATE → Cycle 0 world → PLAY
 ```
 
-LEARN answers: what was reproduced, by whom, under which conditions, where it generalizes/fails, what remains untested.  
-It does **not** modify gameplay or create evidence.
+Players/agents/researchers cannot configure Genesis. After activation, config is frozen; a new Genesis run means a new world.
 
-## Closed edge taxonomy
-
-`OBSERVED_IN` · `REPRODUCED_BY` · `DEPENDS_ON` · `FAILS_WITHOUT` · `GENERALIZES_TO` · `DIFFERS_ACROSS_VERSION`
-
-No transitive automatic edges. Not-tested ≠ failed.
-
-## Quick start
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-pytest -q
-noema-replay
-```
-
-## Research endpoints
+## Endpoints
 
 | Path | Role |
 |---|---|
-| `POST /research/compiler/capture` | CAPTURE AS TEST |
-| `POST /research/learn/rebuild` | rebuild LEARN index |
-| `GET/POST /research/learn/view` | LEARN projection |
-| `GET /research/view` | all research indexes |
-| `GET /watch/live` | public redacted |
+| `POST /admin/genesis/preview` | ADMIN |
+| `POST /admin/genesis/activate` | ADMIN |
+| `POST /research/deep-time/ingest` | RESEARCHER/ADMIN |
+| `GET /watch/live` | public |
 
 ## Tests
 
 ```bash
 pytest -q
-pytest -q tests/test_phase5_learn.py
+pytest -q tests/test_phase6_deep_time_genesis.py
+noema-replay
 ```
 
 ## Explicit deferrals
 
-Deep Time · Genesis · v0.8 Phenomena · graph DB/service · model rankings · consciousness scores
+Full markets · religion sim · procedural lore engine · long prehistory sim · v0.8 Phenomena
 
 ## License
 

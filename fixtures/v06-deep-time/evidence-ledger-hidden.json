@@ -1,0 +1,12 @@
+{
+  "schema_version": "historical-evidence/0.6",
+  "evidence_id": "evidence.ledger.founding",
+  "source_class": "EVENT_LEDGER",
+  "source_ref": "event.infra.create.relay-south",
+  "quality": "PRIMARY",
+  "accessible_to_agents": false,
+  "hidden_from_ordinary_observation": true,
+  "claim_label": "OBSERVED",
+  "notes": "Full ledger is canonical; not ordinary agent archaeology input",
+  "digest": "sha256:454d8df29d454629fa59e48a6c9e39164f40ab32f083c9cbacb2798b1d8e1154"
+}

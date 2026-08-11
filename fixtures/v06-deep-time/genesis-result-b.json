@@ -1,0 +1,91 @@
+{
+  "schema_version": "genesis-result/0.6",
+  "genesis_id": "genesis.aster-reach.b",
+  "world_id": "world.aster-reach-b",
+  "world_name": "Aster Reach B",
+  "status": "PREVIEW",
+  "world_seed": "seed.aster-reach.beta",
+  "genesis_profile_id": "FRACTURED_OLD_WORLD",
+  "story_seed_ids": [
+    "OLD_TRADE_NETWORK",
+    "LOST_ARCHIVE"
+  ],
+  "rules_versions": {
+    "deep_time": "deep-time/0.6",
+    "chamber_world": "world/v1",
+    "canonicalization": "noema-jcs/1",
+    "genesis_profiles": "genesis-profiles/0.6.0",
+    "story_seeds": "story-seeds/0.6.0"
+  },
+  "cycle0_snapshot_ref": "examples/v06-deep-time/genesis-cycle0-b.json",
+  "cycle0_world_state_digest": "sha256:61347f3dfcde9a46fcd7809e8b8d30b061aeb18ae658014cc474ad1c0f3c4c0a",
+  "ordinary_world_valid": true,
+  "admin_only": true,
+  "activated": false,
+  "activation_cycle": 0,
+  "genesis_config_immutable_after_activation": true,
+  "cannot_rerun_on_active_world": true,
+  "prehistory_record_refs": [
+    "prehist.b.trade-route",
+    "prehist.b.archive",
+    "prehist.b.relay-north-damaged"
+  ],
+  "deep_time_refs": {
+    "institutions": [
+      "inst.b.dormant-stewardship"
+    ],
+    "artifacts": [
+      "artifact.b.archive-fragment"
+    ],
+    "scars": [
+      "scar.b.relay-north"
+    ],
+    "claims": [
+      "claim.b.route-ownership"
+    ]
+  },
+  "starting_opportunities": [
+    "EXPLORE",
+    "REPAIR",
+    "TRADE",
+    "INVESTIGATE_RUIN",
+    "FORM_ALLIANCE",
+    "RECOVER_ARTIFACT"
+  ],
+  "player_visible_summary": {
+    "entry": "You enter Aster Reach B.",
+    "facts": [
+      "Relay North is offline.",
+      "A partial archive sits under restricted access.",
+      "Trade markers suggest an older eastern route."
+    ]
+  },
+  "admin_preview": {
+    "starting_conditions": [
+      "2 inhabited regions",
+      "3 abandoned sites",
+      "scarce energy west",
+      "1 dormant institution",
+      "1 emerging trade compact"
+    ],
+    "note": "Same profile and story seeds as A; different world_seed \u2192 different valid layout"
+  },
+  "hidden_from_players": {
+    "genesis_profile": true,
+    "story_seeds": true,
+    "world_seed": true,
+    "full_prehistory": true
+  },
+  "provenance": {
+    "operator_role": "ADMIN",
+    "inputs": [
+      "world_seed",
+      "genesis_profile_id",
+      "story_seed_ids",
+      "rules_versions"
+    ],
+    "rfc0003": "noema-jcs/1"
+  },
+  "supersedes_genesis_id": null,
+  "digest": "sha256:2e9ac022fc6b7a0a99682cb76092ae465aaea0ed97f83f8799ccdefca723b6f3"
+}

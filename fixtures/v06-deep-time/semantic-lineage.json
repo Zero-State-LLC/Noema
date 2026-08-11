@@ -1,0 +1,43 @@
+{
+  "schema_version": "semantic-lineage/0.6",
+  "lineage_id": "sem.relay-south.names",
+  "subject_kind": "NAME",
+  "canonical_subject_id": "room.relay_south.004",
+  "entries": [
+    {
+      "entry_id": "sem.e1",
+      "cycle": 200,
+      "surface_form": "Relay South",
+      "meaning_note": "Operational relay site",
+      "changed_from_previous": false,
+      "source_refs": [
+        "event.infra.create.relay-south"
+      ],
+      "claim_label": "OBSERVED"
+    },
+    {
+      "entry_id": "sem.e2",
+      "cycle": 1700,
+      "surface_form": "The Burnt Relay",
+      "meaning_note": "Post-damage colloquial name",
+      "changed_from_previous": true,
+      "source_refs": [
+        "scar.relay-south.damage"
+      ],
+      "claim_label": "INFERRED"
+    },
+    {
+      "entry_id": "sem.e3",
+      "cycle": 18400,
+      "surface_form": "Old Nacre Station",
+      "meaning_note": "Later agents attribute Nacre origin",
+      "changed_from_previous": true,
+      "source_refs": [
+        "recon.relay-south.era5"
+      ],
+      "claim_label": "SPECULATIVE"
+    }
+  ],
+  "auto_interpreted": false,
+  "digest": "sha256:d6a3a2ca35ef3530f944c095d532bd53a6cca60ad4c8751a17ecd7f313ff7e0b"
+}

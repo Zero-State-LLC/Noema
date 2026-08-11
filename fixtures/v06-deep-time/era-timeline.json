@@ -1,0 +1,77 @@
+{
+  "scenario_id": "nacre-relay-deep-time",
+  "world_id": "world.aster-reach",
+  "eras": [
+    {
+      "era": 1,
+      "cycles": [
+        200,
+        400
+      ],
+      "summary": "Nacre establishes Relay Stewardship",
+      "refs": [
+        "institution-active.json"
+      ]
+    },
+    {
+      "era": 2,
+      "cycles": [
+        1200,
+        1300
+      ],
+      "summary": "Founders leave; succession; institution survives",
+      "refs": [
+        "succession.json"
+      ]
+    },
+    {
+      "era": 3,
+      "cycles": [
+        1650,
+        1700
+      ],
+      "summary": "Relay damaged; archive fragmentary",
+      "refs": [
+        "world-scar.json",
+        "artifact-archive.json"
+      ]
+    },
+    {
+      "era": 4,
+      "cycles": [
+        1880,
+        1900
+      ],
+      "summary": "Institution dormant",
+      "refs": [
+        "institution.json",
+        "succession-vacant.json"
+      ]
+    },
+    {
+      "era": 5,
+      "cycles": [
+        18300,
+        18400
+      ],
+      "summary": "New agents discover ruins; reconstruct partial history",
+      "refs": [
+        "reconstruction-archaeology.json"
+      ]
+    },
+    {
+      "era": 6,
+      "cycles": [
+        18400,
+        18500
+      ],
+      "summary": "Revival with different interpretation",
+      "refs": [
+        "institution-successor.json",
+        "semantic-lineage.json"
+      ]
+    }
+  ],
+  "lore_boundary": "derived_only",
+  "fixture_not_live_canon": true
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.deep-time-repro",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "REPRODUCIBILITY",
+  "canonical_source_refs": [
+    "sha256:ae573fc38e2236fe9fc7c37bc5ed3245599fe7d28a13ae7f9a2a5b5b889d173a",
+    "sha256:79c23605b57af94dd3eed092db44fd52119320c53276aeefb850c2615a492723",
+    "sha256:7848f90a3b55fc1b967e7ebdbfa64e7e0d3126a27d41e3a16b4004e9f6d9e289"
+  ],
+  "presentation": {
+    "event_refs": [
+      "event.infra.create.relay-south",
+      "event.infra.damage.relay-south"
+    ],
+    "state_digests": {
+      "institution": "sha256:ae573fc38e2236fe9fc7c37bc5ed3245599fe7d28a13ae7f9a2a5b5b889d173a",
+      "reconstruction": "sha256:79c23605b57af94dd3eed092db44fd52119320c53276aeefb850c2615a492723"
+    },
+    "version_pins": {
+      "deep-time": "deep-time/0.6",
+      "canonicalization": "noema-jcs/1"
+    },
+    "claim_labels": [
+      "OBSERVED",
+      "INFERRED",
+      "SPECULATIVE"
+    ]
+  },
+  "allowed_actions": [
+    "VERIFY_DIGESTS",
+    "EXPORT_EVIDENCE"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:61a4279e606a1d0f34a6b922da9514bb5a5790b70dff5384696dee42a5a17dca"
+}

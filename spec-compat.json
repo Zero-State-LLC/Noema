@@ -1,54 +1,42 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.7.0-phase5-learn",
-  "product_milestone": "v0.7-learn",
-  "implementation_phase": "phase-5-learn-capability-graph",
+  "runtime_version": "0.6.0-phase6-deep-time",
+  "product_milestone": "v0.6-deep-time-genesis",
+  "implementation_phase": "phase-6-deep-time-genesis",
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
-    "pin_label": "v0.7-learn-plus-core-loop-freeze",
-    "pin_note": "Full PLAY→NOTICE→TEST→CAPTURE→LEARN spine in modular monolith; LEARN is rebuildable derived index",
+    "pin_label": "v0.6-deep-time-genesis-plus-core-loop",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
-    "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
-    "learn_docs": ["docs/LEARN.md", "docs/CAPABILITY-GRAPH.md", "docs/releases/v0.7/"]
+    "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md"
   },
   "fixture_identity": {
     "chamber_seed_package": "fixtures/v01-seed",
-    "frontier_package": "fixtures/v02-frontier",
-    "observatory_package": "fixtures/v03-observatory",
-    "lab_package": "fixtures/v04-lab",
-    "compiler_package": "fixtures/v05-compiler",
+    "deep_time_package": "fixtures/v06-deep-time",
+    "deep_time_catalogs": "fixtures/v06-catalogs",
     "learn_package": "fixtures/v07-capability-graph"
   },
   "versions": {
     "world_rules": "world/v1",
     "event_catalog": "event-catalog/0.1",
+    "event_schema": "event-schema/v1",
+    "agent_protocol": "agent-protocol/v1",
     "canonicalization": "noema-jcs/1",
-    "frontier_director": "frontier-director/0.2",
-    "observatory": "observatory/0.3",
-    "lab": "experiment-lab/0.4",
+    "deep_time": "deep-time/0.6",
+    "genesis_profiles": "genesis-profiles/0.6.0",
+    "historical_decay": "historical-decay/0.6.0",
+    "capability_graph": "capability-graph/0.7.0",
     "compiler": "phenomenon-compiler/0.5.0",
-    "capability_graph": "capability-graph/0.7.0"
+    "lab": "experiment-lab/0.4",
+    "observatory": "observatory/0.3",
+    "frontier_director": "frontier-director/0.2"
   },
-  "learn_config": {
-    "required_for_play_readiness": false,
-    "mutates_world": false,
-    "rebuildable": true,
-    "mutable_source_of_truth": false,
-    "closed_edge_types": [
-      "OBSERVED_IN",
-      "REPRODUCED_BY",
-      "DEPENDS_ON",
-      "FAILS_WITHOUT",
-      "GENERALIZES_TO",
-      "DIFFERS_ACROSS_VERSION"
-    ],
-    "no_transitive_inference": true
+  "genesis_config": {
+    "admin_only": true,
+    "player_controls": false,
+    "scripts_player_outcomes": false,
+    "lore_is_final": false
   },
-  "deferred_milestones": [
-    "v0.6-deep-time-genesis",
-    "v0.8-phenomena",
-    "phase-6-deep-time"
-  ]
+  "deferred_milestones": ["v0.8-phenomena"]
 }

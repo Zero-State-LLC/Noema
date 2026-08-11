@@ -1,0 +1,30 @@
+{
+  "schema_version": "historical-claim/0.6",
+  "historical_claim_id": "claim.nacre-built-relay",
+  "claim": "Relay South was built under Nacre stewardship.",
+  "claim_type": "FOUNDING",
+  "subject_refs": [
+    "entity.infra.relay-south",
+    "org.nacre-collective"
+  ],
+  "time_range": {
+    "start_cycle": 200,
+    "end_cycle": 220,
+    "uncertain": false
+  },
+  "source_refs": [
+    "artifact.marker.nacre-maker",
+    "evidence.ledger.founding"
+  ],
+  "evidence_status": "SUPPORTED",
+  "claim_label": "OBSERVED",
+  "evidence_grade": "PRIMARY_LEDGER",
+  "contradicting_claim_refs": [],
+  "canonical_event_refs": [
+    "event.infra.create.relay-south"
+  ],
+  "provenance": {
+    "source": "ledger + maker mark"
+  },
+  "digest": "sha256:2f445d5a0f07da38c980b4b5e55c69b1b4d98124ec73524e31a6a1d4084b4c7a"
+}

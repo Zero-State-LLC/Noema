@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.7.0a1"
-description = "NOEMA World Engine runtime — full PLAY→NOTICE→TEST→CAPTURE→LEARN spine"
+version = "0.6.0a1"
+description = "NOEMA World Engine runtime — core loop + Deep Time + Genesis foundation"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "LicenseRef-Zero-State-Proprietary" }

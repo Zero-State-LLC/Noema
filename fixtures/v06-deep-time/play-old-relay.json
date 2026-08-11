@@ -1,0 +1,31 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.play.old-relay",
+  "mode": "PLAY",
+  "audience": "human_player",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "entity.infra.relay-south",
+    "scar.relay-south.damage",
+    "artifact.marker.nacre-maker"
+  ],
+  "presentation": {
+    "title": "OLD RELAY",
+    "age": "~1,900 cycles",
+    "condition": "37%",
+    "known_history": "Likely built by Nacre.",
+    "evidence": [
+      "maker mark",
+      "archive fragment"
+    ],
+    "unknown": "Original shutdown cause.",
+    "message": "This place has history."
+  },
+  "allowed_actions": [
+    "INSPECT",
+    "ENTER"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:c0f7095dfcc1f130f3c824656252f491c24556d8eb2f6cdd1953888838a98330"
+}

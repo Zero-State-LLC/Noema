@@ -1,0 +1,21 @@
+{
+  "schema_version": "historical-artifact/0.6",
+  "artifact_id": "artifact.record.designation-1",
+  "artifact_class": "RECORD",
+  "title": "Custodian designation tablet",
+  "creator_ref": "agent.nacre.founder",
+  "creation_cycle": 1190,
+  "custodian_ref": null,
+  "location_ref": "room.relay_south.004",
+  "content_ref": "content.record.designation-1",
+  "integrity": "DESTROYED",
+  "visibility": "PUBLIC",
+  "historical_claim_refs": [],
+  "claims_are_not_world_truth": true,
+  "existed_fact_preserved": true,
+  "decay_profile_version": "historical-decay/0.6.0",
+  "provenance": {
+    "note": "Destroyed in conflict; existence retained"
+  },
+  "digest": "sha256:05dedf583d2f72ea68eab5442684885babf1db5b0f7e7a9c6d45aea03d6928ea"
+}

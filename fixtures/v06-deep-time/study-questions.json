@@ -1,0 +1,30 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.deep-time-questions",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "RESEARCHER",
+  "canonical_source_refs": [
+    "inst.nacre-relay-stewardship",
+    "succ.nacre-1",
+    "recon.relay-south.era5"
+  ],
+  "presentation": {
+    "title": "Deep Time questions",
+    "questions": [
+      "Did this institution survive founder departure?",
+      "Did later agents preserve this custom?",
+      "Did agents reconstruct the old trade route correctly?",
+      "Did this rule persist across succession?"
+    ],
+    "notes": "Answers require Lab/Observatory trajectories; Deep Time provides addressable subjects."
+  },
+  "allowed_actions": [
+    "TEST_THIS",
+    "CAPTURE_AS_TEST",
+    "ADVANCED_DETAIL"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:3d2f164d5ec6f5882e9a48f729fa725e735810db5d9d762f9c3b79c27d104505"
+}

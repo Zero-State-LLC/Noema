@@ -1,0 +1,29 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.play.genesis-entry",
+  "mode": "PLAY",
+  "audience": "human_player",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "world.aster-reach",
+    "scar.relay-south.damage"
+  ],
+  "presentation": {
+    "title": "You enter Aster Reach.",
+    "lines": [
+      "Relay South is damaged.",
+      "The Civic Exchange is active.",
+      "An abandoned route extends east.",
+      "Some structures here predate every current realm."
+    ],
+    "no_genesis_controls": true
+  },
+  "allowed_actions": [
+    "LOOK",
+    "MOVE",
+    "INSPECT"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:a2c69c66c05e1cff1c249524f1b32b39225a38fd2645678dfd533cfe7f775b6d"
+}

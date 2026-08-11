@@ -1,0 +1,14 @@
+{
+  "schema_version": "world-scar/0.6",
+  "scar_id": "scar.relay-south.damage",
+  "scar_type": "DAMAGED_INFRASTRUCTURE",
+  "location_ref": "room.relay_south.004",
+  "origin_cycle": 1650,
+  "derived_from_event_refs": [
+    "event.infra.damage.relay-south"
+  ],
+  "observable": true,
+  "strategic_effect": "Reduced relay capacity; repair costly",
+  "simple_label": "Relay South \u2014 damaged historic infrastructure",
+  "digest": "sha256:7848f90a3b55fc1b967e7ebdbfa64e7e0d3126a27d41e3a16b4004e9f6d9e289"
+}

@@ -29,6 +29,9 @@ from noema.research.frontier.director import FrontierDirector, FrontierResult
 from noema.research.frontier.injection import build_follow_on_entity_update, build_situation_injected_event
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
 from noema.research.compiler.compiler import Compiler, CompileSession
+from noema.research.deep_time.registry import DeepTimeRegistry
+from noema.research.genesis.engine import GenesisEngine
+from noema.research.genesis.errors import GenesisError
 from noema.research.lab.lab import Lab, LabSessionResult
 from noema.research.learn.graph import LearnGraph, LearnProjection
 from noema.research.observatory.analysis import Observatory, ObservatoryResult
@@ -60,11 +63,14 @@ class NoemaRuntime:
         self.lab = Lab()
         self.compiler = Compiler()
         self.learn = LearnGraph()
+        self.deep_time = DeepTimeRegistry()
+        self.genesis = GenesisEngine()
         self._last_frontier: FrontierResult | None = None
         self._last_observatory: ObservatoryResult | None = None
         self._last_lab: LabSessionResult | None = None
         self._last_compile: CompileSession | None = None
         self._last_learn: LearnProjection | None = None
+        self._last_genesis: dict[str, Any] | None = None
         self._research_overlays: list[dict[str, Any]] = []
 
     def _load_compat(self, path: Path | None) -> dict[str, Any]:
@@ -780,4 +786,117 @@ class NoemaRuntime:
             "advanced_views": proj.advanced_views,
             "not_tested": proj.not_tested,
             "mutates_world": False,
+        }
+
+    # --- Deep Time (derived historical records) ---
+
+    def deep_time_ingest(self, session_id: str, records: dict[str, Any]) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay() and principal.role != Role.ADMIN:
+            raise ResearchError(POLICY_DENIED, "Deep Time STUDY requires RESEARCHER or ADMIN")
+        seq = self.store.get_state().sequence if self.store.ready else None
+        for inst in records.get("institutions") or []:
+            self.deep_time.put_institution(inst)
+        for s in records.get("successions") or []:
+            self.deep_time.put_succession(s)
+        for a in records.get("artifacts") or []:
+            self.deep_time.put_artifact(a)
+        for c in records.get("claims") or []:
+            self.deep_time.put_claim(c)
+        for sc in records.get("scars") or []:
+            self.deep_time.put_scar(sc)
+        for n in records.get("names") or []:
+            self.deep_time.put_name(n)
+        for r in records.get("reconstructions") or []:
+            self.deep_time.put_reconstruction(r)
+        for lin in records.get("lineages") or []:
+            self.deep_time.put_lineage(lin)
+        seq_after = self.store.get_state().sequence if self.store.ready else None
+        return {
+            "snapshot": self.deep_time.snapshot(),
+            "ledger_unchanged": seq == seq_after,
+            "lore_is_not_truth": True,
+            "mutates_world": False,
+        }
+
+    def deep_time_play_view(self, session_id: str) -> dict[str, Any]:
+        """PLAY-safe historical surface — no jargon required."""
+        self.get_principal(session_id)
+        scars = list(self.deep_time.scars.values())
+        arts = [a for a in self.deep_time.artifacts.values() if a.get("visibility") == "PUBLIC"]
+        subject = []
+        if scars:
+            subject.append(scars[0]["scar_id"])
+        if arts:
+            subject.append(arts[0]["artifact_id"])
+        from noema.research.deep_time.projections import play_history_view
+
+        return play_history_view(
+            subject_ids=subject or ["history.local"],
+            title="OLD PLACE",
+            age_label="historic",
+            condition=scars[0].get("simple_label") if scars else None,
+            known_history="Incomplete local history.",
+            evidence=[a.get("title") or a["artifact_id"] for a in arts[:3]],
+            unknown="Much is lost.",
+        )
+
+    # --- Genesis (ADMIN only) ---
+
+    def genesis_preview(
+        self,
+        session_id: str,
+        *,
+        world_name: str,
+        world_seed: str,
+        profile_id: str,
+        story_seed_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if principal.role != Role.ADMIN:
+            raise GenesisError("NOT_AUTHORIZED", "only ADMIN may run Genesis")
+        result = self.genesis.preview(
+            world_name=world_name,
+            world_seed=world_seed,
+            profile_id=profile_id,
+            story_seed_ids=story_seed_ids,
+        )
+        self._last_genesis = result
+        return {
+            "result": result,
+            "admin_view": self.genesis.admin_preview_view(result),
+            "player_view": self.genesis.player_entry_view(result),
+        }
+
+    def genesis_activate(self, session_id: str, genesis_id: str) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if principal.role != Role.ADMIN:
+            raise GenesisError("NOT_AUTHORIZED", "only ADMIN may activate Genesis")
+        result = self.genesis.activate(genesis_id, role=principal.role.value)
+        self._last_genesis = result
+        # handoff: load Cycle 0 as ordinary world
+        state = self.genesis.load_cycle0_world(result)
+        # use path from result for start_world
+        from pathlib import Path
+
+        seed_path = Path(result.get("chamber_seed_path") or Path.cwd() / "fixtures" / "v01-seed" / "world-seed.json")
+        started = self.start_world(seed_path)
+        # override identity fields after load
+        with self._writer:
+            st = self.store.get_state()
+            st.world_id = result["world_id"]
+            st.seed = result["world_seed"]
+            st.cycle = 0
+            self.store._state = st
+        return {
+            "result": result,
+            "world": {
+                "world_id": result["world_id"],
+                "seed": result["world_seed"],
+                "cycle": 0,
+                "ordinary_world_valid": True,
+                "started": started,
+            },
+            "player_entry": self.genesis.player_entry_view(result),
+            "config_frozen": True,
         }

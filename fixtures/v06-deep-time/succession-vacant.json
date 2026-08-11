@@ -1,0 +1,18 @@
+{
+  "schema_version": "succession-record/0.6",
+  "succession_id": "succ.nacre-vacant",
+  "subject_type": "INSTITUTION_CUSTODIANSHIP",
+  "subject_ref": "inst.nacre-relay-stewardship",
+  "role_id": "role.custodian",
+  "mechanism": "VACANT",
+  "from_holder": "agent.vesper.steward",
+  "to_holder": null,
+  "cycle": 1880,
+  "outcome": "VACANT",
+  "designation_ref": null,
+  "evidence_refs": [
+    "event.org_member_remove.vesper"
+  ],
+  "institution_continues": true,
+  "digest": "sha256:9c1c66bc31956d49dc6dab5aa6a6b7a86f6a02baccb2121e4e7fda8abeffb55c"
+}
