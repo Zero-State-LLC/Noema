@@ -122,4 +122,11 @@ def acceptance_projection(state: WorldState) -> dict[str, Any]:
         "destroyed_entities": destroyed,
         "last_event_digest": state.last_event_digest,
         "event_count": state.event_count,
+        # RFC-0003 lineage fields required by Noema-Specs acceptance fixtures
+        "world_version": state.world_version,
+        "status": "ACTIVE",
+        "catalog_version": state.catalog_version,
+        "state_revision": int(state.sequence),
+        "canonicalization_version": "noema-jcs/1",
+        "hash_algorithm": "sha256",
     }

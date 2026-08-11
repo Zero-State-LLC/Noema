@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.1.0rc1"
-description = "NOEMA World Engine runtime — v0.1 The Chamber"
+version = "0.1.0"
+description = "NOEMA World Engine runtime — v0.1 The Chamber (Phase 1 MVP)"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "Apache-2.0"
+license = { text = "LicenseRef-Zero-State-Proprietary" }
 authors = [{ name = "Zero State LLC" }]
 dependencies = []
 
@@ -17,6 +17,8 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 noema-replay = "noema.cli.replay:main"
+noema-serve = "noema.cli.serve:main"
+noema-play = "noema.cli.play:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/noema"]

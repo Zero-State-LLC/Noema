@@ -1,0 +1,241 @@
+{
+  "schema_version": "world-seed/1.0",
+  "world_id": "world-01",
+  "world_version": "world/v1",
+  "seed": "noema-strategic-seed",
+  "catalog_version": "event-catalog/0.1",
+  "cycle": 0,
+  "sequence": 0,
+  "budget_defaults": {
+    "attention": 8,
+    "compute": 64,
+    "energy": 80,
+    "influence": 40,
+    "storage": 16
+  },
+  "rooms": [
+    {
+      "room_id": "room.relay-quarter",
+      "name": "Relay Quarter",
+      "description": "Power district. Relay-7 is degraded. Storage cache nearby in Civic Exchange.",
+      "entity_ids": [
+        "entity.relay-7",
+        "entity.cell-generator"
+      ]
+    },
+    {
+      "room_id": "room.civic-exchange",
+      "name": "Civic Exchange",
+      "description": "Market floor. Storage cells and rumor boards.",
+      "entity_ids": [
+        "entity.storage-cell-cache",
+        "entity.archive-ledger-obsolescing"
+      ]
+    },
+    {
+      "room_id": "room.transit-ring",
+      "name": "Transit Ring",
+      "description": "Corridor between districts.",
+      "entity_ids": []
+    },
+    {
+      "room_id": "room.infrastructure-vault",
+      "name": "Infrastructure Vault",
+      "description": "Maintenance under Relay Quarter.",
+      "entity_ids": [
+        "entity.vault-production-node"
+      ]
+    }
+  ],
+  "exits": [
+    {
+      "exit_id": "exit.rq-east",
+      "from_room_id": "room.relay-quarter",
+      "to_room_id": "room.transit-ring",
+      "direction": "EAST",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.rq-north",
+      "from_room_id": "room.relay-quarter",
+      "to_room_id": "room.civic-exchange",
+      "direction": "NORTH",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.rq-down",
+      "from_room_id": "room.relay-quarter",
+      "to_room_id": "room.infrastructure-vault",
+      "direction": "DOWN",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.tr-west",
+      "from_room_id": "room.transit-ring",
+      "to_room_id": "room.relay-quarter",
+      "direction": "WEST",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.tr-north",
+      "from_room_id": "room.transit-ring",
+      "to_room_id": "room.civic-exchange",
+      "direction": "NORTH",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.ce-south",
+      "from_room_id": "room.civic-exchange",
+      "to_room_id": "room.relay-quarter",
+      "direction": "SOUTH",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.ce-east",
+      "from_room_id": "room.civic-exchange",
+      "to_room_id": "room.transit-ring",
+      "direction": "EAST",
+      "conditions": []
+    },
+    {
+      "exit_id": "exit.iv-up",
+      "from_room_id": "room.infrastructure-vault",
+      "to_room_id": "room.relay-quarter",
+      "direction": "UP",
+      "conditions": []
+    }
+  ],
+  "entities": [
+    {
+      "entity_id": "entity.relay-7",
+      "entity_type": "INFRASTRUCTURE",
+      "location": {
+        "kind": "ROOM",
+        "room_id": "room.relay-quarter"
+      },
+      "owner_id": null,
+      "properties": {
+        "label": "relay-7",
+        "function": "power-relay",
+        "infra_type": "relay"
+      },
+      "inventory": [],
+      "state": {
+        "condition": 40,
+        "capacity": 100,
+        "power_stability": 0.4,
+        "responding": false
+      }
+    },
+    {
+      "entity_id": "entity.cell-generator",
+      "entity_type": "INFRASTRUCTURE",
+      "location": {
+        "kind": "ROOM",
+        "room_id": "room.relay-quarter"
+      },
+      "owner_id": null,
+      "properties": {
+        "label": "cell-generator",
+        "infra_type": "generator"
+      },
+      "inventory": [],
+      "state": {
+        "condition": 55,
+        "capacity": 50
+      }
+    },
+    {
+      "entity_id": "entity.storage-cell-cache",
+      "entity_type": "OBJECT",
+      "location": {
+        "kind": "ROOM",
+        "room_id": "room.civic-exchange"
+      },
+      "owner_id": null,
+      "properties": {
+        "label": "storage-cell-cache",
+        "resource_node": true,
+        "resource": "storage"
+      },
+      "inventory": [],
+      "state": {
+        "available": 8,
+        "capacity": 24,
+        "regen_per_cycle": 1
+      }
+    },
+    {
+      "entity_id": "entity.vault-production-node",
+      "entity_type": "INFRASTRUCTURE",
+      "location": {
+        "kind": "ROOM",
+        "room_id": "room.infrastructure-vault"
+      },
+      "owner_id": null,
+      "properties": {
+        "label": "vault-production",
+        "infra_type": "production_node",
+        "resource_node": true,
+        "resource": "storage"
+      },
+      "inventory": [],
+      "state": {
+        "condition": 30,
+        "capacity": 20,
+        "available": 4,
+        "regen_per_cycle": 1
+      }
+    },
+    {
+      "entity_id": "entity.archive-ledger-obsolescing",
+      "entity_type": "DOCUMENT",
+      "location": {
+        "kind": "ROOM",
+        "room_id": "room.civic-exchange"
+      },
+      "owner_id": null,
+      "properties": {
+        "label": "archive-ledger",
+        "public": true
+      },
+      "inventory": [],
+      "state": {
+        "known_to": []
+      }
+    }
+  ],
+  "registered_agents": [
+    {
+      "agent_id": "agent.nacre",
+      "display_name": "envoy.nacre"
+    },
+    {
+      "agent_id": "agent.vesper",
+      "display_name": "technician.vesper"
+    },
+    {
+      "agent_id": "agent.helix",
+      "display_name": "broker.helix"
+    },
+    {
+      "agent_id": "agent.quill",
+      "display_name": "archivist.quill"
+    }
+  ],
+  "strategic_scenario": {
+    "title": "Relay bottleneck under scarcity",
+    "agents": 4,
+    "couplings": [
+      "degraded relay",
+      "constrained storage node",
+      "production bottleneck in vault",
+      "two organizations / rivalry",
+      "asymmetric archive knowledge",
+      "trade opportunity",
+      "messaging",
+      "resource contention",
+      "repair vs harvest choice"
+    ]
+  }
+}

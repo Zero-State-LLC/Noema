@@ -1,0 +1,50 @@
+{
+  "schema_version": "noema-runtime-spec-compat/1.0",
+  "runtime_name": "noema",
+  "runtime_version": "0.1.0",
+  "product_milestone": "v0.1-chamber",
+  "implementation_phase": "phase-1-playable-chamber-mvp",
+  "specs": {
+    "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
+    "pin_label": "v0.1.0-rc2-plus-core-loop-freeze",
+    "pin_note": "Chamber fixtures from Noema-Specs main; product pin historically v0.1.0-rc2 with RFC-0003 lineage fields on acceptance views",
+    "commit": "e6bcbd57fb4f3e213569ed02a340f66115701c14",
+    "ref": "main",
+    "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md"
+  },
+  "fixture_identity": {
+    "chamber_seed_package": "fixtures/v01-seed",
+    "source_package": "examples/v01-seed",
+    "world_seed": "noema-local-seed",
+    "world_id": "world-01"
+  },
+  "versions": {
+    "world_rules": "world/v1",
+    "event_catalog": "event-catalog/0.1",
+    "event_schema": "event-schema/v1",
+    "agent_protocol": "agent-protocol/v1",
+    "canonicalization": "noema-jcs/1",
+    "hash_algorithm": "sha256",
+    "world_state_schema": "world-state/1.0",
+    "world_seed_schema": "world-seed/1.0"
+  },
+  "known_spec_defects": [
+    {
+      "id": "SPEC-DEFECT-v01-acceptance-digest-mismatch",
+      "summary": "In Noema-Specs examples/v01-seed, expected-final-state-digest.txt historically matched the pre-RFC-0003 acceptance projection, while expected-final-state.json includes RFC-0003 lineage fields (world_version, status, catalog_version, state_revision, canonicalization_version, hash_algorithm). Runtime uses the JSON shape as authority and recomputes its digest.",
+      "affected": [
+        "examples/v01-seed/expected-final-state.json",
+        "examples/v01-seed/expected-final-state-digest.txt"
+      ],
+      "runtime_mitigation": "acceptance_projection emits lineage fields; replay compares against digest of expected-final-state.json"
+    }
+  ],
+  "deferred_milestones": [
+    "v0.2-frontier",
+    "v0.3-observatory",
+    "v0.4-lab",
+    "v0.5-compiler",
+    "v0.6-deep-time-genesis",
+    "v0.7-learn"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "world-snapshot/1.0",
+  "snapshot_id": "snap.world-01.genesis",
+  "world_id": "world-01",
+  "world_version": "world/v1",
+  "cycle": 0,
+  "sequence": 0,
+  "created_at": "2026-08-09T16:00:00Z",
+  "state_digest": "sha256:genesis-placeholder-replace-by-engine",
+  "prior_event_digest": null,
+  "state": {
+    "schema_version": "world-state/1.0",
+    "world_id": "world-01",
+    "cycle": 0,
+    "sequence": 0,
+    "active_agents": {},
+    "organizations": {},
+    "entities_present": [
+      "entity.relay-7",
+      "entity.storage-cell-cache",
+      "entity.archive-ledger-obsolescing"
+    ],
+    "destroyed_entities": [],
+    "last_event_digest": null,
+    "event_count": 0,
+    "world_version": "world/v1",
+    "status": "ACTIVE",
+    "catalog_version": "event-catalog/0.1",
+    "state_revision": 0,
+    "canonicalization_version": "noema-jcs/1",
+    "hash_algorithm": "sha256"
+  },
+  "provenance": {
+    "source": "examples/v01-seed/world-seed.json",
+    "note": "Engines SHOULD replace state_digest with sha256 of canonical state at load time"
+  }
+}

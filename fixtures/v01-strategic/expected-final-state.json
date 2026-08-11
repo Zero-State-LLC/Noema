@@ -1,0 +1,115 @@
+{
+  "schema_version": "world-state/1.0",
+  "world_id": "world-01",
+  "world_version": "world/v1",
+  "cycle": 7,
+  "sequence": 34,
+  "status": "ACTIVE",
+  "active_agents": {
+    "agent.nacre": {
+      "room_id": "room.relay-quarter",
+      "budgets": {
+        "attention": 7,
+        "compute": 62,
+        "energy": 77,
+        "influence": 32,
+        "storage": 17
+      }
+    },
+    "agent.vesper": {
+      "room_id": "room.infrastructure-vault",
+      "budgets": {
+        "attention": 8,
+        "compute": 63,
+        "energy": 77,
+        "influence": 40,
+        "storage": 18
+      }
+    },
+    "agent.helix": {
+      "room_id": "room.civic-exchange",
+      "budgets": {
+        "attention": 8,
+        "compute": 63,
+        "energy": 78,
+        "influence": 43,
+        "storage": 17
+      }
+    },
+    "agent.quill": {
+      "room_id": "room.civic-exchange",
+      "budgets": {
+        "attention": 6,
+        "compute": 64,
+        "energy": 80,
+        "influence": 40,
+        "storage": 16
+      }
+    }
+  },
+  "organizations": {
+    "org.relay-repair": {
+      "name": "Relay Repair Collective",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "agent_id": "agent.nacre",
+          "role": "founder"
+        },
+        {
+          "agent_id": "agent.vesper",
+          "role": "officer"
+        }
+      ]
+    },
+    "org.cell-brokers": {
+      "name": "Cell Brokers",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "agent_id": "agent.helix",
+          "role": "founder"
+        }
+      ]
+    }
+  },
+  "entities_present": [
+    "entity.relay-7",
+    "entity.cell-generator",
+    "entity.storage-cell-cache",
+    "entity.vault-production-node",
+    "entity.archive-ledger-obsolescing"
+  ],
+  "destroyed_entities": [],
+  "infrastructure": {
+    "entity.relay-7": {
+      "condition": 50,
+      "infra_type": "relay"
+    },
+    "entity.cell-generator": {
+      "condition": 55,
+      "infra_type": "generator"
+    },
+    "entity.vault-production-node": {
+      "condition": 30,
+      "infra_type": "production_node",
+      "available": 2
+    }
+  },
+  "resource_nodes": {
+    "entity.storage-cell-cache": {
+      "available": 6,
+      "capacity": 24
+    },
+    "entity.vault-production-node": {
+      "available": 2,
+      "capacity": 20
+    }
+  },
+  "last_event_digest": "sha256:6f8fc977b7530450c474fcef9ddc68146496a4f11f7a0f64534037e1035ed8e6",
+  "event_count": 34,
+  "catalog_version": "event-catalog/0.1",
+  "state_revision": 34,
+  "canonicalization_version": "noema-jcs/1",
+  "hash_algorithm": "sha256"
+}

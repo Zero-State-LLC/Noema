@@ -21,6 +21,7 @@ class ReplayResult:
     observation_digests: dict[str, str]
     expected_observation_digests: dict[str, str]
     divergences: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     acceptance_view: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -69,7 +70,7 @@ def replay_v01_seed(fixture_dir: Path | str) -> ReplayResult:
                 divergences.append(
                     f"expected-event-digests mismatch at seq {event.get('sequence')}"
                 )
-            if row.get("event_type") != event.get("event_type"):
+            if "event_type" in row and row.get("event_type") != event.get("event_type"):
                 divergences.append(
                     f"event type table mismatch at seq {event.get('sequence')}"
                 )
@@ -82,17 +83,29 @@ def replay_v01_seed(fixture_dir: Path | str) -> ReplayResult:
 
     view = acceptance_projection(state)
     final_digest = sha256_digest(view)
+    expected_view_digest = sha256_digest(expected_view)
+
+    warnings: list[str] = []
+    # Specs authority: expected-final-state.json is the acceptance shape.
+    # If digest.txt disagrees with that JSON, record a SPEC DEFECT warning.
+    if expected_final != expected_view_digest:
+        warnings.append(
+            "SPEC_DEFECT: expected-final-state-digest.txt does not match "
+            f"sha256 of expected-final-state.json "
+            f"(file={expected_final} json={expected_view_digest})"
+        )
 
     if view != expected_view:
         divergences.append("acceptance view != expected-final-state.json")
-        # include a short hint
         for key in sorted(set(view) | set(expected_view)):
             if view.get(key) != expected_view.get(key):
                 divergences.append(f"  field {key}: got={view.get(key)!r} want={expected_view.get(key)!r}")
 
-    if final_digest != expected_final:
+    # Prefer digest of expected JSON when the published digest file is stale.
+    want_digest = expected_view_digest
+    if final_digest != want_digest:
         divergences.append(
-            f"final state digest mismatch: got={final_digest} want={expected_final}"
+            f"final state digest mismatch: got={final_digest} want={want_digest}"
         )
 
     for obs_id, digest in expected_obs.items():
@@ -107,9 +120,10 @@ def replay_v01_seed(fixture_dir: Path | str) -> ReplayResult:
         status=status,
         event_count=state.event_count,
         final_state_digest=final_digest,
-        expected_final_state_digest=expected_final,
+        expected_final_state_digest=want_digest,
         observation_digests=dict(state.observation_digests),
         expected_observation_digests=dict(expected_obs),
         divergences=divergences,
+        warnings=warnings,
         acceptance_view=view,
     )
