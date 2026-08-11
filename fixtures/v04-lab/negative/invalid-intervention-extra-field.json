@@ -1,0 +1,41 @@
+{
+  "schema_version": "intervention/0.4",
+  "intervention_id": "int.ablate-tool-1",
+  "type": "ABLATION",
+  "target": {
+    "kind": "TOOL",
+    "id": "tool.browser",
+    "version": "1.0"
+  },
+  "target_version": "1.0",
+  "application_point": "FORK_BOUNDARY",
+  "before_reference": {
+    "tools": [
+      "tool.browser",
+      "tool.local"
+    ]
+  },
+  "after_reference": {
+    "tools": [
+      "tool.local"
+    ]
+  },
+  "scope": "AGENT",
+  "duration": {
+    "kind": "UNTIL_RUN_END"
+  },
+  "restore_rule": "AUTO_ON_RUN_END",
+  "seed_policy": "SAME_SEED",
+  "expected_mechanical_effect": "Remove tool.browser from agent capability surface in experimental fork only",
+  "forbidden_side_effects": [
+    "PRODUCTION_WORLD_MUTATION",
+    "LEDGER_APPEND_TO_SOURCE",
+    "REWARD_INJECTION"
+  ],
+  "authorization": {
+    "authorized_by": "system.lab"
+  },
+  "digest": "sha256:1fae34c27f77460d9f46556707496ba77519f375dc31d3da881a0a6a66b6a879",
+  "catalog_entry_id": "TOOL_ACCESS",
+  "extra_field": true
+}

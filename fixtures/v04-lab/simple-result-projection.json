@@ -1,0 +1,30 @@
+{
+  "schema_version": "simple-result-projection/0.4",
+  "projection_id": "simple-result.shared-ledger-dependency-1",
+  "lab_result_id": "labres.tool-ablation-1",
+  "experiment_id": "exp.tool-ablation-1",
+  "source_intent_id": "intent.shared-ledger-dependency-1",
+  "question": "Does the coordination pattern require the shared ledger?",
+  "interpretation": "SUPPORTED",
+  "claim_label": "INFERRED",
+  "compiler_readiness": "NOT_READY",
+  "result": {
+    "outcome_class": "DEGRADED",
+    "simple_statement": "Evidence suggests the behavior occurred less reliably when the declared support was removed, within the tested conditions.",
+    "within_tested_conditions": true
+  },
+  "evidence": [
+    "Baseline and sham controls passed.",
+    "The intervention outcome was DEGRADED and exact replay reproduced the direction."
+  ],
+  "limitations": [
+    "One agent version and one bounded context were tested.",
+    "Provider nondeterminism residual is retained as a confound."
+  ],
+  "advanced_detail_ref": "labres.tool-ablation-1",
+  "allowed_actions": [
+    "TEST_ANOTHER_VERSION",
+    "TEST_ANOTHER_SITUATION"
+  ],
+  "digest": "sha256:ed355d36677201825c327d81e82246e0204b253c792c73969a45384c8a0f650c"
+}

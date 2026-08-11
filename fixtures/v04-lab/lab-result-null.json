@@ -1,0 +1,38 @@
+{
+  "schema_version": "lab-result/0.4",
+  "lab_result_id": "labres.null-1",
+  "experiment_id": "exp.null-1",
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "run_ids": [
+    "run.null.1"
+  ],
+  "control_outcomes": {
+    "BASELINE": "PASS",
+    "SHAM_CONTROL": "PASS"
+  },
+  "intervention_outcomes": {
+    "int.perturb-noise-1": "PERSISTED"
+  },
+  "replication_outcomes": {
+    "EXACT_REPLAY": "NOT_REPRODUCED"
+  },
+  "generalization_outcomes": {
+    "new_tool_set": "NOT_COMPARABLE"
+  },
+  "supporting_evidence": [],
+  "counterevidence": [
+    "behavior persisted under noise increase"
+  ],
+  "confounds": [
+    "provider nondeterminism residual"
+  ],
+  "execution_status": "COMPLETE",
+  "interpretation": "NOT_SUPPORTED",
+  "claim_label": "OBSERVED",
+  "compiler_readiness": "REJECTED",
+  "digest": "sha256:f3cdab6fbfcddbdea4aced837f48223f6fac069a6a8051e507bd3438ae9d15af",
+  "failed_experiments_retained": true,
+  "source_intent_id": "intent.shared-ledger-dependency-1"
+}

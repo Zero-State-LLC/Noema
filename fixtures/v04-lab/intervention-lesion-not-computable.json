@@ -1,0 +1,31 @@
+{
+  "schema_version": "intervention/0.4",
+  "intervention_id": "int.lesion.unsupported-memory",
+  "type": "LESION",
+  "intervention_type": "LESION",
+  "target": {
+    "kind": "AGENT_COMPONENT",
+    "id": "memory.short_term",
+    "version": "unavailable"
+  },
+  "target_version": "unavailable",
+  "application_point": "FORK_BOUNDARY",
+  "before_reference": "adapter.declaration.absent",
+  "after_reference": "NOT_COMPUTABLE",
+  "scope": "AGENT",
+  "duration": {
+    "kind": "UNTIL_RUN_END"
+  },
+  "restore_rule": "NOT_APPLIED",
+  "seed_policy": "SAME_SEED",
+  "expected_mechanical_effect": "NOT_COMPUTABLE: adapter declares no lesion capability",
+  "forbidden_side_effects": [
+    "PRIVATE_ARCHITECTURE_INFERENCE"
+  ],
+  "authorization": {
+    "authorized_by": "system.lab",
+    "adapter_support": false
+  },
+  "authorization_class": "AGENT_INTERNAL",
+  "digest": "sha256:000000000000000000000000000000000000000000000000000000000000002c"
+}

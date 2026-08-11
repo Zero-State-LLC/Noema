@@ -1,0 +1,19 @@
+{
+  "schema_version": "experiment-fork/0.4",
+  "fork_id": "fork.lab.1",
+  "experiment_id": "exp.tool-ablation-1",
+  "source_world_id": "world-01",
+  "source_world_version": "world/v1",
+  "source_snapshot_id": "snap.world-01.c12",
+  "source_ledger_head": "sha256:fdce2d5b40deab88f80503f5c3f61f483586572f23b7b36af73a852cbe9d627c",
+  "fork_cycle": 12,
+  "fork_event_boundary": 31,
+  "experimental_world_id": "world-01.exp.tool-ablation-1",
+  "fork_point": "CYCLE_BOUNDARY",
+  "mutates_production": true,
+  "mid_reducer_fork_forbidden": true,
+  "digest": "sha256:fa40897630bc6a3120056ed0bf302509d94823823bef11452a1e047741834c0f",
+  "experimental_ledger_id": "ledger.world-01.exp.tool-ablation-1",
+  "storage_namespace": "research/lab/exp.tool-ablation-1",
+  "fork_digest": "sha256:fa40897630bc6a3120056ed0bf302509d94823823bef11452a1e047741834c0f"
+}

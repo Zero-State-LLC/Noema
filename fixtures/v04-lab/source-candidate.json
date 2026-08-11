@@ -1,0 +1,8 @@
+{
+  "source_path": "examples/v03-observatory/unknown-candidate.json",
+  "unknown_id": "UNKNOWN_BEHAVIOR_shared-ledger-protocol",
+  "minimal_description": "Agent created and reused a shared allocation ledger/protocol under scarcity",
+  "claim_label": "SPECULATIVE",
+  "status": "RETAINED",
+  "reproduction_status": "unreproduced"
+}

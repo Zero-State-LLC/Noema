@@ -1,0 +1,38 @@
+{
+  "schema_version": "experiment-run/0.4",
+  "run_id": "run.baseline.1",
+  "experiment_id": "exp.tool-ablation-1",
+  "run_role": "BASELINE",
+  "fork": {
+    "source_world_id": "world-01",
+    "source_world_version": "world/v1",
+    "source_snapshot_id": "snap.world-01.c12",
+    "source_ledger_head": "sha256:fdce2d5b40deab88f80503f5c3f61f483586572f23b7b36af73a852cbe9d627c",
+    "fork_cycle": 12,
+    "fork_event_boundary": 31,
+    "experimental_world_id": "world-01.exp.run.baseline.1"
+  },
+  "agent_version": "agentver.nacre.1",
+  "agent_determinism": "SEED_CONTROLLED",
+  "interventions": [],
+  "control_role": "BASELINE",
+  "seed_policy": "SAME_SEED",
+  "seed": "noema-lab-seed-1",
+  "config_digest": "sha256:be6100999874350bf00024bfc8a281b8ae76011ba15584c841fcb2aa9607f528",
+  "start_state_digest": "sha256:0146022102a5979a46f69a774a72dbb921993a6201abf4e0153c56cb0771ff44",
+  "end_state_digest": "sha256:923e92ebeb2eaf3b3c1f002f8cbf9889e64ed1b88aaa7b121de31da00573ebf6",
+  "trajectory_id": "traj.run.baseline.1",
+  "status": "COMPLETE",
+  "divergence_markers": [],
+  "metric_outputs": {
+    "tool_usage": 420
+  },
+  "outcome_class": "PERSISTED",
+  "confounds": [],
+  "audit_digest": "sha256:29773b68aec605b30c3249b9479e69d8d8a4c9cb8d48e2cafe5bb4565ba66e7e",
+  "world_fork_id": "fork.lab.1",
+  "intervention_ids": [],
+  "control_roles": [
+    "BASELINE"
+  ]
+}

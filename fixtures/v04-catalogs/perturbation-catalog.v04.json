@@ -1,0 +1,215 @@
+{
+  "schema_version": "perturbation-catalog/0.4.0",
+  "entries": [
+    {
+      "parameter_id": "RESOURCE_LEVEL",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "RESOURCE_REGEN",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "OBSERVATION_NOISE",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "OBSERVATION_DELAY",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "INFORMATION_VISIBILITY",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "TIME_PRESSURE",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "COMMUNICATION_TOPOLOGY",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "INFRASTRUCTURE_CONDITION",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "INCENTIVE_MAGNITUDE",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    },
+    {
+      "parameter_id": "PARTICIPANT_TOPOLOGY",
+      "parameter_domain": "integer_fixed_point",
+      "allowed_targets": [
+        "experimental_fork"
+      ],
+      "application_points": [
+        "CYCLE_BOUNDARY",
+        "BEFORE_OBSERVATION",
+        "AFTER_OBSERVATION",
+        "BEFORE_ACTION",
+        "AFTER_ACTION",
+        "BEFORE_SITUATION_INJECTION",
+        "AFTER_SITUATION_INJECTION"
+      ],
+      "restore_behavior": "AUTO_ON_RUN_END",
+      "risk": "WORLD_SAFE",
+      "equivalence_dimensions_affected": [
+        "WORLD"
+      ]
+    }
+  ]
+}

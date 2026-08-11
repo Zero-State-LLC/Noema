@@ -1,0 +1,158 @@
+{
+  "schema_version": "experiment-variable-registry/0.4",
+  "registry_version": "experiment-variable-registry/0.4.0",
+  "variables": [
+    {
+      "variable_id": "world.infrastructure_condition",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "world.resource_level",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "information.visibility",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "observation.noise",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "observation.delay",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "temporal.time_pressure",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "social.communication_topology",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "tool.shared_ledger_access",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "tool.message_channel",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "tool.map_access",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": true,
+      "allowed_interventions": [
+        "PERTURBATION",
+        "ABLATION",
+        "COUNTERFACTUAL"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    },
+    {
+      "variable_id": "agent.lesion.memory.short_term",
+      "version": "1.0",
+      "domain": "experimental",
+      "measurement": "version-pinned",
+      "mutable": false,
+      "allowed_interventions": [
+        "LESION"
+      ],
+      "visibility": "research",
+      "provenance": "registry/0.4"
+    }
+  ]
+}

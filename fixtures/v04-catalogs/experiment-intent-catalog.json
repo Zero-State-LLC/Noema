@@ -1,0 +1,195 @@
+{
+  "schema_version": "experiment-intent-catalog/1.0",
+  "catalog_version": "experiment-intent-catalog/1.1.0",
+  "defaults_version": "experience-defaults/1.1.0",
+  "intents": [
+    {
+      "intent_id": "REPEAT_BEHAVIOR",
+      "display_name": "Does it happen again?",
+      "question_template": "Does {behavior} repeat under the recorded boundary?",
+      "lab_intervention_type": "REPLICATION",
+      "plan_template_id": "lab-plan-template.0.4.repeat_behavior-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "REPLICATION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "SAME_SEED",
+        "fork_point": "CYCLE_BOUNDARY",
+        "replication_count": 5,
+        "control_role": "BASELINE",
+        "dependent_measure_source": "SOURCE_CANDIDATE_PRIMARY_MEASURE",
+        "equivalence_boundary_source": "SOURCE_CANDIDATE_RECORDED_BOUNDARY"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ],
+      "generated_experiment_kind": "REPLICATION"
+    },
+    {
+      "intent_id": "REMOVE_DEPENDENCY",
+      "display_name": "Does it require this?",
+      "question_template": "Does {behavior} require external {dependency}?",
+      "lab_intervention_type": "ABLATION",
+      "plan_template_id": "lab-plan-template.0.4.remove_dependency-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "CONTROL",
+        "INTERVENTION",
+        "REPLICATION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "SAME_SEED",
+        "fork_point": "CYCLE_BOUNDARY",
+        "replication_count": 5,
+        "control_role": "SHAM_CONTROL",
+        "dependent_measure_source": "SOURCE_CANDIDATE_PRIMARY_MEASURE",
+        "equivalence_boundary_source": "SOURCE_CANDIDATE_RECORDED_BOUNDARY"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ],
+      "generated_experiment_kind": "ABLATION"
+    },
+    {
+      "intent_id": "CHANGE_CONDITION",
+      "display_name": "What if this changes?",
+      "question_template": "How does {behavior} change when {condition} changes?",
+      "lab_intervention_type": "PERTURBATION",
+      "plan_template_id": "lab-plan-template.0.4.change_condition-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "CONTROL",
+        "INTERVENTION",
+        "REPLICATION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "SAME_SEED",
+        "fork_point": "BEFORE_OBSERVATION",
+        "replication_count": 5,
+        "control_role": "BASELINE",
+        "dependent_measure_source": "SOURCE_CANDIDATE_PRIMARY_MEASURE",
+        "equivalence_boundary_source": "SOURCE_CANDIDATE_RECORDED_BOUNDARY"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ],
+      "generated_experiment_kind": "PERTURBATION"
+    },
+    {
+      "intent_id": "COMPARE_VERSION",
+      "display_name": "Does another version do it?",
+      "question_template": "How does {behavior} differ for {agent_version}?",
+      "lab_intervention_type": "VERSION_DIFFERENTIAL",
+      "plan_template_id": "lab-plan-template.0.4.compare_version-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "CONTROL",
+        "INTERVENTION",
+        "REPLICATION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "DERIVED_SEED",
+        "fork_point": "CYCLE_BOUNDARY",
+        "replication_count": 5,
+        "control_role": "BASELINE",
+        "dependent_measure_source": "SOURCE_CANDIDATE_PRIMARY_MEASURE",
+        "equivalence_boundary_source": "SOURCE_CANDIDATE_RECORDED_BOUNDARY"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ],
+      "generated_experiment_kind": "VERSION_DIFFERENTIAL"
+    },
+    {
+      "intent_id": "TEST_GENERALIZATION",
+      "display_name": "Does it generalize?",
+      "question_template": "Does {behavior} reproduce in declared {context}?",
+      "lab_intervention_type": "REPLICATION",
+      "plan_template_id": "lab-plan-template.0.4.test_generalization-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "REPLICATION",
+        "GENERALIZATION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "DERIVED_SEED",
+        "fork_point": "CYCLE_BOUNDARY",
+        "replication_count": 5,
+        "control_role": "BASELINE",
+        "dependent_measure_source": "SOURCE_CANDIDATE_PRIMARY_MEASURE",
+        "equivalence_boundary_source": "SOURCE_CANDIDATE_RECORDED_BOUNDARY"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ],
+      "generated_experiment_kind": "GENERALIZATION_PROBE"
+    },
+    {
+      "intent_id": "CUSTOM",
+      "display_name": "Custom experiment",
+      "question_template": "Define a controlled experiment for {behavior}.",
+      "lab_intervention_type": null,
+      "generated_experiment_kind": "ADVANCED_EXPERIMENT_DESIGN",
+      "plan_template_id": "lab-plan-template.0.4.custom-advanced-v1",
+      "required_plan_nodes": [
+        "BASELINE",
+        "CONTROL",
+        "INTERVENTION",
+        "ANALYSIS"
+      ],
+      "recommended_defaults": {
+        "seed_policy": "SAME_SEED",
+        "fork_point": "CYCLE_BOUNDARY",
+        "replication_count": 1,
+        "control_role": "BASELINE",
+        "dependent_measure_source": "REQUIRED_ADVANCED_OVERRIDE",
+        "equivalence_boundary_source": "REQUIRED_ADVANCED_OVERRIDE"
+      },
+      "advanced_override_fields": [
+        "fork_point",
+        "seed_policy",
+        "intervention",
+        "controls",
+        "run_count",
+        "equivalence_boundary",
+        "dependent_measures"
+      ]
+    }
+  ]
+}
