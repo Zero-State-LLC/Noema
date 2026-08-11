@@ -1,0 +1,24 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.dep.messaging.contested",
+  "edge_type": "DEPENDS_ON",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "condition.MESSAGE_CHANNEL.available",
+  "target_class": "CONDITION",
+  "evidence_refs": [
+    "examples/v04-lab/lab-result.json"
+  ],
+  "claim_label": "INFERRED",
+  "relationship_status": "CONTESTED",
+  "tested_boundary": {
+    "primary": "5/5 ablation failed",
+    "note": "boundary unresolved"
+  },
+  "known_confounds": [],
+  "counterevidence_refs": [
+    "examples/v07-capability-graph/counterevidence-messaging-alt.json"
+  ],
+  "simple_label": "messaging (contested boundary)",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:67e1d02823e8343614f84089df1be305c7fd4ce39961007d754a122fedade357"
+}

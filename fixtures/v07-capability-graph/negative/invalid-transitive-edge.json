@@ -1,0 +1,5 @@
+{
+  "note": "A DEPENDS_ON B and B DEPENDS_ON C must not auto-create A DEPENDS_ON C",
+  "forbidden_edge_type": "DEPENDS_ON",
+  "auto_transitive": true
+}

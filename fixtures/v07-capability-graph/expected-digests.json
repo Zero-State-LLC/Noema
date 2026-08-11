@@ -1,0 +1,17 @@
+{
+  "behavior_node_digest": "sha256:8441000dd7d815d4bb818caba463b6ac89de92b6196a71b4cdf13caca52a9d41",
+  "capability_graph_digest": "sha256:947126376cbea93d10943480d302c15c59e7fd3c5fbcb73fe8f469007f295d83",
+  "simple_learn_view_digest": "sha256:e665d1ef1b824361a75fc1bb2b0d14b1cc3fa6139a964f3ae5a67a9e2415a832",
+  "edge_digests": {
+    "edge.repro.2.1": "sha256:bbaa5619d217953eef9f5bd494d652675a9f3d7f50dc929d4126c2f65d2d0358",
+    "edge.repro.2.2": "sha256:0bd679851ada8e0e3e4168c02439c91aa45e3a72389aad07f8ffbd13ba0b805c",
+    "edge.dep.messaging": "sha256:b7c704a2d38ceb1f6fedfd43c39df4d6d264b00bbe45d323119a66ee663972eb",
+    "edge.dep.ledger": "sha256:0b40489d70b1d07a5b5acb070584338dad8736256d3e75ddf73c3bdf9e32ffac",
+    "edge.fail.messaging": "sha256:ffd2c8e34146dd6feda7039853b1e88640ecf071a35c72bc3c571d830fc2f19c",
+    "edge.gen.scarcity-alt": "sha256:31d6af20b51ba4fb4d21a9aece5abe8e0cfeae97f08855b55b697358265ae1df",
+    "edge.gen.scarcity-high": "sha256:bb1fb9419b91416a3c958fa351a9245b00d4c5e1e558095895c20aaa1ab1fbb3",
+    "edge.gen.region-alt": "sha256:51a999a4f28ed74bd7c9235af17596b0bb59e07435a7d0666e7dfe3d7966d561",
+    "edge.ver.diff.partial": "sha256:aaa74c880516fc274352b3338ba5b446a597d140ef5d4c17e3d747987cc3026e",
+    "edge.dep.messaging.contested": "sha256:67e1d02823e8343614f84089df1be305c7fd4ce39961007d754a122fedade357"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.learn.agent-2.2",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "RESEARCHER",
+  "canonical_source_refs": [
+    "agentver.nacre.2.2",
+    "behavior.shared-ledger-coordination"
+  ],
+  "presentation": {
+    "title": "AGENT 2.2",
+    "reproduced": [
+      "Shared-ledger coordination"
+    ],
+    "not_reproduced": [],
+    "not_tested": [
+      "Artifact-mediated succession planning"
+    ]
+  },
+  "allowed_actions": [
+    "VIEW_BEHAVIOR"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:da9a8d3af6161d843efff0ca3aa4ab4e85e29150780fdea0541d6421c2b53c81"
+}

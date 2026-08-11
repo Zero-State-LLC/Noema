@@ -1,0 +1,23 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.fail.messaging",
+  "edge_type": "FAILS_WITHOUT",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "condition.MESSAGE_CHANNEL.available",
+  "target_class": "CONDITION",
+  "evidence_refs": [
+    "examples/v04-lab/lab-result.json",
+    "examples/v04-lab/intervention-ablation.json"
+  ],
+  "claim_label": "OBSERVED",
+  "relationship_status": "SUPPORTED",
+  "tested_boundary": {
+    "runs": "5/5",
+    "intervention": "ablation messaging"
+  },
+  "known_confounds": [],
+  "counterevidence_refs": [],
+  "simple_label": "messaging is removed",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:ffd2c8e34146dd6feda7039853b1e88640ecf071a35c72bc3c571d830fc2f19c"
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.learn.shared-ledger.advanced",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "ADVANCED",
+  "canonical_source_refs": [
+    "behavior.shared-ledger-coordination",
+    "edge.repro.2.1",
+    "edge.repro.2.2",
+    "edge.dep.messaging",
+    "edge.dep.ledger",
+    "edge.fail.messaging"
+  ],
+  "presentation": {
+    "behavior_id": "behavior.shared-ledger-coordination",
+    "edges": [
+      {
+        "edge_id": "edge.repro.2.1",
+        "edge_type": "REPRODUCED_BY",
+        "target_ref": "agentver.nacre.2.1",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.repro.2.2",
+        "edge_type": "REPRODUCED_BY",
+        "target_ref": "agentver.nacre.2.2",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.dep.messaging",
+        "edge_type": "DEPENDS_ON",
+        "target_ref": "condition.MESSAGE_CHANNEL.available",
+        "claim_label": "INFERRED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.dep.ledger",
+        "edge_type": "DEPENDS_ON",
+        "target_ref": "condition.SHARED_LEDGER.available",
+        "claim_label": "INFERRED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.fail.messaging",
+        "edge_type": "FAILS_WITHOUT",
+        "target_ref": "condition.MESSAGE_CHANNEL.available",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.gen.scarcity-alt",
+        "edge_type": "GENERALIZES_TO",
+        "target_ref": "context.scarcity.moderate",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.gen.scarcity-high",
+        "edge_type": "GENERALIZES_TO",
+        "target_ref": "context.scarcity.high",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.gen.region-alt",
+        "edge_type": "GENERALIZES_TO",
+        "target_ref": "context.region.alternate",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.ver.diff.partial",
+        "edge_type": "DIFFERS_ACROSS_VERSION",
+        "target_ref": "agentver.nacre.2.3",
+        "claim_label": "OBSERVED",
+        "relationship_status": "SUPPORTED"
+      },
+      {
+        "edge_id": "edge.dep.messaging.contested",
+        "edge_type": "DEPENDS_ON",
+        "target_ref": "condition.MESSAGE_CHANNEL.available",
+        "claim_label": "INFERRED",
+        "relationship_status": "CONTESTED"
+      }
+    ],
+    "not_tested": [
+      "context.social.topology.alternate"
+    ],
+    "contested": [
+      "edge.dep.messaging.contested"
+    ]
+  },
+  "allowed_actions": [
+    "VIEW_EVIDENCE",
+    "VIEW_DIGESTS",
+    "COMPARE_VERSIONS"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:795578e5216477555b73bc9d19ea61a84f8139f98c825c1a6bba4502e2f6236b"
+}

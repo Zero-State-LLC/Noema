@@ -1,0 +1,27 @@
+{
+  "schema_version": "behavior-node/0.7",
+  "behavior_id": "behavior.shared-ledger-coordination",
+  "title": "Shared-ledger coordination",
+  "description": "Agents coordinate under scarcity using messaging and a shared ledger.",
+  "behavioral_signature_ref": "examples/v05-compiler/captured-test.json#behavioral_signature",
+  "source_captured_test_ids": [
+    "ctest.shared-ledger-coordination"
+  ],
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "claim_label": "INFERRED",
+  "status": "ACTIVE",
+  "known_limits": [
+    "Tested on agent versions 2.1 and 2.2",
+    "Scenario family only",
+    "Does not prove general capability"
+  ],
+  "provenance": {
+    "source_lab_result_id": "labres.shared-ledger-capture-ready",
+    "source_compile_id": "compile.shared-ledger-1",
+    "domain": "capability-graph/0.7",
+    "canonicalization": "noema-jcs/1"
+  },
+  "digest": "sha256:8441000dd7d815d4bb818caba463b6ac89de92b6196a71b4cdf13caca52a9d41"
+}

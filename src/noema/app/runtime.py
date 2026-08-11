@@ -30,6 +30,7 @@ from noema.research.frontier.injection import build_follow_on_entity_update, bui
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
 from noema.research.compiler.compiler import Compiler, CompileSession
 from noema.research.lab.lab import Lab, LabSessionResult
+from noema.research.learn.graph import LearnGraph, LearnProjection
 from noema.research.observatory.analysis import Observatory, ObservatoryResult
 from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
 from noema.research.observatory.trajectory_v03 import upgrade_v01_capture_to_v03
@@ -58,10 +59,12 @@ class NoemaRuntime:
         self.observatory = Observatory()
         self.lab = Lab()
         self.compiler = Compiler()
+        self.learn = LearnGraph()
         self._last_frontier: FrontierResult | None = None
         self._last_observatory: ObservatoryResult | None = None
         self._last_lab: LabSessionResult | None = None
         self._last_compile: CompileSession | None = None
+        self._last_learn: LearnProjection | None = None
         self._research_overlays: list[dict[str, Any]] = []
 
     def _load_compat(self, path: Path | None) -> dict[str, Any]:
@@ -517,6 +520,17 @@ class NoemaRuntime:
                 if self._last_compile
                 else None
             ),
+            "learn_behaviors": self.store.list_learn_behaviors(),
+            "learn_edges": self.store.list_learn_edges(),
+            "last_learn": (
+                {
+                    "graph_digest": self._last_learn.graph.get("digest"),
+                    "behavior_ids": self._last_learn.graph.get("behavior_node_ids"),
+                    "edge_count": len(self._last_learn.edges),
+                }
+                if self._last_learn
+                else None
+            ),
         }
 
     def run_lab(
@@ -643,6 +657,17 @@ class NoemaRuntime:
             self.store.save_compiler_result(session.compiler_result)
         if session.captured_test:
             self.store.save_captured_test(session.captured_test)
+            # LEARN is post-settlement; optional auto-ingest off PLAY path
+            try:
+                self.learn.ingest_captured_test(
+                    session.captured_test,
+                    lab_result=lr,
+                    source_ref=session.captured_test.get("captured_test_id"),
+                )
+                proj = self.learn.project()
+                self._persist_learn(proj)
+            except Exception:
+                pass
         for rec in session.audit:
             self.store.save_compiler_audit(rec)
         state_after = self.store.get_state()
@@ -672,4 +697,87 @@ class NoemaRuntime:
             "production_isolated": isolated,
             "production_mutated": False,
             "world_truth": False,
+        }
+
+    def _persist_learn(self, proj: LearnProjection) -> None:
+        self._last_learn = proj
+        for b in proj.behaviors:
+            self.store.save_learn_behavior(b)
+        for e in proj.edges:
+            self.store.save_learn_edge(e)
+        self.store.save_learn_graph(proj.graph)
+
+    def rebuild_learn(
+        self,
+        session_id: str,
+        *,
+        sources: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Rebuild LEARN graph from research evidence (disposable index)."""
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "LEARN requires RESEARCHER or ADMIN")
+        self.ensure_ready()
+        seq_before = self.store.get_state().sequence
+        if sources is None:
+            sources = []
+            for ct in self.store.list_captured_tests():
+                sources.append({"captured_test": ct, "source_ref": ct.get("captured_test_id")})
+        proj = self.learn.rebuild_from_sources(sources)
+        self._persist_learn(proj)
+        seq_after = self.store.get_state().sequence
+        return {
+            "graph": proj.graph,
+            "behaviors": proj.behaviors,
+            "edges": [
+                {
+                    "edge_id": e["edge_id"],
+                    "edge_type": e["edge_type"],
+                    "source_ref": e["source_ref"],
+                    "target_ref": e["target_ref"],
+                    "claim_label": e["claim_label"],
+                    "relationship_status": e["relationship_status"],
+                }
+                for e in proj.edges
+            ],
+            "simple_views": proj.simple_views,
+            "advanced_views": proj.advanced_views,
+            "not_tested": proj.not_tested,
+            "rebuildable": True,
+            "mutable_source_of_truth": False,
+            "production_sequence_unchanged": seq_before == seq_after,
+            "mutates_world": False,
+        }
+
+    def learn_view(self, session_id: str, *, behavior_id: str | None = None) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "LEARN requires RESEARCHER or ADMIN")
+        if not self._last_learn:
+            # try rebuild from stored captures
+            if self.store.list_captured_tests():
+                self.rebuild_learn(session_id)
+            else:
+                return {"behaviors": [], "simple_views": [], "graph": None}
+        proj = self._last_learn
+        assert proj is not None
+        if behavior_id:
+            simples = [v for v in proj.simple_views if behavior_id in (v.get("canonical_source_refs") or [])]
+            advanceds = [
+                v for v in proj.advanced_views if (v.get("presentation") or {}).get("behavior_id") == behavior_id
+            ]
+            return {
+                "graph": proj.graph,
+                "simple_views": simples,
+                "advanced_views": advanceds,
+                "agent_versions": self.learn.agent_versions(behavior_id),
+                "not_tested": [n for n in proj.not_tested if n["behavior_id"] == behavior_id],
+                "mutates_world": False,
+            }
+        return {
+            "graph": proj.graph,
+            "simple_views": proj.simple_views,
+            "advanced_views": proj.advanced_views,
+            "not_tested": proj.not_tested,
+            "mutates_world": False,
         }

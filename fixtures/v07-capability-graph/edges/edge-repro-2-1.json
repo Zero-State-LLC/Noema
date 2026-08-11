@@ -1,0 +1,23 @@
+{
+  "schema_version": "capability-edge/0.7",
+  "edge_id": "edge.repro.2.1",
+  "edge_type": "REPRODUCED_BY",
+  "source_ref": "behavior.shared-ledger-coordination",
+  "target_ref": "agentver.nacre.2.1",
+  "target_class": "AGENT_VERSION",
+  "evidence_refs": [
+    "examples/v05-compiler/regression-result.json",
+    "examples/v05-compiler/captured-test.json"
+  ],
+  "claim_label": "OBSERVED",
+  "relationship_status": "SUPPORTED",
+  "tested_boundary": {
+    "captured_test_id": "ctest.shared-ledger-coordination",
+    "agent_version": "agentver.nacre.2.1"
+  },
+  "known_confounds": [],
+  "counterevidence_refs": [],
+  "simple_label": "Agent 2.1",
+  "version": "capability-graph/0.7",
+  "digest": "sha256:bbaa5619d217953eef9f5bd494d652675a9f3d7f50dc929d4126c2f65d2d0358"
+}

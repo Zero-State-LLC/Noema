@@ -126,6 +126,18 @@ class WorldStore:
               compile_id TEXT NOT NULL,
               record_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS research_learn_behaviors (
+              behavior_id TEXT PRIMARY KEY,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_learn_edges (
+              edge_id TEXT PRIMARY KEY,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_learn_graphs (
+              graph_digest TEXT PRIMARY KEY,
+              record_json TEXT NOT NULL
+            );
             """
         )
         self._conn.commit()
@@ -472,7 +484,53 @@ class WorldStore:
             self._conn.execute("DELETE FROM research_compiler_results")
             self._conn.execute("DELETE FROM research_captured_tests")
             self._conn.execute("DELETE FROM research_compiler_audit")
+            self._conn.execute("DELETE FROM research_learn_behaviors")
+            self._conn.execute("DELETE FROM research_learn_edges")
+            self._conn.execute("DELETE FROM research_learn_graphs")
             self._conn.commit()
+
+    def save_learn_behavior(self, node: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_learn_behaviors(behavior_id, record_json)
+                VALUES (?, ?)
+                """,
+                (node.get("behavior_id") or "", json.dumps(node, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_learn_edge(self, edge: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_learn_edges(edge_id, record_json)
+                VALUES (?, ?)
+                """,
+                (edge.get("edge_id") or "", json.dumps(edge, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_learn_graph(self, graph: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_learn_graphs(graph_digest, record_json)
+                VALUES (?, ?)
+                """,
+                (graph.get("digest") or "", json.dumps(graph, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def list_learn_behaviors(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT record_json FROM research_learn_behaviors").fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
+
+    def list_learn_edges(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT record_json FROM research_learn_edges").fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
 
     def save_compiler_result(self, result: dict[str, Any]) -> None:
         with self._lock:

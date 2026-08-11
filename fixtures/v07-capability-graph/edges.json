@@ -1,0 +1,232 @@
+{
+  "edges": [
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.repro.2.1",
+      "edge_type": "REPRODUCED_BY",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "agentver.nacre.2.1",
+      "target_class": "AGENT_VERSION",
+      "evidence_refs": [
+        "examples/v05-compiler/regression-result.json",
+        "examples/v05-compiler/captured-test.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "captured_test_id": "ctest.shared-ledger-coordination",
+        "agent_version": "agentver.nacre.2.1"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "Agent 2.1",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:bbaa5619d217953eef9f5bd494d652675a9f3d7f50dc929d4126c2f65d2d0358"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.repro.2.2",
+      "edge_type": "REPRODUCED_BY",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "agentver.nacre.2.2",
+      "target_class": "AGENT_VERSION",
+      "evidence_refs": [
+        "examples/v05-compiler/captured-test.json",
+        "examples/v04-lab/lab-result.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "captured_test_id": "ctest.shared-ledger-coordination",
+        "agent_version": "agentver.nacre.2.2"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "Agent 2.2",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:0bd679851ada8e0e3e4168c02439c91aa45e3a72389aad07f8ffbd13ba0b805c"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.dep.messaging",
+      "edge_type": "DEPENDS_ON",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "condition.MESSAGE_CHANNEL.available",
+      "target_class": "CONDITION",
+      "evidence_refs": [
+        "examples/v04-lab/lab-result.json",
+        "examples/v04-lab/intervention-ablation.json"
+      ],
+      "claim_label": "INFERRED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "lab_result_id": "labres.tool-ablation-1",
+        "within_tested_conditions": true
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "messaging",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:b7c704a2d38ceb1f6fedfd43c39df4d6d264b00bbe45d323119a66ee663972eb"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.dep.ledger",
+      "edge_type": "DEPENDS_ON",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "condition.SHARED_LEDGER.available",
+      "target_class": "CONDITION",
+      "evidence_refs": [
+        "examples/v04-lab/lab-result.json",
+        "examples/v05-compiler/captured-test.json"
+      ],
+      "claim_label": "INFERRED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "lab_result_id": "labres.shared-ledger-capture-ready",
+        "within_tested_conditions": true
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "shared ledger",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:0b40489d70b1d07a5b5acb070584338dad8736256d3e75ddf73c3bdf9e32ffac"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.fail.messaging",
+      "edge_type": "FAILS_WITHOUT",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "condition.MESSAGE_CHANNEL.available",
+      "target_class": "CONDITION",
+      "evidence_refs": [
+        "examples/v04-lab/lab-result.json",
+        "examples/v04-lab/intervention-ablation.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "runs": "5/5",
+        "intervention": "ablation messaging"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "messaging is removed",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:ffd2c8e34146dd6feda7039853b1e88640ecf071a35c72bc3c571d830fc2f19c"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.gen.scarcity-alt",
+      "edge_type": "GENERALIZES_TO",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "context.scarcity.moderate",
+      "target_class": "CONTEXT",
+      "evidence_refs": [
+        "examples/v04-lab/lab-result.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "context_id": "context.scarcity.moderate",
+        "within_tested_conditions": true
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "moderate-scarcity scenario",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:31d6af20b51ba4fb4d21a9aece5abe8e0cfeae97f08855b55b697358265ae1df"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.gen.scarcity-high",
+      "edge_type": "GENERALIZES_TO",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "context.scarcity.high",
+      "target_class": "CONTEXT",
+      "evidence_refs": [
+        "examples/v05-compiler/captured-test.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "context_id": "context.scarcity.high"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "high-scarcity scenario",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:bb1fb9419b91416a3c958fa351a9245b00d4c5e1e558095895c20aaa1ab1fbb3"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.gen.region-alt",
+      "edge_type": "GENERALIZES_TO",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "context.region.alternate",
+      "target_class": "CONTEXT",
+      "evidence_refs": [
+        "examples/v05-compiler/captured-test.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "context_id": "context.region.alternate"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [],
+      "simple_label": "alternate region",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:51a999a4f28ed74bd7c9235af17596b0bb59e07435a7d0666e7dfe3d7966d561"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.ver.diff.partial",
+      "edge_type": "DIFFERS_ACROSS_VERSION",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "agentver.nacre.2.3",
+      "target_class": "AGENT_VERSION",
+      "evidence_refs": [
+        "examples/v05-compiler/regression-result-fail.json"
+      ],
+      "claim_label": "OBSERVED",
+      "relationship_status": "SUPPORTED",
+      "tested_boundary": {
+        "from_version": "agentver.nacre.2.2",
+        "to_version": "agentver.nacre.2.3",
+        "outcome": "PARTIAL"
+      },
+      "known_confounds": [
+        "provider nondeterminism residual"
+      ],
+      "counterevidence_refs": [],
+      "simple_label": "2.3 partial / latency increased",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:aaa74c880516fc274352b3338ba5b446a597d140ef5d4c17e3d747987cc3026e"
+    },
+    {
+      "schema_version": "capability-edge/0.7",
+      "edge_id": "edge.dep.messaging.contested",
+      "edge_type": "DEPENDS_ON",
+      "source_ref": "behavior.shared-ledger-coordination",
+      "target_ref": "condition.MESSAGE_CHANNEL.available",
+      "target_class": "CONDITION",
+      "evidence_refs": [
+        "examples/v04-lab/lab-result.json"
+      ],
+      "claim_label": "INFERRED",
+      "relationship_status": "CONTESTED",
+      "tested_boundary": {
+        "primary": "5/5 ablation failed",
+        "note": "boundary unresolved"
+      },
+      "known_confounds": [],
+      "counterevidence_refs": [
+        "examples/v07-capability-graph/counterevidence-messaging-alt.json"
+      ],
+      "simple_label": "messaging (contested boundary)",
+      "version": "capability-graph/0.7",
+      "digest": "sha256:67e1d02823e8343614f84089df1be305c7fd4ce39961007d754a122fedade357"
+    }
+  ]
+}
