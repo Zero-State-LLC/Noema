@@ -39,6 +39,8 @@ def test_spec_compat_manifest_present():
     assert data["versions"]["event_catalog"] == "event-catalog/0.1"
     assert data["versions"]["canonicalization"] == "noema-jcs/1"
     assert data["specs"]["repository"].endswith("Noema-Specs")
+    # core loop may be marked complete after phase 7 without breaking Chamber pin
+    assert "event_catalog" in data["versions"]
 
 
 def test_scheduler_deterministic_order():

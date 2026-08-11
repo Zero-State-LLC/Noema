@@ -1,20 +1,26 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.6.0-phase6-deep-time",
-  "product_milestone": "v0.6-deep-time-genesis",
-  "implementation_phase": "phase-6-deep-time-genesis",
+  "runtime_version": "0.7.0-core-loop-complete",
+  "product_milestone": "core-loop-complete",
+  "implementation_phase": "phase-7-core-loop-e2e",
+  "core_loop_status": "complete",
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
-    "pin_label": "v0.6-deep-time-genesis-plus-core-loop",
+    "pin_label": "v0.1-v0.7-core-loop-freeze",
+    "pin_note": "Full PLAY→NOTICE→TEST→CAPTURE→LEARN + Deep Time/Genesis modular monolith; E2E proven in phase 7",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
-    "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md"
+    "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
+    "runtime_map": "docs/CORE-LOOP-RUNTIME.md"
   },
   "fixture_identity": {
     "chamber_seed_package": "fixtures/v01-seed",
+    "frontier_package": "fixtures/v02-frontier",
+    "observatory_package": "fixtures/v03-observatory",
+    "lab_package": "fixtures/v04-lab",
+    "compiler_package": "fixtures/v05-compiler",
     "deep_time_package": "fixtures/v06-deep-time",
-    "deep_time_catalogs": "fixtures/v06-catalogs",
     "learn_package": "fixtures/v07-capability-graph"
   },
   "versions": {
@@ -23,20 +29,28 @@
     "event_schema": "event-schema/v1",
     "agent_protocol": "agent-protocol/v1",
     "canonicalization": "noema-jcs/1",
+    "hash_algorithm": "sha256",
+    "frontier_director": "frontier-director/0.2",
+    "observatory": "observatory/0.3",
+    "lab": "experiment-lab/0.4",
+    "compiler": "phenomenon-compiler/0.5.0",
     "deep_time": "deep-time/0.6",
     "genesis_profiles": "genesis-profiles/0.6.0",
-    "historical_decay": "historical-decay/0.6.0",
-    "capability_graph": "capability-graph/0.7.0",
-    "compiler": "phenomenon-compiler/0.5.0",
-    "lab": "experiment-lab/0.4",
-    "observatory": "observatory/0.3",
-    "frontier_director": "frontier-director/0.2"
+    "capability_graph": "capability-graph/0.7.0"
   },
-  "genesis_config": {
-    "admin_only": true,
-    "player_controls": false,
-    "scripts_player_outcomes": false,
-    "lore_is_final": false
-  },
-  "deferred_milestones": ["v0.8-phenomena"]
+  "invariants": [
+    "single_fenced_writer",
+    "research_not_world_truth",
+    "frontier_inject_via_ledger_only",
+    "lab_isolated_forks",
+    "capture_requires_ready",
+    "genesis_admin_only",
+    "lore_not_second_truth",
+    "play_ready_ignores_optional_research"
+  ],
+  "deferred_milestones": [
+    "v0.8-phenomena",
+    "postgres-production-backend",
+    "product-ui"
+  ]
 }
