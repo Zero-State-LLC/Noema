@@ -14,7 +14,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Text PLAY for NOEMA Chamber")
     parser.add_argument("--seed", type=Path, default=Path("fixtures/v01-seed/world-seed.json"))
     parser.add_argument("--agent-id", default="agent.player.1")
-    parser.add_argument("--db", default=":memory:")
+    parser.add_argument(
+        "--db",
+        default=":memory:",
+        help="SQLite path/:memory: (default) or PostgreSQL DSN",
+    )
     args = parser.parse_args(argv)
 
     rt = NoemaRuntime(db_path=args.db)

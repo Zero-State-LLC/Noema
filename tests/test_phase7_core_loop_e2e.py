@@ -321,5 +321,9 @@ def test_version_manifest_pins_full_loop():
     ):
         assert key in versions, f"missing version pin {key}"
     assert data.get("core_loop_status") == "complete"
-    assert data["implementation_phase"] == "phase-7-core-loop-e2e"
+    # Phase 7 freezes the loop; later phases (e.g. postgres) may advance the pin.
+    assert data["implementation_phase"] in {
+        "phase-7-core-loop-e2e",
+        "phase-8-postgres",
+    }
     assert (ROOT / "docs" / "CORE-LOOP-RUNTIME.md").is_file()

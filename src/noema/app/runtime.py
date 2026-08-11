@@ -17,7 +17,7 @@ from noema.actions.errors import (
 from noema.actions.router import ActionRouter
 from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
-from noema.persistence.store import WorldStore
+from noema.persistence.store import open_store
 from noema.research.capture import ResearchCapture
 from noema.research.errors import (
     INJECTION_REJECTED,
@@ -52,7 +52,7 @@ class NoemaRuntime:
         research_capture: bool = True,
         frontier_config: dict[str, Any] | None = None,
     ):
-        self.store = WorldStore(db_path)
+        self.store = open_store(db_path)
         self.router: ActionRouter | None = None
         self._writer = threading.RLock()
         self.spec_compat = self._load_compat(spec_compat_path)

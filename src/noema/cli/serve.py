@@ -7,18 +7,24 @@ from pathlib import Path
 
 from noema.app.runtime import NoemaRuntime
 from noema.gateway.http_server import serve
+from noema.persistence.store import is_postgres_url
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Serve NOEMA Chamber MVP")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--db", default="data/noema.sqlite3")
+    parser.add_argument(
+        "--db",
+        default="data/noema.sqlite3",
+        help="SQLite path or PostgreSQL DSN (postgresql://user:pass@host/db)",
+    )
     parser.add_argument("--seed", type=Path, default=Path("fixtures/v01-seed/world-seed.json"))
     parser.add_argument("--no-autoload", action="store_true")
     args = parser.parse_args(argv)
 
-    Path(args.db).parent.mkdir(parents=True, exist_ok=True)
+    if not is_postgres_url(args.db):
+        Path(args.db).parent.mkdir(parents=True, exist_ok=True)
     runtime = NoemaRuntime(db_path=args.db)
     if not args.no_autoload and args.seed.is_file():
         runtime.start_world(args.seed)

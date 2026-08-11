@@ -1,10 +1,16 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.7.0-core-loop-complete",
-  "product_milestone": "core-loop-complete",
-  "implementation_phase": "phase-7-core-loop-e2e",
+  "runtime_version": "0.8.0-postgres",
+  "product_milestone": "production-persistence",
+  "implementation_phase": "phase-8-postgres",
   "core_loop_status": "complete",
+  "persistence": {
+    "local_default": "sqlite",
+    "production": "postgresql",
+    "cycle_isolation": "SERIALIZABLE",
+    "writer": "single_fenced_per_process"
+  },
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
@@ -50,7 +56,6 @@
   ],
   "deferred_milestones": [
     "v0.8-phenomena",
-    "postgres-production-backend",
     "product-ui"
   ]
 }

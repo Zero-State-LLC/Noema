@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.7.0"
+version = "0.8.0"
 description = "NOEMA World Engine runtime — complete frozen core loop modular monolith"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,6 +14,9 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+postgres = ["psycopg[binary]>=3.1"]
+# Convenience: local PLAY + production backend + tests
+all = ["pytest>=8.0", "psycopg[binary]>=3.1"]
 
 [project.scripts]
 noema-replay = "noema.cli.replay:main"
@@ -30,3 +33,6 @@ include = ["src/noema", "fixtures", "tests", "README.md", "pyproject.toml"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "postgres: requires a live PostgreSQL DSN (NOEMA_TEST_PG_DSN or compose)",
+]
