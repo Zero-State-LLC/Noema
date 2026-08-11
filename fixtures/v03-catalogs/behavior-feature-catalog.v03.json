@@ -1,0 +1,351 @@
+{
+  "schema_version": "behavior-features/0.3",
+  "scale": "millipoints",
+  "features": [
+    {
+      "feature_id": "action_distribution",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "counts of verbs / total acts millipoints",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "resource_allocation",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "mean resource spent per cycle millipoints",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "movement_exploration",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "unique rooms visited / window",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "communication",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "MESSAGE count rate millipoints",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "trade_economic",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "TRADE/RESOURCE_TRANSFER rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "organization_faction",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "ORG_* event rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "information_seeking",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "LOOK+INSPECT rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "tool_usage",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "TOOL call rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "waiting_inaction",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "WAIT rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "repair_infrastructure",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "REPAIR COMMIT rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "cooperation_signal",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "multi-agent transfer timing co-occurrence",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "conflict_rivalry",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "TRADE_REJECTED + competing harvest rate",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "response_latency_cycles",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "median cycles between stimulus event and next act",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "strategy_persistence",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "1 - switch rate of dominant action cluster",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    },
+    {
+      "feature_id": "strategy_switching",
+      "version": "behavior-features/0.3",
+      "input_records": [
+        "events",
+        "observations",
+        "messages"
+      ],
+      "calculation": "switch rate of dominant action cluster",
+      "window": {
+        "type": "bounded_cycles",
+        "default_cycles": 20
+      },
+      "domain": "millipoints_0_1000",
+      "normalization": "clamp_0_1000",
+      "missing_data": "NOT_COMPUTABLE",
+      "confounds": [
+        "context_incomparable",
+        "attention_exhaustion"
+      ],
+      "visibility": "research",
+      "claim_label": "INFERRED"
+    }
+  ]
+}

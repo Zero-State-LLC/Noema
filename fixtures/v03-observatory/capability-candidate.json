@@ -1,0 +1,40 @@
+{
+  "schema_version": "capability-candidate/0.3",
+  "candidate_id": "capcand.v03.001",
+  "candidate_capability_id": "MULTI_AGENT_COORDINATION",
+  "capability_primitive_id": "MULTI_AGENT_COORDINATION",
+  "novel_unknown_marker": null,
+  "supporting_anomaly_refs": [
+    "anom.v03.001"
+  ],
+  "behavior_shift_refs": [
+    "shift.v03.001"
+  ],
+  "trajectory_refs": [
+    "traj.v03.nacre.001"
+  ],
+  "observed_conditions": {
+    "frontier_genome_id": "genome.frontier.scarcity-conflict.1"
+  },
+  "supporting_evidence": [
+    "shared ledger entity",
+    "coordinated transfers",
+    "protocol document"
+  ],
+  "counterevidence": [
+    "may be temporary crisis response"
+  ],
+  "confounds": [
+    "frontier pressure",
+    "org membership"
+  ],
+  "generalization_unknowns": [
+    "other scarcity regimes",
+    "other partners"
+  ],
+  "replication_required": true,
+  "class": "KNOWN_PRIMITIVE_CANDIDATE",
+  "status": "READY_FOR_LAB",
+  "claim_label": "SPECULATIVE",
+  "digest": "sha256:e141420613ba25de1945fb3262753fc7b5e93ac1c7cc0976d14c1f9c2f631fa1"
+}

@@ -1,6 +1,6 @@
 # NOEMA Runtime
 
-World Engine runtime for **NOEMA** — Phase 2A adds research capture + Frontier NOTICE on the stable Chamber modular monolith.
+World Engine runtime for **NOEMA** — Chamber PLAY + Frontier NOTICE + Observatory detection in a single modular monolith.
 
 Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
 Does **not** claim consciousness measurement. Claim labels remain `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.
@@ -12,11 +12,13 @@ See [`spec-compat.json`](spec-compat.json).
 | Field | Value |
 |---|---|
 | Specs repo | `Zero-State-LLC/Noema-Specs` |
-| Authority | core-loop freeze + v0.2 Frontier contracts |
+| Authority | core-loop freeze + v0.2 Frontier + v0.3 Observatory |
 | Chamber fixtures | `fixtures/v01-seed` |
 | Frontier fixtures | `fixtures/v02-frontier` + `fixtures/v02-catalogs` |
+| Observatory fixtures | `fixtures/v03-observatory` + `fixtures/v03-catalogs` |
 | Event catalog | `event-catalog/0.1` |
 | Frontier director | `frontier-director/0.2` |
+| Observatory | `observatory/0.3` |
 | Canonicalization | `noema-jcs/1` |
 
 ## Phase status
@@ -24,8 +26,8 @@ See [`spec-compat.json`](spec-compat.json).
 | Phase | Status |
 |---|---|
 | Phase 0 / 1 Chamber MVP | **Complete** — seed replay EQUIVALENT |
-| **Phase 2A Research capture + Frontier** | **This branch** |
-| Phase 2B Observatory | Deferred |
+| Phase 2A Research capture + Frontier | **Complete** |
+| **Phase 2B Observatory** | **This branch** |
 | Lab / Compiler / LEARN / Deep Time | Deferred |
 
 ## Architecture (modular monolith)
@@ -35,14 +37,20 @@ PLAY (validate → schedule → reduce → persist → project)
         ↓ post-persist seam
 research capture → trajectory indexes (rebuildable)
         ↓
-Frontier Director (enumerate → score → select → audit)
+Frontier Director (conditions) ──→ SITUATION_INJECTED → ledger
         ↓
-canonical SITUATION_INJECTED (+ optional ENTITY_UPDATE)
-        ↓
-ledger (world truth)
+Observatory (features → baselines → detectors → candidates)
+        ↓ research partition only
+anomaly / shift / capability / unknown candidates + audit
 ```
 
-**WORLD TRUTH ≠ RESEARCH DERIVATION.** Frontier may read world state and propose condition changes; it must not rewrite ledger history, mutate reducers directly, or force agent actions.
+**WORLD TRUTH ≠ RESEARCH DERIVATION.**
+
+| Module | May write world? |
+|---|---|
+| PLAY actions | Yes (via reducer) |
+| Frontier injection | Yes (`SITUATION_INJECTED` only) |
+| Observatory | **No** |
 
 ## Quick start (PLAY only)
 
@@ -55,7 +63,7 @@ noema-replay
 noema-play
 ```
 
-Frontier is **not** required for local PLAY.
+Frontier and Observatory are **not** required for local PLAY.
 
 ### HTTP
 
@@ -65,63 +73,46 @@ noema-serve --port 8080
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/health` `/ready` `/version` | PLAY readiness ignores optional research degradation |
-| POST | `/admin/start` | load seed |
-| POST | `/session` | roles: PLAYER, AGENT, SPECTATOR, RESEARCHER, ADMIN |
+| GET | `/health` `/ready` `/version` | PLAY readiness ignores optional research |
 | POST | `/play/action` | PLAY only |
-| GET | `/watch/live` | public; research metadata redacted |
-| POST | `/research/frontier/run` | RESEARCHER/ADMIN only |
-| GET | `/research/frontier/audit/<id>` | RESEARCHER/ADMIN |
+| GET | `/watch/live` | public; research metrics redacted |
+| POST | `/research/frontier/run` | RESEARCHER/ADMIN |
+| POST | `/research/observatory/run` | RESEARCHER/ADMIN; offline analysis |
 | GET | `/research/view` | RESEARCHER/ADMIN |
 
-## Frontier tests / demo
+## Tests
 
 ```bash
-# Full suite (Chamber + F01–F15 + E2E)
 pytest -q
-
-# Frontier only
 pytest -q tests/test_phase2a_frontier.py
-
-# Chamber seed replay
+pytest -q tests/test_phase2b_observatory.py
 noema-replay
 ```
 
-Deterministic Frontier demo path (in tests):
+## Observatory notes
 
-```text
-start Chamber → player ENTER/LOOK → capture trajectory
-→ Frontier run (RESEARCHER) → select Situation Genome
-→ inject SITUATION_INJECTED through reducer/ledger
-→ player observation (no research private fields)
-→ WATCH redacts targeting metadata
-→ audit references canonical event digests
-```
-
-## Research capture
-
-- Module: `src/noema/research/`
-- Trajectory records reference ledger event digests (not a second event stream)
-- Stored in SQLite tables `research_*` separate from world tables
-- Rebuild: `runtime.rebuild_research_indexes()` from canonical ledger
+- Deterministic claim-bearing path only (no opaque ML authority)
+- Baselines frozen per analysis run (silent rebuild forbidden)
+- Capability candidates are `SPECULATIVE` + `replication_required`
+- UNKNOWN_* markers need not map to a primitive
+- WATCH never receives anomaly scores / detector metadata
 
 ## Explicit deferrals
 
-Observatory · Lab · Compiler · LEARN · Deep Time · Genesis · microservices · graph DB · worker fleets · LLM planner · embeddings/vector infra · public Frontier platform API
+Lab · Compiler · LEARN · Deep Time · Genesis · microservices · graph DB · worker fleets · LLM planner · embeddings · scalar intelligence scores
 
 ## Layout
 
 ```text
 src/noema/
-  world/          pure reducers + state + digests
-  research/       capture, trajectories, frontier/*
-  actions/        single action router (PLAY)
-  persistence/    SQLite world + research indexes
-  observations/   permissioned projections + redaction
-  app/            composition root
-fixtures/v01-seed/
-fixtures/v02-frontier/
-fixtures/v02-catalogs/
+  world/                 pure reducers + state
+  research/
+    capture.py           post-persist trajectories
+    frontier/            v0.2 Frontier Director
+    observatory/         v0.3 features/baselines/detectors
+  persistence/           SQLite world + research_* tables
+  app/                   composition root
+fixtures/v01-seed|v02-*|v03-*
 ```
 
 ## License

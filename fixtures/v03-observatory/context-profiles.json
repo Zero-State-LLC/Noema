@@ -1,0 +1,16 @@
+{
+  "pre": {
+    "risk_regime_band": "stable",
+    "world_version": "world/v1",
+    "comparability": "COMPARABLE"
+  },
+  "post": {
+    "risk_regime_band": "frontier_pressure",
+    "world_version": "world/v1",
+    "comparability": "CONDITIONALLY_COMPARABLE",
+    "confounds": [
+      "frontier_genome",
+      "infra_scarcity"
+    ]
+  }
+}

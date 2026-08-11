@@ -1,0 +1,35 @@
+{
+  "schema_version": "observatory-analysis-run/0.3",
+  "analysis_run_id": "oarun.v03.001",
+  "observatory_version": "observatory/0.3",
+  "feature_catalog_version": "behavior-features/0.3",
+  "detector_versions": {
+    "coordination_anomaly": "anomaly-detectors/0.3"
+  },
+  "baseline_ids": [
+    "baseline.v03.nacre.self-history"
+  ],
+  "trajectory_ids": [
+    "traj.v03.nacre.001"
+  ],
+  "world_versions": [
+    "world/v1"
+  ],
+  "agent_versions": [
+    "agentver.nacre.1"
+  ],
+  "config_digest": "sha256:50e81a06e82da86c0cb80be4b2a49f0cb849f4509c5fe633bc6f356ca77a8812",
+  "seed": null,
+  "input_digests": {
+    "trajectory": "sha256:0d60f5b1f18d4293f638cbe6acd318b994ccfd99bd6d99fe0607ecf4f8ad5c92",
+    "baseline": "sha256:5fb6030f12585cfb7c6e08d64d6f730e88cf48b3fb0ed4e5ec692e71ccf370d8",
+    "features_pre": "sha256:8c133e398efc47291641757f7b35f14ecaf198c192408de73d9224e06ce642d9",
+    "features_post": "sha256:3557312a32ce6bca23e513e25c05bb903421943154b29b5c9d6741e814e1d777"
+  },
+  "output_digests": {
+    "anomaly": "sha256:35e02b4915f4ed23b0d370ac8ef522b32d8b1053b9ee359224d92952167bfd3d",
+    "shift": "sha256:ce4e6d2fc5b441166bb8b13fc3dc071b466c919ee7bd80943a102f18cbbe5531",
+    "capability": "sha256:e141420613ba25de1945fb3262753fc7b5e93ac1c7cc0976d14c1f9c2f631fa1"
+  },
+  "analysis_status": "COMPLETE"
+}

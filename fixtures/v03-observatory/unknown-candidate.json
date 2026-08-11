@@ -1,0 +1,21 @@
+{
+  "schema_version": "unknown-candidate/0.3",
+  "unknown_id": "UNKNOWN_BEHAVIOR_shared-ledger-protocol",
+  "minimal_description": "Agent created and reused a shared allocation ledger/protocol under scarcity",
+  "evidence_refs": [
+    "entity.shared-ledger-v1",
+    "evt.v03.protocol-use"
+  ],
+  "reproduction_status": "unreproduced",
+  "similarity_links": [],
+  "known_non_explanations": [
+    "not a preauthored world rule"
+  ],
+  "open_questions": [
+    "persists without scarcity?",
+    "requires specific partners?"
+  ],
+  "status": "RETAINED",
+  "claim_label": "SPECULATIVE",
+  "digest": "sha256:0cdb5ca322663d2aca82656e3a398f6e9ba326f17f7c31c1373c7a2c6301bdeb"
+}

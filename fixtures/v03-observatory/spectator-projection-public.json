@@ -1,0 +1,24 @@
+{
+  "schema_version": "spectator-projection/1.0",
+  "projection_id": "organization_response",
+  "world_id": "world-01",
+  "cycle": 40,
+  "source_event_ids": [
+    "evt.v03.transfer-1",
+    "evt.v03.entity-create-ledger"
+  ],
+  "visibility": "public",
+  "fields": {
+    "summary": "Agents coordinate resource transfers and a shared ledger appears",
+    "must_not_include": [
+      "anomaly_score",
+      "capability_candidate",
+      "detector_confidence"
+    ]
+  },
+  "redactions": [
+    "research_metrics"
+  ],
+  "narrative": "Under scarcity, a shared ledger and coordinated transfers appear.",
+  "mutates_world": false
+}

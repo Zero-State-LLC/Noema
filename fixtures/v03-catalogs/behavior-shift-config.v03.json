@@ -1,0 +1,7 @@
+{
+  "schema_version": "behavior-shift/0.3",
+  "pre_window_cycles": 20,
+  "post_window_cycles": 20,
+  "min_magnitude_millipoints": 250,
+  "min_persistence_cycles": 10
+}

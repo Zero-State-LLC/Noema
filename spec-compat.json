@@ -1,30 +1,32 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.2.0-phase2a",
-  "product_milestone": "v0.2-frontier",
-  "implementation_phase": "phase-2a-research-capture-frontier",
+  "runtime_version": "0.3.0-phase2b",
+  "product_milestone": "v0.3-observatory",
+  "implementation_phase": "phase-2b-observatory",
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
-    "pin_label": "v0.2-frontier-plus-core-loop-freeze",
-    "pin_note": "Chamber fixtures + v0.2 Frontier fixtures/catalogs; core-loop freeze remains authority for PLAY",
-    "commit": "e6bcbd57fb4f3e213569ed02a340f66115701c14",
+    "pin_label": "v0.3-observatory-plus-core-loop-freeze",
+    "pin_note": "Chamber + Frontier + Observatory fixtures/catalogs; core-loop freeze remains PLAY authority",
+    "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
-    "frontier_docs": [
-      "docs/FRONTIER-DIRECTOR.md",
-      "docs/SITUATION-GENOME.md",
-      "docs/SITUATION-MUTATION.md",
-      "docs/PARTIAL-OBSERVABILITY.md",
-      "docs/releases/v0.2/"
+    "observatory_docs": [
+      "docs/OBSERVATORY.md",
+      "docs/BEHAVIOR-FEATURES.md",
+      "docs/BASELINES.md",
+      "docs/ANOMALY-DETECTION.md",
+      "docs/BEHAVIOR-SHIFT.md",
+      "docs/CAPABILITY-CANDIDATES.md",
+      "docs/releases/v0.3/"
     ]
   },
   "fixture_identity": {
     "chamber_seed_package": "fixtures/v01-seed",
     "frontier_package": "fixtures/v02-frontier",
     "frontier_catalogs": "fixtures/v02-catalogs",
-    "source_package": "examples/v01-seed",
-    "frontier_source_package": "examples/v02-frontier",
+    "observatory_package": "fixtures/v03-observatory",
+    "observatory_catalogs": "fixtures/v03-catalogs",
     "world_seed": "noema-local-seed",
     "world_id": "world-01"
   },
@@ -39,34 +41,29 @@
     "world_seed_schema": "world-seed/1.0",
     "frontier_director": "frontier-director/0.2",
     "situation_genome": "situation-genome/0.2",
-    "mutation_catalog": "mutation-catalog/0.2",
-    "novelty_axes": "novelty-axes/0.2",
-    "noise_model": "noise-model/0.2"
+    "observatory": "observatory/0.3",
+    "behavior_features": "behavior-features/0.3",
+    "anomaly_detectors": "anomaly-detectors/0.3",
+    "trajectory_research": "trajectory/0.3"
   },
-  "frontier_config": {
-    "max_candidates_enumerated": 256,
-    "max_mutation_depth": 2,
-    "default_select_count": 1,
-    "required_for_play_readiness": false
+  "observatory_config": {
+    "max_trajectory_window_cycles": 500,
+    "max_candidates_per_run": 100,
+    "required_for_play_readiness": false,
+    "claim_bearing_path": "deterministic_only"
   },
   "known_spec_defects": [
     {
       "id": "SPEC-DEFECT-v01-acceptance-digest-mismatch",
-      "status": "repaired_in_specs_pr",
-      "summary": "v01-seed/strategic expected-final-state-digest.txt lagged RFC-0003 lineage fields on JSON. Specs PR regenerates digests from full canonical JSON (noema-jcs/1). Runtime fixtures already matched JSON digests.",
-      "affected": [
-        "examples/v01-seed/expected-final-state-digest.txt",
-        "examples/v01-strategic/expected-final-state-digest.txt"
-      ],
-      "runtime_mitigation": "acceptance_projection emits lineage fields; replay digests expected-final-state.json"
+      "status": "repaired",
+      "summary": "v01 acceptance digests regenerated in Specs#18 to include RFC-0003 lineage fields."
     }
   ],
   "deferred_milestones": [
-    "v0.3-observatory",
     "v0.4-lab",
     "v0.5-compiler",
     "v0.6-deep-time-genesis",
     "v0.7-learn",
-    "phase-2b-observatory"
+    "phase-3-lab"
   ]
 }

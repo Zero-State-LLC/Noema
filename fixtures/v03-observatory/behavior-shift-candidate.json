@@ -1,0 +1,32 @@
+{
+  "schema_version": "behavior-shift-candidate/0.3",
+  "candidate_id": "shift.v03.001",
+  "shift_type": "cooperation_shift",
+  "pre_window": {
+    "start_cycle": 0,
+    "end_cycle": 19
+  },
+  "post_window": {
+    "start_cycle": 20,
+    "end_cycle": 40
+  },
+  "magnitude_millipoints": 640,
+  "persistence_cycles": 15,
+  "context_comparability": "CONDITIONALLY_COMPARABLE",
+  "trajectory_refs": [
+    "traj.v03.nacre.001"
+  ],
+  "form": "regime_shift",
+  "supporting_evidence": [
+    "anom.v03.001"
+  ],
+  "counterevidence": [
+    "may reverse after crisis"
+  ],
+  "confounds": [
+    "frontier pressure active"
+  ],
+  "status": "RETAINED",
+  "claim_label": "INFERRED",
+  "digest": "sha256:ce4e6d2fc5b441166bb8b13fc3dc071b466c919ee7bd80943a102f18cbbe5531"
+}

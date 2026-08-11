@@ -19,10 +19,18 @@ from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
 from noema.persistence.store import WorldStore
 from noema.research.capture import ResearchCapture
-from noema.research.errors import INJECTION_REJECTED, POLICY_DENIED, ResearchError
+from noema.research.errors import (
+    INJECTION_REJECTED,
+    INSUFFICIENT_RESEARCH_INPUT,
+    POLICY_DENIED,
+    ResearchError,
+)
 from noema.research.frontier.director import FrontierDirector, FrontierResult
 from noema.research.frontier.injection import build_follow_on_entity_update, build_situation_injected_event
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
+from noema.research.observatory.analysis import Observatory, ObservatoryResult
+from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
+from noema.research.observatory.trajectory_v03 import upgrade_v01_capture_to_v03
 from noema.world.reduce import apply_event
 from noema.world.state import acceptance_projection
 
@@ -45,7 +53,9 @@ class NoemaRuntime:
         self.sessions: dict[str, dict[str, Any]] = {}
         self.research = ResearchCapture(self.store, enabled=research_capture)
         self.frontier = FrontierDirector(frontier_config)
+        self.observatory = Observatory()
         self._last_frontier: FrontierResult | None = None
+        self._last_observatory: ObservatoryResult | None = None
         self._research_overlays: list[dict[str, Any]] = []
 
     def _load_compat(self, path: Path | None) -> dict[str, Any]:
@@ -375,17 +385,6 @@ class NoemaRuntime:
     def get_frontier_audit(self, audit_id: str) -> dict[str, Any] | None:
         return self.store.get_frontier_audit(audit_id)
 
-    def research_view(self, session_id: str) -> dict[str, Any]:
-        principal = self.get_principal(session_id)
-        if not principal.can_view_research_overlay():
-            raise ResearchError(POLICY_DENIED, "research view requires RESEARCHER or ADMIN")
-        return {
-            "trajectories": self.store.list_trajectories(),
-            "overlays": list(self._research_overlays),
-            "last_plan": self._last_frontier.plan if self._last_frontier else None,
-            "audit": self.store.list_frontier_audit(),
-        }
-
     def public_pressure_view(self) -> dict[str, Any]:
         """WATCH-safe world pressure summary without research metadata."""
         self.ensure_ready()
@@ -400,4 +399,95 @@ class NoemaRuntime:
             event_ids=event_ids,
             narrative=narrative,
         )
-        return redact_public_projection(view)
+        return redact_observatory_public(redact_public_projection(view))
+
+    def run_observatory(
+        self,
+        session_id: str,
+        *,
+        trajectory: dict[str, Any] | None = None,
+        agent_id: str | None = None,
+        detectors: list[str] | None = None,
+        freeze_baseline: dict[str, Any] | None = None,
+        pre_context: dict[str, Any] | None = None,
+        post_context: dict[str, Any] | None = None,
+        pre_window: tuple[int, int] | None = None,
+        post_window: tuple[int, int] | None = None,
+        contradiction_set: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Offline Observatory analysis. Never mutates world truth."""
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "Observatory requires RESEARCHER or ADMIN")
+        self.ensure_ready()
+        seq_before = self.store.get_state().sequence
+        events = self.store.list_events(limit=1_000_000)
+        if trajectory is None:
+            captures = self.store.list_trajectories()
+            if not captures:
+                raise ResearchError(INSUFFICIENT_RESEARCH_INPUT, "no trajectories captured")
+            cap = captures[-1]
+            aid = agent_id or (cap.get("agent_ids") or ["agent.unknown"])[0]
+            trajectory = upgrade_v01_capture_to_v03(cap, agent_id=aid)
+        result = self.observatory.run(
+            trajectory=trajectory,
+            events=events,
+            agent_id=agent_id,
+            pre_context=pre_context,
+            post_context=post_context,
+            pre_window=pre_window,
+            post_window=post_window,
+            detectors=detectors,
+            freeze_baseline=freeze_baseline,
+            contradiction_set=contradiction_set,
+        )
+        self._last_observatory = result
+        self.store.save_observatory_run(result.analysis_run)
+        for a in result.anomalies:
+            self.store.save_observatory_candidate("anomaly", result.analysis_run["analysis_run_id"], a)
+        for s in result.shifts:
+            self.store.save_observatory_candidate("shift", result.analysis_run["analysis_run_id"], s)
+        for c in result.capabilities:
+            self.store.save_observatory_candidate("capability", result.analysis_run["analysis_run_id"], c)
+        for u in result.unknowns:
+            self.store.save_observatory_candidate("unknown", result.analysis_run["analysis_run_id"], u)
+        for rec in result.audit:
+            self.store.save_observatory_audit(rec)
+        overlay = observatory_research_overlay(
+            anomaly_id=result.anomalies[0]["candidate_id"] if result.anomalies else None,
+            shift_id=result.shifts[0]["candidate_id"] if result.shifts else None,
+            capability_id=result.capabilities[0]["candidate_id"] if result.capabilities else None,
+            detector_id=result.anomalies[0].get("detector_id") if result.anomalies else None,
+            deviation_components=(result.anomalies[0].get("deviation_components") if result.anomalies else None),
+        )
+        self._research_overlays.append(overlay)
+        seq_after = self.store.get_state().sequence
+        return {
+            "analysis_run": result.analysis_run,
+            "anomalies": result.anomalies,
+            "shifts": result.shifts,
+            "capabilities": result.capabilities,
+            "unknowns": result.unknowns,
+            "signals": result.signals,
+            "audit": result.audit,
+            "comparability": result.comparability,
+            "features_pre": result.features_pre,
+            "features_post": result.features_post,
+            "baseline": result.baseline,
+            "world_sequence_unchanged": seq_before == seq_after,
+            "world_mutation": False,
+            "status": result.status,
+        }
+
+    def research_view(self, session_id: str) -> dict[str, Any]:
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "research view requires RESEARCHER or ADMIN")
+        return {
+            "trajectories": self.store.list_trajectories(),
+            "overlays": list(self._research_overlays),
+            "last_plan": self._last_frontier.plan if self._last_frontier else None,
+            "audit": self.store.list_frontier_audit(),
+            "observatory_runs": self.store.list_observatory_runs(),
+            "observatory_candidates": self.store.list_observatory_candidates(),
+        }

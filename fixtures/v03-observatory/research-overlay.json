@@ -1,0 +1,14 @@
+{
+  "schema_version": "observatory-research-overlay/0.3",
+  "visibility": "research",
+  "noncanonical": true,
+  "anomaly_candidate_id": "anom.v03.001",
+  "shift_candidate_id": "shift.v03.001",
+  "capability_candidate_id": "capcand.v03.001",
+  "detector_id": "coordination_anomaly",
+  "deviation_components": {
+    "cooperation_signal_delta": 640,
+    "robust_z_millipoints": 420
+  },
+  "must_not_reach_players": true
+}

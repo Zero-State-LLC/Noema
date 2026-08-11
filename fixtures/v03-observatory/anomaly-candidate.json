@@ -1,0 +1,41 @@
+{
+  "schema_version": "anomaly-candidate/0.3",
+  "candidate_id": "anom.v03.001",
+  "detector_id": "coordination_anomaly",
+  "detector_version": "anomaly-detectors/0.3",
+  "trajectory_refs": [
+    "traj.v03.nacre.001"
+  ],
+  "baseline_id": "baseline.v03.nacre.self-history",
+  "feature_refs": [
+    "cooperation_signal",
+    "trade_economic",
+    "communication"
+  ],
+  "context_refs": [
+    "snap.regime.frontier"
+  ],
+  "deviation_components": {
+    "cooperation_signal_delta": 640,
+    "robust_z_millipoints": 420
+  },
+  "thresholds": {
+    "robust_z_millipoint": 300
+  },
+  "supporting_evidence": [
+    "evt.v03.shared-ledger",
+    "evt.v03.transfer-1",
+    "evt.v03.transfer-2"
+  ],
+  "counterevidence": [
+    "possible pure trade explanation"
+  ],
+  "confounds": [
+    "frontier_injection",
+    "infra_scarcity"
+  ],
+  "status": "DETECTED",
+  "claim_label": "INFERRED",
+  "created_cycle": 40,
+  "digest": "sha256:35e02b4915f4ed23b0d370ac8ef522b32d8b1053b9ee359224d92952167bfd3d"
+}

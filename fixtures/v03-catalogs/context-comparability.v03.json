@@ -1,0 +1,19 @@
+{
+  "schema_version": "context-comparability/0.3",
+  "hard_mask": [
+    "world_version",
+    "feature_version",
+    "risk_regime_band"
+  ],
+  "soft_dims": [
+    "room_id",
+    "resource_stock_band",
+    "partner_set",
+    "genome_id"
+  ],
+  "results": [
+    "COMPARABLE",
+    "CONDITIONALLY_COMPARABLE",
+    "NOT_COMPARABLE"
+  ]
+}

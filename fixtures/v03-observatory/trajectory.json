@@ -1,0 +1,58 @@
+{
+  "schema_version": "trajectory/0.3",
+  "trajectory_id": "traj.v03.nacre.001",
+  "trajectory_version": "1",
+  "world_id": "world-01",
+  "world_version": "world/v1",
+  "agent_id": "agent.nacre",
+  "agent_version": "agentver.nacre.1",
+  "start_cycle": 0,
+  "end_cycle": 40,
+  "event_refs": [
+    "evt.v03.001",
+    "evt.v03.002",
+    "evt.v03.003",
+    "evt.v03.004",
+    "evt.v03.005",
+    "evt.v03.006",
+    "evt.v03.007",
+    "evt.v03.008",
+    "evt.v03.009",
+    "evt.v03.010",
+    "evt.v03.011",
+    "evt.v03.012",
+    "evt.v03.013",
+    "evt.v03.014",
+    "evt.v03.015",
+    "evt.v03.016",
+    "evt.v03.017",
+    "evt.v03.018",
+    "evt.v03.019",
+    "evt.v03.020"
+  ],
+  "observation_refs": [
+    "obs.v03.001",
+    "obs.v03.002",
+    "obs.v03.003"
+  ],
+  "action_refs": [
+    "act.v03.001",
+    "act.v03.002"
+  ],
+  "message_refs": [
+    "msg.v03.001"
+  ],
+  "tool_call_refs": [],
+  "world_context_refs": [
+    "snap.regime.baseline",
+    "snap.regime.frontier"
+  ],
+  "experiment_id": null,
+  "frontier_genome_id": "genome.frontier.scarcity-conflict.1",
+  "consent_basis": "consent.research.agent.nacre.v1",
+  "visibility_partition": "research",
+  "feature_version": "behavior-features/0.3",
+  "kind": "bounded_window",
+  "missing_intervals": [],
+  "digest": "sha256:0d60f5b1f18d4293f638cbe6acd318b994ccfd99bd6d99fe0607ecf4f8ad5c92"
+}
