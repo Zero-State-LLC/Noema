@@ -18,6 +18,7 @@ Admin Genesis → Cycle 0 → Deep Time history
 | Deep Time + Genesis | v0.6 | Complete |
 | LEARN | v0.7 | Complete |
 | **Core-loop E2E** | — | **Phase 7** |
+| Postgres production backend | DEPLOYMENT / C14 | **Phase 8** |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.
@@ -33,9 +34,21 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
 noema-replay          # Chamber seed EQUIVALENT
-noema-play            # local text PLAY
+noema-play            # local text PLAY (SQLite)
 python scripts/core_loop_demo.py
 ```
+
+### Production-shaped (PostgreSQL)
+
+```bash
+pip install -e ".[postgres]"
+cp .env.example .env
+docker compose up          # postgres + noema (SERIALIZABLE cycles)
+# or host runtime:
+noema-serve --db "postgresql://noema:noema@127.0.0.1:5432/noema"
+```
+
+Local PLAY keeps SQLite (`--db :memory:` or a file path). Postgres is optional for tests unless `NOEMA_TEST_PG_DSN` is set.
 
 Research layers are **optional** for local PLAY. `/ready` is PLAY readiness only.
 
@@ -45,7 +58,7 @@ Research layers are **optional** for local PLAY. `/ready` is PLAY readiness only
 src/noema/
   world/           pure reducers + state + digests
   actions/         single action router
-  persistence/     SQLite world + research_* indexes
+  persistence/     SQLite (local) or PostgreSQL SERIALIZABLE + research_* indexes
   observations/    PLAY/WATCH projections + redaction
   research/
     capture.py     post-persist trajectories
@@ -92,7 +105,7 @@ Phase 7 proves Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE
 
 ## Explicit deferrals
 
-v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores
+v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · product UI
 
 ## License
 

@@ -22,7 +22,9 @@ PLAY → NOTICE → TEST → CAPTURE → LEARN
 
 ## Architectural invariants
 
-1. **One fenced writer** for production world ledger (`WorldStore` + `BEGIN IMMEDIATE`).
+1. **One fenced writer** for production world ledger (`WorldStore` + writer fence token).
+   - Local PLAY: SQLite with `BEGIN IMMEDIATE`.
+   - Production reference: PostgreSQL with cycle commits under `SERIALIZABLE` isolation (DEPLOYMENT / RFC-0003).
 2. **WORLD TRUTH ≠ RESEARCH DERIVATION** — research tables/indexes are rebuildable.
 3. **Frontier** may inject only via `SITUATION_INJECTED` (and follow-on events) through reducers.
 4. **Observatory / Lab / Compiler / LEARN / Deep Time** never rewrite production history.
@@ -70,6 +72,28 @@ noema-replay
 ```
 
 Phase 7 E2E walks Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE → LEARN → Deep Time → WATCH and asserts isolation.
+
+## Persistence (Phase 8)
+
+| Profile | Backend | Cycle transaction |
+|---|---|---|
+| Local PLAY | SQLite path or `:memory:` | `BEGIN IMMEDIATE` |
+| Production / compose | `postgresql://…` DSN | `SERIALIZABLE` + revision + writer fence |
+
+```bash
+# local
+noema-play --db :memory:
+noema-serve --db data/noema.sqlite3
+
+# production-shaped
+pip install -e ".[postgres]"
+export NOEMA_TEST_PG_DSN=postgresql://noema:noema@127.0.0.1:5432/noema
+docker compose up
+noema-serve --db "$NOEMA_TEST_PG_DSN"
+pytest -q -m postgres
+```
+
+Factory: `noema.persistence.open_store(path_or_url)`.
 
 ## Explicit non-goals (still deferred)
 

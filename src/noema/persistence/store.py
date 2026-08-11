@@ -1,7 +1,10 @@
-"""SQLite persistence for Chamber world, ledger, and snapshots.
+"""World + research persistence with dual backends.
 
-Production modular-monolith contract prefers PostgreSQL SERIALIZABLE cycles.
-Phase 1 uses SQLite with exclusive write transactions for solo/local MVP.
+Local PLAY defaults to SQLite (`BEGIN IMMEDIATE`).
+Production reference path uses PostgreSQL with cycle commits under
+`SERIALIZABLE` isolation (Noema-Specs DEPLOYMENT / RFC-0003).
+
+One fenced writer per process; research_* tables are rebuildable indexes.
 """
 
 from __future__ import annotations
@@ -9,33 +12,158 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from noema.world.digest import sha256_digest
 from noema.world.state import WorldState, acceptance_projection, load_seed
 
+Backend = Literal["sqlite", "postgres"]
+
+_PG_URL_PREFIXES = ("postgresql://", "postgres://", "postgresql+", "postgres+")
+
+
+def is_postgres_url(value: str | Path) -> bool:
+    s = str(value).strip()
+    return s.startswith(_PG_URL_PREFIXES)
+
+
+def open_store(path_or_url: Path | str = ":memory:") -> "WorldStore":
+    """Open a WorldStore from a filesystem path, `:memory:`, or Postgres DSN."""
+    return WorldStore(path_or_url)
+
+
+def _normalize_pg_dsn(url: str) -> str:
+    """Strip SQLAlchemy-style driver suffixes (postgresql+psycopg:// → postgresql://)."""
+    s = url.strip()
+    if s.startswith("postgresql+"):
+        # postgresql+psycopg://host/db → postgresql://host/db
+        rest = s.split("://", 1)[1] if "://" in s else s
+        return "postgresql://" + rest
+    if s.startswith("postgres+"):
+        rest = s.split("://", 1)[1] if "://" in s else s
+        return "postgresql://" + rest
+    if s.startswith("postgres://"):
+        return "postgresql://" + s[len("postgres://") :]
+    return s
+
 
 class WorldStore:
-    """Single fenced writer store per process."""
+    """Single fenced writer store per process (SQLite or PostgreSQL)."""
 
     def __init__(self, path: Path | str = ":memory:"):
         self.path = str(path)
         self._lock = threading.RLock()
-        self._conn = sqlite3.connect(self.path, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
-        self._init_schema()
         self._state: WorldState | None = None
         self._ready = False
+        self.writer_token = uuid.uuid4().hex
+        self.backend: Backend
+        self._conn: Any
+
+        if is_postgres_url(self.path):
+            self.backend = "postgres"
+            self._conn = self._connect_postgres(self.path)
+        else:
+            self.backend = "sqlite"
+            self._conn = sqlite3.connect(self.path, check_same_thread=False)
+            self._conn.row_factory = sqlite3.Row
+        self._init_schema()
+        self._claim_writer()
+
+    def _connect_postgres(self, url: str) -> Any:
+        try:
+            import psycopg
+            from psycopg.rows import dict_row
+        except ImportError as exc:  # pragma: no cover - optional dep path
+            raise RuntimeError(
+                "PostgreSQL backend requires psycopg: pip install 'noema[postgres]'"
+            ) from exc
+        dsn = _normalize_pg_dsn(url)
+        # autocommit=True so reads do not leave an open transaction that blocks
+        # BEGIN ISOLATION LEVEL SERIALIZABLE on cycle commits.
+        return psycopg.connect(dsn, row_factory=dict_row, autocommit=True)
+
+    # --- dialect helpers -------------------------------------------------
+
+    def _sql(self, statement: str) -> str:
+        if self.backend == "postgres":
+            return statement.replace("?", "%s")
+        return statement
+
+    def _execute(self, sql: str, params: tuple[Any, ...] | list[Any] = ()) -> Any:
+        return self._conn.execute(self._sql(sql), params)
+
+    def _executemany(self, sql: str, seq: list[tuple[Any, ...]]) -> Any:
+        return self._conn.executemany(self._sql(sql), seq)
+
+    def _begin_write(self) -> None:
+        """Start a fenced write transaction (SQLite exclusive / PG SERIALIZABLE)."""
+        if self.backend == "sqlite":
+            self._conn.execute("BEGIN IMMEDIATE")
+        else:
+            self._conn.execute("BEGIN ISOLATION LEVEL SERIALIZABLE")
+
+    def _commit(self) -> None:
+        if self.backend == "sqlite":
+            self._conn.commit()
+            return
+        # Postgres autocommit=True: only COMMIT when an explicit cycle/txn is open.
+        if self._pg_in_transaction():
+            self._conn.execute("COMMIT")
+
+    def _pg_in_transaction(self) -> bool:
+        # psycopg TransactionStatus: 0=IDLE, 1=ACTIVE, 2=INTRANS, 3=INERROR, 4=UNKNOWN
+        try:
+            from psycopg.pq import TransactionStatus
+
+            return self._conn.info.transaction_status != TransactionStatus.IDLE
+        except Exception:
+            try:
+                return int(self._conn.info.transaction_status) != 0
+            except Exception:
+                return False
+
+    def _rollback(self) -> None:
+        if self.backend == "sqlite":
+            self._conn.rollback()
+            return
+        try:
+            if self._pg_in_transaction():
+                self._conn.execute("ROLLBACK")
+        except Exception:
+            pass
+
+    def _upsert(
+        self,
+        table: str,
+        pk: str,
+        columns: list[str],
+        values: tuple[Any, ...],
+        *,
+        cur: Any | None = None,
+    ) -> None:
+        """Portable UPSERT for single-column primary key tables."""
+        cols = ", ".join(columns)
+        placeholders = ", ".join("?" for _ in columns)
+        updates = ", ".join(f"{c}=excluded.{c}" for c in columns if c != pk)
+        sql = (
+            f"INSERT INTO {table}({cols}) VALUES ({placeholders}) "
+            f"ON CONFLICT({pk}) DO UPDATE SET {updates}"
+        )
+        c = cur or self._conn
+        c.execute(self._sql(sql), values)
 
     def _init_schema(self) -> None:
-        cur = self._conn.cursor()
-        cur.executescript(
+        ts_default = "datetime('now')" if self.backend == "sqlite" else "NOW()"
+        statements = [
             """
             CREATE TABLE IF NOT EXISTS meta (
               key TEXT PRIMARY KEY,
               value TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS events (
               sequence INTEGER PRIMARY KEY,
               cycle INTEGER NOT NULL,
@@ -44,15 +172,19 @@ class WorldStore:
               digest TEXT NOT NULL,
               previous_digest TEXT,
               envelope_json TEXT NOT NULL
-            );
+            )
+            """,
+            f"""
             CREATE TABLE IF NOT EXISTS snapshots (
               snapshot_id TEXT PRIMARY KEY,
               cycle INTEGER NOT NULL,
               sequence INTEGER NOT NULL,
               state_digest TEXT NOT NULL,
               state_json TEXT NOT NULL,
-              created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
+              created_at TEXT NOT NULL DEFAULT ({ts_default})
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS sessions (
               session_id TEXT PRIMARY KEY,
               principal_id TEXT NOT NULL,
@@ -61,8 +193,9 @@ class WorldStore:
               last_request_id TEXT,
               epoch INTEGER NOT NULL DEFAULT 1,
               data_json TEXT NOT NULL
-            );
-            -- Research indexes (rebuildable; not world truth)
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_trajectories (
               trajectory_id TEXT PRIMARY KEY,
               world_id TEXT NOT NULL,
@@ -70,77 +203,114 @@ class WorldStore:
               to_cycle INTEGER NOT NULL,
               content_digest TEXT NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_frontier_audit (
               digest TEXT PRIMARY KEY,
               request_id TEXT NOT NULL,
               record_index INTEGER NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_frontier_plans (
               plan_id TEXT PRIMARY KEY,
               request_id TEXT NOT NULL,
               plan_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_observatory_runs (
               analysis_run_id TEXT PRIMARY KEY,
               run_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_observatory_candidates (
               candidate_id TEXT PRIMARY KEY,
               kind TEXT NOT NULL,
               analysis_run_id TEXT NOT NULL,
               candidate_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_observatory_audit (
               digest TEXT PRIMARY KEY,
               analysis_run_id TEXT NOT NULL,
               record_index INTEGER NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_lab_experiments (
               experiment_id TEXT PRIMARY KEY,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_lab_results (
               lab_result_id TEXT PRIMARY KEY,
               experiment_id TEXT NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_lab_audit (
               digest TEXT PRIMARY KEY,
               experiment_id TEXT NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_compiler_results (
               compiler_result_id TEXT PRIMARY KEY,
               compile_id TEXT NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_captured_tests (
               captured_test_id TEXT PRIMARY KEY,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_compiler_audit (
               digest TEXT PRIMARY KEY,
               compile_id TEXT NOT NULL,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_learn_behaviors (
               behavior_id TEXT PRIMARY KEY,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_learn_edges (
               edge_id TEXT PRIMARY KEY,
               record_json TEXT NOT NULL
-            );
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS research_learn_graphs (
               graph_digest TEXT PRIMARY KEY,
               record_json TEXT NOT NULL
-            );
-            """
-        )
-        self._conn.commit()
+            )
+            """,
+        ]
+        for stmt in statements:
+            self._conn.execute(stmt.strip())
+        self._commit()
+
+    def _claim_writer(self) -> None:
+        """Record process writer fence token (one active writer per world store)."""
+        with self._lock:
+            self._set_meta("writer_token", self.writer_token)
+            self._set_meta("backend", self.backend)
+            self._commit()
 
     def close(self) -> None:
         with self._lock:
@@ -164,7 +334,9 @@ class WorldStore:
             self._set_meta("seed_path", str(seed_path))
             self._set_meta("ledger_head", state.last_event_digest or "")
             self._set_meta("sequence", str(state.sequence))
-            self._conn.commit()
+            self._set_meta("cycle", str(state.cycle))
+            self._set_meta("writer_token", self.writer_token)
+            self._commit()
             return state.clone()
 
     def rehydrate_from_db(self, seed_path: Path | str | None = None) -> WorldState:
@@ -176,24 +348,25 @@ class WorldStore:
             if not seed:
                 raise RuntimeError("no seed_path recorded for rehydrate")
             state = load_seed(seed)
-            # merge any registered agents captured in latest snapshot
-            row = self._conn.execute(
+            row = self._execute(
                 "SELECT state_json FROM snapshots ORDER BY sequence DESC LIMIT 1"
             ).fetchone()
             if row:
                 snap = json.loads(row["state_json"])
                 for aid, rec in (snap.get("registered_agents") or {}).items():
                     state.registered_agents.setdefault(aid, rec)
-            for erow in self._conn.execute(
+            for erow in self._execute(
                 "SELECT envelope_json FROM events ORDER BY sequence ASC"
             ):
                 state = apply_event(state, json.loads(erow["envelope_json"]))
             self._state = state
             self._ready = True
+            self._set_meta("writer_token", self.writer_token)
+            self._commit()
             return state.clone()
 
     def _get_meta(self, key: str) -> str | None:
-        row = self._conn.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        row = self._execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
         return row["value"] if row else None
 
     def get_state(self) -> WorldState:
@@ -208,77 +381,120 @@ class WorldStore:
         events: list[dict[str, Any]],
         *,
         snapshot: bool = False,
+        max_retries: int = 3,
     ) -> dict[str, Any]:
-        """Atomically append events and replace canonical state (fenced writer)."""
+        """Atomically append events and replace canonical state (fenced writer).
+
+        PostgreSQL path uses SERIALIZABLE isolation; serialization failures retry
+        from the unchanged in-memory head or fail closed (no partial commits).
+        """
         with self._lock:
             if not self._state:
                 raise RuntimeError("WORLD_NOT_READY")
-            cur = self._conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
-                for event in events:
-                    cur.execute(
+            last_err: Exception | None = None
+            for attempt in range(max_retries):
+                try:
+                    return self._commit_cycle_once(new_state, events, snapshot=snapshot)
+                except Exception as exc:
+                    self._rollback()
+                    if self.backend == "postgres" and _is_serialization_failure(exc):
+                        last_err = exc
+                        continue
+                    raise
+            raise RuntimeError(
+                f"SERIALIZATION_FAILURE after {max_retries} attempts: {last_err}"
+            )
+
+    def _commit_cycle_once(
+        self,
+        new_state: WorldState,
+        events: list[dict[str, Any]],
+        *,
+        snapshot: bool,
+    ) -> dict[str, Any]:
+        prior = self._state
+        cur = self._conn.cursor() if self.backend == "sqlite" else self._conn
+        try:
+            self._begin_write()
+            # Expected revision + writer fence (RFC-0003 / DEPLOYMENT).
+            db_seq = self._get_meta("sequence")
+            expected_seq = str(prior.sequence if prior else 0)
+            if db_seq is not None and db_seq != expected_seq:
+                raise RuntimeError(
+                    f"STALE_REVISION: db sequence={db_seq} expected={expected_seq}"
+                )
+            fence = self._get_meta("writer_token")
+            if fence and fence != self.writer_token:
+                raise RuntimeError("STALE_WRITER_FENCE: another writer holds the world")
+
+            for event in events:
+                cur.execute(
+                    self._sql(
                         """
                         INSERT INTO events(sequence, cycle, event_id, event_type, digest, previous_digest, envelope_json)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            int(event["sequence"]),
-                            int(event["cycle"]),
-                            event["event_id"],
-                            event["event_type"],
-                            event["digest"],
-                            event.get("previous_digest"),
-                            json.dumps(event, sort_keys=True),
-                        ),
-                    )
-                self._state = new_state
-                head = new_state.last_event_digest or ""
-                self._set_meta("ledger_head", head, cur=cur)
-                self._set_meta("sequence", str(new_state.sequence), cur=cur)
-                self._set_meta("cycle", str(new_state.cycle), cur=cur)
-                view = acceptance_projection(new_state)
-                digest = sha256_digest(view)
-                self._set_meta("state_digest", digest, cur=cur)
-                snap_id = None
-                if snapshot or not events:
-                    snap_id = f"snap.{new_state.sequence}"
-                    cur.execute(
                         """
-                        INSERT OR REPLACE INTO snapshots(snapshot_id, cycle, sequence, state_digest, state_json)
-                        VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (
-                            snap_id,
-                            new_state.cycle,
-                            new_state.sequence,
-                            digest,
-                            json.dumps(self._serialize_state(new_state), sort_keys=True),
-                        ),
-                    )
-                self._conn.commit()
-                return {
-                    "ledger_head": head,
-                    "sequence": new_state.sequence,
-                    "cycle": new_state.cycle,
-                    "state_digest": digest,
-                    "snapshot_id": snap_id,
-                    "event_count": len(events),
-                }
-            except Exception:
-                self._conn.rollback()
-                raise
+                    ),
+                    (
+                        int(event["sequence"]),
+                        int(event["cycle"]),
+                        event["event_id"],
+                        event["event_type"],
+                        event["digest"],
+                        event.get("previous_digest"),
+                        json.dumps(event, sort_keys=True),
+                    ),
+                )
+            head = new_state.last_event_digest or ""
+            self._set_meta("ledger_head", head, cur=cur)
+            self._set_meta("sequence", str(new_state.sequence), cur=cur)
+            self._set_meta("cycle", str(new_state.cycle), cur=cur)
+            self._set_meta("writer_token", self.writer_token, cur=cur)
+            view = acceptance_projection(new_state)
+            digest = sha256_digest(view)
+            self._set_meta("state_digest", digest, cur=cur)
+            snap_id = None
+            if snapshot or not events:
+                snap_id = f"snap.{new_state.sequence}"
+                self._upsert(
+                    "snapshots",
+                    "snapshot_id",
+                    ["snapshot_id", "cycle", "sequence", "state_digest", "state_json"],
+                    (
+                        snap_id,
+                        new_state.cycle,
+                        new_state.sequence,
+                        digest,
+                        json.dumps(self._serialize_state(new_state), sort_keys=True),
+                    ),
+                    cur=cur,
+                )
+            self._commit()
+            self._state = new_state
+            return {
+                "ledger_head": head,
+                "sequence": new_state.sequence,
+                "cycle": new_state.cycle,
+                "state_digest": digest,
+                "snapshot_id": snap_id,
+                "event_count": len(events),
+                "backend": self.backend,
+            }
+        except Exception:
+            self._state = prior
+            self._rollback()
+            raise
 
     def ledger_head(self) -> str | None:
         with self._lock:
-            row = self._conn.execute("SELECT value FROM meta WHERE key='ledger_head'").fetchone()
+            row = self._execute("SELECT value FROM meta WHERE key=?", ("ledger_head",)).fetchone()
             if not row:
                 return None
             return row["value"] or None
 
     def list_events(self, *, after_sequence: int = 0, limit: int = 100) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute(
+            rows = self._execute(
                 "SELECT envelope_json FROM events WHERE sequence > ? ORDER BY sequence ASC LIMIT ?",
                 (after_sequence, limit),
             ).fetchall()
@@ -286,11 +502,18 @@ class WorldStore:
 
     def save_session(self, session_id: str, data: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO sessions(session_id, principal_id, role, agent_id, last_request_id, epoch, data_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
+            self._upsert(
+                "sessions",
+                "session_id",
+                [
+                    "session_id",
+                    "principal_id",
+                    "role",
+                    "agent_id",
+                    "last_request_id",
+                    "epoch",
+                    "data_json",
+                ],
                 (
                     session_id,
                     data.get("principal_id") or "",
@@ -301,11 +524,11 @@ class WorldStore:
                     json.dumps(data, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def load_session(self, session_id: str) -> dict[str, Any] | None:
         with self._lock:
-            row = self._conn.execute(
+            row = self._execute(
                 "SELECT data_json FROM sessions WHERE session_id=?", (session_id,)
             ).fetchone()
             return json.loads(row["data_json"]) if row else None
@@ -320,9 +543,8 @@ class WorldStore:
             head = self.ledger_head()
             if (self._state.last_event_digest or "") != (head or ""):
                 problems.append("ledger_head mismatch with in-memory state")
-            # chain integrity
             prev = None
-            for row in self._conn.execute(
+            for row in self._execute(
                 "SELECT sequence, digest, previous_digest, envelope_json FROM events ORDER BY sequence"
             ):
                 env = json.loads(row["envelope_json"])
@@ -331,21 +553,28 @@ class WorldStore:
                     break
                 prev = row["digest"]
             if prev is not None and prev != (head or None) and head:
-                # head may be empty at genesis
                 if head and prev != head:
                     problems.append("ledger head does not match last event digest")
+            fence = self._get_meta("writer_token")
+            if fence and fence != self.writer_token:
+                problems.append("writer fence token mismatch")
         return problems
 
     # --- Research indexes (disposable; rebuildable from ledger) ---
 
     def save_trajectory(self, record: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_trajectories(
-                  trajectory_id, world_id, from_cycle, to_cycle, content_digest, record_json
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                """,
+            self._upsert(
+                "research_trajectories",
+                "trajectory_id",
+                [
+                    "trajectory_id",
+                    "world_id",
+                    "from_cycle",
+                    "to_cycle",
+                    "content_digest",
+                    "record_json",
+                ],
                 (
                     record["trajectory_id"],
                     record["world_id"],
@@ -355,33 +584,35 @@ class WorldStore:
                     json.dumps(record, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_trajectories(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute(
+            rows = self._execute(
                 "SELECT record_json FROM research_trajectories ORDER BY from_cycle, to_cycle"
             ).fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def save_frontier_plan(self, plan: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_frontier_plans(plan_id, request_id, plan_json)
-                VALUES (?, ?, ?)
-                """,
-                (plan.get("plan_id") or "", plan.get("request_id") or "", json.dumps(plan, sort_keys=True)),
+            self._upsert(
+                "research_frontier_plans",
+                "plan_id",
+                ["plan_id", "request_id", "plan_json"],
+                (
+                    plan.get("plan_id") or "",
+                    plan.get("request_id") or "",
+                    json.dumps(plan, sort_keys=True),
+                ),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_frontier_audit(self, record: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_frontier_audit(digest, request_id, record_index, record_json)
-                VALUES (?, ?, ?, ?)
-                """,
+            self._upsert(
+                "research_frontier_audit",
+                "digest",
+                ["digest", "request_id", "record_index", "record_json"],
                 (
                     record.get("digest") or "",
                     record.get("request_id") or "",
@@ -389,60 +620,55 @@ class WorldStore:
                     json.dumps(record, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_frontier_audit(self, request_id: str | None = None) -> list[dict[str, Any]]:
         with self._lock:
             if request_id:
-                rows = self._conn.execute(
+                rows = self._execute(
                     "SELECT record_json FROM research_frontier_audit WHERE request_id=? ORDER BY record_index",
                     (request_id,),
                 ).fetchall()
             else:
-                rows = self._conn.execute(
+                rows = self._execute(
                     "SELECT record_json FROM research_frontier_audit ORDER BY request_id, record_index"
                 ).fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def get_frontier_audit(self, digest: str) -> dict[str, Any] | None:
         with self._lock:
-            row = self._conn.execute(
+            row = self._execute(
                 "SELECT record_json FROM research_frontier_audit WHERE digest=?", (digest,)
             ).fetchone()
             return json.loads(row["record_json"]) if row else None
 
     def save_observatory_run(self, run: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_observatory_runs(analysis_run_id, run_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_observatory_runs",
+                "analysis_run_id",
+                ["analysis_run_id", "run_json"],
                 (run.get("analysis_run_id") or "", json.dumps(run, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_observatory_candidate(self, kind: str, analysis_run_id: str, candidate: dict[str, Any]) -> None:
         with self._lock:
             cid = candidate.get("candidate_id") or candidate.get("unknown_id") or ""
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_observatory_candidates(
-                  candidate_id, kind, analysis_run_id, candidate_json
-                ) VALUES (?, ?, ?, ?)
-                """,
+            self._upsert(
+                "research_observatory_candidates",
+                "candidate_id",
+                ["candidate_id", "kind", "analysis_run_id", "candidate_json"],
                 (cid, kind, analysis_run_id, json.dumps(candidate, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_observatory_audit(self, record: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_observatory_audit(
-                  digest, analysis_run_id, record_index, record_json
-                ) VALUES (?, ?, ?, ?)
-                """,
+            self._upsert(
+                "research_observatory_audit",
+                "digest",
+                ["digest", "analysis_run_id", "record_index", "record_json"],
                 (
                     record.get("digest") or "",
                     record.get("analysis_run_id") or "",
@@ -450,183 +676,185 @@ class WorldStore:
                     json.dumps(record, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_observatory_candidates(self, kind: str | None = None) -> list[dict[str, Any]]:
         with self._lock:
             if kind:
-                rows = self._conn.execute(
+                rows = self._execute(
                     "SELECT candidate_json FROM research_observatory_candidates WHERE kind=? ORDER BY candidate_id",
                     (kind,),
                 ).fetchall()
             else:
-                rows = self._conn.execute(
+                rows = self._execute(
                     "SELECT candidate_json FROM research_observatory_candidates ORDER BY kind, candidate_id"
                 ).fetchall()
             return [json.loads(r["candidate_json"]) for r in rows]
 
     def list_observatory_runs(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT run_json FROM research_observatory_runs").fetchall()
+            rows = self._execute("SELECT run_json FROM research_observatory_runs").fetchall()
             return [json.loads(r["run_json"]) for r in rows]
 
     def clear_research_indexes(self) -> None:
         with self._lock:
-            self._conn.execute("DELETE FROM research_trajectories")
-            self._conn.execute("DELETE FROM research_frontier_audit")
-            self._conn.execute("DELETE FROM research_frontier_plans")
-            self._conn.execute("DELETE FROM research_observatory_runs")
-            self._conn.execute("DELETE FROM research_observatory_candidates")
-            self._conn.execute("DELETE FROM research_observatory_audit")
-            self._conn.execute("DELETE FROM research_lab_experiments")
-            self._conn.execute("DELETE FROM research_lab_results")
-            self._conn.execute("DELETE FROM research_lab_audit")
-            self._conn.execute("DELETE FROM research_compiler_results")
-            self._conn.execute("DELETE FROM research_captured_tests")
-            self._conn.execute("DELETE FROM research_compiler_audit")
-            self._conn.execute("DELETE FROM research_learn_behaviors")
-            self._conn.execute("DELETE FROM research_learn_edges")
-            self._conn.execute("DELETE FROM research_learn_graphs")
-            self._conn.commit()
+            for table in (
+                "research_trajectories",
+                "research_frontier_audit",
+                "research_frontier_plans",
+                "research_observatory_runs",
+                "research_observatory_candidates",
+                "research_observatory_audit",
+                "research_lab_experiments",
+                "research_lab_results",
+                "research_lab_audit",
+                "research_compiler_results",
+                "research_captured_tests",
+                "research_compiler_audit",
+                "research_learn_behaviors",
+                "research_learn_edges",
+                "research_learn_graphs",
+            ):
+                self._execute(f"DELETE FROM {table}")
+            self._commit()
 
     def save_learn_behavior(self, node: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_learn_behaviors(behavior_id, record_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_learn_behaviors",
+                "behavior_id",
+                ["behavior_id", "record_json"],
                 (node.get("behavior_id") or "", json.dumps(node, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_learn_edge(self, edge: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_learn_edges(edge_id, record_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_learn_edges",
+                "edge_id",
+                ["edge_id", "record_json"],
                 (edge.get("edge_id") or "", json.dumps(edge, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_learn_graph(self, graph: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_learn_graphs(graph_digest, record_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_learn_graphs",
+                "graph_digest",
+                ["graph_digest", "record_json"],
                 (graph.get("digest") or "", json.dumps(graph, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_learn_behaviors(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT record_json FROM research_learn_behaviors").fetchall()
+            rows = self._execute("SELECT record_json FROM research_learn_behaviors").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def list_learn_edges(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT record_json FROM research_learn_edges").fetchall()
+            rows = self._execute("SELECT record_json FROM research_learn_edges").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def save_compiler_result(self, result: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_compiler_results(compiler_result_id, compile_id, record_json)
-                VALUES (?, ?, ?)
-                """,
+            self._upsert(
+                "research_compiler_results",
+                "compiler_result_id",
+                ["compiler_result_id", "compile_id", "record_json"],
                 (
                     result.get("compiler_result_id") or "",
                     result.get("compile_id") or "",
                     json.dumps(result, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_captured_test(self, captured: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_captured_tests(captured_test_id, record_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_captured_tests",
+                "captured_test_id",
+                ["captured_test_id", "record_json"],
                 (captured.get("captured_test_id") or "", json.dumps(captured, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_compiler_audit(self, record: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_compiler_audit(digest, compile_id, record_json)
-                VALUES (?, ?, ?)
-                """,
-                (record.get("digest") or "", record.get("compile_id") or "", json.dumps(record, sort_keys=True)),
+            self._upsert(
+                "research_compiler_audit",
+                "digest",
+                ["digest", "compile_id", "record_json"],
+                (
+                    record.get("digest") or "",
+                    record.get("compile_id") or "",
+                    json.dumps(record, sort_keys=True),
+                ),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_captured_tests(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT record_json FROM research_captured_tests").fetchall()
+            rows = self._execute("SELECT record_json FROM research_captured_tests").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def list_compiler_results(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT record_json FROM research_compiler_results").fetchall()
+            rows = self._execute("SELECT record_json FROM research_compiler_results").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
     def save_lab_experiment(self, experiment: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_lab_experiments(experiment_id, record_json)
-                VALUES (?, ?)
-                """,
+            self._upsert(
+                "research_lab_experiments",
+                "experiment_id",
+                ["experiment_id", "record_json"],
                 (experiment.get("experiment_id") or "", json.dumps(experiment, sort_keys=True)),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_lab_result(self, result: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_lab_results(lab_result_id, experiment_id, record_json)
-                VALUES (?, ?, ?)
-                """,
+            self._upsert(
+                "research_lab_results",
+                "lab_result_id",
+                ["lab_result_id", "experiment_id", "record_json"],
                 (
                     result.get("lab_result_id") or "",
                     result.get("experiment_id") or "",
                     json.dumps(result, sort_keys=True),
                 ),
             )
-            self._conn.commit()
+            self._commit()
 
     def save_lab_audit(self, record: dict[str, Any]) -> None:
         with self._lock:
-            self._conn.execute(
-                """
-                INSERT OR REPLACE INTO research_lab_audit(digest, experiment_id, record_json)
-                VALUES (?, ?, ?)
-                """,
-                (record.get("digest") or "", record.get("experiment_id") or "", json.dumps(record, sort_keys=True)),
+            self._upsert(
+                "research_lab_audit",
+                "digest",
+                ["digest", "experiment_id", "record_json"],
+                (
+                    record.get("digest") or "",
+                    record.get("experiment_id") or "",
+                    json.dumps(record, sort_keys=True),
+                ),
             )
-            self._conn.commit()
+            self._commit()
 
     def list_lab_results(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._conn.execute("SELECT record_json FROM research_lab_results").fetchall()
+            rows = self._execute("SELECT record_json FROM research_lab_results").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
-    def _set_meta(self, key: str, value: str, cur: sqlite3.Cursor | None = None) -> None:
-        c = cur or self._conn.cursor()
-        c.execute(
-            "INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-            (key, value),
+    def _set_meta(self, key: str, value: str, cur: Any | None = None) -> None:
+        sql = self._sql(
+            "INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
         )
+        c = cur if cur is not None else self._conn
+        c.execute(sql, (key, value))
 
     def _serialize_state(self, state: WorldState) -> dict[str, Any]:
         return {
@@ -652,3 +880,16 @@ class WorldStore:
             "last_event_digest": state.last_event_digest,
             "event_count": state.event_count,
         }
+
+
+def _is_serialization_failure(exc: BaseException) -> bool:
+    """Detect PostgreSQL serialization / deadlock failures for retry."""
+    try:
+        from psycopg.errors import DeadlockDetected, SerializationFailure
+
+        if isinstance(exc, (SerializationFailure, DeadlockDetected)):
+            return True
+    except ImportError:
+        pass
+    msg = str(exc).lower()
+    return "could not serialize" in msg or "deadlock detected" in msg or "40001" in msg
