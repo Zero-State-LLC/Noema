@@ -158,6 +158,18 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     if not session_id:
                         return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
                     return self._json(200, runtime.lab_capture_gate(session_id, body.get("lab_result")))
+                if path == "/research/compiler/capture":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    result = runtime.capture_as_test(
+                        session_id,
+                        intent=body.get("intent") or body,
+                        lab_result=body.get("lab_result"),
+                        unit_manifest=body.get("unit_manifest"),
+                        max_oracle_calls=body.get("max_oracle_calls"),
+                    )
+                    return self._json(200, result)
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})

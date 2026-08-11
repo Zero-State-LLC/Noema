@@ -1,0 +1,19 @@
+{
+  "schema_version": "regression-result/0.5",
+  "regression_result_id": "regr.shared-ledger-agent-x-fail",
+  "captured_test_id": "ctest.shared-ledger-coordination",
+  "subject_identity": {
+    "agent_version": "agentver.other.1"
+  },
+  "outcome": "FAIL",
+  "claim_label": "OBSERVED",
+  "boundary": {
+    "generalization_boundary": "SCENARIO_FAMILY"
+  },
+  "evidence_refs": [
+    "replay.regr.fail"
+  ],
+  "simple_message": "Behavior did not reproduce in this test.",
+  "not_a_global_ranking": true,
+  "digest": "sha256:52b510c35eb3d4a3db7a010a509a7d2ca6f3ed0e768037651d52cee16501333c"
+}

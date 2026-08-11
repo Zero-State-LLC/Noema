@@ -1,0 +1,24 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.could-not-capture",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "compile.missing-dep-1"
+  ],
+  "presentation": {
+    "title": "Cannot determine",
+    "message": "Cannot capture this yet. A required dependency is unavailable.",
+    "why": "Required predicate adapter is not registered.",
+    "next": "Resolve the missing dependency or select another result."
+  },
+  "allowed_actions": [
+    "RESOLVE_DEPENDENCY",
+    "VIEW_REASON"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "NOT_COMPUTABLE",
+  "machine_reason_code": "NOT_COMPUTABLE",
+  "digest": "sha256:849d7fc20862b9401e5e3fe67a904827c644451c3de7dec2f718a74d74436d94"
+}

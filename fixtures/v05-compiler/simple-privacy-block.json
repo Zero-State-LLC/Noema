@@ -1,0 +1,23 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.privacy-block",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "compile.private-1"
+  ],
+  "presentation": {
+    "title": "Cannot create a public test",
+    "message": "Cannot create a public test. This behavior depends on protected source material.",
+    "export_class_required": "RESEARCH_ISOLATED"
+  },
+  "allowed_actions": [
+    "KEEP_RESEARCH_ISOLATED",
+    "VIEW_PARTITION_POLICY"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "machine_reason_code": "PRIVACY_PARTITION",
+  "digest": "sha256:998a0f6d7b932945aa0866863cec26da16b25d905d2d1c91c9359614895db54b"
+}

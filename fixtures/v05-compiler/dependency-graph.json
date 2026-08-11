@@ -1,0 +1,99 @@
+{
+  "schema_version": "phenomenon-dependency-graph/0.5",
+  "graph_id": "depgraph.shared-ledger-1",
+  "compile_id": "compile.shared-ledger-1",
+  "nodes": [
+    {
+      "dependency_id": "dep.tool.shared-ledger",
+      "class": "TOOL",
+      "source_evidence": [
+        "labres.shared-ledger-capture-ready"
+      ],
+      "required": true,
+      "removal_test": "ablate shared ledger",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": true,
+      "simple_label": "shared ledger"
+    },
+    {
+      "dependency_id": "dep.resource.scarcity",
+      "class": "RESOURCE",
+      "source_evidence": [
+        "labres.shared-ledger-capture-ready"
+      ],
+      "required": true,
+      "removal_test": "remove scarcity",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": true,
+      "simple_label": "resource scarcity"
+    },
+    {
+      "dependency_id": "dep.information.messaging",
+      "class": "INFORMATION",
+      "source_evidence": [
+        "labres.shared-ledger-capture-ready"
+      ],
+      "required": true,
+      "removal_test": "remove messaging",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": true,
+      "simple_label": "messaging"
+    },
+    {
+      "dependency_id": "dep.world.archive-room",
+      "class": "WORLD_STATE",
+      "source_evidence": [
+        "traj.shared-ledger-1"
+      ],
+      "required": false,
+      "removal_test": "remove archive room",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": false,
+      "simple_label": "unrelated Archive location"
+    },
+    {
+      "dependency_id": "dep.social.unused-org",
+      "class": "SOCIAL",
+      "source_evidence": [
+        "traj.shared-ledger-1"
+      ],
+      "required": false,
+      "removal_test": "remove unused org",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": false,
+      "simple_label": "unused organizations"
+    },
+    {
+      "dependency_id": "dep.temporal.unrelated-history",
+      "class": "TEMPORAL",
+      "source_evidence": [
+        "traj.shared-ledger-1"
+      ],
+      "required": false,
+      "removal_test": "trim history",
+      "replacement_test": null,
+      "depends_on": [],
+      "protected": false,
+      "simple_label": "unrelated world history"
+    }
+  ],
+  "edges": [
+    {
+      "from": "dep.information.messaging",
+      "to": "dep.tool.shared-ledger",
+      "kind": "enables"
+    },
+    {
+      "from": "dep.resource.scarcity",
+      "to": "dep.tool.shared-ledger",
+      "kind": "motivates"
+    }
+  ],
+  "closure_rules_version": "dependency-closure/0.5.0",
+  "digest": "sha256:7dc93e97e1cb70965d26d00892aa312bfcefb3ed7d273bde4b95244cfd81510b"
+}

@@ -1,0 +1,7 @@
+{
+  "schema_version": "capture-intent/0.5",
+  "capture_intent_id": "capture.incomplete",
+  "source_lab_result_id": "labres.tool-ablation-1",
+  "capture_intent": "CAPTURE_AS_TEST",
+  "experience_level": "SIMPLE"
+}

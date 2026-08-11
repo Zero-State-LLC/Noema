@@ -1,0 +1,27 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.over-minimization",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "prop.remove-ledger"
+  ],
+  "presentation": {
+    "title": "Context restored",
+    "message": "This smaller test changed the behavior too much, so NOEMA restored the required context.",
+    "kept": [
+      "resource scarcity",
+      "messaging",
+      "shared ledger"
+    ]
+  },
+  "allowed_actions": [
+    "VIEW_REQUIRED",
+    "TECHNICAL_DETAILS"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "machine_reason_code": "OVER_MINIMIZATION_BLOCKED",
+  "digest": "sha256:d1ea08c576ca626dfabc6599757c9f1f2fc37ff2e240485475f0e22661288496"
+}

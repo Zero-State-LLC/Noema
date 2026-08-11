@@ -1,0 +1,60 @@
+{
+  "schema_version": "phenomenon-candidate/0.5",
+  "phenomenon_candidate_id": "phen.shared-ledger-coordination",
+  "source_lab_result_id": "labres.shared-ledger-capture-ready",
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "source_experiment_ids": [
+    "exp.tool-ablation-1"
+  ],
+  "title": "Shared-ledger coordination",
+  "behavior_definition": {
+    "definition_id": "beh.shared-ledger-coordination",
+    "version": "0.5.0",
+    "predicates": [
+      {
+        "predicate_id": "pred.shared-ledger-used"
+      },
+      {
+        "predicate_id": "pred.coordination-motif"
+      }
+    ]
+  },
+  "observable_features": [
+    {
+      "feature_id": "feat.shared-ledger-use",
+      "description": "agents write and read a shared ledger artifact"
+    },
+    {
+      "feature_id": "feat.messaging-coordination",
+      "description": "messages coordinate under scarcity"
+    }
+  ],
+  "required_outcome_boundary": {
+    "requires": [
+      "shared_ledger",
+      "messaging",
+      "scarcity"
+    ]
+  },
+  "known_supporting_conditions": [
+    "resource scarcity",
+    "messaging",
+    "shared ledger"
+  ],
+  "known_counterconditions": [
+    "messaging removed",
+    "shared ledger ablated"
+  ],
+  "known_confounds": [
+    "provider nondeterminism residual"
+  ],
+  "generalization_boundary": "SCENARIO_FAMILY",
+  "claim_label": "INFERRED",
+  "provenance": {
+    "source_compile_id": "compile.shared-ledger-1",
+    "source_trajectory_id": "traj.shared-ledger-1"
+  },
+  "digest": "sha256:046e4825cdba7871f1b530f1660528765af9da19dc47b5f0237f6e5203f86a1c"
+}

@@ -1,0 +1,143 @@
+{
+  "schema_version": "compilation-request/0.5",
+  "compile_id": "compile.shared-ledger-1",
+  "candidate_id": "UNKNOWN_BEHAVIOR_shared-ledger-protocol",
+  "source_lab_result_id": "labres.shared-ledger-capture-ready",
+  "source_trajectory": {
+    "trajectory_id": "traj.shared-ledger-1",
+    "trajectory_digest": "sha256:89840b94b0fd3769e2a747df7c86cc7bd58d923e6a25b99509482a3201995d67",
+    "world_seed_digest": "sha256:648d6d8a126232fbc40c573b85e09892aabc5bed92206126529f6fa3c6477996",
+    "world_version": "world/v1",
+    "protocol_versions": {
+      "agent-protocol": "agent-protocol/v1",
+      "event-catalog": "event-catalog/0.2"
+    },
+    "deterministic_config_digest": "sha256:194e1942ebee00e3e7dc81f56ac1920309859dc5b4f711380931cceec7cb6e2a",
+    "external_inputs_digest": "sha256:e4d7f794796c492111c5254b10ff9f623bc46389f570c1bd9efbc6e7509b484d"
+  },
+  "candidate_interval": {
+    "start_event_id": "ev.100",
+    "end_event_id": "ev.140",
+    "start_cycle": 100,
+    "end_cycle": 140
+  },
+  "target_behavior": {
+    "target_id": "target.shared-ledger-coordination",
+    "predicate_version": "predicate/shared-ledger-coordination/0.5.0",
+    "predicates": [
+      {
+        "predicate_id": "pred.shared-ledger-used",
+        "version": "1.0.0",
+        "observation_points": [
+          "cycle_end"
+        ]
+      },
+      {
+        "predicate_id": "pred.coordination-motif",
+        "version": "1.0.0",
+        "observation_points": [
+          "cycle_end"
+        ]
+      }
+    ],
+    "claim_label": "INFERRED",
+    "digest": "sha256:782fc1a821f32f2268d0c0ea2f8e72c931e4d3fddce0c9d002aa563d52967d96"
+  },
+  "equivalence_boundary": {
+    "boundary_id": "boundary.shared-ledger-family",
+    "boundary_version": "equivalence-boundary/0.5.0",
+    "exact_paths": [
+      "agents.*.public_actions",
+      "artifacts.shared_ledger.*"
+    ],
+    "ignored_paths": [
+      "host.timestamps",
+      "provider.request_ids"
+    ],
+    "tolerances": [
+      {
+        "path": "metrics.latency_ms",
+        "abs": 5
+      }
+    ],
+    "semantic_predicates": [
+      "pred.shared-ledger-used",
+      "pred.coordination-motif"
+    ],
+    "digest": "sha256:1cea8a8978bdaa0a5c6e713b6b1eca1622e7f48f9cd1ab776acea0e2eea8cf68"
+  },
+  "removable_units": [
+    "unit.room.archive",
+    "unit.org.unused-merchants",
+    "unit.history.unrelated-cycles",
+    "unit.tool.shared-ledger",
+    "unit.resource.scarcity",
+    "unit.channel.messaging",
+    "unit.map.peripheral-rooms",
+    "unit.agent.observer-idle"
+  ],
+  "dependency_graph": {
+    "graph_ref": "depgraph.shared-ledger-1"
+  },
+  "required_controls": [
+    {
+      "control_id": "ctl.baseline",
+      "role": "BASELINE",
+      "required": true
+    },
+    {
+      "control_id": "ctl.sham",
+      "role": "SHAM_CONTROL",
+      "required": true
+    },
+    {
+      "control_id": "ctl.replay",
+      "role": "REPLAY",
+      "required": true
+    }
+  ],
+  "perturbation_space": {
+    "operators": [
+      {
+        "operator_id": "pert.scarcity-delta",
+        "parameters": {
+          "delta": [
+            -1,
+            1
+          ]
+        }
+      }
+    ],
+    "enumeration_order": "operator_id_then_canonical_parameter_tuple"
+  },
+  "budgets": {
+    "max_oracle_calls": 256,
+    "max_replay_cycles": 4096,
+    "max_perturbations": 64,
+    "max_storage_bytes": 67108864,
+    "max_wall_time_advisory_ms": 600000
+  },
+  "policy_context": {
+    "consent_ok": true,
+    "retention_class": "research",
+    "security_labels": [
+      "research"
+    ],
+    "export_class": "RESEARCH_ISOLATED",
+    "exclusions": []
+  },
+  "compiler_version": {
+    "compiler": "phenomenon-compiler/0.5.0",
+    "replay_oracle": "replay-oracle/0.5.0",
+    "schema_bundle": "noema-specs/v0.5.0-draft",
+    "ontology": "phenomena-ontology/0.1",
+    "canonicalization": "noema-jcs/1",
+    "digests": {
+      "compiler": "sha256:50885990a7c766631f2f8c12c01654e77bc398a9f74230308976e1fc35a97828",
+      "corpus": "sha256:cdf06321658d9ebc3e439e9e64f93bff19098ecbc99998b0d7575dc59915bc88",
+      "schemas": "sha256:a9a2a73b0d7c0cf121e76526fd8cf937ba74da5a838ce2caef770f10174fb742"
+    }
+  },
+  "capture_defaults_version": "capture-defaults/0.5.0",
+  "digest": "sha256:2fdc444cbd7a7272aedff3dcdf2d1aca0d6ddcdb3549c396a87949e1584d4086"
+}

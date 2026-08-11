@@ -1,0 +1,10 @@
+{
+  "schema_version": "capture-intent/0.5",
+  "capture_intent_id": "capture.shared-ledger-1",
+  "source_lab_result_id": "labres.shared-ledger-capture-ready",
+  "capture_intent": "CAPTURE_AS_TEST",
+  "optional_title": "Shared-ledger coordination",
+  "experience_level": "SIMPLE",
+  "user_overrides": {},
+  "digest": "sha256:7e5dcfe6044e0ccf1bd6f449bbb5f982ed9dd1aa97d58497606d469b925a0cd6"
+}

@@ -1,0 +1,86 @@
+{
+  "schema_version": "behavioral-oracle/0.5",
+  "oracle_id": "oracle.shared-ledger-1",
+  "oracle_version": "behavioral-oracle/0.5.0",
+  "target_behavior": {
+    "target_id": "target.shared-ledger-coordination",
+    "predicate_version": "predicate/shared-ledger-coordination/0.5.0",
+    "predicates": [
+      {
+        "predicate_id": "pred.shared-ledger-used",
+        "version": "1.0.0",
+        "observation_points": [
+          "cycle_end"
+        ]
+      },
+      {
+        "predicate_id": "pred.coordination-motif",
+        "version": "1.0.0",
+        "observation_points": [
+          "cycle_end"
+        ]
+      }
+    ],
+    "claim_label": "INFERRED",
+    "digest": "sha256:782fc1a821f32f2268d0c0ea2f8e72c931e4d3fddce0c9d002aa563d52967d96"
+  },
+  "equivalence_boundary": {
+    "boundary_id": "boundary.shared-ledger-family",
+    "boundary_version": "equivalence-boundary/0.5.0",
+    "exact_paths": [
+      "agents.*.public_actions",
+      "artifacts.shared_ledger.*"
+    ],
+    "ignored_paths": [
+      "host.timestamps",
+      "provider.request_ids"
+    ],
+    "tolerances": [
+      {
+        "path": "metrics.latency_ms",
+        "abs": 5
+      }
+    ],
+    "semantic_predicates": [
+      "pred.shared-ledger-used",
+      "pred.coordination-motif"
+    ],
+    "digest": "sha256:1cea8a8978bdaa0a5c6e713b6b1eca1622e7f48f9cd1ab776acea0e2eea8cf68"
+  },
+  "observation_points": [
+    "cycle_end"
+  ],
+  "required_predicates": [
+    "pred.shared-ledger-used",
+    "pred.coordination-motif"
+  ],
+  "metric_refs": [
+    "metrics.coordination_score"
+  ],
+  "feature_refs": [
+    "feat.shared-ledger-use",
+    "feat.messaging-coordination"
+  ],
+  "allowed_tolerances": [
+    {
+      "path": "metrics.latency_ms",
+      "abs": 5
+    }
+  ],
+  "replication_plan": {
+    "run_count": 5,
+    "success_threshold": 5,
+    "seed_policy": "SOURCE_TRAJECTORY_SEED",
+    "stopping_rule": "all_runs_or_first_failure",
+    "recorded_provider_responses": true
+  },
+  "missing_data_behavior": "INVALID",
+  "cache_identity_fields": [
+    "fixture_digest",
+    "target_digest",
+    "boundary_digest",
+    "replay_version",
+    "replication_plan_digest"
+  ],
+  "digest": "sha256:293215692565c451db4105b20e94f512275112fc725cbbe88dec56373ce45328"
+}

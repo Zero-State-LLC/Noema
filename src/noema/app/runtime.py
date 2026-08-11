@@ -28,6 +28,7 @@ from noema.research.errors import (
 from noema.research.frontier.director import FrontierDirector, FrontierResult
 from noema.research.frontier.injection import build_follow_on_entity_update, build_situation_injected_event
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
+from noema.research.compiler.compiler import Compiler, CompileSession
 from noema.research.lab.lab import Lab, LabSessionResult
 from noema.research.observatory.analysis import Observatory, ObservatoryResult
 from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
@@ -56,9 +57,11 @@ class NoemaRuntime:
         self.frontier = FrontierDirector(frontier_config)
         self.observatory = Observatory()
         self.lab = Lab()
+        self.compiler = Compiler()
         self._last_frontier: FrontierResult | None = None
         self._last_observatory: ObservatoryResult | None = None
         self._last_lab: LabSessionResult | None = None
+        self._last_compile: CompileSession | None = None
         self._research_overlays: list[dict[str, Any]] = []
 
     def _load_compat(self, path: Path | None) -> dict[str, Any]:
@@ -503,6 +506,17 @@ class NoemaRuntime:
                 if self._last_lab
                 else None
             ),
+            "captured_tests": self.store.list_captured_tests(),
+            "compiler_results": self.store.list_compiler_results(),
+            "last_compile": (
+                {
+                    "compile_id": (self._last_compile.request or {}).get("compile_id"),
+                    "status": self._last_compile.status,
+                    "captured_test_id": (self._last_compile.captured_test or {}).get("captured_test_id"),
+                }
+                if self._last_compile
+                else None
+            ),
         }
 
     def run_lab(
@@ -594,3 +608,68 @@ class NoemaRuntime:
                 raise ResearchError(INSUFFICIENT_RESEARCH_INPUT, "no lab result")
             result = self._last_lab.result
         return self.lab.capture_gate(result)
+
+    def capture_as_test(
+        self,
+        session_id: str,
+        *,
+        intent: dict[str, Any],
+        lab_result: dict[str, Any] | None = None,
+        unit_manifest: dict[str, Any] | None = None,
+        max_oracle_calls: int | None = None,
+    ) -> dict[str, Any]:
+        """CAPTURE AS TEST — Compiler pipeline. Never mutates production world."""
+        principal = self.get_principal(session_id)
+        if not principal.can_view_research_overlay():
+            raise ResearchError(POLICY_DENIED, "Compiler requires RESEARCHER or ADMIN")
+        self.ensure_ready()
+        state = self.store.get_state()
+        seq_before = state.sequence
+        head_before = state.last_event_digest
+        lr = lab_result
+        if lr is None:
+            if self._last_lab and self._last_lab.result:
+                lr = self._last_lab.result
+            else:
+                raise ResearchError(INSUFFICIENT_RESEARCH_INPUT, "lab_result required")
+        session = self.compiler.capture_as_test(
+            intent=intent,
+            lab_result=lr,
+            unit_manifest=unit_manifest,
+            max_oracle_calls=max_oracle_calls,
+        )
+        self._last_compile = session
+        if session.compiler_result:
+            self.store.save_compiler_result(session.compiler_result)
+        if session.captured_test:
+            self.store.save_captured_test(session.captured_test)
+        for rec in session.audit:
+            self.store.save_compiler_audit(rec)
+        state_after = self.store.get_state()
+        isolated = state_after.sequence == seq_before and state_after.last_event_digest == head_before
+        return {
+            "status": session.status,
+            "request": session.request,
+            "admission": session.admission,
+            "phenomenon": session.phenomenon,
+            "unit_manifest": session.unit_manifest,
+            "dependency_graph": session.dependency_graph,
+            "minimization": {
+                "retained": (session.minimization or {}).get("retained"),
+                "removed": (session.minimization or {}).get("removed"),
+                "minimality_status": (session.minimization or {}).get("minimality_status"),
+                "oracle": (session.minimization or {}).get("oracle"),
+            }
+            if session.minimization
+            else None,
+            "compiler_result": session.compiler_result,
+            "receipt": session.receipt,
+            "captured_test": session.captured_test,
+            "audit": session.audit,
+            "simple_view": session.simple_view,
+            "advanced_view": session.advanced_view,
+            "reproducibility_view": session.reproducibility_view,
+            "production_isolated": isolated,
+            "production_mutated": False,
+            "world_truth": False,
+        }

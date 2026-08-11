@@ -1,0 +1,34 @@
+{
+  "schema_version": "capture-defaults/0.5",
+  "defaults_version": "capture-defaults/0.5.0",
+  "minimization_strategy_version": "dependency-closed-hierarchical-ddmin/1",
+  "oracle_policy": "behavioral-oracle/0.5.0",
+  "seed_policy": "SOURCE_TRAJECTORY_SEED",
+  "replication_policy": "DECLARED_PLAN_BEFORE_COMPILE",
+  "budget_profile": "ordinary-capture/0.5.0",
+  "generalization_default": "SCENARIO_FAMILY",
+  "capture_visibility_default": "RESEARCH_ISOLATED",
+  "budgets": {
+    "max_oracle_calls": 256,
+    "max_replay_cycles": 4096,
+    "max_perturbations": 64,
+    "max_storage_bytes": 67108864,
+    "max_wall_time_advisory_ms": 600000
+  },
+  "layer_order": [
+    "WORLD_CONFIGURATION",
+    "ENTITIES_AGENTS",
+    "EVENTS_ACTIONS",
+    "OBSERVATIONS_MESSAGES",
+    "TOOLS_RESOURCES",
+    "METADATA"
+  ],
+  "allowed_override_fields": [
+    "budget_profile",
+    "seed_policy",
+    "replication_policy",
+    "generalization_boundary",
+    "max_oracle_calls",
+    "export_class"
+  ]
+}

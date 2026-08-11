@@ -1,0 +1,34 @@
+{
+  "schema_version": "minimization-record/0.5",
+  "record_index": 3,
+  "compile_id": "compile.shared-ledger-1",
+  "proposal_id": "prop.remove-ledger",
+  "proposal_digest": "sha256:2bdc8d6e2647565e8f9fc6ea2e69184bdbd87c3bcd545e6847ff2ae78c0ba971",
+  "candidate_removed_units": [
+    "unit.tool.shared-ledger"
+  ],
+  "dependency_closure_units": [
+    "unit.channel.messaging"
+  ],
+  "source_fixture_digest": "sha256:6cbe6534f9a0d487771b6c0574121b7e52cf713f9b3f4956663e0a41edee49de",
+  "candidate_fixture_digest": "sha256:d34dc92b2db7376422e8c3a0cde959e769d5a58229c7f1837315a87d7bd61141",
+  "oracle_identity": {
+    "oracle_id": "oracle.shared-ledger-1",
+    "oracle_version": "behavioral-oracle/0.5.0",
+    "cache_key": "sha256:32c67cc067696c354120841b2e9095c1aca26cad1bf3b55db6e6f9ac0a7fc8ea"
+  },
+  "oracle_result": "NOT_PRESERVED",
+  "replay_result_ref": "replay.prop.remove-ledger",
+  "decision": "REJECT_REMOVAL",
+  "reason_code": "OVER_MINIMIZATION_BLOCKED",
+  "budget_before": {
+    "max_oracle_calls": 256,
+    "used": 3
+  },
+  "budget_after": {
+    "max_oracle_calls": 256,
+    "used": 4
+  },
+  "previous_record_digest": "sha256:3427f5b8e8930b37ada6ccd3330882dd6c01f3434d0fdf19b8cece5ea11696ff",
+  "record_digest": "sha256:69460c9731da8cbac64d8bbd1d7d6f65aff56f3316bcac03b1408f6b4fd12a09"
+}

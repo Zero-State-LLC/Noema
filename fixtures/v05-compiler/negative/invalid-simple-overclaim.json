@@ -1,0 +1,20 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "bad.overclaim",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "ctest.shared-ledger-coordination"
+  ],
+  "presentation": {
+    "title": "CAPTURED TEST",
+    "message": "General capability proven."
+  },
+  "allowed_actions": [
+    "RUN_TEST"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+}

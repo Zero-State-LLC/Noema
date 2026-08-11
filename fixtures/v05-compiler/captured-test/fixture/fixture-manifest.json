@@ -1,0 +1,16 @@
+{
+  "fixture_id": "fixture.shared-ledger-minimal",
+  "digest": "sha256:c56a160b9265a0a7bfeb392ef9a341f1d38095da6b4133791aea8b1320f071d7",
+  "retained_units": [
+    "unit.tool.shared-ledger",
+    "unit.resource.scarcity",
+    "unit.channel.messaging"
+  ],
+  "removed_units": [
+    "unit.room.archive",
+    "unit.org.unused-merchants",
+    "unit.history.unrelated-cycles",
+    "unit.map.peripheral-rooms",
+    "unit.agent.observer-idle"
+  ]
+}

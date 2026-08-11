@@ -1,0 +1,21 @@
+{
+  "schema_version": "regression-result/0.5",
+  "regression_result_id": "regr.shared-ledger-agent-2.1",
+  "captured_test_id": "ctest.shared-ledger-coordination",
+  "subject_identity": {
+    "agent_version": "agentver.nacre.2.1",
+    "world_version": "world/v1"
+  },
+  "outcome": "PASS",
+  "claim_label": "OBSERVED",
+  "boundary": {
+    "generalization_boundary": "SCENARIO_FAMILY",
+    "note": "FAIL means only this captured test was not satisfied under this boundary"
+  },
+  "evidence_refs": [
+    "replay.regr.1"
+  ],
+  "simple_message": "Behavior reproduced.",
+  "not_a_global_ranking": true,
+  "digest": "sha256:cb1ae476e454ac1f13becc0f43fa9cdf96fc2bd6fa9baa0eaddaa1619fb341ce"
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.captured.shared-ledger.advanced",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "ADVANCED",
+  "canonical_source_refs": [
+    "ctest.shared-ledger-coordination",
+    "cresult.shared-ledger-1",
+    "compile.shared-ledger-1"
+  ],
+  "presentation": {
+    "title": "CAPTURED TEST (advanced)",
+    "captured_test_id": "ctest.shared-ledger-coordination",
+    "phenomenon_candidate_id": "phen.shared-ledger-coordination",
+    "source_lab_result_id": "labres.shared-ledger-capture-ready",
+    "minimality_status": "ONE_MINIMAL",
+    "oracle_type": "behavioral-oracle/0.5.0",
+    "replication_policy": "DECLARED_PLAN_BEFORE_COMPILE",
+    "known_confounds": [
+      "provider nondeterminism residual"
+    ],
+    "generalization_boundary": "SCENARIO_FAMILY",
+    "dependency_set": [
+      "dep.tool.shared-ledger",
+      "dep.resource.scarcity",
+      "dep.information.messaging"
+    ]
+  },
+  "allowed_actions": [
+    "RUN_TEST",
+    "VIEW_EVIDENCE",
+    "VIEW_AUDIT",
+    "VIEW_UNIT_MANIFEST"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "compiler_readiness": "READY",
+  "digest": "sha256:4d1e62d5e857c1bac18d805c5c1b151f6728bdadf739c0a003670a6401556edd"
+}

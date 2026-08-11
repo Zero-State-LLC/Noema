@@ -1,22 +1,20 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.4.0-phase3",
-  "product_milestone": "v0.4-lab",
-  "implementation_phase": "phase-3-experiment-lab",
+  "runtime_version": "0.5.0-phase4",
+  "product_milestone": "v0.5-compiler",
+  "implementation_phase": "phase-4-phenomenon-compiler",
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
-    "pin_label": "v0.4-lab-plus-core-loop-freeze",
-    "pin_note": "Chamber + Frontier + Observatory + Lab fixtures; Lab never mutates production world",
+    "pin_label": "v0.5-compiler-plus-core-loop-freeze",
+    "pin_note": "Chamber→Frontier→Observatory→Lab→Compiler modular monolith; CAPTURE AS TEST gated on READY Lab results",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
-    "lab_docs": [
-      "docs/EXPERIMENT-LAB.md",
-      "docs/EXPERIMENT-FORK.md",
-      "docs/EXPERIMENT-DESIGN.md",
-      "docs/EXPERIMENT-CONTROLS.md",
-      "docs/releases/v0.4/"
+    "compiler_docs": [
+      "docs/PHENOMENON-COMPILER.md",
+      "docs/CAPTURE-INTENT-COMPILATION.md",
+      "docs/releases/v0.5/"
     ]
   },
   "fixture_identity": {
@@ -24,8 +22,8 @@
     "frontier_package": "fixtures/v02-frontier",
     "observatory_package": "fixtures/v03-observatory",
     "lab_package": "fixtures/v04-lab",
-    "lab_catalogs": "fixtures/v04-catalogs",
-    "world_id": "world-01"
+    "compiler_package": "fixtures/v05-compiler",
+    "compiler_catalogs": "fixtures/v05-catalogs"
   },
   "versions": {
     "world_rules": "world/v1",
@@ -35,18 +33,21 @@
     "frontier_director": "frontier-director/0.2",
     "observatory": "observatory/0.3",
     "lab": "experiment-lab/0.4",
-    "experiment_design": "experiment-design/0.4"
+    "compiler": "phenomenon-compiler/0.5.0",
+    "capture_defaults": "capture-defaults/0.5.0",
+    "minimization": "dependency-closed-hierarchical-ddmin/1",
+    "oracle": "behavioral-oracle/0.5.0"
   },
-  "lab_config": {
+  "compiler_config": {
     "required_for_play_readiness": false,
+    "admission_requires_compiler_readiness": "READY",
     "mutates_production": false,
-    "capture_requires_compiler_readiness": "READY",
-    "claim_bearing_path": "deterministic_only"
+    "claim_bearing_path": "deterministic_only",
+    "minimality_claim": "ONE_MINIMAL_not_global"
   },
   "deferred_milestones": [
-    "v0.5-compiler",
     "v0.6-deep-time-genesis",
     "v0.7-learn",
-    "phase-4-compiler"
+    "phase-5-learn-deep-time"
   ]
 }
