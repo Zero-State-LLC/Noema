@@ -1,0 +1,21 @@
+{
+  "coordination_signal_id": "coord.v03.001",
+  "signal_type": "resource_transfer_timing",
+  "participants": [
+    "agent.nacre",
+    "agent.vesper"
+  ],
+  "evidence_refs": [
+    "evt.v03.transfer-1",
+    "evt.v03.transfer-2"
+  ],
+  "possible_interpretations": [
+    "cooperation",
+    "trade",
+    "coincidence"
+  ],
+  "confounds": [
+    "simultaneous scarcity"
+  ],
+  "claim_label": "INFERRED"
+}

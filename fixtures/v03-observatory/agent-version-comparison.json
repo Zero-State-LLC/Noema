@@ -1,0 +1,26 @@
+{
+  "schema_version": "agent-version-comparison/0.3",
+  "comparison_id": "avcmp.v03.example",
+  "agent_version_a": "agentver.nacre.1",
+  "agent_version_b": "agentver.nacre.2",
+  "shared_scenario": {
+    "world_id": "world-01",
+    "genome_class": "scarcity-conflict"
+  },
+  "seed_control_relationship": "different_seed",
+  "feature_version": "behavior-features/0.3",
+  "baseline_id": "baseline.v03.nacre.self-history",
+  "differences": {
+    "cooperation_signal": 200
+  },
+  "confounds": [
+    "seed differs",
+    "partner set may differ"
+  ],
+  "evidence_coverage": {
+    "windows": 2
+  },
+  "attribution": "NOT_DISTINGUISHABLE",
+  "claim_label": "NOT_COMPUTABLE",
+  "digest": "sha256:9e73942d8648bb44ae2f3c7dd8b34dddbe4e855d0f1dceb914c0d53840b4f371"
+}

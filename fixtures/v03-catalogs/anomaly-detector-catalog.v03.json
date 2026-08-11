@@ -1,0 +1,152 @@
+{
+  "schema_version": "anomaly-detectors/0.3",
+  "detectors": [
+    {
+      "detector_id": "frequency_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "action_distribution"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "sequence_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "strategy_switching"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "transition_rarity",
+      "threshold": 200,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "resource_allocation_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "resource_allocation"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "coordination_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "cooperation_signal"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "percentile_rank",
+      "threshold": 900,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "strategy_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "strategy_persistence",
+        "strategy_switching"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "information_behavior_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "information_seeking"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "tool_use_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "tool_usage"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "categorical_rarity",
+      "threshold": 50,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "economic_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "trade_economic"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    },
+    {
+      "detector_id": "social_topology_anomaly",
+      "version": "anomaly-detectors/0.3",
+      "features": [
+        "organization_faction",
+        "communication"
+      ],
+      "baseline_type": "self_history",
+      "comparison_rule": "robust_z_millipoint",
+      "threshold": 300,
+      "minimum_evidence": 5,
+      "missing_data_behavior": "NOT_COMPUTABLE",
+      "confounds": [
+        "regime_change",
+        "frontier_injection"
+      ]
+    }
+  ],
+  "claim_bearing_path": "deterministic_only"
+}

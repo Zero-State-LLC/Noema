@@ -119,6 +119,25 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         follow_on=body.get("follow_on"),
                     )
                     return self._json(200, result)
+                if path == "/research/observatory/run":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    pre_w = body.get("pre_window")
+                    post_w = body.get("post_window")
+                    result = runtime.run_observatory(
+                        session_id,
+                        trajectory=body.get("trajectory"),
+                        agent_id=body.get("agent_id"),
+                        detectors=body.get("detectors"),
+                        freeze_baseline=body.get("baseline"),
+                        pre_context=body.get("pre_context"),
+                        post_context=body.get("post_context"),
+                        pre_window=tuple(pre_w) if pre_w else None,
+                        post_window=tuple(post_w) if post_w else None,
+                        contradiction_set=body.get("contradiction_set"),
+                    )
+                    return self._json(200, result)
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})

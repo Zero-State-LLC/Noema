@@ -1,0 +1,5 @@
+{
+  "world_baseline": "examples/v01-strategic/",
+  "frontier_pressure": "examples/v02-frontier/",
+  "note": "Observatory records are derived; not injected into historical ledger"
+}

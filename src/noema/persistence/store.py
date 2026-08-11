@@ -82,6 +82,22 @@ class WorldStore:
               request_id TEXT NOT NULL,
               plan_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS research_observatory_runs (
+              analysis_run_id TEXT PRIMARY KEY,
+              run_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_observatory_candidates (
+              candidate_id TEXT PRIMARY KEY,
+              kind TEXT NOT NULL,
+              analysis_run_id TEXT NOT NULL,
+              candidate_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_observatory_audit (
+              digest TEXT PRIMARY KEY,
+              analysis_run_id TEXT NOT NULL,
+              record_index INTEGER NOT NULL,
+              record_json TEXT NOT NULL
+            );
             """
         )
         self._conn.commit()
@@ -308,13 +324,6 @@ class WorldStore:
             ).fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
-    def clear_research_indexes(self) -> None:
-        with self._lock:
-            self._conn.execute("DELETE FROM research_trajectories")
-            self._conn.execute("DELETE FROM research_frontier_audit")
-            self._conn.execute("DELETE FROM research_frontier_plans")
-            self._conn.commit()
-
     def save_frontier_plan(self, plan: dict[str, Any]) -> None:
         with self._lock:
             self._conn.execute(
@@ -361,6 +370,75 @@ class WorldStore:
                 "SELECT record_json FROM research_frontier_audit WHERE digest=?", (digest,)
             ).fetchone()
             return json.loads(row["record_json"]) if row else None
+
+    def save_observatory_run(self, run: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_observatory_runs(analysis_run_id, run_json)
+                VALUES (?, ?)
+                """,
+                (run.get("analysis_run_id") or "", json.dumps(run, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_observatory_candidate(self, kind: str, analysis_run_id: str, candidate: dict[str, Any]) -> None:
+        with self._lock:
+            cid = candidate.get("candidate_id") or candidate.get("unknown_id") or ""
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_observatory_candidates(
+                  candidate_id, kind, analysis_run_id, candidate_json
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (cid, kind, analysis_run_id, json.dumps(candidate, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_observatory_audit(self, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_observatory_audit(
+                  digest, analysis_run_id, record_index, record_json
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (
+                    record.get("digest") or "",
+                    record.get("analysis_run_id") or "",
+                    int(record.get("record_index") or 0),
+                    json.dumps(record, sort_keys=True),
+                ),
+            )
+            self._conn.commit()
+
+    def list_observatory_candidates(self, kind: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            if kind:
+                rows = self._conn.execute(
+                    "SELECT candidate_json FROM research_observatory_candidates WHERE kind=? ORDER BY candidate_id",
+                    (kind,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT candidate_json FROM research_observatory_candidates ORDER BY kind, candidate_id"
+                ).fetchall()
+            return [json.loads(r["candidate_json"]) for r in rows]
+
+    def list_observatory_runs(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT run_json FROM research_observatory_runs").fetchall()
+            return [json.loads(r["run_json"]) for r in rows]
+
+    def clear_research_indexes(self) -> None:
+        with self._lock:
+            self._conn.execute("DELETE FROM research_trajectories")
+            self._conn.execute("DELETE FROM research_frontier_audit")
+            self._conn.execute("DELETE FROM research_frontier_plans")
+            self._conn.execute("DELETE FROM research_observatory_runs")
+            self._conn.execute("DELETE FROM research_observatory_candidates")
+            self._conn.execute("DELETE FROM research_observatory_audit")
+            self._conn.commit()
 
     def _set_meta(self, key: str, value: str, cur: sqlite3.Cursor | None = None) -> None:
         c = cur or self._conn.cursor()

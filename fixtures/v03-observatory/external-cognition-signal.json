@@ -1,0 +1,15 @@
+{
+  "signal_id": "extcog.v03.001",
+  "signal_type": "shared_ledger_use",
+  "artifact_entity_id": "entity.shared-ledger-v1",
+  "participants": [
+    "agent.nacre",
+    "agent.vesper"
+  ],
+  "evidence_refs": [
+    "evt.v03.entity-create-ledger",
+    "evt.v03.transfer-1",
+    "msg.v03.protocol"
+  ],
+  "claim_label": "INFERRED"
+}

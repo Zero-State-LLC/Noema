@@ -1,0 +1,8 @@
+{
+  "schema_version": "observatory/0.3",
+  "max_trajectory_window_cycles": 500,
+  "max_features_per_vector": 64,
+  "max_baseline_records": 1000,
+  "max_candidates_per_run": 100,
+  "exceed_status": "PARTIAL"
+}

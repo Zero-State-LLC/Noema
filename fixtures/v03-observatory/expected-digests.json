@@ -1,0 +1,8 @@
+{
+  "trajectory": "sha256:0d60f5b1f18d4293f638cbe6acd318b994ccfd99bd6d99fe0607ecf4f8ad5c92",
+  "baseline": "sha256:5fb6030f12585cfb7c6e08d64d6f730e88cf48b3fb0ed4e5ec692e71ccf370d8",
+  "anomaly": "sha256:35e02b4915f4ed23b0d370ac8ef522b32d8b1053b9ee359224d92952167bfd3d",
+  "shift": "sha256:ce4e6d2fc5b441166bb8b13fc3dc071b466c919ee7bd80943a102f18cbbe5531",
+  "capability": "sha256:e141420613ba25de1945fb3262753fc7b5e93ac1c7cc0976d14c1f9c2f631fa1",
+  "analysis_run": "sha256:6e64a7c68848874747e4fe6f3eb845e2d265afc8df9b47f1ff5422ddf935cea6"
+}

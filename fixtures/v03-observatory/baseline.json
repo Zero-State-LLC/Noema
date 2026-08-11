@@ -1,0 +1,38 @@
+{
+  "schema_version": "baseline/0.3",
+  "baseline_id": "baseline.v03.nacre.self-history",
+  "baseline_type": "self_history",
+  "population_window": {
+    "start_cycle": 0,
+    "end_cycle": 19,
+    "agent_id": "agent.nacre"
+  },
+  "inclusion_rules": [
+    "same agent_id",
+    "COMPARABLE context"
+  ],
+  "exclusion_rules": [
+    "redacted trajectories"
+  ],
+  "context_constraints": {
+    "world_version": "world/v1",
+    "feature_version": "behavior-features/0.3",
+    "risk_regime_band": "stable"
+  },
+  "minimum_evidence": 5,
+  "feature_version": "behavior-features/0.3",
+  "construction_algorithm": "mean_feature_vector_millipoint",
+  "feature_summary": {
+    "action_distribution": 400,
+    "resource_allocation": 700,
+    "trade_economic": 100,
+    "communication": 150,
+    "organization_faction": 50,
+    "information_seeking": 200,
+    "cooperation_signal": 80,
+    "strategy_persistence": 800,
+    "strategy_switching": 100,
+    "repair_infrastructure": 50
+  },
+  "digest": "sha256:5fb6030f12585cfb7c6e08d64d6f730e88cf48b3fb0ed4e5ec692e71ccf370d8"
+}

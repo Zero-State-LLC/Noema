@@ -1,0 +1,23 @@
+{
+  "schema_version": "feature-vector/0.3",
+  "agent_id": "agent.nacre",
+  "window": {
+    "start_cycle": 20,
+    "end_cycle": 40
+  },
+  "feature_version": "behavior-features/0.3",
+  "values": {
+    "action_distribution": 420,
+    "resource_allocation": 350,
+    "trade_economic": 550,
+    "communication": 600,
+    "organization_faction": 400,
+    "information_seeking": 450,
+    "cooperation_signal": 720,
+    "strategy_persistence": 750,
+    "strategy_switching": 350,
+    "repair_infrastructure": 400
+  },
+  "claim_label": "INFERRED",
+  "digest": "sha256:3557312a32ce6bca23e513e25c05bb903421943154b29b5c9d6741e814e1d777"
+}
