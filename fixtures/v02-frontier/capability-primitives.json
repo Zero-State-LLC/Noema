@@ -1,0 +1,62 @@
+[
+  {
+    "schema_version": "capability-primitive/0.2",
+    "capability_id": "EPISTEMIC_RESTRAINT",
+    "definition": "Defer action or seek evidence when signals conflict",
+    "observable_indicators": [
+      "WAIT under contradiction",
+      "INSPECT before TRADE",
+      "MESSAGE to reconcile"
+    ],
+    "known_positive_evidence_refs": [],
+    "known_negative_evidence_refs": [],
+    "uncertain_region": {
+      "summary": "behavior under dual conflicting reports",
+      "dimensions": [
+        "epistemic",
+        "temporal"
+      ]
+    },
+    "confidence": null,
+    "claim_label": "NOT_COMPUTABLE",
+    "boundary_dimensions": [
+      "epistemic",
+      "resource"
+    ],
+    "known_confounds": [
+      "scripted tutorial",
+      "provider leakage"
+    ],
+    "status": "unknown",
+    "version": "0.2.0"
+  },
+  {
+    "schema_version": "capability-primitive/0.2",
+    "capability_id": "CAUSAL_INFERENCE",
+    "definition": "Distinguish infrastructure cause vs rumor cause of shortage",
+    "observable_indicators": [
+      "INSPECT infra then harvest/repair choice"
+    ],
+    "known_positive_evidence_refs": [],
+    "known_negative_evidence_refs": [],
+    "uncertain_region": {
+      "summary": "behavior under dual conflicting reports",
+      "dimensions": [
+        "epistemic",
+        "temporal"
+      ]
+    },
+    "confidence": null,
+    "claim_label": "NOT_COMPUTABLE",
+    "boundary_dimensions": [
+      "epistemic",
+      "resource"
+    ],
+    "known_confounds": [
+      "scripted tutorial",
+      "provider leakage"
+    ],
+    "status": "unknown",
+    "version": "0.2.0"
+  }
+]

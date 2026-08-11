@@ -1,0 +1,5 @@
+{
+  "world_id": "world-01",
+  "baseline_package": "examples/v01-strategic/",
+  "note": "Frontier pressures apply prospectively from cycle 10; does not rewrite v0.1 history"
+}

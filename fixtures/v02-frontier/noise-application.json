@@ -1,0 +1,11 @@
+{
+  "noise_model_id": "quantization",
+  "version": "noise-model/0.2",
+  "seed_stream": "noise.seed.v02",
+  "target_field_path": "content.condition",
+  "parameters": {
+    "step_millipoints": 100
+  },
+  "source_event_id": "evt.frontier.v02.002",
+  "result_digest": "sha256:4329b4a90075e9b65666c3108e06e7f136bddbe9e39fa40a9d05161334e32b30"
+}

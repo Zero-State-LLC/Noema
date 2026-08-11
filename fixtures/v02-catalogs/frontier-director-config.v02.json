@@ -1,0 +1,31 @@
+{
+  "schema_version": "frontier-director/0.2",
+  "director_version": "frontier-director/0.2",
+  "fixed_point_scale": 1000,
+  "max_mutation_depth": 2,
+  "max_candidates_enumerated": 256,
+  "default_select_count": 1,
+  "repetition_quota": 1,
+  "pairwise_diversity_min": 120,
+  "solved_distance": 50,
+  "risk_class_max_admissible": 3,
+  "ranking_key": [
+    "risk_class",
+    "-control_value",
+    "-uncertainty",
+    "-discrimination",
+    "-coverage_gain",
+    "-novelty",
+    "-failure_relevance",
+    "repetition",
+    "cost",
+    "tie_break",
+    "candidate_id"
+  ],
+  "empty_plan_stop_reasons": [
+    "no-safe-candidate",
+    "budget-exhausted",
+    "NOT_COMPUTABLE"
+  ],
+  "claim_bearing_path": "deterministic_only"
+}

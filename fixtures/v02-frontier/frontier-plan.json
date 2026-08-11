@@ -1,0 +1,100 @@
+{
+  "schema_version": "frontier-plan/0.2",
+  "plan_id": "fdplan.v02.001",
+  "request_id": "fdrq.v02.001",
+  "input_digests": {
+    "request": "sha256:1ee255ff3c040d4e034daa3daca872a1dbcb8bb13127a9d09ff8eb07e18a38b5",
+    "config": "sha256:8ceb65463914f92a3425aa04280971018a26fabfdf1df21d1a3f3f03d3ca2283"
+  },
+  "selected_candidates": [
+    {
+      "schema_version": "frontier-candidate/0.2",
+      "candidate_id": "fdc-9ea8bc02dcc811965cb2e5ac8aa718dcb25e9a9be400f006fc4e941d61249655",
+      "parent_template_id": "template.strategic-baseline",
+      "parent_digest": "sha256:11c4efb6d5178a60ce2399160d6381501f7e473db3711f5a0ffc9aa552605db4",
+      "mutation_operations": [
+        {
+          "operator_id": "MUT_RESOURCE_SCARCITY",
+          "params": {
+            "intensity_millipoints": 700
+          }
+        },
+        {
+          "operator_id": "MUT_FALSE_SIGNAL",
+          "params": {
+            "intensity_millipoints": 500
+          }
+        },
+        {
+          "operator_id": "MUT_COMMUNICATION_TOPOLOGY",
+          "params": {
+            "intensity_millipoints": 400
+          }
+        },
+        {
+          "operator_id": "MUT_INFRA_CONDITION",
+          "params": {
+            "intensity_millipoints": 600
+          }
+        }
+      ],
+      "genome_id": "genome.frontier.scarcity-conflict.1",
+      "genome_digest": "sha256:20b858acd459a45a298ef7fe43bfa63d17dd4b136b8e530d092b6a59f0b2d2c2",
+      "target_capability_ids": [
+        "EPISTEMIC_RESTRAINT",
+        "CAUSAL_INFERENCE"
+      ],
+      "estimated_resource_vector": {
+        "attention": 4,
+        "energy": 10,
+        "compute": 8
+      },
+      "safety_classification": "admissible",
+      "control_role": "none",
+      "situation_digest": "sha256:20b858acd459a45a298ef7fe43bfa63d17dd4b136b8e530d092b6a59f0b2d2c2",
+      "scores": {
+        "uncertainty": 800,
+        "discrimination": 600,
+        "novelty": 720,
+        "failure_relevance": 0,
+        "coverage_gain": 500,
+        "control_value": 0,
+        "cost": 400,
+        "risk": 200,
+        "repetition": 0,
+        "risk_class": 2,
+        "claim_label": "INFERRED"
+      },
+      "disposition": "selected",
+      "reason_codes": [
+        "selected_top_rank"
+      ]
+    }
+  ],
+  "expected_information_gain": {
+    "components": {
+      "uncertainty": 800,
+      "discrimination": 600,
+      "novelty": 720,
+      "failure_relevance": 0,
+      "coverage_gain": 500,
+      "control_value": 0,
+      "cost": 400,
+      "risk": 200,
+      "repetition": 0,
+      "risk_class": 2,
+      "claim_label": "INFERRED"
+    },
+    "claim_label": "INFERRED"
+  },
+  "claim_label": "INFERRED",
+  "budgets_reserved": {
+    "candidates": 1
+  },
+  "anti_repetition_constraints": {
+    "solved_distance": 50,
+    "pairwise_diversity_min": 120
+  },
+  "stop_reason": "select_count_reached",
+  "director_version": "frontier-director/0.2"
+}

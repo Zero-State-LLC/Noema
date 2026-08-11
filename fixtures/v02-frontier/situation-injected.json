@@ -1,0 +1,35 @@
+{
+  "schema_version": "world-event/1.0",
+  "event_id": "evt.frontier.v02.001",
+  "event_type": "SITUATION_INJECTED",
+  "world_id": "world-01",
+  "cycle": 10,
+  "sequence": 100,
+  "occurred_at": "2026-08-10T18:00:00Z",
+  "actor_id": "frontier.director",
+  "payload": {
+    "situation_id": "sit.frontier.v02.001",
+    "genome_id": "genome.frontier.scarcity-conflict.1",
+    "genome_version": "1",
+    "target_room_ids": [
+      "room.relay-quarter",
+      "room.civic-exchange",
+      "room.infrastructure-vault"
+    ],
+    "selection_score": 1.0,
+    "score_components": {
+      "uncertainty": 0.8,
+      "novelty": 0.72,
+      "discrimination": 0.6
+    },
+    "seed_stream_id": "frontier.seed.v02"
+  },
+  "provenance": {
+    "protocol": "frontier-director/0.2",
+    "source": "v02-frontier",
+    "plan_id": "fdplan.v02.001",
+    "mutates_via": "SITUATION_INJECTED_only"
+  },
+  "previous_digest": null,
+  "digest": "sha256:32c8b64fc430e52e241625574f56585a4d162c78c6d5d716d9e08858dece1790"
+}

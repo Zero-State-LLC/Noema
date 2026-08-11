@@ -1,0 +1,26 @@
+{
+  "schema_version": "frontier-research-overlay/0.2",
+  "visibility": "research",
+  "genome_id": "genome.frontier.scarcity-conflict.1",
+  "novelty_vector": {
+    "semantic": 420,
+    "causal": 710,
+    "social_topology": 550,
+    "temporal": 380,
+    "tool": 200,
+    "epistemic": 820,
+    "goal_structure": 640,
+    "resource": 750,
+    "constraint": 300
+  },
+  "target_capability_ids": [
+    "EPISTEMIC_RESTRAINT",
+    "CAUSAL_INFERENCE"
+  ],
+  "selection_rationale": [
+    "selected_top_rank"
+  ],
+  "control_role": "none",
+  "plan_id": "fdplan.v02.001",
+  "noncanonical": true
+}

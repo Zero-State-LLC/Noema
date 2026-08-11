@@ -1,0 +1,27 @@
+[
+  {
+    "observation_id": "obs.v02.public-relay",
+    "agent_id": "agent.nacre",
+    "summary": "Relay degraded; power unstable",
+    "visibility": "partial",
+    "provenance_fields": {
+      "source": "LOOK",
+      "observed_at_cycle": 10,
+      "resolution": "reduced",
+      "quality_class": "degraded",
+      "staleness_cycles": 0
+    }
+  },
+  {
+    "observation_id": "obs.v02.private-archive",
+    "agent_id": "agent.quill",
+    "summary": "Archive claims generator failure primary",
+    "visibility": "permission_restricted",
+    "provenance_fields": {
+      "source": "INSPECT",
+      "observed_at_cycle": 10,
+      "resolution": "full",
+      "contradiction_set_id": "cset.v02.001"
+    }
+  }
+]

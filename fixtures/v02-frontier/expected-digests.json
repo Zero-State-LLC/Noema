@@ -1,0 +1,7 @@
+{
+  "genome_content_digest": "sha256:20b858acd459a45a298ef7fe43bfa63d17dd4b136b8e530d092b6a59f0b2d2c2",
+  "request_digest": "sha256:1ee255ff3c040d4e034daa3daca872a1dbcb8bb13127a9d09ff8eb07e18a38b5",
+  "plan_digest": "sha256:fd62cc989eb2fd229a28d732524abc51f5e0949e91e72b260427ce9796639e45",
+  "situation_injected_digest": "sha256:32c8b64fc430e52e241625574f56585a4d162c78c6d5d716d9e08858dece1790",
+  "candidate_id": "fdc-9ea8bc02dcc811965cb2e5ac8aa718dcb25e9a9be400f006fc4e941d61249655"
+}

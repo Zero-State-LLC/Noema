@@ -1,0 +1,42 @@
+{
+  "schema_version": "noise-model/0.2",
+  "operators": [
+    {
+      "noise_model_id": "omission",
+      "parameters": [
+        "field_path"
+      ]
+    },
+    {
+      "noise_model_id": "quantization",
+      "parameters": [
+        "field_path",
+        "step_millipoints"
+      ]
+    },
+    {
+      "noise_model_id": "delay_staleness",
+      "parameters": [
+        "field_path",
+        "staleness_cycles"
+      ]
+    },
+    {
+      "noise_model_id": "bounded_perturbation",
+      "parameters": [
+        "field_path",
+        "delta_millipoints",
+        "bound"
+      ]
+    },
+    {
+      "noise_model_id": "source_corruption",
+      "parameters": [
+        "field_path",
+        "source_id"
+      ]
+    }
+  ],
+  "rule": "deterministic_from_seed_stream_and_parameters",
+  "default_affects": "observation_projection_only"
+}

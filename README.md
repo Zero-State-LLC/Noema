@@ -1,8 +1,8 @@
 # NOEMA Runtime
 
-World Engine runtime for **NOEMA v0.1 — The Chamber** (Phase 1 playable modular monolith).
+World Engine runtime for **NOEMA** — Phase 2A adds research capture + Frontier NOTICE on the stable Chamber modular monolith.
 
-Implements the frozen core-loop Chamber slice of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
+Implements frozen slices of [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
 Does **not** claim consciousness measurement. Claim labels remain `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.
 
 ## Spec pin
@@ -12,16 +12,39 @@ See [`spec-compat.json`](spec-compat.json).
 | Field | Value |
 |---|---|
 | Specs repo | `Zero-State-LLC/Noema-Specs` |
-| Authority | `main` / core-loop freeze (`docs/SPEC-FREEZE-CORE-LOOP.md`) |
-| Chamber fixtures | `fixtures/v01-seed` (from Specs `examples/v01-seed`) |
+| Authority | core-loop freeze + v0.2 Frontier contracts |
+| Chamber fixtures | `fixtures/v01-seed` |
+| Frontier fixtures | `fixtures/v02-frontier` + `fixtures/v02-catalogs` |
 | Event catalog | `event-catalog/0.1` |
-| World rules | `world/v1` |
+| Frontier director | `frontier-director/0.2` |
 | Canonicalization | `noema-jcs/1` |
-| Agent protocol | `agent-protocol/v1` |
 
-**Known SPEC DEFECT:** Specs `expected-final-state-digest.txt` may not match digest of `expected-final-state.json` after RFC-0003 lineage fields were added to the JSON. Runtime treats the JSON shape as authority and recomputes its digest (see `spec-compat.json`).
+## Phase status
 
-## Quick start
+| Phase | Status |
+|---|---|
+| Phase 0 / 1 Chamber MVP | **Complete** — seed replay EQUIVALENT |
+| **Phase 2A Research capture + Frontier** | **This branch** |
+| Phase 2B Observatory | Deferred |
+| Lab / Compiler / LEARN / Deep Time | Deferred |
+
+## Architecture (modular monolith)
+
+```text
+PLAY (validate → schedule → reduce → persist → project)
+        ↓ post-persist seam
+research capture → trajectory indexes (rebuildable)
+        ↓
+Frontier Director (enumerate → score → select → audit)
+        ↓
+canonical SITUATION_INJECTED (+ optional ENTITY_UPDATE)
+        ↓
+ledger (world truth)
+```
+
+**WORLD TRUTH ≠ RESEARCH DERIVATION.** Frontier may read world state and propose condition changes; it must not rewrite ledger history, mutate reducers directly, or force agent actions.
+
+## Quick start (PLAY only)
 
 ```bash
 python -m venv .venv
@@ -32,60 +55,74 @@ noema-replay
 noema-play
 ```
 
-### HTTP modular monolith
+Frontier is **not** required for local PLAY.
+
+### HTTP
 
 ```bash
 noema-serve --port 8080
-# or
-docker compose up --build
 ```
 
-Endpoints:
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/health` `/ready` `/version` | PLAY readiness ignores optional research degradation |
+| POST | `/admin/start` | load seed |
+| POST | `/session` | roles: PLAYER, AGENT, SPECTATOR, RESEARCHER, ADMIN |
+| POST | `/play/action` | PLAY only |
+| GET | `/watch/live` | public; research metadata redacted |
+| POST | `/research/frontier/run` | RESEARCHER/ADMIN only |
+| GET | `/research/frontier/audit/<id>` | RESEARCHER/ADMIN |
+| GET | `/research/view` | RESEARCHER/ADMIN |
 
-- `GET /health` `/ready` `/version`
-- `POST /admin/start` `{ "seed_path": "..." }`
-- `POST /session` `{ "role": "PLAYER", "agent_id": "agent.x" }`
-- `POST /play/action` header `X-Session-Id` + action body
-- `POST /play/observe`
-- `GET /watch/live`
-- `POST /protocol/v1` agent-protocol/v1 messages
+## Frontier tests / demo
 
-## What this phase proves
+```bash
+# Full suite (Chamber + F01–F15 + E2E)
+pytest -q
 
-- Seed replay **EQUIVALENT** under Chamber acceptance boundary
-- Single-process modular monolith with **one fenced writer**
-- SQLite durability for ledger + snapshots + sessions
-- Human PLAY (text CLI + HTTP)
-- Minimal agent protocol (HELLO → AUTH → ENTER → OBSERVE → ACT)
-- WATCH LIVE read-only projection
-- Restart recovery by replaying persisted ledger
-- Deterministic scheduler ordering
-- Same-cycle `MESSAGE` then `MESSAGE_DELIVERED`
+# Frontier only
+pytest -q tests/test_phase2a_frontier.py
+
+# Chamber seed replay
+noema-replay
+```
+
+Deterministic Frontier demo path (in tests):
+
+```text
+start Chamber → player ENTER/LOOK → capture trajectory
+→ Frontier run (RESEARCHER) → select Situation Genome
+→ inject SITUATION_INJECTED through reducer/ledger
+→ player observation (no research private fields)
+→ WATCH redacts targeting metadata
+→ audit references canonical event digests
+```
+
+## Research capture
+
+- Module: `src/noema/research/`
+- Trajectory records reference ledger event digests (not a second event stream)
+- Stored in SQLite tables `research_*` separate from world tables
+- Rebuild: `runtime.rebuild_research_indexes()` from canonical ledger
+
+## Explicit deferrals
+
+Observatory · Lab · Compiler · LEARN · Deep Time · Genesis · microservices · graph DB · worker fleets · LLM planner · embeddings/vector infra · public Frontier platform API
 
 ## Layout
 
 ```text
 src/noema/
   world/          pure reducers + state + digests
-  replay/         fixture equivalence runner
-  actions/        single action router
-  scheduler/      deterministic order keys
-  persistence/    SQLite store (local MVP)
-  observations/   permissioned projections
-  spectator/      (WATCH via observations)
-  protocol/       agent-protocol/v1
-  gateway/        stdlib HTTP server
+  research/       capture, trajectories, frontier/*
+  actions/        single action router (PLAY)
+  persistence/    SQLite world + research indexes
+  observations/   permissioned projections + redaction
   app/            composition root
-  auth/           minimal roles
-  cli/            noema-replay, noema-serve, noema-play
 fixtures/v01-seed/
-spec-compat.json
-docker-compose.yml
+fixtures/v02-frontier/
+fixtures/v02-catalogs/
 ```
-
-## Explicitly deferred
-
-Frontier · Observatory · Lab · Compiler · LEARN · Deep Time · Genesis · microservices · graph DB · worker queues · live LLM requirement · complex frontend.
 
 ## License
 
