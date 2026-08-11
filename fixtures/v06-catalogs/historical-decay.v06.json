@@ -1,0 +1,39 @@
+{
+  "schema_version": "historical-decay/0.6",
+  "profile_version": "historical-decay/0.6.0",
+  "canonicalization": "noema-jcs/1",
+  "notes": "Only in-world evidence decays. Canonical event ledger never decays.",
+  "profiles": [
+    {
+      "profile_id": "decay.artifact.record",
+      "applies_to": "ARTIFACT",
+      "integrity_path": [
+        "INTACT",
+        "DEGRADED",
+        "FRAGMENTARY",
+        "CORRUPTED",
+        "DESTROYED"
+      ],
+      "cycle_thresholds": {
+        "DEGRADED": 1000,
+        "FRAGMENTARY": 2500,
+        "CORRUPTED": 5000
+      },
+      "deterministic": true
+    },
+    {
+      "profile_id": "decay.institution.memory",
+      "applies_to": "INSTITUTIONAL_MEMORY",
+      "requires_custodian": true,
+      "without_custodian": "DORMANT_THEN_FRAGMENT",
+      "deterministic": true
+    },
+    {
+      "profile_id": "decay.infrastructure",
+      "applies_to": "INFRASTRUCTURE",
+      "condition_floor": 0,
+      "never_deletes_history": true,
+      "deterministic": true
+    }
+  ]
+}

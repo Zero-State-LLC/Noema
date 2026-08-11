@@ -1,0 +1,44 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.admin.genesis-preview",
+  "mode": "STUDY",
+  "audience": "authorized_observer",
+  "disclosure_level": "ADVANCED",
+  "canonical_source_refs": [
+    "genesis.aster-reach.a"
+  ],
+  "presentation": {
+    "title": "WORLD PREVIEW",
+    "world_name": "Aster Reach",
+    "admin_only": true,
+    "starting_conditions": [
+      "3 inhabited regions",
+      "2 abandoned sites",
+      "uneven energy reserves",
+      "1 active institution context (Civic Exchange market practice)",
+      "1 dormant institution (Nacre Relay Stewardship)"
+    ],
+    "historical_traces": [
+      "damaged relay network",
+      "incomplete archive",
+      "abandoned trade route"
+    ],
+    "starting_tensions": [
+      "Relay South ownership unresolved",
+      "eastern energy supply unstable"
+    ],
+    "actions": [
+      "REGENERATE",
+      "ADVANCED",
+      "ACTIVATE_WORLD"
+    ]
+  },
+  "allowed_actions": [
+    "REGENERATE",
+    "ACTIVATE_WORLD",
+    "VIEW_ADVANCED"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:cc8cdfb7eb8d05afbfd4bd54fa6c44600e44e9e1c8f6c97267ac2a313efcf793"
+}

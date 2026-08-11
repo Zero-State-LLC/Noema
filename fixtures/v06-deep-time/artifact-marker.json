@@ -1,0 +1,23 @@
+{
+  "schema_version": "historical-artifact/0.6",
+  "artifact_id": "artifact.marker.nacre-maker",
+  "artifact_class": "MARKER",
+  "title": "Nacre maker mark",
+  "creator_ref": "org.nacre-collective",
+  "creation_cycle": 210,
+  "custodian_ref": null,
+  "location_ref": "room.relay_south.004",
+  "content_ref": "content.marker.nacre",
+  "integrity": "DEGRADED",
+  "visibility": "PUBLIC",
+  "historical_claim_refs": [
+    "claim.nacre-built-relay"
+  ],
+  "claims_are_not_world_truth": true,
+  "existed_fact_preserved": true,
+  "decay_profile_version": "historical-decay/0.6.0",
+  "provenance": {
+    "origin_event": "event.marker.place.1"
+  },
+  "digest": "sha256:10edf5bbc5a5135f6272e21940ffe604c17fe995b641dcbdb7f050517e754dd8"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "historical-name/0.6",
+  "name_record_id": "name.burnt-relay",
+  "canonical_id": "room.relay_south.004",
+  "surface_name": "The Burnt Relay",
+  "used_by_ref": "public_spectators",
+  "from_cycle": 1700,
+  "to_cycle": null,
+  "source_refs": [
+    "scar.relay-south.damage"
+  ],
+  "canonical_id_immutable": true,
+  "digest": "sha256:96ed3b0f2e8c854a06dbca10790bd2b8baf94ee7219169ded8a8aa5671049a32"
+}

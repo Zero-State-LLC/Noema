@@ -1,0 +1,25 @@
+{
+  "schema_version": "historical-artifact/0.6",
+  "artifact_id": "artifact.archive.nacre-relay",
+  "artifact_class": "ARCHIVE",
+  "title": "Nacre Relay Stewardship Archive",
+  "creator_ref": "org.nacre-collective",
+  "creation_cycle": 220,
+  "custodian_ref": null,
+  "location_ref": "room.nacre_archive.001",
+  "content_ref": "content.archive.nacre-relay.v1",
+  "integrity": "FRAGMENTARY",
+  "visibility": "RESTRICTED",
+  "historical_claim_refs": [
+    "claim.peaceful-transfer",
+    "claim.conflict-transfer"
+  ],
+  "claims_are_not_world_truth": true,
+  "existed_fact_preserved": true,
+  "decay_profile_version": "historical-decay/0.6.0",
+  "provenance": {
+    "origin_event": "event.archive.create.1",
+    "canonicalization": "noema-jcs/1"
+  },
+  "digest": "sha256:cbf6ef162412f92260d0c00aad4bfa2d886daa28f641cc8c09f5351aaec42852"
+}

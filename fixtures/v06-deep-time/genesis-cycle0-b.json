@@ -1,0 +1,21 @@
+{
+  "schema_version": "genesis-cycle0-summary/0.6",
+  "world_id": "world.aster-reach-b",
+  "cycle": 0,
+  "ordinary_world_valid": true,
+  "functioning_relays": [
+    "entity.infra.west-hub"
+  ],
+  "damaged_relays": [
+    "entity.infra.relay-north"
+  ],
+  "dormant_institutions": [
+    "inst.b.dormant-stewardship"
+  ],
+  "active_institutions": [],
+  "old_market_route": "route.south-partial",
+  "archive_fragment": "artifact.b.archive-fragment",
+  "unresolved_territorial_claim": "claim.b.route-ownership",
+  "uneven_resources": true,
+  "differs_from": "examples/v06-deep-time/genesis-cycle0-a.json"
+}

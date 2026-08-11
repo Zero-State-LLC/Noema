@@ -1,0 +1,40 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.watch.deep-time-timeline",
+  "mode": "WATCH",
+  "audience": "public_spectator",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "inst.nacre-relay-stewardship",
+    "succ.nacre-1",
+    "scar.relay-south.damage"
+  ],
+  "presentation": {
+    "title": "TIMELINE",
+    "entries": [
+      {
+        "label": "FOUNDING",
+        "text": "Nacre establishes Relay Stewardship"
+      },
+      {
+        "label": "SUCCESSION",
+        "text": "Custodianship transfers; institution continues"
+      },
+      {
+        "label": "COLLAPSE",
+        "text": "Relay damaged; archive fragments"
+      },
+      {
+        "label": "DISCOVERY",
+        "text": "Later agents inspect the ruins"
+      }
+    ]
+  },
+  "allowed_actions": [
+    "OPEN_LANDMARK",
+    "FOLLOW_INSTITUTION"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:f3dccf81a51979eb8c6c164a502af22cc6ecde590c2a8b361fff73ec95a3b2c0"
+}

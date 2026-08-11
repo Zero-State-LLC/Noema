@@ -1,0 +1,69 @@
+{
+  "schema_version": "genesis-profile-catalog/0.6",
+  "catalog_version": "genesis-profiles/0.6.0",
+  "profiles": [
+    {
+      "schema_version": "genesis-profile/0.6",
+      "profile_id": "YOUNG_FRONTIER",
+      "title": "Young Frontier",
+      "description": "Recent settlement; thin history; open opportunity.",
+      "resource_abundance": "ABUNDANT",
+      "infrastructure_condition": "FRAGILE",
+      "inhabited_area_count": {
+        "min": 2,
+        "max": 4
+      },
+      "abandoned_area_count": {
+        "min": 0,
+        "max": 1
+      },
+      "historical_age_band": "YOUNG",
+      "institution_presence": "NONE_OR_EMERGING",
+      "artifact_density": "LOW",
+      "conflict_pressure": "LOW",
+      "trade_pressure": "MEDIUM"
+    },
+    {
+      "schema_version": "genesis-profile/0.6",
+      "profile_id": "FRACTURED_OLD_WORLD",
+      "title": "Fractured Old World",
+      "description": "Deep scars, incomplete records, unresolved claims.",
+      "resource_abundance": "MIXED",
+      "infrastructure_condition": "MIXED",
+      "inhabited_area_count": {
+        "min": 2,
+        "max": 5
+      },
+      "abandoned_area_count": {
+        "min": 1,
+        "max": 3
+      },
+      "historical_age_band": "OLD",
+      "institution_presence": "MIXED",
+      "artifact_density": "MEDIUM",
+      "conflict_pressure": "HIGH",
+      "trade_pressure": "MEDIUM"
+    },
+    {
+      "schema_version": "genesis-profile/0.6",
+      "profile_id": "RECOVERING_NETWORK",
+      "title": "Recovering Network",
+      "description": "Damaged connectivity; repair and alliance pathways.",
+      "resource_abundance": "SCARCE",
+      "infrastructure_condition": "FRAGILE",
+      "inhabited_area_count": {
+        "min": 2,
+        "max": 4
+      },
+      "abandoned_area_count": {
+        "min": 1,
+        "max": 2
+      },
+      "historical_age_band": "MID",
+      "institution_presence": "MIXED",
+      "artifact_density": "MEDIUM",
+      "conflict_pressure": "MEDIUM",
+      "trade_pressure": "HIGH"
+    }
+  ]
+}

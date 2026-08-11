@@ -1,0 +1,19 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "bad.lore",
+  "mode": "PLAY",
+  "audience": "human_player",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "lore.authored.nacre-epic"
+  ],
+  "presentation": {
+    "title": "Canon lore",
+    "message": "Authored epic overrides ledger.",
+    "treats_lore_as_truth": true
+  },
+  "allowed_actions": [],
+  "research_detail": false,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+}

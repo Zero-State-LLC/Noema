@@ -87,6 +87,25 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     seed = body.get("seed_path") or str(Path.cwd() / "fixtures" / "v01-seed" / "world-seed.json")
                     result = runtime.start_world(seed)
                     return self._json(200, result)
+                if path == "/admin/genesis/preview":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(
+                        200,
+                        runtime.genesis_preview(
+                            session_id,
+                            world_name=body.get("world_name") or "Aster Reach",
+                            world_seed=body.get("world_seed") or "seed.default",
+                            profile_id=body.get("profile_id") or "FRACTURED_OLD_WORLD",
+                            story_seed_ids=body.get("story_seed_ids"),
+                        ),
+                    )
+                if path == "/admin/genesis/activate":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.genesis_activate(session_id, body.get("genesis_id") or ""))
                 if path == "/session":
                     role = Role(body.get("role") or "PLAYER")
                     sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))
@@ -187,6 +206,11 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     if not session_id:
                         return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
                     return self._json(200, runtime.learn_view(session_id, behavior_id=body.get("behavior_id")))
+                if path == "/research/deep-time/ingest":
+                    session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    if not session_id:
+                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                    return self._json(200, runtime.deep_time_ingest(session_id, body.get("records") or body))
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})

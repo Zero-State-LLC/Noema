@@ -1,0 +1,31 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.play.onboard-deep-time",
+  "mode": "PLAY",
+  "audience": "human_player",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "world.aster-reach",
+    "scar.relay-south.damage",
+    "succ.nacre-1"
+  ],
+  "presentation": {
+    "title": "You have entered Aster Reach.",
+    "world_age_cycles": 18442,
+    "nearby": [
+      "Relay South \u2014 damaged historic infrastructure",
+      "Civic Exchange \u2014 active market",
+      "Nacre Archive \u2014 restricted"
+    ],
+    "recent": [
+      "Vesper leadership changed 38 cycles ago"
+    ]
+  },
+  "allowed_actions": [
+    "ENTER_WORLD",
+    "VIEW_RECENT_HISTORY"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "OBSERVED",
+  "digest": "sha256:2ea66a46a0f22d039f13b46be9c9269143d4067ae3fbe1f7e62f8ce79238d7f0"
+}

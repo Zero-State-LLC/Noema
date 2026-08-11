@@ -1,0 +1,20 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.play.archive-discovered",
+  "mode": "PLAY",
+  "audience": "human_player",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "artifact.archive.nacre-relay"
+  ],
+  "presentation": {
+    "title": "ARCHIVE DISCOVERED",
+    "message": "This relay was built ~1,842 cycles ago. Records suggest it once belonged to the Nacre Collective. Some records are missing."
+  },
+  "allowed_actions": [
+    "INSPECT"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:f64aa6773aec3a70dcf9382ec4858e6addce5ef6ac307130b660406f1e8d5c6a"
+}

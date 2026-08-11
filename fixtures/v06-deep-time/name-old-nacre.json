@@ -1,0 +1,14 @@
+{
+  "schema_version": "historical-name/0.6",
+  "name_record_id": "name.old-nacre",
+  "canonical_id": "room.relay_south.004",
+  "surface_name": "Old Nacre Station",
+  "used_by_ref": "org.aster-builders",
+  "from_cycle": 18400,
+  "to_cycle": null,
+  "source_refs": [
+    "recon.relay-south.era5"
+  ],
+  "canonical_id_immutable": true,
+  "digest": "sha256:afe50cbdd480dc61084d3c648ebe7c290c8a8de19cf49b8fc9c9d8a6f3fc1921"
+}

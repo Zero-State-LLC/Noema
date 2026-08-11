@@ -1,0 +1,59 @@
+{
+  "schema_version": "historical-reconstruction/0.6",
+  "reconstruction_id": "recon.relay-south.era5",
+  "subject_ref": "entity.infra.relay-south",
+  "time_window": {
+    "start_cycle": 200,
+    "end_cycle": 1900
+  },
+  "evidence_set": [
+    "evidence.marker.public",
+    "artifact.archive.nacre-relay",
+    "scar.relay-south.damage"
+  ],
+  "rules_version": "historical-reconstruction/0.6.0",
+  "supported_facts": [
+    {
+      "fact": "A Nacre maker mark is present on the relay foundation.",
+      "claim_label": "OBSERVED",
+      "source_refs": [
+        "evidence.marker.public"
+      ]
+    },
+    {
+      "fact": "Relay condition is damaged (world scar observable).",
+      "claim_label": "OBSERVED",
+      "source_refs": [
+        "scar.relay-south.damage"
+      ]
+    }
+  ],
+  "inferences": [
+    {
+      "statement": "This may have been part of the early Nacre relay network.",
+      "claim_label": "INFERRED",
+      "source_refs": [
+        "evidence.marker.public",
+        "artifact.archive.nacre-relay"
+      ]
+    }
+  ],
+  "contradictions": [
+    {
+      "summary": "Archive fragment claims peaceful transfer; marker/ledger hints conflict near transfer.",
+      "claim_refs": [
+        "claim.peaceful-transfer",
+        "claim.conflict-transfer"
+      ]
+    }
+  ],
+  "unknowns": [
+    "Original shutdown cause",
+    "Complete ownership chain after dormancy"
+  ],
+  "claim_label": "INFERRED",
+  "no_narrative_invention": true,
+  "agent_knowledge_only": true,
+  "hidden_ledger_not_exposed": true,
+  "digest": "sha256:79c23605b57af94dd3eed092db44fd52119320c53276aeefb850c2615a492723"
+}

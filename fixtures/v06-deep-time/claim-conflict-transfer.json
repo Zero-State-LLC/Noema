@@ -1,0 +1,31 @@
+{
+  "schema_version": "historical-claim/0.6",
+  "historical_claim_id": "claim.conflict-transfer",
+  "claim": "Ownership changed during conflict; access contest occurred near transfer.",
+  "claim_type": "CONFLICT",
+  "subject_refs": [
+    "entity.infra.relay-south"
+  ],
+  "time_range": {
+    "start_cycle": 1180,
+    "end_cycle": 1220,
+    "uncertain": true
+  },
+  "source_refs": [
+    "artifact.marker.nacre-maker",
+    "evidence.ledger.contest-hint"
+  ],
+  "evidence_status": "CONTESTED",
+  "claim_label": "INFERRED",
+  "evidence_grade": "ARTIFACT",
+  "contradicting_claim_refs": [
+    "claim.peaceful-transfer"
+  ],
+  "canonical_event_refs": [
+    "event.access_contest.near-transfer"
+  ],
+  "provenance": {
+    "source": "marker fragment + ledger evidence"
+  },
+  "digest": "sha256:a82b8e7a4924701080a1ac251643110989b88f4b3ef74d24fc0f762d1bcc8057"
+}

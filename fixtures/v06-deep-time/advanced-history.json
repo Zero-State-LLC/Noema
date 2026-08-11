@@ -1,0 +1,36 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.deep-time-advanced",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "ADVANCED",
+  "canonical_source_refs": [
+    "inst.nacre-relay-stewardship",
+    "lineage.nacre-relay",
+    "artifact.archive.nacre-relay"
+  ],
+  "presentation": {
+    "institution_id": "inst.nacre-relay-stewardship",
+    "lineage_id": "lineage.nacre-relay",
+    "succession_ids": [
+      "succ.nacre-1",
+      "succ.nacre-vacant"
+    ],
+    "artifact_ids": [
+      "artifact.archive.nacre-relay",
+      "artifact.marker.nacre-maker"
+    ],
+    "contested_claims": [
+      "claim.peaceful-transfer",
+      "claim.conflict-transfer"
+    ]
+  },
+  "allowed_actions": [
+    "VIEW_LINEAGE",
+    "VIEW_CLAIMS",
+    "VIEW_RECONSTRUCTION"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:e165c1abc4aabd4afdc13f9a734920dccdc4013ac7edb86d73329141212bf1e2"
+}

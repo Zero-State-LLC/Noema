@@ -1,0 +1,12 @@
+{
+  "schema_version": "historical-evidence/0.6",
+  "evidence_id": "evidence.marker.public",
+  "source_class": "ARTIFACT",
+  "source_ref": "artifact.marker.nacre-maker",
+  "quality": "SECONDARY",
+  "accessible_to_agents": true,
+  "hidden_from_ordinary_observation": false,
+  "claim_label": "OBSERVED",
+  "notes": "Visible maker mark",
+  "digest": "sha256:4dbd1276d319780d1488c06c9135f460dbc4fdcf661cf481e7c9387d6788badc"
+}

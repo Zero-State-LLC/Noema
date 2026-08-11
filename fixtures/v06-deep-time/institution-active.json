@@ -1,0 +1,76 @@
+{
+  "schema_version": "institution/0.6",
+  "institution_id": "inst.nacre-relay-stewardship",
+  "display_name": "Nacre Relay Stewardship",
+  "origin": {
+    "origin_type": "ARCHIVE_STEWARDSHIP",
+    "origin_cycle": 200,
+    "source_org_id": "org.nacre-collective",
+    "source_refs": [
+      "event.org_create.nacre",
+      "event.practice.relay-steward"
+    ]
+  },
+  "purpose": "Maintain Relay South and preserve operational records for common use.",
+  "persistent_practices": [
+    {
+      "practice_id": "prac.relay-inspection",
+      "description": "Periodic inspection and repair of Relay South",
+      "required": true
+    },
+    {
+      "practice_id": "prac.archive-copy",
+      "description": "Keep a readable stewardship archive",
+      "required": true
+    }
+  ],
+  "participant_refs": [
+    "agent.nacre.founder",
+    "agent.nacre.officer"
+  ],
+  "inheritor_refs": [
+    "org.nacre-collective"
+  ],
+  "assets": [
+    {
+      "asset_ref": "entity.infra.relay-south",
+      "kind": "INFRASTRUCTURE"
+    },
+    {
+      "asset_ref": "artifact.archive.nacre-relay",
+      "kind": "ARCHIVE"
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "role.custodian",
+      "role_name": "Relay Custodian",
+      "holder_ref": "agent.nacre.founder",
+      "vacant": false
+    }
+  ],
+  "status": "ACTIVE",
+  "succession_mechanism": "DESIGNATED",
+  "continuity": {
+    "identity_class": "SAME_ENTITY_EVOLVED",
+    "survives_participant_departure": true,
+    "requires_active_custodian": true,
+    "predecessor_institution_id": null,
+    "successor_institution_id": null
+  },
+  "archive_ref": "artifact.archive.nacre-relay",
+  "evidence_refs": [
+    "event.org_create.nacre",
+    "succ.nacre-1",
+    "scar.relay-south.damage"
+  ],
+  "known_limits": [
+    "Original shutdown cause unknown to later agents",
+    "Some archive fragments missing"
+  ],
+  "provenance": {
+    "world_id": "world.aster-reach",
+    "canonicalization": "noema-jcs/1"
+  },
+  "digest": "sha256:a61678a1b17f71febfa4409f5d9d21f84edaa474f399810209e7142b87500559"
+}

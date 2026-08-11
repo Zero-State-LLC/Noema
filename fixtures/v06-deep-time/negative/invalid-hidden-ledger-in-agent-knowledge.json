@@ -1,0 +1,30 @@
+{
+  "schema_version": "historical-reconstruction/0.6",
+  "reconstruction_id": "bad.hidden",
+  "subject_ref": "x",
+  "time_window": {
+    "start_cycle": 0,
+    "end_cycle": 10
+  },
+  "evidence_set": [
+    "evidence.ledger.founding"
+  ],
+  "rules_version": "0.6.0",
+  "supported_facts": [
+    {
+      "fact": "Exact ledger event exposed",
+      "claim_label": "OBSERVED",
+      "source_refs": [
+        "evidence.ledger.founding"
+      ]
+    }
+  ],
+  "inferences": [],
+  "contradictions": [],
+  "unknowns": [],
+  "claim_label": "OBSERVED",
+  "no_narrative_invention": true,
+  "agent_knowledge_only": true,
+  "hidden_ledger_not_exposed": false,
+  "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+}

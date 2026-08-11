@@ -1,0 +1,10 @@
+{
+  "institution_digest": "sha256:ae573fc38e2236fe9fc7c37bc5ed3245599fe7d28a13ae7f9a2a5b5b889d173a",
+  "succession_digest": "sha256:5235a97b9e42e22f1b4fcd26646421737c146a093326127caed38984dc1039e1",
+  "artifact_archive_digest": "sha256:cbf6ef162412f92260d0c00aad4bfa2d886daa28f641cc8c09f5351aaec42852",
+  "reconstruction_digest": "sha256:79c23605b57af94dd3eed092db44fd52119320c53276aeefb850c2615a492723",
+  "scar_digest": "sha256:7848f90a3b55fc1b967e7ebdbfa64e7e0d3126a27d41e3a16b4004e9f6d9e289",
+  "semantic_lineage_digest": "sha256:d6a3a2ca35ef3530f944c095d532bd53a6cca60ad4c8751a17ecd7f313ff7e0b",
+  "genesis_result_a_digest": "sha256:02c5bd5c0aea219cdf46f3dae0a7e31d6e888ec13370ce2e7f6e7cf89fe0272b",
+  "genesis_result_b_digest": "sha256:2e9ac022fc6b7a0a99682cb76092ae465aaea0ed97f83f8799ccdefca723b6f3"
+}
