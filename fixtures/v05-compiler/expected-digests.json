@@ -1,0 +1,16 @@
+{
+  "capture_intent_digest": "sha256:7e5dcfe6044e0ccf1bd6f449bbb5f982ed9dd1aa97d58497606d469b925a0cd6",
+  "compilation_request_digest": "sha256:2fdc444cbd7a7272aedff3dcdf2d1aca0d6ddcdb3549c396a87949e1584d4086",
+  "phenomenon_candidate_digest": "sha256:046e4825cdba7871f1b530f1660528765af9da19dc47b5f0237f6e5203f86a1c",
+  "dependency_graph_digest": "sha256:7dc93e97e1cb70965d26d00892aa312bfcefb3ed7d273bde4b95244cfd81510b",
+  "unit_manifest_digest": "sha256:748bcd24698d12a0f6d488ae53ef56422e876f50f37c05a963dc60f8e0da7383",
+  "oracle_digest": "sha256:293215692565c451db4105b20e94f512275112fc725cbbe88dec56373ce45328",
+  "compiler_result_digest": "sha256:73fb88a448e76f401583ef2dc671f2271789e7108032ba78ccee92c2c2d26aff",
+  "receipt_digest": "sha256:7e51ee4ae62f1236f8b770c712e51a18338084d8d019aefecae54b980ac5bbff",
+  "captured_test_digest": "sha256:ab3c1d50a8db1115fd26a295b1d21da42e322bcfc82c54c266fa0f26f7a7317b",
+  "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+  "source_fixture_digest": "sha256:6cbe6534f9a0d487771b6c0574121b7e52cf713f9b3f4956663e0a41edee49de",
+  "minimal_fixture_digest": "sha256:c56a160b9265a0a7bfeb392ef9a341f1d38095da6b4133791aea8b1320f071d7",
+  "simple_capture_view_digest": "sha256:9603c845639b5bffcd83e13d577baa842c1eab73154512ab8c7d661e9b2aea5a",
+  "advanced_capture_view_digest": "sha256:4d1e62d5e857c1bac18d805c5c1b151f6728bdadf739c0a003670a6401556edd"
+}

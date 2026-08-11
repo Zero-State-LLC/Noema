@@ -1,0 +1,24 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.not-ready-capture",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "labres.tool-ablation-1"
+  ],
+  "presentation": {
+    "title": "Needs more evidence",
+    "message": "Needs more evidence",
+    "why": "This result still has an unresolved required control.",
+    "next": "[ RUN REQUIRED CONTROL ]"
+  },
+  "allowed_actions": [
+    "RUN_REQUIRED_CONTROL"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "compiler_readiness": "NOT_READY",
+  "machine_reason_code": "CONTROL_REQUIRED",
+  "digest": "sha256:57fc13a230e680646aa1f350ffd6e88bc5eb6d98a49b2de6fffa43dc25dee30b"
+}

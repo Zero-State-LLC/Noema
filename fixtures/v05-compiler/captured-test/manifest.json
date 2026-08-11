@@ -1,0 +1,104 @@
+{
+  "schema_version": "captured-test/0.5",
+  "captured_test_id": "ctest.shared-ledger-coordination",
+  "captured_test_version": "captured-test/0.5.0",
+  "title": "Shared-ledger coordination",
+  "description": "Agents coordinate under scarcity using messaging and a shared ledger.",
+  "source_compile_id": "compile.shared-ledger-1",
+  "source_lab_result_id": "labres.shared-ledger-capture-ready",
+  "source_experiment_ids": [
+    "exp.tool-ablation-1"
+  ],
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "fixture_ref": "examples/v05-compiler/captured-test/fixture/",
+  "oracle_ref": "examples/v05-compiler/behavioral-oracle.json",
+  "required_versions": {
+    "world": "world/v1",
+    "agent-protocol": "agent-protocol/v1",
+    "compiler": "phenomenon-compiler/0.5.0",
+    "canonicalization": "noema-jcs/1"
+  },
+  "required_agent_capabilities": [
+    "messaging",
+    "external_memory_artifact"
+  ],
+  "seed_policy": "SOURCE_TRAJECTORY_SEED",
+  "replication_policy": "DECLARED_PLAN_BEFORE_COMPILE",
+  "behavioral_signature": {
+    "feature_ids": [
+      "feat.shared-ledger-use",
+      "feat.messaging-coordination"
+    ],
+    "event_motifs": [
+      "MESSAGE",
+      "ARTIFACT_WRITE",
+      "ARTIFACT_READ"
+    ],
+    "action_relationships": [
+      "coordinate_via_ledger"
+    ],
+    "resource_relationships": [
+      "scarcity_pressure"
+    ],
+    "communication_patterns": [
+      "shared_plan_updates"
+    ],
+    "artifact_usage": [
+      "shared_ledger"
+    ],
+    "temporal_constraints": [
+      "within_candidate_interval"
+    ],
+    "coordination_structure": "multi_agent_shared_artifact"
+  },
+  "expected_result": {
+    "oracle": "PRESERVED",
+    "replication": "5/5"
+  },
+  "allowed_variation": {
+    "latency_ms_abs": 5
+  },
+  "minimality_status": "ONE_MINIMAL",
+  "evidence_refs": [
+    "examples/v05-compiler/compiler-result.json",
+    "examples/v05-compiler/compile-receipt.json"
+  ],
+  "counterevidence_refs": [
+    "examples/v05-compiler/over-minimization-proposal.json"
+  ],
+  "known_limits": [
+    "Tested on agent version 2.1",
+    "Scenario family only",
+    "Does not prove general capability"
+  ],
+  "known_confounds": [
+    "provider nondeterminism residual"
+  ],
+  "generalization_boundary": "SCENARIO_FAMILY",
+  "claim_label": "INFERRED",
+  "simple_required": [
+    "resource scarcity",
+    "messaging",
+    "shared ledger"
+  ],
+  "simple_removed": [
+    "original map",
+    "original organization names",
+    "unrelated world history"
+  ],
+  "validation_summary": {
+    "required_runs": 5,
+    "reproduced": 5,
+    "label": "5/5 required runs reproduced the behavior"
+  },
+  "promotion_status": "PROMOTABLE",
+  "export_class": "RESEARCH_ISOLATED",
+  "provenance": {
+    "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+    "receipt_id": "compile.shared-ledger-1",
+    "canonicalization": "noema-jcs/1"
+  },
+  "digest": "sha256:ab3c1d50a8db1115fd26a295b1d21da42e322bcfc82c54c266fa0f26f7a7317b"
+}

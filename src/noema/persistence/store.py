@@ -112,6 +112,20 @@ class WorldStore:
               experiment_id TEXT NOT NULL,
               record_json TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS research_compiler_results (
+              compiler_result_id TEXT PRIMARY KEY,
+              compile_id TEXT NOT NULL,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_captured_tests (
+              captured_test_id TEXT PRIMARY KEY,
+              record_json TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS research_compiler_audit (
+              digest TEXT PRIMARY KEY,
+              compile_id TEXT NOT NULL,
+              record_json TEXT NOT NULL
+            );
             """
         )
         self._conn.commit()
@@ -455,7 +469,57 @@ class WorldStore:
             self._conn.execute("DELETE FROM research_lab_experiments")
             self._conn.execute("DELETE FROM research_lab_results")
             self._conn.execute("DELETE FROM research_lab_audit")
+            self._conn.execute("DELETE FROM research_compiler_results")
+            self._conn.execute("DELETE FROM research_captured_tests")
+            self._conn.execute("DELETE FROM research_compiler_audit")
             self._conn.commit()
+
+    def save_compiler_result(self, result: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_compiler_results(compiler_result_id, compile_id, record_json)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    result.get("compiler_result_id") or "",
+                    result.get("compile_id") or "",
+                    json.dumps(result, sort_keys=True),
+                ),
+            )
+            self._conn.commit()
+
+    def save_captured_test(self, captured: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_captured_tests(captured_test_id, record_json)
+                VALUES (?, ?)
+                """,
+                (captured.get("captured_test_id") or "", json.dumps(captured, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def save_compiler_audit(self, record: dict[str, Any]) -> None:
+        with self._lock:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO research_compiler_audit(digest, compile_id, record_json)
+                VALUES (?, ?, ?)
+                """,
+                (record.get("digest") or "", record.get("compile_id") or "", json.dumps(record, sort_keys=True)),
+            )
+            self._conn.commit()
+
+    def list_captured_tests(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT record_json FROM research_captured_tests").fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
+
+    def list_compiler_results(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT record_json FROM research_compiler_results").fetchall()
+            return [json.loads(r["record_json"]) for r in rows]
 
     def save_lab_experiment(self, experiment: dict[str, Any]) -> None:
         with self._lock:

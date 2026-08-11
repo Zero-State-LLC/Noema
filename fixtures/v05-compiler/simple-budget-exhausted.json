@@ -1,0 +1,23 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.budget-exhausted",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "cresult.budget-exhausted-1"
+  ],
+  "presentation": {
+    "title": "Could not fully minimize",
+    "message": "Could not fully reduce the test. NOEMA reached the configured capture limit. The smallest verified version so far was preserved. Minimality not established.",
+    "partial_test_available": true
+  },
+  "allowed_actions": [
+    "VIEW_PARTIAL_TEST",
+    "TRY_AGAIN_HIGHER_LIMIT"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "machine_reason_code": "BUDGET_EXHAUSTED",
+  "digest": "sha256:5aa642cf32c095192d5fd1bf9619df8f944c287905b6519b55e02caf9c863146"
+}

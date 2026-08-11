@@ -1,0 +1,37 @@
+{
+  "receipt_version": "phenomenon-compile-receipt/v1",
+  "compile_id": "compile.shared-ledger-1",
+  "status": "COMPILED",
+  "compiler_identity": {
+    "version": "phenomenon-compiler/0.5.0",
+    "digest": "sha256:50885990a7c766631f2f8c12c01654e77bc398a9f74230308976e1fc35a97828"
+  },
+  "corpus_identity": {
+    "version": "compiler-corpus/0.5.0",
+    "digest": "sha256:cdf06321658d9ebc3e439e9e64f93bff19098ecbc99998b0d7575dc59915bc88"
+  },
+  "schema_bundle_identity": {
+    "version": "noema-specs/v0.5.0-draft",
+    "digest": "sha256:a9a2a73b0d7c0cf121e76526fd8cf937ba74da5a838ce2caef770f10174fb742"
+  },
+  "provider_adapter_identity": {
+    "version": "none",
+    "digest": "sha256:44c0e3ddb1be7f5399f2c21d5ca149a4c1d594de9ebe96257f89092c3fc4444e"
+  },
+  "command": [
+    "phenomenon-compiler",
+    "compile",
+    "--defaults",
+    "capture-defaults/0.5.0"
+  ],
+  "command_digest": "sha256:d40db1f00acb57786128db45fd995d6bc0d561390869c1c0d01b13876d3d3b6d",
+  "normalized_input_digest": "sha256:2fdc444cbd7a7272aedff3dcdf2d1aca0d6ddcdb3549c396a87949e1584d4086",
+  "source_trajectory_digest": "sha256:89840b94b0fd3769e2a747df7c86cc7bd58d923e6a25b99509482a3201995d67",
+  "target_digest": "sha256:782fc1a821f32f2268d0c0ea2f8e72c931e4d3fddce0c9d002aa563d52967d96",
+  "equivalence_boundary_digest": "sha256:1cea8a8978bdaa0a5c6e713b6b1eca1622e7f48f9cd1ab776acea0e2eea8cf68",
+  "minimal_fixture_digest": "sha256:c56a160b9265a0a7bfeb392ef9a341f1d38095da6b4133791aea8b1320f071d7",
+  "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+  "canonicalization": "noema-jcs/1",
+  "rfc0003_receipt_profile": "research-isolated-evidence/1",
+  "digest": "sha256:7e51ee4ae62f1236f8b770c712e51a18338084d8d019aefecae54b980ac5bbff"
+}

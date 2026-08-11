@@ -1,0 +1,19 @@
+{
+  "controls": [
+    {
+      "control_id": "ctl.baseline",
+      "role": "BASELINE",
+      "outcome": "PASS"
+    },
+    {
+      "control_id": "ctl.sham",
+      "role": "SHAM_CONTROL",
+      "outcome": "PASS"
+    },
+    {
+      "control_id": "ctl.replay",
+      "role": "REPLAY",
+      "outcome": "PASS"
+    }
+  ]
+}

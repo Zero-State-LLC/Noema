@@ -1,0 +1,44 @@
+{
+  "schema_version": "compiler-result/0.5",
+  "compiler_result_id": "cresult.shared-ledger-1",
+  "compile_id": "compile.shared-ledger-1",
+  "status": "COMPILED",
+  "source_digest": "sha256:6cbe6534f9a0d487771b6c0574121b7e52cf713f9b3f4956663e0a41edee49de",
+  "minimal_fixture_digest": "sha256:c56a160b9265a0a7bfeb392ef9a341f1d38095da6b4133791aea8b1320f071d7",
+  "target_digest": "sha256:782fc1a821f32f2268d0c0ea2f8e72c931e4d3fddce0c9d002aa563d52967d96",
+  "boundary_digest": "sha256:1cea8a8978bdaa0a5c6e713b6b1eca1622e7f48f9cd1ab776acea0e2eea8cf68",
+  "unit_counts": {
+    "source": 8,
+    "retained": 3,
+    "removed": 5,
+    "protected": 3
+  },
+  "oracle_counts": {
+    "calls": 5,
+    "preserved": 4,
+    "not_preserved": 1,
+    "inconclusive": 0,
+    "invalid": 0,
+    "cache_hits": 0
+  },
+  "minimality_status": "ONE_MINIMAL",
+  "promotion_status": "PROMOTABLE",
+  "captured_test_id": "ctest.shared-ledger-coordination",
+  "reason_codes": [
+    "COMPILED_OK"
+  ],
+  "supporting_evidence": [
+    "5/5 required runs reproduced the behavior",
+    "required dependency set retained"
+  ],
+  "counterevidence": [
+    "behavior did not reproduce when messaging removed"
+  ],
+  "confounds": [
+    "provider nondeterminism residual"
+  ],
+  "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+  "claim_label": "INFERRED",
+  "simple_status": "Captured",
+  "digest": "sha256:73fb88a448e76f401583ef2dc671f2271789e7108032ba78ccee92c2c2d26aff"
+}

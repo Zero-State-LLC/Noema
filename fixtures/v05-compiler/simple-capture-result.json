@@ -1,0 +1,42 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.captured.shared-ledger",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "ctest.shared-ledger-coordination",
+    "cresult.shared-ledger-1"
+  ],
+  "presentation": {
+    "title": "CAPTURED TEST",
+    "phenomenon_title": "Shared-ledger coordination",
+    "message": "Captured. NOEMA found the smallest stable test it could verify.",
+    "required": [
+      "resource scarcity",
+      "messaging",
+      "shared ledger"
+    ],
+    "removed": [
+      "original map",
+      "original organization names",
+      "unrelated world history"
+    ],
+    "validation": "5/5 required runs reproduced the behavior",
+    "boundary": "This test represents a family of similar scarcity scenarios.",
+    "limitations": [
+      "Tested on agent version 2.1",
+      "Scenario family only"
+    ],
+    "text_first": "Captured: Shared-ledger coordination.\nRequired:\n- scarcity\n- messaging\n- shared ledger\nValidation: 5/5\nBoundary: scenario family"
+  },
+  "allowed_actions": [
+    "RUN_TEST",
+    "VIEW_EVIDENCE",
+    "TECHNICAL_DETAILS"
+  ],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "compiler_readiness": "READY",
+  "digest": "sha256:9603c845639b5bffcd83e13d577baa842c1eab73154512ab8c7d661e9b2aea5a"
+}

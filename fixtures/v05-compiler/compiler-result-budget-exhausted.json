@@ -1,0 +1,39 @@
+{
+  "schema_version": "compiler-result/0.5",
+  "compiler_result_id": "cresult.budget-exhausted-1",
+  "compile_id": "compile.budget-1",
+  "status": "BUDGET_EXHAUSTED",
+  "source_digest": "sha256:6cbe6534f9a0d487771b6c0574121b7e52cf713f9b3f4956663e0a41edee49de",
+  "minimal_fixture_digest": "sha256:1178d1b62d199d13140bb6f112e73e2acad24775e6d4c1da4903b081adc485e3",
+  "target_digest": "sha256:782fc1a821f32f2268d0c0ea2f8e72c931e4d3fddce0c9d002aa563d52967d96",
+  "boundary_digest": "sha256:1cea8a8978bdaa0a5c6e713b6b1eca1622e7f48f9cd1ab776acea0e2eea8cf68",
+  "unit_counts": {
+    "source": 8,
+    "retained": 5,
+    "removed": 3,
+    "protected": 3
+  },
+  "oracle_counts": {
+    "calls": 256,
+    "preserved": 200,
+    "not_preserved": 50,
+    "inconclusive": 6,
+    "invalid": 0,
+    "cache_hits": 10
+  },
+  "minimality_status": "PARTIALLY_MINIMIZED",
+  "promotion_status": "BLOCKED",
+  "captured_test_id": "ctest.partial-shared-ledger",
+  "reason_codes": [
+    "BUDGET_EXHAUSTED"
+  ],
+  "supporting_evidence": [
+    "partial fixture preserved"
+  ],
+  "counterevidence": [],
+  "confounds": [],
+  "audit_root_digest": "sha256:79674c969e461824731dd8e98a84ebc3aab1662d990ac8646df7587c213c7456",
+  "claim_label": "INFERRED",
+  "simple_status": "Could not fully minimize",
+  "digest": "sha256:01f837bac70e12d14a5d1bdd155a57afac70c2b56cb08d284dca79abe9115833"
+}

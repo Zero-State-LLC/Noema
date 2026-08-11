@@ -1,0 +1,12 @@
+{
+  "supporting": [
+    "examples/v05-compiler/compiler-result.json",
+    "examples/v05-compiler/compile-receipt.json"
+  ],
+  "counterevidence": [
+    "examples/v05-compiler/over-minimization-proposal.json"
+  ],
+  "confounds": [
+    "provider nondeterminism residual"
+  ]
+}

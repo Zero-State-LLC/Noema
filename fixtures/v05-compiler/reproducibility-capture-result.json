@@ -1,0 +1,45 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.captured.shared-ledger.repro",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "REPRODUCIBILITY",
+  "canonical_source_refs": [
+    "ctest.shared-ledger-coordination",
+    "compile.shared-ledger-1",
+    "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204"
+  ],
+  "presentation": {
+    "compilation_identity": "sha256:2fdc444cbd7a7272aedff3dcdf2d1aca0d6ddcdb3549c396a87949e1584d4086",
+    "fixture_digest": "sha256:c56a160b9265a0a7bfeb392ef9a341f1d38095da6b4133791aea8b1320f071d7",
+    "oracle_digest": "sha256:293215692565c451db4105b20e94f512275112fc725cbbe88dec56373ce45328",
+    "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+    "receipt_digest": "sha256:7e51ee4ae62f1236f8b770c712e51a18338084d8d019aefecae54b980ac5bbff",
+    "schema_pins": [
+      "captured-test/0.5",
+      "compilation-request/0.5",
+      "behavioral-oracle/0.5"
+    ],
+    "version_pins": {
+      "compiler": "phenomenon-compiler/0.5.0",
+      "replay_oracle": "replay-oracle/0.5.0",
+      "schema_bundle": "noema-specs/v0.5.0-draft",
+      "ontology": "phenomena-ontology/0.1",
+      "canonicalization": "noema-jcs/1",
+      "digests": {
+        "compiler": "sha256:50885990a7c766631f2f8c12c01654e77bc398a9f74230308976e1fc35a97828",
+        "corpus": "sha256:cdf06321658d9ebc3e439e9e64f93bff19098ecbc99998b0d7575dc59915bc88",
+        "schemas": "sha256:a9a2a73b0d7c0cf121e76526fd8cf937ba74da5a838ce2caef770f10174fb742"
+      }
+    },
+    "canonicalization": "noema-jcs/1"
+  },
+  "allowed_actions": [
+    "EXPORT_BUNDLE",
+    "VERIFY_RECEIPT",
+    "VIEW_AUDIT_CHAIN"
+  ],
+  "research_detail": true,
+  "canonical_claim_label": "INFERRED",
+  "digest": "sha256:50409a539d5febd8b3a3611924dc252bf0dafe47589b24420ed2b380388c34ce"
+}

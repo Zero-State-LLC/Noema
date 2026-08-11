@@ -1,0 +1,96 @@
+{
+  "schema_version": "compiler-unit-manifest/0.5",
+  "manifest_id": "units.shared-ledger-1",
+  "compile_id": "compile.shared-ledger-1",
+  "units": [
+    {
+      "unit_id": "unit.tool.shared-ledger",
+      "unit_type": "TOOL",
+      "layer": "TOOLS_RESOURCES",
+      "source_ref": "artifact.shared_ledger",
+      "protected": true,
+      "dependencies": [],
+      "eligible_for_removal": false,
+      "final_disposition": "PROTECTED",
+      "simple_label": "shared ledger"
+    },
+    {
+      "unit_id": "unit.resource.scarcity",
+      "unit_type": "RESOURCE",
+      "layer": "TOOLS_RESOURCES",
+      "source_ref": "economy.scarcity",
+      "protected": true,
+      "dependencies": [],
+      "eligible_for_removal": false,
+      "final_disposition": "PROTECTED",
+      "simple_label": "resource scarcity"
+    },
+    {
+      "unit_id": "unit.channel.messaging",
+      "unit_type": "CHANNEL",
+      "layer": "OBSERVATIONS_MESSAGES",
+      "source_ref": "channel.messages",
+      "protected": true,
+      "dependencies": [],
+      "eligible_for_removal": false,
+      "final_disposition": "PROTECTED",
+      "simple_label": "messaging"
+    },
+    {
+      "unit_id": "unit.room.archive",
+      "unit_type": "ROOM",
+      "layer": "WORLD_CONFIGURATION",
+      "source_ref": "room.archive",
+      "protected": false,
+      "dependencies": [],
+      "eligible_for_removal": true,
+      "final_disposition": "REMOVED",
+      "simple_label": "original map / Archive"
+    },
+    {
+      "unit_id": "unit.org.unused-merchants",
+      "unit_type": "ORG",
+      "layer": "ENTITIES_AGENTS",
+      "source_ref": "org.merchants",
+      "protected": false,
+      "dependencies": [],
+      "eligible_for_removal": true,
+      "final_disposition": "REMOVED",
+      "simple_label": "original organization names"
+    },
+    {
+      "unit_id": "unit.history.unrelated-cycles",
+      "unit_type": "HISTORY",
+      "layer": "EVENTS_ACTIONS",
+      "source_ref": "events.0-99",
+      "protected": false,
+      "dependencies": [],
+      "eligible_for_removal": true,
+      "final_disposition": "REMOVED",
+      "simple_label": "unrelated world history"
+    },
+    {
+      "unit_id": "unit.map.peripheral-rooms",
+      "unit_type": "MAP",
+      "layer": "WORLD_CONFIGURATION",
+      "source_ref": "rooms.peripheral",
+      "protected": false,
+      "dependencies": [],
+      "eligible_for_removal": true,
+      "final_disposition": "REMOVED",
+      "simple_label": "unrelated map areas"
+    },
+    {
+      "unit_id": "unit.agent.observer-idle",
+      "unit_type": "AGENT",
+      "layer": "ENTITIES_AGENTS",
+      "source_ref": "agent.observer",
+      "protected": false,
+      "dependencies": [],
+      "eligible_for_removal": true,
+      "final_disposition": "REMOVED",
+      "simple_label": "idle observer agent"
+    }
+  ],
+  "digest": "sha256:748bcd24698d12a0f6d488ae53ef56422e876f50f37c05a963dc60f8e0da7383"
+}

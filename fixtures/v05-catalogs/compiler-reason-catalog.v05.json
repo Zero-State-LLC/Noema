@@ -1,0 +1,76 @@
+{
+  "schema_version": "compiler-reason-catalog/0.5",
+  "catalog_version": "compiler-reason-catalog/0.5.0",
+  "reasons": [
+    {
+      "reason_code": "COMPILED_OK",
+      "simple_message": "Captured successfully.",
+      "next_action": "RUN_TEST"
+    },
+    {
+      "reason_code": "NOT_READY",
+      "simple_message": "This result is not ready to capture yet.",
+      "next_action": "COMPLETE_REQUIRED_CONTROLS"
+    },
+    {
+      "reason_code": "CONTROL_REQUIRED",
+      "simple_message": "A required control is still missing.",
+      "next_action": "RUN_REQUIRED_CONTROL"
+    },
+    {
+      "reason_code": "CONTROL_FAILED",
+      "simple_message": "A required control failed, so this cannot be promoted.",
+      "next_action": "INSPECT_CONTROL"
+    },
+    {
+      "reason_code": "BUDGET_EXHAUSTED",
+      "simple_message": "Capture reached its configured limit.",
+      "next_action": "VIEW_PARTIAL_TEST"
+    },
+    {
+      "reason_code": "NOT_COMPUTABLE",
+      "simple_message": "NOEMA cannot determine this from available evidence.",
+      "next_action": "RESOLVE_DEPENDENCY"
+    },
+    {
+      "reason_code": "INVALID_EVIDENCE",
+      "simple_message": "Source evidence failed integrity checks.",
+      "next_action": "VIEW_INTEGRITY"
+    },
+    {
+      "reason_code": "INCONCLUSIVE_SOURCE",
+      "simple_message": "Source behavior could not be verified before reduction.",
+      "next_action": "ADD_EVIDENCE"
+    },
+    {
+      "reason_code": "OVER_MINIMIZATION_BLOCKED",
+      "simple_message": "A smaller test changed the behavior, so required context was restored.",
+      "next_action": "VIEW_REQUIRED"
+    },
+    {
+      "reason_code": "PRIVACY_PARTITION",
+      "simple_message": "Cannot create a public test. This behavior depends on protected source material.",
+      "next_action": "KEEP_RESEARCH_ISOLATED"
+    },
+    {
+      "reason_code": "ORACLE_DISAGREEMENT",
+      "simple_message": "Validation disagreed with itself and was stopped.",
+      "next_action": "OPEN_DETERMINISM_DEFECT"
+    },
+    {
+      "reason_code": "TARGET_LOCKED",
+      "simple_message": "The target behavior cannot be weakened after failures.",
+      "next_action": "START_NEW_CAPTURE"
+    },
+    {
+      "reason_code": "PROTECTED_UNIT",
+      "simple_message": "A protected condition cannot be removed.",
+      "next_action": "VIEW_REQUIRED"
+    },
+    {
+      "reason_code": "ABORTED",
+      "simple_message": "Capture stopped early.",
+      "next_action": "RETRY_CAPTURE"
+    }
+  ]
+}

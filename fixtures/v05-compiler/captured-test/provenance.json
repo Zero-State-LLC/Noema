@@ -1,0 +1,12 @@
+{
+  "compile_id": "compile.shared-ledger-1",
+  "receipt_digest": "sha256:7e51ee4ae62f1236f8b770c712e51a18338084d8d019aefecae54b980ac5bbff",
+  "audit_root_digest": "sha256:6c5c83e3e32fc8d603443c2e9126ac1b95c02ee719aeb66587d11436a6b7e204",
+  "source_lab_result_id": "labres.shared-ledger-capture-ready",
+  "canonicalization": "noema-jcs/1",
+  "rfc0003_reuse": [
+    "canonicalization",
+    "content_hashing",
+    "receipt_identity"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": "experience-view/1.0",
+  "view_id": "view.study.capturing",
+  "mode": "STUDY",
+  "audience": "researcher",
+  "disclosure_level": "SIMPLE",
+  "canonical_source_refs": [
+    "labres.shared-ledger-capture-ready",
+    "capture.shared-ledger-1"
+  ],
+  "presentation": {
+    "title": "Capturing...",
+    "message": "NOEMA is reducing the test to the conditions it can verify.",
+    "state": "Capturing"
+  },
+  "allowed_actions": [],
+  "research_detail": false,
+  "canonical_claim_label": "INFERRED",
+  "compiler_readiness": "READY",
+  "digest": "sha256:145008b9949edda162e5cfd1d910718b4451266d605d9cfaeef4fae910fec2b8"
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "lab-result/0.4",
+  "lab_result_id": "labres.shared-ledger-capture-ready",
+  "experiment_id": "exp.tool-ablation-1",
+  "source_intent_id": "intent.shared-ledger-dependency-1",
+  "source_candidate_ids": [
+    "UNKNOWN_BEHAVIOR_shared-ledger-protocol"
+  ],
+  "run_ids": [
+    "run.baseline.1",
+    "run.sham.1",
+    "run.intervention.1",
+    "run.replication.1",
+    "run.version-differential.1"
+  ],
+  "control_outcomes": {
+    "BASELINE": "PASS",
+    "SHAM_CONTROL": "PASS"
+  },
+  "intervention_outcomes": {
+    "int.ablate-tool-1": "DEGRADED"
+  },
+  "replication_outcomes": {
+    "EXACT_REPLAY": "REPRODUCED",
+    "SAME_AGENT_VERSION": "REPRODUCED",
+    "CROSS_AGENT_VERSION": "PARTIALLY_REPRODUCED"
+  },
+  "generalization_outcomes": {
+    "new_tool_set": "NOT_COMPARABLE"
+  },
+  "supporting_evidence": [
+    "shared ledger required for coordination motif",
+    "5/5 required runs reproduced under declared boundary"
+  ],
+  "counterevidence": [
+    "behavior did not reproduce when messaging removed"
+  ],
+  "confounds": [
+    "provider nondeterminism residual"
+  ],
+  "execution_status": "COMPLETE",
+  "interpretation": "SUPPORTED",
+  "claim_label": "INFERRED",
+  "compiler_readiness": "READY",
+  "failed_experiments_retained": true,
+  "digest": "sha256:c0ee9f5f151bccf5889aa8cfe244f0ca8b9f8ad4654df25016e89ae7bcdf9d0b"
+}
