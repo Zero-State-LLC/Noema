@@ -8,8 +8,8 @@ import {
 } from "../src/genesis";
 
 const REHEARSAL = {
-  world_name: "Aster Reach",
-  world_seed: "49321892",
+  world_name: "Perihelion Reach",
+  world_seed: "perihelion-rehearsal-01",
   profile_id: "FRACTURED_OLD_WORLD",
   story_seed_ids: ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
 };
@@ -80,5 +80,28 @@ describe("hosted genesis", () => {
 
   it("stableStringify is order-independent for objects", () => {
     expect(stableStringify({ b: 1, a: 2 })).toBe(stableStringify({ a: 2, b: 1 }));
+  });
+
+  it("theme pack applies frontier vocabulary without seed IDs in public projection", async () => {
+    const a = await previewGenesis(REHEARSAL);
+    expect(a.theme?.theme_id).toBe("perihelion-reach");
+    expect(a.world_name).toBe("Perihelion Reach");
+    expect(a.preview_summary.character).toMatch(/frontier|infrastructure/i);
+    const names = Object.values(a.cycle0.rooms).map((r) => r.name).join(" ");
+    // Theme names are short terminal-friendly labels from the pack
+    expect(names.length).toBeGreaterThan(5);
+    const pub = redactedPublicWorld({
+      world_id: a.world_id,
+      cycle: 0,
+      sequence: 0,
+      rooms: a.cycle0.rooms,
+      players_present: 1,
+    });
+    const s = stableStringify(pub);
+    expect(s).not.toContain("OLD_TRADE_NETWORK");
+    expect(s).not.toContain("LOST_ARCHIVE");
+    expect(s).not.toContain("theme_id");
+    expect(s).not.toContain("FRACTURED_OLD_WORLD");
+    expect(pub).not.toHaveProperty("theme_id");
   });
 });

@@ -237,10 +237,11 @@ export function adminHtml(): string {
           <p class="kicker">Configuration</p>
           <form id="genesis-form">
             <label for="g-name">World name</label>
-            <input id="g-name" value="Aster Reach" autocomplete="off"/>
+            <input id="g-name" value="Perihelion Reach" autocomplete="off"/>
+            <p class="empty" style="margin:.25rem 0 .5rem">Theme: space-western / cyberpunk frontier (vocabulary only — not final lore)</p>
             <label for="g-profile">Genesis profile</label>
             <select id="g-profile">
-              <option value="FRACTURED_OLD_WORLD">FRACTURED_OLD_WORLD — Fractured Old World</option>
+              <option value="FRACTURED_OLD_WORLD" selected>FRACTURED_OLD_WORLD — Fractured Old World</option>
               <option value="YOUNG_FRONTIER">YOUNG_FRONTIER — Young Frontier</option>
               <option value="RECOVERING_NETWORK">RECOVERING_NETWORK — Recovering Network</option>
             </select>
@@ -371,15 +372,24 @@ export function adminHtml(): string {
       $("g-det").className = "tag " + (meta.determinism.ok ? "ok" : "bad");
     }
     const s = result.preview_summary || {};
+    const th = result.theme || {};
     const lines = [];
-    lines.push("<p class='muted'><strong>What kind of world?</strong> " + result.genesis_profile_id + " with " + (result.story_seed_ids||[]).length + " story seed(s).</p>");
-    lines.push("<p class='muted'><strong>Regions:</strong> " + (s.room_count||0) + " · <strong>Entities:</strong> " + (s.entity_count||0) + "</p>");
+    lines.push("<p class='kicker'>" + (result.world_name || "World").toUpperCase() + " — PREVIEW</p>");
+    if (th.character) lines.push("<p class='muted'><strong>Character</strong><br/>" + th.character + "</p>");
+    lines.push("<p class='muted'><strong>Profile</strong> " + result.genesis_profile_id + " · <strong>Seeds</strong> " + (result.story_seed_ids||[]).join(", ") + "</p>");
+    lines.push("<p class='muted'><strong>Starting structure</strong><br/>" +
+      "• " + (s.room_count||0) + " primary sites<br/>" +
+      "• " + ((s.active_institutions||[]).length) + " active institution(s)<br/>" +
+      "• " + ((s.dormant_institutions||[]).length) + " dormant lineage(s)<br/>" +
+      (s.functioning_exchange ? "• 1 functioning exchange<br/>" : "") +
+      (s.damaged_relay ? "• damaged infrastructure present<br/>" : "") +
+      (s.archive_mystery ? "• archive / data mystery<br/>" : "") +
+      "</p>");
     if (s.regions) lines.push("<p class='empty'>" + s.regions.map(r => r.name).join(" · ") + "</p>");
-    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Tensions:</strong> " + s.tensions.join(" / ") + "</p>");
-    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities:</strong> " + s.opportunities.join(", ") + "</p>");
-    if (s.historical_artifacts && s.historical_artifacts.length) {
-      lines.push("<p class='muted'><strong>Artifacts:</strong> " + s.historical_artifacts.map(a => a.label).join(", ") + "</p>");
-    }
+    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Pressures</strong><br/>" + s.tensions.map(t => "• " + t).join("<br/>") + "</p>");
+    if (s.ruins_scars && s.ruins_scars.length) lines.push("<p class='muted'><strong>Historical traces</strong><br/>" + s.ruins_scars.map(t => "• " + t).join("<br/>") + "</p>");
+    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities</strong><br/>" + s.opportunities.join(" · ") + "</p>");
+    if (th.lore_boundary) lines.push("<p class='empty' style='margin-top:.5rem'>" + th.lore_boundary + "</p>");
     lines.push("<p class='empty mono' style='margin-top:.6rem;font-size:.72rem'>genesis_id " + result.genesis_id + "<br/>cycle0_digest " + result.cycle0_digest + "</p>");
     if (result.validation && !result.validation.ok) {
       lines.push("<p class='notice bad'>Blocked: " + (result.validation.errors||[]).join("; ") + "</p>");
@@ -536,7 +546,7 @@ export function adminHtml(): string {
       const data = await api("/v1/admin/genesis/preview", {
         method: "POST",
         body: JSON.stringify({
-          world_name: $("g-name").value.trim() || "Aster Reach",
+          world_name: $("g-name").value.trim() || "Perihelion Reach",
           world_seed: $("g-seed").value.trim(),
           profile_id: $("g-profile").value,
           story_seed_ids: seeds,

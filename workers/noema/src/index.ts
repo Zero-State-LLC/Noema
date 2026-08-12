@@ -274,7 +274,7 @@ export default {
             story_seed_ids?: string[];
           };
           const result = await previewGenesis({
-            world_name: body.world_name || "Aster Reach",
+            world_name: body.world_name || "Perihelion Reach",
             world_seed: body.world_seed || "",
             profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
             story_seed_ids: body.story_seed_ids,
@@ -291,7 +291,7 @@ export default {
           const after = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
           // Determinism self-check: re-preview same inputs
           const again = await previewGenesis({
-            world_name: body.world_name || "Aster Reach",
+            world_name: body.world_name || "Perihelion Reach",
             world_seed: body.world_seed || "",
             profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
             story_seed_ids: body.story_seed_ids,
