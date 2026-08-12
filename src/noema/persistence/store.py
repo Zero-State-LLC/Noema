@@ -300,9 +300,76 @@ class WorldStore:
               record_json TEXT NOT NULL
             )
             """,
+            # Identity plane (AUTH-AND-IDENTITY) — separate from protocol `sessions`
+            """
+            CREATE TABLE IF NOT EXISTS id_accounts (
+              account_id TEXT PRIMARY KEY,
+              status TEXT NOT NULL,
+              external_auth_subject TEXT,
+              created_at INTEGER NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS id_players (
+              player_id TEXT PRIMARY KEY,
+              account_id TEXT NOT NULL,
+              handle TEXT NOT NULL,
+              display_name TEXT,
+              agent_id TEXT,
+              status TEXT NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS id_controllers (
+              controller_id TEXT PRIMARY KEY,
+              player_id TEXT NOT NULL,
+              type TEXT NOT NULL,
+              provider TEXT,
+              metadata_json TEXT NOT NULL,
+              created_at INTEGER NOT NULL,
+              revoked_at INTEGER
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS id_credentials (
+              credential_id TEXT PRIMARY KEY,
+              controller_id TEXT NOT NULL,
+              kind TEXT NOT NULL,
+              scopes_json TEXT NOT NULL,
+              fingerprint TEXT NOT NULL,
+              issued_at INTEGER NOT NULL,
+              expires_at INTEGER,
+              revoked_at INTEGER
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS id_device_codes (
+              device_code TEXT PRIMARY KEY,
+              user_code TEXT NOT NULL,
+              scopes_json TEXT NOT NULL,
+              metadata_json TEXT NOT NULL,
+              status TEXT NOT NULL,
+              player_id TEXT,
+              controller_id TEXT,
+              created_at INTEGER NOT NULL,
+              expires_at INTEGER NOT NULL,
+              interval_sec INTEGER NOT NULL DEFAULT 5,
+              payload_json TEXT
+            )
+            """,
         ]
         for stmt in statements:
             self._conn.execute(stmt.strip())
+        # indexes (ignore if backend lacks IF NOT EXISTS on index — both support it)
+        for idx in (
+            "CREATE INDEX IF NOT EXISTS idx_id_accounts_subject ON id_accounts(external_auth_subject)",
+            "CREATE INDEX IF NOT EXISTS idx_id_players_account ON id_players(account_id)",
+            "CREATE INDEX IF NOT EXISTS idx_id_controllers_player ON id_controllers(player_id)",
+            "CREATE INDEX IF NOT EXISTS idx_id_credentials_fp ON id_credentials(fingerprint)",
+            "CREATE INDEX IF NOT EXISTS idx_id_device_user ON id_device_codes(user_code)",
+        ):
+            self._conn.execute(idx)
         self._commit()
 
     def _claim_writer(self) -> None:
@@ -499,6 +566,229 @@ class WorldStore:
                 (after_sequence, limit),
             ).fetchall()
             return [json.loads(r["envelope_json"]) for r in rows]
+
+    # --- identity plane ---------------------------------------------------
+
+    def identity_upsert_account(self, row: dict[str, Any]) -> None:
+        with self._lock:
+            self._upsert(
+                "id_accounts",
+                "account_id",
+                ["account_id", "status", "external_auth_subject", "created_at"],
+                (
+                    row["account_id"],
+                    row.get("status") or "active",
+                    row.get("external_auth_subject"),
+                    int(row.get("created_at") or 0),
+                ),
+            )
+            self._commit()
+
+    def identity_get_account_by_subject(self, subject: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT account_id, status, external_auth_subject, created_at FROM id_accounts WHERE external_auth_subject=?",
+                (subject,),
+            ).fetchone()
+            return dict(r) if r else None
+
+    def identity_upsert_player(self, row: dict[str, Any]) -> None:
+        with self._lock:
+            self._upsert(
+                "id_players",
+                "player_id",
+                [
+                    "player_id",
+                    "account_id",
+                    "handle",
+                    "display_name",
+                    "agent_id",
+                    "status",
+                    "created_at",
+                ],
+                (
+                    row["player_id"],
+                    row["account_id"],
+                    row["handle"],
+                    row.get("display_name"),
+                    row.get("agent_id"),
+                    row.get("status") or "active",
+                    int(row.get("created_at") or 0),
+                ),
+            )
+            self._commit()
+
+    def identity_get_player(self, player_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT player_id, account_id, handle, display_name, agent_id, status, created_at FROM id_players WHERE player_id=?",
+                (player_id,),
+            ).fetchone()
+            return dict(r) if r else None
+
+    def identity_list_players(self, account_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._execute(
+                "SELECT player_id, account_id, handle, display_name, agent_id, status, created_at FROM id_players WHERE account_id=?",
+                (account_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def identity_upsert_controller(self, row: dict[str, Any]) -> None:
+        with self._lock:
+            self._upsert(
+                "id_controllers",
+                "controller_id",
+                [
+                    "controller_id",
+                    "player_id",
+                    "type",
+                    "provider",
+                    "metadata_json",
+                    "created_at",
+                    "revoked_at",
+                ],
+                (
+                    row["controller_id"],
+                    row["player_id"],
+                    row["type"],
+                    row.get("provider") or "",
+                    row.get("metadata_json") or "{}",
+                    int(row.get("created_at") or 0),
+                    row.get("revoked_at"),
+                ),
+            )
+            self._commit()
+
+    def identity_get_controller(self, controller_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT controller_id, player_id, type, provider, metadata_json, created_at, revoked_at FROM id_controllers WHERE controller_id=?",
+                (controller_id,),
+            ).fetchone()
+            return dict(r) if r else None
+
+    def identity_list_controllers(self, player_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._execute(
+                "SELECT controller_id, player_id, type, provider, metadata_json, created_at, revoked_at FROM id_controllers WHERE player_id=?",
+                (player_id,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def identity_upsert_credential(self, row: dict[str, Any]) -> None:
+        with self._lock:
+            self._upsert(
+                "id_credentials",
+                "credential_id",
+                [
+                    "credential_id",
+                    "controller_id",
+                    "kind",
+                    "scopes_json",
+                    "fingerprint",
+                    "issued_at",
+                    "expires_at",
+                    "revoked_at",
+                ],
+                (
+                    row["credential_id"],
+                    row["controller_id"],
+                    row["kind"],
+                    row.get("scopes_json") or "[]",
+                    row["fingerprint"],
+                    int(row.get("issued_at") or 0),
+                    row.get("expires_at"),
+                    row.get("revoked_at"),
+                ),
+            )
+            self._commit()
+
+    def identity_get_credential_by_fingerprint(self, fingerprint: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT credential_id, controller_id, kind, scopes_json, fingerprint, issued_at, expires_at, revoked_at FROM id_credentials WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            return dict(r) if r else None
+
+    def identity_revoke_credentials_for_controller(self, controller_id: str) -> None:
+        import time as _time
+
+        with self._lock:
+            self._execute(
+                "UPDATE id_credentials SET revoked_at=? WHERE controller_id=? AND revoked_at IS NULL",
+                (int(_time.time()), controller_id),
+            )
+            self._commit()
+
+    def identity_upsert_device_code(self, row: dict[str, Any]) -> None:
+        payload = {
+            k: row.get(k)
+            for k in ("access_token", "refresh_token", "interval")
+            if row.get(k) is not None
+        }
+        with self._lock:
+            self._upsert(
+                "id_device_codes",
+                "device_code",
+                [
+                    "device_code",
+                    "user_code",
+                    "scopes_json",
+                    "metadata_json",
+                    "status",
+                    "player_id",
+                    "controller_id",
+                    "created_at",
+                    "expires_at",
+                    "interval_sec",
+                    "payload_json",
+                ],
+                (
+                    row["device_code"],
+                    row["user_code"],
+                    row.get("scopes_json") or "[]",
+                    row.get("metadata_json") or "{}",
+                    row.get("status") or "pending",
+                    row.get("player_id"),
+                    row.get("controller_id"),
+                    int(row.get("created_at") or 0),
+                    int(row.get("expires_at") or 0),
+                    int(row.get("interval") or row.get("interval_sec") or 5),
+                    json.dumps(payload, sort_keys=True) if payload else None,
+                ),
+            )
+            self._commit()
+
+    def identity_get_device_by_code(self, device_code: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT device_code, user_code, scopes_json, metadata_json, status, player_id, controller_id, created_at, expires_at, interval_sec, payload_json FROM id_device_codes WHERE device_code=?",
+                (device_code,),
+            ).fetchone()
+            return self._device_row(r) if r else None
+
+    def identity_get_device_by_user_code(self, user_code: str) -> dict[str, Any] | None:
+        with self._lock:
+            r = self._execute(
+                "SELECT device_code, user_code, scopes_json, metadata_json, status, player_id, controller_id, created_at, expires_at, interval_sec, payload_json FROM id_device_codes WHERE user_code=?",
+                (user_code,),
+            ).fetchone()
+            return self._device_row(r) if r else None
+
+    @staticmethod
+    def _device_row(r: Any) -> dict[str, Any]:
+        d = dict(r)
+        d["interval"] = d.pop("interval_sec", 5)
+        payload = d.pop("payload_json", None)
+        if payload:
+            try:
+                extra = json.loads(payload)
+                d.update(extra)
+            except Exception:  # noqa: BLE001
+                pass
+        return d
 
     def save_session(self, session_id: str, data: dict[str, Any]) -> None:
         with self._lock:

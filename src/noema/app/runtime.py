@@ -17,6 +17,7 @@ from noema.actions.errors import (
     ActionError,
 )
 from noema.actions.router import ActionRouter
+from noema.auth.identity import IdentityService
 from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
 from noema.config.deployment import (
@@ -72,6 +73,7 @@ class NoemaRuntime:
         # The token is an operator-side development gate. Keep it in memory only:
         # it is never included in config views, sessions, or admin projections.
         self.admin_token = admin_token if admin_token is not None else os.environ.get("NOEMA_ADMIN_TOKEN")
+        self.identity = IdentityService(self.store)
         self.sessions: dict[str, dict[str, Any]] = {}
         self.resume = ResumeRegistry(default_max_window=256)
         self.research = ResearchCapture(self.store, enabled=research_capture)
@@ -232,18 +234,42 @@ class NoemaRuntime:
             objects_path=objects,
         )
 
-    def create_session(self, *, role: Role, principal_id: str | None = None, agent_id: str | None = None) -> dict[str, Any]:
+    def create_session(
+        self,
+        *,
+        role: Role,
+        principal_id: str | None = None,
+        agent_id: str | None = None,
+        player_id: str | None = None,
+        controller_id: str | None = None,
+        scopes: list[str] | None = None,
+    ) -> dict[str, Any]:
         session_id = f"sess.{uuid.uuid4().hex[:12]}"
         data = {
             "session_id": session_id,
-            "principal_id": principal_id or f"principal.{uuid.uuid4().hex[:8]}",
+            "principal_id": principal_id or player_id or f"principal.{uuid.uuid4().hex[:8]}",
             "role": role.value,
             "agent_id": agent_id,
+            "player_id": player_id,
+            "controller_id": controller_id,
+            "scopes": scopes or [],
             "epoch": 1,
         }
         self.sessions[session_id] = data
         self.store.save_session(session_id, data)
         return data
+
+    def create_session_from_controller_token(self, access_token: str) -> dict[str, Any]:
+        """AUTH path: bind Agent Protocol session to controller credential."""
+        bound = self.identity.resolve_access_token(access_token)
+        return self.create_session(
+            role=Role.AGENT if bound["controller"].get("type") == "agent" else Role.PLAYER,
+            principal_id=bound["player_id"],
+            agent_id=bound.get("agent_id"),
+            player_id=bound["player_id"],
+            controller_id=bound["controller_id"],
+            scopes=bound.get("scopes"),
+        )
 
     def create_admin_session(self, token: str | None, *, principal_id: str | None = None) -> dict[str, Any]:
         """Create an ADMIN session through the explicit operator authentication gate."""
