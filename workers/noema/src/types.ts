@@ -13,6 +13,19 @@ export interface Env {
   SUPABASE_URL?: string;
   /** Settlement only — never expose to clients/agents. */
   SUPABASE_SERVICE_ROLE_KEY?: string;
+  /**
+   * Operator token for ADMIN control plane (Specs: admin ≠ player).
+   * Never grant to player Controllers. Optional in local; required for hosted admin.
+   */
+  ADMIN_OPERATOR_TOKEN?: string;
+}
+
+/** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */
+export interface AdminPrincipal {
+  role: "ADMIN";
+  session_id: string;
+  scopes: string[];
+  authentication_context: "operator_token";
 }
 
 export type ControllerType = "human" | "agent" | "hybrid";

@@ -1,11 +1,14 @@
 /**
  * Noema Stage 0 Agent Gateway (Cloudflare Worker).
- * Spec: Noema-Specs docs/PLATFORM.md · AGENT-GATEWAY.md
+ * Spec: Noema-Specs docs/PLATFORM.md · AGENT-GATEWAY.md · GENESIS.md
  *
- * Thin edge only: auth → PlayerPrincipal → World Durable Object.
- * Static marketing splash + assets via ASSETS binding (public/).
+ * Product edge: auth → PlayerPrincipal → World Durable Object.
+ * Operator plane: ADMIN session (separate principal) — admin ≠ player.
+ * Static assets via ASSETS binding (public/).
  */
 
+import { adminHtml, adminLoginHtml } from "./admin";
+import { adminTokenConfigured, mintAdminSession, resolveAdmin } from "./admin-auth";
 import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
 import { connectHtml } from "./connect";
 import { landingHtml } from "./landing";
@@ -31,7 +34,7 @@ function html(body: string, status = 200, cache = "no-store"): Response {
 function cors(res: Response): Response {
   const h = new Headers(res.headers);
   h.set("Access-Control-Allow-Origin", "*");
-  h.set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Noema-Access-Token");
+  h.set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Noema-Access-Token, X-Noema-Admin-Token");
   h.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   return new Response(res.body, { status: res.status, headers: h });
 }
@@ -133,6 +136,14 @@ export default {
         return html(connectHtml());
       }
 
+      // Operator plane — NOT in product primary nav (admin ≠ player)
+      if (request.method === "GET" && path === "/admin/login") {
+        return html(adminLoginHtml());
+      }
+      if (request.method === "GET" && path === "/admin") {
+        return html(adminHtml());
+      }
+
       if (request.method === "GET" && path === "/health") {
         return cors(
           json({
@@ -161,6 +172,76 @@ export default {
         const res = await stub.fetch("https://do/watch");
         const body = await res.json();
         return cors(json(body, res.status));
+      }
+
+      // ——— ADMIN API (operator token → admin-access JWT; never player tokens) ———
+      if (request.method === "POST" && path === "/v1/admin/session") {
+        const body = (await request.json().catch(() => ({}))) as { admin_token?: string };
+        if (!body.admin_token) return cors(err("INVALID_REQUEST", "admin_token required", 400));
+        const minted = await mintAdminSession(env, body.admin_token);
+        if (minted instanceof Response) return cors(minted);
+        return cors(json({ ...minted, token_type: "bearer" }));
+      }
+
+      if (request.method === "GET" && path === "/v1/admin/overview") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+
+        const health = {
+          status: "ok",
+          service: "noema-gateway",
+          stage: "0",
+          env: env.NOEMA_ENV || "local",
+          protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
+          world_id: env.DEFAULT_WORLD_ID || "world-01",
+        };
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const worldRes = await stub.fetch("https://do/admin-status");
+        const world = (await worldRes.json()) as Record<string, unknown>;
+        const attention: Array<{ message: string; level: string }> = [];
+        if (!adminTokenConfigured(env)) {
+          attention.push({ message: "ADMIN_OPERATOR_TOKEN not configured.", level: "attention" });
+        }
+        attention.push({
+          message: "Stage 0: full Genesis profile wizard remains on noema-serve /admin.",
+          level: "info",
+        });
+
+        return cors(
+          json({
+            admin_plane: "stage0-worker",
+            ready: true,
+            health,
+            world,
+            genesis: (world as { genesis?: unknown }).genesis,
+            admin: {
+              session_id: admin.session_id,
+              role: admin.role,
+              scopes: admin.scopes,
+            },
+            attention,
+            boundaries: {
+              player_sessions_cannot_promote: true,
+              genesis_player_surface: false,
+              service_role_to_clients: false,
+            },
+          }),
+        );
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/reseed") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const envName = (env.NOEMA_ENV || "local").toLowerCase();
+        if (envName === "production") {
+          return cors(err("POLICY_DENIED", "reseed disabled in production", 403));
+        }
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-reseed", { method: "POST" });
+        const body = (await res.json()) as Record<string, unknown>;
+        return cors(json({ ...body, operator_session: admin.session_id }, res.status));
       }
 
       // Local/dev/preview: mint controller token for human or agent demos
