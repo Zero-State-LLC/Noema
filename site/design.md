@@ -1,41 +1,38 @@
-# Design — NOEMA Runtime site
+# Design — NOEMA surfaces
 
-## Source of truth
+## Two surfaces, two jobs
 
-Product framing and golden paths from **[Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs)**:
+| Surface | Host | Job | Visual density |
+|---|---|---|---|
+| **Marketing site** | GitHub Pages (`site/`) | Attract, explain, brand | **Dynamic · visual · interactive** |
+| **Product / text game** | `noema-serve` (`/play` `/watch` `/study`) | Play and study the world | **Text-first · minimal graphics** |
 
-- PLAY / WATCH / STUDY entry (README, QUICKSTART)
-- Core loop PLAY → NOTICE → TEST → CAPTURE → LEARN (SPEC-FREEZE)
-- Thesis: discover/reproduce emergent capabilities within evidence boundaries
-- Experience language (EXPERIENCE-TERMINOLOGY)
-- Hero art: Specs `assets/hero-noema.jpg` (vendored as `site/assets/hero-noema.jpg`)
+Do not conflate them. Fancy motion and imagery belong on Pages. Chamber play stays readable text.
 
-## Genre
+## Marketing site (this folder)
 
-Modern-minimal · atmospheric-dark · **Photographic hero** + interactive path rail.
+**Authority:** [Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs)  
+**URL:** https://zero-state-llc.github.io/Noema/
 
-## Theme
+### Must include
 
-| Token | Value |
+- Specs hero art (`assets/hero-noema.jpg`)
+- PLAY / WATCH / STUDY as interactive entry
+- Core loop PLAY → NOTICE → TEST → CAPTURE → LEARN as interactive diagram
+- Ambient motion (particles / orbit), disabled under `prefers-reduced-motion`
+- Links to runtime repo + Specs + implementation memo
+
+### Must not
+
+- Dump CLI transcripts or API tables as the homepage body (that’s `memo.html`)
+- Invent metrics or consciousness claims
+- Use product-shell chrome as the marketing look
+
+### Theme
+
+Dark ledger · single copper accent `#c4784a` · Fraunces + Source Sans 3 + IBM Plex Mono
+
+| Page | Macrostructure |
 |---|---|
-| `--ink` | `#070a10` |
-| `--accent` | `#c4784a` copper — sole chromatic accent |
-| `--bone` / `--muted` | text hierarchy |
-
-## Pages
-
-| Path | Role |
-|---|---|
-| `index.html` | Marketing landing (dynamic) |
-| `memo.html` | Long-document implementation map |
-
-## Dynamics
-
-- Specs hero image with soft ken-burns
-- Ambient particle field (disabled under `prefers-reduced-motion`)
-- Interactive PLAY / WATCH / STUDY panels
-- Interactive core-loop ring (hover/click/auto-cycle stages)
-
-## Hard bans
-
-No equal icon-feature triads, no multi-hue chips, no invented metrics, no CLI dumps on home, no consciousness claims.
+| `index.html` | Photographic hero + interactive path rail + loop |
+| `memo.html` | Long Document (for builders who click through) |
