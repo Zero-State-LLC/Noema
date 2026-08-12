@@ -9,6 +9,7 @@ Tracked DDL for the hosted Supabase Postgres used by the World Engine.
 ## Contents
 
 - `migrations/20260812181043_noema_world_schema.sql` — world ledger, research indexes, identity plane
+- `migrations/20260812193000_noema_settled_events.sql` — Stage 0 DO settlement sink for Cloudflare Worker
 
 ## Rules
 

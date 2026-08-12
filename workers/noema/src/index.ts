@@ -60,10 +60,12 @@ export default {
         return cors(json({ ready: true, world: body }));
       }
 
-      // Local/dev: mint controller token for human or agent demos
+      // Local/dev/preview: mint controller token for human or agent demos
+      // Disabled when NOEMA_ENV=production
       if (request.method === "POST" && path === "/v1/auth/dev-token") {
-        if (!["local", "test", "dev", ""].includes(env.NOEMA_ENV || "local")) {
-          return cors(err("NOT_AUTHORIZED", "dev-token disabled", 403));
+        const envName = (env.NOEMA_ENV || "local").toLowerCase();
+        if (envName === "production") {
+          return cors(err("NOT_AUTHORIZED", "dev-token disabled in production", 403));
         }
         const body = (await request.json().catch(() => ({}))) as {
           handle?: string;

@@ -30,14 +30,22 @@ npx wrangler whoami
 
 ```bash
 npm install
+npx wrangler login   # once per machine — account 315fb44b61212825452aad0ca566ea42
+# secrets (Worker only):
 # npx wrangler secret put TOKEN_SIGNING_SECRET
 # npx wrangler secret put SUPABASE_JWT_SECRET
 # npx wrangler secret put SUPABASE_URL
 # npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 
-npx wrangler deploy --var NOEMA_ENV:preview
+npm run deploy       # checks whoami then wrangler deploy
+# or: NOEMA_ENV=preview npm run deploy
+
 BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
 ```
+
+Apply settlement table in Supabase (SQL editor or CLI):
+
+`supabase/migrations/20260812193000_noema_settled_events.sql`
 
 ## Commands
 

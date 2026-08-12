@@ -5,7 +5,8 @@
   "description": "Noema Stage 0 Cloudflare Worker + World Durable Object",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "bash ./scripts/deploy-stage0.sh",
+    "deploy:raw": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "node ./scripts/smoke.mjs"
