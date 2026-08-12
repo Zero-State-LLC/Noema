@@ -15,6 +15,9 @@ main = "src/index.ts"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Dashboard: https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
+account_id = "315fb44b61212825452aad0ca566ea42"
+
 [vars]
 NOEMA_ENV = "local"
 NOEMA_PROTOCOL_VERSION = "1"

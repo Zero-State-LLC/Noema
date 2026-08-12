@@ -8,14 +8,46 @@ Client → Worker (Agent Gateway) → NoemaWorldDO (live) → optional settle �
 
 Python `noema-serve` remains the **offline Chamber / conformance** runtime. This package is the **product Stage 0** host.
 
+## Cloudflare account
+
+Pinned in `wrangler.toml`:
+
+```text
+account_id = 315fb44b61212825452aad0ca566ea42
+https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
+```
+
+### First-time auth (required for deploy)
+
+```bash
+cd workers/noema
+npx wrangler login          # browser OAuth
+# or: export CLOUDFLARE_API_TOKEN=...   # API Token with Workers Edit
+npx wrangler whoami
+```
+
+### Deploy Stage 0
+
+```bash
+npm install
+# npx wrangler secret put TOKEN_SIGNING_SECRET
+# npx wrangler secret put SUPABASE_JWT_SECRET
+# npx wrangler secret put SUPABASE_URL
+# npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+
+npx wrangler deploy --var NOEMA_ENV:preview
+BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
+```
+
 ## Commands
 
 ```bash
 cd workers/noema
 npm install
 npm run dev          # wrangler dev → http://127.0.0.1:8787
+npm run deploy       # requires wrangler login
 npm test             # unit (JWT)
-npm run smoke        # needs wrangler dev running
+npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 ```
 
 ## Endpoints
