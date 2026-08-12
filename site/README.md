@@ -1,36 +1,29 @@
-# NOEMA GitHub Pages site
+# NOEMA GitHub Pages
 
-Static reference site for the NOEMA Runtime modular monolith.
+| Page | Macrostructure | URL path |
+|---|---|---|
+| Workbench home | Workbench | `/` (`index.html`) |
+| Specs memo | Long Document | `/memo.html` |
+
+Design system: [`design.md`](design.md) — dark Noema ledger, **one** copper accent.
 
 ## Local preview
 
 ```bash
-# from repo root
-python -m http.server 8765 --directory site
-# open http://127.0.0.1:8765/
+python3 -m http.server 8765 --directory site
+# http://127.0.0.1:8765/
+# http://127.0.0.1:8765/memo.html
 ```
 
 ## Deploy
 
-GitHub Actions workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) publishes the `site/` directory to GitHub Pages on push to `main` (when `site/**` changes) or via **workflow_dispatch**.
-
-One-time repo settings:
-
-1. **Settings → Pages → Build and deployment**
-2. Source: **GitHub Actions**
-
-Public URL (org/user pages pattern):
+GitHub Actions [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) publishes `site/` on push to `main`.
 
 ```text
 https://zero-state-llc.github.io/Noema/
 ```
 
-## Content ownership
+## Hallmark
 
-| Area | Source of truth |
-|---|---|
-| Normative behavior | Noema-Specs + runtime code |
-| Version pin | `spec-compat.json` |
-| This site | Marketing / operator overview only |
-
-When bumping phases, update hero pin strings in `index.html` to match `spec-compat.json`.
+CSS stamp documents Workbench + Long Document, genre modern-minimal, theme `noema-ledger-dark`.  
+Do not reintroduce: multi-hue accents, section eyebrows on every block, 3-up feature cards, left side-stripes, italic hero emphasis, glass sticky headers, infinite marquees.
