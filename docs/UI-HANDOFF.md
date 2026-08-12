@@ -119,14 +119,16 @@ HTTP status:
 
 ## 3. Route map (complete gateway)
 
-### Public HTML (reference only — replace in product UI)
+### Public HTML (text-first product shells)
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Operator shell |
-| GET | `/play` | Minimal PLAY shell |
-| GET | `/watch` | Minimal WATCH shell |
-| GET | `/study` | Minimal STUDY shell |
+| GET | `/` | Entry: PLAY / WATCH / STUDY |
+| GET | `/play` | Text PLAY: location, routes, command line |
+| GET | `/watch` | Public projection lists (not graphic map) |
+| GET | `/study` | Researcher evidence lists + LEARN rebuild |
+
+These shells call the same JSON APIs a custom UI would. Richer product chrome may replace them later without changing the contract.
 
 ### Public JSON
 
