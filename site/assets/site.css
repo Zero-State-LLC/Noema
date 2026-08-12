@@ -665,6 +665,12 @@ td.mono {
   max-width: 28rem;
 }
 
+.footer-brand {
+  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.14em;
+}
+
 code {
   font-family: var(--font-mono);
   font-size: 0.86em;
