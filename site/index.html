@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NOEMA Runtime — workbench</title>
-  <meta name="description" content="NOEMA Runtime workbench: play, watch, and serve a Specs-pinned world engine. PostgreSQL SERIALIZABLE, operator verify, evidence receipts." />
+  <title>NOEMA — A world that keeps going</title>
+  <meta name="description" content="NOEMA is a persistent world engine. Play, research, and history under one modular monolith — Specs-frozen, claim-honest, no consciousness scores." />
   <meta name="theme-color" content="#0a0e14" />
-  <meta property="og:title" content="NOEMA Runtime" />
-  <meta property="og:description" content="Modular monolith for the frozen NOEMA core loop. See the surfaces, then run them." />
+  <meta property="og:title" content="NOEMA — A world that keeps going" />
+  <meta property="og:description" content="Persistent strategic world engine. Frozen core loop. Research never rewrites the ledger." />
   <meta property="og:type" content="website" />
   <link rel="canonical" href="https://zero-state-llc.github.io/Noema/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,309 +18,153 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
-  <header class="site-header">
+  <header class="site-header" id="top-nav">
     <a class="brand" href="index.html">
       <span class="brand-mark">NOEMA</span>
-      <span class="brand-sub">0.11</span>
     </a>
     <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
     <nav class="nav" id="site-nav" aria-label="Primary">
-      <a href="https://github.com/Zero-State-LLC/Noema">Repo</a>
+      <a href="#story">Story</a>
+      <a href="memo.html">Deep dive</a>
       <a href="https://github.com/Zero-State-LLC/Noema-Specs">Specs</a>
-      <a href="#start">Start</a>
-      <a href="memo.html">Memo</a>
+      <a class="nav-cta" href="https://github.com/Zero-State-LLC/Noema">Get the runtime</a>
     </nav>
   </header>
 
   <main id="main">
-    <div class="wrap wb-intro">
-      <h1>Serve a world. Watch it. Play it.</h1>
-      <p class="lede">
-        Reference modular monolith for the frozen Noema-Specs core loop.
-        One fenced writer. Research never rewrites the ledger.
-        Product UI is a separate track — these frames are the runtime you build against.
-      </p>
-      <div class="wb-meta">
-        <span>Pin <strong>0.11.0-evidence</strong></span>
-        <span>Phases <strong>0–11 complete</strong></span>
-        <span>UI milestone <strong>in progress</strong></span>
-      </div>
-    </div>
-
-    <div class="wrap workbench">
-      <!-- Frame 1: PLAY -->
-      <article class="frame">
-        <div class="frame-bar">
-          <span class="route">GET /play</span>
-          <span>· POST /play/action</span>
-          <span class="step">Step 1</span>
-        </div>
-        <div class="frame-body">
-          <div class="frame-stage" aria-label="Play surface sample">
-            <div class="hl">LOCATION room.harbor.south</div>
-            <div>EXITS exit.north · exit.warehouse</div>
-            <div>ENTITIES crate.sealed · agent.dock</div>
-            <div class="acc">STATUS energy=78 attention=6</div>
-            <div class="frame-gap"></div>
-            <div class="cmt">&gt; look</div>
-            <div class="ok">OBSERVATION_GENERATED · seq 14</div>
-            <div class="cmt">&gt; move exit.north</div>
-            <div class="hl">LOCATION room.harbor.gate</div>
-          </div>
-          <div class="frame-note">
-            <h2>PLAY</h2>
-            <p>
-              Chamber verbs through a PLAYER session. Budgets, locations, messages —
-              committed sequences only. Restart rehydrates from seed + ledger.
-            </p>
-            <div class="anno">also: noema-play · agent-protocol/v1</div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Frame 2: WATCH -->
-      <article class="frame">
-        <div class="frame-bar">
-          <span class="route">GET /watch/live</span>
-          <span>· redacted projection</span>
-          <span class="step">Step 2</span>
-        </div>
-        <div class="frame-body">
-          <div class="frame-stage" aria-label="Watch surface sample">
-            <div class="acc">{</div>
-            <div>  <span class="hl">"read_only"</span>: true,</div>
-            <div>  <span class="hl">"world_id"</span>: "world-01",</div>
-            <div>  <span class="hl">"cycle"</span>: 0,</div>
-            <div>  <span class="hl">"pressure"</span>: "World conditions shift."</div>
-            <div>}</div>
-            <div class="frame-gap-inline" class="cmt">// research_overlay omitted for SPECTATOR</div>
-          </div>
-          <div class="frame-note">
-            <h2>WATCH</h2>
-            <p>
-              Public spectator surface. No research metadata in the default path.
-              Poll JSON or use the HTML shell at <code>/watch</code>.
-            </p>
-            <div class="anno">claim labels stay server-side</div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Frame 3: SERVE / VERIFY -->
-      <article class="frame">
-        <div class="frame-bar">
-          <span class="route">noema-serve</span>
-          <span>· noema-verify</span>
-          <span class="step">Step 3</span>
-        </div>
-        <div class="frame-body">
-          <div class="frame-stage" aria-label="Ops sample">
-            <div class="cmt">$ noema-serve --config examples/deployment/local-deployment-config.json</div>
-            <div class="hl">noema listening on http://0.0.0.0:8080</div>
-            <div class="acc">configuration_digest=sha256:…</div>
-            <div class="frame-gap-inline" class="cmt">$ noema-verify --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json</div>
-            <div class="ok">NOEMA VERIFY: PASS</div>
-          </div>
-          <div class="frame-note">
-            <h2>SERVE &amp; VERIFY</h2>
-            <p>
-              SQLite for local PLAY; PostgreSQL SERIALIZABLE for production-shaped deploys.
-              Ops checklist covers ledger, fence, resume windows, and evidence when required.
-            </p>
-            <div class="anno">compose: postgres:16 + monolith</div>
-          </div>
-        </div>
-      </article>
-    </div>
-
-    <aside class="sticky-cta" aria-label="Get started">
-      <p>Clone the runtime. Pin Specs. Do not invent world truth in the UI.</p>
-      <div class="cta-actions">
-        <a class="btn btn-primary" href="https://github.com/Zero-State-LLC/Noema">Open repository</a>
-        <a class="btn btn-ghost" href="#start">Install commands</a>
-      </div>
-    </aside>
-
-    <section class="ref" id="start">
-      <div class="wrap">
-        <h2>Start</h2>
-        <p class="lede">Python 3.11+. Model provider keys are not required for Chamber boot.</p>
-
-        <div data-tabs>
-          <div class="tabs" role="tablist" aria-label="Install profiles">
-            <button class="tab" type="button" role="tab" id="tab-local" aria-controls="panel-local" aria-selected="true">Local</button>
-            <button class="tab" type="button" role="tab" id="tab-pg" aria-controls="panel-pg" aria-selected="false">Postgres</button>
-            <button class="tab" type="button" role="tab" id="tab-ops" aria-controls="panel-ops" aria-selected="false">Ops</button>
-          </div>
-          <div class="tab-panel" id="panel-local" role="tabpanel" aria-labelledby="tab-local">
-            <pre><span class="cmt"># install</span>
-pip install -e ".[dev]"
-<span class="cmd">noema-replay</span>     <span class="cmt"># EQUIVALENT seed</span>
-<span class="cmd">noema-play</span>       <span class="cmt"># text PLAY (SQLite)</span>
-<span class="cmd">pytest -q</span></pre>
-          </div>
-          <div class="tab-panel" id="panel-pg" role="tabpanel" aria-labelledby="tab-pg" hidden>
-            <pre>pip install -e ".[postgres]"
-cp .env.example .env
-<span class="cmd">docker compose up</span>
-<span class="cmd">noema-serve</span> --db "postgresql://noema:noema@127.0.0.1:5432/noema" \
-  --config examples/deployment/local-deployment-config.json</pre>
-          </div>
-          <div class="tab-panel" id="panel-ops" role="tabpanel" aria-labelledby="tab-ops" hidden>
-            <pre><span class="cmd">noema-verify</span> --db data/noema.sqlite3 \
-  --seed fixtures/v01-seed/world-seed.json
-<span class="cmd">noema-backup</span> --db data/noema.sqlite3 --out backups/world-1
-<span class="cmd">noema-keygen-evidence</span> --out var/evidence-keyring.json
-<span class="cmd">noema-export-evidence</span> --profile research-isolated \
-  --keyring var/evidence-keyring.json --out exports/run-1</pre>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="ref" id="phases">
-      <div class="wrap">
-        <h2>Phases</h2>
-        <p class="lede">Reference spine against frozen Specs v0.1–v0.7 plus production ops.</p>
-        <div class="table-wrap">
-          <table>
-            <caption class="visually-hidden">Delivery phases</caption>
-            <thead>
-              <tr>
-                <th scope="col">Phase</th>
-                <th scope="col">Deliverable</th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="mono">0–7</td>
-                <td>Core loop E2E: Chamber → Frontier → Observatory → Lab → Compiler → LEARN → Deep Time / Genesis</td>
-                <td><span class="badge">Complete</span></td>
-              </tr>
-              <tr>
-                <td class="mono">8</td>
-                <td>PostgreSQL dual-backend · SERIALIZABLE cycle commits</td>
-                <td><span class="badge">Complete</span></td>
-              </tr>
-              <tr>
-                <td class="mono">9</td>
-                <td>verify / backup / restore · CI Postgres</td>
-                <td><span class="badge">Complete</span></td>
-              </tr>
-              <tr>
-                <td class="mono">10</td>
-                <td>deployment-config validation · gateway HTML shells</td>
-                <td><span class="badge">Complete</span></td>
-              </tr>
-              <tr>
-                <td class="mono">11</td>
-                <td>Evidence receipts · bounded resume/ack windows</td>
-                <td><span class="badge">Complete</span></td>
-              </tr>
-              <tr>
-                <td class="mono">UI</td>
-                <td>Product interface (external milestone)</td>
-                <td><span class="badge badge-ui">In progress</span></td>
-              </tr>
-              <tr>
-                <td class="mono">—</td>
-                <td>v0.8 Phenomena · microservices · LLM claim planners</td>
-                <td><span class="badge badge-defer">Deferred</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="ref" id="api">
-      <div class="wrap">
-        <h2>Gateway</h2>
-        <p class="lede">
-          Session via <code>X-Session-Id</code>. Errors: <code>{"error":{"code","message"}}</code>.
-          <code>/ready</code> is PLAY readiness only.
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner">
+        <p class="hero-kicker">World engine · Zero State LLC</p>
+        <h1 id="hero-title">A world that keeps going when you look away.</h1>
+        <p class="hero-lede">
+          NOEMA is a persistent strategic world — factions, resources, and consequences
+          that survive restarts. Play it. Watch it. Study what emerged. Research may
+          notice and test, but it never rewrites the ledger.
         </p>
-        <div class="table-wrap">
-          <table>
-            <caption class="visually-hidden">HTTP routes</caption>
-            <thead>
-              <tr>
-                <th scope="col">Route</th>
-                <th scope="col">Role</th>
-                <th scope="col">Purpose</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="mono">GET / · /watch · /play</td>
-                <td>public</td>
-                <td>Reference HTML shells</td>
-              </tr>
-              <tr>
-                <td class="mono">GET /health · /ready · /version</td>
-                <td>public</td>
-                <td>Liveness · play readiness · pin</td>
-              </tr>
-              <tr>
-                <td class="mono">GET /manifest · /config</td>
-                <td>public</td>
-                <td>Runtime manifest · non-secret config digest</td>
-              </tr>
-              <tr>
-                <td class="mono">GET /watch/live</td>
-                <td>spectator+</td>
-                <td>Redacted live JSON</td>
-              </tr>
-              <tr>
-                <td class="mono">POST /session · /play/*</td>
-                <td>PLAYER</td>
-                <td>Session · action · observe</td>
-              </tr>
-              <tr>
-                <td class="mono">POST /protocol/v1</td>
-                <td>agent</td>
-                <td>Agent protocol</td>
-              </tr>
-              <tr>
-                <td class="mono">POST /research/*</td>
-                <td>RESEARCHER</td>
-                <td>Frontier · Lab · Compiler · LEARN · Deep Time</td>
-              </tr>
-              <tr>
-                <td class="mono">POST /admin/*</td>
-                <td>ADMIN</td>
-                <td>Seed · Genesis</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/Zero-State-LLC/Noema">Get the runtime</a>
+          <a class="btn btn-ghost" href="memo.html">Read the map</a>
+        </div>
+      </div>
+      <div class="hero-foot">
+        <div>
+          <span>Core loop</span>
+          <strong>Frozen &amp; complete</strong>
+        </div>
+        <div>
+          <span>Authority</span>
+          <strong>Noema-Specs v0.1–v0.7</strong>
+        </div>
+        <div>
+          <span>Shape</span>
+          <strong>Modular monolith</strong>
+        </div>
+        <div>
+          <span>Claims</span>
+          <strong>Honest labels only</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="story">
+      <div class="band-inner">
+        <h2>Not a disposable session. A place that accumulates.</h2>
+        <p>
+          Built for long-running strategy — the structural spirit of classic persistent
+          worlds, not a literal clone. When the process restarts, the world does not
+          forget who was there, what was spent, or what was broken.
+        </p>
+        <p>
+          Agents and people share one chamber. Spectators get a public surface.
+          Researchers get tools that fork, measure, and capture — always as derivation,
+          never as a second truth.
+        </p>
+
+        <div class="loop-line" aria-label="Product loop">
+          <span>Play</span><span class="sep" aria-hidden="true">→</span>
+          <span>Notice</span><span class="sep" aria-hidden="true">→</span>
+          <span>Test</span><span class="sep" aria-hidden="true">→</span>
+          <span>Capture</span><span class="sep" aria-hidden="true">→</span>
+          <span>Learn</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="promise">
+      <div class="band-inner">
+        <h2>Designed to refuse the wrong kind of clever.</h2>
+        <div class="split">
+          <div>
+            <h3>One writer. One history.</h3>
+            <p>
+              Canonical change goes through a fenced writer and an append-only ledger.
+              Production cycles on PostgreSQL use full serializable commits. Local play
+              stays simple with SQLite.
+            </p>
+          </div>
+          <div>
+            <h3>Research that cannot launder itself into truth.</h3>
+            <p>
+              Experiments run on isolated forks. Captured tests need readiness gates.
+              Capability graphs rebuild. Lore and simple views never outrank evidence.
+            </p>
+          </div>
+          <div>
+            <h3>Labels you can defend.</h3>
+            <p>
+              OBSERVED, INFERRED, SPECULATIVE, NOT_COMPUTABLE. No intelligence scores.
+              No consciousness claims. Ever.
+            </p>
+          </div>
+          <div>
+            <h3>Ops that survive daylight.</h3>
+            <p>
+              Verify, backup, restore. Research exports that require signed receipts —
+              or they fail closed as invalid evidence, not “unsigned but fine.”
+            </p>
+          </div>
         </div>
 
-        <div class="note">
+        <div class="claims" aria-label="Claim labels">
+          <span class="claim">Observed</span>
+          <span class="claim">Inferred</span>
+          <span class="claim">Speculative</span>
+          <span class="claim">Not computable</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="who">
+      <div class="band-inner">
+        <h2>Who it’s for</h2>
+        <p>
+          Operators standing up a Specs-faithful chamber. Teams building agent play and
+          spectator surfaces on a stable gateway. Researchers who need isolation,
+          capture, and export without contaminating world truth. Product UI work can
+          sit on top — the runtime is already the contract.
+        </p>
+        <p>
+          If you need the full pin, phase map, and route table, open the
+          <a href="memo.html">Specs memo</a>.
+          If you need the code, open the repository.
+        </p>
+      </div>
+    </section>
+
+    <section class="cta-band" aria-label="Get started">
+      <div class="cta-band-inner">
+        <div>
+          <h2>Start with a real world, not a demo that evaporates.</h2>
           <p>
-            <strong>UI builders.</strong> Consume this gateway. Do not invent a client ledger,
-            put evidence keyrings in the browser, or strengthen claim labels beyond server evidence.
-            Full narrative map: <a href="memo.html">Specs memo</a>.
+            Clone the runtime, pin Specs, run the seed. Build UI against the gateway —
+            don’t invent a second ledger in the browser.
           </p>
         </div>
-      </div>
-    </section>
-
-    <section class="ref" id="invariants">
-      <div class="wrap">
-        <h2>Invariants</h2>
-        <ol class="prose-list">
-          <li>One fenced canonical writer per world process.</li>
-          <li>World truth is not research derivation; research indexes rebuild.</li>
-          <li>Frontier injects only via ledger events through reducers.</li>
-          <li>Lab never mutates production state or ledger.</li>
-          <li>CAPTURE requires Lab <code>compiler_readiness: READY</code>.</li>
-          <li>Genesis is ADMIN-only; config freezes after activate.</li>
-          <li>Lore and LEARN simple views never strengthen claims past evidence.</li>
-          <li>Public bundles and deployment config never carry secrets.</li>
-          <li>Missing required evidence receipt is <code>INVALID_EVIDENCE</code>.</li>
-          <li>No consciousness or scalar intelligence scores.</li>
-        </ol>
+        <div class="actions">
+          <a class="btn btn-primary" href="https://github.com/Zero-State-LLC/Noema">GitHub</a>
+          <a class="btn btn-ghost" href="https://github.com/Zero-State-LLC/Noema-Specs">Specs</a>
+          <a class="btn btn-ghost" href="memo.html">Memo</a>
+        </div>
       </div>
     </section>
   </main>
@@ -328,17 +172,16 @@ cp .env.example .env
   <footer class="site-footer">
     <div class="wrap">
       <div>
-        <div class="brand-mark">NOEMA</div>
+        <div class="brand-mark" style="font-size:0.95rem;margin-bottom:0.35rem;letter-spacing:0.14em">NOEMA</div>
         <p class="footer-copy">
           Copyright © <span id="year">2026</span> Zero State LLC.
-          Zero State Proprietary License v1.0.
+          Zero State Proprietary License v1.0. Runtime pin 0.11.
         </p>
       </div>
       <div class="footer-links">
         <a href="https://github.com/Zero-State-LLC/Noema">Runtime</a>
         <a href="https://github.com/Zero-State-LLC/Noema-Specs">Specs</a>
         <a href="memo.html">Memo</a>
-        <a href="https://github.com/Zero-State-LLC/Noema/blob/main/spec-compat.json">spec-compat</a>
       </div>
     </div>
   </footer>

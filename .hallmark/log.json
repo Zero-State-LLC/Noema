@@ -7,6 +7,27 @@
         "path": "site/index.html",
         "macrostructure": "Workbench",
         "genre": "modern-minimal",
+        "theme": "noema-ledger-dark",
+        "note": "superseded same day by Marquee Hero landing"
+      },
+      {
+        "path": "site/memo.html",
+        "macrostructure": "Long Document",
+        "genre": "modern-minimal",
+        "theme": "noema-ledger-dark"
+      }
+    ],
+    "brief": "Initial Hallmark redesign after audit.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-12",
+    "scope": "site/index.html",
+    "pages": [
+      {
+        "path": "site/index.html",
+        "macrostructure": "Marquee Hero",
+        "genre": "modern-minimal",
         "theme": "noema-ledger-dark"
       },
       {
@@ -16,7 +37,7 @@
         "theme": "noema-ledger-dark"
       }
     ],
-    "brief": "Hallmark redesign after audit: Workbench primary + Long Document Specs memo; dark Noema tokens; single copper accent; remediate eyebrows, 3-up cards, side-stripes, italic hero, AI nav, ticker, glass header.",
+    "brief": "User feedback: homepage read as repo guts. Rebuild as marketing splash/landing; keep memo for technical depth. No CLI/JSON dumps on home.",
     "design_system": "site/design.md"
   }
 ]
