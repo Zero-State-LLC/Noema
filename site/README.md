@@ -1,29 +1,18 @@
 # NOEMA GitHub Pages
 
-| Page | Macrostructure | URL path |
-|---|---|---|
-| Workbench home | Workbench | `/` (`index.html`) |
-| Specs memo | Long Document | `/memo.html` |
-
-Design system: [`design.md`](design.md) — dark Noema ledger, **one** copper accent.
-
-## Local preview
-
-```bash
-python3 -m http.server 8765 --directory site
-# http://127.0.0.1:8765/
-# http://127.0.0.1:8765/memo.html
-```
-
-## Deploy
-
-GitHub Actions [`.github/workflows/pages.yml`](../.github/workflows/pages.yml) publishes `site/` on push to `main`.
+| Page | Role |
+|---|---|
+| `index.html` | **Marketing landing** (Marquee Hero) |
+| `memo.html` | Specs map / long document for implementers |
+| `design.md` | Locked dark-ledger tokens (one copper accent) |
 
 ```text
 https://zero-state-llc.github.io/Noema/
+https://zero-state-llc.github.io/Noema/memo.html
 ```
 
-## Hallmark
+```bash
+python3 -m http.server 8765 --directory site
+```
 
-CSS stamp documents Workbench + Long Document, genre modern-minimal, theme `noema-ledger-dark`.  
-Do not reintroduce: multi-hue accents, section eyebrows on every block, 3-up feature cards, left side-stripes, italic hero emphasis, glass sticky headers, infinite marquees.
+Landing stays splash-first. CLI dumps, route tables, and phase grids live on the memo (and in the repo), not on the homepage.
