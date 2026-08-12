@@ -1,0 +1,21 @@
+{
+  "schema_version": "genesis-final-candidate/1.0",
+  "title": "Perihelion Reach — final Genesis candidate",
+  "description": "Exact first-world inputs for human approval. Not automatic production activation.",
+  "world_name": "Perihelion Reach",
+  "profile": "FRACTURED_OLD_WORLD",
+  "story_seeds": ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
+  "world_seed": "17011984",
+  "theme_id": "perihelion-reach",
+  "rules_versions": {
+    "canonicalization": "noema-jcs/1",
+    "world_rules": "world/v1",
+    "deep_time": "deep-time/0.6",
+    "genesis": "genesis/0.6"
+  },
+  "notes": [
+    "Do not fall back to perihelion-rehearsal-01.",
+    "Preview twice; activate only after human approval.",
+    "Production activation is operator-only — never CI."
+  ]
+}
