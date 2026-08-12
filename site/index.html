@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOEMA Runtime — World Engine Modular Monolith</title>
+  <meta name="description" content="NOEMA Runtime: frozen Specs core loop PLAY→NOTICE→TEST→CAPTURE→LEARN, PostgreSQL SERIALIZABLE persistence, operator verify/backup, evidence receipts. Zero State LLC." />
+  <meta name="theme-color" content="#080b12" />
+  <meta property="og:title" content="NOEMA Runtime" />
+  <meta property="og:description" content="World Engine modular monolith implementing the frozen NOEMA core loop from Noema-Specs." />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="https://zero-state-llc.github.io/Noema/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/site.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top">
+      <span class="brand-mark">NOEMA</span>
+      <span class="brand-sub">Runtime · 0.11</span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Primary">
+      <a href="#loop">Loop</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#phases">Phases</a>
+      <a href="#start">Start</a>
+      <a href="#api">API</a>
+      <a href="#ops">Ops</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#invariants">Invariants</a>
+      <a href="#ui">UI track</a>
+      <a href="https://github.com/Zero-State-LLC/Noema">GitHub</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="hero-kicker">Zero State LLC · World Engine</p>
+          <h1>A persistent world that <em>remembers</em>.</h1>
+          <p class="lede">
+            NOEMA Runtime is the reference <strong>modular monolith</strong> for the frozen
+            Noema-Specs core loop — chamber play, research notice, isolated experiments,
+            capture-as-test, and rebuildable learning — without inventing consciousness scores
+            or a second world truth.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="https://github.com/Zero-State-LLC/Noema">Repository</a>
+            <a class="btn btn-ghost" href="#start">Quick start</a>
+            <a class="btn btn-ghost" href="https://github.com/Zero-State-LLC/Noema-Specs">Noema-Specs</a>
+          </div>
+          <div class="meta-row">
+            <span>Pin <strong>0.11.0-evidence</strong></span>
+            <span>Phase <strong>11 complete</strong></span>
+            <span>Core loop <strong>frozen</strong></span>
+            <span>UI milestone <strong>in progress</strong></span>
+          </div>
+        </div>
+
+        <aside class="loop-panel" aria-label="Core loop diagram">
+          <svg class="loop-svg" viewBox="0 0 280 280" role="img" aria-labelledby="loop-title">
+            <title id="loop-title">PLAY NOTICE TEST CAPTURE LEARN cycle</title>
+            <circle class="loop-ring" cx="140" cy="140" r="92" />
+            <circle class="loop-arc" cx="140" cy="140" r="92"
+              stroke-dasharray="480" pathLength="100"
+              style="stroke-dasharray: 78; stroke-dashoffset: 0; animation: none; opacity: 0.85" />
+            <!-- nodes: PLAY top, NOTICE NE, TEST SE, CAPTURE SW, LEARN NW -->
+            <g class="loop-node">
+              <circle class="loop-dot" cx="140" cy="48" r="7" />
+              <text x="140" y="34">PLAY</text>
+            </g>
+            <g class="loop-node">
+              <circle class="loop-dot" cx="228" cy="100" r="7" />
+              <text x="248" y="88">NOTICE</text>
+            </g>
+            <g class="loop-node">
+              <circle class="loop-dot" cx="210" cy="210" r="7" />
+              <text x="228" y="228">TEST</text>
+            </g>
+            <g class="loop-node">
+              <circle class="loop-dot" cx="70" cy="210" r="7" />
+              <text x="52" y="228">CAPTURE</text>
+            </g>
+            <g class="loop-node">
+              <circle class="loop-dot" cx="52" cy="100" r="7" />
+              <text x="32" y="88">LEARN</text>
+            </g>
+            <text class="loop-center" x="140" y="136">NOEMA</text>
+            <text class="loop-sub" x="140" y="152">WORLD ≠ RESEARCH</text>
+            <text class="loop-sub" x="140" y="164">ONE FENCED WRITER</text>
+          </svg>
+          <div class="loop-legend">
+            <span class="chip chip-observed">Observed</span>
+            <span class="chip chip-inferred">Inferred</span>
+            <span class="chip chip-speculative">Speculative</span>
+            <span class="chip chip-not">Not computable</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track">
+        <span class="ok">NOEMA VERIFY: PASS</span>
+        <span>canonicalization · noema-jcs/1</span>
+        <span>event-catalog/0.1</span>
+        <span>PostgreSQL SERIALIZABLE</span>
+        <span>writer fence · single process</span>
+        <span class="ok">NOEMA EVIDENCE: VALID</span>
+        <span>research ≠ world truth</span>
+        <span>Lab mutates_production: false</span>
+        <span>CAPTURE requires READY</span>
+        <span>Genesis ADMIN-only</span>
+        <span class="ok">NOEMA VERIFY: PASS</span>
+        <span>canonicalization · noema-jcs/1</span>
+        <span>event-catalog/0.1</span>
+        <span>PostgreSQL SERIALIZABLE</span>
+        <span>writer fence · single process</span>
+        <span class="ok">NOEMA EVIDENCE: VALID</span>
+        <span>research ≠ world truth</span>
+      </div>
+    </div>
+
+    <!-- LOOP -->
+    <section id="loop">
+      <div class="wrap">
+        <p class="section-label">Product loop</p>
+        <h2>What the engine is for</h2>
+        <p class="lede">
+          Operators and agents act in a durable chamber world. Research layers may
+          notice pressure, test counterfactuals, capture phenomena as regression tests,
+          and rebuild capability graphs — always as <em>derivation</em>, never as ledger rewrite.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <h3>PLAY</h3>
+            <p>Chamber world, budgets, observations, agent protocol. Restart-safe ledger. Spectator WATCH is redacted public projection.</p>
+            <div class="path">world/ · actions/ · observations/</div>
+          </article>
+          <article class="card">
+            <h3>NOTICE → TEST</h3>
+            <p>Frontier injects only via <code>SITUATION_INJECTED</code>. Observatory detects. Lab forks with <code>mutates_production: false</code>.</p>
+            <div class="path">research/frontier · observatory · lab</div>
+          </article>
+          <article class="card">
+            <h3>CAPTURE → LEARN</h3>
+            <p>Compiler needs <code>compiler_readiness: READY</code>. LEARN graph is rebuildable index — not a mutable source of truth.</p>
+            <div class="path">research/compiler · learn</div>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top: 1rem">
+          <article class="card">
+            <h3>Deep Time</h3>
+            <p>Institutions, artifacts, scars, names — historical surfaces for STUDY/PLAY. Lore never overrides ledger truth.</p>
+            <div class="path">research/deep_time · D01–D30</div>
+          </article>
+          <article class="card">
+            <h3>Genesis</h3>
+            <p>Admin-only world creation. After activate, config freezes; Cycle 0 is ordinary world play with no Genesis UI required.</p>
+            <div class="path">research/genesis · G01–G09</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture">
+      <div class="wrap">
+        <p class="section-label">Architecture</p>
+        <h2>Modular monolith, strict boundaries</h2>
+        <p class="lede">
+          One deployable process. Internal modules stay extractable later without protocol redesign.
+          Specs forbid requiring Kubernetes, Kafka, or a service mesh for v0.1.
+        </p>
+        <div class="grid-2">
+          <pre class="arch" aria-label="Source layout"><span class="dir">src/noema/</span>
+  <span class="dir">world/</span>           <span class="note">pure reducers · digests · state</span>
+  <span class="dir">actions/</span>         <span class="note">single action router</span>
+  <span class="dir">persistence/</span>     <span class="note">SQLite · PostgreSQL SERIALIZABLE</span>
+  <span class="dir">observations/</span>    <span class="note">PLAY / WATCH projections</span>
+  <span class="dir">research/</span>        <span class="note">capture · frontier · lab · …</span>
+  <span class="dir">ops/</span>             <span class="note">verify · backup · restore</span>
+  <span class="dir">config/</span>          <span class="note">deployment-config/1.0</span>
+  <span class="dir">evidence/</span>        <span class="note">receipts · resume windows</span>
+  <span class="dir">gateway/</span>         <span class="note">stdlib HTTP + minimal HTML</span>
+  <span class="dir">app/runtime.py</span>   <span class="note">composition root</span></pre>
+          <div>
+            <article class="card" style="margin-bottom: 1rem">
+              <h3>Persistence profiles</h3>
+              <p><strong>Local PLAY:</strong> SQLite path or <code>:memory:</code> with <code>BEGIN IMMEDIATE</code>.</p>
+              <p style="margin-top: 0.5rem"><strong>Production reference:</strong> PostgreSQL DSN; cycle commits under <code>SERIALIZABLE</code> with expected revision + writer fence (DEPLOYMENT / RFC-0003).</p>
+            </article>
+            <article class="card">
+              <h3>Spec pin</h3>
+              <p>Authority: <a href="https://github.com/Zero-State-LLC/Noema-Specs">Zero-State-LLC/Noema-Specs</a></p>
+              <p style="margin-top: 0.5rem">Freeze: <code>v0.1–v0.7-core-loop-freeze</code> · Catalog <code>event-catalog/0.1</code> · Hash <code>noema-jcs/1</code></p>
+              <div class="path">spec-compat.json · docs/CORE-LOOP-RUNTIME.md</div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHASES -->
+    <section id="phases">
+      <div class="wrap">
+        <p class="section-label">Delivery map</p>
+        <h2>Phases 0–11 (reference spine)</h2>
+        <p class="lede">
+          Campaign complete through production-shaped ops and evidence. Rich product UI is a
+          separate milestone (in progress).
+        </p>
+        <div style="overflow-x: auto">
+          <table class="phase-table">
+            <thead>
+              <tr>
+                <th>Phase</th>
+                <th>Deliverable</th>
+                <th>Specs touch</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="phase-id">0–1</td>
+                <td>Chamber MVP · seed replay · fenced SQLite writer</td>
+                <td>C01–C26 · v0.1</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">2A–2B</td>
+                <td>Frontier NOTICE · Observatory detection</td>
+                <td>F01–F15 · O01–O16</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">3–5</td>
+                <td>Lab TEST · Compiler CAPTURE · LEARN graph</td>
+                <td>L01–L34 · P01–P30 · K01–K12</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">6–7</td>
+                <td>Deep Time + Genesis · full core-loop E2E</td>
+                <td>D01–D30 · G01–G09</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">8</td>
+                <td>PostgreSQL dual-backend · SERIALIZABLE cycles</td>
+                <td>DEPLOYMENT · C14</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">9</td>
+                <td>noema-verify / backup / restore · CI Postgres</td>
+                <td>OPERATIONS · C15–C16</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">10</td>
+                <td>deployment-config validation · / · /watch · /play HTML</td>
+                <td>DEPLOYMENT · C14</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">11</td>
+                <td>Evidence receipts · bounded resume/ack windows</td>
+                <td>SECURITY · RFC-0003</td>
+                <td><span class="badge">Complete</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">UI</td>
+                <td>Product / operator interface (external track)</td>
+                <td>Experience surfaces</td>
+                <td><span class="badge badge-ui">In progress</span></td>
+              </tr>
+              <tr>
+                <td class="phase-id">—</td>
+                <td>v0.8 Phenomena · microservices · LLM claim planners</td>
+                <td>Explicit deferrals</td>
+                <td><span class="badge badge-defer">Deferred</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section id="start">
+      <div class="wrap">
+        <p class="section-label">Quick start</p>
+        <h2>Run the reference path</h2>
+        <p class="lede">Python 3.11+ · optional Docker for Postgres. Local PLAY never requires a model provider key.</p>
+
+        <div data-tabs>
+          <div class="tabs" role="tablist" aria-label="Install profiles">
+            <button class="tab" type="button" role="tab" data-tab="tab-local" aria-selected="true">Local PLAY</button>
+            <button class="tab" type="button" role="tab" data-tab="tab-pg" aria-selected="false">Postgres compose</button>
+            <button class="tab" type="button" role="tab" data-tab="tab-ops" aria-selected="false">Ops + evidence</button>
+          </div>
+          <div class="tab-panel" id="tab-local" role="tabpanel">
+            <div class="card">
+              <pre><span class="cmt"># clone &amp; install</span>
+git clone https://github.com/Zero-State-LLC/Noema.git
+cd Noema
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e ".[dev]"
+
+<span class="cmt"># prove chamber determinism</span>
+<span class="cmd">noema-replay</span>          <span class="cmt"># EQUIVALENT seed</span>
+<span class="cmd">pytest -q</span>
+<span class="cmd">noema-play</span>            <span class="cmt"># text PLAY (SQLite)</span>
+python scripts/core_loop_demo.py</pre>
+            </div>
+          </div>
+          <div class="tab-panel" id="tab-pg" role="tabpanel" hidden>
+            <div class="card">
+              <pre>pip install -e ".[postgres]"
+cp .env.example .env
+<span class="cmd">docker compose up</span>     <span class="cmt"># postgres:16 + monolith</span>
+
+<span class="cmt"># or host runtime against DSN</span>
+<span class="cmd">noema-serve</span> --db "postgresql://noema:noema@127.0.0.1:5432/noema" \
+  --config examples/deployment/local-deployment-config.json
+
+<span class="cmt"># open http://localhost:8080/  · /watch  · /play</span></pre>
+            </div>
+          </div>
+          <div class="tab-panel" id="tab-ops" role="tabpanel" hidden>
+            <div class="card">
+              <pre><span class="cmd">noema-verify</span> --db data/noema.sqlite3 \
+  --seed fixtures/v01-seed/world-seed.json \
+  --config examples/deployment/local-deployment-config.json
+<span class="cmt"># → NOEMA VERIFY: PASS</span>
+
+<span class="cmd">noema-backup</span>  --db data/noema.sqlite3 --out backups/world-1
+<span class="cmd">noema-restore</span> backups/world-1 --db data/restored.sqlite3 \
+  --seed fixtures/v01-seed/world-seed.json
+
+<span class="cmd">noema-keygen-evidence</span> --out var/evidence-keyring.json
+<span class="cmd">noema-export-evidence</span> --db data/noema.sqlite3 \
+  --keyring var/evidence-keyring.json --out exports/run-1 \
+  --profile research-isolated
+<span class="cmd">noema-verify-evidence</span> exports/run-1 --keyring var/evidence-keyring.json
+<span class="cmt"># → NOEMA EVIDENCE: VALID  (else INVALID_EVIDENCE)</span></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API -->
+    <section id="api">
+      <div class="wrap">
+        <p class="section-label">HTTP surface</p>
+        <h2>Gateway contract for UI &amp; agents</h2>
+        <p class="lede">
+          Stdlib HTTP. Sessions via <code>X-Session-Id</code> (or body). Errors:
+          <code>{ "error": { "code", "message" } }</code>.
+          <code>/ready</code> is <strong>PLAY readiness</strong> — research degradation does not block play.
+        </p>
+        <div style="overflow-x: auto">
+          <table class="api-table">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Path</th>
+                <th>Role</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="method">GET</td>
+                <td class="path-cell">/</td>
+                <td>public</td>
+                <td>Operator home HTML (reference shell)</td>
+              </tr>
+              <tr>
+                <td class="method">GET</td>
+                <td class="path-cell">/watch · /play</td>
+                <td>public</td>
+                <td>Spectator / minimal PLAY HTML shells</td>
+              </tr>
+              <tr>
+                <td class="method">GET</td>
+                <td class="path-cell">/health · /ready · /version</td>
+                <td>public</td>
+                <td>Liveness, play readiness, pin metadata</td>
+              </tr>
+              <tr>
+                <td class="method">GET</td>
+                <td class="path-cell">/manifest · /config</td>
+                <td>public</td>
+                <td>Runtime manifest · non-secret config + digest</td>
+              </tr>
+              <tr>
+                <td class="method">GET</td>
+                <td class="path-cell">/watch/live</td>
+                <td>spectator+</td>
+                <td>Redacted live projection JSON</td>
+              </tr>
+              <tr>
+                <td class="method">POST</td>
+                <td class="path-cell">/session</td>
+                <td>—</td>
+                <td>Create session (PLAYER / SPECTATOR / RESEARCHER / ADMIN)</td>
+              </tr>
+              <tr>
+                <td class="method">POST</td>
+                <td class="path-cell">/play/action · /play/observe</td>
+                <td>PLAYER/AGENT</td>
+                <td>Mutate / observe chamber</td>
+              </tr>
+              <tr>
+                <td class="method">POST</td>
+                <td class="path-cell">/protocol/v1</td>
+                <td>agent</td>
+                <td>Agent protocol v1 (HELLO, AUTH, actions…)</td>
+              </tr>
+              <tr>
+                <td class="method">POST</td>
+                <td class="path-cell">/admin/start · /admin/genesis/*</td>
+                <td>ADMIN</td>
+                <td>Load seed · Genesis preview/activate</td>
+              </tr>
+              <tr>
+                <td class="method">POST</td>
+                <td class="path-cell">/research/*</td>
+                <td>RESEARCHER/ADMIN</td>
+                <td>Frontier, Observatory, Lab, Compiler, LEARN, Deep Time</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <strong>UI integration note</strong>
+          <p>
+            The product UI milestone should treat this gateway as the stable backend.
+            Prefer progressive disclosure and server-side claim labels / redaction.
+            Do not invent a client-side ledger or strengthen research claims in the browser.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPS -->
+    <section id="ops">
+      <div class="wrap">
+        <p class="section-label">Operations</p>
+        <h2>Verify · backup · restore</h2>
+        <p class="lede">
+          Specs OPERATIONS.md semantics with <code>noema-*</code> CLI names matching the rest of the toolbelt.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <h3>noema-verify</h3>
+            <p>Fail-closed checklist: config, DB, schema, pins, ledger chain, snapshots, objects, seed, manifest, writer fence, atomicity, resume windows, evidence (when required).</p>
+            <div class="path">prints NOEMA VERIFY: PASS</div>
+          </article>
+          <article class="card">
+            <h3>noema-backup</h3>
+            <p>Portable bundle: ledger, snapshots, runtime manifest, configuration digest, fence audit. Secrets never embedded.</p>
+            <div class="path">noema-backup-bundle/1.0</div>
+          </article>
+          <article class="card">
+            <h3>noema-restore</h3>
+            <p>Clean target only (or <code>--force</code>). Fresh writer fence. Runs verify after install. Refuses incompatible catalog pins.</p>
+            <div class="path">restore_fresh_writer_fence</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVIDENCE -->
+    <section id="evidence">
+      <div class="wrap">
+        <p class="section-label">Research export</p>
+        <h2>Evidence receipts</h2>
+        <p class="lede">
+          Optional for local gameplay. <strong>Mandatory</strong> for research-isolated, reproducibility,
+          and public-evidence-export. Missing or invalid required receipts become
+          <code>INVALID_EVIDENCE</code> — never silently unsigned.
+        </p>
+        <div class="grid-2">
+          <article class="card">
+            <h3>Receipt profile</h3>
+            <p>
+              Version <code>evidence-receipt/1.0</code> · algorithm <code>hmac-sha256</code> ·
+              policy <code>noema-evidence-hmac/1</code>. Binds evidence digest, world_id,
+              consent/exclusion policies, export profile, key_id, signature, issuance time.
+            </p>
+            <p style="margin-top: 0.65rem">Keyring is operator-side only. Key rotation keeps retired keys for historical verification. Asymmetric public keys remain deferred.</p>
+          </article>
+          <article class="card">
+            <h3>Resume / ack windows</h3>
+            <p>
+              Non-canonical delivery bookkeeping. Bounded (default 256). References only
+              <strong>committed</strong> sequences. Uncommitted acks fail closed.
+              Redelivery never creates world events or charges budgets.
+            </p>
+            <div class="path">evidence/resume.py · OPERATIONS checklist #12</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVARIANTS -->
+    <section id="invariants">
+      <div class="wrap">
+        <p class="section-label">Hard rules</p>
+        <h2>Invariants the UI must not break</h2>
+        <ul class="inv-list">
+          <li><span class="mark">01</span><span>One fenced canonical writer per world process.</span></li>
+          <li><span class="mark">02</span><span>WORLD TRUTH ≠ RESEARCH DERIVATION — research indexes are rebuildable.</span></li>
+          <li><span class="mark">03</span><span>Frontier injects only via ledger events through reducers.</span></li>
+          <li><span class="mark">04</span><span>Lab never mutates production state or ledger.</span></li>
+          <li><span class="mark">05</span><span>CAPTURE requires Lab <code>compiler_readiness: READY</code>.</span></li>
+          <li><span class="mark">06</span><span>Genesis is ADMIN-only; post-activate config freezes.</span></li>
+          <li><span class="mark">07</span><span>Lore / LEARN simple views never strengthen claim labels beyond evidence.</span></li>
+          <li><span class="mark">08</span><span>Deployment config and public bundles never carry secrets.</span></li>
+          <li><span class="mark">09</span><span>Research export without valid required receipt is <code>INVALID_EVIDENCE</code>.</span></li>
+          <li><span class="mark">10</span><span>No consciousness or scalar intelligence scores — ever.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- UI TRACK -->
+    <section id="ui">
+      <div class="wrap">
+        <p class="section-label">Current milestone</p>
+        <h2>Product UI (in progress)</h2>
+        <p class="lede">
+          Runtime Phases 0–11 are the stable backend contract. The UI track owns presentation,
+          progressive disclosure, and operator/agent experience — not world truth.
+        </p>
+        <div class="grid-2">
+          <article class="card">
+            <h3>Consume</h3>
+            <p>
+              Pin against Noema <code>main</code> (Phase 11: evidence). Use session roles,
+              redacted WATCH, claim labels from the server, and non-secret
+              <code>/config</code> digests for badges.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Avoid</h3>
+            <p>
+              Client-side ledgers, dual writers, inventing digests as authority,
+              putting evidence keyrings in the frontend bundle, or blocking PLAY on research health.
+            </p>
+          </article>
+        </div>
+        <div class="callout">
+          <strong>Reference shells only</strong>
+          <p>
+            Routes <code>/</code>, <code>/watch</code>, and <code>/play</code> shipped in Phase 10 are
+            minimal operator shells for Specs C14 — not the product UI. Replace them with the
+            real interface when ready; keep the JSON APIs stable.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LINKS -->
+    <section id="links">
+      <div class="wrap">
+        <p class="section-label">Links</p>
+        <h2>Repositories &amp; docs</h2>
+        <div class="grid-3">
+          <article class="card">
+            <h3>Noema Runtime</h3>
+            <p>This implementation.</p>
+            <div class="path"><a href="https://github.com/Zero-State-LLC/Noema">github.com/Zero-State-LLC/Noema</a></div>
+          </article>
+          <article class="card">
+            <h3>Noema-Specs</h3>
+            <p>Normative authority &amp; freeze docs.</p>
+            <div class="path"><a href="https://github.com/Zero-State-LLC/Noema-Specs">github.com/Zero-State-LLC/Noema-Specs</a></div>
+          </article>
+          <article class="card">
+            <h3>In-repo map</h3>
+            <p>Core loop implementation notes.</p>
+            <div class="path"><a href="https://github.com/Zero-State-LLC/Noema/blob/main/docs/CORE-LOOP-RUNTIME.md">docs/CORE-LOOP-RUNTIME.md</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <div class="brand-mark" style="font-size: 1rem; margin-bottom: 0.35rem">NOEMA</div>
+        <p style="margin: 0; max-width: 28rem">
+          Copyright © <span id="year">2026</span> Zero State LLC.
+          Zero State Proprietary License v1.0 — see repository LICENSE.
+        </p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/Zero-State-LLC/Noema">Runtime</a>
+        <a href="https://github.com/Zero-State-LLC/Noema-Specs">Specs</a>
+        <a href="https://github.com/Zero-State-LLC/Noema/blob/main/spec-compat.json">spec-compat</a>
+        <a href="#top">Top</a>
+      </div>
+    </div>
+  </footer>
+
+  <a class="to-top" href="#top" aria-label="Back to top">↑</a>
+  <script src="assets/site.js"></script>
+</body>
+</html>
