@@ -16,7 +16,7 @@ from noema.config.deployment import (
     validate_deployment_config,
 )
 from noema.gateway.http_server import serve
-from noema.gateway.ui import index_html, play_html, watch_html
+from noema.gateway.ui import index_html, play_html, study_html, watch_html
 
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples" / "deployment"
@@ -125,10 +125,21 @@ def test_verify_fails_on_secret_config(tmp_path: Path):
 
 
 def test_html_shells_render():
-    for html in (index_html(), watch_html(), play_html()):
+    for html in (index_html(), watch_html(), play_html(), study_html()):
         assert "<!DOCTYPE html>" in html
         assert "NOEMA" in html
         assert "/watch" in html
+
+
+def test_play_surface_keeps_research_and_admin_terms_out():
+    html = play_html()
+    for forbidden in ("Situation Genome", "Genesis Profile", "Frontier", "Observatory", "Compiler", "Capability Graph"):
+        assert forbidden not in html
+
+
+def test_public_surfaces_do_not_fabricate_seed_world_identity():
+    for html in (index_html(), play_html(), watch_html()):
+        assert "Aster Reach" not in html
 
 
 def test_http_ui_and_manifest_endpoints(tmp_path: Path):
@@ -147,6 +158,7 @@ def test_http_ui_and_manifest_endpoints(tmp_path: Path):
             ("/", "text/html"),
             ("/watch", "text/html"),
             ("/play", "text/html"),
+            ("/study", "text/html"),
             ("/health", "application/json"),
             ("/version", "application/json"),
             ("/manifest", "application/json"),
@@ -163,6 +175,8 @@ def test_http_ui_and_manifest_endpoints(tmp_path: Path):
                     assert b"Operator surface" in body
                 if path == "/watch":
                     assert b"WATCH" in body
+                if path == "/study":
+                    assert b"STUDY" in body
                 if path == "/manifest":
                     data = json.loads(body)
                     assert data["schema_version"] == "runtime-manifest/1.0"

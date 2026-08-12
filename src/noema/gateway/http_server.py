@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
-from noema.gateway.ui import index_html, play_html, watch_html
+from noema.gateway.ui import index_html, play_html, study_html, watch_html
 from noema.protocol.agent_v1 import AgentProtocolV1
 
 
@@ -55,6 +55,8 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     return self._html(200, watch_html())
                 if path in {"/play", "/play/"}:
                     return self._html(200, play_html())
+                if path in {"/study", "/study/"}:
+                    return self._html(200, study_html())
                 if path == "/health":
                     return self._json(200, runtime.health())
                 if path == "/ready":
