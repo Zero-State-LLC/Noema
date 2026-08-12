@@ -72,13 +72,44 @@ Expected:
 GENESIS REHEARSAL: PASS
 ```
 
+## Production activation comparison (human only)
+
+Exact candidate (do not substitute):
+
+```text
+Perihelion Reach · FRACTURED_OLD_WORLD · OLD_TRADE_NETWORK + LOST_ARCHIVE · 17011984
+```
+
+Approved rehearsal identity (see [FIRST-GENESIS-CANDIDATE.md](FIRST-GENESIS-CANDIDATE.md)):
+
+```text
+genesis_id:    genesis.ef578f4ffceeccd0
+cycle0_digest: sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6
+```
+
+1. Login to **production** ADMIN.  
+2. Enter the exact final candidate.  
+3. Preview.  
+4. Record production `genesis_id`.  
+5. Record production Cycle 0 digest.  
+6. Compare against approved rehearsal identity/digest.  
+7. If mismatch → **STOP**.  
+8. Human operator approves (never CI).  
+9. ACTIVATE with `confirm: true` only (no `force` in production).  
+10. Verify settlement `digest_match`.  
+11. Human Player smoke.  
+12. Agent Player smoke.  
+13. WATCH smoke.  
+14. Record first-world activation receipt.  
+
 ## Production safeguards
 
 | Rule | Enforcement |
 |------|-------------|
-| No CI auto-activate | Smoke requires `--activate` |
+| No CI auto-activate | Smoke requires `--activate`; no deploy hook activates |
 | No deploy reseed | `NOEMA_ENV=production` → reseed 403 |
 | No reseed after freeze | DO returns `POLICY_DENIED` when ACTIVE |
+| No force supersede in production | API returns `POLICY_DENIED` |
 | No player Genesis | Player JWT rejected on `/v1/admin/*` |
 
 ## Recovery
