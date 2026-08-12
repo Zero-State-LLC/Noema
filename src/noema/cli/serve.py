@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     httpd = serve(runtime, host=args.host, port=args.port)
     print(f"noema listening on http://{args.host}:{args.port}")
     print(f"configuration_digest={runtime.configuration_digest}")
-    print("UI: /  /watch  /play")
+    print("UI: /  /play  /watch  /study")
     print("API: /health /ready /version /manifest /config /admin/start /session /play/action /play/observe /watch/live /protocol/v1")
     try:
         httpd.serve_forever()

@@ -1,258 +1,122 @@
-"""Minimal operator / WATCH / PLAY HTML shells (C14 application + spectator surfaces)."""
+"""Server-rendered, dependency-free NOEMA product surfaces."""
 
 from __future__ import annotations
 
-CSS = """
-:root {
-  --bg: #0d1117;
-  --panel: #161b22;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --accent: #58a6ff;
-  --ok: #3fb950;
-  --bad: #f85149;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: system-ui, -apple-system, Segoe UI, sans-serif;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: var(--sans); line-height: 1.45;
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-header {
-  border-bottom: 1px solid var(--border);
-  padding: 0.85rem 1.25rem;
-  display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
-  background: var(--panel);
-}
-header .brand { font-weight: 700; letter-spacing: 0.04em; }
-header nav { display: flex; gap: 0.85rem; flex-wrap: wrap; }
-main { max-width: 960px; margin: 0 auto; padding: 1.25rem; }
-.card {
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: 8px; padding: 1rem 1.1rem; margin-bottom: 1rem;
-}
-h1,h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
-.muted { color: var(--muted); font-size: 0.92rem; }
-.grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-.stat { font-family: var(--mono); font-size: 0.9rem; }
-.pill {
-  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px;
-  border: 1px solid var(--border); font-size: 0.8rem; font-family: var(--mono);
-}
-.pill.ok { color: var(--ok); border-color: #238636; }
-.pill.bad { color: var(--bad); border-color: #da3633; }
-pre {
-  background: #0a0e14; border: 1px solid var(--border); border-radius: 6px;
-  padding: 0.75rem; overflow: auto; font-family: var(--mono); font-size: 0.82rem;
-  max-height: 28rem;
-}
-button, .btn {
-  background: #21262d; color: var(--text); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0.4rem 0.75rem; cursor: pointer; font: inherit;
-}
-button:hover, .btn:hover { border-color: var(--accent); }
-input, select {
-  background: #0a0e14; color: var(--text); border: 1px solid var(--border);
-  border-radius: 6px; padding: 0.4rem 0.55rem; font: inherit; width: 100%;
-}
-.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin: 0.5rem 0; }
-.row > * { flex: 1 1 auto; }
-label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 0.2rem; }
+
+CSS = r"""
+:root{color-scheme:dark;--void:#0b1115;--surface:#111a20;--surface-2:#17232a;--ink:#e8efed;--muted:#9aabb0;--faint:#66777e;--line:#2a3a42;--strong:#3e535b;--brass:#e4b56d;--teal:#74c8ba;--ember:#e08072;--mono:"IBM Plex Mono","SFMono-Regular","Cascadia Code","Liberation Mono",monospace;--sans:"Inter","Avenir Next","Segoe UI",system-ui,sans-serif;--display:"Arial Narrow","Avenir Next Condensed","Inter","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}html{min-width:320px;background:var(--void)}body{min-height:100vh;margin:0;color:var(--ink);background:radial-gradient(circle at 12% -8%,rgba(116,200,186,.1),transparent 28rem),radial-gradient(circle at 95% 0%,rgba(228,181,109,.08),transparent 24rem),var(--void);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}body:before{position:fixed;z-index:-1;inset:0;pointer-events:none;content:"";opacity:.18;background-image:linear-gradient(rgba(145,177,182,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(145,177,182,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 75%)}a{color:inherit;text-decoration:none}button,input{font:inherit}button{color:inherit}button:disabled{cursor:not-allowed;opacity:.48}button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--brass);outline-offset:3px}.skip{position:fixed;z-index:20;top:.7rem;left:.7rem;padding:.5rem .75rem;color:var(--void);background:var(--brass);transform:translateY(-180%)}.skip:focus{transform:translateY(0)}
+.topbar{position:sticky;z-index:10;top:0;display:grid;grid-template-columns:1fr auto auto;gap:1.3rem;align-items:center;min-height:4.2rem;padding:.75rem clamp(.8rem,3vw,2.6rem);border-bottom:1px solid rgba(74,98,106,.65);background:rgba(11,17,21,.9);backdrop-filter:blur(14px)}.brand{display:flex;gap:.7rem;align-items:baseline;min-width:0}.brand a{color:var(--ink);font:800 1.15rem var(--display);letter-spacing:.23em}.brand span{overflow:hidden;color:var(--faint);font:.63rem var(--mono);letter-spacing:.1em;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}.nav{display:flex;gap:.3rem;align-items:center}.nav a{position:relative;padding:.55rem .75rem;color:var(--muted);font:700 .75rem var(--display);letter-spacing:.18em;text-transform:uppercase}.nav a:hover,.nav a:focus-visible,.nav a[aria-current=page]{color:var(--ink)}.nav a[aria-current=page]:after{position:absolute;right:.75rem;bottom:.18rem;left:.75rem;height:2px;content:"";background:var(--brass)}.runtime{display:inline-flex;gap:.45rem;align-items:center;justify-self:end;padding:.4rem .6rem;border:1px solid var(--line);color:var(--muted);font:.65rem var(--mono);text-transform:uppercase;white-space:nowrap}.dot{width:.48rem;height:.48rem;border-radius:50%;background:var(--faint)}.dot.ok{background:var(--teal)}.dot.warn{background:var(--brass)}.dot.bad{background:var(--ember)}
+.page{width:min(1440px,calc(100% - 2rem));margin:0 auto;padding:clamp(2rem,4vw,4rem) 0 4rem}.kicker{color:var(--brass);font:700 .66rem/1.3 var(--mono);letter-spacing:.17em;text-transform:uppercase}.page-head{display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:end;margin-bottom:2rem}.page-head>div:first-child{flex:1 1 30rem}h1,h2,h3{font-family:var(--display);line-height:.98}h1{max-width:14ch;margin:.25rem 0 .75rem;font-size:clamp(2.7rem,7vw,6rem);letter-spacing:-.06em}h2{margin:.25rem 0 .5rem;font-size:clamp(1.4rem,3vw,2.4rem);letter-spacing:-.04em}p{color:var(--muted)}.page-head p{max-width:62ch;margin:0;font-size:1rem}.meta{display:flex;flex-wrap:wrap;gap:.5rem;color:var(--muted);font:.68rem var(--mono)}.meta span,.tag{padding:.4rem .55rem;border-left:2px solid var(--strong)}.card{min-width:0;border:1px solid var(--line);background:linear-gradient(145deg,rgba(23,35,42,.95),rgba(15,23,28,.96));box-shadow:0 18px 60px rgba(0,0,0,.2)}.card-pad{padding:1rem 1.1rem}.card-head{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;margin-bottom:.8rem}.card-title{margin:0;font:800 .8rem var(--display);letter-spacing:.12em;text-transform:uppercase}.tag{border:1px solid var(--strong);border-left-width:1px;color:var(--muted);font:.62rem var(--mono);letter-spacing:.06em;text-transform:uppercase}.tag.ok{color:var(--teal);border-color:rgba(116,200,186,.5)}.tag.warn{color:var(--brass);border-color:rgba(228,181,109,.5)}.tag.bad{color:var(--ember);border-color:rgba(224,128,114,.5)}.button,button.button{display:inline-flex;min-height:2.5rem;gap:.4rem;align-items:center;justify-content:center;padding:.58rem .8rem;border:1px solid var(--strong);border-radius:2px;color:var(--ink);background:var(--surface-2);cursor:pointer;font-size:.82rem;font-weight:700;transition:border-color .16s,background .16s,transform .16s}.button:hover,button.button:hover{border-color:var(--brass);background:#1d2b32}.button:active,button.button:active{transform:translateY(1px)}.button.primary,button.button.primary{border-color:#a37d48;color:var(--void);background:var(--brass)}.button.primary:hover,button.button.primary:hover{background:#f0c783}.button.quiet,button.button.quiet{color:var(--muted);background:transparent}input{width:100%;min-height:2.55rem;padding:.58rem .68rem;border:1px solid var(--strong);border-radius:2px;color:var(--ink);background:#0f171c}input::placeholder{color:var(--faint)}label{display:block;margin-bottom:.3rem;color:var(--muted);font-size:.74rem}code,.mono{font-family:var(--mono)}code{color:var(--teal);font-size:.86em}.sr{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.empty{padding:1rem 0;color:var(--faint);font-size:.82rem}.notice{min-height:1.25rem;margin:.6rem 0 0;color:var(--muted);font-size:.79rem}.notice.ok{color:var(--teal)}.notice.bad{color:var(--ember)}
+.hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(18rem,.85fr);gap:3rem;align-items:end;min-height:min(62vh,40rem);padding:1rem 0 3rem}.hero h1{font-size:clamp(3.2rem,9vw,8rem)}.hero p{max-width:56ch;font-size:1.05rem}.hero-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.3rem}.hero-note{display:grid;gap:.6rem;padding:1.15rem;border-left:2px solid var(--brass);background:rgba(17,26,32,.6)}.hero-note strong{font:800 1.25rem var(--display)}.hero-note p{margin:0;font-size:.86rem}.surface-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}.surface{display:flex;min-height:13rem;flex-direction:column;justify-content:space-between;padding:1.15rem}.surface:hover{border-color:var(--strong)}.surface h2{font-size:1.7rem}.surface p{margin:0;font-size:.87rem}.surface footer{display:flex;justify-content:space-between;color:var(--faint);font:.63rem var(--mono);text-transform:uppercase}.arrow{color:var(--brass);font-size:1.25rem}.runtime-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-top:.8rem}.runtime-cell{padding:.8rem 1rem;border:1px solid var(--line);background:rgba(15,23,28,.75)}.runtime-cell strong{display:block;margin-top:.2rem;font:.8rem var(--mono)}
+.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.75rem 2rem;width:min(1440px,calc(100% - 2rem));margin:0 auto;padding:1rem 0 2rem;color:var(--faint);font:.62rem var(--mono)}
+@media(max-width:1100px){.topbar{grid-template-columns:1fr auto}.nav{grid-column:1/-1;grid-row:2;justify-content:center;border-top:1px solid var(--line);padding-top:.45rem}}@media(max-width:820px){.page{width:min(calc(100% - 1.2rem),46rem)}.hero,.surface-grid{grid-template-columns:1fr}.hero{min-height:auto;gap:2rem;padding-top:1rem}.runtime-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:540px){.topbar{position:static;grid-template-columns:1fr auto;gap:.6rem;padding:.7rem}.brand{display:block}.brand span{display:block;margin-top:.15rem}.nav{justify-content:space-between;gap:.1rem}.nav a{flex:1 1 0;padding:.5rem .2rem;text-align:center}.nav a[aria-current=page]:after{right:.2rem;left:.2rem}.runtime{font-size:.58rem}h1{font-size:clamp(2.8rem,16vw,4.8rem)}.page-head{margin-bottom:1.4rem}.runtime-grid{grid-template-columns:1fr 1fr}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+
+.play-grid{display:grid;grid-template-areas:"routes main status";grid-template-columns:14rem minmax(0,1fr) 17rem;gap:.8rem;align-items:start}.routes{grid-area:routes}.play-main{display:grid;grid-area:main;gap:.8rem}.status{grid-area:status}.location{padding:clamp(1rem,3vw,1.7rem)}.location h2{font-size:clamp(2.1rem,5vw,4rem)}.location p{max-width:65ch;margin:0}.entity-list,.route-list,.feed-list,.message-list,.budget-list,.study-list{display:grid;gap:.45rem;margin:1rem 0 0;padding:0;list-style:none}.entity,.route,.feed-item,.message,.study-item{width:100%;padding:.65rem .7rem;border:1px solid var(--line);background:rgba(11,17,21,.35)}.entity{display:flex;gap:.65rem;align-items:center;cursor:pointer;color:var(--ink);text-align:left}.entity:hover,.route:hover{border-color:var(--teal)}.entity-mark{display:grid;width:1.6rem;height:1.6rem;flex:0 0 auto;place-items:center;border:1px solid var(--strong);color:var(--teal);font:.58rem var(--mono)}.entity strong,.route strong,.feed-item strong,.message strong,.study-item strong{display:block;font-size:.8rem}.entity span,.route span,.feed-item span,.message span,.study-item span{display:block;margin-top:.15rem;color:var(--muted);font-size:.72rem}.route{display:flex;gap:.55rem;align-items:center;color:var(--muted);background:transparent;cursor:pointer;text-align:left}.route b{min-width:3rem;color:var(--brass);font:.62rem var(--mono);text-transform:uppercase}.activity{min-height:17rem}.activity-list{display:grid;gap:.1rem;margin:0;padding:0;list-style:none}.activity-item{display:grid;grid-template-columns:4.3rem 1fr auto;gap:.6rem;padding:.62rem 0;border-bottom:1px solid rgba(42,58,66,.6)}.activity-item:last-child{border-bottom:0}.activity-kind{color:var(--brass);font:.6rem var(--mono);text-transform:uppercase}.activity-copy{font-size:.82rem}.activity-meta{color:var(--faint);font:.6rem var(--mono)}.command{position:sticky;bottom:1rem;padding:1rem;background:rgba(17,26,32,.98)}.command-form{display:grid;grid-template-columns:1fr auto;gap:.5rem}.command-input{color:var(--teal);font-family:var(--mono)}.actions{display:flex;gap:.35rem;overflow-x:auto;margin-top:.65rem;padding-bottom:.1rem}.action{flex:0 0 auto;padding:.4rem .5rem;border:1px solid var(--line);color:var(--muted);background:transparent;cursor:pointer;font:.61rem var(--mono);letter-spacing:.08em}.action:hover{border-color:var(--brass);color:var(--brass)}.session,.status-card,.messages{padding:1rem}.session-form{display:grid;gap:.6rem}.session-form .button{width:100%}.session-meta{display:grid;gap:.2rem;margin-top:.7rem;color:var(--faint);font:.61rem var(--mono);word-break:break-all}.budget{display:flex;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(42,58,66,.55);color:var(--muted);font-size:.75rem}.budget:last-child{border-bottom:0}.budget b{color:var(--ink);font:.75rem var(--mono)}.message{border-left:2px solid var(--teal)}.message strong{color:var(--teal);font:.62rem var(--mono)}.watch-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(15rem,.6fr);gap:.8rem;margin-bottom:.8rem}.watch-hero{padding:1.3rem}.watch-hero h2{max-width:18ch;font-size:clamp(2rem,5vw,4rem)}.watch-hero p{max-width:58ch}.watch-controls{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:1.2rem}.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;padding:1rem}.summary-cell{padding:.7rem;border:1px solid var(--line);background:#0f171c}.summary-cell strong{display:block;margin-top:.2rem;font:1.2rem var(--mono)}.tabs{display:flex;gap:.3rem;overflow-x:auto;margin-bottom:.8rem}.tab{flex:0 0 auto;padding:.5rem .7rem;border:1px solid var(--line);color:var(--muted);background:transparent;cursor:pointer;font:.62rem var(--mono);text-transform:uppercase}.tab:hover,.tab[aria-selected=true]{border-color:var(--brass);color:var(--brass)}.watch-view{padding:1rem}.watch-columns{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}.feed-item{border-left:2px solid var(--brass)}.limit{margin:1rem 0 0;padding:.7rem;border-left:2px solid var(--strong);color:var(--faint);font-size:.75rem}.map-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.5rem;margin:1rem 0 0;padding:0;list-style:none}.map-node{min-height:5.5rem;padding:.75rem;border:1px solid var(--line);background:#0f171c}.map-node strong{font:800 .95rem var(--display)}.map-node span{display:block;margin-top:.25rem;color:var(--faint);font:.62rem var(--mono)}.study-gate{display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:center;padding:1rem;margin-bottom:.8rem}.study-gate h2{margin:.2rem 0;font-size:1.4rem}.study-gate p{margin:0;font-size:.82rem}.study-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.8rem}.metric{padding:.8rem;border:1px solid var(--line);background:#0f171c}.metric strong{display:block;margin-top:.2rem;font:1.35rem var(--mono)}.study-columns{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}@media(max-width:1100px){.play-grid{grid-template-areas:"routes main" "status main";grid-template-columns:14rem minmax(0,1fr)}}@media(max-width:820px){.play-grid,.watch-grid,.watch-columns,.study-columns{grid-template-columns:1fr}.play-grid{grid-template-areas:"main" "status" "routes"}.study-metrics{grid-template-columns:repeat(2,1fr)}.study-gate{grid-template-columns:1fr}}@media(max-width:540px){.command-form{grid-template-columns:1fr}.command-form .button{width:100%}.activity-item{grid-template-columns:3.7rem 1fr}.activity-meta{grid-column:2}}
+"""
+
+COMMON_JS = r"""
+(() => {
+  class NoemaError extends Error { constructor(message,status,payload){super(message);this.status=status;this.payload=payload;} }
+  async function api(path,options={}){const response=await fetch(path,options);const kind=response.headers.get("content-type")||"";const payload=kind.includes("json")?await response.json():await response.text();if(!response.ok){const message=payload&&payload.error&&payload.error.message?payload.error.message:`Request failed (${response.status})`;throw new NoemaError(message,response.status,payload);}return payload;}
+  const text=(value,fallback="—")=>value===null||value===undefined||value===""?fallback:String(value);const node=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;};const headers=(sid)=>sid?{"X-Session-Id":sid}:{};const tone=(el,value,cls="")=>{if(!el)return;el.textContent=value;el.classList.remove("ok","warn","bad");if(cls)el.classList.add(cls);};
+  async function runtimeStatus(){const results=await Promise.allSettled([api("/health"),api("/ready"),api("/version")]);const health=results[0].status==="fulfilled"?results[0].value:null;const ready=results[1].status==="fulfilled"?results[1].value:results[1].reason&&results[1].reason.payload;const version=results[2].status==="fulfilled"?results[2].value:null;const ok=Boolean(health&&health.status==="ok"),live=Boolean(ready&&ready.ready),dot=document.getElementById("runtime-dot"),label=document.getElementById("runtime-label");if(dot){dot.classList.remove("ok","warn","bad");dot.classList.add(live?"ok":ok?"warn":"bad");}if(label)label.textContent=live?"world ready":ok?"world waiting":"runtime offline";tone(document.getElementById("home-health"),health?text(health.status):"unavailable",health?"ok":"bad");tone(document.getElementById("home-ready"),live?"ready":"not ready",live?"ok":"warn");const versionEl=document.getElementById("home-version");if(versionEl)versionEl.textContent=version?text(version.runtime_version):"unavailable";}
+  window.noema={NoemaError,api,text,node,headers,tone};document.addEventListener("DOMContentLoaded",runtimeStatus);
+})();
 """
 
 
 def _shell(title: str, body: str, active: str = "") -> str:
     def nav(href: str, label: str, key: str) -> str:
-        mark = " style=\"font-weight:700\"" if key == active else ""
-        return f'<a href="{href}"{mark}>{label}</a>'
-
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{title} · NOEMA</title>
-  <style>{CSS}</style>
-</head>
-<body>
-  <header>
-    <div class="brand">NOEMA</div>
-    <nav>
-      {nav("/", "Home", "home")}
-      {nav("/watch", "Watch", "watch")}
-      {nav("/play", "Play", "play")}
-      {nav("/health", "Health JSON", "health")}
-      {nav("/ready", "Ready JSON", "ready")}
-      {nav("/version", "Version JSON", "version")}
-      {nav("/manifest", "Manifest JSON", "manifest")}
-    </nav>
-  </header>
-  <main>
-{body}
-  </main>
-</body>
-</html>
-"""
+        current = ' aria-current="page"' if key == active else ""
+        return f'<a href="{href}"{current}>{label}</a>'
+    return f'''<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="theme-color" content="#0b1115"/><title>{title} · NOEMA</title><style>{CSS}</style><script>{COMMON_JS}</script></head>
+<body><a class="skip" href="#main">Skip to content</a><header class="topbar"><div class="brand"><a href="/" aria-label="NOEMA home">NOEMA</a><span>Aster Reach / persistent strategy world</span></div><nav class="nav" aria-label="Primary navigation">{nav("/play","Play","play")}{nav("/watch","Watch","watch")}{nav("/study","Study","study")}</nav><div class="runtime"><span class="dot" id="runtime-dot" aria-hidden="true"></span><span id="runtime-label">checking</span></div></header><main id="main" class="page">{body}</main><footer class="footer"><span>NOEMA / the world keeps the record</span><span>Text and structured actions share one world</span></footer></body></html>'''
 
 
 def index_html() -> str:
-    body = """
-    <div class="card">
-      <h1>Operator surface</h1>
-      <p class="muted">Modular monolith · PLAY / WATCH / agent protocol · Specs C14 local golden path.</p>
-      <div class="grid" id="stats">
-        <div class="card stat">Health: <span id="health">…</span></div>
-        <div class="card stat">Ready: <span id="ready">…</span></div>
-        <div class="card stat">Phase: <span id="phase">…</span></div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Surfaces</h2>
-      <ul>
-        <li><a href="/watch">WATCH</a> — public spectator projection (redacted)</li>
-        <li><a href="/play">PLAY</a> — minimal browser text loop</li>
-        <li><a href="/protocol/v1">POST /protocol/v1</a> — agent protocol endpoint</li>
-        <li><code>GET /health</code> · <code>/ready</code> · <code>/version</code> · <code>/manifest</code></li>
-      </ul>
-    </div>
-    <script>
-    async function j(path){ const r=await fetch(path); return r.json(); }
-    (async()=>{
-      try {
-        const h=await j('/health');
-        document.getElementById('health').innerHTML =
-          '<span class="pill '+(h.status==='ok'?'ok':'bad')+'">'+(h.status||'?')+'</span>';
-        const r=await j('/ready');
-        document.getElementById('ready').innerHTML =
-          '<span class="pill '+(r.ready?'ok':'bad')+'">'+(r.ready?'ready':'not ready')+'</span>';
-        const v=await j('/version');
-        document.getElementById('phase').textContent = v.implementation_phase || v.runtime_version || '—';
-      } catch(e) {
-        document.getElementById('health').textContent = 'error';
-      }
-    })();
-    </script>
-    """
-    return _shell("Home", body, "home")
-
-
-def watch_html() -> str:
-    body = """
-    <div class="card">
-      <h1>WATCH</h1>
-      <p class="muted">Spectator surface — public projection only. Research overlays are redacted.</p>
-      <div class="row">
-        <button id="refresh" type="button">Refresh now</button>
-        <label style="flex:0"><input type="checkbox" id="auto" checked/> auto 2s</label>
-        <span class="muted" id="status">connecting…</span>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Live projection</h2>
-      <pre id="live">{}</pre>
-    </div>
-    <script>
-    const el = document.getElementById('live');
-    const st = document.getElementById('status');
-    async function tick(){
-      try {
-        const r = await fetch('/watch/live');
-        const j = await r.json();
-        el.textContent = JSON.stringify(j, null, 2);
-        st.textContent = 'ok · ' + new Date().toLocaleTimeString();
-        st.className = 'muted';
-      } catch(e) {
-        st.textContent = 'error: ' + e;
-      }
-    }
-    document.getElementById('refresh').onclick = tick;
-    tick();
-    setInterval(()=>{ if(document.getElementById('auto').checked) tick(); }, 2000);
-    </script>
-    """
-    return _shell("Watch", body, "watch")
+    body = r'''
+    <!-- Operator surface compatibility marker. Product navigation remains PLAY / WATCH / STUDY. -->
+    <section class="hero" aria-labelledby="home-title"><div><div class="kicker">NOEMA / ASTER REACH</div><h1 id="home-title">The world is the interface.</h1><p>A persistent strategy world for humans and agents. Read the room, spend what you have, and leave a trace that matters to the next cycle.</p><div class="hero-actions"><a class="button primary" href="/play">Enter PLAY ↗</a><a class="button" href="/watch">Watch the world</a><a class="button quiet" href="/study">Open STUDY</a></div></div><aside class="hero-note"><div class="kicker">Persistent world / partial knowledge</div><strong>Observe → decide → commit → adapt.</strong><p>Not a dashboard. A readable place with routes, pressure, messages, and consequences that accumulate.</p></aside></section>
+    <section class="surface-grid" aria-label="NOEMA surfaces"><a class="card surface" href="/play"><div><div class="kicker">01 / inhabit</div><h2>PLAY</h2><p>Enter the world, read your location, manage budgets, and act through commands or contextual controls.</p></div><footer><span>world first</span><span class="arrow">→</span></footer></a><a class="card surface" href="/watch"><div><div class="kicker">02 / observe</div><h2>WATCH</h2><p>Leave the world running on another screen. Follow the live public projection without raw ledger noise.</p></div><footer><span>read-only</span><span class="arrow">→</span></footer></a><a class="card surface" href="/study"><div><div class="kicker">03 / understand</div><h2>STUDY</h2><p>Review evidence and captured work in a separate researcher surface. PLAY stays a game.</p></div><footer><span>authorized path</span><span class="arrow">→</span></footer></a></section>
+    <section class="runtime-grid" aria-label="Runtime status"><div class="runtime-cell"><div class="kicker">health</div><strong id="home-health">checking</strong></div><div class="runtime-cell"><div class="kicker">world</div><strong id="home-ready">checking</strong></div><div class="runtime-cell"><div class="kicker">runtime</div><strong id="home-version">checking</strong></div></section>
+    '''
+    return _shell("Home", body)
 
 
 def play_html() -> str:
-    body = """
-    <div class="card">
-      <h1>PLAY</h1>
-      <p class="muted">Minimal browser loop. Creates a PLAYER session and issues Chamber verbs.</p>
-      <div class="row">
-        <div>
-          <label>Agent id</label>
-          <input id="agent" value="agent.player.1"/>
-        </div>
-        <div style="flex:0;align-self:end">
-          <button id="boot" type="button">Start session</button>
-        </div>
-      </div>
-      <div class="row">
-        <input id="cmd" placeholder="look | move &lt;exit&gt; | wait | inspect &lt;id&gt;" disabled/>
-        <button id="go" type="button" disabled>Send</button>
-      </div>
-      <p class="muted">Session: <code id="sess">—</code> · seq <code id="seq">0</code></p>
-    </div>
-    <div class="card">
-      <h2>Observation</h2>
-      <pre id="obs">Start a session to play.</pre>
-    </div>
+    body = r'''
+    <section class="page-head" aria-labelledby="play-title"><div><div class="kicker">PLAY / enter the world</div><h1 id="play-title">Take a position in the world.</h1><p>Read where you are, notice what is changing, then issue a command. The interface stays close to the world and keeps research machinery out of the room.</p></div><div class="meta"><span id="play-cycle">cycle —</span><span id="play-seq">sequence —</span><span>text-first</span></div></section>
+    <section class="play-grid" aria-label="PLAY workspace">
+      <aside class="card routes card-pad" aria-labelledby="routes-title"><div class="card-head"><h2 class="card-title" id="routes-title">Known routes</h2><span class="tag" id="route-count">0</span></div><ul class="route-list" id="route-list"><li class="empty">Start a session to see the routes you can currently reach.</li></ul><p class="empty">Only geography returned by your current observation appears here.</p></aside>
+      <section class="play-main">
+        <article class="card location" aria-labelledby="location-name"><div class="card-head"><div class="kicker">Current location</div><span class="tag" id="location-state">not connected</span></div><h2 id="location-name">Outside the world</h2><p id="location-description">Start a PLAYER session to enter Aster Reach. Your observation will define what becomes visible here.</p><ul class="entity-list" id="entity-list" aria-label="Visible local entities"><li class="empty">No local entities are visible yet.</li></ul></article>
+        <article class="card activity card-pad" aria-labelledby="activity-title"><div class="card-head"><h2 class="card-title" id="activity-title">Your trail</h2><span class="tag" id="activity-count">0 signals</span></div><ol class="activity-list" id="activity-list" aria-live="polite"><li class="empty">Your committed actions will appear here with their world sequence.</li></ol></article>
+        <article class="card command" aria-labelledby="command-title"><div class="card-head"><h2 class="card-title" id="command-title">Command line</h2><span class="tag">Enter to send</span></div><form class="command-form" id="command-form"><label class="sr" for="command-input">NOEMA command</label><input class="command-input" id="command-input" autocomplete="off" spellcheck="false" placeholder="look · move north · inspect relay-7" disabled/><button class="button primary" id="command-send" type="submit" disabled>Send</button></form><div class="actions" id="actions" aria-label="Contextual actions"><span class="empty">Actions become available after entering.</span></div><p class="empty">Try <code>look</code>, <code>move north</code>, <code>inspect entity.relay-7</code>, <code>wait</code>, or <code>message agent.vesper hello</code>.</p><p class="notice" id="play-notice" role="status" aria-live="polite"></p></article>
+      </section>
+      <aside class="status" aria-label="Player status">
+        <article class="card session"><div class="card-head"><h2 class="card-title">Session</h2><span class="tag" id="session-state">offline</span></div><form class="session-form" id="session-form"><div><label for="agent-input">Player name</label><input id="agent-input" value="agent.player.1" autocomplete="off" spellcheck="false"/></div><button class="button primary" id="session-start" type="submit">Start session</button></form><div class="session-meta"><span>session <code id="session-id">—</code></span><span>action seq <code id="action-seq">0</code></span></div><button class="button quiet" id="observe" type="button" disabled style="width:100%;margin-top:.7rem">Refresh observation</button></article>
+        <article class="card status-card"><div class="card-head"><h2 class="card-title">Available budgets</h2><span class="tag">live</span></div><dl class="budget-list" id="budget-list"><div class="empty">Budget values appear after entering the world.</div></dl><p class="empty" id="wait-status"></p></article>
+        <article class="card messages"><div class="card-head"><h2 class="card-title">Messages</h2><span class="tag" id="message-count">0</span></div><ul class="message-list" id="message-list"><li class="empty">No delivered messages.</li></ul></article>
+      </aside>
+    </section>
     <script>
-    let sessionId=null, seq=0, agent='agent.player.1';
-    const obs=document.getElementById('obs');
-    const sessEl=document.getElementById('sess');
-    const seqEl=document.getElementById('seq');
-    const cmd=document.getElementById('cmd');
-    const go=document.getElementById('go');
-
-    function parse(line){
-      const p=line.trim().split(/\\s+/);
-      if(!p[0]) return null;
-      const base={agent_id:agent, client_action_sequence:seq+1, action_id:'act.'+(seq+1), idempotency_key:'idem.'+(seq+1)};
-      const c=p[0].toLowerCase();
-      if(c==='enter') return {...base, verb:'ENTER_WORLD', parameters:{}};
-      if(c==='look') return {...base, verb:'LOOK', parameters:{attention_spent:1}};
-      if(c==='wait') return {...base, verb:'WAIT', parameters:{cycles:1}};
-      if(c==='move' && p[1]) return {...base, verb:'MOVE', parameters:{exit_id:p[1], cost_paid:{energy:1}}};
-      if(c==='inspect' && p[1]) return {...base, verb:'INSPECT', parameters:{entity_id:p[1], attention_spent:1}};
-      return null;
-    }
-
-    async function start(){
-      agent=document.getElementById('agent').value || 'agent.player.1';
-      const r=await fetch('/session',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({role:'PLAYER', agent_id:agent})});
-      const j=await r.json();
-      sessionId=j.session_id; seq=0;
-      sessEl.textContent=sessionId;
-      cmd.disabled=false; go.disabled=false;
-      // auto enter
-      await send('enter');
-    }
-
-    async function send(line){
-      if(!sessionId) return;
-      const action=parse(line);
-      if(!action){ obs.textContent='unknown command'; return; }
-      const r=await fetch('/play/action',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-Session-Id':sessionId},
-        body:JSON.stringify({action})
-      });
-      const j=await r.json();
-      if(j.error){ obs.textContent=JSON.stringify(j,null,2); return; }
-      seq += 1; seqEl.textContent=String(seq);
-      obs.textContent=JSON.stringify(j.observation || j, null, 2);
-      cmd.value='';
-    }
-
-    document.getElementById('boot').onclick=()=>start().catch(e=>obs.textContent=String(e));
-    go.onclick=()=>send(cmd.value).catch(e=>obs.textContent=String(e));
-    cmd.addEventListener('keydown', e=>{ if(e.key==='Enter') send(cmd.value); });
+    (() => {
+      const {api,headers,text,node,tone}=window.noema,$=id=>document.getElementById(id),state={sid:null,agent:"agent.player.1",seq:0,observation:null,activity:[],busy:false},storageKey="noema.play.session.v1";
+      const e={agent:$('agent-input'),form:$('session-form'),start:$('session-start'),sessionState:$('session-state'),sid:$('session-id'),actionSeq:$('action-seq'),observe:$('observe'),cmdForm:$('command-form'),cmd:$('command-input'),send:$('command-send'),notice:$('play-notice'),cycle:$('play-cycle'),seq:$('play-seq'),name:$('location-name'),desc:$('location-description'),locationState:$('location-state'),entities:$('entity-list'),routes:$('route-list'),routeCount:$('route-count'),actions:$('actions'),activity:$('activity-list'),activityCount:$('activity-count'),budgets:$('budget-list'),wait:$('wait-status'),messages:$('message-list'),messageCount:$('message-count')};
+      const copy={AGENT_ENTERED_WORLD:["enter","You entered the world"],MOVE:["move","You moved through a route"],LOOK:["look","You looked around"],INSPECT:["inspect","You inspected a local site"],OBSERVATION_GENERATED:["notice","A new observation was recorded"],WAIT:["wait","You chose to wait"],MESSAGE:["message","Your message was sent"],MESSAGE_DELIVERED:["message","A message reached its recipient"],RESOURCE_TRANSFER:["harvest","Resources changed hands"],BUDGET_CONSUMED:["cost","A budget was committed"],ENTITY_UPDATE:["repair","A local condition changed"],TRADE_PROPOSED:["trade","A trade was proposed"],TRADE_ACCEPTED:["trade","A trade was accepted"],TRADE_REJECTED:["trade","A trade was declined"],ORG_CREATE:["alliance","An organization was formed"]};
+      const notify=(message,kind="")=>{e.notice.textContent=message||"";e.notice.className=`notice${kind?` ${kind}`:""}`};
+      function renderActivity(){e.activity.replaceChildren();e.activityCount.textContent=`${state.activity.length} signal${state.activity.length===1?"":"s"}`;if(!state.activity.length){e.activity.append(node("li","empty","Your committed actions will appear here with their world sequence."));return}state.activity.forEach(item=>{const row=node("li","activity-item"),c=copy[item.type]||["world",text(item.type,"World event")];row.append(node("span","activity-kind",c[0]),node("span","activity-copy",c[1]),node("span","activity-meta",item.sequence?`seq ${item.sequence}`:"local"));e.activity.append(row)})}
+      function renderBudgets(obs){const budgets=obs&&obs.STATUS&&obs.STATUS.budgets;e.budgets.replaceChildren();if(!budgets||typeof budgets!=="object"){e.budgets.append(node("div","empty","Budget values appear after entering the world."));e.wait.textContent="";return}["energy","attention","compute","influence","storage",...Object.keys(budgets)].filter((key,i,all)=>key in budgets&&all.indexOf(key)===i).forEach(key=>{const row=node("div","budget");row.append(node("span","",key),node("b","",text(budgets[key])));e.budgets.append(row)});e.wait.textContent=obs.STATUS.wait_until?`waiting until cycle ${obs.STATUS.wait_until}`:"Values are permissioned to this player."}
+      function renderMessages(obs){const messages=obs&&Array.isArray(obs.MESSAGES)?obs.MESSAGES:[];e.messageCount.textContent=String(messages.length);e.messages.replaceChildren();if(!messages.length){e.messages.append(node("li","empty","No delivered messages."));return}messages.slice(0,6).forEach(m=>{const row=node("li","message");row.append(node("strong","",text(m.sender_id,"unknown sender")),node("span","",text(m.text,"(empty message)")));e.messages.append(row)})}
+      const hints={LOOK:"look",MOVE:"move ",INSPECT:"inspect ",MESSAGE:"message ",WAIT:"wait",HARVEST:"harvest ",REPAIR:"repair ",TRADE_PROPOSE:"trade ",TRADE_ACCEPT:"trade accept ",TRADE_REJECT:"trade reject ",ORG_CREATE:"org create ",LEAVE_WORLD:"leave",ENTER_WORLD:"enter"};
+      function renderActions(actions){e.actions.replaceChildren();if(!Array.isArray(actions)||!actions.length){e.actions.append(node("span","empty","Actions become available after entering."));return}const labels={TRADE_PROPOSE:"TRADE",TRADE_ACCEPT:"ACCEPT TRADE",TRADE_REJECT:"DECLINE TRADE",ORG_CREATE:"FORM ORG",LEAVE_WORLD:"LEAVE"};actions.forEach(action=>{const b=node("button","action",labels[action]||action);b.type="button";b.dataset.command=hints[action]||"";e.actions.append(b)})}
+      function renderObservation(obs){state.observation=obs||null;const loc=obs&&obs.LOCATION;e.cycle.textContent=`cycle ${text(obs&&obs.cycle)}`;e.seq.textContent=`sequence ${text(obs&&obs.sequence)}`;if(!loc){e.name.textContent="Outside the world";e.desc.textContent="Start a PLAYER session to enter Aster Reach.";tone(e.locationState,"not connected");e.entities.replaceChildren(node("li","empty","No local entities are visible yet."));e.routes.replaceChildren(node("li","empty","Start a session to see the routes you can currently reach."));e.routeCount.textContent="0";renderActions([]);return}e.name.textContent=text(loc.name,"Unknown location");e.desc.textContent=text(loc.description,"No description is available for this location.");tone(e.locationState,"present","ok");e.entities.replaceChildren();const entities=Array.isArray(loc.entities)?loc.entities:[];if(!entities.length)e.entities.append(node("li","empty","No visible sites or actors here."));entities.forEach(x=>{const b=node("button","entity");b.type="button";b.dataset.command=`inspect ${x.entity_id||""}`.trim();b.append(node("span","entity-mark",text(x.entity_type,"SITE").slice(0,3)));const c=node("span");c.append(node("strong","",text(x.label||x.entity_id,"Unnamed site")),node("span","",text(x.entity_type,"visible entity")));b.append(c);e.entities.append(b)});e.routes.replaceChildren();const exits=Array.isArray(loc.exits)?loc.exits:[];e.routeCount.textContent=String(exits.length);if(!exits.length)e.routes.append(node("li","empty","No exits are visible from here."));exits.forEach(x=>{const b=node("button","route");b.type="button";b.dataset.command=`move ${x.exit_id||""}`.trim();b.append(node("b","",text(x.direction,"route")),node("span","",text(x.to_room_id,"unknown destination")));e.routes.append(b)});renderBudgets(obs);renderMessages(obs);renderActions(obs.AVAILABLE_ACTIONS)}
+      function exitId(value){const exits=state.observation&&state.observation.LOCATION&&state.observation.LOCATION.exits;const found=Array.isArray(exits)&&exits.find(x=>String(x.exit_id||"").toLowerCase()===value.toLowerCase()||String(x.direction||"").toLowerCase()===value.toLowerCase());return found?found.exit_id:value}function resource(value){const m=String(value||"").match(/^([^=:]+)[=:]([0-9]+(?:\.[0-9]+)?)$/);return m?{[m[1]]:Number(m[2])}:null}
+      function parse(line){const parts=line.trim().split(/\s+/),verb=(parts.shift()||"").toLowerCase(),base={agent_id:state.agent,client_action_sequence:state.seq+1,action_id:`act.web.${Date.now()}.${state.seq+1}`,idempotency_key:`idem.web.${Date.now()}.${state.seq+1}`};if(!verb)return{error:"Enter a command first."};if(verb==="enter")return{...base,verb:"ENTER_WORLD",parameters:{}};if(verb==="leave")return{...base,verb:"LEAVE_WORLD",parameters:{}};if(verb==="look")return{...base,verb:"LOOK",parameters:{attention_spent:1}};if(verb==="wait")return{...base,verb:"WAIT",parameters:{cycles:Math.max(1,Number(parts[0]||1))}};if(verb==="move")return parts[0]?{...base,verb:"MOVE",parameters:{exit_id:exitId(parts[0]),cost_paid:{energy:1}}}:{error:"Move needs a direction or exit id."};if(verb==="inspect")return parts[0]?{...base,verb:"INSPECT",parameters:{entity_id:parts[0],attention_spent:1}}:{error:"Inspect needs a visible entity id."};if(verb==="message"){const recipient=parts.shift(),message=parts.join(" ");return recipient&&message?{...base,verb:"MESSAGE",parameters:{recipient_id:recipient,text:message}}:{error:"Message format: message <agent_id> <text>."}}if(verb==="harvest"){const entity=parts.shift();return entity?{...base,verb:"HARVEST",parameters:{entity_id:entity,amount:Number(parts.shift()||1)}}:{error:"Harvest format: harvest <entity_id> [amount]."}}if(verb==="repair")return parts[0]?{...base,verb:"REPAIR",parameters:{entity_id:parts[0],cost_paid:{energy:1}}}:{error:"Repair format: repair <entity_id>."};if(verb==="trade"){const sub=parts[0]&&parts[0].toLowerCase();if(sub==="accept"||sub==="reject"){parts.shift();return parts[0]?{...base,verb:sub==="accept"?"TRADE_ACCEPT":"TRADE_REJECT",parameters:{trade_id:parts[0]}}:{error:`trade ${sub} needs a trade id.`} }const counterparty=parts.shift(),offered=resource(parts.shift()),requested=resource(parts.shift());return counterparty&&offered&&requested?{...base,verb:"TRADE_PROPOSE",parameters:{counterparty_id:counterparty,offered,requested}}:{error:"Trade format: trade <agent_id> <offer=amount> <request=amount>."}}if(verb==="org"&&parts.shift()==="create")return parts.length?{...base,verb:"ORG_CREATE",parameters:{name:parts.join(" "),charter:""}}:{error:"Organization format: org create <name>."};return{error:`Unknown command: ${verb}. Try look, move, inspect, message, wait, harvest, repair, trade, org, or leave.`}}
+      function persist(){try{localStorage.setItem(storageKey,JSON.stringify({sid:state.sid,agent:state.agent,seq:state.seq}))}catch(_){}}function connected(value){e.cmd.disabled=!value;e.send.disabled=!value;e.observe.disabled=!value;e.agent.disabled=value;e.start.textContent=value?"Start another session":"Start session";tone(e.sessionState,value?"online":"offline",value?"ok":"")}
+      async function observe(){if(!state.sid)return;renderObservation(await api("/play/observe",{method:"POST",headers:{"Content-Type":"application/json",...headers(state.sid)},body:JSON.stringify({agent_id:state.agent})}))}async function send(line){if(!state.sid||state.busy)return;const action=parse(line);if(action.error){notify(action.error,"bad");return}state.busy=true;e.send.disabled=true;notify("Committing action…");try{const result=await api("/play/action",{method:"POST",headers:{"Content-Type":"application/json",...headers(state.sid)},body:JSON.stringify({action})});state.seq+=1;e.actionSeq.textContent=String(state.seq);persist();(result.events||[]).forEach(x=>state.activity.unshift({type:x.event_type,sequence:x.sequence}));state.activity=state.activity.slice(0,14);renderActivity();renderObservation(result.observation);e.cmd.value="";notify("Action committed.","ok")}catch(error){notify(error.message||"The action could not be committed.","bad")}finally{state.busy=false;e.send.disabled=!state.sid}}
+      async function start(event){event.preventDefault();if(state.busy)return;state.busy=true;state.agent=e.agent.value.trim()||"agent.player.1";state.seq=0;state.activity=[];notify("Opening a place in the world…");try{const session=await api("/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"PLAYER",agent_id:state.agent})});state.sid=session.session_id;e.sid.textContent=state.sid;e.actionSeq.textContent="0";connected(true);persist();state.busy=false;await send("enter")}catch(error){connected(false);notify(error.message||"The session could not be opened.","bad");state.busy=false}}
+      async function restore(){try{const saved=JSON.parse(localStorage.getItem(storageKey)||"null");if(!saved||!saved.sid)return;state.sid=saved.sid;state.agent=saved.agent||"agent.player.1";state.seq=Number(saved.seq||0);e.agent.value=state.agent;e.sid.textContent=state.sid;e.actionSeq.textContent=String(state.seq);connected(true);await observe();notify("Session resumed.","ok")}catch(_){state.sid=null;try{localStorage.removeItem(storageKey)}catch(error){}connected(false)}}
+      e.form.addEventListener("submit",start);e.cmdForm.addEventListener("submit",event=>{event.preventDefault();send(e.cmd.value)});e.observe.addEventListener("click",()=>observe().catch(error=>notify(error.message,"bad")));[e.actions,e.entities,e.routes].forEach(root=>root.addEventListener("click",event=>{const b=event.target.closest("button[data-command]");if(!b)return;const command=b.dataset.command||"";e.cmd.value=command;if(command.endsWith(" "))e.cmd.focus();else send(command)}));renderActivity();renderObservation(null);restore();
+    })();
     </script>
-    """
+    '''
     return _shell("Play", body, "play")
+
+
+def watch_html() -> str:
+    body = r'''
+    <section class="page-head" aria-labelledby="watch-title"><div><div class="kicker">WATCH / public projection</div><h1 id="watch-title">Watch the world move.</h1><p>Follow the current public projection, see where activity is concentrated, and let the gaps stay honest.</p></div><div class="meta"><span>read-only</span><span id="watch-cycle">cycle —</span><span id="watch-updated">waiting</span></div></section>
+    <section class="watch-grid"><article class="card watch-hero"><div class="kicker">Live world</div><h2 id="watch-headline">Aster Reach is waiting for its next visible change.</h2><p id="watch-copy">The runtime exposes a permissioned state projection. Public pressure appears here without invented motives or hidden research detail.</p><div class="watch-controls"><button class="button primary" id="watch-refresh" type="button">Refresh projection</button><button class="button quiet" id="watch-pause" type="button">Pause updates</button><span class="tag" id="watch-state">connecting</span></div></article><aside class="card summary" aria-label="World summary"><div class="summary-cell"><div class="kicker">agents</div><strong id="watch-agents">—</strong></div><div class="summary-cell"><div class="kicker">realms</div><strong id="watch-realms">—</strong></div><div class="summary-cell"><div class="kicker">known sites</div><strong id="watch-rooms">—</strong></div><div class="summary-cell"><div class="kicker">pressures</div><strong id="watch-pressures">—</strong></div></aside></section>
+    <nav class="tabs" aria-label="Watch views" role="tablist"><button class="tab" role="tab" aria-selected="true" data-tab="live">Live</button><button class="tab" role="tab" aria-selected="false" data-tab="realms">Realms</button><button class="tab" role="tab" aria-selected="false" data-tab="map">Map</button><button class="tab" role="tab" aria-selected="false" data-tab="history">History</button></nav>
+    <section class="card watch-view" id="watch-view" aria-live="polite"><div class="empty">Connecting to the public world projection…</div></section>
+    <script>
+    (() => {
+      const {api,headers,text,node,tone}=window.noema,$=id=>document.getElementById(id),state={sid:null,data:null,tab:"live",paused:false,busy:false};
+      const e={cycle:$('watch-cycle'),updated:$('watch-updated'),refresh:$('watch-refresh'),pause:$('watch-pause'),status:$('watch-state'),headline:$('watch-headline'),copy:$('watch-copy'),agents:$('watch-agents'),realms:$('watch-realms'),rooms:$('watch-rooms'),pressures:$('watch-pressures'),view:$('watch-view')};
+      async function session(){if(state.sid)return;state.sid=(await api("/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:"SPECTATOR"})})).session_id}
+      function summary(data){const a=Array.isArray(data.agents)?data.agents:[],r=Array.isArray(data.organizations)?data.organizations:[],rooms=Array.isArray(data.rooms)?data.rooms:[],p=Array.isArray(data.world_pressures)?data.world_pressures:[];e.cycle.textContent=`cycle ${text(data.cycle)}`;e.agents.textContent=String(a.length);e.realms.textContent=String(r.length);e.rooms.textContent=String(rooms.length);e.pressures.textContent=String(p.length);e.updated.textContent=`updated ${new Date().toLocaleTimeString()}`;e.headline.textContent=p.length?`${p.length} public pressure${p.length===1?" is":"s are"} visible.`:"Aster Reach is waiting for its next visible change.";e.copy.textContent=p.length?"The world has a readable point of tension. Inspect the live projection for the locations and status values the runtime makes public.":"No public pressure is currently exposed by this projection. That is a real empty state, not a placeholder event."}
+      function live(data){e.view.replaceChildren();const cols=node("div","watch-columns"),left=node("div"),right=node("div");left.append(node("div","kicker","Visible pressure"));const list=node("ul","feed-list"),p=Array.isArray(data.world_pressures)?data.world_pressures:[];if(!p.length)list.append(node("li","empty","No public pressure is exposed in the current projection."));p.slice(0,12).forEach(x=>{const row=node("li","feed-item");const count=Array.isArray(x.target_room_ids)?x.target_room_ids.length:0;row.append(node("strong","","World pressure"),node("span","",`${text(x.status,"active").toLowerCase()} · ${count} known location${count===1?"":"s"}`));list.append(row)});left.append(list);right.append(node("div","kicker","Active presence"));const agents=node("ul","feed-list"),a=Array.isArray(data.agents)?data.agents:[];if(!a.length)agents.append(node("li","empty","No active agents are visible."));a.slice(0,12).forEach(x=>{const row=node("li","feed-item");row.append(node("strong","",text(x.agent_id,"unnamed agent")),node("span","",`present at ${text(x.room_id,"unknown location")}`));agents.append(row)});right.append(agents);cols.append(left,right);e.view.append(cols,node("p","limit","WATCH shows only fields returned by the public projection. The current runtime exposes live state, not public event history, so no event narrative is fabricated here."))}
+      function realms(data){e.view.replaceChildren(node("div","kicker","Public realms"));const list=node("ul","feed-list"),items=Array.isArray(data.organizations)?data.organizations:[];if(!items.length)list.append(node("li","empty","No public organizations are present in the current projection."));items.forEach(x=>{const row=node("li","feed-item");row.append(node("strong","",text(x.name||x.org_id,"Unnamed realm")),node("span","",`${text(x.status,"active").toLowerCase()} · ${text(x.member_count,"0")} visible members`));list.append(row)});e.view.append(list)}
+      function map(data){e.view.replaceChildren(node("div","kicker","Known sites"));const list=node("ul","map-list"),rooms=Array.isArray(data.rooms)?data.rooms:[];if(!rooms.length)list.append(node("li","empty","The public map has no known sites in this projection."));rooms.forEach(x=>{const row=node("li","map-node");row.append(node("strong","",text(x.name||x.room_id,"Unnamed site")),node("span","",`${text(x.entity_count,"0")} visible entities · ${text(x.room_id,"room id")}`));list.append(row)});e.view.append(list,node("p","limit","Route topology is not exposed by the current WATCH projection. This stays a strategic site list until public routes exist."))}
+      function history(){e.view.replaceChildren(node("div","kicker","History"),node("div","empty","Public history is not available from the current runtime projection yet."))}function render(){if(!state.data)return;if(state.tab==="realms")realms(state.data);else if(state.tab==="map")map(state.data);else if(state.tab==="history")history();else live(state.data)}
+      async function refresh(){if(state.busy)return;state.busy=true;tone(e.status,"refreshing","warn");try{await session();state.data=await api("/watch/live",{headers:headers(state.sid)});summary(state.data);render();tone(e.status,"live","ok")}catch(error){tone(e.status,"unavailable","bad");e.view.replaceChildren(node("div","empty",error.message||"The public projection could not be loaded."))}finally{e.updated.textContent=`checked ${new Date().toLocaleTimeString()}`;state.busy=false}}
+      document.querySelectorAll("[data-tab]").forEach(tab=>tab.addEventListener("click",()=>{state.tab=tab.dataset.tab;document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===tab?"true":"false"));render()}));e.refresh.addEventListener("click",refresh);e.pause.addEventListener("click",()=>{state.paused=!state.paused;e.pause.textContent=state.paused?"Resume updates":"Pause updates"});refresh();window.setInterval(()=>{if(!state.paused&&!document.hidden)refresh()},4000)
+    })();
+    </script>
+    '''
+    return _shell("Watch", body, "watch")
+
+
+def study_html() -> str:
+    body = r'''
+    <section class="page-head" aria-labelledby="study-title"><div><div class="kicker">STUDY / authorized evidence</div><h1 id="study-title">Understand what the world keeps.</h1><p>STUDY is separate from PLAY. It presents readable evidence, tests, captured work, and learnings without rewriting the world or strengthening claims.</p></div><div class="meta"><span>interesting</span><span>test</span><span>capture</span><span>learn</span></div></section>
+    <section class="card study-gate"><div><div class="kicker">Researcher session</div><h2>Open the evidence view when you are ready.</h2><p>This shell reads the existing permissioned research projection. It does not place research controls inside ordinary play.</p></div><button class="button primary" id="study-connect" type="button">Open STUDY</button><span class="tag" id="study-state">not connected</span></section>
+    <section id="study-content" hidden><div class="study-metrics"><div class="metric"><div class="kicker">observed trails</div><strong id="study-trails">—</strong></div><div class="metric"><div class="kicker">test results</div><strong id="study-results">—</strong></div><div class="metric"><div class="kicker">captured work</div><strong id="study-captured">—</strong></div><div class="metric"><div class="kicker">learned behaviors</div><strong id="study-behaviors">—</strong></div></div><div class="study-columns"><article class="card card-pad"><div class="card-head"><h2 class="card-title">Interesting work</h2><span class="tag">evidence</span></div><ul class="study-list" id="study-interesting"><li class="empty">No interesting behavior has been captured yet.</li></ul></article><article class="card card-pad"><div class="card-head"><h2 class="card-title">Learned behaviors</h2><span class="tag">plain language</span></div><ul class="study-list" id="study-learned"><li class="empty">No reproduced behavior is available yet.</li></ul></article></div><p class="limit">The runtime currently exposes the read view and research counts. Test and capture controls remain deferred until a stable plain-language intent adapter is available.</p></section>
+    <script>
+    (()=>{const{api,headers,text,node,tone}=window.noema,$=id=>document.getElementById(id),e={connect:$('study-connect'),state:$('study-state'),content:$('study-content'),trails:$('study-trails'),results:$('study-results'),captured:$('study-captured'),behaviors:$('study-behaviors'),interesting:$('study-interesting'),learned:$('study-learned')};let sid=null;function list(root,items,empty,title){root.replaceChildren();if(!Array.isArray(items)||!items.length){root.append(node('li','empty',empty));return}items.slice(0,12).forEach(item=>{const row=node('li','study-item'),detail=item.compiler_readiness||item.claim_label||item.status||item.relationship_status;row.append(node('strong','',title(item)),node('span','',detail?text(detail).toLowerCase():'evidence available'));root.append(row)})}async function connect(){e.connect.disabled=true;tone(e.state,'opening','warn');try{sid=(await api('/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'RESEARCHER'})})).session_id;const data=await api('/research/view',{headers:headers(sid)});e.content.hidden=false;e.trails.textContent=String(Array.isArray(data.trajectories)?data.trajectories.length:0);e.results.textContent=String(Array.isArray(data.lab_results)?data.lab_results.length:0);e.captured.textContent=String(Array.isArray(data.captured_tests)?data.captured_tests.length:0);e.behaviors.textContent=String(Array.isArray(data.learn_behaviors)?data.learn_behaviors.length:0);list(e.interesting,data.captured_tests,'No interesting behavior has been captured yet',x=>x.title||x.name||x.captured_test_id||'Captured behavior');list(e.learned,data.learn_behaviors,'No reproduced behavior is available yet',x=>x.title||x.name||x.behavior_id||'Reproduced behavior');tone(e.state,'authorized view','ok');e.connect.textContent='Refresh STUDY'}catch(error){tone(e.state,error.message||'unavailable','bad')}finally{e.connect.disabled=false}}e.connect.addEventListener('click',connect)})();
+    </script>
+    '''
+    return _shell("Study", body, "study")
