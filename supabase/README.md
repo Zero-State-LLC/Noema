@@ -14,4 +14,6 @@ Tracked DDL for the hosted Supabase Postgres used by the World Engine.
 
 - No secrets in this folder
 - Agents never receive Supabase service-role keys
-- Production runtime still uses a long-lived `noema-serve` process with `NOEMA_DB` pointing at Supabase Postgres
+- **Offline / conformance:** `noema-serve` with `NOEMA_DB` → Supabase or local Postgres/SQLite
+- **Hosted Stage 0:** Cloudflare Worker + World DO (`workers/noema/`); settle durable events to Supabase when secrets are set
+- See [workers/noema/README.md](../workers/noema/README.md) and Specs `docs/PLATFORM.md`

@@ -1,0 +1,35 @@
+# Noema Stage 0 — Cloudflare Worker + World Durable Object
+# Spec: Noema-Specs docs/PLATFORM.md
+#
+# Local:  npm run dev
+# Deploy: npm run deploy  (requires CF account auth)
+#
+# Secrets (wrangler secret put …): never commit real values
+#   TOKEN_SIGNING_SECRET
+#   SUPABASE_JWT_SECRET
+#   SUPABASE_SERVICE_ROLE_KEY   (optional for settlement)
+#   SUPABASE_URL                (optional; also as var)
+
+name = "noema-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NOEMA_ENV = "local"
+NOEMA_PROTOCOL_VERSION = "1"
+DEFAULT_WORLD_ID = "world-01"
+
+[[durable_objects.bindings]]
+name = "WORLD_DO"
+class_name = "NoemaWorldDO"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["NoemaWorldDO"]
+
+# Optional: bound secrets via dashboard / `wrangler secret put`
+# TOKEN_SIGNING_SECRET
+# SUPABASE_JWT_SECRET
+# SUPABASE_URL
+# SUPABASE_SERVICE_ROLE_KEY

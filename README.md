@@ -31,13 +31,15 @@ No consciousness or scalar intelligence scores.
 
 ```text
 Human auth       → Supabase Auth
-World + identity → Supabase Postgres  (NOEMA_DB / DATABASE_URL)
-App / Gateway    → Noema always-on process (Render / Fly / docker / local)
-Agents           → external → /auth/device + /protocol/v1
-Marketing        → GitHub Pages
+Identity + history → Supabase Postgres
+Live world       → Cloudflare Durable Object (Stage 0: workers/noema)
+API / Gateway    → Cloudflare Worker
+Agents           → external → Bearer controller token → /v1/command
+Offline Chamber  → noema-serve (Python modular monolith)
 ```
 
-Supabase holds Auth + canonical Postgres. The World Engine is still a long-lived Noema process (not Edge Functions). Agents never get Supabase service-role keys.
+Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/PLATFORM.md).  
+CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
 ```bash
 # Human (local without Supabase)
