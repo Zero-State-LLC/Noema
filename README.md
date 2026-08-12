@@ -34,9 +34,9 @@ See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](doc
 
 | Page | Shape |
 |---|---|
-| [`site/index.html`](site/) | **Marketing landing** — Marquee Hero splash |
+| [`site/index.html`](site/) | **Dynamic landing** — Specs hero + PLAY/WATCH/STUDY + interactive loop |
 | [`site/memo.html`](site/memo.html) | **Long Document** — Specs map for builders |
-| [`site/design.md`](site/design.md) | Locked dark-ledger tokens (one copper accent) |
+| [`site/design.md`](site/design.md) | Tokens; product framing from Noema-Specs |
 
 ```text
 https://zero-state-llc.github.io/Noema/

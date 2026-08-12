@@ -2,9 +2,12 @@
 
 | Page | Role |
 |---|---|
-| `index.html` | **Marketing landing** (Marquee Hero) |
+| `index.html` | **Dynamic marketing landing** — Specs hero, PLAY/WATCH/STUDY, interactive loop |
 | `memo.html` | Specs map / long document for implementers |
-| `design.md` | Locked dark-ledger tokens (one copper accent) |
+| `assets/hero-noema.jpg` | Vendored from Noema-Specs |
+| `design.md` | Tokens + Specs framing |
+
+Framing authority: [Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs).
 
 ```text
 https://zero-state-llc.github.io/Noema/

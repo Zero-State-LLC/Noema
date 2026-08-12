@@ -2,42 +2,11 @@
   {
     "date": "2026-08-12",
     "scope": "site/",
-    "pages": [
-      {
-        "path": "site/index.html",
-        "macrostructure": "Workbench",
-        "genre": "modern-minimal",
-        "theme": "noema-ledger-dark",
-        "note": "superseded same day by Marquee Hero landing"
-      },
-      {
-        "path": "site/memo.html",
-        "macrostructure": "Long Document",
-        "genre": "modern-minimal",
-        "theme": "noema-ledger-dark"
-      }
-    ],
-    "brief": "Initial Hallmark redesign after audit.",
-    "design_system": "site/design.md"
-  },
-  {
-    "date": "2026-08-12",
-    "scope": "site/index.html",
-    "pages": [
-      {
-        "path": "site/index.html",
-        "macrostructure": "Marquee Hero",
-        "genre": "modern-minimal",
-        "theme": "noema-ledger-dark"
-      },
-      {
-        "path": "site/memo.html",
-        "macrostructure": "Long Document",
-        "genre": "modern-minimal",
-        "theme": "noema-ledger-dark"
-      }
-    ],
-    "brief": "User feedback: homepage read as repo guts. Rebuild as marketing splash/landing; keep memo for technical depth. No CLI/JSON dumps on home.",
-    "design_system": "site/design.md"
+    "macrostructure": "Photographic + interactive path rail",
+    "genre": "modern-minimal",
+    "theme": "noema-ledger-dark",
+    "brief": "Dynamic landing using Noema-Specs as authority: hero-noema.jpg, PLAY/WATCH/STUDY golden paths, core loop freeze, experience terminology. Ambient particles + interactive SVG. Memo remains long document.",
+    "design_system": "site/design.md",
+    "reference": "https://github.com/Zero-State-LLC/Noema-Specs"
   }
 ]
