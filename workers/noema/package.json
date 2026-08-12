@@ -9,7 +9,9 @@
     "deploy:raw": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "node ./scripts/smoke.mjs"
+    "smoke": "node ./scripts/smoke.mjs",
+    "secrets:push": "bash ./scripts/push-secrets-from-env.sh",
+    "secrets:list": "wrangler secret list"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250812.0",
