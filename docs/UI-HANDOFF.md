@@ -285,6 +285,13 @@ Interesting → TEST THIS → question → result → (optional) CAPTURE AS TEST
 
 Advanced panels may show genome digests, analysis run IDs, etc. Simple panels must not require jargon.
 
+The reference STUDY shell exposes **Notice recent activity** after a RESEARCHER
+session opens. It calls the existing Observatory route with the current
+permissioned capture, reports `INSUFFICIENT_RESEARCH_INPUT` or
+`WORLD_NOT_READY` using the runtime error code and message, and never mutates
+world truth. TEST and CAPTURE remain progressive-disclosure steps until their
+existing Lab and Compiler inputs are available.
+
 **Invariants for UI copy and actions:**
 
 - Lab never claims production mutation
@@ -342,14 +349,14 @@ After activate, config freezes; PLAY should not show Genesis UI.
 
 ## 11. Acceptance checklist (product UI vs runtime)
 
-- [ ] PLAY: session → enter → look/move → observation updates  
-- [ ] WATCH: public redacted live without research keys  
-- [ ] `/ready` false → clear “world not ready”; research down does not break PLAY  
+- [x] PLAY: session → enter → look/move → observation updates
+- [x] WATCH: public redacted live without research keys
+- [x] `/ready` false → clear “world not ready”; research down does not break PLAY
 - [ ] RESEARCHER can run Lab; PLAYER cannot  
 - [ ] ADMIN-only Genesis  
-- [ ] Claim labels only in Specs vocabulary  
-- [ ] Errors show `error.code` + message, not stack traces  
-- [ ] Version badge from `/version` or `/manifest` pin  
+- [x] Claim labels only in Specs vocabulary
+- [x] Errors show `error.code` + message, not stack traces
+- [x] Version badge from `/version` or `/manifest` pin
 
 ---
 

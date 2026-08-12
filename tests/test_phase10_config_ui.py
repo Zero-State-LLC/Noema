@@ -225,6 +225,33 @@ def test_product_ui_world_gate_and_study_learn():
     assert "Situation Genome" not in play
 
 
+def test_product_ui_surfaces_runtime_version_errors_and_notice():
+    for html in (index_html(), play_html(), watch_html(), study_html()):
+        assert 'id="runtime-version"' in html
+        assert "errorText" in html
+    study = study_html()
+    assert 'id="study-notice"' in study
+    assert "Notice recent activity" in study
+    assert "/research/observatory/run" in study
+    for label in ("Observed", "Evidence suggests", "Possible", "Cannot determine"):
+        assert label in study
+
+
+def test_research_notice_role_boundary(tmp_path: Path):
+    from noema.auth.roles import Role
+    from noema.research.errors import ResearchError
+
+    rt = NoemaRuntime(db_path=tmp_path / "study-boundary.db")
+    rt.start_world(FIXTURES / "world-seed.json")
+    player = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    with pytest.raises(ResearchError, match="Observatory requires RESEARCHER or ADMIN"):
+        rt.run_observatory(player["session_id"])
+    researcher = rt.create_session(role=Role.RESEARCHER)
+    with pytest.raises(ResearchError, match="no trajectories captured"):
+        rt.run_observatory(researcher["session_id"])
+    rt.store.close()
+
+
 def test_public_product_shells_keep_admin_boot_controls_out():
     for html in (index_html(), play_html(), watch_html(), study_html()):
         assert "/admin/start" not in html
