@@ -325,5 +325,6 @@ def test_version_manifest_pins_full_loop():
     assert data["implementation_phase"] in {
         "phase-7-core-loop-e2e",
         "phase-8-postgres",
+        "phase-9-ops-ci",
     }
     assert (ROOT / "docs" / "CORE-LOOP-RUNTIME.md").is_file()

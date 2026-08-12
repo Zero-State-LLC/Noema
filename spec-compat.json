@@ -1,9 +1,9 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.8.0-postgres",
-  "product_milestone": "production-persistence",
-  "implementation_phase": "phase-8-postgres",
+  "runtime_version": "0.9.0-ops",
+  "product_milestone": "operator-surfaces",
+  "implementation_phase": "phase-9-ops-ci",
   "core_loop_status": "complete",
   "persistence": {
     "local_default": "sqlite",
@@ -11,10 +11,16 @@
     "cycle_isolation": "SERIALIZABLE",
     "writer": "single_fenced_per_process"
   },
+  "operations": {
+    "verify": "noema-verify",
+    "backup": "noema-backup",
+    "restore": "noema-restore",
+    "spec": "docs/OPERATIONS.md"
+  },
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
-    "pin_note": "Full PLAY→NOTICE→TEST→CAPTURE→LEARN + Deep Time/Genesis modular monolith; E2E proven in phase 7",
+    "pin_note": "Full PLAY→NOTICE→TEST→CAPTURE→LEARN + Deep Time/Genesis modular monolith; E2E proven in phase 7; ops + PG in phase 8–9",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
@@ -42,7 +48,7 @@
     "compiler": "phenomenon-compiler/0.5.0",
     "deep_time": "deep-time/0.6",
     "genesis_profiles": "genesis-profiles/0.6.0",
-    "capability_graph": "capability-graph/0.7.0"
+    "capability_graph": "capability_graph/0.7.0"
   },
   "invariants": [
     "single_fenced_writer",
@@ -52,7 +58,9 @@
     "capture_requires_ready",
     "genesis_admin_only",
     "lore_not_second_truth",
-    "play_ready_ignores_optional_research"
+    "play_ready_ignores_optional_research",
+    "backup_no_secrets",
+    "restore_fresh_writer_fence"
   ],
   "deferred_milestones": [
     "v0.8-phenomena",

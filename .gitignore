@@ -12,6 +12,8 @@ htmlcov/
 .DS_Store
 
 data/
+backups/
+var/
 .venv/
 __pycache__/
 *.sqlite3

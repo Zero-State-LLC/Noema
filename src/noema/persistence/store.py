@@ -849,6 +849,160 @@ class WorldStore:
             rows = self._execute("SELECT record_json FROM research_lab_results").fetchall()
             return [json.loads(r["record_json"]) for r in rows]
 
+    # --- Operator export / import (canonical world only; research indexes optional) ---
+
+    def dump_meta(self) -> dict[str, str]:
+        with self._lock:
+            rows = self._execute("SELECT key, value FROM meta ORDER BY key").fetchall()
+            return {r["key"]: r["value"] for r in rows}
+
+    def list_snapshots(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._execute(
+                "SELECT snapshot_id, cycle, sequence, state_digest, state_json, created_at "
+                "FROM snapshots ORDER BY sequence ASC"
+            ).fetchall()
+            out: list[dict[str, Any]] = []
+            for r in rows:
+                created = r["created_at"]
+                out.append(
+                    {
+                        "snapshot_id": r["snapshot_id"],
+                        "cycle": int(r["cycle"]),
+                        "sequence": int(r["sequence"]),
+                        "state_digest": r["state_digest"],
+                        "state_json": r["state_json"],
+                        "created_at": str(created) if created is not None else None,
+                    }
+                )
+            return out
+
+    def event_count(self) -> int:
+        with self._lock:
+            row = self._execute("SELECT COUNT(*) AS c FROM events").fetchone()
+            return int(row["c"] if row else 0)
+
+    def list_event_rows(self) -> list[dict[str, Any]]:
+        """Full ledger rows for backup (ordered by sequence)."""
+        with self._lock:
+            rows = self._execute(
+                "SELECT sequence, cycle, event_id, event_type, digest, previous_digest, envelope_json "
+                "FROM events ORDER BY sequence ASC"
+            ).fetchall()
+            return [
+                {
+                    "sequence": int(r["sequence"]),
+                    "cycle": int(r["cycle"]),
+                    "event_id": r["event_id"],
+                    "event_type": r["event_type"],
+                    "digest": r["digest"],
+                    "previous_digest": r["previous_digest"],
+                    "envelope_json": r["envelope_json"],
+                }
+                for r in rows
+            ]
+
+    def schema_tables_present(self) -> list[str]:
+        """Return required canonical table names that exist."""
+        required = ["meta", "events", "snapshots", "sessions"]
+        present: list[str] = []
+        with self._lock:
+            if self.backend == "sqlite":
+                rows = self._execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+                names = {r["name"] for r in rows}
+            else:
+                rows = self._execute(
+                    "SELECT tablename AS name FROM pg_tables WHERE schemaname = current_schema()"
+                ).fetchall()
+                names = {r["name"] for r in rows}
+            for t in required:
+                if t in names:
+                    present.append(t)
+        return present
+
+    def clear_canonical(self) -> None:
+        """Delete canonical world tables (for restore into a clean target). Research indexes untouched."""
+        with self._lock:
+            self._state = None
+            self._ready = False
+            self._begin_write()
+            try:
+                for table in ("events", "snapshots", "sessions", "meta"):
+                    self._execute(f"DELETE FROM {table}")
+                self._set_meta("writer_token", self.writer_token)
+                self._set_meta("backend", self.backend)
+                self._commit()
+            except Exception:
+                self._rollback()
+                raise
+
+    def import_canonical(
+        self,
+        *,
+        meta: dict[str, str],
+        events: list[dict[str, Any]],
+        snapshots: list[dict[str, Any]],
+    ) -> None:
+        """Install ledger + snapshots + meta into an empty store. Fresh writer fence is claimed."""
+        with self._lock:
+            self._state = None
+            self._ready = False
+            self._begin_write()
+            try:
+                for table in ("events", "snapshots", "sessions", "meta"):
+                    self._execute(f"DELETE FROM {table}")
+                # Install meta except active writer token (audit copy only).
+                for key, value in meta.items():
+                    if key == "writer_token":
+                        continue
+                    self._set_meta(key, str(value))
+                self._set_meta("writer_token", self.writer_token)
+                self._set_meta(
+                    "writer_fence_epoch_at_restore",
+                    str(meta.get("writer_token") or ""),
+                )
+                self._set_meta("backend", self.backend)
+
+                for ev in events:
+                    self._execute(
+                        """
+                        INSERT INTO events(sequence, cycle, event_id, event_type, digest, previous_digest, envelope_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            int(ev["sequence"]),
+                            int(ev["cycle"]),
+                            ev["event_id"],
+                            ev["event_type"],
+                            ev["digest"],
+                            ev.get("previous_digest"),
+                            ev["envelope_json"]
+                            if isinstance(ev.get("envelope_json"), str)
+                            else json.dumps(ev.get("envelope") or ev, sort_keys=True),
+                        ),
+                    )
+                for snap in snapshots:
+                    self._upsert(
+                        "snapshots",
+                        "snapshot_id",
+                        ["snapshot_id", "cycle", "sequence", "state_digest", "state_json"],
+                        (
+                            snap["snapshot_id"],
+                            int(snap["cycle"]),
+                            int(snap["sequence"]),
+                            snap["state_digest"],
+                            snap["state_json"]
+                            if isinstance(snap.get("state_json"), str)
+                            else json.dumps(snap.get("state") or {}, sort_keys=True),
+                        ),
+                    )
+                self._commit()
+            except Exception:
+                self._rollback()
+                raise
+
     def _set_meta(self, key: str, value: str, cur: Any | None = None) -> None:
         sql = self._sql(
             "INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value"
