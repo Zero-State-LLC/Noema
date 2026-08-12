@@ -1,4 +1,6 @@
-import { settleEvent } from "./settle";
+import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
+import { redactedPublicWorld } from "./genesis";
+import { settleEvent, settleGenesisActivation } from "./settle";
 import type { CommandEnvelope, CommandResult, Env, Observation, PlayerPrincipal } from "./types";
 
 interface Room {
@@ -16,15 +18,32 @@ interface PlayerLoc {
 
 interface WorldState {
   world_id: string;
+  world_name?: string;
+  world_seed?: string;
   cycle: number;
   sequence: number;
+  entry_room_id: string;
   rooms: Record<string, Room>;
   players: Record<string, PlayerLoc>;
   seen_idempotency: Record<string, CommandResult>;
   unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
 }
 
-const SEED_ROOMS: Record<string, Room> = {
+interface WorldMeta {
+  status: "NOT_ACTIVE" | "ACTIVE" | "DEMO_SEED";
+  genesis_id?: string;
+  cycle0_digest?: string;
+  profile_id?: string;
+  story_seed_ids?: string[];
+  world_seed?: string;
+  config_frozen: boolean;
+  activated_at?: string;
+  settlement_id?: string;
+  settlement_ok?: boolean;
+  do_digest?: string;
+}
+
+const DEMO_ROOMS: Record<string, Room> = {
   "room.relay-quarter": {
     room_id: "room.relay-quarter",
     name: "Relay Quarter",
@@ -34,9 +53,7 @@ const SEED_ROOMS: Record<string, Room> = {
       { direction: "east", to_room_id: "room.transit-ring" },
       { direction: "down", to_room_id: "room.infra-vault" },
     ],
-    entities: [
-      { entity_id: "entity.relay-7", label: "relay-7", entity_type: "INFRASTRUCTURE" },
-    ],
+    entities: [{ entity_id: "entity.relay-7", label: "relay-7", entity_type: "INFRASTRUCTURE" }],
   },
   "room.transit-ring": {
     room_id: "room.transit-ring",
@@ -54,12 +71,40 @@ const SEED_ROOMS: Record<string, Room> = {
   },
 };
 
-function defaultState(world_id: string): WorldState {
+function demoState(world_id: string): WorldState {
   return {
     world_id,
+    world_name: "Demo Chamber",
+    world_seed: "demo-pre-genesis",
     cycle: 0,
     sequence: 0,
-    rooms: structuredClone(SEED_ROOMS),
+    entry_room_id: "room.relay-quarter",
+    rooms: structuredClone(DEMO_ROOMS),
+    players: {},
+    seen_idempotency: {},
+    unsettled: [],
+  };
+}
+
+function cycle0ToWorld(c0: Cycle0World): WorldState {
+  const rooms: Record<string, Room> = {};
+  for (const [id, r] of Object.entries(c0.rooms)) {
+    rooms[id] = {
+      room_id: r.room_id,
+      name: r.name,
+      description: r.description,
+      exits: r.exits,
+      entities: r.entities,
+    };
+  }
+  return {
+    world_id: c0.world_id,
+    world_name: c0.world_name,
+    world_seed: c0.world_seed,
+    cycle: 0,
+    sequence: 0,
+    entry_room_id: c0.entry_room_id,
+    rooms,
     players: {},
     seen_idempotency: {},
     unsettled: [],
@@ -70,6 +115,8 @@ export class NoemaWorldDO {
   private state: DurableObjectState;
   private env: Env;
   private world: WorldState | null = null;
+  private meta: WorldMeta | null = null;
+  private previews: Record<string, GenesisResult> = {};
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -78,7 +125,9 @@ export class NoemaWorldDO {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
-    if (request.method === "GET" && url.pathname.endsWith("/health")) {
+    const path = url.pathname;
+
+    if (request.method === "GET" && path.endsWith("/health")) {
       await this.load();
       return Response.json({
         ok: true,
@@ -86,42 +135,30 @@ export class NoemaWorldDO {
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
         players: Object.keys(this.world!.players).length,
+        status: this.meta!.status,
+        genesis_id: this.meta!.genesis_id || null,
       });
     }
 
-    // Public WATCH projection — no research metadata, no private player locations
-    if (request.method === "GET" && url.pathname.endsWith("/watch")) {
+    if (request.method === "GET" && path.endsWith("/watch")) {
       await this.load();
-      const rooms = Object.values(this.world!.rooms).map((r) => ({
-        room_id: r.room_id,
-        name: r.name,
-        description: r.description,
-        entity_count: r.entities.length,
-        entities: r.entities.map((e) => ({
-          entity_id: e.entity_id,
-          label: e.label,
-          entity_type: e.entity_type,
-        })),
-        exit_count: r.exits.length,
-      }));
-      return Response.json({
-        projection: "public",
-        world_id: this.world!.world_id,
-        cycle: this.world!.cycle,
-        sequence: this.world!.sequence,
-        players_present: Object.keys(this.world!.players).length,
-        rooms,
-        world_pressures: [],
-        note: "Spectator projection is never world truth and never mutates the ledger.",
-      });
+      return Response.json(
+        redactedPublicWorld({
+          world_id: this.world!.world_id,
+          cycle: this.world!.cycle,
+          sequence: this.world!.sequence,
+          rooms: this.world!.rooms as Record<string, GenesisRoom>,
+          players_present: Object.keys(this.world!.players).length,
+        }),
+      );
     }
 
-    // ADMIN-only world projection (Worker gates admin JWT before calling)
-    if (request.method === "GET" && url.pathname.endsWith("/admin-status")) {
+    if (request.method === "GET" && path.endsWith("/admin-status")) {
       await this.load();
       const roomList = Object.values(this.world!.rooms);
       return Response.json({
         world_id: this.world!.world_id,
+        world_name: this.world!.world_name,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
         players_present: Object.keys(this.world!.players).length,
@@ -135,28 +172,176 @@ export class NoemaWorldDO {
         room_count: roomList.length,
         entity_count: roomList.reduce((n, r) => n + r.entities.length, 0),
         unsettled_count: this.world!.unsettled.length,
-        genesis: {
-          stage: "0",
-          profile_id: "stage0.chamber",
-          status: "ACTIVE",
-          note: "Stage 0 Chamber seed is pre-activated. Full Genesis profiles live on noema-serve ADMIN.",
-          frozen: true,
-        },
+        entry_room_id: this.world!.entry_room_id,
+        meta: this.publicMeta(),
+        preview_count: Object.keys(this.previews).length,
       });
     }
 
-    // ADMIN reseed — resets live DO state to Stage 0 seed (consequential)
-    if (request.method === "POST" && url.pathname.endsWith("/admin-reseed")) {
+    // Store preview (does not mutate live world authority)
+    if (request.method === "POST" && path.endsWith("/genesis-preview-store")) {
+      await this.loadMeta();
+      const body = (await request.json()) as { result: GenesisResult };
+      if (!body?.result?.genesis_id) {
+        return Response.json({ error: { code: "INVALID_REQUEST", message: "result required" } }, { status: 400 });
+      }
+      // Load previews map
+      this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
+      this.previews[body.result.genesis_id] = body.result;
+      // Cap preview cache
+      const keys = Object.keys(this.previews);
+      if (keys.length > 20) {
+        for (const k of keys.slice(0, keys.length - 20)) delete this.previews[k];
+      }
+      await this.state.storage.put("genesis_previews", this.previews);
+      // Prove live world unchanged: return digests of world before/after (same object)
+      await this.load();
+      return Response.json({
+        ok: true,
+        stored_genesis_id: body.result.genesis_id,
+        live_world_id: this.world!.world_id,
+        live_sequence: this.world!.sequence,
+        live_status: this.meta!.status,
+        note: "Preview stored; live world authority unchanged.",
+      });
+    }
+
+    if (request.method === "GET" && path.endsWith("/genesis-preview-get")) {
+      const gid = url.searchParams.get("genesis_id") || "";
+      this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
+      const p = this.previews[gid];
+      if (!p) return Response.json({ error: { code: "NOT_FOUND", message: "unknown preview" } }, { status: 404 });
+      return Response.json({ result: p });
+    }
+
+    // Atomic activation
+    if (request.method === "POST" && path.endsWith("/genesis-activate")) {
+      await this.loadMeta();
+      const body = (await request.json()) as {
+        genesis_id: string;
+        admin_session_id: string;
+        force?: boolean;
+      };
+      if (!body?.genesis_id) {
+        return Response.json({ error: { code: "INVALID_REQUEST", message: "genesis_id required" } }, { status: 400 });
+      }
+      if (this.meta!.status === "ACTIVE" && this.meta!.config_frozen) {
+        return Response.json(
+          {
+            error: {
+              code: "ALREADY_ACTIVATED",
+              message: "Genesis already activated for this world; new Genesis requires a new world",
+            },
+          },
+          { status: 409 },
+        );
+      }
+      this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
+      const preview = this.previews[body.genesis_id];
+      if (!preview) {
+        return Response.json({ error: { code: "INVALID_SEED", message: "unknown genesis preview" } }, { status: 400 });
+      }
+      if (!preview.validation?.ok || !preview.ordinary_world_valid) {
+        return Response.json(
+          {
+            error: {
+              code: "VALIDATION_FAILED",
+              message: "Cycle 0 validation failed",
+              details: preview.validation?.errors || [],
+            },
+          },
+          { status: 400 },
+        );
+      }
+
+      // Atomic write: world + meta
+      const nextWorld = cycle0ToWorld(preview.cycle0);
+      const nextMeta: WorldMeta = {
+        status: "ACTIVE",
+        genesis_id: preview.genesis_id,
+        cycle0_digest: preview.cycle0_digest,
+        profile_id: preview.genesis_profile_id,
+        // Story seeds stored in admin meta only — never in PLAY observations
+        story_seed_ids: preview.story_seed_ids,
+        world_seed: preview.world_seed,
+        config_frozen: true,
+        activated_at: new Date().toISOString(),
+        do_digest: preview.cycle0_digest,
+      };
+
+      this.world = nextWorld;
+      this.meta = nextMeta;
+      await this.state.storage.put({
+        world: nextWorld,
+        world_meta: nextMeta,
+      });
+
+      const settlement = await settleGenesisActivation(this.env, {
+        genesis_id: preview.genesis_id,
+        world_id: preview.world_id,
+        cycle0_digest: preview.cycle0_digest,
+        world_seed: preview.world_seed,
+        profile_id: preview.genesis_profile_id,
+        story_seed_ids: preview.story_seed_ids,
+        admin_session_id: body.admin_session_id || "asess.unknown",
+      });
+
+      this.meta.settlement_id = settlement.settlement_id;
+      this.meta.settlement_ok = settlement.settled;
+      await this.state.storage.put("world_meta", this.meta);
+
+      const digest_match = !settlement.settled || this.meta.do_digest === preview.cycle0_digest;
+
+      return Response.json({
+        ok: true,
+        result: {
+          ...preview,
+          status: "ACTIVATED",
+          config_frozen: true,
+        },
+        world: {
+          world_id: nextWorld.world_id,
+          world_name: nextWorld.world_name,
+          cycle: 0,
+          sequence: 0,
+          entry_room_id: nextWorld.entry_room_id,
+          room_count: Object.keys(nextWorld.rooms).length,
+        },
+        meta: this.publicMeta(),
+        settlement: {
+          settlement_id: settlement.settlement_id,
+          settled: settlement.settled,
+          do_digest: this.meta.do_digest,
+          cycle0_digest: preview.cycle0_digest,
+          digest_match,
+          note: settlement.settled
+            ? "Postgres settlement recorded"
+            : "Settlement soft-failed or unset (SUPABASE_*); DO remains live authority",
+        },
+        config_frozen: true,
+      });
+    }
+
+    // Reseed — forbidden when ACTIVE genesis frozen; production blocked at Worker
+    if (request.method === "POST" && path.endsWith("/admin-reseed")) {
+      await this.loadMeta();
+      if (this.meta!.status === "ACTIVE" && this.meta!.config_frozen) {
+        return Response.json(
+          { error: { code: "POLICY_DENIED", message: "reseed forbidden after Genesis activation" } },
+          { status: 403 },
+        );
+      }
       const world_id = this.env.DEFAULT_WORLD_ID || "world-01";
-      this.world = defaultState(world_id);
-      await this.save();
+      this.world = demoState(world_id);
+      this.meta = { status: "DEMO_SEED", config_frozen: false };
+      await this.state.storage.put({ world: this.world, world_meta: this.meta });
       return Response.json({
         ok: true,
         world_id: this.world.world_id,
         cycle: this.world.cycle,
         sequence: this.world.sequence,
         room_count: Object.keys(this.world.rooms).length,
-        note: "Stage 0 seed restored. Configuration remains frozen to chamber seed.",
+        note: "Demo chamber restored. Not a Genesis activation.",
       });
     }
 
@@ -179,12 +364,37 @@ export class NoemaWorldDO {
     return Response.json(result, { status: result.ok ? 200 : 400 });
   }
 
+  private publicMeta(): Record<string, unknown> {
+    const m = this.meta!;
+    return {
+      status: m.status,
+      genesis_id: m.genesis_id || null,
+      cycle0_digest: m.cycle0_digest || null,
+      profile_id: m.profile_id || null,
+      // story seeds only for admin meta path — included here but admin UI must not leak to product
+      story_seed_ids: m.story_seed_ids || null,
+      world_seed: m.world_seed || null,
+      config_frozen: m.config_frozen,
+      activated_at: m.activated_at || null,
+      settlement_id: m.settlement_id || null,
+      settlement_ok: m.settlement_ok ?? null,
+      do_digest: m.do_digest || null,
+    };
+  }
+
+  private async loadMeta(): Promise<void> {
+    if (this.meta) return;
+    const stored = await this.state.storage.get<WorldMeta>("world_meta");
+    this.meta = stored || { status: "DEMO_SEED", config_frozen: false };
+  }
+
   private async load(): Promise<void> {
+    await this.loadMeta();
     if (this.world) return;
     const stored = await this.state.storage.get<WorldState>("world");
-    this.world =
-      stored ||
-      defaultState(this.env.DEFAULT_WORLD_ID || "world-01");
+    this.world = stored || demoState(this.env.DEFAULT_WORLD_ID || "world-01");
+    // migrate old states without entry_room_id
+    if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
   }
 
   private async save(): Promise<void> {
@@ -194,8 +404,8 @@ export class NoemaWorldDO {
   private observe(principal: PlayerPrincipal): Observation {
     const w = this.world!;
     const loc = w.players[principal.player_id];
-    const room_id = loc?.room_id || "room.relay-quarter";
-    const room = w.rooms[room_id] || SEED_ROOMS["room.relay-quarter"];
+    const room_id = loc?.room_id || w.entry_room_id || "room.relay-quarter";
+    const room = w.rooms[room_id] || Object.values(w.rooms)[0];
     return {
       cycle: w.cycle,
       sequence: w.sequence,
@@ -221,7 +431,6 @@ export class NoemaWorldDO {
       return w.seen_idempotency[idem];
     }
 
-    // Authority from principal only
     if (envl.player_id && envl.player_id !== principal.player_id) {
       return {
         ok: false,
@@ -234,6 +443,7 @@ export class NoemaWorldDO {
     const args = envl.arguments || {};
     const events: Array<{ event_id: string; event_type: string; sequence: number }> = [];
     let settled = false;
+    const entry = w.entry_room_id || "room.relay-quarter";
 
     const pushEvent = (event_type: string, payload: Record<string, unknown>) => {
       w.sequence += 1;
@@ -243,10 +453,10 @@ export class NoemaWorldDO {
     };
 
     if (cmd === "ENTER_WORLD" || cmd === "JOIN") {
-      w.players[principal.player_id] = { room_id: "room.relay-quarter", entered: true };
+      w.players[principal.player_id] = { room_id: entry, entered: true };
       const ev = pushEvent("AGENT_ENTERED_WORLD", {
         player_id: principal.player_id,
-        room_id: "room.relay-quarter",
+        room_id: entry,
       });
       settled = await settleEvent(this.env, principal, {
         event_id: ev.event_id,
@@ -261,7 +471,7 @@ export class NoemaWorldDO {
       });
     } else if (cmd === "LOOK") {
       if (!w.players[principal.player_id]?.entered) {
-        w.players[principal.player_id] = { room_id: "room.relay-quarter", entered: true };
+        w.players[principal.player_id] = { room_id: entry, entered: true };
       }
       const room_id = w.players[principal.player_id].room_id;
       const ev = pushEvent("LOOK", { player_id: principal.player_id, room_id });
@@ -279,17 +489,11 @@ export class NoemaWorldDO {
     } else if (cmd === "MOVE") {
       const pl = w.players[principal.player_id];
       if (!pl?.entered) {
-        return {
-          ok: false,
-          request_id,
-          error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" },
-        };
+        return { ok: false, request_id, error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" } };
       }
       const direction = String(args.direction || args.exit_id || "").toLowerCase();
       const room = w.rooms[pl.room_id];
-      const exit = room?.exits.find(
-        (e) => e.direction === direction || e.to_room_id === direction,
-      );
+      const exit = room?.exits.find((e) => e.direction === direction || e.to_room_id === direction);
       if (!exit) {
         return {
           ok: false,
@@ -321,17 +525,11 @@ export class NoemaWorldDO {
     } else if (cmd === "INSPECT") {
       const pl = w.players[principal.player_id];
       if (!pl?.entered) {
-        return {
-          ok: false,
-          request_id,
-          error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" },
-        };
+        return { ok: false, request_id, error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" } };
       }
       const room = w.rooms[pl.room_id];
       const target = String(args.entity_id || args.target || "").trim();
-      const entity = room?.entities.find(
-        (e) => e.entity_id === target || e.label === target,
-      );
+      const entity = room?.entities.find((e) => e.entity_id === target || e.label === target);
       if (!entity) {
         return {
           ok: false,
@@ -361,14 +559,12 @@ export class NoemaWorldDO {
           detail: `${entity.label} (${entity.entity_type}) is present and operational enough to inspect.`,
         },
       });
-      // Attach inspect detail on observation via temporary entity note
       const obs = this.observe(principal);
       const resultInspect: CommandResult = {
         ok: true,
         request_id,
         observation: {
           ...obs,
-          // Stage 0: surface inspect text in description suffix
           location: {
             ...obs.location,
             description: `${obs.location.description} You inspect ${entity.label}: ${entity.entity_type} — present and operational enough to inspect.`,
@@ -387,7 +583,7 @@ export class NoemaWorldDO {
       await this.save();
       return resultInspect;
     } else if (cmd === "OBSERVE") {
-      // pure observation — no durable event by default
+      // pure observation
     } else {
       return {
         ok: false,
@@ -409,7 +605,6 @@ export class NoemaWorldDO {
       },
       settled,
     };
-    // Cap idempotency map
     w.seen_idempotency[idem] = result;
     const keys = Object.keys(w.seen_idempotency);
     if (keys.length > 200) {

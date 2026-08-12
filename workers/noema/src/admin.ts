@@ -226,23 +226,56 @@ export function adminHtml(): string {
       <h2>Create a world deliberately</h2>
       <div class="banner">
         <strong style="color:var(--ink)">Specs GENESIS:</strong> admin-only, one-time create-world.
-        Players, spectators, researchers, and agents MUST NOT invoke Genesis.
-        After activation, configuration freezes — PLAY never shows Genesis UI.
+        PLAY never shows this UI. After activation, configuration freezes.
       </div>
-      <div class="grid">
+      <div id="genesis-active-banner" class="banner" hidden style="border-color:rgba(107,155,143,.5)">
+        <strong style="color:var(--teal)">WORLD ACTIVE</strong>
+        <span id="genesis-active-copy"></span>
+      </div>
+      <div class="grid" id="genesis-editor">
         <article class="card pad s6">
-          <p class="kicker">Stage 0 status</p>
-          <h2 style="font-size:1.15rem" id="gen-title">Chamber seed</h2>
-          <dl class="kv" id="kv-genesis" style="margin-top:.7rem"></dl>
-          <p class="empty" style="margin-top:.8rem">Full profile catalog + story seeds + preview/activate live on <code>noema-serve</code> <code>/admin</code> (Python modular monolith). This host exposes Stage 0 chamber seed status only.</p>
+          <p class="kicker">Configuration</p>
+          <form id="genesis-form">
+            <label for="g-name">World name</label>
+            <input id="g-name" value="Aster Reach" autocomplete="off"/>
+            <label for="g-profile">Genesis profile</label>
+            <select id="g-profile">
+              <option value="FRACTURED_OLD_WORLD">FRACTURED_OLD_WORLD — Fractured Old World</option>
+              <option value="YOUNG_FRONTIER">YOUNG_FRONTIER — Young Frontier</option>
+              <option value="RECOVERING_NETWORK">RECOVERING_NETWORK — Recovering Network</option>
+            </select>
+            <label>Story seeds (≤2)</label>
+            <div id="g-seeds" style="display:grid;gap:.35rem;margin:.4rem 0">
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="OLD_TRADE_NETWORK" checked/> OLD_TRADE_NETWORK</label>
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="LOST_ARCHIVE" checked/> LOST_ARCHIVE</label>
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="FOUNDING_SPLIT"/> FOUNDING_SPLIT</label>
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="FAILED_SETTLEMENT"/> FAILED_SETTLEMENT</label>
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="RESOURCE_CRISIS"/> RESOURCE_CRISIS</label>
+              <label style="display:flex;gap:.45rem;align-items:center;margin:0"><input type="checkbox" value="DISPUTED_SUCCESSION"/> DISPUTED_SUCCESSION</label>
+            </div>
+            <label for="g-seed">World seed</label>
+            <div class="btn-row" style="margin-top:.25rem">
+              <input id="g-seed" value="49321892" style="flex:1"/>
+              <button class="btn quiet" type="button" id="g-rand">Randomize</button>
+            </div>
+            <div class="btn-row" style="margin-top:.85rem">
+              <button class="btn primary" type="submit" id="g-preview">Preview</button>
+              <button class="btn quiet" type="button" id="g-clear">Clear preview</button>
+            </div>
+          </form>
+          <p class="notice" id="g-notice" role="status"></p>
+          <dl class="kv" id="kv-genesis" style="margin-top:.85rem"></dl>
         </article>
         <article class="card pad s6">
-          <p class="kicker">Profiles (catalog)</p>
-          <ul class="list">
-            <li><strong>stage0.chamber</strong><span>ACTIVE · frozen</span></li>
-            <li><strong>v0.6 profiles</strong><span>Python ADMIN only</span></li>
-          </ul>
-          <p class="muted" style="margin-top:.85rem">Preview → activate is a deliberate two-step. Regeneration before activation requires a new genesis_id. Another Genesis after activation = another world.</p>
+          <p class="kicker">Cycle 0 / preview</p>
+          <h2 style="font-size:1.15rem" id="g-preview-title">No preview loaded</h2>
+          <div class="btn-row" style="margin:.4rem 0"><span class="tag" id="g-preview-status">waiting</span><span class="tag" id="g-det">determinism —</span><span class="tag" id="g-val">validation —</span></div>
+          <div id="g-preview-body" class="empty">Preview data appears after PREVIEW.</div>
+          <div class="danger" id="g-activation" hidden>
+            <p><strong>ACTIVATE WORLD?</strong> After activation Genesis configuration becomes immutable. Players may enter. This world cannot be reseeded.</p>
+            <label><input type="checkbox" id="g-confirm"/><span>I understand activation is consequential and configuration freezes.</span></label>
+            <button class="btn primary" type="button" id="g-activate" disabled style="margin-top:.7rem">Activate world</button>
+          </div>
         </article>
       </div>
     </section>
@@ -320,6 +353,44 @@ export function adminHtml(): string {
     });
   }
 
+  let lastPreview = null;
+
+  function selectedSeeds() {
+    return [...document.querySelectorAll("#g-seeds input:checked")].map(i => i.value).slice(0, 2);
+  }
+
+  function renderPreview(result, meta) {
+    lastPreview = result;
+    $("g-preview-title").textContent = (result.world_name || "World") + " · " + result.genesis_profile_id;
+    $("g-preview-status").textContent = result.status || "PREVIEW";
+    $("g-preview-status").className = "tag " + (result.validation && result.validation.ok ? "ok" : "warn");
+    $("g-val").textContent = result.validation && result.validation.ok ? "validation PASS" : "validation FAIL";
+    $("g-val").className = "tag " + (result.validation && result.validation.ok ? "ok" : "bad");
+    if (meta && meta.determinism) {
+      $("g-det").textContent = meta.determinism.ok ? "determinism PASS" : "determinism FAIL";
+      $("g-det").className = "tag " + (meta.determinism.ok ? "ok" : "bad");
+    }
+    const s = result.preview_summary || {};
+    const lines = [];
+    lines.push("<p class='muted'><strong>What kind of world?</strong> " + result.genesis_profile_id + " with " + (result.story_seed_ids||[]).length + " story seed(s).</p>");
+    lines.push("<p class='muted'><strong>Regions:</strong> " + (s.room_count||0) + " · <strong>Entities:</strong> " + (s.entity_count||0) + "</p>");
+    if (s.regions) lines.push("<p class='empty'>" + s.regions.map(r => r.name).join(" · ") + "</p>");
+    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Tensions:</strong> " + s.tensions.join(" / ") + "</p>");
+    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities:</strong> " + s.opportunities.join(", ") + "</p>");
+    if (s.historical_artifacts && s.historical_artifacts.length) {
+      lines.push("<p class='muted'><strong>Artifacts:</strong> " + s.historical_artifacts.map(a => a.label).join(", ") + "</p>");
+    }
+    lines.push("<p class='empty mono' style='margin-top:.6rem;font-size:.72rem'>genesis_id " + result.genesis_id + "<br/>cycle0_digest " + result.cycle0_digest + "</p>");
+    if (result.validation && !result.validation.ok) {
+      lines.push("<p class='notice bad'>Blocked: " + (result.validation.errors||[]).join("; ") + "</p>");
+    }
+    $("g-preview-body").innerHTML = lines.join("");
+    const canAct = result.validation && result.validation.ok && meta && meta.determinism && meta.determinism.ok;
+    $("g-activation").hidden = !canAct;
+    $("g-confirm").checked = false;
+    $("g-activate").disabled = true;
+  }
+
   async function load() {
     $("auth-tag").textContent = "ADMIN";
     $("auth-tag").className = "tag ok";
@@ -328,50 +399,62 @@ export function adminHtml(): string {
       const data = await api("/v1/admin/overview");
       const w = data.world || {};
       const h = data.health || {};
+      const g = data.genesis || {};
       $("m-players").textContent = w.players_present ?? "—";
       $("m-world").textContent = w.world_id || "—";
-      $("m-world-state").textContent = data.ready ? "ready" : "not ready";
+      $("m-world-state").textContent = g.status || "—";
       $("m-cycle").textContent = w.cycle ?? "—";
       $("m-seq").textContent = "sequence " + (w.sequence ?? "—");
       $("m-rooms").textContent = w.room_count ?? "—";
-      $("world-title").textContent = w.world_id || "World unavailable";
-      $("world-tag").textContent = data.ready ? "ONLINE" : "OFFLINE";
-      $("world-tag").className = "tag " + (data.ready ? "ok" : "warn");
+      $("world-title").textContent = (w.world_name || w.world_id || "World");
+      $("world-tag").textContent = g.status === "ACTIVE" ? "ACTIVE" : (g.status || "ONLINE");
+      $("world-tag").className = "tag " + (g.status === "ACTIVE" ? "ok" : "warn");
       $("players-total").textContent = w.players_present ?? "—";
 
       kv($("kv-runtime"), [
         ["Health", h.status],
-        ["Stage", h.stage],
         ["Env", h.env],
+        ["Admin plane", data.admin_plane],
         ["Protocol", h.protocol_version],
-        ["Admin plane", data.admin_plane || "stage0-worker"],
       ]);
       kv($("kv-world"), [
         ["World id", w.world_id],
+        ["Name", w.world_name],
         ["Cycle", w.cycle],
         ["Sequence", w.sequence],
         ["Players present", w.players_present],
         ["Rooms", w.room_count],
         ["Entities", w.entity_count],
-        ["Unsettled", w.unsettled_count],
+        ["Entry", w.entry_room_id],
       ]);
-      const g = w.genesis || data.genesis || {};
       kv($("kv-genesis"), [
-        ["Profile", g.profile_id],
         ["Status", g.status],
-        ["Frozen", g.frozen === true ? "yes" : g.frozen === false ? "no" : "—"],
-        ["Stage", g.stage],
-        ["Note", g.note],
+        ["Genesis ID", g.genesis_id],
+        ["Profile", g.profile_id],
+        ["Story seeds", (g.story_seed_ids||[]).join(", ") || "—"],
+        ["World seed", g.world_seed],
+        ["Cycle 0 digest", g.cycle0_digest],
+        ["Frozen", g.config_frozen === true ? "yes" : "no"],
+        ["Settlement", g.settlement_ok === true ? "ok" : g.settlement_ok === false ? "soft-fail" : "—"],
+        ["Settlement ID", g.settlement_id],
+        ["Activated", g.activated_at],
       ]);
-      $("gen-title").textContent = (g.profile_id || "stage0.chamber") + " · " + (g.status || "—");
+
+      const active = g.status === "ACTIVE" && g.config_frozen;
+      $("genesis-active-banner").hidden = !active;
+      $("genesis-editor").style.opacity = active ? "0.55" : "1";
+      $("genesis-editor").style.pointerEvents = active ? "none" : "auto";
+      if (active) {
+        $("genesis-active-copy").textContent =
+          " Genesis " + (g.genesis_id||"") + " · digest " + (g.cycle0_digest||"") +
+          " · Live DO healthy · Settlement " + (g.settlement_ok ? "ok" : "check SUPABASE");
+      }
 
       const att = $("attention");
       att.replaceChildren();
       const msgs = data.attention || [];
       if (!msgs.length) {
-        const li = document.createElement("li");
-        li.innerHTML = "<strong>No operator attention required.</strong><span>clear</span>";
-        att.append(li);
+        att.innerHTML = "<li><strong>No operator attention required.</strong><span>clear</span></li>";
       } else {
         msgs.forEach(m => {
           const li = document.createElement("li");
@@ -383,15 +466,12 @@ export function adminHtml(): string {
       const pl = $("player-list");
       pl.replaceChildren();
       const ids = w.player_ids || [];
-      if (!ids.length) {
-        pl.innerHTML = '<li class="empty">No player positions in live DO.</li>';
-      } else {
-        ids.forEach(id => {
-          const li = document.createElement("li");
-          li.innerHTML = "<strong>" + id + "</strong><span>present</span>";
-          pl.append(li);
-        });
-      }
+      if (!ids.length) pl.innerHTML = '<li class="empty">No player positions in live DO.</li>';
+      else ids.forEach(id => {
+        const li = document.createElement("li");
+        li.innerHTML = "<strong>" + id + "</strong><span>present</span>";
+        pl.append(li);
+      });
       notice("Operator projection updated.", "ok");
     } catch (e) {
       if (e.status === 401 || e.status === 403) {
@@ -432,6 +512,85 @@ export function adminHtml(): string {
     }
   });
 
+  $("g-rand").addEventListener("click", () => {
+    $("g-seed").value = String(Math.floor(Math.random() * 90000000) + 10000000);
+  });
+  $("g-clear").addEventListener("click", () => {
+    lastPreview = null;
+    $("g-preview-title").textContent = "No preview loaded";
+    $("g-preview-body").textContent = "Preview data appears after PREVIEW.";
+    $("g-activation").hidden = true;
+    $("g-notice").textContent = "";
+  });
+  $("genesis-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const seeds = selectedSeeds();
+    if (seeds.length > 2) {
+      $("g-notice").className = "notice bad";
+      $("g-notice").textContent = "Select at most 2 story seeds.";
+      return;
+    }
+    $("g-notice").className = "notice";
+    $("g-notice").textContent = "Generating deterministic preview…";
+    try {
+      const data = await api("/v1/admin/genesis/preview", {
+        method: "POST",
+        body: JSON.stringify({
+          world_name: $("g-name").value.trim() || "Aster Reach",
+          world_seed: $("g-seed").value.trim(),
+          profile_id: $("g-profile").value,
+          story_seed_ids: seeds,
+        }),
+      });
+      renderPreview(data.result, data);
+      const liveOk = data.live_world_unchanged && data.live_world_unchanged.ok;
+      $("g-notice").className = "notice " + (data.determinism && data.determinism.ok && liveOk ? "ok" : "bad");
+      $("g-notice").textContent =
+        (data.determinism && data.determinism.ok ? "Determinism OK. " : "Determinism FAILED — do not activate. ") +
+        (liveOk ? "Live world unchanged." : "Live world mutated during preview — stop.");
+    } catch (err) {
+      $("g-notice").className = "notice bad";
+      $("g-notice").textContent = err.message || "Preview failed";
+    }
+  });
+  $("g-confirm").addEventListener("change", (e) => {
+    $("g-activate").disabled = !e.target.checked || !lastPreview || !(lastPreview.validation && lastPreview.validation.ok);
+  });
+  $("g-activate").addEventListener("click", async () => {
+    if (!lastPreview || !$("g-confirm").checked) return;
+    $("g-activate").disabled = true;
+    $("g-notice").className = "notice";
+    $("g-notice").textContent = "Activating…";
+    try {
+      const data = await api("/v1/admin/genesis/activate", {
+        method: "POST",
+        body: JSON.stringify({ genesis_id: lastPreview.genesis_id, confirm: true }),
+      });
+      $("g-notice").className = "notice ok";
+      $("g-notice").textContent =
+        "Activated " + (data.world && data.world.world_id) +
+        " · settlement " + (data.settlement && data.settlement.settled ? "ok" : "soft") +
+        " · config frozen.";
+      await load();
+    } catch (err) {
+      $("g-notice").className = "notice bad";
+      $("g-notice").textContent = err.message || "Activation failed";
+      $("g-activate").disabled = false;
+    }
+  });
+
+  // Enforce ≤2 story seeds in UI
+  document.querySelectorAll("#g-seeds input").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const checked = [...document.querySelectorAll("#g-seeds input:checked")];
+      if (checked.length > 2) {
+        cb.checked = false;
+        $("g-notice").className = "notice bad";
+        $("g-notice").textContent = "At most 2 story seeds for first-run budget.";
+      }
+    });
+  });
+
   document.querySelectorAll(".rail-nav a").forEach(a => {
     a.addEventListener("click", () => {
       document.querySelectorAll(".rail-nav a").forEach(x => x.classList.remove("active"));
@@ -444,3 +603,4 @@ export function adminHtml(): string {
 </script>`,
   );
 }
+

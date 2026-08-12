@@ -68,6 +68,8 @@ curl -sX POST localhost:8080/auth/device -H 'content-type: application/json' -d 
 
 See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md).
 
+**Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
+
 **Product UI handoff:** [`docs/UI-HANDOFF.md`](docs/UI-HANDOFF.md) — routes, roles, PLAY/WATCH/STUDY, errors, non-goals.
 
 ## Public site (GitHub Pages)

@@ -1,0 +1,551 @@
+/**
+ * Hosted Genesis engine (Specs v0.6) — pure, deterministic, admin-only.
+ * No Player surface. Preview does not mutate live world authority.
+ */
+
+export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK";
+
+export type StorySeedId =
+  | "FOUNDING_SPLIT"
+  | "OLD_TRADE_NETWORK"
+  | "FAILED_SETTLEMENT"
+  | "RESOURCE_CRISIS"
+  | "LOST_ARCHIVE"
+  | "DISPUTED_SUCCESSION";
+
+export const GENESIS_PROFILES: Array<{
+  profile_id: GenesisProfileId;
+  title: string;
+  description: string;
+  resource_abundance: string;
+  infrastructure_condition: string;
+  historical_age_band: string;
+  institution_presence: string;
+  conflict_pressure: string;
+  trade_pressure: string;
+}> = [
+  {
+    profile_id: "YOUNG_FRONTIER",
+    title: "Young Frontier",
+    description: "Recent settlement; thin history; open opportunity.",
+    resource_abundance: "ABUNDANT",
+    infrastructure_condition: "FRAGILE",
+    historical_age_band: "YOUNG",
+    institution_presence: "NONE_OR_EMERGING",
+    conflict_pressure: "LOW",
+    trade_pressure: "MEDIUM",
+  },
+  {
+    profile_id: "FRACTURED_OLD_WORLD",
+    title: "Fractured Old World",
+    description: "Deep scars, incomplete records, unresolved claims.",
+    resource_abundance: "MIXED",
+    infrastructure_condition: "MIXED",
+    historical_age_band: "OLD",
+    institution_presence: "MIXED",
+    conflict_pressure: "HIGH",
+    trade_pressure: "MEDIUM",
+  },
+  {
+    profile_id: "RECOVERING_NETWORK",
+    title: "Recovering Network",
+    description: "Damaged connectivity; repair and alliance pathways.",
+    resource_abundance: "SCARCE",
+    infrastructure_condition: "FRAGILE",
+    historical_age_band: "MID",
+    institution_presence: "MIXED",
+    conflict_pressure: "MEDIUM",
+    trade_pressure: "HIGH",
+  },
+];
+
+export const STORY_SEEDS: Array<{ seed_id: StorySeedId; title: string }> = [
+  { seed_id: "FOUNDING_SPLIT", title: "Founding Split" },
+  { seed_id: "OLD_TRADE_NETWORK", title: "Old Trade Network" },
+  { seed_id: "FAILED_SETTLEMENT", title: "Failed Settlement" },
+  { seed_id: "RESOURCE_CRISIS", title: "Resource Crisis" },
+  { seed_id: "LOST_ARCHIVE", title: "Lost Archive" },
+  { seed_id: "DISPUTED_SUCCESSION", title: "Disputed Succession" },
+];
+
+const STORY_SET = new Set(STORY_SEEDS.map((s) => s.seed_id));
+const PROFILE_SET = new Set(GENESIS_PROFILES.map((p) => p.profile_id));
+
+export interface GenesisRoom {
+  room_id: string;
+  name: string;
+  description: string;
+  exits: Array<{ direction: string; to_room_id: string }>;
+  entities: Array<{ entity_id: string; label: string; entity_type: string }>;
+  tags?: string[];
+}
+
+export interface Cycle0World {
+  world_id: string;
+  world_name: string;
+  world_seed: string;
+  cycle: number;
+  sequence: number;
+  entry_room_id: string;
+  rooms: Record<string, GenesisRoom>;
+  institutions: Array<{ id: string; name: string; status: "active" | "dormant" }>;
+  artifacts: Array<{ id: string; label: string; room_id: string }>;
+  tensions: string[];
+  scars: string[];
+  resources: Array<{ kind: string; level: string }>;
+  opportunities: string[];
+}
+
+export interface GenesisResult {
+  schema_version: "genesis-result/0.6";
+  genesis_id: string;
+  world_id: string;
+  world_name: string;
+  status: "PREVIEW" | "VALIDATED" | "ACTIVATED";
+  world_seed: string;
+  genesis_profile_id: GenesisProfileId;
+  story_seed_ids: StorySeedId[];
+  ordinary_world_valid: boolean;
+  validation: { ok: boolean; errors: string[] };
+  starting_opportunities: string[];
+  config_frozen: boolean;
+  admin_only: true;
+  scripts_player_outcomes: false;
+  lore_is_final: false;
+  rules_versions: {
+    canonicalization: string;
+    world_rules: string;
+    deep_time: string;
+    genesis: string;
+  };
+  cycle0: Cycle0World;
+  cycle0_digest: string;
+  preview_summary: Record<string, unknown>;
+}
+
+export interface GenesisInput {
+  world_name: string;
+  world_seed: string;
+  profile_id: string;
+  story_seed_ids?: string[];
+}
+
+/** Stable JSON for digests (sorted keys, no whitespace variance). */
+export function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
+}
+
+export async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function profileOf(id: string) {
+  const p = GENESIS_PROFILES.find((x) => x.profile_id === id);
+  if (!p) throw new GenesisError("INVALID_PROFILE", `unknown genesis profile ${id}`);
+  return p;
+}
+
+function normalizeSeeds(seeds: string[] | undefined): StorySeedId[] {
+  const out: StorySeedId[] = [];
+  for (const s of seeds || []) {
+    if (!STORY_SET.has(s as StorySeedId)) {
+      throw new GenesisError("INVALID_SEED", `unknown story seed ${s}`);
+    }
+    if (!out.includes(s as StorySeedId)) out.push(s as StorySeedId);
+  }
+  return out.sort();
+}
+
+export class GenesisError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+    this.name = "GenesisError";
+  }
+}
+
+/** Deterministic PRNG from seed string. */
+function rng(seed: string): () => number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return () => {
+    h += 0x6d2b79f5;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function pick<T>(r: () => number, arr: T[]): T {
+  return arr[Math.floor(r() * arr.length) % arr.length];
+}
+
+function buildCycle0(
+  world_id: string,
+  world_name: string,
+  world_seed: string,
+  profile: (typeof GENESIS_PROFILES)[0],
+  seeds: StorySeedId[],
+  r: () => number,
+): Cycle0World {
+  const rooms: Record<string, GenesisRoom> = {};
+
+  // Core locations (3–5)
+  const hub = "room.relay-quarter";
+  rooms[hub] = {
+    room_id: hub,
+    name: profile.profile_id === "YOUNG_FRONTIER" ? "Claim Post" : "Relay Quarter",
+    description:
+      profile.profile_id === "FRACTURED_OLD_WORLD"
+        ? "Civic infrastructure of a fractured reach. Power is uneven; records disagree on who holds the grid."
+        : profile.profile_id === "RECOVERING_NETWORK"
+          ? "A reconnected hub. Links work, then fail. Repair crews left tools and unfinished claims."
+          : "A thin settlement edge. Opportunity is open; history is short.",
+    exits: [],
+    entities: [{ entity_id: "entity.relay-7", label: "relay-7", entity_type: "INFRASTRUCTURE" }],
+    tags: ["entry", "infrastructure"],
+  };
+
+  rooms["room.transit-ring"] = {
+    room_id: "room.transit-ring",
+    name: "Transit Ring",
+    description: "Curved corridor of faded waymarks. Routes once mattered more than they do now.",
+    exits: [],
+    entities: [],
+    tags: ["route"],
+  };
+
+  rooms["room.civic-exchange"] = {
+    room_id: "room.civic-exchange",
+    name: "Civic Exchange",
+    description: "Public boards and residual market geometry. Contracts outlive their signers.",
+    exits: [],
+    entities: [{ entity_id: "entity.storage-cell-cache", label: "storage-cell", entity_type: "INFRASTRUCTURE" }],
+    tags: ["trade", "public"],
+  };
+
+  rooms["room.infra-vault"] = {
+    room_id: "room.infra-vault",
+    name: "Infrastructure Vault",
+    description: "Cold maintenance under the hub. Damage is honest here.",
+    exits: [],
+    entities: [],
+    tags: ["scar", "infrastructure"],
+  };
+
+  // Optional fifth room for older profiles
+  if (profile.historical_age_band !== "YOUNG" || r() > 0.4) {
+    rooms["room.ruin-shelf"] = {
+      room_id: "room.ruin-shelf",
+      name: profile.profile_id === "FRACTURED_OLD_WORLD" ? "Broken Gallery" : "Outer Spur",
+      description: "A partial structure still standing. Entry is legal; interpretation is not free.",
+      exits: [],
+      entities: [],
+      tags: ["ruin", "scar"],
+    };
+  }
+
+  // Wire exits deterministically
+  const link = (a: string, b: string, dirA: string, dirB: string) => {
+    if (!rooms[a] || !rooms[b]) return;
+    rooms[a].exits.push({ direction: dirA, to_room_id: b });
+    rooms[b].exits.push({ direction: dirB, to_room_id: a });
+  };
+  link(hub, "room.transit-ring", "east", "west");
+  link(hub, "room.infra-vault", "down", "up");
+  link("room.transit-ring", "room.civic-exchange", "north", "south");
+  if (rooms["room.ruin-shelf"]) {
+    link("room.civic-exchange", "room.ruin-shelf", "east", "west");
+  }
+
+  const institutions: Cycle0World["institutions"] = [];
+  const artifacts: Cycle0World["artifacts"] = [];
+  const tensions: string[] = [];
+  const scars: string[] = [];
+  const resources: Cycle0World["resources"] = [
+    { kind: "energy", level: profile.resource_abundance === "SCARCE" ? "low" : profile.resource_abundance === "ABUNDANT" ? "high" : "mixed" },
+    { kind: "storage", level: pick(r, ["low", "mixed", "high"]) },
+  ];
+
+  // Profile-driven texture
+  if (profile.institution_presence !== "NONE_OR_EMERGING") {
+    institutions.push({
+      id: "org.civic-board",
+      name: "Civic Board",
+      status: profile.conflict_pressure === "HIGH" ? "dormant" : "active",
+    });
+  }
+  if (profile.historical_age_band === "OLD" || profile.profile_id === "RECOVERING_NETWORK") {
+    institutions.push({ id: "org.route-guild", name: "Route Guild", status: "dormant" });
+  }
+  if (profile.infrastructure_condition !== "ABUNDANT") {
+    scars.push("Damaged relay fabric under the hub");
+    rooms[hub].entities.push({
+      entity_id: "entity.scar-conduit",
+      label: "scarred-conduit",
+      entity_type: "RUIN",
+    });
+  }
+
+  // Story seed overlays (admin inputs → world evidence, not seed IDs in PLAY)
+  for (const sid of seeds) {
+    if (sid === "OLD_TRADE_NETWORK") {
+      rooms["room.civic-exchange"].entities.push({
+        entity_id: "entity.old-market-post",
+        label: "market-post",
+        entity_type: "INFRASTRUCTURE",
+      });
+      tensions.push("Partial trade routes still imply obligations no one accepts.");
+      resources.push({ kind: "trade-access", level: "mixed" });
+    }
+    if (sid === "LOST_ARCHIVE") {
+      const archiveRoom = rooms["room.ruin-shelf"] ? "room.ruin-shelf" : "room.civic-exchange";
+      rooms[archiveRoom].entities.push({
+        entity_id: "entity.archive-ledger",
+        label: "archive-ledger",
+        entity_type: "ARTIFACT",
+      });
+      artifacts.push({ id: "artifact.archive-ledger", label: "Incomplete ledger", room_id: archiveRoom });
+      tensions.push("Records disagree about ownership of the archive fragments.");
+    }
+    if (sid === "FOUNDING_SPLIT") {
+      tensions.push("Two founding claims share the same civic seal.");
+    }
+    if (sid === "FAILED_SETTLEMENT") {
+      scars.push("An abandoned claim site marks a failed settlement attempt.");
+      if (rooms["room.ruin-shelf"]) {
+        rooms["room.ruin-shelf"].entities.push({
+          entity_id: "entity.failed-claim",
+          label: "failed-claim",
+          entity_type: "RUIN",
+        });
+      }
+    }
+    if (sid === "RESOURCE_CRISIS") {
+      resources[0] = { kind: "energy", level: "low" };
+      tensions.push("Energy is uneven; someone is already rationing informally.");
+    }
+    if (sid === "DISPUTED_SUCCESSION") {
+      if (institutions.length) institutions[0].status = "active";
+      tensions.push("A succession vacancy leaves custodianship unresolved.");
+    }
+  }
+
+  if (!tensions.length) {
+    tensions.push("The starting region is not empty of pressure.");
+  }
+
+  const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions);
+
+  return {
+    world_id,
+    world_name,
+    world_seed,
+    cycle: 0,
+    sequence: 0,
+    entry_room_id: hub,
+    rooms,
+    institutions: institutions.slice(0, 3),
+    artifacts,
+    tensions: tensions.slice(0, 4),
+    scars,
+    resources,
+    opportunities,
+  };
+}
+
+function startingOpportunities(
+  profile_id: string,
+  seeds: StorySeedId[],
+  rooms: Record<string, GenesisRoom>,
+  institutions: Cycle0World["institutions"],
+  artifacts: Cycle0World["artifacts"],
+  tensions: string[],
+): string[] {
+  const opps = new Set<string>();
+  opps.add("exploration");
+  if (Object.values(rooms).some((r) => r.entities.some((e) => e.entity_type === "INFRASTRUCTURE"))) {
+    opps.add("repair");
+    opps.add("infrastructure inspection");
+  }
+  if (Object.values(rooms).some((r) => r.tags?.includes("trade"))) opps.add("trade");
+  if (institutions.some((i) => i.status === "active")) opps.add("institution interaction");
+  if (artifacts.length) opps.add("artifact investigation");
+  if (tensions.length) {
+    opps.add("territorial tension");
+    opps.add("negotiation");
+  }
+  if (seeds.includes("RESOURCE_CRISIS") || profile_id === "RECOVERING_NETWORK") opps.add("resource acquisition");
+  if (seeds.includes("FOUNDING_SPLIT") || seeds.includes("DISPUTED_SUCCESSION")) opps.add("alliance / negotiation");
+  return [...opps];
+}
+
+export function validateCycle0(world: Cycle0World): { ok: boolean; errors: string[] } {
+  const errors: string[] = [];
+  if (!world.world_id) errors.push("world_id missing");
+  if (!world.world_seed) errors.push("world_seed missing");
+  if (world.cycle !== 0) errors.push("cycle must be 0");
+  const rooms = Object.values(world.rooms);
+  if (rooms.length < 3 || rooms.length > 8) errors.push(`room_count ${rooms.length} outside 3–8 budget`);
+  if (!world.rooms[world.entry_room_id]) errors.push("entry_room_id invalid");
+
+  for (const room of rooms) {
+    if (!room.room_id || !room.name) errors.push(`room missing id/name`);
+    for (const ex of room.exits) {
+      if (!world.rooms[ex.to_room_id]) errors.push(`exit from ${room.room_id} to missing ${ex.to_room_id}`);
+    }
+    for (const ent of room.entities) {
+      if (!ent.entity_id || !ent.entity_type) errors.push(`entity invalid in ${room.room_id}`);
+    }
+  }
+
+  // Bidirectional exit check (soft: warn as error for first-run reliability)
+  for (const room of rooms) {
+    for (const ex of room.exits) {
+      const dest = world.rooms[ex.to_room_id];
+      const back = dest?.exits.some((e) => e.to_room_id === room.room_id);
+      if (!back) errors.push(`asymmetric route ${room.room_id} → ${ex.to_room_id}`);
+    }
+  }
+
+  for (const inst of world.institutions) {
+    if (!inst.id || !inst.name) errors.push("institution ref invalid");
+  }
+  for (const art of world.artifacts) {
+    if (!world.rooms[art.room_id]) errors.push(`artifact ${art.id} room missing`);
+  }
+
+  if (world.opportunities.length < 3) errors.push("insufficient starting opportunities");
+
+  // Empty-world guard
+  const entityCount = rooms.reduce((n, r) => n + r.entities.length, 0);
+  if (entityCount < 1) errors.push("world has no inspectable entities");
+
+  return { ok: errors.length === 0, errors };
+}
+
+export async function previewGenesis(input: GenesisInput): Promise<GenesisResult> {
+  const world_name = (input.world_name || "Aster Reach").trim().slice(0, 64) || "Aster Reach";
+  const world_seed = (input.world_seed || "").trim();
+  if (!world_seed) throw new GenesisError("INVALID_SEED", "world_seed required");
+  if (!PROFILE_SET.has(input.profile_id as GenesisProfileId)) {
+    throw new GenesisError("INVALID_PROFILE", `unknown genesis profile ${input.profile_id}`);
+  }
+  const profile_id = input.profile_id as GenesisProfileId;
+  const profile = profileOf(profile_id);
+  const story_seed_ids = normalizeSeeds(input.story_seed_ids);
+  if (story_seed_ids.length > 2) {
+    throw new GenesisError("INVALID_SEED", "first-run budget: at most 2 story seeds");
+  }
+
+  const world_id = `world.${world_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "01"}`;
+
+  const claimBearing = {
+    world_name,
+    world_seed,
+    profile_id,
+    story_seed_ids,
+    rules_versions: {
+      canonicalization: "noema-jcs/1",
+      world_rules: "world/v1",
+      deep_time: "deep-time/0.6",
+      genesis: "genesis/0.6",
+    },
+  };
+  const genesis_id = `genesis.${(await sha256Hex(stableStringify(claimBearing))).slice(0, 16)}`;
+
+  const r = rng(`${world_seed}|${profile_id}|${story_seed_ids.join(",")}`);
+  const cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  const validation = validateCycle0(cycle0);
+  const cycle0_digest = `sha256:${await sha256Hex(stableStringify(cycle0))}`;
+
+  const result: GenesisResult = {
+    schema_version: "genesis-result/0.6",
+    genesis_id,
+    world_id,
+    world_name,
+    status: validation.ok ? "VALIDATED" : "PREVIEW",
+    world_seed,
+    genesis_profile_id: profile_id,
+    story_seed_ids,
+    ordinary_world_valid: validation.ok,
+    validation,
+    starting_opportunities: cycle0.opportunities,
+    config_frozen: false,
+    admin_only: true,
+    scripts_player_outcomes: false,
+    lore_is_final: false,
+    rules_versions: claimBearing.rules_versions,
+    cycle0,
+    cycle0_digest,
+    preview_summary: {
+      regions: Object.values(cycle0.rooms).map((rm) => ({ id: rm.room_id, name: rm.name, tags: rm.tags || [] })),
+      resources: cycle0.resources,
+      active_institutions: cycle0.institutions.filter((i) => i.status === "active"),
+      dormant_institutions: cycle0.institutions.filter((i) => i.status === "dormant"),
+      infrastructure: Object.values(cycle0.rooms).flatMap((rm) =>
+        rm.entities.filter((e) => e.entity_type === "INFRASTRUCTURE").map((e) => ({ ...e, room_id: rm.room_id })),
+      ),
+      ruins_scars: cycle0.scars,
+      historical_artifacts: cycle0.artifacts,
+      tensions: cycle0.tensions,
+      opportunities: cycle0.opportunities,
+      room_count: Object.keys(cycle0.rooms).length,
+      entity_count: Object.values(cycle0.rooms).reduce((n, rm) => n + rm.entities.length, 0),
+    },
+  };
+  return result;
+}
+
+/** Public PLAY/WATCH redaction — never expose genesis inputs. */
+export function redactedPublicWorld(meta: {
+  world_id: string;
+  cycle: number;
+  sequence: number;
+  rooms: Record<string, GenesisRoom>;
+  players_present: number;
+}): Record<string, unknown> {
+  return {
+    projection: "public",
+    world_id: meta.world_id,
+    cycle: meta.cycle,
+    sequence: meta.sequence,
+    players_present: meta.players_present,
+    rooms: Object.values(meta.rooms).map((r) => ({
+      room_id: r.room_id,
+      name: r.name,
+      description: r.description,
+      entity_count: r.entities.length,
+      entities: r.entities.map((e) => ({
+        entity_id: e.entity_id,
+        label: e.label,
+        entity_type: e.entity_type,
+      })),
+      exit_count: r.exits.length,
+    })),
+    note: "Spectator projection is never world truth and never mutates the ledger.",
+  };
+}
+
+export function catalog() {
+  return {
+    profiles: GENESIS_PROFILES,
+    story_seeds: STORY_SEEDS,
+    rules_versions: {
+      canonicalization: "noema-jcs/1",
+      world_rules: "world/v1",
+      deep_time: "deep-time/0.6",
+      genesis: "genesis/0.6",
+    },
+  };
+}

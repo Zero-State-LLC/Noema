@@ -11,6 +11,7 @@ import { adminHtml, adminLoginHtml } from "./admin";
 import { adminTokenConfigured, mintAdminSession, resolveAdmin } from "./admin-auth";
 import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
 import { connectHtml } from "./connect";
+import { catalog, GenesisError, previewGenesis } from "./genesis";
 import { landingHtml } from "./landing";
 import { playHtml } from "./play";
 import { studyHtml } from "./study";
@@ -199,22 +200,46 @@ export default {
         const stub = env.WORLD_DO.get(id);
         const worldRes = await stub.fetch("https://do/admin-status");
         const world = (await worldRes.json()) as Record<string, unknown>;
+        const meta = (world.meta || {}) as Record<string, unknown>;
         const attention: Array<{ message: string; level: string }> = [];
         if (!adminTokenConfigured(env)) {
           attention.push({ message: "ADMIN_OPERATOR_TOKEN not configured.", level: "attention" });
         }
-        attention.push({
-          message: "Stage 0: full Genesis profile wizard remains on noema-serve /admin.",
-          level: "info",
-        });
+        if (meta.status === "ACTIVE") {
+          attention.push({ message: "WORLD ACTIVE — Genesis configuration is frozen.", level: "ok" });
+          if (meta.settlement_ok === false) {
+            attention.push({
+              message: "Settlement soft-failed or unset; verify SUPABASE_* and digest.",
+              level: "attention",
+            });
+          }
+        } else if (meta.status === "DEMO_SEED") {
+          attention.push({
+            message: "Demo chamber seed live. Run Genesis preview → activate for first real world.",
+            level: "info",
+          });
+        }
 
         return cors(
           json({
-            admin_plane: "stage0-worker",
+            admin_plane: "hosted-genesis",
             ready: true,
             health,
             world,
-            genesis: (world as { genesis?: unknown }).genesis,
+            genesis: {
+              status: meta.status,
+              genesis_id: meta.genesis_id,
+              profile_id: meta.profile_id,
+              story_seed_ids: meta.story_seed_ids,
+              world_seed: meta.world_seed,
+              cycle0_digest: meta.cycle0_digest,
+              config_frozen: meta.config_frozen,
+              activated_at: meta.activated_at,
+              settlement_id: meta.settlement_id,
+              settlement_ok: meta.settlement_ok,
+              do_digest: meta.do_digest,
+              catalog: catalog(),
+            },
             admin: {
               session_id: admin.session_id,
               role: admin.role,
@@ -225,9 +250,100 @@ export default {
               player_sessions_cannot_promote: true,
               genesis_player_surface: false,
               service_role_to_clients: false,
+              production_reseed_forbidden: true,
             },
           }),
         );
+      }
+
+      if (request.method === "GET" && path === "/v1/admin/genesis/catalog") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        return cors(json(catalog()));
+      }
+
+      // Preview — pure generate + store in DO; live world unchanged
+      if (request.method === "POST" && path === "/v1/admin/genesis/preview") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        try {
+          const body = (await request.json()) as {
+            world_name?: string;
+            world_seed?: string;
+            profile_id?: string;
+            story_seed_ids?: string[];
+          };
+          const result = await previewGenesis({
+            world_name: body.world_name || "Aster Reach",
+            world_seed: body.world_seed || "",
+            profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
+            story_seed_ids: body.story_seed_ids,
+          });
+          const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+          const stub = env.WORLD_DO.get(id);
+          // Capture live sequence before store
+          const before = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          await stub.fetch("https://do/genesis-preview-store", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ result }),
+          });
+          const after = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          // Determinism self-check: re-preview same inputs
+          const again = await previewGenesis({
+            world_name: body.world_name || "Aster Reach",
+            world_seed: body.world_seed || "",
+            profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
+            story_seed_ids: body.story_seed_ids,
+          });
+          const deterministic =
+            again.genesis_id === result.genesis_id && again.cycle0_digest === result.cycle0_digest;
+
+          return cors(
+            json({
+              result,
+              determinism: {
+                ok: deterministic,
+                genesis_id_match: again.genesis_id === result.genesis_id,
+                cycle0_digest_match: again.cycle0_digest === result.cycle0_digest,
+              },
+              live_world_unchanged: {
+                ok: before.sequence === after.sequence,
+                sequence_before: before.sequence,
+                sequence_after: after.sequence,
+              },
+              admin_session_id: admin.session_id,
+            }),
+          );
+        } catch (e) {
+          if (e instanceof GenesisError) return cors(err(e.code, e.message, 400));
+          throw e;
+        }
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/genesis/activate") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          genesis_id?: string;
+          confirm?: boolean;
+        };
+        if (!body.genesis_id) return cors(err("INVALID_REQUEST", "genesis_id required", 400));
+        if (!body.confirm) {
+          return cors(err("CONFIRMATION_REQUIRED", "confirm: true required for activation", 400));
+        }
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/genesis-activate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            genesis_id: body.genesis_id,
+            admin_session_id: admin.session_id,
+          }),
+        });
+        const data = await res.json();
+        return cors(json(data, res.status));
       }
 
       if (request.method === "POST" && path === "/v1/admin/reseed") {

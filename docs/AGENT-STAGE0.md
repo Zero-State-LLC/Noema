@@ -93,3 +93,17 @@ Per Specs PLATFORM / GENESIS:
 npx wrangler secret put ADMIN_OPERATOR_TOKEN
 # then open https://noema.guru/admin/login
 ```
+
+
+## Hosted Genesis (admin)
+
+```text
+POST /v1/admin/genesis/preview
+POST /v1/admin/genesis/activate   # requires confirm:true
+```
+
+See [GENESIS-RUNBOOK.md](GENESIS-RUNBOOK.md). Rehearsal:
+
+```bash
+ADMIN_TOKEN=… BASE=https://noema.guru ./scripts/genesis_rehearsal.sh
+```

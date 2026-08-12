@@ -1,0 +1,20 @@
+{
+  "schema_version": "genesis-rehearsal/1.0",
+  "title": "First world Genesis rehearsal",
+  "description": "Canonical first-run inputs for hosted Genesis readiness. Not automatically production activation.",
+  "world_name": "Aster Reach",
+  "profile": "FRACTURED_OLD_WORLD",
+  "story_seeds": ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
+  "world_seed": "49321892",
+  "rules_versions": {
+    "canonicalization": "noema-jcs/1",
+    "world_rules": "world/v1",
+    "deep_time": "deep-time/0.6",
+    "genesis": "genesis/0.6"
+  },
+  "notes": [
+    "Use only canonical Specs profiles and story seeds.",
+    "Preview twice for determinism before any --activate.",
+    "Production activation requires explicit operator flag; never CI."
+  ]
+}
