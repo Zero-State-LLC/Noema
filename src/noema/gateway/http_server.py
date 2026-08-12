@@ -11,7 +11,15 @@ from urllib.parse import parse_qs, urlparse
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
-from noema.gateway.ui import admin_html, admin_login_html, index_html, play_html, study_html, watch_html
+from noema.gateway.ui import (
+    admin_html,
+    admin_login_html,
+    connect_html,
+    index_html,
+    play_html,
+    study_html,
+    watch_html,
+)
 from noema.protocol.agent_v1 import AgentProtocolV1
 
 
@@ -21,6 +29,12 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt: str, *args: Any) -> None:  # quieter tests
             pass
+
+        def _bearer_token(self) -> str | None:
+            auth = self.headers.get("Authorization") or ""
+            if auth.lower().startswith("bearer "):
+                return auth[7:].strip() or None
+            return self.headers.get("X-Noema-Access-Token") or None
 
         def _json(self, code: int, body: dict[str, Any], *, headers: dict[str, str] | None = None) -> None:
             raw = json.dumps(body, sort_keys=True).encode("utf-8")
@@ -112,8 +126,14 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     return self._html(200, watch_html())
                 if path in {"/play", "/play/"}:
                     return self._html(200, play_html())
+                if path in {"/connect", "/connect/"}:
+                    return self._html(200, connect_html())
                 if path in {"/study", "/study/"}:
                     return self._html(200, study_html())
+                if path == "/auth/device/preview":
+                    qs = parse_qs(urlparse(self.path).query)
+                    code = (qs.get("user_code") or [""])[0]
+                    return self._json(200, runtime.identity.preview_device(str(code)))
                 if path in {"/admin/login", "/admin/login/"}:
                     return self._html(200, admin_login_html())
                 if path in {"/admin", "/admin/"}:
@@ -243,12 +263,23 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         ),
                     )
                 if path == "/auth/device/approve":
+                    token = body.get("access_token") or self._bearer_token()
                     return self._json(
                         200,
                         runtime.identity.approve_device(
                             user_code=str(body.get("user_code") or ""),
-                            player_id=str(body.get("player_id") or ""),
+                            player_id=body.get("player_id"),
+                            approver_access_token=str(token) if token else None,
                             approver_account_id=body.get("account_id"),
+                        ),
+                    )
+                if path == "/auth/device/deny":
+                    token = body.get("access_token") or self._bearer_token()
+                    return self._json(
+                        200,
+                        runtime.identity.deny_device(
+                            user_code=str(body.get("user_code") or ""),
+                            approver_access_token=str(token) if token else None,
                         ),
                     )
                 if path == "/auth/device/token":

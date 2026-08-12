@@ -493,23 +493,47 @@ class NoemaRuntime:
             "tables": tables,
         }
 
+    def _session_record(self, session_id: str) -> dict[str, Any]:
+        data = self.sessions.get(session_id) or self.store.load_session(session_id)
+        if not data:
+            raise ActionError(NOT_AUTHORIZED, "unknown session")
+        return data
+
+    def _require_scope(self, session_id: str, scope: str) -> dict[str, Any]:
+        data = self._session_record(session_id)
+        scopes = data.get("scopes") or []
+        # Sessions without scopes (legacy/dev SPECTATOR/ADMIN/PLAYER) keep prior behavior
+        if scopes and scope not in scopes and data.get("role") not in (Role.ADMIN.value,):
+            raise ActionError(NOT_AUTHORIZED, f"missing scope {scope}")
+        return data
+
     def apply_player_action(self, session_id: str, action: dict[str, Any]) -> dict[str, Any]:
         principal = self.get_principal(session_id)
         if principal.is_spectator() or principal.role == Role.RESEARCHER:
             raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
         if not principal.can_mutate_world():
             raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
+        sess = self._require_scope(session_id, "noema.action.submit")
         self.ensure_ready()
         assert self.router is not None
         with self._writer:
             state = self.store.get_state()
-            agent_id = action.get("agent_id") or principal.agent_id
+            agent_id = action.get("agent_id") or principal.agent_id or sess.get("agent_id")
+            # Bound sessions cannot switch Player principal
+            if sess.get("agent_id") and agent_id and agent_id != sess.get("agent_id"):
+                raise ActionError(NOT_AUTHORIZED, "agent_id does not match session")
             if not agent_id:
                 raise ActionError(NOT_AUTHORIZED, "agent_id required")
             if agent_id not in state.registered_agents:
                 state.registered_agents[agent_id] = {"agent_id": agent_id, "display_name": agent_id}
                 self.store._state.registered_agents[agent_id] = state.registered_agents[agent_id]
-            action = {**action, "agent_id": agent_id}
+            action = {
+                **action,
+                "agent_id": agent_id,
+                "player_id": sess.get("player_id") or action.get("player_id"),
+                "controller_id": sess.get("controller_id") or action.get("controller_id"),
+                "session_id": session_id,
+            }
             new_state, events, results = self.router.apply_actions(
                 state, [action], principal_agent_id=principal.agent_id or agent_id
             )
@@ -531,6 +555,12 @@ class NoemaRuntime:
                 "events": [{"event_id": e["event_id"], "event_type": e["event_type"], "sequence": e["sequence"]} for e in events],
                 "observation": obs,
                 "commit": meta,
+                "provenance": {
+                    "player_id": sess.get("player_id"),
+                    "controller_id": sess.get("controller_id"),
+                    "session_id": session_id,
+                    "agent_id": agent_id,
+                },
                 "delivery": {
                     "stream": "observations",
                     "high_water": win.high_water,
@@ -541,11 +571,17 @@ class NoemaRuntime:
 
     def observe(self, session_id: str, agent_id: str | None = None) -> dict[str, Any]:
         principal = self.get_principal(session_id)
+        sess = self._session_record(session_id)
+        scopes = sess.get("scopes") or []
+        if scopes and "noema.world.observe" not in scopes and principal.role != Role.ADMIN:
+            raise ActionError(NOT_AUTHORIZED, "missing scope noema.world.observe")
         self.ensure_ready()
-        aid = agent_id or principal.agent_id
+        aid = agent_id or principal.agent_id or sess.get("agent_id")
         if not aid:
             raise ActionError(NOT_AUTHORIZED, "agent_id required")
         if principal.agent_id and aid != principal.agent_id and principal.role != Role.ADMIN:
+            raise ActionError(NOT_AUTHORIZED, "cannot observe other agent")
+        if sess.get("agent_id") and aid != sess.get("agent_id") and principal.role != Role.ADMIN:
             raise ActionError(NOT_AUTHORIZED, "cannot observe other agent")
         state = self.store.get_state()
         obs = project_agent_observation(state, aid)

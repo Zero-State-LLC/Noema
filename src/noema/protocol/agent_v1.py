@@ -92,6 +92,13 @@ class AgentProtocolV1:
                 },
             }
         # Dev path: unauthenticated agent_id bind (local tests / fixtures only)
+        if not self.runtime.identity.allow_dev_protocol_auth:
+            return self._error(
+                message,
+                "NOT_AUTHORIZED",
+                "controller access_token required",
+                retryable=False,
+            )
         agent_id = body.get("agent_id") or message.get("agent_id")
         session = self.runtime.create_session(role=Role.AGENT, agent_id=agent_id)
         return {
