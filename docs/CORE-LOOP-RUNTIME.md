@@ -34,6 +34,10 @@ PLAY → NOTICE → TEST → CAPTURE → LEARN
 8. **Lore / LEARN simple views** never strengthen claim labels beyond source evidence.
 9. **Canonicalization** is `noema-jcs/1` (sort_keys JSON + sha256) for digests.
 
+## UI handoff
+
+Product UI builders: see **[UI-HANDOFF.md](UI-HANDOFF.md)** for routes, roles, redaction, error shape, PLAY/WATCH/STUDY flows, and non-goals. Marketing site is separate ([GitHub Pages](https://zero-state-llc.github.io/Noema/)).
+
 ## Composition root
 
 `NoemaRuntime` (`src/noema/app/runtime.py`) wires:
