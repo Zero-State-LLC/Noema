@@ -77,14 +77,25 @@ npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 
 ## Secrets
 
+**Already on deployed Worker (names only):** `TOKEN_SIGNING_SECRET`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`.  
+**Still needed for settlement:** `SUPABASE_SERVICE_ROLE_KEY`.
+
 ```bash
-wrangler secret put TOKEN_SIGNING_SECRET
-wrangler secret put SUPABASE_JWT_SECRET      # optional human path
-wrangler secret put SUPABASE_URL             # optional settlement
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY  # Worker only; never clients
+# Interactive (recommended)
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+
+# Or from a local gitignored file
+cp .env.example .env   # fill values
+./scripts/push-secrets-from-env.sh
 ```
 
-Settlement posts to Supabase REST table `noema_settled_events` when configured (soft-fail if missing).
+Worker-only secrets — never browser, never agents, never git.
+
+Settlement posts to Supabase REST table `noema_settled_events` when URL + service role are set (soft-fail if missing). Apply:
+
+`supabase/migrations/20260812193000_noema_settled_events.sql`
+
+After LOOK, response field `settled: true` means a row was accepted.
 
 ## Example
 

@@ -37,19 +37,23 @@ export async function settleEvent(env: Env, principal: PlayerPrincipal, ev: Sett
   };
 
   try {
-    const res = await fetch(`${url.replace(/\/$/, "")}/rest/v1/noema_settled_events`, {
-      method: "POST",
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal",
+    // PostgREST upsert on primary key event_id
+    const res = await fetch(
+      `${url.replace(/\/$/, "")}/rest/v1/noema_settled_events?on_conflict=event_id`,
+      {
+        method: "POST",
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+    );
     // 201 created, 200 upsert, 409 conflict → treat as settled/idempotent
     if (res.ok || res.status === 409) return true;
-    // Table may not exist yet (404/PGRST) — fail soft for Stage 0
+    // Table missing / RLS / bad key — fail soft for Stage 0 (live DO still authoritative)
     return false;
   } catch {
     return false;
