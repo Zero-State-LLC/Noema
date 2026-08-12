@@ -8,6 +8,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: noema
+          POSTGRES_PASSWORD: noema
+          POSTGRES_DB: noema
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U noema -d noema"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      NOEMA_TEST_PG_DSN: postgresql://noema:noema@127.0.0.1:5432/noema
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -16,8 +32,56 @@ jobs:
       - name: Install
         run: |
           python -m pip install -U pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,postgres]"
       - name: Seed replay
         run: noema-replay
-      - name: Tests
+      - name: Tests (SQLite + PostgreSQL)
         run: pytest -q
+      - name: Operator verify smoke
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from noema.app.runtime import NoemaRuntime
+          from noema.auth.roles import Role
+          from noema.ops.backup import backup_world, restore_world
+          from noema.ops.verify import verify_world
+
+          root = Path(".")
+          db = root / "data" / "ci-smoke.sqlite3"
+          db.parent.mkdir(parents=True, exist_ok=True)
+          if db.exists():
+              db.unlink()
+          rt = NoemaRuntime(db_path=db)
+          rt.start_world(root / "fixtures" / "v01-seed" / "world-seed.json")
+          sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+          rt.apply_player_action(
+              sess["session_id"],
+              {
+                  "verb": "ENTER_WORLD",
+                  "agent_id": "agent.player.1",
+                  "client_action_sequence": 1,
+                  "action_id": "act.1",
+                  "idempotency_key": "idem.1",
+                  "parameters": {},
+              },
+          )
+          rt.store.close()
+          v = verify_world(db, seed_path=root / "fixtures" / "v01-seed" / "world-seed.json")
+          assert v.ok, v.failures
+          print(v.pass_line())
+          bdir = root / "backups" / "ci-smoke"
+          if bdir.exists():
+              import shutil
+              shutil.rmtree(bdir)
+          backup_world(db, bdir, seed_path=root / "fixtures" / "v01-seed" / "world-seed.json")
+          restored = root / "data" / "ci-restored.sqlite3"
+          if restored.exists():
+              restored.unlink()
+          out = restore_world(
+              bdir,
+              restored,
+              seed_path=root / "fixtures" / "v01-seed" / "world-seed.json",
+          )
+          assert out["verify_ok"] is True
+          print("NOEMA BACKUP/RESTORE: PASS")
+          PY

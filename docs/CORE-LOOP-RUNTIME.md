@@ -95,6 +95,24 @@ pytest -q -m postgres
 
 Factory: `noema.persistence.open_store(path_or_url)`.
 
+## Operator surfaces (Phase 9)
+
+Specs `OPERATIONS.md` equivalents (CLI names use `noema-*` prefix to match existing entry points):
+
+```bash
+noema-verify  --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json
+noema-backup  --db data/noema.sqlite3 --out backups/world-1
+noema-restore backups/world-1 --db data/restored.sqlite3 --seed fixtures/v01-seed/world-seed.json
+```
+
+| Command | Semantics |
+|---|---|
+| `noema-verify` | Fail-closed checklist; prints `NOEMA VERIFY: PASS` |
+| `noema-backup` | Portable bundle: ledger, snapshots, runtime manifest, config digest, fence audit |
+| `noema-restore` | Clean target + fresh writer fence; refuses non-empty without `--force`; runs verify |
+
+CI runs the full suite against Postgres 16 and a verify/backup/restore smoke.
+
 ## Explicit non-goals (still deferred)
 
 - v0.8 Phenomena platform

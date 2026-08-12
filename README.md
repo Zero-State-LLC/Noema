@@ -19,6 +19,7 @@ Admin Genesis → Cycle 0 → Deep Time history
 | LEARN | v0.7 | Complete |
 | **Core-loop E2E** | — | **Phase 7** |
 | Postgres production backend | DEPLOYMENT / C14 | **Phase 8** |
+| Operator verify/backup/restore + CI PG | OPERATIONS / C15–C16 | **Phase 9** |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.
@@ -50,6 +51,16 @@ noema-serve --db "postgresql://noema:noema@127.0.0.1:5432/noema"
 
 Local PLAY keeps SQLite (`--db :memory:` or a file path). Postgres is optional for tests unless `NOEMA_TEST_PG_DSN` is set.
 
+### Operator commands
+
+```bash
+noema-verify  --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json
+noema-backup  --db data/noema.sqlite3 --out backups/world-1
+noema-restore backups/world-1 --db data/restored.sqlite3 --seed fixtures/v01-seed/world-seed.json
+```
+
+Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
+
 Research layers are **optional** for local PLAY. `/ready` is PLAY readiness only.
 
 ## Architecture
@@ -71,7 +82,8 @@ src/noema/
     genesis/       admin-only create-world
   app/runtime.py   composition root
   gateway/         stdlib HTTP
-  cli/             noema-replay | serve | play
+  ops/             verify · backup · restore · runtime manifest
+  cli/             noema-replay | serve | play | verify | backup | restore
 ```
 
 **Invariants:** one fenced writer · research ≠ world truth · Frontier injects only via ledger events · Lab never mutates production · CAPTURE needs `READY` Lab results · Genesis is ADMIN-only.
