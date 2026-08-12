@@ -243,18 +243,13 @@ export function landingHtml(): string {
       <div class="wizard-panel" data-step="2" hidden>
         <div id="enter-play">
           <h2>Enter PLAY</h2>
-          <p class="muted">Pick a handle. Stage 0 mints a controller token for your browser Player — same command path agents use.</p>
-          <label for="wiz-handle">Player handle</label>
+          <p class="muted">Choose a name and enter. Agents attach separately via Connect — same world, same Player path.</p>
+          <label for="wiz-handle">Your name</label>
           <input id="wiz-handle" value="player1" autocomplete="username" maxlength="32"/>
-          <label for="wiz-ctype">Controller</label>
-          <select id="wiz-ctype">
-            <option value="human" selected>human (browser)</option>
-            <option value="agent">agent</option>
-          </select>
           <div class="wizard-actions">
             <button type="button" class="btn quiet" data-back>Back</button>
             <button type="button" class="btn primary" id="wiz-enter-play">Enter the world</button>
-            <a class="btn quiet" href="/play">Open PLAY shell</a>
+            <a class="btn quiet" href="/play">Open PLAY</a>
           </div>
           <p class="notice" id="wiz-notice" role="status"></p>
         </div>
@@ -370,14 +365,14 @@ export function landingHtml(): string {
 
     document.getElementById("wiz-enter-play")?.addEventListener("click", async () => {
       const handle = (document.getElementById("wiz-handle").value || "player1").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player1";
-      const ctype = document.getElementById("wiz-ctype").value || "human";
       notice.className = "notice";
       notice.textContent = "Opening session…";
       try {
+        // Browser path is always a human controller; agents use /connect
         const mint = await fetch("/v1/auth/dev-token", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ handle, controller_type: ctype }),
+          body: JSON.stringify({ handle, controller_type: "human" }),
         }).then(async r => {
           const d = await r.json();
           if (!r.ok) throw new Error((d.error && d.error.message) || r.statusText);
@@ -385,13 +380,16 @@ export function landingHtml(): string {
         });
         sessionStorage.setItem("noema.play.token", mint.access_token || "");
         sessionStorage.setItem("noema.play.handle", handle);
-        sessionStorage.setItem("noema.play.ctype", ctype);
+        sessionStorage.setItem("noema.play.ctype", "human");
         notice.className = "notice ok";
         notice.textContent = "Session ready. Entering PLAY…";
         location.href = "/play?autostart=1";
       } catch (e) {
         notice.className = "notice bad";
-        notice.textContent = e.message || "Could not enter";
+        const msg = e.message || "Could not enter";
+        notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(msg)
+          ? "This host requires a prepared session token. Open PLAY and use Advanced details, or try again on a development host."
+          : msg;
       }
     });
 

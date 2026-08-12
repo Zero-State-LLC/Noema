@@ -58,11 +58,15 @@ export interface CommandEnvelope {
 export interface Observation {
   cycle: number;
   sequence: number;
+  /** World display name when known (never seed / profile / story seeds). */
+  world_name?: string;
   location: {
     room_id: string;
     name: string;
     description: string;
-    exits: Array<{ direction: string; to_room_id: string }>;
+    /** Short local condition derived for UI (presentation only). */
+    condition?: string;
+    exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: Array<{ entity_id: string; label: string; entity_type: string }>;
   };
   player_id: string;

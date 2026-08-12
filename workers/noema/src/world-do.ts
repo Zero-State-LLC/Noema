@@ -111,6 +111,44 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
   };
 }
 
+/** Presentation-only local condition from room text + entity labels. */
+function deriveRoomCondition(room: Room): string {
+  const blob = `${room.description} ${room.entities.map((e) => `${e.label} ${e.entity_type}`).join(" ")}`.toLowerCase();
+  const bits: string[] = [];
+  if (/scar|damag|broken|fail/.test(blob)) bits.push("Infrastructure shows damage.");
+  if (/trade|market|exchange|bond|contract/.test(blob)) bits.push("Trade structures are nearby.");
+  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
+  if (/route|ghost|thin|spindle|link|relay/.test(blob) && !bits.some((b) => /damage/.test(b))) {
+    bits.push("Routes continue from here.");
+  }
+  if (!bits.length) {
+    bits.push(room.entities.length ? "Objects here can be examined." : "Open ground — routes lead outward.");
+  }
+  return bits.slice(0, 2).join(" ");
+}
+
+function inspectDetail(entity: { label: string; entity_type: string }): string {
+  const label = entity.label.replace(/[_-]+/g, " ");
+  const t = (entity.entity_type || "").toUpperCase();
+  const s = `${entity.label} ${entity.entity_type}`.toLowerCase();
+  if (/scar|damag|broken|fail/.test(s)) {
+    return `${label} is damaged infrastructure — still present, not fully trusted.`;
+  }
+  if (t === "RUIN" || /ruin|dead|ghost/.test(s)) {
+    return `${label} is a ruin. Entry may be legal; meaning is not free.`;
+  }
+  if (t === "ARTIFACT" || /ledger|archive|record|board/.test(s)) {
+    return `${label} is a surviving record. Incomplete, but readable up close.`;
+  }
+  if (/market|post|trade/.test(s)) {
+    return `${label} marks trade access. Boards and obligations may still bind.`;
+  }
+  if (t === "INFRASTRUCTURE") {
+    return `${label} is infrastructure still on site — useful if you can read its state.`;
+  }
+  return `${label} (${entity.entity_type.toLowerCase()}) is present and can be examined.`;
+}
+
 export class NoemaWorldDO {
   private state: DurableObjectState;
   private env: Env;
@@ -418,17 +456,26 @@ export class NoemaWorldDO {
     const loc = w.players[principal.player_id];
     const room_id = loc?.room_id || w.entry_room_id || "room.relay-quarter";
     const room = w.rooms[room_id] || Object.values(w.rooms)[0];
+    const exits = (room.exits || []).map((e) => ({
+      direction: e.direction,
+      to_room_id: e.to_room_id,
+      to_room_name: w.rooms[e.to_room_id]?.name || undefined,
+    }));
+    const condition = deriveRoomCondition(room);
     return {
       cycle: w.cycle,
       sequence: w.sequence,
+      world_name: w.world_name,
       location: {
         room_id: room.room_id,
         name: room.name,
         description: room.description,
-        exits: room.exits,
+        condition,
+        exits,
         entities: room.entities,
       },
       player_id: principal.player_id,
+      // Hosted Stage 0 surface only — strategic verbs exist in Core but not this Worker
       available_actions: ["LOOK", "MOVE", "INSPECT", "WAIT"],
     };
   }
@@ -510,7 +557,12 @@ export class NoemaWorldDO {
         return {
           ok: false,
           request_id,
-          error: { code: "MOVE_REJECTED", message: `no exit ${direction || "(empty)"}` },
+          error: {
+            code: "MOVE_REJECTED",
+            message: direction
+              ? `There is no exit ${direction} from here.`
+              : "Choose a direction to move.",
+          },
         };
       }
       pl.room_id = exit.to_room_id;
@@ -548,10 +600,11 @@ export class NoemaWorldDO {
           request_id,
           error: {
             code: "INSPECT_FAILED",
-            message: target ? `no visible entity ${target}` : "entity_id required",
+            message: target ? `You do not see “${target}” here.` : "Choose something to inspect.",
           },
         };
       }
+      const detail = inspectDetail(entity);
       const ev = pushEvent("INSPECT", {
         player_id: principal.player_id,
         entity_id: entity.entity_id,
@@ -568,10 +621,11 @@ export class NoemaWorldDO {
         session_id: principal.session_id,
         payload: {
           ...ev.payload,
-          detail: `${entity.label} (${entity.entity_type}) is present and operational enough to inspect.`,
+          detail,
         },
       });
       const obs = this.observe(principal);
+      const pretty = entity.label.replace(/[_-]+/g, " ");
       const resultInspect: CommandResult = {
         ok: true,
         request_id,
@@ -579,7 +633,7 @@ export class NoemaWorldDO {
           ...obs,
           location: {
             ...obs.location,
-            description: `${obs.location.description} You inspect ${entity.label}: ${entity.entity_type} — present and operational enough to inspect.`,
+            description: `${obs.location.description} You inspect ${pretty}: ${detail}`,
           },
         },
         events,
@@ -600,7 +654,10 @@ export class NoemaWorldDO {
       return {
         ok: false,
         request_id,
-        error: { code: "UNKNOWN_COMMAND", message: `unsupported command ${cmd}` },
+        error: {
+          code: "UNKNOWN_COMMAND",
+          message: `That action (${cmd}) is not available in this stage of the world.`,
+        },
       };
     }
 

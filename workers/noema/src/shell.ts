@@ -229,7 +229,7 @@ ${FONTS}
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">
     <span class="brand-mark">NOEMA</span>
-    <span class="brand-sub">chamber · stage 0</span>
+    <span class="brand-sub">strategy world · stage 0</span>
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
