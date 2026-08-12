@@ -327,5 +327,6 @@ def test_version_manifest_pins_full_loop():
         "phase-8-postgres",
         "phase-9-ops-ci",
         "phase-10-config-ui",
+        "phase-11-evidence-receipts",
     }
     assert (ROOT / "docs" / "CORE-LOOP-RUNTIME.md").is_file()

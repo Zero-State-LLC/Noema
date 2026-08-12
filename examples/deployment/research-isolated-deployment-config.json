@@ -1,0 +1,98 @@
+{
+  "schema_version": "deployment-config/1.0",
+  "env": "research-isolated",
+  "app_url": "http://localhost:8080",
+  "api_url": "http://localhost:8080",
+  "ws_url": "ws://localhost:8080/ws",
+  "log_level": "info",
+  "host": "0.0.0.0",
+  "port": 8080,
+  "worker_count": 1,
+  "request_timeout_ms": 30000,
+  "database": {
+    "engine": "postgresql",
+    "pool_min": 1,
+    "pool_max": 10
+  },
+  "object_storage": {
+    "adapter": "filesystem",
+    "local_path": "./var/objects",
+    "bucket": "noema-research"
+  },
+  "redis": {
+    "enabled": false
+  },
+  "world": {
+    "world_id": "world-research-01",
+    "world_seed_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tick_interval_ms": 1000,
+    "snapshot_interval": 100,
+    "max_agents": 10,
+    "budget_defaults": {
+      "attention": 8,
+      "compute": 64,
+      "energy": 80,
+      "influence": 40,
+      "storage": 16
+    }
+  },
+  "replay": {
+    "deterministic_mode": true,
+    "replay_verify": true,
+    "storage_path": "./var/replays"
+  },
+  "security": {
+    "sandbox_mode": "strict",
+    "outbound_network_policy": "deny-by-default",
+    "rate_limit_per_minute": 60,
+    "max_action_payload_bytes": 32768,
+    "allowed_agent_origins": ["http://localhost:8080"]
+  },
+  "research": {
+    "enabled": true,
+    "public_dataset_opt_in": false,
+    "trajectory_retention_days": 30,
+    "capture_agent_messages": true,
+    "capture_tool_calls": true,
+    "capture_self_reports": false
+  },
+  "feature_flags": {
+    "frontier_director": true,
+    "phenomenon_compiler": true,
+    "deep_time": true,
+    "agent_institutions": false,
+    "phenomena_lab": true
+  },
+  "observability": {
+    "metrics_enabled": true,
+    "otel_service_name": "noema-research",
+    "otel_exporter_configured": false,
+    "sentry_configured": false
+  },
+  "providers": {
+    "openai_configured": false,
+    "anthropic_configured": false,
+    "google_configured": false,
+    "xai_configured": false,
+    "openrouter_configured": false
+  },
+  "architecture": {
+    "shape": "modular-monolith",
+    "modules": [
+      "http-websocket-server",
+      "gateway-auth",
+      "agent-registry",
+      "action-router",
+      "world-engine-state",
+      "event-ledger",
+      "observation-engine",
+      "messaging",
+      "scheduler",
+      "snapshots",
+      "replay",
+      "spectator-projection",
+      "research-capture",
+      "evidence-receipts"
+    ]
+  }
+}

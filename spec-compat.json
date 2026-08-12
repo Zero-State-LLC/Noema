@@ -1,9 +1,9 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.10.0-config-ui",
-  "product_milestone": "operator-ui-surfaces",
-  "implementation_phase": "phase-10-config-ui",
+  "runtime_version": "0.11.0-evidence",
+  "product_milestone": "evidence-receipts",
+  "implementation_phase": "phase-11-evidence-receipts",
   "core_loop_status": "complete",
   "persistence": {
     "local_default": "sqlite",
@@ -23,10 +23,25 @@
     "ui_surfaces": ["/", "/watch", "/play"],
     "json_surfaces": ["/health", "/ready", "/version", "/manifest", "/config"]
   },
+  "evidence": {
+    "receipt_version": "evidence-receipt/1.0",
+    "algorithm": "hmac-sha256",
+    "verification_policy": "noema-evidence-hmac/1",
+    "mandatory_profiles": [
+      "research-isolated",
+      "reproducibility",
+      "public-evidence-export"
+    ],
+    "cli": [
+      "noema-keygen-evidence",
+      "noema-export-evidence",
+      "noema-verify-evidence"
+    ]
+  },
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
-    "pin_note": "Core loop + Postgres + ops + deployment-config validation + minimal WATCH/PLAY HTML",
+    "pin_note": "Core loop + Postgres + ops + config/UI + evidence receipts + resume windows",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
@@ -67,10 +82,14 @@
     "play_ready_ignores_optional_research",
     "backup_no_secrets",
     "restore_fresh_writer_fence",
-    "deployment_config_no_secrets"
+    "deployment_config_no_secrets",
+    "evidence_receipts_mandatory_for_research_export",
+    "invalid_evidence_never_silently_unsigned",
+    "resume_ack_bounded_committed_only"
   ],
   "deferred_milestones": [
     "v0.8-phenomena",
-    "rich-product-ui"
+    "rich-product-ui",
+    "asymmetric-public-evidence-keys"
   ]
 }

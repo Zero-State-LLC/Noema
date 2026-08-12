@@ -134,6 +134,28 @@ noema-serve --config examples/deployment/local-deployment-config.json
 Positive fixture: `examples/deployment/local-deployment-config.json`  
 Negative fixture: `examples/deployment/invalid-deployment-config-secret-field.json`
 
+## Evidence receipts + resume windows (Phase 11)
+
+RFC-0003 / SECURITY: signed evidence receipts are **optional** for local gameplay and
+**mandatory** for `research-isolated`, `reproducibility`, and `public-evidence-export`.
+Missing or invalid required receipts → `INVALID_EVIDENCE` (never silently unsigned).
+
+Reference algorithm: `hmac-sha256` over noema-jcs/1 body (`evidence-receipt/1.0`).
+Keyring is operator-side only; public bundles never embed secrets. Key rotation
+keeps retired keys for historical verification.
+
+```bash
+noema-keygen-evidence --out var/evidence-keyring.json
+noema-export-evidence --db data/noema.sqlite3 --keyring var/evidence-keyring.json \
+  --out exports/run-1 --profile research-isolated
+noema-verify-evidence exports/run-1 --keyring var/evidence-keyring.json
+noema-verify --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json \
+  --evidence-bundle exports/run-1 --evidence-keyring var/evidence-keyring.json
+```
+
+Resume/ack delivery windows are non-canonical, bounded (default 256), and only
+reference **committed** sequences. Uncommitted acks fail closed.
+
 ## Explicit non-goals (still deferred)
 
 - v0.8 Phenomena platform

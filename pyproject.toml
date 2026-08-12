@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.10.0"
+version = "0.11.0"
 description = "NOEMA World Engine runtime — complete frozen core loop modular monolith"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,6 +25,9 @@ noema-play = "noema.cli.play:main"
 noema-verify = "noema.cli.verify:main"
 noema-backup = "noema.cli.backup:main"
 noema-restore = "noema.cli.restore:main"
+noema-keygen-evidence = "noema.cli.evidence:main_keygen"
+noema-export-evidence = "noema.cli.evidence:main_export"
+noema-verify-evidence = "noema.cli.evidence:main_verify"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/noema"]

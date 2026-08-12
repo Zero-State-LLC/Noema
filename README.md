@@ -21,6 +21,7 @@ Admin Genesis → Cycle 0 → Deep Time history
 | Postgres production backend | DEPLOYMENT / C14 | **Phase 8** |
 | Operator verify/backup/restore + CI PG | OPERATIONS / C15–C16 | **Phase 9** |
 | Deployment config + WATCH/PLAY HTML | DEPLOYMENT / C14 | **Phase 10** |
+| Evidence receipts + resume/ack windows | SECURITY / RFC-0003 | **Phase 11** |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.
@@ -65,6 +66,16 @@ noema-serve   --config examples/deployment/local-deployment-config.json
 
 Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
 
+### Evidence export (research-isolated)
+
+```bash
+noema-keygen-evidence --out var/evidence-keyring.json   # keep secret
+noema-export-evidence --db data/noema.sqlite3 --keyring var/evidence-keyring.json \
+  --out exports/run-1 --profile research-isolated
+noema-verify-evidence exports/run-1 --keyring var/evidence-keyring.json
+# → NOEMA EVIDENCE: VALID   (else INVALID_EVIDENCE)
+```
+
 Research layers are **optional** for local PLAY. `/ready` is PLAY readiness only.
 
 ## Architecture
@@ -88,8 +99,9 @@ src/noema/
   gateway/         stdlib HTTP
   ops/             verify · backup · restore · runtime manifest
   config/          deployment-config validation + digests
+  evidence/        signed receipts + bounded resume/ack windows
   gateway/         HTTP + minimal operator/WATCH/PLAY HTML
-  cli/             noema-replay | serve | play | verify | backup | restore
+  cli/             replay | serve | play | verify | backup | restore | evidence
 ```
 
 **Invariants:** one fenced writer · research ≠ world truth · Frontier injects only via ledger events · Lab never mutates production · CAPTURE needs `READY` Lab results · Genesis is ADMIN-only.
@@ -124,7 +136,7 @@ Phase 7 proves Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE
 
 ## Explicit deferrals
 
-v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · rich product UI
+v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · rich product UI · asymmetric public evidence keys
 
 ## License
 
