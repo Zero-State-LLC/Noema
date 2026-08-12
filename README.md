@@ -83,10 +83,13 @@ noema-verify  --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json \
 noema-backup  --db data/noema.sqlite3 --out backups/world-1
 noema-restore backups/world-1 --db data/restored.sqlite3 --seed fixtures/v01-seed/world-seed.json
 noema-serve   --config examples/deployment/local-deployment-config.json
-# open http://localhost:8080/  · /watch  · /play
+# open http://localhost:8080/  · /watch  · /play  · /study
+# set NOEMA_ADMIN_TOKEN in the server environment, then open /admin/login
 ```
 
 Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
+
+The `/admin` route is a separate graphical management console. It requires an ADMIN session created through the server-side `NOEMA_ADMIN_TOKEN` gate. PLAY, WATCH, and STUDY remain the text-first product surfaces. Human-controlled and agent-controlled inhabitants are both **Players** in the world; controller type is operational metadata.
 
 ### Evidence export (research-isolated)
 

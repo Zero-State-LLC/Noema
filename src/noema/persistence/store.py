@@ -533,6 +533,22 @@ class WorldStore:
             ).fetchone()
             return json.loads(row["data_json"]) if row else None
 
+    def list_sessions(self, *, limit: int = 100) -> list[dict[str, Any]]:
+        """Return a bounded, newest-first view of persisted sessions.
+
+        Session records contain connection metadata only. Authentication material is
+        never persisted by the runtime, so this is safe for the admin projection.
+        The explicit limit keeps the management console from loading an unbounded
+        session history into a browser.
+        """
+        bounded = max(1, min(int(limit), 500))
+        with self._lock:
+            rows = self._execute(
+                "SELECT data_json FROM sessions ORDER BY session_id DESC LIMIT ?",
+                (bounded,),
+            ).fetchall()
+            return [json.loads(r["data_json"]) for r in rows]
+
     def verify_consistency(self) -> list[str]:
         """Fail-closed recovery checks."""
         problems: list[str] = []

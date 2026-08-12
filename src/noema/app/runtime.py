@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hmac
+import os
 import threading
 import uuid
 from pathlib import Path
@@ -37,7 +39,7 @@ from noema.research.frontier.injection import build_follow_on_entity_update, bui
 from noema.research.frontier.redaction import public_pressure_summary, redact_public_projection, research_overlay
 from noema.research.compiler.compiler import Compiler, CompileSession
 from noema.research.deep_time.registry import DeepTimeRegistry
-from noema.research.genesis.engine import GenesisEngine
+from noema.research.genesis.engine import GenesisEngine, STORY_SEEDS, profile_catalog
 from noema.research.genesis.errors import GenesisError
 from noema.research.lab.lab import Lab, LabSessionResult
 from noema.research.learn.graph import LearnGraph, LearnProjection
@@ -59,6 +61,7 @@ class NoemaRuntime:
         deployment_config: dict[str, Any] | Path | str | None = None,
         research_capture: bool = True,
         frontier_config: dict[str, Any] | None = None,
+        admin_token: str | None = None,
     ):
         self.store = open_store(db_path)
         self.router: ActionRouter | None = None
@@ -66,6 +69,9 @@ class NoemaRuntime:
         self.spec_compat = self._load_compat(spec_compat_path)
         self.deployment_config = self._load_deployment(deployment_config)
         self.configuration_digest = configuration_digest(self.deployment_config)
+        # The token is an operator-side development gate. Keep it in memory only:
+        # it is never included in config views, sessions, or admin projections.
+        self.admin_token = admin_token if admin_token is not None else os.environ.get("NOEMA_ADMIN_TOKEN")
         self.sessions: dict[str, dict[str, Any]] = {}
         self.resume = ResumeRegistry(default_max_window=256)
         self.research = ResearchCapture(self.store, enabled=research_capture)
@@ -239,11 +245,227 @@ class NoemaRuntime:
         self.store.save_session(session_id, data)
         return data
 
+    def create_admin_session(self, token: str | None, *, principal_id: str | None = None) -> dict[str, Any]:
+        """Create an ADMIN session through the explicit operator authentication gate."""
+        expected = self.admin_token
+        if not expected:
+            raise ActionError(NOT_AUTHORIZED, "ADMIN authentication is not configured")
+        if not token or not hmac.compare_digest(str(token), expected):
+            raise ActionError(NOT_AUTHORIZED, "invalid ADMIN authentication token")
+        return self.create_session(role=Role.ADMIN, principal_id=principal_id)
+
     def get_principal(self, session_id: str) -> Principal:
         data = self.sessions.get(session_id) or self.store.load_session(session_id)
         if not data:
             raise ActionError(NOT_AUTHORIZED, "unknown session")
         return Principal(data["principal_id"], Role(data["role"]), data.get("agent_id"))
+
+    def _require_admin(self, session_id: str) -> Principal:
+        principal = self.get_principal(session_id)
+        if principal.role != Role.ADMIN:
+            raise ActionError(NOT_AUTHORIZED, "ADMIN session required")
+        return principal
+
+    @staticmethod
+    def _admin_session_view(data: dict[str, Any], *, persisted: bool) -> dict[str, Any]:
+        """Translate protocol/authorization roles into world participant metadata.
+
+        PLAYER and AGENT are deliberately represented as one world ontology. The
+        controller field is operational metadata, not a second population class.
+        """
+        role = str(data.get("role") or "PLAYER")
+        is_player = role in (Role.PLAYER.value, Role.AGENT.value)
+        controller = None
+        if role == Role.PLAYER.value:
+            controller = "HUMAN"
+        elif role == Role.AGENT.value:
+            controller = "AGENT"
+        return {
+            "session_id": data.get("session_id"),
+            "principal_id": data.get("principal_id"),
+            "connection_role": role,
+            "world_ontology": "PLAYER" if is_player else role,
+            "is_player": is_player,
+            "controller": controller,
+            "agent_id": data.get("agent_id"),
+            "status": "ONLINE" if not persisted else "PERSISTED",
+            "epoch": data.get("epoch", 1),
+        }
+
+    def admin_overview(self, session_id: str) -> dict[str, Any]:
+        """Return the bounded, non-secret projection used by the admin console."""
+        self._require_admin(session_id)
+        readiness = self.ready()
+        version = self.version()
+        meta = self.store.dump_meta()
+        sessions = [
+            self._admin_session_view(record, persisted=record.get("session_id") not in self.sessions)
+            for record in self.store.list_sessions(limit=100)
+        ]
+        players = [record for record in sessions if record["is_player"]]
+        human_count = sum(record["controller"] == "HUMAN" for record in players)
+        agent_count = sum(record["controller"] == "AGENT" for record in players)
+
+        world: dict[str, Any] | None = None
+        world_activity: list[dict[str, Any]] = []
+        if self.store.ready:
+            state = self.store.get_state()
+            world = {
+                "world_id": state.world_id,
+                "world_version": state.world_version,
+                "catalog_version": state.catalog_version,
+                "seed": state.seed,
+                "cycle": state.cycle,
+                "sequence": state.sequence,
+                "ledger_head": state.last_event_digest,
+                "rooms": len(state.rooms),
+                "infrastructure_entities": len(state.entities),
+                "active_players": len(state.active_agents),
+                "organizations": len(state.organizations),
+                "snapshots": len(self.store.list_snapshots()),
+            }
+            after = max(0, int(state.sequence) - 40)
+            world_activity = self.store.list_events(after_sequence=after, limit=40)
+
+        # Research indexes are intentionally summarized. The browser never receives
+        # the full historical index or an unbounded audit stream.
+        frontier_audit = self.store.list_frontier_audit()
+        observatory_runs = self.store.list_observatory_runs()
+        observatory_candidates = self.store.list_observatory_candidates()
+        lab_results = self.store.list_lab_results()
+        compiler_results = self.store.list_compiler_results()
+        captured_tests = self.store.list_captured_tests()
+        learn_behaviors = self.store.list_learn_behaviors()
+        learn_edges = self.store.list_learn_edges()
+        deep_snapshot = self.deep_time.snapshot()
+        deep_counts = {
+            str(key): len(value) if isinstance(value, (list, dict, set, tuple)) else 1
+            for key, value in deep_snapshot.items()
+        }
+
+        def subsystem(status: str, count: int, last: str | None = None) -> dict[str, Any]:
+            return {"status": status, "records": count, "last": last}
+
+        research_status = "READY" if self.store.ready else "OFFLINE"
+        research = {
+            "Frontier": subsystem(research_status, len(frontier_audit), getattr(self._last_frontier, "plan", None) and self._last_frontier.plan.get("plan_id")),
+            "Observatory": subsystem(research_status, len(observatory_runs), (observatory_runs[-1].get("analysis_run_id") if observatory_runs else None)),
+            "Lab": subsystem(research_status, len(lab_results), (lab_results[-1].get("experiment_id") if lab_results else None)),
+            "Compiler": subsystem(research_status, len(compiler_results) + len(captured_tests), (compiler_results[-1].get("compiler_result_id") if compiler_results else None)),
+            "LEARN": subsystem(research_status, len(learn_behaviors) + len(learn_edges), None),
+            "Deep Time": subsystem("READY", sum(deep_counts.values()), None),
+        }
+
+        profiles = []
+        for profile in profile_catalog().get("profiles") or []:
+            profiles.append(
+                {
+                    "profile_id": profile.get("profile_id"),
+                    "name": profile.get("name") or profile.get("title") or profile.get("profile_id"),
+                    "summary": profile.get("summary") or profile.get("description"),
+                }
+            )
+        last_genesis = None
+        if self._last_genesis:
+            last_genesis = {
+                key: self._last_genesis.get(key)
+                for key in (
+                    "genesis_id",
+                    "world_id",
+                    "world_name",
+                    "status",
+                    "world_seed",
+                    "genesis_profile_id",
+                    "story_seed_ids",
+                    "cycle0",
+                    "ordinary_world_valid",
+                    "config_frozen",
+                    "digest",
+                )
+                if key in self._last_genesis
+            }
+
+        return {
+            "schema_version": "admin-overview/1.0",
+            "health": self.health(),
+            "readiness": readiness,
+            "version": version,
+            "configuration": self.deployment_config_view(),
+            "world": world,
+            "persistence": {
+                "backend": getattr(self.store, "backend", "unknown"),
+                "snapshots": len(self.store.list_snapshots()),
+                "events": self.store.event_count(),
+                "writer_fence": "PRESENT" if self.store.dump_meta().get("writer_token") else "MISSING",
+            },
+            "players": {
+                "total": len(players),
+                "human_controlled": human_count,
+                "agent_controlled": agent_count,
+            },
+            "sessions": sessions,
+            "research": research,
+            "research_detail": {
+                "observatory_candidates": len(observatory_candidates),
+                "captured_tests": len(captured_tests),
+                "deep_time": deep_counts,
+            },
+            "genesis": {
+                "profiles": profiles,
+                "story_seeds": list(STORY_SEEDS),
+                "last_preview": last_genesis,
+            },
+            "world_activity": world_activity,
+            "audit": {
+                "available": False,
+                "message": "Administrative audit persistence is not exposed by the current runtime.",
+                "recent": [],
+            },
+            "capabilities": {
+                "start_world": True,
+                "genesis_preview": True,
+                "genesis_activate": True,
+                "research_observatory": True,
+                "research_learn_rebuild": True,
+                "backup": False,
+                "restore": False,
+                "evidence": False,
+                "role_management": False,
+            },
+            "operator_gaps": [
+                "Backup and restore remain server/operator CLI workflows.",
+                "Evidence receipt export and verification remain server/operator CLI workflows.",
+                "Administrative audit history is not currently persisted as a separate runtime endpoint.",
+            ],
+        }
+
+    def admin_verification(self, session_id: str) -> dict[str, Any]:
+        """Run safe in-process checks without taking a second writer fence."""
+        self._require_admin(session_id)
+        consistency = self.store.verify_consistency()
+        tables = self.store.schema_tables_present()
+        required_tables = {"meta", "events", "snapshots", "sessions"}
+        checks = {
+            "Ledger": "PASS" if self.store.ready and not any("ledger" in p or "chain" in p for p in consistency) else ("NOT_CONFIGURED" if not self.store.ready else "FAIL"),
+            "Snapshots": "PASS" if self.store.ready and bool(self.store.list_snapshots()) else ("NOT_CONFIGURED" if not self.store.ready else "ATTENTION_REQUIRED"),
+            "Spec compatibility": "PASS" if self.spec_compat.get("versions") else "FAIL",
+            "Configuration": "PASS" if self.configuration_digest else "FAIL",
+            "Schema": "PASS" if required_tables.issubset(set(tables)) else "FAIL",
+            "Writer fence": "PASS" if self.store.dump_meta().get("writer_token") else "FAIL",
+            "Evidence": "CLI_ONLY",
+        }
+        failures = list(consistency)
+        if checks["Schema"] == "FAIL":
+            failures.append("required schema tables missing")
+        return {
+            "schema_version": "admin-verification/1.0",
+            "scope": "in_process_runtime_checks",
+            "full_cli": "noema-verify",
+            "ok": not failures,
+            "checks": checks,
+            "failures": failures,
+            "tables": tables,
+        }
 
     def apply_player_action(self, session_id: str, action: dict[str, Any]) -> dict[str, Any]:
         principal = self.get_principal(session_id)

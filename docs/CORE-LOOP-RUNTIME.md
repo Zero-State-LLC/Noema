@@ -52,7 +52,10 @@ store + router + research capture
 
 | Path | Role |
 |---|---|
-| `/admin/start` | load seed |
+| `/admin/login` | public operator login shell |
+| `/admin` | ADMIN-only graphical management console |
+| `/admin/overview\|verify` | ADMIN-only bounded projection and safe checks |
+| `/admin/start` | ADMIN; load seed |
 | `/admin/genesis/preview\|activate` | ADMIN |
 | `/play/action`, `/play/observe` | PLAYER/AGENT |
 | `/watch/live` | public redacted |
