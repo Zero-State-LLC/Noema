@@ -65,10 +65,15 @@ class IdentityService:
         self.supabase_jwt_secret = supabase_jwt_secret or os.environ.get("SUPABASE_JWT_SECRET") or ""
         self.supabase_url = supabase_url or os.environ.get("SUPABASE_URL") or ""
         self.pepper = os.environ.get("AGENT_API_KEY_PEPPER") or self.token_secret
+        env = (os.environ.get("NOEMA_ENV") or "local").lower()
+        self.env = env
         if allow_dev_human is None:
-            env = (os.environ.get("NOEMA_ENV") or "local").lower()
             allow_dev_human = env in ("local", "test", "dev") and not self.supabase_jwt_secret
         self.allow_dev_human = bool(allow_dev_human)
+        # Bare protocol AUTH without controller token — local/tests only
+        self.allow_dev_protocol_auth = env in ("local", "test", "dev") and not (
+            os.environ.get("NOEMA_REQUIRE_CONTROLLER_TOKEN", "").lower() in ("1", "true", "yes")
+        )
         # pending device codes in memory + durable store for multi-process later
         self._pending_devices: dict[str, dict[str, Any]] = {}
 
@@ -341,17 +346,58 @@ class IdentityService:
             "scopes": requested,
         }
 
+    def preview_device(self, user_code: str) -> dict[str, Any]:
+        """Public-safe enrollment preview (no secrets)."""
+        rec = self._find_device_by_user_code(user_code)
+        if not rec:
+            raise ActionError(NOT_AUTHORIZED, "unknown user_code")
+        meta = json.loads(rec.get("metadata_json") or "{}")
+        scopes = json.loads(rec.get("scopes_json") or "[]")
+        return {
+            "user_code": rec["user_code"],
+            "status": rec.get("status"),
+            "scopes": scopes,
+            "metadata": meta,
+            "expires_at": rec.get("expires_at"),
+            "framework": meta.get("framework") or meta.get("provider") or "external",
+        }
+
+    def _find_device_by_user_code(self, user_code: str) -> dict[str, Any] | None:
+        code = user_code.strip().upper()
+        rec = self.store.identity_get_device_by_user_code(code)
+        if rec:
+            return rec
+        return next((r for r in self._pending_devices.values() if r["user_code"] == code), None)
+
     def approve_device(
         self,
         *,
         user_code: str,
-        player_id: str,
+        player_id: str | None = None,
+        approver_access_token: str | None = None,
         approver_account_id: str | None = None,
     ) -> dict[str, Any]:
-        rec = self.store.identity_get_device_by_user_code(user_code.upper())
-        if not rec:
-            # memory fallback
-            rec = next((r for r in self._pending_devices.values() if r["user_code"] == user_code.upper()), None)
+        """Approve enrollment. Requires human controller token (or owned account in local tests)."""
+        approver: dict[str, Any] | None = None
+        if approver_access_token:
+            approver = self.resolve_access_token(approver_access_token)
+            if approver["controller"].get("type") not in ("browser", "mobile", "cli"):
+                # Allow agent controllers only if they already hold controller.manage (not default)
+                if "noema.controller.manage" not in (approver.get("scopes") or []):
+                    raise ActionError(NOT_AUTHORIZED, "only a human Controller may approve device enrollment")
+            player_id = player_id or approver["player_id"]
+            if player_id != approver["player_id"] and "noema.player.manage" not in (
+                approver.get("scopes") or []
+            ):
+                raise ActionError(NOT_AUTHORIZED, "cannot approve for another Player")
+            approver_account_id = approver["player"].get("account_id")
+        elif not self.allow_dev_human:
+            raise ActionError(NOT_AUTHORIZED, "human controller token required to approve")
+
+        if not player_id:
+            raise ActionError(NOT_AUTHORIZED, "player_id required")
+
+        rec = self._find_device_by_user_code(user_code)
         if not rec:
             raise ActionError(NOT_AUTHORIZED, "unknown user_code")
         if rec.get("status") != "pending":
@@ -366,12 +412,17 @@ class IdentityService:
         if approver_account_id and player.get("account_id") != approver_account_id:
             raise ActionError(NOT_AUTHORIZED, "player not owned by approver")
         meta = json.loads(rec.get("metadata_json") or "{}")
-        controller = self._ensure_controller(
-            player_id,
-            ctype="agent",
-            provider=str(meta.get("framework") or meta.get("provider") or "external"),
-            metadata=meta,
-        )
+        # Always create a fresh agent controller attachment for enrollment
+        controller = {
+            "controller_id": _new_id("ctrl"),
+            "player_id": player_id,
+            "type": "agent",
+            "provider": str(meta.get("framework") or meta.get("provider") or "external"),
+            "metadata_json": json.dumps(meta, sort_keys=True),
+            "created_at": _now(),
+            "revoked_at": None,
+        }
+        self.store.identity_upsert_controller(controller)
         scopes = json.loads(rec.get("scopes_json") or "[]")
         access, refresh, scope_list = self._issue_tokens(controller["controller_id"], player, scopes)
         rec["status"] = "approved"
@@ -386,9 +437,26 @@ class IdentityService:
             "status": "approved",
             "user_code": rec["user_code"],
             "player_id": player_id,
+            "agent_id": player.get("agent_id"),
             "controller_id": controller["controller_id"],
             "scopes": scope_list,
+            "framework": controller["provider"],
         }
+
+    def deny_device(self, *, user_code: str, approver_access_token: str | None = None) -> dict[str, Any]:
+        if not approver_access_token and not self.allow_dev_human:
+            raise ActionError(NOT_AUTHORIZED, "human controller token required to deny")
+        if approver_access_token:
+            self.resolve_access_token(approver_access_token)
+        rec = self._find_device_by_user_code(user_code)
+        if not rec:
+            raise ActionError(NOT_AUTHORIZED, "unknown user_code")
+        if rec.get("status") != "pending":
+            return {"status": rec.get("status"), "user_code": rec["user_code"]}
+        rec["status"] = "denied"
+        self._pending_devices[rec["device_code"]] = rec
+        self.store.identity_upsert_device_code(rec)
+        return {"status": "denied", "user_code": rec["user_code"]}
 
     def poll_device_token(self, device_code: str) -> dict[str, Any]:
         rec = self._pending_devices.get(device_code) or self.store.identity_get_device_by_code(device_code)

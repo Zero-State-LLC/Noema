@@ -34,12 +34,17 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
     assert device["user_code"]
     assert device["device_code"]
 
+    preview = rt.identity.preview_device(device["user_code"])
+    assert preview["status"] == "pending"
+    assert preview["framework"] == "hermes"
+
     approved = rt.identity.approve_device(
         user_code=device["user_code"],
-        player_id=human["player_id"],
+        approver_access_token=human["access_token"],
     )
     assert approved["status"] == "approved"
     assert approved["controller_id"].startswith("ctrl.")
+    assert approved["player_id"] == human["player_id"]
 
     pending = rt.identity.poll_device_token(device["device_code"])
     assert pending["status"] == "approved"
@@ -63,6 +68,20 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
         assert "revoked" in str(exc).lower() or "controller" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
 
 
+def test_approve_requires_human_token_when_not_dev(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("NOEMA_ENV", "production")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", "prod-secret")
+    rt = NoemaRuntime(db_path=tmp_path / "prod.sqlite3")
+    # force non-dev path
+    rt.identity.allow_dev_human = False
+    device = rt.identity.start_device_enrollment()
+    try:
+        rt.identity.approve_device(user_code=device["user_code"], player_id="player.x")
+        assert False, "expected auth failure"
+    except Exception as exc:
+        assert "token" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
+
+
 def test_protocol_auth_with_controller_token(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "p.sqlite3")
     seed = Path("fixtures/v01-seed/world-seed.json")
@@ -70,7 +89,10 @@ def test_protocol_auth_with_controller_token(tmp_path: Path):
         rt.start_world(seed)
     human = rt.identity.bind_human_dev("bob")
     device = rt.identity.start_device_enrollment()
-    rt.identity.approve_device(user_code=device["user_code"], player_id=human["player_id"])
+    rt.identity.approve_device(
+        user_code=device["user_code"],
+        approver_access_token=human["access_token"],
+    )
     tokens = rt.identity.poll_device_token(device["device_code"])
 
     proto = AgentProtocolV1(rt)
@@ -140,11 +162,21 @@ def test_http_auth_routes(tmp_path: Path):
         dev = post("/auth/device", {"metadata": {"framework": "openclaw"}})
         post(
             "/auth/device/approve",
-            {"user_code": dev["user_code"], "player_id": human["player_id"]},
+            {
+                "user_code": dev["user_code"],
+                "access_token": human["access_token"],
+            },
         )
         tok = post("/auth/device/token", {"device_code": dev["device_code"]})
         assert tok["access_token"]
         sess = post("/session", {"access_token": tok["access_token"]})
         assert sess["controller_id"] == tok["controller_id"]
+
+        # connect page is public HTML
+        req = urllib.request.Request(base + "/connect")
+        with urllib.request.urlopen(req) as resp:
+            html = resp.read().decode()
+            assert "Approve an agent connection" in html
+            assert "user-code" in html
     finally:
         httpd.shutdown()
