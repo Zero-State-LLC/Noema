@@ -171,7 +171,7 @@
       canvas.style.width = w + "px";
       canvas.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var n = Math.floor((w * h) / 18000);
+      var n = Math.floor((w * h) / 12000);
       particles = [];
       for (var i = 0; i < n; i++) {
         particles.push({
@@ -192,9 +192,9 @@
         var dx = p.x - mx;
         var dy = p.y - my;
         var dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 120) {
-          p.vx += (dx / (dist + 0.1)) * 0.02;
-          p.vy += (dy / (dist + 0.1)) * 0.02;
+        if (dist < 160) {
+          p.vx += (dx / (dist + 0.1)) * 0.035;
+          p.vy += (dy / (dist + 0.1)) * 0.035;
         }
         p.x += p.vx;
         p.y += p.vy;
@@ -241,6 +241,63 @@
     resize();
     requestAnimationFrame(tick);
   }
+
+  
+  /* —— Hero parallax (marketing only) —— */
+  var heroPhoto = document.getElementById("hero-photo");
+  var heroSection = document.querySelector(".hero");
+  if (heroPhoto && heroSection && !reduceMotion) {
+    var hx = 0, hy = 0, tx = 0, ty = 0;
+    heroSection.addEventListener(
+      "pointermove",
+      function (e) {
+        var r = heroSection.getBoundingClientRect();
+        tx = ((e.clientX - r.left) / r.width - 0.5) * 18;
+        ty = ((e.clientY - r.top) / r.height - 0.5) * 12;
+      },
+      { passive: true }
+    );
+    heroSection.addEventListener("pointerleave", function () {
+      tx = 0;
+      ty = 0;
+    });
+    (function parallax() {
+      hx += (tx - hx) * 0.06;
+      hy += (ty - hy) * 0.06;
+      heroPhoto.style.transform =
+        "translate(" + (-hx - 4) + "%, " + (-hy - 4) + "%) scale(1.08)";
+      requestAnimationFrame(parallax);
+    })();
+  }
+
+  /* —— Scroll reveal tiles —— */
+  var tiles = document.querySelectorAll(".tile.is-out");
+  if (tiles.length && "IntersectionObserver" in window) {
+    if (reduceMotion) {
+      tiles.forEach(function (t) {
+        t.classList.remove("is-out");
+        t.classList.add("is-in");
+      });
+    } else {
+      var io = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (en) {
+            if (en.isIntersecting) {
+              en.target.classList.add("is-in");
+              en.target.classList.remove("is-out");
+              io.unobserve(en.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+      );
+      tiles.forEach(function (t) {
+        io.observe(t);
+      });
+    }
+  }
+
+  /* —— Stronger particle attract + density —— */
 
   var y = document.getElementById("year");
   if (y) y.textContent = String(new Date().getFullYear());

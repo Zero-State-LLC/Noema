@@ -36,9 +36,10 @@ See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](doc
 
 | Page | Shape |
 |---|---|
-| [`site/index.html`](site/) | **Dynamic landing** — Specs hero + PLAY/WATCH/STUDY + interactive loop |
-| [`site/memo.html`](site/memo.html) | **Long Document** — Specs map for builders |
-| [`site/design.md`](site/design.md) | Tokens; product framing from Noema-Specs |
+| [`site/index.html`](site/) | **Marketing (visual/dynamic)** — GitHub Pages only |
+| [`site/memo.html`](site/memo.html) | Specs map for builders |
+| `noema-serve` `/play` `/watch` `/study` | **Text-game product UI** (not the marketing site) |
+| [`site/design.md`](site/design.md) | Two-surface split + tokens |
 
 ```text
 https://zero-state-llc.github.io/Noema/

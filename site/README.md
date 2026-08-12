@@ -1,11 +1,19 @@
 # NOEMA GitHub Pages
 
+## Two UIs (do not mix)
+
+| | **This folder (GitHub Pages)** | **`noema-serve` product shells** |
+|---|---|---|
+| Job | Marketing splash | Play the text game |
+| Visual | **Dynamic · image · motion · interactive** | Text-first, minimal chrome |
+| URL | https://zero-state-llc.github.io/Noema/ | http://localhost:8080/play |
+
 | Page | Role |
 |---|---|
-| `index.html` | **Dynamic marketing landing** — Specs hero, PLAY/WATCH/STUDY, interactive loop |
-| `memo.html` | Specs map / long document for implementers |
-| `assets/hero-noema.jpg` | Vendored from Noema-Specs |
-| `design.md` | Tokens + Specs framing |
+| `index.html` | Marketing — Specs hero, PLAY/WATCH/STUDY, interactive loop, particles |
+| `memo.html` | Specs map for builders (long document) |
+| `assets/hero-noema.jpg` | From Noema-Specs |
+| `design.md` | Tokens + surface split |
 
 Framing authority: [Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs).
 
