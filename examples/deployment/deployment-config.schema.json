@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specs.noema.dev/deployment-config.schema.json",
+  "title": "NOEMA Deployment Config (resolved, non-secret)",
+  "description": "Validates the resolved non-secret deployment configuration for a NOEMA instance. Secret values MUST NOT appear in this document or in configuration_digest inputs. See docs/DEPLOYMENT.md and docs/ENVIRONMENT.md for digest computation.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "deployment-config/1.0"
+    },
+    "env": {
+      "type": "string",
+      "enum": ["local", "test", "staging", "production", "research-isolated"]
+    },
+    "app_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "api_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ws_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "log_level": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error"]
+    },
+    "host": {
+      "type": "string"
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "worker_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "request_timeout_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine": { "const": "postgresql" },
+        "pool_min": { "type": "integer", "minimum": 0 },
+        "pool_max": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["engine"]
+    },
+    "object_storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "type": "string",
+          "enum": ["filesystem", "s3-compatible", "none"]
+        },
+        "bucket": { "type": "string" },
+        "local_path": { "type": "string" }
+      },
+      "required": ["adapter"]
+    },
+    "redis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["enabled"]
+    },
+    "world": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "world_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+        },
+        "world_seed_digest": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "tick_interval_ms": { "type": "integer", "minimum": 1 },
+        "snapshot_interval": { "type": "integer", "minimum": 1 },
+        "max_agents": { "type": "integer", "minimum": 1 },
+        "budget_defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attention": { "type": "integer", "minimum": 0 },
+            "compute": { "type": "integer", "minimum": 0 },
+            "energy": { "type": "integer", "minimum": 0 },
+            "influence": { "type": "integer", "minimum": 0 },
+            "storage": { "type": "integer", "minimum": 0 }
+          }
+        }
+      },
+      "required": ["world_id", "max_agents"]
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deterministic_mode": { "type": "boolean" },
+        "replay_verify": { "type": "boolean" },
+        "storage_path": { "type": "string" }
+      },
+      "required": ["deterministic_mode"]
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sandbox_mode": {
+          "type": "string",
+          "enum": ["strict", "permissive"]
+        },
+        "outbound_network_policy": {
+          "type": "string",
+          "enum": ["deny-by-default", "allowlist", "permissive"]
+        },
+        "rate_limit_per_minute": { "type": "integer", "minimum": 1 },
+        "max_action_payload_bytes": { "type": "integer", "minimum": 1 },
+        "allowed_agent_origins": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["sandbox_mode", "outbound_network_policy"]
+    },
+    "research": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "public_dataset_opt_in": { "type": "boolean" },
+        "trajectory_retention_days": { "type": "integer", "minimum": 0 },
+        "capture_agent_messages": { "type": "boolean" },
+        "capture_tool_calls": { "type": "boolean" },
+        "capture_self_reports": { "type": "boolean" }
+      },
+      "required": ["enabled"]
+    },
+    "feature_flags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metrics_enabled": { "type": "boolean" },
+        "otel_service_name": { "type": "string" },
+        "otel_exporter_configured": { "type": "boolean" },
+        "sentry_configured": { "type": "boolean" }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Presence flags only. Never include API keys or tokens.",
+      "properties": {
+        "openai_configured": { "type": "boolean" },
+        "anthropic_configured": { "type": "boolean" },
+        "google_configured": { "type": "boolean" },
+        "xai_configured": { "type": "boolean" },
+        "openrouter_configured": { "type": "boolean" }
+      }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": ["modular-monolith"]
+        },
+        "modules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      },
+      "required": ["shape"]
+    }
+  },
+  "required": [
+    "schema_version",
+    "env",
+    "app_url",
+    "database",
+    "object_storage",
+    "world",
+    "replay",
+    "security",
+    "architecture"
+  ]
+}

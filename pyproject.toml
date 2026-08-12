@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noema"
-version = "0.9.0"
+version = "0.10.0"
 description = "NOEMA World Engine runtime — complete frozen core loop modular monolith"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,7 +30,7 @@ noema-restore = "noema.cli.restore:main"
 packages = ["src/noema"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/noema", "fixtures", "tests", "README.md", "pyproject.toml"]
+include = ["src/noema", "fixtures", "examples", "tests", "README.md", "pyproject.toml"]
 
 
 [tool.pytest.ini_options]

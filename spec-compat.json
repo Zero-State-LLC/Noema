@@ -1,9 +1,9 @@
 {
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
-  "runtime_version": "0.9.0-ops",
-  "product_milestone": "operator-surfaces",
-  "implementation_phase": "phase-9-ops-ci",
+  "runtime_version": "0.10.0-config-ui",
+  "product_milestone": "operator-ui-surfaces",
+  "implementation_phase": "phase-10-config-ui",
   "core_loop_status": "complete",
   "persistence": {
     "local_default": "sqlite",
@@ -17,10 +17,16 @@
     "restore": "noema-restore",
     "spec": "docs/OPERATIONS.md"
   },
+  "deployment": {
+    "config_schema": "deployment-config/1.0",
+    "config_fixture": "examples/deployment/local-deployment-config.json",
+    "ui_surfaces": ["/", "/watch", "/play"],
+    "json_surfaces": ["/health", "/ready", "/version", "/manifest", "/config"]
+  },
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
-    "pin_note": "Full PLAY→NOTICE→TEST→CAPTURE→LEARN + Deep Time/Genesis modular monolith; E2E proven in phase 7; ops + PG in phase 8–9",
+    "pin_note": "Core loop + Postgres + ops + deployment-config validation + minimal WATCH/PLAY HTML",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
@@ -60,10 +66,11 @@
     "lore_not_second_truth",
     "play_ready_ignores_optional_research",
     "backup_no_secrets",
-    "restore_fresh_writer_fence"
+    "restore_fresh_writer_fence",
+    "deployment_config_no_secrets"
   ],
   "deferred_milestones": [
     "v0.8-phenomena",
-    "product-ui"
+    "rich-product-ui"
   ]
 }

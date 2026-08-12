@@ -7,8 +7,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from noema.config.deployment import ConfigError, load_deployment_config, validate_deployment_config
 from noema.ops.manifest import build_runtime_manifest, load_spec_compat
-from noema.persistence.store import WorldStore, is_postgres_url, open_store
+from noema.persistence.store import WorldStore, open_store
 
 
 REQUIRED_CHECKS = [
@@ -51,22 +52,26 @@ def verify_world(
     result = VerifyResult(ok=True)
     store: WorldStore | None = None
 
-    # 1. Config validity (optional local file; secrets must not appear)
+    # 1. Config validity (deployment-config.schema.json rules; secrets forbidden)
     config: dict[str, Any] | None = None
-    if config_path and Path(config_path).is_file():
-        try:
-            config = json.loads(Path(config_path).read_text(encoding="utf-8"))
-            if any(k for k in (config or {}) if "password" in k.lower() or "secret" in k.lower()):
-                result.failures.append("config contains secret-like keys")
-                result.checks["config"] = "FAIL"
-            else:
-                result.checks["config"] = "PASS"
-        except Exception as exc:
-            result.failures.append(f"config parse error: {exc}")
-            result.checks["config"] = "FAIL"
-    else:
+    try:
+        if config_path and Path(config_path).is_file():
+            config = load_deployment_config(config_path)
+        else:
+            config = load_deployment_config(None)
+            if not config_path:
+                result.warnings.append("no deployment config path; using validated local-default")
         result.checks["config"] = "PASS"
-        result.warnings.append("no deployment config provided; using local-default digest")
+        result.checks["configuration_digest"] = "PASS"
+    except ConfigError as exc:
+        result.failures.append(f"deployment config: {exc}")
+        result.checks["config"] = "FAIL"
+        # still try to parse raw for partial diagnostics
+        if config_path and Path(config_path).is_file():
+            try:
+                config = json.loads(Path(config_path).read_text(encoding="utf-8"))
+            except Exception:
+                config = None
 
     # 2. Database connectivity
     try:

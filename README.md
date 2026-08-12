@@ -20,6 +20,7 @@ Admin Genesis → Cycle 0 → Deep Time history
 | **Core-loop E2E** | — | **Phase 7** |
 | Postgres production backend | DEPLOYMENT / C14 | **Phase 8** |
 | Operator verify/backup/restore + CI PG | OPERATIONS / C15–C16 | **Phase 9** |
+| Deployment config + WATCH/PLAY HTML | DEPLOYMENT / C14 | **Phase 10** |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.
@@ -54,9 +55,12 @@ Local PLAY keeps SQLite (`--db :memory:` or a file path). Postgres is optional f
 ### Operator commands
 
 ```bash
-noema-verify  --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json
+noema-verify  --db data/noema.sqlite3 --seed fixtures/v01-seed/world-seed.json \
+              --config examples/deployment/local-deployment-config.json
 noema-backup  --db data/noema.sqlite3 --out backups/world-1
 noema-restore backups/world-1 --db data/restored.sqlite3 --seed fixtures/v01-seed/world-seed.json
+noema-serve   --config examples/deployment/local-deployment-config.json
+# open http://localhost:8080/  · /watch  · /play
 ```
 
 Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
@@ -83,6 +87,8 @@ src/noema/
   app/runtime.py   composition root
   gateway/         stdlib HTTP
   ops/             verify · backup · restore · runtime manifest
+  config/          deployment-config validation + digests
+  gateway/         HTTP + minimal operator/WATCH/PLAY HTML
   cli/             noema-replay | serve | play | verify | backup | restore
 ```
 
@@ -92,7 +98,8 @@ src/noema/
 
 | Path | Role |
 |---|---|
-| `GET /health` `/ready` `/version` | public |
+| `GET /` `/watch` `/play` | public HTML (operator / spectator / play shell) |
+| `GET /health` `/ready` `/version` `/manifest` `/config` | public JSON |
 | `POST /admin/start` | load seed |
 | `POST /admin/genesis/preview\|activate` | ADMIN |
 | `POST /play/action` `/play/observe` | PLAYER/AGENT |
@@ -117,7 +124,7 @@ Phase 7 proves Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE
 
 ## Explicit deferrals
 
-v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · product UI
+v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · rich product UI
 
 ## License
 
