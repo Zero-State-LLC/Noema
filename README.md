@@ -30,6 +30,20 @@ No consciousness or scalar intelligence scores.
 
 See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md).
 
+## Public site (GitHub Pages)
+
+Comprehensive reference site lives in [`site/`](site/) and deploys via GitHub Actions:
+
+```text
+https://zero-state-llc.github.io/Noema/
+```
+
+```bash
+python -m http.server 8765 --directory site   # local preview
+```
+
+Enable once: **Repo Settings → Pages → Source: GitHub Actions**.
+
 ## Quick start (PLAY)
 
 ```bash
