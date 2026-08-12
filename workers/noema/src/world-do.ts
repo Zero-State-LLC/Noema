@@ -225,16 +225,23 @@ export class NoemaWorldDO {
       if (!body?.genesis_id) {
         return Response.json({ error: { code: "INVALID_REQUEST", message: "genesis_id required" } }, { status: 400 });
       }
-      if (this.meta!.status === "ACTIVE" && this.meta!.config_frozen) {
+      const envName = (this.env.NOEMA_ENV || "local").toLowerCase();
+      const forceSupersede = Boolean(body.force) && envName !== "production";
+      if (this.meta!.status === "ACTIVE" && this.meta!.config_frozen && !forceSupersede) {
         return Response.json(
           {
             error: {
               code: "ALREADY_ACTIVATED",
-              message: "Genesis already activated for this world; new Genesis requires a new world",
+              message:
+                "Genesis already activated for this world; new Genesis requires a new world (or force:true on non-production)",
+              current_genesis_id: this.meta!.genesis_id,
             },
           },
           { status: 409 },
         );
+      }
+      if (this.meta!.status === "ACTIVE" && this.meta!.config_frozen && forceSupersede) {
+        // Non-production operator supersede of rehearsal/demo activation only
       }
       this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
       const preview = this.previews[body.genesis_id];
@@ -268,6 +275,10 @@ export class NoemaWorldDO {
         activated_at: new Date().toISOString(),
         do_digest: preview.cycle0_digest,
       };
+
+      const superseded = this.meta!.status === "ACTIVE" && this.meta!.config_frozen && forceSupersede
+        ? { previous_genesis_id: this.meta!.genesis_id, previous_digest: this.meta!.cycle0_digest }
+        : null;
 
       this.world = nextWorld;
       this.meta = nextMeta;
@@ -308,6 +319,7 @@ export class NoemaWorldDO {
           room_count: Object.keys(nextWorld.rooms).length,
         },
         meta: this.publicMeta(),
+        superseded,
         settlement: {
           settlement_id: settlement.settlement_id,
           settled: settlement.settled,

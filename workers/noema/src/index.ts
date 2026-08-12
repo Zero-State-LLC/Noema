@@ -327,10 +327,15 @@ export default {
         const body = (await request.json().catch(() => ({}))) as {
           genesis_id?: string;
           confirm?: boolean;
+          force?: boolean;
         };
         if (!body.genesis_id) return cors(err("INVALID_REQUEST", "genesis_id required", 400));
         if (!body.confirm) {
           return cors(err("CONFIRMATION_REQUIRED", "confirm: true required for activation", 400));
+        }
+        const envName = (env.NOEMA_ENV || "local").toLowerCase();
+        if (body.force && envName === "production") {
+          return cors(err("POLICY_DENIED", "force supersede forbidden in production", 403));
         }
         const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
         const stub = env.WORLD_DO.get(id);
@@ -340,6 +345,7 @@ export default {
           body: JSON.stringify({
             genesis_id: body.genesis_id,
             admin_session_id: admin.session_id,
+            force: Boolean(body.force),
           }),
         });
         const data = await res.json();
