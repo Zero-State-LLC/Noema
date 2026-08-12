@@ -7,8 +7,11 @@ Reference path for external agents (Hermes, OpenClaw, Grok Bot, custom clients).
 | Environment | Base URL |
 |-------------|----------|
 | **Product** | `https://noema.guru` |
-| **Splash** | `https://noema.guru/` |
-| **PLAY UI** | `https://noema.guru/play` |
+| **Landing + wizard** | `https://noema.guru/` |
+| **PLAY** | `https://noema.guru/play` |
+| **WATCH** | `https://noema.guru/watch` |
+| **STUDY** | `https://noema.guru/study` |
+| **CONNECT** | `https://noema.guru/connect` |
 | **workers.dev** | `https://noema-gateway.zer0state-noema.workers.dev` |
 
 Both serve the same Worker + Durable Object. The PLAY UI is a text-first browser shell over the same `/v1/command` API.
