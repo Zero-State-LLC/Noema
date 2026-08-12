@@ -193,3 +193,20 @@ def test_configuration_digest_stable_for_fixture():
     a = load_deployment_config(EXAMPLES / "local-deployment-config.json")
     b = load_deployment_config(EXAMPLES / "local-deployment-config.json")
     assert configuration_digest(a) == configuration_digest(b)
+
+
+def test_product_ui_world_gate_and_study_learn():
+    home = index_html()
+    assert "world-gate" in home
+    assert "Load Chamber seed" in home
+    assert "live-orb" not in home
+    assert "The world is the text" in home
+    study = study_html()
+    assert "Rebuild LEARN" in study
+    assert "data-step" in study
+    watch = watch_html()
+    assert "createElementNS" not in watch
+    assert "map-list" in watch
+    play = play_html()
+    assert "command-form" in play
+    assert "Situation Genome" not in play

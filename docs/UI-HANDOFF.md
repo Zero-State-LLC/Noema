@@ -6,7 +6,20 @@
 **Reference implement:** this repo’s modular monolith (`noema-serve`)
 
 This document is the **contract** for building PLAY / WATCH / STUDY product UI.  
-Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **not** the product UI — they are thin references.
+Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **reference product surfaces** (text-first), not a separate SPA.
+
+### Product form: text game
+
+NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world text, lists, and commands over illustration, maps-as-art, or ambient motion.
+
+| Prefer | Avoid |
+|---|---|
+| Location prose, entity lists, exits, messages | Decorative orbs, particle fields, fake 3D |
+| Command line + sparse action chips | Icon-heavy HUDs |
+| Tabular / list WATCH sites | Graphic map canvases as primary |
+| Claim labels as short text | Dashboards that look like analytics SaaS |
+
+Graphics, if any, stay minimal chrome (borders, type hierarchy)—never the content.
 
 ---
 
