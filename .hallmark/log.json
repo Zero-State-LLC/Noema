@@ -1,0 +1,22 @@
+[
+  {
+    "date": "2026-08-12",
+    "scope": "site/",
+    "pages": [
+      {
+        "path": "site/index.html",
+        "macrostructure": "Workbench",
+        "genre": "modern-minimal",
+        "theme": "noema-ledger-dark"
+      },
+      {
+        "path": "site/memo.html",
+        "macrostructure": "Long Document",
+        "genre": "modern-minimal",
+        "theme": "noema-ledger-dark"
+      }
+    ],
+    "brief": "Hallmark redesign after audit: Workbench primary + Long Document Specs memo; dark Noema tokens; single copper accent; remediate eyebrows, 3-up cards, side-stripes, italic hero, AI nav, ticker, glass header.",
+    "design_system": "site/design.md"
+  }
+]

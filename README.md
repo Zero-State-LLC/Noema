@@ -32,17 +32,22 @@ See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](doc
 
 ## Public site (GitHub Pages)
 
-Comprehensive reference site lives in [`site/`](site/) and deploys via GitHub Actions:
+| Page | Shape |
+|---|---|
+| [`site/index.html`](site/) | **Workbench** — play / watch / serve frames |
+| [`site/memo.html`](site/memo.html) | **Long Document** — Specs map memo |
+| [`site/design.md`](site/design.md) | Locked dark-ledger tokens (one copper accent) |
 
 ```text
 https://zero-state-llc.github.io/Noema/
+https://zero-state-llc.github.io/Noema/memo.html
 ```
 
 ```bash
-python -m http.server 8765 --directory site   # local preview
+python3 -m http.server 8765 --directory site   # local preview
 ```
 
-Enable once: **Repo Settings → Pages → Source: GitHub Actions**.
+Deploy: GitHub Actions on `site/**` · **Settings → Pages → Source: GitHub Actions**.
 
 ## Quick start (PLAY)
 

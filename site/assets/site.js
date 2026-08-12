@@ -1,7 +1,6 @@
 (function () {
   "use strict";
 
-  // Mobile nav
   var toggle = document.querySelector(".nav-toggle");
   var nav = document.querySelector(".nav");
   if (toggle && nav) {
@@ -17,37 +16,42 @@
     });
   }
 
-  // Quickstart tabs
   document.querySelectorAll("[data-tabs]").forEach(function (root) {
-    var tabs = root.querySelectorAll(".tab");
-    var panels = root.querySelectorAll(".tab-panel");
-    tabs.forEach(function (tab) {
+    var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+    var panels = Array.prototype.slice.call(root.querySelectorAll('[role="tabpanel"]'));
+
+    function select(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach(function (p) {
+        var show = p.id === tab.getAttribute("aria-controls");
+        p.hidden = !show;
+      });
+      if (focus) tab.focus({ preventScroll: true });
+    }
+
+    tabs.forEach(function (tab, i) {
+      tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
       tab.addEventListener("click", function () {
-        var id = tab.getAttribute("data-tab");
-        tabs.forEach(function (t) {
-          t.setAttribute("aria-selected", t === tab ? "true" : "false");
-        });
-        panels.forEach(function (p) {
-          p.hidden = p.id !== id;
-        });
+        select(tab, false);
+      });
+      tab.addEventListener("keydown", function (e) {
+        var next = null;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") next = tabs[(i + 1) % tabs.length];
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (e.key === "Home") next = tabs[0];
+        if (e.key === "End") next = tabs[tabs.length - 1];
+        if (next) {
+          e.preventDefault();
+          select(next, true);
+        }
       });
     });
   });
 
-  // Back to top
-  var toTop = document.querySelector(".to-top");
-  if (toTop) {
-    window.addEventListener(
-      "scroll",
-      function () {
-        if (window.scrollY > 600) toTop.classList.add("visible");
-        else toTop.classList.remove("visible");
-      },
-      { passive: true }
-    );
-  }
-
-  // Year
   var y = document.getElementById("year");
   if (y) y.textContent = String(new Date().getFullYear());
 })();
