@@ -13,6 +13,7 @@ htmlcov/
 
 data/
 backups/
+exports/
 var/
 .venv/
 __pycache__/

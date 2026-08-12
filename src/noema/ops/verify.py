@@ -7,7 +7,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from noema.config.deployment import ConfigError, load_deployment_config, validate_deployment_config
+from noema.config.deployment import ConfigError, load_deployment_config
+from noema.evidence.receipts import (
+    INVALID_EVIDENCE,
+    load_keyring,
+    receipts_required,
+    verify_receipts_for_bundle,
+)
+from noema.evidence.resume import ResumeRegistry
 from noema.ops.manifest import build_runtime_manifest, load_spec_compat
 from noema.persistence.store import WorldStore, open_store
 
@@ -24,6 +31,8 @@ REQUIRED_CHECKS = [
     "runtime_manifest",
     "writer_fence",
     "canonical_atomicity",
+    "resume_ack_windows",
+    "evidence_receipts",
 ]
 
 
@@ -47,6 +56,9 @@ def verify_world(
     config_path: Path | str | None = None,
     require_seed: bool = False,
     rehydrate: bool = True,
+    evidence_bundle: Path | str | None = None,
+    evidence_keyring: Path | str | None = None,
+    resume_registry: ResumeRegistry | None = None,
 ) -> VerifyResult:
     """Run the OPERATIONS verify checklist against a store."""
     result = VerifyResult(ok=True)
@@ -237,10 +249,80 @@ def verify_world(
         atomic_ok = False
     result.checks["canonical_atomicity"] = "PASS" if atomic_ok else "FAIL"
 
-    # 12–13 optional / profile-specific — mark SKIP for local gameplay profile
-    result.checks["resume_ack_windows"] = "SKIP"
-    result.checks["evidence_receipts"] = "SKIP"
-    result.warnings.append("resume/ack windows and evidence receipts not required for local gameplay profile")
+    # 12. Resume/ack delivery windows — bounded, committed-only references
+    registry = resume_registry or ResumeRegistry()
+    # Probe with a synthetic window against ledger head (committed max)
+    committed_max = int(meta.get("sequence") or 0)
+    if store.ready:
+        committed_max = max(committed_max, store.get_state().sequence)
+    try:
+        win = registry.get_or_create(
+            world_id=str(meta.get("world_id") or "world.unknown"),
+            principal_id="verify.probe",
+        )
+        if committed_max > 0:
+            win.offer_committed(committed_max, committed_max=committed_max)
+            win.acknowledge(min(committed_max, win.high_water + 1) if win.high_water < committed_max else committed_max, committed_max=committed_max)
+        # Bounds check
+        bound_problems = registry.verify_bounds()
+        # Uncommitted ack must fail closed
+        try:
+            win.acknowledge(committed_max + 10, committed_max=committed_max)
+            bound_problems.append("ack of uncommitted sequence was accepted")
+        except Exception:
+            pass  # expected fail-closed
+        if bound_problems:
+            result.failures.extend(bound_problems)
+            result.checks["resume_ack_windows"] = "FAIL"
+        else:
+            result.checks["resume_ack_windows"] = "PASS"
+            result.checks["resume_max_window"] = str(win.max_window)
+    except Exception as exc:
+        result.failures.append(f"resume/ack: {exc}")
+        result.checks["resume_ack_windows"] = "FAIL"
+
+    # 13. Evidence receipts — mandatory for research-isolated / evidence export profiles
+    env = (config or {}).get("env") if config else "local"
+    export_profile = None
+    if evidence_bundle and Path(evidence_bundle).is_dir():
+        try:
+            emeta = json.loads(
+                (Path(evidence_bundle) / "export-meta.json").read_text(encoding="utf-8")
+            )
+            export_profile = emeta.get("export_profile")
+            kr = None
+            if evidence_keyring and Path(evidence_keyring).is_file():
+                kr = load_keyring(evidence_keyring)
+            elif evidence_keyring is None and Path("var/evidence-keyring.json").is_file():
+                kr = load_keyring("var/evidence-keyring.json")
+            receipts = []
+            rp = Path(evidence_bundle) / "receipts.jsonl"
+            if rp.is_file():
+                for line in rp.read_text(encoding="utf-8").splitlines():
+                    if line.strip():
+                        receipts.append(json.loads(line))
+            vr = verify_receipts_for_bundle(emeta, keyring=kr, receipts=receipts)
+            if vr["status"] == INVALID_EVIDENCE:
+                result.failures.extend(vr["failures"] or ["INVALID_EVIDENCE"])
+                result.checks["evidence_receipts"] = "FAIL"
+            else:
+                result.checks["evidence_receipts"] = "PASS"
+                result.checks["evidence_profile"] = str(export_profile or vr.get("export_profile"))
+        except Exception as exc:
+            result.failures.append(f"evidence receipts: {exc}")
+            result.checks["evidence_receipts"] = "FAIL"
+    elif env == "research-isolated" or (
+        config and receipts_required(str((config.get("research") or {}).get("export_profile") or ""))
+    ):
+        result.failures.append(
+            "research-isolated profile requires evidence export bundle for receipt verification"
+        )
+        result.checks["evidence_receipts"] = "FAIL"
+    else:
+        result.checks["evidence_receipts"] = "SKIP"
+        result.warnings.append(
+            "evidence receipts not required for local gameplay profile (no export bundle)"
+        )
 
     result.ok = not result.failures and all(
         result.checks.get(k) in {"PASS", "SKIP"} for k in REQUIRED_CHECKS if k in result.checks

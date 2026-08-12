@@ -25,6 +25,18 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Non-secret deployment config JSON (deployment-config/1.0)",
     )
+    parser.add_argument(
+        "--evidence-bundle",
+        type=Path,
+        default=None,
+        help="Research/evidence export directory to verify receipts",
+    )
+    parser.add_argument(
+        "--evidence-keyring",
+        type=Path,
+        default=None,
+        help="Operator keyring for receipt verification (never public)",
+    )
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--require-seed", action="store_true")
     args = parser.parse_args(argv)
@@ -35,6 +47,8 @@ def main(argv: list[str] | None = None) -> int:
         objects_path=args.objects,
         config_path=args.config,
         require_seed=args.require_seed,
+        evidence_bundle=args.evidence_bundle,
+        evidence_keyring=args.evidence_keyring,
     )
     if args.json:
         print(

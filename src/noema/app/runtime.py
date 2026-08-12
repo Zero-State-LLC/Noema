@@ -22,6 +22,7 @@ from noema.config.deployment import (
     load_deployment_config,
     validate_deployment_config,
 )
+from noema.evidence.resume import ResumeRegistry
 from noema.ops.manifest import build_runtime_manifest
 from noema.persistence.store import open_store
 from noema.research.capture import ResearchCapture
@@ -66,6 +67,7 @@ class NoemaRuntime:
         self.deployment_config = self._load_deployment(deployment_config)
         self.configuration_digest = configuration_digest(self.deployment_config)
         self.sessions: dict[str, dict[str, Any]] = {}
+        self.resume = ResumeRegistry(default_max_window=256)
         self.research = ResearchCapture(self.store, enabled=research_capture)
         self.frontier = FrontierDirector(frontier_config)
         self.observatory = Observatory()
@@ -266,12 +268,27 @@ class NoemaRuntime:
             meta = self.store.commit_cycle(new_state, events, snapshot=True)
             # Research capture is post-persist and must not fail PLAY.
             self.research.capture_after_commit(new_state, events, commit_meta=meta)
+            # Bounded delivery window: only committed sequences (non-canonical).
+            committed = int(new_state.sequence)
+            win = self.resume.get_or_create(
+                world_id=new_state.world_id,
+                principal_id=principal.principal_id,
+                stream_id="observations",
+            )
+            for e in events:
+                win.offer_committed(int(e["sequence"]), committed_max=committed)
             obs = project_agent_observation(new_state, agent_id)
             return {
                 "results": results,
                 "events": [{"event_id": e["event_id"], "event_type": e["event_type"], "sequence": e["sequence"]} for e in events],
                 "observation": obs,
                 "commit": meta,
+                "delivery": {
+                    "stream": "observations",
+                    "high_water": win.high_water,
+                    "retained": list(win.retained[-16:]),
+                    "max_window": win.max_window,
+                },
             }
 
     def observe(self, session_id: str, agent_id: str | None = None) -> dict[str, Any]:
