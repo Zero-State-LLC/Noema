@@ -4,6 +4,8 @@ export interface Env {
   NOEMA_ENV: string;
   NOEMA_PROTOCOL_VERSION: string;
   DEFAULT_WORLD_ID: string;
+  /** Static marketing splash + assets (wrangler [assets]). */
+  ASSETS: Fetcher;
   /** Shared with Python IdentityService for controller access tokens. */
   TOKEN_SIGNING_SECRET?: string;
   /** Supabase JWT secret (HS256) for human access tokens. */

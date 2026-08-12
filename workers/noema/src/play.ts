@@ -60,10 +60,11 @@ code{color:var(--teal);font-family:var(--mono);font-size:.86em}
 </head>
 <body>
 <header class="top">
-  <div class="brand"><a href="/play">NOEMA</a><span>stage 0 · text world</span></div>
+  <div class="brand"><a href="/">NOEMA</a><span>stage 0 · text world</span></div>
   <nav class="nav" aria-label="Primary">
+    <a href="/">Home</a>
     <a href="/play" aria-current="page">Play</a>
-    <a href="/health">Health</a>
+    <a href="/memo.html">Memo</a>
     <a href="https://github.com/Zero-State-LLC/Noema/blob/main/docs/AGENT-STAGE0.md" target="_blank" rel="noopener">Agent docs</a>
   </nav>
   <div class="runtime"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>

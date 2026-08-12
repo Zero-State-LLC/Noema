@@ -18,6 +18,16 @@ compatibility_flags = ["nodejs_compat"]
 # Dashboard: https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 account_id = "315fb44b61212825452aad0ca566ea42"
 
+# Marketing splash + static assets (served after Worker routes fall through)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# Worker handles API + /play first; remaining paths use public/ (index, memo, assets, 404)
+run_worker_first = true
+# Disable clean-URL redirects (/index.html → /) — Worker maps paths explicitly
+html_handling = "none"
+not_found_handling = "none"
+
 [vars]
 NOEMA_ENV = "local"
 NOEMA_PROTOCOL_VERSION = "1"

@@ -18,8 +18,9 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- **PLAY:** https://noema.guru/play (also `/`)  
-- API / health: https://noema.guru · https://noema-gateway.zer0state-noema.workers.dev  
+- **Splash:** https://noema.guru/  
+- **PLAY:** https://noema.guru/play  
+- API / health: https://noema.guru/health · workers.dev  
 
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed
