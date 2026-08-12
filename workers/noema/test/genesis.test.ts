@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest";
+import {
+  catalog,
+  previewGenesis,
+  redactedPublicWorld,
+  stableStringify,
+  validateCycle0,
+} from "../src/genesis";
+
+const REHEARSAL = {
+  world_name: "Aster Reach",
+  world_seed: "49321892",
+  profile_id: "FRACTURED_OLD_WORLD",
+  story_seed_ids: ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
+};
+
+describe("hosted genesis", () => {
+  it("catalog has three canonical profiles", () => {
+    const c = catalog();
+    expect(c.profiles.map((p) => p.profile_id).sort()).toEqual([
+      "FRACTURED_OLD_WORLD",
+      "RECOVERING_NETWORK",
+      "YOUNG_FRONTIER",
+    ]);
+  });
+
+  it("same inputs → same genesis_id and cycle0_digest", async () => {
+    const a = await previewGenesis(REHEARSAL);
+    const b = await previewGenesis(REHEARSAL);
+    expect(a.genesis_id).toBe(b.genesis_id);
+    expect(a.cycle0_digest).toBe(b.cycle0_digest);
+    expect(a.validation.ok).toBe(true);
+    expect(a.ordinary_world_valid).toBe(true);
+  });
+
+  it("different world seed → different but valid cycle0", async () => {
+    const a = await previewGenesis(REHEARSAL);
+    const b = await previewGenesis({ ...REHEARSAL, world_seed: "99999999" });
+    expect(a.validation.ok).toBe(true);
+    expect(b.validation.ok).toBe(true);
+    expect(a.genesis_id).not.toBe(b.genesis_id);
+    expect(a.cycle0_digest).not.toBe(b.cycle0_digest);
+  });
+
+  it("rejects unknown profile and >2 story seeds", async () => {
+    await expect(
+      previewGenesis({ ...REHEARSAL, profile_id: "NOT_A_PROFILE" }),
+    ).rejects.toMatchObject({ code: "INVALID_PROFILE" });
+    await expect(
+      previewGenesis({
+        ...REHEARSAL,
+        story_seed_ids: ["OLD_TRADE_NETWORK", "LOST_ARCHIVE", "FOUNDING_SPLIT"],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_SEED" });
+  });
+
+  it("cycle0 validation requires entry routes and opportunities", async () => {
+    const a = await previewGenesis(REHEARSAL);
+    const v = validateCycle0(a.cycle0);
+    expect(v.ok).toBe(true);
+    expect(a.starting_opportunities.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("redacted public world never includes genesis inputs", async () => {
+    const a = await previewGenesis(REHEARSAL);
+    const pub = redactedPublicWorld({
+      world_id: a.world_id,
+      cycle: 0,
+      sequence: 0,
+      rooms: a.cycle0.rooms,
+      players_present: 0,
+    });
+    const s = stableStringify(pub);
+    expect(s).not.toContain("OLD_TRADE_NETWORK");
+    expect(s).not.toContain("LOST_ARCHIVE");
+    expect(s).not.toContain("world_seed");
+    expect(s).not.toContain("FRACTURED_OLD_WORLD");
+    expect(pub.rooms).toBeTruthy();
+  });
+
+  it("stableStringify is order-independent for objects", () => {
+    expect(stableStringify({ b: 1, a: 2 })).toBe(stableStringify({ a: 2, b: 1 }));
+  });
+});
