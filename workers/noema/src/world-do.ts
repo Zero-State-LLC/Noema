@@ -247,6 +247,74 @@ export class NoemaWorldDO {
     } else if (cmd === "WAIT") {
       w.cycle += 1;
       pushEvent("WAIT", { player_id: principal.player_id, cycles: 1 });
+    } else if (cmd === "INSPECT") {
+      const pl = w.players[principal.player_id];
+      if (!pl?.entered) {
+        return {
+          ok: false,
+          request_id,
+          error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" },
+        };
+      }
+      const room = w.rooms[pl.room_id];
+      const target = String(args.entity_id || args.target || "").trim();
+      const entity = room?.entities.find(
+        (e) => e.entity_id === target || e.label === target,
+      );
+      if (!entity) {
+        return {
+          ok: false,
+          request_id,
+          error: {
+            code: "INSPECT_FAILED",
+            message: target ? `no visible entity ${target}` : "entity_id required",
+          },
+        };
+      }
+      const ev = pushEvent("INSPECT", {
+        player_id: principal.player_id,
+        entity_id: entity.entity_id,
+        room_id: pl.room_id,
+      });
+      settled = await settleEvent(this.env, principal, {
+        event_id: ev.event_id,
+        event_type: ev.event_type,
+        sequence: ev.sequence,
+        cycle: w.cycle,
+        world_id: w.world_id,
+        player_id: principal.player_id,
+        controller_id: principal.controller_id,
+        session_id: principal.session_id,
+        payload: {
+          ...ev.payload,
+          detail: `${entity.label} (${entity.entity_type}) is present and operational enough to inspect.`,
+        },
+      });
+      // Attach inspect detail on observation via temporary entity note
+      const obs = this.observe(principal);
+      const resultInspect: CommandResult = {
+        ok: true,
+        request_id,
+        observation: {
+          ...obs,
+          // Stage 0: surface inspect text in description suffix
+          location: {
+            ...obs.location,
+            description: `${obs.location.description} You inspect ${entity.label}: ${entity.entity_type} — present and operational enough to inspect.`,
+          },
+        },
+        events,
+        provenance: {
+          player_id: principal.player_id,
+          controller_id: principal.controller_id,
+          session_id: principal.session_id,
+          agent_id: principal.agent_id,
+        },
+        settled,
+      };
+      w.seen_idempotency[idem] = resultInspect;
+      await this.save();
+      return resultInspect;
     } else if (cmd === "OBSERVE") {
       // pure observation — no durable event by default
     } else {

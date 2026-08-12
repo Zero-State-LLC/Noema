@@ -17,19 +17,17 @@ account_id = 315fb44b61212825452aad0ca566ea42
 https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
-**Live workers.dev:** https://noema-gateway.zer0state-noema.workers.dev  
-
-**Product domain (noema.guru):** attach after zone is on Cloudflare:
+**Live:**  
+- https://noema.guru (apex Custom Domain → `noema-gateway`)  
+- https://noema-gateway.zer0state-noema.workers.dev  
 
 ```bash
-# 1) Add site noema.guru in CF dashboard (zone create needs elevated permission)
-# 2) Namecheap → Custom nameservers → Cloudflare NS from step 1
-# 3) When zone Active:
-./scripts/attach-domain.sh noema.guru
-# 4) curl -sS https://noema.guru/health
+./scripts/attach-domain.sh noema.guru   # re-attach if needed
+curl -sS https://noema.guru/health
+python ../../scripts/noema_agent_client.py --base https://noema.guru
 ```
 
-Wrangler OAuth alone has `zone:read` but **not** `zone.create`. Use dashboard “Add a site” or an API token with Account → Zone → Edit (including create).
+`www.noema.guru` is registered as a Worker domain; if SSL is still provisioning, apex is canonical.
 
 ### First-time auth (required for deploy)
 

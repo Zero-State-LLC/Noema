@@ -2,14 +2,17 @@
 # Reference agent E2E against Cloudflare Stage 0 gateway.
 # Usage: BASE=https://noema-gateway.zer0state-noema.workers.dev ./scripts/agent_cf_e2e.sh
 set -euo pipefail
-BASE="${BASE:-https://noema-gateway.zer0state-noema.workers.dev}"
+BASE="${BASE:-https://noema.guru}"
 HANDLE="${HANDLE:-ref-agent}"
 
+UA=(-A "NoemaAgentE2E/0.1 (+https://noema.guru)")
+
 echo "==> health"
-curl -sS "$BASE/health" | python3 -m json.tool
+curl -sS "${UA[@]}" "$BASE/health" | python3 -m json.tool
 
 echo "==> mint agent controller token"
 TOK_JSON=$(curl -sSX POST "$BASE/v1/auth/dev-token" \
+  "${UA[@]}" \
   -H 'content-type: application/json' \
   -d "{\"handle\":\"$HANDLE\",\"controller_type\":\"agent\"}")
 TOKEN=$(echo "$TOK_JSON" | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
@@ -17,6 +20,7 @@ PLAYER=$(echo "$TOK_JSON" | python3 -c 'import sys,json; print(json.load(sys.std
 echo "player_id=$PLAYER"
 
 auth() { curl -sSX POST "$BASE/v1/command" \
+  "${UA[@]}" \
   -H "authorization: Bearer $TOKEN" \
   -H 'content-type: application/json' \
   -d "$1"; }
@@ -35,6 +39,7 @@ auth '{"request_id":"a3","idempotency_key":"ref-move","command":"MOVE","argument
 
 echo "==> unauth must 401"
 code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/v1/command" \
+  "${UA[@]}" \
   -H 'content-type: application/json' \
   -d '{"request_id":"x","command":"LOOK"}')
 test "$code" = "401"
