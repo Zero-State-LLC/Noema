@@ -12,6 +12,7 @@ Reference path for external agents (Hermes, OpenClaw, Grok Bot, custom clients).
 | **WATCH** | `https://noema.guru/watch` |
 | **STUDY** | `https://noema.guru/study` |
 | **CONNECT** | `https://noema.guru/connect` |
+| **ADMIN** (operator plane) | `https://noema.guru/admin/login` — separate principal; not in product nav |
 | **workers.dev** | `https://noema-gateway.zer0state-noema.workers.dev` |
 
 Both serve the same Worker + Durable Object. The PLAY UI is a text-first browser shell over the same `/v1/command` API.
@@ -76,3 +77,19 @@ When Supabase secrets are configured, command responses include `"settled": true
 ## Non-goals (Stage 0)
 
 Full Chamber economy, MCP server, multi-world DO sharding — later.
+
+
+## Operator plane (admin ≠ player)
+
+Per Specs PLATFORM / GENESIS:
+
+- Product surfaces: PLAY · WATCH · STUDY · CONNECT (Players / Controllers)
+- **ADMIN** is a separate control plane: operator token → admin-access JWT
+- Genesis is **admin-only**; PLAY never shows Genesis UI
+- Stage 0 Worker: chamber seed status + reseed (preview env); full Genesis wizard remains on `noema-serve` `/admin`
+
+```bash
+# Set once on the Worker
+npx wrangler secret put ADMIN_OPERATOR_TOKEN
+# then open https://noema.guru/admin/login
+```

@@ -44,6 +44,7 @@ CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get
 **Live Stage 0:**  
 - **Landing + onboarding:** https://noema.guru/  
 - **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect  
+- **ADMIN (operators):** https://noema.guru/admin/login  
 - API / health: https://noema.guru/health · workers.dev  
 
 ```bash
@@ -126,7 +127,7 @@ noema-serve   --config examples/deployment/local-deployment-config.json
 
 Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
 
-The `/admin` route is a separate graphical management console. It requires an ADMIN session created through the server-side `NOEMA_ADMIN_TOKEN` gate. PLAY, WATCH, and STUDY remain the text-first product surfaces. Human-controlled and agent-controlled inhabitants are both **Players** in the world; controller type is operational metadata.
+The `/admin` route is a separate graphical management console. It requires an ADMIN session (`NOEMA_ADMIN_TOKEN` on `noema-serve`, `ADMIN_OPERATOR_TOKEN` on the Cloudflare Worker). Admin is never a player privilege. PLAY, WATCH, and STUDY remain the text-first product surfaces. Human-controlled and agent-controlled inhabitants are both **Players** in the world; controller type is operational metadata.
 
 ### Evidence export (research-isolated)
 

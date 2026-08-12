@@ -1,46 +1,96 @@
-/** Text-first PLAY shell for Stage 0 (served by Worker at /play). */
+/** Text-first PLAY shell — Chamber workspace (readable world text first). */
 
 import { productShell } from "./shell";
 
 const EXTRA = `
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 16rem;gap:.8rem;align-items:start}
-@media(max-width:820px){.grid{grid-template-columns:1fr}}
-.location h2{margin:.2rem 0 .5rem;font:800 clamp(1.6rem,4vw,2.6rem)/1 var(--display)}
-.location p{margin:0;max-width:65ch;color:var(--muted)}
-.list{display:grid;gap:.4rem;margin:.9rem 0 0;padding:0;list-style:none}
-.item,.route{width:100%;padding:.6rem .7rem;border:1px solid var(--line);background:rgba(11,17,21,.4);text-align:left}
-.item{display:flex;gap:.55rem;align-items:center}.item:hover,.route:hover{border-color:var(--teal)}
-.mark{display:grid;place-items:center;width:1.5rem;height:1.5rem;border:1px solid var(--strong);color:var(--teal);font:.55rem var(--mono)}
-.item strong,.route strong{display:block;font-size:.82rem}.item span,.route span{display:block;margin-top:.12rem;color:var(--muted);font-size:.72rem}
-.route{display:flex;gap:.5rem;align-items:center;color:var(--muted)}.route b{min-width:2.8rem;color:var(--brass);font:.62rem var(--mono);text-transform:uppercase}
-.cmd{position:sticky;bottom:.75rem;margin-top:.8rem;padding:1rem;border:1px solid var(--line);background:rgba(17,26,32,.98)}
+.play-head{margin-bottom:1.25rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 16.5rem;gap:.75rem;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+.location{padding:clamp(1.1rem,2.5vw,1.5rem)}
+.location .loc-name{
+  margin:.25rem 0 .5rem;
+  font:550 clamp(1.85rem,4.5vw,2.85rem)/1.05 var(--font-display);
+  letter-spacing:-.02em;
+}
+.location .loc-desc{
+  margin:0;max-width:42rem;color:var(--muted);
+  font-size:1.02rem;line-height:1.6;
+  font-family:var(--font-body);
+}
+
+.list{display:grid;gap:.4rem;margin:.95rem 0 0;padding:0;list-style:none}
+.item,.route{
+  width:100%;padding:.7rem .75rem;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(7,10,16,.4);text-align:left;transition:border-color .12s;
+}
+.item{display:flex;gap:.65rem;align-items:center}
+.item:hover,.route:hover{border-color:var(--teal)}
+.mark{
+  display:grid;place-items:center;width:1.65rem;height:1.65rem;flex:0 0 auto;
+  border:1px solid var(--line-hot);border-radius:var(--r);
+  color:var(--teal);font:.55rem var(--font-mono);letter-spacing:.04em;
+}
+.item strong,.route strong{display:block;font-size:.86rem;font-weight:600;color:var(--ink)}
+.item span,.route span{display:block;margin-top:.12rem;color:var(--muted);font-size:.74rem}
+.route{display:flex;gap:.55rem;align-items:center;color:var(--muted)}
+.route b{min-width:2.9rem;color:var(--copper);font:.6rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase}
+
+.cmd{
+  position:sticky;bottom:.7rem;margin-top:.75rem;padding:1rem;
+  border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(12,18,24,.96);backdrop-filter:blur(10px);
+  box-shadow:0 -8px 40px rgba(0,0,0,.25);
+}
 .cmd form{display:grid;grid-template-columns:1fr auto;gap:.5rem}
-.cmd input{min-height:2.5rem;padding:.55rem .7rem;border:1px solid var(--strong);border-radius:2px;color:var(--teal);background:#0f171c;font-family:var(--mono)}
+.cmd input{
+  min-height:2.6rem;font-family:var(--font-mono);font-size:.9rem;
+  color:var(--teal);border-color:var(--line-hot);
+}
 .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.65rem}
-.chip{padding:.35rem .5rem;border:1px solid var(--line);color:var(--muted);background:transparent;font:.6rem var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.chip:hover{border-color:var(--brass);color:var(--brass)}
-.side .btn{width:100%;margin-top:.7rem}
-.trail{margin:0;padding:0;list-style:none;display:grid;gap:.15rem}
-.trail li{display:grid;grid-template-columns:4rem 1fr;gap:.5rem;padding:.5rem 0;border-bottom:1px solid rgba(42,58,66,.55);font-size:.8rem}
-.trail .k{color:var(--brass);font:.58rem var(--mono);text-transform:uppercase}
+.chip{
+  padding:.38rem .55rem;border:1px solid var(--line);border-radius:var(--r);
+  color:var(--muted);background:transparent;
+  font:.58rem var(--font-mono);letter-spacing:.07em;text-transform:uppercase;
+  transition:border-color .12s,color .12s;
+}
+.chip:hover{border-color:var(--copper);color:var(--copper)}
+
+.side .btn{width:100%;margin-top:.65rem}
+.trail{margin:0;padding:0;list-style:none;display:grid;gap:.1rem}
+.trail li{
+  display:grid;grid-template-columns:4.2rem 1fr;gap:.5rem;
+  padding:.55rem 0;border-bottom:1px solid rgba(42,51,66,.55);font-size:.82rem;
+}
+.trail .k{color:var(--copper);font:.56rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
 .trail .t{color:var(--ink)}
+
+.session-ids{margin-top:.85rem;word-break:break-all;font-size:.78rem;line-height:1.55}
 `;
 
 export function playHtml(): string {
   const body = `
-  <div class="kicker">PLAY / enter the world</div>
-  <h1>Take a position.</h1>
-  <p class="lead">Text-first Chamber. Humans and agents are both Players. Commands go through the same gateway as Hermes and other controllers.</p>
+  <header class="play-head">
+    <p class="kicker">PLAY / enter the world</p>
+    <h1>Take a position.</h1>
+    <p class="lead">Text-first Chamber. Read where you are, then issue a command. Humans and agents share the same Player path.</p>
+  </header>
+
   <div class="grid">
     <section>
-      <article class="card location pad">
-        <div class="kicker">Location</div>
-        <h2 id="room-name">Outside the world</h2>
-        <p id="room-desc">Start a session to enter. Your observation defines what is visible.</p>
-        <div class="meta"><span id="meta-cycle">cycle —</span><span id="meta-seq">seq —</span><span id="meta-settled">settled —</span></div>
+      <article class="card location">
+        <p class="kicker">Current location</p>
+        <h2 class="loc-name" id="room-name">Outside the world</h2>
+        <p class="loc-desc" id="room-desc">Start a session to enter. Your observation defines what is visible.</p>
+        <div class="meta" style="margin-top:.9rem">
+          <span id="meta-cycle">cycle —</span>
+          <span id="meta-seq">seq —</span>
+          <span id="meta-settled">settled —</span>
+        </div>
         <ul class="list" id="entity-list"><li class="empty">No local entities yet.</li></ul>
         <ul class="list" id="exit-list"></ul>
       </article>
+
       <article class="cmd" aria-label="Command line">
         <form class="cmdform" id="cmd-form">
           <label class="sr" for="cmd">Command</label>
@@ -50,14 +100,16 @@ export function playHtml(): string {
         <div class="chips" id="chips"></div>
         <p class="notice" id="notice" role="status"></p>
       </article>
-      <article class="card pad" style="margin-top:.8rem">
-        <div class="kicker">Your trail</div>
+
+      <article class="card pad" style="margin-top:.75rem">
+        <p class="kicker">Your trail</p>
         <ol class="trail" id="trail"><li class="empty">Committed actions appear here.</li></ol>
       </article>
     </section>
+
     <aside class="side">
       <article class="card pad">
-        <div class="kicker">Session</div>
+        <p class="kicker">Session</p>
         <label for="handle">Player handle</label>
         <input id="handle" value="player1" autocomplete="username"/>
         <label for="ctype">Controller</label>
@@ -67,15 +119,16 @@ export function playHtml(): string {
         </select>
         <button class="btn primary" id="enter" type="button">Enter world</button>
         <button class="btn quiet" id="leave" type="button" disabled>New session</button>
-        <p class="empty" style="margin-top:.8rem;word-break:break-all">player <code id="pid">—</code><br/>controller <code id="cid">—</code></p>
-        <p class="empty" style="margin-top:.5rem"><a href="/connect" style="color:var(--teal)">Connect an agent</a> · same Player ontology</p>
+        <p class="empty session-ids">player <code id="pid">—</code><br/>controller <code id="cid">—</code></p>
+        <p class="empty" style="margin-top:.55rem"><a href="/connect">Connect an agent</a></p>
       </article>
-      <article class="card pad" style="margin-top:.8rem">
-        <div class="kicker">Commands</div>
-        <p class="empty" style="margin:0">look · move &lt;dir&gt; · inspect &lt;id&gt; · wait · observe</p>
+      <article class="card pad" style="margin-top:.75rem">
+        <p class="kicker">Commands</p>
+        <p class="empty" style="margin:0;line-height:1.55">look · move &lt;dir&gt;<br/>inspect &lt;id&gt; · wait</p>
       </article>
     </aside>
   </div>
+
   <script>
   (() => {
     const $ = (id) => document.getElementById(id);
@@ -256,7 +309,6 @@ export function playHtml(): string {
       } catch (_) {}
       renderObs(null);
 
-      // Onboarding wizard handoff: /play?autostart=1 with sessionStorage token
       const qs = new URLSearchParams(location.search);
       if (qs.get("autostart") === "1") {
         const tok = sessionStorage.getItem("noema.play.token");
@@ -275,5 +327,11 @@ export function playHtml(): string {
   })();
   </script>
   `;
-  return productShell({ title: "Play", active: "play", body, extraCss: EXTRA });
+  return productShell({
+    title: "Play",
+    active: "play",
+    body,
+    extraCss: EXTRA,
+    description: "Enter the NOEMA Chamber. Text-first PLAY for humans and agents.",
+  });
 }

@@ -116,6 +116,50 @@ export class NoemaWorldDO {
       });
     }
 
+    // ADMIN-only world projection (Worker gates admin JWT before calling)
+    if (request.method === "GET" && url.pathname.endsWith("/admin-status")) {
+      await this.load();
+      const roomList = Object.values(this.world!.rooms);
+      return Response.json({
+        world_id: this.world!.world_id,
+        cycle: this.world!.cycle,
+        sequence: this.world!.sequence,
+        players_present: Object.keys(this.world!.players).length,
+        player_ids: Object.keys(this.world!.players),
+        rooms: roomList.map((r) => ({
+          room_id: r.room_id,
+          name: r.name,
+          entity_count: r.entities.length,
+          exit_count: r.exits.length,
+        })),
+        room_count: roomList.length,
+        entity_count: roomList.reduce((n, r) => n + r.entities.length, 0),
+        unsettled_count: this.world!.unsettled.length,
+        genesis: {
+          stage: "0",
+          profile_id: "stage0.chamber",
+          status: "ACTIVE",
+          note: "Stage 0 Chamber seed is pre-activated. Full Genesis profiles live on noema-serve ADMIN.",
+          frozen: true,
+        },
+      });
+    }
+
+    // ADMIN reseed — resets live DO state to Stage 0 seed (consequential)
+    if (request.method === "POST" && url.pathname.endsWith("/admin-reseed")) {
+      const world_id = this.env.DEFAULT_WORLD_ID || "world-01";
+      this.world = defaultState(world_id);
+      await this.save();
+      return Response.json({
+        ok: true,
+        world_id: this.world.world_id,
+        cycle: this.world.cycle,
+        sequence: this.world.sequence,
+        room_count: Object.keys(this.world.rooms).length,
+        note: "Stage 0 seed restored. Configuration remains frozen to chamber seed.",
+      });
+    }
+
     if (request.method !== "POST") {
       return Response.json({ error: { code: "METHOD_NOT_ALLOWED", message: "POST only" } }, { status: 405 });
     }
