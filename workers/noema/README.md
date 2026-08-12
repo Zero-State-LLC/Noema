@@ -18,8 +18,8 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- https://noema.guru (apex Custom Domain → `noema-gateway`)  
-- https://noema-gateway.zer0state-noema.workers.dev  
+- **PLAY:** https://noema.guru/play (also `/`)  
+- API / health: https://noema.guru · https://noema-gateway.zer0state-noema.workers.dev  
 
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed

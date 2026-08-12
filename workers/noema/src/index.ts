@@ -6,10 +6,22 @@
  */
 
 import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
+import { playHtml } from "./play";
 import type { CommandEnvelope, Env } from "./types";
 import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
+
+function html(body: string, status = 200): Response {
+  return new Response(body, {
+    status,
+    headers: {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
 
 function cors(res: Response): Response {
   const h = new Headers(res.headers);
@@ -39,7 +51,12 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     try {
-      if (request.method === "GET" && (path === "/health" || path === "/")) {
+      // Product PLAY UI (text-first)
+      if (request.method === "GET" && (path === "/play" || path === "/")) {
+        return html(playHtml());
+      }
+
+      if (request.method === "GET" && path === "/health") {
         return cors(
           json({
             status: "ok",
