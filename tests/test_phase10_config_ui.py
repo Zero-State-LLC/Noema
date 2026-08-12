@@ -137,6 +137,11 @@ def test_play_surface_keeps_research_and_admin_terms_out():
         assert forbidden not in html
 
 
+def test_public_surfaces_do_not_fabricate_seed_world_identity():
+    for html in (index_html(), play_html(), watch_html()):
+        assert "Aster Reach" not in html
+
+
 def test_http_ui_and_manifest_endpoints(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "h.db")
     rt.start_world(FIXTURES / "world-seed.json")
