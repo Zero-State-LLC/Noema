@@ -6,7 +6,20 @@
 **Reference implement:** this repo’s modular monolith (`noema-serve`)
 
 This document is the **contract** for building PLAY / WATCH / STUDY product UI.  
-Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **not** the product UI — they are thin references.
+Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **reference product surfaces** (text-first), not a separate SPA.
+
+### Product form: text game
+
+NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world text, lists, and commands over illustration, maps-as-art, or ambient motion.
+
+| Prefer | Avoid |
+|---|---|
+| Location prose, entity lists, exits, messages | Decorative orbs, particle fields, fake 3D |
+| Command line + sparse action chips | Icon-heavy HUDs |
+| Tabular / list WATCH sites | Graphic map canvases as primary |
+| Claim labels as short text | Dashboards that look like analytics SaaS |
+
+Graphics, if any, stay minimal chrome (borders, type hierarchy)—never the content.
 
 ---
 
@@ -106,14 +119,16 @@ HTTP status:
 
 ## 3. Route map (complete gateway)
 
-### Public HTML (reference only — replace in product UI)
+### Public HTML (text-first product shells)
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Operator shell |
-| GET | `/play` | Minimal PLAY shell |
-| GET | `/watch` | Minimal WATCH shell |
-| GET | `/study` | Minimal STUDY shell |
+| GET | `/` | Entry: PLAY / WATCH / STUDY |
+| GET | `/play` | Text PLAY: location, routes, command line |
+| GET | `/watch` | Public projection lists (not graphic map) |
+| GET | `/study` | Researcher evidence lists + LEARN rebuild |
+
+These shells call the same JSON APIs a custom UI would. Richer product chrome may replace them later without changing the contract.
 
 ### Public JSON
 
