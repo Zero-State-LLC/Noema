@@ -111,6 +111,18 @@ cycle0_digest: sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb107
 | No reseed after freeze | DO returns `POLICY_DENIED` when ACTIVE |
 | No force supersede in production | API returns `POLICY_DENIED` |
 | No player Genesis | Player JWT rejected on `/v1/admin/*` |
+| Dev-token off in production | `POST /v1/auth/dev-token` → 403 |
+
+### Production deploy pin
+
+```bash
+cd workers/noema
+NOEMA_ENV=production bash ./scripts/deploy-stage0.sh
+```
+
+Confirm `GET /health` reports `"env":"production"`. Bare `wrangler deploy` without the var is **not** production.
+
+Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Recovery
 

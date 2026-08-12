@@ -1,0 +1,24 @@
+{
+  "schema_version": "production-activation-payload/1.0",
+  "title": "Prepared production activation payload — DO NOT submit without human approval",
+  "notes": [
+    "References the exact approved production preview identity.",
+    "Never include force:true in production.",
+    "Never include secrets.",
+    "Submit only after PRODUCTION-GENESIS-GATE checklist is fully green and a human operator explicitly approves.",
+    "Current live DO may already be ACTIVE with this genesis from non-production rehearsal; ordinary re-activate is frozen-world protected."
+  ],
+  "endpoint": "POST /v1/admin/genesis/activate",
+  "host": "https://noema.guru",
+  "payload": {
+    "genesis_id": "genesis.ef578f4ffceeccd0",
+    "confirm": true
+  },
+  "candidate": {
+    "world_name": "Perihelion Reach",
+    "profile_id": "FRACTURED_OLD_WORLD",
+    "story_seed_ids": ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
+    "world_seed": "17011984",
+    "expected_cycle0_digest": "sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6"
+  }
+}
