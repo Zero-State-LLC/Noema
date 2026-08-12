@@ -301,6 +301,10 @@ POST /admin/start
 { "seed_path": "fixtures/v01-seed/world-seed.json" }
 ```
 
+Public product shells may show a non-interactive world-not-ready status when
+`/ready.ready` is false, but they MUST NOT invoke `/admin/start` or expose seed
+loading controls. Boot and Genesis remain operator/admin surfaces.
+
 Genesis (ADMIN only):
 
 - `POST /admin/genesis/preview` — profile + seeds

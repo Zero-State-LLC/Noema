@@ -133,7 +133,17 @@ def test_html_shells_render():
 
 def test_play_surface_keeps_research_and_admin_terms_out():
     html = play_html()
-    for forbidden in ("Situation Genome", "Genesis Profile", "Frontier", "Observatory", "Compiler", "Capability Graph"):
+    for forbidden in (
+        "Situation Genome",
+        "Genesis Profile",
+        "Frontier",
+        "Observatory",
+        "Compiler",
+        "Capability Graph",
+        "/admin/start",
+        "Load Chamber seed",
+        "world-start",
+    ):
         assert forbidden not in html
 
 
@@ -198,7 +208,10 @@ def test_configuration_digest_stable_for_fixture():
 def test_product_ui_world_gate_and_study_learn():
     home = index_html()
     assert "world-gate" in home
-    assert "Load Chamber seed" in home
+    assert "World offline" in home
+    assert "The Chamber is not online yet" in home
+    assert "Load Chamber seed" not in home
+    assert "/admin/start" not in home
     assert "live-orb" not in home
     assert "The world is the text" in home
     study = study_html()
@@ -210,3 +223,11 @@ def test_product_ui_world_gate_and_study_learn():
     play = play_html()
     assert "command-form" in play
     assert "Situation Genome" not in play
+
+
+def test_public_product_shells_keep_admin_boot_controls_out():
+    for html in (index_html(), play_html(), watch_html(), study_html()):
+        assert "/admin/start" not in html
+        assert "Load Chamber seed" not in html
+        assert "world-start" not in html
+        assert "World offline" in html
