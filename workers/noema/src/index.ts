@@ -3,6 +3,7 @@
  * Spec: Noema-Specs docs/PLATFORM.md · AGENT-GATEWAY.md
  *
  * Thin edge only: auth → PlayerPrincipal → World Durable Object.
+ * Static marketing splash + assets via ASSETS binding (public/).
  */
 
 import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
@@ -12,12 +13,12 @@ import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
 
-function html(body: string, status = 200): Response {
+function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "cache-control": "no-store",
+      "cache-control": cache,
       "x-content-type-options": "nosniff",
     },
   });
@@ -29,6 +30,66 @@ function cors(res: Response): Response {
   h.set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Noema-Access-Token");
   h.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   return new Response(res.body, { status: res.status, headers: h });
+}
+
+function wantsHtml(request: Request): boolean {
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("text/html");
+}
+
+function assetRequest(origin: string, assetPath: string, method: string): Request {
+  return new Request(new URL(assetPath, origin).toString(), { method: method === "HEAD" ? "HEAD" : "GET" });
+}
+
+async function serveStatic(request: Request, env: Env, path: string): Promise<Response> {
+  const origin = new URL(request.url).origin;
+  const method = request.method;
+
+  // Explicit path map — avoid Assets clean-URL redirect loops
+  const candidates: string[] = [];
+  if (path === "/" || path === "/index.html") {
+    candidates.push("/index.html");
+  } else if (path === "/memo" || path === "/memo.html") {
+    candidates.push("/memo.html");
+  } else if (path === "/404" || path === "/404.html") {
+    candidates.push("/404.html");
+  } else {
+    candidates.push(path);
+    // try .html for extensionless marketing pages
+    if (!path.includes(".") && !path.startsWith("/assets/")) {
+      candidates.push(`${path}.html`);
+    }
+  }
+
+  for (const assetPath of candidates) {
+    const res = await env.ASSETS.fetch(assetRequest(origin, assetPath, method));
+    if (res.status === 200) {
+      const h = new Headers(res.headers);
+      if (assetPath.startsWith("/assets/")) {
+        h.set("cache-control", "public, max-age=3600");
+      } else {
+        h.set("cache-control", "public, max-age=60");
+      }
+      h.set("x-content-type-options", "nosniff");
+      return new Response(res.body, { status: 200, headers: h });
+    }
+  }
+
+  // Friendly HTML 404 for browsers / GET navigations
+  if (wantsHtml(request) || method === "GET" || method === "HEAD") {
+    const nf = await env.ASSETS.fetch(assetRequest(origin, "/404.html", "GET"));
+    if (nf.status === 200) {
+      return new Response(nf.body, {
+        status: 404,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    }
+  }
+  return cors(err("NOT_FOUND", path, 404));
 }
 
 async function routeToWorld(env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope): Promise<Response> {
@@ -51,8 +112,8 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     try {
-      // Product PLAY UI (text-first)
-      if (request.method === "GET" && (path === "/play" || path === "/")) {
+      // Text-first PLAY shell (product surface)
+      if (request.method === "GET" && path === "/play") {
         return html(playHtml());
       }
 
@@ -172,6 +233,11 @@ export default {
           );
         }
         return cors(err("INVALID_REQUEST", "use POST /v1/command for ACT after AUTH", 400));
+      }
+
+      // Marketing splash + static assets (/, /index.html, /memo.html, /assets/*)
+      if (request.method === "GET" || request.method === "HEAD") {
+        return serveStatic(request, env, path);
       }
 
       return cors(err("NOT_FOUND", path, 404));

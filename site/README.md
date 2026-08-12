@@ -26,4 +26,6 @@ https://zero-state-llc.github.io/Noema/memo.html
 python3 -m http.server 8765 --directory site
 ```
 
+Product host **https://noema.guru** serves this splash from the Worker (`workers/noema/public/`) plus `/play`.
+
 Landing stays splash-first. CLI dumps, route tables, and phase grids live on the memo (and in the repo), not on the homepage.
