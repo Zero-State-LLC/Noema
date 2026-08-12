@@ -210,7 +210,9 @@ Content-Type: application/json
 
 ### Supported verbs (router)
 
-`ENTER_WORLD`, `LOOK`, `MOVE`, `INSPECT`, `MESSAGE`, `WAIT`, `REPAIR`, `HARVEST` (see `ActionRouter.SUPPORTED_VERBS` for source of truth).
+`ENTER_WORLD`, `LEAVE_WORLD`, `LOOK`, `MOVE`, `INSPECT`, `MESSAGE`, `WAIT`, `TRADE_PROPOSE`, `TRADE_ACCEPT`, `TRADE_REJECT`, `ORG_CREATE`, `HARVEST`, `REPAIR`.
+
+Source of truth: `ActionRouter.SUPPORTED_VERBS` in `src/noema/actions/router.py`.
 
 ### Typical flow
 
