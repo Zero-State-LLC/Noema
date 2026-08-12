@@ -41,12 +41,14 @@ Offline Chamber  → noema-serve (Python modular monolith)
 Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/PLATFORM.md).  
 CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
-**Live preview (account `315fb44b…`):**  
-https://noema-gateway.zer0state-noema.workers.dev  
+**Live Stage 0:**  
+- https://noema.guru  
+- https://noema-gateway.zer0state-noema.workers.dev  
 
 ```bash
 ./scripts/agent_cf_e2e.sh
-# or: BASE=https://noema-gateway.zer0state-noema.workers.dev ./scripts/agent_cf_e2e.sh
+python scripts/noema_agent_client.py --base https://noema.guru
+# docs: docs/AGENT-STAGE0.md
 ```
 
 ```bash
