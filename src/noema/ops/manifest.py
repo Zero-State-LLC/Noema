@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from noema.config.deployment import configuration_digest as config_digest
 from noema.world.digest import sha256_digest
 
 
@@ -30,7 +31,7 @@ def load_spec_compat(path: Path | None = None) -> dict[str, Any]:
 def configuration_digest(config: dict[str, Any] | None = None) -> str:
     """Digest of resolved non-secret settings (empty object when none provided)."""
     body = config if config is not None else {"profile": "local-default", "secrets": False}
-    return sha256_digest(body)
+    return config_digest(body)
 
 
 def build_runtime_manifest(

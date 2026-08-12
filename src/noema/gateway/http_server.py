@@ -1,16 +1,17 @@
-"""Minimal stdlib HTTP gateway for Chamber MVP."""
+"""Minimal stdlib HTTP gateway for Chamber MVP + operator/WATCH HTML shells."""
 
 from __future__ import annotations
 
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
+from noema.gateway.ui import index_html, play_html, watch_html
 from noema.protocol.agent_v1 import AgentProtocolV1
 
 
@@ -29,6 +30,14 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(raw)
 
+        def _html(self, code: int, body: str) -> None:
+            raw = body.encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
         def _read_json(self) -> dict[str, Any]:
             length = int(self.headers.get("Content-Length") or 0)
             if length <= 0:
@@ -39,6 +48,13 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             try:
+                # Application / spectator HTML surfaces (C14)
+                if path in {"/", "/index.html"}:
+                    return self._html(200, index_html())
+                if path in {"/watch", "/watch/"}:
+                    return self._html(200, watch_html())
+                if path in {"/play", "/play/"}:
+                    return self._html(200, play_html())
                 if path == "/health":
                     return self._json(200, runtime.health())
                 if path == "/ready":
@@ -46,6 +62,11 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     return self._json(200 if body.get("ready") else 503, body)
                 if path == "/version":
                     return self._json(200, runtime.version())
+                if path == "/manifest":
+                    return self._json(200, runtime.runtime_manifest())
+                if path == "/config":
+                    # Non-secret resolved deployment config + digest only
+                    return self._json(200, runtime.deployment_config_view())
                 if path == "/watch/live":
                     session_id = self.headers.get("X-Session-Id")
                     if not session_id:

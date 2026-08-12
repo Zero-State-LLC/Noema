@@ -19,7 +19,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--seed", type=Path, default=None, help="World seed for rehydrate checks")
     parser.add_argument("--objects", type=Path, default=Path("var/objects"))
-    parser.add_argument("--config", type=Path, default=None, help="Non-secret deployment config JSON")
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="Non-secret deployment config JSON (deployment-config/1.0)",
+    )
     parser.add_argument("--json", action="store_true", help="Machine-readable output")
     parser.add_argument("--require-seed", action="store_true")
     args = parser.parse_args(argv)

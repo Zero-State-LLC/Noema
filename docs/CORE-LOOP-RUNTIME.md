@@ -113,6 +113,27 @@ noema-restore backups/world-1 --db data/restored.sqlite3 --seed fixtures/v01-see
 
 CI runs the full suite against Postgres 16 and a verify/backup/restore smoke.
 
+## Deployment config + minimal UI (Phase 10)
+
+Non-secret deployment config validates against Specs `deployment-config/1.0` rules
+(`noema.config.validate_deployment_config`). Secrets and unknown properties fail closed.
+`configuration_digest` is `noema-jcs/1` + sha256 of the resolved config.
+
+```bash
+noema-serve --config examples/deployment/local-deployment-config.json
+```
+
+| Path | Role |
+|---|---|
+| `/` | Operator home HTML |
+| `/watch` | Spectator HTML (polls `/watch/live`) |
+| `/play` | Minimal browser PLAY shell |
+| `/manifest` | Runtime manifest JSON |
+| `/config` | Non-secret config + digest JSON |
+
+Positive fixture: `examples/deployment/local-deployment-config.json`  
+Negative fixture: `examples/deployment/invalid-deployment-config-secret-field.json`
+
 ## Explicit non-goals (still deferred)
 
 - v0.8 Phenomena platform

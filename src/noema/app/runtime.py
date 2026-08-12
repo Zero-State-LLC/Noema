@@ -17,6 +17,12 @@ from noema.actions.errors import (
 from noema.actions.router import ActionRouter
 from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
+from noema.config.deployment import (
+    configuration_digest,
+    load_deployment_config,
+    validate_deployment_config,
+)
+from noema.ops.manifest import build_runtime_manifest
 from noema.persistence.store import open_store
 from noema.research.capture import ResearchCapture
 from noema.research.errors import (
@@ -49,6 +55,7 @@ class NoemaRuntime:
         db_path: Path | str = ":memory:",
         *,
         spec_compat_path: Path | None = None,
+        deployment_config: dict[str, Any] | Path | str | None = None,
         research_capture: bool = True,
         frontier_config: dict[str, Any] | None = None,
     ):
@@ -56,6 +63,8 @@ class NoemaRuntime:
         self.router: ActionRouter | None = None
         self._writer = threading.RLock()
         self.spec_compat = self._load_compat(spec_compat_path)
+        self.deployment_config = self._load_deployment(deployment_config)
+        self.configuration_digest = configuration_digest(self.deployment_config)
         self.sessions: dict[str, dict[str, Any]] = {}
         self.research = ResearchCapture(self.store, enabled=research_capture)
         self.frontier = FrontierDirector(frontier_config)
@@ -96,6 +105,16 @@ class NoemaRuntime:
                 "canonicalization": "noema-jcs/1",
             },
         }
+
+    def _load_deployment(
+        self, deployment_config: dict[str, Any] | Path | str | None
+    ) -> dict[str, Any]:
+        if deployment_config is None:
+            return load_deployment_config(None)
+        if isinstance(deployment_config, dict):
+            validate_deployment_config(deployment_config)
+            return deployment_config
+        return load_deployment_config(deployment_config)
 
     def start_world(self, seed_path: Path | str) -> dict[str, Any]:
         with self._writer:
@@ -164,7 +183,46 @@ class NoemaRuntime:
             "versions": self.spec_compat.get("versions", {}),
             "implementation_phase": self.spec_compat.get("implementation_phase"),
             "deferred_milestones": self.spec_compat.get("deferred_milestones", []),
+            "configuration_digest": self.configuration_digest,
+            "architecture": (self.deployment_config.get("architecture") or {}).get("shape"),
         }
+
+    def deployment_config_view(self) -> dict[str, Any]:
+        """Public non-secret deployment config + digest."""
+        return {
+            "configuration_digest": self.configuration_digest,
+            "config": self.deployment_config,
+        }
+
+    def runtime_manifest(self) -> dict[str, Any]:
+        """Machine-readable runtime manifest (OPERATIONS / runtime-manifest.schema)."""
+        meta = self.store.dump_meta() if self.store else {}
+        cycle = 0
+        sequence = 0
+        ledger_head = None
+        if self.store.ready:
+            st = self.store.get_state()
+            cycle = st.cycle
+            sequence = st.sequence
+            ledger_head = st.last_event_digest
+        else:
+            cycle = int(meta.get("cycle") or 0)
+            sequence = int(meta.get("sequence") or 0)
+            ledger_head = meta.get("ledger_head") or None
+        snaps = self.store.list_snapshots() if self.store else []
+        snap_head = snaps[-1]["state_digest"] if snaps else meta.get("state_digest")
+        objects = (self.deployment_config.get("object_storage") or {}).get("local_path")
+        return build_runtime_manifest(
+            store_meta=meta or {"world_id": (self.deployment_config.get("world") or {}).get("world_id", "world.unknown")},
+            ledger_head=ledger_head,
+            snapshot_head=snap_head,
+            current_cycle=cycle,
+            sequence=sequence,
+            backend=getattr(self.store, "backend", "sqlite"),
+            spec_compat=self.spec_compat,
+            config=self.deployment_config,
+            objects_path=objects,
+        )
 
     def create_session(self, *, role: Role, principal_id: str | None = None, agent_id: str | None = None) -> dict[str, Any]:
         session_id = f"sess.{uuid.uuid4().hex[:12]}"
