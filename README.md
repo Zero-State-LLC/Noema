@@ -22,9 +22,33 @@ Admin Genesis → Cycle 0 → Deep Time history
 | Operator verify/backup/restore + CI PG | OPERATIONS / C15–C16 | **Phase 9** |
 | Deployment config + WATCH/PLAY HTML | DEPLOYMENT / C14 | **Phase 10** |
 | Evidence receipts + resume/ack windows | SECURITY / RFC-0003 | **Phase 11** |
+| Identity / auth gateway | AUTH-AND-IDENTITY | **Phase 12** (Supabase-ready) |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.
+
+### Hosted stack (pinned)
+
+```text
+Human auth       → Supabase Auth
+World + identity → Supabase Postgres  (NOEMA_DB / DATABASE_URL)
+App / Gateway    → Noema always-on process (Render / Fly / docker / local)
+Agents           → external → /auth/device + /protocol/v1
+Marketing        → GitHub Pages
+```
+
+Supabase holds Auth + canonical Postgres. The World Engine is still a long-lived Noema process (not Edge Functions). Agents never get Supabase service-role keys.
+
+```bash
+# Human (local without Supabase)
+curl -sX POST localhost:8080/auth/human -H 'content-type: application/json' \
+  -d '{"dev_subject":"alice","handle":"alice"}'
+
+# Agent device enrollment
+curl -sX POST localhost:8080/auth/device -H 'content-type: application/json' -d '{}'
+# human approves with user_code + player_id → /auth/device/approve
+# agent polls → /auth/device/token  then AUTH with access_token on /protocol/v1
+```
 
 ## Spec pin
 

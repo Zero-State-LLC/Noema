@@ -39,7 +39,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"noema listening on http://{args.host}:{args.port}")
     print(f"configuration_digest={runtime.configuration_digest}")
     print("UI: /  /play  /watch  /study  /admin/login  /admin")
-    print("API: /health /ready /version /manifest /config /admin/login /admin /admin/overview /admin/verify /admin/start /session /play/action /play/observe /watch/live /protocol/v1")
+    print(
+        "API: /health /auth/human /auth/device /auth/device/token /auth/token/refresh "
+        "/session /play/action /protocol/v1 …"
+    )
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

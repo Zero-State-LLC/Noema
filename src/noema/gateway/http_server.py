@@ -218,11 +218,63 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     if not session_id:
                         return None
                     return self._json(200, runtime.genesis_activate(session_id, body.get("genesis_id") or ""))
+                if path == "/auth/human":
+                    # Supabase access_token, or local {dev_subject} when Supabase unset
+                    if body.get("access_token"):
+                        return self._json(200, runtime.identity.bind_human_from_supabase_token(str(body["access_token"])))
+                    if body.get("dev_subject"):
+                        return self._json(
+                            200,
+                            runtime.identity.bind_human_dev(
+                                str(body["dev_subject"]),
+                                handle=body.get("handle"),
+                            ),
+                        )
+                    return self._json(
+                        400,
+                        {"error": {"code": "INVALID_REQUEST", "message": "access_token or dev_subject required"}},
+                    )
+                if path == "/auth/device":
+                    return self._json(
+                        200,
+                        runtime.identity.start_device_enrollment(
+                            scopes=body.get("scopes"),
+                            metadata=body.get("metadata") or body.get("controller_metadata"),
+                        ),
+                    )
+                if path == "/auth/device/approve":
+                    return self._json(
+                        200,
+                        runtime.identity.approve_device(
+                            user_code=str(body.get("user_code") or ""),
+                            player_id=str(body.get("player_id") or ""),
+                            approver_account_id=body.get("account_id"),
+                        ),
+                    )
+                if path == "/auth/device/token":
+                    return self._json(
+                        200,
+                        runtime.identity.poll_device_token(str(body.get("device_code") or "")),
+                    )
+                if path == "/auth/token/refresh":
+                    return self._json(
+                        200,
+                        runtime.identity.refresh(str(body.get("refresh_token") or "")),
+                    )
+                if path == "/auth/controller/revoke":
+                    return self._json(
+                        200,
+                        runtime.identity.revoke_controller(str(body.get("controller_id") or "")),
+                    )
                 if path == "/session":
                     role = Role(body.get("role") or "PLAYER")
                     if role == Role.ADMIN:
                         sess = runtime.create_admin_session(
                             body.get("admin_token") or self.headers.get("X-Noema-Admin-Token"),
+                        )
+                    elif body.get("access_token") or body.get("controller_token"):
+                        sess = runtime.create_session_from_controller_token(
+                            str(body.get("access_token") or body.get("controller_token"))
                         )
                     else:
                         sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))

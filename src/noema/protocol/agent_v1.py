@@ -63,13 +63,35 @@ class AgentProtocolV1:
                 "selected_protocol": self.PROTOCOL,
                 "agent_protocol": "agent-protocol/v1",
                 "supported_verbs": sorted(self.runtime.router.SUPPORTED_VERBS) if self.runtime.router else [],
-                "auth_methods": ["dev-token"],
+                "auth_methods": ["controller-token", "dev-token"],
                 "versions": self.runtime.version().get("versions"),
             },
         }
 
     def _auth(self, message: dict[str, Any]) -> dict[str, Any]:
         body = message.get("body") or {}
+        token = body.get("access_token") or body.get("token") or body.get("controller_token")
+        if token:
+            session = self.runtime.create_session_from_controller_token(str(token))
+            agent_id = session.get("agent_id")
+            # Client-supplied agent_id must match server binding
+            claimed = body.get("agent_id") or message.get("agent_id")
+            if claimed and agent_id and claimed != agent_id:
+                return self._error(message, "FORBIDDEN", "agent_id does not match credential", retryable=False)
+            return {
+                "protocol": self.PROTOCOL,
+                "type": "AUTH_ACK",
+                "request_id": message.get("request_id"),
+                "agent_id": agent_id,
+                "body": {
+                    "session_id": session["session_id"],
+                    "agent_id": agent_id,
+                    "player_id": session.get("player_id"),
+                    "controller_id": session.get("controller_id"),
+                    "scopes": session.get("scopes") or [],
+                },
+            }
+        # Dev path: unauthenticated agent_id bind (local tests / fixtures only)
         agent_id = body.get("agent_id") or message.get("agent_id")
         session = self.runtime.create_session(role=Role.AGENT, agent_id=agent_id)
         return {
@@ -77,7 +99,7 @@ class AgentProtocolV1:
             "type": "AUTH_ACK",
             "request_id": message.get("request_id"),
             "agent_id": agent_id,
-            "body": {"session_id": session["session_id"], "agent_id": agent_id},
+            "body": {"session_id": session["session_id"], "agent_id": agent_id, "auth_method": "dev-token"},
         }
 
     def _enter(self, message: dict[str, Any], session_id: str) -> dict[str, Any]:
