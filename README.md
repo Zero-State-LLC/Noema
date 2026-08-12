@@ -30,6 +30,8 @@ No consciousness or scalar intelligence scores.
 
 See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md).
 
+**Product UI handoff:** [`docs/UI-HANDOFF.md`](docs/UI-HANDOFF.md) — routes, roles, PLAY/WATCH/STUDY, errors, non-goals.
+
 ## Public site (GitHub Pages)
 
 | Page | Shape |

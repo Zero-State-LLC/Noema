@@ -1,0 +1,362 @@
+# UI handoff — NOEMA Runtime → product UI
+
+**Audience:** product UI / frontend teams  
+**Runtime pin:** `0.11.0-evidence` (`spec-compat.json`)  
+**Specs authority:** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) (freeze v0.1–v0.7)  
+**Reference implement:** this repo’s modular monolith (`noema-serve`)
+
+This document is the **contract** for building PLAY / WATCH / STUDY product UI.  
+Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **not** the product UI — they are thin references.
+
+---
+
+## 1. Product entry (Specs language)
+
+Use Specs experience terms in the UI by default; expose machine names only in advanced/debug surfaces ([EXPERIENCE-TERMINOLOGY.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/EXPERIENCE-TERMINOLOGY.md)).
+
+| User path | Specs phrase | Runtime surface |
+|---|---|---|
+| **PLAY** | Enter Chamber, act in world | Session `PLAYER`/`AGENT` + `/play/*` or agent protocol |
+| **WATCH** | Live spectator | Session `SPECTATOR` + `/watch/live` (redacted) |
+| **STUDY** | Notice / test / capture | Session `RESEARCHER`/`ADMIN` + `/research/*` |
+
+Claim labels (display → machine):
+
+| UI copy | Machine |
+|---|---|
+| Observed | `OBSERVED` |
+| Evidence suggests | `INFERRED` |
+| Possible | `SPECULATIVE` |
+| Cannot determine | `NOT_COMPUTABLE` |
+
+**Never** show consciousness or scalar intelligence scores.
+
+---
+
+## 2. How to talk to the runtime
+
+### Base URL
+
+Default local:
+
+```text
+http://127.0.0.1:8080
+```
+
+```bash
+pip install -e ".[dev]"
+noema-serve --config examples/deployment/local-deployment-config.json
+# or docker compose up
+```
+
+### Content type
+
+- JSON APIs: `Content-Type: application/json`
+- Bodies: JSON objects
+- Responses: JSON (`sort_keys` on server; clients must not rely on key order)
+
+### Session
+
+1. `POST /session` with `{ "role": "PLAYER" | "SPECTATOR" | "RESEARCHER" | "ADMIN" | "AGENT", "agent_id"?: string }`
+2. Store `session_id` from response
+3. Send on subsequent calls:
+   - Header **`X-Session-Id: <session_id>`** (preferred), or
+   - Body field `session_id` (accepted on many POSTs)
+
+Missing session on gated routes → **401** with `NOT_AUTHORIZED`.
+
+### Error shape
+
+```json
+{
+  "error": {
+    "code": "WORLD_NOT_READY",
+    "message": "human-readable",
+    "retryable": false,
+    "details": {}
+  }
+}
+```
+
+HTTP status:
+
+| Situation | Typical status |
+|---|---|
+| Validation / action / research denial | **400** |
+| Missing session | **401** |
+| Not found | **404** |
+| World not ready (`/ready`) | **503** body still JSON |
+| Unhandled | **500** `INTERNAL` |
+
+### Action / research codes (non-exhaustive)
+
+| Code | Meaning for UI |
+|---|---|
+| `WORLD_NOT_READY` | Prompt admin start / wait for seed |
+| `NOT_AUTHORIZED` | Wrong role or missing session |
+| `VERSION_MISMATCH` | Catalog pin mismatch — show version page |
+| `INVALID_ACTION` | Bad verb/params |
+| `PRECONDITION_FAILED` | e.g. can’t move / budget |
+| `POLICY_DENIED` | Research role gate |
+| `INSUFFICIENT_RESEARCH_INPUT` | Missing trajectory / lab result / etc. |
+| `INJECTION_REJECTED` | Frontier inject failed closed |
+| `INVALID_EVIDENCE` | Export/receipt path (ops CLI more than UI) |
+
+---
+
+## 3. Route map (complete gateway)
+
+### Public HTML (reference only — replace in product UI)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/` | Operator shell |
+| GET | `/play` | Minimal PLAY shell |
+| GET | `/watch` | Minimal WATCH shell |
+| GET | `/study` | Minimal STUDY shell |
+
+### Public JSON
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/health` | none | Process up |
+| GET | `/ready` | none | **PLAY readiness** only (research degradation does **not** block) |
+| GET | `/version` | none | Runtime pin, Specs pin, `configuration_digest` |
+| GET | `/manifest` | none | Runtime manifest |
+| GET | `/config` | none | Non-secret deployment config + digest (**never** secrets) |
+
+### Session & PLAY
+
+| Method | Path | Role | Purpose |
+|---|---|---|---|
+| POST | `/session` | — | Create session |
+| POST | `/play/action` | PLAYER / AGENT / ADMIN | Apply player action |
+| POST | `/play/observe` | same | Observation projection |
+| GET | `/watch/live` | any; auto-SPECTATOR if no session | Redacted live projection |
+
+### Agent protocol
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/protocol/v1` | `agent-protocol/v1` messages |
+
+Message types: `HELLO` → `HELLO_ACK`, `AUTH` → `AUTH_ACK` (+ session), `ENTER_WORLD`, `OBSERVE`, `ACT`, `PING`/`PONG`, `DISCONNECT`.
+
+Auth today is **dev-token** style (minimal). Product auth is out of band until wired.
+
+### Admin
+
+| Method | Path | Role |
+|---|---|---|
+| POST | `/admin/start` | typically operator; loads seed |
+| POST | `/admin/genesis/preview` | **ADMIN** |
+| POST | `/admin/genesis/activate` | **ADMIN** |
+
+### Research (STUDY)
+
+All require `X-Session-Id` and **RESEARCHER** or **ADMIN** (unless noted).
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/research/frontier/run` | Situation search; optional `inject` |
+| GET | `/research/frontier/audit/{id}` | Audit record |
+| POST | `/research/observatory/run` | Detection offline |
+| POST | `/research/lab/run` | Isolated experiment |
+| POST | `/research/lab/capture-gate` | Compiler readiness |
+| POST | `/research/compiler/capture` | CAPTURE AS TEST |
+| POST | `/research/learn/rebuild` | Rebuild capability graph |
+| GET/POST | `/research/learn/view` | LEARN views (`behavior_id` query/body) |
+| POST | `/research/deep-time/ingest` | Historical records (derived) |
+| GET | `/research/view` | Aggregated research view |
+
+---
+
+## 4. Roles & gates
+
+| Role | Mutate world | WATCH | Research overlay | Frontier run | Genesis |
+|---|---|---|---|---|---|
+| `PLAYER` | yes | yes (public) | no | no | no |
+| `AGENT` | yes | yes | no | no | no |
+| `SPECTATOR` | no | yes | no | no | no |
+| `RESEARCHER` | no* | yes | yes | yes | no |
+| `ADMIN` | yes | yes | yes | yes | yes |
+
+\*Researchers must not use play mutation paths for “research shortcuts”; Lab forks handle experiments.
+
+**Redaction rule:** if principal cannot view research overlay, strip research-private keys from observations and WATCH (server already redacts). UI must not re-attach research metadata to public views.
+
+---
+
+## 5. PLAY action body (human UI)
+
+```http
+POST /play/action
+X-Session-Id: sess.…
+Content-Type: application/json
+```
+
+```json
+{
+  "action": {
+    "verb": "LOOK",
+    "agent_id": "agent.player.1",
+    "client_action_sequence": 2,
+    "action_id": "act.2",
+    "idempotency_key": "idem.2",
+    "parameters": { "attention_spent": 1 }
+  }
+}
+```
+
+### Supported verbs (router)
+
+`ENTER_WORLD`, `LOOK`, `MOVE`, `INSPECT`, `MESSAGE`, `WAIT`, `REPAIR`, `HARVEST` (see `ActionRouter.SUPPORTED_VERBS` for source of truth).
+
+### Typical flow
+
+1. Ensure `/ready.ready === true` (else admin `POST /admin/start` with seed path).
+2. `POST /session` `{ "role": "PLAYER", "agent_id": "…" }`.
+3. `ENTER_WORLD` once.
+4. Loop: action → show `observation` from response (or `/play/observe`).
+5. Optional: poll `/watch/live` for spectator chrome.
+
+### Response highlights
+
+- `results[]` — per-action status (`APPLIED`, etc.)
+- `events[]` — committed event summaries
+- `observation` — agent projection
+- `commit` — ledger meta (`sequence`, `ledger_head`, `backend`, …)
+- `delivery` — non-canonical resume window hint (do not treat as world truth)
+
+---
+
+## 6. WATCH
+
+```http
+GET /watch/live
+X-Session-Id: optional
+```
+
+Without session, server creates a temporary SPECTATOR session.
+
+UI checklist:
+
+- [ ] Treat payload as **projection**, not ledger
+- [ ] No research overlay unless RESEARCHER/ADMIN session used intentionally
+- [ ] Polling is fine; WebSocket is **not** required by current runtime
+
+---
+
+## 7. STUDY progressive disclosure (recommended UX)
+
+Align with Specs STUDY golden path:
+
+```text
+Interesting → TEST THIS → question → result → (optional) CAPTURE AS TEST → LEARN
+```
+
+| Step | Runtime call | UI label (simple) |
+|---|---|---|
+| List trajectories | `GET /research/view` | Recent activity |
+| Notice | `POST /research/observatory/run` | Notice / detection |
+| Situation pressure | `POST /research/frontier/run` | Situation search |
+| Test | `POST /research/lab/run` | Run test |
+| Ready? | `POST /research/lab/capture-gate` | Can we capture? |
+| Capture | `POST /research/compiler/capture` | Capture as test |
+| Learn | `POST /research/learn/rebuild` + view | Learned relationships |
+| History | `POST /research/deep-time/ingest` + play views | Old place / scars |
+
+Advanced panels may show genome digests, analysis run IDs, etc. Simple panels must not require jargon.
+
+**Invariants for UI copy and actions:**
+
+- Lab never claims production mutation
+- Capture blocked unless readiness READY
+- LEARN is rebuildable index, not world truth
+- Deep Time lore never overrides ledger
+
+---
+
+## 8. Admin / boot
+
+```json
+POST /admin/start
+{ "seed_path": "fixtures/v01-seed/world-seed.json" }
+```
+
+Genesis (ADMIN only):
+
+- `POST /admin/genesis/preview` — profile + seeds
+- `POST /admin/genesis/activate` — `{ "genesis_id": "…" }` → ordinary Cycle 0 world
+
+After activate, config freezes; PLAY should not show Genesis UI.
+
+---
+
+## 9. What the UI must **not** do
+
+| Forbidden | Why |
+|---|---|
+| Client-side “canonical” ledger | Single fenced writer is server-side |
+| Invent digests / claim upgrades | Claim labels are evidence-bound |
+| Put evidence keyring or DB secrets in frontend | Specs SECURITY |
+| Block PLAY on research health | `/ready` is PLAY-only |
+| Treat WATCH as truth | Redacted projection |
+| Call research routes as PLAYER | `POLICY_DENIED` / 401 |
+| Require model-provider keys for Chamber | Specs local golden path |
+
+---
+
+## 10. Gaps the UI should plan for (not yet full Specs product)
+
+| Gap | Current runtime | UI implication |
+|---|---|---|
+| WebSocket live | HTTP poll `/watch/live` | Polling OK; WS later |
+| Production auth | Dev session roles | Bring real IdP later; keep role model |
+| Port 3000 full app | `noema-serve` default 8080 | Product app hosts UI; proxy API |
+| Full STUDY templates | Research APIs + fixtures | UI may hardcode common STUDY questions via Lab intents |
+| Multi-world switcher | One world per process | Single-world UI for v0.1 |
+
+---
+
+## 11. Acceptance checklist (product UI vs runtime)
+
+- [ ] PLAY: session → enter → look/move → observation updates  
+- [ ] WATCH: public redacted live without research keys  
+- [ ] `/ready` false → clear “world not ready”; research down does not break PLAY  
+- [ ] RESEARCHER can run Lab; PLAYER cannot  
+- [ ] ADMIN-only Genesis  
+- [ ] Claim labels only in Specs vocabulary  
+- [ ] Errors show `error.code` + message, not stack traces  
+- [ ] Version badge from `/version` or `/manifest` pin  
+
+---
+
+## 12. Quick curl smoke
+
+```bash
+BASE=http://127.0.0.1:8080
+curl -s $BASE/health | jq .
+curl -s $BASE/ready | jq .
+SID=$(curl -s -X POST $BASE/session -H 'Content-Type: application/json' \
+  -d '{"role":"PLAYER","agent_id":"agent.player.1"}' | jq -r .session_id)
+curl -s -X POST $BASE/play/action -H "X-Session-Id: $SID" -H 'Content-Type: application/json' \
+  -d '{"action":{"verb":"ENTER_WORLD","agent_id":"agent.player.1","client_action_sequence":1,"action_id":"a1","parameters":{}}}' | jq .
+curl -s $BASE/watch/live | jq .
+```
+
+---
+
+## 13. Related docs
+
+| Doc | Role |
+|---|---|
+| [CORE-LOOP-RUNTIME.md](CORE-LOOP-RUNTIME.md) | Runtime module map |
+| [spec-compat.json](../spec-compat.json) | Pin machine reads |
+| Specs PLAY / WATCH / STUDY | Normative UX intent |
+| Specs DEPLOYMENT / OPERATIONS | Boot and ops |
+| Public marketing site | https://zero-state-llc.github.io/Noema/ |
+
+---
+
+*When the product UI ships, link it from the marketing site and keep this handoff as the API contract until OpenAPI is published.*
