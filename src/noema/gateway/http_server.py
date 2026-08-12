@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
-from noema.gateway.ui import index_html, play_html, study_html, watch_html
+from noema.gateway.ui import admin_html, admin_login_html, index_html, play_html, study_html, watch_html
 from noema.protocol.agent_v1 import AgentProtocolV1
 
 
@@ -22,11 +22,13 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
         def log_message(self, fmt: str, *args: Any) -> None:  # quieter tests
             pass
 
-        def _json(self, code: int, body: dict[str, Any]) -> None:
+        def _json(self, code: int, body: dict[str, Any], *, headers: dict[str, str] | None = None) -> None:
             raw = json.dumps(body, sort_keys=True).encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
+            for key, value in (headers or {}).items():
+                self.send_header(key, value)
             self.end_headers()
             self.wfile.write(raw)
 
@@ -45,6 +47,61 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             data = self.rfile.read(length)
             return json.loads(data.decode("utf-8") or "{}")
 
+        def _require_admin(self, candidate: str | None = None) -> str | None:
+            """Enforce the ADMIN role at the HTTP boundary, not in navigation."""
+            cookie = self.headers.get("Cookie") or ""
+            cookie_session = next(
+                (
+                    item.split("=", 1)[1]
+                    for item in cookie.split(";")
+                    if item.strip().startswith("noema_admin_session=")
+                ),
+                None,
+            )
+            session_id = self.headers.get("X-Session-Id") or candidate or cookie_session
+            if not session_id:
+                self._json(
+                    401,
+                    {
+                        "error": {
+                            "code": "NOT_AUTHORIZED",
+                            "message": "ADMIN session required",
+                            "retryable": False,
+                            "details": {},
+                        }
+                    },
+                )
+                return None
+            try:
+                principal = runtime.get_principal(session_id)
+            except ActionError:
+                self._json(
+                    401,
+                    {
+                        "error": {
+                            "code": "NOT_AUTHORIZED",
+                            "message": "unknown session",
+                            "retryable": False,
+                            "details": {},
+                        }
+                    },
+                )
+                return None
+            if principal.role != Role.ADMIN:
+                self._json(
+                    403,
+                    {
+                        "error": {
+                            "code": "NOT_AUTHORIZED",
+                            "message": "ADMIN role required",
+                            "retryable": False,
+                            "details": {"required_role": "ADMIN", "role": principal.role.value},
+                        }
+                    },
+                )
+                return None
+            return session_id
+
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             try:
@@ -57,6 +114,22 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     return self._html(200, play_html())
                 if path in {"/study", "/study/"}:
                     return self._html(200, study_html())
+                if path in {"/admin/login", "/admin/login/"}:
+                    return self._html(200, admin_login_html())
+                if path in {"/admin", "/admin/"}:
+                    if not self._require_admin():
+                        return None
+                    return self._html(200, admin_html())
+                if path == "/admin/overview":
+                    session_id = self._require_admin()
+                    if not session_id:
+                        return None
+                    return self._json(200, runtime.admin_overview(session_id))
+                if path == "/admin/verify":
+                    session_id = self._require_admin()
+                    if not session_id:
+                        return None
+                    return self._json(200, runtime.admin_verification(session_id))
                 if path == "/health":
                     return self._json(200, runtime.health())
                 if path == "/ready":
@@ -106,14 +179,29 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             path = urlparse(self.path).path
             try:
                 body = self._read_json()
+                if path == "/admin/session":
+                    session = runtime.create_admin_session(
+                        body.get("admin_token") or self.headers.get("X-Noema-Admin-Token"),
+                        principal_id=body.get("principal_id"),
+                    )
+                    return self._json(
+                        200,
+                        session,
+                        headers={
+                            "Set-Cookie": f"noema_admin_session={session['session_id']}; Path=/; HttpOnly; SameSite=Strict"
+                        },
+                    )
                 if path == "/admin/start":
+                    if not self._require_admin(body.get("session_id")):
+                        return None
                     seed = body.get("seed_path") or str(Path.cwd() / "fixtures" / "v01-seed" / "world-seed.json")
                     result = runtime.start_world(seed)
                     return self._json(200, result)
                 if path == "/admin/genesis/preview":
                     session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    session_id = self._require_admin(session_id)
                     if not session_id:
-                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                        return None
                     return self._json(
                         200,
                         runtime.genesis_preview(
@@ -126,12 +214,18 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     )
                 if path == "/admin/genesis/activate":
                     session_id = self.headers.get("X-Session-Id") or body.get("session_id")
+                    session_id = self._require_admin(session_id)
                     if not session_id:
-                        return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
+                        return None
                     return self._json(200, runtime.genesis_activate(session_id, body.get("genesis_id") or ""))
                 if path == "/session":
                     role = Role(body.get("role") or "PLAYER")
-                    sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))
+                    if role == Role.ADMIN:
+                        sess = runtime.create_admin_session(
+                            body.get("admin_token") or self.headers.get("X-Noema-Admin-Token"),
+                        )
+                    else:
+                        sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))
                     return self._json(200, sess)
                 if path == "/play/action":
                     session_id = self.headers.get("X-Session-Id") or body.get("session_id")

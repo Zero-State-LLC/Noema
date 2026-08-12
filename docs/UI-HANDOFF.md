@@ -5,7 +5,7 @@
 **Specs authority:** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) (freeze v0.1–v0.7)  
 **Reference implement:** this repo’s modular monolith (`noema-serve`)
 
-This document is the **contract** for building PLAY / WATCH / STUDY product UI.  
+This document is the **contract** for building PLAY / WATCH / STUDY product UI and the separate ADMIN management console.
 Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **reference product surfaces** (text-first), not a separate SPA.
 
 ### Product form: text game
@@ -20,6 +20,31 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 | Claim labels as short text | Dashboards that look like analytics SaaS |
 
 Graphics, if any, stay minimal chrome (borders, type hierarchy)—never the content.
+
+### Text-first is a gameplay rule, not a universal interface rule
+
+The interface form follows the task:
+
+| Surface | Optimize for | Interface form |
+|---|---|---|
+| **PLAY** | immersion, speed, commands, world comprehension | text-first game workspace |
+| **WATCH** | readable movement and public world awareness | text-heavy spectator feed |
+| **STUDY** | evidence, plain-language relationships, reproducibility | structured research workspace |
+| **ADMIN** | visibility, controls, safety, error prevention, configuration, operations | graphical management console |
+
+ADMIN is intentionally separate from the text-game rule. It may use cards, tables, forms, status badges, bounded activity lists, and confirmation flows when those reduce operator effort or error. It must not turn PLAY or WATCH into an analytics dashboard.
+
+### Player ontology invariant
+
+Humans and agents are peers inside the world:
+
+```text
+PLAYER
+├── human-controlled player
+└── agent-controlled player
+```
+
+`PLAYER` is the world identity. Controller type is metadata about input or connection. The runtime role enum may retain `PLAYER` and `AGENT` because protocol and authorization contracts depend on it, but UI copy must not present `Players` and `Agents` as mutually exclusive populations. Admin metrics count **Players** first, with optional `Human-controlled` and `Agent-controlled` breakdowns. WATCH normally describes actors uniformly. Research may use controller type only when the research question or operational diagnosis makes it relevant.
 
 ---
 
@@ -70,7 +95,7 @@ noema-serve --config examples/deployment/local-deployment-config.json
 
 ### Session
 
-1. `POST /session` with `{ "role": "PLAYER" | "SPECTATOR" | "RESEARCHER" | "ADMIN" | "AGENT", "agent_id"?: string }`
+1. `POST /session` with `{ "role": "PLAYER" | "SPECTATOR" | "RESEARCHER" | "AGENT", "agent_id"?: string }`. ADMIN session creation uses `POST /admin/session` with the operator token, or the protected ADMIN form of this endpoint when explicitly configured.
 2. Store `session_id` from response
 3. Send on subsequent calls:
    - Header **`X-Session-Id: <session_id>`** (preferred), or
@@ -163,9 +188,18 @@ Auth today is **dev-token** style (minimal). Product auth is out of band until w
 
 | Method | Path | Role |
 |---|---|---|
-| POST | `/admin/start` | typically operator; loads seed |
+| GET | `/admin/login` | public shell; no admin data |
+| POST | `/admin/session` | operator token; creates ADMIN session |
+| GET | `/admin` | **ADMIN**; graphical management console |
+| GET | `/admin/overview` | **ADMIN**; bounded non-secret management projection |
+| GET | `/admin/verify` | **ADMIN**; safe in-process checks; full `noema-verify` remains authoritative |
+| POST | `/admin/start` | **ADMIN**; loads seed |
 | POST | `/admin/genesis/preview` | **ADMIN** |
 | POST | `/admin/genesis/activate` | **ADMIN** |
+
+The server enforces the ADMIN role. Hiding a navigation link is not authorization. PLAYER, AGENT, SPECTATOR, and RESEARCHER sessions receive denial responses, and a normal `/session` request cannot self-promote to ADMIN without the configured operator gate. Backup, restore, evidence keyring, and privileged role-management controls remain unavailable in the browser until a bounded runtime endpoint exists.
+
+The admin projection treats human-controlled and agent-controlled inhabitants as one player population. `connection_role` and `controller` are operational metadata, not world species.
 
 ### Research (STUDY)
 
@@ -285,6 +319,13 @@ Interesting → TEST THIS → question → result → (optional) CAPTURE AS TEST
 
 Advanced panels may show genome digests, analysis run IDs, etc. Simple panels must not require jargon.
 
+The reference STUDY shell exposes **Notice recent activity** after a RESEARCHER
+session opens. It calls the existing Observatory route with the current
+permissioned capture, reports `INSUFFICIENT_RESEARCH_INPUT` or
+`WORLD_NOT_READY` using the runtime error code and message, and never mutates
+world truth. TEST and CAPTURE remain progressive-disclosure steps until their
+existing Lab and Compiler inputs are available.
+
 **Invariants for UI copy and actions:**
 
 - Lab never claims production mutation
@@ -300,6 +341,10 @@ Advanced panels may show genome digests, analysis run IDs, etc. Simple panels mu
 POST /admin/start
 { "seed_path": "fixtures/v01-seed/world-seed.json" }
 ```
+
+Public product shells may show a non-interactive world-not-ready status when
+`/ready.ready` is false, but they MUST NOT invoke `/admin/start` or expose seed
+loading controls. Boot and Genesis remain operator/admin surfaces.
 
 Genesis (ADMIN only):
 
@@ -338,14 +383,14 @@ After activate, config freezes; PLAY should not show Genesis UI.
 
 ## 11. Acceptance checklist (product UI vs runtime)
 
-- [ ] PLAY: session → enter → look/move → observation updates  
-- [ ] WATCH: public redacted live without research keys  
-- [ ] `/ready` false → clear “world not ready”; research down does not break PLAY  
+- [x] PLAY: session → enter → look/move → observation updates
+- [x] WATCH: public redacted live without research keys
+- [x] `/ready` false → clear “world not ready”; research down does not break PLAY
 - [ ] RESEARCHER can run Lab; PLAYER cannot  
 - [ ] ADMIN-only Genesis  
-- [ ] Claim labels only in Specs vocabulary  
-- [ ] Errors show `error.code` + message, not stack traces  
-- [ ] Version badge from `/version` or `/manifest` pin  
+- [x] Claim labels only in Specs vocabulary
+- [x] Errors show `error.code` + message, not stack traces
+- [x] Version badge from `/version` or `/manifest` pin
 
 ---
 
