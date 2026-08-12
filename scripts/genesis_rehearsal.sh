@@ -41,7 +41,7 @@ CODE=$(curl -4 -sS --max-time 20 "${UA[@]}" -o /tmp/g-deny.json -w '%{http_code}
   -d '{"world_name":"X","world_seed":"1","profile_id":"YOUNG_FRONTIER"}')
 test "$CODE" = "401" -o "$CODE" = "403" && echo "player isolation ok ($CODE)" || { echo "player isolation FAIL $CODE"; cat /tmp/g-deny.json; exit 1; }
 
-REH='{"world_name":"Aster Reach","world_seed":"49321892","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}'
+REH='{"world_name":"Perihelion Reach","world_seed":"perihelion-rehearsal-01","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}'
 
 echo "==> preview #1"
 P1=$(curl -4 -sS --max-time 30 "${UA[@]}" "${AUTH[@]}" -X POST "$BASE/v1/admin/genesis/preview" \
@@ -77,7 +77,7 @@ print('same-seed determinism PASS')
 echo "==> different seed sanity"
 DIFF=$(curl -4 -sS --max-time 30 "${UA[@]}" "${AUTH[@]}" -X POST "$BASE/v1/admin/genesis/preview" \
   -H 'content-type: application/json' \
-  -d '{"world_name":"Aster Reach","world_seed":"99999999","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}')
+  -d '{"world_name":"Perihelion Reach","world_seed":"perihelion-alt-99","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}')
 echo "$DIFF" | python3 -c "
 import sys,json,os
 d=json.load(sys.stdin)

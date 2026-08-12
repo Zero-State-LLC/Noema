@@ -1,11 +1,12 @@
 {
   "schema_version": "genesis-rehearsal/1.0",
-  "title": "First world Genesis rehearsal",
-  "description": "Canonical first-run inputs for hosted Genesis readiness. Not automatically production activation.",
-  "world_name": "Aster Reach",
+  "title": "Perihelion Reach — first-world theme rehearsal",
+  "description": "Space-western / cyberpunk frontier theme pack over canonical Genesis. Not automatic production activation. Theme ≠ lore.",
+  "theme_id": "perihelion-reach",
+  "world_name": "Perihelion Reach",
   "profile": "FRACTURED_OLD_WORLD",
   "story_seeds": ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
-  "world_seed": "49321892",
+  "world_seed": "perihelion-rehearsal-01",
   "rules_versions": {
     "canonicalization": "noema-jcs/1",
     "world_rules": "world/v1",
@@ -13,8 +14,9 @@
     "genesis": "genesis/0.6"
   },
   "notes": [
-    "Use only canonical Specs profiles and story seeds.",
+    "Theme supplies vocabulary and pressures only.",
+    "Genesis determines actual prehistory; lore is later derived.",
     "Preview twice for determinism before any --activate.",
-    "Production activation requires explicit operator flag; never CI."
+    "Production activation requires explicit operator action; never CI."
   ]
 }

@@ -1,7 +1,10 @@
 /**
  * Hosted Genesis engine (Specs v0.6) — pure, deterministic, admin-only.
  * No Player surface. Preview does not mutate live world authority.
+ * Theme packs supply vocabulary/pressures only — not authored plot (docs/GENESIS-THEME.md).
  */
+
+import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
 
 export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK";
 
@@ -94,6 +97,8 @@ export interface Cycle0World {
   scars: string[];
   resources: Array<{ kind: string; level: string }>;
   opportunities: string[];
+  /** Presentation-only theme id (not claim-bearing for identity if only vocabulary). */
+  theme_id?: string;
 }
 
 export interface GenesisResult {
@@ -121,6 +126,14 @@ export interface GenesisResult {
   cycle0: Cycle0World;
   cycle0_digest: string;
   preview_summary: Record<string, unknown>;
+  /** Theme pack metadata for admin preview (not PLAY lore). */
+  theme?: {
+    theme_id: string;
+    title: string;
+    character: string;
+    lore_boundary: string;
+    genre_tags: readonly string[];
+  };
 }
 
 export interface GenesisInput {
@@ -198,60 +211,70 @@ function buildCycle0(
   seeds: StorySeedId[],
   r: () => number,
 ): Cycle0World {
+  const theme = themeForProfile(profile.profile_id) || FIRST_WORLD_THEME;
+  const n = theme.naming;
+  const d = theme.room_descriptions;
   const rooms: Record<string, GenesisRoom> = {};
 
-  // Core locations (3–5)
+  // Core locations (3–5) — theme vocabulary, structural IDs stable
   const hub = "room.relay-quarter";
   rooms[hub] = {
     room_id: hub,
-    name: profile.profile_id === "YOUNG_FRONTIER" ? "Claim Post" : "Relay Quarter",
-    description:
-      profile.profile_id === "FRACTURED_OLD_WORLD"
-        ? "Civic infrastructure of a fractured reach. Power is uneven; records disagree on who holds the grid."
-        : profile.profile_id === "RECOVERING_NETWORK"
-          ? "A reconnected hub. Links work, then fail. Repair crews left tools and unfinished claims."
-          : "A thin settlement edge. Opportunity is open; history is short.",
+    name: pick(r, [...n.room_names.hub]),
+    description: pick(r, [...d.hub]),
     exits: [],
-    entities: [{ entity_id: "entity.relay-7", label: "relay-7", entity_type: "INFRASTRUCTURE" }],
-    tags: ["entry", "infrastructure"],
+    entities: [
+      {
+        entity_id: "entity.relay-7",
+        label: pick(r, [...n.entities.relay]),
+        entity_type: "INFRASTRUCTURE",
+      },
+    ],
+    tags: ["entry", "infrastructure", "relay"],
   };
 
   rooms["room.transit-ring"] = {
     room_id: "room.transit-ring",
-    name: "Transit Ring",
-    description: "Curved corridor of faded waymarks. Routes once mattered more than they do now.",
+    name: pick(r, [...n.room_names.route]),
+    description: pick(r, [...d.route]),
     exits: [],
     entities: [],
-    tags: ["route"],
+    tags: ["route", "ghost-route"],
   };
 
   rooms["room.civic-exchange"] = {
     room_id: "room.civic-exchange",
-    name: "Civic Exchange",
-    description: "Public boards and residual market geometry. Contracts outlive their signers.",
+    name: pick(r, [...n.room_names.trade]),
+    description: pick(r, [...d.trade]),
     exits: [],
-    entities: [{ entity_id: "entity.storage-cell-cache", label: "storage-cell", entity_type: "INFRASTRUCTURE" }],
-    tags: ["trade", "public"],
+    entities: [
+      {
+        entity_id: "entity.storage-cell-cache",
+        label: pick(r, [...n.entities.trade]),
+        entity_type: "INFRASTRUCTURE",
+      },
+    ],
+    tags: ["trade", "public", "exchange"],
   };
 
   rooms["room.infra-vault"] = {
     room_id: "room.infra-vault",
-    name: "Infrastructure Vault",
-    description: "Cold maintenance under the hub. Damage is honest here.",
+    name: pick(r, [...n.room_names.infra]),
+    description: pick(r, [...d.infra]),
     exits: [],
     entities: [],
-    tags: ["scar", "infrastructure"],
+    tags: ["scar", "infrastructure", "power"],
   };
 
-  // Optional fifth room for older profiles
+  // Optional fifth room for older profiles (first-world scale 3–5)
   if (profile.historical_age_band !== "YOUNG" || r() > 0.4) {
     rooms["room.ruin-shelf"] = {
       room_id: "room.ruin-shelf",
-      name: profile.profile_id === "FRACTURED_OLD_WORLD" ? "Broken Gallery" : "Outer Spur",
-      description: "A partial structure still standing. Entry is legal; interpretation is not free.",
+      name: pick(r, [...n.room_names.ruin]),
+      description: pick(r, [...d.ruin]),
       exits: [],
       entities: [],
-      tags: ["ruin", "scar"],
+      tags: ["ruin", "scar", "archive-adjacent"],
     };
   }
 
@@ -273,79 +296,103 @@ function buildCycle0(
   const tensions: string[] = [];
   const scars: string[] = [];
   const resources: Cycle0World["resources"] = [
-    { kind: "energy", level: profile.resource_abundance === "SCARCE" ? "low" : profile.resource_abundance === "ABUNDANT" ? "high" : "mixed" },
+    {
+      kind: "energy",
+      level:
+        profile.resource_abundance === "SCARCE"
+          ? "low"
+          : profile.resource_abundance === "ABUNDANT"
+            ? "high"
+            : "mixed",
+    },
     { kind: "storage", level: pick(r, ["low", "mixed", "high"]) },
+    { kind: "transport", level: "low" },
   ];
 
-  // Profile-driven texture
+  // Profile-driven institutions (fragmented authority — not monolithic government)
   if (profile.institution_presence !== "NONE_OR_EMERGING") {
     institutions.push({
-      id: "org.civic-board",
-      name: "Civic Board",
-      status: profile.conflict_pressure === "HIGH" ? "dormant" : "active",
+      id: "org.exchange-charter",
+      name: pick(r, [...n.institutions.active]),
+      status: profile.conflict_pressure === "HIGH" ? "active" : "active",
     });
   }
   if (profile.historical_age_band === "OLD" || profile.profile_id === "RECOVERING_NETWORK") {
-    institutions.push({ id: "org.route-guild", name: "Route Guild", status: "dormant" });
+    institutions.push({
+      id: "org.relay-lineage",
+      name: pick(r, [...n.institutions.dormant]),
+      status: "dormant",
+    });
   }
   if (profile.infrastructure_condition !== "ABUNDANT") {
-    scars.push("Damaged relay fabric under the hub");
+    scars.push("Damaged relay corridor under the hub — too valuable to abandon.");
     rooms[hub].entities.push({
       entity_id: "entity.scar-conduit",
-      label: "scarred-conduit",
+      label: pick(r, [...n.entities.ruin]),
       entity_type: "RUIN",
     });
   }
 
-  // Story seed overlays (admin inputs → world evidence, not seed IDs in PLAY)
+  // Story seed overlays → world evidence (never expose seed IDs in PLAY)
+  const seedTensions = theme.tensions_by_seed as Record<string, readonly string[]>;
   for (const sid of seeds) {
+    const themed = seedTensions[sid];
+    if (themed?.length) tensions.push(pick(r, [...themed]));
+
     if (sid === "OLD_TRADE_NETWORK") {
       rooms["room.civic-exchange"].entities.push({
         entity_id: "entity.old-market-post",
-        label: "market-post",
+        label: pick(r, [...n.entities.trade]),
         entity_type: "INFRASTRUCTURE",
       });
-      tensions.push("Partial trade routes still imply obligations no one accepts.");
       resources.push({ kind: "trade-access", level: "mixed" });
+      scars.push("Ghost route continues beyond the eastern yards.");
     }
     if (sid === "LOST_ARCHIVE") {
       const archiveRoom = rooms["room.ruin-shelf"] ? "room.ruin-shelf" : "room.civic-exchange";
+      const archLabel = pick(r, [...n.entities.archive]);
       rooms[archiveRoom].entities.push({
         entity_id: "entity.archive-ledger",
-        label: "archive-ledger",
+        label: archLabel,
         entity_type: "ARTIFACT",
       });
-      artifacts.push({ id: "artifact.archive-ledger", label: "Incomplete ledger", room_id: archiveRoom });
-      tensions.push("Records disagree about ownership of the archive fragments.");
+      artifacts.push({
+        id: "artifact.archive-ledger",
+        label: "Fragmentary archive",
+        room_id: archiveRoom,
+      });
+      scars.push("Maker marks and incomplete ownership ledgers survive in cold storage.");
     }
     if (sid === "FOUNDING_SPLIT") {
-      tensions.push("Two founding claims share the same civic seal.");
+      /* tension from theme pack */
     }
     if (sid === "FAILED_SETTLEMENT") {
-      scars.push("An abandoned claim site marks a failed settlement attempt.");
+      scars.push("An abandoned claim marks a failed settlement attempt.");
       if (rooms["room.ruin-shelf"]) {
         rooms["room.ruin-shelf"].entities.push({
           entity_id: "entity.failed-claim",
-          label: "failed-claim",
+          label: pick(r, [...n.entities.ruin]),
           entity_type: "RUIN",
         });
       }
     }
     if (sid === "RESOURCE_CRISIS") {
       resources[0] = { kind: "energy", level: "low" };
-      tensions.push("Energy is uneven; someone is already rationing informally.");
     }
     if (sid === "DISPUTED_SUCCESSION") {
       if (institutions.length) institutions[0].status = "active";
-      tensions.push("A succession vacancy leaves custodianship unresolved.");
     }
   }
 
+  // Historical traces (evidence categories — not solved plots)
+  const traces = theme.historical_traces;
+  if (traces.length) scars.push(pick(r, [...traces]));
+
   if (!tensions.length) {
-    tensions.push("The starting region is not empty of pressure.");
+    tensions.push("The frontier is commercially alive and incompletely governed.");
   }
 
-  const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions);
+  const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions, theme);
 
   return {
     world_id,
@@ -355,12 +402,13 @@ function buildCycle0(
     sequence: 0,
     entry_room_id: hub,
     rooms,
-    institutions: institutions.slice(0, 3),
+    institutions: institutions.slice(0, 2),
     artifacts,
-    tensions: tensions.slice(0, 4),
-    scars,
+    tensions: tensions.slice(0, 3),
+    scars: scars.slice(0, 4),
     resources,
     opportunities,
+    theme_id: theme.theme_id,
   };
 }
 
@@ -371,23 +419,41 @@ function startingOpportunities(
   institutions: Cycle0World["institutions"],
   artifacts: Cycle0World["artifacts"],
   tensions: string[],
+  theme: typeof FIRST_WORLD_THEME,
 ): string[] {
   const opps = new Set<string>();
+  // Map mechanical affordances to theme opportunity labels
   opps.add("exploration");
   if (Object.values(rooms).some((r) => r.entities.some((e) => e.entity_type === "INFRASTRUCTURE"))) {
     opps.add("repair");
-    opps.add("infrastructure inspection");
+    opps.add("salvage");
   }
-  if (Object.values(rooms).some((r) => r.tags?.includes("trade"))) opps.add("trade");
-  if (institutions.some((i) => i.status === "active")) opps.add("institution interaction");
-  if (artifacts.length) opps.add("artifact investigation");
-  if (tensions.length) {
-    opps.add("territorial tension");
+  if (Object.values(rooms).some((r) => r.tags?.includes("trade"))) {
+    opps.add("trade");
+    opps.add("route recovery");
+  }
+  if (institutions.some((i) => i.status === "active")) {
+    opps.add("institution building");
     opps.add("negotiation");
   }
-  if (seeds.includes("RESOURCE_CRISIS") || profile_id === "RECOVERING_NETWORK") opps.add("resource acquisition");
-  if (seeds.includes("FOUNDING_SPLIT") || seeds.includes("DISPUTED_SUCCESSION")) opps.add("alliance / negotiation");
-  return [...opps];
+  if (artifacts.length) {
+    opps.add("artifact investigation");
+    opps.add("information brokerage");
+  }
+  if (tensions.length) {
+    opps.add("claiming access");
+    opps.add("territorial tension");
+  }
+  if (seeds.includes("RESOURCE_CRISIS") || profile_id === "RECOVERING_NETWORK") {
+    opps.add("resource acquisition");
+  }
+  // Prefer theme labels when present
+  const preferred = [...(theme.starting_opportunities_labels || [])] as string[];
+  const ordered = preferred.filter(
+    (p) => opps.has(p) || [...opps].some((o) => o.includes(p.split(" ")[0] || p)),
+  );
+  const rest = [...opps].filter((o) => !ordered.includes(o));
+  return [...ordered, ...rest].slice(0, 10);
 }
 
 export function validateCycle0(world: Cycle0World): { ok: boolean; errors: string[] } {
@@ -435,7 +501,10 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
 }
 
 export async function previewGenesis(input: GenesisInput): Promise<GenesisResult> {
-  const world_name = (input.world_name || "Aster Reach").trim().slice(0, 64) || "Aster Reach";
+  const theme = FIRST_WORLD_THEME;
+  const world_name =
+    (input.world_name || theme.default_world_name || "Perihelion Reach").trim().slice(0, 64) ||
+    "Perihelion Reach";
   const world_seed = (input.world_seed || "").trim();
   if (!world_seed) throw new GenesisError("INVALID_SEED", "world_seed required");
   if (!PROFILE_SET.has(input.profile_id as GenesisProfileId)) {
@@ -455,6 +524,7 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
     world_seed,
     profile_id,
     story_seed_ids,
+    theme_id: theme.theme_id,
     rules_versions: {
       canonicalization: "noema-jcs/1",
       world_rules: "world/v1",
@@ -464,7 +534,7 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
   };
   const genesis_id = `genesis.${(await sha256Hex(stableStringify(claimBearing))).slice(0, 16)}`;
 
-  const r = rng(`${world_seed}|${profile_id}|${story_seed_ids.join(",")}`);
+  const r = rng(`${world_seed}|${profile_id}|${story_seed_ids.join(",")}|${theme.theme_id}`);
   const cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
   const validation = validateCycle0(cycle0);
   const cycle0_digest = `sha256:${await sha256Hex(stableStringify(cycle0))}`;
@@ -488,7 +558,17 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
     rules_versions: claimBearing.rules_versions,
     cycle0,
     cycle0_digest,
+    theme: {
+      theme_id: theme.theme_id,
+      title: theme.title,
+      character: theme.admin_character_line,
+      lore_boundary: theme.lore_boundary,
+      genre_tags: theme.genre_tags,
+    },
     preview_summary: {
+      character: theme.admin_character_line,
+      player_tone: theme.player_tone_target,
+      strategic_questions: theme.strategic_questions,
       regions: Object.values(cycle0.rooms).map((rm) => ({ id: rm.room_id, name: rm.name, tags: rm.tags || [] })),
       resources: cycle0.resources,
       active_institutions: cycle0.institutions.filter((i) => i.status === "active"),
@@ -502,6 +582,11 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
       opportunities: cycle0.opportunities,
       room_count: Object.keys(cycle0.rooms).length,
       entity_count: Object.values(cycle0.rooms).reduce((n, rm) => n + rm.entities.length, 0),
+      functioning_exchange: Object.values(cycle0.rooms).some((rm) => rm.tags?.includes("exchange")),
+      damaged_relay: Object.values(cycle0.rooms).some((rm) =>
+        rm.entities.some((e) => e.entity_type === "RUIN" || e.entity_type === "INFRASTRUCTURE"),
+      ),
+      archive_mystery: cycle0.artifacts.length > 0,
     },
   };
   return result;
@@ -541,6 +626,15 @@ export function catalog() {
   return {
     profiles: GENESIS_PROFILES,
     story_seeds: STORY_SEEDS,
+    first_world_theme: {
+      theme_id: FIRST_WORLD_THEME.theme_id,
+      title: FIRST_WORLD_THEME.title,
+      preferred_profile_id: FIRST_WORLD_THEME.preferred_profile_id,
+      preferred_story_seeds: FIRST_WORLD_THEME.preferred_story_seeds,
+      default_world_name: FIRST_WORLD_THEME.default_world_name,
+      character: FIRST_WORLD_THEME.admin_character_line,
+      lore_boundary: FIRST_WORLD_THEME.lore_boundary,
+    },
     rules_versions: {
       canonicalization: "noema-jcs/1",
       world_rules: "world/v1",

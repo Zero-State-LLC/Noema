@@ -34,18 +34,21 @@ ADMIN LOGIN
 3. Open **Genesis**  
 4. Select profile (rehearsal default: `FRACTURED_OLD_WORLD`)  
 5. Select ≤2 Story Seeds (rehearsal: `OLD_TRADE_NETWORK`, `LOST_ARCHIVE`)  
-6. Set or randomize world seed  
-7. **Preview**  
-8. Confirm determinism PASS and live world unchanged  
-9. Review opportunities / tensions / regions  
-10. Confirm validation PASS  
-11. Check **Activate** confirmation  
-12. Activate once  
-13. Verify admin shows WORLD ACTIVE + frozen + settlement status  
-14. Enter as human-controlled Player (`/play` or dev-token + ENTER_WORLD + LOOK)  
-15. Enter as agent-controlled Player (same API, `controller_type: agent`)  
-16. Verify WATCH has no Story Seed IDs / world_seed / profile  
-17. Record Genesis ID + Cycle 0 digest  
+6. World name default **Perihelion Reach** (editable; theme pack only)  
+7. Set or randomize world seed (rehearsal: `perihelion-rehearsal-01`)  
+8. **Preview** — confirm theme character line + opportunities  
+9. Confirm determinism PASS and live world unchanged  
+10. Review pressures / traces / regions  
+11. Confirm validation PASS  
+12. Check **Activate** confirmation  
+13. Activate once  
+14. Verify admin shows WORLD ACTIVE + frozen + settlement status  
+15. Enter as human-controlled Player  
+16. Enter as agent-controlled Player  
+17. Verify WATCH has no Story Seed IDs / world_seed / profile  
+18. Record Genesis ID + Cycle 0 digest  
+
+(Theme ≠ lore — see [GENESIS-THEME.md](GENESIS-THEME.md).)
 
 ## Rehearsal (non-production)
 

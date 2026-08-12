@@ -1,0 +1,234 @@
+/** First-world Genesis theme pack — vocabulary & pressures only (not final lore). */
+export const PERIHELION_THEME = {
+  "schema_version": "genesis-theme/1.0",
+  "theme_id": "perihelion-reach",
+  "title": "Perihelion Reach",
+  "genre_tags": [
+    "space-western-frontier",
+    "cyberpunk-infrastructure-decay",
+    "commercial-frontier",
+    "BRE-strategic-clarity"
+  ],
+  "lore_boundary": "THEME provides vocabulary, pressures, and aesthetic constraints only. GENESIS determines prehistory. WORLD HISTORY determines events. LORE is later derived from evidence \u2014 this pack is not final canon.",
+  "default_world_name": "Perihelion Reach",
+  "preferred_profile_id": "FRACTURED_OLD_WORLD",
+  "preferred_story_seeds": [
+    "OLD_TRADE_NETWORK",
+    "LOST_ARCHIVE"
+  ],
+  "tone": {
+    "seek": [
+      "pragmatic",
+      "dangerous",
+      "commercially alive",
+      "culturally hybrid",
+      "technologically sophisticated",
+      "poorly maintained",
+      "politically fragmented",
+      "historically layered"
+    ],
+    "avoid": [
+      "grimdark",
+      "nihilistic",
+      "cartoon dystopia",
+      "neon-everything cyberpunk",
+      "primitive frontier",
+      "frictionless post-scarcity"
+    ]
+  },
+  "setting_pressure": [
+    "remote settlements",
+    "scarce transport capacity",
+    "uneven power and resources",
+    "degraded network infrastructure",
+    "fragmented ownership",
+    "improvised governance",
+    "trade dependency",
+    "salvage economy",
+    "valuable historical data",
+    "contested access",
+    "institutional remnants"
+  ],
+  "strategic_questions": [
+    "who controls access?",
+    "who has energy?",
+    "who can move goods?",
+    "what is broken?",
+    "what is worth repairing?",
+    "what information is scarce?",
+    "which routes matter?"
+  ],
+  "vocabulary": {
+    "sites": [
+      "hab",
+      "relay",
+      "exchange",
+      "spindle",
+      "yard",
+      "grid",
+      "free port",
+      "claim"
+    ],
+    "routes": [
+      "ghost route",
+      "dead channel",
+      "coldline",
+      "relay corridor"
+    ],
+    "data": [
+      "black archive",
+      "cold storage",
+      "obsolete credential",
+      "fragmentary ledger"
+    ],
+    "rights": [
+      "salvage right",
+      "charter",
+      "custodianship",
+      "contract"
+    ]
+  },
+  "naming": {
+    "rules": [
+      "short",
+      "memorable",
+      "functional",
+      "slightly strange",
+      "easy to type in a terminal"
+    ],
+    "room_names": {
+      "hub": [
+        "Relay South",
+        "Perihelion Hub",
+        "Grid Anchor"
+      ],
+      "route": [
+        "Transit Spindle",
+        "Ghost Ring",
+        "Coldline"
+      ],
+      "trade": [
+        "Nacre Exchange",
+        "Kestrel Yard",
+        "Contract Town"
+      ],
+      "infra": [
+        "Power Vault",
+        "Black Channel",
+        "Repair Yards"
+      ],
+      "ruin": [
+        "Dead Spur",
+        "Broken Gallery",
+        "Outer Claim"
+      ]
+    },
+    "institutions": {
+      "active": [
+        "Nacre Compact",
+        "Exchange Charter",
+        "Yard Cooperative"
+      ],
+      "dormant": [
+        "Old Relay Authority",
+        "Freight Guild Lineage",
+        "Prior Compact"
+      ]
+    },
+    "entities": {
+      "relay": [
+        "relay-south",
+        "grid-trunk",
+        "scarred-conduit"
+      ],
+      "trade": [
+        "market-post",
+        "freight-cage",
+        "bond-board"
+      ],
+      "archive": [
+        "black-archive",
+        "cold-ledger",
+        "access-remnant"
+      ],
+      "ruin": [
+        "failed-claim",
+        "dead-route-mark",
+        "company-mark"
+      ]
+    }
+  },
+  "room_descriptions": {
+    "hub": [
+      "Remote technological hub. The freight grid still works in places; power is expensive and argued over.",
+      "A frontier anchor on the old commercial spine. Advanced systems, poor maintenance, contested access."
+    ],
+    "route": [
+      "Curved corridor of faded waymarks. Long supply lines once depended on this path.",
+      "A spindle link between sites. Traffic is thin; route value is not."
+    ],
+    "trade": [
+      "Public exchange and residual market geometry. Contracts outlive their signers.",
+      "Open boards, bonded storage, and incomplete ownership ledgers."
+    ],
+    "infra": [
+      "Cold maintenance under the hub. Damage is honest here; salvage rights are not settled.",
+      "Power and repair infrastructure too valuable to abandon and too broken to fully trust."
+    ],
+    "ruin": [
+      "A partial structure still standing. Entry is legal; interpretation is not free.",
+      "Abandoned network edge. Maker marks remain. The story does not."
+    ]
+  },
+  "tensions_by_seed": {
+    "OLD_TRADE_NETWORK": [
+      "Partial trade routes still imply obligations no one fully accepts.",
+      "Control of an old freight corridor remains disputed.",
+      "Scarce transport capacity concentrates power at the Exchange."
+    ],
+    "LOST_ARCHIVE": [
+      "Records disagree about ownership of archive fragments.",
+      "Someone has left recent access marks on the old archive.",
+      "Obsolete credentials still open doors that ledgers say are sealed."
+    ],
+    "FOUNDING_SPLIT": [
+      "Two founding claims share the same civic seal.",
+      "Local charters conflict over custodianship of the hub."
+    ],
+    "FAILED_SETTLEMENT": [
+      "An abandoned claim site marks a failed settlement attempt.",
+      "Salvage rights on the outer spur remain unassigned."
+    ],
+    "RESOURCE_CRISIS": [
+      "Energy is uneven; informal rationing has already begun.",
+      "Power allocation is a strategic claim, not a utility."
+    ],
+    "DISPUTED_SUCCESSION": [
+      "A succession vacancy leaves institutional custodianship unresolved.",
+      "Contract-based influence filled a gap authority never closed."
+    ]
+  },
+  "historical_traces": [
+    "old company marks on logistics gear",
+    "obsolete contracts in cold storage",
+    "fragmentary ownership ledgers",
+    "abandoned network nodes",
+    "maintenance records with missing pages",
+    "legacy access-control remnants"
+  ],
+  "starting_opportunities_labels": [
+    "salvage",
+    "repair",
+    "trade",
+    "exploration",
+    "claiming access",
+    "institution building",
+    "negotiation",
+    "information brokerage",
+    "route recovery",
+    "artifact investigation"
+  ],
+  "admin_character_line": "Technological frontier / degraded commercial infrastructure / space-western economics / cyberpunk decay without neon cosplay",
+  "player_tone_target": "You enter a high-tech frontier built on systems too valuable to abandon and too broken to fully trust."
+} as const;
+export type PerihelionTheme = typeof PERIHELION_THEME;
