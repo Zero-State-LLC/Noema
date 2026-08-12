@@ -89,6 +89,33 @@ export class NoemaWorldDO {
       });
     }
 
+    // Public WATCH projection — no research metadata, no private player locations
+    if (request.method === "GET" && url.pathname.endsWith("/watch")) {
+      await this.load();
+      const rooms = Object.values(this.world!.rooms).map((r) => ({
+        room_id: r.room_id,
+        name: r.name,
+        description: r.description,
+        entity_count: r.entities.length,
+        entities: r.entities.map((e) => ({
+          entity_id: e.entity_id,
+          label: e.label,
+          entity_type: e.entity_type,
+        })),
+        exit_count: r.exits.length,
+      }));
+      return Response.json({
+        projection: "public",
+        world_id: this.world!.world_id,
+        cycle: this.world!.cycle,
+        sequence: this.world!.sequence,
+        players_present: Object.keys(this.world!.players).length,
+        rooms,
+        world_pressures: [],
+        note: "Spectator projection is never world truth and never mutates the ledger.",
+      });
+    }
+
     if (request.method !== "POST") {
       return Response.json({ error: { code: "METHOD_NOT_ALLOWED", message: "POST only" } }, { status: 405 });
     }

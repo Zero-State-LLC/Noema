@@ -42,9 +42,9 @@ Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/doc
 CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
 **Live Stage 0:**  
-- **Splash:** https://noema.guru/  
-- **PLAY:** https://noema.guru/play  
-- API / health: https://noema.guru/health · https://noema-gateway.zer0state-noema.workers.dev  
+- **Landing + onboarding:** https://noema.guru/  
+- **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect  
+- API / health: https://noema.guru/health · workers.dev  
 
 ```bash
 ./scripts/agent_cf_e2e.sh

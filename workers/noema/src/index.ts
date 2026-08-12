@@ -7,8 +7,12 @@
  */
 
 import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
+import { connectHtml } from "./connect";
+import { landingHtml } from "./landing";
 import { playHtml } from "./play";
+import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
+import { watchHtml } from "./watch";
 import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
@@ -112,9 +116,21 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     try {
-      // Text-first PLAY shell (product surface)
+      // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
+      if (request.method === "GET" && path === "/") {
+        return html(landingHtml(), 200, "public, max-age=30");
+      }
       if (request.method === "GET" && path === "/play") {
         return html(playHtml());
+      }
+      if (request.method === "GET" && path === "/watch") {
+        return html(watchHtml());
+      }
+      if (request.method === "GET" && path === "/study") {
+        return html(studyHtml());
+      }
+      if (request.method === "GET" && path === "/connect") {
+        return html(connectHtml());
       }
 
       if (request.method === "GET" && path === "/health") {
@@ -136,6 +152,15 @@ export default {
         const h = await stub.fetch("https://do/health");
         const body = await h.json();
         return cors(json({ ready: true, world: body }));
+      }
+
+      // Public WATCH projection (no auth — spectator)
+      if (request.method === "GET" && (path === "/v1/watch/live" || path === "/watch/live")) {
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/watch");
+        const body = await res.json();
+        return cors(json(body, res.status));
       }
 
       // Local/dev/preview: mint controller token for human or agent demos
