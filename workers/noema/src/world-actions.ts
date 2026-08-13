@@ -300,7 +300,11 @@ function recordPractice(
   for (const ev of events) {
     for (const credit of creditsFromEvent(ev as PracticeEvent, { actingPlayerId, trades })) {
       const list = byPlayer.get(credit.player_id) || [];
-      list.push({ track_id: credit.track_id, unit: credit.unit });
+      list.push({
+        track_id: credit.track_id,
+        unit: credit.unit,
+        recognition_unit: credit.recognition_unit,
+      });
       byPlayer.set(credit.player_id, list);
     }
   }
@@ -1250,6 +1254,6 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   for (const p of Object.values(w.players)) {
     if (!p.budgets) p.budgets = cloneBudgets(null);
     else p.budgets = cloneBudgets(p.budgets);
-    if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s0", tracks: {} };
+    if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s1", tracks: {}, recognition: {} };
   }
 }
