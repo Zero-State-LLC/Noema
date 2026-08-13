@@ -29,6 +29,7 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import { actorKindFromPrincipal } from "./ops";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
@@ -72,6 +73,8 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
     p.budgets = cloneBudgets(p.budgets);
   }
   if (!p.handle) p.handle = principal.player_id.replace(/^player\./, "").slice(0, 32);
+  p.actor_kind = actorKindFromPrincipal(principal);
+  p.last_seen_ms = Date.now();
   return p;
 }
 

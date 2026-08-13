@@ -47,6 +47,8 @@ export interface PlayerPrincipal {
   session_id: string;
   controller_id: string;
   controller_type: ControllerType;
+  issued_by?: string;
+  amr?: string;
   scopes: string[];
   protocol_version: string;
   authentication_context: string;

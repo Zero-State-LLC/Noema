@@ -29,6 +29,8 @@ export type PlayerRuntime = {
   budgets: Budgets;
   handle?: string;
   controlling_session_id?: string;
+  last_seen_ms?: number;
+  actor_kind?: "live" | "system";
 };
 
 export type OpenTrade = {

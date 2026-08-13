@@ -57,6 +57,125 @@ export function enteredPlayerIds(players: Record<string, { entered?: boolean }> 
     .map(([id]) => id);
 }
 
+/** Present now: commanded within this window. Missing last_seen is stale. */
+export const PRESENCE_IDLE_MS = 30 * 60 * 1000;
+
+export type ActorKind = "live" | "system";
+
+export type PresencePlayer = {
+  entered?: boolean;
+  last_seen_ms?: number;
+  actor_kind?: ActorKind;
+  handle?: string;
+  room_id?: string;
+};
+
+/** Magic-link humans use player.{12 hex}. Operator mint uses player.{handle}. */
+export function inferActorKind(playerId: string, stored?: ActorKind): ActorKind {
+  if (stored === "live" || stored === "system") return stored;
+  return /^player\.[0-9a-f]{12}$/i.test(playerId) ? "live" : "system";
+}
+
+export function actorKindFromPrincipal(p: {
+  player_id: string;
+  controller_type?: string;
+  authentication_context?: string;
+  issued_by?: string;
+  amr?: string;
+  identity_id?: string;
+}): ActorKind {
+  if (p.controller_type === "agent") return "system";
+  if (p.authentication_context === "dev_token") return "system";
+  if (p.issued_by === "admin") return "system";
+  if (p.amr === "email_magic_link" || p.authentication_context === "supabase_jwt" || p.identity_id) {
+    return "live";
+  }
+  return inferActorKind(p.player_id);
+}
+
+export function isPresentNow(
+  p: PresencePlayer | undefined,
+  now: number,
+  idleMs = PRESENCE_IDLE_MS,
+): boolean {
+  if (!p?.entered) return false;
+  if (p.last_seen_ms == null) return false;
+  return now - p.last_seen_ms <= idleMs;
+}
+
+export function countLivePlayers(
+  players: Record<string, PresencePlayer> | undefined,
+  now = Date.now(),
+  idleMs = PRESENCE_IDLE_MS,
+): number {
+  if (!players) return 0;
+  return Object.entries(players).filter(
+    ([id, p]) => inferActorKind(id, p.actor_kind) === "live" && isPresentNow(p, now, idleMs),
+  ).length;
+}
+
+export function expireStalePresence(
+  players: Record<string, PresencePlayer> | undefined,
+  now = Date.now(),
+  idleMs = PRESENCE_IDLE_MS,
+): boolean {
+  if (!players) return false;
+  let dirty = false;
+  for (const [id, p] of Object.entries(players)) {
+    const kind = inferActorKind(id, p.actor_kind);
+    if (p.actor_kind !== kind) {
+      p.actor_kind = kind;
+      dirty = true;
+    }
+    if (p.entered && !isPresentNow(p, now, idleMs)) {
+      p.entered = false;
+      dirty = true;
+    }
+  }
+  return dirty;
+}
+
+export type ActorRow = {
+  player_id: string;
+  handle: string;
+  room_id?: string;
+  entered: boolean;
+  last_seen_ms?: number;
+  actor_kind: ActorKind;
+};
+
+export function listLivePlayers(
+  players: Record<string, PresencePlayer> | undefined,
+  now = Date.now(),
+  idleMs = PRESENCE_IDLE_MS,
+): ActorRow[] {
+  if (!players) return [];
+  return Object.entries(players)
+    .filter(([id, p]) => inferActorKind(id, p.actor_kind) === "live" && isPresentNow(p, now, idleMs))
+    .map(([id, p]) => ({
+      player_id: id,
+      handle: p.handle || id.replace(/^player\./, ""),
+      room_id: p.room_id,
+      entered: true,
+      last_seen_ms: p.last_seen_ms,
+      actor_kind: "live" as const,
+    }));
+}
+
+export function listSystemActors(players: Record<string, PresencePlayer> | undefined): ActorRow[] {
+  if (!players) return [];
+  return Object.entries(players)
+    .filter(([id, p]) => inferActorKind(id, p.actor_kind) === "system")
+    .map(([id, p]) => ({
+      player_id: id,
+      handle: p.handle || id.replace(/^player\./, ""),
+      room_id: p.room_id,
+      entered: Boolean(p.entered),
+      last_seen_ms: p.last_seen_ms,
+      actor_kind: "system" as const,
+    }));
+}
+
 export function isMutatingCommand(command: string): boolean {
   const verb = normalizeCommandName(command);
   if (!verb) return true;

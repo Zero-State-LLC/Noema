@@ -50,6 +50,8 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
         session_id: newId("sess"),
         controller_id: String(claims.controller_id),
         controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
+        issued_by: claims.issued_by === "admin" ? "admin" : undefined,
+        amr: claims.amr ? String(claims.amr) : undefined,
         scopes,
         protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
         authentication_context: "controller_token",
