@@ -33,7 +33,8 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
   const token = bearer(req);
   if (!token) return err("NOT_AUTHORIZED", "Bearer token required");
 
-  const signing = env.TOKEN_SIGNING_SECRET || "dev-token-secret-change-me";
+  const signing = env.TOKEN_SIGNING_SECRET;
+  if (!signing) return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
   // Prefer Noema controller tokens
   try {
     const claims = await verifyHs256(token, signing);
@@ -63,11 +64,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
   if (jwtSecret) {
     try {
       let claims: Record<string, unknown>;
-      try {
-        claims = await verifyHs256(token, jwtSecret, { audience: "authenticated" });
-      } catch {
-        claims = await verifyHs256(token, jwtSecret);
-      }
+      claims = await verifyHs256(token, jwtSecret, { audience: "authenticated" });
       const sub = claims.sub ? String(claims.sub) : "";
       if (!sub) return err("NOT_AUTHORIZED", "Supabase token missing sub");
       const handle = String(claims.email || sub).split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 32) || "player";
@@ -164,7 +161,10 @@ export async function mintControllerToken(
     7 * 24 * 3600,
     Math.max(60, Math.floor(opts.expiresIn ?? 3600)),
   );
-  const signing = env.TOKEN_SIGNING_SECRET || "dev-token-secret-change-me";
+  const signing = env.TOKEN_SIGNING_SECRET;
+  if (!signing) {
+    throw new Error("TOKEN_SIGNING_SECRET is not configured");
+  }
   const player_id = `player.${handle}`;
   const controller_id = `ctrl.${controllerType}.${handle}`;
   const agent_id = `agent.${handle}`;

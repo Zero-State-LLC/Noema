@@ -18,6 +18,7 @@ import {
   isRepairable,
   normalizeStructuredCommand,
   parseHumanCommand,
+  sanitizeTradeAmounts,
   titleCaseLabel,
   type Budgets,
   type CanonicalAction,
@@ -309,7 +310,7 @@ export async function applyWorldCommand(
   }) => Promise<boolean>,
 ): Promise<CommandResult> {
   const request_id = envl.request_id || crypto.randomUUID();
-  const idem = envl.idempotency_key || request_id;
+  const idem = `${principal.player_id}::${envl.idempotency_key || request_id}`;
   if (w.seen_idempotency[idem]) return w.seen_idempotency[idem];
 
   if (envl.player_id && envl.player_id !== principal.player_id) {
@@ -722,9 +723,9 @@ export async function applyWorldCommand(
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
       }
       const counterparty_id = action.arguments.counterparty_id || "";
-      const offered = action.arguments.offered || {};
-      const requested = action.arguments.requested || {};
-      if (!counterparty_id || !Object.keys(offered).length || !Object.keys(requested).length) {
+      const offered = sanitizeTradeAmounts(action.arguments.offered);
+      const requested = sanitizeTradeAmounts(action.arguments.requested);
+      if (!counterparty_id || !offered || !requested) {
         return fail(request_id, "INVALID_REQUEST", "counterparty, offer, and want are required.");
       }
       if (!w.players[counterparty_id]?.entered) {
