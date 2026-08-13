@@ -47,10 +47,7 @@ function payloadEntityId(payload: Record<string, unknown> | undefined): string |
 function isRepairUpdate(ev: CultureEvent): boolean {
   if (ev.event_type !== "ENTITY_UPDATE") return false;
   const p = ev.payload || {};
-  if (p.operation === "REPAIR") return true;
-  if (p.field === "condition") return true;
-  const set = p.set;
-  return Boolean(set && typeof set === "object" && set !== null && "condition" in set);
+  return p.operation === "REPAIR";
 }
 
 export function applyCultureEvents(

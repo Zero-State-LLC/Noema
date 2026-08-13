@@ -34,7 +34,7 @@ export function allPresentWaiting(
   return present.every((id) => (players?.[id]?.wait_until_cycle ?? Number.NEGATIVE_INFINITY) > cycle);
 }
 
-/** Sole hosted writer of World.cycle. No WED. No contest resolve. */
+/** Sole hosted writer of World.cycle. Callers may then resolve contests / schedule pressure. */
 export function commitCycleIfReady<T extends { cycle: number; players: Record<string, WorldTimePlayer> }>(
   w: T,
   now = Date.now(),

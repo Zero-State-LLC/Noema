@@ -33,6 +33,14 @@ import {
 import { actorKindFromPrincipal } from "./ops";
 import { commitCycleIfReady } from "./world-time";
 import {
+  collectLiveRelaysWithRoom,
+  emptyPressure,
+  ensurePressure,
+  previewAfter,
+  scheduleDue,
+  selectScheduleRelay,
+} from "./pressure";
+import {
   applyPracticeCredits,
   creditsFromEvent,
   practiceLines,
@@ -139,6 +147,8 @@ export type WorldRuntime = {
   unsettled: UnsettledEvent[];
   /** GC9-S0 derived site custom cache. Not WorldState. */
   culture?: import("./culture").CultureState;
+  /** GC10-S0 schedule activation count. Not a PLAY label. */
+  pressure?: import("./pressure").PressureState;
 };
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
@@ -773,6 +783,7 @@ export async function applyWorldCommand(
     });
     if (committed) {
       await resolveDueContests(w, pushEvent, settleEv);
+      await applyScheduledPressure(w, pushEvent, settleEv);
     }
     const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;
@@ -1592,6 +1603,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   }
   w.contests = w.contests || {};
   w.access_restrictions = w.access_restrictions || [];
+  if (!w.pressure) w.pressure = emptyPressure();
 }
 
 type PushEv = (
@@ -1993,4 +2005,35 @@ async function resolveDueContests(
       }
     }
   }
+}
+
+async function applyScheduledPressure(
+  w: WorldRuntime,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  w.pressure = ensurePressure(w.pressure);
+  if (!scheduleDue(w.cycle, w.pressure.schedule_activations)) return;
+  const target = selectScheduleRelay(collectLiveRelaysWithRoom(w.rooms));
+  if (!target) return;
+  const room = w.rooms[target.room_id];
+  if (!room) return;
+  const entity = findEntity(room, target.entity_id);
+  if (!entity) return;
+  const before = entity.condition ?? 0;
+  const after = previewAfter(before);
+  entity.condition = after;
+  const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+  if (idx >= 0) room.entities[idx] = entity;
+  w.pressure.schedule_activations += 1;
+  w.pressure.last_cycle = w.cycle;
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: entity.entity_id,
+    field: "condition",
+    from: before,
+    to: after,
+    authorizer: "schedule",
+    preview_after: after,
+  });
+  await settleEv(ev);
 }
