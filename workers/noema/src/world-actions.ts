@@ -66,6 +66,29 @@ import {
   isHiddenRoom,
   liveClassInRoom,
 } from "./construction";
+import {
+  DECLARE_COST,
+  DEFEND_COST,
+  FORM_SPECS,
+  MAX_OPEN_PER_AGENT,
+  MAX_OPEN_PER_ROOM,
+  defaultExpiresCycle,
+  disruptionAfter,
+  maxExpiresCycle,
+  meetsMinimumStake,
+  outcomeFromScore,
+  publicContestProjection,
+  resolutionDigest,
+  sanitizeStake,
+  scoreContest,
+  seedPerturbation,
+  seizureAmount,
+  targetKindAllowed,
+  type ContestForm,
+  type ContestTarget,
+  type OpenContest,
+  type StakeMap,
+} from "./contest";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
 export type UnsettledEvent = {
@@ -102,6 +125,16 @@ export type WorldRuntime = {
   trades: Record<string, OpenTrade>;
   messages: InboxMessage[];
   organizations: Record<string, Organization>;
+  contests?: Record<string, OpenContest>;
+  access_restrictions?: Array<{
+    restriction_id: string;
+    scope: "EXIT" | "ROOM";
+    mode: "DENY";
+    applies_to: string;
+    room_id?: string;
+    exit_id?: string;
+    expires_cycle: number;
+  }>;
   seen_idempotency: Record<string, CommandResult>;
   unsettled: UnsettledEvent[];
   /** GC9-S0 derived site custom cache. Not WorldState. */
@@ -330,6 +363,9 @@ export function buildObservation(
       principal.player_id,
     ),
     discovery_lines: discoveryLines(pl.discovery),
+    contests: Object.values(w.contests || {})
+      .filter((c) => c.status === "OPEN")
+      .map((c) => publicContestProjection(c)),
   };
 }
 
@@ -519,6 +555,8 @@ export async function applyWorldCommand(
       "CONSULT",
       "SERVICE",
       "BUILD",
+      "CONTEST_DECLARE",
+      "CONTEST_DEFEND",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -708,6 +746,17 @@ export async function applyWorldCommand(
     return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
   }
 
+  if (
+    pl.disabled_until_cycle != null &&
+    w.cycle < pl.disabled_until_cycle &&
+    action.verb !== "LOOK" &&
+    action.verb !== "OBSERVE" &&
+    action.verb !== "WAIT" &&
+    action.verb !== "INSPECT"
+  ) {
+    return fail(request_id, "FORBIDDEN", "You are under presence pressure.");
+  }
+
   // ——— WAIT ———
   if (action.verb === "WAIT") {
     const waitCycles = 1;
@@ -722,6 +771,9 @@ export async function applyWorldCommand(
       world_cycle: w.cycle,
       cycle_committed: committed,
     });
+    if (committed) {
+      await resolveDueContests(w, pushEvent, settleEv);
+    }
     const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;
     return result;
@@ -743,6 +795,9 @@ export async function applyWorldCommand(
         "MOVE_REJECTED",
         direction ? `There is no exit ${direction} from here.` : "Choose a direction to move.",
       );
+    }
+    if (isAccessDenied(w, principal.player_id, room.room_id, exit.direction)) {
+      return fail(request_id, "MOVE_REJECTED", "That route is restricted.");
     }
     debit(pl.budgets, COSTS.MOVE);
     const from = room.room_id;
@@ -1057,8 +1112,34 @@ export async function applyWorldCommand(
     }
   }
 
-  // ——— COMMIT (REPAIR / HARVEST / ORG_*) ———
+  // ——— COMMIT (REPAIR / HARVEST / ORG_* / CONTEST_*) ———
   if (action.verb === "COMMIT") {
+    if (action.arguments.operation === "CONTEST_DECLARE") {
+      return applyContestDeclare(
+        w,
+        principal,
+        request_id,
+        idem,
+        action.arguments,
+        pl,
+        events,
+        pushEvent,
+        settleEv,
+      );
+    }
+    if (action.arguments.operation === "CONTEST_DEFEND") {
+      return applyContestDefend(
+        w,
+        principal,
+        request_id,
+        idem,
+        action.arguments,
+        pl,
+        events,
+        pushEvent,
+        settleEv,
+      );
+    }
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
       if (!canPay(pl.budgets, COSTS.ORG_CREATE)) {
@@ -1508,5 +1589,408 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     else p.budgets = cloneBudgets(p.budgets);
     if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s1", tracks: {}, recognition: {} };
     if (!p.trade_memory) p.trade_memory = { catalog_id: "social-memory-catalog/gc3-s0", edges: {} };
+  }
+  w.contests = w.contests || {};
+  w.access_restrictions = w.access_restrictions || [];
+}
+
+type PushEv = (
+  event_type: string,
+  payload: Record<string, unknown>,
+) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> };
+
+type SettleEv = (ev: {
+  event_id: string;
+  event_type: string;
+  sequence: number;
+  payload: Record<string, unknown>;
+}) => Promise<void>;
+
+function isAccessDenied(
+  w: WorldRuntime,
+  playerId: string,
+  roomId: string,
+  direction?: string,
+): boolean {
+  for (const r of w.access_restrictions || []) {
+    if (r.mode !== "DENY") continue;
+    if (w.cycle > r.expires_cycle) continue;
+    if (r.applies_to !== playerId && r.applies_to !== "*") continue;
+    if (r.scope === "ROOM" && r.room_id === roomId) return true;
+    if (r.scope === "EXIT" && r.room_id === roomId && direction && r.exit_id === direction) return true;
+  }
+  return false;
+}
+
+function reserveStake(budgets: Budgets, stake: StakeMap): void {
+  for (const [k, amt] of Object.entries(stake)) {
+    budgets[k as keyof Budgets] = (budgets[k as keyof Budgets] ?? 0) - amt;
+  }
+}
+
+function releaseStake(budgets: Budgets | undefined, stake: StakeMap): void {
+  if (!budgets) return;
+  for (const [k, amt] of Object.entries(stake)) {
+    budgets[k as keyof Budgets] = (budgets[k as keyof Budgets] ?? 0) + amt;
+  }
+}
+
+function canAffordStake(budgets: Budgets, cost: Partial<Budgets>, stake: StakeMap): boolean {
+  const merged: Partial<Budgets> = { ...cost };
+  for (const [k, amt] of Object.entries(stake)) {
+    merged[k as keyof Budgets] = (merged[k as keyof Budgets] || 0) + amt;
+  }
+  return canPay(budgets, merged);
+}
+
+function openContests(w: WorldRuntime): OpenContest[] {
+  return Object.values(w.contests || {}).filter((c) => c.status === "OPEN");
+}
+
+function normalizeDeclareTarget(
+  w: WorldRuntime,
+  room: RoomState,
+  form: ContestForm,
+  target: ContestTarget,
+  actorId: string,
+): { ok: true; target: ContestTarget } | { ok: false; code: string; message: string } {
+  if (!targetKindAllowed(form, target.kind)) {
+    return { ok: false, code: "FORM_FORBIDDEN", message: "That target kind is not allowed for this form." };
+  }
+  if (target.kind === "ENTITY") {
+    const ent = findEntity(room, target.entity_id);
+    if (!ent) return { ok: false, code: "NOT_FOUND", message: "You do not see that target here." };
+    if (form === "INFRASTRUCTURE_DISRUPTION" && ent.entity_type.toUpperCase() !== "INFRASTRUCTURE") {
+      return { ok: false, code: "FORBIDDEN", message: "Disruption requires live infrastructure." };
+    }
+    return { ok: true, target: { kind: "ENTITY", entity_id: ent.entity_id } };
+  }
+  if (target.kind === "ROOM") {
+    return { ok: true, target: { kind: "ROOM", room_id: room.room_id } };
+  }
+  if (target.kind === "EXIT") {
+    const exit = room.exits.find(
+      (e) => e.direction === target.exit_id || e.to_room_id === target.exit_id,
+    );
+    if (!exit) return { ok: false, code: "NOT_FOUND", message: "There is no such exit here." };
+    return { ok: true, target: { kind: "EXIT", exit_id: exit.direction } };
+  }
+  if (target.kind === "AGENT") {
+    const other = w.players[target.agent_id];
+    if (!other?.entered || other.room_id !== room.room_id) {
+      return { ok: false, code: "NOT_COLOCATED", message: "That Player is not here." };
+    }
+    if (target.agent_id === actorId) {
+      return { ok: false, code: "FORBIDDEN", message: "You cannot pressure yourself." };
+    }
+    return { ok: true, target };
+  }
+  if (target.kind === "HOLDING") {
+    const holder = w.players[target.holder_id];
+    if (!holder?.entered || holder.room_id !== room.room_id) {
+      return { ok: false, code: "NOT_COLOCATED", message: "That holder is not here." };
+    }
+    return { ok: true, target };
+  }
+  return { ok: false, code: "FORM_FORBIDDEN", message: "Unknown target." };
+}
+
+async function applyContestDeclare(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const form = args.contest_form;
+  if (!form) return fail(request_id, "FORM_FORBIDDEN", "contest_form required");
+  const stake = sanitizeStake(args.stake);
+  if (!stake) return fail(request_id, "INVALID_REQUEST", "stake required");
+  if (!meetsMinimumStake(stake, form)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "Stake is below the form minimum.");
+  }
+  if (!args.target) return fail(request_id, "INVALID_REQUEST", "target required");
+  const room = w.rooms[pl.room_id];
+  if (!room) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+  if (isHiddenRoom(room)) {
+    return fail(request_id, "NOT_OBSERVABLE", "That place cannot be contested.");
+  }
+  const target = normalizeDeclareTarget(w, room, form, args.target, principal.player_id);
+  if (!target.ok) return fail(request_id, target.code, target.message);
+  if (!canAffordStake(pl.budgets, DECLARE_COST, stake)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to declare.");
+  }
+  w.contests = w.contests || {};
+  const open = openContests(w);
+  if (open.filter((c) => c.declarer_id === principal.player_id).length >= MAX_OPEN_PER_AGENT) {
+    return fail(request_id, "FORBIDDEN", "You already have the maximum open contests.");
+  }
+  if (open.filter((c) => c.room_id === room.room_id).length >= MAX_OPEN_PER_ROOM) {
+    return fail(request_id, "FORBIDDEN", "This room already has the maximum open contests.");
+  }
+  let expires = args.expires_cycle ?? defaultExpiresCycle(w.cycle, form);
+  if (expires <= w.cycle) expires = defaultExpiresCycle(w.cycle, form);
+  if (expires > maxExpiresCycle(w.cycle, form)) expires = maxExpiresCycle(w.cycle, form);
+  debit(pl.budgets, DECLARE_COST);
+  reserveStake(pl.budgets, stake);
+  const contest_id = `contest.${(w.sequence + 1).toString().padStart(4, "0")}`;
+  const seed_stream_id = args.seed_stream_id || `stream.contest.${w.world_id || "world"}`;
+  w.contests[contest_id] = {
+    contest_id,
+    declarer_id: principal.player_id,
+    defender_id: args.defender_id,
+    contest_form: form,
+    target: target.target,
+    room_id: room.room_id,
+    stake,
+    defender_stake: {},
+    expires_cycle: expires,
+    seed_stream_id,
+    status: "OPEN",
+  };
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: DECLARE_COST,
+    reason: "CONTEST_DECLARE",
+  });
+  const ev = pushEvent("CONTEST_DECLARED", {
+    contest_id,
+    declarer_id: principal.player_id,
+    contest_form: form,
+    target: target.target,
+    room_id: room.room_id,
+    stake,
+    defender_id: args.defender_id || null,
+    expires_cycle: expires,
+    seed_stream_id,
+  });
+  await settleEv(ev);
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `Contest ${contest_id} declared (${form.replace(/_/g, " ").toLowerCase()}).`,
+    false,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function applyContestDefend(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const contest_id = String(args.contest_id || "").trim();
+  const stake = sanitizeStake(args.stake);
+  if (!contest_id || !stake) {
+    return fail(request_id, "INVALID_REQUEST", "contest_id and stake required");
+  }
+  const contest = (w.contests || {})[contest_id];
+  if (!contest || contest.status !== "OPEN") {
+    return fail(request_id, "NOT_FOUND", "Unknown or closed contest.");
+  }
+  if (w.cycle >= contest.expires_cycle) {
+    return fail(request_id, "FORBIDDEN", "The response deadline has passed.");
+  }
+  if (contest.declarer_id === principal.player_id) {
+    return fail(request_id, "FORBIDDEN", "The declarer cannot defend.");
+  }
+  if (contest.defender_id && contest.defender_id !== principal.player_id) {
+    return fail(request_id, "FORBIDDEN", "Another Player is already defending.");
+  }
+  if (pl.room_id !== contest.room_id) {
+    return fail(request_id, "NOT_COLOCATED", "You must be in the contest room to defend.");
+  }
+  if (Object.keys(contest.defender_stake).length) {
+    return fail(request_id, "FORBIDDEN", "Defense is already reserved.");
+  }
+  if (!canAffordStake(pl.budgets, DEFEND_COST, stake)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to defend.");
+  }
+  debit(pl.budgets, DEFEND_COST);
+  reserveStake(pl.budgets, stake);
+  contest.defender_id = principal.player_id;
+  contest.defender_stake = stake;
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: DEFEND_COST,
+    reason: "CONTEST_DEFEND",
+  });
+  const result = success(w, principal, request_id, events, `Defense reserved on ${contest_id}.`, false);
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function resolveDueContests(
+  w: WorldRuntime,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  for (const contest of openContests(w)) {
+    if (w.cycle < contest.expires_cycle) continue;
+    const expired = w.cycle > contest.expires_cycle;
+    let outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" = expired
+      ? "EXPIRED"
+      : "FAILURE";
+    let score = 0;
+    const spentDeclarer: StakeMap = expired ? {} : { ...contest.stake };
+    const spentDefender: StakeMap = expired ? {} : { ...contest.defender_stake };
+    if (expired) {
+      releaseStake(w.players[contest.declarer_id]?.budgets, contest.stake);
+      releaseStake(w.players[contest.defender_id || ""]?.budgets, contest.defender_stake);
+    }
+    if (!expired) {
+      let infra = 0;
+      if (contest.target.kind === "ENTITY") {
+        const room = w.rooms[contest.room_id];
+        const ent = room ? findEntity(room, contest.target.entity_id) : null;
+        infra = ent?.condition ?? 0;
+      }
+      const pert = await seedPerturbation(contest.seed_stream_id, contest.contest_id);
+      const scored = scoreContest({
+        form: contest.contest_form,
+        declarer_stake: contest.stake,
+        defender_stake: contest.defender_stake,
+        infra_condition: infra,
+        seed_perturbation: pert,
+      });
+      score = scored.score;
+      outcome = outcomeFromScore(contest.contest_form, score);
+    }
+    const digest = await resolutionDigest({
+      contest_id: contest.contest_id,
+      outcome,
+      score_millipoints: score,
+      declarer_stake_spent: spentDeclarer,
+      defender_stake_spent: spentDefender,
+      seed_stream_id: contest.seed_stream_id,
+    });
+    contest.status = "CLOSED";
+    const targetEntityId =
+      contest.target.kind === "ENTITY" ? contest.target.entity_id : undefined;
+    const ev = pushEvent("CONTEST_RESOLVED", {
+      contest_id: contest.contest_id,
+      outcome,
+      resolved_by: "world.scheduler",
+      defender_id: contest.defender_id || null,
+      declarer_stake_spent: spentDeclarer,
+      defender_stake_spent: spentDefender,
+      target_entity_id: targetEntityId,
+      score_millipoints: score,
+      resolution_digest: digest,
+    });
+    await settleEv(ev);
+    if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
+    if (contest.contest_form === "INFRASTRUCTURE_DISRUPTION" && contest.target.kind === "ENTITY") {
+      const room = w.rooms[contest.room_id];
+      const ent = room ? findEntity(room, contest.target.entity_id) : null;
+      if (ent && room) {
+        const before = ent.condition ?? 0;
+        const after = disruptionAfter(contest.contest_form, outcome, before);
+        if (after != null) {
+          ent.condition = after;
+          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+          if (idx >= 0) room.entities[idx] = ent;
+          const d = pushEvent("INFRASTRUCTURE_DISRUPTED", {
+            disruption_id: `dis.${contest.contest_id}`,
+            entity_id: ent.entity_id,
+            room_id: room.room_id,
+            condition_before: before,
+            condition_after: after,
+            cause: "CONTEST",
+            actor_id: contest.declarer_id,
+            contest_id: contest.contest_id,
+            effect_class: "CONDITION_DROP",
+          });
+          await settleEv(d);
+        }
+      }
+    }
+    if (contest.contest_form === "RESOURCE_SEIZURE" && contest.target.kind === "HOLDING") {
+      const holder = w.players[contest.target.holder_id];
+      const taker = w.players[contest.declarer_id];
+      const resource = contest.target.resource as keyof Budgets;
+      const available = holder?.budgets?.[resource] ?? 0;
+      const amt = seizureAmount(contest.contest_form, outcome, available);
+      if (amt > 0 && holder && taker) {
+        holder.budgets[resource] = available - amt;
+        taker.budgets[resource] = (taker.budgets[resource] ?? 0) + amt;
+        const t = pushEvent("RESOURCE_TRANSFER", {
+          from_id: contest.target.holder_id,
+          to_id: contest.declarer_id,
+          resource,
+          amount: amt,
+          contest_id: contest.contest_id,
+        });
+        await settleEv(t);
+      }
+    }
+    if (contest.contest_form === "ACCESS_CONTEST") {
+      const dur = FORM_SPECS.ACCESS_CONTEST.restriction_duration_cycles || 8;
+      const restriction_id = `restr.${contest.contest_id}`;
+      w.access_restrictions = w.access_restrictions || [];
+      w.access_restrictions.push({
+        restriction_id,
+        scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
+        mode: "DENY",
+        applies_to: "*",
+        room_id: contest.room_id,
+        exit_id: contest.target.kind === "EXIT" ? contest.target.exit_id : undefined,
+        expires_cycle: w.cycle + dur,
+      });
+      const a = pushEvent("ACCESS_RESTRICTED", {
+        restriction_id,
+        scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
+        mode: "DENY",
+        applies_to: "*",
+        reason: "CONTEST",
+        expires_cycle: w.cycle + dur,
+        authorized_by: "world.scheduler",
+      });
+      await settleEv(a);
+    }
+    if (contest.contest_form === "PRESENCE_PRESSURE" && contest.target.kind === "AGENT") {
+      const target = w.players[contest.target.agent_id];
+      const room = w.rooms[contest.room_id];
+      if (target && room) {
+        const exits = [...(room.exits || [])].sort((a, b) => a.direction.localeCompare(b.direction));
+        if (exits[0] && !isAccessDenied(w, contest.target.agent_id, room.room_id, exits[0].direction)) {
+          const from = target.room_id;
+          target.room_id = exits[0].to_room_id;
+          const m = pushEvent("MOVE", {
+            player_id: contest.target.agent_id,
+            from,
+            to: exits[0].to_room_id,
+            direction: exits[0].direction,
+            reason: "PRESENCE_PRESSURE",
+            contest_id: contest.contest_id,
+          });
+          await settleEv(m);
+        } else {
+          const disable = FORM_SPECS.PRESENCE_PRESSURE.max_disable_cycles || 3;
+          target.disabled_until_cycle = w.cycle + disable;
+          const u = pushEvent("ENTITY_UPDATE", {
+            entity_id: contest.target.agent_id,
+            field: "disabled_until_cycle",
+            to: target.disabled_until_cycle,
+            operation: "PRESENCE_PRESSURE",
+            contest_id: contest.contest_id,
+          });
+          await settleEv(u);
+        }
+      }
+    }
   }
 }
