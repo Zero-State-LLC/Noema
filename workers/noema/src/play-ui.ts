@@ -114,8 +114,6 @@ export const HOSTED_ACTIONS = [
 
 /** v0.2 strategic — not hosted yet. */
 export const BACKEND_GAPS = [
-  "CONTEST_DECLARE",
-  "CONTEST_DEFEND",
   "AGREEMENT_FORM",
   "AGREEMENT_TERMINATE",
   "ACCESS_POLICY",

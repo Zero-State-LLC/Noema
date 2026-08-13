@@ -9,6 +9,12 @@ import {
   parseConstructibleClass,
   type ConstructibleClass,
 } from "./construction";
+import {
+  isForbiddenContestVerb,
+  parseContestForm,
+  type ContestForm,
+  type ContestTarget,
+} from "./contest";
 
 export type Budgets = {
   attention: number;
@@ -46,6 +52,8 @@ export type PlayerRuntime = {
   actor_kind?: "live" | "system";
   /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
   wait_until_cycle?: number;
+  /** GC7-S0 PRESENCE_PRESSURE disable. Never permanent. */
+  disabled_until_cycle?: number;
   /** GC1 derived cache. Not WorldState. Rebuildable. */
   practice?: {
     catalog_id: "mastery-catalog/gc1-s0" | "mastery-catalog/gc1-s1";
@@ -130,8 +138,6 @@ export const HOSTED_TIER1 = [
 export const BACKEND_GAPS_TIER2 = [] as const;
 
 export const BACKEND_GAPS_TIER3 = [
-  "CONTEST_DECLARE",
-  "CONTEST_DEFEND",
   "AGREEMENT_FORM",
   "AGREEMENT_TERMINATE",
   "ACCESS_POLICY",
@@ -197,7 +203,14 @@ export type CanonicalAction =
   | {
       verb: "COMMIT";
       arguments: {
-        operation: "HARVEST" | "REPAIR" | "ORG_CREATE" | "ORG_MEMBER_ADD" | "ORG_MEMBER_REMOVE";
+        operation:
+          | "HARVEST"
+          | "REPAIR"
+          | "ORG_CREATE"
+          | "ORG_MEMBER_ADD"
+          | "ORG_MEMBER_REMOVE"
+          | "CONTEST_DECLARE"
+          | "CONTEST_DEFEND";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -207,6 +220,13 @@ export type CanonicalAction =
         role?: OrgRole;
         reason?: string;
         initial_members?: OrgMember[];
+        contest_form?: ContestForm;
+        target?: ContestTarget;
+        stake?: Record<string, number>;
+        expires_cycle?: number;
+        seed_stream_id?: string;
+        defender_id?: string;
+        contest_id?: string;
       };
     }
   | {
@@ -455,6 +475,59 @@ export function resolvePlayerTarget(
     };
   }
   return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
+}
+
+function resolveContestTarget(
+  form: ContestForm,
+  raw: string,
+  ctx: {
+    entities?: EntityRuntime[];
+    players?: Array<{ player_id: string; handle?: string }>;
+    selfId?: string;
+  },
+):
+  | { ok: true; target: ContestTarget }
+  | { ok: false; error: string; code?: string; choices?: string[] } {
+  const t = raw.replace(/^["']|["']$/g, "").trim();
+  if (form === "INFRASTRUCTURE_DISRUPTION") {
+    if (ctx.entities?.length) {
+      const r = resolveVisibleEntity(t, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return { ok: true, target: { kind: "ENTITY", entity_id: r.entity.entity_id } };
+    }
+    return { ok: true, target: { kind: "ENTITY", entity_id: t } };
+  }
+  if (form === "PRESENCE_PRESSURE") {
+    if (ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(t, ctx.players, ctx.selfId);
+      if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+      return { ok: true, target: { kind: "AGENT", agent_id: r.player_id } };
+    }
+    return { ok: true, target: { kind: "AGENT", agent_id: t } };
+  }
+  if (form === "ACCESS_CONTEST") {
+    if (/^(here|room|this)$/i.test(t)) {
+      return { ok: true, target: { kind: "ROOM", room_id: t } };
+    }
+    return { ok: true, target: { kind: "EXIT", exit_id: t.toLowerCase() } };
+  }
+  if (form === "RESOURCE_SEIZURE") {
+    if (ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(t, ctx.players, ctx.selfId);
+      if (r.ok) {
+        return {
+          ok: true,
+          target: { kind: "HOLDING", holder_id: r.player_id, resource: "energy", amount: 5 },
+        };
+      }
+    }
+    if (ctx.entities?.length) {
+      const r = resolveVisibleEntity(t, ctx.entities);
+      if (r.ok) return { ok: true, target: { kind: "ENTITY", entity_id: r.entity.entity_id } };
+    }
+    return { ok: true, target: { kind: "HOLDING", holder_id: t, resource: "energy", amount: 5 } };
+  }
+  return { ok: false, error: "That contest form is not allowed.", code: "FORM_FORBIDDEN" };
 }
 
 function parseResourceMap(spec: string): Record<string, number> | null {
@@ -788,6 +861,67 @@ export function parseHumanCommand(
     };
   }
 
+  if (isForbiddenContestVerb(v)) {
+    return {
+      ok: false,
+      error: `“${v}” is not a legal verb.`,
+      code: "VERB_FORBIDDEN",
+    };
+  }
+
+  // GC7-S0: contest <form> <target> stake=energy:10,influence:6
+  // Not listed in Chamber help.
+  if (v === "contest") {
+    const rest = parts.join(" ");
+    const stakeM = rest.match(/\bstake=([^\s]+)/i);
+    if (!stakeM) {
+      return { ok: false, error: "Contest syntax: contest <form> <target> stake=energy:10,influence:6" };
+    }
+    const stake = parseResourceMap(stakeM[1]);
+    if (!stake) return { ok: false, error: "Stake must be resource:amount pairs.", code: "INVALID_REQUEST" };
+    const beforeStake = rest.slice(0, stakeM.index).trim();
+    const bits = beforeStake.split(/\s+/).filter(Boolean);
+    const form = parseContestForm(bits.shift() || "");
+    if (!form) return { ok: false, error: "That contest form is not allowed.", code: "FORM_FORBIDDEN" };
+    const targetRaw = bits.join(" ");
+    if (!targetRaw) return { ok: false, error: "Name a contest target." };
+    const expiresM = rest.match(/\bexpires=(\d+)/i);
+    const target = resolveContestTarget(form, targetRaw, ctx);
+    if (!target.ok) return { ok: false, error: target.error, code: target.code, choices: target.choices };
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "CONTEST_DECLARE",
+          contest_form: form,
+          target: target.target,
+          stake,
+          expires_cycle: expiresM ? Number(expiresM[1]) : undefined,
+        },
+      },
+      display: `You declare a ${form.replace(/_/g, " ").toLowerCase()} contest.`,
+    };
+  }
+  if (v === "defend") {
+    const rest = parts.join(" ");
+    const stakeM = rest.match(/\bstake=([^\s]+)/i);
+    const contest_id = (stakeM ? rest.slice(0, stakeM.index) : rest).trim().split(/\s+/)[0] || "";
+    if (!contest_id || !stakeM) {
+      return { ok: false, error: "Defend syntax: defend <contest_id> stake=energy:10,influence:6" };
+    }
+    const stake = parseResourceMap(stakeM[1]);
+    if (!stake) return { ok: false, error: "Stake must be resource:amount pairs.", code: "INVALID_REQUEST" };
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "CONTEST_DEFEND", contest_id, stake },
+      },
+      display: `You defend ${contest_id}.`,
+    };
+  }
+
   // GC2-S0: construct <class> / build <class> / dismantle <entity>
   // Not listed in Chamber help.
   if (v === "construct" || v === "build") {
@@ -825,7 +959,7 @@ export function parseHumanCommand(
   }
 
   // Known but not hosted yet (v0.2 strategic)
-  if (["contest", "defend", "agreement", "terminate", "access"].includes(v)) {
+  if (["agreement", "terminate", "access"].includes(v)) {
     return {
       ok: false,
       error: `“${v}” is a v0.2 strategic action — not available in this stage.`,
@@ -960,6 +1094,49 @@ export function normalizeStructuredCommand(
         display: "COMMIT.ORG_MEMBER_ADD",
       };
     }
+    if (operation === "CONTEST_DECLARE") {
+      const form = parseContestForm(String(args.contest_form || args.form || ""));
+      if (!form) {
+        return { ok: false, error: "contest_form must be one of the four closed forms", code: "FORM_FORBIDDEN" };
+      }
+      const stake = (args.stake as Record<string, number>) || undefined;
+      if (!stake) return { ok: false, error: "stake required", code: "INVALID_REQUEST" };
+      const target = args.target as ContestTarget | undefined;
+      if (!target || typeof target !== "object" || !("kind" in target)) {
+        return { ok: false, error: "target required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "CONTEST_DECLARE",
+            contest_form: form,
+            target,
+            stake,
+            expires_cycle: args.expires_cycle != null ? Number(args.expires_cycle) : undefined,
+            seed_stream_id: args.seed_stream_id ? String(args.seed_stream_id) : undefined,
+            defender_id: args.defender_id ? String(args.defender_id) : undefined,
+          },
+        },
+        display: `COMMIT.CONTEST_DECLARE ${form}`,
+      };
+    }
+    if (operation === "CONTEST_DEFEND") {
+      const contest_id = String(args.contest_id || "").trim();
+      const stake = (args.stake as Record<string, number>) || undefined;
+      if (!contest_id || !stake) {
+        return { ok: false, error: "contest_id and stake required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "CONTEST_DEFEND", contest_id, stake },
+        },
+        display: `COMMIT.CONTEST_DEFEND ${contest_id}`,
+      };
+    }
     if (operation === "ORG_MEMBER_REMOVE") {
       const org_id = String(args.org_id || "").trim();
       const agent_id = String(args.agent_id || args.player_id || "").trim();
@@ -1032,6 +1209,15 @@ export function normalizeStructuredCommand(
       };
     }
     return { ok: false, error: "BUILD operation must be CONSTRUCT or DISMANTLE", code: "INVALID_REQUEST" };
+  }
+  if (cmd === "CONTEST_DECLARE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });
+  }
+  if (cmd === "CONTEST_DEFEND") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DEFEND" });
+  }
+  if (isForbiddenContestVerb(cmd.toLowerCase())) {
+    return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
   }
   if (cmd === "ORG_CREATE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_CREATE" });
@@ -1330,6 +1516,8 @@ export function humanizeActionError(code?: string, message?: string): { primary:
   if (c === "NOT_COLOCATED") return { primary: "You must be in that room.", advanced: `${c}: ${m}` };
   if (c === "NOT_OBSERVABLE") return { primary: "That place cannot be used for construction.", advanced: `${c}: ${m}` };
   if (c === "CLASS_FORBIDDEN") return { primary: "That class cannot be constructed.", advanced: `${c}: ${m}` };
+  if (c === "FORM_FORBIDDEN") return { primary: "That contest form is not allowed.", advanced: `${c}: ${m}` };
+  if (c === "VERB_FORBIDDEN") return { primary: "That action is not used here.", advanced: `${c}: ${m}` };
   if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
   if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
   return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };

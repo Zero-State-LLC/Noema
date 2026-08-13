@@ -158,6 +158,14 @@ export interface Observation {
   culture_lines?: string[];
   /** GC6-S0 self-only archive/inspect contradiction. Never put on WATCH. */
   discovery_lines?: string[];
+  /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
+  contests?: Array<{
+    contest_id: string;
+    contest_form: string;
+    room_id: string;
+    status: string;
+    expires_cycle: number;
+  }>;
   /** Location-bound World Services (adapters, not Players). */
   services?: Array<{
     service_id: string;
