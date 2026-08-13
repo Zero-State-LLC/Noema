@@ -99,8 +99,22 @@ Technological frontier / degraded commercial infrastructure / space-western econ
 
 ## Environment note
 
-Current product host reports `NOEMA_ENV=preview` (not `production`). Dev-token remains enabled on this host. Before calling the environment “production,” flip `NOEMA_ENV` and confirm dev-token disabled / force supersede denied / settlement secrets present.
+Product host cut over to `NOEMA_ENV=production` (2026-08-12). Live gates:
+
+- Dev-token **denied** in production  
+- Force supersede **denied** in production  
+- Reseed **denied** in production  
+- Production preview of this candidate **exact-matches** approved genesis_id + Cycle 0 digest  
+- Preview **non-mutating** (sequence unchanged)
+
+**Remaining hard blockers for production activation readiness:** production Player auth and agent-controller enrollment (UI still targets disabled dev-token). See [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Verdict
 
-See operator report: readiness for **human Genesis approval** of this candidate — not automatic production activation.
+See [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md):
+
+```text
+NOT READY FOR PRODUCTION GENESIS ACTIVATION
+```
+
+Do not activate without explicit human approval after Player/agent production auth is ready.
