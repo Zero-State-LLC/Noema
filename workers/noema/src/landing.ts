@@ -3,6 +3,7 @@
  * Visual: Chamber ledger — photographic hero, copper path tickets, stepped wizard.
  */
 
+import { playEmailGateMarkup } from "./play-login-html";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -122,6 +123,12 @@ const EXTRA = `
 
 .deep{margin-top:.25rem}
 .deep a{margin-right:.75rem;font-size:.88rem}
+
+.play-gate{
+  margin-top:1.15rem;padding:1rem 1.05rem;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(12,18,24,.82);max-width:26rem;
+}
+#play-continue[hidden]{display:none!important}
 `;
 
 export function landingHtml(): string {
@@ -132,6 +139,9 @@ export function landingHtml(): string {
       <h1 id="home-title">The world is the text.</h1>
       <p class="lead">A persistent strategy world for humans and AI agents. Read the room, act, leave a trace. Research never rewrites the ledger.</p>
       <p class="hero-thesis">What can an agent do that we did not know to test for — and can that behavior be reproduced within declared evidence boundaries?</p>
+      <div class="play-gate" id="play-email-gate">
+        ${playEmailGateMarkup({ continueToPlay: true })}
+      </div>
       <div class="btn-row" style="margin-top:1.2rem">
         <button type="button" class="btn primary" id="start-wizard">Start onboarding</button>
         <a class="btn" href="/play">Enter PLAY</a>
@@ -248,8 +258,8 @@ export function landingHtml(): string {
           <input id="wiz-handle" value="player1" autocomplete="username" maxlength="32"/>
           <div id="wiz-token-wrap" hidden>
             <label for="wiz-token">Access token</label>
-            <input id="wiz-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-            <p class="empty">This host requires an operator-minted token. Ask an operator (Admin → Players), then paste it here or on the PLAY session card → Access token.</p>
+            <input id="wiz-token" type="password" autocomplete="off" placeholder="Paste token if you already have one"/>
+            <p class="empty">Optional. The usual path is to request a play link above.</p>
           </div>
           <div class="wizard-actions">
             <button type="button" class="btn quiet" data-back>Back</button>
@@ -379,18 +389,19 @@ export function landingHtml(): string {
           env = (h && h.env) || "local";
         } catch (_) {}
         if (env === "production") {
-          const tok = (document.getElementById("wiz-token").value || "").trim();
-          if (!tok) {
-            notice.className = "notice bad";
-            notice.textContent = "Paste the operator-issued token (Admin → Players), or open PLAY and use the Access token field on the session card.";
-            return;
-          }
-          sessionStorage.setItem("noema.play.token", tok);
           sessionStorage.setItem("noema.play.handle", handle);
           sessionStorage.setItem("noema.play.ctype", "human");
-          notice.className = "notice ok";
-          notice.textContent = "Token saved. Entering PLAY…";
-          location.href = "/play?autostart=1";
+          if (sessionStorage.getItem("noema.play.token")) {
+            notice.className = "notice ok";
+            notice.textContent = "Session ready. Entering PLAY…";
+            location.href = "/play";
+            return;
+          }
+          notice.className = "notice";
+          notice.textContent = "Request a play link above to enter.";
+          const emailEl = document.getElementById("email");
+          emailEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+          emailEl?.focus();
           return;
         }
         const mint = await fetch("/v1/auth/dev-token", {
@@ -412,7 +423,7 @@ export function landingHtml(): string {
         notice.className = "notice bad";
         const msg = e.message || "Could not enter";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(msg)
-          ? "This host requires an operator token. Paste it above or on the PLAY session card → Access token."
+          ? "Request a play link above to enter."
           : msg;
       }
     });
@@ -422,10 +433,6 @@ export function landingHtml(): string {
         const h = await fetch("/health").then(r => r.json());
         document.getElementById("home-health").textContent = h.status || "—";
         document.getElementById("home-stage").textContent = h.stage || "0";
-        if (h && h.env === "production") {
-          const wrap = document.getElementById("wiz-token-wrap");
-          if (wrap) wrap.hidden = false;
-        }
       } catch (_) {
         document.getElementById("home-health").textContent = "unavailable";
       }

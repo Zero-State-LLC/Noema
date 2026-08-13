@@ -1,5 +1,6 @@
 /** Text-first PLAY — situation, opportunity, action, consequence. */
 
+import { playEmailGateMarkup } from "./play-login-html";
 import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
@@ -247,6 +248,7 @@ export function playHtml(): string {
       <article class="card gate" id="session-card">
         <p class="kicker">Session</p>
         <div id="session-out">
+          ${playEmailGateMarkup()}
           <label for="handle">Your name</label>
           <input id="handle" value="player1" autocomplete="username" maxlength="32"/>
           <div id="token-primary" hidden>
@@ -564,7 +566,7 @@ function playClientBundle(): string {
           state.player_id = "token";
           state.controller_id = "browser";
         } else if (state.env === "production") {
-          throw Object.assign(new Error("Production requires an operator-issued access token. Ask an operator to mint one in Admin → Players."), { code: "NOT_AUTHORIZED" });
+          throw Object.assign(new Error("Request a play link to enter. If you already have a token, paste it under Advanced details."), { code: "NOT_AUTHORIZED" });
         } else {
           // Preview/local only — public mint for demos. Never in production.
           const mint = await api("/v1/auth/dev-token", {
@@ -589,7 +591,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = e.message || "Production requires an operator-issued access token. Paste it in Access token on this session card (Admin → Players).";
+          msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced details.";
         }
         sessionNotice(msg, "bad");
         $("err-advanced").textContent = h.advanced || e.message || "";
@@ -612,6 +614,7 @@ function playClientBundle(): string {
       state.token = null;
       state.player_id = null;
       state.controller_id = null;
+      try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
       state.obs = null;
       state.trail = [];
       $("pid").textContent = "—";
@@ -651,12 +654,6 @@ function playClientBundle(): string {
       try {
         const h = await fetch("/health").then(r => r.json());
         state.env = (h && h.env) || "local";
-        if (state.env === "production") {
-          const prim = $("token-primary");
-          if (prim) prim.hidden = false;
-          const adv = $("token-advanced-wrap");
-          if (adv) adv.hidden = true;
-        }
       } catch (_) {
         state.env = "unknown";
       }
@@ -673,16 +670,16 @@ function playClientBundle(): string {
       renderTrail();
 
       const qs = new URLSearchParams(location.search);
-      if (qs.get("autostart") === "1") {
-        const tok = sessionStorage.getItem("noema.play.token");
-        const handle = sessionStorage.getItem("noema.play.handle");
-        if (handle) $("handle").value = handle;
-        if (tok) {
-          sessionStorage.removeItem("noema.play.token");
-          await enterWorld(tok);
-        } else if (state.env !== "production") {
-          await enterWorld();
-        }
+      if (qs.get("error") === "1") {
+        sessionNotice("That login link is expired or invalid. Request a new one.", "bad");
+      }
+      const tok = sessionStorage.getItem("noema.play.token");
+      const handle = sessionStorage.getItem("noema.play.handle");
+      if (handle) $("handle").value = handle;
+      if (tok) {
+        await enterWorld(tok);
+      } else if (qs.get("autostart") === "1" && state.env !== "production") {
+        await enterWorld();
       }
     })();
   })();

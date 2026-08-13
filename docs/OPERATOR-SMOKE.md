@@ -10,13 +10,41 @@ Cycle 0:      sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072
 Host:         https://noema.guru
 ```
 
-## Token requirement
+## Email login: Player vs Admin (do not mix)
 
-Authenticated steps need an ADMIN JWT (`typ: admin-access`).
+Two magic-link paths share Supabase Auth but mint **different** JWTs. Do not paste a play token into admin tools or an admin token into PLAY.
 
-**Primary:** open `https://noema.guru/admin/login`, submit an allowlisted operator email, follow the magic link. Do not commit mailbox addresses.
+| Path | Surfaces | Who | Session | Storage |
+|------|----------|-----|---------|---------|
+| **PLAY (public Player)** | `/` and `/play` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
+| **ADMIN (operator)** | `/admin/login` only | allowlisted operator email | `typ: admin-access` | admin session only |
 
-**Supabase Auth Magic Link template (required):** Redirect URL allowlist alone is not enough. The Magic Link email template must include:
+An allowlisted operator who uses PLAY email still gets a **Player** session. ADMIN never comes from `/` or `/play`.
+
+**Do not commit mailbox addresses.** Use throwaway or personal inboxes only for manual smoke; never put real operator or player emails in docs, fixtures, or commits.
+
+### PLAY email (public Player path)
+
+1. Open `https://noema.guru/` or `/play`, submit any valid email, follow the magic link.
+2. Callback: `/play/callback` → consume mints Player JWT → PLAY is in session.
+3. That token opens PLAY / `/v1/me` / `/v1/command` and is **401** on every `/v1/admin/*` route.
+
+**Supabase redirect allowlist (after deploy):**
+
+```
+https://noema.guru/play/callback
+http://127.0.0.1:8787/play/callback
+```
+
+PLAY otp uses `email_redirect_to` ending in `/play/callback`. Redirect allowlist alone is not enough if the Magic Link template drops `token_hash` (see template note below).
+
+### ADMIN email (allowlisted operator)
+
+Authenticated operator steps need an ADMIN JWT (`typ: admin-access`).
+
+**Primary:** open `https://noema.guru/admin/login`, submit an allowlisted operator email, follow the magic link.
+
+**Supabase Auth Magic Link template (required for both paths):** Redirect URL allowlist alone is not enough. Prefer a template that preserves `token_hash` on the request’s `redirect_to` (`/play/callback` or `/admin/callback`). If the template hardcodes a path, operators must keep both callbacks working. Admin-shaped example:
 
 ```
 https://noema.guru/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
@@ -26,6 +54,13 @@ Local:
 
 ```
 http://127.0.0.1:8787/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+```
+
+Also allowlist admin redirects (already required for operator login):
+
+```
+https://noema.guru/admin/callback
+http://127.0.0.1:8787/admin/callback
 ```
 
 **Emergency CLI** (not the UI) — `ADMIN_OPERATOR_TOKEN` Worker secret:
@@ -38,13 +73,13 @@ curl -sS -X POST "$BASE/v1/admin/session" \
   -d "{\"admin_token\":\"$ADMIN_TOKEN\"}"
 ```
 
-With that session JWT you can:
+With that **ADMIN** session JWT you can:
 
 1. Mint human + agent controller tokens (`POST /v1/admin/controller-token`)
 2. Confirm Genesis editor is `inert`, reseed control hidden, pause still works
 3. `POST /v1/admin/digest-tick` (window only — must not mutate world sequence)
 
-Never commit secret values. Authenticated smoke is **blocked** until an operator has a session (magic link or local `ADMIN_TOKEN`).
+Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Player smoke can use the public PLAY email path instead of an operator-minted controller token.
 
 ## Unauthenticated probes (recorded 2026-08-13)
 
@@ -65,18 +100,25 @@ No defect found on the public path. Sequence unchanged by these probes.
 Run with a magic-link session or a local `ADMIN_TOKEN` (emergency CLI). Stop on any mismatch. **Never** send `force: true` or a second activate.
 
 ```text
+[ ] 0. PLAY email login (optional public path; do not mix with ADMIN)
+      / or /play → any valid email → magic link → /play/callback → Player session
+      expect typ access; 401 on /v1/admin/* ; store only noema.play.token
+      Do not use this session for admin steps below.
+
 [ ] 1. Admin login
       Primary: /admin/login → allowlisted email → magic link → ADMIN session
       Emergency: POST /v1/admin/session  { "admin_token": "$ADMIN_TOKEN" }
-      expect role ADMIN
+      expect role ADMIN (typ admin-access). Not the PLAY email path.
 
 [ ] 2. Mint human + agent controller tokens
       POST /v1/admin/controller-token
         { "handle": "smoke-human", "controller_type": "human" }
         { "handle": "smoke-agent", "controller_type": "agent" }
       expect Player JWT (not ADMIN). Player cannot mint.
+      (Agents still need this mint; public PLAY email is human-only.)
 
 [ ] 3. PLAY enter / look / leave
+      Use PLAY email session or a minted Player JWT — never an ADMIN JWT.
       POST /v1/command ENTER_WORLD → LOOK → LEAVE_WORLD
       human and agent both succeed. Sequence may increment (player actions).
       Do not TRADE / ORG / lifecycle in this smoke unless investigating a defect.

@@ -27,6 +27,8 @@ import {
 import { connectHtml } from "./connect";
 import { catalog, GenesisError, previewGenesis } from "./genesis";
 import { landingHtml } from "./landing";
+import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
+import { playCallbackHtml } from "./play-login-html";
 import { playHtml } from "./play";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
@@ -147,6 +149,9 @@ export default {
       if (request.method === "GET" && path === "/play") {
         return html(playHtml());
       }
+      if (request.method === "GET" && path === "/play/callback") {
+        return html(playCallbackHtml());
+      }
       if (request.method === "GET" && path === "/watch") {
         return html(watchHtml());
       }
@@ -244,6 +249,22 @@ export default {
           code?: string;
         };
         const minted = await consumeAdminMagicLink(env, body);
+        if (minted instanceof Response) return cors(minted);
+        return cors(json({ ...minted, token_type: "bearer" }));
+      }
+
+      // Public PLAY email login (any mailbox → Player JWT; never admin-access)
+      if (request.method === "POST" && path === "/v1/play/login/request") {
+        const body = (await request.json().catch(() => ({}))) as { email?: string };
+        return cors(await requestPlayMagicLink(env, request, body));
+      }
+      if (request.method === "POST" && path === "/v1/play/login/consume") {
+        const body = (await request.json().catch(() => ({}))) as {
+          token_hash?: string;
+          type?: string;
+          code?: string;
+        };
+        const minted = await consumePlayMagicLink(env, body);
         if (minted instanceof Response) return cors(minted);
         return cors(json({ ...minted, token_type: "bearer" }));
       }
