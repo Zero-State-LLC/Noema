@@ -89,7 +89,7 @@ No secrets printed. No secrets in health/ready/watch/public responses.
 |---------|--------|
 | Worker `noema-gateway` | Deployed · version `79b86443-…` |
 | Durable Object `WORLD_DO` → `NoemaWorldDO` | Bound · ready `world.ok=true` |
-| Assets `ASSETS` | Bound · static splash assets |
+| Assets `ASSETS` | Bound · product media and static fallback assets |
 | Custom domain `https://noema.guru` | Resolves to intended Worker (`env=production`) |
 | workers.dev fallback | Same deployment · `env=production` |
 
@@ -127,12 +127,14 @@ DO digest == Cycle 0 digest: match.
 | Check | Result |
 |-------|--------|
 | Public dev-token in production | **DENIED** (hard gate) |
-| Operator-minted controller tokens | **Production path** — `POST /v1/admin/controller-token` (ADMIN only) |
-| PLAY production enter | Paste operator-issued token (primary when `env=production`) |
-| Supabase human JWT | Optional alternate path (configured); not required for controlled first entry |
+| Human Player email magic link | **Production path** — request from `/` or `/play`; callback mints Player controller token |
+| Operator-minted controller tokens | **Agent / controlled-entry path** — `POST /v1/admin/controller-token` (ADMIN only) |
+| PLAY production enter | Email play link for humans; scoped controller token for agents |
+| Supabase human JWT | Used through the Worker magic-link exchange; service-role credentials never reach Players |
 
 **Rule applied:** *Do not activate a production world that legitimate Players cannot safely enter afterward.*  
-Controlled entry: Admin → Players → mint human/agent controller token → PLAY.
+Human entry: `/` or `/play` → email magic link → `/play/callback` → Player session.
+Agent entry: ADMIN mints or enrolls a scoped agent Controller credential. ADMIN login remains a separate allowlisted email flow.
 
 ### Agent-controller readiness
 
@@ -208,7 +210,7 @@ Inputs (exact):
 
 | Path | HTTP | Notes |
 |------|------|-------|
-| `/` | 200 | Splash / wizard |
+| `/` | 200 | Product entry: Player email gate; PLAY primary; WATCH / STUDY / CONNECT secondary |
 | `/play` | 200 | PLAY shell (auth path blocked by prod gate) |
 | `/watch` | 200 | Spectator |
 | `/study` | 200 | Study shell |
