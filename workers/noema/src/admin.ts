@@ -100,6 +100,45 @@ ${body}
 </html>`;
 }
 
+/** Embedded operator email form for the product homepage (distinct ids from play email). */
+export function adminEmailGateMarkup(): string {
+  return `
+<p class="muted">Operator plane. This is not a Player login.</p>
+<form id="op-login-form">
+  <label for="op-email">Operator email</label>
+  <input id="op-email" type="email" autocomplete="username" required/>
+  <button class="btn primary block" type="submit">Send login link</button>
+</form>
+<p class="notice" id="op-notice" role="status"></p>
+<script>
+(() => {
+  const form = document.getElementById("op-login-form");
+  const notice = document.getElementById("op-notice");
+  const email = document.getElementById("op-email");
+  if (!form || !notice || !email) return;
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    notice.className = "notice";
+    notice.textContent = "Requesting login link…";
+    try {
+      const res = await fetch("/v1/admin/login/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
+      notice.className = "notice ok";
+      notice.textContent = data.message;
+    } catch (err) {
+      notice.className = "notice bad";
+      notice.textContent = err.message || "ADMIN unavailable";
+    }
+  });
+})();
+</script>`;
+}
+
 export function adminLoginHtml(): string {
   return adminChrome(
     "Admin login",

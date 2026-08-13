@@ -177,12 +177,6 @@ const EXTRA = `
 
 export function playHtml(): string {
   const body = `
-  <header class="play-head">
-    <p class="kicker">Play</p>
-    <h1>Where you stand.</h1>
-    <p class="lead">Read the place, notice what matters, act. Type a command or use the buttons — same world, same results.</p>
-  </header>
-
   <div class="play-grid">
     <section class="play-main" aria-label="World">
       <p class="play-health" id="play-health" hidden role="status"></p>
@@ -286,12 +280,6 @@ export function playHtml(): string {
           <li class="empty">—</li>
         </ul>
       </article>
-
-      <article class="card pad play-side-desktop-only" style="margin-top:.75rem">
-        <p class="kicker">What just happened</p>
-        <ol class="trail" id="trail-side" aria-hidden="true"></ol>
-        <p class="empty" id="trail-side-empty">Actions show in the main trail.</p>
-      </article>
     </aside>
   </div>
 
@@ -305,7 +293,7 @@ export function playHtml(): string {
     active: "play",
     body,
     extraCss: EXTRA,
-    description: "Enter the world. Read the place, notice opportunities, act.",
+    description: "PLAY — enter the world and act.",
   });
 }
 

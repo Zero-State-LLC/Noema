@@ -200,7 +200,7 @@ describe("play login HTML", () => {
   });
   it("homepage and play include email gate; homepage is not admin token", () => {
     expect(landingHtml()).toContain("/v1/play/login/request");
-    expect(landingHtml()).toContain("/admin/login");
+    expect(landingHtml()).toContain("/v1/admin/login/request");
     expect(landingHtml()).not.toMatch(/Operator token/);
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Access token");
@@ -210,8 +210,8 @@ describe("play login HTML", () => {
     expect(html).not.toContain("wiz-token");
     expect(html).not.toContain('class="wizard"');
     expect(html).toMatch(/getElementById\("email"\)/);
-    expect(html).toContain('class="path-rail"');
-    expect(html).toContain("Enter as a Player");
+    expect(html).not.toContain("path-rail");
+    expect(html).not.toContain("The world is the text.");
   });
   it("play production empty-token error points at email play link", () => {
     const html = playHtml();
