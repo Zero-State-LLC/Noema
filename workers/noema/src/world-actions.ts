@@ -567,6 +567,7 @@ export async function applyWorldCommand(
       "BUILD",
       "CONTEST_DECLARE",
       "CONTEST_DEFEND",
+      "ATTEST",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -1150,6 +1151,9 @@ export async function applyWorldCommand(
         pushEvent,
         settleEv,
       );
+    }
+    if (action.arguments.operation === "ATTEST") {
+      return applyAttest(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
@@ -1841,6 +1845,75 @@ async function applyContestDefend(
     reason: "CONTEST_DEFEND",
   });
   const result = success(w, principal, request_id, events, `Defense reserved on ${contest_id}.`, false);
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function applyAttest(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const room = w.rooms[pl.room_id];
+  if (!room) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+  if (isHiddenRoom(room)) {
+    return fail(request_id, "NOT_OBSERVABLE", "That place cannot be attested.");
+  }
+  const entity_id = String(args.entity_id || "").trim();
+  const subject = String(args.subject_entity_id || "").trim();
+  const claim = args.archive_claim;
+  if (!entity_id) return fail(request_id, "NOT_FOUND", "Name a visible artifact.");
+  if (!subject || (claim !== "DESTROYED" && claim !== "OPERATING")) {
+    return fail(request_id, "FORBIDDEN", "Subject and claim must be set together.");
+  }
+  const entity = findEntity(room, entity_id);
+  if (!entity) {
+    let elsewhere = false;
+    for (const other of Object.values(w.rooms)) {
+      if (other.room_id === room.room_id) continue;
+      if (findEntity(other, entity_id)) {
+        elsewhere = true;
+        break;
+      }
+    }
+    if (elsewhere) return fail(request_id, "NOT_COLOCATED", "You must be in the same room to attest.");
+    return fail(request_id, "NOT_FOUND", `You do not see “${entity_id}” here.`);
+  }
+  if ((entity.entity_type || "").toUpperCase() !== "ARTIFACT") {
+    return fail(request_id, "FORBIDDEN", "Only an artifact can hold an archive claim.");
+  }
+  if (entity.archive_subject_entity_id || entity.archive_claim) {
+    return fail(request_id, "FORBIDDEN", "That claim is already set.");
+  }
+  if (!canPay(pl.budgets, COSTS.ATTEST)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+  }
+  debit(pl.budgets, COSTS.ATTEST);
+  entity.archive_subject_entity_id = subject;
+  entity.archive_claim = claim;
+  const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+  if (idx >= 0) room.entities[idx] = entity;
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: COSTS.ATTEST,
+    reason: "ATTEST",
+  });
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: entity.entity_id,
+    operation: "ATTEST",
+    set: {
+      archive_subject_entity_id: subject,
+      archive_claim: claim,
+    },
+  });
+  await settleEv(ev);
+  const result = success(w, principal, request_id, events, `You attest ${titleCaseLabel(entity.label)}.`, false);
   w.seen_idempotency[idem] = result;
   return result;
 }
