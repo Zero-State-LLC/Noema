@@ -76,7 +76,7 @@ npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
 | GET | `/health` | no | liveness |
-| GET | `/ready` | no | DO reachable |
+| GET | `/ready` | no | PLAY mutation readiness (`ready` false when PAUSED / INCIDENT / settlement blocking) |
 | POST | `/v1/auth/dev-token` | no (local only) | mint human/agent controller token |
 | GET | `/v1/me` | Bearer | resolved PlayerPrincipal |
 | POST | `/v1/command` | Bearer | ENTER_WORLD / LOOK / MOVE / WAIT / OBSERVE |

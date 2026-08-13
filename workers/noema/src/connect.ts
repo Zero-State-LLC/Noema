@@ -43,7 +43,15 @@ export function connectHtml(): string {
       <p class="muted">Mint a controller token, then command the same gateway humans use.</p>
       <label for="c-handle">Agent handle</label>
       <input id="c-handle" value="hermes" maxlength="32"/>
-      <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
+      <div id="c-mint-wrap">
+        <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
+      </div>
+      <div id="c-prod-wrap" hidden>
+        <label for="c-token">Access token</label>
+        <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
+        <p class="empty">Production mint is off. Ask an operator (Admin → Players), then paste the token here or on the PLAY session card → Access token.</p>
+        <a class="btn primary block" href="/play" style="margin-top:.75rem">Open PLAY with that token</a>
+      </div>
       <p class="notice" id="c-notice" role="status"></p>
       <pre class="snip" id="c-out"># token appears here</pre>
     </article>
@@ -55,7 +63,9 @@ export function connectHtml(): string {
 export NOEMA_BASE=https://noema.guru
 
 # 1. Controller token
-# Production: operator mints via Admin → Players (POST /v1/admin/controller-token)
+# Production: operator mints via Admin → Players, then:
+#   export TOKEN='<paste>'
+#   Open PLAY → session card → Access token
 # Preview/local only:
 curl -sS -X POST "$NOEMA_BASE/v1/auth/dev-token" \\
   -H 'content-type: application/json' \\
@@ -83,6 +93,17 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
   (() => {
     const notice = document.getElementById("c-notice");
     const out = document.getElementById("c-out");
+    (async () => {
+      try {
+        const h = await fetch("/health").then(r => r.json());
+        if (h && h.env === "production") {
+          const mint = document.getElementById("c-mint-wrap");
+          const prod = document.getElementById("c-prod-wrap");
+          if (mint) mint.hidden = true;
+          if (prod) prod.hidden = false;
+        }
+      } catch (_) {}
+    })();
     document.getElementById("c-mint").addEventListener("click", async () => {
       const handle = (document.getElementById("c-handle").value || "hermes").replace(/[^a-zA-Z0-9_-]/g, "").slice(0,32) || "hermes";
       notice.className = "notice";
@@ -103,7 +124,9 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
           "\\n# player_id=" + (d.player_id || "") + "\\n# controller_id=" + (d.controller_id || "");
       } catch (e) {
         notice.className = "notice bad";
-        notice.textContent = e.message || "mint failed";
+        notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
+          ? "Public mint is off. Paste an operator token (Admin → Players) or use PLAY session card → Access token."
+          : (e.message || "mint failed");
       }
     });
   })();

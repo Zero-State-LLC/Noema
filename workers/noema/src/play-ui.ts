@@ -3,11 +3,7 @@
  * Hosted action parity: Specs-aligned parser adapter + presentation.
  */
 
-import {
-  helpText,
-  humanizeActionError,
-  parseHumanCommand,
-} from "./actions";
+import { helpText, parseHumanCommand } from "./actions";
 
 export type ExitObs = {
   direction: string;
@@ -38,7 +34,16 @@ export type LocationObs = {
     display_name: string;
     role: string;
     status: string;
+    operations?: string[];
+    cannot?: string[];
+    line?: string;
+    suggested_cmds?: string[];
   }>;
+};
+
+export type PlayerHere = {
+  player_id: string;
+  handle?: string;
 };
 
 export type Opportunity = {
@@ -215,6 +220,7 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
     });
   }
   for (const s of loc.services || []) {
+    if (String(s.status || "").toUpperCase() === "UNAVAILABLE") continue;
     out.push({
       id: `opp-svc-${s.service_id}`,
       text: `${s.display_name} desk — ${s.role} [${s.status}].`,
@@ -328,10 +334,35 @@ export function parsePlayCommand(line: string, entities: EntityObs[] = []): Pars
 }
 
 export function humanizeError(code?: string, message?: string): { primary: string; advanced?: string } {
-  if (code === "NOT_AUTHORIZED" || code === "UNAUTHORIZED") {
-    return { primary: "You need a session to act here.", advanced: `${code}: ${message || ""}` };
+  const c = (code || "").toUpperCase();
+  const m = message || "That did not work.";
+  if (c === "NOT_AUTHORIZED" || c === "UNAUTHORIZED") {
+    return { primary: "You need a session to act here.", advanced: `${c}: ${m}` };
   }
-  return humanizeActionError(code, message);
+  if (c === "WORLD_PAUSED") {
+    return { primary: "The world is paused for maintenance. You can look, but actions that change it are blocked.", advanced: `${c}: ${m}` };
+  }
+  if (c === "WORLD_INCIDENT") {
+    return { primary: "The world is in incident. Mutation is blocked until an operator restores it.", advanced: `${c}: ${m}` };
+  }
+  if (c === "SETTLEMENT_BLOCKED") {
+    return { primary: "Play is blocked until settlement recovers. Looking still works.", advanced: `${c}: ${m}` };
+  }
+  if (c === "WORLD_NOT_READY") {
+    return { primary: "The world is not ready to enter yet.", advanced: `${c}: ${m}` };
+  }
+  if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: `${c}: ${m}` };
+  if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: `${c}: ${m}` };
+  if (c === "AMBIGUOUS_TARGET") return { primary: m, advanced: c };
+  if (c === "MOVE_REJECTED") return { primary: "You cannot go that way from here.", advanced: `${c}: ${m}` };
+  if (c === "INSPECT_FAILED" || c === "NOT_FOUND") {
+    return { primary: m.includes("see") ? m : "You do not see that here.", advanced: `${c}: ${m}` };
+  }
+  if (c === "NOT_IN_WORLD") return { primary: "Enter the world first.", advanced: `${c}: ${m}` };
+  if (c === "UNKNOWN_COMMAND") return { primary: "That action is not available here yet.", advanced: `${c}: ${m}` };
+  if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
+  if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
+  return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };
 }
 
 export function trailFromResult(opts: {
@@ -442,6 +473,183 @@ export function statusFromObservation(obs: {
   // Only include cycle if meaningful — hide raw sequence from normal status
   if (typeof obs.cycle === "number") rows.push({ label: "Time", value: `cycle ${obs.cycle}` });
   return rows;
+}
+
+export function escHtml(s: string): string {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function renderPlayersHereHtml(players?: PlayerHere[] | null): string {
+  if (!players || !players.length) return "";
+  const rows = players
+    .map((p) => {
+      const name = escHtml(p.handle || p.player_id || "player");
+      return (
+        '<li class="ent player-here">' +
+        '<span class="glyph" aria-hidden="true">○</span>' +
+        "<span><strong>" +
+        name +
+        '</strong><span class="sub">Player</span></span></li>'
+      );
+    })
+    .join("");
+  return '<ul class="ent-list players-here" aria-label="Other players">' + rows + "</ul>";
+}
+
+export function renderServiceDesksHtml(
+  services?: LocationObs["services"] | null,
+): string {
+  if (!services || !services.length) return "";
+  return (
+    '<ul class="desk-list" aria-label="World Services">' +
+    services
+      .map((s) => {
+        const unavailable = String(s.status || "").toUpperCase() === "UNAVAILABLE";
+        const name = s.display_name || "Desk";
+        const talkCmd = "talk " + String(name).toLowerCase();
+        const talk = unavailable
+          ? '<button type="button" class="btn" disabled aria-disabled="true">Talk unavailable</button>'
+          : '<button type="button" class="btn" data-cmd="' +
+            escHtml(talkCmd) +
+            '">Talk ' +
+            escHtml(name) +
+            "</button>";
+        const cannot = (s.cannot || [])
+          .map((c) => "<li>" + escHtml(c) + "</li>")
+          .join("");
+        const cmds = (s.suggested_cmds || [])
+          .map((c) => {
+            return (
+              '<button type="button" class="btn" data-cmd="' +
+              escHtml(c) +
+              '">' +
+              escHtml(c) +
+              "</button>"
+            );
+          })
+          .join("");
+        return (
+          '<li class="desk">' +
+          '<div class="desk-head"><strong>' +
+          escHtml(name) +
+          '</strong><span class="tag">' +
+          escHtml(s.status || "") +
+          "</span></div>" +
+          '<p class="sub">World Service · ' +
+          escHtml(s.role || "") +
+          "</p>" +
+          (s.line ? '<p class="desk-line">' + escHtml(s.line) + "</p>" : "") +
+          (cannot
+            ? '<p class="sec-title">Cannot</p><ul class="desk-cannot">' + cannot + "</ul>"
+            : "") +
+          '<div class="acts">' +
+          talk +
+          cmds +
+          "</div></li>"
+        );
+      })
+      .join("") +
+    "</ul>"
+  );
+}
+
+export function renderEntityListHtml(entities?: EntityObs[] | null): string {
+  if (!entities || !entities.length) {
+    return '<li class="empty">Nothing notable right here.</li>';
+  }
+  return entities
+    .map((e) => {
+      const name = titleCaseLabel(e.label);
+      let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+      if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
+      if (e.harvestable && e.stock_amount != null) {
+        sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
+      }
+      const glyph = entityConditionGlyph(e.label, e.entity_type);
+      let acts =
+        '<button type="button" class="btn" data-cmd="inspect ' +
+        escHtml(e.label) +
+        '">Inspect ' +
+        escHtml(name) +
+        "</button>";
+      if (e.repairable) {
+        acts +=
+          '<button type="button" class="btn primary" data-cmd="repair ' +
+          escHtml(e.label) +
+          '">Repair ' +
+          escHtml(name) +
+          "</button>";
+      }
+      if (e.harvestable) {
+        acts +=
+          '<button type="button" class="btn" data-cmd="harvest ' +
+          escHtml(e.label) +
+          '">Harvest ' +
+          escHtml(name) +
+          "</button>";
+      }
+      return (
+        '<li class="ent">' +
+        '<span class="glyph" aria-hidden="true">' +
+        glyph +
+        "</span>" +
+        "<span><strong>" +
+        escHtml(name) +
+        '</strong><span class="sub">' +
+        escHtml(sub) +
+        "</span></span>" +
+        '<span class="acts">' +
+        acts +
+        "</span></li>"
+      );
+    })
+    .join("");
+}
+
+export function renderOpportunitiesHtml(loc: LocationObs): string {
+  const opps = deriveOpportunities(loc);
+  if (!opps.length) {
+    return '<li class="empty">No clear local pressure — try looking or following a route.</li>';
+  }
+  return opps
+    .map((o) => {
+      return (
+        '<li class="opp"><p>' +
+        escHtml(o.text) +
+        '</p><button type="button" class="btn primary" data-cmd="' +
+        escHtml(o.cmd) +
+        '">' +
+        escHtml(o.actionLabel) +
+        "</button></li>"
+      );
+    })
+    .join("");
+}
+
+/** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
+export function playUiRuntimeSource(): string {
+  return [
+    escHtml,
+    titleCaseLabel,
+    entityKindPhrase,
+    entityConditionGlyph,
+    entityConditionText,
+    deriveLocalCondition,
+    deriveOpportunities,
+    humanizeError,
+    trailFromResult,
+    routeDiagram,
+    statusFromObservation,
+    renderPlayersHereHtml,
+    renderServiceDesksHtml,
+    renderEntityListHtml,
+    renderOpportunitiesHtml,
+  ]
+    .map((fn) => fn.toString())
+    .join("\n");
 }
 
 /** Redaction check helper for tests */

@@ -1,5 +1,6 @@
 /** Text-first PLAY — situation, opportunity, action, consequence. */
 
+import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -10,9 +11,23 @@ const EXTRA = `
 }
 @media(max-width:900px){
   .play-grid{grid-template-columns:1fr}
-  .play-side-advanced{order:3}
-  .play-status-card,.play-trail-card{order:2}
+  .side{order:-1}
 }
+.play-health{
+  margin:0 0 .75rem;padding:.7rem .85rem;border:1px solid rgba(196,120,74,.45);
+  border-radius:var(--r);background:var(--copper-soft);font-size:.88rem;
+}
+.play-health[hidden]{display:none!important}
+.desk-list{display:grid;gap:.55rem;margin:.65rem 0 0;padding:0;list-style:none}
+.desk{
+  padding:.75rem .8rem;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(7,10,16,.45);
+}
+.desk-head{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;justify-content:space-between}
+.desk-line{margin:.45rem 0 0;color:var(--ink);font-size:.88rem;line-height:1.45;overflow-wrap:anywhere}
+.desk-cannot{margin:.25rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:.8rem}
+.desk .acts{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
+.players-here{margin:.55rem 0 0}
 
 /* —— WHERE YOU ARE —— */
 .loc{
@@ -50,9 +65,9 @@ const EXTRA = `
 /* opportunities */
 .opp-list{display:grid;gap:.4rem;margin:0;padding:0;list-style:none}
 .opp{
-  display:grid;grid-template-columns:1fr auto;gap:.55rem;align-items:center;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.55rem;align-items:center;
   padding:.65rem .75rem;border:1px solid var(--line);border-radius:var(--r);
-  background:rgba(7,10,16,.35);text-align:left;
+  background:rgba(7,10,16,.35);text-align:left;overflow-wrap:anywhere;
 }
 .opp p{margin:0;color:var(--ink);font-size:.9rem;line-height:1.4}
 .opp .btn{min-height:2.15rem;padding:.4rem .7rem;font-size:.78rem}
@@ -60,9 +75,9 @@ const EXTRA = `
 /* entities */
 .ent-list{display:grid;gap:.4rem;margin:0;padding:0;list-style:none}
 .ent{
-  display:grid;grid-template-columns:auto 1fr auto;gap:.55rem;align-items:center;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.55rem;align-items:center;
   padding:.65rem .75rem;border:1px solid var(--line);border-radius:var(--r);
-  background:rgba(7,10,16,.4);
+  background:rgba(7,10,16,.4);overflow-wrap:anywhere;
 }
 .ent .glyph{
   width:1.55rem;height:1.55rem;display:grid;place-items:center;
@@ -90,12 +105,18 @@ const EXTRA = `
 
 /* command */
 .cmd{
-  position:sticky;bottom:.55rem;z-index:5;margin-top:.75rem;padding:1rem;
+  margin-top:.75rem;padding:1rem;
   border:1px solid var(--line);border-radius:var(--r);
-  background:rgba(12,18,24,.97);backdrop-filter:blur(10px);
-  box-shadow:0 -8px 40px rgba(0,0,0,.28);
+  background:rgba(12,18,24,.97);
 }
-.cmdform{display:grid;grid-template-columns:1fr auto;gap:.5rem}
+@media(min-width:901px){
+  .cmd{
+    position:sticky;bottom:.55rem;z-index:5;
+    backdrop-filter:blur(10px);box-shadow:0 -8px 40px rgba(0,0,0,.28);
+  }
+  .play-main{padding-bottom:1.25rem}
+}
+.cmdform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}
 .cmd input{
   min-height:2.6rem;font-family:var(--font-mono);font-size:.9rem;
   color:var(--teal);border-color:var(--line-hot);
@@ -158,6 +179,7 @@ export function playHtml(): string {
 
   <div class="play-grid">
     <section class="play-main" aria-label="World">
+      <p class="play-health" id="play-health" hidden role="status"></p>
       <article class="card loc" id="loc-card">
         <p class="world-line" id="world-line">Not in world</p>
         <h2 class="loc-name" id="room-name">Outside</h2>
@@ -173,6 +195,8 @@ export function playHtml(): string {
         <ul class="ent-list" id="entity-list" aria-label="Nearby objects">
           <li class="empty">Nothing visible until you enter.</li>
         </ul>
+        <div id="players-here"></div>
+        <div id="desk-list"></div>
         <div class="route-box" id="route-box" hidden aria-label="Local routes"></div>
         <ul class="exit-list" id="exit-list" aria-label="Exits"></ul>
       </article>
@@ -192,11 +216,11 @@ export function playHtml(): string {
       <article class="cmd" aria-label="Command line">
         <form class="cmdform" id="cmd-form">
           <label class="sr" for="cmd">Command</label>
-          <input id="cmd" autocomplete="off" spellcheck="false"
-            placeholder='look · repair scarred conduit · harvest bond-board · message alice "hi" · trade bob offer=energy:1 want=compute:1 · help' disabled/>
+          <input id="cmd" autocomplete="off" spellcheck="false" placeholder="look" disabled
+            aria-describedby="cmd-hint"/>
           <button class="btn primary" id="send" type="submit" disabled>Send</button>
         </form>
-        <p class="hint">Commands and buttons use the same actions.</p>
+        <p class="hint" id="cmd-hint">look · move east · inspect · repair · harvest · talk · message · trade · help. Buttons run the same actions.</p>
         <p class="notice" id="notice" role="status"></p>
       </article>
 
@@ -218,7 +242,7 @@ export function playHtml(): string {
           <div id="token-primary" hidden>
             <label for="token-paste">Access token</label>
             <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-            <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin">Admin → Players</a> (operator mint). Public minting is disabled.</p>
+            <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin#players">Admin → Players</a> (operator mint). Public minting is disabled. Paste it in the Access token field on this session card.</p>
           </div>
           <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
           <p class="empty" style="margin-top:.65rem">Agents: use <a href="/connect">Connect</a>.</p>
@@ -260,7 +284,7 @@ export function playHtml(): string {
   </div>
 
   <script type="module">
-  // Inline pure helpers (bundled into Worker HTML — keep in sync with play-ui.ts semantics)
+  // Presentation helpers are serialized from play-ui.ts (single source).
   ${playClientBundle()}
   </script>
   `;
@@ -292,147 +316,7 @@ function playClientBundle(): string {
     };
     const storeKey = "noema.play.v2";
 
-    function titleCaseLabel(raw) {
-      return String(raw || "").replace(/[_-]+/g, " ").replace(/\\s+/g, " ").trim()
-        .replace(/\\b\\w/g, (c) => c.toUpperCase());
-    }
-    function entityKindPhrase(entity_type) {
-      const t = (entity_type || "").toUpperCase();
-      if (t === "INFRASTRUCTURE") return "infrastructure";
-      if (t === "RUIN") return "ruin";
-      if (t === "ARTIFACT") return "artifact";
-      return "object";
-    }
-    function entityConditionGlyph(label, entity_type) {
-      const s = (label + " " + entity_type).toLowerCase();
-      if (/scar|damag|fail|broken|ruin|ghost|dead/.test(s)) return "◐";
-      if (/unknown|fragment|partial|incomplete/.test(s)) return "?";
-      return "●";
-    }
-    function entityConditionText(label, entity_type) {
-      const s = (label + " " + entity_type).toLowerCase();
-      if (/scar|damag|broken/.test(s)) return "damaged";
-      if (/fail|ruin|dead/.test(s)) return "ruined";
-      if (/ghost|partial|fragment|incomplete/.test(s)) return "partial / incomplete";
-      if (/market|board|post/.test(s)) return "trade access present";
-      if (entity_type === "ARTIFACT") return "surviving record";
-      return "present";
-    }
-    function deriveLocalCondition(loc) {
-      if (loc.condition) return loc.condition;
-      const blob = (loc.description + " " + (loc.entities||[]).map(e => e.label).join(" ")).toLowerCase();
-      const bits = [];
-      if (/scar|damag|broken|fail/.test(blob)) bits.push("Local infrastructure shows damage.");
-      if (/trade|market|exchange|bond/.test(blob)) bits.push("Trade structures are nearby.");
-      if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
-      if (!bits.length) bits.push((loc.entities||[]).length ? "Objects here can be inspected." : "Open ground — exits are your next information.");
-      return bits.slice(0,2).join(" ");
-    }
-    function deriveOpportunities(loc) {
-      const out = [];
-      for (const e of loc.entities || []) {
-        const name = titleCaseLabel(e.label);
-        const cond = entityConditionText(e.label, e.entity_type);
-        const inspectCmd = "inspect " + e.label;
-        if (/scar|damag|broken|fail|ruin/i.test(e.label + " " + e.entity_type)) {
-          out.push({ text: name + " looks " + cond + ".", actionLabel: "Inspect " + name, cmd: inspectCmd, priority: 10 });
-        } else if (/market|board|post|trade/i.test(e.label)) {
-          out.push({ text: name + " — trade access may be reachable here.", actionLabel: "Inspect " + name, cmd: inspectCmd, priority: 8 });
-        } else if (e.entity_type === "ARTIFACT" || /ledger|archive|record/i.test(e.label)) {
-          out.push({ text: name + " is a surviving record.", actionLabel: "Inspect " + name, cmd: inspectCmd, priority: 9 });
-        } else {
-          out.push({ text: name + " is here (" + cond + ").", actionLabel: "Inspect " + name, cmd: inspectCmd, priority: 5 });
-        }
-      }
-      for (const x of loc.exits || []) {
-        const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id||"").replace(/^room\\./,""));
-        out.push({ text: "A route leads " + x.direction + " toward " + dest + ".", actionLabel: "Move " + x.direction, cmd: "move " + x.direction, priority: 3 });
-      }
-      out.sort((a,b) => b.priority - a.priority);
-      return out.slice(0, 6);
-    }
-    function resolveEntityTarget(raw, entities) {
-      const t = String(raw||"").trim().toLowerCase().replace(/\\s+/g, " ");
-      if (!t) return null;
-      for (const e of entities || []) {
-        if (e.entity_id.toLowerCase() === t) return e;
-        if (e.label.toLowerCase() === t) return e;
-        if (titleCaseLabel(e.label).toLowerCase() === t) return e;
-        const lab = e.label.toLowerCase().replace(/[_-]+/g, " ");
-        if (lab.includes(t) || t.includes(lab)) return e;
-        const tw = new Set(t.split(" ").filter(Boolean));
-        if (lab.split(" ").some(w => tw.has(w) && w.length > 2)) return e;
-      }
-      return null;
-    }
-    function parsePlayCommand(line, entities) {
-      const trimmed = line.trim();
-      if (!trimmed) return { ok: false, error: "Type a command, or use an action below." };
-      // Prefer server-side normalization via line argument for full Tier 1 map
-      return { ok: true, command: "LOOK", arguments: { line: trimmed }, display: trimmed, useLine: true };
-    }
-    function humanizeError(code, message) {
-      const c = (code || "").toUpperCase();
-      const m = message || "That did not work.";
-      if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: c + ": " + m };
-      if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: c + ": " + m };
-      if (c === "AMBIGUOUS_TARGET") return { primary: m, advanced: c };
-      if (c === "MOVE_REJECTED") return { primary: "You cannot go that way from here.", advanced: c + ": " + m };
-      if (c === "INSPECT_FAILED" || c === "NOT_FOUND") return { primary: "You do not see that here.", advanced: c + ": " + m };
-      if (c === "NOT_IN_WORLD") return { primary: "Enter the world first.", advanced: c + ": " + m };
-      if (c === "NOT_AUTHORIZED") return { primary: "You need a session to act here.", advanced: c + ": " + m };
-      if (c === "UNKNOWN_COMMAND") return { primary: "That action is not available here yet.", advanced: c + ": " + m };
-      if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || "" };
-      return { primary: "Something blocked that action.", advanced: c ? c + ": " + m : m };
-    }
-    function routeDiagram(hereName, exits) {
-      if (!exits || !exits.length) return { lines: [], hasRoutes: false };
-      const byDir = {};
-      for (const x of exits) {
-        byDir[x.direction.toLowerCase()] = x.to_room_name || titleCaseLabel(String(x.to_room_id||"").replace(/^room\\./,""));
-      }
-      const n = byDir.north || byDir.up || byDir.n;
-      const s = byDir.south || byDir.down || byDir.s;
-      const e = byDir.east || byDir.e;
-      const w = byDir.west || byDir.w;
-      const lines = [];
-      if (n) { lines.push("        " + n); lines.push("           ↑"); }
-      const mid = "YOU · " + hereName;
-      if (w || e) lines.push((w ? w + " ← " : "        ") + mid + (e ? " → " + e : ""));
-      else lines.push("        " + mid);
-      if (s) { lines.push("           ↓"); lines.push("        " + s); }
-      for (const [dir, dest] of Object.entries(byDir)) {
-        if (["north","south","east","west","up","down","n","s","e","w"].includes(dir)) continue;
-        lines.push(dir + " → " + dest);
-      }
-      return { lines, hasRoutes: lines.length > 0 };
-    }
-    function statusFromObservation(obs) {
-      if (!obs || !obs.location) return [];
-      const loc = obs.location;
-      const rows = [];
-      if (obs.world_name) rows.push({ label: "World", value: obs.world_name });
-      rows.push({ label: "Place", value: loc.name });
-      rows.push({ label: "Exits", value: String((loc.exits||[]).length) });
-      rows.push({ label: "Nearby", value: String((loc.entities||[]).length) });
-      if (typeof obs.cycle === "number") rows.push({ label: "Time", value: "cycle " + obs.cycle });
-      return rows;
-    }
-    function trailFromResult(opts) {
-      if (!opts.ok) return [{ kind: "fail", title: opts.errorPrimary || "Action failed." }];
-      const items = [{ kind: "you", title: opts.display }];
-      const cmd = opts.command.toUpperCase();
-      const loc = opts.observation && opts.observation.location;
-      if (cmd === "MOVE" && loc) items.push({ kind: "local", title: "You arrive at " + loc.name + ".", detail: (loc.description||"").slice(0,160) });
-      else if (cmd === "INSPECT" && loc) {
-        const desc = loc.description || "";
-        const bit = desc.includes("You inspect") ? desc.split("You inspect").slice(1).join("You inspect").trim() : "";
-        items.push({ kind: "local", title: bit ? ("You learn more: " + bit.slice(0,180)) : "Closer look — details become clearer." });
-      } else if (cmd === "LOOK" && loc) items.push({ kind: "local", title: loc.name + " is clear to you now." });
-      else if (cmd === "WAIT") items.push({ kind: "world", title: "Time passes." });
-      else if (cmd === "ENTER_WORLD" && loc) items.push({ kind: "local", title: "You stand in " + loc.name + ".", detail: (loc.description||"").slice(0,160) });
-      return items;
-    }
+    ${playUiRuntimeSource()}
 
     const notice = (msg, kind) => {
       const el = $("notice");
@@ -451,6 +335,8 @@ function playClientBundle(): string {
       $("cmd").disabled = !on;
       $("send").disabled = !on;
       $("handle-live").textContent = state.handle || "—";
+      if (on) $("cmd").focus();
+      else $("handle").focus();
     }
 
     async function api(path, opts) {
@@ -498,12 +384,16 @@ function playClientBundle(): string {
 
     function renderObs(obs) {
       state.obs = obs;
+      const desksEl = $("desk-list");
+      const playersEl = $("players-here");
       if (!obs || !obs.location) {
         $("world-line").textContent = "Not in world";
         $("room-name").textContent = "Outside";
         $("room-desc").textContent = "Enter to take a position. What you see is what the world shows you.";
         $("loc-cond").hidden = true;
         $("entity-list").innerHTML = '<li class="empty">Nothing visible until you enter.</li>';
+        if (playersEl) playersEl.innerHTML = "";
+        if (desksEl) desksEl.innerHTML = "";
         $("opp-list").innerHTML = '<li class="empty">Enter the world to see local opportunities.</li>';
         $("exit-list").innerHTML = "";
         $("route-box").hidden = true;
@@ -512,7 +402,7 @@ function playClientBundle(): string {
         $("meta-seq").textContent = "—";
         return;
       }
-      const loc = obs.location;
+      const loc = Object.assign({}, obs.location, { services: obs.location.services || obs.services || [] });
       $("world-line").textContent = obs.world_name || "In world";
       $("room-name").textContent = loc.name || "Unknown place";
       $("room-desc").textContent = loc.description || "";
@@ -522,40 +412,15 @@ function playClientBundle(): string {
 
       const ents = loc.entities || [];
       $("entity-list").innerHTML = ents.length
-        ? ents.map(e => {
-            const name = titleCaseLabel(e.label);
-            let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
-            if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
-            if (e.harvestable && e.stock_amount != null) sub = (e.stock_amount) + " " + (e.stock_resource || "resource") + " · " + sub;
-            const glyph = entityConditionGlyph(e.label, e.entity_type);
-            let acts = '<button type="button" class="btn" data-cmd="inspect ' + esc(e.label) + '">Inspect</button>';
-            if (e.repairable) acts += '<button type="button" class="btn primary" data-cmd="repair ' + esc(e.label) + '">Repair</button>';
-            if (e.harvestable) acts += '<button type="button" class="btn" data-cmd="harvest ' + esc(e.label) + '">Harvest</button>';
-            return '<li class="ent">' +
-              '<span class="glyph" aria-hidden="true">' + glyph + '</span>' +
-              '<span><strong>' + esc(name) + '</strong><span class="sub">' + esc(sub) + '</span></span>' +
-              '<span class="acts">' + acts + '</span>' +
-              '</li>';
-          }).join("")
+        ? renderEntityListHtml(ents)
         : '<li class="empty">Nothing notable right here.</li>';
-      const svcs = obs.services || [];
-      if (svcs.length) {
-        const desk = svcs.map(s => {
-          const cmd = "talk " + String(s.display_name||"").toLowerCase();
-          return '<li class="ent">' +
-            '<span class="glyph" aria-hidden="true">▣</span>' +
-            '<span><strong>' + esc(s.display_name||"Desk") + '</strong><span class="sub">World Service · ' + esc(s.status||"") + ' · ' + esc(s.role||"") + '</span></span>' +
-            '<span class="acts"><button type="button" class="btn" data-cmd="' + esc(cmd) + '">Talk</button></span>' +
-            '</li>';
-        }).join("");
-        if (ents.length) $("entity-list").innerHTML += desk;
-        else $("entity-list").innerHTML = desk;
-      }
+      if (playersEl) playersEl.innerHTML = renderPlayersHereHtml(obs.players_here);
+      if (desksEl) desksEl.innerHTML = renderServiceDesksHtml(loc.services);
 
       const exits = loc.exits || [];
       $("exit-list").innerHTML = exits.map(x => {
         const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id||"").replace(/^room\\./,""));
-        return '<li><button type="button" class="btn move" data-cmd="move ' + esc(x.direction) + '">Move ' + esc(x.direction) + ' · ' + esc(dest) + '</button></li>';
+        return '<li><button type="button" class="btn move" data-cmd="move ' + escHtml(x.direction) + '">Move ' + escHtml(x.direction) + ' · ' + escHtml(dest) + '</button></li>';
       }).join("");
 
       const rd = routeDiagram(loc.name, exits);
@@ -566,15 +431,8 @@ function playClientBundle(): string {
         $("route-box").hidden = true;
       }
 
-      const opps = deriveOpportunities(loc);
-      $("opp-list").innerHTML = opps.length
-        ? opps.map(o =>
-            '<li class="opp"><p>' + esc(o.text) + '</p>' +
-            '<button type="button" class="btn primary" data-cmd="' + esc(o.cmd) + '">' + esc(o.actionLabel) + '</button></li>'
-          ).join("")
-        : '<li class="empty">No clear local pressure — try looking or following a route.</li>';
+      $("opp-list").innerHTML = renderOpportunitiesHtml(loc);
 
-      // Prefer server-derived affordances (available now); fall back to local
       let acts = [];
       if (obs.affordances && obs.affordances.length) {
         acts = obs.affordances.filter(a => a.available).slice(0, 10).map(a => ({
@@ -593,7 +451,7 @@ function playClientBundle(): string {
         acts.push({ label: "Wait", cmd: "wait", cls: "util" });
       }
       $("act-strip").innerHTML = acts.map(a =>
-        '<button type="button" class="btn ' + a.cls + '" data-cmd="' + esc(a.cmd) + '">' + esc(a.label) + '</button>'
+        '<button type="button" class="btn ' + a.cls + '" data-cmd="' + escHtml(a.cmd) + '">' + escHtml(a.label) + '</button>'
       ).join("");
 
       const rows = statusFromObservation(obs);
@@ -604,7 +462,7 @@ function playClientBundle(): string {
         rows.push({ label: "Attention", value: String(obs.budgets.attention) });
       }
       $("status-rows").innerHTML = rows.map(r =>
-        '<li><span>' + esc(r.label) + '</span><b>' + esc(r.value) + '</b></li>'
+        '<li><span>' + escHtml(r.label) + '</span><b>' + escHtml(r.value) + '</b></li>'
       ).join("");
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;
@@ -706,7 +564,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = e.message || "Production requires an operator-issued access token (Admin → Players). Public minting is disabled.";
+          msg = e.message || "Production requires an operator-issued access token. Paste it in Access token on this session card (Admin → Players).";
         }
         sessionNotice(msg, "bad");
         $("err-advanced").textContent = h.advanced || e.message || "";
@@ -727,6 +585,7 @@ function playClientBundle(): string {
       setSessionUi(false);
       sessionNotice("Session cleared.");
       notice("");
+      $("handle").focus();
     }
 
     $("enter").addEventListener("click", () => enterWorld());
@@ -765,6 +624,15 @@ function playClientBundle(): string {
       } catch (_) {
         state.env = "unknown";
       }
+      try {
+        const ready = await fetch("/ready").then(r => r.json());
+        const banner = $("play-health");
+        if (banner && ready && ready.play_blocked) {
+          const h = humanizeError(ready.code, "");
+          banner.hidden = false;
+          banner.textContent = h.primary;
+        }
+      } catch (_) {}
       renderObs(null);
       renderTrail();
 

@@ -8,6 +8,7 @@
  */
 
 import { adminHtml, adminLoginHtml } from "./admin";
+import { playReady } from "./ops";
 import { adminTokenConfigured, mintAdminSession, resolveAdmin } from "./admin-auth";
 import {
   err,
@@ -175,8 +176,35 @@ export default {
         const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
         const stub = env.WORLD_DO.get(id);
         const h = await stub.fetch("https://do/health");
-        const body = await h.json();
-        return cors(json({ ready: true, world: body }));
+        const body = (await h.json().catch(() => ({}))) as {
+          ok?: boolean;
+          status?: string;
+          settlement_health?: string;
+        };
+        if (!h.ok) {
+          const pr = playReady("NOT_ACTIVE", "HEALTHY");
+          return cors(
+            json({
+              ready: false,
+              play_blocked: true,
+              code: "WORLD_NOT_READY",
+              status: pr.status,
+              settlement_health: pr.settlement_health,
+              world: body,
+            }),
+          );
+        }
+        const pr = playReady(body.status, body.settlement_health);
+        return cors(
+          json({
+            ready: pr.ready,
+            play_blocked: pr.play_blocked,
+            code: pr.code,
+            status: pr.status,
+            settlement_health: pr.settlement_health,
+            world: body,
+          }),
+        );
       }
 
       // Public WATCH projection (no auth — spectator)
@@ -228,7 +256,7 @@ export default {
             issued_by: "admin",
             admin_session_id: admin.session_id,
             note:
-              "Controller token for a Player. Paste into PLAY Advanced details or use as Bearer for agents. Not an ADMIN session.",
+              "Controller token for a Player. Paste into PLAY session card → Access token or use as Bearer for agents. Not an ADMIN session.",
           }),
         );
       }

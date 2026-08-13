@@ -4,6 +4,7 @@ import {
   isMutatingCommand,
   mutationBlocked,
   nextSettlementHealth,
+  playReady,
 } from "../src/ops";
 
 describe("command mutation class", () => {
@@ -45,6 +46,39 @@ describe("PAUSED / INCIDENT / settlement bound", () => {
   it("returns HEALTHY after a successful settle", () => {
     expect(nextSettlementHealth("DEGRADED", true)).toBe("HEALTHY");
     expect(nextSettlementHealth("BLOCKING", true)).toBe("HEALTHY");
+  });
+});
+
+describe("playReady", () => {
+  it("is ready when ACTIVE and HEALTHY", () => {
+    const r = playReady("ACTIVE", "HEALTHY");
+    expect(r.ready).toBe(true);
+    expect(r.play_blocked).toBe(false);
+    expect(r.code).toBeNull();
+  });
+
+  it("blocks PAUSED", () => {
+    const r = playReady("PAUSED", "HEALTHY");
+    expect(r.ready).toBe(false);
+    expect(r.code).toBe("WORLD_PAUSED");
+  });
+
+  it("blocks INCIDENT", () => {
+    expect(playReady("INCIDENT", "HEALTHY").code).toBe("WORLD_INCIDENT");
+  });
+
+  it("blocks settlement BLOCKING", () => {
+    expect(playReady("ACTIVE", "BLOCKING").code).toBe("SETTLEMENT_BLOCKED");
+  });
+
+  it("treats NOT_ACTIVE as not ready", () => {
+    const r = playReady("NOT_ACTIVE", "HEALTHY");
+    expect(r.ready).toBe(false);
+    expect(r.code).toBe("WORLD_NOT_READY");
+  });
+
+  it("allows DEMO_SEED", () => {
+    expect(playReady("DEMO_SEED", "HEALTHY").ready).toBe(true);
   });
 });
 

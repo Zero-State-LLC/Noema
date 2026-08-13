@@ -10,7 +10,7 @@ const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"/>
 const CSS = `
 :root{
   color-scheme:dark;
-  --void:#070a10;--panel:#121a22;--panel-2:#18232d;--ink:#ebe6d8;--muted:#9b9587;--faint:#6a655c;
+  --void:#070a10;--panel:#121a22;--panel-2:#18232d;--ink:#ebe6d8;--muted:#9b9587;--faint:#8a8478;
   --line:#2a3342;--line-hot:#3d4a58;--copper:#c4784a;--copper-soft:rgba(196,120,74,.14);
   --teal:#6b9b8f;--ember:#c46a5a;--copper-ink:#1a1008;
   --font-display:"Fraunces",Georgia,serif;--font-body:"Source Sans 3",system-ui,sans-serif;
@@ -135,7 +135,9 @@ export function adminLoginHtml(): string {
       if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
       sessionStorage.setItem("noema.admin.token", data.access_token);
       sessionStorage.setItem("noema.admin.session", data.session_id);
-      location.href = "/admin";
+      const next = sessionStorage.getItem("noema.admin.next") || "";
+      sessionStorage.removeItem("noema.admin.next");
+      location.href = "/admin" + (next.startsWith("#") ? next : "");
     } catch (err) {
       notice.className = "notice bad";
       notice.textContent = err.message || "ADMIN unavailable";
@@ -208,8 +210,21 @@ export function adminHtml(): string {
             <span class="tag" id="world-tag">—</span>
           </div>
           <dl class="kv" id="kv-world" style="margin-top:.75rem"></dl>
+          <p class="kicker" style="margin-top:1rem">Lifecycle</p>
+          <p class="empty">Pause rejects mutating PLAY. Resume requires settlement not BLOCKING. Incident fail-closes mutation.</p>
+          <label for="life-reason">Reason (optional)</label>
+          <input id="life-reason" maxlength="200" autocomplete="off" placeholder="maintenance window"/>
+          <div class="btn-row" style="margin-top:.7rem">
+            <button class="btn" type="button" id="life-pause">Pause</button>
+            <button class="btn" type="button" id="life-resume">Resume</button>
+          </div>
+          <div class="danger" style="margin-top:.75rem">
+            <label><input type="checkbox" id="life-incident-confirm"/><span>I understand Declare incident fail-closes mutating PLAY until recovery.</span></label>
+            <button class="btn danger" type="button" id="life-incident" disabled style="margin-top:.7rem">Declare incident</button>
+          </div>
+          <p class="notice" id="life-notice" role="status"></p>
         </article>
-        <article class="card pad s5">
+        <article class="card pad s5" id="reseed-card">
           <p class="kicker">Consequential</p>
           <h2 style="font-size:1.1rem">Reseed Stage 0 Chamber</h2>
           <p class="muted">Restores the fixed chamber seed. Clears live player positions in this Durable Object. Not a full Genesis profile run.</p>
@@ -217,7 +232,7 @@ export function adminHtml(): string {
             <label><input type="checkbox" id="reseed-confirm"/><span>I understand reseed resets live Stage 0 world state in this DO.</span></label>
             <button class="btn danger" type="button" id="reseed" disabled style="margin-top:.7rem">Reseed chamber</button>
           </div>
-          <p class="notice" id="reseed-notice"></p>
+          <p class="notice" id="reseed-notice" role="status"></p>
         </article>
       </div>
     </section>
@@ -225,7 +240,7 @@ export function adminHtml(): string {
     <section class="section" id="digests">
       <p class="kicker">02b / operator digests</p>
       <h2>Gameplay summaries</h2>
-      <p class="muted">Settled activity only. Not alerts. Not world truth. Email is optional and off by default.</p>
+      <p class="muted">Settled activity only. Not alerts. Not world truth. Incidents are controlled under World. Email is optional and off by default.</p>
       <div class="grid" style="margin-top:.75rem">
         <article class="card pad s5">
           <p class="kicker">Configuration</p>
@@ -251,7 +266,7 @@ export function adminHtml(): string {
             <button class="btn primary" type="button" id="d-save">Save</button>
             <button class="btn quiet" type="button" id="d-tick">Generate due windows</button>
           </div>
-          <p class="notice" id="d-notice"></p>
+          <p class="notice" id="d-notice" role="status"></p>
         </article>
         <article class="card pad s7">
           <p class="kicker">Latest digest</p>
@@ -336,7 +351,7 @@ export function adminHtml(): string {
         </article>
         <article class="card pad s12">
           <p class="kicker">Issue controller token</p>
-          <p class="muted" style="margin-top:.35rem">Mints a Player access token (not ADMIN). Paste into PLAY → Advanced details, or use as Bearer for agents. Does not re-enable public dev-token.</p>
+          <p class="muted" style="margin-top:.35rem">Mints a Player access token (not ADMIN). Paste into PLAY session card → Access token, or use as Bearer for agents. Does not re-enable public dev-token.</p>
           <div class="grid" style="margin-top:.5rem">
             <div class="s4">
               <label for="tok-handle">Handle</label>
@@ -393,7 +408,11 @@ export function adminHtml(): string {
 <script>
 (() => {
   const token = sessionStorage.getItem("noema.admin.token");
-  if (!token) { location.href = "/admin/login"; return; }
+  if (!token) {
+    if (location.hash) sessionStorage.setItem("noema.admin.next", location.hash);
+    location.href = "/admin/login";
+    return;
+  }
 
   const $ = (id) => document.getElementById(id);
   const notice = (msg, kind="") => { const el=$("notice"); el.textContent=msg||""; el.className="notice"+(kind?" "+kind:""); };
@@ -496,6 +515,8 @@ export function adminHtml(): string {
       kv($("kv-world"), [
         ["World id", w.world_id],
         ["Name", w.world_name],
+        ["Status", g.status],
+        ["Settlement health", w.settlement_health || g.settlement_health || "—"],
         ["Cycle", w.cycle],
         ["Sequence", w.sequence],
         ["Players present", w.players_present],
@@ -503,6 +524,14 @@ export function adminHtml(): string {
         ["Entities", w.entity_count],
         ["Entry", w.entry_room_id],
       ]);
+      const lifePause = $("life-pause");
+      const lifeResume = $("life-resume");
+      if (lifePause) lifePause.disabled = g.status !== "ACTIVE";
+      if (lifeResume) lifeResume.disabled = g.status !== "PAUSED";
+      const reseedCard = $("reseed-card");
+      if (reseedCard) {
+        reseedCard.hidden = h.env === "production";
+      }
       kv($("kv-genesis"), [
         ["Status", g.status],
         ["Genesis ID", g.genesis_id],
@@ -519,7 +548,8 @@ export function adminHtml(): string {
       const active = g.status === "ACTIVE" && g.config_frozen;
       $("genesis-active-banner").hidden = !active;
       $("genesis-editor").style.opacity = active ? "0.55" : "1";
-      $("genesis-editor").style.pointerEvents = active ? "none" : "auto";
+      if (active) $("genesis-editor").setAttribute("inert", "");
+      else $("genesis-editor").removeAttribute("inert");
       if (active) {
         $("genesis-active-copy").textContent =
           " Genesis " + (g.genesis_id||"") + " · digest " + (g.cycle0_digest||"") +
@@ -572,6 +602,36 @@ export function adminHtml(): string {
     }
   }
 
+  $("life-incident-confirm").addEventListener("change", (e) => {
+    $("life-incident").disabled = !e.target.checked;
+  });
+  async function lifecycle(action) {
+    const n = $("life-notice");
+    n.className = "notice";
+    n.textContent = action === "incident" ? "Declaring incident…" : action === "pause" ? "Pausing…" : "Resuming…";
+    try {
+      const r = await api("/v1/admin/lifecycle", {
+        method: "POST",
+        body: JSON.stringify({ action, reason: $("life-reason").value || undefined }),
+      });
+      n.className = "notice ok";
+      n.textContent = "World is now " + (r.status || action) + ".";
+      $("life-incident-confirm").checked = false;
+      $("life-incident").disabled = true;
+      await load();
+    } catch (e) {
+      n.className = "notice bad";
+      n.textContent = e.code === "RECOVERY_REQUIRED"
+        ? "Settlement must recover before resume (RECOVERY_REQUIRED)."
+        : (e.message || "Lifecycle change failed");
+    }
+  }
+  $("life-pause").addEventListener("click", () => lifecycle("pause"));
+  $("life-resume").addEventListener("click", () => lifecycle("resume"));
+  $("life-incident").addEventListener("click", () => {
+    if (!$("life-incident-confirm").checked) return;
+    lifecycle("incident");
+  });
   $("d-save").addEventListener("click", async () => {
     $("d-notice").textContent = "Saving…";
     try {
@@ -700,7 +760,7 @@ export function adminHtml(): string {
         "# controller_id=" + (data.controller_id || "") + "\\n" +
         "# controller_type=" + (data.controller_type || ctype) + "\\n" +
         "# expires_in=" + (data.expires_in || "") + "s\\n" +
-        "# PLAY: open /play → Advanced details → paste token → Enter world";
+        "# PLAY: open /play → session card → Access token → Enter world";
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;
@@ -767,6 +827,14 @@ export function adminHtml(): string {
     });
   });
 
+  const hash = location.hash;
+  if (hash) {
+    document.querySelectorAll(".rail-nav a").forEach(x => {
+      x.classList.toggle("active", x.getAttribute("href") === hash);
+    });
+    const target = document.querySelector(hash);
+    if (target) target.scrollIntoView({ block: "start" });
+  }
   load();
 })();
 </script>`,

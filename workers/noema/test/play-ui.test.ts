@@ -6,6 +6,9 @@ import {
   deriveOpportunities,
   humanizeError,
   parsePlayCommand,
+  playUiRuntimeSource,
+  renderPlayersHereHtml,
+  renderServiceDesksHtml,
   resolveEntityTarget,
   routeDiagram,
   statusFromObservation,
@@ -13,6 +16,7 @@ import {
   trailFromResult,
 } from "../src/play-ui";
 import { playHtml } from "../src/play";
+import { studyHtml } from "../src/study";
 
 const GRID: Parameters<typeof deriveOpportunities>[0] = {
   room_id: "room.relay-quarter",
@@ -82,7 +86,8 @@ describe("play-ui helpers", () => {
           o.cmd.startsWith("inspect ") ||
           o.cmd.startsWith("move ") ||
           o.cmd.startsWith("repair ") ||
-          o.cmd.startsWith("harvest "),
+          o.cmd.startsWith("harvest ") ||
+          o.cmd.startsWith("talk "),
       ),
     ).toBe(true);
   });
@@ -179,5 +184,63 @@ describe("play shell HTML", () => {
 
   it("does not embed story seed ids in the shell", () => {
     expect(containsHiddenHistory(html)).toBe(false);
+  });
+
+  it("points production token hint at Admin Players", () => {
+    expect(html).toMatch(/\/admin#players/);
+    expect(html).toMatch(/id="play-health"/);
+    expect(html).toMatch(/id="desk-list"/);
+    expect(html).toMatch(/id="players-here"/);
+  });
+
+  it("embeds play-ui helpers instead of a forked copy", () => {
+    expect(html).toContain("function deriveOpportunities");
+    expect(html).toContain("function renderServiceDesksHtml");
+    expect(playUiRuntimeSource()).toContain("function deriveOpportunities");
+  });
+});
+
+describe("play-ui desks and players", () => {
+  it("disables Talk when a World Service is UNAVAILABLE", () => {
+    const html = renderServiceDesksHtml([
+      {
+        service_id: "service.contracts.01",
+        display_name: "Contract Clerk",
+        role: "agreements",
+        status: "UNAVAILABLE",
+        cannot: ["free-form legal authority"],
+        line: "Agreement operations are not hosted.",
+        suggested_cmds: [],
+      },
+    ]);
+    expect(html).toMatch(/Talk unavailable/);
+    expect(html).toMatch(/aria-disabled="true"/);
+    expect(html).toMatch(/Cannot/);
+    expect(html).not.toMatch(/data-cmd="talk contract clerk"/);
+  });
+
+  it("lists other players separately from objects", () => {
+    const html = renderPlayersHereHtml([
+      { player_id: "player.a", handle: "nacre" },
+      { player_id: "player.b" },
+    ]);
+    expect(html).toMatch(/nacre/);
+    expect(html).toMatch(/player\.b/);
+    expect(html).toMatch(/aria-label="Other players"/);
+  });
+
+  it("humanizes world-gate codes", () => {
+    expect(humanizeError("WORLD_PAUSED", "paused").primary).toMatch(/paused/i);
+    expect(humanizeError("WORLD_INCIDENT", "inc").primary).toMatch(/incident/i);
+    expect(humanizeError("SETTLEMENT_BLOCKED", "block").primary).toMatch(/settlement|blocked/i);
+  });
+});
+
+describe("STUDY explainer", () => {
+  it("does not show fake zero metrics", () => {
+    const html = studyHtml();
+    expect(html).not.toMatch(/id="m-trails"/);
+    expect(html).toMatch(/path explainer/i);
+    expect(html).toMatch(/aria-controls="panel-notice"/);
   });
 });

@@ -621,6 +621,11 @@ export function redactedPublicWorld(meta: {
         entity_type: e.entity_type,
       })),
       exit_count: r.exits.length,
+      exits: r.exits.map((x) => ({
+        direction: x.direction,
+        to_room_id: x.to_room_id,
+        to_room_name: meta.rooms[x.to_room_id]?.name,
+      })),
     })),
     note: "Spectator projection is never world truth and never mutates the ledger.",
   };
