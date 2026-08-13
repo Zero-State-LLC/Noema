@@ -573,7 +573,14 @@ export async function applyWorldCommand(
     sequence: number;
     payload: Record<string, unknown>;
   }) => {
-    settled = (await settle(ev)) || settled;
+    const ok = await settle(ev);
+    if (!ok) {
+      w.unsettled = w.unsettled || [];
+      if (!w.unsettled.some((u) => u.event_id === ev.event_id)) {
+        w.unsettled.push({ event_id: ev.event_id, payload: ev.payload });
+      }
+    }
+    settled = ok || settled;
   };
 
   // ——— ENTER ———
