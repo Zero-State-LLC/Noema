@@ -125,19 +125,21 @@ DO digest == Cycle 0 digest: match.
 
 | Check | Result |
 |-------|--------|
-| Backend accepts Supabase human JWT | CONFIGURED (code path + `SUPABASE_JWT_SECRET`) — **not end-to-end exercised** (no client login in Stage 0 UI) |
-| PLAY / landing enter path | **FAIL for production** — still calls `POST /v1/auth/dev-token` only |
-| Production device enrollment | **MISSING** |
+| Public dev-token in production | **DENIED** (hard gate) |
+| Operator-minted controller tokens | **Production path** — `POST /v1/admin/controller-token` (ADMIN only) |
+| PLAY production enter | Paste operator-issued token (primary when `env=production`) |
+| Supabase human JWT | Optional alternate path (configured); not required for controlled first entry |
 
-**Rule applied:** *Do not activate a production world that legitimate Players cannot safely enter afterward.*
+**Rule applied:** *Do not activate a production world that legitimate Players cannot safely enter afterward.*  
+Controlled entry: Admin → Players → mint human/agent controller token → PLAY.
 
 ### Agent-controller readiness
 
 | Check | Result |
 |-------|--------|
-| Ontology (agent → PlayerPrincipal) | PASS in code |
-| Production mint / enrollment | **FAIL** — CONNECT + docs only use disabled dev-token |
-| Stage 0 production enrollment API | **MISSING** (`/v1/auth/enroll` etc. 404) |
+| Ontology (agent → PlayerPrincipal) | PASS |
+| Production mint | Operator mint with `controller_type: agent` |
+| CONNECT / docs | Admin mint primary; dev-token preview-only |
 
 ---
 

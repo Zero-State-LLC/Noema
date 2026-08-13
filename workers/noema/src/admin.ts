@@ -284,7 +284,7 @@ export function adminHtml(): string {
     <section class="section" id="players">
       <p class="kicker">04 / players</p>
       <h2>Players and connections</h2>
-      <p class="muted">Humans and agents are peers. Controller type is operational metadata, not a world species.</p>
+      <p class="muted">Humans and agents are peers. Controller type is operational metadata, not a world species. Production entry uses <strong>operator-minted</strong> controller tokens — not open dev-token.</p>
       <div class="grid" style="margin-top:.75rem">
         <article class="card pad s4">
           <p class="kicker">World ontology</p>
@@ -294,6 +294,33 @@ export function adminHtml(): string {
         <article class="card pad s8">
           <p class="kicker">Presence</p>
           <ul class="list" id="player-list"><li class="empty">No player positions returned.</li></ul>
+        </article>
+        <article class="card pad s12">
+          <p class="kicker">Issue controller token</p>
+          <p class="muted" style="margin-top:.35rem">Mints a Player access token (not ADMIN). Paste into PLAY → Advanced details, or use as Bearer for agents. Does not re-enable public dev-token.</p>
+          <div class="grid" style="margin-top:.5rem">
+            <div class="s4">
+              <label for="tok-handle">Handle</label>
+              <input id="tok-handle" maxlength="32" placeholder="alice" autocomplete="off"/>
+            </div>
+            <div class="s4">
+              <label for="tok-ctype">Controller</label>
+              <select id="tok-ctype">
+                <option value="human" selected>human (browser)</option>
+                <option value="agent">agent</option>
+              </select>
+            </div>
+            <div class="s4">
+              <label for="tok-ttl">Expires (hours)</label>
+              <input id="tok-ttl" type="number" min="1" max="168" value="24"/>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:.75rem">
+            <button type="button" class="btn primary" id="tok-mint">Mint controller token</button>
+            <button type="button" class="btn quiet" id="tok-copy" disabled>Copy token</button>
+          </div>
+          <p class="notice" id="tok-notice" role="status"></p>
+          <pre class="empty" id="tok-out" style="margin-top:.6rem;padding:.75rem;border:1px solid var(--line);background:#0a1016;white-space:pre-wrap;word-break:break-all;font:.72rem/1.45 var(--font-mono);max-height:12rem;overflow:auto"># token appears here</pre>
         </article>
       </div>
     </section>
@@ -563,6 +590,55 @@ export function adminHtml(): string {
       $("g-notice").textContent = err.message || "Preview failed";
     }
   });
+  let lastControllerToken = "";
+  $("tok-mint").addEventListener("click", async () => {
+    const handle = ($("tok-handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+    const ctype = $("tok-ctype").value || "human";
+    const hours = Math.min(168, Math.max(1, Number($("tok-ttl").value) || 24));
+    $("tok-notice").className = "notice";
+    $("tok-notice").textContent = "Minting…";
+    $("tok-copy").disabled = true;
+    lastControllerToken = "";
+    try {
+      const data = await api("/v1/admin/controller-token", {
+        method: "POST",
+        body: JSON.stringify({
+          handle,
+          controller_type: ctype,
+          expires_in: hours * 3600,
+        }),
+      });
+      lastControllerToken = data.access_token || "";
+      $("tok-out").textContent =
+        "# operator-minted controller token (Player — not ADMIN)\\n" +
+        "export NOEMA_BASE=" + location.origin + "\\n" +
+        "export TOKEN=" + lastControllerToken + "\\n" +
+        "# player_id=" + (data.player_id || "") + "\\n" +
+        "# controller_id=" + (data.controller_id || "") + "\\n" +
+        "# controller_type=" + (data.controller_type || ctype) + "\\n" +
+        "# expires_in=" + (data.expires_in || "") + "s\\n" +
+        "# PLAY: open /play → Advanced details → paste token → Enter world";
+      $("tok-notice").className = "notice ok";
+      $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
+      $("tok-copy").disabled = !lastControllerToken;
+    } catch (e) {
+      $("tok-notice").className = "notice bad";
+      $("tok-notice").textContent = e.message || "mint failed";
+      $("tok-out").textContent = "# mint failed";
+    }
+  });
+  $("tok-copy").addEventListener("click", async () => {
+    if (!lastControllerToken) return;
+    try {
+      await navigator.clipboard.writeText(lastControllerToken);
+      $("tok-notice").className = "notice ok";
+      $("tok-notice").textContent = "Token copied to clipboard.";
+    } catch (_) {
+      $("tok-notice").className = "notice bad";
+      $("tok-notice").textContent = "Copy failed — select token text manually.";
+    }
+  });
+
   $("g-confirm").addEventListener("change", (e) => {
     $("g-activate").disabled = !e.target.checked || !lastPreview || !(lastPreview.validation && lastPreview.validation.ok);
   });

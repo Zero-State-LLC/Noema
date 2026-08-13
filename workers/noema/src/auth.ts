@@ -127,32 +127,87 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
   return err("NOT_AUTHORIZED", "invalid or unsupported access token");
 }
 
-/** Mint a Stage-0 controller access token (local/dev helper). */
-export async function mintDevControllerToken(
+export type MintControllerOptions = {
+  handle: string;
+  controllerType?: ControllerType;
+  /** Seconds until expiry. Default 3600. Clamped 60 … 7 days. */
+  expiresIn?: number;
+  /** Set when minted by ADMIN plane (audit claim only). */
+  issuedByAdmin?: boolean;
+};
+
+/**
+ * Mint a controller access token for a Player (human or agent Controller).
+ * Production: only via ADMIN operator mint — not open dev-token.
+ * Local/preview: also used by /v1/auth/dev-token.
+ */
+export async function mintControllerToken(
   env: Env,
-  handle: string,
-  controllerType: ControllerType = "agent",
-): Promise<{ access_token: string; player_id: string; controller_id: string; agent_id: string; scopes: string[] }> {
+  opts: MintControllerOptions,
+): Promise<{
+  access_token: string;
+  player_id: string;
+  controller_id: string;
+  agent_id: string;
+  controller_type: ControllerType;
+  scopes: string[];
+  expires_in: number;
+  token_type: "bearer";
+}> {
+  const handle =
+    (opts.handle || "player").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player";
+  const controllerType: ControllerType =
+    opts.controllerType === "human" || opts.controllerType === "hybrid"
+      ? opts.controllerType
+      : "agent";
+  const expires_in = Math.min(
+    7 * 24 * 3600,
+    Math.max(60, Math.floor(opts.expiresIn ?? 3600)),
+  );
   const signing = env.TOKEN_SIGNING_SECRET || "dev-token-secret-change-me";
   const player_id = `player.${handle}`;
   const controller_id = `ctrl.${controllerType}.${handle}`;
   const agent_id = `agent.${handle}`;
   const now = Math.floor(Date.now() / 1000);
-  const access_token = await mintHs256(
-    {
-      typ: "access",
-      player_id,
-      agent_id,
-      controller_id,
-      controller_type: controllerType,
-      scopes: DEFAULT_SCOPES,
-      iat: now,
-      exp: now + 3600,
-      jti: crypto.randomUUID().slice(0, 8),
-    },
-    signing,
-  );
-  return { access_token, player_id, controller_id, agent_id, scopes: [...DEFAULT_SCOPES] };
+  const claims: Record<string, unknown> = {
+    typ: "access",
+    player_id,
+    agent_id,
+    controller_id,
+    controller_type: controllerType,
+    scopes: DEFAULT_SCOPES,
+    iat: now,
+    exp: now + expires_in,
+    jti: crypto.randomUUID().slice(0, 8),
+  };
+  if (opts.issuedByAdmin) claims.issued_by = "admin";
+  const access_token = await mintHs256(claims, signing);
+  return {
+    access_token,
+    player_id,
+    controller_id,
+    agent_id,
+    controller_type: controllerType,
+    scopes: [...DEFAULT_SCOPES],
+    expires_in,
+    token_type: "bearer",
+  };
+}
+
+/** @deprecated use mintControllerToken — kept for call-site clarity on dev path */
+export async function mintDevControllerToken(
+  env: Env,
+  handle: string,
+  controllerType: ControllerType = "agent",
+): Promise<{ access_token: string; player_id: string; controller_id: string; agent_id: string; scopes: string[] }> {
+  const m = await mintControllerToken(env, { handle, controllerType, issuedByAdmin: false });
+  return {
+    access_token: m.access_token,
+    player_id: m.player_id,
+    controller_id: m.controller_id,
+    agent_id: m.agent_id,
+    scopes: m.scopes,
+  };
 }
 
 export function requireScope(principal: PlayerPrincipal, scope: string): Response | null {

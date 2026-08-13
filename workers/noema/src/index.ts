@@ -9,7 +9,14 @@
 
 import { adminHtml, adminLoginHtml } from "./admin";
 import { adminTokenConfigured, mintAdminSession, resolveAdmin } from "./admin-auth";
-import { err, json, mintDevControllerToken, requireScope, resolvePrincipal } from "./auth";
+import {
+  err,
+  json,
+  mintControllerToken,
+  mintDevControllerToken,
+  requireScope,
+  resolvePrincipal,
+} from "./auth";
 import { connectHtml } from "./connect";
 import { catalog, GenesisError, previewGenesis } from "./genesis";
 import { landingHtml } from "./landing";
@@ -182,6 +189,42 @@ export default {
         const minted = await mintAdminSession(env, body.admin_token);
         if (minted instanceof Response) return cors(minted);
         return cors(json({ ...minted, token_type: "bearer" }));
+      }
+
+      /**
+       * Operator-minted Player controller tokens (production-safe entry).
+       * ADMIN only. Never open public mint. Does not re-enable dev-token.
+       */
+      if (request.method === "POST" && path === "/v1/admin/controller-token") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          handle?: string;
+          controller_type?: "human" | "agent" | "hybrid";
+          expires_in?: number;
+        };
+        const handle = (body.handle || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+        if (!handle || handle.length < 2) {
+          return cors(err("INVALID_REQUEST", "handle required (2–32 chars [A-Za-z0-9_-])", 400));
+        }
+        const ctype = body.controller_type === "human" || body.controller_type === "hybrid"
+          ? body.controller_type
+          : "agent";
+        const minted = await mintControllerToken(env, {
+          handle,
+          controllerType: ctype,
+          expiresIn: body.expires_in,
+          issuedByAdmin: true,
+        });
+        return cors(
+          json({
+            ...minted,
+            issued_by: "admin",
+            admin_session_id: admin.session_id,
+            note:
+              "Controller token for a Player. Paste into PLAY Advanced details or use as Bearer for agents. Not an ADMIN session.",
+          }),
+        );
       }
 
       if (request.method === "GET" && path === "/v1/admin/overview") {

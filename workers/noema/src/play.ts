@@ -215,7 +215,12 @@ export function playHtml(): string {
         <div id="session-out">
           <label for="handle">Your name</label>
           <input id="handle" value="player1" autocomplete="username" maxlength="32"/>
-          <button class="btn primary block" id="enter" type="button">Enter world</button>
+          <div id="token-primary" hidden>
+            <label for="token-paste">Access token</label>
+            <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
+            <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin">Admin → Players</a> (operator mint). Public minting is disabled.</p>
+          </div>
+          <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
           <p class="empty" style="margin-top:.65rem">Agents: use <a href="/connect">Connect</a>.</p>
         </div>
         <div id="session-in" hidden>
@@ -225,8 +230,10 @@ export function playHtml(): string {
         <p class="notice" id="session-notice" role="status"></p>
         <details class="adv" id="advanced">
           <summary>Advanced details</summary>
-          <label for="token-paste">Access token (optional)</label>
-          <input id="token-paste" type="password" autocomplete="off" placeholder="Paste token if you already have one"/>
+          <div id="token-advanced-wrap">
+            <label for="token-paste-adv">Access token (optional on preview/local)</label>
+            <input id="token-paste-adv" type="password" autocomplete="off" placeholder="Paste token if you already have one"/>
+          </div>
           <p class="mono-ids">
             player <code id="pid">—</code><br/>
             controller <code id="cid">—</code><br/>
@@ -281,6 +288,7 @@ function playClientBundle(): string {
       trail: [],
       busy: false,
       prevRoomId: null,
+      env: "local",
     };
     const storeKey = "noema.play.v2";
 
@@ -637,6 +645,12 @@ function playClientBundle(): string {
       }
     }
 
+    function readPastedToken() {
+      const a = ($("token-paste") && $("token-paste").value || "").trim();
+      const b = ($("token-paste-adv") && $("token-paste-adv").value || "").trim();
+      return a || b;
+    }
+
     async function enterWorld(preToken) {
       if (state.busy) return;
       state.busy = true;
@@ -644,7 +658,7 @@ function playClientBundle(): string {
       try {
         const handle = ($("handle").value || "player1").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player1";
         state.handle = handle;
-        const pasted = ($("token-paste").value || "").trim();
+        const pasted = readPastedToken();
         if (preToken) {
           state.token = preToken;
           state.player_id = "session";
@@ -653,8 +667,10 @@ function playClientBundle(): string {
           state.token = pasted;
           state.player_id = "token";
           state.controller_id = "browser";
+        } else if (state.env === "production") {
+          throw Object.assign(new Error("Production requires an operator-issued access token. Ask an operator to mint one in Admin → Players."), { code: "NOT_AUTHORIZED" });
         } else {
-          // Browser PLAY always human controller — agents use /connect
+          // Preview/local only — public mint for demos. Never in production.
           const mint = await api("/v1/auth/dev-token", {
             method: "POST",
             body: JSON.stringify({ handle, controller_type: "human" }),
@@ -677,7 +693,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = "Session minting is off on this host. Paste an access token under Advanced details, or use Connect for agents.";
+          msg = e.message || "Production requires an operator-issued access token (Admin → Players). Public minting is disabled.";
         }
         sessionNotice(msg, "bad");
         $("err-advanced").textContent = h.advanced || e.message || "";
@@ -723,6 +739,19 @@ function playClientBundle(): string {
         const saved = JSON.parse(localStorage.getItem(storeKey) || "null");
         if (saved && saved.handle) $("handle").value = saved.handle;
       } catch (_) {}
+      // Detect production so we never attempt open mint on this host
+      try {
+        const h = await fetch("/health").then(r => r.json());
+        state.env = (h && h.env) || "local";
+        if (state.env === "production") {
+          const prim = $("token-primary");
+          if (prim) prim.hidden = false;
+          const adv = $("token-advanced-wrap");
+          if (adv) adv.hidden = true;
+        }
+      } catch (_) {
+        state.env = "unknown";
+      }
       renderObs(null);
       renderTrail();
 
@@ -734,7 +763,7 @@ function playClientBundle(): string {
         if (tok) {
           sessionStorage.removeItem("noema.play.token");
           await enterWorld(tok);
-        } else {
+        } else if (state.env !== "production") {
           await enterWorld();
         }
       }
