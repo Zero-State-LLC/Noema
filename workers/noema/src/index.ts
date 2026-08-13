@@ -118,6 +118,12 @@ async function routeToWorld(env: Env, worldId: string, principal: unknown, envel
 }
 
 export default {
+  async scheduled(_controller: unknown, env: Env): Promise<void> {
+    const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+    const stub = env.WORLD_DO.get(id);
+    await stub.fetch("https://do/digest-tick", { method: "POST" });
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === "OPTIONS") {
       return cors(new Response(null, { status: 204 }));
@@ -397,6 +403,38 @@ export default {
         });
         const data = await res.json();
         return cors(json(data, res.status));
+      }
+
+      if (request.method === "GET" && path === "/v1/admin/digests") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/digests");
+        return cors(json(await res.json(), res.status));
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/digest-config") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = await request.json().catch(() => ({}));
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/digest-config", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/digest-tick") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/digest-tick", { method: "POST" });
+        return cors(json(await res.json(), res.status));
       }
 
       if (request.method === "POST" && path === "/v1/admin/lifecycle") {

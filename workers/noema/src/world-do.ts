@@ -9,6 +9,16 @@ import {
   type SettlementHealth,
   type WorldOpStatus,
 } from "./ops";
+import {
+  CADENCE_MS,
+  composeDigest,
+  DEFAULT_DIGEST_CONFIG,
+  DIGEST_CADENCES,
+  nextWindows,
+  type DigestConfig,
+  type DigestEvent,
+  type OperatorDigest,
+} from "./operator-digests";
 import { settleEvent, settleGenesisActivation } from "./settle";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
@@ -232,6 +242,38 @@ export class NoemaWorldDO {
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         reason: body.reason || null,
       });
+    }
+
+    if (request.method === "GET" && path.endsWith("/digests")) {
+      await this.load();
+      const cfg = await this.loadDigestConfig();
+      const history = (await this.state.storage.get<OperatorDigest[]>("digest_history")) || [];
+      return Response.json({ ok: true, config: cfg, digests: history.slice(-24).reverse() });
+    }
+
+    if (request.method === "POST" && path.endsWith("/digest-config")) {
+      const body = (await request.json()) as Partial<DigestConfig>;
+      const prev = await this.loadDigestConfig();
+      const next: DigestConfig = {
+        ...prev,
+        enabled: body.enabled ?? prev.enabled,
+        cadence: DIGEST_CADENCES.includes(body.cadence as DigestConfig["cadence"])
+          ? (body.cadence as DigestConfig["cadence"])
+          : prev.cadence,
+        depth: body.depth === "BRIEF" || body.depth === "STANDARD" || body.depth === "DETAILED" ? body.depth : prev.depth,
+        dashboard: body.dashboard ?? prev.dashboard,
+        email: body.email ?? prev.email,
+        include_controller_breakdown: body.include_controller_breakdown ?? prev.include_controller_breakdown,
+        include_research_notices: body.include_research_notices ?? prev.include_research_notices,
+      };
+      await this.state.storage.put("digest_config", next);
+      return Response.json({ ok: true, config: next, previous: prev });
+    }
+
+    if (request.method === "POST" && path.endsWith("/digest-tick")) {
+      await this.load();
+      const produced = await this.tickDigests(Date.now());
+      return Response.json({ ok: true, produced: produced.length, digests: produced });
     }
 
     // Store preview (does not mutate live world authority)
@@ -516,11 +558,70 @@ export class NoemaWorldDO {
       if (next === "BLOCKING") this.meta!.status = "INCIDENT";
       await this.state.storage.put("world_meta", this.meta);
     }
+    if (result.ok && result.events?.length) {
+      await this.recordDigestEvents(principal, result.events, w.cycle);
+    }
     const keys = Object.keys(w.seen_idempotency);
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
     }
     await this.save();
     return result;
+  }
+
+  private async loadDigestConfig(): Promise<DigestConfig> {
+    return (await this.state.storage.get<DigestConfig>("digest_config")) || { ...DEFAULT_DIGEST_CONFIG };
+  }
+
+  private async recordDigestEvents(
+    principal: PlayerPrincipal,
+    events: NonNullable<CommandResult["events"]>,
+    cycle: number,
+  ): Promise<void> {
+    const handle = this.world?.players[principal.player_id]?.handle;
+    const now = Date.now();
+    const roomName = this.world?.rooms[this.world.players[principal.player_id]?.room_id || ""]?.name;
+    const rows: DigestEvent[] = events.map((ev) => ({
+      event_id: ev.event_id,
+      event_type: ev.event_type,
+      sequence: ev.sequence,
+      cycle,
+      player_id: principal.player_id,
+      handle,
+      at: now,
+      payload: { ...(ev.payload || {}), room_name: roomName },
+    }));
+    const prev = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+    const next = [...prev, ...rows];
+    await this.state.storage.put("digest_events", next.slice(-2000));
+  }
+
+  private async tickDigests(now: number): Promise<OperatorDigest[]> {
+    const cfg = await this.loadDigestConfig();
+    if (!cfg.enabled || cfg.cadence === "OFF" || this.meta?.status === "ARCHIVED") return [];
+    const lastEnd = (await this.state.storage.get<number>("digest_last_end")) || now - CADENCE_MS[cfg.cadence];
+    const windows = nextWindows(lastEnd, cfg.cadence, now);
+    if (!windows.length) return [];
+    const events = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+    const w = this.world!;
+    const snap = {
+      world_id: w.world_id,
+      world_name: w.world_name,
+      world_status: this.meta!.status,
+      settlement_health: this.meta!.settlement_health || "HEALTHY",
+      players_present: Object.keys(w.players).length,
+      open_trades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN").length,
+    };
+    const history = (await this.state.storage.get<OperatorDigest[]>("digest_history")) || [];
+    const produced: OperatorDigest[] = [];
+    for (const win of windows) {
+      produced.push(composeDigest(events, snap, cfg, win));
+    }
+    const nextHist = [...history, ...produced].slice(-24);
+    await this.state.storage.put({
+      digest_history: nextHist,
+      digest_last_end: windows[windows.length - 1].end,
+    });
+    return produced;
   }
 }

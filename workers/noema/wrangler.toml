@@ -41,6 +41,10 @@ class_name = "NoemaWorldDO"
 tag = "v1"
 new_classes = ["NoemaWorldDO"]
 
+# Operator digest tick — cadence gate is inside the DO (min 15m)
+[triggers]
+crons = ["*/15 * * * *"]
+
 # Optional: bound secrets via dashboard / `wrangler secret put`
 # TOKEN_SIGNING_SECRET
 # SUPABASE_JWT_SECRET
