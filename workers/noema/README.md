@@ -50,8 +50,9 @@ npx wrangler login   # once per machine — account 315fb44b61212825452aad0ca566
 # npx wrangler secret put SUPABASE_URL
 # npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 
-npm run deploy       # checks whoami then wrangler deploy
-# or: NOEMA_ENV=preview npm run deploy
+NOEMA_ENV=production npm run deploy   # required for noema.guru
+# or: NOEMA_ENV=preview npm run deploy # rehearsal / workers.dev only
+# npm run deploy with NOEMA_ENV unset is refused (prevents local fallback)
 
 BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
 ```
@@ -66,7 +67,7 @@ Apply settlement table in Supabase (SQL editor or CLI):
 cd workers/noema
 npm install
 npm run dev          # wrangler dev → http://127.0.0.1:8787
-npm run deploy       # requires wrangler login
+NOEMA_ENV=production npm run deploy   # production must set env explicitly
 npm test             # unit (JWT)
 npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 ```
