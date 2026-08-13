@@ -59,8 +59,8 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
     refreshed = rt.identity.refresh(pending["refresh_token"])
     assert refreshed["access_token"] != agent_token
 
-    # revoke controller
-    rt.identity.revoke_controller(approved["controller_id"])
+    # revoke controller — owner token required
+    rt.identity.revoke_controller(approved["controller_id"], access_token=human["access_token"])
     try:
         rt.identity.resolve_access_token(refreshed["access_token"])
         assert False, "expected revoke"
@@ -172,11 +172,124 @@ def test_http_auth_routes(tmp_path: Path):
         sess = post("/session", {"access_token": tok["access_token"]})
         assert sess["controller_id"] == tok["controller_id"]
 
-        # connect page is public HTML
+        # connect page is public HTML and escapes untrusted scopes
         req = urllib.request.Request(base + "/connect")
         with urllib.request.urlopen(req) as resp:
             html = resp.read().decode()
             assert "Approve an agent connection" in html
             assert "user-code" in html
+            assert "replace(/&/g,'&amp;')" in html
     finally:
         httpd.shutdown()
+
+
+def test_http_session_requires_credentials(tmp_path: Path):
+    from http.server import ThreadingHTTPServer
+    import threading
+    import urllib.error
+    import urllib.request
+
+    rt = NoemaRuntime(db_path=tmp_path / "sess.sqlite3")
+    handler = make_handler(rt)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        req = urllib.request.Request(
+            base + "/session",
+            data=json.dumps({"role": "PLAYER", "agent_id": "agent.x"}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+            assert False, "unauthenticated privileged session must fail"
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 401
+            body = json.loads(exc.read().decode())
+            assert body["error"]["code"] == "NOT_AUTHORIZED"
+    finally:
+        httpd.shutdown()
+
+
+def test_http_rejects_oversized_request_body(tmp_path: Path):
+    from http.server import ThreadingHTTPServer
+    import threading
+    import urllib.error
+    import urllib.request
+
+    from noema.gateway.http_server import MAX_REQUEST_BODY
+
+    rt = NoemaRuntime(db_path=tmp_path / "big.sqlite3")
+    handler = make_handler(rt)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        payload = b"{" + b"a" * (MAX_REQUEST_BODY + 8) + b"}"
+        req = urllib.request.Request(
+            base + "/auth/human",
+            data=payload,
+            headers={"Content-Type": "application/json", "Content-Length": str(len(payload))},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+            assert False, "oversized body must fail"
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 413
+            body = json.loads(exc.read().decode())
+            assert body["error"]["code"] == "PAYLOAD_TOO_LARGE"
+    finally:
+        httpd.shutdown()
+
+
+def test_revoke_requires_owner_token(tmp_path: Path):
+    rt = NoemaRuntime(db_path=tmp_path / "rev.sqlite3")
+    owner = rt.identity.bind_human_dev("owner@example.com", handle="owner")
+    other = rt.identity.bind_human_dev("other@example.com", handle="other")
+    device = rt.identity.start_device_enrollment()
+    approved = rt.identity.approve_device(
+        user_code=device["user_code"],
+        approver_access_token=owner["access_token"],
+    )
+    try:
+        rt.identity.revoke_controller(approved["controller_id"])
+        assert False, "missing token must fail"
+    except Exception as exc:
+        assert "token" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
+    try:
+        rt.identity.revoke_controller(approved["controller_id"], access_token=other["access_token"])
+        assert False, "cross-player revoke must fail"
+    except Exception as exc:
+        assert "NOT_AUTHORIZED" in str(exc) or "another" in str(exc).lower()
+    out = rt.identity.revoke_controller(approved["controller_id"], access_token=owner["access_token"])
+    assert out["revoked"] is True
+
+
+def test_deny_device_requires_owner_authorization(tmp_path: Path):
+    rt = NoemaRuntime(db_path=tmp_path / "deny.sqlite3")
+    owner = rt.identity.bind_human_dev("denial-owner@example.com", handle="downer")
+    other = rt.identity.bind_human_dev("denial-other@example.com", handle="dother")
+    device = rt.identity.start_device_enrollment()
+    rec = rt.identity._find_device_by_user_code(device["user_code"])
+    assert rec is not None
+    rec["player_id"] = owner["player_id"]
+    rt.identity.store.identity_upsert_device_code(rec)
+    try:
+        rt.identity.deny_device(user_code=device["user_code"])
+        assert False, "unauthenticated deny must fail"
+    except Exception as exc:
+        assert "token" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
+    try:
+        rt.identity.deny_device(user_code=device["user_code"], approver_access_token=other["access_token"])
+        assert False, "cross-user deny must fail"
+    except Exception as exc:
+        assert "NOT_AUTHORIZED" in str(exc) or "another" in str(exc).lower()
+    denied = rt.identity.deny_device(
+        user_code=device["user_code"],
+        approver_access_token=owner["access_token"],
+    )
+    assert denied["status"] == "denied"

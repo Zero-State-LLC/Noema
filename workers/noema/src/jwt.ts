@@ -61,8 +61,7 @@ export async function verifyHs256(
   if (typeof payload.exp === "number" && payload.exp < now) throw new JwtError("token expired");
   if (typeof payload.nbf === "number" && payload.nbf > now + 5) throw new JwtError("token not yet valid");
   if (opts?.audience != null) {
-    const aud = payload.aud;
-    if (Array.isArray(aud) ? !aud.includes(opts.audience) : aud !== opts.audience) {
+    if (payload.aud !== opts.audience) {
       throw new JwtError("audience mismatch");
     }
   }
