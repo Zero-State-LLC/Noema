@@ -169,6 +169,8 @@ export interface Observation {
   discovery_lines?: string[];
   /** GC4-S1 institution office summary. Public names/holders only. */
   office_lines?: string[];
+  /** GC6-S1 reconstruction accounts the viewer may see. Not canonical truth. */
+  reconstruction_lines?: string[];
   /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
   contests?: Array<{
     contest_id: string;

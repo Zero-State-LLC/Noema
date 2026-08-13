@@ -68,6 +68,17 @@ import {
   type OfficeRecord,
 } from "./offices";
 import {
+  allocateReconstructionId,
+  epistemicFromEvidence,
+  evidenceAccessible,
+  parseEvidenceKind,
+  parseVisibility,
+  reconstructionLines,
+  visibleTo,
+  type ReconstructionEvidence,
+  type ReconstructionRecord,
+} from "./reconstruction";
+import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
   UNREACHABLE_MESSAGE,
@@ -149,6 +160,7 @@ export type WorldRuntime = {
   messages: InboxMessage[];
   pending_messages?: PendingMessage[];
   organizations: Record<string, Organization>;
+  reconstructions?: Record<string, ReconstructionRecord>;
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -403,6 +415,17 @@ export function buildObservation(
         ),
       ).map((line) => `${o.name}: ${line}`),
     ),
+    reconstruction_lines: reconstructionLines(
+      Object.values(w.reconstructions || {}).filter((rec) => {
+        const org = rec.org_id ? w.organizations[rec.org_id] : undefined;
+        const role = org?.members.find((m) => m.agent_id === principal.player_id)?.role || null;
+        const held = Object.values(org?.offices || {}).some(
+          (o) => o.holder_player_id === principal.player_id && o.status === "OCCUPIED",
+        );
+        return visibleTo(rec, principal.player_id, role || (held ? "member" : null));
+      }),
+      Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+    ),
     contests: Object.values(w.contests || {})
       .filter((c) => c.status === "OPEN")
       .map((c) => publicContestProjection(c)),
@@ -600,6 +623,9 @@ export async function applyWorldCommand(
       "ORG_OFFICE_VACATE",
       "ORG_OFFICE_RETIRE",
       "ORG_OFFICE_ACT",
+      "RECONSTRUCT",
+      "RECONSTRUCT_SUPERSEDE",
+      "RECONSTRUCT_PUBLISH",
       "ENTER_WORLD",
       "LEAVE_WORLD",
       "JOIN",
@@ -1239,6 +1265,23 @@ export async function applyWorldCommand(
         settleEv,
       );
     }
+    if (
+      action.arguments.operation === "RECONSTRUCT" ||
+      action.arguments.operation === "RECONSTRUCT_SUPERSEDE" ||
+      action.arguments.operation === "RECONSTRUCT_PUBLISH"
+    ) {
+      return applyReconstructCommand(
+        w,
+        principal,
+        request_id,
+        idem,
+        action.arguments,
+        pl,
+        events,
+        pushEvent,
+        settleEv,
+      );
+    }
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
       if (!canPay(pl.budgets, COSTS.ORG_CREATE)) {
@@ -1694,6 +1737,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.trades = w.trades || {};
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
+  w.reconstructions = w.reconstructions || {};
   for (const org of Object.values(w.organizations)) {
     if (!org.offices) org.offices = {};
   }
@@ -1949,6 +1993,209 @@ async function applyContestDefend(
     reason: "CONTEST_DEFEND",
   });
   const result = success(w, principal, request_id, events, `Defense reserved on ${contest_id}.`, false);
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+function findEntityAnywhere(w: WorldRuntime, idOrLabel: string): EntityRuntime | null {
+  for (const room of Object.values(w.rooms)) {
+    const found = findEntity(room, idOrLabel);
+    if (found) return found;
+  }
+  return null;
+}
+
+function canPublishInstitutional(org: Organization | undefined, playerId: string): boolean {
+  if (!org || org.status !== "ACTIVE") return false;
+  if (isOrgOfficer(org, playerId)) return true;
+  return Object.values(org.offices || {}).some(
+    (o) => o.status === "OCCUPIED" && o.holder_player_id === playerId,
+  );
+}
+
+function collectReconstructionEvidence(
+  pl: PlayerRuntime,
+  subject: string,
+  kinds: string[],
+  cycle: number,
+  sourceEntityId: string,
+): { ok: true; refs: ReconstructionEvidence[] } | { ok: false; code: string; message: string } {
+  const requested = kinds.length ? kinds : ["ARCHIVE_CLAIM", "LIVE_INSPECT"];
+  const refs: ReconstructionEvidence[] = [];
+  for (const raw of requested) {
+    const kind = parseEvidenceKind(raw);
+    if (!kind) {
+      return { ok: false, code: "FORBIDDEN", message: "That evidence kind cannot be cited." };
+    }
+    const label = evidenceAccessible(pl.discovery, kind, subject);
+    if (!label) {
+      return { ok: false, code: "FORBIDDEN", message: "You cannot cite evidence you have not accessed." };
+    }
+    refs.push({
+      kind,
+      subject_ref: subject,
+      source_entity_id: sourceEntityId,
+      label,
+      cycle,
+    });
+  }
+  if (!refs.length) {
+    return { ok: false, code: "FORBIDDEN", message: "A reconstruction requires accessible evidence." };
+  }
+  return { ok: true, refs };
+}
+
+async function applyReconstructCommand(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  w.reconstructions = w.reconstructions || {};
+  const op = args.operation;
+
+  if (op === "RECONSTRUCT_PUBLISH") {
+    const rec = w.reconstructions[String(args.reconstruction_id || "")];
+    if (!rec) return fail(request_id, "NOT_FOUND", "Reconstruction not found.");
+    if (rec.author_player_id !== principal.player_id) {
+      return fail(request_id, "FORBIDDEN", "Only the author may publish that reconstruction.");
+    }
+    const visibility = args.visibility || parseVisibility(String(args.visibility || "PUBLIC"));
+    if (visibility === "INSTITUTIONAL") {
+      const org = w.organizations[String(args.org_id || rec.org_id || "")];
+      if (!canPublishInstitutional(org, principal.player_id)) {
+        return fail(request_id, "FORBIDDEN", "You cannot publish that as an institutional record.");
+      }
+      rec.org_id = org?.org_id;
+    }
+    if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+    }
+    rec.visibility = visibility;
+    debit(pl.budgets, COSTS.RECONSTRUCT);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.RECONSTRUCT,
+      reason: "RECONSTRUCT_PUBLISH",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: rec.reconstruction_id,
+      set: { reconstruction_visibility: visibility, reconstruction_kind: "PLAYER_RECONSTRUCTION" },
+      unset: [],
+    });
+    await settleEv(ev);
+    const result = success(w, principal, request_id, events, `Reconstruction published (${visibility.toLowerCase()}).`, false);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  const priorId = String(args.reconstruction_id || args.supersedes_reconstruction_id || "");
+  const prior = op === "RECONSTRUCT_SUPERSEDE" ? w.reconstructions[priorId] : undefined;
+  if (op === "RECONSTRUCT_SUPERSEDE") {
+    if (!prior) return fail(request_id, "NOT_FOUND", "Reconstruction not found.");
+    if (prior.author_player_id !== principal.player_id && prior.visibility === "PRIVATE") {
+      return fail(request_id, "FORBIDDEN", "You cannot supersede another Player's private reconstruction.");
+    }
+    if (prior.author_player_id !== principal.player_id) {
+      return fail(request_id, "FORBIDDEN", "Only the author may supersede that reconstruction.");
+    }
+  }
+
+  const rawSubject = String(args.subject_ref || prior?.subject_ref || "").trim();
+  const entity = rawSubject ? findEntityAnywhere(w, rawSubject) : null;
+  const subject = entity?.entity_id || rawSubject;
+  if (!subject) return fail(request_id, "NOT_FOUND", "Name a known subject.");
+  if (!entity && !evidenceAccessible(pl.discovery, "LIVE_INSPECT", subject) && !evidenceAccessible(pl.discovery, "ARCHIVE_CLAIM", subject)) {
+    return fail(request_id, "NOT_FOUND", "That subject is not known to you.");
+  }
+  const claim = String(args.claim || "").trim();
+  if (!claim) return fail(request_id, "INVALID_REQUEST", "Account text is required.");
+  const visibility = args.visibility || prior?.visibility || "PRIVATE";
+  if (visibility === "INSTITUTIONAL") {
+    const org = w.organizations[String(args.org_id || prior?.org_id || "")];
+    if (!canPublishInstitutional(org, principal.player_id)) {
+      return fail(request_id, "FORBIDDEN", "You cannot record that as an institutional account.");
+    }
+  }
+  const kinds = (args.evidence && args.evidence.length
+    ? args.evidence
+    : prior
+      ? prior.evidence_refs.map((r) => r.kind)
+      : ["ARCHIVE_CLAIM", "LIVE_INSPECT"]
+  );
+  const collected = collectReconstructionEvidence(
+    pl,
+    subject,
+    kinds,
+    w.cycle,
+    entity?.entity_id || subject,
+  );
+  if (!collected.ok) return fail(request_id, collected.code, collected.message);
+  if (!canPay(pl.budgets, COSTS.RECONSTRUCT)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+  }
+
+  const reconstruction_id = allocateReconstructionId();
+  const rec: ReconstructionRecord = {
+    reconstruction_id,
+    author_player_id: principal.player_id,
+    subject_ref: subject,
+    claim: claim.slice(0, 280),
+    evidence_refs: collected.refs,
+    created_cycle: w.cycle,
+    supersedes_reconstruction_id: prior?.reconstruction_id,
+    status: "RECORDED",
+    visibility,
+    epistemic: epistemicFromEvidence(collected.refs),
+    org_id: args.org_id || prior?.org_id,
+  };
+  w.reconstructions[reconstruction_id] = rec;
+  if (prior) prior.status = "SUPERSEDED";
+  debit(pl.budgets, COSTS.RECONSTRUCT);
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: COSTS.RECONSTRUCT,
+    reason: op,
+  });
+  const created = pushEvent("ENTITY_CREATE", {
+    entity_id: reconstruction_id,
+    entity_type: "DOCUMENT",
+    location: null,
+    owner_id: principal.player_id,
+    properties: {
+      reconstruction_kind: "PLAYER_RECONSTRUCTION",
+      subject_ref: subject,
+      visibility,
+      epistemic: rec.epistemic,
+      status: "RECORDED",
+    },
+    inventory: [],
+    state: {},
+  });
+  await settleEv(created);
+  if (prior) {
+    const upd = pushEvent("ENTITY_UPDATE", {
+      entity_id: prior.reconstruction_id,
+      set: { reconstruction_status: "SUPERSEDED", superseded_by: reconstruction_id },
+      unset: [],
+    });
+    await settleEv(upd);
+  }
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    rec.epistemic === "CONTESTED"
+      ? `Reconstruction recorded (contested) of ${subject}.`
+      : `Reconstruction recorded of ${subject}.`,
+    false,
+  );
   w.seen_idempotency[idem] = result;
   return result;
 }

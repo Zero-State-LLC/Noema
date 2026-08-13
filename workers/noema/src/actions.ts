@@ -20,6 +20,7 @@ import {
   type OfficeProfile,
   type OfficeRecord,
 } from "./offices";
+import { parseVisibility } from "./reconstruction";
 
 export type Budgets = {
   attention: number;
@@ -194,6 +195,7 @@ export const COSTS = {
   ORG_OFFICE_VACATE: { compute: 1 } as Partial<Budgets>,
   ORG_OFFICE_RETIRE: { compute: 1 } as Partial<Budgets>,
   ORG_OFFICE_ACT: { compute: 1 } as Partial<Budgets>,
+  RECONSTRUCT: { attention: 2, compute: 1 } as Partial<Budgets>,
   ATTEST: { attention: 2 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
@@ -233,6 +235,9 @@ export type CanonicalAction =
           | "ORG_OFFICE_VACATE"
           | "ORG_OFFICE_RETIRE"
           | "ORG_OFFICE_ACT"
+          | "RECONSTRUCT"
+          | "RECONSTRUCT_SUPERSEDE"
+          | "RECONSTRUCT_PUBLISH"
           | "CONTEST_DECLARE"
           | "CONTEST_DEFEND"
           | "ATTEST";
@@ -259,6 +264,12 @@ export type CanonicalAction =
         authority_profile?: OfficeProfile;
         replace?: boolean;
         notice?: string;
+        reconstruction_id?: string;
+        subject_ref?: string;
+        claim?: string;
+        evidence?: string[];
+        visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+        supersedes_reconstruction_id?: string;
       };
     }
   | {
@@ -998,6 +1009,64 @@ export function parseHumanCommand(
     };
   }
 
+  // RFC-0024: reconstruct / revise — not listed in Chamber help.
+  if (v === "reconstruct" || v === "assemble") {
+    const rest = parts.join(" ");
+    const quoted = rest.match(/["'](.+)["']/);
+    const claim = quoted?.[1]?.trim() || "";
+    const visM = rest.match(/\b(public|private|institutional)\b/i);
+    const evM = rest.match(/\bevidence=([a-z,_-]+)/i);
+    const orgM = rest.match(/\borg=(\S+)/i);
+    const before = rest
+      .replace(/["'](.+)["']/, "")
+      .replace(/\bevidence=\S+/i, "")
+      .replace(/\borg=\S+/i, "")
+      .replace(/\b(public|private|institutional)\b/i, "")
+      .trim();
+    if (!before || !claim) {
+      return {
+        ok: false,
+        error: 'Reconstruct syntax: reconstruct <subject> "account" evidence=archive,inspect [private|public]',
+      };
+    }
+    const evidence = (evM?.[1] || "archive,inspect")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "RECONSTRUCT",
+          subject_ref: before,
+          claim,
+          evidence,
+          visibility: parseVisibility(visM?.[1]),
+          org_id: orgM?.[1],
+        },
+      },
+      display: `You record a reconstruction of ${before}.`,
+    };
+  }
+  if (v === "revise") {
+    const rest = parts.join(" ");
+    const quoted = rest.match(/["'](.+)["']/);
+    const claim = quoted?.[1]?.trim() || "";
+    const reconstruction_id = rest.replace(/["'](.+)["']/, "").trim();
+    if (!reconstruction_id || !claim) {
+      return { ok: false, error: 'Revise syntax: revise <reconstruction_id> "account"' };
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "RECONSTRUCT_SUPERSEDE", reconstruction_id, claim },
+      },
+      display: `You revise ${reconstruction_id}.`,
+    };
+  }
+
   // RFC-0020: attest <artifact> subject=<id> claim=DESTROYED|OPERATING
   // Not listed in Chamber help. Do not infer subject/claim from labels.
   if (v === "attest") {
@@ -1417,6 +1486,70 @@ export function normalizeStructuredCommand(
         display: "COMMIT.ORG_OFFICE_ACT",
       };
     }
+    if (operation === "RECONSTRUCT") {
+      const subject_ref = String(args.subject_ref || args.subject || args.entity_id || "").trim();
+      const claim = String(args.claim || args.narrative || "").trim();
+      if (!subject_ref || !claim) {
+        return { ok: false, error: "subject_ref and claim required", code: "INVALID_REQUEST" };
+      }
+      const evidence = Array.isArray(args.evidence)
+        ? (args.evidence as string[]).map(String)
+        : [];
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "RECONSTRUCT",
+            subject_ref,
+            claim,
+            evidence,
+            visibility: parseVisibility(String(args.visibility || "PRIVATE")),
+            org_id: args.org_id ? String(args.org_id) : undefined,
+          },
+        },
+        display: `COMMIT.RECONSTRUCT ${subject_ref}`,
+      };
+    }
+    if (operation === "RECONSTRUCT_SUPERSEDE") {
+      const reconstruction_id = String(args.reconstruction_id || args.supersedes_reconstruction_id || "").trim();
+      const claim = String(args.claim || args.narrative || "").trim();
+      if (!reconstruction_id || !claim) {
+        return { ok: false, error: "reconstruction_id and claim required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "RECONSTRUCT_SUPERSEDE",
+            reconstruction_id,
+            claim,
+            evidence: Array.isArray(args.evidence) ? (args.evidence as string[]).map(String) : undefined,
+          },
+        },
+        display: `COMMIT.RECONSTRUCT_SUPERSEDE ${reconstruction_id}`,
+      };
+    }
+    if (operation === "RECONSTRUCT_PUBLISH") {
+      const reconstruction_id = String(args.reconstruction_id || "").trim();
+      if (!reconstruction_id) {
+        return { ok: false, error: "reconstruction_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "RECONSTRUCT_PUBLISH",
+            reconstruction_id,
+            visibility: parseVisibility(String(args.visibility || "PUBLIC")),
+            org_id: args.org_id ? String(args.org_id) : undefined,
+          },
+        },
+        display: `COMMIT.RECONSTRUCT_PUBLISH ${reconstruction_id}`,
+      };
+    }
     if (operation === "ORG_MEMBER_REMOVE") {
       const org_id = String(args.org_id || "").trim();
       const agent_id = String(args.agent_id || args.player_id || "").trim();
@@ -1525,6 +1658,15 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ORG_OFFICE_ACT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ACT" });
+  }
+  if (cmd === "RECONSTRUCT") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT" });
+  }
+  if (cmd === "RECONSTRUCT_SUPERSEDE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_SUPERSEDE" });
+  }
+  if (cmd === "RECONSTRUCT_PUBLISH") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT_PUBLISH" });
   }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }
