@@ -2,7 +2,7 @@
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
 **Not** a platform migration. Stack remains Cloudflare Pages/Workers/DO + Supabase Auth/Postgres/Storage.  
-**Architecture frontier:** still paused after [REDUCER-REGISTRY](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/REDUCER-REGISTRY.md). This note records evidence; it does not open a new architecture RFC.
+**Architecture frontier:** reducer registry + [RFC-0016](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0016-hosted-durable-world-head.md) hosted world head. SERIALIZABLE cycle fence remains later.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**
 
@@ -18,7 +18,7 @@ First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4f
 
 | Domain | Status | Severity | Runtime evidence | Next action |
 |---|---|---|---|---|
-| A Hosted authority (DO vs Postgres) | DRIFTED | P0 | `settle.ts` POSTs `noema_settled_events` via REST (`Prefer: merge-duplicates`). No SERIALIZABLE world transaction. `world-do.ts` `save()` writes DO `storage` only. Reconstruction after DO loss is **NOT_COMPUTABLE** from Postgres. | Resume architecture: persist settled world + fence in Postgres; do not change stack |
+| A Hosted authority (DO vs Postgres) | PARTIAL | P1 | Events + `noema_world_heads` upsert (RFC-0016). Restore if DO world missing. Not a SERIALIZABLE cycle fence. | Apply SQL migration; later fence RFC |
 | B Canonical writers | PARTIAL | P1 | Mutations happen inside `applyWorldCommand` then events are appended. No separate event-reducer pass. `WAIT` increments `World.cycle` (`world-actions.ts`) contrary to reducer registry (WAIT must not write world cycle). `expireStalePresence` clears `entered` without `AGENT_LEFT_WORLD`. GC caches are non-writers. | Do not invent a reducer engine in this audit. Pin WAIT/cycle in a later RFC if hosted cycle must move |
 | C Idempotency | IMPLEMENTED | — | `seen_idempotency[player_id::key]` in DO world; repair test does not double-debit. Envelope `player_id` mismatch is `FORBIDDEN`. Cache trimmed to last 200 keys (DO-local). | Keep; Postgres-backed idempotency waits on A |
 | D Atomic cycle / settlement | PARTIAL | P0 | No cycle-fence transaction. TRADE accept transfers both legs then emits `TRADE_ACCEPTED` + two `RESOURCE_TRANSFER`s in one command. Second accept is `TRADE_FAILED`. Partial Postgres write cannot roll back DO state. | Same resume as A |
