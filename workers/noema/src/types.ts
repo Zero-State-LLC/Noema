@@ -156,6 +156,8 @@ export interface Observation {
   social_memory_lines?: string[];
   /** GC9-S0 site custom lines for the current room. Never put on WATCH. */
   culture_lines?: string[];
+  /** GC6-S0 self-only archive/inspect contradiction. Never put on WATCH. */
+  discovery_lines?: string[];
   /** Location-bound World Services (adapters, not Players). */
   services?: Array<{
     service_id: string;
