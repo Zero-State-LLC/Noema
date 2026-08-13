@@ -31,6 +31,11 @@ export type PlayerRuntime = {
   controlling_session_id?: string;
   last_seen_ms?: number;
   actor_kind?: "live" | "system";
+  /** GC1-S0 derived cache. Not WorldState. Rebuildable. */
+  practice?: {
+    catalog_id: "mastery-catalog/gc1-s0";
+    tracks: Partial<Record<string, string[]>>;
+  };
 };
 
 export type OpenTrade = {

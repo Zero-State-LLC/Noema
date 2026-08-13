@@ -357,3 +357,74 @@ describe("Tier 1 world mutations", () => {
     expect(t.toLowerCase()).toMatch(/energy 3/);
   });
 });
+
+describe("GC1-S0 derived practice", () => {
+  it("LOOK/INSPECT/REPAIR/TRADE create self-only practice lines without changing costs", async () => {
+    const w = fixtureWorld();
+    const human = principal("player.human", "human");
+    const agent = principal("player.agent", "agent");
+    await run(w, human, "ENTER_WORLD");
+    await run(w, agent, "ENTER_WORLD");
+
+    const look = await run(w, human, "LOOK");
+    expect(look.ok).toBe(true);
+    expect(look.observation?.practice_lines).toContain("You have been learning the rooms.");
+    expect(look.observation?.players_here?.every((p) => !("practice_lines" in p))).toBe(true);
+
+    const inspect = await run(w, human, "INSPECT", { entity_id: "scarred-conduit" });
+    expect(inspect.observation?.practice_lines).toEqual(
+      expect.arrayContaining([
+        "You have been learning the rooms.",
+        "You have been doing survey work.",
+      ]),
+    );
+
+    const energyBeforeRepair = w.players[human.player_id].budgets.energy;
+    const repair = await run(w, human, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay-7",
+    });
+    expect(repair.ok).toBe(true);
+    expect(w.players[human.player_id].budgets.energy).toBe(energyBeforeRepair - COSTS.REPAIR.energy!);
+    expect(repair.observation?.practice_lines).toEqual(
+      expect.arrayContaining(["You have been keeping infrastructure alive."]),
+    );
+
+    await run(w, human, "TRADE", {
+      phase: "propose",
+      counterparty_id: agent.player_id,
+      offered: { energy: 2 },
+      requested: { compute: 1 },
+    });
+    const tradeId = Object.keys(w.trades)[0];
+    const accepted = await run(w, agent, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(accepted.ok).toBe(true);
+    expect(accepted.observation?.practice_lines).toContain("You have been closing exchanges.");
+    const humanLook = await run(w, human, "LOOK");
+    expect(humanLook.observation?.practice_lines).toContain("You have been closing exchanges.");
+
+    const agentView = await run(w, agent, "LOOK");
+    expect(JSON.stringify(agentView.observation?.players_here || [])).not.toMatch(
+      /learning the rooms|survey work|infrastructure/,
+    );
+    expect(helpText()).not.toMatch(/specialize|class|XP/i);
+  });
+
+  it("failed and idempotent commands do not invent extra practice units", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.broke");
+    await run(w, p, "ENTER_WORLD");
+    await run(w, p, "LOOK", {}, "idem.practice.look");
+    const roomsAfterFirst = w.players[p.player_id].practice?.tracks["track.explorer.01"] || [];
+    await run(w, p, "LOOK", {}, "idem.practice.look");
+    expect(w.players[p.player_id].practice?.tracks["track.explorer.01"]).toEqual(roomsAfterFirst);
+
+    w.players[p.player_id].budgets.energy = 0;
+    const failed = await run(w, p, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay-7",
+    });
+    expect(failed.ok).toBe(false);
+    expect(w.players[p.player_id].practice?.tracks["track.engineer.01"] || []).toEqual([]);
+  });
+});

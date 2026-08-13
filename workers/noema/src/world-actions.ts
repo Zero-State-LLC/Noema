@@ -30,6 +30,13 @@ import {
   type PlayerRuntime,
 } from "./actions";
 import { actorKindFromPrincipal } from "./ops";
+import {
+  applyPracticeCredits,
+  creditsFromEvent,
+  practiceLines,
+  type PracticeCredit,
+  type PracticeEvent,
+} from "./practice";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
@@ -266,6 +273,7 @@ export function buildObservation(
       kind: a.kind,
     })),
     consequence,
+    practice_lines: practiceLines(pl.practice),
   };
 }
 
@@ -278,6 +286,31 @@ function fail(
   return { ok: false, request_id, error: { code, message, choices } };
 }
 
+function recordPractice(
+  w: WorldRuntime,
+  actingPlayerId: string,
+  events: NonNullable<CommandResult["events"]> | undefined,
+): void {
+  if (!events?.length) return;
+  const trades: Record<string, { proposer_id: string; counterparty_id: string }> = {};
+  for (const [id, trade] of Object.entries(w.trades || {})) {
+    trades[id] = { proposer_id: trade.proposer_id, counterparty_id: trade.counterparty_id };
+  }
+  const byPlayer = new Map<string, PracticeCredit[]>();
+  for (const ev of events) {
+    for (const credit of creditsFromEvent(ev as PracticeEvent, { actingPlayerId, trades })) {
+      const list = byPlayer.get(credit.player_id) || [];
+      list.push({ track_id: credit.track_id, unit: credit.unit });
+      byPlayer.set(credit.player_id, list);
+    }
+  }
+  for (const [playerId, credits] of byPlayer) {
+    const player = w.players[playerId];
+    if (!player) continue;
+    player.practice = applyPracticeCredits(player.practice, credits);
+  }
+}
+
 function success(
   w: WorldRuntime,
   principal: PlayerPrincipal,
@@ -286,6 +319,7 @@ function success(
   consequence: string,
   settled: boolean,
 ): CommandResult {
+  recordPractice(w, principal.player_id, events);
   return {
     ok: true,
     request_id,
@@ -647,6 +681,7 @@ export async function applyWorldCommand(
       source_event_id: inspEv.event_id,
     });
     await settleEv(obsEv);
+    recordPractice(w, principal.player_id, events);
     const obs = buildObservation(w, principal, detail);
     obs.location = {
       ...obs.location,
@@ -1215,5 +1250,6 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   for (const p of Object.values(w.players)) {
     if (!p.budgets) p.budgets = cloneBudgets(null);
     else p.budgets = cloneBudgets(p.budgets);
+    if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s0", tracks: {} };
   }
 }
