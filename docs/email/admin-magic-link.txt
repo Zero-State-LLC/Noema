@@ -1,9 +1,19 @@
-NOEMA · ADMIN
+Subject: NOEMA Admin Access
 
-Open the control plane.
+NOEMA ADMIN
 
-This is an operator login for zer0state@zer0state.com. It is not a Player session. Do not use this link on PLAY.
+A secure operator access link was requested.
 
+Use the button below to open the NOEMA control plane.
+
+OPEN ADMIN
 {{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}
 
-Expires soon. If you did not request operator access, ignore this. Never mail the operator token.
+This link grants privileged administrative access and is temporary.
+
+Do not forward or share this message.
+
+If you did not request Admin access, do not use the link.
+
+NOEMA
+Operator Plane
