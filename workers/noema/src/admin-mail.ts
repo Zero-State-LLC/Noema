@@ -10,6 +10,19 @@ const OPERATOR_INBOX = "zer0state@zer0state.com";
 export const ADMIN_MAIL_SUBJECT = "NOEMA Admin Access";
 export const ADMIN_MAIL_FROM = "admin@noema.guru";
 
+export function extractHashedToken(payload: unknown): { token: string; type: string } | null {
+  if (!payload || typeof payload !== "object") return null;
+  const root = payload as Record<string, unknown>;
+  const nested =
+    root.properties && typeof root.properties === "object"
+      ? (root.properties as Record<string, unknown>)
+      : null;
+  const token = String(nested?.hashed_token || root.hashed_token || "").trim();
+  if (!token) return null;
+  const type = String(nested?.verification_type || root.verification_type || "magiclink");
+  return { token, type };
+}
+
 export function adminMagicLinkHref(origin: string, tokenHash: string, type = "magiclink"): string {
   const base = origin.replace(/\/$/, "");
   return `${base}/admin/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
