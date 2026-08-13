@@ -24,7 +24,9 @@ export interface Env {
    * Cloudflare Email Routing send binding.
    * Locked to zer0state@zer0state.com in wrangler.toml.
    */
-  ADMIN_MAIL?: { send(message: unknown): Promise<void> };
+  ADMIN_MAIL?: {
+    send(message: unknown): Promise<void | { messageId?: string }>;
+  };
 }
 
 /** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */
