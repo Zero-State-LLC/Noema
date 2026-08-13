@@ -20,6 +20,11 @@ export interface Env {
   ADMIN_OPERATOR_TOKEN?: string;
   /** Comma-separated operator mailboxes. Secret — never [vars] or /health. */
   ADMIN_ALLOWLIST_EMAILS?: string;
+  /**
+   * Cloudflare Email Routing send binding.
+   * Locked to zer0state@zer0state.com in wrangler.toml.
+   */
+  ADMIN_MAIL?: { send(message: unknown): Promise<void> };
 }
 
 /** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */

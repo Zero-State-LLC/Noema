@@ -52,3 +52,8 @@ crons = ["*/15 * * * *"]
 # SUPABASE_SERVICE_ROLE_KEY
 # ADMIN_OPERATOR_TOKEN   (operator plane; never to players)
 # ADMIN_ALLOWLIST_EMAILS  (comma-separated operator mailboxes; never [vars])
+
+# Worker-sent ADMIN magic-link mail (Email Routing). PLAY stays on Supabase.
+[[send_email]]
+name = "ADMIN_MAIL"
+destination_address = "zer0state@zer0state.com"
