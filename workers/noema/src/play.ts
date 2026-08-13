@@ -538,6 +538,19 @@ function playClientBundle(): string {
               '</li>';
           }).join("")
         : '<li class="empty">Nothing notable right here.</li>';
+      const svcs = obs.services || [];
+      if (svcs.length) {
+        const desk = svcs.map(s => {
+          const cmd = "talk " + String(s.display_name||"").toLowerCase();
+          return '<li class="ent">' +
+            '<span class="glyph" aria-hidden="true">▣</span>' +
+            '<span><strong>' + esc(s.display_name||"Desk") + '</strong><span class="sub">World Service · ' + esc(s.status||"") + ' · ' + esc(s.role||"") + '</span></span>' +
+            '<span class="acts"><button type="button" class="btn" data-cmd="' + esc(cmd) + '">Talk</button></span>' +
+            '</li>';
+        }).join("");
+        if (ents.length) $("entity-list").innerHTML += desk;
+        else $("entity-list").innerHTML = desk;
+      }
 
       const exits = loc.exits || [];
       $("exit-list").innerHTML = exits.map(x => {
