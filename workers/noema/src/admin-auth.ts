@@ -4,6 +4,12 @@
  * Admin privilege is never inherited by a Player session.
  */
 
+import {
+  type AdminMailer,
+  composeAdminMail,
+  deliverAdminMail,
+  adminMagicLinkHref,
+} from "./admin-mail";
 import { err, json } from "./auth";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
 import type { AdminPrincipal, Env } from "./types";
@@ -177,7 +183,7 @@ export async function requestAdminMagicLink(
   env: Env,
   req: Request,
   body: { email?: string },
-  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle },
+  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendAdmin?: AdminMailer },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ADMIN_OPERATOR_EMAIL));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
@@ -193,23 +199,53 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-          authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          email,
-          create_user: true,
-          options: {
-            email_redirect_to: `${origin}/admin/callback`,
-            should_create_user: true,
+      const canWorkerSend = Boolean(opts?.sendAdmin || env.ADMIN_MAIL);
+      if (canWorkerSend) {
+        const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           },
-        }),
-      });
-      if (!res.ok) console.error("admin magic-link send failed");
+          body: JSON.stringify({
+            type: "magiclink",
+            email,
+            options: { redirect_to: `${origin}/admin/callback` },
+          }),
+        });
+        const payload = (await res.json().catch(() => ({}))) as {
+          hashed_token?: string;
+          verification_type?: string;
+        };
+        const tokenHash = String(payload.hashed_token || "").trim();
+        if (!res.ok || !tokenHash) {
+          console.error("admin generate_link failed");
+        } else {
+          const href = adminMagicLinkHref(origin, tokenHash, payload.verification_type || "magiclink");
+          const mail = composeAdminMail(href);
+          const send = opts?.sendAdmin || ((m) => deliverAdminMail(env, m));
+          await send(mail);
+        }
+      } else {
+        const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            create_user: true,
+            options: {
+              email_redirect_to: `${origin}/admin/callback`,
+              should_create_user: true,
+            },
+          }),
+        });
+        if (!res.ok) console.error("admin magic-link send failed");
+      }
     } catch {
       console.error("admin magic-link send failed");
     }

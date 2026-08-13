@@ -16,13 +16,12 @@ CTA href (all HTML bodies):
 
 The Worker already sets `email_redirect_to` to `/play/callback` or `/admin/callback`. After consume, PLAY goes to `/play` and ADMIN to `/admin`. Do not hardcode only one callback.
 
-## Supabase has one Magic Link slot
+## How mail is sent
 
-Paste **`supabase-magic-link.html`** (Player letter) into **Authentication → Emails → Magic Link**.
+- **PLAY** — Supabase Magic Link template. Paste `supabase-magic-link.html` (subject `Enter NOEMA`) into Authentication → Emails → Magic Link.
+- **ADMIN** — Worker-sent. `requestAdminMagicLink` calls Supabase `generate_link` (does not use the dashboard Magic Link template), then `ADMIN_MAIL` (Email Routing) sends `admin-magic-link.html` to `zer0state@zer0state.com` only.
 
-**Subject:** `Enter NOEMA`
-
-That is the public path. The Admin letter (`admin-magic-link.html`, subject `NOEMA Admin Access`) is the operator copy. It cannot live in the same dashboard slot. Until we send Admin mail from the Worker, do not paste the Admin body into Magic Link — Players would be told they have privileged access.
+If `ADMIN_MAIL` is unbound, ADMIN falls back to Supabase `/otp` (Player-shaped dashboard template). Do not paste the Admin body into the Magic Link slot.
 
 Allowlist:
 

@@ -14,6 +14,12 @@ import {
   resolveAdmin,
   type AdminFetch,
 } from "../src/admin-auth";
+import {
+  ADMIN_MAIL_SUBJECT,
+  adminMagicLinkHref,
+  composeAdminMail,
+  renderAdminMailHtml,
+} from "../src/admin-mail";
 import { resolvePrincipal } from "../src/auth";
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
@@ -79,6 +85,23 @@ describe("allowlist + throttle", () => {
     expect(GENERIC_LOGIN_MESSAGE).toBe(
       "If that mailbox is authorized, a link is on the way.",
     );
+  });
+});
+
+describe("admin mail render", () => {
+  it("builds an /admin/callback href and privilege copy", () => {
+    const href = adminMagicLinkHref("https://noema.guru", "abc+hash", "magiclink");
+    expect(href).toBe(
+      "https://noema.guru/admin/callback?token_hash=abc%2Bhash&type=magiclink",
+    );
+    const html = renderAdminMailHtml(href);
+    expect(html).toContain("OPEN ADMIN");
+    expect(html).toContain("Do not forward or share this message.");
+    expect(html).toContain(href.replace(/&/g, "&amp;"));
+    const mail = composeAdminMail(href);
+    expect(mail.subject).toBe("NOEMA Admin Access");
+    expect(mail.to).toBe("zer0state@zer0state.com");
+    expect(mail.text).toContain("Operator Plane");
   });
 });
 
@@ -170,6 +193,43 @@ describe("requestAdminMagicLink", () => {
     const body = (await sixth.json()) as { error: { code: string; retryable: boolean } };
     expect(body.error.code).toBe("RATE_LIMITED");
     expect(body.error.retryable).toBe(true);
+  });
+
+  it("worker-sends the Admin letter via generate_link when a mailer is provided", async () => {
+    const calls: string[] = [];
+    const sent: Array<{ to: string; subject: string; html: string; href: string }> = [];
+    const fetchImpl: AdminFetch = async (url, init) => {
+      calls.push(url);
+      const body = JSON.parse(String(init?.body || "{}")) as { type?: string; email?: string };
+      expect(body.type).toBe("magiclink");
+      expect(body.email).toBe(ADMIN_OPERATOR_EMAIL);
+      return new Response(
+        JSON.stringify({ hashed_token: "tok_admin_1", verification_type: "magiclink" }),
+        { status: 200 },
+      );
+    };
+    const res = await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "" }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_OPERATOR_EMAIL },
+      {
+        fetch: fetchImpl,
+        sendAdmin: async (mail) => {
+          sent.push(mail);
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(calls).toEqual(["https://example.supabase.co/auth/v1/admin/generate_link"]);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toBe(ADMIN_OPERATOR_EMAIL);
+    expect(sent[0].subject).toBe(ADMIN_MAIL_SUBJECT);
+    expect(sent[0].html).toContain("OPEN ADMIN");
+    expect(sent[0].html).toContain("privileged administrative access");
+    expect(sent[0].href).toBe(
+      "https://noema.guru/admin/callback?token_hash=tok_admin_1&type=magiclink",
+    );
+    expect(sent[0].html).toContain(sent[0].href.replace(/&/g, "&amp;"));
   });
 
   it("still 200 if otp send fails", async () => {
