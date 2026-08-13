@@ -514,6 +514,66 @@ export function escHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+export function renderLookHtml(opts: {
+  name?: string;
+  description?: string;
+  condition?: string;
+  exitsLine?: string;
+}): string {
+  const name = escHtml(opts.name || "");
+  const desc = escHtml(opts.description || "");
+  const cond = String(opts.condition || "").trim();
+  const exits = String(opts.exitsLine || "").trim();
+  return (
+    '<p class="where role-place">WHERE</p>' +
+    '<h2 id="room-name">' + name + "</h2>" +
+    '<p id="room-desc">' + desc + "</p>" +
+    (cond
+      ? '<div id="loc-cond"><b class="role-place">CONDITION</b><span id="loc-cond-text">' +
+        escHtml(cond) +
+        "</span></div>"
+      : '<div id="loc-cond" hidden><b class="role-place">CONDITION</b><span id="loc-cond-text"></span></div>') +
+    (exits
+      ? '<p id="look-exits">exits: ' + escHtml(exits) + "</p>"
+      : '<p id="look-exits" hidden></p>')
+  );
+}
+
+export function renderTrailHtml(items: TrailItem[]): string {
+  if (!items.length) return "";
+  const label: Record<TrailKind, string> = {
+    you: "YOU",
+    local: "LOCAL",
+    world: "WORLD",
+    fail: "FAIL",
+  };
+  const role: Record<TrailKind, string> = {
+    you: "role-you",
+    local: "role-here",
+    world: "",
+    fail: "role-fail",
+  };
+  return items
+    .map((t) => {
+      const k = t.kind;
+      const detail = t.detail
+        ? '<span class="d">' + escHtml(t.detail) + "</span>"
+        : "";
+      return (
+        "<li><span class=\"k " +
+        k +
+        (role[k] ? " " + role[k] : "") +
+        '">' +
+        label[k] +
+        '</span><span class="t">' +
+        escHtml(t.title) +
+        detail +
+        "</span></li>"
+      );
+    })
+    .join("");
+}
+
 export function playerHandle(p: { player_id?: string; handle?: string; sender_id?: string }): string {
   return String(p.handle || p.player_id || p.sender_id || "player").replace(/^player\./, "");
 }
@@ -540,43 +600,36 @@ export function renderPlayersHereHtml(
       const name = escHtml(handle);
       const msgCmd = "message " + handle + ' "';
       const tradeCmd = "trade " + handle + " offer=";
-      let acts =
-        '<button type="button" class="btn" data-cmd="' +
-        escHtml(msgCmd) +
-        '">Message ' +
-        name +
-        "</button>" +
-        '<button type="button" class="btn" data-cmd="' +
-        escHtml(tradeCmd) +
-        '">Trade ' +
-        name +
-        "</button>";
+      let extra = "";
       for (const o of officerOrgs) {
-        acts +=
-          '<button type="button" class="btn" data-cmd="invite ' +
+        extra +=
+          ' <button type="button" class="role-here" data-cmd="invite ' +
           escHtml(handle) +
           " to " +
           escHtml(o.org_id) +
-          ' role=member">Invite ' +
-          name +
-          " to " +
+          ' role=member">invite ' +
           escHtml(o.name) +
           "</button>";
       }
       void selfId;
       return (
-        '<li class="ent player-here">' +
-        '<span class="glyph" aria-hidden="true">○</span>' +
-        "<span><strong>" +
+        '<li><button type="button" class="role-here" data-cmd="' +
+        escHtml(msgCmd) +
+        '" aria-label="Message ' +
         name +
-        '</strong><span class="sub">Player</span></span>' +
-        '<span class="acts">' +
-        acts +
-        "</span></li>"
+        '">' +
+        name +
+        '</button> <button type="button" class="role-here" data-cmd="' +
+        escHtml(tradeCmd) +
+        '" aria-label="Trade ' +
+        name +
+        '">trade</button>' +
+        extra +
+        "</li>"
       );
     })
     .join("");
-  return '<ul class="ent-list players-here" aria-label="Other players">' + rows + "</ul>";
+  return '<ul class="tok-list players-here" aria-label="Other players">' + rows + "</ul>";
 }
 
 export function renderBondsHtml(opts: {
@@ -611,23 +664,23 @@ export function renderBondsHtml(opts: {
             formatResourceMap(t.offered) + " → " + formatResourceMap(t.requested);
           const acts =
             t.role === "counterparty"
-              ? '<button type="button" class="btn primary" data-cmd="accept ' +
+              ? '<button type="button" class="role-here" data-cmd="accept ' +
                 escHtml(t.trade_id) +
-                '">Accept</button>' +
-                '<button type="button" class="btn" data-cmd="reject ' +
+                '">accept</button> ' +
+                '<button type="button" class="role-here" data-cmd="reject ' +
                 escHtml(t.trade_id) +
-                '">Reject</button>'
-              : '<button type="button" class="btn" data-cmd="cancel ' +
+                '">reject</button>'
+              : '<button type="button" class="role-here" data-cmd="cancel ' +
                 escHtml(t.trade_id) +
-                '">Cancel</button>';
+                '">cancel</button>';
           return (
-            '<li class="ent"><span><strong>' +
+            "<li>" +
             escHtml(label) +
-            '</strong><span class="sub">' +
+            ' <span class="muted">' +
             escHtml(t.role) +
-            "</span></span><span class=\"acts\">" +
+            "</span> " +
             acts +
-            "</span></li>"
+            "</li>"
           );
         })
         .join("")
@@ -636,33 +689,24 @@ export function renderBondsHtml(opts: {
     ? orgs
         .map((o) => {
           const role = o.my_role || "not a member";
-          const leave = o.my_role
-            ? '<button type="button" class="btn" data-cmd="leave ' +
-              escHtml(o.org_id) +
-              '">Leave ' +
-              escHtml(o.name) +
-              "</button>"
-            : "";
           return (
-            '<li class="ent"><span><strong>' +
+            "<li>" +
             escHtml(o.name) +
-            '</strong><span class="sub">' +
+            ' <span class="muted">' +
             escHtml(role) +
-            "</span></span><span class=\"acts\">" +
-            leave +
             "</span></li>"
           );
         })
         .join("")
     : '<li class="empty">No public organizations.</li>';
   return (
-    '<div class="bonds-block"><h4 class="sec-title">Mail</h4><ul class="bond-list" aria-label="Mail">' +
+    '<div class="bonds-block"><h4>Mail</h4><ul class="tok-list" aria-label="Mail">' +
     mailHtml +
-    '</ul></div><div class="bonds-block"><h4 class="sec-title">Open trades</h4><ul class="ent-list" aria-label="Open trades">' +
+    '</ul></div><div class="bonds-block"><h4>Open trades</h4><ul class="tok-list" aria-label="Open trades">' +
     tradeHtml +
-    '</ul></div><div class="bonds-block"><h4 class="sec-title">Organizations</h4><ul class="ent-list" aria-label="Organizations">' +
+    '</ul></div><div class="bonds-block"><h4>Organizations</h4><ul class="tok-list" aria-label="Organizations">' +
     orgHtml +
-    '</ul><button type="button" class="btn" data-cmd="form " style="margin-top:.55rem">Form organization</button></div>'
+    '</ul><button type="button" class="role-here" data-cmd="form ">Form organization</button></div>'
   );
 }
 
@@ -671,15 +715,15 @@ export function renderServiceDesksHtml(
 ): string {
   if (!services || !services.length) return "";
   return (
-    '<ul class="desk-list" aria-label="World Services">' +
+    '<ul class="tok-list" aria-label="World Services">' +
     services
       .map((s) => {
         const unavailable = String(s.status || "").toUpperCase() === "UNAVAILABLE";
         const name = s.display_name || "Desk";
         const talkCmd = "talk " + String(name).toLowerCase();
         const talk = unavailable
-          ? '<button type="button" class="btn" disabled aria-disabled="true">Talk unavailable</button>'
-          : '<button type="button" class="btn" data-cmd="' +
+          ? '<button type="button" class="role-here" disabled aria-disabled="true">Talk unavailable</button>'
+          : '<button type="button" class="role-here" data-cmd="' +
             escHtml(talkCmd) +
             '">Talk ' +
             escHtml(name) +
@@ -690,7 +734,7 @@ export function renderServiceDesksHtml(
         const cmds = (s.suggested_cmds || [])
           .map((c) => {
             return (
-              '<button type="button" class="btn" data-cmd="' +
+              ' <button type="button" class="role-here" data-cmd="' +
               escHtml(c) +
               '">' +
               escHtml(c) +
@@ -698,29 +742,42 @@ export function renderServiceDesksHtml(
             );
           })
           .join("");
+        const sub = [s.status, s.role].filter(Boolean).join(" · ");
         return (
-          '<li class="desk">' +
-          '<div class="desk-head"><strong>' +
+          "<li>" +
           escHtml(name) +
-          '</strong><span class="tag">' +
-          escHtml(s.status || "") +
-          "</span></div>" +
-          '<p class="sub">World Service · ' +
-          escHtml(s.role || "") +
-          "</p>" +
-          (s.line ? '<p class="desk-line">' + escHtml(s.line) + "</p>" : "") +
+          (sub ? ' <span class="muted">' + escHtml(sub) + "</span>" : "") +
+          (s.line ? ' <span class="muted">' + escHtml(s.line) + "</span>" : "") +
           (cannot
-            ? '<p class="sec-title">Cannot</p><ul class="desk-cannot">' + cannot + "</ul>"
+            ? ' <span class="muted">Cannot</span><ul>' + cannot + "</ul>"
             : "") +
-          '<div class="acts">' +
+          " " +
           talk +
           cmds +
-          "</div></li>"
+          "</li>"
         );
       })
       .join("") +
     "</ul>"
   );
+}
+
+export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
+  if (!exits || !exits.length) return "";
+  return exits
+    .map((x) => {
+      const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+      return (
+        '<li><button type="button" class="role-here" data-cmd="move ' +
+        escHtml(x.direction) +
+        '">' +
+        escHtml(x.direction) +
+        "</button> <span class=\"muted\">" +
+        escHtml(dest) +
+        "</span></li>"
+      );
+    })
+    .join("");
 }
 
 export function renderEntityListHtml(entities?: EntityObs[] | null): string {
@@ -735,42 +792,25 @@ export function renderEntityListHtml(entities?: EntityObs[] | null): string {
       if (e.harvestable && e.stock_amount != null) {
         sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
       }
-      const glyph = entityConditionGlyph(e.label, e.entity_type);
-      let acts =
-        '<button type="button" class="btn" data-cmd="inspect ' +
-        escHtml(e.label) +
-        '">Inspect ' +
-        escHtml(name) +
-        "</button>";
-      if (e.repairable) {
-        acts +=
-          '<button type="button" class="btn primary" data-cmd="repair ' +
-          escHtml(e.label) +
-          '">Repair ' +
-          escHtml(name) +
-          "</button>";
-      }
-      if (e.harvestable) {
-        acts +=
-          '<button type="button" class="btn" data-cmd="harvest ' +
-          escHtml(e.label) +
-          '">Harvest ' +
-          escHtml(name) +
-          "</button>";
-      }
       return (
-        '<li class="ent">' +
-        '<span class="glyph" aria-hidden="true">' +
-        glyph +
-        "</span>" +
-        "<span><strong>" +
+        '<li><button type="button" class="role-here" data-cmd="inspect ' +
+        escHtml(e.label) +
+        '">' +
         escHtml(name) +
-        '</strong><span class="sub">' +
+        "</button> <span class=\"muted\">" +
         escHtml(sub) +
-        "</span></span>" +
-        '<span class="acts">' +
-        acts +
-        "</span></li>"
+        "</span>" +
+        (e.repairable
+          ? ' <button type="button" class="role-here" data-cmd="repair ' +
+            escHtml(e.label) +
+            '">repair</button>'
+          : "") +
+        (e.harvestable
+          ? ' <button type="button" class="role-here" data-cmd="harvest ' +
+            escHtml(e.label) +
+            '">harvest</button>'
+          : "") +
+        "</li>"
       );
     })
     .join("");
@@ -784,13 +824,13 @@ export function renderOpportunitiesHtml(loc: LocationObs): string {
   return opps
     .map((o) => {
       return (
-        '<li class="opp"><p>' +
-        escHtml(o.text) +
-        '</p><button type="button" class="btn primary" data-cmd="' +
+        '<li><button type="button" class="role-here" data-cmd="' +
         escHtml(o.cmd) +
         '">' +
         escHtml(o.actionLabel) +
-        "</button></li>"
+        "</button> <span class=\"muted\">" +
+        escHtml(o.text) +
+        "</span></li>"
       );
     })
     .join("");
@@ -817,6 +857,9 @@ export function playUiRuntimeSource(): string {
     renderServiceDesksHtml,
     renderEntityListHtml,
     renderOpportunitiesHtml,
+    renderLookHtml,
+    renderTrailHtml,
+    renderExitTokensHtml,
   ]
     .map((fn) => fn.toString())
     .join("\n");

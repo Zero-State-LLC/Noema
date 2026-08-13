@@ -160,12 +160,12 @@ describe("play shell HTML", () => {
     expect(html).toMatch(/\/connect/);
   });
 
-  it("uses the five-section information hierarchy", () => {
-    expect(html).toMatch(/What is here/i);
-    expect(html).toMatch(/What matters here/i);
-    expect(html).toMatch(/What you can do/i);
-    expect(html).toMatch(/What just happened/i);
-    expect(html).toMatch(/loc-name|Current condition/i);
+  it("uses chamber workspace hierarchy", () => {
+    expect(html).toMatch(/id="play-chamber"/);
+    expect(html).toMatch(/WHERE/);
+    expect(html).toMatch(/>HERE</);
+    expect(html).toMatch(/>EXITS</);
+    expect(html).toMatch(/id="cmd"/);
   });
 
   it("keeps command line and advanced details", () => {
@@ -175,12 +175,10 @@ describe("play shell HTML", () => {
   });
 
   it("avoids player-facing system jargon in primary chrome", () => {
-    // Primary headings / lead should not push Chamber / Genesis / settlement
     expect(html).not.toMatch(/PlayerPrincipal/);
     expect(html).not.toMatch(/Genesis/);
     expect(html).not.toMatch(/settlement internals/i);
-    // Lead copy
-    expect(html).toMatch(/What is here/);
+    expect(html).toMatch(/WHERE/);
   });
 
   it("does not embed story seed ids in the shell", () => {
@@ -258,7 +256,9 @@ describe("play-ui desks and players", () => {
     expect(full).toMatch(/hello/);
     expect(full).toMatch(/1 energy → 1 compute/);
     expect(full).toMatch(/accept trade\.0001/);
-    expect(full).toMatch(/Leave Compact/);
+    expect(full).toMatch(/Compact/);
+    expect(full).not.toMatch(/Leave Compact/);
+    expect(full).not.toMatch(/data-cmd="leave /);
   });
 
   it("humanizes world-gate codes", () => {
