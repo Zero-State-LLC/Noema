@@ -1,6 +1,7 @@
 # Admin email magic-link login
 
-**Status:** design — awaiting review before implementation  
+**Status:** approved — ready to implement
+
 **Date:** 2026-08-13  
 **Host:** `https://noema.guru`  
 **Does not activate, reseed, or force-supersede Genesis.**
