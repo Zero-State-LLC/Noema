@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  putWorldHead,
   replayUnsettled,
   shouldRestoreFromHead,
   worldFromHead,
@@ -54,6 +55,30 @@ describe("RFC-0016 restore rules", () => {
     expect(worldFromHead(head, fallback).world_id).toBe("world.perihelion-reach");
     expect(worldFromHead(head, fallback).sequence).toBe(75);
     expect(worldFromHead(null, fallback).world_id).toBe("world.fallback");
+  });
+});
+
+describe("RFC-0016 world head upsert", () => {
+  it("treats a missing table as skip, not PLAY failure", async () => {
+    const env = {
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-test",
+    } as Env;
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response("missing", { status: 404 })) as typeof fetch;
+    try {
+      const ok = await putWorldHead(env, {
+        world_id: "world.test",
+        sequence: 1,
+        cycle: 0,
+        status: "ACTIVE",
+        settlement_health: "HEALTHY",
+        state_json: emptyWorld(),
+      });
+      expect(ok).toBe(true);
+    } finally {
+      globalThis.fetch = orig;
+    }
   });
 });
 

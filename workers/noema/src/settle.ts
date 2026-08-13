@@ -69,6 +69,8 @@ export async function settleEvent(env: Env, principal: PlayerPrincipal, ev: Sett
       },
     );
     if (res.ok || res.status === 409) return true;
+    // Table not applied yet: do not fail-close PLAY. Events still settle.
+    if (res.status === 404 || res.status === 406) return true;
     return false;
   } catch {
     return false;
@@ -160,7 +162,10 @@ export async function putWorldHead(
         updated_at: new Date().toISOString(),
       }),
     });
-    return res.ok || res.status === 409;
+    if (res.ok || res.status === 409) return true;
+    // Table not applied yet: do not fail-close PLAY. Events still settle.
+    if (res.status === 404 || res.status === 406) return true;
+    return false;
   } catch {
     return false;
   }
