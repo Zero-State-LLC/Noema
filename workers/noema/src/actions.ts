@@ -1127,6 +1127,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push('  form <name> charter="purpose"');
     lines.push("  invite <player> to <org> role=member");
     lines.push("  leave <org> · remove <player> from <org>");
+    lines.push("  talk <desk>     World Service (not a Player)");
     lines.push("  help [trade|repair|harvest|message|org]");
   } else if (t === "org" || t === "organization" || t === "organizations") {
     lines.push("ORGANIZATIONS");

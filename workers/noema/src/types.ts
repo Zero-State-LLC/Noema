@@ -137,6 +137,16 @@ export interface Observation {
   affordances?: ObservationAffordance[];
   /** Last action consequence for UI */
   consequence?: string;
+  /** Location-bound World Services (adapters, not Players). */
+  services?: Array<{
+    service_id: string;
+    display_name: string;
+    role: string;
+    status: string;
+    operations: string[];
+    suggested_cmds: string[];
+    line: string;
+  }>;
 }
 
 export interface CommandResult {

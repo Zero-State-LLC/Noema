@@ -33,6 +33,12 @@ export type LocationObs = {
   exits: ExitObs[];
   entities: EntityObs[];
   condition?: string;
+  services?: Array<{
+    service_id: string;
+    display_name: string;
+    role: string;
+    status: string;
+  }>;
 };
 
 export type Opportunity = {
@@ -206,6 +212,15 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
       actionLabel: `Move ${x.direction}`,
       cmd: `move ${x.direction}`,
       priority: 3,
+    });
+  }
+  for (const s of loc.services || []) {
+    out.push({
+      id: `opp-svc-${s.service_id}`,
+      text: `${s.display_name} desk — ${s.role} [${s.status}].`,
+      actionLabel: `Talk ${s.display_name}`,
+      cmd: `talk ${s.display_name.toLowerCase()}`,
+      priority: 7,
     });
   }
   out.sort((a, b) => b.priority - a.priority);

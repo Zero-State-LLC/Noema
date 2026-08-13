@@ -16,6 +16,10 @@ export const READ_COMMANDS = new Set([
   "OBSERVE",
   "ENTER_WORLD",
   "JOIN",
+  "TALK",
+  "USE",
+  "CONSULT",
+  "SERVICE",
 ]);
 
 export function normalizeCommandName(command: string): string {

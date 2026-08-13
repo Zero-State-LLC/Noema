@@ -28,6 +28,7 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
 export type RoomState = {
@@ -218,6 +219,27 @@ export function buildObservation(
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
     players_here: otherPlayers.filter((p) => p.player_id !== principal.player_id),
+    services: servicesAtRoom({
+      room_id: room.room_id,
+      name: room.name,
+      description: room.description,
+      entities: entities.map((e) => ({
+        label: e.label,
+        entity_type: e.entity_type,
+        condition: e.condition,
+        harvestable: isHarvestable(e),
+        stock_amount: e.stock_amount,
+        repairable: isRepairable(e),
+      })),
+    }).map((s) => ({
+      service_id: s.service_id,
+      display_name: s.display_name,
+      role: s.role,
+      status: s.status,
+      operations: s.operations,
+      suggested_cmds: s.suggested_cmds,
+      line: s.line,
+    })),
     available_actions,
     affordances: affordances.map((a) => ({
       action: a.action,
@@ -287,6 +309,34 @@ export async function applyWorldCommand(
     return fail(request_id, "FORBIDDEN", "player_id does not match principal");
   }
 
+  const rawLine =
+    typeof (envl.arguments || {}).line === "string"
+      ? String((envl.arguments as { line?: string }).line)
+      : envl.command;
+  const askM = rawLine.trim().match(/^(?:ask|talk|use|consult|service)\s+(.+)$/i);
+  if (askM && (isServiceConsultLine(rawLine) || /^ask\s+/i.test(rawLine))) {
+    const pl0 = w.players[principal.player_id];
+    const room0 = w.rooms[pl0?.room_id || w.entry_room_id];
+    const present0 = servicesAtRoom({
+      room_id: room0?.room_id || "",
+      name: room0?.name || "",
+      description: room0?.description || "",
+      entities: room0 ? roomEntities(room0) : [],
+    });
+    const svc0 = resolveService(askM[1].replace(/^["']|["']$/g, ""), present0);
+    if (svc0 || isServiceConsultLine(rawLine)) {
+      const text = svc0
+        ? consultLine(svc0)
+        : present0.length
+          ? `Desks here: ${present0.map((s) => s.display_name).join(", ")}.`
+          : "No World Service desk is reachable here.";
+      const result = success(w, principal, request_id, [], text, false);
+      result.observation = { ...buildObservation(w, principal, text), consequence: text };
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+  }
+
   // Client may send human line or structured command
   const rawArgs = (envl.arguments || {}) as Record<string, unknown>;
   let parsed =
@@ -325,6 +375,10 @@ export async function applyWorldCommand(
       "ENTER_WORLD",
       "JOIN",
       "OBSERVE",
+      "TALK",
+      "USE",
+      "CONSULT",
+      "SERVICE",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -338,6 +392,27 @@ export async function applyWorldCommand(
   }
 
   if (!parsed.ok) {
+    if (parsed.code === "SERVICE") {
+      const pl = ensurePlayer(w, principal, w.entry_room_id);
+      const room = w.rooms[pl.room_id || w.entry_room_id];
+      const present = servicesAtRoom({
+        room_id: room?.room_id || "",
+        name: room?.name || "",
+        description: room?.description || "",
+        entities: room ? roomEntities(room) : [],
+      });
+      const raw = (parsed.choices || []).join(" ");
+      const svc = resolveService(raw, present);
+      const text = svc
+        ? consultLine(svc)
+        : present.length
+          ? `Desks here: ${present.map((s) => s.display_name).join(", ")}. Try: talk ${present[0].display_name.toLowerCase()}`
+          : "No World Service desk is reachable here. Canonical commands still work.";
+      const result = success(w, principal, request_id, [], text, false);
+      result.observation = { ...buildObservation(w, principal, text), consequence: text };
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
     if (parsed.code === "HELP") {
       const topic = parsed.choices?.[0];
       const pl = ensurePlayer(w, principal, w.entry_room_id);
