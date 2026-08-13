@@ -17,7 +17,9 @@ function bearer(req: Request): string | null {
 }
 
 function signingSecret(env: Env): string {
-  return env.TOKEN_SIGNING_SECRET || "dev-token-secret-change-me";
+  const secret = env.TOKEN_SIGNING_SECRET;
+  if (!secret) throw new Error("TOKEN_SIGNING_SECRET is not configured");
+  return secret;
 }
 
 /** Operator token gate. Returns null if admin is not configured. */
@@ -43,6 +45,13 @@ export async function mintAdminSession(
   }
   if (ok !== 0) return err("NOT_AUTHORIZED", "invalid operator token", 401);
 
+  let signing: string;
+  try {
+    signing = signingSecret(env);
+  } catch {
+    return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
+  }
+
   const session_id = `asess.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
   const now = Math.floor(Date.now() / 1000);
   const expires_in = 3600;
@@ -56,7 +65,7 @@ export async function mintAdminSession(
       exp: now + expires_in,
       jti: crypto.randomUUID(),
     },
-    signingSecret(env),
+    signing,
   );
   return { access_token, session_id, role: "ADMIN", expires_in };
 }
@@ -65,8 +74,14 @@ export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincip
   const token = bearer(req);
   if (!token) return err("NOT_AUTHORIZED", "ADMIN bearer token required", 401);
 
+  let signing: string;
   try {
-    const claims = await verifyHs256(token, signingSecret(env));
+    signing = signingSecret(env);
+  } catch {
+    return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
+  }
+  try {
+    const claims = await verifyHs256(token, signing);
     if (claims.typ !== "admin-access" || claims.role !== "ADMIN") {
       return err("NOT_AUTHORIZED", "not an ADMIN session — use operator login", 403);
     }

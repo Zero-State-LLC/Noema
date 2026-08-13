@@ -300,10 +300,17 @@ class IdentityService:
             "token_type": "bearer",
         }
 
-    def revoke_controller(self, controller_id: str) -> dict[str, Any]:
+    def revoke_controller(self, controller_id: str, *, access_token: str | None = None) -> dict[str, Any]:
+        if not access_token:
+            raise ActionError(NOT_AUTHORIZED, "controller token required to revoke")
+        caller = self.resolve_access_token(access_token)
         controller = self.store.identity_get_controller(controller_id)
         if not controller:
             raise ActionError(NOT_AUTHORIZED, "unknown controller")
+        scopes = caller.get("scopes") or []
+        privileged = "noema.controller.manage" in scopes or "noema.player.manage" in scopes
+        if controller.get("player_id") != caller.get("player_id") and not privileged:
+            raise ActionError(NOT_AUTHORIZED, "cannot revoke another Player's controller")
         controller["revoked_at"] = _now()
         self.store.identity_upsert_controller(controller)
         self.store.identity_revoke_credentials_for_controller(controller_id)
@@ -444,13 +451,20 @@ class IdentityService:
         }
 
     def deny_device(self, *, user_code: str, approver_access_token: str | None = None) -> dict[str, Any]:
-        if not approver_access_token and not self.allow_dev_human:
+        if not approver_access_token:
             raise ActionError(NOT_AUTHORIZED, "human controller token required to deny")
-        if approver_access_token:
-            self.resolve_access_token(approver_access_token)
+        approver = self.resolve_access_token(approver_access_token)
+        scopes = approver.get("scopes") or []
+        if approver["controller"].get("type") not in ("browser", "mobile", "cli"):
+            if "noema.controller.manage" not in scopes:
+                raise ActionError(NOT_AUTHORIZED, "only a human Controller may deny device enrollment")
         rec = self._find_device_by_user_code(user_code)
         if not rec:
             raise ActionError(NOT_AUTHORIZED, "unknown user_code")
+        bound = rec.get("player_id")
+        privileged = "noema.controller.manage" in scopes or "noema.player.manage" in scopes
+        if bound and bound != approver.get("player_id") and not privileged:
+            raise ActionError(NOT_AUTHORIZED, "cannot deny another Player's enrollment")
         if rec.get("status") != "pending":
             return {"status": rec.get("status"), "user_code": rec["user_code"]}
         rec["status"] = "denied"
