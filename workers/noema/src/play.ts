@@ -298,10 +298,7 @@ function playClientBundle(): string {
       }
 
       const exits = loc.exits || [];
-      $("exit-list").innerHTML = exits.map(x => {
-        const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id||"").replace(/^room\\./,""));
-        return '<li><button type="button" class="btn move" data-cmd="move ' + escHtml(x.direction) + '">Move ' + escHtml(x.direction) + ' · ' + escHtml(dest) + '</button></li>';
-      }).join("");
+      $("exit-list").innerHTML = renderExitTokensHtml(exits);
 
       const rd = routeDiagram(loc.name, exits);
       if (rd.hasRoutes) {
@@ -312,27 +309,6 @@ function playClientBundle(): string {
       }
 
       $("opp-list").innerHTML = renderOpportunitiesHtml(loc);
-
-      let acts = [];
-      if (obs.affordances && obs.affordances.length) {
-        acts = obs.affordances.filter(a => a.available && a.kind !== "social" && a.kind !== "org").slice(0, 10).map(a => ({
-          label: a.label,
-          cmd: a.cmd,
-          cls: a.kind === "primary" ? "primary" : a.kind === "move" ? "move" : a.kind === "utility" ? "util" : "",
-        }));
-      } else {
-        if (ents[0]) acts.push({ label: "Inspect " + titleCaseLabel(ents[0].label), cmd: "inspect " + ents[0].label, cls: "primary" });
-        for (const e of ents) {
-          if (e.repairable) acts.push({ label: "Repair " + titleCaseLabel(e.label), cmd: "repair " + e.label, cls: "primary" });
-          if (e.harvestable) acts.push({ label: "Harvest " + titleCaseLabel(e.label), cmd: "harvest " + e.label, cls: "" });
-        }
-        for (const x of exits.slice(0, 3)) acts.push({ label: "Move " + x.direction, cmd: "move " + x.direction, cls: "move" });
-        acts.push({ label: "Look around", cmd: "look", cls: "util" });
-        acts.push({ label: "Wait", cmd: "wait", cls: "util" });
-      }
-      if ($("act-strip")) $("act-strip").innerHTML = acts.map(a =>
-        '<button type="button" class="btn ' + a.cls + '" data-cmd="' + escHtml(a.cmd) + '">' + escHtml(a.label) + '</button>'
-      ).join("");
 
       const rows = statusFromObservation(obs);
       if (obs.budgets) {

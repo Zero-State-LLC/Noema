@@ -600,39 +600,32 @@ export function renderPlayersHereHtml(
       const name = escHtml(handle);
       const msgCmd = "message " + handle + ' "';
       const tradeCmd = "trade " + handle + " offer=";
-      let acts =
-        '<button type="button" class="btn" data-cmd="' +
-        escHtml(msgCmd) +
-        '">Message ' +
-        name +
-        "</button>" +
-        '<button type="button" class="btn" data-cmd="' +
-        escHtml(tradeCmd) +
-        '">Trade ' +
-        name +
-        "</button>";
+      let extra = "";
       for (const o of officerOrgs) {
-        acts +=
-          '<button type="button" class="btn" data-cmd="invite ' +
+        extra +=
+          ' <button type="button" class="role-here" data-cmd="invite ' +
           escHtml(handle) +
           " to " +
           escHtml(o.org_id) +
-          ' role=member">Invite ' +
-          name +
-          " to " +
+          ' role=member">invite ' +
           escHtml(o.name) +
           "</button>";
       }
       void selfId;
       return (
-        '<li class="ent player-here">' +
-        '<span class="glyph" aria-hidden="true">○</span>' +
-        "<span><strong>" +
+        '<li><button type="button" class="role-here" data-cmd="' +
+        escHtml(msgCmd) +
+        '" aria-label="Message ' +
         name +
-        '</strong><span class="sub">Player</span></span>' +
-        '<span class="acts">' +
-        acts +
-        "</span></li>"
+        '">' +
+        name +
+        '</button> <button type="button" class="role-here" data-cmd="' +
+        escHtml(tradeCmd) +
+        '" aria-label="Trade ' +
+        name +
+        '">trade</button>' +
+        extra +
+        "</li>"
       );
     })
     .join("");
@@ -783,6 +776,24 @@ export function renderServiceDesksHtml(
   );
 }
 
+export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
+  if (!exits || !exits.length) return "";
+  return exits
+    .map((x) => {
+      const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+      return (
+        '<li><button type="button" class="role-here" data-cmd="move ' +
+        escHtml(x.direction) +
+        '">' +
+        escHtml(x.direction) +
+        "</button> <span class=\"muted\">" +
+        escHtml(dest) +
+        "</span></li>"
+      );
+    })
+    .join("");
+}
+
 export function renderEntityListHtml(entities?: EntityObs[] | null): string {
   if (!entities || !entities.length) {
     return '<li class="empty">Nothing notable right here.</li>';
@@ -795,42 +806,25 @@ export function renderEntityListHtml(entities?: EntityObs[] | null): string {
       if (e.harvestable && e.stock_amount != null) {
         sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
       }
-      const glyph = entityConditionGlyph(e.label, e.entity_type);
-      let acts =
-        '<button type="button" class="btn" data-cmd="inspect ' +
-        escHtml(e.label) +
-        '">Inspect ' +
-        escHtml(name) +
-        "</button>";
-      if (e.repairable) {
-        acts +=
-          '<button type="button" class="btn primary" data-cmd="repair ' +
-          escHtml(e.label) +
-          '">Repair ' +
-          escHtml(name) +
-          "</button>";
-      }
-      if (e.harvestable) {
-        acts +=
-          '<button type="button" class="btn" data-cmd="harvest ' +
-          escHtml(e.label) +
-          '">Harvest ' +
-          escHtml(name) +
-          "</button>";
-      }
       return (
-        '<li class="ent">' +
-        '<span class="glyph" aria-hidden="true">' +
-        glyph +
-        "</span>" +
-        "<span><strong>" +
+        '<li><button type="button" class="role-here" data-cmd="inspect ' +
+        escHtml(e.label) +
+        '">' +
         escHtml(name) +
-        '</strong><span class="sub">' +
+        "</button> <span class=\"muted\">" +
         escHtml(sub) +
-        "</span></span>" +
-        '<span class="acts">' +
-        acts +
-        "</span></li>"
+        "</span>" +
+        (e.repairable
+          ? ' <button type="button" class="role-here" data-cmd="repair ' +
+            escHtml(e.label) +
+            '">repair</button>'
+          : "") +
+        (e.harvestable
+          ? ' <button type="button" class="role-here" data-cmd="harvest ' +
+            escHtml(e.label) +
+            '">harvest</button>'
+          : "") +
+        "</li>"
       );
     })
     .join("");
@@ -844,13 +838,13 @@ export function renderOpportunitiesHtml(loc: LocationObs): string {
   return opps
     .map((o) => {
       return (
-        '<li class="opp"><p>' +
-        escHtml(o.text) +
-        '</p><button type="button" class="btn primary" data-cmd="' +
+        '<li><button type="button" class="role-here" data-cmd="' +
         escHtml(o.cmd) +
         '">' +
         escHtml(o.actionLabel) +
-        "</button></li>"
+        "</button> <span class=\"muted\">" +
+        escHtml(o.text) +
+        "</span></li>"
       );
     })
     .join("");
@@ -879,6 +873,7 @@ export function playUiRuntimeSource(): string {
     renderOpportunitiesHtml,
     renderLookHtml,
     renderTrailHtml,
+    renderExitTokensHtml,
   ]
     .map((fn) => fn.toString())
     .join("\n");

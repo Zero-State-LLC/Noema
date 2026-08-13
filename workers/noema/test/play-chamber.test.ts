@@ -4,6 +4,10 @@ import {
   renderLookHtml,
   renderTrailHtml,
   playUiRuntimeSource,
+  renderExitTokensHtml,
+  renderEntityListHtml,
+  renderOpportunitiesHtml,
+  renderPlayersHereHtml,
 } from "../src/play-ui";
 
 function chamberOf(html: string): string {
@@ -110,5 +114,53 @@ describe("look and trail text", () => {
   it("serializes the new helpers into the page runtime", () => {
     expect(playUiRuntimeSource()).toContain("function renderLookHtml");
     expect(playUiRuntimeSource()).toContain("function renderTrailHtml");
+  });
+});
+
+describe("rail tokens", () => {
+  it("exits are teal data-cmd tokens", () => {
+    const html = renderExitTokensHtml([
+      { direction: "east", to_room_id: "room.quay", to_room_name: "Quay" },
+    ]);
+    expect(html).toContain('data-cmd="move east"');
+    expect(html).toContain("role-here");
+    expect(html).toContain("east");
+    expect(html).not.toMatch(/class="btn move"/);
+  });
+
+  it("entities are tokens with inspect/repair cmds", () => {
+    const html = renderEntityListHtml([
+      {
+        entity_id: "e1",
+        label: "crane",
+        entity_type: "fixture",
+        repairable: true,
+      },
+    ]);
+    expect(html).toContain('data-cmd="inspect crane"');
+    expect(html).toContain('data-cmd="repair crane"');
+    expect(html).toContain("role-here");
+    expect(html).not.toMatch(/class="ent"/);
+    expect(html).not.toMatch(/class="glyph"/);
+  });
+
+  it("opportunities are tokens not opp cards", () => {
+    const html = renderOpportunitiesHtml({
+      room_id: "room.x",
+      name: "X",
+      description: "",
+      exits: [{ direction: "east", to_room_id: "room.y", to_room_name: "Y" }],
+      entities: [],
+    });
+    expect(html).toContain("data-cmd=");
+    expect(html).not.toMatch(/class="opp"/);
+  });
+
+  it("players here stay message/trade cmds as tokens", () => {
+    const html = renderPlayersHereHtml([{ player_id: "p1", handle: "nacre" }]);
+    expect(html).toContain("nacre");
+    expect(html).toContain("data-cmd=");
+    expect(html).toContain("role-here");
+    expect(html).not.toMatch(/class="ent player-here"/);
   });
 });
