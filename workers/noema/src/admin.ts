@@ -157,6 +157,7 @@ export function adminHtml(): string {
       <a class="active" href="#overview">Overview</a>
       <a href="#world">World</a>
       <a href="#genesis">Genesis</a>
+      <a href="#digests">Digests</a>
       <a href="#players">Players</a>
       <a href="#boundary">Boundaries</a>
     </nav>
@@ -217,6 +218,44 @@ export function adminHtml(): string {
             <button class="btn danger" type="button" id="reseed" disabled style="margin-top:.7rem">Reseed chamber</button>
           </div>
           <p class="notice" id="reseed-notice"></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="digests">
+      <p class="kicker">02b / operator digests</p>
+      <h2>Gameplay summaries</h2>
+      <p class="muted">Settled activity only. Not alerts. Not world truth. Email is optional and off by default.</p>
+      <div class="grid" style="margin-top:.75rem">
+        <article class="card pad s5">
+          <p class="kicker">Configuration</p>
+          <label for="d-cadence">Cadence</label>
+          <select id="d-cadence">
+            <option value="OFF">OFF</option>
+            <option value="PT15M">15 minutes</option>
+            <option value="PT30M" selected>30 minutes</option>
+            <option value="PT1H">1 hour</option>
+            <option value="PT5H">5 hours</option>
+            <option value="PT10H">10 hours</option>
+            <option value="PT24H">24 hours</option>
+          </select>
+          <label for="d-depth">Depth</label>
+          <select id="d-depth">
+            <option>BRIEF</option>
+            <option selected>STANDARD</option>
+            <option>DETAILED</option>
+          </select>
+          <label style="display:flex;gap:.45rem;align-items:center;margin-top:.7rem"><input type="checkbox" id="d-enabled" checked/> Enabled</label>
+          <label style="display:flex;gap:.45rem;align-items:center"><input type="checkbox" id="d-ctrl"/> Controller breakdown (metadata)</label>
+          <div class="btn-row" style="margin-top:.85rem">
+            <button class="btn primary" type="button" id="d-save">Save</button>
+            <button class="btn quiet" type="button" id="d-tick">Generate due windows</button>
+          </div>
+          <p class="notice" id="d-notice"></p>
+        </article>
+        <article class="card pad s7">
+          <p class="kicker">Latest digest</p>
+          <pre id="d-latest" class="empty" style="white-space:pre-wrap;font:0.78rem/1.45 var(--font-mono);margin:0">No digest yet.</pre>
         </article>
       </div>
     </section>
@@ -509,6 +548,17 @@ export function adminHtml(): string {
         li.innerHTML = "<strong>" + id + "</strong><span>present</span>";
         pl.append(li);
       });
+      try {
+        const dg = await api("/v1/admin/digests");
+        const cfg = dg.config || {};
+        $("d-enabled").checked = cfg.enabled !== false;
+        if (cfg.cadence) $("d-cadence").value = cfg.cadence;
+        if (cfg.depth) $("d-depth").value = cfg.depth;
+        $("d-ctrl").checked = !!cfg.include_controller_breakdown;
+        const latest = (dg.digests || [])[0];
+        $("d-latest").textContent = latest ? latest.text : "No digest yet.";
+      } catch (_) { /* digest surface optional if DO old */ }
+
       notice("Operator projection updated.", "ok");
     } catch (e) {
       if (e.status === 401 || e.status === 403) {
@@ -522,6 +572,39 @@ export function adminHtml(): string {
     }
   }
 
+  $("d-save").addEventListener("click", async () => {
+    $("d-notice").textContent = "Saving…";
+    try {
+      await api("/v1/admin/digest-config", {
+        method: "POST",
+        body: JSON.stringify({
+          enabled: $("d-enabled").checked,
+          cadence: $("d-cadence").value,
+          depth: $("d-depth").value,
+          include_controller_breakdown: $("d-ctrl").checked,
+          dashboard: true,
+        }),
+      });
+      $("d-notice").className = "notice ok";
+      $("d-notice").textContent = "Digest preferences saved. World state unchanged.";
+    } catch (e) {
+      $("d-notice").className = "notice bad";
+      $("d-notice").textContent = e.message || "Save failed";
+    }
+  });
+  $("d-tick").addEventListener("click", async () => {
+    $("d-notice").textContent = "Ticking due windows…";
+    try {
+      const r = await api("/v1/admin/digest-tick", { method: "POST", body: "{}" });
+      const d = (r.digests || [])[(r.digests||[]).length - 1];
+      if (d) $("d-latest").textContent = d.text;
+      $("d-notice").className = "notice ok";
+      $("d-notice").textContent = "Produced " + (r.produced || 0) + " digest(s).";
+    } catch (e) {
+      $("d-notice").className = "notice bad";
+      $("d-notice").textContent = e.message || "Tick failed";
+    }
+  });
   $("refresh").addEventListener("click", load);
   $("logout").addEventListener("click", () => {
     sessionStorage.removeItem("noema.admin.token");
