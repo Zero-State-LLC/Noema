@@ -95,6 +95,8 @@ export interface Observation {
     entities: ObservationEntity[];
   };
   player_id: string;
+  /** False after LEAVE_WORLD or before ENTER_WORLD. */
+  in_world?: boolean;
   /** Self budgets (Player-visible). */
   budgets?: {
     attention: number;
