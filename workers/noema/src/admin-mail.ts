@@ -166,15 +166,14 @@ export async function deliverAdminMail(env: Env, mail: {
   text: string;
 }): Promise<void> {
   if (!env.ADMIN_MAIL) throw new Error("ADMIN_MAIL not bound");
-  const { EmailMessage } = await import("cloudflare:email");
-  const raw = buildAdminMime({
-    from: ADMIN_MAIL_FROM,
+  const result = await env.ADMIN_MAIL.send({
     to: mail.to,
+    from: { email: ADMIN_MAIL_FROM, name: "NOEMA ADMIN" },
     subject: mail.subject,
-    text: mail.text,
     html: mail.html,
+    text: mail.text,
   });
-  await env.ADMIN_MAIL.send(new EmailMessage(ADMIN_MAIL_FROM, mail.to, raw));
+  console.log("admin-mail sent", result && typeof result === "object" ? "ok" : "ok");
 }
 
 export function composeAdminMail(href: string): {
