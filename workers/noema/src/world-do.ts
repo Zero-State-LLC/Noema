@@ -4,8 +4,10 @@ import { redactedPublicWorld } from "./genesis";
 import {
   applyControllingSession,
   commandForOps,
-  countEnteredPlayers,
-  enteredPlayerIds,
+  countLivePlayers,
+  expireStalePresence,
+  listLivePlayers,
+  listSystemActors,
   isMutatingCommand,
   mutationBlocked,
   nextSettlementHealth,
@@ -151,7 +153,7 @@ export class NoemaWorldDO {
         world_id: this.world!.world_id,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
-        players: countEnteredPlayers(this.world!.players),
+        players: countLivePlayers(this.world!.players),
         status: this.meta!.status,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         genesis_id: this.meta!.genesis_id || null,
@@ -174,7 +176,7 @@ export class NoemaWorldDO {
           cycle: this.world!.cycle,
           sequence: this.world!.sequence,
           rooms: this.world!.rooms as Record<string, GenesisRoom>,
-          players_present: countEnteredPlayers(this.world!.players),
+          players_present: countLivePlayers(this.world!.players),
           world_status: this.meta!.status,
           freshness: marker,
         }),
@@ -189,8 +191,10 @@ export class NoemaWorldDO {
         world_name: this.world!.world_name,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
-        players_present: countEnteredPlayers(this.world!.players),
-        player_ids: enteredPlayerIds(this.world!.players),
+        players_present: countLivePlayers(this.world!.players),
+        player_ids: listLivePlayers(this.world!.players).map((p) => p.player_id),
+        live_players: listLivePlayers(this.world!.players),
+        system_actors: listSystemActors(this.world!.players),
         rooms: roomList.map((r) => ({
           room_id: r.room_id,
           name: r.name,
@@ -505,12 +509,16 @@ export class NoemaWorldDO {
 
   private async load(): Promise<void> {
     await this.loadMeta();
-    if (this.world) return;
-    const stored = await this.state.storage.get<WorldState>("world");
-    this.world = stored || demoState(this.env.DEFAULT_WORLD_ID || "world-01");
-    // migrate old states without entry_room_id / budgets / entity runtime fields
-    if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
-    migrateWorldRuntime(this.world);
+    if (!this.world) {
+      const stored = await this.state.storage.get<WorldState>("world");
+      this.world = stored || demoState(this.env.DEFAULT_WORLD_ID || "world-01");
+      // migrate old states without entry_room_id / budgets / entity runtime fields
+      if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
+      migrateWorldRuntime(this.world);
+    }
+    if (expireStalePresence(this.world.players)) {
+      await this.save();
+    }
   }
 
   private async save(): Promise<void> {
@@ -617,7 +625,7 @@ export class NoemaWorldDO {
       world_name: w.world_name,
       world_status: this.meta!.status,
       settlement_health: this.meta!.settlement_health || "HEALTHY",
-      players_present: countEnteredPlayers(w.players),
+      players_present: countLivePlayers(w.players),
       open_trades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN").length,
     };
     const history = (await this.state.storage.get<OperatorDigest[]>("digest_history")) || [];

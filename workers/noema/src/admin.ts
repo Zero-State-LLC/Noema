@@ -263,7 +263,7 @@ export function adminHtml(): string {
       <p class="kicker">01 / overview</p>
       <h2>Operating picture</h2>
       <div class="grid" style="margin-top:.75rem">
-        <article class="metric teal s3"><span>Players present</span><strong id="m-players">—</strong><span id="m-player-note">world ontology: PLAYER</span></article>
+        <article class="metric teal s3"><span>Live players</span><strong id="m-players">—</strong><span id="m-player-note">present now · 30m</span></article>
         <article class="metric copper s3"><span>World</span><strong id="m-world">—</strong><span id="m-world-state">checking</span></article>
         <article class="metric s3"><span>Cycle</span><strong id="m-cycle">—</strong><span id="m-seq">sequence —</span></article>
         <article class="metric s3"><span>Rooms</span><strong id="m-rooms">—</strong><span>chamber sites</span></article>
@@ -417,16 +417,19 @@ export function adminHtml(): string {
     <section class="section" id="players">
       <p class="kicker">04 / players</p>
       <h2>Players and connections</h2>
-      <p class="muted">Humans and agents are peers. Controller type is operational metadata, not a world species. Production entry uses <strong>operator-minted</strong> controller tokens — not open dev-token.</p>
+      <p class="muted">Humans and agents are both Players. This split is operational: live magic-link presence vs operator-minted / agent / smoke actors. Present now means a command in the last 30 minutes.</p>
       <div class="grid" style="margin-top:.75rem">
-        <article class="card pad s4">
-          <p class="kicker">World ontology</p>
-          <strong style="font:550 2rem var(--font-display)" id="players-total">—</strong>
-          <p class="empty">Players present (live DO)</p>
+        <article class="card pad s6">
+          <p class="kicker">Live players</p>
+          <strong style="font:550 2rem var(--font-display)" id="live-count">—</strong>
+          <p class="empty">Present now · play-link humans</p>
+          <ul class="list" id="live-player-list"><li class="empty">No live Players.</li></ul>
         </article>
-        <article class="card pad s8">
-          <p class="kicker">Presence</p>
-          <ul class="list" id="player-list"><li class="empty">No player positions returned.</li></ul>
+        <article class="card pad s6">
+          <p class="kicker">System actors</p>
+          <strong style="font:550 2rem var(--font-display)" id="system-count">—</strong>
+          <p class="empty">Operator-minted · agent · smoke</p>
+          <ul class="list" id="system-actor-list"><li class="empty">No system actors on record.</li></ul>
         </article>
         <article class="card pad s12">
           <p class="kicker">Issue controller token</p>
@@ -574,7 +577,7 @@ export function adminHtml(): string {
       const w = data.world || {};
       const h = data.health || {};
       const g = data.genesis || {};
-      $("m-players").textContent = w.players_present ?? "—";
+      $("m-players").textContent = (w.live_players || []).length || w.players_present || 0;
       $("m-world").textContent = w.world_id || "—";
       $("m-world-state").textContent = g.status || "—";
       $("m-cycle").textContent = w.cycle ?? "—";
@@ -583,7 +586,12 @@ export function adminHtml(): string {
       $("world-title").textContent = (w.world_name || w.world_id || "World");
       $("world-tag").textContent = g.status === "ACTIVE" ? "ACTIVE" : (g.status || "ONLINE");
       $("world-tag").className = "tag " + (g.status === "ACTIVE" ? "ok" : "warn");
-      $("players-total").textContent = w.players_present ?? "—";
+      const live = w.live_players || [];
+      const system = w.system_actors || [];
+      const liveEl = $("live-count");
+      const sysEl = $("system-count");
+      if (liveEl) liveEl.textContent = String(live.length);
+      if (sysEl) sysEl.textContent = String(system.length);
 
       kv($("kv-runtime"), [
         ["Health", h.status],
@@ -598,7 +606,8 @@ export function adminHtml(): string {
         ["Settlement health", w.settlement_health || g.settlement_health || "—"],
         ["Cycle", w.cycle],
         ["Sequence", w.sequence],
-        ["Players present", w.players_present],
+        ["Live players", (w.live_players || []).length],
+        ["System actors", (w.system_actors || []).length],
         ["Rooms", w.room_count],
         ["Entities", w.entity_count],
         ["Entry", w.entry_room_id],
@@ -648,15 +657,24 @@ export function adminHtml(): string {
         });
       }
 
-      const pl = $("player-list");
-      pl.replaceChildren();
-      const ids = w.player_ids || [];
-      if (!ids.length) pl.innerHTML = '<li class="empty">No player positions in live DO.</li>';
-      else ids.forEach(id => {
-        const li = document.createElement("li");
-        li.innerHTML = "<strong>" + id + "</strong><span>present</span>";
-        pl.append(li);
-      });
+      const fillActors = (elId, rows, empty) => {
+        const el = $(elId);
+        if (!el) return;
+        el.replaceChildren();
+        if (!rows.length) {
+          el.innerHTML = '<li class="empty">' + empty + "</li>";
+          return;
+        }
+        rows.forEach((row) => {
+          const li = document.createElement("li");
+          const label = row.handle || row.player_id;
+          const note = row.entered ? "present" : "idle";
+          li.innerHTML = "<strong>" + label + "</strong><span>" + note + "</span>";
+          el.append(li);
+        });
+      };
+      fillActors("live-player-list", live, "No live Players.");
+      fillActors("system-actor-list", system, "No system actors on record.");
       try {
         const dg = await api("/v1/admin/digests");
         const cfg = dg.config || {};

@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  actorKindFromPrincipal,
   applyControllingSession,
   commandForOps,
   countEnteredPlayers,
+  countLivePlayers,
+  expireStalePresence,
+  inferActorKind,
   isMutatingCommand,
+  listSystemActors,
   mutationBlocked,
   nextSettlementHealth,
   playReady,
@@ -39,6 +44,29 @@ describe("command mutation class", () => {
         c: { entered: true },
       }),
     ).toBe(2);
+  });
+
+  it("treats missing last_seen as stale and counts only live humans", () => {
+    const now = 1_700_000_000_000;
+    const players = {
+      "player.abc123abc123": { entered: true, last_seen_ms: now - 60_000, actor_kind: "live" as const },
+      "player.deadbeef0001": { entered: true },
+      "player.smoke-human": { entered: true, last_seen_ms: now - 1000, actor_kind: "system" as const },
+    };
+    expect(countLivePlayers(players, now)).toBe(1);
+    expect(expireStalePresence(players, now)).toBe(true);
+    expect(players["player.deadbeef0001"].entered).toBe(false);
+    expect(players["player.smoke-human"].entered).toBe(true);
+    expect(inferActorKind("player.deadbeef0001")).toBe("live");
+    expect(inferActorKind("player.alice")).toBe("system");
+    expect(listSystemActors(players).map((r) => r.player_id)).toEqual(["player.smoke-human"]);
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.x",
+        issued_by: "admin",
+        controller_type: "human",
+      }),
+    ).toBe("system");
   });
 });
 

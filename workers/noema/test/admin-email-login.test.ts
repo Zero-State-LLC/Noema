@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminLoginHtml, adminCallbackHtml } from "../src/admin";
+import { adminCallbackHtml, adminHtml, adminLoginHtml } from "../src/admin";
 import {
   ADMIN_OPERATOR_EMAIL,
   GENERIC_LOGIN_MESSAGE,
@@ -412,6 +412,14 @@ describe("admin isolation", () => {
 });
 
 describe("admin login HTML", () => {
+  it("splits live players and system actors", () => {
+    const html = adminHtml();
+    expect(html).toContain('id="live-player-list"');
+    expect(html).toContain('id="system-actor-list"');
+    expect(html).toMatch(/Live players/);
+    expect(html).toMatch(/System actors/);
+  });
+
   it("is email-only and locked to the operator mailbox", () => {
     const html = adminLoginHtml();
     expect(html).toContain('id="email"');
