@@ -18,7 +18,7 @@ describe("auth email templates", () => {
     expect(html).not.toMatch(/ADMIN_OPERATOR_TOKEN|17011984|OLD_TRADE_NETWORK/);
   });
 
-  it("play and admin reference copies use the same token_hash contract", () => {
+  it("play and admin letters share the token_hash contract and stay distinct", () => {
     for (const name of [
       "play-magic-link.html",
       "admin-magic-link.html",
@@ -30,8 +30,18 @@ describe("auth email templates", () => {
       expect(body).toContain("{{ .TokenHash }}");
       expect(body).toContain("{{ .Type }}");
     }
-    expect(email("play-magic-link.html")).toMatch(/PLAY|Player/);
-    expect(email("admin-magic-link.html")).toContain("zer0state@zer0state.com");
-    expect(email("admin-magic-link.html")).toMatch(/ADMIN|operator/i);
+    const play = email("play-magic-link.html");
+    const admin = email("admin-magic-link.html");
+    expect(play).toContain("ENTER NOEMA");
+    expect(play).toContain("Player account");
+    expect(play).toContain("Perihelion Reach");
+    expect(play).not.toMatch(/privileged administrative|Do not forward/);
+    expect(admin).toContain("OPEN ADMIN");
+    expect(admin).toContain("NOEMA ADMIN");
+    expect(admin).toContain("privileged administrative access");
+    expect(admin).toContain("Do not forward or share this message.");
+    expect(admin).toContain("Operator Plane");
+    expect(admin).not.toContain("ENTER NOEMA");
+    expect(play).not.toContain("OPEN ADMIN");
   });
 });
