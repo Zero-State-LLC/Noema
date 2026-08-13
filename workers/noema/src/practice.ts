@@ -1,39 +1,48 @@
 /**
- * GC1-S0 derived practice. Rebuildable cache, not WorldState.
- * Authority: Noema-Specs docs/GC1-FIRST-SLICE.md / RFC-0004.
+ * GC1-S0/S1 derived practice. Rebuildable cache, not WorldState.
+ * Authority: Noema-Specs GC1-FIRST-SLICE / GC1-S1-RECOGNITION / RFC-0004 / RFC-0005.
  */
 
-export const MASTERY_CATALOG_ID = "mastery-catalog/gc1-s0";
+export const MASTERY_CATALOG_ID = "mastery-catalog/gc1-s1";
 export const MAX_PLAY_LINES = 3;
 
 export const PRACTICE_TRACKS = [
   {
     track_id: "track.explorer.01",
     display_order: 1,
+    recognition_threshold: 5,
     play_line: "You have been learning the rooms.",
+    recognized_play_line: "You know these rooms.",
   },
   {
     track_id: "track.surveyor.01",
     display_order: 2,
+    recognition_threshold: 5,
     play_line: "You have been doing survey work.",
+    recognized_play_line: "You are known for survey work.",
   },
   {
     track_id: "track.broker.01",
     display_order: 3,
+    recognition_threshold: 3,
     play_line: "You have been closing exchanges.",
+    recognized_play_line: "You are known for closing exchanges.",
   },
   {
     track_id: "track.engineer.01",
     display_order: 4,
+    recognition_threshold: 3,
     play_line: "You have been keeping infrastructure alive.",
+    recognized_play_line: "You are known for keeping infrastructure alive.",
   },
 ] as const;
 
 export type PracticeTrackId = (typeof PRACTICE_TRACKS)[number]["track_id"];
 
 export type PracticeState = {
-  catalog_id: typeof MASTERY_CATALOG_ID;
+  catalog_id: typeof MASTERY_CATALOG_ID | "mastery-catalog/gc1-s0";
   tracks: Partial<Record<PracticeTrackId, string[]>>;
+  recognition?: Partial<Record<PracticeTrackId, string[]>>;
 };
 
 export type PracticeEvent = {
@@ -48,12 +57,23 @@ export type PracticeTrade = {
 };
 
 export function emptyPractice(): PracticeState {
-  return { catalog_id: MASTERY_CATALOG_ID, tracks: {} };
+  return { catalog_id: MASTERY_CATALOG_ID, tracks: {}, recognition: {} };
 }
 
 function ensurePractice(raw: PracticeState | undefined | null): PracticeState {
-  if (!raw || raw.catalog_id !== MASTERY_CATALOG_ID) return emptyPractice();
-  return { catalog_id: MASTERY_CATALOG_ID, tracks: { ...(raw.tracks || {}) } };
+  if (!raw) return emptyPractice();
+  const tracks = { ...(raw.tracks || {}) };
+  const recognition = { ...(raw.recognition || {}) };
+  // S0 caches: reuse distinct units as recognition except engineer (entity ids unknown).
+  if (raw.catalog_id === "mastery-catalog/gc1-s0") {
+    for (const track of PRACTICE_TRACKS) {
+      if (track.track_id === "track.engineer.01") continue;
+      if (!recognition[track.track_id]?.length && tracks[track.track_id]?.length) {
+        recognition[track.track_id] = [...(tracks[track.track_id] || [])];
+      }
+    }
+  }
+  return { catalog_id: MASTERY_CATALOG_ID, tracks, recognition };
 }
 
 function payloadPlayer(payload: Record<string, unknown> | undefined): string | null {
@@ -69,13 +89,24 @@ function credit(
   state: PracticeState,
   trackId: PracticeTrackId,
   unit: string,
+  recognitionUnit?: string,
 ): PracticeState {
-  if (!unit) return state;
+  if (!unit && !recognitionUnit) return state;
   const next = ensurePractice(state);
-  const units = [...(next.tracks[trackId] || [])];
-  if (units.includes(unit)) return next;
-  units.push(unit);
-  next.tracks[trackId] = units;
+  if (unit) {
+    const units = [...(next.tracks[trackId] || [])];
+    if (!units.includes(unit)) {
+      units.push(unit);
+      next.tracks[trackId] = units;
+    }
+  }
+  if (recognitionUnit) {
+    const rec = [...(next.recognition?.[trackId] || [])];
+    if (!rec.includes(recognitionUnit)) {
+      rec.push(recognitionUnit);
+      next.recognition = { ...(next.recognition || {}), [trackId]: rec };
+    }
+  }
   return next;
 }
 
@@ -120,29 +151,44 @@ export function creditsFromEvent(
     const actor =
       (typeof payload.actor_id === "string" && payload.actor_id) || opts.actingPlayerId || "";
     if ((hostedRepair || catalogRepair) && actor) {
-      out.push({ player_id: actor, track_id: "track.engineer.01", unit: ev.event_id });
+      const entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
+      out.push({
+        player_id: actor,
+        track_id: "track.engineer.01",
+        unit: ev.event_id,
+        recognition_unit: entityId,
+      });
     }
   }
   return out;
 }
 
-export type PracticeCredit = { track_id: PracticeTrackId; unit: string };
+export type PracticeCredit = {
+  track_id: PracticeTrackId;
+  unit: string;
+  recognition_unit?: string;
+};
 
 export function applyPracticeCredits(
   state: PracticeState | undefined,
   credits: PracticeCredit[],
 ): PracticeState {
   let next = ensurePractice(state);
-  for (const c of credits) next = credit(next, c.track_id, c.unit);
+  for (const c of credits) next = credit(next, c.track_id, c.unit, c.recognition_unit ?? c.unit);
   return next;
 }
 
 export function practiceLines(state: PracticeState | undefined | null): string[] {
-  const tracks = ensurePractice(state).tracks;
-  const lines: string[] = [];
-  for (const track of [...PRACTICE_TRACKS].sort((a, b) => a.display_order - b.display_order)) {
-    if ((tracks[track.track_id] || []).length > 0) lines.push(track.play_line);
-    if (lines.length >= MAX_PLAY_LINES) break;
+  const snap = ensurePractice(state);
+  const ordered = [...PRACTICE_TRACKS].sort((a, b) => a.display_order - b.display_order);
+  const recognized: string[] = [];
+  const practicing: string[] = [];
+  for (const track of ordered) {
+    const practiceCount = (snap.tracks[track.track_id] || []).length;
+    const recogCount = (snap.recognition?.[track.track_id] || []).length;
+    if (practiceCount <= 0) continue;
+    if (recogCount >= track.recognition_threshold) recognized.push(track.recognized_play_line);
+    else practicing.push(track.play_line);
   }
-  return lines;
+  return [...recognized, ...practicing].slice(0, MAX_PLAY_LINES);
 }
