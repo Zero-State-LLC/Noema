@@ -181,4 +181,13 @@ describe("chamber client session", () => {
   it("leave clears the play token", () => {
     expect(html).toContain('sessionStorage.removeItem("noema.play.token")');
   });
+  it("sendCommand drops a rejected token to the door", () => {
+    const start = html.indexOf("async function sendCommand");
+    const end = html.indexOf("async function enterWorld", start);
+    const send = html.slice(start, end > start ? end : undefined);
+    expect(send).toContain('e.code === "NOT_AUTHORIZED"');
+    expect(send).toContain("setSessionUi(false)");
+    expect(send).toContain("state.token = null");
+    expect(html).toMatch(/sendCommand[\s\S]*NOT_AUTHORIZED[\s\S]*setSessionUi\(false\)/);
+  });
 });

@@ -381,10 +381,16 @@ function playClientBundle(): string {
       } catch (e) {
         const h = humanizeError(e.code, e.message);
         let primary = h.primary;
-        if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
-        notice(primary, "bad");
-        $("err-advanced").textContent = h.advanced || "";
-        pushTrailItems([{ kind: "fail", title: primary.split("\\n")[0] }]);
+        if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
+          state.token = null;
+          setSessionUi(false);
+          sessionNotice(primary, "bad");
+        } else {
+          if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
+          notice(primary, "bad");
+          $("err-advanced").textContent = h.advanced || "";
+          pushTrailItems([{ kind: "fail", title: primary.split("\\n")[0] }]);
+        }
       } finally {
         state.busy = false;
         $("send").disabled = !state.token;
