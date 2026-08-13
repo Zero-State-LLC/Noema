@@ -22,6 +22,12 @@ from noema.gateway.ui import (
 )
 from noema.protocol.agent_v1 import AgentProtocolV1
 
+MAX_REQUEST_BODY = 256 * 1024
+
+
+class RequestEntityTooLarge(Exception):
+    """HTTP request body exceeded the gateway cap."""
+
 
 def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
     protocol = AgentProtocolV1(runtime)
@@ -58,6 +64,8 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             length = int(self.headers.get("Content-Length") or 0)
             if length <= 0:
                 return {}
+            if length > MAX_REQUEST_BODY:
+                raise RequestEntityTooLarge()
             data = self.rfile.read(length)
             return json.loads(data.decode("utf-8") or "{}")
 
@@ -293,9 +301,13 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         runtime.identity.refresh(str(body.get("refresh_token") or "")),
                     )
                 if path == "/auth/controller/revoke":
+                    token = body.get("access_token") or self._bearer_token()
                     return self._json(
                         200,
-                        runtime.identity.revoke_controller(str(body.get("controller_id") or "")),
+                        runtime.identity.revoke_controller(
+                            str(body.get("controller_id") or ""),
+                            access_token=str(token) if token else None,
+                        ),
                     )
                 if path == "/session":
                     role = Role(body.get("role") or "PLAYER")
@@ -307,8 +319,20 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         sess = runtime.create_session_from_controller_token(
                             str(body.get("access_token") or body.get("controller_token"))
                         )
+                    elif role == Role.SPECTATOR:
+                        sess = runtime.create_session(role=Role.SPECTATOR)
                     else:
-                        sess = runtime.create_session(role=role, agent_id=body.get("agent_id"))
+                        return self._json(
+                            401,
+                            {
+                                "error": {
+                                    "code": "NOT_AUTHORIZED",
+                                    "message": "access_token required to mint a privileged session",
+                                    "retryable": False,
+                                    "details": {},
+                                }
+                            },
+                        )
                     return self._json(200, sess)
                 if path == "/play/action":
                     session_id = self.headers.get("X-Session-Id") or body.get("session_id")
@@ -412,6 +436,18 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         return self._json(401, {"error": {"code": "NOT_AUTHORIZED", "message": "session required"}})
                     return self._json(200, runtime.deep_time_ingest(session_id, body.get("records") or body))
                 return self._json(404, {"error": {"code": "NOT_FOUND", "message": path}})
+            except RequestEntityTooLarge:
+                return self._json(
+                    413,
+                    {
+                        "error": {
+                            "code": "PAYLOAD_TOO_LARGE",
+                            "message": f"request body exceeds {MAX_REQUEST_BODY} bytes",
+                            "retryable": False,
+                            "details": {},
+                        }
+                    },
+                )
             except ActionError as exc:
                 return self._json(400, {"error": exc.as_dict()})
             except Exception as exc:  # pragma: no cover
