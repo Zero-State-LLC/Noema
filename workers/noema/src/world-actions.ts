@@ -45,6 +45,13 @@ import {
   type SocialEvent,
 } from "./social-memory";
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
+import {
+  UNREACHABLE_MESSAGE,
+  UNREACHABLE_REASON,
+  bestLiveRelayCondition,
+  collectLiveRelays,
+  longRangeDeliverable,
+} from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
@@ -773,6 +780,12 @@ export async function applyWorldCommand(
     const recipient = w.players[recipient_id];
     if (!recipient?.entered) {
       return fail(request_id, "FORBIDDEN", "Recipient is not addressable in this world.");
+    }
+    if (pl.room_id !== recipient.room_id) {
+      const best = bestLiveRelayCondition(collectLiveRelays(w.rooms));
+      if (!longRangeDeliverable(best)) {
+        return fail(request_id, UNREACHABLE_REASON, UNREACHABLE_MESSAGE);
+      }
     }
     debit(pl.budgets, COSTS.MESSAGE);
     const message_id = `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`;
