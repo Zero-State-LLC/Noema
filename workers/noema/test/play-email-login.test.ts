@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
-import { LoginThrottle } from "../src/admin-auth";
+import { LoginThrottle, resolveAdmin } from "../src/admin-auth";
 import {
   requestPlayMagicLink,
   consumePlayMagicLink,
@@ -150,5 +150,27 @@ describe("consumePlayMagicLink", () => {
     expect(claims.amr).toBe("email_magic_link");
     expect(claims.issued_by).toBeUndefined();
     expect(claims.identity_id).toBe(USER.id);
+  });
+});
+
+describe("play vs admin isolation", () => {
+  it("play token resolves as Player and fails resolveAdmin", async () => {
+    const minted = (await consumePlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" }),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
+    )) as { access_token: string };
+    const p = await resolvePrincipal(
+      new Request("https://noema.guru/v1/me", { headers: { Authorization: `Bearer ${minted.access_token}` } }),
+      env(),
+    );
+    expect(p).not.toBeInstanceOf(Response);
+    expect((p as { player_id: string }).player_id).toBe("player.111111112222");
+    const a = await resolveAdmin(
+      new Request("https://noema.guru/v1/admin/overview", { headers: { Authorization: `Bearer ${minted.access_token}` } }),
+      env({ TOKEN_SIGNING_SECRET: "test-signing-secret" }),
+    );
+    expect(a).toBeInstanceOf(Response);
+    expect((a as Response).status).toBeGreaterThanOrEqual(401);
   });
 });
