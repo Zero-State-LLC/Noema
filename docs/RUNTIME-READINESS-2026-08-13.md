@@ -43,6 +43,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC1-S0/S1 | Yes (#68 / #69) | Self-only practice / recognition lines |
 | GC2-S0 BUILD | Yes (#79) | Commands work; help omits BUILD |
 | GC3-S0 | Yes (#70) | Self-only trade-memory lines |
+| GC3-S1 | Hosted this run | Defender sees `You have found {name} dangerous.` after `CONTEST_RESOLVED`. No reputation scalar |
 | GC4-S0 | Yes (#71) | Org roles; advisor non-authorizing |
 | GC5-S0 | Yes (#72) | Same-room MESSAGE; long-range needs relay ≥ 25 |
 | GC6-S0 | Mapper yes; **Perihelion silent** | No `archive_subject_entity_id` / `archive_claim` on genesis artifacts |
@@ -55,7 +56,7 @@ Fixed since the morning audit (do not re-open as defects):
 
 - `action-contracts.v01.json`, `event-types.0.2.json`
 - First-world Genesis; no activate / force-supersede / reseed
-- Chamber help still omits BUILD, CONTEST, WED
+- Chamber help still omits BUILD, CONTEST, WED, ATTEST
 - Crypto / wallets / x402
 - GC1-S2 mechanical benefits
 - `AGREEMENT_FORM` / `ACCESS_POLICY` as first-world required help
@@ -72,5 +73,5 @@ This environment cannot apply them. Until they run, `putWorldHead` 404 is skippe
 ## Next (not authorized here)
 
 1. Operator apply the two SQL files.  
-2. Specs S1 order: archive-claim Player attestation (RFC-0020) so GC6 can project without a Genesis pack.  
+2. Later S1s (GC4 named offices, GC6 reconstruction, GC9 tradition, GC7 withdraw, GC10 more classes) remain SPEC GAP until their own RFC.  
 3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.
