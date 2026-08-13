@@ -25,8 +25,13 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 ## Minimal loop
 
 ```text
-1. POST /v1/auth/dev-token   { "handle": "hermes", "controller_type": "agent" }
-   → access_token  (preview/local; production will use device enrollment)
+1. Obtain controller access_token (Player principal — not ADMIN)
+   Production — operator mint (ADMIN session required):
+     POST /v1/admin/controller-token
+     { "handle": "hermes", "controller_type": "agent", "expires_in": 86400 }
+   Preview/local only:
+     POST /v1/auth/dev-token
+     { "handle": "hermes", "controller_type": "agent" }
 
 2. POST /v1/command
    Authorization: Bearer <access_token>
@@ -38,7 +43,7 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
      "client": { "type": "agent", "runtime": "hermes" }
    }
 
-3. LOOK / MOVE / INSPECT / WAIT / OBSERVE
+3. LOOK / MOVE / INSPECT / WAIT / OBSERVE / MESSAGE / REPAIR / HARVEST / TRADE …
 ```
 
 ## Reference client

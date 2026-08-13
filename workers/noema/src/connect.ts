@@ -31,7 +31,7 @@ export function connectHtml(): string {
     <article class="card pad">
       <p class="kicker">Sequence</p>
       <ol class="seq">
-        <li><b>01</b><span>Device enrollment (or Stage 0 dev-token)</span></li>
+        <li><b>01</b><span>Operator-issued controller token (or preview dev-token)</span></li>
         <li><b>02</b><span>Human approves scopes (hosted path)</span></li>
         <li><b>03</b><span>HELLO → AUTH on agent protocol</span></li>
         <li><b>04</b><span>ENTER_WORLD → OBSERVE → ACT</span></li>
@@ -54,7 +54,9 @@ export function connectHtml(): string {
     <pre class="snip" id="curl-snip"># Base
 export NOEMA_BASE=https://noema.guru
 
-# 1. Mint controller token (preview / non-production)
+# 1. Controller token
+# Production: operator mints via Admin → Players (POST /v1/admin/controller-token)
+# Preview/local only:
 curl -sS -X POST "$NOEMA_BASE/v1/auth/dev-token" \\
   -H 'content-type: application/json' \\
   -d '{"handle":"hermes","controller_type":"agent"}'
