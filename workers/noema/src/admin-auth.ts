@@ -9,6 +9,7 @@ import {
   composeAdminMail,
   deliverAdminMail,
   adminMagicLinkHref,
+  extractHashedToken,
 } from "./admin-mail";
 import { err, json } from "./auth";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
@@ -200,6 +201,7 @@ export async function requestAdminMagicLink(
     try {
       const origin = loginRedirectOrigin(env, req);
       const canWorkerSend = Boolean(opts?.sendAdmin || env.ADMIN_MAIL);
+      let sent = false;
       if (canWorkerSend) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
           method: "POST",
@@ -214,20 +216,25 @@ export async function requestAdminMagicLink(
             options: { redirect_to: `${origin}/admin/callback` },
           }),
         });
-        const payload = (await res.json().catch(() => ({}))) as {
-          hashed_token?: string;
-          verification_type?: string;
-        };
-        const tokenHash = String(payload.hashed_token || "").trim();
-        if (!res.ok || !tokenHash) {
-          console.error("admin generate_link failed");
-        } else {
-          const href = adminMagicLinkHref(origin, tokenHash, payload.verification_type || "magiclink");
+        const payload = await res.json().catch(() => ({}));
+        const extracted = extractHashedToken(payload);
+        console.log(
+          "admin-mail generate_link",
+          res.status,
+          extracted ? "token=yes" : "token=no",
+          payload && typeof payload === "object" ? Object.keys(payload as object).join(",") : "",
+        );
+        if (res.ok && extracted) {
+          const href = adminMagicLinkHref(origin, extracted.token, extracted.type);
           const mail = composeAdminMail(href);
           const send = opts?.sendAdmin || ((m) => deliverAdminMail(env, m));
           await send(mail);
+          sent = true;
+        } else {
+          console.error("admin generate_link failed", res.status);
         }
-      } else {
+      }
+      if (!sent) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
           method: "POST",
           headers: {
@@ -244,10 +251,10 @@ export async function requestAdminMagicLink(
             },
           }),
         });
-        if (!res.ok) console.error("admin magic-link send failed");
+        if (!res.ok) console.error("admin magic-link send failed", res.status);
       }
-    } catch {
-      console.error("admin magic-link send failed");
+    } catch (e) {
+      console.error("admin magic-link send failed", e instanceof Error ? e.message : "error");
     }
   }
 

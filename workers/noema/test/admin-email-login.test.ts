@@ -195,6 +195,33 @@ describe("requestAdminMagicLink", () => {
     expect(body.error.retryable).toBe(true);
   });
 
+  it("reads hashed_token from generate_link properties (Supabase admin shape)", async () => {
+    const sent: Array<{ href: string }> = [];
+    const res = await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "" }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_OPERATOR_EMAIL },
+      {
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              properties: {
+                hashed_token: "nested_tok",
+                verification_type: "magiclink",
+              },
+            }),
+            { status: 200 },
+          ),
+        sendAdmin: async (mail) => {
+          sent.push(mail);
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].href).toContain("token_hash=nested_tok");
+  });
+
   it("worker-sends the Admin letter via generate_link when a mailer is provided", async () => {
     const calls: string[] = [];
     const sent: Array<{ to: string; subject: string; html: string; href: string }> = [];
