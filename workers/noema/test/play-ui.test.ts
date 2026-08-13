@@ -180,7 +180,7 @@ describe("play shell HTML", () => {
     expect(html).not.toMatch(/Genesis/);
     expect(html).not.toMatch(/settlement internals/i);
     // Lead copy
-    expect(html).toMatch(/Read the place/);
+    expect(html).toMatch(/What is here/);
   });
 
   it("does not embed story seed ids in the shell", () => {
@@ -268,11 +268,11 @@ describe("play-ui desks and players", () => {
   });
 });
 
-describe("STUDY explainer", () => {
-  it("does not show fake zero metrics", () => {
+describe("STUDY stub", () => {
+  it("is an honest not-open page without fake lab chrome", () => {
     const html = studyHtml();
     expect(html).not.toMatch(/id="m-trails"/);
-    expect(html).toMatch(/path explainer/i);
-    expect(html).toMatch(/aria-controls="panel-notice"/);
+    expect(html).toMatch(/not open/i);
+    expect(html).not.toMatch(/aria-controls="panel-notice"/);
   });
 });

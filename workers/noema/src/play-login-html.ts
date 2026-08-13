@@ -4,8 +4,9 @@
 
 import { productShell } from "./shell";
 
-export function playEmailGateMarkup(opts: { continueToPlay?: boolean } = {}): string {
+export function playEmailGateMarkup(opts: { continueToPlay?: boolean; operatorLink?: boolean } = {}): string {
   const continueToPlay = Boolean(opts.continueToPlay);
+  const operatorLink = opts.operatorLink !== false;
   return `
 <form id="play-login-form">
   <p class="muted">This is a Player login, not ADMIN. A link signs you into the world — it does not open the operator plane.</p>
@@ -15,7 +16,7 @@ export function playEmailGateMarkup(opts: { continueToPlay?: boolean } = {}): st
 </form>
 ${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/play" hidden>Continue to PLAY</a>` : ""}
 <p class="notice" id="play-login-notice" role="status"></p>
-<p class="empty operator-link"><a href="/admin/login">Operator login</a></p>
+${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator login</a></p>` : ""}
 <script>
 (() => {
   const form = document.getElementById("play-login-form");

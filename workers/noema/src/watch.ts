@@ -27,9 +27,8 @@ const EXTRA = `
 export function watchHtml(): string {
   const body = `
   <header style="margin-bottom:1.25rem">
-    <p class="kicker">WATCH / public projection</p>
-    <h1>Watch the world move.</h1>
-    <p class="lead">Live spectator view. Read-only. Projections are never world truth and never mutate the ledger.</p>
+    <h1>Public projection</h1>
+    <p class="muted">Read-only. Redacted. Not world truth.</p>
     <div class="meta">
       <span>read-only</span>
       <span id="watch-cycle">cycle —</span>
@@ -40,9 +39,8 @@ export function watchHtml(): string {
 
   <section class="watch-grid">
     <article class="card pad watch-hero">
-      <p class="kicker">Live world</p>
       <h2 id="watch-headline" aria-live="polite">Connecting…</h2>
-      <p class="muted" id="watch-copy">Public sites appear here without invented motives or research metadata.</p>
+      <p class="muted" id="watch-copy"></p>
       <div class="btn-row" style="margin-top:1rem">
         <button type="button" class="btn primary" id="watch-refresh">Refresh projection</button>
         <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause updates</button>
@@ -50,7 +48,6 @@ export function watchHtml(): string {
         <span class="tag" id="watch-fresh">freshness —</span>
       </div>
       <ul class="feed" id="watch-feed"></ul>
-      <p class="limit">WATCH shows only fields returned by the public projection. Agent POV and research observer modes arrive in later stages.</p>
     </article>
     <aside class="card summary" aria-label="World summary">
       <div class="summary-cell"><div class="kicker">players present</div><strong id="watch-players">—</strong></div>

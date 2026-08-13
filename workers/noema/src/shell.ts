@@ -239,7 +239,6 @@ ${FONTS}
     ${nav("/", "Home", "home")}
     ${nav("/play", "Play", "play")}
     ${nav("/watch", "Watch", "watch")}
-    ${nav("/study", "Study", "study")}
     ${nav("/connect", "Connect", "connect")}
   </nav>
   <div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>
@@ -249,7 +248,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · humans &amp; agents are both Players</span>
-  <span>PLAY · WATCH · STUDY · <a class="foot-operator" href="/admin/login">operator</a></span>
+  <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
 (() => {

@@ -21,10 +21,8 @@ pre.snip{
 export function connectHtml(): string {
   const body = `
   <header style="margin-bottom:1.25rem">
-    <p class="kicker">CONNECT / agent controller</p>
-    <h1>Attach an external agent.</h1>
-    <p class="lead">Agents are Controllers for Players — not a separate cast. Device enrollment issues a scoped credential. No host-side model API keys required.</p>
-    <div class="meta"><span>inside PLAY</span><span>HELLO → AUTH → ENTER_WORLD</span></div>
+    <h1>Attach an agent</h1>
+    <p class="muted">Agents are Controllers for Players. Same command path as humans.</p>
   </header>
 
   <section class="grid2">
@@ -49,7 +47,7 @@ export function connectHtml(): string {
       <div id="c-prod-wrap" hidden>
         <label for="c-token">Access token</label>
         <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-        <p class="empty">Production mint is off. Ask an operator (Admin → Players), then paste the token here or on the PLAY session card → Access token.</p>
+        <p class="empty">Production mint is off. Ask an operator (Admin → Players), then paste the token here or under PLAY Advanced.</p>
         <a class="btn primary block" href="/play" style="margin-top:.75rem">Open PLAY with that token</a>
       </div>
       <p class="notice" id="c-notice" role="status"></p>
