@@ -37,6 +37,12 @@ import {
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
+import {
+  creditAcceptedTrade,
+  creditsFromTradeAccepted,
+  socialMemoryLines,
+  type SocialEvent,
+} from "./social-memory";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
@@ -274,6 +280,12 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice),
+    social_memory_lines: socialMemoryLines(
+      pl.trade_memory,
+      Object.fromEntries(
+        Object.entries(w.players).map(([id, p]) => [id, p.handle]),
+      ),
+    ),
   };
 }
 
@@ -315,6 +327,28 @@ function recordPractice(
   }
 }
 
+function recordTradeMemory(
+  w: WorldRuntime,
+  events: NonNullable<CommandResult["events"]> | undefined,
+): void {
+  if (!events?.length) return;
+  const trades: Record<string, { proposer_id: string; counterparty_id: string }> = {};
+  for (const [id, trade] of Object.entries(w.trades || {})) {
+    trades[id] = { proposer_id: trade.proposer_id, counterparty_id: trade.counterparty_id };
+  }
+  for (const ev of events) {
+    for (const credit of creditsFromTradeAccepted(ev as SocialEvent, trades)) {
+      const player = w.players[credit.player_id];
+      if (!player) continue;
+      player.trade_memory = creditAcceptedTrade(
+        player.trade_memory,
+        credit.other_id,
+        credit.trade_id,
+      );
+    }
+  }
+}
+
 function success(
   w: WorldRuntime,
   principal: PlayerPrincipal,
@@ -324,6 +358,7 @@ function success(
   settled: boolean,
 ): CommandResult {
   recordPractice(w, principal.player_id, events);
+  recordTradeMemory(w, events);
   return {
     ok: true,
     request_id,
@@ -1255,5 +1290,6 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     if (!p.budgets) p.budgets = cloneBudgets(null);
     else p.budgets = cloneBudgets(p.budgets);
     if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s1", tracks: {}, recognition: {} };
+    if (!p.trade_memory) p.trade_memory = { catalog_id: "social-memory-catalog/gc3-s0", edges: {} };
   }
 }

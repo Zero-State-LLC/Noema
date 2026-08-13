@@ -57,6 +57,19 @@ describe("play-ui helpers", () => {
     expect(JSON.stringify(rows)).not.toMatch(/XP|level|\b3\b track/i);
   });
 
+  it("projects social memory as Tie rows without numbers", () => {
+    const rows = statusFromObservation({
+      world_name: "Test Reach",
+      cycle: 4,
+      location: GRID,
+      social_memory_lines: ["You have found Vesper reliable in trade."],
+    });
+    expect(rows.filter((r) => r.label === "Tie").map((r) => r.value)).toEqual([
+      "You have found Vesper reliable in trade.",
+    ]);
+    expect(JSON.stringify(rows)).not.toMatch(/reputation|72/i);
+  });
+
   it("resolves human-readable inspect targets", () => {
     const ents = GRID.entities;
     expect(resolveEntityTarget("scarred conduit", ents)?.entity_id).toBe("entity.relay-7");

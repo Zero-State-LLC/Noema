@@ -150,8 +150,10 @@ export interface Observation {
   affordances?: ObservationAffordance[];
   /** Last action consequence for UI */
   consequence?: string;
-  /** GC1-S0 self-only practice lines. Never put on WATCH or players_here. */
+  /** GC1 self-only practice lines. Never put on WATCH or players_here. */
   practice_lines?: string[];
+  /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
+  social_memory_lines?: string[];
   /** Location-bound World Services (adapters, not Players). */
   services?: Array<{
     service_id: string;
