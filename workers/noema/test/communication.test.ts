@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  DELAYED_MESSAGE,
   LONG_RANGE_MIN_CONDITION,
+  SAME_CYCLE_MIN_CONDITION,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
   bestLiveRelayCondition,
   collectLiveRelays,
   isRelayEntity,
+  longRangeBand,
   longRangeDeliverable,
 } from "../src/communication";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
@@ -48,6 +51,11 @@ describe("GC5-S0 mapper", () => {
     expect(longRangeDeliverable(null)).toBe(false);
     expect(longRangeDeliverable(24)).toBe(false);
     expect(longRangeDeliverable(LONG_RANGE_MIN_CONDITION)).toBe(true);
+    expect(longRangeBand(null)).toBe("UNREACHABLE");
+    expect(longRangeBand(24)).toBe("UNREACHABLE");
+    expect(longRangeBand(25)).toBe("DELAYED");
+    expect(longRangeBand(49)).toBe("DELAYED");
+    expect(longRangeBand(SAME_CYCLE_MIN_CONDITION)).toBe("IMMEDIATE");
     expect(
       collectLiveRelays({
         "room.hub": { entities: [relay(0)] },
@@ -179,8 +187,8 @@ describe("GC5-S0 world delivery", () => {
     expect(look.observation?.messages?.some((m) => m.text === "Stay in the exchange.")).toBe(true);
   });
 
-  it("delivers different-room MESSAGE at condition 25", async () => {
-    const w = fixtureWorld({ condition: 25 });
+  it("delivers different-room MESSAGE same-cycle at condition 50", async () => {
+    const w = fixtureWorld({ condition: 50 });
     const { nacre, vesper } = await enterPair(w);
     const moved = await run(w, nacre, "MOVE", { direction: "east" });
     expect(moved.ok).toBe(true);
@@ -192,6 +200,27 @@ describe("GC5-S0 world delivery", () => {
     expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE", "MESSAGE_DELIVERED"]);
     const look = await run(w, vesper, "LOOK");
     expect(look.observation?.messages?.some((m) => m.text === "Hold the gate.")).toBe(true);
+  });
+
+  it("queues different-room MESSAGE at condition 25 and delivers on the next cycle", async () => {
+    const w = fixtureWorld({ condition: 25 });
+    const { nacre, vesper } = await enterPair(w);
+    await run(w, nacre, "MOVE", { direction: "east" });
+    const r = await run(w, nacre, "MESSAGE", {
+      recipient_id: vesper.player_id,
+      text: "Hold the gate.",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.consequence).toBe(DELAYED_MESSAGE);
+    expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE"]);
+    expect(JSON.stringify(r.error || {})).not.toMatch(/entity\.relay-7|hidden|topology/i);
+    const before = await run(w, vesper, "LOOK");
+    expect(before.observation?.messages?.some((m) => m.text === "Hold the gate.")).toBeFalsy();
+    w.players[vesper.player_id].wait_until_cycle = w.cycle + 1;
+    const waited = await run(w, nacre, "WAIT");
+    expect(waited.events?.map((e) => e.event_type)).toContain("MESSAGE_DELIVERED");
+    const after = await run(w, vesper, "LOOK");
+    expect(after.observation?.messages?.some((m) => m.text === "Hold the gate.")).toBe(true);
   });
 
   it("rejects different-room MESSAGE at condition 24 with UNREACHABLE and no events", async () => {
@@ -259,7 +288,8 @@ describe("GC5-S0 world delivery", () => {
       text: "Path restored.",
     });
     expect(r.ok).toBe(true);
-    expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE", "MESSAGE_DELIVERED"]);
+    expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE"]);
+    expect(r.observation?.consequence).toBe(DELAYED_MESSAGE);
   });
 
   it("keeps recipient-not-entered as FORBIDDEN and does not debit", async () => {

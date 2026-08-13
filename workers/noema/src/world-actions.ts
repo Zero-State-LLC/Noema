@@ -56,11 +56,14 @@ import {
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
 import { applyInspectEvidence, discoveryLines } from "./discovery";
 import {
+  DELAY_CYCLES,
+  DELAYED_MESSAGE,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
   bestLiveRelayCondition,
   collectLiveRelays,
-  longRangeDeliverable,
+  longRangeBand,
+  type PendingMessage,
 } from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import {
@@ -132,6 +135,7 @@ export type WorldRuntime = {
   players: Record<string, PlayerRuntime>;
   trades: Record<string, OpenTrade>;
   messages: InboxMessage[];
+  pending_messages?: PendingMessage[];
   organizations: Record<string, Organization>;
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
@@ -785,6 +789,7 @@ export async function applyWorldCommand(
     if (committed) {
       await resolveDueContests(w, pushEvent, settleEv);
       await applyScheduledPressure(w, pushEvent, settleEv);
+      await deliverDelayedMessages(w, pushEvent, settleEv);
     }
     const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;
@@ -901,11 +906,15 @@ export async function applyWorldCommand(
     if (!recipient?.entered) {
       return fail(request_id, "FORBIDDEN", "Recipient is not addressable in this world.");
     }
-    if (pl.room_id !== recipient.room_id) {
+    const local = pl.room_id === recipient.room_id;
+    let delayed = false;
+    if (!local) {
       const best = bestLiveRelayCondition(collectLiveRelays(w.rooms));
-      if (!longRangeDeliverable(best)) {
+      const band = longRangeBand(best);
+      if (band === "UNREACHABLE") {
         return fail(request_id, UNREACHABLE_REASON, UNREACHABLE_MESSAGE);
       }
+      delayed = band === "DELAYED";
     }
     debit(pl.budgets, COSTS.MESSAGE);
     const message_id = `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`;
@@ -915,7 +924,23 @@ export async function applyWorldCommand(
       recipient_id,
       text,
       cost_paid: COSTS.MESSAGE,
+      delayed,
     });
+    if (delayed) {
+      w.pending_messages = w.pending_messages || [];
+      w.pending_messages.push({
+        message_id,
+        sender_id: principal.player_id,
+        recipient_id,
+        text,
+        sent_cycle: w.cycle,
+        deliver_at_cycle: w.cycle + DELAY_CYCLES,
+      });
+      await settleEv(ev1);
+      const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
     const ev2 = pushEvent("MESSAGE_DELIVERED", {
       message_id,
       recipient_id,
@@ -1608,6 +1633,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.contests = w.contests || {};
   w.access_restrictions = w.access_restrictions || [];
   if (!w.pressure) w.pressure = emptyPressure();
+  w.pending_messages = w.pending_messages || [];
 }
 
 type PushEv = (
@@ -2109,4 +2135,37 @@ async function applyScheduledPressure(
     preview_after: after,
   });
   await settleEv(ev);
+}
+
+async function deliverDelayedMessages(
+  w: WorldRuntime,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  const pending = w.pending_messages || [];
+  if (!pending.length) return;
+  const keep: PendingMessage[] = [];
+  w.messages = w.messages || [];
+  for (const msg of pending) {
+    if (w.cycle < msg.deliver_at_cycle) {
+      keep.push(msg);
+      continue;
+    }
+    if (w.messages.some((m) => m.message_id === msg.message_id)) continue;
+    w.messages.push({
+      message_id: msg.message_id,
+      sender_id: msg.sender_id,
+      recipient_id: msg.recipient_id,
+      text: msg.text,
+      status: "DELIVERED",
+      delivered_cycle: w.cycle,
+    });
+    const ev = pushEvent("MESSAGE_DELIVERED", {
+      message_id: msg.message_id,
+      recipient_id: msg.recipient_id,
+      delivered_cycle: w.cycle,
+    });
+    await settleEv(ev);
+  }
+  w.pending_messages = keep;
 }

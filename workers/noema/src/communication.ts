@@ -5,10 +5,25 @@
 
 import { enrichEntity } from "./actions";
 
-export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s0";
+export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s1";
 export const LONG_RANGE_MIN_CONDITION = 25;
+export const SAME_CYCLE_MIN_CONDITION = 50;
+export const DELAY_CYCLES = 1;
 export const UNREACHABLE_REASON = "UNREACHABLE";
 export const UNREACHABLE_MESSAGE = "The destination cannot be reached.";
+export const DELAYED_MESSAGE = "Message sent. Delivery is delayed.";
+
+export type LongRangeBand = "UNREACHABLE" | "DELAYED" | "IMMEDIATE";
+
+export function longRangeBand(
+  best: number | null,
+  failBelow = LONG_RANGE_MIN_CONDITION,
+  immediateAt = SAME_CYCLE_MIN_CONDITION,
+): LongRangeBand {
+  if (best === null || best < failBelow) return "UNREACHABLE";
+  if (best < immediateAt) return "DELAYED";
+  return "IMMEDIATE";
+}
 
 export type RelayLike = {
   entity_id: string;
@@ -38,8 +53,17 @@ export function longRangeDeliverable(
   best: number | null,
   min = LONG_RANGE_MIN_CONDITION,
 ): boolean {
-  return best !== null && best >= min;
+  return longRangeBand(best, min) !== "UNREACHABLE";
 }
+
+export type PendingMessage = {
+  message_id: string;
+  sender_id: string;
+  recipient_id: string;
+  text: string;
+  sent_cycle: number;
+  deliver_at_cycle: number;
+};
 
 export function collectLiveRelays(
   rooms: Record<string, { entities?: RelayLike[] }>,
