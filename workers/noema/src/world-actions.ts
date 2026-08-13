@@ -405,6 +405,13 @@ export function buildObservation(
       w.culture,
       entities.map((e) => e.entity_id),
       principal.player_id,
+      w.cycle,
+      Object.values(w.reconstructions || {}).map((r) => ({
+        subject_ref: r.subject_ref,
+        visibility: r.visibility,
+        claim: r.claim,
+        epistemic: r.epistemic,
+      })),
     ),
     discovery_lines: discoveryLines(pl.discovery),
     office_lines: orgs.flatMap((o) =>
@@ -476,7 +483,7 @@ function recordCulture(
   events: NonNullable<CommandResult["events"]> | undefined,
 ): void {
   if (!events?.length) return;
-  w.culture = applyCultureEvents(w.culture, events as CultureEvent[], actingPlayerId);
+  w.culture = applyCultureEvents(w.culture, events as CultureEvent[], actingPlayerId, w.cycle);
 }
 
 function recordTradeMemory(

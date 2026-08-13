@@ -601,6 +601,7 @@ export function redactedPublicWorld(meta: {
   players_present: number;
   world_status?: string;
   freshness?: string;
+  public_pulses?: string[];
 }): Record<string, unknown> {
   return {
     projection: "public",
@@ -610,6 +611,7 @@ export function redactedPublicWorld(meta: {
     players_present: meta.players_present,
     world_status: meta.world_status || null,
     freshness: meta.freshness || "live",
+    public_pulses: Array.isArray(meta.public_pulses) ? meta.public_pulses.slice(0, 4) : [],
     rooms: Object.values(meta.rooms).map((r) => ({
       room_id: r.room_id,
       name: r.name,

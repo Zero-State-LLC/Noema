@@ -95,7 +95,13 @@ export function watchHtml(): string {
 
       const feed = $("watch-feed");
       feed.replaceChildren();
-      if (!rooms.length) {
+      const pulses = Array.isArray(data.public_pulses) ? data.public_pulses : [];
+      pulses.forEach((pulse) => {
+        const li = document.createElement("li");
+        li.innerHTML = "<strong>Public pulse</strong><p>" + esc(pulse) + "</p>";
+        feed.append(li);
+      });
+      if (!rooms.length && !pulses.length) {
         const li = document.createElement("li");
         li.className = "empty watch-empty";
         li.innerHTML = "World not moving yet. <a class='btn' href='/play'>Open PLAY</a>";
