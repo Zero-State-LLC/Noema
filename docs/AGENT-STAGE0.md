@@ -7,7 +7,7 @@ Reference path for external agents (Hermes, OpenClaw, Grok Bot, custom clients).
 | Environment | Base URL |
 |-------------|----------|
 | **Product** | `https://noema.guru` |
-| **Landing + wizard** | `https://noema.guru/` |
+| **Product entry** | `https://noema.guru/` — Player email gate; PLAY is primary |
 | **PLAY** | `https://noema.guru/play` |
 | **WATCH** | `https://noema.guru/watch` |
 | **STUDY** | `https://noema.guru/study` |
@@ -15,7 +15,7 @@ Reference path for external agents (Hermes, OpenClaw, Grok Bot, custom clients).
 | **ADMIN** (operator plane) | `https://noema.guru/admin/login` — separate principal; not in product nav |
 | **workers.dev** | `https://noema-gateway.zer0state-noema.workers.dev` |
 
-Both serve the same Worker + Durable Object. The PLAY UI is a text-first browser shell over the same `/v1/command` API.
+Both hosts serve the same Worker + Durable Object. The hosted `/` route is the product entry shell, `/play` is the text-first browser shell over `/v1/command`, and `/connect` documents agent-controller attachment. GitHub Pages is a separate marketing/reference surface.
 
 ## Principal model
 
@@ -26,7 +26,9 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 
 ```text
 1. Obtain controller access_token (Player principal — not ADMIN)
-   Production — operator mint (ADMIN session required):
+   Human Player: request an email play link from `/` or `/play`.
+   Agent/controller: use the documented operator mint or enrollment path.
+   Production operator mint (ADMIN session required):
      POST /v1/admin/controller-token
      { "handle": "hermes", "controller_type": "agent", "expires_in": 86400 }
    Preview/local only:
@@ -90,8 +92,9 @@ Per Specs PLATFORM / GENESIS:
 
 - Product surfaces: PLAY · WATCH · STUDY · CONNECT (Players / Controllers)
 - **ADMIN** is a separate control plane: operator token → admin-access JWT
-- Genesis is **admin-only**; PLAY never shows Genesis UI
-- Stage 0 Worker: chamber seed status + reseed (preview env); full Genesis wizard remains on `noema-serve` `/admin`
+- Stage 0 Worker: hosted `/` and `/play` use Player email magic links; `/admin/login` uses a separate operator email allowlist
+- Genesis remains admin-only and is never shown on product entry or PLAY
+- Full local Genesis tooling remains on `noema-serve` `/admin`
 
 ```bash
 # Set once on the Worker

@@ -42,10 +42,12 @@ Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/doc
 CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
 **Live Stage 0:**  
-- **Landing + onboarding:** https://noema.guru/  
-- **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect  
-- **ADMIN (operators):** https://noema.guru/admin/login  
+- **Product entry:** https://noema.guru/ — Player email gate first; PLAY is the primary path
+- **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect
+- **ADMIN (operators):** https://noema.guru/admin/login — separate email-gated control plane
 - API / health: https://noema.guru/health · workers.dev  
+
+The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry.
 
 ```bash
 ./scripts/agent_cf_e2e.sh
@@ -70,15 +72,16 @@ See [`spec-compat.json`](spec-compat.json) and [`docs/CORE-LOOP-RUNTIME.md`](doc
 
 **Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
 
-**Product UI handoff:** [`docs/UI-HANDOFF.md`](docs/UI-HANDOFF.md) — routes, roles, PLAY/WATCH/STUDY, errors, non-goals.
+**Product UI handoff:** [`docs/UI-HANDOFF.md`](docs/UI-HANDOFF.md) — hosted entry, routes, roles, PLAY/WATCH/STUDY/CONNECT, errors, and non-goals.
 
 ## Public site (GitHub Pages)
 
 | Page | Shape |
 |---|---|
-| [`site/index.html`](site/) | **Marketing (visual/dynamic)** — GitHub Pages only |
+| [`site/index.html`](site/) | **Marketing reference (visual/dynamic)** — GitHub Pages only |
 | [`site/memo.html`](site/memo.html) | Specs map for builders |
-| `noema-serve` `/play` `/watch` `/study` | **Text-game product UI** (not the marketing site) |
+| Worker `/` `/play` `/watch` `/study` `/connect` | **Hosted product entry and text-first product shells** |
+| `noema-serve` local routes | Offline modular-monolith UI and API surfaces |
 | [`site/design.md`](site/design.md) | Two-surface split + tokens |
 
 ```text

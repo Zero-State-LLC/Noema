@@ -54,9 +54,13 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 
 | User path | Specs phrase | Runtime surface |
 |---|---|---|
-| **PLAY** | Enter Chamber, act in world | Session `PLAYER`/`AGENT` + `/play/*` or agent protocol |
-| **WATCH** | Live spectator | Session `SPECTATOR` + `/watch/live` (redacted) |
-| **STUDY** | Notice / test / capture | Session `RESEARCHER`/`ADMIN` + `/research/*` |
+| **PLAY** | Enter Chamber, act in world | Player principal + `/play` or agent protocol |
+| **WATCH** | Live spectator | Public/redacted projection + `/watch` |
+| **STUDY** | Notice / test / capture | Authorized research surface + `/study` |
+| **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
+| **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
+
+The hosted product entry at `/` presents the Player email gate as the single primary action. PLAY is the default human path. WATCH, STUDY, and CONNECT are explicit secondary doors. ADMIN is linked only as a separate operator path; product entry never asks for an operator token and never exposes Genesis controls.
 
 Claim labels (display → machine):
 
@@ -148,12 +152,15 @@ HTTP status:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Entry: PLAY / WATCH / STUDY |
-| GET | `/play` | Text PLAY: location, routes, command line |
+| GET | `/` | Product entry: Player email gate, PLAY primary, WATCH / STUDY / CONNECT secondary |
+| GET | `/play` | Text PLAY shell + Player email sign-in |
+| GET | `/play/callback` | Player magic-link callback |
 | GET | `/watch` | Public projection lists (not graphic map) |
-| GET | `/study` | Researcher evidence lists + LEARN rebuild |
+| GET | `/study` | Research evidence and LEARN projection |
+| GET | `/connect` | External Controller onboarding guidance |
+| GET | `/admin/login` | Separate allowlisted operator sign-in |
 
-These shells call the same JSON APIs a custom UI would. Richer product chrome may replace them later without changing the contract.
+These shells call the same JSON APIs a custom UI would. `workers/noema/src/landing.ts` owns the hosted `/` renderer and `workers/noema/src/index.ts` wires the public routes. The `site/` directory remains a separate GitHub Pages marketing/reference surface. Richer product chrome may replace the shells later without changing the contract.
 
 ### Public JSON
 

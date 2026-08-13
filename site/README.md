@@ -2,11 +2,11 @@
 
 ## Two UIs (do not mix)
 
-| | **This folder (GitHub Pages)** | **`noema-serve` product shells** |
+| | **This folder (GitHub Pages)** | **Hosted Worker product** |
 |---|---|---|
-| Job | Marketing splash | Play the text game |
-| Visual | **Dynamic · image · motion · interactive** | Text-first, minimal chrome |
-| URL | https://zero-state-llc.github.io/Noema/ | http://localhost:8080/play |
+| Job | Marketing/reference surface | Enter and use the product |
+| Visual | Dynamic · image · motion · interactive | Product entry plus text-first PLAY/WATCH/STUDY shells |
+| URL | https://zero-state-llc.github.io/Noema/ | https://noema.guru/ |
 
 | Page | Role |
 |---|---|
@@ -26,6 +26,6 @@ https://zero-state-llc.github.io/Noema/memo.html
 python3 -m http.server 8765 --directory site
 ```
 
-Product host **https://noema.guru** serves this splash from the Worker (`workers/noema/public/`) plus `/play`.
+Product host **https://noema.guru** is Worker-rendered. `workers/noema/src/landing.ts` owns `/`; `/play`, `/watch`, `/study`, and `/connect` are routed in `workers/noema/src/index.ts`. Static assets come from `workers/noema/public/` only after Worker routes are evaluated.
 
-Landing stays splash-first. CLI dumps, route tables, and phase grids live on the memo (and in the repo), not on the homepage.
+The hosted entry is Player-first: email gate and PLAY primary, WATCH/STUDY/CONNECT secondary, ADMIN separate. This GitHub Pages folder remains a visual marketing/reference surface and is not deployed as the hosted product homepage.
