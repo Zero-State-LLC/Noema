@@ -9,7 +9,7 @@ Python `src/noema/` remains the offline Chamber / conformance runtime. **Product
 ## Verdict
 
 ```text
-READY_WITH_P0_REPAIRS_REQUIRED
+HOSTED_INTEGRITY_READY_AFTER_OPERATOR_SQL
 ```
 
 First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`). The P0 is recoverability: strategically durable world state lives in DO storage; Postgres is a best-effort event sink, not a reconstructable canonical world row. That contradicts the reconciled split (DO = live ordering; Postgres = durable record). Repair is an explicit architecture resume, not a silent GC slice.

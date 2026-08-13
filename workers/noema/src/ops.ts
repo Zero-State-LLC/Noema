@@ -127,10 +127,8 @@ export function expireStalePresence(
       p.actor_kind = kind;
       dirty = true;
     }
-    if (p.entered && !isPresentNow(p, now, idleMs)) {
-      p.entered = false;
-      dirty = true;
-    }
+    // Idle expires live-count only (last_seen). Do not set entered=false
+    // or emit AGENT_LEFT_WORLD — disconnect ≠ leave world.
   }
   return dirty;
 }

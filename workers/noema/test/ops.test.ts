@@ -54,8 +54,8 @@ describe("command mutation class", () => {
       "player.smoke-human": { entered: true, last_seen_ms: now - 1000, actor_kind: "system" as const },
     };
     expect(countLivePlayers(players, now)).toBe(1);
-    expect(expireStalePresence(players, now)).toBe(true);
-    expect(players["player.deadbeef0001"].entered).toBe(false);
+    expireStalePresence(players, now);
+    expect(players["player.deadbeef0001"].entered).toBe(true);
     expect(players["player.smoke-human"].entered).toBe(true);
     expect(inferActorKind("player.deadbeef0001")).toBe("live");
     expect(inferActorKind("player.alice")).toBe("system");

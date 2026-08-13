@@ -694,12 +694,16 @@ export async function applyWorldCommand(
 
   // ——— WAIT ———
   if (action.verb === "WAIT") {
-    w.cycle += 1;
-    // mild regen per Specs (attention +2 clamp 8, compute +4 clamp 64)
+    const waitCycles = 1;
+    pl.wait_until_cycle = w.cycle + waitCycles;
     pl.budgets.attention = Math.min(8, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(64, pl.budgets.compute + 4);
-    pushEvent("WAIT", { player_id: principal.player_id, cycles: 1 });
-    const result = success(w, principal, request_id, events, "Time passes.", false);
+    pushEvent("WAIT", {
+      player_id: principal.player_id,
+      cycles: waitCycles,
+      wait_until_cycle: pl.wait_until_cycle,
+    });
+    const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;
     return result;
   }

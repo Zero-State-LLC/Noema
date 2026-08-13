@@ -33,6 +33,7 @@ import {
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
+import { checkExpectedHead, nextRevision } from "./settle-fence";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -56,6 +57,8 @@ interface WorldMeta {
   activated_at?: string;
   settlement_id?: string;
   settlement_ok?: boolean;
+  revision?: number;
+  writer_generation?: string;
   settlement_health?: SettlementHealth;
   do_digest?: string;
 }
@@ -544,6 +547,27 @@ export class NoemaWorldDO {
     const w = this.world!;
     const mutating = isMutatingCommand(commandForOps(envl.command, envl.arguments));
     const health = this.meta!.settlement_health || "HEALTHY";
+    if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const durable = await getWorldHead(this.env, w.world_id);
+      const durableRev =
+        durable && typeof (durable as { revision?: number }).revision === "number"
+          ? (durable as { revision: number }).revision
+          : null;
+      if (durableRev != null) {
+        const localRev = this.meta!.revision ?? 0;
+        const gate = checkExpectedHead(localRev, {
+          world_id: w.world_id,
+          revision: durableRev,
+          sequence: durable.sequence,
+          cycle: durable.cycle,
+        });
+        if (!gate.ok) {
+          this.world = worldFromHead(durable, w);
+          this.meta!.revision = durableRev;
+          await this.save();
+        }
+      }
+    }
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
       if (gate) {
@@ -584,6 +608,12 @@ export class NoemaWorldDO {
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       let next = nextSettlementHealth(health, settleOk);
       if (next === "BLOCKING") this.meta!.status = "INCIDENT";
+      const rev = nextRevision({
+        world_id: w.world_id,
+        revision: this.meta!.revision ?? 0,
+        sequence: w.sequence,
+        cycle: w.cycle,
+      });
       const headOk = await putWorldHead(this.env, {
         world_id: w.world_id,
         sequence: w.sequence,
@@ -592,7 +622,10 @@ export class NoemaWorldDO {
         status: this.meta!.status,
         settlement_health: next,
         state_json: w,
+        revision: rev,
+        writer_generation: this.meta!.writer_generation || "do.1",
       });
+      if (headOk) this.meta!.revision = rev;
       if (!headOk) {
         settleOk = false;
         next = nextSettlementHealth(health, false);
