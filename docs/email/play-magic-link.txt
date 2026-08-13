@@ -1,0 +1,9 @@
+NOEMA · PLAY
+
+Enter Perihelion Reach.
+
+This is a Player login. It signs you into the world. It does not open ADMIN.
+
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}
+
+Expires soon. If you did not request a play link, ignore this.

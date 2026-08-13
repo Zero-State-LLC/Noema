@@ -44,17 +44,13 @@ Authenticated operator steps need an ADMIN JWT (`typ: admin-access`).
 
 **Primary:** open `https://noema.guru/admin/login`, submit an allowlisted operator email, follow the magic link.
 
-**Supabase Auth Magic Link template (required for both paths):** Redirect URL allowlist alone is not enough. Prefer a template that preserves `token_hash` on the request’s `redirect_to` (`/play/callback` or `/admin/callback`). If the template hardcodes a path, operators must keep both callbacks working. Admin-shaped example:
+**Supabase Auth Magic Link template (required for both paths):** Redirect allowlist alone is not enough. Paste `docs/email/supabase-magic-link.html` into Authentication → Emails → Magic Link. The button must be:
 
 ```
-https://noema.guru/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}
 ```
 
-Local:
-
-```
-http://127.0.0.1:8787/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
-```
+Do not hardcode only `/admin/callback` or only `/play/callback`. See `docs/email/README.md`.
 
 Also allowlist admin redirects (already required for operator login):
 

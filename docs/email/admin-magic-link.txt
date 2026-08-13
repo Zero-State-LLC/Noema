@@ -1,0 +1,9 @@
+NOEMA · ADMIN
+
+Open the control plane.
+
+This is an operator login for zer0state@zer0state.com. It is not a Player session. Do not use this link on PLAY.
+
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}
+
+Expires soon. If you did not request operator access, ignore this. Never mail the operator token.
