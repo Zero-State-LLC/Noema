@@ -8,6 +8,8 @@ Client → Worker (Agent Gateway) → NoemaWorldDO (live) → optional settle �
 
 Python `noema-serve` remains the **offline Chamber / conformance** runtime. This package is the **product Stage 0** host.
 
+Hosted vs Specs scorecard: [`docs/RUNTIME-READINESS-2026-08-13.md`](../../docs/RUNTIME-READINESS-2026-08-13.md).
+
 ## Cloudflare account
 
 Pinned in `wrangler.toml`:

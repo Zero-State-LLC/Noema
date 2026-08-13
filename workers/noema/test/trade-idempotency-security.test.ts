@@ -113,3 +113,53 @@ describe("player-scoped idempotency", () => {
     expect(second.observation?.player_id).not.toBe(first.observation?.player_id);
   });
 });
+
+describe("trade accept once", () => {
+  it("rejects a second accept and does not transfer again", async () => {
+    const w = world();
+    const a = principal("player.a");
+    const b = principal("player.b");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    const energyA = w.players[a.player_id].budgets.energy;
+    const energyB = w.players[b.player_id].budgets.energy;
+    const proposed = await run(w, a, "TRADE", {
+      phase: "propose",
+      counterparty_id: b.player_id,
+      offered: { energy: 2 },
+      requested: { compute: 1 },
+    });
+    expect(proposed.ok).toBe(true);
+    const tradeId = Object.keys(w.trades)[0];
+    const first = await run(w, b, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(first.ok).toBe(true);
+    expect(w.trades[tradeId].status).toBe("SETTLED");
+    const afterA = w.players[a.player_id].budgets.energy;
+    const afterB = w.players[b.player_id].budgets.energy;
+    const second = await run(w, b, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(second.ok).toBe(false);
+    expect(second.error?.code).toBe("TRADE_FAILED");
+    expect(w.players[a.player_id].budgets.energy).toBe(afterA);
+    expect(w.players[b.player_id].budgets.energy).toBe(afterB);
+    expect(afterA).toBe(energyA - 2);
+    expect(afterB).toBe(energyB + 2);
+  });
+});
+
+describe("settlement backlog", () => {
+  it("records failed settle on unsettled and does not duplicate event_id", async () => {
+    const w = world();
+    const a = principal("player.a");
+    const envl: CommandEnvelope = {
+      request_id: "req.settle-fail",
+      idempotency_key: "idem.settle-fail",
+      command: "ENTER_WORLD",
+      arguments: {},
+    };
+    const r = await applyWorldCommand(w, a, envl, async () => false);
+    expect(r.ok).toBe(true);
+    expect(w.unsettled.length).toBeGreaterThan(0);
+    const ids = w.unsettled.map((u) => u.event_id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
