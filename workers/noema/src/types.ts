@@ -142,6 +142,15 @@ export interface Observation {
     creator_id: string;
     members: Array<{ agent_id: string; role: string }>;
     my_role: string | null;
+    offices?: Array<{
+      office_id: string;
+      display_name: string;
+      status: string;
+      holder_player_id?: string;
+      holder_handle?: string;
+      authority_profile: string;
+    }>;
+    public_notice?: string;
   }>;
   /** Other active players (addressable handles, no secrets). */
   players_here?: Array<{ player_id: string; handle?: string }>;
@@ -158,6 +167,8 @@ export interface Observation {
   culture_lines?: string[];
   /** GC6-S0 self-only archive/inspect contradiction. Never put on WATCH. */
   discovery_lines?: string[];
+  /** GC4-S1 institution office summary. Public names/holders only. */
+  office_lines?: string[];
   /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
   contests?: Array<{
     contest_id: string;

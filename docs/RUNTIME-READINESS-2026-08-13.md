@@ -45,6 +45,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC3-S0 | Yes (#70) | Self-only trade-memory lines |
 | GC3-S1 | Hosted this run | Defender sees `You have found {name} dangerous.` after `CONTEST_RESOLVED`. No reputation scalar |
 | GC4-S0 | Yes (#71) | Org roles; advisor non-authorizing |
+| GC4-S1 | Hosted this run | Named vacant/occupied offices; `PUBLISH_NOTICE`. Help omits office verbs |
 | GC5-S0 | Yes (#72) | Same-room MESSAGE; long-range needs relay ≥ 25 |
 | GC6-S0 | Mapper yes; **Perihelion silent** | No `archive_subject_entity_id` / `archive_claim` on genesis artifacts |
 | GC7-S0 | Yes (#81) | Isolated contest; help omits CONTEST |
