@@ -27,6 +27,35 @@ export function adminTokenConfigured(env: Env): boolean {
   return Boolean(env.ADMIN_OPERATOR_TOKEN && env.ADMIN_OPERATOR_TOKEN.length >= 8);
 }
 
+async function mintAdminAccess(
+  env: Env,
+  amr: "operator_token" | "email_magic_link",
+): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response> {
+  let signing: string;
+  try {
+    signing = signingSecret(env);
+  } catch {
+    return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
+  }
+  const session_id = `asess.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  const now = Math.floor(Date.now() / 1000);
+  const expires_in = 3600;
+  const access_token = await mintHs256(
+    {
+      typ: "admin-access",
+      role: "ADMIN",
+      session_id,
+      scopes: ADMIN_SCOPES,
+      amr,
+      iat: now,
+      exp: now + expires_in,
+      jti: crypto.randomUUID(),
+    },
+    signing,
+  );
+  return { access_token, session_id, role: "ADMIN", expires_in };
+}
+
 export async function mintAdminSession(
   env: Env,
   operatorToken: string,
@@ -45,29 +74,7 @@ export async function mintAdminSession(
   }
   if (ok !== 0) return err("NOT_AUTHORIZED", "invalid operator token", 401);
 
-  let signing: string;
-  try {
-    signing = signingSecret(env);
-  } catch {
-    return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
-  }
-
-  const session_id = `asess.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-  const now = Math.floor(Date.now() / 1000);
-  const expires_in = 3600;
-  const access_token = await mintHs256(
-    {
-      typ: "admin-access",
-      role: "ADMIN",
-      session_id,
-      scopes: ADMIN_SCOPES,
-      iat: now,
-      exp: now + expires_in,
-      jti: crypto.randomUUID(),
-    },
-    signing,
-  );
-  return { access_token, session_id, role: "ADMIN", expires_in };
+  return mintAdminAccess(env, "operator_token");
 }
 
 export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincipal | Response> {
@@ -198,6 +205,62 @@ export async function requestAdminMagicLink(
   }
 
   return json({ ok: true, message: GENERIC_LOGIN_MESSAGE });
+}
+
+export async function consumeAdminMagicLink(
+  env: Env,
+  body: { token_hash?: string; type?: string; code?: string },
+  opts?: { fetch?: AdminFetch },
+): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response> {
+  if (!parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS).length) {
+    return err("NOT_CONFIGURED", "ADMIN_ALLOWLIST_EMAILS not set on this host", 503);
+  }
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return err("NOT_CONFIGURED", "Supabase auth is not configured", 503);
+  }
+  const token_hash = (body.token_hash || "").trim();
+  const code = (body.code || "").trim();
+  if (!token_hash && !code) return err("INVALID_REQUEST", "token_hash or code required", 400);
+
+  const fetchImpl = opts?.fetch || (globalThis.fetch as AdminFetch);
+  const base = env.SUPABASE_URL.replace(/\/$/, "");
+  const headers = {
+    "content-type": "application/json",
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+
+  let upstream: Response;
+  try {
+    if (token_hash) {
+      const typ = body.type === "email" ? "email" : "magiclink";
+      upstream = await fetchImpl(`${base}/auth/v1/verify`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ type: typ, token_hash }),
+      });
+    } else {
+      upstream = await fetchImpl(`${base}/auth/v1/token?grant_type=authorization_code`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ auth_code: code, code }),
+      });
+    }
+  } catch {
+    return err("UPSTREAM", "auth provider unavailable", 502);
+  }
+  if (!upstream.ok) return err("UPSTREAM", "auth provider rejected the link", 502);
+
+  const payload = (await upstream.json().catch(() => ({}))) as {
+    user?: { email?: string };
+    email?: string;
+  };
+  const email = normalizeEmail(String(payload.user?.email || payload.email || ""));
+  if (!email) return err("NOT_AUTHORIZED", "invalid operator token", 401);
+  if (!parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS).includes(email)) {
+    return err("NOT_AUTHORIZED", "invalid operator token", 401);
+  }
+  return mintAdminAccess(env, "email_magic_link");
 }
 
 export { json, err };

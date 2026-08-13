@@ -3,10 +3,13 @@ import {
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
   clientIp,
+  consumeAdminMagicLink,
   normalizeEmail,
   parseAllowlist,
   requestAdminMagicLink,
+  type AdminFetch,
 } from "../src/admin-auth";
+import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
 function env(partial: Partial<Env> = {}): Env {
@@ -144,5 +147,67 @@ describe("requestAdminMagicLink", () => {
       { fetch: async () => new Response("nope", { status: 500 }) },
     );
     expect(res.status).toBe(200);
+  });
+});
+
+describe("consumeAdminMagicLink", () => {
+  it("503s when allowlist is empty", async () => {
+    const res = await consumeAdminMagicLink(env({ ADMIN_ALLOWLIST_EMAILS: "" }), {
+      token_hash: "abc",
+      type: "magiclink",
+    });
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(503);
+  });
+
+  it("400s without token_hash or code", async () => {
+    const res = await consumeAdminMagicLink(env(), {});
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(400);
+  });
+
+  it("401s when verified email is not allowlisted and returns no access_token", async () => {
+    const fetchImpl: AdminFetch = async () =>
+      new Response(JSON.stringify({ user: { email: "stranger@x.io" } }), { status: 200 });
+    const res = await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: fetchImpl },
+    );
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(401);
+    const body = await (res as Response).json();
+    expect(body.access_token).toBeUndefined();
+    expect(body.refresh_token).toBeUndefined();
+  });
+
+  it("mints admin-access for allowlisted verify and omits supabase tokens", async () => {
+    const fetchImpl: AdminFetch = async (url) => {
+      expect(url).toContain("/auth/v1/verify");
+      return new Response(JSON.stringify({ user: { email: "ops@example.com" } }), { status: 200 });
+    };
+    const minted = await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "email" },
+      { fetch: fetchImpl },
+    );
+    expect(minted).not.toBeInstanceOf(Response);
+    const ok = minted as { access_token: string; role: string; session_id: string };
+    expect(ok.role).toBe("ADMIN");
+    expect(ok.session_id.startsWith("asess.")).toBe(true);
+    expect("refresh_token" in ok).toBe(false);
+    expect("provider_token" in ok).toBe(false);
+    const claims = await verifyHs256(ok.access_token, "test-signing-secret");
+    expect(claims.typ).toBe("admin-access");
+    expect(claims.amr).toBe("email_magic_link");
+  });
+
+  it("502s when supabase verify fails upstream", async () => {
+    const res = await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: async () => new Response("down", { status: 500 }) },
+    );
+    expect((res as Response).status).toBe(502);
   });
 });
