@@ -70,6 +70,16 @@ describe("play-ui helpers", () => {
     expect(JSON.stringify(rows)).not.toMatch(/reputation|72/i);
   });
 
+  it("does not put culture lines on STATUS Work/Tie rows", () => {
+    const rows = statusFromObservation({
+      world_name: "Test Reach",
+      cycle: 4,
+      location: GRID,
+      culture_lines: ["This site has a maintenance custom."],
+    });
+    expect(rows.some((r) => String(r.value).includes("maintenance custom"))).toBe(false);
+  });
+
   it("resolves human-readable inspect targets", () => {
     const ents = GRID.entities;
     expect(resolveEntityTarget("scarred conduit", ents)?.entity_id).toBe("entity.relay-7");

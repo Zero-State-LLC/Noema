@@ -100,6 +100,17 @@ describe("ORG human parse", () => {
     }
     const leave = parseHumanCommand("leave org.x", { selfId: "player.me" });
     expect(leave.ok).toBe(true);
+    const adv = parseHumanCommand("invite bob to org.x role=advisor", {
+      players: [
+        { player_id: "player.me", handle: "me" },
+        { player_id: "player.bob", handle: "bob" },
+      ],
+      selfId: "player.me",
+    });
+    expect(adv.ok).toBe(true);
+    if (adv.ok && adv.action.verb === "COMMIT") {
+      expect(adv.action.arguments.role).toBe("advisor");
+    }
     const rem = parseHumanCommand('remove bob from org.x reason="breach"', {
       players: [
         { player_id: "player.me", handle: "me" },
@@ -190,5 +201,49 @@ describe("ORG world mutations", () => {
     expect(r.ok).toBe(false);
     expect(r.error?.code).toBe("BUDGET_EXCEEDED");
     expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("advisor cannot invite or remove others", async () => {
+    const w = world();
+    const founder = principal("player.founder");
+    const advisor = principal("player.advisor");
+    const target = principal("player.target");
+    await run(w, founder, "ENTER_WORLD");
+    await run(w, advisor, "ENTER_WORLD");
+    await run(w, target, "ENTER_WORLD");
+    w.players[founder.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[advisor.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const created = await run(w, founder, "COMMIT", {
+      operation: "ORG_CREATE",
+      name: "Desk",
+      charter: "pins",
+    });
+    expect(created.ok).toBe(true);
+    const org = Object.values(w.organizations)[0];
+    const invited = await run(w, founder, "COMMIT", {
+      operation: "ORG_MEMBER_ADD",
+      org_id: org.org_id,
+      agent_id: advisor.player_id,
+      role: "advisor",
+    });
+    expect(invited.ok).toBe(true);
+    expect(
+      w.organizations[org.org_id].members.find((m) => m.agent_id === advisor.player_id)?.role,
+    ).toBe("advisor");
+    const badAdd = await run(w, advisor, "COMMIT", {
+      operation: "ORG_MEMBER_ADD",
+      org_id: org.org_id,
+      agent_id: target.player_id,
+      role: "member",
+    });
+    expect(badAdd.ok).toBe(false);
+    expect(badAdd.error?.code).toBe("FORBIDDEN");
+    const badRem = await run(w, advisor, "COMMIT", {
+      operation: "ORG_MEMBER_REMOVE",
+      org_id: org.org_id,
+      agent_id: founder.player_id,
+    });
+    expect(badRem.ok).toBe(false);
+    expect(badRem.error?.code).toBe("FORBIDDEN");
   });
 });
