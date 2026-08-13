@@ -150,6 +150,8 @@ export interface Observation {
   affordances?: ObservationAffordance[];
   /** Last action consequence for UI */
   consequence?: string;
+  /** GC1-S0 self-only practice lines. Never put on WATCH or players_here. */
+  practice_lines?: string[];
   /** Location-bound World Services (adapters, not Players). */
   services?: Array<{
     service_id: string;

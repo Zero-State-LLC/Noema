@@ -40,6 +40,23 @@ describe("play-ui helpers", () => {
     expect(titleCaseLabel("scarred-conduit")).toBe("Scarred Conduit");
   });
 
+  it("projects self practice as Work rows and never as numbers", () => {
+    const rows = statusFromObservation({
+      world_name: "Test Reach",
+      cycle: 4,
+      location: GRID,
+      practice_lines: [
+        "You have been learning the rooms.",
+        "You have been doing survey work.",
+      ],
+    });
+    expect(rows.filter((r) => r.label === "Work").map((r) => r.value)).toEqual([
+      "You have been learning the rooms.",
+      "You have been doing survey work.",
+    ]);
+    expect(JSON.stringify(rows)).not.toMatch(/XP|level|\b3\b track/i);
+  });
+
   it("resolves human-readable inspect targets", () => {
     const ents = GRID.entities;
     expect(resolveEntityTarget("scarred conduit", ents)?.entity_id).toBe("entity.relay-7");
