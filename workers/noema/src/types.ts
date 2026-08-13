@@ -55,25 +55,85 @@ export interface CommandEnvelope {
   player_id?: string;
 }
 
+export interface ObservationEntity {
+  entity_id: string;
+  label: string;
+  entity_type: string;
+  condition?: number;
+  stock_resource?: string;
+  stock_amount?: number;
+  repairable?: boolean;
+  harvestable?: boolean;
+}
+
+export interface ObservationAffordance {
+  action: string;
+  verb: string;
+  operation?: string;
+  label: string;
+  cmd: string;
+  target_id?: string;
+  target_label?: string;
+  requires?: Record<string, number>;
+  available: boolean;
+  reason?: string;
+  kind: string;
+}
+
 export interface Observation {
   cycle: number;
   sequence: number;
+  /** World display name when known (never seed / profile / story seeds). */
+  world_name?: string;
   location: {
     room_id: string;
     name: string;
     description: string;
-    exits: Array<{ direction: string; to_room_id: string }>;
-    entities: Array<{ entity_id: string; label: string; entity_type: string }>;
+    /** Short local condition derived for UI (presentation only). */
+    condition?: string;
+    exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
+    entities: ObservationEntity[];
   };
   player_id: string;
+  /** Self budgets (Player-visible). */
+  budgets?: {
+    attention: number;
+    compute: number;
+    energy: number;
+    influence: number;
+    storage: number;
+  };
+  /** Delivered inbox (private — never WATCH). */
+  messages?: Array<{
+    message_id: string;
+    sender_id: string;
+    text: string;
+    delivered_cycle: number;
+  }>;
+  /** Open trades involving self. */
+  trades?: Array<{
+    trade_id: string;
+    proposer_id: string;
+    counterparty_id: string;
+    offered: Record<string, number>;
+    requested: Record<string, number>;
+    status: string;
+    role: "proposer" | "counterparty";
+  }>;
+  /** Other active players (addressable handles, no secrets). */
+  players_here?: Array<{ player_id: string; handle?: string }>;
+  /** Legacy string list + structured affordances */
   available_actions: string[];
+  affordances?: ObservationAffordance[];
+  /** Last action consequence for UI */
+  consequence?: string;
 }
 
 export interface CommandResult {
   ok: boolean;
   request_id: string;
   observation?: Observation;
-  events?: Array<{ event_id: string; event_type: string; sequence: number }>;
+  events?: Array<{ event_id: string; event_type: string; sequence: number; payload?: Record<string, unknown> }>;
   provenance?: {
     player_id: string;
     controller_id: string;
@@ -81,5 +141,5 @@ export interface CommandResult {
     agent_id: string;
   };
   settled?: boolean;
-  error?: { code: string; message: string };
+  error?: { code: string; message: string; choices?: string[] };
 }
