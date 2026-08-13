@@ -31,6 +31,7 @@ import {
   type PlayerRuntime,
 } from "./actions";
 import { actorKindFromPrincipal } from "./ops";
+import { commitCycleIfReady } from "./world-time";
 import {
   applyPracticeCredits,
   creditsFromEvent,
@@ -713,10 +714,13 @@ export async function applyWorldCommand(
     pl.wait_until_cycle = w.cycle + waitCycles;
     pl.budgets.attention = Math.min(8, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(64, pl.budgets.compute + 4);
+    const committed = commitCycleIfReady(w);
     pushEvent("WAIT", {
       player_id: principal.player_id,
       cycles: waitCycles,
       wait_until_cycle: pl.wait_until_cycle,
+      world_cycle: w.cycle,
+      cycle_committed: committed,
     });
     const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;

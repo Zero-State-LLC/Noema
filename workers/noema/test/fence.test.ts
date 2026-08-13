@@ -133,18 +133,22 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WAIT does not advance World.cycle", () => {
-  it("sets wait_until_cycle and leaves world cycle unchanged", async () => {
+describe("WAIT does not advance World.cycle alone", () => {
+  it("sets wait_until_cycle; a second present Player blocks commit", async () => {
     const w = world();
-    const p = principal("player.nacre");
-    await run(w, p, "ENTER_WORLD");
-    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const before = w.cycle;
-    const r = await run(w, p, "WAIT");
+    const r = await run(w, a, "WAIT");
     expect(r.ok).toBe(true);
     expect(w.cycle).toBe(before);
-    expect(w.players[p.player_id].wait_until_cycle).toBe(before + 1);
+    expect(w.players[a.player_id].wait_until_cycle).toBe(before + 1);
     expect(r.events?.map((e) => e.event_type)).toEqual(["WAIT"]);
+    expect(r.events?.[0]?.payload?.cycle_committed).toBe(false);
   });
 });
 
