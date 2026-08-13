@@ -64,6 +64,7 @@ function fixtureWorld(): WorldRuntime {
     players: {},
     trades: {},
     messages: [],
+    organizations: {},
     seen_idempotency: {},
     unsettled: [],
   };

@@ -70,13 +70,13 @@ export const HOSTED_ACTIONS = [
   "TRADE",
   "HARVEST",
   "REPAIR",
-] as const;
-
-/** Not yet on hosted Worker (Tier 2/3). */
-export const BACKEND_GAPS = [
   "ORG_CREATE",
   "ORG_MEMBER_ADD",
   "ORG_MEMBER_REMOVE",
+] as const;
+
+/** v0.2 strategic — not hosted yet. */
+export const BACKEND_GAPS = [
   "CONTEST_DECLARE",
   "CONTEST_DEFEND",
   "AGREEMENT_FORM",

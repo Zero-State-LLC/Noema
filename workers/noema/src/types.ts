@@ -120,6 +120,16 @@ export interface Observation {
     status: string;
     role: "proposer" | "counterparty";
   }>;
+  /** Active organizations (public membership projection). */
+  organizations?: Array<{
+    org_id: string;
+    name: string;
+    charter: string;
+    status: string;
+    creator_id: string;
+    members: Array<{ agent_id: string; role: string }>;
+    my_role: string | null;
+  }>;
   /** Other active players (addressable handles, no secrets). */
   players_here?: Array<{ player_id: string; handle?: string }>;
   /** Legacy string list + structured affordances */
