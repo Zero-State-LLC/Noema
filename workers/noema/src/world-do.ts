@@ -1,6 +1,7 @@
 import { enrichEntity } from "./actions";
 import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
+import { publicCulturePulses } from "./culture";
 import {
   applyControllingSession,
   commandForOps,
@@ -190,6 +191,16 @@ export class NoemaWorldDO {
           players_present: countLivePlayers(this.world!.players),
           world_status: this.meta!.status,
           freshness: marker,
+          public_pulses: publicCulturePulses(
+            this.world!.culture,
+            this.world!.cycle,
+            Object.values(this.world!.reconstructions || {}).map((r) => ({
+              subject_ref: r.subject_ref,
+              visibility: r.visibility,
+              claim: r.claim,
+              epistemic: r.epistemic,
+            })),
+          ),
         }),
       );
     }

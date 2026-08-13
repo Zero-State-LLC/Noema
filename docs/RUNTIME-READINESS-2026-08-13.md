@@ -52,6 +52,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC7-S0 | Yes (#81) | Isolated contest; help omits CONTEST |
 | GC8-S0 | Already true | Cost comparison |
 | GC9-S0 | Yes (#71) | Room custom after 3 distinct REPAIRs |
+| GC9-S1 | Hosted this run | Tradition after persistence + transmission. Public WATCH pulses. No bonus |
 | GC10-S0 | Yes (#82) | Cycle-4 `ENTITY_UPDATE` −15 if preview ≥ 25. Silent if genesis relay is too damaged. PLAY omits WED |
 
 ## Frozen / left untouched
