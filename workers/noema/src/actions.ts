@@ -224,6 +224,46 @@ export function normalizeKey(s: string): string {
   return s.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Harvest-node ontology (Stage 0):
+ * - Explicit stock fields always win
+ * - entity_type RESOURCE is a resource node
+ * - INFRASTRUCTURE in the storage/cache/salvage class is a resource node
+ * - Trade boards / market posts are NOT harvest nodes (trade surface only)
+ * Does not invent new Genesis entities — classifies existing ones.
+ */
+export function classifyResourceNode(e: {
+  entity_id: string;
+  label: string;
+  entity_type: string;
+  stock_resource?: string;
+  stock_amount?: number;
+}): { is_node: boolean; resource?: string; amount?: number } {
+  if (e.stock_resource != null) {
+    return {
+      is_node: true,
+      resource: e.stock_resource,
+      amount: e.stock_amount ?? 0,
+    };
+  }
+  const type = (e.entity_type || "").toUpperCase();
+  if (type === "RESOURCE") {
+    return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
+  }
+  if (type === "INFRASTRUCTURE") {
+    const id = e.entity_id.toLowerCase();
+    const lab = e.label.toLowerCase();
+    // Storage/cache/salvage class only — not market/trade boards
+    if (
+      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(id) ||
+      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(lab)
+    ) {
+      return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
+    }
+  }
+  return { is_node: false };
+}
+
 /** Derive runtime fields without inventing new genesis content. */
 export function enrichEntity(e: {
   entity_id: string;
@@ -241,27 +281,14 @@ export function enrichEntity(e: {
     else if (e.entity_type === "INFRASTRUCTURE") condition = 70;
     else if (e.entity_type === "ARTIFACT") condition = 50;
   }
-  let stock_resource = e.stock_resource;
-  let stock_amount = e.stock_amount;
-  if (stock_resource === undefined) {
-    // Observable salvage/cache/market nodes — presentation of existing entity as harvestable stock
-    const id = e.entity_id.toLowerCase();
-    if (
-      e.entity_type === "RESOURCE" ||
-      /cache|scrap|salvage|ore|deposit|stockpile|cell|market|storage|bond|board/.test(s) ||
-      /cache|storage|cell|market|scrap/.test(id)
-    ) {
-      stock_resource = "energy";
-      stock_amount = stock_amount ?? 8;
-    }
-  }
+  const node = classifyResourceNode(e);
   return {
     entity_id: e.entity_id,
     label: e.label,
     entity_type: e.entity_type,
     condition,
-    stock_resource,
-    stock_amount,
+    stock_resource: node.is_node ? node.resource : undefined,
+    stock_amount: node.is_node ? node.amount : undefined,
   };
 }
 

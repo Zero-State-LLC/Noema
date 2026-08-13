@@ -199,15 +199,24 @@ export function buildObservation(
       status: t.status,
       role: t.proposer_id === principal.player_id ? ("proposer" as const) : ("counterparty" as const),
     })),
-    organizations: orgs.map((o) => ({
-      org_id: o.org_id,
-      name: o.name,
-      charter: o.charter,
-      status: o.status,
-      creator_id: o.creator_id,
-      members: o.members.map((m) => ({ agent_id: m.agent_id, role: m.role })),
-      my_role: o.members.find((m) => m.agent_id === principal.player_id)?.role || null,
-    })),
+    organizations: orgs
+      .map((o) => ({
+        org_id: o.org_id,
+        name: o.name,
+        charter: o.charter,
+        status: o.status,
+        creator_id: o.creator_id,
+        members: o.members.map((m) => ({ agent_id: m.agent_id, role: m.role })),
+        my_role: o.members.find((m) => m.agent_id === principal.player_id)?.role || null,
+        created_cycle: o.created_cycle,
+      }))
+      // Prefer memberships first, then newest — avoids stale org[0] selection in clients
+      .sort((a, b) => {
+        const am = a.my_role ? 0 : 1;
+        const bm = b.my_role ? 0 : 1;
+        if (am !== bm) return am - bm;
+        return (b.created_cycle || 0) - (a.created_cycle || 0);
+      }),
     players_here: otherPlayers.filter((p) => p.player_id !== principal.player_id),
     available_actions,
     affordances: affordances.map((a) => ({
@@ -416,12 +425,21 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, COSTS.LOOK);
       const room_id = pl.room_id;
-      const ev = pushEvent("LOOK", {
+      const lookEv = pushEvent("LOOK", {
         player_id: principal.player_id,
         room_id,
         cost_paid: COSTS.LOOK,
       });
-      await settleEv(ev);
+      await settleEv(lookEv);
+      // Specs: LOOK → OBSERVATION_GENERATED (same cycle batch)
+      const obsEv = pushEvent("OBSERVATION_GENERATED", {
+        observation_id: `obs.${lookEv.sequence}`,
+        player_id: principal.player_id,
+        kind: "LOOK",
+        room_id,
+        source_event_id: lookEv.event_id,
+      });
+      await settleEv(obsEv);
     }
     const room = w.rooms[pl.room_id];
     const result = success(
@@ -505,14 +523,24 @@ export async function applyWorldCommand(
     }
     debit(pl.budgets, COSTS.INSPECT);
     const detail = inspectDetail(entity);
-    const ev = pushEvent("INSPECT", {
+    const inspEv = pushEvent("INSPECT", {
       player_id: principal.player_id,
       entity_id: entity.entity_id,
       room_id: pl.room_id,
       cost_paid: COSTS.INSPECT,
       detail,
     });
-    await settleEv(ev);
+    await settleEv(inspEv);
+    // Specs: INSPECT → OBSERVATION_GENERATED
+    const obsEv = pushEvent("OBSERVATION_GENERATED", {
+      observation_id: `obs.${inspEv.sequence}`,
+      player_id: principal.player_id,
+      kind: "INSPECT",
+      room_id: pl.room_id,
+      entity_id: entity.entity_id,
+      source_event_id: inspEv.event_id,
+    });
+    await settleEv(obsEv);
     const obs = buildObservation(w, principal, detail);
     obs.location = {
       ...obs.location,

@@ -3,6 +3,7 @@ import {
   COSTS,
   DEFAULT_BUDGETS,
   canPay,
+  classifyResourceNode,
   cloneBudgets,
   debit,
   deriveAffordances,
@@ -86,6 +87,46 @@ async function run(
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
+describe("harvest node ontology", () => {
+  it("classifies storage/cache infrastructure as resource nodes", () => {
+    const n = classifyResourceNode({
+      entity_id: "entity.storage-cell-cache",
+      label: "bond-board",
+      entity_type: "INFRASTRUCTURE",
+    });
+    expect(n.is_node).toBe(true);
+    expect(n.resource).toBe("energy");
+  });
+
+  it("does not treat market/trade boards as harvest nodes by label alone", () => {
+    const n = classifyResourceNode({
+      entity_id: "entity.old-market-post",
+      label: "market-post",
+      entity_type: "INFRASTRUCTURE",
+    });
+    expect(n.is_node).toBe(false);
+  });
+
+  it("honors entity_type RESOURCE and explicit stock", () => {
+    expect(
+      classifyResourceNode({
+        entity_id: "entity.ore",
+        label: "outcrop",
+        entity_type: "RESOURCE",
+      }).is_node,
+    ).toBe(true);
+    expect(
+      classifyResourceNode({
+        entity_id: "entity.x",
+        label: "whatever",
+        entity_type: "ARTIFACT",
+        stock_resource: "energy",
+        stock_amount: 3,
+      }),
+    ).toEqual({ is_node: true, resource: "energy", amount: 3 });
+  });
+});
+
 describe("action costs & budgets", () => {
   it("canPay / debit honor Specs costs", () => {
     const b = cloneBudgets(DEFAULT_BUDGETS);
@@ -143,10 +184,16 @@ describe("Tier 1 world mutations", () => {
     r = await run(w, human, "LOOK");
     expect(r.ok).toBe(true);
     expect(r.observation!.budgets!.attention).toBe(DEFAULT_BUDGETS.attention - COSTS.LOOK.attention!);
+    expect(r.events?.map((e) => e.event_type)).toEqual(
+      expect.arrayContaining(["LOOK", "OBSERVATION_GENERATED"]),
+    );
 
     r = await run(w, human, "INSPECT", { entity_id: "scarred-conduit" });
     expect(r.ok).toBe(true);
     expect(r.observation!.consequence || r.observation!.location.description).toMatch(/condition|scarred|damaged/i);
+    expect(r.events?.map((e) => e.event_type)).toEqual(
+      expect.arrayContaining(["INSPECT", "OBSERVATION_GENERATED"]),
+    );
 
     const beforeCond = w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-7")!.condition!;
     r = await run(w, human, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });

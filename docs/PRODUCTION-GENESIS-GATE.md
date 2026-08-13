@@ -313,13 +313,44 @@ Live production gates: health, ready, admin auth, isolation,
 
 ---
 
-## Final verdict
+## Re-gate (operator-minted entry) — 2026-08-13
+
+After PRs #41–#43 (action parity, operator tokens, ORG_*) and conformance hardening:
+
+| Gate | Result |
+|------|--------|
+| `NOEMA_ENV=production` | PASS |
+| Health / readiness / DO ACTIVE | PASS · `genesis.ef578f4ffceeccd0` |
+| Dev-token denied | PASS |
+| Admin auth + force/reseed denied | PASS |
+| Operator mint human + agent | PASS |
+| Player cannot mint | PASS |
+| Human ENTER/LOOK/INSPECT/REPAIR/MOVE | PASS |
+| LOOK/INSPECT → `OBSERVATION_GENERATED` | PASS |
+| Agent ENTER/LOOK | PASS |
+| MESSAGE private + WATCH redaction | PASS |
+| TRADE propose/accept | PASS |
+| ORG form + invite | PASS (post org-sort fix) |
+| Genesis preview identity/digest match | PASS · non-mutating |
+| Public surfaces | PASS |
+
+**Player entry path:** Admin → Players → mint controller token → PLAY paste / agent Bearer.  
+**Do not re-enable open dev-token.**
+
+World is already ACTIVE with approved candidate; activation is not re-run.  
+**Controlled production play is ready** for operator-issued human and agent Players.
+
+```text
+PRODUCTION GATE (operator-minted): PASS for controlled entry
+Genesis activation: N/A (already ACTIVE; do not force-supersede)
+```
+
+---
+
+## Final verdict (original cutover run)
 
 ```text
 NOT READY FOR PRODUCTION GENESIS ACTIVATION
 ```
 
-**STOP. DO NOT ACTIVATE.**
-
-Production environment hardening and exact Perihelion Reach identity reproduction **passed**.  
-Legitimate human- and agent-controlled Players **cannot yet safely enter** under production auth policy. That is the remaining hard gate before any human-approved activation step.
+At cutover time, public Player auth was missing. That blocker is addressed via **operator-minted controller tokens** (see re-gate above).
