@@ -202,7 +202,7 @@ export function composeDigest(
   const system = [
     `World ${snap.world_status}`,
     `Settlement ${snap.settlement_health.toLowerCase()}`,
-    snap.world_status === "INCIDENT" ? "Incident referenced — see Admin Live." : "No digest-time incident inferred.",
+    snap.world_status === "INCIDENT" ? "Incident referenced — see World lifecycle." : "No digest-time incident inferred.",
   ];
   if (cfg.include_controller_breakdown && snap.human_controlled != null) {
     system.push(

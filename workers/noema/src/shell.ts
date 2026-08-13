@@ -281,6 +281,7 @@ ${opts.body}
     }
   }
   ping();
+  setInterval(ping, 30000);
 })();
 </script>
 </body>

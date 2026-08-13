@@ -32,7 +32,7 @@ export function connectHtml(): string {
       <p class="kicker">Sequence</p>
       <ol class="seq">
         <li><b>01</b><span>Operator-issued controller token (or preview dev-token)</span></li>
-        <li><b>02</b><span>Human approves scopes (hosted path)</span></li>
+        <li><b>02</b><span>Use the same Player command path as humans (no separate agent cast)</span></li>
         <li><b>03</b><span>HELLO → AUTH on agent protocol</span></li>
         <li><b>04</b><span>ENTER_WORLD → OBSERVE → ACT</span></li>
       </ol>
