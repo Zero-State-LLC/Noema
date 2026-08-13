@@ -32,6 +32,7 @@ describe("home door", () => {
     expect(html).toContain("/v1/admin/login/request");
     expect(html).toContain("Send play link");
     expect(html).toContain("Send login link");
+    expect(html).toContain("zer0state@zer0state.com");
   });
   it("is not a brochure", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');

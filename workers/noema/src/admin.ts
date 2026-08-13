@@ -103,10 +103,10 @@ ${body}
 /** Embedded operator email form for the product homepage (distinct ids from play email). */
 export function adminEmailGateMarkup(): string {
   return `
-<p class="muted">Operator plane. This is not a Player login.</p>
+<p class="muted">Operator plane. This is not a Player login. Links go to <code>zer0state@zer0state.com</code> only.</p>
 <form id="op-login-form">
   <label for="op-email">Operator email</label>
-  <input id="op-email" type="email" autocomplete="username" required/>
+  <input id="op-email" type="email" autocomplete="username" required readonly value="zer0state@zer0state.com"/>
   <button class="btn primary block" type="submit">Send login link</button>
 </form>
 <p class="notice" id="op-notice" role="status"></p>
@@ -149,11 +149,11 @@ export function adminLoginHtml(): string {
     <p class="muted">ADMIN is not a player login. PLAY, WATCH, and STUDY use Player / Spectator / Researcher identities. Admin privilege is never inherited by a player session.</p>
     <form id="login-form" style="margin-top:1.2rem">
       <label for="email">Email</label>
-      <input id="email" type="email" autocomplete="username" required/>
+      <input id="email" type="email" autocomplete="username" required readonly value="zer0state@zer0state.com"/>
       <button class="btn primary" type="submit" style="width:100%;margin-top:.85rem">Send login link</button>
     </form>
     <p class="notice" id="notice" role="status"></p>
-    <p class="empty" style="margin-top:1rem">A link is mailed only if the mailbox is authorized. Never put admin access in player sessions.</p>
+    <p class="empty" style="margin-top:1rem">A link is mailed only to <code>zer0state@zer0state.com</code>. Never put admin access in player sessions.</p>
   </section>
 </main>
 <script>
