@@ -28,6 +28,7 @@ export type PlayerRuntime = {
   entered: boolean;
   budgets: Budgets;
   handle?: string;
+  controlling_session_id?: string;
 };
 
 export type OpenTrade = {
