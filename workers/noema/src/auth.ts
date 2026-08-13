@@ -131,6 +131,9 @@ export type MintControllerOptions = {
   expiresIn?: number;
   /** Set when minted by ADMIN plane (audit claim only). */
   issuedByAdmin?: boolean;
+  playerId?: string;
+  identityId?: string;
+  amr?: string;
 };
 
 /**
@@ -165,7 +168,9 @@ export async function mintControllerToken(
   if (!signing) {
     throw new Error("TOKEN_SIGNING_SECRET is not configured");
   }
-  const player_id = `player.${handle}`;
+  const player_id = opts.playerId
+    ? (opts.playerId.startsWith("player.") ? opts.playerId : `player.${opts.playerId}`)
+    : `player.${handle}`;
   const controller_id = `ctrl.${controllerType}.${handle}`;
   const agent_id = `agent.${handle}`;
   const now = Math.floor(Date.now() / 1000);
@@ -180,6 +185,8 @@ export async function mintControllerToken(
     exp: now + expires_in,
     jti: crypto.randomUUID().slice(0, 8),
   };
+  if (opts.identityId) claims.identity_id = opts.identityId;
+  if (opts.amr) claims.amr = opts.amr;
   if (opts.issuedByAdmin) claims.issued_by = "admin";
   const access_token = await mintHs256(claims, signing);
   return {
