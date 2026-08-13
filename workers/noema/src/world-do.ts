@@ -24,7 +24,15 @@ import {
   type DigestEvent,
   type OperatorDigest,
 } from "./operator-digests";
-import { settleEvent, settleGenesisActivation } from "./settle";
+import {
+  getWorldHead,
+  putWorldHead,
+  replayUnsettled,
+  settleEvent,
+  settleGenesisActivation,
+  shouldRestoreFromHead,
+  worldFromHead,
+} from "./settle";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -511,7 +519,13 @@ export class NoemaWorldDO {
     await this.loadMeta();
     if (!this.world) {
       const stored = await this.state.storage.get<WorldState>("world");
-      this.world = stored || demoState(this.env.DEFAULT_WORLD_ID || "world-01");
+      const worldId = this.env.DEFAULT_WORLD_ID || "world-01";
+      if (shouldRestoreFromHead(stored)) {
+        const head = await getWorldHead(this.env, worldId);
+        this.world = worldFromHead(head, demoState(worldId));
+      } else {
+        this.world = stored;
+      }
       // migrate old states without entry_room_id / budgets / entity runtime fields
       if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
       migrateWorldRuntime(this.world);
@@ -544,6 +558,10 @@ export class NoemaWorldDO {
       if (player) player.controlling_session_id = session.session_id;
     }
 
+    if (mutating && w.unsettled?.length) {
+      w.unsettled = await replayUnsettled(this.env, w.world_id, w.unsettled);
+    }
+
     let settleOk = true;
     const result = await applyWorldCommand(w, principal, envl, async (ev) => {
       const ok = await settleEvent(this.env, principal, {
@@ -564,10 +582,24 @@ export class NoemaWorldDO {
       w.players[principal.player_id].controlling_session_id = principal.session_id;
     }
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const next = nextSettlementHealth(health, settleOk);
+      let next = nextSettlementHealth(health, settleOk);
+      if (next === "BLOCKING") this.meta!.status = "INCIDENT";
+      const headOk = await putWorldHead(this.env, {
+        world_id: w.world_id,
+        sequence: w.sequence,
+        cycle: w.cycle,
+        genesis_id: this.meta!.genesis_id || null,
+        status: this.meta!.status,
+        settlement_health: next,
+        state_json: w,
+      });
+      if (!headOk) {
+        settleOk = false;
+        next = nextSettlementHealth(health, false);
+        if (next === "BLOCKING") this.meta!.status = "INCIDENT";
+      }
       this.meta!.settlement_health = next;
       this.meta!.settlement_ok = settleOk;
-      if (next === "BLOCKING") this.meta!.status = "INCIDENT";
       await this.state.storage.put("world_meta", this.meta);
     }
     if (result.ok && result.events?.length) {

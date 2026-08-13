@@ -56,6 +56,17 @@ import {
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
+export type UnsettledEvent = {
+  event_id: string;
+  payload: Record<string, unknown>;
+  event_type?: string;
+  sequence?: number;
+  cycle?: number;
+  player_id?: string;
+  controller_id?: string;
+  session_id?: string;
+};
+
 export type RoomState = {
   room_id: string;
   name: string;
@@ -77,7 +88,7 @@ export type WorldRuntime = {
   messages: InboxMessage[];
   organizations: Record<string, Organization>;
   seen_idempotency: Record<string, CommandResult>;
-  unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
+  unsettled: UnsettledEvent[];
   /** GC9-S0 derived site custom cache. Not WorldState. */
   culture?: import("./culture").CultureState;
 };
@@ -577,7 +588,16 @@ export async function applyWorldCommand(
     if (!ok) {
       w.unsettled = w.unsettled || [];
       if (!w.unsettled.some((u) => u.event_id === ev.event_id)) {
-        w.unsettled.push({ event_id: ev.event_id, payload: ev.payload });
+        w.unsettled.push({
+          event_id: ev.event_id,
+          event_type: ev.event_type,
+          sequence: ev.sequence,
+          cycle: w.cycle,
+          player_id: principal.player_id,
+          controller_id: principal.controller_id,
+          session_id: principal.session_id,
+          payload: ev.payload,
+        });
       }
     }
     settled = ok || settled;

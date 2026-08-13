@@ -1,4 +1,5 @@
 import type { Env, PlayerPrincipal } from "./types";
+import type { UnsettledEvent, WorldRuntime } from "./world-actions";
 
 export interface SettlementEvent {
   event_id: string;
@@ -12,15 +13,33 @@ export interface SettlementEvent {
   payload: Record<string, unknown>;
 }
 
+export type WorldHead = {
+  world_id: string;
+  sequence: number;
+  cycle: number;
+  genesis_id?: string | null;
+  status: string;
+  settlement_health: string;
+  state_json: WorldRuntime;
+  updated_at?: string;
+};
+
+function restBase(env: Env): { url: string; key: string } | null {
+  const url = env.SUPABASE_URL;
+  const key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return { url: url.replace(/\/$/, ""), key };
+}
+
 /**
  * Best-effort durable settle to Supabase Postgres via REST.
  * No-ops when service role is unset (local Stage 0 without secrets).
  * Idempotent on event_id when a unique constraint exists.
  */
 export async function settleEvent(env: Env, principal: PlayerPrincipal, ev: SettlementEvent): Promise<boolean> {
-  const url = env.SUPABASE_URL;
-  const key = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) return false;
+  const rest = restBase(env);
+  if (!rest) return false;
+  const { url, key } = rest;
 
   const body = {
     event_id: ev.event_id,
@@ -99,4 +118,106 @@ export async function settleGenesisActivation(
     },
   });
   return { settled, settlement_id };
+}
+
+/** Restore only when the DO has no world. Never clobber a live copy. */
+export function shouldRestoreFromHead(stored: WorldRuntime | null | undefined): boolean {
+  return !stored;
+}
+
+export function worldFromHead(
+  head: WorldHead | null,
+  fallback: WorldRuntime,
+): WorldRuntime {
+  const snap = head?.state_json;
+  if (snap && typeof snap === "object" && snap.rooms) return snap;
+  return fallback;
+}
+
+export async function putWorldHead(
+  env: Env,
+  head: Omit<WorldHead, "updated_at">,
+): Promise<boolean> {
+  const rest = restBase(env);
+  if (!rest) return false;
+  try {
+    const res = await fetch(`${rest.url}/rest/v1/noema_world_heads?on_conflict=world_id`, {
+      method: "POST",
+      headers: {
+        apikey: rest.key,
+        Authorization: `Bearer ${rest.key}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify({
+        world_id: head.world_id,
+        sequence: head.sequence,
+        cycle: head.cycle,
+        genesis_id: head.genesis_id ?? null,
+        status: head.status,
+        settlement_health: head.settlement_health,
+        state_json: head.state_json,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    return res.ok || res.status === 409;
+  } catch {
+    return false;
+  }
+}
+
+export async function getWorldHead(env: Env, worldId: string): Promise<WorldHead | null> {
+  const rest = restBase(env);
+  if (!rest) return null;
+  try {
+    const res = await fetch(
+      `${rest.url}/rest/v1/noema_world_heads?world_id=eq.${encodeURIComponent(worldId)}&select=*`,
+      {
+        headers: {
+          apikey: rest.key,
+          Authorization: `Bearer ${rest.key}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as WorldHead[];
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function replayUnsettled(
+  env: Env,
+  worldId: string,
+  items: UnsettledEvent[],
+): Promise<UnsettledEvent[]> {
+  if (!items.length) return [];
+  const remaining: UnsettledEvent[] = [];
+  for (const item of items) {
+    const fake: PlayerPrincipal = {
+      player_id: item.player_id || "system.replay",
+      agent_id: item.player_id || "system.replay",
+      session_id: item.session_id || "sess.replay",
+      controller_id: item.controller_id || "ctrl.replay",
+      controller_type: "hybrid",
+      scopes: ["noema.world.admin"],
+      protocol_version: "1",
+      authentication_context: "operator_token",
+    };
+    const ok = await settleEvent(env, fake, {
+      event_id: item.event_id,
+      event_type: item.event_type || "UNKNOWN",
+      sequence: item.sequence || 0,
+      cycle: item.cycle || 0,
+      world_id: worldId,
+      player_id: item.player_id || fake.player_id,
+      controller_id: fake.controller_id,
+      session_id: fake.session_id,
+      payload: item.payload || {},
+    });
+    if (!ok) remaining.push(item);
+  }
+  return remaining;
 }

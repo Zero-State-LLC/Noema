@@ -59,9 +59,10 @@ NOEMA_ENV=production npm run deploy   # required for noema.guru
 BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
 ```
 
-Apply settlement table in Supabase (SQL editor or CLI):
+Apply settlement tables in Supabase (SQL editor or CLI):
 
-`supabase/migrations/20260812193000_noema_settled_events.sql`
+`supabase/migrations/20260812193000_noema_settled_events.sql`  
+`supabase/migrations/20260813210000_noema_world_heads.sql`
 
 ## Commands
 
@@ -107,9 +108,10 @@ cp .env.example .env   # fill values
 
 Worker-only secrets — never browser, never agents, never git.
 
-Settlement posts to Supabase REST table `noema_settled_events` when URL + service role are set (soft-fail if missing). Apply:
+Settlement posts events to `noema_settled_events` and upserts `noema_world_heads` (RFC-0016) when URL + service role are set (soft-fail if missing). Apply:
 
-`supabase/migrations/20260812193000_noema_settled_events.sql`
+`supabase/migrations/20260812193000_noema_settled_events.sql`  
+`supabase/migrations/20260813210000_noema_world_heads.sql`
 
 After LOOK, response field `settled: true` means a row was accepted.
 
