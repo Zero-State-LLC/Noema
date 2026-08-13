@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { adminLoginHtml, adminCallbackHtml } from "../src/admin";
 import {
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
@@ -137,7 +138,7 @@ describe("requestAdminMagicLink", () => {
       { fetch: fetchImpl, throttle },
     );
     expect(sixth.status).toBe(429);
-    const body = await sixth.json();
+    const body = (await sixth.json()) as { error: { code: string; retryable: boolean } };
     expect(body.error.code).toBe("RATE_LIMITED");
     expect(body.error.retryable).toBe(true);
   });
@@ -179,7 +180,10 @@ describe("consumeAdminMagicLink", () => {
     );
     expect(res).toBeInstanceOf(Response);
     expect((res as Response).status).toBe(401);
-    const body = await (res as Response).json();
+    const body = (await (res as Response).json()) as {
+      access_token?: string;
+      refresh_token?: string;
+    };
     expect(body.access_token).toBeUndefined();
     expect(body.refresh_token).toBeUndefined();
   });
@@ -267,5 +271,23 @@ describe("admin isolation", () => {
     expect((admin as { authentication_context: string }).authentication_context).toBe(
       "operator_token",
     );
+  });
+});
+
+describe("admin login HTML", () => {
+  it("is email-only", () => {
+    const html = adminLoginHtml();
+    expect(html).toContain('id="email"');
+    expect(html).toContain("/v1/admin/login/request");
+    expect(html).not.toContain("admin_token");
+    expect(html).not.toContain("Operator token");
+    expect(html.toLowerCase()).toContain("not a player");
+  });
+
+  it("callback posts token_hash to consume", () => {
+    const html = adminCallbackHtml();
+    expect(html).toContain("/v1/admin/login/consume");
+    expect(html).toContain("token_hash");
+    expect(html).toContain("noema.admin.token");
   });
 });

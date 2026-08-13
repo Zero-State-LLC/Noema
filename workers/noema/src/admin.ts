@@ -107,14 +107,14 @@ export function adminLoginHtml(): string {
   <section class="card pad login-card" aria-labelledby="login-title">
     <p class="kicker">Operator access</p>
     <h1 id="login-title">Open the control plane.</h1>
-    <p class="muted">ADMIN is a separate privileged surface. PLAY, WATCH, and STUDY use Player / Spectator / Researcher identities. Admin privilege is never inherited by a player session.</p>
+    <p class="muted">ADMIN is not a player login. PLAY, WATCH, and STUDY use Player / Spectator / Researcher identities. Admin privilege is never inherited by a player session.</p>
     <form id="login-form" style="margin-top:1.2rem">
-      <label for="token">Operator token</label>
-      <input id="token" type="password" autocomplete="current-password" required/>
-      <button class="btn primary" type="submit" style="width:100%;margin-top:.85rem">Open ADMIN</button>
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required/>
+      <button class="btn primary" type="submit" style="width:100%;margin-top:.85rem">Send login link</button>
     </form>
     <p class="notice" id="notice" role="status"></p>
-    <p class="empty" style="margin-top:1rem">Token is checked server-side (<code>ADMIN_OPERATOR_TOKEN</code>). Never put it in client config or player sessions.</p>
+    <p class="empty" style="margin-top:1rem">A link is mailed only if the mailbox is authorized. Never put admin access in player sessions.</p>
   </section>
 </main>
 <script>
@@ -124,25 +124,60 @@ export function adminLoginHtml(): string {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     notice.className = "notice";
-    notice.textContent = "Checking operator access…";
+    notice.textContent = "Requesting login link…";
     try {
-      const res = await fetch("/v1/admin/session", {
+      const res = await fetch("/v1/admin/login/request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ admin_token: document.getElementById("token").value }),
+        body: JSON.stringify({ email: document.getElementById("email").value }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
-      sessionStorage.setItem("noema.admin.token", data.access_token);
-      sessionStorage.setItem("noema.admin.session", data.session_id);
-      const next = sessionStorage.getItem("noema.admin.next") || "";
-      sessionStorage.removeItem("noema.admin.next");
-      location.href = "/admin" + (next.startsWith("#") ? next : "");
+      notice.className = "notice ok";
+      notice.textContent = data.message;
     } catch (err) {
       notice.className = "notice bad";
       notice.textContent = err.message || "ADMIN unavailable";
     }
   });
+})();
+</script>`,
+  );
+}
+
+export function adminCallbackHtml(): string {
+  return adminChrome(
+    "Admin callback",
+    `<main class="login">
+  <section class="card pad login-card" aria-labelledby="callback-title">
+    <p class="kicker">Operator access</p>
+    <h1 id="callback-title">Opening ADMIN…</h1>
+    <p class="muted">Confirming the login link. ADMIN is not a player login.</p>
+    <p class="notice" id="notice" role="status">Checking the link…</p>
+  </section>
+</main>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const token_hash = params.get("token_hash") || "";
+  const type = params.get("type") || "";
+  const code = params.get("code") || "";
+  (async () => {
+    try {
+      const res = await fetch("/v1/admin/login/consume", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token_hash, type, code }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.access_token) throw new Error("not authorized");
+      sessionStorage.setItem("noema.admin.token", data.access_token);
+      sessionStorage.setItem("noema.admin.session", data.session_id);
+      location.href = "/admin";
+    } catch (err) {
+      location.href = "/admin/login";
+    }
+  })();
 })();
 </script>`,
   );
