@@ -1,8 +1,14 @@
 /**
  * Hosted Player Action Map — Specs-aligned costs, normalization, affordances.
  * Authority: Noema-Specs PLAYER-ACTION-MAP + action-contracts.v01
- * No new verbs. COMMIT is wire/internal; humans use intent language.
+ * COMMIT is wire/internal; humans use intent language.
+ * GC2-S0 BUILD is accepted but not listed in Chamber help (S0 out-of-list).
  */
+
+import {
+  parseConstructibleClass,
+  type ConstructibleClass,
+} from "./construction";
 
 export type Budgets = {
   attention: number;
@@ -24,6 +30,10 @@ export type EntityRuntime = {
   /** RFC-0015 explicit archive claim. Never inferred. */
   archive_subject_entity_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
+  /** GC2-S0 constructing Player. Genesis assets have none. */
+  owner_id?: string;
+  /** GC2-S0 class. Explicit wins over id/label matching. */
+  infra_type?: ConstructibleClass;
 };
 
 export type PlayerRuntime = {
@@ -198,6 +208,12 @@ export type CanonicalAction =
         reason?: string;
         initial_members?: OrgMember[];
       };
+    }
+  | {
+      verb: "BUILD";
+      arguments:
+        | { operation: "CONSTRUCT"; class: ConstructibleClass; room_id?: string }
+        | { operation: "DISMANTLE"; entity_id: string };
     };
 
 export type Affordance = {
@@ -325,6 +341,8 @@ export function enrichEntity(e: {
   stock_amount?: number;
   archive_subject_entity_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
+  owner_id?: string;
+  infra_type?: ConstructibleClass;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -344,6 +362,8 @@ export function enrichEntity(e: {
     stock_amount: node.is_node ? node.amount : undefined,
     archive_subject_entity_id: e.archive_subject_entity_id,
     archive_claim: e.archive_claim,
+    owner_id: e.owner_id,
+    infra_type: e.infra_type,
   };
 }
 
@@ -365,7 +385,10 @@ export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): Re
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Choose something visible." };
 
-  const exactId = entities.filter((e) => e.entity_id.toLowerCase() === t);
+  const rawLower = String(raw || "").toLowerCase().trim();
+  const exactId = entities.filter(
+    (e) => e.entity_id.toLowerCase() === rawLower || e.entity_id.toLowerCase() === t,
+  );
   if (exactId.length === 1) return { ok: true, entity: exactId[0] };
 
   const exactLabel = entities.filter((e) => normalizeKey(e.label) === t || normalizeKey(titleCaseLabel(e.label)) === t);
@@ -765,6 +788,42 @@ export function parseHumanCommand(
     };
   }
 
+  // GC2-S0: construct <class> / build <class> / dismantle <entity>
+  // Not listed in Chamber help.
+  if (v === "construct" || v === "build") {
+    const classRaw = parts.join(" ");
+    if (!classRaw) {
+      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node." };
+    }
+    const classId = parseConstructibleClass(classRaw);
+    if (!classId) {
+      return { ok: false, error: "That class cannot be constructed.", code: "CLASS_FORBIDDEN" };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "CONSTRUCT", class: classId } },
+      display: `You construct a ${classId.replace(/_/g, " ")}.`,
+    };
+  }
+  if (v === "dismantle") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "");
+    if (!raw) return { ok: false, error: "Dismantle what? Name visible infrastructure." };
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "DISMANTLE", entity_id: r.entity.entity_id } },
+        display: `You dismantle ${titleCaseLabel(r.entity.label)}.`,
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "DISMANTLE", entity_id: raw } },
+      display: `You try to dismantle ${raw}.`,
+    };
+  }
+
   // Known but not hosted yet (v0.2 strategic)
   if (["contest", "defend", "agreement", "terminate", "access"].includes(v)) {
     return {
@@ -942,6 +1001,37 @@ export function normalizeStructuredCommand(
       },
       display: "COMMIT.HARVEST",
     };
+  }
+  if (cmd === "BUILD") {
+    const operation = String(args.operation || "").toUpperCase();
+    if (operation === "CONSTRUCT") {
+      const classId = parseConstructibleClass(String(args.class || args.class_id || args.target || ""));
+      if (!classId) {
+        return { ok: false, error: "class required (relay|generator|storage_bay|production_node)", code: "CLASS_FORBIDDEN" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "BUILD",
+          arguments: {
+            operation: "CONSTRUCT",
+            class: classId,
+            room_id: args.room_id ? String(args.room_id) : undefined,
+          },
+        },
+        display: `BUILD.CONSTRUCT ${classId}`,
+      };
+    }
+    if (operation === "DISMANTLE") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "DISMANTLE", entity_id } },
+        display: `BUILD.DISMANTLE ${entity_id}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT or DISMANTLE", code: "INVALID_REQUEST" };
   }
   if (cmd === "ORG_CREATE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_CREATE" });
@@ -1235,6 +1325,11 @@ export function humanizeActionError(code?: string, message?: string): { primary:
   if (c === "INSPECT_FAILED" || c === "NOT_FOUND") return { primary: m.includes("see") ? m : "You do not see that here.", advanced: `${c}: ${m}` };
   if (c === "NOT_IN_WORLD") return { primary: "Enter the world first.", advanced: `${c}: ${m}` };
   if (c === "UNKNOWN_COMMAND") return { primary: "That action is not available here yet.", advanced: `${c}: ${m}` };
+  if (c === "SLOT_OCCUPIED") return { primary: "That class is already present here.", advanced: `${c}: ${m}` };
+  if (c === "NOT_OWNER") return { primary: "You do not own that.", advanced: `${c}: ${m}` };
+  if (c === "NOT_COLOCATED") return { primary: "You must be in that room.", advanced: `${c}: ${m}` };
+  if (c === "NOT_OBSERVABLE") return { primary: "That place cannot be used for construction.", advanced: `${c}: ${m}` };
+  if (c === "CLASS_FORBIDDEN") return { primary: "That class cannot be constructed.", advanced: `${c}: ${m}` };
   if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
   if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
   return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };
