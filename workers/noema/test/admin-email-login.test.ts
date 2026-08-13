@@ -4,11 +4,14 @@ import {
   LoginThrottle,
   clientIp,
   consumeAdminMagicLink,
+  mintAdminSession,
   normalizeEmail,
   parseAllowlist,
   requestAdminMagicLink,
+  resolveAdmin,
   type AdminFetch,
 } from "../src/admin-auth";
+import { resolvePrincipal } from "../src/auth";
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
@@ -209,5 +212,60 @@ describe("consumeAdminMagicLink", () => {
       { fetch: async () => new Response("down", { status: 500 }) },
     );
     expect((res as Response).status).toBe(502);
+  });
+});
+
+describe("admin isolation", () => {
+  it("resolveAdmin accepts email-minted token and labels amr", async () => {
+    const fetchImpl: AdminFetch = async () =>
+      new Response(JSON.stringify({ user: { email: "ops@example.com" } }), { status: 200 });
+    const minted = (await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: fetchImpl },
+    )) as { access_token: string; session_id: string };
+    const admin = await resolveAdmin(
+      new Request("https://noema.guru/v1/admin/overview", {
+        headers: { Authorization: `Bearer ${minted.access_token}` },
+      }),
+      env(),
+    );
+    expect(admin).not.toBeInstanceOf(Response);
+    expect((admin as { authentication_context: string }).authentication_context).toBe(
+      "email_magic_link",
+    );
+  });
+
+  it("GET /v1/me path rejects admin-access (resolvePrincipal 401)", async () => {
+    const fetchImpl: AdminFetch = async () =>
+      new Response(JSON.stringify({ user: { email: "ops@example.com" } }), { status: 200 });
+    const minted = (await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: fetchImpl },
+    )) as { access_token: string };
+    const me = await resolvePrincipal(
+      new Request("https://noema.guru/v1/me", {
+        headers: { Authorization: `Bearer ${minted.access_token}` },
+      }),
+      env(),
+    );
+    expect(me).toBeInstanceOf(Response);
+    expect((me as Response).status).toBe(401);
+  });
+
+  it("CLI mint still works and resolveAdmin reports operator_token", async () => {
+    const minted = await mintAdminSession(env({ ADMIN_OPERATOR_TOKEN: "op-secret-token" }), "op-secret-token");
+    expect(minted).not.toBeInstanceOf(Response);
+    const tok = (minted as { access_token: string }).access_token;
+    const admin = await resolveAdmin(
+      new Request("https://noema.guru/v1/admin/overview", {
+        headers: { Authorization: `Bearer ${tok}` },
+      }),
+      env(),
+    );
+    expect((admin as { authentication_context: string }).authentication_context).toBe(
+      "operator_token",
+    );
   });
 });

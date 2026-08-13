@@ -96,11 +96,12 @@ export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincip
     if (!scopes.includes("noema.world.admin")) {
       return err("NOT_AUTHORIZED", "missing noema.world.admin scope", 403);
     }
+    const amr = claims.amr === "email_magic_link" ? "email_magic_link" : "operator_token";
     return {
       role: "ADMIN",
       session_id: String(claims.session_id || "asess.unknown"),
       scopes,
-      authentication_context: "operator_token",
+      authentication_context: amr,
     };
   } catch (e) {
     if (e instanceof JwtError) return err("NOT_AUTHORIZED", e.message, 401);
