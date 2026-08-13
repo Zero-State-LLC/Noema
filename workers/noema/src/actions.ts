@@ -15,6 +15,11 @@ import {
   type ContestForm,
   type ContestTarget,
 } from "./contest";
+import {
+  parseOfficeProfile,
+  type OfficeProfile,
+  type OfficeRecord,
+} from "./offices";
 
 export type Budgets = {
   attention: number;
@@ -168,6 +173,9 @@ export type Organization = {
   creator_id: string;
   members: OrgMember[];
   created_cycle: number;
+  /** GC4-S1 named seats. Not membership. Not WorldState geography. */
+  offices?: Record<string, OfficeRecord>;
+  public_notice?: string;
 };
 
 export const COSTS = {
@@ -181,6 +189,11 @@ export const COSTS = {
   ORG_CREATE: { influence: 5, compute: 2 } as Partial<Budgets>,
   ORG_MEMBER_ADD: { influence: 1, compute: 2 } as Partial<Budgets>,
   ORG_MEMBER_REMOVE: { compute: 1 } as Partial<Budgets>,
+  ORG_OFFICE_CREATE: { influence: 1, compute: 2 } as Partial<Budgets>,
+  ORG_OFFICE_ASSIGN: { compute: 1 } as Partial<Budgets>,
+  ORG_OFFICE_VACATE: { compute: 1 } as Partial<Budgets>,
+  ORG_OFFICE_RETIRE: { compute: 1 } as Partial<Budgets>,
+  ORG_OFFICE_ACT: { compute: 1 } as Partial<Budgets>,
   ATTEST: { attention: 2 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
@@ -215,6 +228,11 @@ export type CanonicalAction =
           | "ORG_CREATE"
           | "ORG_MEMBER_ADD"
           | "ORG_MEMBER_REMOVE"
+          | "ORG_OFFICE_CREATE"
+          | "ORG_OFFICE_ASSIGN"
+          | "ORG_OFFICE_VACATE"
+          | "ORG_OFFICE_RETIRE"
+          | "ORG_OFFICE_ACT"
           | "CONTEST_DECLARE"
           | "CONTEST_DEFEND"
           | "ATTEST";
@@ -236,6 +254,11 @@ export type CanonicalAction =
         contest_id?: string;
         subject_entity_id?: string;
         archive_claim?: "DESTROYED" | "OPERATING";
+        office_id?: string;
+        display_name?: string;
+        authority_profile?: OfficeProfile;
+        replace?: boolean;
+        notice?: string;
       };
     }
   | {
@@ -870,6 +893,111 @@ export function parseHumanCommand(
     };
   }
 
+  // RFC-0023: office create/assign/vacate/retire — not listed in Chamber help.
+  if (v === "office") {
+    const sub = (parts[0] || "").toLowerCase();
+    const rest = parts.slice(1).join(" ");
+    if (sub === "create") {
+      const nameM = rest.match(/name=["']([^"']+)["']/i);
+      const profileM = rest.match(/\bprofile=(\S+)/i);
+      const org_id = rest.replace(/name=["'][^"']+["']/i, "").replace(/\bprofile=\S+/i, "").trim();
+      const display_name = nameM?.[1]?.trim() || "";
+      const profile = parseOfficeProfile(profileM?.[1]);
+      if (!org_id || !display_name || !profile) {
+        return {
+          ok: false,
+          error: 'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE',
+        };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_CREATE", org_id, display_name, authority_profile: profile },
+        },
+        display: `You create office ${display_name}.`,
+      };
+    }
+    if (sub === "assign") {
+      const replace = /\breplace\b/i.test(rest);
+      const cleaned = rest.replace(/\breplace\b/i, "").trim();
+      const bits = cleaned.split(/\s+/);
+      const office_id = bits[0] || "";
+      let agent_id = bits.slice(1).join(" ").trim();
+      if (!office_id || !agent_id) {
+        return { ok: false, error: "Office syntax: office assign <office_id> <player> [replace]" };
+      }
+      if (ctx.players && ctx.selfId) {
+        const r = resolvePlayerTarget(agent_id, ctx.players, ctx.selfId);
+        if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+        agent_id = r.player_id;
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_ASSIGN", office_id, agent_id, replace },
+        },
+        display: `You assign ${office_id}.`,
+      };
+    }
+    if (sub === "resign" || sub === "vacate") {
+      const office_id = rest.trim();
+      if (!office_id) return { ok: false, error: "Office syntax: office resign <office_id>" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_VACATE", office_id },
+        },
+        display: `You vacate ${office_id}.`,
+      };
+    }
+    if (sub === "retire") {
+      const office_id = rest.trim();
+      if (!office_id) return { ok: false, error: "Office syntax: office retire <office_id>" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_RETIRE", office_id },
+        },
+        display: `You retire ${office_id}.`,
+      };
+    }
+    return {
+      ok: false,
+      error: 'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE',
+    };
+  }
+  if (v === "resign") {
+    const office_id = parts.join(" ").trim();
+    if (!office_id) return { ok: false, error: "Resign syntax: resign <office_id>" };
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "ORG_OFFICE_VACATE", office_id },
+      },
+      display: `You resign ${office_id}.`,
+    };
+  }
+  if (v === "notice") {
+    const rest = parts.join(" ");
+    const quoted = rest.match(/^(\S+)\s+["'](.+)["']\s*$/);
+    if (!quoted) {
+      return { ok: false, error: 'Notice syntax: notice <org> "text"' };
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "ORG_OFFICE_ACT", org_id: quoted[1], notice: quoted[2] },
+      },
+      display: `You post a notice to ${quoted[1]}.`,
+    };
+  }
+
   // RFC-0020: attest <artifact> subject=<id> claim=DESTROYED|OPERATING
   // Not listed in Chamber help. Do not infer subject/claim from labels.
   if (v === "attest") {
@@ -1213,6 +1341,82 @@ export function normalizeStructuredCommand(
         display: `COMMIT.ATTEST ${entity_id}`,
       };
     }
+    if (operation === "ORG_OFFICE_CREATE") {
+      const org_id = String(args.org_id || "").trim();
+      const display_name = String(args.display_name || args.name || "").trim();
+      const profile = parseOfficeProfile(String(args.authority_profile || args.profile || ""));
+      if (!org_id || !display_name || !profile) {
+        return { ok: false, error: "org_id, display_name, and profile required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_CREATE", org_id, display_name, authority_profile: profile },
+        },
+        display: `COMMIT.ORG_OFFICE_CREATE ${display_name}`,
+      };
+    }
+    if (operation === "ORG_OFFICE_ASSIGN") {
+      const office_id = String(args.office_id || "").trim();
+      const agent_id = String(args.agent_id || args.player_id || "").trim();
+      if (!office_id || !agent_id) {
+        return { ok: false, error: "office_id and agent_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_OFFICE_ASSIGN",
+            office_id,
+            agent_id,
+            replace: Boolean(args.replace),
+          },
+        },
+        display: `COMMIT.ORG_OFFICE_ASSIGN ${office_id}`,
+      };
+    }
+    if (operation === "ORG_OFFICE_VACATE") {
+      const office_id = String(args.office_id || "").trim();
+      if (!office_id) return { ok: false, error: "office_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_VACATE", office_id },
+        },
+        display: `COMMIT.ORG_OFFICE_VACATE ${office_id}`,
+      };
+    }
+    if (operation === "ORG_OFFICE_RETIRE") {
+      const office_id = String(args.office_id || "").trim();
+      if (!office_id) return { ok: false, error: "office_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_RETIRE", office_id },
+        },
+        display: `COMMIT.ORG_OFFICE_RETIRE ${office_id}`,
+      };
+    }
+    if (operation === "ORG_OFFICE_ACT") {
+      const org_id = String(args.org_id || "").trim();
+      const office_id = String(args.office_id || "").trim();
+      const notice = args.notice != null ? String(args.notice) : undefined;
+      if (!org_id && !office_id) {
+        return { ok: false, error: "org_id or office_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_OFFICE_ACT", org_id: org_id || undefined, office_id: office_id || undefined, notice },
+        },
+        display: "COMMIT.ORG_OFFICE_ACT",
+      };
+    }
     if (operation === "ORG_MEMBER_REMOVE") {
       const org_id = String(args.org_id || "").trim();
       const agent_id = String(args.agent_id || args.player_id || "").trim();
@@ -1306,6 +1510,21 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ORG_MEMBER_REMOVE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_MEMBER_REMOVE" });
+  }
+  if (cmd === "ORG_OFFICE_CREATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_CREATE" });
+  }
+  if (cmd === "ORG_OFFICE_ASSIGN") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ASSIGN" });
+  }
+  if (cmd === "ORG_OFFICE_VACATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_VACATE" });
+  }
+  if (cmd === "ORG_OFFICE_RETIRE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_RETIRE" });
+  }
+  if (cmd === "ORG_OFFICE_ACT") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ACT" });
   }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }
@@ -1500,6 +1719,65 @@ export function deriveAffordances(input: {
           reason: invOk ? undefined : "You need influence 1 and compute 2 to invite.",
           kind: "org",
         });
+      }
+      const createOk = canPay(budgets, COSTS.ORG_OFFICE_CREATE);
+      out.push({
+        action: "ORG_OFFICE_CREATE",
+        verb: "COMMIT",
+        operation: "ORG_OFFICE_CREATE",
+        label: `Create notice office in ${org.name}`,
+        cmd: `office create ${org.org_id} name="Notice" profile=PUBLISH_NOTICE`,
+        target_id: org.org_id,
+        requires: COSTS.ORG_OFFICE_CREATE,
+        available: createOk,
+        kind: "org",
+      });
+    }
+    for (const office of Object.values(org.offices || {})) {
+      if (office.status === "RETIRED") continue;
+      if (officer && office.status === "VACANT") {
+        for (const p of otherPlayers) {
+          if (p.player_id === selfId || !isOrgMember(org, p.player_id)) continue;
+          const handle = p.handle || p.player_id.replace(/^player\./, "");
+          out.push({
+            action: "ORG_OFFICE_ASSIGN",
+            verb: "COMMIT",
+            operation: "ORG_OFFICE_ASSIGN",
+            label: `Assign ${office.display_name} to ${handle}`,
+            cmd: `office assign ${office.office_id} ${handle}`,
+            target_id: office.office_id,
+            target_label: handle,
+            requires: COSTS.ORG_OFFICE_ASSIGN,
+            available: canPay(budgets, COSTS.ORG_OFFICE_ASSIGN),
+            kind: "org",
+          });
+        }
+      }
+      if (office.status === "OCCUPIED" && office.holder_player_id === selfId) {
+        out.push({
+          action: "ORG_OFFICE_VACATE",
+          verb: "COMMIT",
+          operation: "ORG_OFFICE_VACATE",
+          label: `Resign ${office.display_name}`,
+          cmd: `resign ${office.office_id}`,
+          target_id: office.office_id,
+          requires: COSTS.ORG_OFFICE_VACATE,
+          available: canPay(budgets, COSTS.ORG_OFFICE_VACATE),
+          kind: "org",
+        });
+        if (office.authority_profile === "PUBLISH_NOTICE") {
+          out.push({
+            action: "ORG_OFFICE_ACT",
+            verb: "COMMIT",
+            operation: "ORG_OFFICE_ACT",
+            label: `Post notice for ${org.name}`,
+            cmd: `notice ${org.org_id} "posted"`,
+            target_id: org.org_id,
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: canPay(budgets, COSTS.ORG_OFFICE_ACT),
+            kind: "org",
+          });
+        }
       }
     }
   }

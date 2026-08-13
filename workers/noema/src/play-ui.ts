@@ -69,6 +69,13 @@ export type OrgItem = {
   charter?: string;
   status: string;
   my_role: string | null;
+  offices?: Array<{
+    office_id: string;
+    display_name: string;
+    status: string;
+    holder_handle?: string;
+  }>;
+  public_notice?: string;
 };
 
 export type Opportunity = {
@@ -705,11 +712,20 @@ export function renderBondsHtml(opts: {
     ? orgs
         .map((o) => {
           const role = o.my_role || "not a member";
+          const seats = (o.offices || [])
+            .map((off) => {
+              const who = off.status === "VACANT" ? "vacant" : off.holder_handle || "occupied";
+              return escHtml(off.display_name) + " — " + escHtml(who);
+            })
+            .join("; ");
+          const notice = o.public_notice ? ' · notice: "' + escHtml(o.public_notice) + '"' : "";
           return (
             "<li>" +
             escHtml(o.name) +
             ' <span class="muted">' +
             escHtml(role) +
+            (seats ? " · " + seats : "") +
+            notice +
             "</span></li>"
           );
         })

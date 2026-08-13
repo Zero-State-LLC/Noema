@@ -58,6 +58,16 @@ import {
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
 import { applyInspectEvidence, discoveryLines } from "./discovery";
 import {
+  HOSTED_ACT_PROFILES,
+  allocateOfficeId,
+  findOffice,
+  officeLines,
+  parseOfficeProfile,
+  publicOffices,
+  vacateHolderOffices,
+  type OfficeRecord,
+} from "./offices";
+import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
   UNREACHABLE_MESSAGE,
@@ -314,6 +324,11 @@ export function buildObservation(
         members: o.members.map((m) => ({ agent_id: m.agent_id, role: m.role })),
         my_role: o.members.find((m) => m.agent_id === principal.player_id)?.role || null,
         created_cycle: o.created_cycle,
+        offices: publicOffices(
+          o.offices,
+          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+        ),
+        public_notice: o.public_notice,
       }))
       // Prefer memberships first, then newest — avoids stale org[0] selection in clients
       .sort((a, b) => {
@@ -380,6 +395,14 @@ export function buildObservation(
       principal.player_id,
     ),
     discovery_lines: discoveryLines(pl.discovery),
+    office_lines: orgs.flatMap((o) =>
+      officeLines(
+        publicOffices(
+          o.offices,
+          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+        ),
+      ).map((line) => `${o.name}: ${line}`),
+    ),
     contests: Object.values(w.contests || {})
       .filter((c) => c.status === "OPEN")
       .map((c) => publicContestProjection(c)),
@@ -572,6 +595,11 @@ export async function applyWorldCommand(
       "ORG_CREATE",
       "ORG_MEMBER_ADD",
       "ORG_MEMBER_REMOVE",
+      "ORG_OFFICE_CREATE",
+      "ORG_OFFICE_ASSIGN",
+      "ORG_OFFICE_VACATE",
+      "ORG_OFFICE_RETIRE",
+      "ORG_OFFICE_ACT",
       "ENTER_WORLD",
       "LEAVE_WORLD",
       "JOIN",
@@ -1192,6 +1220,25 @@ export async function applyWorldCommand(
     if (action.arguments.operation === "ATTEST") {
       return applyAttest(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
+    if (
+      action.arguments.operation === "ORG_OFFICE_CREATE" ||
+      action.arguments.operation === "ORG_OFFICE_ASSIGN" ||
+      action.arguments.operation === "ORG_OFFICE_VACATE" ||
+      action.arguments.operation === "ORG_OFFICE_RETIRE" ||
+      action.arguments.operation === "ORG_OFFICE_ACT"
+    ) {
+      return applyOfficeCommand(
+        w,
+        principal,
+        request_id,
+        idem,
+        action.arguments,
+        pl,
+        events,
+        pushEvent,
+        settleEv,
+      );
+    }
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
       if (!canPay(pl.budgets, COSTS.ORG_CREATE)) {
@@ -1240,6 +1287,7 @@ export async function applyWorldCommand(
         creator_id: principal.player_id,
         members,
         created_cycle: w.cycle,
+        offices: {},
       };
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
@@ -1356,6 +1404,7 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, COSTS.ORG_MEMBER_REMOVE);
       org.members = org.members.filter((m) => m.agent_id !== agent_id);
+      const vacated = vacateHolderOffices(org, agent_id, w.cycle);
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: COSTS.ORG_MEMBER_REMOVE,
@@ -1368,6 +1417,19 @@ export async function applyWorldCommand(
         by: principal.player_id,
       });
       await settleEv(ev);
+      for (const office of vacated) {
+        const vac = pushEvent("ENTITY_UPDATE", {
+          entity_id: office.office_id,
+          set: {
+            office_status: "VACANT",
+            holder_player_id: null,
+            institution_id: org.org_id,
+            office_kind: "INSTITUTION_OFFICE",
+          },
+          unset: ["holder_player_id"],
+        });
+        await settleEv(vac);
+      }
       const result = success(
         w,
         principal,
@@ -1632,6 +1694,9 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.trades = w.trades || {};
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
+  for (const org of Object.values(w.organizations)) {
+    if (!org.offices) org.offices = {};
+  }
   if (!w.culture) w.culture = emptyCulture();
   for (const room of Object.values(w.rooms)) {
     room.entities = (room.entities || []).map((e) => enrichEntity(e));
@@ -1886,6 +1951,300 @@ async function applyContestDefend(
   const result = success(w, principal, request_id, events, `Defense reserved on ${contest_id}.`, false);
   w.seen_idempotency[idem] = result;
   return result;
+}
+
+async function applyOfficeCommand(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const op = args.operation;
+  if (op === "ORG_OFFICE_CREATE") {
+    const org_id = String(args.org_id || "").trim();
+    const display_name = String(args.display_name || "").trim();
+    const profile = args.authority_profile || parseOfficeProfile(String(args.authority_profile || ""));
+    const org = w.organizations[org_id];
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    if (!isOrgOfficer(org, principal.player_id)) {
+      return fail(request_id, "FORBIDDEN", "Only a founder or officer may create an office.");
+    }
+    if (!display_name || !profile) {
+      return fail(request_id, "FORBIDDEN", "Office name and a valid authority profile are required.");
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_CREATE)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need influence 1 and compute 2.");
+    }
+    org.offices = org.offices || {};
+    let office_id = allocateOfficeId(org.org_id, display_name);
+    while (org.offices[office_id]) office_id = allocateOfficeId(org.org_id, display_name);
+    const office: OfficeRecord = {
+      office_id,
+      institution_id: org.org_id,
+      display_name,
+      status: "VACANT",
+      authority_profile: profile,
+      created_cycle: w.cycle,
+      history: [],
+    };
+    org.offices[office_id] = office;
+    debit(pl.budgets, COSTS.ORG_OFFICE_CREATE);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_CREATE,
+      reason: "ORG_OFFICE_CREATE",
+    });
+    const ev = pushEvent("ENTITY_CREATE", {
+      entity_id: office_id,
+      entity_type: "DOCUMENT",
+      location: null,
+      owner_id: org.org_id,
+      properties: {
+        office_kind: "INSTITUTION_OFFICE",
+        display_name,
+        authority_profile: profile,
+        office_status: "VACANT",
+        institution_id: org.org_id,
+      },
+      inventory: [],
+      state: {},
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Office ${display_name} created (${office_id}).`,
+      false,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  if (op === "ORG_OFFICE_ASSIGN") {
+    const office_id = String(args.office_id || "").trim();
+    const agent_id = String(args.agent_id || "").trim();
+    const found = findOffice(w.organizations, office_id);
+    if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+    const org = w.organizations[found.org_id];
+    const office = found.office;
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    if (!isOrgOfficer(org, principal.player_id)) {
+      return fail(request_id, "FORBIDDEN", "Only a founder or officer may assign an office.");
+    }
+    if (office.status === "RETIRED") {
+      return fail(request_id, "FORBIDDEN", "A retired office cannot be assigned.");
+    }
+    if (office.status === "OCCUPIED" && !args.replace) {
+      return fail(request_id, "FORBIDDEN", "That office is occupied. Use replace to reassign.");
+    }
+    const target = w.players[agent_id];
+    if (!target) return fail(request_id, "NOT_FOUND", "That Player is not in this world.");
+    if (!isOrgMember(org, agent_id)) {
+      return fail(request_id, "FORBIDDEN", "Only a member of this institution may hold the office.");
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ASSIGN)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    if (office.status === "OCCUPIED" && office.holder_player_id) {
+      office.history.push({
+        cycle: w.cycle,
+        holder_player_id: office.holder_player_id,
+        kind: "VACATED",
+      });
+    }
+    office.holder_player_id = agent_id;
+    office.status = "OCCUPIED";
+    office.history.push({ cycle: w.cycle, holder_player_id: agent_id, kind: "ASSIGNED" });
+    debit(pl.budgets, COSTS.ORG_OFFICE_ASSIGN);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_ASSIGN,
+      reason: "ORG_OFFICE_ASSIGN",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: office.office_id,
+      set: {
+        office_status: "OCCUPIED",
+        holder_player_id: agent_id,
+        institution_id: org.org_id,
+        office_kind: "INSTITUTION_OFFICE",
+      },
+      unset: [],
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Assigned ${office.display_name} to ${target.handle || agent_id}.`,
+      false,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  if (op === "ORG_OFFICE_VACATE") {
+    const office_id = String(args.office_id || "").trim();
+    const found = findOffice(w.organizations, office_id);
+    if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+    const org = w.organizations[found.org_id];
+    const office = found.office;
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    if (office.status !== "OCCUPIED" || !office.holder_player_id) {
+      return fail(request_id, "FORBIDDEN", "That office is not occupied.");
+    }
+    const self = office.holder_player_id === principal.player_id;
+    if (!self && !isOrgOfficer(org, principal.player_id)) {
+      return fail(request_id, "FORBIDDEN", "Only the holder or a founder/officer may vacate.");
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_VACATE)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    const prior = office.holder_player_id;
+    office.history.push({ cycle: w.cycle, holder_player_id: prior, kind: "VACATED" });
+    office.holder_player_id = undefined;
+    office.status = "VACANT";
+    debit(pl.budgets, COSTS.ORG_OFFICE_VACATE);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_VACATE,
+      reason: "ORG_OFFICE_VACATE",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: office.office_id,
+      set: {
+        office_status: "VACANT",
+        institution_id: org.org_id,
+        office_kind: "INSTITUTION_OFFICE",
+      },
+      unset: ["holder_player_id"],
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      self ? `You resign ${office.display_name}.` : `Vacated ${office.display_name}.`,
+      false,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  if (op === "ORG_OFFICE_RETIRE") {
+    const office_id = String(args.office_id || "").trim();
+    const found = findOffice(w.organizations, office_id);
+    if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+    const org = w.organizations[found.org_id];
+    const office = found.office;
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    if (!isOrgOfficer(org, principal.player_id)) {
+      return fail(request_id, "FORBIDDEN", "Only a founder or officer may retire an office.");
+    }
+    if (office.status === "RETIRED") {
+      return fail(request_id, "FORBIDDEN", "That office is already retired.");
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_RETIRE)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    if (office.holder_player_id) {
+      office.history.push({
+        cycle: w.cycle,
+        holder_player_id: office.holder_player_id,
+        kind: "VACATED",
+      });
+    }
+    office.holder_player_id = undefined;
+    office.status = "RETIRED";
+    office.retired_cycle = w.cycle;
+    office.history.push({ cycle: w.cycle, holder_player_id: null, kind: "RETIRED" });
+    debit(pl.budgets, COSTS.ORG_OFFICE_RETIRE);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_RETIRE,
+      reason: "ORG_OFFICE_RETIRE",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: office.office_id,
+      set: {
+        office_status: "RETIRED",
+        retired_cycle: w.cycle,
+        institution_id: org.org_id,
+        office_kind: "INSTITUTION_OFFICE",
+      },
+      unset: ["holder_player_id"],
+    });
+    await settleEv(ev);
+    const result = success(w, principal, request_id, events, `Retired ${office.display_name}.`, false);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  if (op === "ORG_OFFICE_ACT") {
+    const org_id = String(args.org_id || "").trim();
+    const office_id = String(args.office_id || "").trim();
+    const notice = String(args.notice || "").trim();
+    let org = org_id ? w.organizations[org_id] : undefined;
+    let office: OfficeRecord | undefined;
+    if (office_id) {
+      const found = findOffice(w.organizations, office_id);
+      if (found) {
+        org = w.organizations[found.org_id];
+        office = found.office;
+      }
+    } else if (org) {
+      office = Object.values(org.offices || {}).find(
+        (o) =>
+          o.status === "OCCUPIED" &&
+          o.holder_player_id === principal.player_id &&
+          o.authority_profile === "PUBLISH_NOTICE",
+      );
+    }
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    if (!office) return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+    if (office.status !== "OCCUPIED" || office.holder_player_id !== principal.player_id) {
+      return fail(request_id, "FORBIDDEN", "Only the current holder may act.");
+    }
+    if (!(HOSTED_ACT_PROFILES as readonly string[]).includes(office.authority_profile)) {
+      return fail(request_id, "FORBIDDEN", "That office profile cannot act in this stage.");
+    }
+    if (!notice) return fail(request_id, "INVALID_REQUEST", "Notice text required.");
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    org.public_notice = notice.slice(0, 280);
+    debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_ACT,
+      reason: "ORG_OFFICE_ACT",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: office.office_id,
+      set: {
+        public_notice: org.public_notice,
+        office_status: office.status,
+        institution_id: org.org_id,
+        office_kind: "INSTITUTION_OFFICE",
+      },
+      unset: [],
+    });
+    await settleEv(ev);
+    const result = success(w, principal, request_id, events, `Notice posted for ${org.name}.`, false);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  return fail(request_id, "UNKNOWN_COMMAND", "That office action is not available.");
 }
 
 async function applyAttest(
