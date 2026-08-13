@@ -139,7 +139,8 @@ describe("play-ui helpers", () => {
     expect(HOSTED_ACTIONS).toContain("INSPECT");
     expect(HOSTED_ACTIONS).toContain("REPAIR");
     expect(HOSTED_ACTIONS).toContain("TRADE");
-    expect(BACKEND_GAPS).toContain("ORG_CREATE");
+    expect(HOSTED_ACTIONS).toContain("ORG_CREATE");
+    expect(BACKEND_GAPS).toContain("CONTEST_DECLARE");
   });
 });
 

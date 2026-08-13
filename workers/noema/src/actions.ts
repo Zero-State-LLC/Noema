@@ -59,7 +59,7 @@ export const DEFAULT_BUDGETS: Budgets = {
   storage: 16,
 };
 
-/** Hosted Tier 1 surface (Specs v0.1 required minus ORG — Tier 2). */
+/** Hosted v0.1 Chamber surface (orientation + interaction + orgs). */
 export const HOSTED_TIER1 = [
   "LOOK",
   "MOVE",
@@ -69,13 +69,13 @@ export const HOSTED_TIER1 = [
   "TRADE",
   "HARVEST",
   "REPAIR",
-] as const;
-
-export const BACKEND_GAPS_TIER2 = [
   "ORG_CREATE",
   "ORG_MEMBER_ADD",
   "ORG_MEMBER_REMOVE",
 ] as const;
+
+/** Remaining Specs v0.2 strategic gap. */
+export const BACKEND_GAPS_TIER2 = [] as const;
 
 export const BACKEND_GAPS_TIER3 = [
   "CONTEST_DECLARE",
@@ -85,6 +85,20 @@ export const BACKEND_GAPS_TIER3 = [
   "ACCESS_POLICY",
 ] as const;
 
+export type OrgRole = "founder" | "officer" | "member";
+
+export type OrgMember = { agent_id: string; role: OrgRole };
+
+export type Organization = {
+  org_id: string;
+  name: string;
+  charter: string;
+  status: "ACTIVE";
+  creator_id: string;
+  members: OrgMember[];
+  created_cycle: number;
+};
+
 export const COSTS = {
   LOOK: { attention: 1 } as Partial<Budgets>,
   INSPECT: { attention: 2 } as Partial<Budgets>,
@@ -93,6 +107,9 @@ export const COSTS = {
   TRADE: { compute: 1 } as Partial<Budgets>,
   HARVEST: { energy: 2, compute: 1 } as Partial<Budgets>,
   REPAIR: { energy: 3, compute: 2, storage: 1 } as Partial<Budgets>,
+  ORG_CREATE: { influence: 5, compute: 2 } as Partial<Budgets>,
+  ORG_MEMBER_ADD: { influence: 1, compute: 2 } as Partial<Budgets>,
+  ORG_MEMBER_REMOVE: { compute: 1 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -119,9 +136,16 @@ export type CanonicalAction =
   | {
       verb: "COMMIT";
       arguments: {
-        operation: "HARVEST" | "REPAIR";
-        entity_id: string;
+        operation: "HARVEST" | "REPAIR" | "ORG_CREATE" | "ORG_MEMBER_ADD" | "ORG_MEMBER_REMOVE";
+        entity_id?: string;
         amount?: number;
+        org_id?: string;
+        name?: string;
+        charter?: string;
+        agent_id?: string;
+        role?: OrgRole;
+        reason?: string;
+        initial_members?: OrgMember[];
       };
     };
 
@@ -136,8 +160,29 @@ export type Affordance = {
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
-  kind: "primary" | "secondary" | "move" | "utility" | "social" | "resource";
+  kind: "primary" | "secondary" | "move" | "utility" | "social" | "resource" | "org";
 };
+
+/** Stage-0 adapter: server allocates org_id (Specs SPEC GAP — human form does not invent free IDs). */
+export function allocateOrgId(name: string): string {
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 24) || "org";
+  const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  return `org.${slug}.${hex}`;
+}
+
+export function isOrgOfficer(org: Organization, playerId: string): boolean {
+  const m = org.members.find((x) => x.agent_id === playerId);
+  return Boolean(m && (m.role === "founder" || m.role === "officer"));
+}
+
+export function isOrgMember(org: Organization, playerId: string): boolean {
+  return org.members.some((x) => x.agent_id === playerId);
+}
 
 export function cloneBudgets(b?: Partial<Budgets> | null): Budgets {
   return {
@@ -519,11 +564,126 @@ export function parseHumanCommand(
     };
   }
 
-  // Known but not Tier-1 hosted yet
-  if (["form", "invite", "leave", "remove", "contest", "defend", "agreement", "terminate", "access"].includes(v)) {
+  // form <name> charter="..."
+  // form organization <name> charter="..."
+  if (v === "form") {
+    if (parts[0]?.toLowerCase() === "organization") parts.shift();
+    if (parts[0]?.toLowerCase() === "agreement") {
+      return {
+        ok: false,
+        error: "“form agreement” is a v0.2 strategic action — not available in this stage.",
+        code: "NOT_IMPLEMENTED",
+      };
+    }
+    const rest = parts.join(" ");
+    const cm = rest.match(/^(.+?)\s+charter=["'](.+)["']\s*$/i);
+    if (!cm) {
+      return {
+        ok: false,
+        error: 'Form syntax: form <name> charter="purpose of the organization"',
+      };
+    }
+    const name = cm[1].trim();
+    const charter = cm[2].trim();
+    if (!name || !charter) {
+      return { ok: false, error: "Organization name and charter are required." };
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "ORG_CREATE", name, charter },
+      },
+      display: `You form ${name}.`,
+    };
+  }
+
+  // invite <player> to <org> role=<role>
+  if (v === "invite") {
+    const rest = parts.join(" ");
+    const m = rest.match(/^(\S+)\s+to\s+(\S+)(?:\s+role=(\S+))?\s*$/i);
+    if (!m) {
+      return { ok: false, error: "Invite syntax: invite <player> to <org> role=member" };
+    }
+    let agent_id = m[1];
+    if (ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(m[1], ctx.players, ctx.selfId);
+      if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+      agent_id = r.player_id;
+    }
+    const roleRaw = (m[3] || "member").toLowerCase();
+    const role: OrgRole =
+      roleRaw === "founder" || roleRaw === "officer" ? (roleRaw as OrgRole) : "member";
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ORG_MEMBER_ADD",
+          org_id: m[2],
+          agent_id,
+          role,
+        },
+      },
+      display: `You invite ${m[1]} to ${m[2]}.`,
+    };
+  }
+
+  // leave <org>
+  if (v === "leave") {
+    const org_id = parts[0];
+    if (!org_id) return { ok: false, error: "Leave which organization? leave <org>" };
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ORG_MEMBER_REMOVE",
+          org_id,
+          agent_id: ctx.selfId || "",
+          reason: "SELF_LEAVE",
+        },
+      },
+      display: `You leave ${org_id}.`,
+    };
+  }
+
+  // remove <player> from <org> reason="..."
+  if (v === "remove") {
+    const rest = parts.join(" ");
+    const m = rest.match(/^(\S+)\s+from\s+(\S+)(?:\s+reason=["'](.+)["'])?\s*$/i);
+    if (!m) {
+      return {
+        ok: false,
+        error: 'Remove syntax: remove <player> from <org> reason="cause"',
+      };
+    }
+    let agent_id = m[1];
+    if (ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(m[1], ctx.players, ctx.selfId);
+      if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+      agent_id = r.player_id;
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ORG_MEMBER_REMOVE",
+          org_id: m[2],
+          agent_id,
+          reason: m[3] || "REMOVED",
+        },
+      },
+      display: `You remove ${m[1]} from ${m[2]}.`,
+    };
+  }
+
+  // Known but not hosted yet (v0.2 strategic)
+  if (["contest", "defend", "agreement", "terminate", "access"].includes(v)) {
     return {
       ok: false,
-      error: `“${v}” is known but not available in this hosted stage yet.`,
+      error: `“${v}” is a v0.2 strategic action — not available in this stage.`,
       code: "NOT_IMPLEMENTED",
     };
   }
@@ -609,7 +769,67 @@ export function normalizeStructuredCommand(
         display: `COMMIT.${operation}`,
       };
     }
-    // Also accept bare REPAIR/HARVEST as COMMIT
+    if (operation === "ORG_CREATE") {
+      const name = String(args.name || "").trim();
+      const charter = String(args.charter || "").trim();
+      if (!name || !charter) {
+        return { ok: false, error: "name and charter required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_CREATE",
+            name,
+            charter,
+            org_id: args.org_id ? String(args.org_id) : undefined,
+            initial_members: Array.isArray(args.initial_members)
+              ? (args.initial_members as OrgMember[])
+              : undefined,
+          },
+        },
+        display: "COMMIT.ORG_CREATE",
+      };
+    }
+    if (operation === "ORG_MEMBER_ADD") {
+      const org_id = String(args.org_id || "").trim();
+      const agent_id = String(args.agent_id || args.player_id || "").trim();
+      if (!org_id || !agent_id) {
+        return { ok: false, error: "org_id and agent_id required", code: "INVALID_REQUEST" };
+      }
+      const roleRaw = String(args.role || "member").toLowerCase();
+      const role: OrgRole =
+        roleRaw === "founder" || roleRaw === "officer" ? (roleRaw as OrgRole) : "member";
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_MEMBER_ADD", org_id, agent_id, role },
+        },
+        display: "COMMIT.ORG_MEMBER_ADD",
+      };
+    }
+    if (operation === "ORG_MEMBER_REMOVE") {
+      const org_id = String(args.org_id || "").trim();
+      const agent_id = String(args.agent_id || args.player_id || "").trim();
+      if (!org_id || !agent_id) {
+        return { ok: false, error: "org_id and agent_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_MEMBER_REMOVE",
+            org_id,
+            agent_id,
+            reason: String(args.reason || "REMOVED"),
+          },
+        },
+        display: "COMMIT.ORG_MEMBER_REMOVE",
+      };
+    }
   }
   if (cmd === "REPAIR") {
     const entity_id = String(args.entity_id || args.target || "").trim();
@@ -632,6 +852,15 @@ export function normalizeStructuredCommand(
       display: "COMMIT.HARVEST",
     };
   }
+  if (cmd === "ORG_CREATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_CREATE" });
+  }
+  if (cmd === "ORG_MEMBER_ADD") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_MEMBER_ADD" });
+  }
+  if (cmd === "ORG_MEMBER_REMOVE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_MEMBER_REMOVE" });
+  }
   return { ok: false, error: `unsupported command ${cmd}`, code: "UNKNOWN_COMMAND" };
 }
 
@@ -641,10 +870,11 @@ export function deriveAffordances(input: {
   budgets: Budgets;
   otherPlayers: Array<{ player_id: string; handle?: string }>;
   openTrades: OpenTrade[];
+  organizations?: Organization[];
   selfId: string;
 }): Affordance[] {
   const out: Affordance[] = [];
-  const { entities, exits, budgets, otherPlayers, openTrades, selfId } = input;
+  const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
 
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
@@ -775,6 +1005,59 @@ export function deriveAffordances(input: {
     }
   }
 
+  // Organization affordances (role-gated; never a permanent global panel)
+  const formOk = canPay(budgets, COSTS.ORG_CREATE);
+  out.push({
+    action: "ORG_CREATE",
+    verb: "COMMIT",
+    operation: "ORG_CREATE",
+    label: "Form organization",
+    cmd: 'form My Compact charter="local coordination"',
+    requires: COSTS.ORG_CREATE,
+    available: formOk,
+    reason: formOk ? undefined : "You need influence 5 and compute 2 to form an organization.",
+    kind: "org",
+  });
+  for (const org of organizations) {
+    if (org.status !== "ACTIVE") continue;
+    const mine = isOrgMember(org, selfId);
+    const officer = isOrgOfficer(org, selfId);
+    if (mine) {
+      out.push({
+        action: "ORG_LEAVE",
+        verb: "COMMIT",
+        operation: "ORG_MEMBER_REMOVE",
+        label: `Leave ${org.name}`,
+        cmd: `leave ${org.org_id}`,
+        target_id: org.org_id,
+        target_label: org.name,
+        requires: COSTS.ORG_MEMBER_REMOVE,
+        available: canPay(budgets, COSTS.ORG_MEMBER_REMOVE),
+        kind: "org",
+      });
+    }
+    if (officer) {
+      for (const p of otherPlayers) {
+        if (p.player_id === selfId || isOrgMember(org, p.player_id)) continue;
+        const handle = p.handle || p.player_id.replace(/^player\./, "");
+        const invOk = canPay(budgets, COSTS.ORG_MEMBER_ADD);
+        out.push({
+          action: "ORG_INVITE",
+          verb: "COMMIT",
+          operation: "ORG_MEMBER_ADD",
+          label: `Invite ${handle} to ${org.name}`,
+          cmd: `invite ${handle} to ${org.org_id} role=member`,
+          target_id: org.org_id,
+          target_label: handle,
+          requires: COSTS.ORG_MEMBER_ADD,
+          available: invOk,
+          reason: invOk ? undefined : "You need influence 1 and compute 2 to invite.",
+          kind: "org",
+        });
+      }
+    }
+  }
+
   out.push({
     action: "LOOK",
     verb: "LOOK",
@@ -813,7 +1096,19 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  repair <infrastructure> · harvest <node> [amount]");
     lines.push("  trade <player> offer=energy:3 want=storage:1");
     lines.push("  accept <trade> · reject <trade> · cancel <trade>");
-    lines.push("  help [trade|repair|harvest|message]");
+    lines.push('  form <name> charter="purpose"');
+    lines.push("  invite <player> to <org> role=member");
+    lines.push("  leave <org> · remove <player> from <org>");
+    lines.push("  help [trade|repair|harvest|message|org]");
+  } else if (t === "org" || t === "organization" || t === "organizations") {
+    lines.push("ORGANIZATIONS");
+    lines.push('  form <name> charter="purpose"');
+    lines.push("  invite <player> to <org_id> role=member|officer");
+    lines.push("  leave <org_id>");
+    lines.push('  remove <player> from <org_id> reason="cause"');
+    lines.push("  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1");
+    lines.push("  org_id is assigned by the world (org.<slug>.<id>) — do not invent free IDs.");
+    lines.push("  No self-join; officers invite. Founder/officer may remove.");
   } else if (t === "trade") {
     lines.push("TRADE");
     lines.push("  trade <player> offer=energy:3 want=storage:1");

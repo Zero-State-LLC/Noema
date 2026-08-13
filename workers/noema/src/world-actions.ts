@@ -5,6 +5,7 @@
 
 import {
   COSTS,
+  allocateOrgId,
   canPay,
   cloneBudgets,
   debit,
@@ -12,6 +13,8 @@ import {
   enrichEntity,
   helpText,
   isHarvestable,
+  isOrgMember,
+  isOrgOfficer,
   isRepairable,
   normalizeStructuredCommand,
   parseHumanCommand,
@@ -21,6 +24,8 @@ import {
   type EntityRuntime,
   type InboxMessage,
   type OpenTrade,
+  type Organization,
+  type OrgRole,
   type PlayerRuntime,
 } from "./actions";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
@@ -44,6 +49,7 @@ export type WorldRuntime = {
   players: Record<string, PlayerRuntime>;
   trades: Record<string, OpenTrade>;
   messages: InboxMessage[];
+  organizations: Record<string, Organization>;
   seen_idempotency: Record<string, CommandResult>;
   unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
 };
@@ -135,12 +141,14 @@ export function buildObservation(
       t.status === "OPEN" &&
       (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
   );
+  const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
   const affordances = deriveAffordances({
     entities,
     exits,
     budgets: pl.budgets,
     otherPlayers,
     openTrades,
+    organizations: orgs,
     selfId: principal.player_id,
   });
   const available_actions = [
@@ -190,6 +198,15 @@ export function buildObservation(
       requested: t.requested,
       status: t.status,
       role: t.proposer_id === principal.player_id ? ("proposer" as const) : ("counterparty" as const),
+    })),
+    organizations: orgs.map((o) => ({
+      org_id: o.org_id,
+      name: o.name,
+      charter: o.charter,
+      status: o.status,
+      creator_id: o.creator_id,
+      members: o.members.map((m) => ({ agent_id: m.agent_id, role: m.role })),
+      my_role: o.members.find((m) => m.agent_id === principal.player_id)?.role || null,
     })),
     players_here: otherPlayers.filter((p) => p.player_id !== principal.player_id),
     available_actions,
@@ -280,7 +297,27 @@ export async function applyWorldCommand(
       : normalizeStructuredCommand(envl.command, rawArgs);
 
   // Also accept command as human line if arguments empty and command looks lower-case multiword
-  if (!parsed.ok && envl.command && !["LOOK", "MOVE", "INSPECT", "WAIT", "MESSAGE", "TRADE", "COMMIT", "HARVEST", "REPAIR", "ENTER_WORLD", "JOIN", "OBSERVE"].includes(envl.command.toUpperCase())) {
+  if (
+    !parsed.ok &&
+    envl.command &&
+    ![
+      "LOOK",
+      "MOVE",
+      "INSPECT",
+      "WAIT",
+      "MESSAGE",
+      "TRADE",
+      "COMMIT",
+      "HARVEST",
+      "REPAIR",
+      "ORG_CREATE",
+      "ORG_MEMBER_ADD",
+      "ORG_MEMBER_REMOVE",
+      "ENTER_WORLD",
+      "JOIN",
+      "OBSERVE",
+    ].includes(envl.command.toUpperCase())
+  ) {
     const pl = w.players[principal.player_id];
     const room = w.rooms[pl?.room_id || w.entry_room_id];
     parsed = parseHumanCommand(envl.command, {
@@ -305,6 +342,7 @@ export async function applyWorldCommand(
           handle: p.handle,
         })),
         openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
+        organizations: Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE"),
         selfId: principal.player_id,
       });
       const text = helpText(topic, aff);
@@ -725,12 +763,204 @@ export async function applyWorldCommand(
     }
   }
 
-  // ——— COMMIT.REPAIR / HARVEST ———
+  // ——— COMMIT (REPAIR / HARVEST / ORG_*) ———
   if (action.verb === "COMMIT") {
+    // ——— ORG_CREATE ———
+    if (action.arguments.operation === "ORG_CREATE") {
+      if (!canPay(pl.budgets, COSTS.ORG_CREATE)) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          "You need influence 5 and compute 2 to form an organization.",
+        );
+      }
+      const name = String(action.arguments.name || "").trim();
+      const charter = String(action.arguments.charter || "").trim();
+      if (!name || !charter) {
+        return fail(request_id, "INVALID_REQUEST", "name and charter required");
+      }
+      // Server allocates org_id unless agent supplied a fresh unused id
+      let org_id = action.arguments.org_id?.trim();
+      if (org_id) {
+        if (w.organizations[org_id]) {
+          return fail(request_id, "FORBIDDEN", "org_id already exists");
+        }
+      } else {
+        org_id = allocateOrgId(name);
+        while (w.organizations[org_id]) org_id = allocateOrgId(name);
+      }
+      debit(pl.budgets, COSTS.ORG_CREATE);
+      const members =
+        action.arguments.initial_members && action.arguments.initial_members.length
+          ? action.arguments.initial_members.map((m) => ({
+              agent_id: m.agent_id,
+              role: (m.role === "founder" || m.role === "officer" ? m.role : "member") as OrgRole,
+            }))
+          : [{ agent_id: principal.player_id, role: "founder" as OrgRole }];
+      if (!members.some((m) => m.agent_id === principal.player_id)) {
+        members.unshift({ agent_id: principal.player_id, role: "founder" });
+      } else {
+        // Ensure creator is founder
+        members.forEach((m) => {
+          if (m.agent_id === principal.player_id) m.role = "founder";
+        });
+      }
+      w.organizations[org_id] = {
+        org_id,
+        name,
+        charter,
+        status: "ACTIVE",
+        creator_id: principal.player_id,
+        members,
+        created_cycle: w.cycle,
+      };
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_CREATE,
+        reason: "ORG_CREATE",
+      });
+      const ev = pushEvent("ORG_CREATE", {
+        org_id,
+        name,
+        charter,
+        creator_id: principal.player_id,
+        members,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Organization formed: ${name} (${org_id}). You are founder.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // ——— ORG_MEMBER_ADD ———
+    if (action.arguments.operation === "ORG_MEMBER_ADD") {
+      if (!canPay(pl.budgets, COSTS.ORG_MEMBER_ADD)) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          "You need influence 1 and compute 2 to invite a member.",
+        );
+      }
+      const org_id = String(action.arguments.org_id || "").trim();
+      const agent_id = String(action.arguments.agent_id || "").trim();
+      const role = (action.arguments.role || "member") as OrgRole;
+      const org = w.organizations[org_id];
+      if (!org || org.status !== "ACTIVE") {
+        return fail(request_id, "NOT_FOUND", "Organization not found.");
+      }
+      if (!isOrgOfficer(org, principal.player_id)) {
+        return fail(request_id, "FORBIDDEN", "Only a founder or officer may invite.");
+      }
+      if (!w.players[agent_id]?.entered) {
+        return fail(request_id, "FORBIDDEN", "Invitee is not active in the world.");
+      }
+      if (isOrgMember(org, agent_id)) {
+        return fail(request_id, "FORBIDDEN", "Already a member.");
+      }
+      if (role === "founder") {
+        return fail(request_id, "FORBIDDEN", "Cannot invite as founder.");
+      }
+      debit(pl.budgets, COSTS.ORG_MEMBER_ADD);
+      org.members.push({ agent_id, role: role === "officer" ? "officer" : "member" });
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_MEMBER_ADD,
+        reason: "ORG_MEMBER_ADD",
+      });
+      const ev = pushEvent("ORG_MEMBER_ADD", {
+        org_id,
+        agent_id,
+        role: role === "officer" ? "officer" : "member",
+        by: principal.player_id,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Invited ${agent_id} to ${org.name} as ${role === "officer" ? "officer" : "member"}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // ——— ORG_MEMBER_REMOVE (leave or remove) ———
+    if (action.arguments.operation === "ORG_MEMBER_REMOVE") {
+      const org_id = String(action.arguments.org_id || "").trim();
+      let agent_id = String(action.arguments.agent_id || "").trim() || principal.player_id;
+      const reason = String(action.arguments.reason || "REMOVED");
+      const org = w.organizations[org_id];
+      if (!org || org.status !== "ACTIVE") {
+        return fail(request_id, "NOT_FOUND", "Organization not found.");
+      }
+      const selfLeave = agent_id === principal.player_id;
+      if (!selfLeave && !isOrgOfficer(org, principal.player_id)) {
+        return fail(request_id, "FORBIDDEN", "Only a founder or officer may remove members.");
+      }
+      if (!isOrgMember(org, agent_id)) {
+        return fail(request_id, "NOT_FOUND", "That Player is not a member.");
+      }
+      // Prevent removing last founder without another founder
+      const target = org.members.find((m) => m.agent_id === agent_id)!;
+      if (target.role === "founder") {
+        const founders = org.members.filter((m) => m.role === "founder");
+        if (founders.length <= 1 && org.members.length > 1) {
+          return fail(
+            request_id,
+            "FORBIDDEN",
+            "Cannot remove the only founder while other members remain.",
+          );
+        }
+      }
+      if (!canPay(pl.budgets, COSTS.ORG_MEMBER_REMOVE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, COSTS.ORG_MEMBER_REMOVE);
+      org.members = org.members.filter((m) => m.agent_id !== agent_id);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_MEMBER_REMOVE,
+        reason: "ORG_MEMBER_REMOVE",
+      });
+      const ev = pushEvent("ORG_MEMBER_REMOVE", {
+        org_id,
+        agent_id,
+        reason,
+        by: principal.player_id,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        selfLeave
+          ? `You left ${org.name}.`
+          : `Removed ${agent_id} from ${org.name} (${reason}).`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    // Entity-targeted ops
     const room = w.rooms[pl.room_id];
-    const entity = findEntity(room, action.arguments.entity_id);
+    const entity = findEntity(room, action.arguments.entity_id || "");
     if (!entity) {
-      return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      return fail(
+        request_id,
+        "NOT_FOUND",
+        `You do not see “${action.arguments.entity_id || "that"}” here.`,
+      );
     }
 
     if (action.arguments.operation === "REPAIR") {
@@ -844,6 +1074,7 @@ export async function applyWorldCommand(
 export function migrateWorldRuntime(w: WorldRuntime): void {
   w.trades = w.trades || {};
   w.messages = w.messages || [];
+  w.organizations = w.organizations || {};
   for (const room of Object.values(w.rooms)) {
     room.entities = (room.entities || []).map((e) => enrichEntity(e));
   }

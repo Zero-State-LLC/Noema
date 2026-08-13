@@ -72,6 +72,7 @@ function demoState(world_id: string): WorldState {
     players: {},
     trades: {},
     messages: [],
+    organizations: {},
     seen_idempotency: {},
     unsettled: [],
   };
@@ -99,6 +100,7 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
     players: {},
     trades: {},
     messages: [],
+    organizations: {},
     seen_idempotency: {},
     unsettled: [],
   };
