@@ -46,6 +46,31 @@ export type PlayerHere = {
   handle?: string;
 };
 
+export type MailItem = {
+  message_id: string;
+  sender_id: string;
+  text: string;
+  delivered_cycle: number;
+};
+
+export type TradeItem = {
+  trade_id: string;
+  proposer_id: string;
+  counterparty_id: string;
+  offered: Record<string, number>;
+  requested: Record<string, number>;
+  status: string;
+  role: "proposer" | "counterparty";
+};
+
+export type OrgItem = {
+  org_id: string;
+  name: string;
+  charter?: string;
+  status: string;
+  my_role: string | null;
+};
+
 export type Opportunity = {
   id: string;
   text: string;
@@ -72,6 +97,7 @@ export type TrailItem = {
 /** Hosted Tier 1 + navigation (Player Action Map). */
 export const HOSTED_ACTIONS = [
   "ENTER_WORLD",
+  "LEAVE_WORLD",
   "LOOK",
   "MOVE",
   "INSPECT",
@@ -411,6 +437,12 @@ export function trailFromResult(opts: {
       title: `You stand in ${loc.name}.`,
       detail: loc.description?.slice(0, 160),
     });
+  } else if (cmd === "LEAVE_WORLD") {
+    items.push({ kind: "world", title: "You leave the world." });
+  } else if (cmd === "MESSAGE") {
+    items.push({ kind: "world", title: "A message is delivered." });
+  } else if (cmd === "TRADE") {
+    items.push({ kind: "world", title: "A trade changes hands." });
   }
   return items;
 }
@@ -482,21 +514,156 @@ export function escHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function renderPlayersHereHtml(players?: PlayerHere[] | null): string {
+export function playerHandle(p: { player_id?: string; handle?: string; sender_id?: string }): string {
+  return String(p.handle || p.player_id || p.sender_id || "player").replace(/^player\./, "");
+}
+
+export function formatResourceMap(m?: Record<string, number> | null): string {
+  const entries = Object.entries(m || {}).filter(([, n]) => n);
+  if (!entries.length) return "nothing";
+  return entries.map(([k, n]) => n + " " + k).join(", ");
+}
+
+export function renderPlayersHereHtml(
+  players?: PlayerHere[] | null,
+  orgs?: OrgItem[] | null,
+  selfId?: string,
+): string {
   if (!players || !players.length) return "";
+  const officerOrgs = (orgs || []).filter((o) => {
+    const role = String(o.my_role || "").toLowerCase();
+    return role === "founder" || role === "officer";
+  });
   const rows = players
     .map((p) => {
-      const name = escHtml(p.handle || p.player_id || "player");
+      const handle = playerHandle(p);
+      const name = escHtml(handle);
+      const msgCmd = "message " + handle + ' "';
+      const tradeCmd = "trade " + handle + " offer=";
+      let acts =
+        '<button type="button" class="btn" data-cmd="' +
+        escHtml(msgCmd) +
+        '">Message ' +
+        name +
+        "</button>" +
+        '<button type="button" class="btn" data-cmd="' +
+        escHtml(tradeCmd) +
+        '">Trade ' +
+        name +
+        "</button>";
+      for (const o of officerOrgs) {
+        acts +=
+          '<button type="button" class="btn" data-cmd="invite ' +
+          escHtml(handle) +
+          " to " +
+          escHtml(o.org_id) +
+          ' role=member">Invite ' +
+          name +
+          " to " +
+          escHtml(o.name) +
+          "</button>";
+      }
+      void selfId;
       return (
         '<li class="ent player-here">' +
         '<span class="glyph" aria-hidden="true">○</span>' +
         "<span><strong>" +
         name +
-        '</strong><span class="sub">Player</span></span></li>'
+        '</strong><span class="sub">Player</span></span>' +
+        '<span class="acts">' +
+        acts +
+        "</span></li>"
       );
     })
     .join("");
   return '<ul class="ent-list players-here" aria-label="Other players">' + rows + "</ul>";
+}
+
+export function renderBondsHtml(opts: {
+  messages?: MailItem[] | null;
+  trades?: TradeItem[] | null;
+  organizations?: OrgItem[] | null;
+}): string {
+  const mail = opts.messages || [];
+  const trades = opts.trades || [];
+  const orgs = opts.organizations || [];
+  const mailHtml = mail.length
+    ? mail
+        .slice()
+        .reverse()
+        .map((m) => {
+          return (
+            "<li><strong>" +
+            escHtml(playerHandle({ player_id: m.sender_id })) +
+            "</strong> · cycle " +
+            escHtml(String(m.delivered_cycle)) +
+            '<span class="d">' +
+            escHtml(m.text) +
+            "</span></li>"
+          );
+        })
+        .join("")
+    : '<li class="empty">No messages.</li>';
+  const tradeHtml = trades.length
+    ? trades
+        .map((t) => {
+          const label =
+            formatResourceMap(t.offered) + " → " + formatResourceMap(t.requested);
+          const acts =
+            t.role === "counterparty"
+              ? '<button type="button" class="btn primary" data-cmd="accept ' +
+                escHtml(t.trade_id) +
+                '">Accept</button>' +
+                '<button type="button" class="btn" data-cmd="reject ' +
+                escHtml(t.trade_id) +
+                '">Reject</button>'
+              : '<button type="button" class="btn" data-cmd="cancel ' +
+                escHtml(t.trade_id) +
+                '">Cancel</button>';
+          return (
+            '<li class="ent"><span><strong>' +
+            escHtml(label) +
+            '</strong><span class="sub">' +
+            escHtml(t.role) +
+            "</span></span><span class=\"acts\">" +
+            acts +
+            "</span></li>"
+          );
+        })
+        .join("")
+    : '<li class="empty">No open trades.</li>';
+  const orgHtml = orgs.length
+    ? orgs
+        .map((o) => {
+          const role = o.my_role || "not a member";
+          const leave = o.my_role
+            ? '<button type="button" class="btn" data-cmd="leave ' +
+              escHtml(o.org_id) +
+              '">Leave ' +
+              escHtml(o.name) +
+              "</button>"
+            : "";
+          return (
+            '<li class="ent"><span><strong>' +
+            escHtml(o.name) +
+            '</strong><span class="sub">' +
+            escHtml(role) +
+            "</span></span><span class=\"acts\">" +
+            leave +
+            "</span></li>"
+          );
+        })
+        .join("")
+    : '<li class="empty">No public organizations.</li>';
+  return (
+    '<div class="bonds-block"><h4 class="sec-title">Mail</h4><ul class="bond-list" aria-label="Mail">' +
+    mailHtml +
+    '</ul></div><div class="bonds-block"><h4 class="sec-title">Open trades</h4><ul class="ent-list" aria-label="Open trades">' +
+    tradeHtml +
+    '</ul></div><div class="bonds-block"><h4 class="sec-title">Organizations</h4><ul class="ent-list" aria-label="Organizations">' +
+    orgHtml +
+    '</ul><button type="button" class="btn" data-cmd="form " style="margin-top:.55rem">Form organization</button></div>'
+  );
 }
 
 export function renderServiceDesksHtml(
@@ -643,7 +810,10 @@ export function playUiRuntimeSource(): string {
     trailFromResult,
     routeDiagram,
     statusFromObservation,
+    playerHandle,
+    formatResourceMap,
     renderPlayersHereHtml,
+    renderBondsHtml,
     renderServiceDesksHtml,
     renderEntityListHtml,
     renderOpportunitiesHtml,

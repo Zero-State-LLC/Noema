@@ -119,6 +119,7 @@ export type CanonicalAction =
   | { verb: "WAIT"; arguments: Record<string, never> }
   | { verb: "OBSERVE"; arguments: Record<string, never> }
   | { verb: "ENTER_WORLD"; arguments: Record<string, never> }
+  | { verb: "LEAVE_WORLD"; arguments: { reason?: string } }
   | { verb: "MOVE"; arguments: { direction: string } }
   | { verb: "INSPECT"; arguments: { entity_id: string } }
   | { verb: "MESSAGE"; arguments: { recipient_id: string; text: string } }
@@ -657,10 +658,16 @@ export function parseHumanCommand(
     };
   }
 
-  // leave <org>
-  if (v === "leave") {
+  // leave world (lifecycle) vs leave <org>
+  if (v === "leave" || v === "exit") {
     const org_id = parts[0];
-    if (!org_id) return { ok: false, error: "Leave which organization? leave <org>" };
+    if (!org_id || /^(world|chamber)$/i.test(org_id)) {
+      return {
+        ok: true,
+        action: { verb: "LEAVE_WORLD", arguments: { reason: "VOLUNTARY" } },
+        display: "You leave the world.",
+      };
+    }
     return {
       ok: true,
       action: {
@@ -739,6 +746,13 @@ export function normalizeStructuredCommand(
   if (cmd === "LOOK" || cmd === "WAIT" || cmd === "OBSERVE" || cmd === "ENTER_WORLD" || cmd === "JOIN") {
     const verb = cmd === "JOIN" ? "ENTER_WORLD" : (cmd as "LOOK" | "WAIT" | "OBSERVE" | "ENTER_WORLD");
     return { ok: true, action: { verb, arguments: {} }, display: verb };
+  }
+  if (cmd === "LEAVE_WORLD") {
+    return {
+      ok: true,
+      action: { verb: "LEAVE_WORLD", arguments: { reason: String(args.reason || "VOLUNTARY") } },
+      display: "LEAVE_WORLD",
+    };
   }
   if (cmd === "MOVE") {
     const direction = String(args.direction || args.exit_id || "").toLowerCase();

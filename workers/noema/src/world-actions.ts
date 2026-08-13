@@ -218,7 +218,13 @@ export function buildObservation(
         if (am !== bm) return am - bm;
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
-    players_here: otherPlayers.filter((p) => p.player_id !== principal.player_id),
+    in_world: pl.entered,
+    players_here: otherPlayers.filter(
+      (p) =>
+        p.player_id !== principal.player_id &&
+        w.players[p.player_id]?.entered &&
+        w.players[p.player_id]?.room_id === room.room_id,
+    ),
     services: servicesAtRoom({
       room_id: room.room_id,
       name: room.name,
@@ -374,6 +380,7 @@ export async function applyWorldCommand(
       "ORG_MEMBER_ADD",
       "ORG_MEMBER_REMOVE",
       "ENTER_WORLD",
+      "LEAVE_WORLD",
       "JOIN",
       "OBSERVE",
       "TALK",
@@ -483,6 +490,25 @@ export async function applyWorldCommand(
       `You enter ${w.world_name || "the world"}.`,
       settled,
     );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  // ——— LEAVE (lifecycle; not a strategic verb) ———
+  if (action.verb === "LEAVE_WORLD") {
+    const leaving = ensurePlayer(w, principal, entry);
+    if (!leaving.entered) {
+      return fail(request_id, "NOT_IN_WORLD", "You are not in the world.");
+    }
+    const fromRoom = leaving.room_id;
+    leaving.entered = false;
+    const ev = pushEvent("AGENT_LEFT_WORLD", {
+      player_id: principal.player_id,
+      room_id: fromRoom,
+      reason: action.arguments.reason || "VOLUNTARY",
+    });
+    await settleEv(ev);
+    const result = success(w, principal, request_id, events, "You leave the world.", settled);
     w.seen_idempotency[idem] = result;
     return result;
   }

@@ -7,6 +7,7 @@ import {
   humanizeError,
   parsePlayCommand,
   playUiRuntimeSource,
+  renderBondsHtml,
   renderPlayersHereHtml,
   renderServiceDesksHtml,
   resolveEntityTarget,
@@ -191,6 +192,8 @@ describe("play shell HTML", () => {
     expect(html).toMatch(/id="play-health"/);
     expect(html).toMatch(/id="desk-list"/);
     expect(html).toMatch(/id="players-here"/);
+    expect(html).toMatch(/id="bonds-card"/);
+    expect(html).toMatch(/Leave world/);
   });
 
   it("embeds play-ui helpers instead of a forked copy", () => {
@@ -225,8 +228,37 @@ describe("play-ui desks and players", () => {
       { player_id: "player.b" },
     ]);
     expect(html).toMatch(/nacre/);
-    expect(html).toMatch(/player\.b/);
+    expect(html).toMatch(/>b</);
     expect(html).toMatch(/aria-label="Other players"/);
+    expect(html).toMatch(/Message nacre/);
+    expect(html).toMatch(/Trade nacre/);
+  });
+
+  it("renders mail, trades, and orgs with honest empties", () => {
+    const empty = renderBondsHtml({});
+    expect(empty).toMatch(/No messages/);
+    expect(empty).toMatch(/No open trades/);
+    expect(empty).toMatch(/No public organizations/);
+    expect(empty).toMatch(/Form organization/);
+    const full = renderBondsHtml({
+      messages: [{ message_id: "m1", sender_id: "player.a", text: "hello", delivered_cycle: 1 }],
+      trades: [
+        {
+          trade_id: "trade.0001",
+          proposer_id: "player.a",
+          counterparty_id: "player.me",
+          offered: { energy: 1 },
+          requested: { compute: 1 },
+          status: "OPEN",
+          role: "counterparty",
+        },
+      ],
+      organizations: [{ org_id: "org.x", name: "Compact", status: "ACTIVE", my_role: "member" }],
+    });
+    expect(full).toMatch(/hello/);
+    expect(full).toMatch(/1 energy → 1 compute/);
+    expect(full).toMatch(/accept trade\.0001/);
+    expect(full).toMatch(/Leave Compact/);
   });
 
   it("humanizes world-gate codes", () => {

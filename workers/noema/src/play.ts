@@ -28,6 +28,11 @@ const EXTRA = `
 .desk-cannot{margin:.25rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:.8rem}
 .desk .acts{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
 .players-here{margin:.55rem 0 0}
+.bonds-block{margin-top:.7rem}
+.bonds-block:first-child{margin-top:0}
+.bond-list{margin:0;padding:0;list-style:none;display:grid;gap:.35rem}
+.bond-list li{padding:.45rem 0;border-bottom:1px solid rgba(42,51,66,.5);font-size:.86rem;overflow-wrap:anywhere}
+.bond-list .d{display:block;margin-top:.15rem;color:var(--muted)}
 
 /* —— WHERE YOU ARE —— */
 .loc{
@@ -201,6 +206,11 @@ export function playHtml(): string {
         <ul class="exit-list" id="exit-list" aria-label="Exits"></ul>
       </article>
 
+      <article class="card pad sec" id="bonds-card" hidden>
+        <h3 class="sec-title">Between you</h3>
+        <div id="bonds-body"></div>
+      </article>
+
       <article class="card pad sec" id="matters-card">
         <h3 class="sec-title">What matters here</h3>
         <ul class="opp-list" id="opp-list" aria-label="Local opportunities">
@@ -220,7 +230,7 @@ export function playHtml(): string {
             aria-describedby="cmd-hint"/>
           <button class="btn primary" id="send" type="submit" disabled>Send</button>
         </form>
-        <p class="hint" id="cmd-hint">look · move east · inspect · repair · harvest · talk · message · trade · help. Buttons run the same actions.</p>
+        <p class="hint" id="cmd-hint">look · move east · inspect · talk · message nacre "hi" · trade nacre offer=energy:1 want=compute:1 · accept · form · leave &lt;org&gt; · help. Buttons run the same actions.</p>
         <p class="notice" id="notice" role="status"></p>
       </article>
 
@@ -249,7 +259,7 @@ export function playHtml(): string {
         </div>
         <div id="session-in" hidden>
           <p class="muted" style="margin:0">You are in the world as <strong id="handle-live">—</strong>.</p>
-          <button class="btn quiet block" id="leave" type="button">Leave session</button>
+          <button class="btn quiet block" id="leave" type="button">Leave world</button>
         </div>
         <p class="notice" id="session-notice" role="status"></p>
         <details class="adv" id="advanced">
@@ -386,7 +396,9 @@ function playClientBundle(): string {
       state.obs = obs;
       const desksEl = $("desk-list");
       const playersEl = $("players-here");
-      if (!obs || !obs.location) {
+      const bondsCard = $("bonds-card");
+      const bondsBody = $("bonds-body");
+      if (!obs || !obs.location || obs.in_world === false) {
         $("world-line").textContent = "Not in world";
         $("room-name").textContent = "Outside";
         $("room-desc").textContent = "Enter to take a position. What you see is what the world shows you.";
@@ -394,6 +406,8 @@ function playClientBundle(): string {
         $("entity-list").innerHTML = '<li class="empty">Nothing visible until you enter.</li>';
         if (playersEl) playersEl.innerHTML = "";
         if (desksEl) desksEl.innerHTML = "";
+        if (bondsCard) bondsCard.hidden = true;
+        if (bondsBody) bondsBody.innerHTML = "";
         $("opp-list").innerHTML = '<li class="empty">Enter the world to see local opportunities.</li>';
         $("exit-list").innerHTML = "";
         $("route-box").hidden = true;
@@ -414,8 +428,16 @@ function playClientBundle(): string {
       $("entity-list").innerHTML = ents.length
         ? renderEntityListHtml(ents)
         : '<li class="empty">Nothing notable right here.</li>';
-      if (playersEl) playersEl.innerHTML = renderPlayersHereHtml(obs.players_here);
+      if (playersEl) playersEl.innerHTML = renderPlayersHereHtml(obs.players_here, obs.organizations, obs.player_id);
       if (desksEl) desksEl.innerHTML = renderServiceDesksHtml(loc.services);
+      if (bondsCard && bondsBody) {
+        bondsCard.hidden = false;
+        bondsBody.innerHTML = renderBondsHtml({
+          messages: obs.messages,
+          trades: obs.trades,
+          organizations: obs.organizations,
+        });
+      }
 
       const exits = loc.exits || [];
       $("exit-list").innerHTML = exits.map(x => {
@@ -435,7 +457,7 @@ function playClientBundle(): string {
 
       let acts = [];
       if (obs.affordances && obs.affordances.length) {
-        acts = obs.affordances.filter(a => a.available).slice(0, 10).map(a => ({
+        acts = obs.affordances.filter(a => a.available && a.kind !== "social" && a.kind !== "org").slice(0, 10).map(a => ({
           label: a.label,
           cmd: a.cmd,
           cls: a.kind === "primary" ? "primary" : a.kind === "move" ? "move" : a.kind === "utility" ? "util" : "",
@@ -461,6 +483,9 @@ function playClientBundle(): string {
         rows.push({ label: "Storage", value: String(obs.budgets.storage) });
         rows.push({ label: "Attention", value: String(obs.budgets.attention) });
       }
+      rows.push({ label: "Mail", value: String((obs.messages || []).length) });
+      rows.push({ label: "Trades", value: String((obs.trades || []).length) });
+      rows.push({ label: "Orgs", value: String((obs.organizations || []).length) });
       $("status-rows").innerHTML = rows.map(r =>
         '<li><span>' + escHtml(r.label) + '</span><b>' + escHtml(r.value) + '</b></li>'
       ).join("");
@@ -572,7 +597,18 @@ function playClientBundle(): string {
       }
     }
 
-    function leave() {
+    async function leave() {
+      if (state.token) {
+        try {
+          await sendCommand("leave");
+        } catch (_) {}
+      }
+      const left = !state.obs || state.obs.in_world === false;
+      const blocked = ($("notice").className || "").indexOf("bad") >= 0 && !left;
+      if (blocked && state.token) {
+        sessionNotice($("notice").textContent || "Could not leave the world.", "bad");
+        return;
+      }
       state.token = null;
       state.player_id = null;
       state.controller_id = null;
@@ -583,7 +619,7 @@ function playClientBundle(): string {
       renderTrail();
       renderObs(null);
       setSessionUi(false);
-      sessionNotice("Session cleared.");
+      sessionNotice("You left the world.");
       notice("");
       $("handle").focus();
     }
@@ -598,7 +634,7 @@ function playClientBundle(): string {
       const b = e.target.closest("[data-cmd]");
       if (!b) return;
       const c = b.getAttribute("data-cmd") || "";
-      if (c.endsWith(" ")) {
+      if (c.endsWith(" ") || c.endsWith("=") || c.endsWith('"')) {
         $("cmd").value = c;
         $("cmd").focus();
       } else {

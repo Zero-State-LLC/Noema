@@ -271,6 +271,8 @@ Source of truth: `ActionRouter.SUPPORTED_VERBS` in `src/noema/actions/router.py`
 4. Loop: action → show `observation` from response (or `/play/observe`).
 5. Optional: poll `/watch/live` for spectator chrome.
 
+Hosted PLAY (`/play`) also lists inbox, open trades, and organizations from the observation (`messages` / `trades` / `organizations`). `LEAVE_WORLD` is a lifecycle operation (bare `leave`); `leave <org>` remains organization leave.
+
 ### Response highlights
 
 - `results[]` — per-action status (`APPLIED`, etc.)
