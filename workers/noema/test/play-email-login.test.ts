@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
 import { LoginThrottle } from "../src/admin-auth";
-import { requestPlayMagicLink, GENERIC_PLAY_LOGIN_MESSAGE } from "../src/play-auth";
+import {
+  requestPlayMagicLink,
+  consumePlayMagicLink,
+  GENERIC_PLAY_LOGIN_MESSAGE,
+} from "../src/play-auth";
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
+
+const USER = {
+  id: "11111111-2222-3333-4444-555555555555",
+  email: "Ada.Lovelace@Example.COM",
+};
 
 function env(partial: Partial<Env> = {}): Env {
   return {
@@ -98,5 +107,48 @@ describe("requestPlayMagicLink", () => {
     const e = env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" });
     await requestPlayMagicLink(e, new Request("https://noema.guru/x", { headers: { "CF-Connecting-IP": "2.2.2.2" } }), { email: "a@x.io" }, { fetch: fetchImpl, throttle: playT });
     expect(adminT.hit("ip:2.2.2.2")).toBe(true);
+  });
+});
+
+describe("consumePlayMagicLink", () => {
+  it("503s without supabase", async () => {
+    const res = await consumePlayMagicLink(env(), { token_hash: "h", type: "magiclink" });
+    expect((res as Response).status).toBe(503);
+  });
+
+  it("400s without hash or code", async () => {
+    const res = await consumePlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" }),
+      {},
+    );
+    expect((res as Response).status).toBe(400);
+  });
+
+  it("401s on verify 400", async () => {
+    const res = await consumePlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" }),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: async () => new Response("bad", { status: 400 }) },
+    );
+    expect((res as Response).status).toBe(401);
+    expect((await (res as Response).json()).access_token).toBeUndefined();
+  });
+
+  it("mints typ access with compact sub player_id", async () => {
+    const minted = await consumePlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" }),
+      { token_hash: "h", type: "email" },
+      { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
+    );
+    expect(minted).not.toBeInstanceOf(Response);
+    const ok = minted as { access_token: string; player_id: string; controller_type: string };
+    expect(ok.player_id).toBe("player.111111112222");
+    expect(ok.controller_type).toBe("human");
+    expect("refresh_token" in ok).toBe(false);
+    const claims = await verifyHs256(ok.access_token, "test-signing-secret");
+    expect(claims.typ).toBe("access");
+    expect(claims.amr).toBe("email_magic_link");
+    expect(claims.issued_by).toBeUndefined();
+    expect(claims.identity_id).toBe(USER.id);
   });
 });

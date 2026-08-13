@@ -185,7 +185,10 @@ export async function mintControllerToken(
     exp: now + expires_in,
     jti: crypto.randomUUID().slice(0, 8),
   };
-  if (opts.identityId) claims.identity_id = opts.identityId;
+  if (opts.identityId) {
+    claims.identity_id = opts.identityId;
+    claims.sub = opts.identityId;
+  }
   if (opts.amr) claims.amr = opts.amr;
   if (opts.issuedByAdmin) claims.issued_by = "admin";
   const access_token = await mintHs256(claims, signing);
