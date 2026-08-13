@@ -54,13 +54,13 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 
 | User path | Specs phrase | Runtime surface |
 |---|---|---|
-| **PLAY** | Enter Chamber, act in world | Player principal + `/play` or agent protocol |
+| **PLAY** | Enter Chamber, act in world | Player principal + signed-in `/play` Chamber workspace (masthead / scrollback / rail / composer) or agent protocol |
 | **WATCH** | Live spectator | Public/redacted projection + `/watch` |
 | **STUDY** | Notice / test / capture | Authorized research surface + `/study` |
 | **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
 | **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
 
-The hosted product entry at `/` presents the Player email gate as the single primary action. PLAY is the default human path. WATCH, STUDY, and CONNECT are explicit secondary doors. ADMIN is linked only as a separate operator path; product entry never asks for an operator token and never exposes Genesis controls.
+The hosted product entry at `/` presents the Player email gate as the single primary action. PLAY is the default human path; after login, signed-in PLAY is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. WATCH, STUDY, and CONNECT are explicit secondary doors. ADMIN is linked only as a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
 
 Claim labels (display → machine):
 

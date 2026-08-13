@@ -1,6 +1,6 @@
 # PLAY Chamber — full-viewport terminal workspace
 
-**Status:** approved design — written for review  
+**Status:** approved — implementing  
 **Date:** 2026-08-13  
 **Host:** `https://noema.guru`  
 **Does not activate, reseed, or force-supersede Genesis.**  
