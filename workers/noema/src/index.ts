@@ -256,6 +256,10 @@ export default {
               level: "attention",
             });
           }
+        } else if (meta.status === "PAUSED") {
+          attention.push({ message: "WORLD PAUSED — mutating PLAY rejected; WATCH may continue.", level: "attention" });
+        } else if (meta.status === "INCIDENT") {
+          attention.push({ message: "WORLD INCIDENT — mutation fail-closed until recovery.", level: "attention" });
         } else if (meta.status === "DEMO_SEED") {
           attention.push({
             message: "Demo chamber seed live. Run Genesis preview → activate for first real world.",
@@ -393,6 +397,21 @@ export default {
         });
         const data = await res.json();
         return cors(json(data, res.status));
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/lifecycle") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as { action?: string; reason?: string };
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-lifecycle", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: body.action, reason: body.reason, admin_session_id: admin.session_id }),
+        });
+        const payload = (await res.json()) as Record<string, unknown>;
+        return cors(json({ ...payload, operator_session: admin.session_id }, res.status));
       }
 
       if (request.method === "POST" && path === "/v1/admin/reseed") {

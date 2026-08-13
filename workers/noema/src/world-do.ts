@@ -1,6 +1,14 @@
 import { enrichEntity } from "./actions";
 import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
+import {
+  applyControllingSession,
+  isMutatingCommand,
+  mutationBlocked,
+  nextSettlementHealth,
+  type SettlementHealth,
+  type WorldOpStatus,
+} from "./ops";
 import { settleEvent, settleGenesisActivation } from "./settle";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
@@ -15,7 +23,7 @@ type WorldState = WorldRuntime;
 type Room = RoomState;
 
 interface WorldMeta {
-  status: "NOT_ACTIVE" | "ACTIVE" | "DEMO_SEED";
+  status: WorldOpStatus;
   genesis_id?: string;
   cycle0_digest?: string;
   profile_id?: string;
@@ -25,6 +33,7 @@ interface WorldMeta {
   activated_at?: string;
   settlement_id?: string;
   settlement_ok?: boolean;
+  settlement_health?: SettlementHealth;
   do_digest?: string;
 }
 
@@ -137,6 +146,14 @@ export class NoemaWorldDO {
 
     if (request.method === "GET" && path.endsWith("/watch")) {
       await this.load();
+      const marker =
+        this.meta!.status === "PAUSED"
+          ? "maintenance"
+          : this.meta!.status === "INCIDENT"
+            ? "incident"
+            : this.meta!.settlement_health === "DEGRADED" || this.meta!.settlement_health === "BLOCKING"
+              ? "stale"
+              : undefined;
       return Response.json(
         redactedPublicWorld({
           world_id: this.world!.world_id,
@@ -144,6 +161,8 @@ export class NoemaWorldDO {
           sequence: this.world!.sequence,
           rooms: this.world!.rooms as Record<string, GenesisRoom>,
           players_present: Object.keys(this.world!.players).length,
+          world_status: this.meta!.status,
+          freshness: marker,
         }),
       );
     }
@@ -168,8 +187,50 @@ export class NoemaWorldDO {
         entity_count: roomList.reduce((n, r) => n + r.entities.length, 0),
         unsettled_count: this.world!.unsettled.length,
         entry_room_id: this.world!.entry_room_id,
+        settlement_health: this.meta!.settlement_health || "HEALTHY",
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
+      });
+    }
+
+    if (request.method === "POST" && path.endsWith("/admin-lifecycle")) {
+      await this.load();
+      const body = (await request.json()) as { action?: string; reason?: string };
+      const action = String(body.action || "").toLowerCase();
+      const current = this.meta!.status;
+      if (action === "pause") {
+        if (current !== "ACTIVE" && current !== "PAUSED") {
+          return Response.json(
+            { error: { code: "INVALID_STATE", message: `cannot pause from ${current}` } },
+            { status: 409 },
+          );
+        }
+        this.meta!.status = "PAUSED";
+      } else if (action === "resume") {
+        if (current !== "PAUSED") {
+          return Response.json(
+            { error: { code: "INVALID_STATE", message: `cannot resume from ${current}` } },
+            { status: 409 },
+          );
+        }
+        if ((this.meta!.settlement_health || "HEALTHY") === "BLOCKING") {
+          return Response.json(
+            { error: { code: "RECOVERY_REQUIRED", message: "settlement must recover before resume" } },
+            { status: 409 },
+          );
+        }
+        this.meta!.status = "ACTIVE";
+      } else if (action === "incident") {
+        this.meta!.status = "INCIDENT";
+      } else {
+        return Response.json({ error: { code: "INVALID_REQUEST", message: "action=pause|resume|incident" } }, { status: 400 });
+      }
+      await this.state.storage.put("world_meta", this.meta);
+      return Response.json({
+        ok: true,
+        status: this.meta!.status,
+        settlement_health: this.meta!.settlement_health || "HEALTHY",
+        reason: body.reason || null,
       });
     }
 
@@ -385,6 +446,7 @@ export class NoemaWorldDO {
       activated_at: m.activated_at || null,
       settlement_id: m.settlement_id || null,
       settlement_ok: m.settlement_ok ?? null,
+      settlement_health: m.settlement_health || "HEALTHY",
       do_digest: m.do_digest || null,
     };
   }
@@ -412,8 +474,25 @@ export class NoemaWorldDO {
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
     const w = this.world!;
+    const mutating = isMutatingCommand(envl.command);
+    const health = this.meta!.settlement_health || "HEALTHY";
+    if (mutating) {
+      const gate = mutationBlocked(this.meta!.status, health);
+      if (gate) {
+        return {
+          ok: false,
+          request_id: envl.request_id || "unknown",
+          error: { code: gate.code, message: gate.message },
+        };
+      }
+      const player = w.players[principal.player_id];
+      const session = applyControllingSession(player?.controlling_session_id, principal.session_id, true);
+      if (player) player.controlling_session_id = session.session_id;
+    }
+
+    let settleOk = true;
     const result = await applyWorldCommand(w, principal, envl, async (ev) => {
-      return settleEvent(this.env, principal, {
+      const ok = await settleEvent(this.env, principal, {
         event_id: ev.event_id,
         event_type: ev.event_type,
         sequence: ev.sequence,
@@ -424,8 +503,19 @@ export class NoemaWorldDO {
         session_id: principal.session_id,
         payload: ev.payload,
       });
+      if (!ok && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) settleOk = false;
+      return ok;
     });
-    // Keep idempotency map bounded
+    if (mutating && w.players[principal.player_id]) {
+      w.players[principal.player_id].controlling_session_id = principal.session_id;
+    }
+    if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const next = nextSettlementHealth(health, settleOk);
+      this.meta!.settlement_health = next;
+      this.meta!.settlement_ok = settleOk;
+      if (next === "BLOCKING") this.meta!.status = "INCIDENT";
+      await this.state.storage.put("world_meta", this.meta);
+    }
     const keys = Object.keys(w.seen_idempotency);
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
