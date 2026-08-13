@@ -1,5 +1,15 @@
 [
   {
+    "date": "2026-08-13",
+    "scope": "workers/noema homepage",
+    "macrostructure": "Photographic threshold + path rail",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "existing hero-noema photograph",
+    "brief": "In-place homepage redesign: one primary Player email entry, asymmetric PLAY-first route rail, integrated world status, no duplicate onboarding wizard.",
+    "design_system": "site/design.md"
+  },
+  {
     "date": "2026-08-12",
     "scope": "site/",
     "macrostructure": "Photographic + interactive path rail",

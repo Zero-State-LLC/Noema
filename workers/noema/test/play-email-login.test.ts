@@ -205,12 +205,13 @@ describe("play login HTML", () => {
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Access token");
   });
-  it("landing does not require wiz-token as the primary production path", () => {
+  it("landing keeps the email gate as the single primary production path", () => {
     const html = landingHtml();
-    expect(html).not.toContain("Paste the operator-issued token");
-    expect(html).not.toMatch(/wrap\.hidden = false/);
+    expect(html).not.toContain("wiz-token");
+    expect(html).not.toContain('class="wizard"');
     expect(html).toMatch(/getElementById\("email"\)/);
-    expect(html).toContain("Request a play link above to enter.");
+    expect(html).toContain('class="path-rail"');
+    expect(html).toContain("Enter as a Player");
   });
   it("play production empty-token error points at email play link", () => {
     const html = playHtml();
