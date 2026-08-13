@@ -17,7 +17,7 @@ Two magic-link paths share Supabase Auth but mint **different** JWTs. Do not pas
 | Path | Surfaces | Who | Session | Storage |
 |------|----------|-----|---------|---------|
 | **PLAY (public Player)** | `/` and `/play` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
-| **ADMIN (operator)** | `/admin/login` only | allowlisted operator email | `typ: admin-access` | admin session only |
+| **ADMIN (operator)** | `/admin/login` only | hardcoded `zer0state@zer0state.com` | `typ: admin-access` | admin session only |
 
 An allowlisted operator who uses PLAY email still gets a **Player** session. ADMIN never comes from `/` or `/play`.
 

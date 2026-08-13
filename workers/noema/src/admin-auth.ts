@@ -112,12 +112,21 @@ export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincip
 export const GENERIC_LOGIN_MESSAGE =
   "If that mailbox is authorized, a link is on the way.";
 
+/** Sole first-world operator mailbox. Always allowed; secret may add extras. */
+export const ADMIN_OPERATOR_EMAIL = "zer0state@zer0state.com";
+
 export function parseAllowlist(raw?: string): string[] {
   if (!raw) return [];
   return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter((s) => s.includes("@"));
+}
+
+export function adminAllowlist(env: Env): string[] {
+  const extra = parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS);
+  const locked = ADMIN_OPERATOR_EMAIL.toLowerCase();
+  return Array.from(new Set([locked, ...extra]));
 }
 
 export function normalizeEmail(raw: string): string | null {
@@ -170,7 +179,7 @@ export async function requestAdminMagicLink(
   body: { email?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle },
 ): Promise<Response> {
-  const email = normalizeEmail(String(body.email || ""));
+  const email = normalizeEmail(String(body.email || ADMIN_OPERATOR_EMAIL));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
 
   const throttle = opts?.throttle || defaultThrottle;
@@ -179,7 +188,7 @@ export async function requestAdminMagicLink(
     return err("RATE_LIMITED", "too many login requests", 429, true);
   }
 
-  const allow = parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS);
+  const allow = adminAllowlist(env);
   const fetchImpl = opts?.fetch || (globalThis.fetch as AdminFetch);
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
@@ -214,9 +223,6 @@ export async function consumeAdminMagicLink(
   body: { token_hash?: string; type?: string; code?: string },
   opts?: { fetch?: AdminFetch },
 ): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response> {
-  if (!parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS).length) {
-    return err("NOT_CONFIGURED", "ADMIN_ALLOWLIST_EMAILS not set on this host", 503);
-  }
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
     return err("NOT_CONFIGURED", "Supabase auth is not configured", 503);
   }
@@ -264,7 +270,7 @@ export async function consumeAdminMagicLink(
   };
   const email = normalizeEmail(String(payload.user?.email || payload.email || ""));
   if (!email) return err("NOT_AUTHORIZED", "invalid operator token", 401);
-  if (!parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS).includes(email)) {
+  if (!adminAllowlist(env).includes(email)) {
     return err("NOT_AUTHORIZED", "invalid operator token", 401);
   }
   return mintAdminAccess(env, "email_magic_link");

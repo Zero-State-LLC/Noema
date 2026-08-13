@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { adminLoginHtml, adminCallbackHtml } from "../src/admin";
 import {
+  ADMIN_OPERATOR_EMAIL,
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
+  adminAllowlist,
   clientIp,
   consumeAdminMagicLink,
   mintAdminSession,
@@ -37,6 +39,17 @@ describe("allowlist + throttle", () => {
     ]);
     expect(parseAllowlist(undefined)).toEqual([]);
     expect(parseAllowlist("")).toEqual([]);
+  });
+
+  it("always allows the hardcoded operator mailbox", () => {
+    expect(ADMIN_OPERATOR_EMAIL).toBe("zer0state@zer0state.com");
+    expect(adminAllowlist(env({ ADMIN_ALLOWLIST_EMAILS: "" }))).toEqual([
+      "zer0state@zer0state.com",
+    ]);
+    expect(adminAllowlist(env())).toEqual([
+      "zer0state@zer0state.com",
+      "ops@example.com",
+    ]);
   });
 
   it("normalizes valid email and rejects bad shape", () => {
@@ -108,7 +121,23 @@ describe("requestAdminMagicLink", () => {
     expect(calls).toEqual(["https://example.supabase.co/auth/v1/otp"]);
   });
 
-  it("does not call Supabase when allowlist is empty", async () => {
+  it("sends otp to the hardcoded operator even when the secret is empty", async () => {
+    const calls: string[] = [];
+    await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "" }),
+      new Request("https://noema.guru/x"),
+      { email: "" },
+      {
+        fetch: async (url) => {
+          calls.push(url);
+          return new Response("{}");
+        },
+      },
+    );
+    expect(calls).toEqual(["https://example.supabase.co/auth/v1/otp"]);
+  });
+
+  it("does not call Supabase for a non-operator mailbox when the secret is empty", async () => {
     let called = false;
     await requestAdminMagicLink(
       env({ ADMIN_ALLOWLIST_EMAILS: "" }),
@@ -155,13 +184,19 @@ describe("requestAdminMagicLink", () => {
 });
 
 describe("consumeAdminMagicLink", () => {
-  it("503s when allowlist is empty", async () => {
-    const res = await consumeAdminMagicLink(env({ ADMIN_ALLOWLIST_EMAILS: "" }), {
-      token_hash: "abc",
-      type: "magiclink",
-    });
-    expect(res).toBeInstanceOf(Response);
-    expect((res as Response).status).toBe(503);
+  it("mints admin-access for the hardcoded operator when the secret is empty", async () => {
+    const minted = await consumeAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "" }),
+      { token_hash: "h", type: "magiclink" },
+      {
+        fetch: async () =>
+          new Response(JSON.stringify({ user: { email: ADMIN_OPERATOR_EMAIL } }), {
+            status: 200,
+          }),
+      },
+    );
+    expect(minted).not.toBeInstanceOf(Response);
+    expect((minted as { role: string }).role).toBe("ADMIN");
   });
 
   it("400s without token_hash or code", async () => {
@@ -290,9 +325,10 @@ describe("admin isolation", () => {
 });
 
 describe("admin login HTML", () => {
-  it("is email-only", () => {
+  it("is email-only and locked to the operator mailbox", () => {
     const html = adminLoginHtml();
     expect(html).toContain('id="email"');
+    expect(html).toContain("zer0state@zer0state.com");
     expect(html).toContain("/v1/admin/login/request");
     expect(html).not.toContain("admin_token");
     expect(html).not.toContain("Operator token");
