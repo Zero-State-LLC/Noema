@@ -1,6 +1,7 @@
 # Player email magic-link login
 
-**Status:** approved — implementing  
+**Status:** approved  
+
 **Date:** 2026-08-13  
 **Host:** `https://noema.guru`  
 **Does not activate, reseed, or force-supersede Genesis.**  
