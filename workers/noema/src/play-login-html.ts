@@ -4,7 +4,8 @@
 
 import { productShell } from "./shell";
 
-export function playEmailGateMarkup(): string {
+export function playEmailGateMarkup(opts: { continueToPlay?: boolean } = {}): string {
+  const continueToPlay = Boolean(opts.continueToPlay);
   return `
 <form id="play-login-form">
   <p class="muted">This is a Player login, not ADMIN. A link signs you into the world — it does not open the operator plane.</p>
@@ -12,7 +13,7 @@ export function playEmailGateMarkup(): string {
   <input id="email" type="email" autocomplete="username" required/>
   <button class="btn primary block" type="submit" style="margin-top:.65rem">Send play link</button>
 </form>
-<a class="btn primary block" id="play-continue" href="/play" hidden>Continue to PLAY</a>
+${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/play" hidden>Continue to PLAY</a>` : ""}
 <p class="notice" id="play-login-notice" role="status"></p>
 <p class="empty" style="margin-top:.65rem"><a href="/admin/login">Operator login</a></p>
 <script>
@@ -20,8 +21,8 @@ export function playEmailGateMarkup(): string {
   const form = document.getElementById("play-login-form");
   const notice = document.getElementById("play-login-notice");
   const email = document.getElementById("email");
-  const cont = document.getElementById("play-continue");
-  if (cont && sessionStorage.getItem("noema.play.token")) cont.hidden = false;
+  ${continueToPlay ? `const cont = document.getElementById("play-continue");
+  if (cont && sessionStorage.getItem("noema.play.token")) cont.hidden = false;` : ""}
   if (!form || !notice || !email) return;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

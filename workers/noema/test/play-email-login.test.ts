@@ -185,6 +185,12 @@ describe("play login HTML", () => {
     expect(html).toContain("/v1/play/login/request");
     expect(html).toContain("Send play link");
   });
+  it("Continue to PLAY is landing-only", () => {
+    expect(playEmailGateMarkup()).not.toContain("play-continue");
+    expect(playEmailGateMarkup({ continueToPlay: true })).toContain('id="play-continue"');
+    expect(landingHtml()).toContain('id="play-continue"');
+    expect(playHtml()).not.toContain('id="play-continue"');
+  });
   it("callback reads hash and does not store refresh_token", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
@@ -198,5 +204,17 @@ describe("play login HTML", () => {
     expect(landingHtml()).not.toMatch(/Operator token/);
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Access token");
+  });
+  it("landing does not require wiz-token as the primary production path", () => {
+    const html = landingHtml();
+    expect(html).not.toContain("Paste the operator-issued token");
+    expect(html).not.toMatch(/wrap\.hidden = false/);
+    expect(html).toMatch(/getElementById\("email"\)/);
+    expect(html).toContain("Request a play link above to enter.");
+  });
+  it("play production empty-token error points at email play link", () => {
+    const html = playHtml();
+    expect(html).not.toContain("Production requires an operator-issued access token");
+    expect(html).toContain("Request a play link to enter.");
   });
 });
