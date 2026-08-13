@@ -176,6 +176,7 @@ export const COSTS = {
   ORG_CREATE: { influence: 5, compute: 2 } as Partial<Budgets>,
   ORG_MEMBER_ADD: { influence: 1, compute: 2 } as Partial<Budgets>,
   ORG_MEMBER_REMOVE: { compute: 1 } as Partial<Budgets>,
+  ATTEST: { attention: 2 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -210,7 +211,8 @@ export type CanonicalAction =
           | "ORG_MEMBER_ADD"
           | "ORG_MEMBER_REMOVE"
           | "CONTEST_DECLARE"
-          | "CONTEST_DEFEND";
+          | "CONTEST_DEFEND"
+          | "ATTEST";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -227,6 +229,8 @@ export type CanonicalAction =
         seed_stream_id?: string;
         defender_id?: string;
         contest_id?: string;
+        subject_entity_id?: string;
+        archive_claim?: "DESTROYED" | "OPERATING";
       };
     }
   | {
@@ -861,6 +865,51 @@ export function parseHumanCommand(
     };
   }
 
+  // RFC-0020: attest <artifact> subject=<id> claim=DESTROYED|OPERATING
+  // Not listed in Chamber help. Do not infer subject/claim from labels.
+  if (v === "attest") {
+    const rest = parts.join(" ");
+    const subjectM = rest.match(/\bsubject=(\S+)/i);
+    const claimM = rest.match(/\bclaim=(\S+)/i);
+    if (!subjectM && !claimM) {
+      return {
+        ok: false,
+        error: "Attest syntax: attest <artifact> subject=<entity_id> claim=DESTROYED|OPERATING",
+      };
+    }
+    if (!subjectM || !claimM) {
+      return { ok: false, error: "Subject and claim must be set together.", code: "FORBIDDEN" };
+    }
+    const claimRaw = claimM[1].toUpperCase();
+    if (claimRaw !== "DESTROYED" && claimRaw !== "OPERATING") {
+      return { ok: false, error: "Claim must be DESTROYED or OPERATING.", code: "FORBIDDEN" };
+    }
+    const before = rest
+      .replace(/\bsubject=\S+/i, "")
+      .replace(/\bclaim=\S+/i, "")
+      .trim();
+    if (!before) return { ok: false, error: "Name a visible artifact." };
+    let entity_id = before;
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(before, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      entity_id = r.entity.entity_id;
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ATTEST",
+          entity_id,
+          subject_entity_id: subjectM[1],
+          archive_claim: claimRaw,
+        },
+      },
+      display: `You attest ${entity_id}.`,
+    };
+  }
+
   if (isForbiddenContestVerb(v)) {
     return {
       ok: false,
@@ -1137,6 +1186,28 @@ export function normalizeStructuredCommand(
         display: `COMMIT.CONTEST_DEFEND ${contest_id}`,
       };
     }
+    if (operation === "ATTEST") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      const subject_entity_id = String(args.subject_entity_id || args.subject || "").trim();
+      const claimRaw = String(args.archive_claim || args.claim || "").toUpperCase();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      if (!subject_entity_id || (claimRaw !== "DESTROYED" && claimRaw !== "OPERATING")) {
+        return { ok: false, error: "subject_entity_id and claim must be set together", code: "FORBIDDEN" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ATTEST",
+            entity_id,
+            subject_entity_id,
+            archive_claim: claimRaw as "DESTROYED" | "OPERATING",
+          },
+        },
+        display: `COMMIT.ATTEST ${entity_id}`,
+      };
+    }
     if (operation === "ORG_MEMBER_REMOVE") {
       const org_id = String(args.org_id || "").trim();
       const agent_id = String(args.agent_id || args.player_id || "").trim();
@@ -1215,6 +1286,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "CONTEST_DEFEND") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DEFEND" });
+  }
+  if (cmd === "ATTEST") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ATTEST" });
   }
   if (isForbiddenContestVerb(cmd.toLowerCase())) {
     return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
