@@ -256,7 +256,9 @@ describe("play-ui desks and players", () => {
     expect(full).toMatch(/hello/);
     expect(full).toMatch(/1 energy → 1 compute/);
     expect(full).toMatch(/accept trade\.0001/);
-    expect(full).toMatch(/Leave Compact/);
+    expect(full).toMatch(/Compact/);
+    expect(full).not.toMatch(/Leave Compact/);
+    expect(full).not.toMatch(/data-cmd="leave /);
   });
 
   it("humanizes world-gate codes", () => {

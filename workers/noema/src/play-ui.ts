@@ -629,7 +629,7 @@ export function renderPlayersHereHtml(
       );
     })
     .join("");
-  return '<ul class="ent-list players-here" aria-label="Other players">' + rows + "</ul>";
+  return '<ul class="tok-list players-here" aria-label="Other players">' + rows + "</ul>";
 }
 
 export function renderBondsHtml(opts: {
@@ -664,23 +664,23 @@ export function renderBondsHtml(opts: {
             formatResourceMap(t.offered) + " → " + formatResourceMap(t.requested);
           const acts =
             t.role === "counterparty"
-              ? '<button type="button" class="btn primary" data-cmd="accept ' +
+              ? '<button type="button" class="role-here" data-cmd="accept ' +
                 escHtml(t.trade_id) +
-                '">Accept</button>' +
-                '<button type="button" class="btn" data-cmd="reject ' +
+                '">accept</button> ' +
+                '<button type="button" class="role-here" data-cmd="reject ' +
                 escHtml(t.trade_id) +
-                '">Reject</button>'
-              : '<button type="button" class="btn" data-cmd="cancel ' +
+                '">reject</button>'
+              : '<button type="button" class="role-here" data-cmd="cancel ' +
                 escHtml(t.trade_id) +
-                '">Cancel</button>';
+                '">cancel</button>';
           return (
-            '<li class="ent"><span><strong>' +
+            "<li>" +
             escHtml(label) +
-            '</strong><span class="sub">' +
+            ' <span class="muted">' +
             escHtml(t.role) +
-            "</span></span><span class=\"acts\">" +
+            "</span> " +
             acts +
-            "</span></li>"
+            "</li>"
           );
         })
         .join("")
@@ -689,33 +689,24 @@ export function renderBondsHtml(opts: {
     ? orgs
         .map((o) => {
           const role = o.my_role || "not a member";
-          const leave = o.my_role
-            ? '<button type="button" class="btn" data-cmd="leave ' +
-              escHtml(o.org_id) +
-              '">Leave ' +
-              escHtml(o.name) +
-              "</button>"
-            : "";
           return (
-            '<li class="ent"><span><strong>' +
+            "<li>" +
             escHtml(o.name) +
-            '</strong><span class="sub">' +
+            ' <span class="muted">' +
             escHtml(role) +
-            "</span></span><span class=\"acts\">" +
-            leave +
             "</span></li>"
           );
         })
         .join("")
     : '<li class="empty">No public organizations.</li>';
   return (
-    '<div class="bonds-block"><h4 class="sec-title">Mail</h4><ul class="bond-list" aria-label="Mail">' +
+    '<div class="bonds-block"><h4>Mail</h4><ul class="tok-list" aria-label="Mail">' +
     mailHtml +
-    '</ul></div><div class="bonds-block"><h4 class="sec-title">Open trades</h4><ul class="ent-list" aria-label="Open trades">' +
+    '</ul></div><div class="bonds-block"><h4>Open trades</h4><ul class="tok-list" aria-label="Open trades">' +
     tradeHtml +
-    '</ul></div><div class="bonds-block"><h4 class="sec-title">Organizations</h4><ul class="ent-list" aria-label="Organizations">' +
+    '</ul></div><div class="bonds-block"><h4>Organizations</h4><ul class="tok-list" aria-label="Organizations">' +
     orgHtml +
-    '</ul><button type="button" class="btn" data-cmd="form " style="margin-top:.55rem">Form organization</button></div>'
+    '</ul><button type="button" class="role-here" data-cmd="form ">Form organization</button></div>'
   );
 }
 
@@ -724,15 +715,15 @@ export function renderServiceDesksHtml(
 ): string {
   if (!services || !services.length) return "";
   return (
-    '<ul class="desk-list" aria-label="World Services">' +
+    '<ul class="tok-list" aria-label="World Services">' +
     services
       .map((s) => {
         const unavailable = String(s.status || "").toUpperCase() === "UNAVAILABLE";
         const name = s.display_name || "Desk";
         const talkCmd = "talk " + String(name).toLowerCase();
         const talk = unavailable
-          ? '<button type="button" class="btn" disabled aria-disabled="true">Talk unavailable</button>'
-          : '<button type="button" class="btn" data-cmd="' +
+          ? '<button type="button" class="role-here" disabled aria-disabled="true">Talk unavailable</button>'
+          : '<button type="button" class="role-here" data-cmd="' +
             escHtml(talkCmd) +
             '">Talk ' +
             escHtml(name) +
@@ -743,7 +734,7 @@ export function renderServiceDesksHtml(
         const cmds = (s.suggested_cmds || [])
           .map((c) => {
             return (
-              '<button type="button" class="btn" data-cmd="' +
+              ' <button type="button" class="role-here" data-cmd="' +
               escHtml(c) +
               '">' +
               escHtml(c) +
@@ -751,24 +742,19 @@ export function renderServiceDesksHtml(
             );
           })
           .join("");
+        const sub = [s.status, s.role].filter(Boolean).join(" · ");
         return (
-          '<li class="desk">' +
-          '<div class="desk-head"><strong>' +
+          "<li>" +
           escHtml(name) +
-          '</strong><span class="tag">' +
-          escHtml(s.status || "") +
-          "</span></div>" +
-          '<p class="sub">World Service · ' +
-          escHtml(s.role || "") +
-          "</p>" +
-          (s.line ? '<p class="desk-line">' + escHtml(s.line) + "</p>" : "") +
+          (sub ? ' <span class="muted">' + escHtml(sub) + "</span>" : "") +
+          (s.line ? ' <span class="muted">' + escHtml(s.line) + "</span>" : "") +
           (cannot
-            ? '<p class="sec-title">Cannot</p><ul class="desk-cannot">' + cannot + "</ul>"
+            ? ' <span class="muted">Cannot</span><ul>' + cannot + "</ul>"
             : "") +
-          '<div class="acts">' +
+          " " +
           talk +
           cmds +
-          "</div></li>"
+          "</li>"
         );
       })
       .join("") +

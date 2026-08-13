@@ -20,6 +20,13 @@ function chamberOf(html: string): string {
   return script > i ? html.slice(i, script) : html.slice(i);
 }
 
+function doorOf(html: string): string {
+  const i = html.indexOf('id="play-door"');
+  if (i < 0) return "";
+  const j = html.indexOf('id="play-chamber"', i);
+  return j > i ? html.slice(i, j) : html.slice(i);
+}
+
 describe("play chamber HTML", () => {
   const html = playHtml();
   const chamber = chamberOf(html);
@@ -63,6 +70,24 @@ describe("play chamber HTML", () => {
     expect(html).toContain(".role-here");
     expect(html).toContain(".role-fail");
     expect(html).toContain(".role-ok");
+  });
+
+  it("door Advanced is a reachable token paste, not a hidden chamber control", () => {
+    const door = doorOf(html);
+    expect(door).toContain('id="token-paste"');
+    expect(door).toMatch(/<details[\s\S]*id="token-paste"/);
+    expect(door).not.toMatch(/id="token-primary"[^>]*\bhidden\b/);
+    expect(door).not.toMatch(/<[^>]*\bhidden\b[^>]*id="token-paste"/);
+    expect(door).not.toMatch(/id="token-paste"[^>]*\bhidden\b/);
+    expect(chamber).toContain('id="token-paste-adv"');
+    expect(chamber).not.toContain('id="token-paste"');
+    expect(html).toContain("paste it under Advanced.");
+    expect(html).not.toContain("paste it under Advanced details.");
+  });
+
+  it("colors the room name copper", () => {
+    expect(html).toMatch(/#room-name\{[^}]*var\(--copper\)/);
+    expect(html).toContain("var(--copper)");
   });
 });
 
@@ -160,6 +185,8 @@ describe("rail tokens", () => {
     expect(html).toContain("nacre");
     expect(html).toContain("data-cmd=");
     expect(html).toContain("role-here");
+    expect(html).toContain("tok-list");
+    expect(html).not.toContain("ent-list");
     expect(html).not.toMatch(/class="ent player-here"/);
   });
 });
@@ -177,6 +204,18 @@ describe("chamber client session", () => {
     expect(html).toContain("enterWorld(tok)");
     expect(html).toContain('await sendCommand("enter")');
     expect(html).toContain('await sendCommand("look")');
+  });
+  it("paints Chamber from stored token before health and enterWorld", () => {
+    const boot = html.slice(html.lastIndexOf("(async () => {"));
+    const getTok = boot.indexOf('sessionStorage.getItem("noema.play.token")');
+    const paint = boot.indexOf("setSessionUi(true)");
+    const health = boot.indexOf("/health");
+    const enter = boot.indexOf("enterWorld");
+    expect(getTok).toBeGreaterThanOrEqual(0);
+    expect(paint).toBeGreaterThan(getTok);
+    expect(health).toBeGreaterThan(paint);
+    expect(enter).toBeGreaterThan(health);
+    expect(html).toContain('classList.toggle("is-chamber"');
   });
   it("leave clears the play token", () => {
     expect(html).toContain('sessionStorage.removeItem("noema.play.token")');

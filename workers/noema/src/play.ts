@@ -14,7 +14,7 @@ body.is-chamber .top,body.is-chamber .foot{display:none}
 body.is-chamber #main.wrap{width:100%;max-width:none;padding:0;margin:0}
 body.is-chamber #play-door{display:none}
 body.is-chamber #play-chamber{
-  display:grid;grid-template-rows:auto 1fr auto;min-height:100dvh;
+  display:grid;grid-template-rows:auto 1fr auto;height:100dvh;min-height:100dvh;overflow:hidden;
 }
 .ch-mast{
   display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;
@@ -24,7 +24,7 @@ body.is-chamber #play-chamber{
 .ch-mast a{color:var(--ink);text-decoration:none}
 .ch-mast #leave{margin-left:auto;text-transform:none;letter-spacing:0}
 .ch-body{
-  display:grid;grid-template-columns:minmax(0,1fr) 16rem;min-height:0;
+  display:grid;grid-template-columns:minmax(0,1fr) 16rem;min-height:0;overflow:auto;
 }
 @media(max-width:900px){
   .ch-body{grid-template-columns:1fr}
@@ -32,17 +32,18 @@ body.is-chamber #play-chamber{
 }
 .ch-scroll{min-height:0;overflow:auto;padding:.85rem 1rem 1.25rem}
 .look .where{margin:0 0 .2rem;font:500 .62rem var(--font-mono);letter-spacing:.14em}
-.look #room-name{
+.look #room-name,#room-name{
   margin:0 0 .35rem;font:550 clamp(1.4rem,3vw,2.1rem)/1.05 var(--font-display);
+  color:var(--copper);
 }
 .look #room-desc{margin:0;max-width:44rem;color:var(--muted)}
 .look #loc-cond{margin:.65rem 0 0}
 .look #look-exits{margin:.45rem 0 0;color:var(--muted);font-size:.84rem}
 .ch-rail{
   border-left:1px solid var(--line);padding:.75rem .8rem;overflow:auto;
-  font-size:.84rem;
+  font-size:.84rem;min-height:0;
 }
-.ch-rail h3{
+.ch-rail h3,.ch-rail h4{
   margin:.85rem 0 .35rem;color:var(--copper);
   font:500 .62rem/1.3 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;
 }
@@ -59,9 +60,12 @@ body.is-chamber #play-chamber{
   padding:.45rem 0;border-bottom:1px solid rgba(42,51,66,.45);font-size:.84rem;
 }
 .trail .k{font:.56rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;padding-top:.2rem}
+.trail .k.world{color:var(--muted)}
+.trail .t{color:var(--ink)}
+.trail .d{color:var(--muted)}
 .ch-cmd{
   border-top:1px solid var(--line);padding:.65rem .85rem .75rem;
-  background:rgba(12,18,24,.97);
+  background:rgba(12,18,24,.97);position:sticky;bottom:0;z-index:2;
 }
 .cmdform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}
 .cmdform input{
@@ -89,11 +93,12 @@ export function playHtml(): string {
         ${playEmailGateMarkup({ operatorLink: false })}
         <label for="handle">Your name</label>
         <input id="handle" value="player1" autocomplete="username" maxlength="32"/>
-        <div id="token-primary" hidden>
+        <details class="adv" id="token-primary">
+          <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
           <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin#players">Admin → Players</a> (operator mint). Public minting is disabled. Paste it in the Access token field.</p>
-        </div>
+        </details>
         <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
         <p class="empty" style="margin-top:.65rem">Agents: use <a href="/connect">Connect</a>.</p>
       </div>
@@ -422,7 +427,7 @@ function playClientBundle(): string {
           state.player_id = "token";
           state.controller_id = "browser";
         } else if (state.env === "production") {
-          throw Object.assign(new Error("Request a play link to enter. If you already have a token, paste it under Advanced details."), { code: "NOT_AUTHORIZED" });
+          throw Object.assign(new Error("Request a play link to enter. If you already have a token, paste it under Advanced."), { code: "NOT_AUTHORIZED" });
         } else {
           // Preview/local only — public mint for demos. Never in production.
           const mint = await api("/v1/auth/dev-token", {
@@ -445,7 +450,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced details.";
+          msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced.";
           state.token = null;
           try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
           setSessionUi(false);
@@ -494,6 +499,12 @@ function playClientBundle(): string {
     }
 
     $("enter").addEventListener("click", () => enterWorld());
+    const tokenPaste = $("token-paste");
+    if (tokenPaste) {
+      tokenPaste.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); enterWorld(); }
+      });
+    }
     $("leave").addEventListener("click", leave);
     $("cmd-form").addEventListener("submit", (e) => {
       e.preventDefault();
@@ -516,6 +527,16 @@ function playClientBundle(): string {
         const saved = JSON.parse(localStorage.getItem(storeKey) || "null");
         if (saved && saved.handle) $("handle").value = saved.handle;
       } catch (_) {}
+      const tok = sessionStorage.getItem("noema.play.token");
+      const handle = sessionStorage.getItem("noema.play.handle");
+      if (handle) {
+        $("handle").value = handle;
+        state.handle = handle;
+      }
+      if (tok) {
+        state.token = tok;
+        setSessionUi(true);
+      }
       // Detect production so we never attempt open mint on this host
       try {
         const h = await fetch("/health").then(r => r.json());
@@ -539,9 +560,6 @@ function playClientBundle(): string {
       if (qs.get("error") === "1") {
         sessionNotice("That login link is expired or invalid. Request a new one.", "bad");
       }
-      const tok = sessionStorage.getItem("noema.play.token");
-      const handle = sessionStorage.getItem("noema.play.handle");
-      if (handle) $("handle").value = handle;
       if (tok) {
         await enterWorld(tok);
       } else if (qs.get("autostart") === "1" && state.env !== "production") {
