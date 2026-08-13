@@ -1,14 +1,15 @@
 # Production Genesis Gate — Perihelion Reach
 
-**Status:** Production environment cutover executed · **NOT READY** for production Genesis activation  
-**Do not activate without explicit human approval.**  
-**This run did not activate.**
+**Status:** ACTIVE · controlled play ready · **do not re-activate**  
+**Genesis activation is N/A** — the approved candidate is already live.  
+**Do not** force-supersede, reseed, or submit a second activate.
 
-Captured (UTC): `2026-08-12T23:05Z` (post-cutover)  
-Runtime commit: `7135e3f7ef805a6d026011d673e96c4d4e69b554`  
-Worker version: `79b86443-667d-41ba-8759-f9e2f58ca45d`  
+Live snapshot (UTC): `2026-08-13`  
 Product host: `https://noema.guru`  
-Workers.dev: `https://noema-gateway.zer0state-noema.workers.dev`
+Workers.dev: `https://noema-gateway.zer0state-noema.workers.dev`  
+Runtime on `main`: `5bd77d7` (telemetry mapping; last merged PR #50)  
+Security remediations: `6c18b52` on `fix/security-remediations` — **not yet deployed**  
+Cutover capture (historical): `2026-08-12T23:05Z` · commit `7135e3f7` · Worker `79b86443-667d-41ba-8759-f9e2f58ca45d`
 
 ---
 
@@ -247,6 +248,28 @@ Note: live DO is **already ACTIVE** with this genesis from non-production rehear
 
 ---
 
+## Live production (do not re-activate)
+
+Captured `2026-08-13` against `https://noema.guru` (unauthenticated):
+
+```json
+GET /health → {"status":"ok","env":"production","protocol_version":"1","world_id":"world-01"}
+GET /ready  → ready=true · ACTIVE · HEALTHY · genesis.ef578f4ffceeccd0 · cycle 0 · sequence 75 · players 17
+```
+
+| Check | Result |
+|-------|--------|
+| Identity | `genesis.ef578f4ffceeccd0` **MATCH** frozen candidate |
+| Settlement | `HEALTHY` (same genesis settlement id) |
+| Dev-token | **403** `dev-token disabled in production` |
+| WATCH `/v1/watch/live` | 200 · no world seed / profile / Story Seed IDs / signing names |
+| Public shells | `/` `/play` `/watch` `/study` `/connect` `/admin` `/admin/login` **200** |
+| Unauth activate / force | **401** `ADMIN bearer token required` |
+| Operator-minted human + agent | **PASS** (re-gate 2026-08-13; entry is Admin → mint → PLAY) |
+| Genesis activation | **N/A** — already ACTIVE; editor is `inert` while frozen |
+
+Admin Genesis form default seed is the frozen pin `17011984`. The editor stays `inert` while the world is ACTIVE.
+
 ## Final checklist
 
 ```text
@@ -254,8 +277,8 @@ Note: live DO is **already ACTIVE** with this genesis from non-production rehear
 [x] Health PASS
 [x] Readiness PASS
 [x] Admin auth PASS
-[ ] Player auth PASS          ← BLOCKER
-[ ] Agent controller auth PASS ← BLOCKER
+[x] Player auth PASS          operator-minted controller token
+[x] Agent controller auth PASS operator-minted controller token
 [x] Dev-token disabled
 [x] Force supersede disabled
 [x] Production reseed protected
@@ -268,7 +291,7 @@ Note: live DO is **already ACTIVE** with this genesis from non-production rehear
 [x] Structural preview approved
 [x] Hidden-history boundary PASS
 [x] WATCH redaction PASS
-[x] Activation payload prepared
+[x] Genesis activation N/A (already ACTIVE; do not re-activate)
 ```
 
 ---
@@ -281,24 +304,20 @@ None discovered. No Specs changes made.
 
 ## Runtime defects / blockers
 
-1. **Player production entry (hard gate FAIL)**  
-   PLAY + landing wizard only mint via `/v1/auth/dev-token`, which is correctly disabled when `NOEMA_ENV=production`. Supabase JWT verification exists in Worker auth but no production player login/session UX is wired or verified.
+Historical cutover blockers (1) and (2) are **closed** for controlled first-world play via operator-minted controller tokens (`POST /v1/admin/controller-token`). Public `/v1/auth/dev-token` stays denied. Real IdP / device-enrollment UX remains out of this gate.
 
-2. **Agent controller production enrollment (hard gate FAIL)**  
-   CONNECT only mints via the same disabled dev-token path. No production enrollment endpoint.
-
-3. **Deploy env pin (operational risk, non-blocking for this gate)**  
-   Production depends on deploy-time `--var NOEMA_ENV:production`. Bare deploy without the var regresses env.
+1. ~~Player production entry~~ **PASS** — Admin → mint human token → PLAY paste.  
+2. ~~Agent controller production enrollment~~ **PASS** — Admin → mint `controller_type: agent` → Bearer.  
+3. **Deploy env pin** — still an operational risk until `scripts/deploy-stage0.sh` refuses unset `NOEMA_ENV` (PR B). `wrangler.toml` stays `local` for `npm run dev`.
 
 ---
 
 ## Smallest next work (out of this run)
 
-1. Production Player authentication path (Supabase human JWT end-to-end **or** equivalent Specs-aligned controller bind) without re-enabling open dev-token.  
-2. Production agent-controller enrollment (device enrollment / operator-issued scoped controller tokens) resolving to the same PlayerPrincipal ontology.  
-3. Wire PLAY/CONNECT UI to the production path; keep dev-token production denial.  
-4. Pin/document deploy so production cannot silently regress to `preview`/`local`.  
-5. Only after (1)–(2) pass: human may approve activation/ops next steps. **This run still forbids activation.**
+1. Ship security remediations (`6c18b52`) with `NOEMA_ENV=production` deploy — do not reseed.  
+2. Pin deploy so production cannot silently regress to `preview`/`local`.  
+3. Record operator smoke (admin token required; no activate).  
+4. **Do not** activate, force-supersede, or reseed.
 
 ---
 
@@ -347,10 +366,12 @@ Genesis activation: N/A (already ACTIVE; do not force-supersede)
 
 ---
 
-## Final verdict (original cutover run)
+## Final verdict
 
 ```text
-NOT READY FOR PRODUCTION GENESIS ACTIVATION
+ACTIVE · CONTROLLED PLAY READY · DO NOT RE-ACTIVATE
 ```
 
-At cutover time, public Player auth was missing. That blocker is addressed via **operator-minted controller tokens** (see re-gate above).
+The approved candidate is the live world. Operator-minted human and agent Players can enter. Public dev-token stays off. Genesis activation is not re-run.
+
+Historical cutover verdict (`NOT READY FOR PRODUCTION GENESIS ACTIVATION`) applied when public Player auth was missing. That blocker is closed via operator-minted controller tokens (see re-gate above).

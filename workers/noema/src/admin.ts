@@ -310,7 +310,7 @@ export function adminHtml(): string {
             </div>
             <label for="g-seed">World seed</label>
             <div class="btn-row" style="margin-top:.25rem">
-              <input id="g-seed" value="49321892" style="flex:1"/>
+              <input id="g-seed" value="17011984" style="flex:1"/>
               <button class="btn quiet" type="button" id="g-rand">Randomize</button>
             </div>
             <div class="btn-row" style="margin-top:.85rem">
