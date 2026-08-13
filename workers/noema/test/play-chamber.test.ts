@@ -15,8 +15,7 @@ function chamberOf(html: string): string {
   if (i < 0) return "";
   const j = html.indexOf('id="play-door"', i);
   if (j > i) return html.slice(i, j);
-  // Door ships first; isolate chamber markup from the later client script
-  // (renderObs still writes "Outside" until Task 4).
+  // Door ships first; isolate chamber markup from the later client script.
   const script = html.indexOf("<script", i);
   return script > i ? html.slice(i, script) : html.slice(i);
 }
@@ -162,5 +161,24 @@ describe("rail tokens", () => {
     expect(html).toContain("data-cmd=");
     expect(html).toContain("role-here");
     expect(html).not.toMatch(/class="ent player-here"/);
+  });
+});
+
+describe("chamber client session", () => {
+  const html = playHtml();
+  it("toggles is-chamber and never paints Outside in the empty LOOK", () => {
+    expect(html).toContain('classList.toggle("is-chamber"');
+    expect(html).toContain('id="ch-cycle"');
+    expect(html).not.toMatch(/textContent = "Outside"/);
+    expect(html).not.toMatch(/Nothing visible until you enter/);
+  });
+  it("still auto-enters when noema.play.token is set", () => {
+    expect(html).toContain('sessionStorage.getItem("noema.play.token")');
+    expect(html).toContain("enterWorld(tok)");
+    expect(html).toContain('await sendCommand("enter")');
+    expect(html).toContain('await sendCommand("look")');
+  });
+  it("leave clears the play token", () => {
+    expect(html).toContain('sessionStorage.removeItem("noema.play.token")');
   });
 });

@@ -257,25 +257,30 @@ function playClientBundle(): string {
       const bondsCard = $("bonds-card");
       const bondsBody = $("bonds-body");
       if (!obs || !obs.location || obs.in_world === false) {
-        $("world-line").textContent = "Not in world";
-        $("room-name").textContent = "Outside";
-        $("room-desc").textContent = "Enter to take a position. What you see is what the world shows you.";
+        $("world-line").textContent = "—";
+        $("room-name").textContent = "";
+        $("room-desc").textContent = "Waiting for the world.";
         $("loc-cond").hidden = true;
-        $("entity-list").innerHTML = '<li class="empty">Nothing visible until you enter.</li>';
+        const lookExits = $("look-exits");
+        if (lookExits) { lookExits.hidden = true; lookExits.textContent = ""; }
+        $("entity-list").innerHTML = "";
         if (playersEl) playersEl.innerHTML = "";
         if (desksEl) desksEl.innerHTML = "";
         if (bondsCard) bondsCard.hidden = true;
         if (bondsBody) bondsBody.innerHTML = "";
-        $("opp-list").innerHTML = '<li class="empty">Enter the world to see local opportunities.</li>';
+        $("opp-list").innerHTML = "";
         $("exit-list").innerHTML = "";
         $("route-box").hidden = true;
-        if ($("act-strip")) $("act-strip").innerHTML = "";
-        $("status-rows").innerHTML = '<li class="empty">—</li>';
+        $("status-rows").innerHTML = "";
         $("meta-seq").textContent = "—";
+        const cyc = $("ch-cycle");
+        if (cyc) cyc.textContent = "";
         return;
       }
       const loc = Object.assign({}, obs.location, { services: obs.location.services || obs.services || [] });
       $("world-line").textContent = obs.world_name || "In world";
+      const cyc = $("ch-cycle");
+      if (cyc) cyc.textContent = typeof obs.cycle === "number" ? "Cycle " + obs.cycle : "";
       $("room-name").textContent = loc.name || "Unknown place";
       $("room-desc").textContent = loc.description || "";
       const cond = deriveLocalCondition(loc);
@@ -299,6 +304,17 @@ function playClientBundle(): string {
 
       const exits = loc.exits || [];
       $("exit-list").innerHTML = renderExitTokensHtml(exits);
+      const lookExits = $("look-exits");
+      if (lookExits) {
+        const narrow = window.matchMedia("(max-width: 900px)").matches;
+        if (narrow && exits.length) {
+          lookExits.hidden = false;
+          lookExits.textContent = "exits: " + exits.map((x) => x.direction).join(" · ");
+        } else {
+          lookExits.hidden = true;
+          lookExits.textContent = "";
+        }
+      }
 
       const rd = routeDiagram(loc.name, exits);
       if (rd.hasRoutes) {
@@ -418,14 +434,22 @@ function playClientBundle(): string {
         await sendCommand("enter");
         await sendCommand("look");
       } catch (e) {
-        setSessionUi(false);
-        state.token = null;
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
           msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced details.";
+          state.token = null;
+          setSessionUi(false);
+          sessionNotice(msg, "bad");
+        } else if (state.token) {
+          setSessionUi(true);
+          sessionNotice("");
+          notice(msg, "bad");
+          pushTrailItems([{ kind: "fail", title: (msg || "Action failed.").split("\\n")[0] }]);
+        } else {
+          setSessionUi(false);
+          sessionNotice(msg, "bad");
         }
-        sessionNotice(msg, "bad");
         $("err-advanced").textContent = h.advanced || e.message || "";
         state.busy = false;
       }
