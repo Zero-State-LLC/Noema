@@ -12,19 +12,39 @@ Host:         https://noema.guru
 
 ## Token requirement
 
-Authenticated steps need `ADMIN_OPERATOR_TOKEN` (Worker secret) to:
+Authenticated steps need an ADMIN JWT (`typ: admin-access`).
 
-1. `POST /v1/admin/session` → ADMIN JWT  
-2. Mint human + agent controller tokens (`POST /v1/admin/controller-token`)  
-3. Confirm Genesis editor is `inert`, reseed control hidden, pause still works  
-4. `POST /v1/admin/digest-tick` (window only — must not mutate world sequence)
+**Primary:** open `https://noema.guru/admin/login`, submit an allowlisted operator email, follow the magic link. Do not commit mailbox addresses.
 
-This session does **not** hold that token. Authenticated smoke is **blocked** until an operator exports it locally (never commit the value).
+**Supabase Auth Magic Link template (required):** Redirect URL allowlist alone is not enough. The Magic Link email template must include:
+
+```
+https://noema.guru/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+```
+
+Local:
+
+```
+http://127.0.0.1:8787/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+```
+
+**Emergency CLI** (not the UI) — `ADMIN_OPERATOR_TOKEN` Worker secret:
 
 ```bash
 export BASE=https://noema.guru
-export ADMIN_TOKEN='…'   # ADMIN_OPERATOR_TOKEN value; operator-only
+export ADMIN_TOKEN='…'   # ADMIN_OPERATOR_TOKEN; operator-only
+curl -sS -X POST "$BASE/v1/admin/session" \
+  -H 'content-type: application/json' \
+  -d "{\"admin_token\":\"$ADMIN_TOKEN\"}"
 ```
+
+With that session JWT you can:
+
+1. Mint human + agent controller tokens (`POST /v1/admin/controller-token`)
+2. Confirm Genesis editor is `inert`, reseed control hidden, pause still works
+3. `POST /v1/admin/digest-tick` (window only — must not mutate world sequence)
+
+Never commit secret values. Authenticated smoke is **blocked** until an operator has a session (magic link or local `ADMIN_TOKEN`).
 
 ## Unauthenticated probes (recorded 2026-08-13)
 
@@ -42,11 +62,12 @@ No defect found on the public path. Sequence unchanged by these probes.
 
 ## Authenticated checklist (operator, after A+B+C are live)
 
-Run only with a local `ADMIN_TOKEN`. Stop on any mismatch. **Never** send `force: true` or a second activate.
+Run with a magic-link session or a local `ADMIN_TOKEN` (emergency CLI). Stop on any mismatch. **Never** send `force: true` or a second activate.
 
 ```text
 [ ] 1. Admin login
-      POST /v1/admin/session  { "admin_token": "$ADMIN_TOKEN" }
+      Primary: /admin/login → allowlisted email → magic link → ADMIN session
+      Emergency: POST /v1/admin/session  { "admin_token": "$ADMIN_TOKEN" }
       expect role ADMIN
 
 [ ] 2. Mint human + agent controller tokens

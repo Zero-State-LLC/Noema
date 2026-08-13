@@ -7,9 +7,15 @@
  * Static assets via ASSETS binding (public/).
  */
 
-import { adminHtml, adminLoginHtml } from "./admin";
+import { adminHtml, adminLoginHtml, adminCallbackHtml } from "./admin";
 import { playReady } from "./ops";
-import { adminTokenConfigured, mintAdminSession, resolveAdmin } from "./admin-auth";
+import {
+  adminTokenConfigured,
+  consumeAdminMagicLink,
+  mintAdminSession,
+  requestAdminMagicLink,
+  resolveAdmin,
+} from "./admin-auth";
 import {
   err,
   json,
@@ -155,6 +161,9 @@ export default {
       if (request.method === "GET" && path === "/admin/login") {
         return html(adminLoginHtml());
       }
+      if (request.method === "GET" && path === "/admin/callback") {
+        return html(adminCallbackHtml());
+      }
       if (request.method === "GET" && path === "/admin") {
         return html(adminHtml());
       }
@@ -221,6 +230,20 @@ export default {
         const body = (await request.json().catch(() => ({}))) as { admin_token?: string };
         if (!body.admin_token) return cors(err("INVALID_REQUEST", "admin_token required", 400));
         const minted = await mintAdminSession(env, body.admin_token);
+        if (minted instanceof Response) return cors(minted);
+        return cors(json({ ...minted, token_type: "bearer" }));
+      }
+      if (request.method === "POST" && path === "/v1/admin/login/request") {
+        const body = (await request.json().catch(() => ({}))) as { email?: string };
+        return cors(await requestAdminMagicLink(env, request, body));
+      }
+      if (request.method === "POST" && path === "/v1/admin/login/consume") {
+        const body = (await request.json().catch(() => ({}))) as {
+          token_hash?: string;
+          type?: string;
+          code?: string;
+        };
+        const minted = await consumeAdminMagicLink(env, body);
         if (minted instanceof Response) return cors(minted);
         return cors(json({ ...minted, token_type: "bearer" }));
       }

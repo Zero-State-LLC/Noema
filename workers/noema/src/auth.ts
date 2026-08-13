@@ -24,8 +24,8 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
-export function err(code: string, message: string, status = 401): Response {
-  return json({ error: { code, message, retryable: false } }, status);
+export function err(code: string, message: string, status = 401, retryable = false): Response {
+  return json({ error: { code, message, retryable } }, status);
 }
 
 /** Resolve PlayerPrincipal from controller access token or Supabase human JWT. */
