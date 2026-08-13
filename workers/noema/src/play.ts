@@ -239,20 +239,9 @@ function playClientBundle(): string {
     }
 
     function renderTrail() {
-      const html = state.trail.length
-        ? state.trail.map(t =>
-            '<li><span class="k ' + t.kind + '">' + (t.kind === "you" ? "You" : t.kind === "local" ? "Local" : t.kind === "world" ? "World" : "Fail") +
-            '</span><span class="t">' + esc(t.title) + (t.detail ? '<span class="d">' + esc(t.detail) + '</span>' : '') + '</span></li>'
-          ).join("")
-        : '<li class="empty">Your actions and consequences appear here.</li>';
-      $("trail").innerHTML = html;
-      const side = $("trail-side");
-      if (side) {
-        side.innerHTML = state.trail.slice(0, 6).map(t =>
-          '<li><span class="k ' + t.kind + '">' + t.kind + '</span><span class="t">' + esc(t.title) + '</span></li>'
-        ).join("");
-        $("trail-side-empty").hidden = state.trail.length > 0;
-      }
+      $("trail").innerHTML = state.trail.length
+        ? renderTrailHtml(state.trail)
+        : "";
     }
 
     function pushTrailItems(items) {

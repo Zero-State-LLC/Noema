@@ -514,6 +514,66 @@ export function escHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+export function renderLookHtml(opts: {
+  name?: string;
+  description?: string;
+  condition?: string;
+  exitsLine?: string;
+}): string {
+  const name = escHtml(opts.name || "");
+  const desc = escHtml(opts.description || "");
+  const cond = String(opts.condition || "").trim();
+  const exits = String(opts.exitsLine || "").trim();
+  return (
+    '<p class="where role-place">WHERE</p>' +
+    '<h2 id="room-name">' + name + "</h2>" +
+    '<p id="room-desc">' + desc + "</p>" +
+    (cond
+      ? '<div id="loc-cond"><b class="role-place">CONDITION</b><span id="loc-cond-text">' +
+        escHtml(cond) +
+        "</span></div>"
+      : '<div id="loc-cond" hidden><b class="role-place">CONDITION</b><span id="loc-cond-text"></span></div>') +
+    (exits
+      ? '<p id="look-exits">exits: ' + escHtml(exits) + "</p>"
+      : '<p id="look-exits" hidden></p>')
+  );
+}
+
+export function renderTrailHtml(items: TrailItem[]): string {
+  if (!items.length) return "";
+  const label: Record<TrailKind, string> = {
+    you: "YOU",
+    local: "LOCAL",
+    world: "WORLD",
+    fail: "FAIL",
+  };
+  const role: Record<TrailKind, string> = {
+    you: "role-you",
+    local: "role-here",
+    world: "",
+    fail: "role-fail",
+  };
+  return items
+    .map((t) => {
+      const k = t.kind;
+      const detail = t.detail
+        ? '<span class="d">' + escHtml(t.detail) + "</span>"
+        : "";
+      return (
+        "<li><span class=\"k " +
+        k +
+        (role[k] ? " " + role[k] : "") +
+        '">' +
+        label[k] +
+        '</span><span class="t">' +
+        escHtml(t.title) +
+        detail +
+        "</span></li>"
+      );
+    })
+    .join("");
+}
+
 export function playerHandle(p: { player_id?: string; handle?: string; sender_id?: string }): string {
   return String(p.handle || p.player_id || p.sender_id || "player").replace(/^player\./, "");
 }
@@ -817,6 +877,8 @@ export function playUiRuntimeSource(): string {
     renderServiceDesksHtml,
     renderEntityListHtml,
     renderOpportunitiesHtml,
+    renderLookHtml,
+    renderTrailHtml,
   ]
     .map((fn) => fn.toString())
     .join("\n");

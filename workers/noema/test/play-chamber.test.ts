@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { playHtml } from "../src/play";
+import {
+  renderLookHtml,
+  renderTrailHtml,
+  playUiRuntimeSource,
+} from "../src/play-ui";
 
 function chamberOf(html: string): string {
   const i = html.indexOf('id="play-chamber"');
@@ -55,5 +60,55 @@ describe("play chamber HTML", () => {
     expect(html).toContain(".role-here");
     expect(html).toContain(".role-fail");
     expect(html).toContain(".role-ok");
+  });
+});
+
+describe("look and trail text", () => {
+  it("LOOK is a WHERE block with copper roles, no exit essay when rail is open", () => {
+    const html = renderLookHtml({
+      name: "The Broken Exchange",
+      description: "Dust, copper, a stalled ledger.",
+      condition: "crane seized · repairable",
+    });
+    expect(html).toContain("WHERE");
+    expect(html).toContain("role-place");
+    expect(html).toContain("The Broken Exchange");
+    expect(html).toContain("Dust, copper");
+    expect(html).toContain("CONDITION");
+    expect(html).toContain("crane seized");
+    expect(html).not.toMatch(/east →/);
+  });
+
+  it("LOOK appends exits line only when asked (mobile rail collapsed)", () => {
+    const html = renderLookHtml({
+      name: "Quay",
+      description: "Water.",
+      exitsLine: "east · quay",
+    });
+    expect(html).toContain("exits: east · quay");
+  });
+
+  it("trail rows use the four kinds and role classes", () => {
+    const html = renderTrailHtml([
+      { kind: "you", title: "look" },
+      { kind: "local", title: "nacre is here" },
+      { kind: "world", title: "The crane ticks once and stops." },
+      { kind: "fail", title: "Not enough energy.", detail: "energy 0" },
+    ]);
+    expect(html).toContain("role-you");
+    expect(html).toContain("role-here");
+    expect(html).toContain("role-fail");
+    expect(html).toContain("YOU");
+    expect(html).toContain("LOCAL");
+    expect(html).toContain("WORLD");
+    expect(html).toContain("FAIL");
+    expect(html).toContain("look");
+    expect(html).toContain("energy 0");
+    expect(html).not.toContain("CONTEST_DECLARE");
+  });
+
+  it("serializes the new helpers into the page runtime", () => {
+    expect(playUiRuntimeSource()).toContain("function renderLookHtml");
+    expect(playUiRuntimeSource()).toContain("function renderTrailHtml");
   });
 });
