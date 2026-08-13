@@ -188,6 +188,12 @@ describe("chamber client session", () => {
     expect(send).toContain('e.code === "NOT_AUTHORIZED"');
     expect(send).toContain("setSessionUi(false)");
     expect(send).toContain("state.token = null");
-    expect(html).toMatch(/sendCommand[\s\S]*NOT_AUTHORIZED[\s\S]*setSessionUi\(false\)/);
+    expect(send).toContain('sessionStorage.removeItem("noema.play.token")');
+    expect(html).toMatch(
+      /sendCommand[\s\S]*NOT_AUTHORIZED[\s\S]*sessionStorage\.removeItem\("noema\.play\.token"\)[\s\S]*setSessionUi\(false\)/
+    );
+    // leave + sendCommand (+ enterWorld) all clear storage — not only leave
+    const removes = html.match(/sessionStorage\.removeItem\("noema\.play\.token"\)/g) || [];
+    expect(removes.length).toBeGreaterThanOrEqual(2);
   });
 });

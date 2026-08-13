@@ -383,7 +383,9 @@ function playClientBundle(): string {
         let primary = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
           state.token = null;
+          try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
           setSessionUi(false);
+          notice("");
           sessionNotice(primary, "bad");
         } else {
           if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
@@ -445,7 +447,9 @@ function playClientBundle(): string {
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
           msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced details.";
           state.token = null;
+          try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
           setSessionUi(false);
+          notice("");
           sessionNotice(msg, "bad");
         } else if (state.token) {
           setSessionUi(true);
