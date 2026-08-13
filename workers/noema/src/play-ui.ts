@@ -497,6 +497,7 @@ export function statusFromObservation(obs: {
   practice_lines?: string[];
   social_memory_lines?: string[];
   culture_lines?: string[];
+  discovery_lines?: string[];
 } | null): Array<{ label: string; value: string }> {
   if (!obs?.location) return [];
   const loc = obs.location;
@@ -512,6 +513,9 @@ export function statusFromObservation(obs: {
   }
   for (const line of (obs.social_memory_lines || []).slice(0, 3)) {
     if (line) rows.push({ label: "Tie", value: line });
+  }
+  for (const line of (obs.discovery_lines || []).slice(0, 1)) {
+    if (line) rows.push({ label: "Record", value: line });
   }
   return rows;
 }

@@ -21,6 +21,9 @@ export type EntityRuntime = {
   /** Harvest node stock */
   stock_resource?: string;
   stock_amount?: number;
+  /** RFC-0015 explicit archive claim. Never inferred. */
+  archive_subject_entity_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
 };
 
 export type PlayerRuntime = {
@@ -41,6 +44,12 @@ export type PlayerRuntime = {
   trade_memory?: {
     catalog_id: "social-memory-catalog/gc3-s0";
     edges: Record<string, string[]>;
+  };
+  /** GC6-S0 derived archive/inspect members. Not WorldState. */
+  discovery?: {
+    catalog_id: "discovery-catalog/gc6-s0";
+    archives: Record<string, "DESTROYED" | "OPERATING">;
+    inspects: Record<string, "DESTROYED" | "OPERATING">;
   };
 };
 
@@ -312,6 +321,8 @@ export function enrichEntity(e: {
   condition?: number;
   stock_resource?: string;
   stock_amount?: number;
+  archive_subject_entity_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -329,6 +340,8 @@ export function enrichEntity(e: {
     condition,
     stock_resource: node.is_node ? node.resource : undefined,
     stock_amount: node.is_node ? node.amount : undefined,
+    archive_subject_entity_id: e.archive_subject_entity_id,
+    archive_claim: e.archive_claim,
   };
 }
 

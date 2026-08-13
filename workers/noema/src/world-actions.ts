@@ -45,6 +45,7 @@ import {
   type SocialEvent,
 } from "./social-memory";
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
+import { applyInspectEvidence, discoveryLines } from "./discovery";
 import {
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
@@ -302,6 +303,7 @@ export function buildObservation(
       entities.map((e) => e.entity_id),
       principal.player_id,
     ),
+    discovery_lines: discoveryLines(pl.discovery),
   };
 }
 
@@ -748,6 +750,7 @@ export async function applyWorldCommand(
     await settleEv(obsEv);
     recordPractice(w, principal.player_id, events);
     recordCulture(w, principal.player_id, events);
+    pl.discovery = applyInspectEvidence(pl.discovery, entity);
     const obs = buildObservation(w, principal, detail);
     obs.location = {
       ...obs.location,
