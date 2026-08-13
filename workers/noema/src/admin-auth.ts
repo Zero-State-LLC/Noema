@@ -143,4 +143,61 @@ export class LoginThrottle {
   }
 }
 
+export type AdminFetch = (input: string, init?: RequestInit) => Promise<Response>;
+
+const defaultThrottle = new LoginThrottle();
+
+export function loginRedirectOrigin(env: Env, req: Request): string {
+  if ((env.NOEMA_ENV || "").toLowerCase() === "production") return "https://noema.guru";
+  try {
+    return new URL(req.url).origin;
+  } catch {
+    return "http://127.0.0.1:8787";
+  }
+}
+
+export async function requestAdminMagicLink(
+  env: Env,
+  req: Request,
+  body: { email?: string },
+  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle },
+): Promise<Response> {
+  const email = normalizeEmail(String(body.email || ""));
+  if (!email) return err("INVALID_REQUEST", "email required", 400);
+
+  const throttle = opts?.throttle || defaultThrottle;
+  const ip = clientIp(req);
+  if (!throttle.hit(`ip:${ip}`) || !throttle.hit(`email:${email}`)) {
+    return err("RATE_LIMITED", "too many login requests", 429, true);
+  }
+
+  const allow = parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS);
+  const fetchImpl = opts?.fetch || (globalThis.fetch as AdminFetch);
+  if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const origin = loginRedirectOrigin(env, req);
+      await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          email,
+          create_user: true,
+          options: {
+            email_redirect_to: `${origin}/admin/callback`,
+            should_create_user: true,
+          },
+        }),
+      });
+    } catch {
+      // send failures stay generic 200
+    }
+  }
+
+  return json({ ok: true, message: GENERIC_LOGIN_MESSAGE });
+}
+
 export { json, err };
