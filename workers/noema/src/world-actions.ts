@@ -54,6 +54,17 @@ import {
   longRangeDeliverable,
 } from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
+import {
+  CONSTRUCT_COSTS,
+  DISMANTLE_COST,
+  SALVAGE_STORAGE,
+  allocateInfraId,
+  clampSalvage,
+  constructLabel,
+  infraClassOf,
+  isHiddenRoom,
+  liveClassInRoom,
+} from "./construction";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
 export type UnsettledEvent = {
@@ -73,6 +84,9 @@ export type RoomState = {
   description: string;
   exits: Array<{ direction: string; to_room_id: string }>;
   entities: EntityRuntime[];
+  /** GC2-S0: hidden rooms are not construct targets. */
+  hidden?: boolean;
+  tags?: string[];
 };
 
 export type WorldRuntime = {
@@ -503,6 +517,7 @@ export async function applyWorldCommand(
       "USE",
       "CONSULT",
       "SERVICE",
+      "BUILD",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -1334,6 +1349,133 @@ export async function applyWorldCommand(
         request_id,
         events,
         `Harvested ${amount} ${resource} from ${titleCaseLabel(entity.label)}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+  }
+
+  // ——— BUILD (GC2-S0 CONSTRUCT / DISMANTLE) ———
+  if (action.verb === "BUILD") {
+    const room = w.rooms[pl.room_id];
+    if (!room) {
+      return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+    }
+
+    if (action.arguments.operation === "CONSTRUCT") {
+      const classId = action.arguments.class;
+      const targetRoomId = action.arguments.room_id || pl.room_id;
+      const target = w.rooms[targetRoomId];
+      if (!target) {
+        return fail(request_id, "NOT_FOUND", "That room is not here.");
+      }
+      if (isHiddenRoom(target)) {
+        return fail(request_id, "NOT_OBSERVABLE", "That place cannot be used for construction.");
+      }
+      if (target.room_id !== pl.room_id) {
+        return fail(request_id, "NOT_COLOCATED", "You must be in that room to construct.");
+      }
+      if (liveClassInRoom(roomEntities(target), classId)) {
+        return fail(request_id, "SLOT_OCCUPIED", `A ${classId.replace(/_/g, " ")} is already here.`);
+      }
+      const cost = CONSTRUCT_COSTS[classId];
+      if (!canPay(pl.budgets, cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
+      }
+      debit(pl.budgets, cost);
+      const entity_id = allocateInfraId(classId);
+      const label = constructLabel(classId);
+      const created: EntityRuntime = {
+        entity_id,
+        label,
+        entity_type: "INFRASTRUCTURE",
+        condition: 100,
+        owner_id: principal.player_id,
+        infra_type: classId,
+      };
+      target.entities = [...roomEntities(target), created];
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: cost,
+        reason: "CONSTRUCT",
+        class: classId,
+      });
+      const ev = pushEvent("ENTITY_CREATE", {
+        entity_id,
+        entity_type: "INFRASTRUCTURE",
+        owner_id: principal.player_id,
+        location: target.room_id,
+        room_id: target.room_id,
+        label,
+        properties: { infra_type: classId },
+        state: { condition: 100 },
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    if (action.arguments.operation === "DISMANTLE") {
+      const rawId = action.arguments.entity_id;
+      const here = findEntity(room, rawId);
+      if (!here) {
+        let elsewhere = false;
+        for (const other of Object.values(w.rooms)) {
+          if (other.room_id === room.room_id) continue;
+          if (findEntity(other, rawId)) {
+            elsewhere = true;
+            break;
+          }
+        }
+        if (elsewhere) {
+          return fail(request_id, "NOT_COLOCATED", "You must be in the same room to dismantle that.");
+        }
+        return fail(request_id, "NOT_FOUND", `You do not see “${rawId}” here.`);
+      }
+      const classId = infraClassOf(here);
+      if (!classId) {
+        return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      if (!canPay(pl.budgets, DISMANTLE_COST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 4 and compute 2 to dismantle.");
+      }
+      debit(pl.budgets, DISMANTLE_COST);
+      const salvage = SALVAGE_STORAGE[classId];
+      const clamped = clampSalvage(pl.budgets.storage ?? 0, salvage);
+      pl.budgets.storage = clamped.next;
+      room.entities = roomEntities(room).filter((e) => e.entity_id !== here.entity_id);
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: DISMANTLE_COST,
+        reason: "DISMANTLE",
+        salvage_storage: clamped.added,
+        salvage_overflow: clamped.overflow,
+      });
+      const ev = pushEvent("ENTITY_DESTROY", {
+        entity_id: here.entity_id,
+        reason: "DISMANTLED",
+        class: classId,
+        owner_id: here.owner_id,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Dismantled ${titleCaseLabel(here.label)}.`,
         settled,
       );
       w.seen_idempotency[idem] = result;
