@@ -49,6 +49,8 @@ import {
 } from "./practice";
 import {
   creditAcceptedTrade,
+  creditDangerEvidence,
+  creditsFromDangerEvent,
   creditsFromTradeAccepted,
   socialMemoryLines,
   type SocialEvent,
@@ -370,6 +372,7 @@ export function buildObservation(
       Object.fromEntries(
         Object.entries(w.players).map(([id, p]) => [id, p.handle]),
       ),
+      pl.danger_memory,
     ),
     culture_lines: cultureLines(
       w.culture,
@@ -447,6 +450,15 @@ function recordTradeMemory(
         player.trade_memory,
         credit.other_id,
         credit.trade_id,
+      );
+    }
+    for (const credit of creditsFromDangerEvent(ev as SocialEvent)) {
+      const player = w.players[credit.player_id];
+      if (!player) continue;
+      player.danger_memory = creditDangerEvidence(
+        player.danger_memory,
+        credit.other_id,
+        credit.evidence_id,
       );
     }
   }
@@ -1629,6 +1641,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     else p.budgets = cloneBudgets(p.budgets);
     if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s1", tracks: {}, recognition: {} };
     if (!p.trade_memory) p.trade_memory = { catalog_id: "social-memory-catalog/gc3-s0", edges: {} };
+    if (!p.danger_memory) p.danger_memory = { catalog_id: "social-memory-catalog/gc3-s1", edges: {} };
   }
   w.contests = w.contests || {};
   w.access_restrictions = w.access_restrictions || [];
@@ -1995,7 +2008,9 @@ async function resolveDueContests(
       contest_id: contest.contest_id,
       outcome,
       resolved_by: "world.scheduler",
+      declarer_id: contest.declarer_id,
       defender_id: contest.defender_id || null,
+      target: contest.target,
       declarer_stake_spent: spentDeclarer,
       defender_stake_spent: spentDefender,
       target_entity_id: targetEntityId,

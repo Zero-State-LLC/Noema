@@ -65,6 +65,11 @@ export type PlayerRuntime = {
     catalog_id: "social-memory-catalog/gc3-s0";
     edges: Record<string, string[]>;
   };
+  /** GC3-S1 derived danger edges. Not WorldState. Separate from trade reliability. */
+  danger_memory?: {
+    catalog_id: "social-memory-catalog/gc3-s1";
+    edges: Record<string, string[]>;
+  };
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
     catalog_id: "discovery-catalog/gc6-s0";
