@@ -1,7 +1,7 @@
 # First Genesis candidate — Perihelion Reach
 
-**Status:** Non-production rehearsal complete · **awaiting human production approval**  
-**Do not auto-activate production.**
+**Status:** Production host **ACTIVE** at the approved identity · nothing remains for activation  
+**Do not re-activate, force-supersede, or reseed.**
 
 ## Configuration (exact)
 
@@ -19,7 +19,7 @@ Fixture: `examples/genesis/perihelion-reach-final-candidate.json`
 
 | Field | Value |
 |--------|--------|
-| Host (rehearsal) | `https://noema.guru` (`NOEMA_ENV=preview`) |
+| Host (rehearsal, then production) | `https://noema.guru` (now `NOEMA_ENV=production`, same identity) |
 | Runtime commit | `9871e06be5f71ba1947be9e502abb2d7f7c985a8` |
 | Timestamp (UTC) | `2026-08-12T22:57:27Z` |
 | Spec pin | Noema-Specs genesis/0.6 · profiles & story-seeds v0.6 |
@@ -99,22 +99,21 @@ Technological frontier / degraded commercial infrastructure / space-western econ
 
 ## Environment note
 
-Product host cut over to `NOEMA_ENV=production` (2026-08-12). Live gates:
+Product host is `NOEMA_ENV=production` (cut over 2026-08-12) and **already ACTIVE** at this candidate:
 
+- Live: `genesis.ef578f4ffceeccd0` · Cycle 0 `sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6`  
 - Dev-token **denied** in production  
 - Force supersede **denied** in production  
 - Reseed **denied** in production  
-- Production preview of this candidate **exact-matches** approved genesis_id + Cycle 0 digest  
-- Preview **non-mutating** (sequence unchanged)
+- Controlled entry: Admin → operator-minted human/agent token → PLAY  
+- Preview of this candidate **exact-matches** the live identity (non-mutating)
 
-**Remaining hard blockers for production activation readiness:** production Player auth and agent-controller enrollment (UI still targets disabled dev-token). See [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
+Nothing remains for production activation. See [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Verdict
 
-See [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md):
-
 ```text
-NOT READY FOR PRODUCTION GENESIS ACTIVATION
+ACTIVE AT APPROVED IDENTITY · DO NOT RE-ACTIVATE
 ```
 
-Do not activate without explicit human approval after Player/agent production auth is ready.
+Awaiting nothing for activation. Further ops are hygiene (security deploy, env pin, operator smoke) — not a second Genesis.
