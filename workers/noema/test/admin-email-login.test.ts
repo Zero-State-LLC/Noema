@@ -209,6 +209,21 @@ describe("consumeAdminMagicLink", () => {
     expect(claims.amr).toBe("email_magic_link");
   });
 
+  it("401s when supabase verify returns 400 and returns no access_token", async () => {
+    const res = await consumeAdminMagicLink(
+      env(),
+      { token_hash: "h", type: "magiclink" },
+      { fetch: async () => new Response("expired", { status: 400 }) },
+    );
+    expect((res as Response).status).toBe(401);
+    const body = (await (res as Response).json()) as {
+      access_token?: string;
+      error?: { code: string };
+    };
+    expect(body.access_token).toBeUndefined();
+    expect(body.error?.code).toBe("NOT_AUTHORIZED");
+  });
+
   it("502s when supabase verify fails upstream", async () => {
     const res = await consumeAdminMagicLink(
       env(),
@@ -284,10 +299,22 @@ describe("admin login HTML", () => {
     expect(html.toLowerCase()).toContain("not a player");
   });
 
+  it("shows a generic notice when error=1", () => {
+    const html = adminLoginHtml();
+    expect(html).toContain('get("error")');
+    expect(html).toContain("expired or invalid");
+    expect(html).not.toContain("token_hash");
+    expect(html).not.toContain("refresh_token");
+  });
+
   it("callback posts token_hash to consume", () => {
     const html = adminCallbackHtml();
     expect(html).toContain("/v1/admin/login/consume");
     expect(html).toContain("token_hash");
+    expect(html).toContain("location.hash");
     expect(html).toContain("noema.admin.token");
+    expect(html).toContain("/admin/login?error=1");
+    expect(html).not.toContain("refresh_token");
+    expect(html).not.toContain("provider_token");
   });
 });

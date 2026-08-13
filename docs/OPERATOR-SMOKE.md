@@ -16,6 +16,18 @@ Authenticated steps need an ADMIN JWT (`typ: admin-access`).
 
 **Primary:** open `https://noema.guru/admin/login`, submit an allowlisted operator email, follow the magic link. Do not commit mailbox addresses.
 
+**Supabase Auth Magic Link template (required):** Redirect URL allowlist alone is not enough. The Magic Link email template must include:
+
+```
+https://noema.guru/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+```
+
+Local:
+
+```
+http://127.0.0.1:8787/admin/callback?token_hash={{ .TokenHash }}&type={{ .Type }}
+```
+
 **Emergency CLI** (not the UI) — `ADMIN_OPERATOR_TOKEN` Worker secret:
 
 ```bash

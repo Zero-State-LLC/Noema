@@ -184,7 +184,7 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
+      const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -200,8 +200,9 @@ export async function requestAdminMagicLink(
           },
         }),
       });
+      if (!res.ok) console.error("admin magic-link send failed");
     } catch {
-      // send failures stay generic 200
+      console.error("admin magic-link send failed");
     }
   }
 
@@ -250,7 +251,12 @@ export async function consumeAdminMagicLink(
   } catch {
     return err("UPSTREAM", "auth provider unavailable", 502);
   }
-  if (!upstream.ok) return err("UPSTREAM", "auth provider rejected the link", 502);
+  if (!upstream.ok) {
+    if (upstream.status >= 400 && upstream.status <= 499) {
+      return err("NOT_AUTHORIZED", "invalid operator token", 401);
+    }
+    return err("UPSTREAM", "auth provider rejected the link", 502);
+  }
 
   const payload = (await upstream.json().catch(() => ({}))) as {
     user?: { email?: string };

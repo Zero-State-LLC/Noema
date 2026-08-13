@@ -121,6 +121,10 @@ export function adminLoginHtml(): string {
 (() => {
   const form = document.getElementById("login-form");
   const notice = document.getElementById("notice");
+  if (new URLSearchParams(location.search).get("error") === "1") {
+    notice.className = "notice bad";
+    notice.textContent = "That login link is expired or invalid. Request a new one.";
+  }
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     notice.className = "notice";
@@ -158,10 +162,11 @@ export function adminCallbackHtml(): string {
 </main>
 <script>
 (() => {
-  const params = new URLSearchParams(location.search);
-  const token_hash = params.get("token_hash") || "";
-  const type = params.get("type") || "";
-  const code = params.get("code") || "";
+  const search = new URLSearchParams(location.search);
+  const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+  const token_hash = search.get("token_hash") || hash.get("token_hash") || "";
+  const type = search.get("type") || hash.get("type") || "";
+  const code = search.get("code") || hash.get("code") || "";
   (async () => {
     try {
       const res = await fetch("/v1/admin/login/consume", {
@@ -175,7 +180,7 @@ export function adminCallbackHtml(): string {
       sessionStorage.setItem("noema.admin.session", data.session_id);
       location.href = "/admin";
     } catch (err) {
-      location.href = "/admin/login";
+      location.href = "/admin/login?error=1";
     }
   })();
 })();
