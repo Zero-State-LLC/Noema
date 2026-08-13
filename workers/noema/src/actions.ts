@@ -34,6 +34,8 @@ export type PlayerRuntime = {
   controlling_session_id?: string;
   last_seen_ms?: number;
   actor_kind?: "live" | "system";
+  /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
+  wait_until_cycle?: number;
   /** GC1 derived cache. Not WorldState. Rebuildable. */
   practice?: {
     catalog_id: "mastery-catalog/gc1-s0" | "mastery-catalog/gc1-s1";

@@ -22,6 +22,10 @@ export type WorldHead = {
   settlement_health: string;
   state_json: WorldRuntime;
   updated_at?: string;
+  revision?: number;
+  ledger_head_event_id?: string | null;
+  state_digest?: string | null;
+  writer_generation?: string | null;
 };
 
 function restBase(env: Env): { url: string; key: string } | null {
@@ -159,6 +163,10 @@ export async function putWorldHead(
         status: head.status,
         settlement_health: head.settlement_health,
         state_json: head.state_json,
+        revision: head.revision ?? 0,
+        ledger_head_event_id: head.ledger_head_event_id ?? null,
+        state_digest: head.state_digest ?? null,
+        writer_generation: head.writer_generation ?? null,
         updated_at: new Date().toISOString(),
       }),
     });
