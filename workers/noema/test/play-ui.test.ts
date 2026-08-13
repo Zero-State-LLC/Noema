@@ -54,16 +54,21 @@ describe("play-ui helpers", () => {
     expect(m.ok && m.command).toBe("MOVE");
   });
 
-  it("does not pretend strategic verbs work when hosted gap", () => {
-    const r = parsePlayCommand("repair relay");
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error.toLowerCase()).toMatch(/not available/);
+  it("parses repair/harvest/message/trade as Tier 1", () => {
+    expect(parsePlayCommand("repair scarred-conduit", GRID.entities).ok).toBe(true);
+    expect(parsePlayCommand("harvest market-post 2").ok).toBe(true);
+    const msg = parsePlayCommand('message alice "hello"');
+    expect(msg.ok).toBe(true);
+    if (msg.ok) expect(msg.command).toBe("MESSAGE");
+    const tr = parsePlayCommand("trade bob offer=energy:3 want=storage:1");
+    expect(tr.ok).toBe(true);
+    if (tr.ok) expect(tr.command).toBe("TRADE");
   });
 
   it("humanizes machine errors for players", () => {
-    const h = humanizeError("PRECONDITION_FAILED", "need energy");
-    expect(h.primary).not.toBe("PRECONDITION_FAILED");
-    expect(h.primary.toLowerCase()).toMatch(/cannot|yet|blocked|need/);
+    const h = humanizeError("BUDGET_EXCEEDED", "need energy");
+    expect(h.primary).not.toBe("BUDGET_EXCEEDED");
+    expect(h.primary.toLowerCase()).toMatch(/enough|resource|energy|budget/);
     expect(humanizeError("MOVE_REJECTED", "no exit").primary).toMatch(/cannot go/i);
   });
 
@@ -71,7 +76,15 @@ describe("play-ui helpers", () => {
     const opps = deriveOpportunities(GRID);
     expect(opps.length).toBeGreaterThan(0);
     expect(opps.some((o) => /scarred|damage|failed/i.test(o.text))).toBe(true);
-    expect(opps.every((o) => o.cmd.startsWith("inspect ") || o.cmd.startsWith("move "))).toBe(true);
+    expect(
+      opps.every(
+        (o) =>
+          o.cmd.startsWith("inspect ") ||
+          o.cmd.startsWith("move ") ||
+          o.cmd.startsWith("repair ") ||
+          o.cmd.startsWith("harvest "),
+      ),
+    ).toBe(true);
   });
 
   it("builds a minimal route diagram from exits", () => {
@@ -124,8 +137,9 @@ describe("play-ui helpers", () => {
 
   it("documents hosted vs gap actions", () => {
     expect(HOSTED_ACTIONS).toContain("INSPECT");
-    expect(BACKEND_GAPS).toContain("REPAIR");
-    expect(BACKEND_GAPS).toContain("TRADE_PROPOSE");
+    expect(HOSTED_ACTIONS).toContain("REPAIR");
+    expect(HOSTED_ACTIONS).toContain("TRADE");
+    expect(BACKEND_GAPS).toContain("ORG_CREATE");
   });
 });
 

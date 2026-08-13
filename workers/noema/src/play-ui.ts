@@ -1,7 +1,13 @@
 /**
  * Pure PLAY presentation helpers — testable without DOM.
- * Surfaces only hosted-supported actions; no new mechanics.
+ * Hosted action parity: Specs-aligned parser adapter + presentation.
  */
+
+import {
+  helpText,
+  humanizeActionError,
+  parseHumanCommand,
+} from "./actions";
 
 export type ExitObs = {
   direction: string;
@@ -13,6 +19,11 @@ export type EntityObs = {
   entity_id: string;
   label: string;
   entity_type: string;
+  condition?: number;
+  repairable?: boolean;
+  harvestable?: boolean;
+  stock_resource?: string;
+  stock_amount?: number;
 };
 
 export type LocationObs = {
@@ -47,18 +58,30 @@ export type TrailItem = {
   detail?: string;
 };
 
-/** Hosted Worker supported commands (Stage 0). */
-export const HOSTED_ACTIONS = ["ENTER_WORLD", "LOOK", "MOVE", "INSPECT", "WAIT", "OBSERVE"] as const;
-
-/** Canonical verbs present in Python Core but not hosted Worker. */
-export const BACKEND_GAPS = [
+/** Hosted Tier 1 + navigation (Player Action Map). */
+export const HOSTED_ACTIONS = [
+  "ENTER_WORLD",
+  "LOOK",
+  "MOVE",
+  "INSPECT",
+  "WAIT",
+  "OBSERVE",
   "MESSAGE",
-  "TRADE_PROPOSE",
-  "TRADE_ACCEPT",
-  "TRADE_REJECT",
-  "ORG_CREATE",
+  "TRADE",
   "HARVEST",
   "REPAIR",
+] as const;
+
+/** Not yet on hosted Worker (Tier 2/3). */
+export const BACKEND_GAPS = [
+  "ORG_CREATE",
+  "ORG_MEMBER_ADD",
+  "ORG_MEMBER_REMOVE",
+  "CONTEST_DECLARE",
+  "CONTEST_DEFEND",
+  "AGREEMENT_FORM",
+  "AGREEMENT_TERMINATE",
+  "ACCESS_POLICY",
 ] as const;
 
 const DIR_ARROW: Record<string, string> = {
@@ -133,13 +156,21 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
     const name = titleCaseLabel(e.label);
     const cond = entityConditionText(e.label, e.entity_type);
     const inspectCmd = `inspect ${e.label}`;
-    if (/scar|damag|broken|fail|ruin/i.test(`${e.label} ${e.entity_type}`)) {
+    if (e.repairable || /scar|damag|broken|fail|ruin/i.test(`${e.label} ${e.entity_type}`)) {
       out.push({
         id: `opp-${e.entity_id}-dmg`,
-        text: `${name} looks ${cond}.`,
-        actionLabel: `Inspect ${name}`,
-        cmd: inspectCmd,
+        text: `${name} looks ${cond}${e.condition != null ? ` (${e.condition}%)` : ""}.`,
+        actionLabel: e.repairable !== false ? `Repair ${name}` : `Inspect ${name}`,
+        cmd: e.repairable !== false ? `repair ${e.label}` : inspectCmd,
         priority: 10,
+      });
+    } else if (e.harvestable || (e.stock_amount != null && e.stock_amount > 0)) {
+      out.push({
+        id: `opp-${e.entity_id}-harv`,
+        text: `${name} has ${e.stock_amount ?? "?"} ${e.stock_resource || "resource"} available.`,
+        actionLabel: `Harvest ${name}`,
+        cmd: `harvest ${e.label}`,
+        priority: 9,
       });
     } else if (/market|board|post|trade/i.test(e.label)) {
       out.push({
@@ -184,14 +215,16 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
 
 export function contextualActionsForEntity(e: EntityObs): ContextualAction[] {
   const label = titleCaseLabel(e.label);
-  // Only hosted actions
-  return [
-    {
-      label: `Inspect ${label}`,
-      cmd: `inspect ${e.label}`,
-      kind: "primary",
-    },
+  const acts: ContextualAction[] = [
+    { label: `Inspect ${label}`, cmd: `inspect ${e.label}`, kind: "primary" },
   ];
+  if (e.repairable || (e.condition != null && e.condition < 100 && e.entity_type !== "ARTIFACT")) {
+    acts.push({ label: `Repair ${label}`, cmd: `repair ${e.label}`, kind: "primary" });
+  }
+  if (e.harvestable || (e.stock_amount != null && e.stock_amount > 0)) {
+    acts.push({ label: `Harvest ${label}`, cmd: `harvest ${e.label}`, kind: "secondary" });
+  }
+  return acts;
 }
 
 export function contextualActionsForLocation(loc: LocationObs): ContextualAction[] {
@@ -250,114 +283,40 @@ export function resolveEntityTarget(
 
 export type ParsedCommand =
   | { ok: true; command: string; arguments: Record<string, unknown>; display: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: string; choices?: string[] };
 
+/** Adapter: human line → wire command for /v1/command (same path as GUI). */
 export function parsePlayCommand(line: string, entities: EntityObs[] = []): ParsedCommand {
-  const parts = line.trim().split(/\s+/);
-  const v = (parts.shift() || "").toLowerCase();
-  if (!v) return { ok: false, error: "Type a command, or use an action below." };
-
-  if (v === "look" || v === "l") {
-    return { ok: true, command: "LOOK", arguments: {}, display: "You look around." };
-  }
-  if (v === "wait") {
-    return { ok: true, command: "WAIT", arguments: {}, display: "You wait a moment." };
-  }
-  if (v === "observe") {
-    return { ok: true, command: "OBSERVE", arguments: {}, display: "You observe carefully." };
-  }
-  if (v === "enter") {
-    return { ok: true, command: "ENTER_WORLD", arguments: {}, display: "You enter the world." };
-  }
-  if (v === "move" || v === "go") {
-    const dir = (parts[0] || "").toLowerCase();
-    if (!dir) return { ok: false, error: "Move where? Try: move east" };
-    return {
-      ok: true,
-      command: "MOVE",
-      arguments: { direction: dir },
-      display: `You move ${dir}.`,
-    };
-  }
-  if (v === "inspect" || v === "examine" || v === "x") {
-    const raw = parts.join(" ");
-    if (!raw) return { ok: false, error: "Inspect what? Click an object or type its name." };
-    const resolved = resolveEntityTarget(raw, entities);
-    if (resolved) {
-      return {
-        ok: true,
-        command: "INSPECT",
-        arguments: { entity_id: resolved.entity_id },
-        display: `You inspect ${titleCaseLabel(resolved.label)}.`,
-      };
+  const r = parseHumanCommand(line, {
+    entities: entities.map((e) => ({
+      entity_id: e.entity_id,
+      label: e.label,
+      entity_type: e.entity_type,
+      condition: e.condition,
+      stock_resource: e.stock_resource,
+      stock_amount: e.stock_amount,
+    })),
+  });
+  if (!r.ok) {
+    if (r.code === "HELP") {
+      return { ok: false, error: helpText(r.choices?.[0]), code: "HELP" };
     }
-    // Pass through — backend may match label
-    return {
-      ok: true,
-      command: "INSPECT",
-      arguments: { entity_id: raw },
-      display: `You try to inspect ${raw}.`,
-    };
+    return { ok: false, error: r.error, code: r.code, choices: r.choices };
   }
-
-  // Unsupported strategic verbs → honest gap, not silent fail
-  if (["repair", "harvest", "trade", "message", "org", "create"].includes(v)) {
-    return {
-      ok: false,
-      error: `“${v}” is not available in this stage of the world yet. You can look, move, inspect, or wait.`,
-    };
-  }
-
+  const a = r.action;
   return {
-    ok: false,
-    error: `Unknown command “${v}”. Try look, move, inspect, or wait.`,
+    ok: true,
+    command: a.verb,
+    arguments: a.arguments as Record<string, unknown>,
+    display: r.display,
   };
 }
 
 export function humanizeError(code?: string, message?: string): { primary: string; advanced?: string } {
-  const c = (code || "").toUpperCase();
-  const m = message || "That did not work.";
-  if (c === "MOVE_REJECTED") {
-    return {
-      primary: "You cannot go that way from here.",
-      advanced: `${c}: ${m}`,
-    };
+  if (code === "NOT_AUTHORIZED" || code === "UNAUTHORIZED") {
+    return { primary: "You need a session to act here.", advanced: `${code}: ${message || ""}` };
   }
-  if (c === "INSPECT_FAILED") {
-    return {
-      primary: "You do not see that here.",
-      advanced: `${c}: ${m}`,
-    };
-  }
-  if (c === "NOT_IN_WORLD") {
-    return {
-      primary: "Enter the world first.",
-      advanced: `${c}: ${m}`,
-    };
-  }
-  if (c === "NOT_AUTHORIZED" || c === "UNAUTHORIZED") {
-    return {
-      primary: "You need a session to act here.",
-      advanced: `${c}: ${m}`,
-    };
-  }
-  if (c === "UNKNOWN_COMMAND") {
-    return {
-      primary: "That action is not available here yet.",
-      advanced: `${c}: ${m}`,
-    };
-  }
-  if (c === "PRECONDITION_FAILED") {
-    return {
-      primary: "You cannot do that yet.",
-      advanced: `${c}: ${m}`,
-    };
-  }
-  // Prefer human message when it already is readable
-  if (m && !/^[A-Z_]+$/.test(m)) {
-    return { primary: m, advanced: c || undefined };
-  }
-  return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };
+  return humanizeActionError(code, message);
 }
 
 export function trailFromResult(opts: {

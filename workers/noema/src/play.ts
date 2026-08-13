@@ -193,7 +193,7 @@ export function playHtml(): string {
         <form class="cmdform" id="cmd-form">
           <label class="sr" for="cmd">Command</label>
           <input id="cmd" autocomplete="off" spellcheck="false"
-            placeholder="look · move east · inspect scarred conduit · wait" disabled/>
+            placeholder='look · repair scarred conduit · harvest bond-board · message alice "hi" · trade bob offer=energy:1 want=compute:1 · help' disabled/>
           <button class="btn primary" id="send" type="submit" disabled>Send</button>
         </form>
         <p class="hint">Commands and buttons use the same actions.</p>
@@ -358,35 +358,19 @@ function playClientBundle(): string {
       return null;
     }
     function parsePlayCommand(line, entities) {
-      const parts = line.trim().split(/\\s+/);
-      const v = (parts.shift() || "").toLowerCase();
-      if (!v) return { ok: false, error: "Type a command, or use an action below." };
-      if (v === "look" || v === "l") return { ok: true, command: "LOOK", arguments: {}, display: "You look around." };
-      if (v === "wait") return { ok: true, command: "WAIT", arguments: {}, display: "You wait a moment." };
-      if (v === "observe") return { ok: true, command: "OBSERVE", arguments: {}, display: "You observe carefully." };
-      if (v === "enter") return { ok: true, command: "ENTER_WORLD", arguments: {}, display: "You enter the world." };
-      if (v === "move" || v === "go") {
-        const dir = (parts[0] || "").toLowerCase();
-        if (!dir) return { ok: false, error: "Move where? Try: move east" };
-        return { ok: true, command: "MOVE", arguments: { direction: dir }, display: "You move " + dir + "." };
-      }
-      if (v === "inspect" || v === "examine" || v === "x") {
-        const raw = parts.join(" ");
-        if (!raw) return { ok: false, error: "Inspect what? Click an object or type its name." };
-        const resolved = resolveEntityTarget(raw, entities);
-        if (resolved) return { ok: true, command: "INSPECT", arguments: { entity_id: resolved.entity_id }, display: "You inspect " + titleCaseLabel(resolved.label) + "." };
-        return { ok: true, command: "INSPECT", arguments: { entity_id: raw }, display: "You try to inspect " + raw + "." };
-      }
-      if (["repair","harvest","trade","message","org","create"].includes(v)) {
-        return { ok: false, error: "“" + v + "” is not available in this stage of the world yet. You can look, move, inspect, or wait." };
-      }
-      return { ok: false, error: "Unknown command “" + v + "”. Try look, move, inspect, or wait." };
+      const trimmed = line.trim();
+      if (!trimmed) return { ok: false, error: "Type a command, or use an action below." };
+      // Prefer server-side normalization via line argument for full Tier 1 map
+      return { ok: true, command: "LOOK", arguments: { line: trimmed }, display: trimmed, useLine: true };
     }
     function humanizeError(code, message) {
       const c = (code || "").toUpperCase();
       const m = message || "That did not work.";
+      if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: c + ": " + m };
+      if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: c + ": " + m };
+      if (c === "AMBIGUOUS_TARGET") return { primary: m, advanced: c };
       if (c === "MOVE_REJECTED") return { primary: "You cannot go that way from here.", advanced: c + ": " + m };
-      if (c === "INSPECT_FAILED") return { primary: "You do not see that here.", advanced: c + ": " + m };
+      if (c === "INSPECT_FAILED" || c === "NOT_FOUND") return { primary: "You do not see that here.", advanced: c + ": " + m };
       if (c === "NOT_IN_WORLD") return { primary: "Enter the world first.", advanced: c + ": " + m };
       if (c === "NOT_AUTHORIZED") return { primary: "You need a session to act here.", advanced: c + ": " + m };
       if (c === "UNKNOWN_COMMAND") return { primary: "That action is not available here yet.", advanced: c + ": " + m };
@@ -471,6 +455,7 @@ function playClientBundle(): string {
         const msg = (data.error && data.error.message) || res.statusText || "request failed";
         const err = new Error(msg);
         err.code = data.error && data.error.code;
+        err.choices = data.error && data.error.choices;
         throw err;
       }
       return data;
@@ -531,12 +516,17 @@ function playClientBundle(): string {
       $("entity-list").innerHTML = ents.length
         ? ents.map(e => {
             const name = titleCaseLabel(e.label);
-            const sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+            let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+            if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
+            if (e.harvestable && e.stock_amount != null) sub = (e.stock_amount) + " " + (e.stock_resource || "resource") + " · " + sub;
             const glyph = entityConditionGlyph(e.label, e.entity_type);
+            let acts = '<button type="button" class="btn" data-cmd="inspect ' + esc(e.label) + '">Inspect</button>';
+            if (e.repairable) acts += '<button type="button" class="btn primary" data-cmd="repair ' + esc(e.label) + '">Repair</button>';
+            if (e.harvestable) acts += '<button type="button" class="btn" data-cmd="harvest ' + esc(e.label) + '">Harvest</button>';
             return '<li class="ent">' +
               '<span class="glyph" aria-hidden="true">' + glyph + '</span>' +
               '<span><strong>' + esc(name) + '</strong><span class="sub">' + esc(sub) + '</span></span>' +
-              '<span class="acts"><button type="button" class="btn" data-cmd="inspect ' + esc(e.label) + '">Inspect</button></span>' +
+              '<span class="acts">' + acts + '</span>' +
               '</li>';
           }).join("")
         : '<li class="empty">Nothing notable right here.</li>';
@@ -563,18 +553,35 @@ function playClientBundle(): string {
           ).join("")
         : '<li class="empty">No clear local pressure — try looking or following a route.</li>';
 
-      // Action priority: primary inspects, moves, utility look/wait
-      const acts = [];
-      if (ents[0]) acts.push({ label: "Inspect " + titleCaseLabel(ents[0].label), cmd: "inspect " + ents[0].label, cls: "primary" });
-      for (const e of ents.slice(1, 2)) acts.push({ label: "Inspect " + titleCaseLabel(e.label), cmd: "inspect " + e.label, cls: "" });
-      for (const x of exits.slice(0, 3)) acts.push({ label: "Move " + x.direction, cmd: "move " + x.direction, cls: "move" });
-      acts.push({ label: "Look around", cmd: "look", cls: "util" });
-      acts.push({ label: "Wait", cmd: "wait", cls: "util" });
+      // Prefer server-derived affordances (available now); fall back to local
+      let acts = [];
+      if (obs.affordances && obs.affordances.length) {
+        acts = obs.affordances.filter(a => a.available).slice(0, 10).map(a => ({
+          label: a.label,
+          cmd: a.cmd,
+          cls: a.kind === "primary" ? "primary" : a.kind === "move" ? "move" : a.kind === "utility" ? "util" : "",
+        }));
+      } else {
+        if (ents[0]) acts.push({ label: "Inspect " + titleCaseLabel(ents[0].label), cmd: "inspect " + ents[0].label, cls: "primary" });
+        for (const e of ents) {
+          if (e.repairable) acts.push({ label: "Repair " + titleCaseLabel(e.label), cmd: "repair " + e.label, cls: "primary" });
+          if (e.harvestable) acts.push({ label: "Harvest " + titleCaseLabel(e.label), cmd: "harvest " + e.label, cls: "" });
+        }
+        for (const x of exits.slice(0, 3)) acts.push({ label: "Move " + x.direction, cmd: "move " + x.direction, cls: "move" });
+        acts.push({ label: "Look around", cmd: "look", cls: "util" });
+        acts.push({ label: "Wait", cmd: "wait", cls: "util" });
+      }
       $("act-strip").innerHTML = acts.map(a =>
         '<button type="button" class="btn ' + a.cls + '" data-cmd="' + esc(a.cmd) + '">' + esc(a.label) + '</button>'
       ).join("");
 
       const rows = statusFromObservation(obs);
+      if (obs.budgets) {
+        rows.push({ label: "Energy", value: String(obs.budgets.energy) });
+        rows.push({ label: "Compute", value: String(obs.budgets.compute) });
+        rows.push({ label: "Storage", value: String(obs.budgets.storage) });
+        rows.push({ label: "Attention", value: String(obs.budgets.attention) });
+      }
       $("status-rows").innerHTML = rows.map(r =>
         '<li><span>' + esc(r.label) + '</span><b>' + esc(r.value) + '</b></li>'
       ).join("");
@@ -584,38 +591,46 @@ function playClientBundle(): string {
 
     async function sendCommand(line) {
       if (!state.token || state.busy) return;
-      const entities = (state.obs && state.obs.location && state.obs.location.entities) || [];
-      const parsed = parsePlayCommand(line, entities);
-      if (!parsed.ok) { notice(parsed.error, "bad"); return; }
+      const raw = String(line || "").trim();
+      if (!raw) { notice("Type a command, or use an action below.", "bad"); return; }
+      // HELP client-side shortcut when offline observation needed
+      if (/^help\\b/i.test(raw) && !state.token) {
+        notice("Enter the world first.", "bad");
+        return;
+      }
       state.busy = true;
       $("send").disabled = true;
       notice("Acting…");
       $("err-advanced").textContent = "";
       try {
+        // Single path: human line → server parseHumanCommand (same as agent structured verbs)
         const body = {
           request_id: "web." + Date.now(),
           idempotency_key: "web." + Date.now() + "." + Math.random().toString(16).slice(2, 8),
-          command: parsed.command,
-          arguments: parsed.arguments || {},
-          client: { type: "human", runtime: "play-ui" },
+          command: "LOOK",
+          arguments: { line: raw },
+          client: { type: "human", runtime: "play-ui", client_action_sequence: Date.now() },
         };
         const res = await api("/v1/command", { method: "POST", body: JSON.stringify(body) });
         renderObs(res.observation);
         $("meta-settled").textContent = res.settled === true ? "settled" : "";
-        pushTrailItems(trailFromResult({
-          display: parsed.display,
-          command: parsed.command,
-          ok: true,
-          observation: res.observation,
-        }));
+        const consequence = (res.observation && res.observation.consequence) || raw;
+        pushTrailItems([
+          { kind: "you", title: consequence.split("\\n")[0] },
+          ...(res.observation && res.observation.location
+            ? [{ kind: "local", title: "You are at " + res.observation.location.name + "." }]
+            : []),
+        ]);
         $("cmd").value = "";
-        notice("Done.", "ok");
-        setTimeout(() => { if ($("notice").textContent === "Done.") notice(""); }, 1200);
+        notice(res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "Done.", "ok");
+        setTimeout(() => { if (($("notice").textContent || "").indexOf("Done") === 0 || ($("notice").className || "").indexOf("ok") >= 0) notice(""); }, 1600);
       } catch (e) {
         const h = humanizeError(e.code, e.message);
-        notice(h.primary, "bad");
+        let primary = h.primary;
+        if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
+        notice(primary, "bad");
         $("err-advanced").textContent = h.advanced || "";
-        pushTrailItems(trailFromResult({ display: parsed.display, command: parsed.command, ok: false, errorPrimary: h.primary }));
+        pushTrailItems([{ kind: "fail", title: primary.split("\\n")[0] }]);
       } finally {
         state.busy = false;
         $("send").disabled = !state.token;

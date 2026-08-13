@@ -1,0 +1,854 @@
+/**
+ * Hosted world command application — Tier 1 Player Action Map.
+ * Same semantics for human text, GUI, and agent structured commands.
+ */
+
+import {
+  COSTS,
+  canPay,
+  cloneBudgets,
+  debit,
+  deriveAffordances,
+  enrichEntity,
+  helpText,
+  isHarvestable,
+  isRepairable,
+  normalizeStructuredCommand,
+  parseHumanCommand,
+  titleCaseLabel,
+  type Budgets,
+  type CanonicalAction,
+  type EntityRuntime,
+  type InboxMessage,
+  type OpenTrade,
+  type PlayerRuntime,
+} from "./actions";
+import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
+
+export type RoomState = {
+  room_id: string;
+  name: string;
+  description: string;
+  exits: Array<{ direction: string; to_room_id: string }>;
+  entities: EntityRuntime[];
+};
+
+export type WorldRuntime = {
+  world_id: string;
+  world_name?: string;
+  world_seed?: string;
+  cycle: number;
+  sequence: number;
+  entry_room_id: string;
+  rooms: Record<string, RoomState>;
+  players: Record<string, PlayerRuntime>;
+  trades: Record<string, OpenTrade>;
+  messages: InboxMessage[];
+  seen_idempotency: Record<string, CommandResult>;
+  unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
+};
+
+function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
+  let p = w.players[principal.player_id];
+  if (!p) {
+    p = {
+      room_id,
+      entered: false,
+      budgets: cloneBudgets(null),
+      handle: principal.player_id.replace(/^player\./, "").slice(0, 32),
+    };
+    w.players[principal.player_id] = p;
+  } else if (!p.budgets) {
+    p.budgets = cloneBudgets(null);
+  } else {
+    p.budgets = cloneBudgets(p.budgets);
+  }
+  if (!p.handle) p.handle = principal.player_id.replace(/^player\./, "").slice(0, 32);
+  return p;
+}
+
+function roomEntities(room: RoomState): EntityRuntime[] {
+  room.entities = (room.entities || []).map((e) => enrichEntity(e));
+  return room.entities;
+}
+
+function findEntity(room: RoomState, idOrLabel: string): EntityRuntime | null {
+  const ents = roomEntities(room);
+  const t = idOrLabel.toLowerCase();
+  return (
+    ents.find((e) => e.entity_id.toLowerCase() === t || e.label.toLowerCase() === t) ||
+    null
+  );
+}
+
+function deriveRoomCondition(room: RoomState): string {
+  const ents = roomEntities(room);
+  const blob = `${room.description} ${ents.map((e) => `${e.label} ${e.entity_type}`).join(" ")}`.toLowerCase();
+  const bits: string[] = [];
+  if (/scar|damag|broken|fail/.test(blob) || ents.some((e) => (e.condition ?? 100) < 50)) {
+    bits.push("Infrastructure shows damage.");
+  }
+  if (/trade|market|exchange|bond|contract/.test(blob)) bits.push("Trade structures are nearby.");
+  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
+  if (ents.some(isHarvestable)) bits.push("A resource node can be worked.");
+  if (!bits.length) {
+    bits.push(ents.length ? "Objects here can be examined." : "Open ground — routes lead outward.");
+  }
+  return bits.slice(0, 2).join(" ");
+}
+
+function inspectDetail(entity: EntityRuntime): string {
+  const label = titleCaseLabel(entity.label);
+  if (entity.condition != null && entity.condition < 100) {
+    return `${label} condition ${entity.condition}%. ${
+      entity.condition < 50 ? "Damaged — repair may restore it." : "Present and serviceable."
+    }`;
+  }
+  if (isHarvestable(entity)) {
+    return `${label} holds ${entity.stock_amount} ${entity.stock_resource} available to harvest.`;
+  }
+  const t = (entity.entity_type || "").toUpperCase();
+  if (t === "ARTIFACT") return `${label} is a surviving record. Incomplete, but readable up close.`;
+  if (t === "RUIN") return `${label} is a ruin. Entry may be legal; meaning is not free.`;
+  return `${label} (${entity.entity_type.toLowerCase()}) is present and can be examined.`;
+}
+
+export function buildObservation(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  consequence?: string,
+): Observation {
+  const pl = ensurePlayer(w, principal, w.entry_room_id || "room.relay-quarter");
+  const room_id = pl.entered ? pl.room_id : w.entry_room_id || "room.relay-quarter";
+  const room = w.rooms[room_id] || Object.values(w.rooms)[0];
+  const entities = roomEntities(room);
+  const exits = (room.exits || []).map((e) => ({
+    direction: e.direction,
+    to_room_id: e.to_room_id,
+    to_room_name: w.rooms[e.to_room_id]?.name,
+  }));
+  const otherPlayers = Object.entries(w.players)
+    .filter(([, p]) => p.entered)
+    .map(([id, p]) => ({ player_id: id, handle: p.handle }));
+  const openTrades = Object.values(w.trades || {}).filter(
+    (t) =>
+      t.status === "OPEN" &&
+      (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
+  );
+  const affordances = deriveAffordances({
+    entities,
+    exits,
+    budgets: pl.budgets,
+    otherPlayers,
+    openTrades,
+    selfId: principal.player_id,
+  });
+  const available_actions = [
+    ...new Set(
+      affordances.filter((a) => a.available).map((a) => a.operation || a.verb),
+    ),
+  ];
+  const inbox = (w.messages || [])
+    .filter((m) => m.recipient_id === principal.player_id)
+    .slice(-20)
+    .map((m) => ({
+      message_id: m.message_id,
+      sender_id: m.sender_id,
+      text: m.text,
+      delivered_cycle: m.delivered_cycle,
+    }));
+
+  return {
+    cycle: w.cycle,
+    sequence: w.sequence,
+    world_name: w.world_name,
+    location: {
+      room_id: room.room_id,
+      name: room.name,
+      description: room.description,
+      condition: deriveRoomCondition(room),
+      exits,
+      entities: entities.map((e) => ({
+        entity_id: e.entity_id,
+        label: e.label,
+        entity_type: e.entity_type,
+        condition: e.condition,
+        stock_resource: e.stock_resource,
+        stock_amount: e.stock_amount,
+        repairable: isRepairable(e),
+        harvestable: isHarvestable(e),
+      })),
+    },
+    player_id: principal.player_id,
+    budgets: { ...pl.budgets },
+    messages: inbox,
+    trades: openTrades.map((t) => ({
+      trade_id: t.trade_id,
+      proposer_id: t.proposer_id,
+      counterparty_id: t.counterparty_id,
+      offered: t.offered,
+      requested: t.requested,
+      status: t.status,
+      role: t.proposer_id === principal.player_id ? ("proposer" as const) : ("counterparty" as const),
+    })),
+    players_here: otherPlayers.filter((p) => p.player_id !== principal.player_id),
+    available_actions,
+    affordances: affordances.map((a) => ({
+      action: a.action,
+      verb: a.verb,
+      operation: a.operation,
+      label: a.label,
+      cmd: a.cmd,
+      target_id: a.target_id,
+      target_label: a.target_label,
+      requires: a.requires as Record<string, number> | undefined,
+      available: a.available,
+      reason: a.reason,
+      kind: a.kind,
+    })),
+    consequence,
+  };
+}
+
+function fail(
+  request_id: string,
+  code: string,
+  message: string,
+  choices?: string[],
+): CommandResult {
+  return { ok: false, request_id, error: { code, message, choices } };
+}
+
+function success(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  events: CommandResult["events"],
+  consequence: string,
+  settled: boolean,
+): CommandResult {
+  return {
+    ok: true,
+    request_id,
+    observation: buildObservation(w, principal, consequence),
+    events,
+    provenance: {
+      player_id: principal.player_id,
+      controller_id: principal.controller_id,
+      session_id: principal.session_id,
+      agent_id: principal.agent_id,
+    },
+    settled,
+  };
+}
+
+export async function applyWorldCommand(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  envl: CommandEnvelope,
+  settle: (ev: {
+    event_id: string;
+    event_type: string;
+    sequence: number;
+    payload: Record<string, unknown>;
+  }) => Promise<boolean>,
+): Promise<CommandResult> {
+  const request_id = envl.request_id || crypto.randomUUID();
+  const idem = envl.idempotency_key || request_id;
+  if (w.seen_idempotency[idem]) return w.seen_idempotency[idem];
+
+  if (envl.player_id && envl.player_id !== principal.player_id) {
+    return fail(request_id, "FORBIDDEN", "player_id does not match principal");
+  }
+
+  // Client may send human line or structured command
+  const rawArgs = (envl.arguments || {}) as Record<string, unknown>;
+  let parsed =
+    typeof rawArgs.line === "string"
+      ? parseHumanCommand(String(rawArgs.line), {
+          entities: roomEntities(
+            w.rooms[w.players[principal.player_id]?.room_id || w.entry_room_id] ||
+              Object.values(w.rooms)[0],
+          ),
+          players: Object.entries(w.players).map(([id, p]) => ({
+            player_id: id,
+            handle: p.handle,
+          })),
+          selfId: principal.player_id,
+          openTrades: Object.values(w.trades || {}),
+        })
+      : normalizeStructuredCommand(envl.command, rawArgs);
+
+  // Also accept command as human line if arguments empty and command looks lower-case multiword
+  if (!parsed.ok && envl.command && !["LOOK", "MOVE", "INSPECT", "WAIT", "MESSAGE", "TRADE", "COMMIT", "HARVEST", "REPAIR", "ENTER_WORLD", "JOIN", "OBSERVE"].includes(envl.command.toUpperCase())) {
+    const pl = w.players[principal.player_id];
+    const room = w.rooms[pl?.room_id || w.entry_room_id];
+    parsed = parseHumanCommand(envl.command, {
+      entities: room ? roomEntities(room) : [],
+      players: Object.entries(w.players).map(([id, p]) => ({ player_id: id, handle: p.handle })),
+      selfId: principal.player_id,
+      openTrades: Object.values(w.trades || {}),
+    });
+  }
+
+  if (!parsed.ok) {
+    if (parsed.code === "HELP") {
+      const topic = parsed.choices?.[0];
+      const pl = ensurePlayer(w, principal, w.entry_room_id);
+      const room = w.rooms[pl.room_id || w.entry_room_id];
+      const aff = deriveAffordances({
+        entities: room ? roomEntities(room) : [],
+        exits: room?.exits || [],
+        budgets: pl.budgets,
+        otherPlayers: Object.entries(w.players).map(([id, p]) => ({
+          player_id: id,
+          handle: p.handle,
+        })),
+        openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
+        selfId: principal.player_id,
+      });
+      const text = helpText(topic, aff);
+      const result = success(w, principal, request_id, [], text, false);
+      // HELP does not mutate — still return ok observation
+      result.observation = {
+        ...buildObservation(w, principal, text),
+        consequence: text,
+      };
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+    return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
+  }
+
+  const action = parsed.action;
+  const events: NonNullable<CommandResult["events"]> = [];
+  let settled = false;
+  const entry = w.entry_room_id || "room.relay-quarter";
+
+  const pushEvent = (event_type: string, payload: Record<string, unknown>) => {
+    w.sequence += 1;
+    const event_id = `evt.${w.sequence.toString().padStart(6, "0")}`;
+    events.push({ event_id, event_type, sequence: w.sequence, payload });
+    return { event_id, event_type, sequence: w.sequence, payload };
+  };
+
+  const settleEv = async (ev: {
+    event_id: string;
+    event_type: string;
+    sequence: number;
+    payload: Record<string, unknown>;
+  }) => {
+    settled = (await settle(ev)) || settled;
+  };
+
+  // ——— ENTER ———
+  if (action.verb === "ENTER_WORLD") {
+    const pl = ensurePlayer(w, principal, entry);
+    pl.room_id = entry;
+    pl.entered = true;
+    const ev = pushEvent("AGENT_ENTERED_WORLD", {
+      player_id: principal.player_id,
+      room_id: entry,
+      budgets: { ...pl.budgets },
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `You enter ${w.world_name || "the world"}.`,
+      settled,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  const pl = ensurePlayer(w, principal, entry);
+
+  // ——— LOOK / OBSERVE ———
+  if (action.verb === "LOOK" || action.verb === "OBSERVE") {
+    if (!pl.entered) {
+      pl.room_id = entry;
+      pl.entered = true;
+    }
+    if (action.verb === "LOOK") {
+      if (!canPay(pl.budgets, COSTS.LOOK)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+      }
+      debit(pl.budgets, COSTS.LOOK);
+      const room_id = pl.room_id;
+      const ev = pushEvent("LOOK", {
+        player_id: principal.player_id,
+        room_id,
+        cost_paid: COSTS.LOOK,
+      });
+      await settleEv(ev);
+    }
+    const room = w.rooms[pl.room_id];
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      room ? `You take in ${room.name}.` : "You look around.",
+      settled,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  if (!pl.entered) {
+    return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
+  }
+
+  // ——— WAIT ———
+  if (action.verb === "WAIT") {
+    w.cycle += 1;
+    // mild regen per Specs (attention +2 clamp 8, compute +4 clamp 64)
+    pl.budgets.attention = Math.min(8, pl.budgets.attention + 2);
+    pl.budgets.compute = Math.min(64, pl.budgets.compute + 4);
+    pushEvent("WAIT", { player_id: principal.player_id, cycles: 1 });
+    const result = success(w, principal, request_id, events, "Time passes.", false);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  // ——— MOVE ———
+  if (action.verb === "MOVE") {
+    if (!canPay(pl.budgets, COSTS.MOVE)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
+    }
+    const direction = action.arguments.direction;
+    const room = w.rooms[pl.room_id];
+    const exit = room?.exits.find(
+      (e) => e.direction === direction || e.to_room_id === direction,
+    );
+    if (!exit) {
+      return fail(
+        request_id,
+        "MOVE_REJECTED",
+        direction ? `There is no exit ${direction} from here.` : "Choose a direction to move.",
+      );
+    }
+    debit(pl.budgets, COSTS.MOVE);
+    const from = room.room_id;
+    pl.room_id = exit.to_room_id;
+    const ev = pushEvent("MOVE", {
+      player_id: principal.player_id,
+      from,
+      to: exit.to_room_id,
+      direction: exit.direction,
+      cost_paid: COSTS.MOVE,
+    });
+    await settleEv(ev);
+    const dest = w.rooms[exit.to_room_id];
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      dest ? `You arrive at ${dest.name}.` : `You move ${exit.direction}.`,
+      settled,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  // ——— INSPECT ———
+  if (action.verb === "INSPECT") {
+    if (!canPay(pl.budgets, COSTS.INSPECT)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+    }
+    const room = w.rooms[pl.room_id];
+    const entity = findEntity(room, action.arguments.entity_id);
+    if (!entity) {
+      return fail(request_id, "INSPECT_FAILED", `You do not see “${action.arguments.entity_id}” here.`);
+    }
+    debit(pl.budgets, COSTS.INSPECT);
+    const detail = inspectDetail(entity);
+    const ev = pushEvent("INSPECT", {
+      player_id: principal.player_id,
+      entity_id: entity.entity_id,
+      room_id: pl.room_id,
+      cost_paid: COSTS.INSPECT,
+      detail,
+    });
+    await settleEv(ev);
+    const obs = buildObservation(w, principal, detail);
+    obs.location = {
+      ...obs.location,
+      description: `${obs.location.description} You inspect ${titleCaseLabel(entity.label)}: ${detail}`,
+    };
+    const result: CommandResult = {
+      ok: true,
+      request_id,
+      observation: obs,
+      events,
+      provenance: {
+        player_id: principal.player_id,
+        controller_id: principal.controller_id,
+        session_id: principal.session_id,
+        agent_id: principal.agent_id,
+      },
+      settled,
+    };
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  // ——— MESSAGE ———
+  if (action.verb === "MESSAGE") {
+    if (!canPay(pl.budgets, COSTS.MESSAGE)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+    }
+    const recipient_id = action.arguments.recipient_id;
+    const text = action.arguments.text.slice(0, 500);
+    const recipient = w.players[recipient_id];
+    if (!recipient?.entered) {
+      return fail(request_id, "FORBIDDEN", "Recipient is not addressable in this world.");
+    }
+    debit(pl.budgets, COSTS.MESSAGE);
+    const message_id = `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`;
+    const ev1 = pushEvent("MESSAGE", {
+      message_id,
+      sender_id: principal.player_id,
+      recipient_id,
+      text,
+      cost_paid: COSTS.MESSAGE,
+    });
+    const ev2 = pushEvent("MESSAGE_DELIVERED", {
+      message_id,
+      recipient_id,
+      delivered_cycle: w.cycle,
+    });
+    w.messages = w.messages || [];
+    w.messages.push({
+      message_id,
+      sender_id: principal.player_id,
+      recipient_id,
+      text,
+      status: "DELIVERED",
+      delivered_cycle: w.cycle,
+    });
+    await settleEv(ev1);
+    await settleEv(ev2);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Message delivered to ${recipient.handle || recipient_id}.`,
+      settled,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+
+  // ——— TRADE ———
+  if (action.verb === "TRADE") {
+    const phase = action.arguments.phase;
+
+    if (phase === "propose") {
+      if (!canPay(pl.budgets, COSTS.TRADE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+      }
+      const counterparty_id = action.arguments.counterparty_id || "";
+      const offered = action.arguments.offered || {};
+      const requested = action.arguments.requested || {};
+      if (!counterparty_id || !Object.keys(offered).length || !Object.keys(requested).length) {
+        return fail(request_id, "INVALID_REQUEST", "counterparty, offer, and want are required.");
+      }
+      if (!w.players[counterparty_id]?.entered) {
+        return fail(request_id, "FORBIDDEN", "Counterparty is not active.");
+      }
+      for (const [res, amt] of Object.entries(offered)) {
+        if ((pl.budgets[res as keyof Budgets] ?? 0) < amt) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You do not have enough ${res} to offer.`);
+        }
+      }
+      debit(pl.budgets, COSTS.TRADE);
+      // reserve offered
+      const reserved: Record<string, number> = {};
+      for (const [res, amt] of Object.entries(offered)) {
+        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) - amt;
+        reserved[res] = amt;
+      }
+      const trade_id = `trade.${(w.sequence + 1).toString().padStart(4, "0")}`;
+      w.trades[trade_id] = {
+        trade_id,
+        proposer_id: principal.player_id,
+        counterparty_id,
+        offered: { ...offered },
+        requested: { ...requested },
+        status: "OPEN",
+        reserved,
+        expires_cycle: action.arguments.expires_cycle,
+      };
+      const ev = pushEvent("TRADE_PROPOSED", {
+        trade_id,
+        proposer_id: principal.player_id,
+        counterparty_id,
+        offered,
+        requested,
+        cost_paid: COSTS.TRADE,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Trade ${trade_id} offered. Resources reserved.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    if (phase === "accept") {
+      if (!canPay(pl.budgets, COSTS.TRADE)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+      }
+      const trade = w.trades[action.arguments.trade_id || ""];
+      if (!trade || trade.status !== "OPEN") {
+        return fail(request_id, "TRADE_FAILED", "Unknown or closed trade.");
+      }
+      if (trade.counterparty_id !== principal.player_id) {
+        return fail(request_id, "FORBIDDEN", "Only the counterparty can accept.");
+      }
+      if (trade.expires_cycle != null && w.cycle > trade.expires_cycle) {
+        // release reservation
+        const proposer = w.players[trade.proposer_id];
+        if (proposer) {
+          for (const [res, amt] of Object.entries(trade.reserved || {})) {
+            proposer.budgets[res as keyof Budgets] =
+              (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
+          }
+        }
+        trade.status = "REJECTED";
+        trade.reserved = {};
+        return fail(request_id, "TRADE_FAILED", "Trade expired.");
+      }
+      for (const [res, amt] of Object.entries(trade.requested)) {
+        if ((pl.budgets[res as keyof Budgets] ?? 0) < amt) {
+          return fail(request_id, "BUDGET_EXCEEDED", `You do not have enough ${res}.`);
+        }
+      }
+      debit(pl.budgets, COSTS.TRADE);
+      const proposer = w.players[trade.proposer_id];
+      if (!proposer) return fail(request_id, "TRADE_FAILED", "Proposer missing.");
+
+      // Atomic both legs: counterparty pays requested → proposer; reserved offered → counterparty
+      for (const [res, amt] of Object.entries(trade.requested)) {
+        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) - amt;
+        proposer.budgets[res as keyof Budgets] = (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
+      }
+      for (const [res, amt] of Object.entries(trade.offered)) {
+        // reserved already removed from proposer; credit counterparty
+        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) + amt;
+      }
+      trade.reserved = {};
+      trade.status = "SETTLED";
+      const evA = pushEvent("TRADE_ACCEPTED", {
+        trade_id: trade.trade_id,
+        accepted_by: principal.player_id,
+      });
+      const evT1 = pushEvent("RESOURCE_TRANSFER", {
+        trade_id: trade.trade_id,
+        from_id: principal.player_id,
+        to_id: trade.proposer_id,
+        leg: "requested",
+        resources: trade.requested,
+      });
+      const evT2 = pushEvent("RESOURCE_TRANSFER", {
+        trade_id: trade.trade_id,
+        from_id: trade.proposer_id,
+        to_id: principal.player_id,
+        leg: "offered",
+        resources: trade.offered,
+      });
+      await settleEv(evA);
+      await settleEv(evT1);
+      await settleEv(evT2);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Trade ${trade.trade_id} settled.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    if (phase === "reject" || phase === "cancel") {
+      const trade = w.trades[action.arguments.trade_id || ""];
+      if (!trade || trade.status !== "OPEN") {
+        return fail(request_id, "TRADE_FAILED", "Unknown or closed trade.");
+      }
+      const isCounter = trade.counterparty_id === principal.player_id;
+      const isProposer = trade.proposer_id === principal.player_id;
+      if (phase === "reject" && !isCounter) {
+        return fail(request_id, "FORBIDDEN", "Only the counterparty can reject.");
+      }
+      if (phase === "cancel" && !isProposer) {
+        return fail(request_id, "FORBIDDEN", "Only the proposer can cancel.");
+      }
+      const proposer = w.players[trade.proposer_id];
+      if (proposer) {
+        for (const [res, amt] of Object.entries(trade.reserved || {})) {
+          proposer.budgets[res as keyof Budgets] =
+            (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
+        }
+      }
+      trade.reserved = {};
+      trade.status = "REJECTED";
+      const reason = action.arguments.reason || (phase === "cancel" ? "CANCELLED" : "DECLINED");
+      const ev = pushEvent("TRADE_REJECTED", {
+        trade_id: trade.trade_id,
+        reason,
+        by: principal.player_id,
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Trade ${trade.trade_id} closed (${reason}).`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+  }
+
+  // ——— COMMIT.REPAIR / HARVEST ———
+  if (action.verb === "COMMIT") {
+    const room = w.rooms[pl.room_id];
+    const entity = findEntity(room, action.arguments.entity_id);
+    if (!entity) {
+      return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+    }
+
+    if (action.arguments.operation === "REPAIR") {
+      if (!isRepairable(entity)) {
+        return fail(request_id, "FORBIDDEN", "That is not repairable here.");
+      }
+      if (!canPay(pl.budgets, COSTS.REPAIR)) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          "You need energy 3, compute 2, and storage 1 to repair.",
+        );
+      }
+      const before = entity.condition ?? 0;
+      debit(pl.budgets, COSTS.REPAIR);
+      entity.condition = Math.min(100, before + 15);
+      // persist entity back
+      const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+      if (idx >= 0) room.entities[idx] = entity;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.REPAIR,
+        reason: "REPAIR",
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: entity.entity_id,
+        field: "condition",
+        from: before,
+        to: entity.condition,
+        operation: "REPAIR",
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `${titleCaseLabel(entity.label)} repaired. Condition ${before}% → ${entity.condition}%.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+
+    if (action.arguments.operation === "HARVEST") {
+      if (!isHarvestable(entity)) {
+        return fail(request_id, "FORBIDDEN", "Nothing to harvest there.");
+      }
+      const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
+      if ((entity.stock_amount ?? 0) < amount) {
+        return fail(request_id, "FORBIDDEN", "Not enough stock available.");
+      }
+      if ((pl.budgets.storage ?? 0) < amount) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
+      }
+      if (!canPay(pl.budgets, COSTS.HARVEST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
+      }
+      const resource = entity.stock_resource || "energy";
+      debit(pl.budgets, COSTS.HARVEST);
+      entity.stock_amount = (entity.stock_amount ?? 0) - amount;
+      pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
+      // harvested resource credit (energy/compute/etc.)
+      if (resource in pl.budgets) {
+        pl.budgets[resource as keyof Budgets] =
+          (pl.budgets[resource as keyof Budgets] ?? 0) + amount;
+      } else {
+        pl.budgets.energy = (pl.budgets.energy ?? 0) + amount;
+      }
+      const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+      if (idx >= 0) room.entities[idx] = entity;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.HARVEST,
+        reason: "HARVEST",
+      });
+      pushEvent("RESOURCE_TRANSFER", {
+        from_id: entity.entity_id,
+        to_id: principal.player_id,
+        resource,
+        amount,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: entity.entity_id,
+        field: "stock_amount",
+        to: entity.stock_amount,
+        operation: "HARVEST",
+      });
+      await settleEv(ev);
+      const result = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `Harvested ${amount} ${resource} from ${titleCaseLabel(entity.label)}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+  }
+
+  return fail(
+    request_id,
+    "UNKNOWN_COMMAND",
+    `That action (${(action as CanonicalAction).verb}) is not available in this stage of the world.`,
+  );
+}
+
+/** Migrate legacy player/entity shapes after load. */
+export function migrateWorldRuntime(w: WorldRuntime): void {
+  w.trades = w.trades || {};
+  w.messages = w.messages || [];
+  for (const room of Object.values(w.rooms)) {
+    room.entities = (room.entities || []).map((e) => enrichEntity(e));
+  }
+  for (const p of Object.values(w.players)) {
+    if (!p.budgets) p.budgets = cloneBudgets(null);
+    else p.budgets = cloneBudgets(p.budgets);
+  }
+}

@@ -1,33 +1,18 @@
+import { enrichEntity } from "./actions";
 import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
 import { settleEvent, settleGenesisActivation } from "./settle";
-import type { CommandEnvelope, CommandResult, Env, Observation, PlayerPrincipal } from "./types";
+import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
+import {
+  applyWorldCommand,
+  buildObservation,
+  migrateWorldRuntime,
+  type RoomState,
+  type WorldRuntime,
+} from "./world-actions";
 
-interface Room {
-  room_id: string;
-  name: string;
-  description: string;
-  exits: Array<{ direction: string; to_room_id: string }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string }>;
-}
-
-interface PlayerLoc {
-  room_id: string;
-  entered: boolean;
-}
-
-interface WorldState {
-  world_id: string;
-  world_name?: string;
-  world_seed?: string;
-  cycle: number;
-  sequence: number;
-  entry_room_id: string;
-  rooms: Record<string, Room>;
-  players: Record<string, PlayerLoc>;
-  seen_idempotency: Record<string, CommandResult>;
-  unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
-}
+type WorldState = WorldRuntime;
+type Room = RoomState;
 
 interface WorldMeta {
   status: "NOT_ACTIVE" | "ACTIVE" | "DEMO_SEED";
@@ -72,6 +57,10 @@ const DEMO_ROOMS: Record<string, Room> = {
 };
 
 function demoState(world_id: string): WorldState {
+  const rooms = structuredClone(DEMO_ROOMS) as Record<string, Room>;
+  for (const room of Object.values(rooms)) {
+    room.entities = room.entities.map((e) => enrichEntity(e));
+  }
   return {
     world_id,
     world_name: "Demo Chamber",
@@ -79,8 +68,10 @@ function demoState(world_id: string): WorldState {
     cycle: 0,
     sequence: 0,
     entry_room_id: "room.relay-quarter",
-    rooms: structuredClone(DEMO_ROOMS),
+    rooms,
     players: {},
+    trades: {},
+    messages: [],
     seen_idempotency: {},
     unsettled: [],
   };
@@ -94,7 +85,7 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
       name: r.name,
       description: r.description,
       exits: r.exits,
-      entities: r.entities,
+      entities: r.entities.map((e) => enrichEntity(e)),
     };
   }
   return {
@@ -106,47 +97,11 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
     entry_room_id: c0.entry_room_id,
     rooms,
     players: {},
+    trades: {},
+    messages: [],
     seen_idempotency: {},
     unsettled: [],
   };
-}
-
-/** Presentation-only local condition from room text + entity labels. */
-function deriveRoomCondition(room: Room): string {
-  const blob = `${room.description} ${room.entities.map((e) => `${e.label} ${e.entity_type}`).join(" ")}`.toLowerCase();
-  const bits: string[] = [];
-  if (/scar|damag|broken|fail/.test(blob)) bits.push("Infrastructure shows damage.");
-  if (/trade|market|exchange|bond|contract/.test(blob)) bits.push("Trade structures are nearby.");
-  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
-  if (/route|ghost|thin|spindle|link|relay/.test(blob) && !bits.some((b) => /damage/.test(b))) {
-    bits.push("Routes continue from here.");
-  }
-  if (!bits.length) {
-    bits.push(room.entities.length ? "Objects here can be examined." : "Open ground — routes lead outward.");
-  }
-  return bits.slice(0, 2).join(" ");
-}
-
-function inspectDetail(entity: { label: string; entity_type: string }): string {
-  const label = entity.label.replace(/[_-]+/g, " ");
-  const t = (entity.entity_type || "").toUpperCase();
-  const s = `${entity.label} ${entity.entity_type}`.toLowerCase();
-  if (/scar|damag|broken|fail/.test(s)) {
-    return `${label} is damaged infrastructure — still present, not fully trusted.`;
-  }
-  if (t === "RUIN" || /ruin|dead|ghost/.test(s)) {
-    return `${label} is a ruin. Entry may be legal; meaning is not free.`;
-  }
-  if (t === "ARTIFACT" || /ledger|archive|record|board/.test(s)) {
-    return `${label} is a surviving record. Incomplete, but readable up close.`;
-  }
-  if (/market|post|trade/.test(s)) {
-    return `${label} marks trade access. Boards and obligations may still bind.`;
-  }
-  if (t === "INFRASTRUCTURE") {
-    return `${label} is infrastructure still on site — useful if you can read its state.`;
-  }
-  return `${label} (${entity.entity_type.toLowerCase()}) is present and can be examined.`;
 }
 
 export class NoemaWorldDO {
@@ -443,81 +398,20 @@ export class NoemaWorldDO {
     if (this.world) return;
     const stored = await this.state.storage.get<WorldState>("world");
     this.world = stored || demoState(this.env.DEFAULT_WORLD_ID || "world-01");
-    // migrate old states without entry_room_id
+    // migrate old states without entry_room_id / budgets / entity runtime fields
     if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
+    migrateWorldRuntime(this.world);
   }
 
   private async save(): Promise<void> {
     if (this.world) await this.state.storage.put("world", this.world);
   }
 
-  private observe(principal: PlayerPrincipal): Observation {
-    const w = this.world!;
-    const loc = w.players[principal.player_id];
-    const room_id = loc?.room_id || w.entry_room_id || "room.relay-quarter";
-    const room = w.rooms[room_id] || Object.values(w.rooms)[0];
-    const exits = (room.exits || []).map((e) => ({
-      direction: e.direction,
-      to_room_id: e.to_room_id,
-      to_room_name: w.rooms[e.to_room_id]?.name || undefined,
-    }));
-    const condition = deriveRoomCondition(room);
-    return {
-      cycle: w.cycle,
-      sequence: w.sequence,
-      world_name: w.world_name,
-      location: {
-        room_id: room.room_id,
-        name: room.name,
-        description: room.description,
-        condition,
-        exits,
-        entities: room.entities,
-      },
-      player_id: principal.player_id,
-      // Hosted Stage 0 surface only — strategic verbs exist in Core but not this Worker
-      available_actions: ["LOOK", "MOVE", "INSPECT", "WAIT"],
-    };
-  }
-
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
     const w = this.world!;
-    const request_id = envl.request_id || crypto.randomUUID();
-    const idem = envl.idempotency_key || request_id;
-
-    if (w.seen_idempotency[idem]) {
-      return w.seen_idempotency[idem];
-    }
-
-    if (envl.player_id && envl.player_id !== principal.player_id) {
-      return {
-        ok: false,
-        request_id,
-        error: { code: "FORBIDDEN", message: "player_id does not match principal" },
-      };
-    }
-
-    const cmd = envl.command.toUpperCase();
-    const args = envl.arguments || {};
-    const events: Array<{ event_id: string; event_type: string; sequence: number }> = [];
-    let settled = false;
-    const entry = w.entry_room_id || "room.relay-quarter";
-
-    const pushEvent = (event_type: string, payload: Record<string, unknown>) => {
-      w.sequence += 1;
-      const event_id = `evt.${w.sequence.toString().padStart(6, "0")}`;
-      events.push({ event_id, event_type, sequence: w.sequence });
-      return { event_id, event_type, sequence: w.sequence, payload };
-    };
-
-    if (cmd === "ENTER_WORLD" || cmd === "JOIN") {
-      w.players[principal.player_id] = { room_id: entry, entered: true };
-      const ev = pushEvent("AGENT_ENTERED_WORLD", {
-        player_id: principal.player_id,
-        room_id: entry,
-      });
-      settled = await settleEvent(this.env, principal, {
+    const result = await applyWorldCommand(w, principal, envl, async (ev) => {
+      return settleEvent(this.env, principal, {
         event_id: ev.event_id,
         event_type: ev.event_type,
         sequence: ev.sequence,
@@ -528,153 +422,8 @@ export class NoemaWorldDO {
         session_id: principal.session_id,
         payload: ev.payload,
       });
-    } else if (cmd === "LOOK") {
-      if (!w.players[principal.player_id]?.entered) {
-        w.players[principal.player_id] = { room_id: entry, entered: true };
-      }
-      const room_id = w.players[principal.player_id].room_id;
-      const ev = pushEvent("LOOK", { player_id: principal.player_id, room_id });
-      settled = await settleEvent(this.env, principal, {
-        event_id: ev.event_id,
-        event_type: ev.event_type,
-        sequence: ev.sequence,
-        cycle: w.cycle,
-        world_id: w.world_id,
-        player_id: principal.player_id,
-        controller_id: principal.controller_id,
-        session_id: principal.session_id,
-        payload: ev.payload,
-      });
-    } else if (cmd === "MOVE") {
-      const pl = w.players[principal.player_id];
-      if (!pl?.entered) {
-        return { ok: false, request_id, error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" } };
-      }
-      const direction = String(args.direction || args.exit_id || "").toLowerCase();
-      const room = w.rooms[pl.room_id];
-      const exit = room?.exits.find((e) => e.direction === direction || e.to_room_id === direction);
-      if (!exit) {
-        return {
-          ok: false,
-          request_id,
-          error: {
-            code: "MOVE_REJECTED",
-            message: direction
-              ? `There is no exit ${direction} from here.`
-              : "Choose a direction to move.",
-          },
-        };
-      }
-      pl.room_id = exit.to_room_id;
-      const ev = pushEvent("MOVE", {
-        player_id: principal.player_id,
-        from: room.room_id,
-        to: exit.to_room_id,
-        direction: exit.direction,
-      });
-      settled = await settleEvent(this.env, principal, {
-        event_id: ev.event_id,
-        event_type: ev.event_type,
-        sequence: ev.sequence,
-        cycle: w.cycle,
-        world_id: w.world_id,
-        player_id: principal.player_id,
-        controller_id: principal.controller_id,
-        session_id: principal.session_id,
-        payload: ev.payload,
-      });
-    } else if (cmd === "WAIT") {
-      w.cycle += 1;
-      pushEvent("WAIT", { player_id: principal.player_id, cycles: 1 });
-    } else if (cmd === "INSPECT") {
-      const pl = w.players[principal.player_id];
-      if (!pl?.entered) {
-        return { ok: false, request_id, error: { code: "NOT_IN_WORLD", message: "ENTER_WORLD first" } };
-      }
-      const room = w.rooms[pl.room_id];
-      const target = String(args.entity_id || args.target || "").trim();
-      const entity = room?.entities.find((e) => e.entity_id === target || e.label === target);
-      if (!entity) {
-        return {
-          ok: false,
-          request_id,
-          error: {
-            code: "INSPECT_FAILED",
-            message: target ? `You do not see “${target}” here.` : "Choose something to inspect.",
-          },
-        };
-      }
-      const detail = inspectDetail(entity);
-      const ev = pushEvent("INSPECT", {
-        player_id: principal.player_id,
-        entity_id: entity.entity_id,
-        room_id: pl.room_id,
-      });
-      settled = await settleEvent(this.env, principal, {
-        event_id: ev.event_id,
-        event_type: ev.event_type,
-        sequence: ev.sequence,
-        cycle: w.cycle,
-        world_id: w.world_id,
-        player_id: principal.player_id,
-        controller_id: principal.controller_id,
-        session_id: principal.session_id,
-        payload: {
-          ...ev.payload,
-          detail,
-        },
-      });
-      const obs = this.observe(principal);
-      const pretty = entity.label.replace(/[_-]+/g, " ");
-      const resultInspect: CommandResult = {
-        ok: true,
-        request_id,
-        observation: {
-          ...obs,
-          location: {
-            ...obs.location,
-            description: `${obs.location.description} You inspect ${pretty}: ${detail}`,
-          },
-        },
-        events,
-        provenance: {
-          player_id: principal.player_id,
-          controller_id: principal.controller_id,
-          session_id: principal.session_id,
-          agent_id: principal.agent_id,
-        },
-        settled,
-      };
-      w.seen_idempotency[idem] = resultInspect;
-      await this.save();
-      return resultInspect;
-    } else if (cmd === "OBSERVE") {
-      // pure observation
-    } else {
-      return {
-        ok: false,
-        request_id,
-        error: {
-          code: "UNKNOWN_COMMAND",
-          message: `That action (${cmd}) is not available in this stage of the world.`,
-        },
-      };
-    }
-
-    const result: CommandResult = {
-      ok: true,
-      request_id,
-      observation: this.observe(principal),
-      events,
-      provenance: {
-        player_id: principal.player_id,
-        controller_id: principal.controller_id,
-        session_id: principal.session_id,
-        agent_id: principal.agent_id,
-      },
-      settled,
-    };
-    w.seen_idempotency[idem] = result;
+    });
+    // Keep idempotency map bounded
     const keys = Object.keys(w.seen_idempotency);
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
