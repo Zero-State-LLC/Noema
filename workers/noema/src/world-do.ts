@@ -3,6 +3,9 @@ import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
 import {
   applyControllingSession,
+  commandForOps,
+  countEnteredPlayers,
+  enteredPlayerIds,
   isMutatingCommand,
   mutationBlocked,
   nextSettlementHealth,
@@ -148,7 +151,7 @@ export class NoemaWorldDO {
         world_id: this.world!.world_id,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
-        players: Object.keys(this.world!.players).length,
+        players: countEnteredPlayers(this.world!.players),
         status: this.meta!.status,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         genesis_id: this.meta!.genesis_id || null,
@@ -171,7 +174,7 @@ export class NoemaWorldDO {
           cycle: this.world!.cycle,
           sequence: this.world!.sequence,
           rooms: this.world!.rooms as Record<string, GenesisRoom>,
-          players_present: Object.keys(this.world!.players).length,
+          players_present: countEnteredPlayers(this.world!.players),
           world_status: this.meta!.status,
           freshness: marker,
         }),
@@ -186,8 +189,8 @@ export class NoemaWorldDO {
         world_name: this.world!.world_name,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
-        players_present: Object.keys(this.world!.players).length,
-        player_ids: Object.keys(this.world!.players),
+        players_present: countEnteredPlayers(this.world!.players),
+        player_ids: enteredPlayerIds(this.world!.players),
         rooms: roomList.map((r) => ({
           room_id: r.room_id,
           name: r.name,
@@ -517,7 +520,7 @@ export class NoemaWorldDO {
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
     const w = this.world!;
-    const mutating = isMutatingCommand(envl.command);
+    const mutating = isMutatingCommand(commandForOps(envl.command, envl.arguments));
     const health = this.meta!.settlement_health || "HEALTHY";
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
@@ -581,17 +584,21 @@ export class NoemaWorldDO {
   ): Promise<void> {
     const handle = this.world?.players[principal.player_id]?.handle;
     const now = Date.now();
-    const roomName = this.world?.rooms[this.world.players[principal.player_id]?.room_id || ""]?.name;
-    const rows: DigestEvent[] = events.map((ev) => ({
-      event_id: ev.event_id,
-      event_type: ev.event_type,
-      sequence: ev.sequence,
-      cycle,
-      player_id: principal.player_id,
-      handle,
-      at: now,
-      payload: { ...(ev.payload || {}), room_name: roomName },
-    }));
+    const fallbackRoom = this.world?.rooms[this.world.players[principal.player_id]?.room_id || ""]?.name;
+    const rows: DigestEvent[] = events.map((ev) => {
+      const payloadRoom =
+        typeof ev.payload?.room_id === "string" ? this.world?.rooms[ev.payload.room_id]?.name : undefined;
+      return {
+        event_id: ev.event_id,
+        event_type: ev.event_type,
+        sequence: ev.sequence,
+        cycle,
+        player_id: principal.player_id,
+        handle,
+        at: now,
+        payload: { ...(ev.payload || {}), room_name: payloadRoom || fallbackRoom },
+      };
+    });
     const prev = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
     const next = [...prev, ...rows];
     await this.state.storage.put("digest_events", next.slice(-2000));
@@ -610,7 +617,7 @@ export class NoemaWorldDO {
       world_name: w.world_name,
       world_status: this.meta!.status,
       settlement_health: this.meta!.settlement_health || "HEALTHY",
-      players_present: Object.keys(w.players).length,
+      players_present: countEnteredPlayers(w.players),
       open_trades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN").length,
     };
     const history = (await this.state.storage.get<OperatorDigest[]>("digest_history")) || [];

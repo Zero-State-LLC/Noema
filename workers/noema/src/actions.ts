@@ -37,7 +37,7 @@ export type OpenTrade = {
   counterparty_id: string;
   offered: Record<string, number>;
   requested: Record<string, number>;
-  status: "OPEN" | "SETTLED" | "REJECTED";
+  status: "OPEN" | "SETTLED" | "REJECTED" | "CANCELLED";
   reserved: Record<string, number>;
   expires_cycle?: number;
 };

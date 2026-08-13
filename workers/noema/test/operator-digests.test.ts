@@ -57,6 +57,25 @@ describe("operator digest composition", () => {
     expect(d.generation_mode).toBe("deterministic");
   });
 
+  it("maps leave-world and does not double-count mail", () => {
+    const d = composeDigest(
+      [
+        ev({ event_type: "AGENT_LEFT_WORLD", sequence: 8, payload: { room_id: "room.hub" } }),
+        ev({ event_type: "MESSAGE", sequence: 9, payload: { text: "secret" } }),
+        ev({ event_type: "MESSAGE_DELIVERED", sequence: 10, payload: { text: "secret" } }),
+        ev({ event_type: "TRADE_CANCELLED", sequence: 11 }),
+      ],
+      snap,
+      DEFAULT_DIGEST_CONFIG,
+      { start: 0, end: 2000 },
+    );
+    expect(d.text).toMatch(/1 Player left the world/);
+    expect(d.text).toMatch(/1 private message events delivered/);
+    expect(d.text).not.toMatch(/2 private message/);
+    expect(d.text).toMatch(/1 cancelled/);
+    expect(d.text).not.toMatch(/secret/);
+  });
+
   it("omits private message text", () => {
     const d = composeDigest(
       [ev({ event_type: "MESSAGE_DELIVERED", sequence: 3, payload: { text: "secret plan" } })],

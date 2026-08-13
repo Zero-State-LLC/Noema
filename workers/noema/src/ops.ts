@@ -22,11 +22,39 @@ export const READ_COMMANDS = new Set([
   "SERVICE",
 ]);
 
+const COMMAND_ALIASES: Record<string, string> = {
+  ENTER: "ENTER_WORLD",
+  JOIN: "ENTER_WORLD",
+  EXIT: "LEAVE_WORLD",
+  L: "LOOK",
+  ASK: "TALK",
+  MSG: "MESSAGE",
+};
+
 export function normalizeCommandName(command: string): string {
-  return String(command || "")
+  const raw = String(command || "")
     .trim()
     .split(/\s+/)[0]
     .toUpperCase();
+  return COMMAND_ALIASES[raw] || raw;
+}
+
+/** PLAY sends command=LOOK plus arguments.line — gate/telemetry must use the line. */
+export function commandForOps(command: string, args?: { line?: unknown } | null): string {
+  if (args && typeof args.line === "string" && args.line.trim()) return args.line.trim();
+  return command;
+}
+
+export function countEnteredPlayers(players: Record<string, { entered?: boolean }> | undefined): number {
+  if (!players) return 0;
+  return Object.values(players).filter((p) => p.entered).length;
+}
+
+export function enteredPlayerIds(players: Record<string, { entered?: boolean }> | undefined): string[] {
+  if (!players) return [];
+  return Object.entries(players)
+    .filter(([, p]) => p.entered)
+    .map(([id]) => id);
 }
 
 export function isMutatingCommand(command: string): boolean {

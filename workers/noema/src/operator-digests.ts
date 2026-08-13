@@ -109,10 +109,12 @@ export function composeDigest(
     trade_proposed: 0,
     trade_accepted: 0,
     trade_rejected: 0,
+    trade_cancelled: 0,
     harvest: 0,
     repair: 0,
     org: 0,
     entered: 0,
+    left: 0,
     messages: 0,
   };
   const lines: string[] = [];
@@ -142,6 +144,9 @@ export function composeDigest(
       case "TRADE_REJECTED":
         counts.trade_rejected += 1;
         break;
+      case "TRADE_CANCELLED":
+        counts.trade_cancelled += 1;
+        break;
       case "ENTITY_UPDATE":
         if (ev.payload?.kind === "repair" || ev.payload?.operation === "REPAIR") counts.repair += 1;
         break;
@@ -156,7 +161,9 @@ export function composeDigest(
       case "AGENT_ENTERED_WORLD":
         counts.entered += 1;
         break;
-      case "MESSAGE":
+      case "AGENT_LEFT_WORLD":
+        counts.left += 1;
+        break;
       case "MESSAGE_DELIVERED":
         counts.messages += 1;
         break;
@@ -172,6 +179,7 @@ export function composeDigest(
     if (counts.trade_proposed) activity.push(`${counts.trade_proposed} trades proposed.`);
     if (counts.repair) activity.push(`${counts.repair} infrastructure updates.`);
     if (counts.entered) activity.push(`${counts.entered} Players entered.`);
+    if (counts.left) activity.push(`${counts.left} Players left.`);
     if (counts.move) activity.push(`${counts.move} movements.`);
     if (!activity.length) activity.push("No settled Player activity in this window.");
   } else {
@@ -181,20 +189,21 @@ export function composeDigest(
     for (const [who, n] of inspectors) {
       activity.push(`${who} inspected ${n} target${n === 1 ? "" : "s"}.`);
     }
-    if (counts.trade_proposed || counts.trade_accepted) {
+    if (counts.trade_proposed || counts.trade_accepted || counts.trade_rejected || counts.trade_cancelled) {
       activity.push(
-        `Trades: ${counts.trade_proposed} proposed, ${counts.trade_accepted} settled, ${counts.trade_rejected} closed.`,
+        `Trades: ${counts.trade_proposed} proposed, ${counts.trade_accepted} settled, ${counts.trade_rejected} rejected, ${counts.trade_cancelled} cancelled.`,
       );
     }
     if (counts.repair) activity.push(`Infrastructure: ${counts.repair} repair update${counts.repair === 1 ? "" : "s"}.`);
     if (counts.harvest) activity.push(`Harvest: ${counts.harvest} transfer${counts.harvest === 1 ? "" : "s"}.`);
     if (counts.org) activity.push(`Organizations: ${counts.org} membership/charter change${counts.org === 1 ? "" : "s"}.`);
     if (counts.entered) activity.push(`${counts.entered} Player${counts.entered === 1 ? "" : "s"} entered the world.`);
+    if (counts.left) activity.push(`${counts.left} Player${counts.left === 1 ? "" : "s"} left the world.`);
     if (counts.messages) activity.push(`${counts.messages} private message events delivered (text omitted).`);
     if (!activity.length) activity.push("No settled Player activity in this window.");
     if (cfg.depth === "DETAILED") {
       activity.push(
-        `Event classes — move ${counts.move}, inspect ${counts.inspect}, trade ${counts.trade_proposed}/${counts.trade_accepted}, seq ${seqStart}–${seqEnd}.`,
+        `Event classes — move ${counts.move}, inspect ${counts.inspect}, trade ${counts.trade_proposed}/${counts.trade_accepted}/${counts.trade_rejected}/${counts.trade_cancelled}, enter ${counts.entered}, leave ${counts.left}, mail ${counts.messages}, seq ${seqStart}–${seqEnd}.`,
       );
     }
   }

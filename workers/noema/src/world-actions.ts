@@ -872,9 +872,9 @@ export async function applyWorldCommand(
         }
       }
       trade.reserved = {};
-      trade.status = "REJECTED";
+      trade.status = phase === "cancel" ? "CANCELLED" : "REJECTED";
       const reason = action.arguments.reason || (phase === "cancel" ? "CANCELLED" : "DECLINED");
-      const ev = pushEvent("TRADE_REJECTED", {
+      const ev = pushEvent(phase === "cancel" ? "TRADE_CANCELLED" : "TRADE_REJECTED", {
         trade_id: trade.trade_id,
         reason,
         by: principal.player_id,

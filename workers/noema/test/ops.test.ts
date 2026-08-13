@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   applyControllingSession,
+  commandForOps,
+  countEnteredPlayers,
   isMutatingCommand,
   mutationBlocked,
   nextSettlementHealth,
@@ -19,6 +21,24 @@ describe("command mutation class", () => {
     expect(isMutatingCommand("message nacre hi")).toBe(true);
     expect(isMutatingCommand("TRADE")).toBe(true);
     expect(isMutatingCommand("COMMIT")).toBe(true);
+  });
+
+  it("maps PLAY LOOK+line to the real verb for gates", () => {
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "leave" }))).toBe(true);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "message nacre \"hi\"" }))).toBe(true);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "enter" }))).toBe(false);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "look" }))).toBe(false);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "talk broker" }))).toBe(false);
+  });
+
+  it("counts only entered Players as present", () => {
+    expect(
+      countEnteredPlayers({
+        a: { entered: true },
+        b: { entered: false },
+        c: { entered: true },
+      }),
+    ).toBe(2);
   });
 });
 
