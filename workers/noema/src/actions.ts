@@ -60,6 +60,23 @@ export const DEFAULT_BUDGETS: Budgets = {
   storage: 16,
 };
 
+const TRADE_RESOURCE_KEYS = new Set(Object.keys(DEFAULT_BUDGETS));
+
+/** Structured TRADE maps must use known budget keys and safe positive integers. */
+export function sanitizeTradeAmounts(
+  raw: Record<string, number> | undefined | null,
+): Record<string, number> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const name = String(key).toLowerCase();
+    if (!TRADE_RESOURCE_KEYS.has(name)) return null;
+    if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) return null;
+    out[name] = value;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 /** Hosted v0.1 Chamber surface (orientation + interaction + orgs). */
 export const HOSTED_TIER1 = [
   "LOOK",
