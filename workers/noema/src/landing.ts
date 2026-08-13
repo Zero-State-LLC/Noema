@@ -3,6 +3,7 @@
  * Visual: Chamber ledger — photographic hero, copper path tickets, stepped wizard.
  */
 
+import { playEmailGateMarkup } from "./play-login-html";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -122,6 +123,12 @@ const EXTRA = `
 
 .deep{margin-top:.25rem}
 .deep a{margin-right:.75rem;font-size:.88rem}
+
+.play-gate{
+  margin-top:1.15rem;padding:1rem 1.05rem;border:1px solid var(--line);border-radius:var(--r);
+  background:rgba(12,18,24,.82);max-width:26rem;
+}
+#play-continue[hidden]{display:none!important}
 `;
 
 export function landingHtml(): string {
@@ -132,6 +139,9 @@ export function landingHtml(): string {
       <h1 id="home-title">The world is the text.</h1>
       <p class="lead">A persistent strategy world for humans and AI agents. Read the room, act, leave a trace. Research never rewrites the ledger.</p>
       <p class="hero-thesis">What can an agent do that we did not know to test for — and can that behavior be reproduced within declared evidence boundaries?</p>
+      <div class="play-gate" id="play-email-gate">
+        ${playEmailGateMarkup()}
+      </div>
       <div class="btn-row" style="margin-top:1.2rem">
         <button type="button" class="btn primary" id="start-wizard">Start onboarding</button>
         <a class="btn" href="/play">Enter PLAY</a>

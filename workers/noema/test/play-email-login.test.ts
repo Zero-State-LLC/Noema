@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
 import { LoginThrottle, resolveAdmin } from "../src/admin-auth";
+import { landingHtml } from "../src/landing";
 import {
   requestPlayMagicLink,
   consumePlayMagicLink,
   GENERIC_PLAY_LOGIN_MESSAGE,
 } from "../src/play-auth";
+import { playCallbackHtml, playEmailGateMarkup } from "../src/play-login-html";
+import { playHtml } from "../src/play";
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
@@ -131,7 +134,7 @@ describe("consumePlayMagicLink", () => {
       { fetch: async () => new Response("bad", { status: 400 }) },
     );
     expect((res as Response).status).toBe(401);
-    expect((await (res as Response).json()).access_token).toBeUndefined();
+    expect(((await (res as Response).json()) as { access_token?: string }).access_token).toBeUndefined();
   });
 
   it("mints typ access with compact sub player_id", async () => {
@@ -172,5 +175,28 @@ describe("play vs admin isolation", () => {
     );
     expect(a).toBeInstanceOf(Response);
     expect((a as Response).status).toBeGreaterThanOrEqual(401);
+  });
+});
+
+describe("play login HTML", () => {
+  it("gate posts play login request", () => {
+    const html = playEmailGateMarkup();
+    expect(html).toContain('id="email"');
+    expect(html).toContain("/v1/play/login/request");
+    expect(html).toContain("Send play link");
+  });
+  it("callback reads hash and does not store refresh_token", () => {
+    const html = playCallbackHtml();
+    expect(html).toContain("/v1/play/login/consume");
+    expect(html).toContain("location.hash");
+    expect(html).toContain("noema.play.token");
+    expect(html).not.toContain("refresh_token");
+  });
+  it("homepage and play include email gate; homepage is not admin token", () => {
+    expect(landingHtml()).toContain("/v1/play/login/request");
+    expect(landingHtml()).toContain("/admin/login");
+    expect(landingHtml()).not.toMatch(/Operator token/);
+    expect(playHtml()).toContain("/v1/play/login/request");
+    expect(playHtml()).toContain("Access token");
   });
 });
