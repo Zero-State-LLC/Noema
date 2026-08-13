@@ -76,6 +76,9 @@ describe("hosted genesis", () => {
     expect(s).not.toContain("world_seed");
     expect(s).not.toContain("FRACTURED_OLD_WORLD");
     expect(pub.rooms).toBeTruthy();
+    const rooms = pub.rooms as Array<{ exits?: Array<{ direction: string; to_room_id: string }> }>;
+    expect(rooms.some((r) => Array.isArray(r.exits) && r.exits.length > 0)).toBe(true);
+    expect(s).toContain("to_room_id");
   });
 
   it("stableStringify is order-independent for objects", () => {

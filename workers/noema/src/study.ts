@@ -12,10 +12,6 @@ const EXTRA = `
 .study-step[aria-selected=true]{border-color:var(--copper);background:var(--copper-soft)}
 .study-step b{display:block;color:var(--copper);font:.56rem var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
 .study-step span{display:block;margin-top:.3rem;color:var(--ink);font-size:.82rem}
-.study-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.85rem}
-@media(max-width:720px){.study-metrics{grid-template-columns:1fr 1fr}}
-.metric{padding:.85rem;border:1px solid var(--line);border-radius:var(--r);background:#0a1016}
-.metric strong{display:block;margin-top:.25rem;font:500 1.3rem var(--font-mono)}
 .claims{display:flex;flex-wrap:wrap;gap:.35rem;margin:.85rem 0}
 .claim{padding:.3rem .5rem;border:1px solid var(--line);border-radius:var(--r);color:var(--faint);font:.56rem var(--font-mono)}
 .limit{margin:1rem 0 0;padding:.75rem;border-left:2px solid var(--line-hot);color:var(--faint);font-size:.78rem;line-height:1.45}
@@ -31,9 +27,9 @@ export function studyHtml(): string {
   </header>
 
   <section class="card pad" style="margin-bottom:1rem">
-    <p class="kicker">Stage 0 scope</p>
-    <h2 style="font-size:1.25rem;margin-top:.25rem">Evidence path is open; full Lab / Compiler arrive later.</h2>
-    <p class="muted">This shell teaches the Specs STUDY path and claim labels. PLAY produces settled world events. Observatory / Lab / CAPTURE land with the research spine — empty evidence stays honest.</p>
+    <p class="kicker">Stage 0 path explainer</p>
+    <h2 style="font-size:1.25rem;margin-top:.25rem">Notice / Lab / Capture are not hosted on this gateway.</h2>
+    <p class="muted">This page explains the Specs STUDY path. PLAY produces the ledger. This surface does not invent trails, test results, or learned links.</p>
     <div class="claims" aria-label="Claim labels">
       <span class="claim">Observed</span>
       <span class="claim">Evidence suggests</span>
@@ -43,47 +39,40 @@ export function studyHtml(): string {
   </section>
 
   <div class="study-steps" role="tablist" aria-label="STUDY path">
-    <button class="study-step" type="button" role="tab" aria-selected="true" data-step="notice"><b>01 notice</b><span>Interesting</span></button>
-    <button class="study-step" type="button" role="tab" aria-selected="false" data-step="test"><b>02 test</b><span>TEST THIS</span></button>
-    <button class="study-step" type="button" role="tab" aria-selected="false" data-step="capture"><b>03 capture</b><span>as test</span></button>
-    <button class="study-step" type="button" role="tab" aria-selected="false" data-step="learn"><b>04 learn</b><span>what reproduced</span></button>
+    <button class="study-step" type="button" role="tab" id="tab-notice" aria-controls="panel-notice" aria-selected="true" tabindex="0" data-step="notice"><b>01 notice</b><span>Interesting</span></button>
+    <button class="study-step" type="button" role="tab" id="tab-test" aria-controls="panel-test" aria-selected="false" tabindex="-1" data-step="test"><b>02 test</b><span>TEST THIS</span></button>
+    <button class="study-step" type="button" role="tab" id="tab-capture" aria-controls="panel-capture" aria-selected="false" tabindex="-1" data-step="capture"><b>03 capture</b><span>as test</span></button>
+    <button class="study-step" type="button" role="tab" id="tab-learn" aria-controls="panel-learn" aria-selected="false" tabindex="-1" data-step="learn"><b>04 learn</b><span>what reproduced</span></button>
   </div>
 
-  <div class="study-metrics">
-    <div class="metric"><div class="kicker">observed trails</div><strong id="m-trails">0</strong></div>
-    <div class="metric"><div class="kicker">test results</div><strong id="m-tests">0</strong></div>
-    <div class="metric"><div class="kicker">captured work</div><strong id="m-captured">0</strong></div>
-    <div class="metric"><div class="kicker">learned links</div><strong id="m-learn">0</strong></div>
-  </div>
-
-  <article class="card pad panel" id="panel-notice">
+  <article class="card pad panel" id="panel-notice" role="tabpanel" aria-labelledby="tab-notice">
     <p class="kicker">Interesting</p>
     <h2>Something interesting happened?</h2>
-    <p class="muted">NOTICE surfaces candidates from recorded PLAY activity — never mutates production. Stage 0: play the world first; trails appear when Observatory is wired.</p>
-    <p class="empty" id="list-notice">No trails captured yet — play the world first.</p>
+    <p class="muted">NOTICE will surface candidates from recorded PLAY activity and never mutate production. Observatory is not wired on this host.</p>
+    <p class="empty" id="list-notice">No trails are listed here — this page does not invent them.</p>
     <p class="limit">Presentation never invents explanations or hides claim labels.</p>
   </article>
 
-  <article class="card pad panel" id="panel-test" hidden>
+  <article class="card pad panel" id="panel-test" role="tabpanel" aria-labelledby="tab-test" hidden>
     <p class="kicker">TEST THIS</p>
     <h2>Ask a plain-language question.</h2>
-    <p class="muted">Common intents compile to deterministic Lab templates. Lab forks never mutate the production ledger.</p>
-    <p class="empty">No lab results yet on Stage 0.</p>
+    <p class="muted">Lab forks never mutate the production ledger. Lab is not hosted on this gateway yet.</p>
+    <p class="empty">No lab runner on Stage 0.</p>
     <p class="limit">Simple results retain evidence limits and an advanced-detail route.</p>
   </article>
 
-  <article class="card pad panel" id="panel-capture" hidden>
+  <article class="card pad panel" id="panel-capture" role="tabpanel" aria-labelledby="tab-capture" hidden>
     <p class="kicker">CAPTURE AS TEST</p>
     <h2>Package a READY result.</h2>
-    <p class="muted">One primary action packages a reusable captured behavioral test with provenance. Capture cannot strengthen machine claim labels.</p>
-    <p class="empty">No captured tests yet.</p>
+    <p class="muted">Capture cannot strengthen machine claim labels. Compiler is not hosted here yet.</p>
+    <p class="empty">No capture surface on this gateway.</p>
   </article>
 
-  <article class="card pad panel" id="panel-learn" hidden>
+  <article class="card pad panel" id="panel-learn" role="tabpanel" aria-labelledby="tab-learn" hidden>
     <p class="kicker">LEARN</p>
     <h2>What reproduced — not a ranking.</h2>
     <p class="muted">Evidence-backed relationships: depends on, fails without, generalizes to, not yet tested. PLAY is uncoupled from LEARN.</p>
-    <p class="empty">No learned behaviors yet.</p>
+    <p class="empty">No learned index on this gateway.</p>
   </article>
 
   <div class="btn-row" style="margin-top:1.1rem">
@@ -93,11 +82,26 @@ export function studyHtml(): string {
 
   <script>
   (() => {
-    document.querySelectorAll(".study-step").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const step = btn.getAttribute("data-step");
-        document.querySelectorAll(".study-step").forEach(b => b.setAttribute("aria-selected", b === btn ? "true" : "false"));
-        document.querySelectorAll(".panel").forEach(p => { p.hidden = p.id !== "panel-" + step; });
+    const tabs = [...document.querySelectorAll(".study-step")];
+    function selectTab(btn, focus) {
+      const step = btn.getAttribute("data-step");
+      tabs.forEach(b => {
+        const on = b === btn;
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
+      });
+      document.querySelectorAll(".panel").forEach(p => { p.hidden = p.id !== "panel-" + step; });
+      if (focus) btn.focus();
+    }
+    tabs.forEach((btn, i) => {
+      btn.addEventListener("click", () => selectTab(btn, false));
+      btn.addEventListener("keydown", (e) => {
+        let next = null;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") next = tabs[(i + 1) % tabs.length];
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (e.key === "Home") next = tabs[0];
+        if (e.key === "End") next = tabs[tabs.length - 1];
+        if (next) { e.preventDefault(); selectTab(next, true); }
       });
     });
   })();

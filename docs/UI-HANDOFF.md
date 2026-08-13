@@ -160,7 +160,7 @@ These shells call the same JSON APIs a custom UI would. Richer product chrome ma
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/health` | none | Process up |
-| GET | `/ready` | none | **PLAY readiness** only (research degradation does **not** block) |
+| GET | `/ready` | none | **PLAY mutation readiness** only (research degradation does **not** block). Hosted Worker: `ready` is false for `PAUSED` / `INCIDENT` / settlement `BLOCKING`; HTTP stays 200. `/health` is process liveness. |
 | GET | `/version` | none | Runtime pin, Specs pin, `configuration_digest` |
 | GET | `/manifest` | none | Runtime manifest |
 | GET | `/config` | none | Non-secret deployment config + digest (**never** secrets) |

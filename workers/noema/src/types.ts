@@ -144,6 +144,7 @@ export interface Observation {
     role: string;
     status: string;
     operations: string[];
+    cannot: string[];
     suggested_cmds: string[];
     line: string;
   }>;

@@ -15,7 +15,7 @@ export const PRODUCT_CSS = `
   --panel-2:#18232d;
   --ink:#ebe6d8;
   --muted:#9b9587;
-  --faint:#6a655c;
+  --faint:#8a8478;
   --line:#2a3342;
   --line-hot:#3d4a58;
   --copper:#c4784a;
@@ -99,7 +99,8 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .dot.bad{background:var(--ember)}
 
 /* —— type + layout —— */
-.wrap{width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:clamp(1.5rem,4vw,2.75rem) 0 3.5rem}
+.wrap{width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:clamp(1.5rem,4vw,2.75rem) 0 3.5rem;scroll-margin-top:5.5rem}
+#main{scroll-margin-top:5.5rem}
 .kicker{
   color:var(--copper);font:500 .65rem/1.3 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;
 }
@@ -255,15 +256,32 @@ ${opts.body}
     try {
       const h = await fetch("/health").then(r => r.json());
       const ready = await fetch("/ready").then(r => r.json()).catch(() => null);
-      const live = Boolean(ready && ready.ready);
-      if (el) el.className = "dot " + (live ? "ok" : h.status === "ok" ? "warn" : "bad");
-      if (lab) lab.textContent = live ? "world ready" : h.status === "ok" ? "waiting" : "offline";
+      if (!ready) {
+        if (el) el.className = "dot " + (h.status === "ok" ? "warn" : "bad");
+        if (lab) lab.textContent = h.status === "ok" ? "waiting" : "offline";
+        return;
+      }
+      const st = String(ready.status || (ready.world && ready.world.status) || "");
+      const sh = String(ready.settlement_health || (ready.world && ready.world.settlement_health) || "HEALTHY");
+      let label = "ACTIVE · healthy";
+      let dot = "ok";
+      if (st === "NOT_ACTIVE" || !st) { label = "not ready"; dot = "warn"; }
+      else if (st === "PAUSED") { label = "PAUSED"; dot = "warn"; }
+      else if (st === "INCIDENT" || st === "ARCHIVED") { label = "INCIDENT"; dot = "bad"; }
+      else if (sh === "BLOCKING") { label = "PLAY blocked"; dot = "bad"; }
+      else if (st === "DEMO_SEED") { label = sh === "DEGRADED" ? "DEMO · degraded" : "DEMO · healthy"; dot = sh === "DEGRADED" ? "warn" : "ok"; }
+      else if (st === "ACTIVE" && sh === "DEGRADED") { label = "ACTIVE · degraded"; dot = "warn"; }
+      else if (st === "ACTIVE") { label = "ACTIVE · healthy"; dot = "ok"; }
+      else { label = st || "waiting"; dot = ready.ready ? "ok" : "warn"; }
+      if (el) el.className = "dot " + dot;
+      if (lab) lab.textContent = label;
     } catch (_) {
       if (el) el.className = "dot bad";
       if (lab) lab.textContent = "offline";
     }
   }
   ping();
+  setInterval(ping, 30000);
 })();
 </script>
 </body>

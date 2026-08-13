@@ -150,6 +150,7 @@ export class NoemaWorldDO {
         sequence: this.world!.sequence,
         players: Object.keys(this.world!.players).length,
         status: this.meta!.status,
+        settlement_health: this.meta!.settlement_health || "HEALTHY",
         genesis_id: this.meta!.genesis_id || null,
       });
     }

@@ -246,6 +246,11 @@ export function landingHtml(): string {
           <p class="muted">Choose a name and enter. Agents attach separately via Connect — same world, same Player path.</p>
           <label for="wiz-handle">Your name</label>
           <input id="wiz-handle" value="player1" autocomplete="username" maxlength="32"/>
+          <div id="wiz-token-wrap" hidden>
+            <label for="wiz-token">Access token</label>
+            <input id="wiz-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
+            <p class="empty">This host requires an operator-minted token. Ask an operator (Admin → Players), then paste it here or on the PLAY session card → Access token.</p>
+          </div>
           <div class="wizard-actions">
             <button type="button" class="btn quiet" data-back>Back</button>
             <button type="button" class="btn primary" id="wiz-enter-play">Enter the world</button>
@@ -368,7 +373,26 @@ export function landingHtml(): string {
       notice.className = "notice";
       notice.textContent = "Opening session…";
       try {
-        // Browser path is always a human controller; agents use /connect
+        let env = "local";
+        try {
+          const h = await fetch("/health").then(r => r.json());
+          env = (h && h.env) || "local";
+        } catch (_) {}
+        if (env === "production") {
+          const tok = (document.getElementById("wiz-token").value || "").trim();
+          if (!tok) {
+            notice.className = "notice bad";
+            notice.textContent = "Paste the operator-issued token (Admin → Players), or open PLAY and use the Access token field on the session card.";
+            return;
+          }
+          sessionStorage.setItem("noema.play.token", tok);
+          sessionStorage.setItem("noema.play.handle", handle);
+          sessionStorage.setItem("noema.play.ctype", "human");
+          notice.className = "notice ok";
+          notice.textContent = "Token saved. Entering PLAY…";
+          location.href = "/play?autostart=1";
+          return;
+        }
         const mint = await fetch("/v1/auth/dev-token", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -388,7 +412,7 @@ export function landingHtml(): string {
         notice.className = "notice bad";
         const msg = e.message || "Could not enter";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(msg)
-          ? "This host requires a prepared session token. Open PLAY and use Advanced details, or try again on a development host."
+          ? "This host requires an operator token. Paste it above or on the PLAY session card → Access token."
           : msg;
       }
     });
@@ -398,12 +422,20 @@ export function landingHtml(): string {
         const h = await fetch("/health").then(r => r.json());
         document.getElementById("home-health").textContent = h.status || "—";
         document.getElementById("home-stage").textContent = h.stage || "0";
+        if (h && h.env === "production") {
+          const wrap = document.getElementById("wiz-token-wrap");
+          if (wrap) wrap.hidden = false;
+        }
       } catch (_) {
         document.getElementById("home-health").textContent = "unavailable";
       }
       try {
         const r = await fetch("/ready").then(r => r.json());
-        document.getElementById("home-ready").textContent = r.ready ? "ready" : "not ready";
+        const st = r.status || (r.world && r.world.status) || "";
+        const sh = r.settlement_health || "";
+        document.getElementById("home-ready").textContent = st
+          ? (sh && sh !== "HEALTHY" ? st + " · " + sh : st)
+          : (r.ready ? "ready" : "not ready");
       } catch (_) {
         document.getElementById("home-ready").textContent = "unknown";
       }

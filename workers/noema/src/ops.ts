@@ -64,6 +64,49 @@ export function mutationBlocked(
   return null;
 }
 
+export type PlayReady = {
+  ready: boolean;
+  play_blocked: boolean;
+  code: string | null;
+  status: WorldOpStatus;
+  settlement_health: SettlementHealth;
+};
+
+/** PLAY mutation readiness — not “Durable Object answered”. */
+export function playReady(
+  status?: string | null,
+  settlement?: string | null,
+): PlayReady {
+  const st = (status || "NOT_ACTIVE") as WorldOpStatus;
+  const sh = (settlement || "HEALTHY") as SettlementHealth;
+  if (st === "NOT_ACTIVE") {
+    return {
+      ready: false,
+      play_blocked: true,
+      code: "WORLD_NOT_READY",
+      status: st,
+      settlement_health: sh,
+    };
+  }
+  const gate = mutationBlocked(st, sh);
+  if (gate) {
+    return {
+      ready: false,
+      play_blocked: true,
+      code: gate.code,
+      status: st,
+      settlement_health: sh,
+    };
+  }
+  return {
+    ready: true,
+    play_blocked: false,
+    code: null,
+    status: st,
+    settlement_health: sh,
+  };
+}
+
 /** After a mutating batch's durable settle attempt. */
 export function nextSettlementHealth(current: SettlementHealth, settleOk: boolean): SettlementHealth {
   if (settleOk) return "HEALTHY";

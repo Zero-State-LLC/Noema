@@ -237,6 +237,7 @@ export function buildObservation(
       role: s.role,
       status: s.status,
       operations: s.operations,
+      cannot: s.cannot,
       suggested_cmds: s.suggested_cmds,
       line: s.line,
     })),
