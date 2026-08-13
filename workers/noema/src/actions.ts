@@ -37,6 +37,11 @@ export type PlayerRuntime = {
     tracks: Partial<Record<string, string[]>>;
     recognition?: Partial<Record<string, string[]>>;
   };
+  /** GC3-S0 derived dyadic trade memory. Not WorldState. */
+  trade_memory?: {
+    catalog_id: "social-memory-catalog/gc3-s0";
+    edges: Record<string, string[]>;
+  };
 };
 
 export type OpenTrade = {
