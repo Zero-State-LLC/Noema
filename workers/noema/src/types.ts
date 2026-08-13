@@ -18,6 +18,8 @@ export interface Env {
    * Never grant to player Controllers. Optional in local; required for hosted admin.
    */
   ADMIN_OPERATOR_TOKEN?: string;
+  /** Comma-separated operator mailboxes. Secret — never [vars] or /health. */
+  ADMIN_ALLOWLIST_EMAILS?: string;
 }
 
 /** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */
@@ -25,7 +27,7 @@ export interface AdminPrincipal {
   role: "ADMIN";
   session_id: string;
   scopes: string[];
-  authentication_context: "operator_token";
+  authentication_context: "operator_token" | "email_magic_link";
 }
 
 export type ControllerType = "human" | "agent" | "hybrid";

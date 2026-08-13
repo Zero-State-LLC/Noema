@@ -101,4 +101,46 @@ export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincip
   }
 }
 
+export const GENERIC_LOGIN_MESSAGE =
+  "If that mailbox is authorized, a link is on the way.";
+
+export function parseAllowlist(raw?: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.includes("@"));
+}
+
+export function normalizeEmail(raw: string): string | null {
+  const email = raw.trim().toLowerCase();
+  if (!email || !email.includes("@") || email.startsWith("@") || email.endsWith("@")) {
+    return null;
+  }
+  return email;
+}
+
+export function clientIp(req: Request): string {
+  return req.headers.get("CF-Connecting-IP")?.trim() || "0.0.0.0";
+}
+
+export class LoginThrottle {
+  private hits = new Map<string, number[]>();
+  constructor(
+    private limit = 5,
+    private windowMs = 3_600_000,
+  ) {}
+  hit(key: string, now = Date.now()): boolean {
+    const cut = now - this.windowMs;
+    const prev = (this.hits.get(key) || []).filter((t) => t > cut);
+    if (prev.length >= this.limit) {
+      this.hits.set(key, prev);
+      return false;
+    }
+    prev.push(now);
+    this.hits.set(key, prev);
+    return true;
+  }
+}
+
 export { json, err };
