@@ -116,7 +116,15 @@ export const BACKEND_GAPS_TIER3 = [
   "ACCESS_POLICY",
 ] as const;
 
-export type OrgRole = "founder" | "officer" | "member";
+export type OrgRole = "founder" | "officer" | "member" | "advisor";
+
+export function assignedOrgRole(raw: string | undefined | null): OrgRole {
+  const role = String(raw || "member").toLowerCase();
+  if (role === "officer") return "officer";
+  if (role === "advisor") return "advisor";
+  if (role === "founder") return "founder";
+  return "member";
+}
 
 export type OrgMember = { agent_id: string; role: OrgRole };
 
@@ -670,9 +678,7 @@ export function parseHumanCommand(
       if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
       agent_id = r.player_id;
     }
-    const roleRaw = (m[3] || "member").toLowerCase();
-    const role: OrgRole =
-      roleRaw === "founder" || roleRaw === "officer" ? (roleRaw as OrgRole) : "member";
+    const role = assignedOrgRole(m[3] || "member");
     return {
       ok: true,
       action: {
@@ -870,9 +876,7 @@ export function normalizeStructuredCommand(
       if (!org_id || !agent_id) {
         return { ok: false, error: "org_id and agent_id required", code: "INVALID_REQUEST" };
       }
-      const roleRaw = String(args.role || "member").toLowerCase();
-      const role: OrgRole =
-        roleRaw === "founder" || roleRaw === "officer" ? (roleRaw as OrgRole) : "member";
+      const role = assignedOrgRole(String(args.role || "member"));
       return {
         ok: true,
         action: {
@@ -1176,7 +1180,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
   } else if (t === "org" || t === "organization" || t === "organizations") {
     lines.push("ORGANIZATIONS");
     lines.push('  form <name> charter="purpose"');
-    lines.push("  invite <player> to <org_id> role=member|officer");
+    lines.push("  invite <player> to <org_id> role=member|officer|advisor");
     lines.push("  leave <org_id>");
     lines.push('  remove <player> from <org_id> reason="cause"');
     lines.push("  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1");

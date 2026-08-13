@@ -496,6 +496,7 @@ export function statusFromObservation(obs: {
   world_name?: string;
   practice_lines?: string[];
   social_memory_lines?: string[];
+  culture_lines?: string[];
 } | null): Array<{ label: string; value: string }> {
   if (!obs?.location) return [];
   const loc = obs.location;
@@ -527,11 +528,13 @@ export function renderLookHtml(opts: {
   description?: string;
   condition?: string;
   exitsLine?: string;
+  cultureLine?: string;
 }): string {
   const name = escHtml(opts.name || "");
   const desc = escHtml(opts.description || "");
   const cond = String(opts.condition || "").trim();
   const exits = String(opts.exitsLine || "").trim();
+  const culture = String(opts.cultureLine || "").trim();
   return (
     '<p class="where role-place">WHERE</p>' +
     '<h2 id="room-name">' + name + "</h2>" +
@@ -541,6 +544,9 @@ export function renderLookHtml(opts: {
         escHtml(cond) +
         "</span></div>"
       : '<div id="loc-cond" hidden><b class="role-place">CONDITION</b><span id="loc-cond-text"></span></div>') +
+    (culture
+      ? '<p id="loc-custom">' + escHtml(culture) + "</p>"
+      : '<p id="loc-custom" hidden></p>') +
     (exits
       ? '<p id="look-exits">exits: ' + escHtml(exits) + "</p>"
       : '<p id="look-exits" hidden></p>')

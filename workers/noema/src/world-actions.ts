@@ -6,6 +6,7 @@
 import {
   COSTS,
   allocateOrgId,
+  assignedOrgRole,
   canPay,
   cloneBudgets,
   debit,
@@ -43,6 +44,7 @@ import {
   socialMemoryLines,
   type SocialEvent,
 } from "./social-memory";
+import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 
@@ -68,6 +70,8 @@ export type WorldRuntime = {
   organizations: Record<string, Organization>;
   seen_idempotency: Record<string, CommandResult>;
   unsettled: Array<{ event_id: string; payload: Record<string, unknown> }>;
+  /** GC9-S0 derived site custom cache. Not WorldState. */
+  culture?: import("./culture").CultureState;
 };
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
@@ -286,6 +290,11 @@ export function buildObservation(
         Object.entries(w.players).map(([id, p]) => [id, p.handle]),
       ),
     ),
+    culture_lines: cultureLines(
+      w.culture,
+      entities.map((e) => e.entity_id),
+      principal.player_id,
+    ),
   };
 }
 
@@ -327,6 +336,15 @@ function recordPractice(
   }
 }
 
+function recordCulture(
+  w: WorldRuntime,
+  actingPlayerId: string,
+  events: NonNullable<CommandResult["events"]> | undefined,
+): void {
+  if (!events?.length) return;
+  w.culture = applyCultureEvents(w.culture, events as CultureEvent[], actingPlayerId);
+}
+
 function recordTradeMemory(
   w: WorldRuntime,
   events: NonNullable<CommandResult["events"]> | undefined,
@@ -359,6 +377,7 @@ function success(
 ): CommandResult {
   recordPractice(w, principal.player_id, events);
   recordTradeMemory(w, events);
+  recordCulture(w, principal.player_id, events);
   return {
     ok: true,
     request_id,
@@ -721,6 +740,7 @@ export async function applyWorldCommand(
     });
     await settleEv(obsEv);
     recordPractice(w, principal.player_id, events);
+    recordCulture(w, principal.player_id, events);
     const obs = buildObservation(w, principal, detail);
     obs.location = {
       ...obs.location,
@@ -1002,7 +1022,7 @@ export async function applyWorldCommand(
         action.arguments.initial_members && action.arguments.initial_members.length
           ? action.arguments.initial_members.map((m) => ({
               agent_id: m.agent_id,
-              role: (m.role === "founder" || m.role === "officer" ? m.role : "member") as OrgRole,
+              role: assignedOrgRole(m.role),
             }))
           : [{ agent_id: principal.player_id, role: "founder" as OrgRole }];
       if (!members.some((m) => m.agent_id === principal.player_id)) {
@@ -1058,7 +1078,7 @@ export async function applyWorldCommand(
       }
       const org_id = String(action.arguments.org_id || "").trim();
       const agent_id = String(action.arguments.agent_id || "").trim();
-      const role = (action.arguments.role || "member") as OrgRole;
+      const role = assignedOrgRole(action.arguments.role);
       const org = w.organizations[org_id];
       if (!org || org.status !== "ACTIVE") {
         return fail(request_id, "NOT_FOUND", "Organization not found.");
@@ -1076,7 +1096,10 @@ export async function applyWorldCommand(
         return fail(request_id, "FORBIDDEN", "Cannot invite as founder.");
       }
       debit(pl.budgets, COSTS.ORG_MEMBER_ADD);
-      org.members.push({ agent_id, role: role === "officer" ? "officer" : "member" });
+      org.members.push({
+        agent_id,
+        role: role === "officer" ? "officer" : role === "advisor" ? "advisor" : "member",
+      });
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: COSTS.ORG_MEMBER_ADD,
@@ -1085,7 +1108,7 @@ export async function applyWorldCommand(
       const ev = pushEvent("ORG_MEMBER_ADD", {
         org_id,
         agent_id,
-        role: role === "officer" ? "officer" : "member",
+        role: role === "officer" ? "officer" : role === "advisor" ? "advisor" : "member",
         by: principal.player_id,
       });
       await settleEv(ev);
@@ -1094,7 +1117,7 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        `Invited ${agent_id} to ${org.name} as ${role === "officer" ? "officer" : "member"}.`,
+        `Invited ${agent_id} to ${org.name} as ${role === "officer" ? "officer" : role === "advisor" ? "advisor" : "member"}.`,
         settled,
       );
       w.seen_idempotency[idem] = result;
@@ -1283,6 +1306,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.trades = w.trades || {};
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
+  if (!w.culture) w.culture = emptyCulture();
   for (const room of Object.values(w.rooms)) {
     room.entities = (room.entities || []).map((e) => enrichEntity(e));
   }

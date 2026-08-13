@@ -37,6 +37,7 @@ body.is-chamber #play-chamber{
   color:var(--copper);
 }
 .look #room-desc{margin:0;max-width:44rem;color:var(--muted)}
+.look #loc-custom{margin:.55rem 0 0;max-width:44rem;color:var(--ink)}
 .look #loc-cond{margin:.65rem 0 0}
 .look #look-exits{margin:.45rem 0 0;color:var(--muted);font-size:.84rem}
 .ch-rail{
@@ -121,6 +122,7 @@ export function playHtml(): string {
           <p class="where role-place">WHERE</p>
           <h2 id="room-name"></h2>
           <p id="room-desc"></p>
+          <p id="loc-custom" hidden></p>
           <div id="loc-cond" hidden>
             <b class="role-place">CONDITION</b>
             <span id="loc-cond-text"></span>
@@ -265,6 +267,8 @@ function playClientBundle(): string {
         $("world-line").textContent = "—";
         $("room-name").textContent = "";
         $("room-desc").textContent = "Waiting for the world.";
+        const locCustomOff = $("loc-custom");
+        if (locCustomOff) { locCustomOff.hidden = true; locCustomOff.textContent = ""; }
         $("loc-cond").hidden = true;
         const lookExits = $("look-exits");
         if (lookExits) { lookExits.hidden = true; lookExits.textContent = ""; }
@@ -288,6 +292,12 @@ function playClientBundle(): string {
       if (cyc) cyc.textContent = typeof obs.cycle === "number" ? "Cycle " + obs.cycle : "";
       $("room-name").textContent = loc.name || "Unknown place";
       $("room-desc").textContent = loc.description || "";
+      const customLine = (obs.culture_lines && obs.culture_lines[0]) || "";
+      const locCustom = $("loc-custom");
+      if (locCustom) {
+        locCustom.hidden = !customLine;
+        locCustom.textContent = customLine;
+      }
       const cond = deriveLocalCondition(loc);
       $("loc-cond").hidden = !cond;
       $("loc-cond-text").textContent = cond;
