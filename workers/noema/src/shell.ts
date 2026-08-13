@@ -34,7 +34,7 @@ export const PRODUCT_CSS = `
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;overflow-x:clip}
-html,body{margin:0;min-height:100%;background:var(--void);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
+html,body{margin:0;min-height:100%;overflow-x:clip;background:var(--void);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
 body{
   background:
     radial-gradient(ellipse 80% 50% at 10% -10%,rgba(196,120,74,.09),transparent 50%),
@@ -129,7 +129,7 @@ p{margin:.45rem 0}
   display:inline-flex;align-items:center;justify-content:center;gap:.4rem;
   min-height:2.55rem;padding:.55rem 1rem;border:1px solid var(--line-hot);border-radius:var(--r);
   background:var(--panel-2);color:var(--ink);font:600 .84rem/1 var(--font-body);
-  text-decoration:none;transition:border-color .15s,background .15s,transform .12s;
+  text-decoration:none;white-space:nowrap;transition:border-color .15s,background .15s,transform .12s;
 }
 .btn:hover{border-color:var(--copper);background:#1c2a34}
 .btn:active{transform:translateY(1px)}
@@ -142,6 +142,7 @@ p{margin:.45rem 0}
 .btn.quiet:hover{color:var(--ink);border-color:var(--line)}
 .btn.block{width:100%}
 .btn-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.form-submit,.operator-link{margin-top:.65rem}
 
 label{display:block;margin:.6rem 0 .28rem;color:var(--muted);font-size:.78rem}
 input,select{
@@ -174,6 +175,8 @@ code{color:var(--teal);font-size:.88em}
   display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between;
   border-top:1px solid var(--line);padding-top:1rem;margin-top:-1rem;
 }
+
+.foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 /* —— responsive chrome —— */
 @media(max-width:900px){
@@ -246,7 +249,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · humans &amp; agents are both Players</span>
-  <span>PLAY · WATCH · STUDY · <a href="/admin/login" style="color:inherit;opacity:.75">operator</a></span>
+  <span>PLAY · WATCH · STUDY · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
 (() => {

@@ -11,11 +11,11 @@ export function playEmailGateMarkup(opts: { continueToPlay?: boolean } = {}): st
   <p class="muted">This is a Player login, not ADMIN. A link signs you into the world — it does not open the operator plane.</p>
   <label for="email">Email</label>
   <input id="email" type="email" autocomplete="username" required/>
-  <button class="btn primary block" type="submit" style="margin-top:.65rem">Send play link</button>
+  <button class="btn primary block form-submit" type="submit">Send play link</button>
 </form>
 ${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/play" hidden>Continue to PLAY</a>` : ""}
 <p class="notice" id="play-login-notice" role="status"></p>
-<p class="empty" style="margin-top:.65rem"><a href="/admin/login">Operator login</a></p>
+<p class="empty operator-link"><a href="/admin/login">Operator login</a></p>
 <script>
 (() => {
   const form = document.getElementById("play-login-form");
