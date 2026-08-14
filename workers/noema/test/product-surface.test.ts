@@ -89,7 +89,7 @@ describe("hosted /index.html", () => {
   const bareEnv = { NOEMA_ENV: "production" } as unknown as Env;
 
   it("serves the world door, not the research splash", async () => {
-    for (const path of ["/", "/index.html"]) {
+    for (const path of ["/", "/index.html", "/memo", "/memo.html"]) {
       const res = await worker.fetch(new Request(`https://noema.guru${path}`), bareEnv);
       const html = await res.text();
       expect(res.status).toBe(200);
@@ -136,6 +136,10 @@ describe("planes", () => {
   it("watch still loads the live projection", () => {
     expect(watchHtml()).toContain("/v1/watch/live");
     expect(watchHtml()).not.toMatch(/Watch the world move/);
+  });
+  it("play and watch do not assign via innerHTML", () => {
+    expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
+    expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
   it("connect has curl and command path", () => {
     expect(connectHtml()).toContain("NOEMA_BASE");

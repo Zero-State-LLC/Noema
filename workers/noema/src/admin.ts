@@ -523,12 +523,28 @@ export function adminHtml(): string {
 
   let lastPreview = null;
 
-  function esc(s) {
-    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
-  }
-
   function selectedSeeds() {
     return [...document.querySelectorAll("#g-seeds input:checked")].map(i => i.value).slice(0, 2);
+  }
+
+  function p(className, style) {
+    const n = document.createElement("p");
+    if (className) n.className = className;
+    if (style) n.setAttribute("style", style);
+    return n;
+  }
+  function strong(text) {
+    const n = document.createElement("strong");
+    n.textContent = text;
+    return n;
+  }
+  function bullets(items) {
+    const frag = document.createDocumentFragment();
+    items.forEach((t, i) => {
+      if (i) frag.append(document.createElement("br"));
+      frag.append("• " + t);
+    });
+    return frag;
   }
 
   function renderPreview(result, meta) {
@@ -544,28 +560,70 @@ export function adminHtml(): string {
     }
     const s = result.preview_summary || {};
     const th = result.theme || {};
-    const lines = [];
-    lines.push("<p class='kicker'>" + esc((result.world_name || "World").toUpperCase()) + " — PREVIEW</p>");
-    if (th.character) lines.push("<p class='muted'><strong>Character</strong><br/>" + esc(th.character) + "</p>");
-    lines.push("<p class='muted'><strong>Profile</strong> " + esc(result.genesis_profile_id) + " · <strong>Seeds</strong> " + (result.story_seed_ids||[]).map(esc).join(", ") + "</p>");
-    lines.push("<p class='muted'><strong>Starting structure</strong><br/>" +
-      "• " + (s.room_count||0) + " primary sites<br/>" +
-      "• " + ((s.active_institutions||[]).length) + " active institution(s)<br/>" +
-      "• " + ((s.dormant_institutions||[]).length) + " dormant lineage(s)<br/>" +
-      (s.functioning_exchange ? "• 1 functioning exchange<br/>" : "") +
-      (s.damaged_relay ? "• damaged infrastructure present<br/>" : "") +
-      (s.archive_mystery ? "• archive / data mystery<br/>" : "") +
-      "</p>");
-    if (s.regions) lines.push("<p class='empty'>" + s.regions.map(r => esc(r.name)).join(" · ") + "</p>");
-    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Pressures</strong><br/>" + s.tensions.map(t => "• " + esc(t)).join("<br/>") + "</p>");
-    if (s.ruins_scars && s.ruins_scars.length) lines.push("<p class='muted'><strong>Historical traces</strong><br/>" + s.ruins_scars.map(t => "• " + esc(t)).join("<br/>") + "</p>");
-    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities</strong><br/>" + s.opportunities.map(esc).join(" · ") + "</p>");
-    if (th.lore_boundary) lines.push("<p class='empty' style='margin-top:.5rem'>" + esc(th.lore_boundary) + "</p>");
-    lines.push("<p class='empty mono' style='margin-top:.6rem;font-size:.72rem'>genesis_id " + esc(result.genesis_id) + "<br/>cycle0_digest " + esc(result.cycle0_digest) + "</p>");
-    if (result.validation && !result.validation.ok) {
-      lines.push("<p class='notice bad'>Blocked: " + (result.validation.errors||[]).map(esc).join("; ") + "</p>");
+    const body = $("g-preview-body");
+    body.replaceChildren();
+    const kicker = p("kicker");
+    kicker.textContent = (result.world_name || "World").toUpperCase() + " — PREVIEW";
+    body.append(kicker);
+    if (th.character) {
+      const row = p("muted");
+      row.append(strong("Character"), document.createElement("br"), th.character);
+      body.append(row);
     }
-    $("g-preview-body").innerHTML = lines.join("");
+    const profile = p("muted");
+    profile.append(
+      strong("Profile"),
+      " " + (result.genesis_profile_id || "") + " · ",
+      strong("Seeds"),
+      " " + (result.story_seed_ids||[]).join(", "),
+    );
+    body.append(profile);
+    const structure = p("muted");
+    const bits = [
+      (s.room_count||0) + " primary sites",
+      ((s.active_institutions||[]).length) + " active institution(s)",
+      ((s.dormant_institutions||[]).length) + " dormant lineage(s)",
+    ];
+    if (s.functioning_exchange) bits.push("1 functioning exchange");
+    if (s.damaged_relay) bits.push("damaged infrastructure present");
+    if (s.archive_mystery) bits.push("archive / data mystery");
+    structure.append(strong("Starting structure"), document.createElement("br"), bullets(bits));
+    body.append(structure);
+    if (s.regions) {
+      const row = p("empty");
+      row.textContent = s.regions.map(r => r.name).join(" · ");
+      body.append(row);
+    }
+    if (s.tensions && s.tensions.length) {
+      const row = p("muted");
+      row.append(strong("Pressures"), document.createElement("br"), bullets(s.tensions));
+      body.append(row);
+    }
+    if (s.ruins_scars && s.ruins_scars.length) {
+      const row = p("muted");
+      row.append(strong("Historical traces"), document.createElement("br"), bullets(s.ruins_scars));
+      body.append(row);
+    }
+    if (s.opportunities) {
+      const row = p("muted");
+      row.append(strong("Opportunities"), document.createElement("br"), s.opportunities.join(" · "));
+      body.append(row);
+    }
+    if (th.lore_boundary) {
+      const row = p("empty");
+      row.setAttribute("style", "margin-top:.5rem");
+      row.textContent = th.lore_boundary;
+      body.append(row);
+    }
+    const ids = p("empty mono");
+    ids.setAttribute("style", "margin-top:.6rem;font-size:.72rem");
+    ids.append("genesis_id " + (result.genesis_id || ""), document.createElement("br"), "cycle0_digest " + (result.cycle0_digest || ""));
+    body.append(ids);
+    if (result.validation && !result.validation.ok) {
+      const row = p("notice bad");
+      row.textContent = "Blocked: " + (result.validation.errors||[]).join("; ");
+      body.append(row);
+    }
     const canAct = result.validation && result.validation.ok && meta && meta.determinism && meta.determinism.ok;
     $("g-activation").hidden = !canAct;
     $("g-confirm").checked = false;

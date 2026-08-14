@@ -868,6 +868,262 @@ export function renderOpportunitiesHtml(loc: LocationObs): string {
     .join("");
 }
 
+type DomNode = {
+  className: string;
+  type?: string;
+  hidden?: boolean;
+  disabled?: boolean;
+  textContent: string;
+  setAttribute(name: string, value: string): void;
+  append(...nodes: unknown[]): void;
+};
+
+type DomRoot = {
+  replaceChildren(...nodes: unknown[]): void;
+  append(...nodes: unknown[]): void;
+};
+
+function pageDoc(): { createElement(tag: string): DomNode } {
+  return (globalThis as unknown as { document: { createElement(tag: string): DomNode } }).document;
+}
+
+function h(tag: string, className?: string, text?: string): DomNode {
+  const n = pageDoc().createElement(tag);
+  if (className) n.className = className;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function cmdBtn(cmd: string, text: string, aria?: string): DomNode {
+  const b = h("button", "role-here", text);
+  b.type = "button";
+  b.setAttribute("data-cmd", cmd);
+  if (aria) b.setAttribute("aria-label", aria);
+  return b;
+}
+
+export function fillTrail(el: DomRoot, items: TrailItem[]): void {
+  el.replaceChildren();
+  const label: Record<TrailKind, string> = {
+    you: "YOU",
+    local: "LOCAL",
+    world: "WORLD",
+    fail: "FAIL",
+  };
+  const role: Record<TrailKind, string> = {
+    you: "role-you",
+    local: "role-here",
+    world: "",
+    fail: "role-fail",
+  };
+  for (const t of items) {
+    const li = h("li");
+    const k = h("span", "k " + t.kind + (role[t.kind] ? " " + role[t.kind] : ""), label[t.kind]);
+    const title = h("span", "t", t.title || "");
+    if (t.detail) title.append(h("span", "d", t.detail));
+    li.append(k, title);
+    el.append(li);
+  }
+}
+
+export function fillPlayersHere(
+  el: DomRoot,
+  players?: PlayerHere[] | null,
+  orgs?: OrgItem[] | null,
+  selfId?: string,
+): void {
+  el.replaceChildren();
+  if (!players || !players.length) return;
+  const officerOrgs = (orgs || []).filter((o) => {
+    const role = String(o.my_role || "").toLowerCase();
+    return role === "founder" || role === "officer";
+  });
+  const ul = h("ul", "tok-list players-here");
+  ul.setAttribute("aria-label", "Other players");
+  for (const p of players) {
+    const handle = playerHandle(p);
+    const li = h("li");
+    li.append(
+      cmdBtn("message " + handle + ' "', handle, "Message " + handle),
+      " ",
+      cmdBtn("trade " + handle + " offer=", "trade", "Trade " + handle),
+    );
+    for (const o of officerOrgs) {
+      li.append(
+        " ",
+        cmdBtn("invite " + handle + " to " + o.org_id + " role=member", "invite " + o.name),
+      );
+    }
+    ul.append(li);
+  }
+  void selfId;
+  el.append(ul);
+}
+
+export function fillBonds(
+  el: DomRoot,
+  opts: {
+    messages?: MailItem[] | null;
+    trades?: TradeItem[] | null;
+    organizations?: OrgItem[] | null;
+  },
+): void {
+  el.replaceChildren();
+  const mail = opts.messages || [];
+  const trades = opts.trades || [];
+  const orgs = opts.organizations || [];
+  const mailBlock = h("div", "bonds-block");
+  mailBlock.append(h("h4", "", "Mail"));
+  const mailUl = h("ul", "tok-list");
+  mailUl.setAttribute("aria-label", "Mail");
+  if (!mail.length) mailUl.append(h("li", "empty", "No messages."));
+  else {
+    for (const m of mail.slice().reverse()) {
+      const li = h("li");
+      li.append(
+        h("strong", "", playerHandle({ player_id: m.sender_id })),
+        " · cycle " + String(m.delivered_cycle),
+        h("span", "d", m.text),
+      );
+      mailUl.append(li);
+    }
+  }
+  mailBlock.append(mailUl);
+
+  const tradeBlock = h("div", "bonds-block");
+  tradeBlock.append(h("h4", "", "Open trades"));
+  const tradeUl = h("ul", "tok-list");
+  tradeUl.setAttribute("aria-label", "Open trades");
+  if (!trades.length) tradeUl.append(h("li", "empty", "No open trades."));
+  else {
+    for (const t of trades) {
+      const label = formatResourceMap(t.offered) + " → " + formatResourceMap(t.requested);
+      const li = h("li");
+      li.append(label + " ", h("span", "muted", t.role || ""), " ");
+      if (t.role === "counterparty") {
+        li.append(cmdBtn("accept " + t.trade_id, "accept"), " ", cmdBtn("reject " + t.trade_id, "reject"));
+      } else {
+        li.append(cmdBtn("cancel " + t.trade_id, "cancel"));
+      }
+      tradeUl.append(li);
+    }
+  }
+  tradeBlock.append(tradeUl);
+
+  const orgBlock = h("div", "bonds-block");
+  orgBlock.append(h("h4", "", "Organizations"));
+  const orgUl = h("ul", "tok-list");
+  orgUl.setAttribute("aria-label", "Organizations");
+  if (!orgs.length) orgUl.append(h("li", "empty", "No public organizations."));
+  else {
+    for (const o of orgs) {
+      const role = o.my_role || "not a member";
+      const seats = (o.offices || [])
+        .map((off) => {
+          const who = off.status === "VACANT" ? "vacant" : off.holder_handle || "occupied";
+          return (off.display_name || "") + " — " + who;
+        })
+        .join("; ");
+      const notice = o.public_notice ? ' · notice: "' + o.public_notice + '"' : "";
+      const li = h("li");
+      li.append(o.name || "", " ", h("span", "muted", role + (seats ? " · " + seats : "") + notice));
+      orgUl.append(li);
+    }
+  }
+  orgBlock.append(orgUl, cmdBtn("form ", "Form organization"));
+  el.append(mailBlock, tradeBlock, orgBlock);
+}
+
+export function fillServiceDesks(el: DomRoot, services?: LocationObs["services"] | null): void {
+  el.replaceChildren();
+  if (!services || !services.length) return;
+  const ul = h("ul", "tok-list");
+  ul.setAttribute("aria-label", "World Services");
+  for (const s of services) {
+    const unavailable = String(s.status || "").toUpperCase() === "UNAVAILABLE";
+    const name = s.display_name || "Desk";
+    const li = h("li");
+    li.append(name);
+    const sub = [s.status, s.role].filter(Boolean).join(" · ");
+    if (sub) li.append(" ", h("span", "muted", sub));
+    if (s.line) li.append(" ", h("span", "muted", s.line));
+    if (s.cannot && s.cannot.length) {
+      li.append(" ", h("span", "muted", "Cannot"));
+      const nest = h("ul");
+      for (const c of s.cannot) nest.append(h("li", "", c));
+      li.append(nest);
+    }
+    li.append(" ");
+    if (unavailable) {
+      const b = h("button", "role-here", "Talk unavailable");
+      b.type = "button";
+      b.disabled = true;
+      b.setAttribute("aria-disabled", "true");
+      li.append(b);
+    } else {
+      li.append(cmdBtn("talk " + String(name).toLowerCase(), "Talk " + name));
+    }
+    for (const c of s.suggested_cmds || []) li.append(" ", cmdBtn(c, c));
+    ul.append(li);
+  }
+  el.append(ul);
+}
+
+export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
+  el.replaceChildren();
+  if (!exits || !exits.length) return;
+  for (const x of exits) {
+    const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+    const li = h("li");
+    li.append(cmdBtn("move " + x.direction, x.direction), " ", h("span", "muted", dest));
+    el.append(li);
+  }
+}
+
+export function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void {
+  el.replaceChildren();
+  if (!entities || !entities.length) {
+    el.append(h("li", "empty", "Nothing notable right here."));
+    return;
+  }
+  for (const e of entities) {
+    const name = titleCaseLabel(e.label);
+    let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+    if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
+    if (e.harvestable && e.stock_amount != null) {
+      sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
+    }
+    const li = h("li");
+    li.append(cmdBtn("inspect " + e.label, name), " ", h("span", "muted", sub));
+    if (e.repairable) li.append(" ", cmdBtn("repair " + e.label, "repair"));
+    if (e.harvestable) li.append(" ", cmdBtn("harvest " + e.label, "harvest"));
+    el.append(li);
+  }
+}
+
+export function fillOpportunities(el: DomRoot, loc: LocationObs): void {
+  el.replaceChildren();
+  const opps = deriveOpportunities(loc);
+  if (!opps.length) {
+    el.append(h("li", "empty", "No clear local pressure — try looking or following a route."));
+    return;
+  }
+  for (const o of opps) {
+    const li = h("li");
+    li.append(cmdBtn(o.cmd, o.actionLabel), " ", h("span", "muted", o.text));
+    el.append(li);
+  }
+}
+
+export function fillStatusRows(el: DomRoot, rows: { label: string; value: string }[]): void {
+  el.replaceChildren();
+  for (const r of rows) {
+    const li = h("li");
+    li.append(h("span", "", r.label), h("b", "", r.value));
+    el.append(li);
+  }
+}
+
 /** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
 export function playUiRuntimeSource(): string {
   return [
@@ -892,6 +1148,17 @@ export function playUiRuntimeSource(): string {
     renderLookHtml,
     renderTrailHtml,
     renderExitTokensHtml,
+    pageDoc,
+    h,
+    cmdBtn,
+    fillTrail,
+    fillPlayersHere,
+    fillBonds,
+    fillServiceDesks,
+    fillExitTokens,
+    fillEntityList,
+    fillOpportunities,
+    fillStatusRows,
   ]
     .map((fn) => fn.toString())
     .join("\n");
