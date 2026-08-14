@@ -420,6 +420,15 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/System actors/);
   });
 
+  it("does not assign attention messages or actor labels via unescaped innerHTML", () => {
+    const html = adminHtml();
+    expect(html).not.toMatch(/li\.innerHTML\s*=\s*"<strong>"\s*\+\s*\(m\.message/);
+    expect(html).not.toMatch(/li\.innerHTML\s*=\s*"<strong>"\s*\+\s*label/);
+    expect(html).toMatch(/strong\.textContent\s*=\s*strongText/);
+    expect(html).toMatch(/pairLi\(m\.message,\s*m\.level\)/);
+    expect(html).toMatch(/pairLi\(label,\s*note\)/);
+  });
+
   it("is email-only and locked to the operator mailbox", () => {
     const html = adminLoginHtml();
     expect(html).toContain('id="email"');

@@ -646,15 +646,21 @@ export function adminHtml(): string {
 
       const att = $("attention");
       att.replaceChildren();
+      const pairLi = (strongText, spanText, className) => {
+        const li = document.createElement("li");
+        if (className) li.className = className;
+        const strong = document.createElement("strong");
+        strong.textContent = strongText || "";
+        const span = document.createElement("span");
+        span.textContent = spanText || "";
+        li.append(strong, span);
+        return li;
+      };
       const msgs = data.attention || [];
       if (!msgs.length) {
-        att.innerHTML = "<li><strong>No operator attention required.</strong><span>clear</span></li>";
+        att.append(pairLi("No operator attention required.", "clear"));
       } else {
-        msgs.forEach(m => {
-          const li = document.createElement("li");
-          li.innerHTML = "<strong>" + (m.message||"") + "</strong><span>" + (m.level||"") + "</span>";
-          att.append(li);
-        });
+        msgs.forEach(m => att.append(pairLi(m.message, m.level)));
       }
 
       const fillActors = (elId, rows, empty) => {
@@ -662,15 +668,13 @@ export function adminHtml(): string {
         if (!el) return;
         el.replaceChildren();
         if (!rows.length) {
-          el.innerHTML = '<li class="empty">' + empty + "</li>";
+          el.append(pairLi(empty, "", "empty"));
           return;
         }
         rows.forEach((row) => {
-          const li = document.createElement("li");
           const label = row.handle || row.player_id;
           const note = row.entered ? "present" : "idle";
-          li.innerHTML = "<strong>" + label + "</strong><span>" + note + "</span>";
-          el.append(li);
+          el.append(pairLi(label, note));
         });
       };
       fillActors("live-player-list", live, "No live Players.");
