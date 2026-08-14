@@ -33,11 +33,24 @@ import {
 import { actorKindFromPrincipal } from "./ops";
 import { commitCycleIfReady } from "./world-time";
 import {
+  ACCESS_CLASS,
+  ACCESS_DURATION_CYCLES,
+  RESOURCE_CLASS,
+  STOCK_DELTA,
+  WATCH_ACCESS_PULSE,
+  WATCH_INFRA_PULSE,
+  WATCH_RESOURCE_PULSE,
+  classDue,
+  collectHarvestNodes,
   collectLiveRelaysWithRoom,
+  collectPublicExits,
   emptyPressure,
   ensurePressure,
+  notePulse,
   previewAfter,
-  scheduleDue,
+  previewStockAfter,
+  selectScheduleExit,
+  selectScheduleNode,
   selectScheduleRelay,
 } from "./pressure";
 import {
@@ -2841,29 +2854,116 @@ async function applyScheduledPressure(
   settleEv: SettleEv,
 ): Promise<void> {
   w.pressure = ensurePressure(w.pressure);
-  if (!scheduleDue(w.cycle, w.pressure.schedule_activations)) return;
-  const target = selectScheduleRelay(collectLiveRelaysWithRoom(w.rooms));
-  if (!target) return;
-  const room = w.rooms[target.room_id];
-  if (!room) return;
-  const entity = findEntity(room, target.entity_id);
-  if (!entity) return;
-  const before = entity.condition ?? 0;
-  const after = previewAfter(before);
-  entity.condition = after;
-  const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
-  if (idx >= 0) room.entities[idx] = entity;
-  w.pressure.schedule_activations += 1;
-  w.pressure.last_cycle = w.cycle;
-  const ev = pushEvent("ENTITY_UPDATE", {
-    entity_id: entity.entity_id,
-    field: "condition",
-    from: before,
-    to: after,
-    authorizer: "schedule",
-    preview_after: after,
-  });
-  await settleEv(ev);
+  const classes = w.pressure.class_activations || {
+    infrastructure_failure: w.pressure.schedule_activations,
+    resource_scarcity: 0,
+    access_restriction: 0,
+  };
+  const lastBy = w.pressure.last_by_class || {};
+
+  if (classDue(w.cycle, "infrastructure_failure", classes.infrastructure_failure || 0)) {
+    const target = selectScheduleRelay(collectLiveRelaysWithRoom(w.rooms));
+    if (target) {
+      const room = w.rooms[target.room_id];
+      const entity = room ? findEntity(room, target.entity_id) : undefined;
+      if (entity) {
+        const before = entity.condition ?? 0;
+        const after = previewAfter(before);
+        entity.condition = after;
+        const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+        if (idx >= 0) room.entities[idx] = entity;
+        classes.infrastructure_failure = (classes.infrastructure_failure || 0) + 1;
+        lastBy.infrastructure_failure = w.cycle;
+        w.pressure.schedule_activations = classes.infrastructure_failure;
+        w.pressure.last_cycle = w.cycle;
+        notePulse(w.pressure, WATCH_INFRA_PULSE, 20);
+        const ev = pushEvent("ENTITY_UPDATE", {
+          entity_id: entity.entity_id,
+          field: "condition",
+          from: before,
+          to: after,
+          authorizer: "schedule",
+          preview_after: after,
+        });
+        await settleEv(ev);
+      }
+    }
+  }
+
+  if (classDue(w.cycle, RESOURCE_CLASS, classes.resource_scarcity || 0)) {
+    const target = selectScheduleNode(collectHarvestNodes(w.rooms));
+    if (target) {
+      const room = w.rooms[target.room_id];
+      const entity = room ? findEntity(room, target.entity_id) : undefined;
+      if (entity) {
+        const before = entity.stock_amount ?? 0;
+        const after = previewStockAfter(before);
+        if (before >= STOCK_DELTA && after >= 0) {
+          entity.stock_amount = after;
+          const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+          if (idx >= 0) room.entities[idx] = entity;
+          classes.resource_scarcity = (classes.resource_scarcity || 0) + 1;
+          lastBy.resource_scarcity = w.cycle;
+          w.pressure.last_cycle = w.cycle;
+          notePulse(w.pressure, WATCH_RESOURCE_PULSE, 20);
+          const ev = pushEvent("ENTITY_UPDATE", {
+            entity_id: entity.entity_id,
+            field: "stock_amount",
+            from: before,
+            to: after,
+            authorizer: "schedule",
+            preview_after: after,
+          });
+          await settleEv(ev);
+        }
+      }
+    }
+  }
+
+  if (classDue(w.cycle, ACCESS_CLASS, classes.access_restriction || 0)) {
+    const target = selectScheduleExit(collectPublicExits(w.rooms));
+    const already = (w.access_restrictions || []).some(
+      (r) =>
+        r.scope === "EXIT" &&
+        target &&
+        r.room_id === target.room_id &&
+        r.exit_id === target.exit_id &&
+        w.cycle <= r.expires_cycle,
+    );
+    if (target && !already) {
+      const restriction_id = `restr.sched.access.${w.cycle}`;
+      const expires_cycle = w.cycle + ACCESS_DURATION_CYCLES;
+      w.access_restrictions = w.access_restrictions || [];
+      w.access_restrictions.push({
+        restriction_id,
+        scope: "EXIT",
+        mode: "DENY",
+        applies_to: "*",
+        room_id: target.room_id,
+        exit_id: target.exit_id,
+        expires_cycle,
+      });
+      classes.access_restriction = (classes.access_restriction || 0) + 1;
+      lastBy.access_restriction = w.cycle;
+      w.pressure.last_cycle = w.cycle;
+      notePulse(w.pressure, WATCH_ACCESS_PULSE, expires_cycle);
+      const ev = pushEvent("ACCESS_RESTRICTED", {
+        restriction_id,
+        scope: "EXIT",
+        mode: "DENY",
+        applies_to: "*",
+        reason: "SCHEDULE",
+        expires_cycle,
+        authorized_by: "world.scheduler",
+        room_id: target.room_id,
+        exit_id: target.exit_id,
+      });
+      await settleEv(ev);
+    }
+  }
+
+  w.pressure.class_activations = classes;
+  w.pressure.last_by_class = lastBy;
 }
 
 async function deliverDelayedMessages(
