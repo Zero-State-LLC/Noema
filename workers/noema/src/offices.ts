@@ -48,6 +48,7 @@ export type OfficeRecord = {
   created_cycle: number;
   retired_cycle?: number;
   history: Array<{ cycle: number; holder_player_id: string | null; kind: "ASSIGNED" | "VACATED" | "RETIRED" }>;
+  succession?: import("./succession").SuccessionRule;
 };
 
 export type OfficePublic = {
@@ -57,6 +58,7 @@ export type OfficePublic = {
   holder_player_id?: string;
   holder_handle?: string;
   authority_profile: OfficeProfile;
+  successor_handle?: string;
 };
 
 export function parseOfficeProfile(raw: string | undefined | null): OfficeProfile | null {
@@ -91,6 +93,9 @@ export function publicOffices(
         ? names[o.holder_player_id] || o.holder_player_id.replace(/^player\./, "")
         : undefined,
       authority_profile: o.authority_profile,
+      successor_handle: o.succession?.successors?.[0]
+        ? names[o.succession.successors[0]] || o.succession.successors[0].replace(/^player\./, "")
+        : undefined,
     }));
 }
 
@@ -98,7 +103,8 @@ export function officeLines(offices: OfficePublic[]): string[] {
   if (!offices.length) return [];
   const rows = offices.map((o) => {
     const who = o.status === "VACANT" ? "vacant" : o.holder_handle || o.holder_player_id || "occupied";
-    return `${o.display_name} — ${who}`;
+    const designated = o.successor_handle ? `; designated successor — ${o.successor_handle}` : "";
+    return `${o.display_name} — ${who}${designated}`;
   });
   return [`Offices: ${rows.join("; ")}`];
 }

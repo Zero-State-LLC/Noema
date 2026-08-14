@@ -250,6 +250,18 @@ export class NoemaWorldDO {
             start_cycle: s.start_cycle,
             end_cycle: s.end_cycle,
             status: s.status,
+            succession: s.succession || null,
+          })),
+        ),
+        offices: Object.values(this.world!.organizations || {}).flatMap((o) =>
+          Object.values(o.offices || {}).map((office) => ({
+            office_id: office.office_id,
+            institution_id: office.institution_id,
+            display_name: office.display_name,
+            status: office.status,
+            holder_player_id: office.holder_player_id || null,
+            authority_profile: office.authority_profile,
+            succession: office.succession || null,
           })),
         ),
       });
