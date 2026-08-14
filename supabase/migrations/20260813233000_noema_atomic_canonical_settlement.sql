@@ -60,7 +60,7 @@ BEGIN
   IF p_settlement_id IS NULL OR p_settlement_id = '' OR p_writer_generation IS NULL OR p_writer_generation = '' THEN
     RAISE EXCEPTION 'INVALID_SETTLEMENT';
   END IF;
-  IF p_state_digest <> 'sha256:' || encode(digest(convert_to(p_canonical_state_json, 'UTF8'), 'sha256'), 'hex') THEN
+  IF p_state_digest <> 'sha256:' || encode(digest(convert_to(p_canonical_state_json, 'UTF8'), 'sha256'::text), 'hex') THEN
     RAISE EXCEPTION 'STATE_DIGEST_MISMATCH';
   END IF;
   SELECT * INTO v_existing FROM public.noema_canonical_settlements WHERE settlement_id = p_settlement_id;
