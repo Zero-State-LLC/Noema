@@ -19,6 +19,10 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 | Tabular / list WATCH sites | Graphic map canvases as primary |
 | Claim labels as short text | Dashboards that look like analytics SaaS |
 
+### Hosted first-entry (reference Worker)
+
+`/` is a world door: Perihelion Reach, one place line, Player email. Operator login is `/admin/login`, not a peer card on `/`. First-read copy is game/place/play. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
+
 Graphics, if any, stay minimal chrome (borders, type hierarchy)—never the content.
 
 ### Text-first is a gameplay rule, not a universal interface rule
