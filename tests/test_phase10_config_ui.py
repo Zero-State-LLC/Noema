@@ -131,6 +131,21 @@ def test_html_shells_render():
         assert "/watch" in html
 
 
+def test_index_is_world_door_not_research_brochure():
+    html = index_html()
+    assert "Perihelion Reach" in html
+    assert "Enter the world" in html
+    assert "Enter world" in html
+    assert "The world is the text" not in html
+    assert "Open STUDY" not in html
+    assert 'aria-label="NOEMA surfaces"' not in html
+    assert 'id="home-health"' not in html
+    assert "/admin/start" not in html
+    assert "Operator surface" not in html
+    nav = html[html.find("<nav") : html.find("</nav>")]
+    assert "Study" not in nav
+
+
 def test_play_surface_keeps_research_and_admin_terms_out():
     html = play_html()
     for forbidden in (
@@ -182,7 +197,9 @@ def test_http_ui_and_manifest_endpoints(tmp_path: Path):
                 body = resp.read()
                 assert body
                 if path == "/":
-                    assert b"Operator surface" in body
+                    assert b"Perihelion Reach" in body
+                    assert b"Enter world" in body
+                    assert b"Open STUDY" not in body
                 if path == "/watch":
                     assert b"WATCH" in body
                 if path == "/study":
@@ -207,13 +224,13 @@ def test_configuration_digest_stable_for_fixture():
 
 def test_product_ui_world_gate_and_study_learn():
     home = index_html()
-    assert "world-gate" in home
-    assert "World offline" in home
-    assert "The Chamber is not online yet" in home
+    assert "Perihelion Reach" in home
+    assert "Enter the world" in home
+    assert "The world is the text" not in home
     assert "Load Chamber seed" not in home
     assert "/admin/start" not in home
     assert "live-orb" not in home
-    assert "The world is the text" in home
+    assert "Open STUDY" not in home
     study = study_html()
     assert "Rebuild LEARN" in study
     assert "data-step" in study
@@ -257,4 +274,5 @@ def test_public_product_shells_keep_admin_boot_controls_out():
         assert "/admin/start" not in html
         assert "Load Chamber seed" not in html
         assert "world-start" not in html
+    for html in (play_html(), watch_html(), study_html()):
         assert "World offline" in html
