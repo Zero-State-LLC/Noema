@@ -8,8 +8,10 @@ import {
   parsePlayCommand,
   playUiRuntimeSource,
   renderBondsHtml,
+  renderEntityListHtml,
   renderPlayersHereHtml,
   renderServiceDesksHtml,
+  renderTrailHtml,
   resolveEntityTarget,
   routeDiagram,
   statusFromObservation,
@@ -309,6 +311,35 @@ describe("play-ui desks and players", () => {
     expect(humanizeError("WORLD_PAUSED", "paused").primary).toMatch(/paused/i);
     expect(humanizeError("WORLD_INCIDENT", "inc").primary).toMatch(/incident/i);
     expect(humanizeError("SETTLEMENT_BLOCKED", "block").primary).toMatch(/settlement|blocked/i);
+  });
+});
+
+describe("play-ui HTML escaping", () => {
+  const xss = '<img src=x onerror=alert(1)>';
+
+  it("escapes player handles and mail text before innerHTML", () => {
+    const players = renderPlayersHereHtml([{ player_id: "p1", handle: xss }]);
+    expect(players).not.toContain("<img");
+    expect(players).toContain("&lt;img");
+    const mail = renderBondsHtml({
+      messages: [{ message_id: "m1", sender_id: "p1", text: xss, delivered_cycle: 1 }],
+    });
+    expect(mail).not.toContain("<img");
+    expect(mail).toContain("&lt;img");
+  });
+
+  it("escapes entity labels, org names, and trail titles", () => {
+    const ents = renderEntityListHtml([{ entity_id: "e1", label: xss, entity_type: "RUIN" }]);
+    expect(ents).not.toContain("<img");
+    expect(ents).toContain("&lt;img");
+    const orgs = renderBondsHtml({
+      organizations: [{ org_id: "org.x", name: xss, status: "ACTIVE", my_role: "member" }],
+    });
+    expect(orgs).not.toContain("<img");
+    expect(orgs).toContain("&lt;img");
+    const trail = renderTrailHtml([{ kind: "you", title: xss, detail: xss }]);
+    expect(trail).not.toContain("<img");
+    expect(trail).toContain("&lt;img");
   });
 });
 
