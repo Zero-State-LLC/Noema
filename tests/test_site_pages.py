@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
+SITE_JS = (ROOT / "site" / "assets" / "site.js").read_text(encoding="utf-8")
 
 
 def test_pages_index_is_world_door():
@@ -36,3 +37,9 @@ def test_pages_index_first_read_omits_research_vocabulary():
         "experimental",
     ):
         assert word not in hay, word
+
+
+def test_pages_site_js_has_no_innerhtml():
+    assert ".innerHTML" not in SITE_JS
+    assert "nav-toggle" in SITE_JS
+    assert 'getElementById("year")' in SITE_JS
