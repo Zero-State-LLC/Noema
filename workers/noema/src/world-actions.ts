@@ -88,6 +88,18 @@ import {
   type OfficeRecord,
 } from "./offices";
 import {
+  allocateScopeId,
+  canActivate,
+  conditionHolds,
+  defaultEmergencyTemplates,
+  emergencyLines,
+  expireDueScopes,
+  findDuplicate,
+  publicEmergencyPulses,
+  resolveEmergencyFor,
+  type EmergencyScope,
+} from "./emergency";
+import {
   allocateReconstructionId,
   epistemicFromEvidence,
   evidenceAccessible,
@@ -464,6 +476,7 @@ export function buildObservation(
       if (occupiedOfficesFor(o, principal.player_id, REPAIR_PROFILE).length) {
         base.push(`You may repair local infrastructure for ${o.name}.`);
       }
+      base.push(...emergencyLines(o.emergency_scopes, principal.player_id, w.cycle));
       return base;
     }),
     rumor_lines: rumorLines(
@@ -680,6 +693,8 @@ export async function applyWorldCommand(
       "ORG_OFFICE_VACATE",
       "ORG_OFFICE_RETIRE",
       "ORG_OFFICE_ACT",
+      "ORG_EMERGENCY_ACTIVATE",
+      "ORG_EMERGENCY_REVOKE",
       "RECONSTRUCT",
       "RECONSTRUCT_SUPERSEDE",
       "RECONSTRUCT_PUBLISH",
@@ -914,6 +929,7 @@ export async function applyWorldCommand(
       await resolveDueContests(w, pushEvent, settleEv);
       await applyScheduledPressure(w, pushEvent, settleEv);
       await deliverDelayedMessages(w, pushEvent, settleEv);
+      await expireInstitutionEmergencies(w, pushEvent, settleEv);
     }
     const result = success(w, principal, request_id, events, "You wait.", false);
     w.seen_idempotency[idem] = result;
@@ -1187,11 +1203,33 @@ export async function applyWorldCommand(
       }
       let source = pl.budgets;
       let grantOfficeId: string | undefined;
+      let emergencyScope: EmergencyScope | undefined;
       if (acting_for) {
         const grant = resolveInstitutionGrant(w.organizations, principal.player_id, acting_for, office_id, TRADE_PROFILE);
-        if (!grant.ok) return fail(request_id, grant.code, grant.message);
-        source = ensureTreasury(w.organizations[grant.org_id]);
-        grantOfficeId = grant.office.office_id;
+        if (grant.ok) {
+          source = ensureTreasury(w.organizations[grant.org_id]);
+          grantOfficeId = grant.office.office_id;
+        } else {
+          const org = w.organizations[acting_for];
+          if (!org) return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+          const em = resolveEmergencyFor(
+            org,
+            principal.player_id,
+            "TRADE",
+            "treasury",
+            w.cycle,
+            action.arguments.emergency_scope_id,
+          );
+          if (!em.ok) return fail(request_id, grant.code, grant.message);
+          const cap = em.scope.spent?.energy || 0;
+          const offerEnergy = offered.energy || 0;
+          const max = defaultEmergencyTemplates().find((t) => t.template_id === em.scope.template_id)?.max_spend?.energy ?? 10;
+          if (cap + offerEnergy > max) {
+            return fail(request_id, "FORBIDDEN", "That emergency spend cap is exhausted.");
+          }
+          source = ensureTreasury(org);
+          emergencyScope = em.scope;
+        }
       }
       for (const [res, amt] of Object.entries(offered)) {
         if ((source[res as keyof Budgets] ?? 0) < amt) {
@@ -1203,6 +1241,10 @@ export async function applyWorldCommand(
       for (const [res, amt] of Object.entries(offered)) {
         source[res as keyof Budgets] = (source[res as keyof Budgets] ?? 0) - amt;
         reserved[res] = amt;
+      }
+      if (emergencyScope) {
+        emergencyScope.spent = emergencyScope.spent || {};
+        emergencyScope.spent.energy = (emergencyScope.spent.energy || 0) + (offered.energy || 0);
       }
       const trade_id = `trade.${(w.sequence + 1).toString().padStart(4, "0")}`;
       w.trades[trade_id] = {
@@ -1438,6 +1480,13 @@ export async function applyWorldCommand(
       );
     }
     if (
+      action.arguments.operation === "ORG_EMERGENCY_ACTIVATE" ||
+      action.arguments.operation === "ORG_EMERGENCY_REVOKE" ||
+      action.arguments.operation === "ORG_EMERGENCY_DEFINE"
+    ) {
+      return applyEmergencyCommand(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
+    if (
       action.arguments.operation === "RECONSTRUCT" ||
       action.arguments.operation === "RECONSTRUCT_SUPERSEDE" ||
       action.arguments.operation === "RECONSTRUCT_PUBLISH"
@@ -1504,6 +1553,8 @@ export async function applyWorldCommand(
         created_cycle: w.cycle,
         offices: {},
         treasury: emptyTreasury(),
+        emergency_templates: defaultEmergencyTemplates(),
+        emergency_scopes: [],
       };
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
@@ -1687,12 +1738,29 @@ export async function applyWorldCommand(
           office_id,
           REPAIR_PROFILE,
         );
-        if (!grant.ok) return fail(request_id, grant.code, grant.message);
-        if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
-          return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+        if (grant.ok) {
+          if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
+            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+          }
+          payFrom = ensureTreasury(w.organizations[grant.org_id]);
+          grantOfficeId = grant.office.office_id;
+        } else {
+          const org = w.organizations[acting_for];
+          if (!org) return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+          const em = resolveEmergencyFor(
+            org,
+            principal.player_id,
+            "REPAIR",
+            entity.entity_id,
+            w.cycle,
+            action.arguments.emergency_scope_id,
+          );
+          if (!em.ok) return fail(request_id, grant.code, grant.message);
+          if (!assetInInstitutionScope(entity, acting_for, principal.player_id)) {
+            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+          }
+          payFrom = ensureTreasury(org);
         }
-        payFrom = ensureTreasury(w.organizations[grant.org_id]);
-        grantOfficeId = grant.office.office_id;
       }
       if (!canPay(payFrom, COSTS.REPAIR)) {
         return fail(
@@ -1958,6 +2026,8 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.pending_messages = w.pending_messages || [];
   for (const org of Object.values(w.organizations || {})) {
     ensureTreasury(org);
+    if (!org.emergency_templates?.length) org.emergency_templates = defaultEmergencyTemplates();
+    org.emergency_scopes = org.emergency_scopes || [];
   }
 }
 
@@ -2495,6 +2565,179 @@ async function applyReconstructCommand(
   );
   w.seen_idempotency[idem] = result;
   return result;
+}
+
+async function expireInstitutionEmergencies(
+  w: WorldRuntime,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  for (const org of Object.values(w.organizations || {})) {
+    const changed = expireDueScopes(org.emergency_scopes, w.cycle);
+    for (const scope of changed) {
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: scope.scope_id,
+        set: { emergency_status: "EXPIRED", office_kind: "EMERGENCY_SCOPE" },
+        unset: [],
+      });
+      await settleEv(ev);
+    }
+  }
+}
+
+async function applyEmergencyCommand(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const op = args.operation;
+  if (op === "ORG_EMERGENCY_DEFINE") {
+    return fail(request_id, "FORBIDDEN", "Use the institution's predeclared emergency templates.");
+  }
+  if (op === "ORG_EMERGENCY_ACTIVATE") {
+    const org_id = String(args.org_id || "").trim();
+    const template_id = String(args.template_id || "").trim();
+    const target_ref = String(args.target_ref || args.entity_id || "").trim();
+    const org = w.organizations[org_id];
+    if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+    org.emergency_templates = org.emergency_templates?.length ? org.emergency_templates : defaultEmergencyTemplates();
+    org.emergency_scopes = org.emergency_scopes || [];
+    const template = org.emergency_templates.find((t) => t.template_id === template_id);
+    if (!template) return fail(request_id, "NOT_FOUND", "Unknown emergency template.");
+    const role = org.members.find((m) => m.agent_id === principal.player_id)?.role || null;
+    const source = canActivate(org, principal.player_id, role, template, args.office_id);
+    if (!source.ok) return fail(request_id, source.code, source.message);
+    const holder = String(args.agent_id || principal.player_id);
+    if (!isOrgMember(org, holder)) return fail(request_id, "FORBIDDEN", "Holder must be a member.");
+    if (template.capability === "REPAIR") {
+      const entity = findEntityAnywhere(w, target_ref);
+      if (!entity) return fail(request_id, "NOT_FOUND", "Name a known target.");
+      if (!assetInInstitutionScope(entity, org.org_id, holder)) {
+        return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+      }
+      if (!conditionHolds(template, { entityCondition: entity.condition ?? 0 })) {
+        return fail(request_id, "FORBIDDEN", "The emergency condition is not met.");
+      }
+    } else {
+      if (target_ref !== "treasury") return fail(request_id, "FORBIDDEN", "Trade emergencies target the treasury.");
+      if (!conditionHolds(template, { treasury: ensureTreasury(org) })) {
+        return fail(request_id, "FORBIDDEN", "The emergency condition is not met.");
+      }
+    }
+    const dup = findDuplicate(org.emergency_scopes, template.template_id, holder, target_ref, w.cycle);
+    if (dup) {
+      const result = success(w, principal, request_id, events, `Emergency ${dup.scope_id} already active.`, false);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+    const scope: EmergencyScope = {
+      scope_id: allocateScopeId(),
+      template_id: template.template_id,
+      institution_id: org.org_id,
+      holder_player_id: holder,
+      source_office_id: source.office_id,
+      capability: template.capability,
+      target_ref,
+      start_cycle: w.cycle,
+      end_cycle: w.cycle + template.duration_cycles,
+      status: "ACTIVE",
+      created_cycle: w.cycle,
+      reason: args.reason,
+      spent: {},
+    };
+    org.emergency_scopes.push(scope);
+    noteInstitutionPulse(w, "An institution declared a temporary repair authority.");
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_ACT,
+      reason: "ORG_EMERGENCY_ACTIVATE",
+    });
+    const ev = pushEvent("ENTITY_CREATE", {
+      entity_id: scope.scope_id,
+      entity_type: "DOCUMENT",
+      location: null,
+      owner_id: org.org_id,
+      properties: {
+        office_kind: "EMERGENCY_SCOPE",
+        template_id: scope.template_id,
+        capability: scope.capability,
+        target_ref: scope.target_ref,
+        start_cycle: scope.start_cycle,
+        end_cycle: scope.end_cycle,
+        holder_player_id: scope.holder_player_id,
+      },
+      inventory: [],
+      state: {},
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Emergency ${scope.scope_id} active until cycle ${scope.end_cycle}.`,
+      false,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  if (op === "ORG_EMERGENCY_REVOKE") {
+    const scope_id = String(args.emergency_scope_id || "").trim();
+    let found: { org_id: string; scope: EmergencyScope } | null = null;
+    for (const org of Object.values(w.organizations || {})) {
+      const scope = (org.emergency_scopes || []).find((s) => s.scope_id === scope_id);
+      if (scope) {
+        found = { org_id: org.org_id, scope };
+        break;
+      }
+    }
+    if (!found) return fail(request_id, "NOT_FOUND", "Emergency scope not found.");
+    const org = w.organizations[found.org_id];
+    const role = org.members.find((m) => m.agent_id === principal.player_id)?.role || null;
+    const may =
+      role === "founder" ||
+      role === "officer" ||
+      (found.scope.source_office_id &&
+        org.offices?.[found.scope.source_office_id]?.status === "OCCUPIED" &&
+        org.offices[found.scope.source_office_id]?.holder_player_id === principal.player_id);
+    if (!may) return fail(request_id, "FORBIDDEN", "You cannot revoke that emergency.");
+    if (found.scope.status !== "ACTIVE") {
+      const result = success(w, principal, request_id, events, `Emergency ${scope_id} already closed.`, false);
+      w.seen_idempotency[idem] = result;
+      return result;
+    }
+    if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+    }
+    debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+    found.scope.status = "REVOKED";
+    found.scope.revoked_cycle = w.cycle;
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      cost_paid: COSTS.ORG_OFFICE_ACT,
+      reason: "ORG_EMERGENCY_REVOKE",
+    });
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: scope_id,
+      set: { emergency_status: "REVOKED", revoked_cycle: w.cycle },
+      unset: [],
+    });
+    await settleEv(ev);
+    const result = success(w, principal, request_id, events, `Emergency ${scope_id} revoked.`, false);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  return fail(request_id, "UNKNOWN_COMMAND", "That emergency action is not available.");
 }
 
 async function applyOfficeCommand(

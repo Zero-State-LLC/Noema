@@ -181,6 +181,8 @@ export type Organization = {
   public_notice?: string;
   /** GC4-S2 institution resource account. Not officer personal lots. */
   treasury?: import("./offices").Treasury;
+  emergency_templates?: import("./emergency").EmergencyTemplate[];
+  emergency_scopes?: import("./emergency").EmergencyScope[];
 };
 
 export const COSTS = {
@@ -234,6 +236,7 @@ export type CanonicalAction =
         reason?: string;
         acting_for?: string;
         office_id?: string;
+        emergency_scope_id?: string;
       };
     }
   | {
@@ -250,6 +253,9 @@ export type CanonicalAction =
           | "ORG_OFFICE_VACATE"
           | "ORG_OFFICE_RETIRE"
           | "ORG_OFFICE_ACT"
+          | "ORG_EMERGENCY_DEFINE"
+          | "ORG_EMERGENCY_ACTIVATE"
+          | "ORG_EMERGENCY_REVOKE"
           | "RECONSTRUCT"
           | "RECONSTRUCT_SUPERSEDE"
           | "RECONSTRUCT_PUBLISH"
@@ -288,6 +294,10 @@ export type CanonicalAction =
         visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
         supersedes_reconstruction_id?: string;
         acting_for?: string;
+        emergency_scope_id?: string;
+        template_id?: string;
+        target_ref?: string;
+        duration_cycles?: number;
       };
     }
   | {
@@ -1141,6 +1151,44 @@ export function parseHumanCommand(
       display: `You post a notice to ${quoted[1]}.`,
     };
   }
+  if (v === "emergency") {
+    const sub = (parts[0] || "").toLowerCase();
+    if (sub === "activate") {
+      const org_id = parts[1];
+      const template_id = parts[2];
+      const target_ref = parts[3];
+      if (!org_id || !template_id || !target_ref) {
+        return { ok: false, error: "Emergency syntax: emergency activate <org> <template> <target>" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_EMERGENCY_ACTIVATE",
+            org_id,
+            template_id,
+            target_ref,
+            agent_id: parts[4],
+          },
+        },
+        display: `You declare an emergency for ${org_id}.`,
+      };
+    }
+    if (sub === "revoke") {
+      const scope_id = parts[1];
+      if (!scope_id) return { ok: false, error: "Emergency syntax: emergency revoke <scope>" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_EMERGENCY_REVOKE", emergency_scope_id: scope_id },
+        },
+        display: `You revoke ${scope_id}.`,
+      };
+    }
+    return { ok: false, error: "Emergency syntax: emergency activate <org> <template> <target>" };
+  }
 
   // RFC-0024: reconstruct / revise — not listed in Chamber help.
   if (v === "reconstruct" || v === "assemble") {
@@ -1441,6 +1489,7 @@ export function normalizeStructuredCommand(
           reason: args.reason ? String(args.reason) : undefined,
           acting_for: args.acting_for ? String(args.acting_for) : undefined,
           office_id: args.office_id ? String(args.office_id) : undefined,
+          emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
         },
       },
       display: `TRADE ${phase}`,
@@ -1461,6 +1510,7 @@ export function normalizeStructuredCommand(
             amount: args.amount != null ? Number(args.amount) : undefined,
             acting_for: args.acting_for ? String(args.acting_for) : undefined,
             office_id: args.office_id ? String(args.office_id) : undefined,
+            emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
           },
         },
         display: `${operation} ${entity_id}`,
@@ -1660,6 +1710,47 @@ export function normalizeStructuredCommand(
         },
         display: "COMMIT.ORG_OFFICE_ACT",
       };
+    }
+    if (operation === "ORG_EMERGENCY_ACTIVATE") {
+      const org_id = String(args.org_id || "").trim();
+      const template_id = String(args.template_id || "").trim();
+      const target_ref = String(args.target_ref || args.entity_id || "").trim();
+      if (!org_id || !template_id || !target_ref) {
+        return { ok: false, error: "org_id, template_id, and target_ref required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_EMERGENCY_ACTIVATE",
+            org_id,
+            template_id,
+            target_ref,
+            agent_id: args.agent_id ? String(args.agent_id) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
+            reason: args.reason ? String(args.reason) : undefined,
+          },
+        },
+        display: `COMMIT.ORG_EMERGENCY_ACTIVATE ${template_id}`,
+      };
+    }
+    if (operation === "ORG_EMERGENCY_REVOKE") {
+      const emergency_scope_id = String(args.emergency_scope_id || args.scope_id || "").trim();
+      if (!emergency_scope_id) {
+        return { ok: false, error: "emergency_scope_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_EMERGENCY_REVOKE", emergency_scope_id },
+        },
+        display: `COMMIT.ORG_EMERGENCY_REVOKE ${emergency_scope_id}`,
+      };
+    }
+    if (operation === "ORG_EMERGENCY_DEFINE") {
+      return { ok: false, error: "Define is founder-only via structured template in this slice", code: "FORBIDDEN" };
     }
     if (operation === "RECONSTRUCT") {
       const subject_ref = String(args.subject_ref || args.subject || args.entity_id || "").trim();
@@ -2158,6 +2249,9 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  accept <trade> for <org>");
     lines.push("  repair <infrastructure> for <org>");
     lines.push("  Institution lots come from that org's treasury. A vacant office cannot act.");
+    lines.push("  emergency activate <org> <template> <target>");
+    lines.push("  emergency revoke <scope>");
+    lines.push("  Emergency authority is temporary and predeclared. Saying emergency is not a grant.");
   } else if (t === "trade") {
     lines.push("TRADE");
     lines.push("  trade <player> offer=energy:3 want=storage:1");
