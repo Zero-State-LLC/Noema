@@ -1,9 +1,9 @@
 /**
- * Shared Stage 0 product chrome — "Chamber ledger" system.
+ * Shared product chrome for NOEMA surfaces (home, PLAY, WATCH, CONNECT).
  *
- * Specs split: landing may carry brand; PLAY/WATCH/STUDY stay text-first.
- * Tokens align with site/design.md (copper ledger) while product surfaces
- * optimize for readable world text, not dashboard chrome.
+ * Specs split: landing may carry brand; PLAY/WATCH stay text-first.
+ * Tokens align with site/design.md while product surfaces optimize for
+ * readable world text, not dashboard chrome.
  */
 
 export const PRODUCT_CSS = `
@@ -212,7 +212,11 @@ export function productShell(opts: {
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
   const desc =
     opts.description ||
-    "NOEMA — persistent strategy world for humans and agents. PLAY, WATCH, or STUDY.";
+    "Perihelion Reach — enter the world.";
+  const runtime =
+    opts.active === "home"
+      ? ``
+      : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,7 +237,7 @@ ${FONTS}
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">
     <span class="brand-mark">NOEMA</span>
-    <span class="brand-sub">strategy world · stage 0</span>
+    <span class="brand-sub">Perihelion Reach</span>
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
@@ -241,25 +245,26 @@ ${FONTS}
     ${nav("/watch", "Watch", "watch")}
     ${nav("/connect", "Connect", "connect")}
   </nav>
-  <div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>
+  ${runtime}
 </header>
 <main id="main" class="wrap">
 ${opts.body}
 </main>
 <footer class="foot">
-  <span>NOEMA · humans &amp; agents are both Players</span>
+  <span>NOEMA · Perihelion Reach</span>
   <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
 (() => {
   async function ping() {
     const el = document.getElementById("dot");
+    if (!el) return;
     const lab = document.getElementById("rt-label");
     try {
       const h = await fetch("/health").then(r => r.json());
       const ready = await fetch("/ready").then(r => r.json()).catch(() => null);
       if (!ready) {
-        if (el) el.className = "dot " + (h.status === "ok" ? "warn" : "bad");
+        el.className = "dot " + (h.status === "ok" ? "warn" : "bad");
         if (lab) lab.textContent = h.status === "ok" ? "waiting" : "offline";
         return;
       }
@@ -275,15 +280,17 @@ ${opts.body}
       else if (st === "ACTIVE" && sh === "DEGRADED") { label = "ACTIVE · degraded"; dot = "warn"; }
       else if (st === "ACTIVE") { label = "ACTIVE · healthy"; dot = "ok"; }
       else { label = st || "waiting"; dot = ready.ready ? "ok" : "warn"; }
-      if (el) el.className = "dot " + dot;
+      el.className = "dot " + dot;
       if (lab) lab.textContent = label;
     } catch (_) {
-      if (el) el.className = "dot bad";
+      el.className = "dot bad";
       if (lab) lab.textContent = "offline";
     }
   }
-  ping();
-  setInterval(ping, 30000);
+  if (document.getElementById("dot")) {
+    ping();
+    setInterval(ping, 30000);
+  }
 })();
 </script>
 </body>

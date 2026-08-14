@@ -9,7 +9,7 @@ export function playEmailGateMarkup(opts: { continueToPlay?: boolean; operatorLi
   const operatorLink = opts.operatorLink !== false;
   return `
 <form id="play-login-form">
-  <p class="muted">This is a Player login, not ADMIN. A link signs you into the world — it does not open the operator plane.</p>
+  <p class="muted">A link signs you into the world.</p>
   <label for="email">Email</label>
   <input id="email" type="email" autocomplete="username" required/>
   <button class="btn primary block form-submit" type="submit">Send play link</button>
@@ -53,7 +53,7 @@ export function playCallbackHtml(): string {
   <section class="card pad" aria-labelledby="callback-title">
     <p class="kicker">Player access</p>
     <h1 id="callback-title">Opening PLAY…</h1>
-    <p class="muted">Confirming the login link. This is a Player login, not ADMIN.</p>
+    <p class="muted">Confirming the login link.</p>
     <p class="notice" id="notice" role="status">Checking the link…</p>
   </section>
 <script>
@@ -84,6 +84,6 @@ export function playCallbackHtml(): string {
     title: "Play login",
     active: "play",
     body,
-    description: "Confirming your Player login. This is not ADMIN.",
+    description: "Confirming the login link.",
   });
 }

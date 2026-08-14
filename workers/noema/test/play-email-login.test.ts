@@ -184,6 +184,10 @@ describe("play login HTML", () => {
     expect(html).toContain('id="email"');
     expect(html).toContain("/v1/play/login/request");
     expect(html).toContain("Send play link");
+    expect(html).toContain("A link signs you into the world");
+    const visible = html.replace(/<[^>]+>/g, " ").toLowerCase();
+    expect(visible).not.toContain("admin");
+    expect(visible).not.toContain("operator plane");
   });
   it("Continue to PLAY is landing-only", () => {
     expect(playEmailGateMarkup()).not.toContain("play-continue");
@@ -198,9 +202,9 @@ describe("play login HTML", () => {
     expect(html).toContain("noema.play.token");
     expect(html).not.toContain("refresh_token");
   });
-  it("homepage and play include email gate; homepage is not admin token", () => {
+  it("homepage and play include email gate; homepage is not admin login", () => {
     expect(landingHtml()).toContain("/v1/play/login/request");
-    expect(landingHtml()).toContain("/v1/admin/login/request");
+    expect(landingHtml()).not.toContain("/v1/admin/login/request");
     expect(landingHtml()).not.toMatch(/Operator token/);
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Access token");
