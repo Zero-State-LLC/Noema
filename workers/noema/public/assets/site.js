@@ -116,7 +116,12 @@
     stageIndex = stageKeys.indexOf(key);
     if (stageLabel) stageLabel.textContent = s.label;
     if (stageDetail) {
-      stageDetail.innerHTML = "<strong>" + s.title + "</strong><span>" + s.body + "</span>";
+      stageDetail.replaceChildren();
+      var strong = document.createElement("strong");
+      strong.textContent = s.title;
+      var span = document.createElement("span");
+      span.textContent = s.body;
+      stageDetail.append(strong, span);
     }
     nodes.forEach(function (g) {
       g.classList.toggle("is-active", g.getAttribute("data-stage") === key);
