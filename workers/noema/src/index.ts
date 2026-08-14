@@ -73,11 +73,9 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
 
   // Explicit path map — avoid Assets clean-URL redirect loops
   const candidates: string[] = [];
-  if (path === "/" || path === "/index.html") {
-    // World door is landingHtml(), never the marketing splash in public/index.html
+  if (path === "/" || path === "/index.html" || path === "/memo" || path === "/memo.html") {
+    // World door is landingHtml(), never the marketing splash
     return html(landingHtml(), 200, "public, max-age=30");
-  } else if (path === "/memo" || path === "/memo.html") {
-    candidates.push("/memo.html");
   } else if (path === "/404" || path === "/404.html") {
     candidates.push("/404.html");
   } else {
@@ -157,7 +155,10 @@ export default {
 
     try {
       // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
-      if (request.method === "GET" && (path === "/" || path === "/index.html")) {
+      if (
+        request.method === "GET" &&
+        (path === "/" || path === "/index.html" || path === "/memo" || path === "/memo.html")
+      ) {
         return html(landingHtml(), 200, "public, max-age=30");
       }
       if (request.method === "GET" && path === "/play") {
@@ -677,7 +678,7 @@ export default {
         return cors(err("INVALID_REQUEST", "use POST /v1/command for ACT after AUTH", 400));
       }
 
-      // Static assets (/memo.html, /assets/*). Product `/` and `/index.html` are landingHtml().
+      // Static assets (/assets/*, 404). Product home aliases are landingHtml().
       if (request.method === "GET" || request.method === "HEAD") {
         return serveStatic(request, env, path);
       }

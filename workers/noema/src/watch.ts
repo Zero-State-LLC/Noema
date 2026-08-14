@@ -67,12 +67,15 @@ export function watchHtml(): string {
     const state = { paused: false, busy: false };
     const $ = id => document.getElementById(id);
 
-    function esc(s) {
-      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
-    }
     function titleCase(raw) {
       return String(raw || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim()
         .replace(/\b\w/g, c => c.toUpperCase());
+    }
+    function el(tag, className, text) {
+      const n = document.createElement(tag);
+      if (className) n.className = className;
+      if (text != null && text !== "") n.textContent = text;
+      return n;
     }
     function render(data) {
       const rooms = Array.isArray(data.rooms) ? data.rooms : [];
@@ -98,13 +101,14 @@ export function watchHtml(): string {
       const pulses = Array.isArray(data.public_pulses) ? data.public_pulses : [];
       pulses.forEach((pulse) => {
         const li = document.createElement("li");
-        li.innerHTML = "<strong>Public pulse</strong><p>" + esc(pulse) + "</p>";
+        li.append(el("strong", "", "Public pulse"), el("p", "", pulse));
         feed.append(li);
       });
       if (!rooms.length && !pulses.length) {
-        const li = document.createElement("li");
-        li.className = "empty watch-empty";
-        li.innerHTML = "World not moving yet. <a class='btn' href='/play'>Open PLAY</a>";
+        const li = el("li", "empty watch-empty", "World not moving yet. ");
+        const a = el("a", "btn", "Open PLAY");
+        a.setAttribute("href", "/play");
+        li.append(a);
         feed.append(li);
       } else {
         rooms.slice(0, 8).forEach(r => {
@@ -117,9 +121,9 @@ export function watchHtml(): string {
           const exitLine = exits.length
             ? exits.map(x => (x.direction || "") + (x.to_room_name ? " to " + x.to_room_name : "")).join(" · ")
             : (r.exit_count ? r.exit_count + " exits" : "no listed exits");
-          li.innerHTML = "<strong>" + esc(r.name || r.room_id || "site") + "</strong>" +
-            (r.description ? "<p>" + esc(r.description) + "</p>" : "") +
-            "<span>" + esc(entLine) + "</span><span>" + esc(exitLine) + "</span>";
+          li.append(el("strong", "", r.name || r.room_id || "site"));
+          if (r.description) li.append(el("p", "", r.description));
+          li.append(el("span", "", entLine), el("span", "", exitLine));
           feed.append(li);
         });
       }
@@ -127,18 +131,15 @@ export function watchHtml(): string {
       const map = $("watch-map");
       map.replaceChildren();
       if (!rooms.length) {
-        const li = document.createElement("li");
-        li.className = "empty";
-        li.textContent = "World not moving yet.";
-        map.append(li);
+        map.append(el("li", "empty", "World not moving yet."));
       } else {
         rooms.forEach(r => {
-          const li = document.createElement("li");
-          li.className = "map-node";
+          const li = el("li", "map-node");
           const ents = Array.isArray(r.entities) ? r.entities : [];
-          li.innerHTML = "<strong>" + esc(r.name || r.room_id) + "</strong><span>" +
-            esc(ents.map(e => titleCase(e.label || "")).filter(Boolean).join(" · ") || "empty") +
-            "</span>";
+          li.append(
+            el("strong", "", r.name || r.room_id),
+            el("span", "", ents.map(e => titleCase(e.label || "")).filter(Boolean).join(" · ") || "empty"),
+          );
           map.append(li);
         });
       }

@@ -241,14 +241,10 @@ function playClientBundle(): string {
       return data;
     }
 
-    function esc(s) {
-      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
-    }
-
     function renderTrail() {
-      $("trail").innerHTML = state.trail.length
-        ? renderTrailHtml(state.trail)
-        : "";
+      const el = $("trail");
+      if (state.trail.length) fillTrail(el, state.trail);
+      else el.replaceChildren();
     }
 
     function pushTrailItems(items) {
@@ -272,15 +268,15 @@ function playClientBundle(): string {
         $("loc-cond").hidden = true;
         const lookExits = $("look-exits");
         if (lookExits) { lookExits.hidden = true; lookExits.textContent = ""; }
-        $("entity-list").innerHTML = "";
-        if (playersEl) playersEl.innerHTML = "";
-        if (desksEl) desksEl.innerHTML = "";
+        $("entity-list").replaceChildren();
+        if (playersEl) playersEl.replaceChildren();
+        if (desksEl) desksEl.replaceChildren();
         if (bondsCard) bondsCard.hidden = true;
-        if (bondsBody) bondsBody.innerHTML = "";
-        $("opp-list").innerHTML = "";
-        $("exit-list").innerHTML = "";
+        if (bondsBody) bondsBody.replaceChildren();
+        $("opp-list").replaceChildren();
+        $("exit-list").replaceChildren();
         $("route-box").hidden = true;
-        $("status-rows").innerHTML = "";
+        $("status-rows").replaceChildren();
         $("meta-seq").textContent = "—";
         const cyc = $("ch-cycle");
         if (cyc) cyc.textContent = "";
@@ -303,14 +299,12 @@ function playClientBundle(): string {
       $("loc-cond-text").textContent = cond;
 
       const ents = loc.entities || [];
-      $("entity-list").innerHTML = ents.length
-        ? renderEntityListHtml(ents)
-        : '<li class="empty">Nothing notable right here.</li>';
-      if (playersEl) playersEl.innerHTML = renderPlayersHereHtml(obs.players_here, obs.organizations, obs.player_id);
-      if (desksEl) desksEl.innerHTML = renderServiceDesksHtml(loc.services);
+      fillEntityList($("entity-list"), ents);
+      if (playersEl) fillPlayersHere(playersEl, obs.players_here, obs.organizations, obs.player_id);
+      if (desksEl) fillServiceDesks(desksEl, loc.services);
       if (bondsCard && bondsBody) {
         bondsCard.hidden = false;
-        bondsBody.innerHTML = renderBondsHtml({
+        fillBonds(bondsBody, {
           messages: obs.messages,
           trades: obs.trades,
           organizations: obs.organizations,
@@ -318,7 +312,7 @@ function playClientBundle(): string {
       }
 
       const exits = loc.exits || [];
-      $("exit-list").innerHTML = renderExitTokensHtml(exits);
+      fillExitTokens($("exit-list"), exits);
       const lookExits = $("look-exits");
       if (lookExits) {
         const narrow = window.matchMedia("(max-width: 900px)").matches;
@@ -339,7 +333,7 @@ function playClientBundle(): string {
         $("route-box").hidden = true;
       }
 
-      $("opp-list").innerHTML = renderOpportunitiesHtml(loc);
+      fillOpportunities($("opp-list"), loc);
 
       const rows = statusFromObservation(obs);
       if (obs.budgets) {
@@ -351,9 +345,7 @@ function playClientBundle(): string {
       rows.push({ label: "Mail", value: String((obs.messages || []).length) });
       rows.push({ label: "Trades", value: String((obs.trades || []).length) });
       rows.push({ label: "Orgs", value: String((obs.organizations || []).length) });
-      $("status-rows").innerHTML = rows.map(r =>
-        '<li><span>' + escHtml(r.label) + '</span><b>' + escHtml(r.value) + '</b></li>'
-      ).join("");
+      fillStatusRows($("status-rows"), rows);
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;
     }
