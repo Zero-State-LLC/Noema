@@ -3,6 +3,7 @@ import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
 import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
+import { publicRumorPulses } from "./rumor";
 import {
   applyControllingSession,
   commandForOps,
@@ -204,6 +205,7 @@ export class NoemaWorldDO {
               })),
             ),
             ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
+            ...publicRumorPulses(this.world!.rumor),
           ],
         }),
       );

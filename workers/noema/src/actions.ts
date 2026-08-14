@@ -208,7 +208,16 @@ export type CanonicalAction =
   | { verb: "LEAVE_WORLD"; arguments: { reason?: string } }
   | { verb: "MOVE"; arguments: { direction: string } }
   | { verb: "INSPECT"; arguments: { entity_id: string } }
-  | { verb: "MESSAGE"; arguments: { recipient_id: string; text: string } }
+  | {
+      verb: "MESSAGE";
+      arguments: {
+        recipient_id: string;
+        text: string;
+        subject_ref?: string;
+        parent_claim_id?: string;
+        as_claim?: boolean;
+      };
+    }
   | {
       verb: "TRADE";
       arguments: {
@@ -609,6 +618,80 @@ export function parseHumanCommand(
   const trimmed = line.trim();
   if (!trimmed) return { ok: false, error: "Type a command, or use an action below." };
 
+  const reportM = trimmed.match(/^(?:report)\s+(\S+)\s+["'](.+)["'](?:\s+about\s+(\S+))?\s*$/i);
+  if (reportM) {
+    const who = reportM[1];
+    const text = reportM[2];
+    const subject_ref = reportM[3];
+    if (!ctx.players || !ctx.selfId) {
+      return {
+        ok: true,
+        action: { verb: "MESSAGE", arguments: { recipient_id: who, text, as_claim: true, subject_ref } },
+        display: `You report to ${who}.`,
+      };
+    }
+    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    return {
+      ok: true,
+      action: {
+        verb: "MESSAGE",
+        arguments: { recipient_id: r.player_id, text, as_claim: true, subject_ref },
+      },
+      display: `You report to ${who}.`,
+    };
+  }
+  const passM = trimmed.match(/^(?:pass|share)\s+(\S+)\s+(\S+)\s*$/i);
+  if (passM) {
+    const who = passM[1];
+    const parent_claim_id = passM[2];
+    if (!ctx.players || !ctx.selfId) {
+      return {
+        ok: true,
+        action: {
+          verb: "MESSAGE",
+          arguments: { recipient_id: who, text: parent_claim_id, as_claim: true, parent_claim_id },
+        },
+        display: `You pass a report to ${who}.`,
+      };
+    }
+    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    return {
+      ok: true,
+      action: {
+        verb: "MESSAGE",
+        arguments: { recipient_id: r.player_id, text: parent_claim_id, as_claim: true, parent_claim_id },
+      },
+      display: `You pass a report to ${who}.`,
+    };
+  }
+  const repeatM = trimmed.match(/^(?:repeat)\s+(\S+)\s+["'](.+)["'](?:\s+from\s+(\S+))?\s*$/i);
+  if (repeatM) {
+    const who = repeatM[1];
+    const text = repeatM[2];
+    const parent_claim_id = repeatM[3];
+    if (!ctx.players || !ctx.selfId) {
+      return {
+        ok: true,
+        action: {
+          verb: "MESSAGE",
+          arguments: { recipient_id: who, text, as_claim: true, parent_claim_id },
+        },
+        display: `You repeat a report to ${who}.`,
+      };
+    }
+    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    return {
+      ok: true,
+      action: {
+        verb: "MESSAGE",
+        arguments: { recipient_id: r.player_id, text, as_claim: true, parent_claim_id },
+      },
+      display: `You repeat a report to ${who}.`,
+    };
+  }
   // message / msg with quoted text
   const msgM = trimmed.match(/^(?:message|msg)\s+(\S+)\s+["'](.+)["']\s*$/i);
   if (msgM) {
@@ -1279,10 +1362,18 @@ export function normalizeStructuredCommand(
   if (cmd === "MESSAGE") {
     const recipient_id = String(args.recipient_id || args.target || "").trim();
     const text = String(args.text || "").trim();
-    if (!recipient_id || !text) return { ok: false, error: "recipient_id and text required", code: "INVALID_REQUEST" };
+    const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
+    const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
+    const as_claim = Boolean(args.as_claim || parent_claim_id || subject_ref);
+    if (!recipient_id || (!text && !parent_claim_id)) {
+      return { ok: false, error: "recipient_id and text required", code: "INVALID_REQUEST" };
+    }
     return {
       ok: true,
-      action: { verb: "MESSAGE", arguments: { recipient_id, text } },
+      action: {
+        verb: "MESSAGE",
+        arguments: { recipient_id, text: text || parent_claim_id || "", as_claim, parent_claim_id, subject_ref },
+      },
       display: `MESSAGE ${recipient_id}`,
     };
   }

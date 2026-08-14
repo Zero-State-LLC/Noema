@@ -63,6 +63,7 @@ export type PendingMessage = {
   text: string;
   sent_cycle: number;
   deliver_at_cycle: number;
+  claim?: import("./rumor").ClaimPayload;
 };
 
 export function collectLiveRelays(

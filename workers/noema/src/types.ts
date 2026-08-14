@@ -171,6 +171,8 @@ export interface Observation {
   office_lines?: string[];
   /** GC6-S1 reconstruction accounts the viewer may see. Not canonical truth. */
   reconstruction_lines?: string[];
+  /** GC5-S2 held-claim lines. Never put on WATCH. Not truth. */
+  rumor_lines?: string[];
   /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
   contests?: Array<{
     contest_id: string;
