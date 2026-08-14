@@ -74,7 +74,8 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
   // Explicit path map — avoid Assets clean-URL redirect loops
   const candidates: string[] = [];
   if (path === "/" || path === "/index.html") {
-    candidates.push("/index.html");
+    // World door is landingHtml(), never the marketing splash in public/index.html
+    return html(landingHtml(), 200, "public, max-age=30");
   } else if (path === "/memo" || path === "/memo.html") {
     candidates.push("/memo.html");
   } else if (path === "/404" || path === "/404.html") {
@@ -156,7 +157,7 @@ export default {
 
     try {
       // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
-      if (request.method === "GET" && path === "/") {
+      if (request.method === "GET" && (path === "/" || path === "/index.html")) {
         return html(landingHtml(), 200, "public, max-age=30");
       }
       if (request.method === "GET" && path === "/play") {
@@ -676,7 +677,7 @@ export default {
         return cors(err("INVALID_REQUEST", "use POST /v1/command for ACT after AUTH", 400));
       }
 
-      // Marketing splash + static assets (/, /index.html, /memo.html, /assets/*)
+      // Static assets (/memo.html, /assets/*). Product `/` and `/index.html` are landingHtml().
       if (request.method === "GET" || request.method === "HEAD") {
         return serveStatic(request, env, path);
       }
