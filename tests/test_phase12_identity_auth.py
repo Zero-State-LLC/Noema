@@ -7,7 +7,15 @@ import time
 from pathlib import Path
 
 from noema.app.runtime import NoemaRuntime
-from noema.auth.jwt_util import mint_hs256, verify_hs256
+from noema.auth.jwt_util import (
+    JwtError,
+    generate_es256_pair,
+    mint_es256,
+    mint_hs256,
+    reset_jwks_cache,
+    verify_hs256,
+    verify_jwt,
+)
 from noema.gateway.http_server import make_handler
 from noema.protocol.agent_v1 import AgentProtocolV1
 
@@ -17,6 +25,104 @@ def test_jwt_roundtrip():
     token = mint_hs256({"sub": "u1", "exp": int(time.time()) + 60}, secret)
     claims = verify_hs256(token, secret)
     assert claims["sub"] == "u1"
+
+
+def test_jwt_es256_jwks_accept_and_reject():
+    reset_jwks_cache()
+    d, jwk, kid = generate_es256_pair()
+    claims_in = {
+        "sub": "user-es256",
+        "aud": "authenticated",
+        "iss": "https://example.supabase.co/auth/v1",
+        "exp": int(time.time()) + 60,
+    }
+    token = mint_es256(claims_in, d, kid)
+    claims = verify_jwt(token, jwks={"keys": [jwk]}, audience="authenticated")
+    assert claims["sub"] == "user-es256"
+
+    hs = mint_hs256({"sub": "hs", "aud": "authenticated", "exp": int(time.time()) + 60}, "legacy")
+    assert verify_jwt(hs, secret="legacy", audience="authenticated")["sub"] == "hs"
+
+    try:
+        verify_hs256(token, "legacy")
+        assert False, "HS256-only helper must still reject ES256"
+    except JwtError as exc:
+        assert str(exc) == "unsupported alg ES256"
+
+    bad_parts = token.split(".")
+    sig = list(bad_parts[2])
+    sig[0] = "A" if sig[0] != "A" else "B"
+    bad_parts[2] = "".join(sig)
+    try:
+        verify_jwt(".".join(bad_parts), jwks={"keys": [jwk]}, audience="authenticated")
+        assert False, "bad signature must fail"
+    except JwtError as exc:
+        assert str(exc) == "bad signature"
+
+    none_header = mint_hs256({"sub": "n", "exp": int(time.time()) + 60}, "x")
+    none = none_header.split(".")
+    import base64
+    import json as _json
+
+    none[0] = base64.urlsafe_b64encode(_json.dumps({"alg": "none", "typ": "JWT"}).encode()).rstrip(b"=").decode()
+    try:
+        verify_jwt(".".join(none), secret="x", jwks={"keys": [jwk]})
+        assert False, "alg none must fail"
+    except JwtError as exc:
+        assert "unsupported alg none" in str(exc)
+
+
+def test_bind_human_from_supabase_es256_jwks(tmp_path: Path):
+    reset_jwks_cache()
+    d, jwk, kid = generate_es256_pair()
+    token = mint_es256(
+        {
+            "sub": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            "aud": "authenticated",
+            "iss": "https://example.supabase.co/auth/v1",
+            "email": "ada@example.com",
+            "exp": int(time.time()) + 60,
+        },
+        d,
+        kid,
+    )
+    fetches = {"n": 0}
+
+    def fetch(url: str):
+        fetches["n"] += 1
+        assert url.endswith("/auth/v1/.well-known/jwks.json")
+        return {"keys": [jwk]}
+
+    rt = NoemaRuntime(db_path=tmp_path / "es256.sqlite3")
+    rt.identity.supabase_url = "https://example.supabase.co"
+    rt.identity.supabase_jwt_secret = "legacy-unused-for-es256"
+    rt.identity._jwks_fetch = fetch
+    bound = rt.identity.bind_human_from_supabase_token(token)
+    assert bound["player_id"].startswith("player.")
+    assert bound["agent_id"]
+    assert "noema.action.submit" in bound["scopes"]
+    assert "noema.world.admin" not in bound["scopes"]
+    assert fetches["n"] == 1
+    rt.identity.bind_human_from_supabase_token(token)
+    assert fetches["n"] == 1
+
+
+def test_bind_human_from_supabase_hs256_still_works(tmp_path: Path):
+    secret = "legacy-jwt-secret"
+    token = mint_hs256(
+        {
+            "sub": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+            "aud": "authenticated",
+            "email": "hs@example.com",
+            "exp": int(time.time()) + 60,
+        },
+        secret,
+    )
+    rt = NoemaRuntime(db_path=tmp_path / "hs256.sqlite3")
+    rt.identity.supabase_jwt_secret = secret
+    bound = rt.identity.bind_human_from_supabase_token(token)
+    assert bound["player_id"].startswith("player.")
+    assert "noema.world.admin" not in bound["scopes"]
 
 
 def test_human_dev_bind_and_device_enrollment(tmp_path: Path):

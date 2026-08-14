@@ -8,8 +8,9 @@ export interface Env {
   ASSETS: Fetcher;
   /** Shared with Python IdentityService for controller access tokens. */
   TOKEN_SIGNING_SECRET?: string;
-  /** Supabase JWT secret (HS256) for human access tokens. */
+  /** Legacy Supabase JWT secret (HS256). Optional when the project signs with ES256 JWKS. */
   SUPABASE_JWT_SECRET?: string;
+  /** Project URL — used for ES256 JWKS at /auth/v1/.well-known/jwks.json */
   SUPABASE_URL?: string;
   /** Settlement only — never expose to clients/agents. */
   SUPABASE_SERVICE_ROLE_KEY?: string;
