@@ -2,19 +2,19 @@
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
 **Not** a platform migration. Stack remains Cloudflare Pages/Workers/DO + Supabase Auth/Postgres/Storage.  
-**Architecture:** RFC-0016/0017 head + fence. Merged #96 adds atomic `noema_commit_canonical_settlement`. Hosted SQL/RPC apply is still unverified.
+**Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Hosted Worker/DO settlement proof is still unverified from this environment.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**
 
 ## Verdict
 
 ```text
-CANONICAL_HEAD_IMPLEMENTED_UNVERIFIED
+HARNESS_DEPLOY_VERIFIED
+CANONICAL_HEAD_SCHEMA_VERIFIED
 PERIHELION_CANONICAL_BOOTSTRAP_BLOCKED
-HOSTED_ISOLATED_TEST_PATH_BLOCKED
 ```
 
-First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`, cycle 0, seq 75 at last check). Completeness S0 packages are on the Worker. Canonical-head code from #96 is deployed. Hosted schema/RPC apply and isolated-world settlement were **not** verified from this environment.
+First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`, cycle 0, seq 75). Isolated harness #99 is on production (`3229a75`). This environment could not execute the Worker/DO settlement proof (no Player+admin dual-auth, no SQL session). Schema status is the prior operator claim; it was **not** re-read here.
 
 ## Scorecard (post-S0)
 
@@ -23,7 +23,7 @@ First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4f
 | A Hosted authority | PARTIAL | #96 Worker calls `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Hosted RPC not confirmed applied. |
 | B Canonical writers | PARTIAL | Mutating ACK waits on that RPC; failure restores pre-command DO state and sets INCIDENT. |
 | C Idempotency | IMPLEMENTED | `seen_idempotency[player_id::key]` |
-| D Atomic cycle / settlement | PARTIAL | SQL function is one transaction. Hosted apply unverified. Isolated Worker/DO path does not exist. |
+| D Atomic cycle / settlement | PARTIAL | Isolated operator route is deployed. Hosted Worker/DO settlement proof not executed. |
 | E Fail-closed settle | PARTIAL | DEGRADED → BLOCKING. Unsettled recorded. Replay after SQL. |
 | F World-time | IMPLEMENTED | RFC-0019: `WAIT` sets `wait_until_cycle`; present quorum commits `World.cycle`. Cron is not the clock. |
 | G Scheduler | PARTIAL | Digest cron `*/15`. GC10 schedule is world-time, not wall clock. |
@@ -72,7 +72,22 @@ Fixed since the morning audit (do not re-open as defects):
 - GC1-S2 mechanical benefits
 - `AGREEMENT_FORM` / `ACCESS_POLICY` as first-world required help
 
-## Canonical-head deploy evidence (2026-08-14)
+## Isolated harness deploy evidence (2026-08-14)
+
+| Item | Observed |
+|---|---|
+| PR | Zero-State-LLC/Noema#99 MERGED |
+| Merge SHA | `3229a75a9b45ff3df596814f09da23c6ca85b852` |
+| Deployed SHA | same (clean `main`; only untracked `supabase/.temp/`) |
+| Worker version | `778cc86b-05cf-4fb6-8f69-40675dd5b779` at `2026-08-14T04:44:56Z` |
+| Environment | production (`noema.guru`, `noema-gateway.zer0state-noema.workers.dev`) |
+| Health | `ok` / `production`; `/ready` `ACTIVE` / `HEALTHY` |
+| Operator route | `POST /v1/operator/test-world/command` → `401` without bearer (route present; no DO) |
+| `/v1/command` | still `401` Bearer required; not used for mutation |
+| Hosted Worker/DO proof | **not executed** — no signed Player+admin pair, no SQL session |
+| Perihelion | not mutated; seq 75; no Genesis |
+
+## Prior canonical-head deploy evidence (#96)
 
 | Item | Observed |
 |---|---|
@@ -104,7 +119,6 @@ This environment cannot apply them. After #96 deploy, a mutating PLAY command wi
 
 ## Next (not authorized here)
 
-1. Operator apply the three SQL files on project `dezykkherxlaysxyvgbs` (or confirm Worker `SUPABASE_URL` matches).  
-2. Provide an isolated hosted world path, or a SQL session, before claiming `CANONICAL_HEAD_VERIFIED`.  
-3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
-4. Do not bootstrap Perihelion from sequence-75 events.
+1. Supply a Player bearer + signed `X-Noema-Admin-Token` and a SQL session to finish hosted Worker/DO proof on `test.hosted-canonical.*`.  
+2. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
+3. Do not bootstrap Perihelion from sequence-75 events.
