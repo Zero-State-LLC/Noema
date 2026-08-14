@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { connectHtml } from "../src/connect";
+import worker from "../src/index";
 import { landingHtml } from "../src/landing";
 import { playHtml } from "../src/play";
 import { playCallbackHtml } from "../src/play-login-html";
 import { productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
+import type { Env } from "../src/types";
 import { watchHtml } from "../src/watch";
 
 function navOf(html: string): string {
@@ -79,6 +81,23 @@ describe("home door", () => {
   it("first-read omits research and stage vocabulary", () => {
     for (const word of FIRST_READ_BAN) {
       expect(hay.toLowerCase()).not.toContain(word.toLowerCase());
+    }
+  });
+});
+
+describe("hosted /index.html", () => {
+  const bareEnv = { NOEMA_ENV: "production" } as unknown as Env;
+
+  it("serves the world door, not the research splash", async () => {
+    for (const path of ["/", "/index.html"]) {
+      const res = await worker.fetch(new Request(`https://noema.guru${path}`), bareEnv);
+      const html = await res.text();
+      expect(res.status).toBe(200);
+      expect(html).toContain("Perihelion Reach");
+      expect(html).toContain("/v1/play/login/request");
+      expect(html).not.toContain("/assets/site.js");
+      expect(html).not.toContain("path-rail");
+      expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
     }
   });
 });
