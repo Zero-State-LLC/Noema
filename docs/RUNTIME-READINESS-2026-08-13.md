@@ -55,6 +55,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC9-S0 | Yes (#71) | Room custom after 3 distinct REPAIRs |
 | GC9-S1 | Hosted this run | Tradition after persistence + transmission. Public WATCH pulses. No bonus |
 | GC10-S0 | Yes (#82) | Cycle-4 `ENTITY_UPDATE` −15 if preview ≥ 25. Silent if genesis relay is too damaged. PLAY omits WED |
+| GC10-S1 | Hosted this run | Cycle-8 harvest stock −4; cycle-12 public-exit `ACCESS_RESTRICTED` (4 cycles). S0 remains. PLAY omits WED |
 
 ## Frozen / left untouched
 
@@ -77,5 +78,5 @@ This environment cannot apply them. Until they run, `putWorldHead` 404 is skippe
 ## Next (not authorized here)
 
 1. Operator apply the two SQL files.  
-2. Later S1s (GC4 named offices, GC6 reconstruction, GC9 tradition, GC7 withdraw, GC10 more classes) remain SPEC GAP until their own RFC.  
+2. Next named slice is GC5-S2 rumor provenance. Do not begin it without an explicit continuation.  
 3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.

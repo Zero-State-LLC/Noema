@@ -2,6 +2,7 @@ import { enrichEntity } from "./actions";
 import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
 import { redactedPublicWorld } from "./genesis";
 import { publicCulturePulses } from "./culture";
+import { adminPressureView, publicPressurePulses } from "./pressure";
 import {
   applyControllingSession,
   commandForOps,
@@ -191,16 +192,19 @@ export class NoemaWorldDO {
           players_present: countLivePlayers(this.world!.players),
           world_status: this.meta!.status,
           freshness: marker,
-          public_pulses: publicCulturePulses(
-            this.world!.culture,
-            this.world!.cycle,
-            Object.values(this.world!.reconstructions || {}).map((r) => ({
-              subject_ref: r.subject_ref,
-              visibility: r.visibility,
-              claim: r.claim,
-              epistemic: r.epistemic,
-            })),
-          ),
+          public_pulses: [
+            ...publicCulturePulses(
+              this.world!.culture,
+              this.world!.cycle,
+              Object.values(this.world!.reconstructions || {}).map((r) => ({
+                subject_ref: r.subject_ref,
+                visibility: r.visibility,
+                claim: r.claim,
+                epistemic: r.epistemic,
+              })),
+            ),
+            ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
+          ],
         }),
       );
     }
@@ -230,6 +234,7 @@ export class NoemaWorldDO {
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
+        pressure: adminPressureView(this.world!.pressure),
       });
     }
 
