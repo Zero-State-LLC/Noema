@@ -4,6 +4,7 @@
  */
 
 export const STALE_HEAD = "STALE_HEAD";
+export const STALE_FENCE = "STALE_FENCE";
 
 export type FenceHead = {
   world_id: string;
@@ -15,14 +16,18 @@ export type FenceHead = {
   cycle: number;
 };
 
-export type FenceCheck = { ok: true } | { ok: false; code: typeof STALE_HEAD };
+export type FenceCheck = { ok: true } | { ok: false; code: typeof STALE_HEAD | typeof STALE_FENCE };
 
 export function checkExpectedHead(
   expectedRevision: number,
   durable: FenceHead | null,
+  expectedWriterGeneration?: string | null,
 ): FenceCheck {
   if (!durable) return { ok: true };
   if (durable.revision !== expectedRevision) return { ok: false, code: STALE_HEAD };
+  if (expectedWriterGeneration && durable.writer_generation && durable.writer_generation !== expectedWriterGeneration) {
+    return { ok: false, code: STALE_FENCE };
+  }
   return { ok: true };
 }
 

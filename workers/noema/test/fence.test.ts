@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   STALE_HEAD,
+  STALE_FENCE,
   checkExpectedHead,
   restoreOrIncident,
   retrySettle,
@@ -83,6 +84,12 @@ describe("RFC-0017 fence crash/retry", () => {
     expect(checkExpectedHead(0, null).ok).toBe(true);
     expect(checkExpectedHead(1, { world_id: "w", revision: 1, sequence: 1, cycle: 0 }).ok).toBe(true);
     expect(checkExpectedHead(0, { world_id: "w", revision: 2, sequence: 2, cycle: 0 }).ok).toBe(false);
+  });
+
+  it("rejects a stale writer generation without advancing the head", () => {
+    const durable = { world_id: "w", revision: 1, sequence: 1, cycle: 0, writer_generation: "do.2" };
+    const gate = checkExpectedHead(1, durable, "do.1");
+    expect(gate).toEqual({ ok: false, code: STALE_FENCE });
   });
 });
 
