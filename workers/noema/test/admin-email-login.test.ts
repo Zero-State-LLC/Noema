@@ -429,6 +429,25 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/pairLi\(label,\s*note\)/);
   });
 
+  it("escapes genesis preview fields before assigning innerHTML", () => {
+    const html = adminHtml();
+    expect(html).toMatch(/function esc\s*\(/);
+    expect(html).toMatch(/esc\(th\.character\)/);
+    expect(html).toMatch(/esc\(\(result\.world_name/);
+    expect(html).toMatch(/esc\(result\.genesis_profile_id\)/);
+    expect(html).toMatch(/esc\(r\.name\)/);
+    expect(html).toMatch(/esc\(t\)/);
+    expect(html).toMatch(/esc\(th\.lore_boundary\)/);
+    expect(html).toMatch(/esc\(result\.genesis_id\)/);
+    expect(html).toMatch(/esc\(result\.cycle0_digest\)/);
+    expect(html).not.toMatch(/\+ th\.character \+/);
+    expect(html).not.toMatch(/s\.regions\.map\(r => r\.name\)/);
+    expect(html).not.toMatch(/s\.tensions\.map\(t => "• " \+ t\)/);
+    expect(html).not.toMatch(/s\.ruins_scars\.map\(t => "• " \+ t\)/);
+    expect(html).not.toMatch(/s\.opportunities\.join\(" · "\)/);
+    expect(html).not.toMatch(/result\.validation\.errors\|\|\[\]\)\.join\("; "\)/);
+  });
+
   it("is email-only and locked to the operator mailbox", () => {
     const html = adminLoginHtml();
     expect(html).toContain('id="email"');
