@@ -71,6 +71,24 @@ def test_jwt_es256_jwks_accept_and_reject():
     except JwtError as exc:
         assert "unsupported alg none" in str(exc)
 
+    junk_sig = token.rsplit(".", 1)[0] + ".%%%not-base64%%%"
+    try:
+        verify_jwt(junk_sig, jwks={"keys": [jwk]}, audience="authenticated")
+        assert False, "illegal signature encoding must be JwtError"
+    except JwtError as exc:
+        assert str(exc) == "malformed token encoding"
+
+    reset_jwks_cache()
+
+    def boom(_url: str):
+        raise TimeoutError("jwks timed out")
+
+    try:
+        verify_jwt(token, jwks_url="https://example.supabase.co/auth/v1/.well-known/jwks.json", fetch=boom)
+        assert False, "JWKS fetch failure must be JwtError"
+    except JwtError as exc:
+        assert str(exc) == "jwks fetch failed"
+
 
 def test_bind_human_from_supabase_es256_jwks(tmp_path: Path):
     reset_jwks_cache()

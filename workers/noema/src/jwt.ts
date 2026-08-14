@@ -54,7 +54,12 @@ export function supabaseIssuer(supabaseUrl: string): string {
 function b64urlDecode(segment: string): Uint8Array {
   const pad = "=".repeat((4 - (segment.length % 4)) % 4);
   const b64 = (segment + pad).replace(/-/g, "+").replace(/_/g, "/");
-  const bin = atob(b64);
+  let bin: string;
+  try {
+    bin = atob(b64);
+  } catch {
+    throw new JwtError("malformed token encoding");
+  }
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
@@ -203,11 +208,16 @@ async function verifyEs256WithJwk(
 }
 
 async function fetchJwks(url: string, fetchImpl: typeof fetch): Promise<EcJwk[]> {
-  const res = await fetchImpl(url, {
-    method: "GET",
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(5000),
-  });
+  let res: Response;
+  try {
+    res = await fetchImpl(url, {
+      method: "GET",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    throw new JwtError("jwks fetch failed");
+  }
   if (!res.ok) throw new JwtError("jwks fetch failed");
   const body = (await res.json().catch(() => null)) as Jwks | null;
   if (!body || !Array.isArray(body.keys)) throw new JwtError("jwks fetch failed");

@@ -40,7 +40,10 @@ def supabase_issuer(supabase_url: str) -> str:
 
 def _b64url_decode(segment: str) -> bytes:
     pad = "=" * (-len(segment) % 4)
-    return base64.urlsafe_b64decode(segment + pad)
+    try:
+        return base64.urlsafe_b64decode(segment + pad)
+    except Exception as exc:  # noqa: BLE001
+        raise JwtError("malformed token encoding") from exc
 
 
 def _b64url_encode(raw: bytes) -> str:
@@ -223,11 +226,16 @@ def _verify_es256_sig(jwk: dict[str, Any], data: bytes, signature: bytes) -> boo
 
 def _fetch_jwks(url: str, fetch: Callable[[str], Any] | None) -> list[dict[str, Any]]:
     if fetch is not None:
-        body = fetch(url)
-        if isinstance(body, (bytes, str)):
-            parsed = json.loads(body)
-        else:
-            parsed = body
+        try:
+            body = fetch(url)
+            if isinstance(body, (bytes, str)):
+                parsed = json.loads(body)
+            else:
+                parsed = body
+        except JwtError:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise JwtError("jwks fetch failed") from exc
     else:
         try:
             req = urllib.request.Request(url, headers={"accept": "application/json"})

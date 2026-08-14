@@ -167,4 +167,45 @@ describe("jwt es256 jwks", () => {
     expect(claims.sub).toBe("user-es256");
     expect(fetches).toBe(2);
   });
+
+  it("maps JWKS network and timeout failures to JwtError", async () => {
+    const { token } = await minted();
+    const url = supabaseJwksUrl("https://example.supabase.co");
+    const network: typeof fetch = async () => {
+      throw new TypeError("Network connection lost");
+    };
+    await expect(verifyJwt(token, { jwksUrl: url, fetch: network })).rejects.toMatchObject({
+      name: "JwtError",
+      message: "jwks fetch failed",
+    });
+    const timeout: typeof fetch = async () => {
+      const err = new Error("The operation was aborted due to timeout");
+      err.name = "TimeoutError";
+      throw err;
+    };
+    await expect(verifyJwt(token, { jwksUrl: url, fetch: timeout })).rejects.toMatchObject({
+      name: "JwtError",
+      message: "jwks fetch failed",
+    });
+  });
+
+  it("maps illegal signature encoding to JwtError", async () => {
+    const { token, pair } = await minted();
+    const parts = token.split(".");
+    parts[2] = "%%%not-base64%%%";
+    await expect(
+      verifyJwt(parts.join("."), { jwks: { keys: [pair.publicJwk] }, audience: "authenticated" }),
+    ).rejects.toMatchObject({
+      name: "JwtError",
+      message: "malformed token encoding",
+    });
+    const secret = "sig-secret";
+    const hs = await mintHs256({ sub: "u", exp: Math.floor(Date.now() / 1000) + 60 }, secret);
+    const hsParts = hs.split(".");
+    hsParts[2] = "%%%not-base64%%%";
+    await expect(verifyHs256(hsParts.join("."), secret)).rejects.toMatchObject({
+      name: "JwtError",
+      message: "malformed token encoding",
+    });
+  });
 });
