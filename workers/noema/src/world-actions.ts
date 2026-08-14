@@ -95,10 +95,17 @@ import {
   emergencyLines,
   expireDueScopes,
   findDuplicate,
+  findEmergencyScope,
   publicEmergencyPulses,
   resolveEmergencyFor,
   type EmergencyScope,
 } from "./emergency";
+import {
+  activateEmergencySuccession,
+  activateOfficeSuccession,
+  parseSuccessorList,
+  WATCH_SUCCESSION_PULSE,
+} from "./succession";
 import {
   allocateReconstructionId,
   epistemicFromEvidence,
@@ -695,6 +702,7 @@ export async function applyWorldCommand(
       "ORG_OFFICE_ACT",
       "ORG_EMERGENCY_ACTIVATE",
       "ORG_EMERGENCY_REVOKE",
+      "ORG_SUCCESSION_DESIGNATE",
       "RECONSTRUCT",
       "RECONSTRUCT_SUPERSEDE",
       "RECONSTRUCT_PUBLISH",
@@ -1486,6 +1494,9 @@ export async function applyWorldCommand(
     ) {
       return applyEmergencyCommand(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
+    if (action.arguments.operation === "ORG_SUCCESSION_DESIGNATE") {
+      return applySuccessionDesignate(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
     if (
       action.arguments.operation === "RECONSTRUCT" ||
       action.arguments.operation === "RECONSTRUCT_SUPERSEDE" ||
@@ -1696,6 +1707,10 @@ export async function applyWorldCommand(
           unset: ["holder_player_id"],
         });
         await settleEv(vac);
+        await settleOfficeHandoff(w, org, office, agent_id, pushEvent, settleEv);
+      }
+      for (const scope of org.emergency_scopes || []) {
+        await settleEmergencyHandoff(w, org, scope, agent_id, pushEvent, settleEv);
       }
       const result = success(
         w,
@@ -2045,6 +2060,147 @@ type SettleEv = (ev: {
 
 function noteInstitutionPulse(w: WorldRuntime, text: string): void {
   w.institution_pulses = [...(w.institution_pulses || []), text].slice(-4);
+}
+
+async function settleOfficeHandoff(
+  w: WorldRuntime,
+  org: Organization,
+  office: OfficeRecord,
+  departedId: string,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<string | null> {
+  const seated = activateOfficeSuccession(office, org, w.players, departedId, w.cycle);
+  if (!seated) return null;
+  noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: office.office_id,
+    set: {
+      office_status: "OCCUPIED",
+      holder_player_id: seated.holder_player_id,
+      institution_id: org.org_id,
+      office_kind: "INSTITUTION_OFFICE",
+      succession_from: departedId,
+      succession_to: seated.holder_player_id,
+      designated_by: office.succession?.designated_by,
+    },
+    unset: [],
+  });
+  await settleEv(ev);
+  return seated.holder_player_id;
+}
+
+async function settleEmergencyHandoff(
+  w: WorldRuntime,
+  org: Organization,
+  scope: EmergencyScope,
+  departedId: string,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<string | null> {
+  const seated = activateEmergencySuccession(scope, org, w.players, departedId, w.cycle);
+  if (!seated) return null;
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: scope.scope_id,
+    set: {
+      holder_player_id: seated.holder_player_id,
+      succession_from: departedId,
+      succession_to: seated.holder_player_id,
+      end_cycle: scope.end_cycle,
+      office_kind: "EMERGENCY_SCOPE",
+    },
+    unset: [],
+  });
+  await settleEv(ev);
+  return seated.holder_player_id;
+}
+
+async function applySuccessionDesignate(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const office_id = String(args.office_id || "").trim();
+  const scope_id = String(args.emergency_scope_id || "").trim();
+  const successors = parseSuccessorList(args.successors, args.agent_id);
+  if ((!office_id && !scope_id) || !successors.length) {
+    return fail(request_id, "INVALID_REQUEST", "Name an office or emergency scope and at least one successor.");
+  }
+  let org: Organization | undefined;
+  let office: OfficeRecord | undefined;
+  let scope: EmergencyScope | undefined;
+  if (office_id) {
+    const found = findOffice(w.organizations, office_id);
+    if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+    org = w.organizations[found.org_id];
+    office = found.office;
+  } else {
+    const found = findEmergencyScope(w.organizations, scope_id);
+    if (!found) return fail(request_id, "NOT_FOUND", "Emergency scope not found.");
+    org = w.organizations[found.org_id];
+    scope = found.scope;
+  }
+  if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+  if (!isOrgOfficer(org, principal.player_id)) {
+    return fail(request_id, "FORBIDDEN", "Only a founder or officer may designate a successor.");
+  }
+  if (office && office.status === "RETIRED") {
+    return fail(request_id, "FORBIDDEN", "A retired office cannot succeed.");
+  }
+  if (scope && scope.status !== "ACTIVE") {
+    return fail(request_id, "FORBIDDEN", "That emergency authority is not in force.");
+  }
+  for (const id of successors) {
+    if (!w.players[id]) return fail(request_id, "NOT_FOUND", "That Player is not in this world.");
+    if (!isOrgMember(org, id)) {
+      return fail(request_id, "FORBIDDEN", "A designated successor must be a current member.");
+    }
+  }
+  if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+  }
+  debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+  const rule = {
+    successors,
+    designated_by: principal.player_id,
+    designated_cycle: w.cycle,
+  };
+  if (office) office.succession = rule;
+  if (scope) scope.succession = rule;
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: COSTS.ORG_OFFICE_ACT,
+    reason: "ORG_SUCCESSION_DESIGNATE",
+  });
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: office ? office.office_id : scope!.scope_id,
+    set: {
+      successors,
+      designated_by: principal.player_id,
+      designated_cycle: w.cycle,
+      office_kind: office ? "INSTITUTION_OFFICE" : "EMERGENCY_SCOPE",
+    },
+    unset: [],
+  });
+  await settleEv(ev);
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    office
+      ? `Designated successor for ${office.display_name}.`
+      : `Designated successor for ${scope!.scope_id}.`,
+    false,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
 }
 
 function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {
@@ -2915,12 +3071,20 @@ async function applyOfficeCommand(
       unset: ["holder_player_id"],
     });
     await settleEv(ev);
+    const successorId = await settleOfficeHandoff(w, org, office, prior, pushEvent, settleEv);
+    const seated = successorId ? w.players[successorId]?.handle || successorId : "";
     const result = success(
       w,
       principal,
       request_id,
       events,
-      self ? `You resign ${office.display_name}.` : `Vacated ${office.display_name}.`,
+      successorId
+        ? self
+          ? `You resign ${office.display_name}. ${seated} succeeds.`
+          : `Vacated ${office.display_name}. ${seated} succeeds.`
+        : self
+          ? `You resign ${office.display_name}.`
+          : `Vacated ${office.display_name}.`,
       false,
     );
     w.seen_idempotency[idem] = result;

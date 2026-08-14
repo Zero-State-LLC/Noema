@@ -43,6 +43,7 @@ export type EmergencyScope = {
   revoked_cycle?: number;
   reason?: string;
   spent?: { energy?: number };
+  succession?: import("./succession").SuccessionRule;
 };
 
 export function defaultEmergencyTemplates(): EmergencyTemplate[] {
@@ -113,6 +114,18 @@ export function canActivate(
     return { ok: false, code: "FORBIDDEN", message: "Name which office you are using." };
   }
   return { ok: true, office_id: matches[0].office_id };
+}
+
+export function findEmergencyScope(
+  orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined,
+  scopeId: string,
+): { org_id: string; scope: EmergencyScope } | null {
+  if (!orgs || !scopeId) return null;
+  for (const [org_id, org] of Object.entries(orgs)) {
+    const scope = (org.emergency_scopes || []).find((s) => s.scope_id === scopeId);
+    if (scope) return { org_id, scope };
+  }
+  return null;
 }
 
 export function findDuplicate(

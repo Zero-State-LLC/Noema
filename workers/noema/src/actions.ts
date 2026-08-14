@@ -256,6 +256,7 @@ export type CanonicalAction =
           | "ORG_EMERGENCY_DEFINE"
           | "ORG_EMERGENCY_ACTIVATE"
           | "ORG_EMERGENCY_REVOKE"
+          | "ORG_SUCCESSION_DESIGNATE"
           | "RECONSTRUCT"
           | "RECONSTRUCT_SUPERSEDE"
           | "RECONSTRUCT_PUBLISH"
@@ -298,6 +299,7 @@ export type CanonicalAction =
         template_id?: string;
         target_ref?: string;
         duration_cycles?: number;
+        successors?: string[];
       };
     }
   | {
@@ -1189,6 +1191,51 @@ export function parseHumanCommand(
     }
     return { ok: false, error: "Emergency syntax: emergency activate <org> <template> <target>" };
   }
+  if (v === "succession") {
+    const sub = (parts[0] || "").toLowerCase();
+    let office_id: string | undefined;
+    let emergency_scope_id: string | undefined;
+    let names: string[] = [];
+    if (sub === "scope") {
+      emergency_scope_id = parts[1];
+      names = parts.slice(2);
+    } else {
+      office_id = parts[0];
+      names = parts.slice(1);
+    }
+    if ((!office_id && !emergency_scope_id) || !names.length) {
+      return {
+        ok: false,
+        error: "Succession syntax: succession <office> <player> [player2]",
+      };
+    }
+    if (names.length > 2) {
+      return { ok: false, error: "At most two designated successors.", code: "FORBIDDEN" };
+    }
+    const successors: string[] = [];
+    for (const raw of names) {
+      let id = raw;
+      if (ctx.players && ctx.selfId) {
+        const r = resolvePlayerTarget(raw, ctx.players, ctx.selfId);
+        if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+        id = r.player_id;
+      }
+      if (id && !successors.includes(id)) successors.push(id);
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: {
+          operation: "ORG_SUCCESSION_DESIGNATE",
+          office_id,
+          emergency_scope_id,
+          successors,
+        },
+      },
+      display: "You designate a successor.",
+    };
+  }
 
   // RFC-0024: reconstruct / revise — not listed in Chamber help.
   if (v === "reconstruct" || v === "assemble") {
@@ -1752,6 +1799,29 @@ export function normalizeStructuredCommand(
     if (operation === "ORG_EMERGENCY_DEFINE") {
       return { ok: false, error: "Define is founder-only via structured template in this slice", code: "FORBIDDEN" };
     }
+    if (operation === "ORG_SUCCESSION_DESIGNATE") {
+      const office_id = String(args.office_id || "").trim();
+      const emergency_scope_id = String(args.emergency_scope_id || args.scope_id || "").trim();
+      const successors = Array.isArray(args.successors)
+        ? (args.successors as unknown[]).map((s) => String(s || "").trim()).filter(Boolean)
+        : [String(args.agent_id || args.player_id || "").trim()].filter(Boolean);
+      if ((!office_id && !emergency_scope_id) || !successors.length) {
+        return { ok: false, error: "office_id or emergency_scope_id and successors required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ORG_SUCCESSION_DESIGNATE",
+            office_id: office_id || undefined,
+            emergency_scope_id: emergency_scope_id || undefined,
+            successors: successors.slice(0, 2),
+          },
+        },
+        display: "COMMIT.ORG_SUCCESSION_DESIGNATE",
+      };
+    }
     if (operation === "RECONSTRUCT") {
       const subject_ref = String(args.subject_ref || args.subject || args.entity_id || "").trim();
       const claim = String(args.claim || args.narrative || "").trim();
@@ -1927,6 +1997,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ORG_OFFICE_ACT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ACT" });
+  }
+  if (cmd === "ORG_SUCCESSION_DESIGNATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_SUCCESSION_DESIGNATE" });
   }
   if (cmd === "RECONSTRUCT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT" });
@@ -2252,6 +2325,9 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  emergency activate <org> <template> <target>");
     lines.push("  emergency revoke <scope>");
     lines.push("  Emergency authority is temporary and predeclared. Saying emergency is not a grant.");
+    lines.push("  succession <office> <player> [player2]");
+    lines.push("  succession scope <scope> <player> [player2]");
+    lines.push("  Designation is explicit. Vacancy without a successor is allowed.");
   } else if (t === "trade") {
     lines.push("TRADE");
     lines.push("  trade <player> offer=energy:3 want=storage:1");

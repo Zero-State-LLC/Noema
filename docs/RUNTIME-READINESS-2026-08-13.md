@@ -48,6 +48,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC4-S1 | Hosted this run | Named vacant/occupied offices; `PUBLISH_NOTICE`. Help omits office verbs |
 | GC4-S2 | Hosted this run | Institution TRADE/REPAIR via occupied office + treasury. No new verbs |
 | GC4-S3 | Hosted this run | Emergency scopes: 3-cycle grant overlay. No superuser |
+| GC4-S4 | Hosted this run | Designated succession. No implicit jump. Emergency remaining duration |
 | GC5-S0 | Yes (#72) | Same-room MESSAGE; long-range needs relay ≥ 25 |
 | GC5-S2 | Hosted this run | Claim + MESSAGE lineage. No rumor score. Help omits rumor aliases |
 | GC6-S0 | Mapper yes; **Perihelion silent** | No `archive_subject_entity_id` / `archive_claim` on genesis artifacts |
@@ -81,5 +82,4 @@ This environment cannot apply them. Until they run, `putWorldHead` 404 is skippe
 ## Next (not authorized here)
 
 1. Operator apply the two SQL files.  
-2. Next institutional slice is designated succession.  
-3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.
+2. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.
