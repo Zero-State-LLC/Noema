@@ -523,6 +523,10 @@ export function adminHtml(): string {
 
   let lastPreview = null;
 
+  function esc(s) {
+    return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+  }
+
   function selectedSeeds() {
     return [...document.querySelectorAll("#g-seeds input:checked")].map(i => i.value).slice(0, 2);
   }
@@ -541,9 +545,9 @@ export function adminHtml(): string {
     const s = result.preview_summary || {};
     const th = result.theme || {};
     const lines = [];
-    lines.push("<p class='kicker'>" + (result.world_name || "World").toUpperCase() + " — PREVIEW</p>");
-    if (th.character) lines.push("<p class='muted'><strong>Character</strong><br/>" + th.character + "</p>");
-    lines.push("<p class='muted'><strong>Profile</strong> " + result.genesis_profile_id + " · <strong>Seeds</strong> " + (result.story_seed_ids||[]).join(", ") + "</p>");
+    lines.push("<p class='kicker'>" + esc((result.world_name || "World").toUpperCase()) + " — PREVIEW</p>");
+    if (th.character) lines.push("<p class='muted'><strong>Character</strong><br/>" + esc(th.character) + "</p>");
+    lines.push("<p class='muted'><strong>Profile</strong> " + esc(result.genesis_profile_id) + " · <strong>Seeds</strong> " + (result.story_seed_ids||[]).map(esc).join(", ") + "</p>");
     lines.push("<p class='muted'><strong>Starting structure</strong><br/>" +
       "• " + (s.room_count||0) + " primary sites<br/>" +
       "• " + ((s.active_institutions||[]).length) + " active institution(s)<br/>" +
@@ -552,14 +556,14 @@ export function adminHtml(): string {
       (s.damaged_relay ? "• damaged infrastructure present<br/>" : "") +
       (s.archive_mystery ? "• archive / data mystery<br/>" : "") +
       "</p>");
-    if (s.regions) lines.push("<p class='empty'>" + s.regions.map(r => r.name).join(" · ") + "</p>");
-    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Pressures</strong><br/>" + s.tensions.map(t => "• " + t).join("<br/>") + "</p>");
-    if (s.ruins_scars && s.ruins_scars.length) lines.push("<p class='muted'><strong>Historical traces</strong><br/>" + s.ruins_scars.map(t => "• " + t).join("<br/>") + "</p>");
-    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities</strong><br/>" + s.opportunities.join(" · ") + "</p>");
-    if (th.lore_boundary) lines.push("<p class='empty' style='margin-top:.5rem'>" + th.lore_boundary + "</p>");
-    lines.push("<p class='empty mono' style='margin-top:.6rem;font-size:.72rem'>genesis_id " + result.genesis_id + "<br/>cycle0_digest " + result.cycle0_digest + "</p>");
+    if (s.regions) lines.push("<p class='empty'>" + s.regions.map(r => esc(r.name)).join(" · ") + "</p>");
+    if (s.tensions && s.tensions.length) lines.push("<p class='muted'><strong>Pressures</strong><br/>" + s.tensions.map(t => "• " + esc(t)).join("<br/>") + "</p>");
+    if (s.ruins_scars && s.ruins_scars.length) lines.push("<p class='muted'><strong>Historical traces</strong><br/>" + s.ruins_scars.map(t => "• " + esc(t)).join("<br/>") + "</p>");
+    if (s.opportunities) lines.push("<p class='muted'><strong>Opportunities</strong><br/>" + s.opportunities.map(esc).join(" · ") + "</p>");
+    if (th.lore_boundary) lines.push("<p class='empty' style='margin-top:.5rem'>" + esc(th.lore_boundary) + "</p>");
+    lines.push("<p class='empty mono' style='margin-top:.6rem;font-size:.72rem'>genesis_id " + esc(result.genesis_id) + "<br/>cycle0_digest " + esc(result.cycle0_digest) + "</p>");
     if (result.validation && !result.validation.ok) {
-      lines.push("<p class='notice bad'>Blocked: " + (result.validation.errors||[]).join("; ") + "</p>");
+      lines.push("<p class='notice bad'>Blocked: " + (result.validation.errors||[]).map(esc).join("; ") + "</p>");
     }
     $("g-preview-body").innerHTML = lines.join("");
     const canAct = result.validation && result.validation.ok && meta && meta.determinism && meta.determinism.ok;
