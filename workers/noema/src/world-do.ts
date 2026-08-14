@@ -29,15 +29,15 @@ import {
   type OperatorDigest,
 } from "./operator-digests";
 import {
+  commitCanonicalSettlement,
   getWorldHead,
-  putWorldHead,
   replayUnsettled,
   settleEvent,
   settleGenesisActivation,
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead, nextRevision } from "./settle-fence";
+import { checkExpectedHead } from "./settle-fence";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -572,7 +572,7 @@ export class NoemaWorldDO {
         const head = await getWorldHead(this.env, worldId);
         this.world = worldFromHead(head, demoState(worldId));
       } else {
-        this.world = stored;
+        this.world = stored || demoState(worldId);
       }
       // migrate old states without entry_room_id / budgets / entity runtime fields
       if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
@@ -594,18 +594,16 @@ export class NoemaWorldDO {
     const health = this.meta!.settlement_health || "HEALTHY";
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
-      const durableRev =
-        durable && typeof (durable as { revision?: number }).revision === "number"
-          ? (durable as { revision: number }).revision
-          : null;
-      if (durableRev != null) {
+      if (durable && typeof durable.revision === "number") {
+        const durableRev = durable.revision;
         const localRev = this.meta!.revision ?? 0;
         const gate = checkExpectedHead(localRev, {
           world_id: w.world_id,
           revision: durableRev,
           sequence: durable.sequence,
           cycle: durable.cycle,
-        });
+          writer_generation: durable.writer_generation,
+        }, this.meta!.writer_generation || "do.1");
         if (!gate.ok) {
           this.world = worldFromHead(durable, w);
           this.meta!.revision = durableRev;
@@ -628,56 +626,65 @@ export class NoemaWorldDO {
     }
 
     if (mutating && w.unsettled?.length) {
+      // Pre-canonical candidates have no revision/digest lineage and cannot be
+      // folded into the atomic settlement contract.  Do not turn DO-local
+      // history into canonical facts by replaying it through the legacy sink.
+      if (this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
+        this.meta!.status = "INCIDENT";
+        this.meta!.settlement_health = "BLOCKING";
+        await this.state.storage.put("world_meta", this.meta);
+        return {
+          ok: false,
+          request_id: envl.request_id || "unknown",
+          error: { code: "UNMIGRATED_UNSETTLED_HISTORY", message: "operator snapshot import is required before canonical mutation" },
+        };
+      }
       w.unsettled = await replayUnsettled(this.env, w.world_id, w.unsettled);
     }
 
-    let settleOk = true;
+    // Reducers may mutate only behind a durable commit.  Preserve the precise
+    // pre-command state so an RPC rejection cannot become DO-only truth.
+    const before = structuredClone(w);
     const result = await applyWorldCommand(w, principal, envl, async (ev) => {
-      const ok = await settleEvent(this.env, principal, {
-        event_id: ev.event_id,
-        event_type: ev.event_type,
-        sequence: ev.sequence,
-        cycle: w.cycle,
-        world_id: w.world_id,
-        player_id: principal.player_id,
-        controller_id: principal.controller_id,
-        session_id: principal.session_id,
-        payload: ev.payload,
-      });
-      if (!ok && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) settleOk = false;
-      return ok;
+      // applyWorldCommand emits candidates one-by-one.  They are collected in
+      // result.events and committed as one batch below, after the final state
+      // is known.  Never write a candidate separately here.
+      void ev;
+      return true;
     });
     if (mutating && w.players[principal.player_id]) {
       w.players[principal.player_id].controlling_session_id = principal.session_id;
     }
-    if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
-      let next = nextSettlementHealth(health, settleOk);
-      if (next === "BLOCKING") this.meta!.status = "INCIDENT";
-      const rev = nextRevision({
-        world_id: w.world_id,
-        revision: this.meta!.revision ?? 0,
-        sequence: w.sequence,
-        cycle: w.cycle,
-      });
-      const headOk = await putWorldHead(this.env, {
-        world_id: w.world_id,
-        sequence: w.sequence,
-        cycle: w.cycle,
+    if (mutating && result.ok && result.events?.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const durable = await getWorldHead(this.env, w.world_id);
+      const committed = await commitCanonicalSettlement(this.env, {
+        settlement_id: `settlement.${result.events.map((event) => event.event_id).join(".")}`,
+        expected_revision: this.meta!.revision ?? 0,
+        writer_generation: this.meta!.writer_generation || "do.1",
         genesis_id: this.meta!.genesis_id || null,
         status: this.meta!.status,
-        settlement_health: next,
-        state_json: w,
-        revision: rev,
-        writer_generation: this.meta!.writer_generation || "do.1",
+        settlement_health: "HEALTHY",
+        world: w,
+        principal,
+        events: result.events,
+        previous_digest: durable?.ledger_head_digest ?? null,
       });
-      if (headOk) this.meta!.revision = rev;
-      if (!headOk) {
-        settleOk = false;
-        next = nextSettlementHealth(health, false);
-        if (next === "BLOCKING") this.meta!.status = "INCIDENT";
+      if (!committed.ok) {
+        this.world = before;
+        this.meta!.settlement_ok = false;
+        this.meta!.settlement_health = nextSettlementHealth(health, false);
+        this.meta!.status = "INCIDENT";
+        await this.state.storage.put("world_meta", this.meta);
+        await this.save();
+        return {
+          ok: false,
+          request_id: envl.request_id || "unknown",
+          error: { code: committed.code, message: "canonical settlement was not committed; world entered INCIDENT" },
+        };
       }
-      this.meta!.settlement_health = next;
-      this.meta!.settlement_ok = settleOk;
+      this.meta!.revision = committed.revision;
+      this.meta!.settlement_ok = true;
+      this.meta!.settlement_health = "HEALTHY";
       await this.state.storage.put("world_meta", this.meta);
     }
     if (result.ok && result.events?.length) {
