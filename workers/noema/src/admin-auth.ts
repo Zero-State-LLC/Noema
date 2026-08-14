@@ -84,10 +84,7 @@ export async function mintAdminSession(
   return mintAdminAccess(env, "operator_token");
 }
 
-export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincipal | Response> {
-  const token = bearer(req);
-  if (!token) return err("NOT_AUTHORIZED", "ADMIN bearer token required", 401);
-
+async function adminFromSignedToken(token: string, env: Env): Promise<AdminPrincipal | Response> {
   let signing: string;
   try {
     signing = signingSecret(env);
@@ -114,6 +111,19 @@ export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincip
     if (e instanceof JwtError) return err("NOT_AUTHORIZED", e.message, 401);
     throw e;
   }
+}
+
+export async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincipal | Response> {
+  const token = bearer(req);
+  if (!token) return err("NOT_AUTHORIZED", "ADMIN bearer token required", 401);
+  return adminFromSignedToken(token, env);
+}
+
+/** Dual-auth operator path: signed admin JWT from X-Noema-Admin-Token only. */
+export async function resolveSignedAdminHeader(req: Request, env: Env): Promise<AdminPrincipal | Response> {
+  const token = (req.headers.get("X-Noema-Admin-Token") || "").trim();
+  if (!token) return err("NOT_AUTHORIZED", "X-Noema-Admin-Token required", 401);
+  return adminFromSignedToken(token, env);
 }
 
 export const GENERIC_LOGIN_MESSAGE =

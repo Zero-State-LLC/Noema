@@ -1,0 +1,57 @@
+/**
+ * Isolated hosted canonical-verification world admission.
+ * Production PLAY (/v1/command) never uses this path.
+ */
+
+export const TEST_WORLD_PREFIX = "test.hosted-canonical.";
+
+export type WorldAdmission =
+  | { ok: true; world_id: string }
+  | { ok: false; code: "WORLD_FORBIDDEN"; message: string };
+
+function deny(message: string): WorldAdmission {
+  return { ok: false, code: "WORLD_FORBIDDEN", message };
+}
+
+export function isAdmittedTestWorldId(worldId: string): boolean {
+  return admitTestWorldId(worldId).ok;
+}
+
+/**
+ * Admit only `test.hosted-canonical.<suffix>`.
+ * Deny Perihelion, DEFAULT_WORLD_ID, and arbitrary ids before any DO lookup.
+ */
+export function admitTestWorldId(raw: unknown, defaultWorldId?: string): WorldAdmission {
+  const world_id = String(raw || "").trim();
+  if (!world_id) return deny("world_id required");
+  const defaultId = String(defaultWorldId || "world-01").trim() || "world-01";
+  if (
+    world_id === defaultId ||
+    world_id === "world-01" ||
+    world_id === "world.perihelion-reach" ||
+    world_id.startsWith("world.perihelion")
+  ) {
+    return deny("that world is not admitted for isolated verification");
+  }
+  if (!world_id.startsWith(TEST_WORLD_PREFIX)) {
+    return deny("world_id must be test.hosted-canonical.<suffix>");
+  }
+  const suffix = world_id.slice(TEST_WORLD_PREFIX.length);
+  if (!suffix || suffix.startsWith(".") || suffix.endsWith(".") || suffix.includes("..")) {
+    return deny("invalid test world suffix");
+  }
+  if (!/^[a-z0-9][a-z0-9.-]{0,47}$/i.test(suffix)) {
+    return deny("invalid test world suffix");
+  }
+  return { ok: true, world_id };
+}
+
+/** DO load must use the admitted id when present; never silently fall back. */
+export function resolveLoadWorldId(
+  requestedWorldId: string | null | undefined,
+  defaultWorldId: string | undefined,
+): string {
+  const requested = String(requestedWorldId || "").trim();
+  if (requested) return requested;
+  return String(defaultWorldId || "").trim() || "world-01";
+}
