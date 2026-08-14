@@ -15,7 +15,7 @@ from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
 from noema.gateway.http_server import serve
-from noema.gateway.ui import admin_html, admin_login_html, play_html, study_html, watch_html
+from noema.gateway.ui import admin_html, admin_login_html, connect_html, play_html, study_html, watch_html
 from noema.research.genesis.engine import profile_ids
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +69,15 @@ def test_admin_shell_is_graphical_and_keeps_player_ontology_unified():
     assert "PlayersAgents" not in html
     assert "<h2>Agents</h2>" not in html
     assert "operator token" in admin_login_html().lower()
+    assert "playersBreakdown.innerHTML" not in admin_html()
+    assert "e.verify.innerHTML" not in admin_html()
+    assert "replaceChildren" in admin_html()
+
+
+def test_connect_and_admin_do_not_assign_via_innerHTML():
+    assert ".innerHTML" not in connect_html()
+    assert "e.preview.replaceChildren" in connect_html()
+    assert ".innerHTML" not in admin_html()
 
 
 def test_public_surfaces_remain_text_first_and_admin_free():

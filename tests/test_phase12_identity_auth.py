@@ -296,13 +296,15 @@ def test_http_auth_routes(tmp_path: Path):
         sess = post("/session", {"access_token": tok["access_token"]})
         assert sess["controller_id"] == tok["controller_id"]
 
-        # connect page is public HTML and escapes untrusted scopes
+        # connect page is public HTML and paints untrusted scopes via textContent
         req = urllib.request.Request(base + "/connect")
         with urllib.request.urlopen(req) as resp:
             html = resp.read().decode()
             assert "Approve an agent connection" in html
             assert "user-code" in html
-            assert "replace(/&/g,'&amp;')" in html
+            assert ".innerHTML" not in html
+            assert "e.preview.replaceChildren" in html
+            assert "scopes.textContent" in html
     finally:
         httpd.shutdown()
 
