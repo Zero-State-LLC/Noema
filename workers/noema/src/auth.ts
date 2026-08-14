@@ -1,4 +1,4 @@
-import { JwtError, mintHs256, verifyHs256 } from "./jwt";
+import { JwtError, mintHs256, supabaseIssuer, supabaseJwksUrl, verifyHs256, verifyJwt } from "./jwt";
 import type { ControllerType, Env, PlayerPrincipal } from "./types";
 
 const DEFAULT_SCOPES = [
@@ -61,12 +61,18 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
     if (!(e instanceof JwtError)) throw e;
   }
 
-  // Human Supabase JWT → ephemeral principal (full bind is Python/Supabase path)
+  // Human Supabase JWT → ephemeral Player principal (never ADMIN).
+  // HS256: legacy JWT secret. ES256: JWKS at {SUPABASE_URL}/auth/v1/.well-known/jwks.json
   const jwtSecret = env.SUPABASE_JWT_SECRET;
-  if (jwtSecret) {
+  const supabaseUrl = (env.SUPABASE_URL || "").replace(/\/$/, "");
+  if (jwtSecret || supabaseUrl) {
     try {
-      let claims: Record<string, unknown>;
-      claims = await verifyHs256(token, jwtSecret, { audience: "authenticated" });
+      const claims = await verifyJwt(token, {
+        hs256Secret: jwtSecret,
+        jwksUrl: supabaseUrl ? supabaseJwksUrl(supabaseUrl) : undefined,
+        audience: "authenticated",
+        issuer: supabaseUrl ? supabaseIssuer(supabaseUrl) : undefined,
+      });
       const sub = claims.sub ? String(claims.sub) : "";
       if (!sub) return err("NOT_AUTHORIZED", "Supabase token missing sub");
       const handle = String(claims.email || sub).split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 32) || "player";

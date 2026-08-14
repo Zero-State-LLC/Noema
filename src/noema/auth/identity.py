@@ -17,7 +17,14 @@ import uuid
 from typing import Any
 
 from noema.actions.errors import NOT_AUTHORIZED, ActionError
-from noema.auth.jwt_util import JwtError, mint_hs256, verify_hs256
+from noema.auth.jwt_util import (
+    JwtError,
+    mint_hs256,
+    supabase_issuer,
+    supabase_jwks_url,
+    verify_hs256,
+    verify_jwt,
+)
 
 DEFAULT_AGENT_SCOPES = (
     "noema.player.read",
@@ -57,6 +64,7 @@ class IdentityService:
         supabase_jwt_secret: str | None = None,
         supabase_url: str | None = None,
         allow_dev_human: bool | None = None,
+        jwks_fetch: Any | None = None,
     ):
         self.store = store
         self.token_secret = token_secret or os.environ.get("TOKEN_SIGNING_SECRET") or os.environ.get(
@@ -64,6 +72,7 @@ class IdentityService:
         )
         self.supabase_jwt_secret = supabase_jwt_secret or os.environ.get("SUPABASE_JWT_SECRET") or ""
         self.supabase_url = supabase_url or os.environ.get("SUPABASE_URL") or ""
+        self._jwks_fetch = jwks_fetch
         self.pepper = os.environ.get("AGENT_API_KEY_PEPPER") or self.token_secret
         env = (os.environ.get("NOEMA_ENV") or "local").lower()
         self.env = env
@@ -80,14 +89,29 @@ class IdentityService:
     # --- human (Supabase) -------------------------------------------------
 
     def bind_human_from_supabase_token(self, access_token: str) -> dict[str, Any]:
-        if not self.supabase_jwt_secret:
-            raise ActionError(NOT_AUTHORIZED, "Supabase Auth is not configured (SUPABASE_JWT_SECRET)")
+        jwks_url = supabase_jwks_url(self.supabase_url) if self.supabase_url else ""
+        if not self.supabase_jwt_secret and not jwks_url:
+            raise ActionError(NOT_AUTHORIZED, "Supabase Auth is not configured (SUPABASE_JWT_SECRET or SUPABASE_URL)")
+        issuer = supabase_issuer(self.supabase_url) if self.supabase_url else None
         try:
-            claims = verify_hs256(access_token, self.supabase_jwt_secret, audience="authenticated")
+            claims = verify_jwt(
+                access_token,
+                secret=self.supabase_jwt_secret,
+                jwks_url=jwks_url,
+                audience="authenticated",
+                issuer=issuer,
+                fetch=self._jwks_fetch,
+            )
         except JwtError as exc:
             # Supabase sometimes uses aud=authenticated; also try without aud
             try:
-                claims = verify_hs256(access_token, self.supabase_jwt_secret)
+                claims = verify_jwt(
+                    access_token,
+                    secret=self.supabase_jwt_secret,
+                    jwks_url=jwks_url,
+                    issuer=issuer,
+                    fetch=self._jwks_fetch,
+                )
             except JwtError:
                 raise ActionError(NOT_AUTHORIZED, f"invalid Supabase token: {exc}") from exc
         sub = claims.get("sub")
