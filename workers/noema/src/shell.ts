@@ -203,7 +203,7 @@ const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"/>
 
 export function productShell(opts: {
   title: string;
-  active: ProductNav;
+  active?: ProductNav;
   body: string;
   extraCss?: string;
   description?: string;
@@ -214,9 +214,11 @@ export function productShell(opts: {
     opts.description ||
     "Perihelion Reach — enter the world.";
   const runtime =
-    opts.active === "home"
+    !opts.active || opts.active === "home"
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
+  const canonical =
+    !opts.active || opts.active === "home" ? "/" : "/" + opts.active;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -228,7 +230,7 @@ export function productShell(opts: {
 <meta property="og:title" content="${opts.title} · NOEMA"/>
 <meta property="og:description" content="${desc}"/>
 <meta property="og:image" content="https://noema.guru/assets/hero-noema.jpg"/>
-<link rel="canonical" href="https://noema.guru${opts.active === "home" ? "/" : "/" + opts.active}"/>
+<link rel="canonical" href="https://noema.guru${canonical}"/>
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
 </head>
