@@ -4,6 +4,7 @@ import { redactedPublicWorld } from "./genesis";
 import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
+import { publicEmergencyPulses } from "./emergency";
 import {
   applyControllingSession,
   commandForOps,
@@ -207,6 +208,7 @@ export class NoemaWorldDO {
             ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
             ...publicRumorPulses(this.world!.rumor),
             ...(this.world!.institution_pulses || []),
+            ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
           ],
         }),
       );
@@ -238,6 +240,18 @@ export class NoemaWorldDO {
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
         pressure: adminPressureView(this.world!.pressure),
+        emergency_scopes: Object.values(this.world!.organizations || {}).flatMap((o) =>
+          (o.emergency_scopes || []).map((s) => ({
+            scope_id: s.scope_id,
+            institution_id: s.institution_id,
+            holder_player_id: s.holder_player_id,
+            capability: s.capability,
+            target_ref: s.target_ref,
+            start_cycle: s.start_cycle,
+            end_cycle: s.end_cycle,
+            status: s.status,
+          })),
+        ),
       });
     }
 
