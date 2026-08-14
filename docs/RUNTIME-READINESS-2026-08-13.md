@@ -2,26 +2,28 @@
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
 **Not** a platform migration. Stack remains Cloudflare Pages/Workers/DO + Supabase Auth/Postgres/Storage.  
-**Architecture:** RFC-0016 world head + RFC-0017 revision fence (SQL may be unapplied). SERIALIZABLE multi-row PG remains later.
+**Architecture:** RFC-0016/0017 head + fence. Merged #96 adds atomic `noema_commit_canonical_settlement`. Hosted SQL/RPC apply is still unverified.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**
 
 ## Verdict
 
 ```text
-HOSTED_GC_S0_SHIPPED_HEADS_SQL_UNCONFIRMED
+CANONICAL_HEAD_IMPLEMENTED_UNVERIFIED
+PERIHELION_CANONICAL_BOOTSTRAP_BLOCKED
+HOSTED_ISOLATED_TEST_PATH_BLOCKED
 ```
 
-First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`, cycle 0, seq 75 at last check). Completeness S0 packages are on the Worker. Reconstructable Postgres heads still require an operator apply of the world-heads SQL.
+First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`, cycle 0, seq 75 at last check). Completeness S0 packages are on the Worker. Canonical-head code from #96 is deployed. Hosted schema/RPC apply and isolated-world settlement were **not** verified from this environment.
 
 ## Scorecard (post-S0)
 
 | Domain | Status | Notes |
 |---|---|---|
-| A Hosted authority | PARTIAL | RFC-0016 upsert + RFC-0017 revision CAS. Worker skips missing table (404). Events settle to `noema_settled_events`. |
-| B Canonical writers | PARTIAL | Mutations still happen in `applyWorldCommand` then events copy. GC caches are non-writers. |
+| A Hosted authority | PARTIAL | #96 Worker calls `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Hosted RPC not confirmed applied. |
+| B Canonical writers | PARTIAL | Mutating ACK waits on that RPC; failure restores pre-command DO state and sets INCIDENT. |
 | C Idempotency | IMPLEMENTED | `seen_idempotency[player_id::key]` |
-| D Atomic cycle / settlement | PARTIAL | RFC-0017 fence; not SERIALIZABLE multi-row |
+| D Atomic cycle / settlement | PARTIAL | SQL function is one transaction. Hosted apply unverified. Isolated Worker/DO path does not exist. |
 | E Fail-closed settle | PARTIAL | DEGRADED → BLOCKING. Unsettled recorded. Replay after SQL. |
 | F World-time | IMPLEMENTED | RFC-0019: `WAIT` sets `wait_until_cycle`; present quorum commits `World.cycle`. Cron is not the clock. |
 | G Scheduler | PARTIAL | Digest cron `*/15`. GC10 schedule is world-time, not wall clock. |
@@ -70,16 +72,39 @@ Fixed since the morning audit (do not re-open as defects):
 - GC1-S2 mechanical benefits
 - `AGREEMENT_FORM` / `ACCESS_POLICY` as first-world required help
 
-## Operator SQL (still required for reconstructable heads)
+## Canonical-head deploy evidence (2026-08-14)
+
+| Item | Observed |
+|---|---|
+| PR | Zero-State-LLC/Noema#96 MERGED |
+| Merge SHA | `272a993065bdc8ebce4a01c56b5b5f1e67ba5503` |
+| Deployed SHA | same (clean `main`; only untracked `supabase/.temp/`) |
+| Deployment ID | Worker version `9b0dfc94-9038-41a9-a209-1d5aed4d158f` at `2026-08-14T04:01:45Z` |
+| Worker health | `GET /health` `ok` / `production`; `GET /ready` `ACTIVE` / `HEALTHY` |
+| DO | `NoemaWorldDO` loads Perihelion via `DEFAULT_WORLD_ID=world-01` |
+| Named Supabase project | `dezykkherxlaysxyvgbs` host resolves; Worker `SUPABASE_URL` value not readable here |
+| Migration applied | **NO** — no `DATABASE_URL` / `SUPABASE_ACCESS_TOKEN` / SQL editor session |
+| RPC verified | **NO** — function not inspectable without SQL |
+| Isolated world ID | **none** — production command path always uses `DEFAULT_WORLD_ID` |
+| Canonical head row | not read |
+| Stale-head / stale-fence / retry / restart | unit tests only (`test/fence.test.ts`, `test/canonical-state.test.ts`) |
+| Perihelion | not mutated; seq 75; no fabricated head; Genesis reseed **NO** |
+
+## Operator SQL (still required)
+
+Apply in order, hosted Postgres only. Do not reset. Do not fabricate a Perihelion head.
 
 ```text
 Noema/supabase/migrations/20260813210000_noema_world_heads.sql
 Noema/supabase/migrations/20260813223000_noema_world_head_fence.sql
+Noema/supabase/migrations/20260813233000_noema_atomic_canonical_settlement.sql
 ```
 
-This environment cannot apply them. Until they run, `putWorldHead` 404 is skipped so PLAY does not fail-close.
+This environment cannot apply them. After #96 deploy, a mutating PLAY command will fail-closed (`MISSING_CANONICAL_HEAD` / RPC miss) and enter INCIDENT rather than skip. Apply SQL before the next production mutation.
 
 ## Next (not authorized here)
 
-1. Operator apply the two SQL files.  
-2. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.
+1. Operator apply the three SQL files on project `dezykkherxlaysxyvgbs` (or confirm Worker `SUPABASE_URL` matches).  
+2. Provide an isolated hosted world path, or a SQL session, before claiming `CANONICAL_HEAD_VERIFIED`.  
+3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
+4. Do not bootstrap Perihelion from sequence-75 events.
