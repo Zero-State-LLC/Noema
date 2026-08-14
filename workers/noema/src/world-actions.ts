@@ -644,6 +644,7 @@ export async function applyWorldCommand(
       "BUILD",
       "CONTEST_DECLARE",
       "CONTEST_DEFEND",
+      "CONTEST_WITHDRAW",
       "ATTEST",
     ].includes(envl.command.toUpperCase())
   ) {
@@ -1226,6 +1227,19 @@ export async function applyWorldCommand(
   if (action.verb === "COMMIT") {
     if (action.arguments.operation === "CONTEST_DECLARE") {
       return applyContestDeclare(
+        w,
+        principal,
+        request_id,
+        idem,
+        action.arguments,
+        pl,
+        events,
+        pushEvent,
+        settleEv,
+      );
+    }
+    if (action.arguments.operation === "CONTEST_WITHDRAW") {
+      return applyContestWithdraw(
         w,
         principal,
         request_id,
@@ -2004,6 +2018,82 @@ async function applyContestDefend(
   return result;
 }
 
+async function applyContestWithdraw(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const contest_id = String(args.contest_id || "").trim();
+  if (!contest_id) return fail(request_id, "INVALID_REQUEST", "contest_id required");
+  const contest = (w.contests || {})[contest_id];
+  if (!contest) return fail(request_id, "NOT_FOUND", "Unknown contest.");
+  if (args.expected_status === "OPEN" && contest.status !== "OPEN") {
+    return fail(request_id, "STALE_HEAD", "That contest is no longer open.");
+  }
+  if (contest.status !== "OPEN") {
+    return fail(request_id, "NOT_FOUND", "Unknown or closed contest.");
+  }
+  if (w.cycle >= contest.expires_cycle) {
+    return fail(request_id, "FORBIDDEN", "The response deadline has passed.");
+  }
+  const isDeclarer = contest.declarer_id === principal.player_id;
+  const isDefender = contest.defender_id === principal.player_id;
+  if (!isDeclarer && !isDefender) {
+    return fail(request_id, "FORBIDDEN", "Only a participant may withdraw.");
+  }
+
+  let outcome: "SUCCESS" | "ABORTED" = isDeclarer ? "ABORTED" : "SUCCESS";
+  const spentDeclarer: StakeMap = { ...contest.stake };
+  const spentDefender: StakeMap = isDeclarer ? {} : { ...contest.defender_stake };
+  if (isDeclarer) {
+    releaseStake(w.players[contest.defender_id || ""]?.budgets, contest.defender_stake);
+  }
+  contest.status = "CLOSED";
+  const digest = await resolutionDigest({
+    contest_id: contest.contest_id,
+    outcome,
+    score_millipoints: 0,
+    declarer_stake_spent: spentDeclarer,
+    defender_stake_spent: spentDefender,
+    seed_stream_id: contest.seed_stream_id,
+  });
+  const ev = pushEvent("CONTEST_RESOLVED", {
+    contest_id: contest.contest_id,
+    outcome,
+    resolved_by: principal.player_id,
+    declarer_id: contest.declarer_id,
+    defender_id: contest.defender_id || null,
+    target: contest.target,
+    declarer_stake_spent: spentDeclarer,
+    defender_stake_spent: spentDefender,
+    target_entity_id: contest.target.kind === "ENTITY" ? contest.target.entity_id : undefined,
+    score_millipoints: 0,
+    resolution_digest: digest,
+  });
+  await settleEv(ev);
+  if (outcome === "SUCCESS") {
+    await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv);
+  }
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    isDeclarer
+      ? `You withdraw from ${contest_id}. Your stake is forfeit.`
+      : `You withdraw from ${contest_id}. The declarer holds the field.`,
+    false,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
 function findEntityAnywhere(w: WorldRuntime, idOrLabel: string): EntityRuntime | null {
   for (const room of Object.values(w.rooms)) {
     const found = findEntity(room, idOrLabel);
@@ -2570,6 +2660,115 @@ async function applyAttest(
   return result;
 }
 
+async function applyContestSuccessFollowOns(
+  w: WorldRuntime,
+  contest: OpenContest,
+  outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" | "ABORTED",
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") return;
+  if (contest.contest_form === "INFRASTRUCTURE_DISRUPTION" && contest.target.kind === "ENTITY") {
+    const room = w.rooms[contest.room_id];
+    const ent = room ? findEntity(room, contest.target.entity_id) : null;
+    if (ent && room) {
+      const before = ent.condition ?? 0;
+      const after = disruptionAfter(contest.contest_form, outcome, before);
+      if (after != null) {
+        ent.condition = after;
+        const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+        if (idx >= 0) room.entities[idx] = ent;
+        const d = pushEvent("INFRASTRUCTURE_DISRUPTED", {
+          disruption_id: `dis.${contest.contest_id}`,
+          entity_id: ent.entity_id,
+          room_id: room.room_id,
+          condition_before: before,
+          condition_after: after,
+          cause: "CONTEST",
+          actor_id: contest.declarer_id,
+          contest_id: contest.contest_id,
+          effect_class: "CONDITION_DROP",
+        });
+        await settleEv(d);
+      }
+    }
+  }
+  if (contest.contest_form === "RESOURCE_SEIZURE" && contest.target.kind === "HOLDING") {
+    const holder = w.players[contest.target.holder_id];
+    const taker = w.players[contest.declarer_id];
+    const resource = contest.target.resource as keyof Budgets;
+    const available = holder?.budgets?.[resource] ?? 0;
+    const amt = seizureAmount(contest.contest_form, outcome, available);
+    if (amt > 0 && holder && taker) {
+      holder.budgets[resource] = available - amt;
+      taker.budgets[resource] = (taker.budgets[resource] ?? 0) + amt;
+      const t = pushEvent("RESOURCE_TRANSFER", {
+        from_id: contest.target.holder_id,
+        to_id: contest.declarer_id,
+        resource,
+        amount: amt,
+        contest_id: contest.contest_id,
+      });
+      await settleEv(t);
+    }
+  }
+  if (contest.contest_form === "ACCESS_CONTEST") {
+    const dur = FORM_SPECS.ACCESS_CONTEST.restriction_duration_cycles || 8;
+    const restriction_id = `restr.${contest.contest_id}`;
+    w.access_restrictions = w.access_restrictions || [];
+    w.access_restrictions.push({
+      restriction_id,
+      scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
+      mode: "DENY",
+      applies_to: "*",
+      room_id: contest.room_id,
+      exit_id: contest.target.kind === "EXIT" ? contest.target.exit_id : undefined,
+      expires_cycle: w.cycle + dur,
+    });
+    const a = pushEvent("ACCESS_RESTRICTED", {
+      restriction_id,
+      scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
+      mode: "DENY",
+      applies_to: "*",
+      reason: "CONTEST",
+      expires_cycle: w.cycle + dur,
+      authorized_by: "world.scheduler",
+    });
+    await settleEv(a);
+  }
+  if (contest.contest_form === "PRESENCE_PRESSURE" && contest.target.kind === "AGENT") {
+    const target = w.players[contest.target.agent_id];
+    const room = w.rooms[contest.room_id];
+    if (target && room) {
+      const exits = [...(room.exits || [])].sort((a, b) => a.direction.localeCompare(b.direction));
+      if (exits[0] && !isAccessDenied(w, contest.target.agent_id, room.room_id, exits[0].direction)) {
+        const from = target.room_id;
+        target.room_id = exits[0].to_room_id;
+        const m = pushEvent("MOVE", {
+          player_id: contest.target.agent_id,
+          from,
+          to: exits[0].to_room_id,
+          direction: exits[0].direction,
+          reason: "PRESENCE_PRESSURE",
+          contest_id: contest.contest_id,
+        });
+        await settleEv(m);
+      } else {
+        const disable = FORM_SPECS.PRESENCE_PRESSURE.max_disable_cycles || 3;
+        target.disabled_until_cycle = w.cycle + disable;
+        const u = pushEvent("ENTITY_UPDATE", {
+          entity_id: contest.target.agent_id,
+          field: "disabled_until_cycle",
+          to: target.disabled_until_cycle,
+          operation: "PRESENCE_PRESSURE",
+          contest_id: contest.contest_id,
+        });
+        await settleEv(u);
+      }
+    }
+  }
+}
+
 async function resolveDueContests(
   w: WorldRuntime,
   pushEvent: PushEv,
@@ -2632,105 +2831,7 @@ async function resolveDueContests(
     });
     await settleEv(ev);
     if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
-    if (contest.contest_form === "INFRASTRUCTURE_DISRUPTION" && contest.target.kind === "ENTITY") {
-      const room = w.rooms[contest.room_id];
-      const ent = room ? findEntity(room, contest.target.entity_id) : null;
-      if (ent && room) {
-        const before = ent.condition ?? 0;
-        const after = disruptionAfter(contest.contest_form, outcome, before);
-        if (after != null) {
-          ent.condition = after;
-          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
-          if (idx >= 0) room.entities[idx] = ent;
-          const d = pushEvent("INFRASTRUCTURE_DISRUPTED", {
-            disruption_id: `dis.${contest.contest_id}`,
-            entity_id: ent.entity_id,
-            room_id: room.room_id,
-            condition_before: before,
-            condition_after: after,
-            cause: "CONTEST",
-            actor_id: contest.declarer_id,
-            contest_id: contest.contest_id,
-            effect_class: "CONDITION_DROP",
-          });
-          await settleEv(d);
-        }
-      }
-    }
-    if (contest.contest_form === "RESOURCE_SEIZURE" && contest.target.kind === "HOLDING") {
-      const holder = w.players[contest.target.holder_id];
-      const taker = w.players[contest.declarer_id];
-      const resource = contest.target.resource as keyof Budgets;
-      const available = holder?.budgets?.[resource] ?? 0;
-      const amt = seizureAmount(contest.contest_form, outcome, available);
-      if (amt > 0 && holder && taker) {
-        holder.budgets[resource] = available - amt;
-        taker.budgets[resource] = (taker.budgets[resource] ?? 0) + amt;
-        const t = pushEvent("RESOURCE_TRANSFER", {
-          from_id: contest.target.holder_id,
-          to_id: contest.declarer_id,
-          resource,
-          amount: amt,
-          contest_id: contest.contest_id,
-        });
-        await settleEv(t);
-      }
-    }
-    if (contest.contest_form === "ACCESS_CONTEST") {
-      const dur = FORM_SPECS.ACCESS_CONTEST.restriction_duration_cycles || 8;
-      const restriction_id = `restr.${contest.contest_id}`;
-      w.access_restrictions = w.access_restrictions || [];
-      w.access_restrictions.push({
-        restriction_id,
-        scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
-        mode: "DENY",
-        applies_to: "*",
-        room_id: contest.room_id,
-        exit_id: contest.target.kind === "EXIT" ? contest.target.exit_id : undefined,
-        expires_cycle: w.cycle + dur,
-      });
-      const a = pushEvent("ACCESS_RESTRICTED", {
-        restriction_id,
-        scope: contest.target.kind === "EXIT" ? "EXIT" : "ROOM",
-        mode: "DENY",
-        applies_to: "*",
-        reason: "CONTEST",
-        expires_cycle: w.cycle + dur,
-        authorized_by: "world.scheduler",
-      });
-      await settleEv(a);
-    }
-    if (contest.contest_form === "PRESENCE_PRESSURE" && contest.target.kind === "AGENT") {
-      const target = w.players[contest.target.agent_id];
-      const room = w.rooms[contest.room_id];
-      if (target && room) {
-        const exits = [...(room.exits || [])].sort((a, b) => a.direction.localeCompare(b.direction));
-        if (exits[0] && !isAccessDenied(w, contest.target.agent_id, room.room_id, exits[0].direction)) {
-          const from = target.room_id;
-          target.room_id = exits[0].to_room_id;
-          const m = pushEvent("MOVE", {
-            player_id: contest.target.agent_id,
-            from,
-            to: exits[0].to_room_id,
-            direction: exits[0].direction,
-            reason: "PRESENCE_PRESSURE",
-            contest_id: contest.contest_id,
-          });
-          await settleEv(m);
-        } else {
-          const disable = FORM_SPECS.PRESENCE_PRESSURE.max_disable_cycles || 3;
-          target.disabled_until_cycle = w.cycle + disable;
-          const u = pushEvent("ENTITY_UPDATE", {
-            entity_id: contest.target.agent_id,
-            field: "disabled_until_cycle",
-            to: target.disabled_until_cycle,
-            operation: "PRESENCE_PRESSURE",
-            contest_id: contest.contest_id,
-          });
-          await settleEv(u);
-        }
-      }
-    }
+    await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv);
   }
 }
 

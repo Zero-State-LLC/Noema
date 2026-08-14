@@ -50,6 +50,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC6-S0 | Mapper yes; **Perihelion silent** | No `archive_subject_entity_id` / `archive_claim` on genesis artifacts |
 | GC6-S1 | Hosted this run | Player reconstruction from accessible archive/inspect. Not truth. Help omits reconstruct |
 | GC7-S0 | Yes (#81) | Isolated contest; help omits CONTEST |
+| GC7-S1 | Hosted this run | Withdraw open contest. ABORTED / forfeit SUCCESS. Help omits CONTEST |
 | GC8-S0 | Already true | Cost comparison |
 | GC9-S0 | Yes (#71) | Room custom after 3 distinct REPAIRs |
 | GC9-S1 | Hosted this run | Tradition after persistence + transmission. Public WATCH pulses. No bonus |

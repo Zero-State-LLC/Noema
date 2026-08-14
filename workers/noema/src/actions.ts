@@ -240,6 +240,7 @@ export type CanonicalAction =
           | "RECONSTRUCT_PUBLISH"
           | "CONTEST_DECLARE"
           | "CONTEST_DEFEND"
+          | "CONTEST_WITHDRAW"
           | "ATTEST";
         entity_id?: string;
         amount?: number;
@@ -257,6 +258,7 @@ export type CanonicalAction =
         seed_stream_id?: string;
         defender_id?: string;
         contest_id?: string;
+        expected_status?: "OPEN" | "CLOSED";
         subject_entity_id?: string;
         archive_claim?: "DESTROYED" | "OPERATING";
         office_id?: string;
@@ -1172,6 +1174,21 @@ export function parseHumanCommand(
       display: `You defend ${contest_id}.`,
     };
   }
+  // RFC-0026: withdraw <contest_id> — not listed in Chamber help. Not MOVE.
+  if (v === "withdraw" || v === "retreat" || v === "disengage") {
+    const contest_id = parts.join(" ").trim().split(/\s+/)[0] || "";
+    if (!contest_id) {
+      return { ok: false, error: "Withdraw syntax: withdraw <contest_id>" };
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "CONTEST_WITHDRAW", contest_id },
+      },
+      display: `You withdraw from ${contest_id}.`,
+    };
+  }
 
   // GC2-S0: construct <class> / build <class> / dismantle <entity>
   // Not listed in Chamber help.
@@ -1386,6 +1403,21 @@ export function normalizeStructuredCommand(
           arguments: { operation: "CONTEST_DEFEND", contest_id, stake },
         },
         display: `COMMIT.CONTEST_DEFEND ${contest_id}`,
+      };
+    }
+    if (operation === "CONTEST_WITHDRAW") {
+      const contest_id = String(args.contest_id || "").trim();
+      if (!contest_id) return { ok: false, error: "contest_id required", code: "INVALID_REQUEST" };
+      const expectedRaw = args.expected_status ? String(args.expected_status).toUpperCase() : "";
+      const expected_status =
+        expectedRaw === "OPEN" || expectedRaw === "CLOSED" ? (expectedRaw as "OPEN" | "CLOSED") : undefined;
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "CONTEST_WITHDRAW", contest_id, expected_status },
+        },
+        display: `COMMIT.CONTEST_WITHDRAW ${contest_id}`,
       };
     }
     if (operation === "ATTEST") {
@@ -1628,6 +1660,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "CONTEST_DEFEND") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DEFEND" });
+  }
+  if (cmd === "CONTEST_WITHDRAW") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_WITHDRAW" });
   }
   if (cmd === "ATTEST") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ATTEST" });
