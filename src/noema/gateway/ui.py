@@ -46,19 +46,13 @@ def _shell(title: str, body: str, active: str = "", *, door: bool = False) -> st
         + nav("/watch", "Watch", "watch")
         + nav("/connect", "Connect", "connect")
     )
-    if not door:
-        links += nav("/study", "Study", "study")
-    brand_sub = "Perihelion Reach" if door else "persistent strategy world"
+    brand_sub = "Perihelion Reach"
     gate = (
         ""
         if door
-        else '<div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">World offline</div><p>The Chamber is not online yet. PLAY and WATCH will be available when the world is ready.</p></div></div>'
+        else '<div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">World offline</div><p>The world is not online yet. PLAY and WATCH will be available when it is ready.</p></div></div>'
     )
-    foot = (
-        "<span>NOEMA · Perihelion Reach</span><span>PLAY · WATCH · CONNECT</span>"
-        if door
-        else "<span>NOEMA / the world keeps the record</span><span>Text game · structured actions · one world ledger</span>"
-    )
+    foot = "<span>NOEMA · Perihelion Reach</span><span>PLAY · WATCH · CONNECT</span>"
     return f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="theme-color" content="#0b1115"/><title>{title} · NOEMA</title><style>{CSS}</style><script>{COMMON_JS}</script></head>
 <body><a class="skip" href="#main">Skip to content</a><header class="topbar"><div class="brand"><a href="/" aria-label="NOEMA home">NOEMA</a><span>{brand_sub}</span></div><nav class="nav" aria-label="Primary navigation">{links}</nav><div class="runtime"><span class="dot" id="runtime-dot" aria-hidden="true"></span><span id="runtime-label">checking</span><span class="runtime-version" id="runtime-version">v—</span></div></header><main id="main" class="page">{gate}{body}</main><footer class="footer">{foot}</footer></body></html>'''

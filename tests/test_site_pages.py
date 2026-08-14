@@ -39,6 +39,12 @@ def test_pages_index_first_read_omits_research_vocabulary():
         assert word not in hay, word
 
 
+def test_pages_site_css_has_no_brochure_blocks():
+    css = (ROOT / "site" / "assets" / "site.css").read_text(encoding="utf-8")
+    for needle in (".path-rail", ".loop-section", ".fx-canvas", ".hero-visual", ".mosaic-grid"):
+        assert needle not in css, needle
+
+
 def test_pages_site_js_has_no_innerhtml():
     assert ".innerHTML" not in SITE_JS
     assert "nav-toggle" in SITE_JS

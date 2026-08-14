@@ -146,6 +146,19 @@ def test_index_is_world_door_not_research_brochure():
     assert "Study" not in nav
 
 
+def test_play_watch_study_share_hosted_chrome():
+    for html in (play_html(), watch_html(), study_html()):
+        assert "Perihelion Reach" in html
+        nav = html[html.find("<nav") : html.find("</nav>")]
+        assert ">Play<" in nav
+        assert ">Watch<" in nav
+        assert ">Connect<" in nav
+        assert "Study" not in nav
+        assert "one world ledger" not in html
+        assert "persistent strategy world" not in html
+        assert "World offline" in html
+
+
 def test_play_surface_keeps_research_and_admin_terms_out():
     html = play_html()
     for forbidden in (
