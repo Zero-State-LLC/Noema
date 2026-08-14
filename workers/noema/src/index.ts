@@ -15,6 +15,7 @@ import {
   mintAdminSession,
   requestAdminMagicLink,
   resolveAdmin,
+  resolveSignedAdminHeader,
 } from "./admin-auth";
 import {
   err,
@@ -33,6 +34,7 @@ import { playHtml } from "./play";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
+import { admitTestWorldId } from "./test-world";
 import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
@@ -116,13 +118,24 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
   return cors(err("NOT_FOUND", path, 404));
 }
 
-async function routeToWorld(env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope): Promise<Response> {
+async function routeToWorld(
+  env: Env,
+  worldId: string,
+  principal: unknown,
+  envelope: CommandEnvelope,
+  opts?: { allow_bootstrap?: boolean },
+): Promise<Response> {
   const id = env.WORLD_DO.idFromName(worldId);
   const stub = env.WORLD_DO.get(id);
   return stub.fetch("https://do/command", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ principal, envelope }),
+    headers: { "content-type": "application/json", "x-noema-world-id": worldId },
+    body: JSON.stringify({
+      principal,
+      envelope,
+      world_id: worldId,
+      allow_bootstrap: opts?.allow_bootstrap === true,
+    }),
   });
 }
 
@@ -582,6 +595,34 @@ export default {
 
         const worldId = env.DEFAULT_WORLD_ID || "world-01";
         const doRes = await routeToWorld(env, worldId, principal, envelope);
+        const data = await doRes.json();
+        return cors(json(data, doRes.status));
+      }
+
+      // Isolated hosted canonical verification. Not a PLAY command path.
+      if (request.method === "POST" && path === "/v1/operator/test-world/command") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(principal, "noema.action.submit");
+        if (denied) return cors(denied);
+
+        const body = (await request.json().catch(() => ({}))) as CommandEnvelope & { world_id?: string };
+        const admitted = admitTestWorldId(body.world_id, env.DEFAULT_WORLD_ID);
+        if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
+        if (!body.command || !body.request_id) {
+          return cors(err("INVALID_REQUEST", "command and request_id required", 400));
+        }
+
+        const envelope: CommandEnvelope = {
+          request_id: body.request_id,
+          command: body.command,
+          arguments: body.arguments,
+          idempotency_key: body.idempotency_key,
+          player_id: body.player_id,
+        };
+        const doRes = await routeToWorld(env, admitted.world_id, principal, envelope, { allow_bootstrap: true });
         const data = await doRes.json();
         return cors(json(data, doRes.status));
       }

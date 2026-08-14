@@ -224,6 +224,7 @@ export async function commitCanonicalSettlement(
     principal: PlayerPrincipal;
     events: NonNullable<import("./types").CommandResult["events"]>;
     previous_digest: string | null;
+    allow_bootstrap?: boolean;
   },
 ): Promise<CanonicalCommit> {
   const rest = restBase(env);
@@ -276,7 +277,7 @@ export async function commitCanonicalSettlement(
         p_canonical_state_json: material.canonical_json,
         p_state_digest: material.state_digest,
         p_events: events,
-        p_allow_bootstrap: false,
+        p_allow_bootstrap: input.allow_bootstrap === true,
       }),
     });
     const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;

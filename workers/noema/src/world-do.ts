@@ -38,6 +38,7 @@ import {
   worldFromHead,
 } from "./settle";
 import { checkExpectedHead } from "./settle-fence";
+import { admitTestWorldId, resolveLoadWorldId } from "./test-world";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -151,6 +152,8 @@ export class NoemaWorldDO {
   private world: WorldState | null = null;
   private meta: WorldMeta | null = null;
   private previews: Record<string, GenesisResult> = {};
+  private requestedWorldId: string | null = null;
+  private allowCanonicalBootstrap = false;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -526,6 +529,8 @@ export class NoemaWorldDO {
     const body = (await request.json()) as {
       principal: PlayerPrincipal;
       envelope: CommandEnvelope;
+      world_id?: string;
+      allow_bootstrap?: boolean;
     };
     if (!body?.principal?.player_id || !body?.envelope?.command) {
       return Response.json(
@@ -533,6 +538,12 @@ export class NoemaWorldDO {
         { status: 400 },
       );
     }
+
+    const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
+    const requested = String(body.world_id || headerWorld || "").trim();
+    const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
+    this.requestedWorldId = admitted.ok ? admitted.world_id : null;
+    this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
 
     const result = await this.applyCommand(body.principal, body.envelope);
     return Response.json(result, { status: result.ok ? 200 : 400 });
@@ -567,7 +578,7 @@ export class NoemaWorldDO {
     await this.loadMeta();
     if (!this.world) {
       const stored = await this.state.storage.get<WorldState>("world");
-      const worldId = this.env.DEFAULT_WORLD_ID || "world-01";
+      const worldId = resolveLoadWorldId(this.requestedWorldId, this.env.DEFAULT_WORLD_ID);
       if (shouldRestoreFromHead(stored)) {
         const head = await getWorldHead(this.env, worldId);
         this.world = worldFromHead(head, demoState(worldId));
@@ -668,6 +679,7 @@ export class NoemaWorldDO {
         principal,
         events: result.events,
         previous_digest: durable?.ledger_head_digest ?? null,
+        allow_bootstrap: this.allowCanonicalBootstrap,
       });
       if (!committed.ok) {
         this.world = before;
