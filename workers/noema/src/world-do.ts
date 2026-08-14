@@ -206,6 +206,7 @@ export class NoemaWorldDO {
             ),
             ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
             ...publicRumorPulses(this.world!.rumor),
+            ...(this.world!.institution_pulses || []),
           ],
         }),
       );

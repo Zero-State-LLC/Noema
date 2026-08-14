@@ -151,6 +151,13 @@ export interface Observation {
       authority_profile: string;
     }>;
     public_notice?: string;
+    treasury?: {
+      attention: number;
+      compute: number;
+      energy: number;
+      influence: number;
+      storage: number;
+    };
   }>;
   /** Other active players (addressable handles, no secrets). */
   players_here?: Array<{ player_id: string; handle?: string }>;

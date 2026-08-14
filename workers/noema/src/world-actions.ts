@@ -72,11 +72,18 @@ import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } fro
 import { applyInspectEvidence, discoveryLines } from "./discovery";
 import {
   HOSTED_ACT_PROFILES,
+  REPAIR_PROFILE,
+  TRADE_PROFILE,
   allocateOfficeId,
+  assetInInstitutionScope,
+  emptyTreasury,
+  ensureTreasury,
+  occupiedOfficesFor,
   findOffice,
   officeLines,
   parseOfficeProfile,
   publicOffices,
+  resolveInstitutionGrant,
   vacateHolderOffices,
   type OfficeRecord,
 } from "./offices";
@@ -206,6 +213,8 @@ export type WorldRuntime = {
   pressure?: import("./pressure").PressureState;
   /** GC5-S2 claim/transmission cache. Projection of MESSAGE, not truth. */
   rumor?: import("./rumor").RumorState;
+  /** Public institution consequence pulses. No balances. */
+  institution_pulses?: string[];
 };
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
@@ -370,6 +379,9 @@ export function buildObservation(
           Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
         ),
         public_notice: o.public_notice,
+        treasury: occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length
+          ? { ...ensureTreasury(o) }
+          : undefined,
       }))
       // Prefer memberships first, then newest — avoids stale org[0] selection in clients
       .sort((a, b) => {
@@ -443,14 +455,17 @@ export function buildObservation(
       })),
     ),
     discovery_lines: discoveryLines(pl.discovery),
-    office_lines: orgs.flatMap((o) =>
-      officeLines(
-        publicOffices(
-          o.offices,
-          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
-        ),
-      ).map((line) => `${o.name}: ${line}`),
-    ),
+    office_lines: orgs.flatMap((o) => {
+      const names = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
+      const base = officeLines(publicOffices(o.offices, names)).map((line) => `${o.name}: ${line}`);
+      if (occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length) {
+        base.push(`You may trade from ${o.name} treasury.`);
+      }
+      if (occupiedOfficesFor(o, principal.player_id, REPAIR_PROFILE).length) {
+        base.push(`You may repair local infrastructure for ${o.name}.`);
+      }
+      return base;
+    }),
     rumor_lines: rumorLines(
       w.rumor,
       principal.player_id,
@@ -1161,19 +1176,32 @@ export async function applyWorldCommand(
       if (!counterparty_id || !offered || !requested) {
         return fail(request_id, "INVALID_REQUEST", "counterparty, offer, and want are required.");
       }
-      if (!w.players[counterparty_id]?.entered) {
+      const acting_for = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
+      const office_id = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
+      const counterpartyIsOrg = counterparty_id.startsWith("org.");
+      if (!counterpartyIsOrg && !w.players[counterparty_id]?.entered) {
         return fail(request_id, "FORBIDDEN", "Counterparty is not active.");
       }
+      if (counterpartyIsOrg && (!w.organizations[counterparty_id] || w.organizations[counterparty_id].status !== "ACTIVE")) {
+        return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+      }
+      let source = pl.budgets;
+      let grantOfficeId: string | undefined;
+      if (acting_for) {
+        const grant = resolveInstitutionGrant(w.organizations, principal.player_id, acting_for, office_id, TRADE_PROFILE);
+        if (!grant.ok) return fail(request_id, grant.code, grant.message);
+        source = ensureTreasury(w.organizations[grant.org_id]);
+        grantOfficeId = grant.office.office_id;
+      }
       for (const [res, amt] of Object.entries(offered)) {
-        if ((pl.budgets[res as keyof Budgets] ?? 0) < amt) {
-          return fail(request_id, "BUDGET_EXCEEDED", `You do not have enough ${res} to offer.`);
+        if ((source[res as keyof Budgets] ?? 0) < amt) {
+          return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} in the ${acting_for ? "treasury" : "offer"}.`);
         }
       }
       debit(pl.budgets, COSTS.TRADE);
-      // reserve offered
       const reserved: Record<string, number> = {};
       for (const [res, amt] of Object.entries(offered)) {
-        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) - amt;
+        source[res as keyof Budgets] = (source[res as keyof Budgets] ?? 0) - amt;
         reserved[res] = amt;
       }
       const trade_id = `trade.${(w.sequence + 1).toString().padStart(4, "0")}`;
@@ -1186,6 +1214,8 @@ export async function applyWorldCommand(
         status: "OPEN",
         reserved,
         expires_cycle: action.arguments.expires_cycle,
+        acting_for,
+        office_id: grantOfficeId,
       };
       const ev = pushEvent("TRADE_PROPOSED", {
         trade_id,
@@ -1194,6 +1224,8 @@ export async function applyWorldCommand(
         offered,
         requested,
         cost_paid: COSTS.TRADE,
+        acting_for: acting_for || null,
+        office_id: grantOfficeId || null,
       });
       await settleEv(ev);
       const result = success(
@@ -1216,45 +1248,67 @@ export async function applyWorldCommand(
       if (!trade || trade.status !== "OPEN") {
         return fail(request_id, "TRADE_FAILED", "Unknown or closed trade.");
       }
-      if (trade.counterparty_id !== principal.player_id) {
+      const acceptActingFor = action.arguments.acting_for
+        ? String(action.arguments.acting_for)
+        : trade.counterparty_id.startsWith("org.")
+          ? trade.counterparty_id
+          : undefined;
+      const acceptOfficeId = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
+      if (trade.counterparty_id.startsWith("org.")) {
+        if (acceptActingFor !== trade.counterparty_id) {
+          return fail(request_id, "FORBIDDEN", "Only that institution's officer can accept.");
+        }
+      } else if (trade.counterparty_id !== principal.player_id) {
         return fail(request_id, "FORBIDDEN", "Only the counterparty can accept.");
       }
+      if ((trade.acting_for || acceptActingFor) && trade.proposer_id === principal.player_id) {
+        return fail(request_id, "FORBIDDEN", "One Player cannot authorize both sides.");
+      }
       if (trade.expires_cycle != null && w.cycle > trade.expires_cycle) {
-        // release reservation
-        const proposer = w.players[trade.proposer_id];
-        if (proposer) {
-          for (const [res, amt] of Object.entries(trade.reserved || {})) {
-            proposer.budgets[res as keyof Budgets] =
-              (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
-          }
-        }
+        releaseTradeReserve(w, trade);
         trade.status = "REJECTED";
-        trade.reserved = {};
         return fail(request_id, "TRADE_FAILED", "Trade expired.");
       }
+      let payFrom = pl.budgets;
+      let receiveInto = pl.budgets;
+      if (acceptActingFor) {
+        const grant = resolveInstitutionGrant(
+          w.organizations,
+          principal.player_id,
+          acceptActingFor,
+          acceptOfficeId,
+          TRADE_PROFILE,
+        );
+        if (!grant.ok) return fail(request_id, grant.code, grant.message);
+        payFrom = ensureTreasury(w.organizations[grant.org_id]);
+        receiveInto = payFrom;
+      }
+      const proposerDest = trade.acting_for
+        ? ensureTreasury(w.organizations[trade.acting_for] || { treasury: emptyTreasury() })
+        : w.players[trade.proposer_id]?.budgets;
+      if (!proposerDest) return fail(request_id, "TRADE_FAILED", "Proposer missing.");
       for (const [res, amt] of Object.entries(trade.requested)) {
-        if ((pl.budgets[res as keyof Budgets] ?? 0) < amt) {
-          return fail(request_id, "BUDGET_EXCEEDED", `You do not have enough ${res}.`);
+        if ((payFrom[res as keyof Budgets] ?? 0) < amt) {
+          return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} to accept.`);
         }
       }
       debit(pl.budgets, COSTS.TRADE);
-      const proposer = w.players[trade.proposer_id];
-      if (!proposer) return fail(request_id, "TRADE_FAILED", "Proposer missing.");
-
-      // Atomic both legs: counterparty pays requested → proposer; reserved offered → counterparty
       for (const [res, amt] of Object.entries(trade.requested)) {
-        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) - amt;
-        proposer.budgets[res as keyof Budgets] = (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
+        payFrom[res as keyof Budgets] = (payFrom[res as keyof Budgets] ?? 0) - amt;
+        proposerDest[res as keyof Budgets] = (proposerDest[res as keyof Budgets] ?? 0) + amt;
       }
       for (const [res, amt] of Object.entries(trade.offered)) {
-        // reserved already removed from proposer; credit counterparty
-        pl.budgets[res as keyof Budgets] = (pl.budgets[res as keyof Budgets] ?? 0) + amt;
+        receiveInto[res as keyof Budgets] = (receiveInto[res as keyof Budgets] ?? 0) + amt;
       }
       trade.reserved = {};
       trade.status = "SETTLED";
+      if (trade.acting_for || acceptActingFor) {
+        noteInstitutionPulse(w, "An institution traded from its treasury.");
+      }
       const evA = pushEvent("TRADE_ACCEPTED", {
         trade_id: trade.trade_id,
         accepted_by: principal.player_id,
+        acting_for: acceptActingFor || null,
       });
       const evT1 = pushEvent("RESOURCE_TRANSFER", {
         trade_id: trade.trade_id,
@@ -1298,14 +1352,7 @@ export async function applyWorldCommand(
       if (phase === "cancel" && !isProposer) {
         return fail(request_id, "FORBIDDEN", "Only the proposer can cancel.");
       }
-      const proposer = w.players[trade.proposer_id];
-      if (proposer) {
-        for (const [res, amt] of Object.entries(trade.reserved || {})) {
-          proposer.budgets[res as keyof Budgets] =
-            (proposer.budgets[res as keyof Budgets] ?? 0) + amt;
-        }
-      }
-      trade.reserved = {};
+      releaseTradeReserve(w, trade);
       trade.status = phase === "cancel" ? "CANCELLED" : "REJECTED";
       const reason = action.arguments.reason || (phase === "cancel" ? "CANCELLED" : "DECLINED");
       const ev = pushEvent(phase === "cancel" ? "TRADE_CANCELLED" : "TRADE_REJECTED", {
@@ -1456,6 +1503,7 @@ export async function applyWorldCommand(
         members,
         created_cycle: w.cycle,
         offices: {},
+        treasury: emptyTreasury(),
       };
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
@@ -1627,23 +1675,46 @@ export async function applyWorldCommand(
       if (!isRepairable(entity)) {
         return fail(request_id, "FORBIDDEN", "That is not repairable here.");
       }
-      if (!canPay(pl.budgets, COSTS.REPAIR)) {
+      const acting_for = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
+      const office_id = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
+      let payFrom = pl.budgets;
+      let grantOfficeId: string | undefined;
+      if (acting_for) {
+        const grant = resolveInstitutionGrant(
+          w.organizations,
+          principal.player_id,
+          acting_for,
+          office_id,
+          REPAIR_PROFILE,
+        );
+        if (!grant.ok) return fail(request_id, grant.code, grant.message);
+        if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
+          return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+        }
+        payFrom = ensureTreasury(w.organizations[grant.org_id]);
+        grantOfficeId = grant.office.office_id;
+      }
+      if (!canPay(payFrom, COSTS.REPAIR)) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
-          "You need energy 3, compute 2, and storage 1 to repair.",
+          acting_for
+            ? "The institution treasury cannot pay this repair."
+            : "You need energy 3, compute 2, and storage 1 to repair.",
         );
       }
       const before = entity.condition ?? 0;
-      debit(pl.budgets, COSTS.REPAIR);
+      debit(payFrom, COSTS.REPAIR);
       entity.condition = Math.min(100, before + 15);
-      // persist entity back
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
+      if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: COSTS.REPAIR,
         reason: "REPAIR",
+        acting_for: acting_for || null,
+        office_id: grantOfficeId || null,
       });
       const ev = pushEvent("ENTITY_UPDATE", {
         entity_id: entity.entity_id,
@@ -1651,6 +1722,8 @@ export async function applyWorldCommand(
         from: before,
         to: entity.condition,
         operation: "REPAIR",
+        acting_for: acting_for || null,
+        office_id: grantOfficeId || null,
       });
       await settleEv(ev);
       const result = success(
@@ -1881,7 +1954,11 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.access_restrictions = w.access_restrictions || [];
   if (!w.pressure) w.pressure = emptyPressure();
   if (!w.rumor) w.rumor = emptyRumor();
+  w.institution_pulses = w.institution_pulses || [];
   w.pending_messages = w.pending_messages || [];
+  for (const org of Object.values(w.organizations || {})) {
+    ensureTreasury(org);
+  }
 }
 
 type PushEv = (
@@ -1895,6 +1972,24 @@ type SettleEv = (ev: {
   sequence: number;
   payload: Record<string, unknown>;
 }) => Promise<void>;
+
+function noteInstitutionPulse(w: WorldRuntime, text: string): void {
+  w.institution_pulses = [...(w.institution_pulses || []), text].slice(-4);
+}
+
+function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {
+  const dest = trade.acting_for
+    ? w.organizations[trade.acting_for]
+      ? ensureTreasury(w.organizations[trade.acting_for])
+      : null
+    : w.players[trade.proposer_id]?.budgets;
+  if (dest) {
+    for (const [res, amt] of Object.entries(trade.reserved || {})) {
+      dest[res as keyof Budgets] = (dest[res as keyof Budgets] ?? 0) + amt;
+    }
+  }
+  trade.reserved = {};
+}
 
 function isAccessDenied(
   w: WorldRuntime,

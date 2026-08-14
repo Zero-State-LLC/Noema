@@ -93,6 +93,8 @@ export type OpenTrade = {
   status: "OPEN" | "SETTLED" | "REJECTED" | "CANCELLED";
   reserved: Record<string, number>;
   expires_cycle?: number;
+  acting_for?: string;
+  office_id?: string;
 };
 
 export type InboxMessage = {
@@ -177,6 +179,8 @@ export type Organization = {
   /** GC4-S1 named seats. Not membership. Not WorldState geography. */
   offices?: Record<string, OfficeRecord>;
   public_notice?: string;
+  /** GC4-S2 institution resource account. Not officer personal lots. */
+  treasury?: import("./offices").Treasury;
 };
 
 export const COSTS = {
@@ -228,6 +232,8 @@ export type CanonicalAction =
         trade_id?: string;
         expires_cycle?: number;
         reason?: string;
+        acting_for?: string;
+        office_id?: string;
       };
     }
   | {
@@ -281,6 +287,7 @@ export type CanonicalAction =
         evidence?: string[];
         visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
         supersedes_reconstruction_id?: string;
+        acting_for?: string;
       };
     }
   | {
@@ -713,6 +720,38 @@ export function parseHumanCommand(
     };
   }
 
+  // trade for <org> <player|org> offer=energy:3 want=storage:1
+  const instTradeM = trimmed.match(
+    /^trade(?:\s+propose)?\s+for\s+(\S+)\s+(\S+)\s+offer=([^\s]+)\s+want=([^\s]+)(?:\s+expires=(\d+))?\s*$/i,
+  );
+  if (instTradeM) {
+    const offered = parseResourceMap(instTradeM[3]);
+    const requested = parseResourceMap(instTradeM[4]);
+    if (!offered || !requested) {
+      return { ok: false, error: "Trade syntax: trade for <org> <player> offer=energy:3 want=storage:1" };
+    }
+    let counterparty_id = instTradeM[2];
+    if (!counterparty_id.startsWith("org.") && ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(instTradeM[2], ctx.players, ctx.selfId);
+      if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+      counterparty_id = r.player_id;
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "TRADE",
+        arguments: {
+          phase: "propose",
+          counterparty_id,
+          offered,
+          requested,
+          expires_cycle: instTradeM[5] ? Number(instTradeM[5]) : undefined,
+          acting_for: instTradeM[1],
+        },
+      },
+      display: `You propose a trade for ${instTradeM[1]}.`,
+    };
+  }
   // trade Nacre offer=energy:3 want=storage:1
   const tradeM = trimmed.match(
     /^trade(?:\s+propose)?\s+(\S+)\s+offer=([^\s]+)\s+want=([^\s]+)(?:\s+expires=(\d+))?\s*$/i,
@@ -791,6 +830,12 @@ export function parseHumanCommand(
     };
   }
   if (v === "repair") {
+    let acting_for: string | undefined;
+    const forIdx = parts.findIndex((p) => p.toLowerCase() === "for");
+    if (forIdx >= 0 && parts[forIdx + 1]) {
+      acting_for = parts[forIdx + 1];
+      parts.splice(forIdx, 2);
+    }
     const raw = parts.join(" ").replace(/^["']|["']$/g, "");
     if (!raw) return { ok: false, error: "Repair what? Name visible infrastructure." };
     if (ctx.entities && ctx.entities.length) {
@@ -798,14 +843,16 @@ export function parseHumanCommand(
       if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
       return {
         ok: true,
-        action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: r.entity.entity_id } },
-        display: `You repair ${titleCaseLabel(r.entity.label)}.`,
+        action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: r.entity.entity_id, acting_for } },
+        display: acting_for
+          ? `You repair ${titleCaseLabel(r.entity.label)} for ${acting_for}.`
+          : `You repair ${titleCaseLabel(r.entity.label)}.`,
       };
     }
     return {
       ok: true,
-      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: raw } },
-      display: `You try to repair ${raw}.`,
+      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: raw, acting_for } },
+      display: acting_for ? `You try to repair ${raw} for ${acting_for}.` : `You try to repair ${raw}.`,
     };
   }
   if (v === "harvest") {
@@ -838,11 +885,12 @@ export function parseHumanCommand(
   }
   if (v === "accept") {
     const trade_id = parts[0];
+    const acting_for = parts[1]?.toLowerCase() === "for" ? parts[2] : undefined;
     if (!trade_id) return { ok: false, error: "Accept which trade? accept <trade_id>" };
     return {
       ok: true,
-      action: { verb: "TRADE", arguments: { phase: "accept", trade_id } },
-      display: `You accept trade ${trade_id}.`,
+      action: { verb: "TRADE", arguments: { phase: "accept", trade_id, acting_for } },
+      display: acting_for ? `You accept trade ${trade_id} for ${acting_for}.` : `You accept trade ${trade_id}.`,
     };
   }
   if (v === "reject") {
@@ -1391,6 +1439,8 @@ export function normalizeStructuredCommand(
           trade_id: args.trade_id ? String(args.trade_id) : undefined,
           expires_cycle: args.expires_cycle != null ? Number(args.expires_cycle) : undefined,
           reason: args.reason ? String(args.reason) : undefined,
+          acting_for: args.acting_for ? String(args.acting_for) : undefined,
+          office_id: args.office_id ? String(args.office_id) : undefined,
         },
       },
       display: `TRADE ${phase}`,
@@ -1408,10 +1458,12 @@ export function normalizeStructuredCommand(
           arguments: {
             operation: operation as "REPAIR" | "HARVEST",
             entity_id,
-            amount: args.amount != null ? Number(args.amount) : 1,
+            amount: args.amount != null ? Number(args.amount) : undefined,
+            acting_for: args.acting_for ? String(args.acting_for) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
           },
         },
-        display: `COMMIT.${operation}`,
+        display: `${operation} ${entity_id}`,
       };
     }
     if (operation === "ORG_CREATE") {
@@ -2102,6 +2154,10 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1");
     lines.push("  org_id is assigned by the world (org.<slug>.<id>) — do not invent free IDs.");
     lines.push("  No self-join; officers invite. Founder/officer may remove.");
+    lines.push("  trade for <org> <player> offer=energy:3 want=storage:1");
+    lines.push("  accept <trade> for <org>");
+    lines.push("  repair <infrastructure> for <org>");
+    lines.push("  Institution lots come from that org's treasury. A vacant office cannot act.");
   } else if (t === "trade") {
     lines.push("TRADE");
     lines.push("  trade <player> offer=energy:3 want=storage:1");

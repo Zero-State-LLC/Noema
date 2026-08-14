@@ -16,6 +16,25 @@ export const OFFICE_PROFILES = [
 
 export type OfficeProfile = (typeof OFFICE_PROFILES)[number];
 export const HOSTED_ACT_PROFILES: readonly OfficeProfile[] = ["PUBLISH_NOTICE"];
+export const TRADE_PROFILE: OfficeProfile = "OPERATE_RESOURCE_ACCOUNT";
+export const REPAIR_PROFILE: OfficeProfile = "OPERATE_NAMED_ASSET";
+
+export type Treasury = {
+  attention: number;
+  compute: number;
+  energy: number;
+  influence: number;
+  storage: number;
+};
+
+export function emptyTreasury(): Treasury {
+  return { attention: 0, compute: 0, energy: 0, influence: 0, storage: 0 };
+}
+
+export function ensureTreasury(org: { treasury?: Treasury }): Treasury {
+  if (!org.treasury) org.treasury = emptyTreasury();
+  return org.treasury;
+}
 
 export type OfficeStatus = "VACANT" | "OCCUPIED" | "RETIRED";
 
@@ -94,6 +113,64 @@ export function findOffice(
     if (office) return { org_id, office };
   }
   return null;
+}
+
+export function occupiedOfficesFor(
+  org: { offices?: Record<string, OfficeRecord> } | undefined,
+  playerId: string,
+  profile: OfficeProfile,
+): OfficeRecord[] {
+  return Object.values(org?.offices || {}).filter(
+    (o) => o.status === "OCCUPIED" && o.holder_player_id === playerId && o.authority_profile === profile,
+  );
+}
+
+export function resolveInstitutionGrant(
+  orgs: Record<string, { org_id?: string; status?: string; offices?: Record<string, OfficeRecord> }> | undefined,
+  playerId: string,
+  actingFor: string | undefined,
+  officeId: string | undefined,
+  profile: OfficeProfile,
+):
+  | { ok: true; org_id: string; office: OfficeRecord }
+  | { ok: false; code: "NOT_FOUND" | "FORBIDDEN"; message: string } {
+  const orgId = String(actingFor || "").trim();
+  if (!orgId) return { ok: false, code: "FORBIDDEN", message: "Name the institution you act for." };
+  const org = orgs?.[orgId];
+  if (!org || org.status !== "ACTIVE") {
+    return { ok: false, code: "NOT_FOUND", message: "That institution is not known here." };
+  }
+  if (officeId) {
+    const office = org.offices?.[officeId];
+    if (!office) return { ok: false, code: "NOT_FOUND", message: "Office not found." };
+    if (office.status !== "OCCUPIED" || office.holder_player_id !== playerId) {
+      return { ok: false, code: "FORBIDDEN", message: "You do not hold that office." };
+    }
+    if (office.authority_profile !== profile) {
+      return { ok: false, code: "FORBIDDEN", message: "That office cannot do this." };
+    }
+    return { ok: true, org_id: orgId, office };
+  }
+  const matches = occupiedOfficesFor(org, playerId, profile);
+  if (!matches.length) {
+    return { ok: false, code: "FORBIDDEN", message: "You do not hold that institutional authority." };
+  }
+  if (matches.length > 1) {
+    return { ok: false, code: "FORBIDDEN", message: "Name which office you are using." };
+  }
+  return { ok: true, org_id: orgId, office: matches[0] };
+}
+
+export function assetInInstitutionScope(
+  entity: { owner_id?: string; entity_type?: string },
+  orgId: string,
+  actorId: string,
+): boolean {
+  const owner = entity.owner_id;
+  if (owner && owner.startsWith("org.") && owner !== orgId) return false;
+  if (owner && owner !== orgId && owner !== actorId) return false;
+  const type = (entity.entity_type || "").toUpperCase();
+  return type === "INFRASTRUCTURE" || type === "RUIN";
 }
 
 export function vacateHolderOffices(
