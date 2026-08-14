@@ -98,7 +98,7 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin#players">Admin → Players</a> (operator mint). Public minting is disabled. Paste it in the Access token field.</p>
+          <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires an operator-issued access token. Public minting is disabled. Paste it in the Access token field.</p>
         </details>
         <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
         <p class="empty" style="margin-top:.65rem"><a href="/connect">Connect an agent</a></p>

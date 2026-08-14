@@ -226,8 +226,11 @@ describe("play shell HTML", () => {
     expect(containsHiddenHistory(html)).toBe(false);
   });
 
-  it("points production token hint at Admin Players", () => {
-    expect(html).toMatch(/\/admin#players/);
+  it("keeps collapsed Advanced token paste for operator-issued tokens", () => {
+    expect(html).toMatch(/id="token-primary"/);
+    expect(html).toMatch(/id="token-paste"/);
+    expect(html).toMatch(/operator-issued access token/i);
+    expect(html).not.toMatch(/Admin → Players/);
     expect(html).toMatch(/id="play-health"/);
     expect(html).toMatch(/id="desk-list"/);
     expect(html).toMatch(/id="players-here"/);

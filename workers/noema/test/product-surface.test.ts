@@ -133,6 +133,9 @@ describe("callback", () => {
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening PLAY");
     expect(html).not.toContain("/v1/admin/login");
-    expect(firstReadHaystack(html).toLowerCase()).not.toContain("research");
+    const hay = firstReadHaystack(html).toLowerCase();
+    expect(hay).not.toContain("research");
+    expect(hay).not.toContain("admin");
+    expect(hay).not.toContain("operator plane");
   });
 });

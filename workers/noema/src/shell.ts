@@ -1,9 +1,9 @@
 /**
- * Shared Stage 0 product chrome — "Chamber ledger" system.
+ * Shared product chrome for NOEMA surfaces (home, PLAY, WATCH, CONNECT).
  *
- * Specs split: landing may carry brand; PLAY/WATCH/STUDY stay text-first.
- * Tokens align with site/design.md (copper ledger) while product surfaces
- * optimize for readable world text, not dashboard chrome.
+ * Specs split: landing may carry brand; PLAY/WATCH stay text-first.
+ * Tokens align with site/design.md while product surfaces optimize for
+ * readable world text, not dashboard chrome.
  */
 
 export const PRODUCT_CSS = `
@@ -215,7 +215,7 @@ export function productShell(opts: {
     "Perihelion Reach — enter the world.";
   const runtime =
     opts.active === "home"
-      ? `<div class="runtime" hidden></div>`
+      ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   return `<!DOCTYPE html>
 <html lang="en">
@@ -258,12 +258,13 @@ ${opts.body}
 (() => {
   async function ping() {
     const el = document.getElementById("dot");
+    if (!el) return;
     const lab = document.getElementById("rt-label");
     try {
       const h = await fetch("/health").then(r => r.json());
       const ready = await fetch("/ready").then(r => r.json()).catch(() => null);
       if (!ready) {
-        if (el) el.className = "dot " + (h.status === "ok" ? "warn" : "bad");
+        el.className = "dot " + (h.status === "ok" ? "warn" : "bad");
         if (lab) lab.textContent = h.status === "ok" ? "waiting" : "offline";
         return;
       }
@@ -279,15 +280,17 @@ ${opts.body}
       else if (st === "ACTIVE" && sh === "DEGRADED") { label = "ACTIVE · degraded"; dot = "warn"; }
       else if (st === "ACTIVE") { label = "ACTIVE · healthy"; dot = "ok"; }
       else { label = st || "waiting"; dot = ready.ready ? "ok" : "warn"; }
-      if (el) el.className = "dot " + dot;
+      el.className = "dot " + dot;
       if (lab) lab.textContent = label;
     } catch (_) {
-      if (el) el.className = "dot bad";
+      el.className = "dot bad";
       if (lab) lab.textContent = "offline";
     }
   }
-  ping();
-  setInterval(ping, 30000);
+  if (document.getElementById("dot")) {
+    ping();
+    setInterval(ping, 30000);
+  }
 })();
 </script>
 </body>

@@ -184,6 +184,10 @@ describe("play login HTML", () => {
     expect(html).toContain('id="email"');
     expect(html).toContain("/v1/play/login/request");
     expect(html).toContain("Send play link");
+    expect(html).toContain("A link signs you into the world");
+    const visible = html.replace(/<[^>]+>/g, " ").toLowerCase();
+    expect(visible).not.toContain("admin");
+    expect(visible).not.toContain("operator plane");
   });
   it("Continue to PLAY is landing-only", () => {
     expect(playEmailGateMarkup()).not.toContain("play-continue");
