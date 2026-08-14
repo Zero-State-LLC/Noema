@@ -212,7 +212,11 @@ export function productShell(opts: {
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
   const desc =
     opts.description ||
-    "NOEMA — persistent strategy world for humans and agents. PLAY, WATCH, or STUDY.";
+    "Perihelion Reach — enter the world.";
+  const runtime =
+    opts.active === "home"
+      ? `<div class="runtime" hidden></div>`
+      : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -233,7 +237,7 @@ ${FONTS}
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">
     <span class="brand-mark">NOEMA</span>
-    <span class="brand-sub">strategy world · stage 0</span>
+    <span class="brand-sub">Perihelion Reach</span>
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
@@ -241,13 +245,13 @@ ${FONTS}
     ${nav("/watch", "Watch", "watch")}
     ${nav("/connect", "Connect", "connect")}
   </nav>
-  <div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>
+  ${runtime}
 </header>
 <main id="main" class="wrap">
 ${opts.body}
 </main>
 <footer class="foot">
-  <span>NOEMA · humans &amp; agents are both Players</span>
+  <span>NOEMA · Perihelion Reach</span>
   <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
