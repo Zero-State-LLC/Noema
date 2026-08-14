@@ -11,6 +11,28 @@ function navOf(html: string): string {
   return m ? m[0] : "";
 }
 
+const FIRST_READ_BAN = [
+  "apparatus",
+  "ledger",
+  "conformance",
+  "capability",
+  "evidence boundary",
+  "humans & agents",
+  "stage 0",
+  "NOTICE",
+  "TEST",
+  "CAPTURE",
+  "LEARN",
+  "research",
+  "experimental",
+];
+
+function firstReadHaystack(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+}
+
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
   it("nav is Home Play Watch Connect without Study", () => {
@@ -27,19 +49,50 @@ describe("product chrome", () => {
 
 describe("home door", () => {
   const html = landingHtml();
-  it("has play + admin login requests", () => {
+  const hay = firstReadHaystack(html);
+
+  it("has exactly one Player email form and no admin login request", () => {
     expect(html).toContain("/v1/play/login/request");
-    expect(html).toContain("/v1/admin/login/request");
     expect(html).toContain("Send play link");
-    expect(html).toContain("Send login link");
-    expect(html).toContain("zer0state@zer0state.com");
+    expect(html).toContain('id="play-continue"');
+    expect(html).not.toContain("/v1/admin/login/request");
+    expect(html).not.toContain("Send login link");
+    expect(html).toContain("/admin/login");
   });
+
+  it("names the world and a place line", () => {
+    expect(html).toContain("Perihelion Reach");
+    expect(html).toMatch(/frontier station on a worn trade line/i);
+    expect(html).toContain("Enter the world");
+  });
+
   it("is not a brochure", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
     expect(html).not.toContain("The world is the text.");
     expect(html).not.toContain("path-rail");
     expect(html).not.toMatch(/id="home-health"/);
     expect(html).not.toMatch(/Restart STUDY/);
+  });
+
+  it("first-read omits research and stage vocabulary", () => {
+    for (const word of FIRST_READ_BAN) {
+      expect(hay.toLowerCase()).not.toContain(word.toLowerCase());
+    }
+  });
+});
+
+describe("shared chrome first-read", () => {
+  const shell = productShell({ title: "T", active: "home", body: "<p>x</p>" });
+  const hay = firstReadHaystack(shell);
+  it("brand and footer are game-first", () => {
+    expect(hay).not.toMatch(/stage 0/i);
+    expect(hay).not.toMatch(/humans &amp; agents/i);
+    expect(hay).not.toMatch(/humans & agents/i);
+    expect(shell).toContain('href="/admin/login"');
+  });
+  it("home does not paint a health chip", () => {
+    expect(shell).not.toMatch(/id="rt-label"/);
+    expect(shell).not.toMatch(/id="dot"/);
   });
 });
 
@@ -48,6 +101,12 @@ describe("planes", () => {
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).not.toContain("/v1/admin/login/request");
     expect(playHtml()).not.toMatch(/class="play-head"/);
+  });
+  it("play signed-out has no admin login request", () => {
+    const html = playHtml();
+    expect(html).toContain("/v1/play/login/request");
+    expect(html).not.toContain("/v1/admin/login/request");
+    expect(html).toContain("Enter world");
   });
   it("study is an honest stub", () => {
     expect(studyHtml()).toMatch(/not open/i);

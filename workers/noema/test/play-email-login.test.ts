@@ -198,9 +198,9 @@ describe("play login HTML", () => {
     expect(html).toContain("noema.play.token");
     expect(html).not.toContain("refresh_token");
   });
-  it("homepage and play include email gate; homepage is not admin token", () => {
+  it("homepage and play include email gate; homepage is not admin login", () => {
     expect(landingHtml()).toContain("/v1/play/login/request");
-    expect(landingHtml()).toContain("/v1/admin/login/request");
+    expect(landingHtml()).not.toContain("/v1/admin/login/request");
     expect(landingHtml()).not.toMatch(/Operator token/);
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Access token");
