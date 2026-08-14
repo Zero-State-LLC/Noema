@@ -92,6 +92,20 @@ import {
   type ReconstructionRecord,
 } from "./reconstruction";
 import {
+  allocateClaimId,
+  emptyRumor,
+  ensureRumor,
+  latestTransmissionTo,
+  normalizeClaimText,
+  publicRumorPulses,
+  recordTransmission,
+  rememberClaim,
+  resolveRetell,
+  rumorLines,
+  type ClaimPayload,
+  type ClaimRecord,
+} from "./rumor";
+import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
   UNREACHABLE_MESSAGE,
@@ -190,6 +204,8 @@ export type WorldRuntime = {
   culture?: import("./culture").CultureState;
   /** GC10-S0 schedule activation count. Not a PLAY label. */
   pressure?: import("./pressure").PressureState;
+  /** GC5-S2 claim/transmission cache. Projection of MESSAGE, not truth. */
+  rumor?: import("./rumor").RumorState;
 };
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
@@ -434,6 +450,12 @@ export function buildObservation(
           Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
         ),
       ).map((line) => `${o.name}: ${line}`),
+    ),
+    rumor_lines: rumorLines(
+      w.rumor,
+      principal.player_id,
+      w.cycle,
+      Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
     ),
     reconstruction_lines: reconstructionLines(
       Object.values(w.reconstructions || {}).filter((rec) => {
@@ -1003,15 +1025,79 @@ export async function applyWorldCommand(
       }
       delayed = band === "DELAYED";
     }
+    w.rumor = ensureRumor(w.rumor);
+    const parent_claim_id = action.arguments.parent_claim_id
+      ? String(action.arguments.parent_claim_id)
+      : undefined;
+    const subject_ref = action.arguments.subject_ref ? String(action.arguments.subject_ref) : undefined;
+    const as_claim = Boolean(action.arguments.as_claim || parent_claim_id || subject_ref);
+    let claimPayload: ClaimPayload | undefined;
+    let deliverText = text;
+    if (as_claim) {
+      if (parent_claim_id && !parent_claim_id.startsWith("claim.")) {
+        return fail(request_id, "NOT_FOUND", "That report is not known here.");
+      }
+      if (parent_claim_id) {
+        const held = w.rumor.claims[parent_claim_id];
+        const retellText =
+          held && (text === parent_claim_id || !text.trim())
+            ? held.content
+            : text;
+        const retell = resolveRetell(w.rumor, principal.player_id, parent_claim_id, retellText, w.cycle);
+        if (!retell.ok) {
+          return fail(request_id, "NOT_FOUND", "You do not hold that report.");
+        }
+        rememberClaim(w.rumor, retell.claim, principal.player_id);
+        deliverText = retell.same_claim ? retell.claim.content : normalizeClaimText(text);
+        const parentTx = latestTransmissionTo(w.rumor, parent_claim_id, principal.player_id);
+        claimPayload = {
+          claim_id: retell.claim.claim_id,
+          originator_ref: retell.claim.originator_ref,
+          subject_ref: retell.claim.subject_ref,
+          content: retell.claim.content,
+          created_cycle: retell.claim.created_cycle,
+          derived_from: retell.claim.derived_from,
+          origin_class: retell.claim.origin_class,
+          visibility: retell.claim.visibility,
+          origin_claim_id: retell.claim.origin_claim_id,
+          parent_transmission_id: parentTx?.transmission_id,
+        };
+      } else {
+        const claim_id = allocateClaimId();
+        const claim: ClaimRecord = {
+          claim_id,
+          originator_ref: principal.player_id,
+          subject_ref,
+          content: normalizeClaimText(text),
+          created_cycle: w.cycle,
+          origin_class: "PLAYER_MESSAGE",
+          visibility: "PRIVATE",
+          origin_claim_id: claim_id,
+        };
+        rememberClaim(w.rumor, claim, principal.player_id);
+        claimPayload = {
+          claim_id,
+          originator_ref: claim.originator_ref,
+          subject_ref: claim.subject_ref,
+          content: claim.content,
+          created_cycle: claim.created_cycle,
+          origin_class: claim.origin_class,
+          visibility: claim.visibility,
+          origin_claim_id: claim.origin_claim_id,
+        };
+        deliverText = claim.content;
+      }
+    }
     debit(pl.budgets, COSTS.MESSAGE);
     const message_id = `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`;
     const ev1 = pushEvent("MESSAGE", {
       message_id,
       sender_id: principal.player_id,
       recipient_id,
-      text,
+      text: deliverText,
       cost_paid: COSTS.MESSAGE,
       delayed,
+      ...(claimPayload ? { claim_id: claimPayload.claim_id, origin_claim_id: claimPayload.origin_claim_id } : {}),
     });
     if (delayed) {
       w.pending_messages = w.pending_messages || [];
@@ -1019,9 +1105,10 @@ export async function applyWorldCommand(
         message_id,
         sender_id: principal.player_id,
         recipient_id,
-        text,
+        text: deliverText,
         sent_cycle: w.cycle,
         deliver_at_cycle: w.cycle + DELAY_CYCLES,
+        claim: claimPayload,
       });
       await settleEv(ev1);
       const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled);
@@ -1032,16 +1119,20 @@ export async function applyWorldCommand(
       message_id,
       recipient_id,
       delivered_cycle: w.cycle,
+      ...(claimPayload ? { claim_id: claimPayload.claim_id } : {}),
     });
     w.messages = w.messages || [];
     w.messages.push({
       message_id,
       sender_id: principal.player_id,
       recipient_id,
-      text,
+      text: deliverText,
       status: "DELIVERED",
       delivered_cycle: w.cycle,
     });
+    if (claimPayload) {
+      applyDeliveredClaim(w, message_id, principal.player_id, recipient_id, claimPayload, w.cycle);
+    }
     await settleEv(ev1);
     await settleEv(ev2);
     const result = success(
@@ -1789,6 +1880,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.contests = w.contests || {};
   w.access_restrictions = w.access_restrictions || [];
   if (!w.pressure) w.pressure = emptyPressure();
+  if (!w.rumor) w.rumor = emptyRumor();
   w.pending_messages = w.pending_messages || [];
 }
 
@@ -2579,6 +2671,22 @@ async function applyOfficeCommand(
       return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
     }
     org.public_notice = notice.slice(0, 280);
+    w.rumor = ensureRumor(w.rumor);
+    const noticeClaimId = allocateClaimId();
+    rememberClaim(
+      w.rumor,
+      {
+        claim_id: noticeClaimId,
+        originator_ref: principal.player_id,
+        subject_ref: org.org_id,
+        content: normalizeClaimText(org.public_notice),
+        created_cycle: w.cycle,
+        origin_class: "INSTITUTION_NOTICE",
+        visibility: "PUBLIC",
+        origin_claim_id: noticeClaimId,
+      },
+      principal.player_id,
+    );
     debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
@@ -2993,8 +3101,47 @@ async function deliverDelayedMessages(
       message_id: msg.message_id,
       recipient_id: msg.recipient_id,
       delivered_cycle: w.cycle,
+      ...(msg.claim ? { claim_id: msg.claim.claim_id } : {}),
     });
+    if (msg.claim) {
+      applyDeliveredClaim(w, msg.message_id, msg.sender_id, msg.recipient_id, msg.claim, w.cycle);
+    }
     await settleEv(ev);
   }
   w.pending_messages = keep;
+}
+
+function applyDeliveredClaim(
+  w: WorldRuntime,
+  message_id: string,
+  sender_id: string,
+  recipient_id: string,
+  payload: ClaimPayload,
+  cycle: number,
+): void {
+  w.rumor = ensureRumor(w.rumor);
+  rememberClaim(
+    w.rumor,
+    {
+      claim_id: payload.claim_id,
+      originator_ref: payload.originator_ref,
+      subject_ref: payload.subject_ref,
+      content: payload.content,
+      created_cycle: payload.created_cycle,
+      derived_from: payload.derived_from,
+      origin_class: payload.origin_class,
+      visibility: payload.visibility,
+      origin_claim_id: payload.origin_claim_id,
+    },
+    sender_id,
+  );
+  recordTransmission(w.rumor, {
+    transmission_id: `tx.${message_id}`,
+    claim_id: payload.claim_id,
+    sender_ref: sender_id,
+    recipient_ref: recipient_id,
+    message_id,
+    parent_transmission_id: payload.parent_transmission_id,
+    received_cycle: cycle,
+  });
 }

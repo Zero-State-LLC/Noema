@@ -47,6 +47,7 @@ Fixed since the morning audit (do not re-open as defects):
 | GC4-S0 | Yes (#71) | Org roles; advisor non-authorizing |
 | GC4-S1 | Hosted this run | Named vacant/occupied offices; `PUBLISH_NOTICE`. Help omits office verbs |
 | GC5-S0 | Yes (#72) | Same-room MESSAGE; long-range needs relay ≥ 25 |
+| GC5-S2 | Hosted this run | Claim + MESSAGE lineage. No rumor score. Help omits rumor aliases |
 | GC6-S0 | Mapper yes; **Perihelion silent** | No `archive_subject_entity_id` / `archive_claim` on genesis artifacts |
 | GC6-S1 | Hosted this run | Player reconstruction from accessible archive/inspect. Not truth. Help omits reconstruct |
 | GC7-S0 | Yes (#81) | Isolated contest; help omits CONTEST |
@@ -78,5 +79,5 @@ This environment cannot apply them. Until they run, `putWorldHead` 404 is skippe
 ## Next (not authorized here)
 
 1. Operator apply the two SQL files.  
-2. Next named slice is GC5-S2 rumor provenance. Do not begin it without an explicit continuation.  
+2. Institutional follow-through or world-heads SQL. Do not open GC1-S2.  
 3. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.
