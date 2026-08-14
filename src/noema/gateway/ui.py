@@ -37,23 +37,47 @@ COMMON_JS = r"""
 """
 
 
-def _shell(title: str, body: str, active: str = "") -> str:
+def _shell(title: str, body: str, active: str = "", *, door: bool = False) -> str:
     def nav(href: str, label: str, key: str) -> str:
         current = ' aria-current="page"' if key == active else ""
         return f'<a href="{href}"{current}>{label}</a>'
+    links = (
+        nav("/play", "Play", "play")
+        + nav("/watch", "Watch", "watch")
+        + nav("/connect", "Connect", "connect")
+    )
+    if not door:
+        links += nav("/study", "Study", "study")
+    brand_sub = "Perihelion Reach" if door else "persistent strategy world"
+    gate = (
+        ""
+        if door
+        else '<div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">World offline</div><p>The Chamber is not online yet. PLAY and WATCH will be available when the world is ready.</p></div></div>'
+    )
+    foot = (
+        "<span>NOEMA · Perihelion Reach</span><span>PLAY · WATCH · CONNECT</span>"
+        if door
+        else "<span>NOEMA / the world keeps the record</span><span>Text game · structured actions · one world ledger</span>"
+    )
     return f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="theme-color" content="#0b1115"/><title>{title} · NOEMA</title><style>{CSS}</style><script>{COMMON_JS}</script></head>
-<body><a class="skip" href="#main">Skip to content</a><header class="topbar"><div class="brand"><a href="/" aria-label="NOEMA home">NOEMA</a><span>persistent strategy world</span></div><nav class="nav" aria-label="Primary navigation">{nav("/play","Play","play")}{nav("/connect","Connect","connect")}{nav("/watch","Watch","watch")}{nav("/study","Study","study")}</nav><div class="runtime"><span class="dot" id="runtime-dot" aria-hidden="true"></span><span id="runtime-label">checking</span><span class="runtime-version" id="runtime-version">v—</span></div></header><main id="main" class="page"><div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">World offline</div><p>The Chamber is not online yet. PLAY and WATCH will be available when the world is ready.</p></div></div>{body}</main><footer class="footer"><span>NOEMA / the world keeps the record</span><span>Text game · structured actions · one world ledger</span></footer></body></html>'''
+<body><a class="skip" href="#main">Skip to content</a><header class="topbar"><div class="brand"><a href="/" aria-label="NOEMA home">NOEMA</a><span>{brand_sub}</span></div><nav class="nav" aria-label="Primary navigation">{links}</nav><div class="runtime"><span class="dot" id="runtime-dot" aria-hidden="true"></span><span id="runtime-label">checking</span><span class="runtime-version" id="runtime-version">v—</span></div></header><main id="main" class="page">{gate}{body}</main><footer class="footer">{foot}</footer></body></html>'''
 
 
 def index_html() -> str:
     body = r'''
-    <!-- Operator surface compatibility marker. Product navigation remains PLAY / WATCH / STUDY. -->
-    <section class="hero" aria-labelledby="home-title"><div><div class="kicker">NOEMA / world entry</div><h1 id="home-title">The world is the text.</h1><p>A persistent strategy world for humans and agents. Read the room, spend what you have, and leave a trace that matters to the next cycle.</p><div class="hero-actions"><a class="button primary" href="/play">Enter PLAY ↗</a><a class="button" href="/watch">Watch the world</a><a class="button quiet" href="/study">Open STUDY</a></div></div><aside class="hero-note"><div class="kicker">Persistent world / partial knowledge</div><strong>Observe → decide → commit → adapt.</strong><p>Not a dashboard. A readable place with routes, pressure, messages, and consequences that accumulate.</p></aside></section>
-    <section class="surface-grid" aria-label="NOEMA surfaces"><a class="card surface" href="/play"><div><div class="kicker">01 / inhabit</div><h2>PLAY</h2><p>Enter the world, read your location, manage budgets, and act through commands or contextual controls.</p></div><footer><span>world first</span><span class="arrow">→</span></footer></a><a class="card surface" href="/watch"><div><div class="kicker">02 / observe</div><h2>WATCH</h2><p>Leave the world running on another screen. Follow the live public projection without raw ledger noise.</p></div><footer><span>read-only</span><span class="arrow">→</span></footer></a><a class="card surface" href="/study"><div><div class="kicker">03 / understand</div><h2>STUDY</h2><p>Review evidence and captured work in a separate researcher surface. PLAY stays a game.</p></div><footer><span>authorized path</span><span class="arrow">→</span></footer></a></section>
-    <section class="runtime-grid" aria-label="Runtime status"><div class="runtime-cell"><div class="kicker">health</div><strong id="home-health">checking</strong></div><div class="runtime-cell"><div class="kicker">world</div><strong id="home-ready">checking</strong></div><div class="runtime-cell"><div class="kicker">runtime</div><strong id="home-version">checking</strong></div></section>
+    <section class="hero" aria-labelledby="home-title" style="grid-template-columns:1fr;min-height:auto;justify-items:center;text-align:center">
+      <div>
+        <h1 id="home-title">NOEMA</h1>
+        <p class="kicker">Perihelion Reach</p>
+        <p>A frontier station on a worn trade line. Enter the world.</p>
+        <div class="hero-actions" style="justify-content:center">
+          <a class="button primary" href="/play">Enter world</a>
+        </div>
+      </div>
+    </section>
     '''
-    return _shell("Home", body)
+    return _shell("Perihelion Reach", body, door=True)
 
 
 def connect_html() -> str:
