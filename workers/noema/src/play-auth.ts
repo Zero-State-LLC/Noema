@@ -11,6 +11,14 @@ import {
   normalizeEmail,
 } from "./admin-auth";
 import { err, json, mintControllerToken } from "./auth";
+import {
+  composePlayMail,
+  extractHashedToken,
+  PLAY_MAIL_FROM,
+  playMagicLinkHref,
+  type PlayMailer,
+} from "./play-mail";
+import { sendResendEmail } from "./resend";
 import type { Env } from "./types";
 
 export const GENERIC_PLAY_LOGIN_MESSAGE =
@@ -22,7 +30,7 @@ export async function requestPlayMagicLink(
   env: Env,
   req: Request,
   body: { email?: string },
-  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle },
+  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
@@ -37,23 +45,62 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-          authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
-        body: JSON.stringify({
-          email,
-          create_user: true,
-          options: {
-            email_redirect_to: `${origin}/play/callback`,
-            should_create_user: true,
+      const canResend = Boolean(opts?.sendPlay || env.RESEND_API_KEY);
+      let sent = false;
+      if (canResend) {
+        const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           },
-        }),
-      });
-      if (!res.ok) console.error("play magic-link send failed");
+          body: JSON.stringify({
+            type: "magiclink",
+            email,
+            options: { redirect_to: `${origin}/play/callback` },
+          }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        const extracted = extractHashedToken(payload);
+        if (res.ok && extracted) {
+          const href = playMagicLinkHref(origin, extracted.token, extracted.type);
+          const mail = composePlayMail(email, href);
+          const send =
+            opts?.sendPlay ||
+            ((m) =>
+              sendResendEmail(env, {
+                from: PLAY_MAIL_FROM,
+                to: m.to,
+                subject: m.subject,
+                html: m.html,
+                text: m.text,
+              }));
+          await send(mail);
+          sent = true;
+        } else {
+          console.error("play generate_link failed", res.status);
+        }
+      }
+      if (!sent) {
+        const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/otp`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            create_user: true,
+            options: {
+              email_redirect_to: `${origin}/play/callback`,
+              should_create_user: true,
+            },
+          }),
+        });
+        if (!res.ok) console.error("play magic-link send failed");
+      }
     } catch {
       console.error("play magic-link send failed");
     }

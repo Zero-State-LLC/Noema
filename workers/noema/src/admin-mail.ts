@@ -1,8 +1,9 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY stays on the Supabase Magic Link template.
+ * PLAY uses Resend when RESEND_API_KEY is set.
  */
 
+import { sendResendEmail } from "./resend";
 import type { Env } from "./types";
 
 const OPERATOR_INBOX = "zer0state@zer0state.com";
@@ -165,6 +166,16 @@ export async function deliverAdminMail(env: Env, mail: {
   html: string;
   text: string;
 }): Promise<void> {
+  if (env.RESEND_API_KEY) {
+    await sendResendEmail(env, {
+      from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,
+      to: mail.to,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    });
+    return;
+  }
   if (!env.ADMIN_MAIL) throw new Error("ADMIN_MAIL not bound");
   const result = await env.ADMIN_MAIL.send({
     to: mail.to,

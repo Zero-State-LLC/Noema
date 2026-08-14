@@ -41,6 +41,7 @@ put TOKEN_SIGNING_SECRET
 put SUPABASE_URL
 put SUPABASE_JWT_SECRET
 put SUPABASE_SERVICE_ROLE_KEY
+put RESEND_API_KEY
 # optional alias
 if [ -n "${SUPABASE_URL-}" ]; then :; fi
 
