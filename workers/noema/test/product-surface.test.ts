@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
 import { playHtml } from "../src/play";
+import { playCallbackHtml } from "../src/play-login-html";
 import { productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
 import { watchHtml } from "../src/watch";
@@ -30,7 +31,8 @@ const FIRST_READ_BAN = [
 function firstReadHaystack(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ");
 }
 
 describe("product chrome", () => {
@@ -119,5 +121,18 @@ describe("planes", () => {
   it("connect has curl and command path", () => {
     expect(connectHtml()).toContain("NOEMA_BASE");
     expect(connectHtml()).toContain("/v1/command");
+  });
+  it("play spent-link copy is on the door", () => {
+    expect(playHtml()).toMatch(/expired or invalid/i);
+  });
+});
+
+describe("callback", () => {
+  it("is Player consume, not ADMIN", () => {
+    const html = playCallbackHtml();
+    expect(html).toContain("/v1/play/login/consume");
+    expect(html).toContain("Opening PLAY");
+    expect(html).not.toContain("/v1/admin/login");
+    expect(firstReadHaystack(html).toLowerCase()).not.toContain("research");
   });
 });

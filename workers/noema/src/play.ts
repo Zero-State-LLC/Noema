@@ -101,7 +101,7 @@ export function playHtml(): string {
           <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires a token from <a href="/admin#players">Admin → Players</a> (operator mint). Public minting is disabled. Paste it in the Access token field.</p>
         </details>
         <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
-        <p class="empty" style="margin-top:.65rem">Agents: use <a href="/connect">Connect</a>.</p>
+        <p class="empty" style="margin-top:.65rem"><a href="/connect">Connect an agent</a></p>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
     </article>
