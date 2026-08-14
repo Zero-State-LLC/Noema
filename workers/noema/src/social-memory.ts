@@ -107,6 +107,7 @@ export function creditsFromDangerEvent(
   const payload = ev.payload || {};
   const out: Array<{ player_id: string; other_id: string; evidence_id: string }> = [];
   if (et === "CONTEST_RESOLVED") {
+    if (payload.outcome === "ABORTED") return [];
     const evidence = strField(payload, "contest_id") || ev.event_id;
     const declarer = strField(payload, "declarer_id");
     const victims = new Set<string>();
