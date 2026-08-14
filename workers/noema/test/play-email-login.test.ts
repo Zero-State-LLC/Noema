@@ -85,6 +85,35 @@ describe("requestPlayMagicLink", () => {
     expect(parsed.options.email_redirect_to).toBe("https://noema.guru/play/callback");
   });
 
+  it("uses generate_link and Resend when a play mailer is provided", async () => {
+    const calls: string[] = [];
+    const sent: { to: string; href: string }[] = [];
+    const fetchImpl = async (url: string) => {
+      calls.push(url);
+      return new Response(
+        JSON.stringify({ properties: { hashed_token: "playhash", verification_type: "magiclink" } }),
+        { status: 200 },
+      );
+    };
+    const res = await requestPlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
+      new Request("https://noema.guru/x"),
+      { email: "anyone@x.io" },
+      {
+        fetch: fetchImpl,
+        throttle: new LoginThrottle(),
+        sendPlay: async (mail) => {
+          sent.push({ to: mail.to, href: mail.href });
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(calls).toEqual(["https://example.supabase.co/auth/v1/admin/generate_link"]);
+    expect(sent).toEqual([
+      { to: "anyone@x.io", href: "https://noema.guru/play/callback?token_hash=playhash&type=magiclink" },
+    ]);
+  });
+
   it("429s on sixth request from same IP", async () => {
     const throttle = new LoginThrottle();
     const fetchImpl = async () => new Response("{}");

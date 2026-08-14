@@ -28,6 +28,8 @@ export interface Env {
   ADMIN_MAIL?: {
     send(message: unknown): Promise<void | { messageId?: string }>;
   };
+  /** Resend API key — Worker-sent PLAY and ADMIN letters. Secret. */
+  RESEND_API_KEY?: string;
 }
 
 /** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */
