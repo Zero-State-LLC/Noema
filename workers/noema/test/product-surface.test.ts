@@ -100,6 +100,19 @@ describe("hosted /index.html", () => {
       expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
     }
   });
+
+  it("missing routes serve a game-first 404, not the splash", async () => {
+    const res = await worker.fetch(new Request("https://noema.guru/no-such-page"), bareEnv);
+    const html = await res.text();
+    expect(res.status).toBe(404);
+    expect(html).toContain("Perihelion Reach");
+    expect(html).toContain("Enter world");
+    expect(html).toContain('href="/"');
+    expect(html).not.toContain("Splash");
+    expect(html).not.toContain("/assets/site.css");
+    expect(html).not.toContain("site-header");
+    expect(html).not.toContain("/assets/site.js");
+  });
 });
 
 describe("shared chrome first-read", () => {

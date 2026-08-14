@@ -27,7 +27,7 @@ import {
 } from "./auth";
 import { connectHtml } from "./connect";
 import { catalog, GenesisError, previewGenesis } from "./genesis";
-import { landingHtml } from "./landing";
+import { landingHtml, notFoundHtml } from "./landing";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
 import { playHtml } from "./play";
@@ -77,7 +77,7 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
     // World door is landingHtml(), never the marketing splash
     return html(landingHtml(), 200, "public, max-age=30");
   } else if (path === "/404" || path === "/404.html") {
-    candidates.push("/404.html");
+    return html(notFoundHtml(), 404, "no-store");
   } else {
     candidates.push(path);
     // try .html for extensionless marketing pages
@@ -86,33 +86,24 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
     }
   }
 
-  for (const assetPath of candidates) {
-    const res = await env.ASSETS.fetch(assetRequest(origin, assetPath, method));
-    if (res.status === 200) {
-      const h = new Headers(res.headers);
-      if (assetPath.startsWith("/assets/")) {
-        h.set("cache-control", "public, max-age=3600");
-      } else {
-        h.set("cache-control", "public, max-age=60");
+  if (env.ASSETS) {
+    for (const assetPath of candidates) {
+      const res = await env.ASSETS.fetch(assetRequest(origin, assetPath, method));
+      if (res.status === 200) {
+        const h = new Headers(res.headers);
+        if (assetPath.startsWith("/assets/")) {
+          h.set("cache-control", "public, max-age=3600");
+        } else {
+          h.set("cache-control", "public, max-age=60");
+        }
+        h.set("x-content-type-options", "nosniff");
+        return new Response(res.body, { status: 200, headers: h });
       }
-      h.set("x-content-type-options", "nosniff");
-      return new Response(res.body, { status: 200, headers: h });
     }
   }
 
-  // Friendly HTML 404 for browsers / GET navigations
   if (wantsHtml(request) || method === "GET" || method === "HEAD") {
-    const nf = await env.ASSETS.fetch(assetRequest(origin, "/404.html", "GET"));
-    if (nf.status === 200) {
-      return new Response(nf.body, {
-        status: 404,
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "no-store",
-          "x-content-type-options": "nosniff",
-        },
-      });
-    }
+    return html(notFoundHtml(), 404, "no-store");
   }
   return cors(err("NOT_FOUND", path, 404));
 }

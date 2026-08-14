@@ -20,7 +20,7 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- **Splash:** https://noema.guru/  
+- **Door:** https://noema.guru/  
 - **PLAY:** https://noema.guru/play  
 - API / health: https://noema.guru/health · workers.dev  
 

@@ -35,3 +35,24 @@ export function landingHtml(): string {
     description: "Perihelion Reach — enter the world.",
   });
 }
+
+export function notFoundHtml(): string {
+  const body = `
+  <section class="door" aria-labelledby="nf-title">
+    <div>
+      <h1 id="nf-title">Not on the map</h1>
+      <p class="place">Perihelion Reach</p>
+      <p class="invite">That path is not in this world.</p>
+    </div>
+    <div class="btn-row" style="justify-content:center">
+      <a class="btn primary" href="/">Home</a>
+      <a class="btn" href="/play">Enter world</a>
+    </div>
+  </section>`;
+  return productShell({
+    title: "Not found",
+    body,
+    extraCss: EXTRA,
+    description: "That path is not in this world.",
+  });
+}
