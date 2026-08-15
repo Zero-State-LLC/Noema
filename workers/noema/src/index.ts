@@ -27,6 +27,14 @@ import {
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
 import {
+  approveDevice,
+  denyDevice,
+  durableDeviceStore,
+  pollDeviceToken,
+  previewDevice,
+  startDeviceEnrollment,
+} from "./device-enrollment";
+import {
   bootstrapHttpsOrigin,
   decideAgentEnrollment,
   discoveryDocument,
@@ -289,6 +297,29 @@ export default {
         const minted = await consumePlayMagicLink(env, body);
         if (minted instanceof Response) return cors(minted);
         return cors(json({ ...minted, token_type: "bearer" }));
+      }
+
+      if (request.method === "POST" && path === "/v1/auth/device") {
+        const body = (await request.json().catch(() => ({}))) as {
+          metadata?: { runtime?: string };
+          scopes?: string[];
+        };
+        return cors(await startDeviceEnrollment(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "GET" && path === "/v1/auth/device/preview") {
+        return cors(await previewDevice(env, request, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/approve") {
+        const body = (await request.json().catch(() => ({}))) as { user_code?: string };
+        return cors(await approveDevice(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/deny") {
+        const body = (await request.json().catch(() => ({}))) as { user_code?: string };
+        return cors(await denyDevice(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/token") {
+        const body = (await request.json().catch(() => ({}))) as { device_code?: string };
+        return cors(await pollDeviceToken(env, request, body, { store: durableDeviceStore(env) }));
       }
 
       /**

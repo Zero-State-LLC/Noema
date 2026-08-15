@@ -4,6 +4,7 @@ import {
   approveDevice,
   denyDevice,
   DEVICE_TTL_MS,
+  durableDeviceStore,
   memoryDeviceStore,
   pollDeviceToken,
   previewDevice,
@@ -249,5 +250,11 @@ describe("pollDeviceToken", () => {
       { store, now: now + DEVICE_TTL_MS + 1 },
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe("durableDeviceStore", () => {
+  it("is exported", () => {
+    expect(typeof durableDeviceStore).toBe("function");
   });
 });

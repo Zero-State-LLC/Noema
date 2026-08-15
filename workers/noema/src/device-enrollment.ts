@@ -52,6 +52,28 @@ export function memoryDeviceStore(seed: DeviceRecord[] = []): DeviceStore {
   };
 }
 
+export function durableDeviceStore(env: Env): DeviceStore {
+  const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName("__noema_enrollments__"));
+  return {
+    async put(rec) {
+      const res = await stub.fetch("https://do/device", { method: "PUT", body: JSON.stringify(rec) });
+      if (!res.ok) throw new Error("device persist failed");
+    },
+    async getByDeviceCode(deviceCode) {
+      const res = await stub.fetch(`https://do/device?device_code=${encodeURIComponent(deviceCode)}`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("device load failed");
+      return (await res.json()) as DeviceRecord;
+    },
+    async getByUserCode(userCode) {
+      const res = await stub.fetch(`https://do/device?user_code=${encodeURIComponent(userCode)}`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("device load failed");
+      return (await res.json()) as DeviceRecord;
+    },
+  };
+}
+
 export function normalizeUserCode(raw: string): string {
   const hex = raw.replace(/[^a-fA-F0-9]/g, "").toUpperCase();
   if (hex.length !== 8) return raw.trim().toUpperCase();
