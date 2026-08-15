@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "bash ./scripts/deploy-stage0.sh",
-    "deploy:raw": "wrangler deploy",
     "types": "wrangler types",
     "typecheck": "npm run types && tsc --noEmit",
     "test": "vitest run",

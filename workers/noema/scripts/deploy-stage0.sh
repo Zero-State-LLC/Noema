@@ -33,8 +33,9 @@ if ! WHO=$(npx wrangler whoami 2>&1); then
 fi
 echo "$WHO"
 if ! echo "$WHO" | grep -q "$ACCOUNT_EXPECT"; then
-  echo "WARN: expected account_id $ACCOUNT_EXPECT not found in whoami output."
-  echo "Confirm wrangler.toml account_id and that the token can access that account."
+  echo "error: expected account_id $ACCOUNT_EXPECT not found in whoami output."
+  echo "Refusing to deploy. Confirm wrangler.toml and Cloudflare token access."
+  exit 1
 fi
 
 echo "==> deploy (NOEMA_ENV=$ENV_NAME)"

@@ -6,6 +6,25 @@ on:
   pull_request:
 
 jobs:
+  worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/noema
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: workers/noema/package-lock.json
+      - name: Install Worker dependencies
+        run: npm ci
+      - name: Typecheck Worker
+        run: npm run typecheck
+      - name: Test Worker
+        run: npm test
+
   test:
     runs-on: ubuntu-latest
     services:
