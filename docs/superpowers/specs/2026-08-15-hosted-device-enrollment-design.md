@@ -183,7 +183,7 @@ A skill or tool adapter may implement those five steps. It is optional. A raw HT
 
 Reuse `durableEnrollmentStore` / `WORLD_DO.idFromName("__noema_enrollments__")`. Device records are a separate key namespace from RFC-0033 mail enrollments (`device.<device_code>` / index by normalized `user_code`).
 
-Fields: `device_code_hash`, `user_code`, `scopes`, `runtime`, `status`, `player_id`, `controller_id`, `issued_at`, `expires_at`, and (only after approve, until first poll) the minted access token ciphertext-equivalent: stored only in DO storage, never logged, deleted on redeem.
+Fields: `device_code_hash`, `user_code`, `scopes`, `runtime`, `status`, `player_id`, `controller_id`, `issued_at`, `expires_at`, and — only after approve until the first successful poll — the minted `access_token`. That token lives only in DO storage, is never logged, and is deleted when the record is marked redeemed.
 
 Do not log `device_code`, access tokens, or PLAY tokens.
 
