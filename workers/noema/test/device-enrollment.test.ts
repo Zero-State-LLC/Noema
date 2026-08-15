@@ -3,7 +3,9 @@ import { mintControllerToken } from "../src/auth";
 import {
   approveDevice,
   denyDevice,
+  DEVICE_TTL_MS,
   memoryDeviceStore,
+  pollDeviceToken,
   previewDevice,
   startDeviceEnrollment,
 } from "../src/device-enrollment";
@@ -173,5 +175,79 @@ describe("denyDevice", () => {
     );
     expect(res.status).toBe(200);
     expect(((await res.json()) as { status: string }).status).toBe("denied");
+  });
+});
+
+describe("pollDeviceToken", () => {
+  it("returns authorization_pending then the token once", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store },
+    );
+    const { device_code, user_code } = (await started.json()) as {
+      device_code: string;
+      user_code: string;
+    };
+    const pending = await pollDeviceToken(
+      e,
+      new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }),
+      { device_code },
+      { store },
+    );
+    expect(pending.status).toBe(200);
+    expect(((await pending.json()) as { status: string }).status).toBe("authorization_pending");
+
+    const human = await humanBearer(e);
+    await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${human}` },
+      }),
+      { user_code },
+      { store },
+    );
+    const first = await pollDeviceToken(
+      e,
+      new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }),
+      { device_code },
+      { store },
+    );
+    const minted = (await first.json()) as { access_token: string; status: string; player_id: string };
+    expect(minted.status).toBe("approved");
+    expect(minted.player_id).toBe("player.prabu");
+    expect(minted.access_token.length).toBeGreaterThan(20);
+
+    const second = await pollDeviceToken(
+      e,
+      new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }),
+      { device_code },
+      { store },
+    );
+    expect(second.status).toBe(401);
+  });
+
+  it("expires pending enrollments", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const now = Date.parse("2026-08-15T12:00:00Z");
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store, now },
+    );
+    const { device_code } = (await started.json()) as { device_code: string };
+    const res = await pollDeviceToken(
+      e,
+      new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }),
+      { device_code },
+      { store, now: now + DEVICE_TTL_MS + 1 },
+    );
+    expect(res.status).toBe(401);
   });
 });

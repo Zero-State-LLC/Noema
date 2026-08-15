@@ -221,3 +221,35 @@ export async function denyDevice(
   await store.put({ ...rec, status: "denied" });
   return json({ status: "denied", user_code: rec.user_code });
 }
+
+export async function pollDeviceToken(
+  env: Env,
+  req: Request,
+  body: { device_code?: string },
+  opts?: { store?: DeviceStore; now?: number },
+): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const rec = await store.getByDeviceCode(String(body.device_code || ""));
+  if (!rec) return err("NOT_AUTHORIZED", "unknown device_code", 401);
+  const now = opts?.now ?? Date.now();
+  const status = await effectiveDeviceStatus(rec, now);
+  if (status === "pending") return json({ status: "authorization_pending", interval: 5 });
+  if (status === "expired") {
+    if (rec.status === "pending") await store.put({ ...rec, status: "expired" });
+    return err("NOT_AUTHORIZED", "device code expired", 401);
+  }
+  if (status !== "approved") return err("NOT_AUTHORIZED", `device enrollment ${status}`, 401);
+  const access = rec.access_token;
+  if (!access) return err("NOT_AUTHORIZED", "tokens already redeemed", 401);
+  const { access_token: _drop, ...rest } = rec;
+  await store.put({ ...rest, status: "redeemed" });
+  return json({
+    status: "approved",
+    access_token: access,
+    token_type: "bearer",
+    player_id: rec.player_id,
+    controller_id: rec.controller_id,
+    scopes: rec.scopes,
+  });
+}
