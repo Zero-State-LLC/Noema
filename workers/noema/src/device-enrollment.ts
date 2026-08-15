@@ -1,6 +1,6 @@
 import { loginRedirectOrigin } from "./admin-auth";
-import { err, json } from "./auth";
-import type { Env } from "./types";
+import { err, json, mintControllerToken, resolvePrincipal } from "./auth";
+import type { Env, PlayerPrincipal } from "./types";
 
 export const GAME_SCOPES = [
   "noema.player.read",
@@ -143,4 +143,81 @@ export async function previewDevice(
     runtime: rec.runtime,
     expires_at: rec.expires_at,
   });
+}
+
+function canHumanApprove(principal: PlayerPrincipal): boolean {
+  if ((principal.scopes || []).includes("noema.controller.manage")) return true;
+  if (principal.controller_type === "human" || principal.controller_type === "hybrid") return true;
+  if (principal.amr === "email_magic_link") return true;
+  return false;
+}
+
+async function requireHumanApprover(req: Request, env: Env): Promise<PlayerPrincipal | Response> {
+  const principal = await resolvePrincipal(req, env);
+  if (principal instanceof Response) return principal;
+  if (!canHumanApprove(principal)) {
+    return err("NOT_AUTHORIZED", "only a human Controller may approve device enrollment", 403);
+  }
+  return principal;
+}
+
+export async function approveDevice(
+  env: Env,
+  req: Request,
+  body: { user_code?: string },
+  opts?: { store?: DeviceStore; now?: number },
+): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const approver = await requireHumanApprover(req, env);
+  if (approver instanceof Response) return approver;
+  const rec = await store.getByUserCode(String(body.user_code || ""));
+  if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
+  const now = opts?.now ?? Date.now();
+  const status = await effectiveDeviceStatus(rec, now);
+  if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
+  const handle = approver.player_id.replace(/^player\./, "").slice(0, 32) || "player";
+  const minted = await mintControllerToken(env, {
+    handle,
+    controllerType: "agent",
+    playerId: approver.player_id,
+    amr: "device_enrollment",
+  });
+  const next: DeviceRecord = {
+    ...rec,
+    status: "approved",
+    player_id: approver.player_id,
+    controller_id: minted.controller_id,
+    access_token: minted.access_token,
+  };
+  await store.put(next);
+  return json({
+    status: "approved",
+    user_code: rec.user_code,
+    player_id: approver.player_id,
+    controller_id: minted.controller_id,
+    scopes: rec.scopes,
+    runtime: rec.runtime,
+  });
+}
+
+export async function denyDevice(
+  env: Env,
+  req: Request,
+  body: { user_code?: string },
+  opts?: { store?: DeviceStore; now?: number },
+): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const approver = await requireHumanApprover(req, env);
+  if (approver instanceof Response) return approver;
+  const rec = await store.getByUserCode(String(body.user_code || ""));
+  if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
+  if (rec.player_id && rec.player_id !== approver.player_id) {
+    return err("NOT_AUTHORIZED", "cannot deny another Player's enrollment", 403);
+  }
+  const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
+  if (status !== "pending") return json({ status, user_code: rec.user_code });
+  await store.put({ ...rec, status: "denied" });
+  return json({ status: "denied", user_code: rec.user_code });
 }

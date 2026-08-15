@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { mintControllerToken } from "../src/auth";
 import {
+  approveDevice,
+  denyDevice,
   memoryDeviceStore,
   previewDevice,
   startDeviceEnrollment,
@@ -14,6 +17,16 @@ function env(partial: Partial<Env> = {}): Env {
     DEFAULT_WORLD_ID: "world-01",
     ...partial,
   } as Env;
+}
+
+async function humanBearer(e = env()) {
+  const minted = await mintControllerToken(e, {
+    handle: "prabu",
+    controllerType: "human",
+    playerId: "player.prabu",
+    amr: "email_magic_link",
+  });
+  return minted.access_token;
 }
 
 describe("startDeviceEnrollment", () => {
@@ -82,5 +95,83 @@ describe("previewDevice", () => {
     expect(body.status).toBe("pending");
     expect(body.runtime).toBe("hermes");
     expect(body.access_token).toBeUndefined();
+  });
+});
+
+describe("approveDevice", () => {
+  it("binds the approver player_id and does not return an access token", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "openclaw" } },
+      { store },
+    );
+    const { user_code } = (await started.json()) as { user_code: string };
+    const token = await humanBearer(e);
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { player_id: string; access_token?: string; status: string };
+    expect(body.status).toBe("approved");
+    expect(body.player_id).toBe("player.prabu");
+    expect(body.access_token).toBeUndefined();
+  });
+
+  it("rejects an agent bearer", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store },
+    );
+    const { user_code } = (await started.json()) as { user_code: string };
+    const agent = await mintControllerToken(e, { handle: "bot", controllerType: "agent" });
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${agent.access_token}` },
+      }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("denyDevice", () => {
+  it("marks denied", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store },
+    );
+    const { user_code } = (await started.json()) as { user_code: string };
+    const token = await humanBearer(e);
+    const res = await denyDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/deny", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { status: string }).status).toBe("denied");
   });
 });
