@@ -3,7 +3,7 @@
  * PLAY and ADMIN prefer Postmark when POSTMARK_SERVER_TOKEN is set.
  */
 
-import { sendPostmarkEmail } from "./postmark";
+import { sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const ADMIN_MAIL_SUBJECT = "NOEMA Admin Access";
@@ -164,9 +164,9 @@ export async function deliverAdminMail(env: Env, mail: {
   html: string;
   text: string;
 }, fetchImpl: typeof fetch = fetch): Promise<void> {
-  if (env.POSTMARK_SERVER_TOKEN) {
+  if (env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN) {
     try {
-      const messageId = await sendPostmarkEmail(env, {
+      const sent = await sendTransactionalEmail(env, {
         from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,
         to: mail.to,
         subject: mail.subject,
@@ -174,12 +174,12 @@ export async function deliverAdminMail(env: Env, mail: {
         text: mail.text,
         tag: "admin-magic-link",
       }, fetchImpl);
-      console.log("admin-mail postmark sent", messageId);
+      console.log("admin-mail provider sent", sent.provider, sent.messageId);
       return;
     } catch (e) {
       if (!env.ADMIN_MAIL) throw e;
       console.error(
-        "admin-mail postmark failed; using email binding",
+        "admin-mail providers failed; using email binding",
         e instanceof Error ? e.message : "error",
       );
     }

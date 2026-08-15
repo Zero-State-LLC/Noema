@@ -48,6 +48,8 @@ put POSTMARK_SERVER_TOKEN
 put POSTMARK_ACCOUNT_TOKEN
 put POSTMARK_FROM_EMAIL
 put POSTMARK_MESSAGE_STREAM
+put RESEND_API_KEY
+put RESEND_FROM_EMAIL
 
 echo "==> current secret names"
 npx wrangler secret list

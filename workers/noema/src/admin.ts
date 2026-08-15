@@ -467,7 +467,7 @@ export function adminHtml(): string {
       <h2>Deployment providers</h2>
       <p class="muted">Redacted readiness only. Provider credentials remain server-side and are never returned to this page.</p>
       <div class="grid" style="margin-top:.75rem">
-        <article class="card pad s6">
+        <article class="card pad s4">
           <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
             <div><p class="kicker">Canonical settlement</p><h2 style="font-size:1.1rem">Supabase</h2></div>
             <span class="tag" id="provider-supabase-tag">checking</span>
@@ -476,9 +476,18 @@ export function adminHtml(): string {
           <dl class="kv" id="provider-supabase-details"></dl>
           <button class="btn quiet" type="button" id="provider-supabase-verify" style="margin-top:.75rem">Verify Supabase</button>
         </article>
-        <article class="card pad s6">
+        <article class="card pad s4">
           <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
-            <div><p class="kicker">Transactional mail</p><h2 style="font-size:1.1rem">Postmark</h2></div>
+            <div><p class="kicker">Transactional mail · primary</p><h2 style="font-size:1.1rem">Resend</h2></div>
+            <span class="tag" id="provider-resend-tag">checking</span>
+          </div>
+          <p class="muted" id="provider-resend-message">Verifying API key and noema.guru domain…</p>
+          <dl class="kv" id="provider-resend-details"></dl>
+          <button class="btn quiet" type="button" id="provider-resend-verify" style="margin-top:.75rem">Verify Resend</button>
+        </article>
+        <article class="card pad s4">
+          <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
+            <div><p class="kicker">Transactional mail · standby</p><h2 style="font-size:1.1rem">Postmark</h2></div>
             <span class="tag" id="provider-postmark-tag">checking</span>
           </div>
           <p class="muted" id="provider-postmark-message">Verifying server and message stream…</p>
@@ -566,6 +575,7 @@ export function adminHtml(): string {
   async function loadProviders() {
     const data = await api("/v1/admin/providers");
     renderProvider("supabase", data.providers.supabase);
+    renderProvider("resend", data.providers.resend);
     renderProvider("postmark", data.providers.postmark);
     const c = data.configuration || {};
     const caps = c.capabilities || {};
@@ -573,6 +583,7 @@ export function adminHtml(): string {
       ["Ready for deploy", data.ready_for_deploy ? "yes" : "no"],
       ["Supabase management token", c.supabase && c.supabase.management_token ? "configured" : "missing"],
       ["Postmark account token", c.postmark && c.postmark.account_token ? "configured" : "missing"],
+      ["Resend API key", c.resend && c.resend.api_key ? "configured" : "missing"],
       ["Controlled mail test", caps.send_controlled_test ? "available" : "unavailable"],
       ["Credential rotation", caps.rotate_credentials ? "available" : "disabled"],
       ["Secrets exposed", data.secrets_exposed ? "ERROR" : "no"],
@@ -845,6 +856,7 @@ export function adminHtml(): string {
     }
   }
   $("provider-supabase-verify").addEventListener("click", () => verifyProvider("supabase"));
+  $("provider-resend-verify").addEventListener("click", () => verifyProvider("resend"));
   $("provider-postmark-verify").addEventListener("click", () => verifyProvider("postmark"));
 
   $("life-incident-confirm").addEventListener("change", (e) => {

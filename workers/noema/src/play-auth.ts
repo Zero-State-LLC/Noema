@@ -18,7 +18,7 @@ import {
   playMagicLinkHref,
   type PlayMailer,
 } from "./play-mail";
-import { sendPostmarkEmail } from "./postmark";
+import { sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const GENERIC_PLAY_LOGIN_MESSAGE =
@@ -45,9 +45,9 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canPostmark = Boolean(opts?.sendPlay || env.POSTMARK_SERVER_TOKEN);
+      const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN);
       let sent = false;
-      if (canPostmark) {
+      if (canProvider) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
           method: "POST",
           headers: {
@@ -69,14 +69,14 @@ export async function requestPlayMagicLink(
           const send =
             opts?.sendPlay ||
             ((m) =>
-              sendPostmarkEmail(env, {
+              sendTransactionalEmail(env, {
                 from: PLAY_MAIL_FROM,
                 to: m.to,
                 subject: m.subject,
                 html: m.html,
                 text: m.text,
                 tag: "play-magic-link",
-              }, opts?.mailFetch));
+              }, opts?.mailFetch).then(() => undefined));
           try {
             await send(mail);
             sent = true;

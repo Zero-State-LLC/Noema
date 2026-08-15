@@ -42,6 +42,10 @@ export interface Env {
   POSTMARK_FROM_EMAIL?: string;
   /** Postmark transactional stream; defaults to outbound. */
   POSTMARK_MESSAGE_STREAM?: string;
+  /** Resend API key — production-primary transactional provider when configured. */
+  RESEND_API_KEY?: string;
+  /** Optional verified Resend sender override. */
+  RESEND_FROM_EMAIL?: string;
 }
 
 /** Operator principal — separate from PlayerPrincipal (PLATFORM / AUTH). */
