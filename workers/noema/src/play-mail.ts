@@ -13,14 +13,16 @@ export function renderPlayMailText(href: string): string {
   return [
     "NOEMA",
     "",
-    "Your access link is ready.",
+    "Follow this link to enter and play.",
     "",
-    "Use the button below to sign in and continue into the world.",
+    "Open ENTER NOEMA in this message. You will be signed into PLAY and can act in the world.",
     "",
     "ENTER NOEMA",
     href,
     "",
-    "This link is temporary and can only be used to authenticate your Player account.",
+    "This link works once and expires soon. If it is spent or dead, request another letter.",
+    "",
+    "This is a Player account session, not Admin.",
     "",
     "If you did not request this link, you can ignore this message.",
     "",
@@ -51,12 +53,12 @@ export function renderPlayMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 16px;font:16px/1.55 Georgia,'Times New Roman',serif;color:#ebe6d8;">
-              Your access link is ready.
+              Follow this link to enter and play.
             </td>
           </tr>
           <tr>
             <td style="padding:0 28px 22px;font:16px/1.55 Georgia,'Times New Roman',serif;color:#9b9587;">
-              Use the button below to sign in and continue into the world.
+              Open ENTER NOEMA in this message. You will be signed into PLAY and can act in the world.
             </td>
           </tr>
           <tr>
@@ -69,7 +71,12 @@ export function renderPlayMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 12px;font:14px/1.55 Georgia,serif;color:#9b9587;">
-              This link is temporary and can only be used to authenticate your Player account.
+              This link works once and expires soon. If it is spent or dead, request another letter.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:14px/1.55 Georgia,serif;color:#9b9587;">
+              This is a Player account session, not Admin.
             </td>
           </tr>
           <tr>

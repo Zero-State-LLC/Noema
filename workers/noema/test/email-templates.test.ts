@@ -37,6 +37,9 @@ describe("auth email templates", () => {
     const play = email("play-magic-link.html");
     const admin = email("admin-magic-link.html");
     expect(play).toContain("ENTER NOEMA");
+    expect(play).toContain("Follow this link to enter and play.");
+    expect(play).toContain("signed into PLAY");
+    expect(play).toContain("works once");
     expect(play).toContain("Player account");
     expect(play).toContain("Perihelion Reach");
     expect(play).not.toMatch(/privileged administrative|Do not forward/);
