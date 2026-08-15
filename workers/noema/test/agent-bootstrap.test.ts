@@ -60,7 +60,13 @@ describe("RFC-0033 agent bootstrap", () => {
       env(),
       new Request("https://noema.guru/v1/admin/agent/enroll"),
       { email: "ops@example.com", handle: "hermes" },
-      { store, now, sendMail: async (mail) => sent.push(mail.text) },
+      {
+        store,
+        now,
+        sendMail: async (mail) => {
+          sent.push(mail.text);
+        },
+      },
     );
     const href = sent[0].match(/eid=([^&]+)&t=([^\s]+)/);
     expect(href).toBeTruthy();
@@ -100,7 +106,12 @@ describe("RFC-0033 agent bootstrap", () => {
       env(),
       new Request("https://noema.guru/v1/admin/agent/enroll"),
       { email: "ops@example.com", handle: "hermes" },
-      { store, sendMail: async (mail) => sent.push(mail.text) },
+      {
+        store,
+        sendMail: async (mail) => {
+          sent.push(mail.text);
+        },
+      },
     );
     const href = sent[0].match(/eid=([^&]+)&t=([^\s]+)/)!;
     const enrollment_id = decodeURIComponent(href[1]);
@@ -133,7 +144,12 @@ describe("RFC-0033 agent bootstrap", () => {
       env(),
       new Request("https://noema.guru/v1/admin/agent/enroll"),
       { email: "ops@example.com", handle: "hermes" },
-      { store, sendMail: async (mail) => sent.push(mail.text) },
+      {
+        store,
+        sendMail: async (mail) => {
+          sent.push(mail.text);
+        },
+      },
     );
     const href = sent[0].match(/eid=([^&]+)&t=([^\s]+)/)!;
     const enrollment_id = decodeURIComponent(href[1]);

@@ -291,7 +291,6 @@ export async function decideAgentEnrollment(
     ok: true,
     status: "approved",
     enrollment_id: rec.enrollment_id,
-    player_id: rec.player_id,
     ...minted,
     note: "Controller token shown once. Not an ADMIN session. Not sent by email.",
   });
