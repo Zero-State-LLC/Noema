@@ -339,6 +339,36 @@ def test_http_session_requires_credentials(tmp_path: Path):
         httpd.shutdown()
 
 
+def test_http_controller_revoke_requires_credentials(tmp_path: Path):
+    from http.server import ThreadingHTTPServer
+    import threading
+    import urllib.error
+    import urllib.request
+
+    rt = NoemaRuntime(db_path=tmp_path / "revoke.sqlite3")
+    handler = make_handler(rt)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        req = urllib.request.Request(
+            base + "/auth/controller/revoke",
+            data=json.dumps({"controller_id": "controller.missing"}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+            assert False, "unauthenticated controller revocation must fail"
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 401
+            body = json.loads(exc.read().decode())
+            assert body["error"]["code"] == "NOT_AUTHORIZED"
+    finally:
+        httpd.shutdown()
+
+
 def test_http_rejects_oversized_request_body(tmp_path: Path):
     from http.server import ThreadingHTTPServer
     import threading
