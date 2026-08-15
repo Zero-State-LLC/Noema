@@ -98,7 +98,7 @@ describe("admin mail render", () => {
     expect(html).toContain("OPEN ADMIN");
     expect(html).toContain("Do not forward or share this message.");
     expect(html).toContain(href.replace(/&/g, "&amp;"));
-    const mail = composeAdminMail(href);
+    const mail = composeAdminMail(href, "zer0state@zer0state.com");
     expect(mail.subject).toBe("NOEMA Admin Access");
     expect(mail.to).toBe("zer0state@zer0state.com");
     expect(mail.text).toContain("Operator Plane");
@@ -257,6 +257,28 @@ describe("requestAdminMagicLink", () => {
       "https://noema.guru/admin/callback?token_hash=tok_admin_1&type=magiclink",
     );
     expect(sent[0].html).toContain(sent[0].href.replace(/&/g, "&amp;"));
+  });
+
+  it("routes an additional allowlisted operator link to that operator", async () => {
+    const sent: Array<{ to: string }> = [];
+    const res = await requestAdminMagicLink(
+      env(),
+      new Request("https://noema.guru/x"),
+      { email: "Ops@Example.com" },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async () =>
+          new Response(
+            JSON.stringify({ hashed_token: "tok_admin_extra", verification_type: "magiclink" }),
+            { status: 200 },
+          ),
+        sendAdmin: async (mail) => {
+          sent.push(mail);
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(sent.map((mail) => mail.to)).toEqual(["ops@example.com"]);
   });
 
   it("wires an Admin request through the real Postmark adapter", async () => {

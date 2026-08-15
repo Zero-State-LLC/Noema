@@ -236,7 +236,7 @@ export async function requestAdminMagicLink(
         );
         if (res.ok && extracted) {
           const href = adminMagicLinkHref(origin, extracted.token, extracted.type);
-          const mail = composeAdminMail(href);
+          const mail = composeAdminMail(href, email);
           const send = opts?.sendAdmin || ((m) => deliverAdminMail(env, m, opts?.mailFetch));
           try {
             await send(mail);
