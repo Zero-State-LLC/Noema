@@ -158,6 +158,14 @@ describe("planes", () => {
     expect(connectHtml()).toContain("NOEMA_BASE");
     expect(connectHtml()).toContain("/v1/command");
   });
+  it("connect can approve a device code with the PLAY token", () => {
+    const html = connectHtml();
+    expect(html).toContain("/v1/auth/device/preview");
+    expect(html).toContain("/v1/auth/device/approve");
+    expect(html).toContain("noema.play.token");
+    expect(html).toMatch(/Enter as yourself first|enter via PLAY/i);
+    expect(html).not.toMatch(/\.innerHTML\s*=/);
+  });
   it("enrollment review page does not auto-approve", () => {
     const html = enrollHtml();
     expect(html).toContain("Review agent enrollment");

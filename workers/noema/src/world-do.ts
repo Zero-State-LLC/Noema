@@ -28,6 +28,7 @@ import {
   type DigestEvent,
   type OperatorDigest,
 } from "./operator-digests";
+import type { DeviceRecord } from "./device-enrollment";
 import type { EnrollmentRecord } from "./enrollment";
 import {
   commitCanonicalSettlement,
@@ -183,6 +184,34 @@ export class NoemaWorldDO {
           return Response.json(rec);
         }
         return Response.json({ records: Object.values(bag) });
+      }
+      return new Response("method not allowed", { status: 405 });
+    }
+
+    if (path.endsWith("/device") || path === "/device") {
+      const bag = (await this.state.storage.get<Record<string, DeviceRecord>>("devices")) || {};
+      if (request.method === "PUT") {
+        const rec = (await request.json()) as DeviceRecord;
+        if (!rec?.device_code) return Response.json({ error: "device_code required" }, { status: 400 });
+        bag[rec.device_code] = rec;
+        await this.state.storage.put("devices", bag);
+        return Response.json({ ok: true });
+      }
+      if (request.method === "GET") {
+        const deviceCode = url.searchParams.get("device_code");
+        const userCode = (url.searchParams.get("user_code") || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+        if (deviceCode) {
+          const rec = bag[deviceCode];
+          if (!rec) return new Response("{}", { status: 404 });
+          return Response.json(rec);
+        }
+        if (userCode) {
+          const rec = Object.values(bag).find((r) => r.user_code.replace(/-/g, "") === userCode);
+          if (!rec) return new Response("{}", { status: 404 });
+          return Response.json(rec);
+        }
+        // No resolvable lookup key — same as unknown id (do not list the bag).
+        return new Response("{}", { status: 404 });
       }
       return new Response("method not allowed", { status: 405 });
     }
