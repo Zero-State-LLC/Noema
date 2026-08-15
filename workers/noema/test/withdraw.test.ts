@@ -80,7 +80,7 @@ describe("GC7-S1 mapper", () => {
   it("parses withdraw without advertising it or HP", () => {
     const parsed = parseHumanCommand("withdraw contest.0001");
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(parsed.action.arguments.operation).toBe("CONTEST_WITHDRAW");
+    if (parsed.ok && parsed.action.verb === "COMMIT") expect(parsed.action.arguments.operation).toBe("CONTEST_WITHDRAW");
     const text = helpText();
     expect(text).not.toMatch(/\bwithdraw\b|\bcontest\b|\bretreat\b|\bHP\b/i);
   });

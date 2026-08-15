@@ -172,6 +172,7 @@ import {
   seizureAmount,
   targetKindAllowed,
   type ContestForm,
+  type ContestOutcome,
   type ContestTarget,
   type OpenContest,
   type StakeMap,
@@ -911,8 +912,6 @@ export async function applyWorldCommand(
   if (
     pl.disabled_until_cycle != null &&
     w.cycle < pl.disabled_until_cycle &&
-    action.verb !== "LOOK" &&
-    action.verb !== "OBSERVE" &&
     action.verb !== "WAIT" &&
     action.verb !== "INSPECT"
   ) {
@@ -3400,7 +3399,7 @@ async function resolveDueContests(
   for (const contest of openContests(w)) {
     if (w.cycle < contest.expires_cycle) continue;
     const expired = w.cycle > contest.expires_cycle;
-    let outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" = expired
+    let outcome: ContestOutcome = expired
       ? "EXPIRED"
       : "FAILURE";
     let score = 0;

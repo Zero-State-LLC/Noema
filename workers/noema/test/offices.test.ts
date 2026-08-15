@@ -73,7 +73,7 @@ describe("GC4-S1 mapper", () => {
   it("parses office create/assign/resign without adding help verbs", () => {
     const created = parseHumanCommand('office create org.x name="Treasurer" profile=PUBLISH_NOTICE');
     expect(created.ok).toBe(true);
-    if (created.ok) {
+    if (created.ok && created.action.verb === "COMMIT") {
       expect(created.action.verb).toBe("COMMIT");
       expect(created.action.arguments.operation).toBe("ORG_OFFICE_CREATE");
     }

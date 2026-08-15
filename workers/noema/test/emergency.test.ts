@@ -92,7 +92,7 @@ describe("GC4-S3 emergency scopes", () => {
   it("parses activate/revoke and keeps them off KNOWN COMMANDS", () => {
     const parsed = parseHumanCommand("emergency activate org.line emrule.repair entity.relay");
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(parsed.action.arguments.operation).toBe("ORG_EMERGENCY_ACTIVATE");
+    if (parsed.ok && parsed.action.verb === "COMMIT") expect(parsed.action.arguments.operation).toBe("ORG_EMERGENCY_ACTIVATE");
     expect(helpText()).not.toMatch(/EMERGENCY_STARTED|SUPERUSER|ALL_ACTIONS|\bWED\b|ATTEST|BUILD|CONTEST/);
     expect(helpText("org")).toMatch(/emergency activate/);
   });

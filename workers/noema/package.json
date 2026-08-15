@@ -7,19 +7,24 @@
     "dev": "wrangler dev",
     "deploy": "bash ./scripts/deploy-stage0.sh",
     "deploy:raw": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "types": "wrangler types",
+    "typecheck": "npm run types && tsc --noEmit",
     "test": "vitest run",
     "smoke": "node ./scripts/smoke.mjs",
     "secrets:push": "bash ./scripts/push-secrets-from-env.sh",
     "secrets:list": "wrangler secret list"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250812.0",
+    "@types/node": "^26.2.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.123.0"
   },
   "engines": {
     "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260811.1": true
   }
 }
