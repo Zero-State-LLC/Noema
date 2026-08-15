@@ -259,6 +259,87 @@ describe("requestAdminMagicLink", () => {
     expect(sent[0].html).toContain(sent[0].href.replace(/&/g, "&amp;"));
   });
 
+  it("wires an Admin request through the real Postmark adapter", async () => {
+    const providerBodies: Array<Record<string, unknown>> = [];
+    const res = await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "", POSTMARK_SERVER_TOKEN: "pm_test" }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_OPERATOR_EMAIL },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async () =>
+          new Response(JSON.stringify({ hashed_token: "adminhash", verification_type: "magiclink" }), {
+            status: 200,
+          }),
+        mailFetch: async (input, init) => {
+          expect(String(input)).toBe("https://api.postmarkapp.com/email");
+          expect(new Headers(init?.headers).get("x-postmark-server-token")).toBe("pm_test");
+          providerBodies.push(JSON.parse(String(init?.body || "{}")));
+          return new Response(JSON.stringify({ ErrorCode: 0, MessageID: "pm-admin-1" }), {
+            status: 200,
+          });
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(providerBodies).toHaveLength(1);
+    expect(providerBodies[0].Tag).toBe("admin-magic-link");
+    expect(providerBodies[0].To).toBe(ADMIN_OPERATOR_EMAIL);
+    expect(String(providerBodies[0].HtmlBody)).toContain("OPEN ADMIN");
+  });
+
+  it("falls back Postmark to ADMIN_MAIL without sending Supabase otp", async () => {
+    const supabaseCalls: string[] = [];
+    const bindingMessages: unknown[] = [];
+    const res = await requestAdminMagicLink(
+      env({
+        ADMIN_ALLOWLIST_EMAILS: "",
+        POSTMARK_SERVER_TOKEN: "pm_test",
+        ADMIN_MAIL: { send: async (message) => { bindingMessages.push(message); } },
+      }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_OPERATOR_EMAIL },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async (url) => {
+          supabaseCalls.push(url);
+          return new Response(JSON.stringify({ hashed_token: "adminhash" }), { status: 200 });
+        },
+        mailFetch: async () =>
+          new Response(JSON.stringify({ ErrorCode: 10, MessageID: "" }), { status: 422 }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(supabaseCalls).toEqual(["https://example.supabase.co/auth/v1/admin/generate_link"]);
+    expect(bindingMessages).toHaveLength(1);
+  });
+
+  it("falls back to Supabase otp when Postmark fails and ADMIN_MAIL is absent", async () => {
+    const supabaseCalls: string[] = [];
+    const res = await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "", POSTMARK_SERVER_TOKEN: "pm_test", ADMIN_MAIL: undefined }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_OPERATOR_EMAIL },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async (url) => {
+          supabaseCalls.push(url);
+          if (url.endsWith("/admin/generate_link")) {
+            return new Response(JSON.stringify({ hashed_token: "adminhash" }), { status: 200 });
+          }
+          return new Response("{}", { status: 200 });
+        },
+        mailFetch: async () =>
+          new Response(JSON.stringify({ ErrorCode: 10, MessageID: "" }), { status: 422 }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(supabaseCalls).toEqual([
+      "https://example.supabase.co/auth/v1/admin/generate_link",
+      "https://example.supabase.co/auth/v1/otp",
+    ]);
+  });
+
   it("still 200 if otp send fails", async () => {
     const res = await requestAdminMagicLink(
       env(),

@@ -18,7 +18,7 @@ import {
   playMagicLinkHref,
   type PlayMailer,
 } from "./play-mail";
-import { sendResendEmail } from "./resend";
+import { sendPostmarkEmail } from "./postmark";
 import type { Env } from "./types";
 
 export const GENERIC_PLAY_LOGIN_MESSAGE =
@@ -30,7 +30,7 @@ export async function requestPlayMagicLink(
   env: Env,
   req: Request,
   body: { email?: string },
-  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer },
+  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
@@ -45,9 +45,9 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canResend = Boolean(opts?.sendPlay || env.RESEND_API_KEY);
+      const canPostmark = Boolean(opts?.sendPlay || env.POSTMARK_SERVER_TOKEN);
       let sent = false;
-      if (canResend) {
+      if (canPostmark) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
           method: "POST",
           headers: {
@@ -69,15 +69,20 @@ export async function requestPlayMagicLink(
           const send =
             opts?.sendPlay ||
             ((m) =>
-              sendResendEmail(env, {
+              sendPostmarkEmail(env, {
                 from: PLAY_MAIL_FROM,
                 to: m.to,
                 subject: m.subject,
                 html: m.html,
                 text: m.text,
-              }));
-          await send(mail);
-          sent = true;
+                tag: "play-magic-link",
+              }, opts?.mailFetch));
+          try {
+            await send(mail);
+            sent = true;
+          } catch (e) {
+            console.error("play provider delivery failed", e instanceof Error ? e.message : "error");
+          }
         } else {
           console.error("play generate_link failed", res.status);
         }
