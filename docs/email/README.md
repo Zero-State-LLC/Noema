@@ -18,11 +18,12 @@ The Worker already sets `email_redirect_to` to `/play/callback` or `/admin/callb
 
 ## How mail is sent
 
-- **PLAY** — preferred Worker-sent Postmark message. The Worker calls Supabase `generate_link`, composes `play-magic-link.html`, and sends with tag `play-magic-link`.
-- **ADMIN** — preferred Worker-sent Postmark message after the operator allowlist check. It uses `admin-magic-link.html` and tag `admin-magic-link`.
+- **PLAY** — preferred Worker-sent Resend message. The Worker calls Supabase `generate_link`, composes `play-magic-link.html`, and sends with tag `play-magic-link`.
+- **ADMIN** — preferred Worker-sent Resend message after the operator allowlist check. It uses `admin-magic-link.html` and tag `admin-magic-link`.
+- **Standby** — Postmark infrastructure remains available when `POSTMARK_SERVER_TOKEN` is configured, but Resend is attempted first.
 - **Fallback** — PLAY uses Supabase `/otp`. ADMIN uses `ADMIN_MAIL` (Email Routing) when bound, then Supabase `/otp`.
 
-Configure `POSTMARK_SERVER_TOKEN` as a Worker secret. `POSTMARK_MESSAGE_STREAM` defaults to `outbound`; `POSTMARK_FROM_EMAIL` may override the per-message sender and must be verified in Postmark. Keep `supabase-magic-link.html` in the Supabase Magic Link dashboard slot for fallback delivery. Do not paste the Admin body into that slot.
+Configure `RESEND_API_KEY` as a Worker secret. `RESEND_FROM_EMAIL` may override the per-message sender and must belong to a verified Resend domain. Dormant Postmark settings may remain configured: `POSTMARK_MESSAGE_STREAM` defaults to `outbound`, and `POSTMARK_FROM_EMAIL` may override its sender. Keep `supabase-magic-link.html` in the Supabase Magic Link dashboard slot for fallback delivery. Do not paste the Admin body into that slot.
 
 Allowlist:
 

@@ -2,6 +2,7 @@ import type { Env } from "./types";
 
 const POSTMARK_SERVER_URL = "https://api.postmarkapp.com/server";
 const POSTMARK_STREAMS_URL = "https://api.postmarkapp.com/message-streams";
+const RESEND_DOMAINS_URL = "https://api.resend.com/domains";
 
 export interface ProviderStatus {
   configured: boolean;
@@ -42,13 +43,47 @@ export function providerConfiguration(env: Env) {
       from_email: env.POSTMARK_FROM_EMAIL || null,
       message_stream: env.POSTMARK_MESSAGE_STREAM || "outbound",
     },
+    resend: {
+      api_key: Boolean(env.RESEND_API_KEY),
+      from_email: env.RESEND_FROM_EMAIL || null,
+      priority: "primary",
+    },
     capabilities: {
       inspect: true,
-      send_controlled_test: Boolean(env.POSTMARK_SERVER_TOKEN),
+      send_controlled_test: Boolean(env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN),
       apply_fixed_supabase_checks: Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
       rotate_credentials: false,
     },
   };
+}
+
+export async function verifyResend(env: Env, fetchImpl: typeof fetch = fetch): Promise<ProviderStatus> {
+  if (!env.RESEND_API_KEY) {
+    return { configured: false, healthy: false, message: "RESEND_API_KEY not configured", details: {} };
+  }
+  try {
+    const res = await fetchImpl(RESEND_DOMAINS_URL, {
+      headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, accept: "application/json" },
+    });
+    const payload = await responseJson(res);
+    const domains = Array.isArray(payload.data) ? payload.data as Array<Record<string, unknown>> : [];
+    const domain = domains.find((item) => item.name === "noema.guru") || null;
+    const healthy = res.ok && domain?.status === "verified";
+    return {
+      configured: true,
+      healthy,
+      message: healthy ? "Resend API and noema.guru domain are verified" : "Resend verification failed",
+      details: {
+        status: res.status,
+        domain_present: Boolean(domain),
+        domain_status: domain?.status ?? null,
+        region: domain?.region ?? null,
+        priority: "primary",
+      },
+    };
+  } catch (error) {
+    return { configured: true, healthy: false, message: safeMessage(error), details: {} };
+  }
 }
 
 export async function verifyPostmark(env: Env, fetchImpl: typeof fetch = fetch): Promise<ProviderStatus> {
@@ -123,14 +158,15 @@ export async function verifySupabase(env: Env, fetchImpl: typeof fetch = fetch):
 }
 
 export async function providerOverview(env: Env, fetchImpl: typeof fetch = fetch) {
-  const [supabase, postmark] = await Promise.all([
+  const [supabase, resend, postmark] = await Promise.all([
     verifySupabase(env, fetchImpl),
+    verifyResend(env, fetchImpl),
     verifyPostmark(env, fetchImpl),
   ]);
   return {
     configuration: providerConfiguration(env),
-    providers: { supabase, postmark },
-    ready_for_deploy: supabase.healthy === true && postmark.healthy === true,
+    providers: { supabase, resend, postmark },
+    ready_for_deploy: supabase.healthy === true && (resend.healthy === true || postmark.healthy === true),
     secrets_exposed: false,
   };
 }
