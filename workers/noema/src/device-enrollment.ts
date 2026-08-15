@@ -91,10 +91,10 @@ export function normalizeUserCode(raw: string): string {
   return `${hex.slice(0, 4)}-${hex.slice(4)}`;
 }
 
-export function filterGameScopes(input?: string[]): string[] {
-  const wanted = new Set(GAME_SCOPES);
-  const kept = (input || []).filter((s) => wanted.has(s as (typeof GAME_SCOPES)[number]));
-  return kept.length ? [...new Set(kept)] : [...GAME_SCOPES];
+/** Drop unknown/admin scopes from requests; always persist the full default set. */
+export function filterGameScopes(_input?: string[]): string[] {
+  // Consent echo and JWT mint both use all GAME_SCOPES; never store a subset.
+  return [...GAME_SCOPES];
 }
 
 export async function hashDeviceSecret(value: string): Promise<string> {

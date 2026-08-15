@@ -5,12 +5,14 @@ import {
   denyDevice,
   DEVICE_TTL_MS,
   durableDeviceStore,
+  GAME_SCOPES,
   memoryDeviceStore,
   parseDeviceRecord,
   pollDeviceToken,
   previewDevice,
   startDeviceEnrollment,
 } from "../src/device-enrollment";
+import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
 function env(partial: Partial<Env> = {}): Env {
@@ -73,8 +75,12 @@ describe("startDeviceEnrollment", () => {
         { store },
       );
       const body = (await res.json()) as { scopes: string[] };
-      // Admin scopes dropped; only requested game scopes kept (same for every runtime).
-      expect(body.scopes).toEqual(["noema.player.read"]);
+      // Admin dropped; always echo full GAME_SCOPES (matches minted JWT).
+      expect(body.scopes).toEqual([
+        "noema.player.read",
+        "noema.world.observe",
+        "noema.action.submit",
+      ]);
     }
   });
 });
@@ -178,6 +184,40 @@ describe("denyDevice", () => {
     expect(res.status).toBe(200);
     expect(((await res.json()) as { status: string }).status).toBe("denied");
   });
+
+  it("fail-closed: poll after deny returns 401 and no access_token", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store },
+    );
+    const { device_code, user_code } = (await started.json()) as {
+      device_code: string;
+      user_code: string;
+    };
+    const token = await humanBearer(e);
+    await denyDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/deny", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { user_code },
+      { store },
+    );
+    const res = await pollDeviceToken(
+      e,
+      new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }),
+      { device_code },
+      { store },
+    );
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { access_token?: string };
+    expect(body.access_token).toBeUndefined();
+  });
 });
 
 describe("pollDeviceToken", () => {
@@ -219,10 +259,20 @@ describe("pollDeviceToken", () => {
       { device_code },
       { store },
     );
-    const minted = (await first.json()) as { access_token: string; status: string; player_id: string };
+    const minted = (await first.json()) as {
+      access_token: string;
+      status: string;
+      player_id: string;
+      scopes: string[];
+    };
     expect(minted.status).toBe("approved");
     expect(minted.player_id).toBe("player.prabu");
     expect(minted.access_token.length).toBeGreaterThan(20);
+    expect(minted.scopes).toEqual([...GAME_SCOPES]);
+    const claims = await verifyHs256(minted.access_token, "test-signing-secret");
+    expect(claims.typ).toBe("access");
+    expect(claims.controller_type).toBe("agent");
+    expect(claims.scopes).toEqual([...GAME_SCOPES]);
 
     const second = await pollDeviceToken(
       e,
@@ -251,6 +301,32 @@ describe("pollDeviceToken", () => {
       { store, now: now + DEVICE_TTL_MS + 1 },
     );
     expect(res.status).toBe(401);
+  });
+});
+
+describe("approveDevice fail-closed after expiry", () => {
+  it("rejects approve after DEVICE_TTL_MS with 409", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const now = Date.parse("2026-08-15T12:00:00Z");
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store, now },
+    );
+    const { user_code } = (await started.json()) as { user_code: string };
+    const token = await humanBearer(e);
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { user_code },
+      { store, now: now + DEVICE_TTL_MS + 1 },
+    );
+    expect(res.status).toBe(409);
   });
 });
 
