@@ -34,7 +34,7 @@ export interface Env {
   ADMIN_MAIL?: {
     send(message: unknown): Promise<void | { messageId?: string }>;
   };
-  /** Postmark server token — preferred Worker-sent PLAY and ADMIN letters. Secret. */
+  /** Postmark server token — standby Worker-sent PLAY/ADMIN/agent letters. Secret. */
   POSTMARK_SERVER_TOKEN?: string;
   /** Optional Postmark account token. Break-glass operations only. */
   POSTMARK_ACCOUNT_TOKEN?: string;

@@ -8,7 +8,7 @@ export type PostmarkMail = {
   subject: string;
   html: string;
   text: string;
-  tag: "play-magic-link" | "admin-magic-link";
+  tag: "play-magic-link" | "admin-magic-link" | "agent-bootstrap";
 };
 
 type PostmarkResponse = {

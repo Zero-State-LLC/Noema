@@ -31,6 +31,13 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
    Production operator mint (ADMIN session required):
      POST /v1/admin/controller-token
      { "handle": "hermes", "controller_type": "agent", "expires_in": 86400 }
+   Email bootstrap (ADMIN session required; RFC-0033):
+     POST /v1/admin/agent/enroll
+     { "handle": "hermes", "email": "operator@example.com" }
+     Then open `/connect/enroll?eid=…&t=…` — GET is review only.
+     POST /v1/admin/agent/enroll/decide
+     { "enrollment_id": "…", "token": "…", "decision": "approve" }
+     Discovery: `GET /.well-known/noema-agent.json`
    Preview/local only:
      POST /v1/auth/dev-token
      { "handle": "hermes", "controller_type": "agent" }

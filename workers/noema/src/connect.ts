@@ -16,6 +16,8 @@ pre.snip{
   padding:.6rem 0;border-bottom:1px solid rgba(42,51,66,.55);font-size:.9rem;
 }
 .seq b{color:var(--copper);font:.6rem var(--font-mono);letter-spacing:.08em}
+.kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
+.kv dt{color:var(--muted)}
 `;
 
 export function connectHtml(): string {
@@ -136,5 +138,95 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
     body,
     extraCss: EXTRA,
     description: "Connect an external agent Controller to NOEMA. Same Player ontology as humans.",
+  });
+}
+
+export function enrollHtml(): string {
+  const body = `
+  <header style="margin-bottom:1.25rem">
+    <h1>Review agent enrollment</h1>
+    <p class="muted">This page only shows the request. Approval requires an operator session and never happens on first open.</p>
+  </header>
+  <article class="card pad">
+    <p class="kicker">Request</p>
+    <p class="notice" id="e-notice" role="status">Loading…</p>
+    <dl class="kv" id="e-preview" hidden></dl>
+    <div class="btn-row" id="e-actions" hidden style="margin-top:.9rem">
+      <button type="button" class="btn primary" id="e-approve">Approve</button>
+      <button type="button" class="btn" id="e-deny">Deny</button>
+    </div>
+    <p class="empty" id="e-login" hidden>Sign in at <a href="/admin/login">Admin login</a>, then return to this page to approve or deny.</p>
+    <pre class="snip" id="e-out" hidden></pre>
+  </article>
+  <script>
+  (() => {
+    const params = new URLSearchParams(location.search);
+    const eid = params.get("eid") || "";
+    const token = params.get("t") || "";
+    const notice = document.getElementById("e-notice");
+    const preview = document.getElementById("e-preview");
+    const actions = document.getElementById("e-actions");
+    const login = document.getElementById("e-login");
+    const out = document.getElementById("e-out");
+    function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
+    function adminToken(){ try { return sessionStorage.getItem("noema.admin.token") || ""; } catch(_) { return ""; } }
+    async function load(){
+      if (!eid || !token) { notice.className="notice bad"; notice.textContent="Missing enrollment link."; return; }
+      try {
+        const r = await fetch("/v1/agent/enroll/preview?eid="+encodeURIComponent(eid)+"&t="+encodeURIComponent(token));
+        const j = await r.json();
+        if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
+        notice.className="notice"; notice.textContent="Status: "+j.status+". Opening this page did not approve the request.";
+        preview.hidden=false;
+        row("Player", j.player_id || "");
+        row("Handle", j.handle || "");
+        row("World", j.world_id || "");
+        row("Scopes", (j.requested_scopes||[]).join(", "));
+        row("Expires", j.expires_at || "");
+        if (j.status === "pending") {
+          if (adminToken()) actions.hidden=false;
+          else login.hidden=false;
+        }
+      } catch(e) {
+        notice.className="notice bad"; notice.textContent=e.message || "unknown enrollment";
+      }
+    }
+    async function decide(decision){
+      notice.className="notice"; notice.textContent=decision==="approve"?"Approving…":"Denying…";
+      try {
+        const r = await fetch("/v1/admin/agent/enroll/decide", {
+          method:"POST",
+          headers:{ "content-type":"application/json", authorization:"Bearer "+adminToken() },
+          body: JSON.stringify({ enrollment_id: eid, token: token, decision: decision })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
+        actions.hidden=true;
+        if (decision==="approve") {
+          notice.className="notice ok";
+          notice.textContent="Approved. Controller token shown once below — not mailed.";
+          out.hidden=false;
+          out.textContent="export NOEMA_BASE="+location.origin+"\\nexport TOKEN="+(j.access_token||"");
+        } else {
+          notice.className="notice"; notice.textContent="Denied. No credential was issued.";
+        }
+      } catch(e) {
+        notice.className="notice bad";
+        notice.textContent=e.message || "decide failed";
+        if (/not authorized|Bearer/i.test(e.message||"")) login.hidden=false;
+      }
+    }
+    document.getElementById("e-approve").addEventListener("click", () => decide("approve"));
+    document.getElementById("e-deny").addEventListener("click", () => decide("deny"));
+    load();
+  })();
+  </script>
+  `;
+  return productShell({
+    title: "Review enrollment",
+    active: "connect",
+    body,
+    extraCss: EXTRA,
+    description: "Review a pending agent Controller enrollment. Opening this page does not approve it.",
   });
 }

@@ -28,6 +28,7 @@ import {
   type DigestEvent,
   type OperatorDigest,
 } from "./operator-digests";
+import type { EnrollmentRecord } from "./enrollment";
 import {
   commitCanonicalSettlement,
   getWorldHead,
@@ -163,6 +164,28 @@ export class NoemaWorldDO {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (path.endsWith("/enroll") || path === "/enroll") {
+      const bag =
+        (await this.state.storage.get<Record<string, EnrollmentRecord>>("enrollments")) || {};
+      if (request.method === "PUT") {
+        const rec = (await request.json()) as EnrollmentRecord;
+        if (!rec?.enrollment_id) return Response.json({ error: "enrollment_id required" }, { status: 400 });
+        bag[rec.enrollment_id] = rec;
+        await this.state.storage.put("enrollments", bag);
+        return Response.json({ ok: true });
+      }
+      if (request.method === "GET") {
+        const id = url.searchParams.get("id");
+        if (id) {
+          const rec = bag[id];
+          if (!rec) return new Response("{}", { status: 404 });
+          return Response.json(rec);
+        }
+        return Response.json({ records: Object.values(bag) });
+      }
+      return new Response("method not allowed", { status: 405 });
+    }
 
     if (request.method === "GET" && path.endsWith("/health")) {
       await this.load();

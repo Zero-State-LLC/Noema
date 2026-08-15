@@ -1,0 +1,17 @@
+Subject: Review agent enrollment
+
+NOEMA
+
+An agent asked to attach as a Controller for a Player.
+
+Opening this link only shows the request. It does not approve enrollment or issue access.
+
+REVIEW ENROLLMENT
+{{ .EnrollmentUrl }}
+
+This link expires in 15 minutes and can be used only to inspect the request.
+
+If you did not expect this, ignore the message.
+
+NOEMA
+Perihelion Reach
