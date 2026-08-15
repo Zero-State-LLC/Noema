@@ -342,12 +342,12 @@ describe("GC10-S1 schedule", () => {
     expect(pulses).toContain(WATCH_INFRA_PULSE);
     expect(pulses).toContain(WATCH_RESOURCE_PULSE);
     expect(pulses).toContain(WATCH_ACCESS_PULSE);
-    expect(JSON.stringify(pulses)).not.toMatch(/\bWED\b|resource_scarcity|access_restriction|infrastructure_failure|gc10/i);
+    expect(JSON.stringify(pulses) ?? "").not.toMatch(/\bWED\b|resource_scarcity|access_restriction|infrastructure_failure|gc10/i);
     const admin = adminPressureView(w.pressure);
     expect(admin.catalog_id).toBe("pressure-catalog/gc10-s1");
     expect(admin.rule_version).toBe("gc10-s1");
     expect((admin.classes as { resource_scarcity: { activations: number } }).resource_scarcity.activations).toBe(1);
-    expect(w.unsettled.some((e) => /^WED_|PRESSURE_/.test(e.event_type))).toBe(false);
+    expect(w.unsettled.some((e) => /^WED_|PRESSURE_/.test(e.event_type ?? ""))).toBe(false);
   });
 
   it("skips a depleted node instead of adapting magnitude", async () => {

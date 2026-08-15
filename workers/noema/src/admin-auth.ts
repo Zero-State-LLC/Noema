@@ -194,7 +194,7 @@ export async function requestAdminMagicLink(
   env: Env,
   req: Request,
   body: { email?: string },
-  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendAdmin?: AdminMailer },
+  opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendAdmin?: AdminMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ADMIN_OPERATOR_EMAIL));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
@@ -210,7 +210,7 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canWorkerSend = Boolean(opts?.sendAdmin || env.ADMIN_MAIL || env.RESEND_API_KEY);
+      const canWorkerSend = Boolean(opts?.sendAdmin || env.POSTMARK_SERVER_TOKEN || env.ADMIN_MAIL);
       let sent = false;
       if (canWorkerSend) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
@@ -236,10 +236,14 @@ export async function requestAdminMagicLink(
         );
         if (res.ok && extracted) {
           const href = adminMagicLinkHref(origin, extracted.token, extracted.type);
-          const mail = composeAdminMail(href);
-          const send = opts?.sendAdmin || ((m) => deliverAdminMail(env, m));
-          await send(mail);
-          sent = true;
+          const mail = composeAdminMail(href, email);
+          const send = opts?.sendAdmin || ((m) => deliverAdminMail(env, m, opts?.mailFetch));
+          try {
+            await send(mail);
+            sent = true;
+          } catch (e) {
+            console.error("admin provider delivery failed", e instanceof Error ? e.message : "error");
+          }
         } else {
           console.error("admin generate_link failed", res.status);
         }

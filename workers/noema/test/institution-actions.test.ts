@@ -119,7 +119,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
   it("parses acting-for aliases and keeps them off KNOWN COMMANDS", () => {
     const trade = parseHumanCommand("trade for org.line player.vesper offer=energy:3 want=storage:1");
     expect(trade.ok).toBe(true);
-    if (trade.ok) {
+    if (trade.ok && trade.action.verb === "TRADE") {
       expect(trade.action.verb).toBe("TRADE");
       expect(trade.action.arguments.acting_for).toBe("org.line");
     }

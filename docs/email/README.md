@@ -18,10 +18,11 @@ The Worker already sets `email_redirect_to` to `/play/callback` or `/admin/callb
 
 ## How mail is sent
 
-- **PLAY** — Supabase Magic Link template. Paste `supabase-magic-link.html` (subject `Enter NOEMA`) into Authentication → Emails → Magic Link.
-- **ADMIN** — Worker-sent. `requestAdminMagicLink` calls Supabase `generate_link` (does not use the dashboard Magic Link template), then `ADMIN_MAIL` (Email Routing) sends `admin-magic-link.html` to `zer0state@zer0state.com` only.
+- **PLAY** — preferred Worker-sent Postmark message. The Worker calls Supabase `generate_link`, composes `play-magic-link.html`, and sends with tag `play-magic-link`.
+- **ADMIN** — preferred Worker-sent Postmark message after the operator allowlist check. It uses `admin-magic-link.html` and tag `admin-magic-link`.
+- **Fallback** — PLAY uses Supabase `/otp`. ADMIN uses `ADMIN_MAIL` (Email Routing) when bound, then Supabase `/otp`.
 
-If `ADMIN_MAIL` is unbound, ADMIN falls back to Supabase `/otp` (Player-shaped dashboard template). Do not paste the Admin body into the Magic Link slot.
+Configure `POSTMARK_SERVER_TOKEN` as a Worker secret. `POSTMARK_MESSAGE_STREAM` defaults to `outbound`; `POSTMARK_FROM_EMAIL` may override the per-message sender and must be verified in Postmark. Keep `supabase-magic-link.html` in the Supabase Magic Link dashboard slot for fallback delivery. Do not paste the Admin body into that slot.
 
 Allowlist:
 

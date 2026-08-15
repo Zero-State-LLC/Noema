@@ -1,12 +1,10 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY uses Resend when RESEND_API_KEY is set.
+ * PLAY and ADMIN prefer Postmark when POSTMARK_SERVER_TOKEN is set.
  */
 
-import { sendResendEmail } from "./resend";
+import { sendPostmarkEmail } from "./postmark";
 import type { Env } from "./types";
-
-const OPERATOR_INBOX = "zer0state@zer0state.com";
 
 export const ADMIN_MAIL_SUBJECT = "NOEMA Admin Access";
 export const ADMIN_MAIL_FROM = "admin@noema.guru";
@@ -165,16 +163,26 @@ export async function deliverAdminMail(env: Env, mail: {
   subject: string;
   html: string;
   text: string;
-}): Promise<void> {
-  if (env.RESEND_API_KEY) {
-    await sendResendEmail(env, {
-      from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,
-      to: mail.to,
-      subject: mail.subject,
-      html: mail.html,
-      text: mail.text,
-    });
-    return;
+}, fetchImpl: typeof fetch = fetch): Promise<void> {
+  if (env.POSTMARK_SERVER_TOKEN) {
+    try {
+      const messageId = await sendPostmarkEmail(env, {
+        from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,
+        to: mail.to,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        tag: "admin-magic-link",
+      }, fetchImpl);
+      console.log("admin-mail postmark sent", messageId);
+      return;
+    } catch (e) {
+      if (!env.ADMIN_MAIL) throw e;
+      console.error(
+        "admin-mail postmark failed; using email binding",
+        e instanceof Error ? e.message : "error",
+      );
+    }
   }
   if (!env.ADMIN_MAIL) throw new Error("ADMIN_MAIL not bound");
   const result = await env.ADMIN_MAIL.send({
@@ -187,7 +195,7 @@ export async function deliverAdminMail(env: Env, mail: {
   console.log("admin-mail sent", result && typeof result === "object" ? "ok" : "ok");
 }
 
-export function composeAdminMail(href: string): {
+export function composeAdminMail(href: string, to: string): {
   to: string;
   subject: string;
   html: string;
@@ -195,7 +203,7 @@ export function composeAdminMail(href: string): {
   href: string;
 } {
   return {
-    to: OPERATOR_INBOX,
+    to,
     subject: ADMIN_MAIL_SUBJECT,
     html: renderAdminMailHtml(href),
     text: renderAdminMailText(href),

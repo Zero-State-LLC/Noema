@@ -302,6 +302,18 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                     )
                 if path == "/auth/controller/revoke":
                     token = body.get("access_token") or self._bearer_token()
+                    if not token:
+                        return self._json(
+                            401,
+                            {
+                                "error": {
+                                    "code": "NOT_AUTHORIZED",
+                                    "message": "controller token required to revoke",
+                                    "retryable": False,
+                                    "details": {},
+                                }
+                            },
+                        )
                     return self._json(
                         200,
                         runtime.identity.revoke_controller(

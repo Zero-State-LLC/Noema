@@ -85,7 +85,7 @@ describe("requestPlayMagicLink", () => {
     expect(parsed.options.email_redirect_to).toBe("https://noema.guru/play/callback");
   });
 
-  it("uses generate_link and Resend when a play mailer is provided", async () => {
+  it("uses generate_link and Postmark when a play mailer is provided", async () => {
     const calls: string[] = [];
     const sent: { to: string; href: string }[] = [];
     const fetchImpl = async (url: string) => {
@@ -96,7 +96,7 @@ describe("requestPlayMagicLink", () => {
       );
     };
     const res = await requestPlayMagicLink(
-      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", POSTMARK_SERVER_TOKEN: "pm_test" }),
       new Request("https://noema.guru/x"),
       { email: "anyone@x.io" },
       {
@@ -111,6 +111,37 @@ describe("requestPlayMagicLink", () => {
     expect(calls).toEqual(["https://example.supabase.co/auth/v1/admin/generate_link"]);
     expect(sent).toEqual([
       { to: "anyone@x.io", href: "https://noema.guru/play/callback?token_hash=playhash&type=magiclink" },
+    ]);
+  });
+
+  it("falls back to Supabase otp when Postmark delivery fails", async () => {
+    const calls: string[] = [];
+    const res = await requestPlayMagicLink(
+      env({
+        SUPABASE_URL: "https://example.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "srk",
+        POSTMARK_SERVER_TOKEN: "pm_test",
+      }),
+      new Request("https://noema.guru/x"),
+      { email: "anyone@x.io" },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async (url) => {
+          calls.push(url);
+          if (url.endsWith("/admin/generate_link")) {
+            return new Response(JSON.stringify({ hashed_token: "playhash" }), { status: 200 });
+          }
+          return new Response("{}", { status: 200 });
+        },
+        sendPlay: async () => {
+          throw new Error("provider down");
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(calls).toEqual([
+      "https://example.supabase.co/auth/v1/admin/generate_link",
+      "https://example.supabase.co/auth/v1/otp",
     ]);
   });
 

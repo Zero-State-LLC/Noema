@@ -32,6 +32,7 @@ not_found_handling = "none"
 NOEMA_ENV = "local"
 NOEMA_PROTOCOL_VERSION = "1"
 DEFAULT_WORLD_ID = "world-01"
+POSTMARK_MESSAGE_STREAM = "outbound"
 
 [[durable_objects.bindings]]
 name = "WORLD_DO"
@@ -54,7 +55,7 @@ crons = ["*/15 * * * *"]
 # ADMIN_ALLOWLIST_EMAILS  (comma-separated operator mailboxes; never [vars])
 
 # Worker-sent ADMIN magic-link mail (Email Routing fallback).
-# Preferred outbound: RESEND_API_KEY secret (PLAY + ADMIN letters).
+# Preferred outbound: POSTMARK_SERVER_TOKEN secret (PLAY + ADMIN letters).
 [[send_email]]
 name = "ADMIN_MAIL"
 destination_address = "zer0state@zer0state.com"

@@ -95,11 +95,13 @@ npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 ## Secrets
 
 **Already on deployed Worker (names only):** `TOKEN_SIGNING_SECRET`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`.  
-**Still needed for settlement:** `SUPABASE_SERVICE_ROLE_KEY`.
+**Still needed for settlement and magic-link generation:** `SUPABASE_SERVICE_ROLE_KEY`.
+**Preferred auth mail:** `POSTMARK_SERVER_TOKEN`; verify `play@noema.guru` and `admin@noema.guru` (or set one verified `POSTMARK_FROM_EMAIL`).
 
 ```bash
 # Interactive (recommended)
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+npx wrangler secret put POSTMARK_SERVER_TOKEN
 
 # Or from a local gitignored file
 cp .env.example .env   # fill values

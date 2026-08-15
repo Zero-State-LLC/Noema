@@ -117,9 +117,9 @@ export function creditsFromEvent(
     actingPlayerId?: string;
     trades?: Record<string, PracticeTrade>;
   } = {},
-): Array<{ player_id: string; track_id: PracticeTrackId; unit: string }> {
+): PracticeEventCredit[] {
   const payload = ev.payload || {};
-  const out: Array<{ player_id: string; track_id: PracticeTrackId; unit: string }> = [];
+  const out: PracticeEventCredit[] = [];
   if (ev.event_type === "LOOK") {
     const playerId = payloadPlayer(payload);
     const roomId = payload.room_id;
@@ -168,6 +168,8 @@ export type PracticeCredit = {
   unit: string;
   recognition_unit?: string;
 };
+
+export type PracticeEventCredit = PracticeCredit & { player_id: string };
 
 export function applyPracticeCredits(
   state: PracticeState | undefined,

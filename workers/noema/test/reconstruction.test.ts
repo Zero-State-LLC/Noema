@@ -99,7 +99,7 @@ describe("GC6-S1 mapper", () => {
       'reconstruct entity.relay-7 "abandoned then restored" evidence=archive,inspect private',
     );
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) {
+    if (parsed.ok && parsed.action.verb === "COMMIT") {
       expect(parsed.action.arguments.operation).toBe("RECONSTRUCT");
     }
     const text = helpText();

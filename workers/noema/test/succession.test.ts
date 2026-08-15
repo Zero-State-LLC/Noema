@@ -132,13 +132,13 @@ describe("GC4-S4 designated succession", () => {
   it("parses succession aliases and keeps them off KNOWN COMMANDS", () => {
     const parsed = parseHumanCommand("succession office.treasurer player.sable player.vesper");
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) {
+    if (parsed.ok && parsed.action.verb === "COMMIT") {
       expect(parsed.action.arguments.operation).toBe("ORG_SUCCESSION_DESIGNATE");
       expect(parsed.action.arguments.successors).toEqual(["player.sable", "player.vesper"]);
     }
     const scope = parseHumanCommand("succession scope emscope.x player.sable");
     expect(scope.ok).toBe(true);
-    if (scope.ok) expect(scope.action.arguments.emergency_scope_id).toBe("emscope.x");
+    if (scope.ok && scope.action.verb === "COMMIT") expect(scope.action.arguments.emergency_scope_id).toBe("emscope.x");
     expect(helpText()).toMatch(/KNOWN COMMANDS/);
     expect(helpText()).not.toMatch(/succession|SUCCESSION_|DYNASTY|\bWED\b|ATTEST|BUILD|CONTEST/i);
     expect(helpText("org")).toMatch(/succession <office>/);
