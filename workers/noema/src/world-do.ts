@@ -210,7 +210,8 @@ export class NoemaWorldDO {
           if (!rec) return new Response("{}", { status: 404 });
           return Response.json(rec);
         }
-        return Response.json({ records: Object.values(bag) });
+        // No resolvable lookup key — same as unknown id (do not list the bag).
+        return new Response("{}", { status: 404 });
       }
       return new Response("method not allowed", { status: 405 });
     }

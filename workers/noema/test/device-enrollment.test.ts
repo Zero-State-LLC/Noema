@@ -6,6 +6,7 @@ import {
   DEVICE_TTL_MS,
   durableDeviceStore,
   memoryDeviceStore,
+  parseDeviceRecord,
   pollDeviceToken,
   previewDevice,
   startDeviceEnrollment,
@@ -256,5 +257,32 @@ describe("pollDeviceToken", () => {
 describe("durableDeviceStore", () => {
   it("is exported", () => {
     expect(typeof durableDeviceStore).toBe("function");
+  });
+});
+
+describe("parseDeviceRecord", () => {
+  it("rejects list bags and other non-records", () => {
+    expect(parseDeviceRecord({ records: [] })).toBeNull();
+    expect(parseDeviceRecord({ records: [{ device_code: "x" }] })).toBeNull();
+    expect(parseDeviceRecord(null)).toBeNull();
+    expect(parseDeviceRecord({})).toBeNull();
+  });
+
+  it("accepts a DeviceRecord-shaped object", () => {
+    const rec = parseDeviceRecord({
+      device_code: "abc",
+      device_code_hash: "h",
+      user_code: "ABCD-1234",
+      scopes: [],
+      runtime: "openclaw",
+      status: "pending",
+      player_id: null,
+      controller_id: null,
+      issued_at: "2026-01-01T00:00:00Z",
+      expires_at: "2026-01-01T00:10:00Z",
+    });
+    expect(rec?.device_code).toBe("abc");
+    expect(rec?.user_code).toBe("ABCD-1234");
+    expect(rec?.status).toBe("pending");
   });
 });

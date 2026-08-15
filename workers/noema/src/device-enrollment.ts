@@ -52,6 +52,17 @@ export function memoryDeviceStore(seed: DeviceRecord[] = []): DeviceStore {
   };
 }
 
+/** Accept DO JSON only when it looks like a single DeviceRecord (not a list bag). */
+export function parseDeviceRecord(data: unknown): DeviceRecord | null {
+  if (!data || typeof data !== "object") return null;
+  const o = data as Record<string, unknown>;
+  if (Array.isArray(o.records)) return null;
+  if (typeof o.device_code !== "string" || !o.device_code) return null;
+  if (typeof o.user_code !== "string") return null;
+  if (typeof o.status !== "string") return null;
+  return o as unknown as DeviceRecord;
+}
+
 export function durableDeviceStore(env: Env): DeviceStore {
   const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName("__noema_enrollments__"));
   return {
@@ -63,13 +74,13 @@ export function durableDeviceStore(env: Env): DeviceStore {
       const res = await stub.fetch(`https://do/device?device_code=${encodeURIComponent(deviceCode)}`);
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("device load failed");
-      return (await res.json()) as DeviceRecord;
+      return parseDeviceRecord(await res.json());
     },
     async getByUserCode(userCode) {
       const res = await stub.fetch(`https://do/device?user_code=${encodeURIComponent(userCode)}`);
       if (res.status === 404) return null;
       if (!res.ok) throw new Error("device load failed");
-      return (await res.json()) as DeviceRecord;
+      return parseDeviceRecord(await res.json());
     },
   };
 }
