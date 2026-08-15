@@ -12,6 +12,12 @@ export interface Env {
   SUPABASE_JWT_SECRET?: string;
   /** Project URL — used for ES256 JWKS at /auth/v1/.well-known/jwks.json */
   SUPABASE_URL?: string;
+  /** Optional Supabase Management API token. Break-glass operations only. */
+  SUPABASE_ACCESS_TOKEN?: string;
+  /** Hosted Supabase project reference. May be derived from SUPABASE_URL for inspection. */
+  SUPABASE_PROJECT_REF?: string;
+  /** Canonical settlement world row inspected by the admin provider gate. */
+  SUPABASE_CANONICAL_WORLD_ID?: string;
   /** Settlement only — never expose to clients/agents. */
   SUPABASE_SERVICE_ROLE_KEY?: string;
   /**
@@ -30,6 +36,8 @@ export interface Env {
   };
   /** Postmark server token — preferred Worker-sent PLAY and ADMIN letters. Secret. */
   POSTMARK_SERVER_TOKEN?: string;
+  /** Optional Postmark account token. Break-glass operations only. */
+  POSTMARK_ACCOUNT_TOKEN?: string;
   /** Optional verified sender override. */
   POSTMARK_FROM_EMAIL?: string;
   /** Postmark transactional stream; defaults to outbound. */
