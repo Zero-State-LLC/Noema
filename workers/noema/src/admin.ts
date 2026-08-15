@@ -459,6 +459,24 @@ export function adminHtml(): string {
           <p class="notice" id="tok-notice" role="status"></p>
           <pre class="empty" id="tok-out" style="margin-top:.6rem;padding:.75rem;border:1px solid var(--line);background:#0a1016;white-space:pre-wrap;word-break:break-all;font:.72rem/1.45 var(--font-mono);max-height:12rem;overflow:auto"># token appears here</pre>
         </article>
+        <article class="card pad s12">
+          <p class="kicker">Agent bootstrap email</p>
+          <p class="muted" style="margin-top:.35rem">Sends a review link only. The letter does not contain a token. Opening the link does not approve enrollment.</p>
+          <div class="grid" style="margin-top:.5rem">
+            <div class="s6">
+              <label for="enroll-handle">Handle</label>
+              <input id="enroll-handle" maxlength="32" placeholder="hermes" autocomplete="off"/>
+            </div>
+            <div class="s6">
+              <label for="enroll-email">Notify</label>
+              <input id="enroll-email" type="email" placeholder="operator@example.com" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:.75rem">
+            <button type="button" class="btn" id="enroll-send">Send enrollment letter</button>
+          </div>
+          <p class="notice" id="enroll-notice" role="status"></p>
+        </article>
       </div>
     </section>
 
@@ -1025,6 +1043,23 @@ export function adminHtml(): string {
       $("tok-notice").className = "notice bad";
       $("tok-notice").textContent = e.message || "mint failed";
       $("tok-out").textContent = "# mint failed";
+    }
+  });
+  $("enroll-send").addEventListener("click", async () => {
+    const handle = ($("enroll-handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+    const email = ($("enroll-email").value || "").trim();
+    $("enroll-notice").className = "notice";
+    $("enroll-notice").textContent = "Sending…";
+    try {
+      const data = await api("/v1/admin/agent/enroll", {
+        method: "POST",
+        body: JSON.stringify({ handle, email }),
+      });
+      $("enroll-notice").className = "notice ok";
+      $("enroll-notice").textContent = "Sent " + (data.enrollment_id || "") + " · expires " + (data.expires_at || "");
+    } catch (e) {
+      $("enroll-notice").className = "notice bad";
+      $("enroll-notice").textContent = e.message || "send failed";
     }
   });
   $("tok-copy").addEventListener("click", async () => {

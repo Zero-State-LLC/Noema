@@ -25,7 +25,16 @@ import {
   requireScope,
   resolvePrincipal,
 } from "./auth";
-import { connectHtml } from "./connect";
+import { connectHtml, enrollHtml } from "./connect";
+import {
+  bootstrapHttpsOrigin,
+  decideAgentEnrollment,
+  discoveryDocument,
+  durableEnrollmentStore,
+  getBootstrapDocument,
+  previewAgentEnrollment,
+  requestAgentEnrollment,
+} from "./enrollment";
 import { catalog, GenesisError, previewGenesis } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
@@ -167,6 +176,12 @@ export default {
       }
       if (request.method === "GET" && path === "/connect") {
         return html(connectHtml());
+      }
+      if (request.method === "GET" && path === "/connect/enroll") {
+        return html(enrollHtml());
+      }
+      if (request.method === "GET" && path === "/.well-known/noema-agent.json") {
+        return cors(json(discoveryDocument(bootstrapHttpsOrigin(env, request)), 200));
       }
 
       // Operator plane — NOT in product primary nav (admin ≠ player)
@@ -310,6 +325,30 @@ export default {
               "Controller token for a Player. Paste into PLAY session card → Access token or use as Bearer for agents. Not an ADMIN session.",
           }),
         );
+      }
+
+      if (request.method === "POST" && path === "/v1/admin/agent/enroll") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as { email?: string; handle?: string };
+        return cors(await requestAgentEnrollment(env, request, body, { store: durableEnrollmentStore(env) }));
+      }
+      if (request.method === "GET" && path === "/v1/agent/enroll/preview") {
+        return cors(await previewAgentEnrollment(env, request, { store: durableEnrollmentStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/admin/agent/enroll/decide") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          enrollment_id?: string;
+          token?: string;
+          decision?: string;
+        };
+        return cors(await decideAgentEnrollment(env, request, body, { store: durableEnrollmentStore(env) }));
+      }
+      if (request.method === "GET" && path.startsWith("/v1/agent/bootstrap/")) {
+        const enrollmentId = path.slice("/v1/agent/bootstrap/".length);
+        return cors(await getBootstrapDocument(env, request, enrollmentId, { store: durableEnrollmentStore(env) }));
       }
 
       if (request.method === "GET" && path === "/v1/admin/overview") {

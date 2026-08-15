@@ -8,7 +8,7 @@ export type ResendMail = {
   subject: string;
   html: string;
   text: string;
-  tag: "play-magic-link" | "admin-magic-link";
+  tag: "play-magic-link" | "admin-magic-link" | "agent-bootstrap";
 };
 
 type ResendResponse = { id?: string; message?: string };

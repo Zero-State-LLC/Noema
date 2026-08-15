@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectHtml } from "../src/connect";
+import { connectHtml, enrollHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
 import { playHtml } from "../src/play";
@@ -157,6 +157,13 @@ describe("planes", () => {
   it("connect has curl and command path", () => {
     expect(connectHtml()).toContain("NOEMA_BASE");
     expect(connectHtml()).toContain("/v1/command");
+  });
+  it("enrollment review page does not auto-approve", () => {
+    const html = enrollHtml();
+    expect(html).toContain("Review agent enrollment");
+    expect(html).toContain("did not approve");
+    expect(html).toContain("/v1/admin/agent/enroll/decide");
+    expect(html).not.toMatch(/\.innerHTML\s*=/);
   });
   it("play spent-link copy is on the door", () => {
     expect(playHtml()).toMatch(/expired or invalid/i);

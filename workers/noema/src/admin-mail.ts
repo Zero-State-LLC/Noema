@@ -1,6 +1,6 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY and ADMIN prefer Postmark when POSTMARK_SERVER_TOKEN is set.
+ * PLAY and ADMIN prefer Resend when RESEND_API_KEY is set; Postmark is standby.
  */
 
 import { sendTransactionalEmail } from "./email-provider";
