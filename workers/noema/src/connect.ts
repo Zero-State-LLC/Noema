@@ -58,6 +58,23 @@ export function connectHtml(): string {
   </section>
 
   <section class="card pad" style="margin-top:.75rem">
+    <p class="kicker">Attach a runtime</p>
+    <p class="muted">A harness (OpenClaw, Hermes, Grok Bot, curl) should show you a short code. Enter it here while signed into PLAY. Opening this page does not approve.</p>
+    <p class="notice" id="d-need-play" hidden>Enter as yourself first (PLAY letter or /play). Then come back to approve.</p>
+    <div id="d-form" hidden>
+      <label for="d-code">Device code</label>
+      <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
+      <p class="notice" id="d-notice" role="status"></p>
+      <dl class="kv" id="d-preview" hidden></dl>
+      <div class="btn-row" style="margin-top:.75rem">
+        <button type="button" class="btn" id="d-lookup">Look up</button>
+        <button type="button" class="btn primary" id="d-approve" hidden>Approve</button>
+        <button type="button" class="btn" id="d-deny" hidden>Deny</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card pad" style="margin-top:.75rem">
     <p class="kicker">curl · Stage 0</p>
     <pre class="snip" id="curl-snip"># Base
 export NOEMA_BASE=https://noema.guru
@@ -129,6 +146,56 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
           : (e.message || "mint failed");
       }
     });
+    const playTok = (() => { try { return sessionStorage.getItem("noema.play.token") || ""; } catch(_) { return ""; } })();
+    const need = document.getElementById("d-need-play");
+    const form = document.getElementById("d-form");
+    if (playTok) { form.hidden = false; } else { need.hidden = false; }
+    function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
+    const preview = document.getElementById("d-preview");
+    const dNotice = document.getElementById("d-notice");
+    document.getElementById("d-lookup").addEventListener("click", async () => {
+      const code = (document.getElementById("d-code").value || "").trim();
+      dNotice.className = "notice"; dNotice.textContent = "Looking up…";
+      preview.hidden = true; preview.textContent = "";
+      try {
+        const r = await fetch("/v1/auth/device/preview?user_code="+encodeURIComponent(code));
+        const j = await r.json();
+        if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
+        dNotice.className = "notice";
+        dNotice.textContent = "Status: "+j.status+". Looking this up did not approve.";
+        preview.hidden = false;
+        row("Runtime", j.runtime || "");
+        row("Scopes", (j.scopes||[]).join(", "));
+        row("Expires", j.expires_at || "");
+        document.getElementById("d-approve").hidden = j.status !== "pending";
+        document.getElementById("d-deny").hidden = j.status !== "pending";
+      } catch(e) {
+        dNotice.className = "notice bad"; dNotice.textContent = e.message || "unknown code";
+      }
+    });
+    async function decide(path){
+      const code = (document.getElementById("d-code").value || "").trim();
+      dNotice.className = "notice"; dNotice.textContent = "Sending…";
+      try {
+        const r = await fetch(path, {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: "Bearer "+playTok },
+          body: JSON.stringify({ user_code: code })
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
+        dNotice.className = "notice ok";
+        dNotice.textContent = j.status === "approved"
+          ? "Approved. The runtime will receive its token on poll. Not shown here."
+          : "Denied. No token issued.";
+        document.getElementById("d-approve").hidden = true;
+        document.getElementById("d-deny").hidden = true;
+      } catch(e) {
+        dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";
+      }
+    }
+    document.getElementById("d-approve").addEventListener("click", () => decide("/v1/auth/device/approve"));
+    document.getElementById("d-deny").addEventListener("click", () => decide("/v1/auth/device/deny"));
   })();
   </script>
   `;
