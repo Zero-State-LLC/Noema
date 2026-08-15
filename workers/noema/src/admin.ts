@@ -240,6 +240,7 @@ export function adminHtml(): string {
       <a href="#genesis">Genesis</a>
       <a href="#digests">Digests</a>
       <a href="#players">Players</a>
+      <a href="#providers">Providers</a>
       <a href="#boundary">Boundaries</a>
     </nav>
     <div class="rail-foot"><strong style="color:var(--teal);font-size:.65rem">ADMIN ONLY</strong><br/>Controller type is metadata. Humans and agents are both Players in the world.</div>
@@ -461,8 +462,40 @@ export function adminHtml(): string {
       </div>
     </section>
 
+    <section class="section" id="providers">
+      <p class="kicker">05 / providers</p>
+      <h2>Deployment providers</h2>
+      <p class="muted">Redacted readiness only. Provider credentials remain server-side and are never returned to this page.</p>
+      <div class="grid" style="margin-top:.75rem">
+        <article class="card pad s6">
+          <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
+            <div><p class="kicker">Canonical settlement</p><h2 style="font-size:1.1rem">Supabase</h2></div>
+            <span class="tag" id="provider-supabase-tag">checking</span>
+          </div>
+          <p class="muted" id="provider-supabase-message">Verifying fixed canonical head checks…</p>
+          <dl class="kv" id="provider-supabase-details"></dl>
+          <button class="btn quiet" type="button" id="provider-supabase-verify" style="margin-top:.75rem">Verify Supabase</button>
+        </article>
+        <article class="card pad s6">
+          <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
+            <div><p class="kicker">Transactional mail</p><h2 style="font-size:1.1rem">Postmark</h2></div>
+            <span class="tag" id="provider-postmark-tag">checking</span>
+          </div>
+          <p class="muted" id="provider-postmark-message">Verifying server and message stream…</p>
+          <dl class="kv" id="provider-postmark-details"></dl>
+          <button class="btn quiet" type="button" id="provider-postmark-verify" style="margin-top:.75rem">Verify Postmark</button>
+        </article>
+        <article class="card pad s12">
+          <p class="kicker">Break-glass boundary</p>
+          <p class="empty">Secret values, arbitrary SQL, unrestricted recipients, and credential rotation are intentionally unavailable to browser code. Configure management credentials as Worker secrets before enabling reviewed break-glass operations.</p>
+          <dl class="kv" id="provider-capabilities"></dl>
+        </article>
+      </div>
+      <p class="notice" id="provider-notice" role="status"></p>
+    </section>
+
     <section class="section" id="boundary">
-      <p class="kicker">05 / boundaries</p>
+      <p class="kicker">06 / boundaries</p>
       <h2>What this plane is not</h2>
       <div class="grid" style="margin-top:.75rem">
         <article class="card pad s6">
@@ -519,6 +552,31 @@ export function adminHtml(): string {
       dt.textContent=k; dd.textContent=v==null||v===""?"—":String(v);
       root.append(dt, dd);
     });
+  }
+
+  function renderProvider(name, status) {
+    const tag = $("provider-" + name + "-tag");
+    const message = $("provider-" + name + "-message");
+    tag.textContent = status.healthy === true ? "READY" : status.configured ? "CHECK" : "MISSING";
+    tag.className = "tag " + (status.healthy === true ? "ok" : "bad");
+    message.textContent = status.message || "No provider result.";
+    kv($("provider-" + name + "-details"), Object.entries(status.details || {}));
+  }
+
+  async function loadProviders() {
+    const data = await api("/v1/admin/providers");
+    renderProvider("supabase", data.providers.supabase);
+    renderProvider("postmark", data.providers.postmark);
+    const c = data.configuration || {};
+    const caps = c.capabilities || {};
+    kv($("provider-capabilities"), [
+      ["Ready for deploy", data.ready_for_deploy ? "yes" : "no"],
+      ["Supabase management token", c.supabase && c.supabase.management_token ? "configured" : "missing"],
+      ["Postmark account token", c.postmark && c.postmark.account_token ? "configured" : "missing"],
+      ["Controlled mail test", caps.send_controlled_test ? "available" : "unavailable"],
+      ["Credential rotation", caps.rotate_credentials ? "available" : "disabled"],
+      ["Secrets exposed", data.secrets_exposed ? "ERROR" : "no"],
+    ]);
   }
 
   let lastPreview = null;
@@ -751,6 +809,10 @@ export function adminHtml(): string {
         const latest = (dg.digests || [])[0];
         $("d-latest").textContent = latest ? latest.text : "No digest yet.";
       } catch (_) { /* digest surface optional if DO old */ }
+      try { await loadProviders(); } catch (e) {
+        $("provider-notice").textContent = e.message || "Provider status unavailable";
+        $("provider-notice").className = "notice bad";
+      }
 
       notice("Operator projection updated.", "ok");
     } catch (e) {
@@ -764,6 +826,26 @@ export function adminHtml(): string {
       notice(e.message || "Admin projection unavailable", "bad");
     }
   }
+
+  async function verifyProvider(provider) {
+    const n = $("provider-notice");
+    n.className = "notice";
+    n.textContent = "Verifying " + provider + "…";
+    try {
+      const status = await api("/v1/admin/providers/verify", {
+        method: "POST",
+        body: JSON.stringify({ provider }),
+      });
+      renderProvider(provider, status);
+      n.textContent = status.message;
+      n.className = "notice " + (status.healthy ? "ok" : "bad");
+    } catch (e) {
+      n.textContent = e.message || "Provider verification failed";
+      n.className = "notice bad";
+    }
+  }
+  $("provider-supabase-verify").addEventListener("click", () => verifyProvider("supabase"));
+  $("provider-postmark-verify").addEventListener("click", () => verifyProvider("postmark"));
 
   $("life-incident-confirm").addEventListener("change", (e) => {
     $("life-incident").disabled = !e.target.checked;
@@ -1003,4 +1085,3 @@ export function adminHtml(): string {
 </script>`,
   );
 }
-
