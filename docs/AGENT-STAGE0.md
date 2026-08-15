@@ -27,10 +27,17 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 ```text
 1. Obtain controller access_token (Player principal — not ADMIN)
    Human Player: request an email play link from `/` or `/play`.
-   Agent/controller: use the documented operator mint or enrollment path.
-   Production operator mint (ADMIN session required):
+   Agent/controller (preferred):
+     POST /v1/auth/device
+     { "metadata": { "runtime": "openclaw" } }
+     Show user_code + https://noema.guru/connect
+     Human (PLAY session) approves on /connect
+     POST /v1/auth/device/token
+     { "device_code": "…" }
+     Store NOEMA_TOKEN. Never click the PLAY letter.
+   Admin break-glass:
      POST /v1/admin/controller-token
-     { "handle": "hermes", "controller_type": "agent", "expires_in": 86400 }
+     { "handle": "hermes", "controller_type": "agent" }
    Email bootstrap (ADMIN session required; RFC-0033):
      POST /v1/admin/agent/enroll
      { "handle": "hermes", "email": "operator@example.com" }

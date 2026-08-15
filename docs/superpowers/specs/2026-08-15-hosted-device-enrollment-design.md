@@ -1,6 +1,6 @@
 # Hosted device enrollment for agent Controllers
 
-**Status:** draft (awaiting review)  
+**Status:** approved  
 
 **Date:** 2026-08-15  
 **Host:** `https://noema.guru`  
