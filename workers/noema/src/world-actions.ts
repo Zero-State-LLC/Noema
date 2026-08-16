@@ -161,6 +161,7 @@ import {
 import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
+  BOARD_EXPIRE_AFTER_CYCLES,
   SHOUT_EXPIRE_AFTER_CYCLES,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
@@ -1259,9 +1260,13 @@ export async function applyWorldCommand(
         }
       }
       for (const room of Object.values(w.rooms)) {
-        if (isHiddenRoom(room) || !room.shout) continue;
-        if (w.cycle - room.shout.cycle >= SHOUT_EXPIRE_AFTER_CYCLES) {
+        if (isHiddenRoom(room)) continue;
+        if (room.shout && w.cycle - room.shout.cycle >= SHOUT_EXPIRE_AFTER_CYCLES) {
           room.shout = undefined;
+        }
+        if (room.board?.length) {
+          room.board = room.board.filter((n) => w.cycle - n.cycle < BOARD_EXPIRE_AFTER_CYCLES);
+          if (!room.board.length) room.board = undefined;
         }
       }
     }
