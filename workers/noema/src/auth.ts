@@ -11,6 +11,12 @@ function newId(prefix: string): string {
   return `${prefix}.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
+function sessionIdFromClaims(raw: unknown): string {
+  const sid = String(raw || "");
+  if (/^sess\.[a-z0-9]{8,32}$/i.test(sid)) return sid;
+  return newId("sess");
+}
+
 function bearer(req: Request): string | null {
   const h = req.headers.get("Authorization") || "";
   if (h.toLowerCase().startsWith("bearer ")) return h.slice(7).trim() || null;
@@ -47,7 +53,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
         player_id: String(claims.player_id),
         agent_id: String(claims.agent_id || `agent.${claims.player_id}`),
         identity_id: claims.sub ? String(claims.sub) : undefined,
-        session_id: newId("sess"),
+        session_id: sessionIdFromClaims(claims.sid),
         controller_id: String(claims.controller_id),
         controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
         issued_by: claims.issued_by === "admin" ? "admin" : undefined,
@@ -142,6 +148,8 @@ export type MintControllerOptions = {
   playerId?: string;
   identityId?: string;
   amr?: string;
+  /** Stable Controller id. Device enroll supplies this; do not take it from the client. */
+  controllerId?: string;
 };
 
 /**
@@ -179,9 +187,13 @@ export async function mintControllerToken(
   const player_id = opts.playerId
     ? (opts.playerId.startsWith("player.") ? opts.playerId : `player.${opts.playerId}`)
     : `player.${handle}`;
-  const controller_id = `ctrl.${controllerType}.${handle}`;
+  const controller_id =
+    opts.controllerId && /^ctrl\.[a-z0-9._-]{3,64}$/i.test(opts.controllerId)
+      ? opts.controllerId
+      : `ctrl.${controllerType}.${handle}`;
   const agent_id = `agent.${handle}`;
   const now = Math.floor(Date.now() / 1000);
+  const sid = newId("sess");
   const claims: Record<string, unknown> = {
     typ: "access",
     player_id,
@@ -189,6 +201,7 @@ export async function mintControllerToken(
     controller_id,
     controller_type: controllerType,
     scopes: DEFAULT_SCOPES,
+    sid,
     iat: now,
     exp: now + expires_in,
     jti: crypto.randomUUID().slice(0, 8),

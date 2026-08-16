@@ -63,6 +63,22 @@ describe("startDeviceEnrollment", () => {
       "noema.action.submit",
     ]);
     expect(JSON.stringify(body)).not.toMatch(/access_token/);
+    expect((body as { controller_id?: string }).controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+  });
+
+  it("mints controller_id at enroll and ignores a client-supplied id", async () => {
+    const store = memoryDeviceStore();
+    const res = await startDeviceEnrollment(
+      env(),
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { controller_id: "ctrl.device.injected01" } as { metadata?: { runtime?: string }; scopes?: string[] },
+      { store },
+    );
+    const body = (await res.json()) as { controller_id: string; device_code: string };
+    expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    expect(body.controller_id).not.toBe("ctrl.device.injected01");
+    const rec = await store.getByDeviceCode(body.device_code);
+    expect(rec?.controller_id).toBe(body.controller_id);
   });
 
   it("treats runtime labels as display-only", async () => {
@@ -134,6 +150,7 @@ describe("approveDevice", () => {
     expect(body.status).toBe("approved");
     expect(body.player_id).toBe("player.prabu");
     expect(body.access_token).toBeUndefined();
+    expect((body as { controller_id: string }).controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
   });
 
   it("rejects an agent bearer", async () => {
@@ -230,9 +247,10 @@ describe("pollDeviceToken", () => {
       {},
       { store },
     );
-    const { device_code, user_code } = (await started.json()) as {
+    const { device_code, user_code, controller_id } = (await started.json()) as {
       device_code: string;
       user_code: string;
+      controller_id: string;
     };
     const pending = await pollDeviceToken(
       e,
@@ -263,16 +281,22 @@ describe("pollDeviceToken", () => {
       access_token: string;
       status: string;
       player_id: string;
+      controller_id: string;
       scopes: string[];
     };
     expect(minted.status).toBe("approved");
     expect(minted.player_id).toBe("player.prabu");
+    expect(minted.controller_id).toBe(controller_id);
     expect(minted.access_token.length).toBeGreaterThan(20);
     expect(minted.scopes).toEqual([...GAME_SCOPES]);
     const claims = await verifyHs256(minted.access_token, "test-signing-secret");
     expect(claims.typ).toBe("access");
     expect(claims.controller_type).toBe("agent");
+    expect(claims.controller_id).toBe(controller_id);
     expect(claims.scopes).toEqual([...GAME_SCOPES]);
+    const stored = await store.getByDeviceCode(device_code);
+    expect(stored?.status).toBe("redeemed");
+    expect(stored?.access_token).toBeUndefined();
 
     const second = await pollDeviceToken(
       e,
