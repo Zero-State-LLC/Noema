@@ -17,6 +17,8 @@ import {
 } from "./contest";
 import {
   parseOfficeProfile,
+  sanitizeIdList,
+  sanitizePrecedence,
   type OfficeProfile,
   type OfficeRecord,
 } from "./offices";
@@ -304,6 +306,8 @@ export type CanonicalAction =
         target_ref?: string;
         duration_cycles?: number;
         successors?: string[];
+        object_set?: string[];
+        office_precedence?: string[] | "append" | "lead";
       };
     }
   | {
@@ -1699,7 +1703,14 @@ export function normalizeStructuredCommand(
         ok: true,
         action: {
           verb: "COMMIT",
-          arguments: { operation: "ORG_OFFICE_CREATE", org_id, display_name, authority_profile: profile },
+          arguments: {
+            operation: "ORG_OFFICE_CREATE",
+            org_id,
+            display_name,
+            authority_profile: profile,
+            object_set: sanitizeIdList(args.object_set),
+            office_precedence: sanitizePrecedence(args.office_precedence),
+          },
         },
         display: `COMMIT.ORG_OFFICE_CREATE ${display_name}`,
       };

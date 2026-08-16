@@ -338,4 +338,64 @@ describe("office conflict-precedence", () => {
     });
     expect(allowed.ok).toBe(true);
   });
+
+  it("ORG_OFFICE_CREATE publishes object_set and appends office_precedence", async () => {
+    const w = world();
+    w.world_id = "test.hosted-canonical.office-pub";
+    const founder = principal("player.nacre");
+    const a = principal("player.alpha");
+    const b = principal("player.beta");
+    await run(w, founder, "ENTER_WORLD");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[founder.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    await run(w, founder, "ORG_CREATE", { name: "Line", charter: "grid", org_id: "org.pub" });
+    await run(w, founder, "ORG_MEMBER_ADD", { org_id: "org.pub", agent_id: a.player_id, role: "member" });
+    await run(w, founder, "ORG_MEMBER_ADD", { org_id: "org.pub", agent_id: b.player_id, role: "member" });
+    await run(w, founder, "ORG_OFFICE_CREATE", {
+      org_id: "org.pub",
+      display_name: "Narrow",
+      authority_profile: "OPERATE_NAMED_ASSET",
+      object_set: ["entity.relay"],
+      office_precedence: "lead",
+    });
+    await run(w, founder, "ORG_OFFICE_CREATE", {
+      org_id: "org.pub",
+      display_name: "Broad",
+      authority_profile: "OPERATE_NAMED_ASSET",
+      object_set: ["entity.relay", "entity.vault"],
+      office_precedence: "append",
+    });
+    const offices = Object.values(w.organizations["org.pub"].offices || {});
+    const narrow = offices.find((o) => o.display_name === "Narrow")!;
+    const broad = offices.find((o) => o.display_name === "Broad")!;
+    expect(narrow.object_set).toEqual(["entity.relay"]);
+    expect(w.organizations["org.pub"].office_precedence).toEqual([narrow.office_id, broad.office_id]);
+    await run(w, founder, "ORG_OFFICE_ASSIGN", { office_id: narrow.office_id, agent_id: a.player_id });
+    await run(w, founder, "ORG_OFFICE_ASSIGN", { office_id: broad.office_id, agent_id: b.player_id });
+    w.organizations["org.pub"].treasury = {
+      attention: 0,
+      compute: 20,
+      energy: 20,
+      influence: 0,
+      storage: 10,
+    };
+    const ok = await run(w, a, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay",
+      acting_for: "org.pub",
+      office_id: narrow.office_id,
+    });
+    expect(ok.ok).toBe(true);
+    const denied = await run(w, b, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay",
+      acting_for: "org.pub",
+      office_id: broad.office_id,
+    });
+    expect(denied.ok).toBe(false);
+    expect(denied.error?.code).toBe("AUTHORITY_CONFLICT");
+  });
 });

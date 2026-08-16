@@ -83,8 +83,10 @@ import {
   officeLines,
   parseOfficeProfile,
   publicOffices,
+  applyPublishedPrecedence,
   resolveInstitutionGrant,
   resolveOfficeConflict,
+  sanitizeIdList,
   vacateHolderOffices,
   type OfficeRecord,
 } from "./offices";
@@ -2962,6 +2964,7 @@ async function applyOfficeCommand(
     org.offices = org.offices || {};
     let office_id = allocateOfficeId(org.org_id, display_name);
     while (org.offices[office_id]) office_id = allocateOfficeId(org.org_id, display_name);
+    const object_set = sanitizeIdList(args.object_set);
     const office: OfficeRecord = {
       office_id,
       institution_id: org.org_id,
@@ -2970,8 +2973,10 @@ async function applyOfficeCommand(
       authority_profile: profile,
       created_cycle: w.cycle,
       history: [],
+      ...(object_set ? { object_set } : {}),
     };
     org.offices[office_id] = office;
+    applyPublishedPrecedence(org, office_id, args.office_precedence);
     debit(pl.budgets, COSTS.ORG_OFFICE_CREATE);
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
