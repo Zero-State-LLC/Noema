@@ -32,7 +32,7 @@
       "test": null,
       "reason": "Specs reference is Compose + Postgres, not the Cloudflare Worker host."
     },
-    { "id": "C15", "title": "World persistence across restart", "mode": "behavioral", "status": "pending", "phase": "H5", "test": null },
+    { "id": "C15", "title": "World persistence across restart", "mode": "behavioral", "status": "pass", "phase": "H5", "test": "c15-c26.test.ts" },
     {
       "id": "C16",
       "title": "Backup/restore equivalence",
@@ -59,6 +59,6 @@
     { "id": "C23", "title": "Deterministic scheduler conflicts", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
     { "id": "C24", "title": "World event pressure", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
     { "id": "C25", "title": "Spectator projection integrity", "mode": "behavioral", "status": "pass", "phase": "H2", "test": "c03-c04-c25.test.ts" },
-    { "id": "C26", "title": "Strategic persistence across restart", "mode": "behavioral", "status": "pending", "phase": "H5", "test": null }
+    { "id": "C26", "title": "Strategic persistence across restart", "mode": "behavioral", "status": "pass", "phase": "H5", "test": "c15-c26.test.ts" }
   ]
 }
