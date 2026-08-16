@@ -84,6 +84,7 @@ import {
   parseOfficeProfile,
   publicOffices,
   resolveInstitutionGrant,
+  resolveOfficeConflict,
   vacateHolderOffices,
   type OfficeRecord,
 } from "./offices";
@@ -1242,6 +1243,8 @@ export async function applyWorldCommand(
       if (acting_for) {
         const grant = resolveInstitutionGrant(w.organizations, principal.player_id, acting_for, office_id, TRADE_PROFILE);
         if (grant.ok) {
+          const conflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "treasury");
+          if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
           source = ensureTreasury(w.organizations[grant.org_id]);
           grantOfficeId = grant.office.office_id;
         } else {
@@ -1784,6 +1787,12 @@ export async function applyWorldCommand(
           if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
             return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
           }
+          const conflict = resolveOfficeConflict(
+            w.organizations[grant.org_id],
+            grant.office.office_id,
+            entity.entity_id,
+          );
+          if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
           payFrom = ensureTreasury(w.organizations[grant.org_id]);
           grantOfficeId = grant.office.office_id;
         } else {

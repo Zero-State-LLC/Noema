@@ -49,6 +49,8 @@ export type OfficeRecord = {
   retired_cycle?: number;
   history: Array<{ cycle: number; holder_player_id: string | null; kind: "ASSIGNED" | "VACATED" | "RETIRED" }>;
   succession?: import("./succession").SuccessionRule;
+  /** Listed objects this grant covers. Absent/empty = whole profile universe. */
+  object_set?: string[];
 };
 
 export type OfficePublic = {
@@ -119,6 +121,72 @@ export function findOffice(
     if (office) return { org_id, office };
   }
   return null;
+}
+
+export function officeClaimsObject(office: OfficeRecord, objectId: string): boolean {
+  const set = office.object_set;
+  if (!set || !set.length) return true;
+  return set.includes(objectId);
+}
+
+/**
+ * Specs INSTITUTIONAL-AUTHORITY office conflict-precedence.
+ * Published office_precedence or strict-subset object_set; else fail closed.
+ */
+export function resolveOfficeConflict(
+  org: { office_precedence?: string[]; offices?: Record<string, OfficeRecord> } | undefined,
+  actingOfficeId: string,
+  objectId: string,
+): { ok: true } | { ok: false; code: "AUTHORITY_CONFLICT" | "FORBIDDEN"; message: string } {
+  const acting = org?.offices?.[actingOfficeId];
+  if (!acting || acting.status !== "OCCUPIED") {
+    return { ok: false, code: "FORBIDDEN", message: "You do not hold that office." };
+  }
+  if (acting.object_set?.length && !acting.object_set.includes(objectId)) {
+    return { ok: false, code: "FORBIDDEN", message: "That object is not in this office's listed set." };
+  }
+  const rivals = Object.values(org?.offices || {}).filter(
+    (o) =>
+      o.office_id !== acting.office_id &&
+      o.status === "OCCUPIED" &&
+      o.authority_profile === acting.authority_profile &&
+      officeClaimsObject(o, objectId),
+  );
+  if (!rivals.length) return { ok: true };
+
+  const order = (org?.office_precedence || []).filter(Boolean);
+  for (const rival of rivals) {
+    const ai = order.indexOf(acting.office_id);
+    const ri = order.indexOf(rival.office_id);
+    if (ai >= 0 && ri >= 0) {
+      if (ai < ri) continue;
+      return {
+        ok: false,
+        code: "AUTHORITY_CONFLICT",
+        message: "Another office has precedence over this object.",
+      };
+    }
+    const aSet = acting.object_set;
+    const rSet = rival.object_set;
+    if (aSet?.length && rSet?.length) {
+      const aOnly = aSet.filter((x) => !rSet.includes(x));
+      const rOnly = rSet.filter((x) => !aSet.includes(x));
+      if (aOnly.length === 0 && rOnly.length > 0) continue;
+      if (rOnly.length === 0 && aOnly.length > 0) {
+        return {
+          ok: false,
+          code: "AUTHORITY_CONFLICT",
+          message: "A more specific office controls this object.",
+        };
+      }
+    }
+    return {
+      ok: false,
+      code: "AUTHORITY_CONFLICT",
+      message: "Overlapping offices have no published precedence.",
+    };
+  }
+  return { ok: true };
 }
 
 export function occupiedOfficesFor(

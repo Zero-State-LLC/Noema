@@ -185,6 +185,8 @@ export type Organization = {
   treasury?: import("./offices").Treasury;
   emergency_templates?: import("./emergency").EmergencyTemplate[];
   emergency_scopes?: import("./emergency").EmergencyScope[];
+  /** Published office_id order. Earlier wins exclusive overlap. */
+  office_precedence?: string[];
 };
 
 export const COSTS = {
