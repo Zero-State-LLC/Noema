@@ -1,6 +1,6 @@
 import { enrichEntity } from "./actions";
-import type { Cycle0World, GenesisResult, GenesisRoom } from "./genesis";
-import { redactedPublicWorld } from "./genesis";
+import type { Cycle0World, GenesisResult } from "./genesis";
+import { buildWatchLive, type WatchPlayerIn, type WatchRoomIn, type WatchSourceEvent } from "./watch-live";
 import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
@@ -243,13 +243,32 @@ export class NoemaWorldDO {
             : this.meta!.settlement_health === "DEGRADED" || this.meta!.settlement_health === "BLOCKING"
               ? "stale"
               : undefined;
+      const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+      const players: WatchPlayerIn[] = Object.entries(this.world!.players || {}).map(([player_id, p]) => ({
+        player_id,
+        handle: p.handle,
+        room_id: p.room_id,
+        entered: p.entered,
+        last_seen_ms: p.last_seen_ms,
+        actor_kind: p.actor_kind,
+      }));
+      const events: WatchSourceEvent[] = digestEvents.slice(-80).map((ev) => ({
+        event_type: ev.event_type,
+        sequence: ev.sequence,
+        cycle: ev.cycle,
+        handle: ev.handle,
+        player_id: ev.player_id,
+        at: ev.at,
+        payload: ev.payload,
+      }));
       return Response.json(
-        redactedPublicWorld({
+        buildWatchLive({
           world_id: this.world!.world_id,
           cycle: this.world!.cycle,
           sequence: this.world!.sequence,
-          rooms: this.world!.rooms as Record<string, GenesisRoom>,
-          players_present: countLivePlayers(this.world!.players),
+          rooms: this.world!.rooms as Record<string, WatchRoomIn>,
+          players,
+          events,
           world_status: this.meta!.status,
           freshness: marker,
           public_pulses: [
