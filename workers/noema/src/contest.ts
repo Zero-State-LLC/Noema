@@ -148,6 +148,7 @@ export const MODIFIERS = {
   infra_condition_weight_millipoints: 5,
   org_mutual_defense_cap_millipoints: 200,
   seed_perturbation_range_millipoints: 50,
+  defensive_work_bonus_millipoints: 50,
 };
 
 export function parseContestForm(raw: string): ContestForm | null {
@@ -228,6 +229,7 @@ export function scoreContest(input: {
   defender_stake: StakeMap;
   infra_condition: number;
   org_defense_support_millipoints?: number;
+  defensive_work?: boolean;
   seed_perturbation: number;
 }): { score: number; declarer_power: number; defender_power: number; infra_mod: number } {
   const spec = FORM_SPECS[input.form];
@@ -241,7 +243,8 @@ export function scoreContest(input: {
       MODIFIERS.org_mutual_defense_cap_millipoints,
     ),
   );
-  const score = declarer_power - defender_power - infra_mod - org + input.seed_perturbation;
+  const works = input.defensive_work ? MODIFIERS.defensive_work_bonus_millipoints : 0;
+  const score = declarer_power - defender_power - infra_mod - org - works + input.seed_perturbation;
   return { score, declarer_power, defender_power, infra_mod };
 }
 

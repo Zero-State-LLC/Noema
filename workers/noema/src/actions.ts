@@ -1496,7 +1496,7 @@ export function parseHumanCommand(
   if (v === "construct" || v === "build") {
     const classRaw = parts.join(" ");
     if (!classRaw) {
-      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link, workshop." };
+      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link, workshop, defensive_work." };
     }
     const classId = parseConstructibleClass(classRaw);
     if (!classId) {
@@ -2023,7 +2023,7 @@ export function normalizeStructuredCommand(
     if (operation === "CONSTRUCT") {
       const classId = parseConstructibleClass(String(args.class || args.class_id || args.target || ""));
       if (!classId) {
-        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link|workshop)", code: "CLASS_FORBIDDEN" };
+        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link|workshop|defensive_work)", code: "CLASS_FORBIDDEN" };
       }
       return {
         ok: true,

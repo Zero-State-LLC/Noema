@@ -2254,7 +2254,9 @@ export async function applyWorldCommand(
           ? `A route link was opened (${entity_id}).`
           : classId === "workshop"
             ? `A workshop is open (${entity_id}).`
-            : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+            : classId === "defensive_work"
+              ? `A defensive work stands (${entity_id}).`
+              : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
       w.seen_idempotency[idem] = result;
@@ -3864,6 +3866,10 @@ async function resolveDueContests(
         declarer_stake: contest.stake,
         defender_stake: contest.defender_stake,
         infra_condition: infra,
+        defensive_work: Boolean(
+          w.rooms[contest.room_id] &&
+            liveClassInRoom(roomEntities(w.rooms[contest.room_id]), "defensive_work"),
+        ),
         seed_perturbation: pert,
       });
       score = scored.score;

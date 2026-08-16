@@ -151,6 +151,7 @@ describe("GC2-S0 catalog mapper", () => {
     expect(CONSTRUCT_COSTS.production_node).toEqual({ energy: 7, compute: 3, storage: 4, influence: 0 });
     expect(CONSTRUCT_COSTS.route_link).toEqual({ energy: 8, compute: 4, storage: 4, influence: 2 });
     expect(CONSTRUCT_COSTS.workshop).toEqual({ energy: 6, compute: 3, storage: 5, influence: 0 });
+    expect(CONSTRUCT_COSTS.defensive_work).toEqual({ energy: 7, compute: 3, storage: 4, influence: 3 });
     expect(DISMANTLE_COST).toEqual({ energy: 4, compute: 2 });
     expect(SALVAGE_STORAGE.storage_bay).toBe(3);
     expect(clampSalvage(15, 2)).toEqual({ added: 1, overflow: 1, next: 16 });
