@@ -1306,6 +1306,9 @@ export async function applyWorldCommand(
       return posted;
     }
     const recipient_id = action.arguments.recipient_id;
+    if (!recipient_id) {
+      return fail(request_id, "INVALID_REQUEST", "Recipient is required.");
+    }
     const text = action.arguments.text.slice(0, 500);
     const recipient = w.players[recipient_id];
     if (!recipient?.entered) {
