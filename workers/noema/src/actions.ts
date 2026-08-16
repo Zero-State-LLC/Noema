@@ -305,6 +305,7 @@ export type CanonicalAction =
           | "ORG_EMERGENCY_REVOKE"
           | "ORG_SUCCESSION_DESIGNATE"
           | "ORG_SUCCESSION_CONSENT"
+          | "ORG_SUCCESSION_RULE"
           | "RECONSTRUCT"
           | "RECONSTRUCT_SUPERSEDE"
           | "RECONSTRUCT_PUBLISH"
@@ -348,6 +349,7 @@ export type CanonicalAction =
         target_ref?: string;
         duration_cycles?: number;
         successors?: string[];
+        rule_id?: string;
         object_set?: string[];
         office_precedence?: string[] | "append" | "lead";
         requires_track?: import("./offices").OfficeRequiredTrack;
@@ -1335,6 +1337,21 @@ export function parseHumanCommand(
   }
   if (v === "succession") {
     const sub = (parts[0] || "").toLowerCase();
+    if (sub === "rule") {
+      const office_id = parts[1];
+      const rule_id = parts[2];
+      if (!office_id || !rule_id) {
+        return { ok: false, error: "Succession rule syntax: succession rule <office> member_order" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_SUCCESSION_RULE", office_id, rule_id },
+        },
+        display: `You publish succession rule ${rule_id} on ${office_id}.`,
+      };
+    }
     let office_id: string | undefined;
     let emergency_scope_id: string | undefined;
     let names: string[] = [];
@@ -2169,6 +2186,18 @@ export function normalizeStructuredCommand(
         display: `COMMIT.ORG_SUCCESSION_CONSENT ${office_id}`,
       };
     }
+    if (operation === "ORG_SUCCESSION_RULE") {
+      const office_id = String(args.office_id || "").trim();
+      const rule_id = String(args.rule_id || args.rule || "").trim();
+      if (!office_id || !rule_id) {
+        return { ok: false, error: "office_id and rule_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: { verb: "COMMIT", arguments: { operation: "ORG_SUCCESSION_RULE", office_id, rule_id } },
+        display: `COMMIT.ORG_SUCCESSION_RULE ${office_id}`,
+      };
+    }
     if (operation === "RECONSTRUCT") {
       const subject_ref = String(args.subject_ref || args.subject || args.entity_id || "").trim();
       const claim = String(args.claim || args.narrative || "").trim();
@@ -2399,6 +2428,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ORG_SUCCESSION_CONSENT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_SUCCESSION_CONSENT" });
+  }
+  if (cmd === "ORG_SUCCESSION_RULE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_SUCCESSION_RULE" });
   }
   if (cmd === "RECONSTRUCT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT" });

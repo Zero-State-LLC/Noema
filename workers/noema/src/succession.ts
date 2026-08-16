@@ -10,8 +10,12 @@ import type { OfficeRecord } from "./offices";
 export const MAX_SUCCESSORS = 2;
 export const WATCH_SUCCESSION_PULSE = "A designated successor has taken an institution office.";
 
+export const RULE_MEMBER_ORDER = "MEMBER_ORDER" as const;
+export type SuccessionRuleId = typeof RULE_MEMBER_ORDER;
+
 export type SuccessionRule = {
-  successors: string[];
+  successors?: string[];
+  rule_id?: SuccessionRuleId;
   designated_by: string;
   designated_cycle: number;
 };
@@ -52,6 +56,32 @@ export function eligibleSuccessor(
   return null;
 }
 
+export function parseSuccessionRuleId(raw: unknown): SuccessionRuleId | null {
+  const t = String(raw || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[-\s]+/g, "_");
+  if (t === RULE_MEMBER_ORDER) return RULE_MEMBER_ORDER;
+  return null;
+}
+
+export function eligibleMemberOrder(
+  org: OrgLike,
+  players: Record<string, unknown> | undefined,
+  departedId: string,
+  extra?: (id: string) => boolean,
+): string | null {
+  if (org.status !== "ACTIVE") return null;
+  for (const m of org.members || []) {
+    const id = m.agent_id;
+    if (!id || id === departedId) continue;
+    if (!players?.[id]) continue;
+    if (extra && !extra(id)) continue;
+    return id;
+  }
+  return null;
+}
+
 export function activateOfficeSuccession(
   office: OfficeRecord,
   org: OrgLike,
@@ -61,7 +91,12 @@ export function activateOfficeSuccession(
   extra?: (id: string) => boolean,
 ): { holder_player_id: string } | null {
   if (office.status !== "VACANT") return null;
-  const id = eligibleSuccessor(office.succession?.successors, org, players, departedId, extra);
+  const designated = office.succession?.successors || [];
+  const id = designated.length
+    ? eligibleSuccessor(designated, org, players, departedId, extra)
+    : office.succession?.rule_id === RULE_MEMBER_ORDER
+      ? eligibleMemberOrder(org, players, departedId, extra)
+      : null;
   if (!id) return null;
   office.holder_player_id = id;
   office.status = "OCCUPIED";

@@ -142,6 +142,7 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
     if (payload?.operation === "ABANDON" || payload?.unclaimed === true) return null;
     if (payload?.operation === "RESTORE") return null;
     if (payload?.operation === "CONSENT" || payload?.operation === "CONSENSUS") return null;
+    if (payload?.operation === "RULE") return null;
     if (payload?.operation === "PROMOTE" || payload?.in_progress === true) return null;
     if (payload?.operation === "VEST") return null;
     if (payload?.operation === "SHARE") return null;
