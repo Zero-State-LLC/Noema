@@ -763,8 +763,8 @@ export default {
 
       return cors(err("NOT_FOUND", path, 404));
     } catch (e) {
-      const message = e instanceof Error ? e.message : "internal error";
-      return cors(json({ error: { code: "INTERNAL", message } }, 500));
+      console.error(e instanceof Error ? e.message : e);
+      return cors(json({ error: { code: "INTERNAL", message: "internal error" } }, 500));
     }
   },
 } satisfies ExportedHandler<Env>;

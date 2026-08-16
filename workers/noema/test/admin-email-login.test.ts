@@ -144,9 +144,9 @@ describe("requestAdminMagicLink", () => {
     expect(calls).toEqual(["https://example.supabase.co/auth/v1/otp"]);
   });
 
-  it("sends otp to the hardcoded operator even when the secret is empty", async () => {
+  it("requires an explicit email and does not default the operator mailbox", async () => {
     const calls: string[] = [];
-    await requestAdminMagicLink(
+    const res = await requestAdminMagicLink(
       env({ ADMIN_ALLOWLIST_EMAILS: "" }),
       new Request("https://noema.guru/x"),
       { email: "" },
@@ -157,7 +157,10 @@ describe("requestAdminMagicLink", () => {
         },
       },
     );
-    expect(calls).toEqual(["https://example.supabase.co/auth/v1/otp"]);
+    expect(res.status).toBe(400);
+    expect(calls).toEqual([]);
+    const body = (await res.json()) as { error?: { message?: string } };
+    expect(body.error?.message).toMatch(/email required/i);
   });
 
   it("does not call Supabase for a non-operator mailbox when the secret is empty", async () => {
