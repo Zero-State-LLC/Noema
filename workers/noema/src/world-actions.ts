@@ -190,6 +190,8 @@ import {
   REPURPOSE_TO_CLASS,
   shouldAbandon,
   RESTORE_CONDITION_CAP,
+  MULTI_CYCLE_CLASS,
+  isInProgress,
   allocateInfraId,
   clampSalvage,
   constructLabel,
@@ -1174,6 +1176,23 @@ export async function applyWorldCommand(
             set: { unclaimed: true },
             unset: [],
             operation: "ABANDON",
+          });
+          await settleEv(ev);
+        }
+      }
+      for (const room of Object.values(w.rooms)) {
+        if (isHiddenRoom(room)) continue;
+        for (const ent of roomEntities(room)) {
+          if (!isInProgress(ent) || infraClassOf(ent) !== MULTI_CYCLE_CLASS) continue;
+          ent.in_progress = undefined;
+          ent.last_steward_cycle = w.cycle;
+          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+          if (idx >= 0) room.entities[idx] = ent;
+          const ev = pushEvent("ENTITY_UPDATE", {
+            entity_id: ent.entity_id,
+            set: { in_progress: false, last_steward_cycle: w.cycle, infra_type: MULTI_CYCLE_CLASS },
+            unset: ["in_progress"],
+            operation: "PROMOTE",
           });
           await settleEv(ev);
         }
@@ -2310,6 +2329,7 @@ export async function applyWorldCommand(
         owner_id: principal.player_id,
         infra_type: classId,
         last_steward_cycle: w.cycle,
+        ...(classId === MULTI_CYCLE_CLASS ? { in_progress: true } : {}),
       };
       target.entities = [...roomEntities(target), created];
       pushEvent("BUDGET_CONSUMED", {
@@ -2325,7 +2345,7 @@ export async function applyWorldCommand(
         location: target.room_id,
         room_id: target.room_id,
         label,
-        properties: { infra_type: classId },
+        properties: { infra_type: classId, ...(classId === MULTI_CYCLE_CLASS ? { in_progress: true } : {}) },
         state: { condition: 100 },
       });
       await settleEv(ev);
@@ -2334,15 +2354,17 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        classId === "route_link"
-          ? `A route link was opened (${entity_id}).`
-          : classId === "workshop"
-            ? `A workshop is open (${entity_id}).`
-            : classId === "defensive_work"
-              ? `A defensive work stands (${entity_id}).`
-              : classId === "archive_annex"
-                ? `An archive annex is open (${entity_id}).`
-                : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+        classId === MULTI_CYCLE_CLASS
+          ? `A relay is under construction (${entity_id}).`
+          : classId === "route_link"
+            ? `A route link was opened (${entity_id}).`
+            : classId === "workshop"
+              ? `A workshop is open (${entity_id}).`
+              : classId === "defensive_work"
+                ? `A defensive work stands (${entity_id}).`
+                : classId === "archive_annex"
+                  ? `An archive annex is open (${entity_id}).`
+                  : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
       w.seen_idempotency[idem] = result;
@@ -2395,7 +2417,7 @@ export async function applyWorldCommand(
         owner_id: here.owner_id,
       });
       await settleEv(ev);
-      const leaveScar = !isHiddenRoom(room);
+      const leaveScar = !isHiddenRoom(room) && !isInProgress(here);
       if (leaveScar) {
         const scar = scarFromDismantle(classId);
         room.entities = [...roomEntities(room), scar];

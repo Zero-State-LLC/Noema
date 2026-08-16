@@ -98,6 +98,7 @@ describe("GC10-S2 world path", () => {
     await run(w, p, "MOVE", { direction: "east" });
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
+    await run(w, p, "WAIT");
     const entityId = w.rooms["room.east"].entities[0].entity_id;
     const torn = await run(w, p, "BUILD", { operation: "DISMANTLE", entity_id: entityId });
     expect(torn.ok).toBe(true);

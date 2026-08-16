@@ -65,6 +65,8 @@ export type EntityRuntime = {
   /** GC2-S7. Public constructible with no steward work for 12 cycles. */
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */
+  in_progress?: boolean;
 };
 
 export type PlayerRuntime = {
@@ -489,6 +491,7 @@ export function enrichEntity(e: {
   upgrade_tier?: number;
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  in_progress?: boolean;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -516,6 +519,7 @@ export function enrichEntity(e: {
     upgrade_tier: e.upgrade_tier,
     unclaimed: e.unclaimed === true ? true : undefined,
     last_steward_cycle: e.last_steward_cycle,
+    in_progress: e.in_progress === true ? true : undefined,
   };
 }
 
