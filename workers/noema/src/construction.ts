@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s2";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s3";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -13,6 +13,7 @@ export const CONSTRUCTIBLE_CLASSES = [
   "production_node",
   "route_link",
   "workshop",
+  "defensive_work",
 ] as const;
 
 export type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
@@ -36,6 +37,7 @@ export const CONSTRUCT_COSTS: Record<ConstructibleClass, ConstructionCost> = {
   production_node: { energy: 7, compute: 3, storage: 4, influence: 0 },
   route_link: { energy: 8, compute: 4, storage: 4, influence: 2 },
   workshop: { energy: 6, compute: 3, storage: 5, influence: 0 },
+  defensive_work: { energy: 7, compute: 3, storage: 4, influence: 3 },
 };
 
 export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
@@ -45,6 +47,7 @@ export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
   production_node: 2,
   route_link: 2,
   workshop: 2,
+  defensive_work: 2,
 };
 
 const CLASS_SET = new Set<string>(CONSTRUCTIBLE_CLASSES);
@@ -66,6 +69,7 @@ export function parseConstructibleClass(raw: string): ConstructibleClass | null 
   if (t === "production node" || t === "production") return "production_node";
   if (t === "route link" || t === "routelink") return "route_link";
   if (t === "workshop") return "workshop";
+  if (t === "defensive work" || t === "defensive") return "defensive_work";
   return null;
 }
 
@@ -87,6 +91,7 @@ export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if (blob.includes("storage bay") || /\bstorage\b/.test(blob)) return "storage_bay";
   if (blob.includes("route link") || blob.includes("routelink")) return "route_link";
   if (blob.includes("workshop")) return "workshop";
+  if (blob.includes("defensive work") || blob.includes("defensivework")) return "defensive_work";
   return null;
 }
 
