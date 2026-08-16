@@ -15,6 +15,7 @@ export const CONTEST_FORMS = [
   "INFRASTRUCTURE_DISRUPTION",
   "ACCESS_CONTEST",
   "PRESENCE_PRESSURE",
+  "INFORMATION_CONTEST",
 ] as const;
 
 export type ContestForm = (typeof CONTEST_FORMS)[number];
@@ -54,8 +55,10 @@ export type OpenContest = {
 
 export function contestOfficeProfile(
   form: ContestForm,
-): "OPERATE_RESOURCE_ACCOUNT" | "OPERATE_NAMED_ASSET" {
-  return form === "RESOURCE_SEIZURE" ? "OPERATE_RESOURCE_ACCOUNT" : "OPERATE_NAMED_ASSET";
+): "OPERATE_RESOURCE_ACCOUNT" | "OPERATE_NAMED_ASSET" | "ACCESS_RESTRICTED_ARCHIVE" {
+  if (form === "RESOURCE_SEIZURE") return "OPERATE_RESOURCE_ACCOUNT";
+  if (form === "INFORMATION_CONTEST") return "ACCESS_RESTRICTED_ARCHIVE";
+  return "OPERATE_NAMED_ASSET";
 }
 
 type FormSpec = {
@@ -69,6 +72,7 @@ type FormSpec = {
   max_condition_delta: number;
   partial_condition_delta?: number;
   restriction_duration_cycles?: number;
+  partial_restriction_duration_cycles?: number;
   max_disable_cycles?: number;
   allowed_target_kinds: ContestTarget["kind"][];
 };
@@ -121,6 +125,19 @@ export const FORM_SPECS: Record<ContestForm, FormSpec> = {
     max_disable_cycles: 3,
     allowed_target_kinds: ["AGENT"],
   },
+  INFORMATION_CONTEST: {
+    minimum_stake: { energy: 6, influence: 8, compute: 2 },
+    stake_weights_millipoints: { energy: 20, influence: 50, compute: 20, storage: 5, attention: 15 },
+    defense_weights_millipoints: { energy: 15, influence: 50, compute: 20, storage: 5 },
+    max_duration_cycles: 8,
+    success_threshold_millipoints: 100,
+    partial_threshold_millipoints: -30,
+    max_seizure_amount: 0,
+    max_condition_delta: 0,
+    restriction_duration_cycles: 8,
+    partial_restriction_duration_cycles: 4,
+    allowed_target_kinds: ["ENTITY"],
+  },
 };
 
 const FORM_SET = new Set<string>(CONTEST_FORMS);
@@ -144,6 +161,9 @@ export function parseContestForm(raw: string): ContestForm | null {
   }
   if (t === "access contest" || t === "access") return "ACCESS_CONTEST";
   if (t === "presence pressure" || t === "presence") return "PRESENCE_PRESSURE";
+  if (t === "information contest" || t === "information" || t === "info" || t === "record") {
+    return "INFORMATION_CONTEST";
+  }
   const upper = String(raw || "").toUpperCase().replace(/[-\s]+/g, "_");
   return FORM_SET.has(upper) ? (upper as ContestForm) : null;
 }

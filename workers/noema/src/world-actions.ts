@@ -1157,6 +1157,9 @@ export async function applyWorldCommand(
     if (!entity) {
       return fail(request_id, "INSPECT_FAILED", `You do not see “${action.arguments.entity_id}” here.`);
     }
+    if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
+      return fail(request_id, "FORBIDDEN", "The record is sealed.");
+    }
     debit(pl.budgets, COSTS.INSPECT);
     const detail = inspectDetail(entity);
     const inspEv = pushEvent("INSPECT", {
@@ -2476,6 +2479,9 @@ function normalizeDeclareTarget(
     if (form === "INFRASTRUCTURE_DISRUPTION" && ent.entity_type.toUpperCase() !== "INFRASTRUCTURE") {
       return { ok: false, code: "FORBIDDEN", message: "Disruption requires live infrastructure." };
     }
+    if (form === "INFORMATION_CONTEST" && ent.entity_type.toUpperCase() !== "ARTIFACT") {
+      return { ok: false, code: "FORBIDDEN", message: "That is not a public record." };
+    }
     return { ok: true, target: { kind: "ENTITY", entity_id: ent.entity_id } };
   }
   if (target.kind === "ROOM") {
@@ -3630,6 +3636,28 @@ async function applyContestSuccessFollowOns(
       authorized_by: "world.scheduler",
     });
     await settleEv(a);
+  }
+  if (contest.contest_form === "INFORMATION_CONTEST" && contest.target.kind === "ENTITY") {
+    const room = w.rooms[contest.room_id];
+    const ent = room ? findEntity(room, contest.target.entity_id) : null;
+    if (ent && room) {
+      const spec = FORM_SPECS.INFORMATION_CONTEST;
+      const dur =
+        outcome === "SUCCESS"
+          ? spec.restriction_duration_cycles || 8
+          : spec.partial_restriction_duration_cycles || 4;
+      ent.inspect_restricted_until = w.cycle + dur;
+      const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+      if (idx >= 0) room.entities[idx] = ent;
+      const u = pushEvent("ENTITY_UPDATE", {
+        entity_id: ent.entity_id,
+        field: "inspect_restricted_until",
+        to: ent.inspect_restricted_until,
+        operation: "INFORMATION_CONTEST",
+        contest_id: contest.contest_id,
+      });
+      await settleEv(u);
+    }
   }
   if (contest.contest_form === "PRESENCE_PRESSURE" && contest.target.kind === "AGENT") {
     const target = w.players[contest.target.agent_id];
