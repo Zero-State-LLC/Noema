@@ -18,6 +18,8 @@ export type OfficeProfile = (typeof OFFICE_PROFILES)[number];
 export const HOSTED_ACT_PROFILES: readonly OfficeProfile[] = ["PUBLISH_NOTICE"];
 export const TRADE_PROFILE: OfficeProfile = "OPERATE_RESOURCE_ACCOUNT";
 export const REPAIR_PROFILE: OfficeProfile = "OPERATE_NAMED_ASSET";
+export const OFFICE_REQUIRED_TRACKS = ["engineer", "broker"] as const;
+export type OfficeRequiredTrack = (typeof OFFICE_REQUIRED_TRACKS)[number];
 
 export type Treasury = {
   attention: number;
@@ -51,6 +53,8 @@ export type OfficeRecord = {
   succession?: import("./succession").SuccessionRule;
   /** Listed objects this grant covers. Absent/empty = whole profile universe. */
   object_set?: string[];
+  /** GC1-S5. Absent = any member. engineer|broker only. */
+  requires_track?: OfficeRequiredTrack;
 };
 
 export type OfficePublic = {
@@ -101,6 +105,17 @@ export function applyPublishedPrecedence(
     return;
   }
   org.office_precedence = spec.map((id) => (id === "self" || id === "$new" ? officeId : id));
+}
+
+export function parseRequiresTrack(raw: unknown): OfficeRequiredTrack | null | undefined {
+  if (raw == null) return undefined;
+  const v = String(raw)
+    .trim()
+    .toLowerCase()
+    .replace(/^track\./, "")
+    .replace(/\.01$/, "");
+  if (!v) return undefined;
+  return (OFFICE_REQUIRED_TRACKS as readonly string[]).includes(v) ? (v as OfficeRequiredTrack) : null;
 }
 
 export function parseOfficeProfile(raw: string | undefined | null): OfficeProfile | null {

@@ -58,9 +58,12 @@ import {
   brokerWaivesCaution,
   creditsFromEvent,
   inspectAttentionCost,
+  isTrackRecognized,
   lookAttentionCost,
   practiceLines,
   repairConditionDelta,
+  BROKER_TRACK,
+  ENGINEER_TRACK,
   PRACTICED_REPAIR_LINE,
   type PracticeCredit,
   type PracticeEvent,
@@ -99,6 +102,7 @@ import {
   findOffice,
   officeLines,
   parseOfficeProfile,
+  parseRequiresTrack,
   publicOffices,
   applyPublishedPrecedence,
   resolveInstitutionGrant,
@@ -2441,6 +2445,22 @@ function noteInstitutionPulse(w: WorldRuntime, text: string): void {
   w.institution_pulses = [...(w.institution_pulses || []), text].slice(-4);
 }
 
+function officeTrackId(req: NonNullable<OfficeRecord["requires_track"]>) {
+  return req === "engineer" ? ENGINEER_TRACK : BROKER_TRACK;
+}
+
+function playerMeetsOfficeTrack(w: WorldRuntime, playerId: string, office: OfficeRecord): boolean {
+  if (!office.requires_track) return true;
+  const player = w.players[playerId];
+  return isTrackRecognized(player?.practice, officeTrackId(office.requires_track));
+}
+
+function officeTrackReject(track: NonNullable<OfficeRecord["requires_track"]>): string {
+  return track === "engineer"
+    ? "That office requires a recognized Engineer."
+    : "That office requires a recognized Broker.";
+}
+
 async function settleOfficeHandoff(
   w: WorldRuntime,
   org: Organization,
@@ -2449,7 +2469,9 @@ async function settleOfficeHandoff(
   pushEvent: PushEv,
   settleEv: SettleEv,
 ): Promise<string | null> {
-  const seated = activateOfficeSuccession(office, org, w.players, departedId, w.cycle);
+  const seated = activateOfficeSuccession(office, org, w.players, departedId, w.cycle, (id) =>
+    playerMeetsOfficeTrack(w, id, office),
+  );
   if (!seated) return null;
   noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
   const ev = pushEvent("ENTITY_UPDATE", {
@@ -2539,6 +2561,9 @@ async function applySuccessionDesignate(
     if (!w.players[id]) return fail(request_id, "NOT_FOUND", "That Player is not in this world.");
     if (!isOrgMember(org, id)) {
       return fail(request_id, "FORBIDDEN", "A designated successor must be a current member.");
+    }
+    if (office && !playerMeetsOfficeTrack(w, id, office)) {
+      return fail(request_id, "FORBIDDEN", officeTrackReject(office.requires_track!));
     }
   }
   if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
@@ -3382,6 +3407,10 @@ async function applyOfficeCommand(
     let office_id = allocateOfficeId(org.org_id, display_name);
     while (org.offices[office_id]) office_id = allocateOfficeId(org.org_id, display_name);
     const object_set = sanitizeIdList(args.object_set);
+    const requires_track = parseRequiresTrack(args.requires_track);
+    if (args.requires_track && requires_track === null) {
+      return fail(request_id, "FORBIDDEN", "Only engineer or broker may be required.");
+    }
     const office: OfficeRecord = {
       office_id,
       institution_id: org.org_id,
@@ -3391,6 +3420,7 @@ async function applyOfficeCommand(
       created_cycle: w.cycle,
       history: [],
       ...(object_set ? { object_set } : {}),
+      ...(requires_track ? { requires_track } : {}),
     };
     org.offices[office_id] = office;
     applyPublishedPrecedence(org, office_id, args.office_precedence);
@@ -3411,6 +3441,7 @@ async function applyOfficeCommand(
         authority_profile: profile,
         office_status: "VACANT",
         institution_id: org.org_id,
+        ...(requires_track ? { requires_track } : {}),
       },
       inventory: [],
       state: {},
@@ -3449,6 +3480,9 @@ async function applyOfficeCommand(
     if (!target) return fail(request_id, "NOT_FOUND", "That Player is not in this world.");
     if (!isOrgMember(org, agent_id)) {
       return fail(request_id, "FORBIDDEN", "Only a member of this institution may hold the office.");
+    }
+    if (!playerMeetsOfficeTrack(w, agent_id, office)) {
+      return fail(request_id, "FORBIDDEN", officeTrackReject(office.requires_track!));
     }
     if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ASSIGN)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
