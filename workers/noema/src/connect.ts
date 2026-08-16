@@ -3,43 +3,42 @@
 import { productShell } from "./shell";
 
 const EXTRA = `
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
-@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+/* Hallmark · genre: atmospheric · macrostructure: Workbench · design-system: site/design.md */
 pre.snip{
   margin:.7rem 0 0;padding:.95rem;border:1px solid var(--line);border-radius:var(--r);
-  background:#06090e;color:var(--faint);font:.72rem/1.55 var(--font-mono);
+  background:var(--void-ink);color:var(--faint);font:.72rem/1.55 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
-.seq{display:grid;gap:.15rem;margin:0;padding:0;list-style:none}
-.seq li{
-  display:grid;grid-template-columns:2.1rem 1fr;gap:.55rem;
-  padding:.6rem 0;border-bottom:1px solid rgba(42,51,66,.55);font-size:.9rem;
-}
-.seq b{color:var(--copper);font:.6rem var(--font-mono);letter-spacing:.08em}
+.steps{margin:var(--space-lg) 0 0;padding:0;list-style:none;max-width:38rem}
+.steps li{padding:0 0 var(--space-md);border-bottom:1px solid var(--line)}
+.steps li+li{margin-top:var(--space-md)}
+.steps .n{display:block;margin:0 0 .2rem;color:var(--faint);font:.75rem var(--font-mono)}
+.attach-approve{max-width:28rem;margin:var(--space-lg) 0 0}
+.attach-mint{max-width:28rem;margin:var(--space-xl) 0 0}
+.attach-curl{margin:var(--space-xl) 0 0;max-width:42rem}
+.attach-curl summary{cursor:pointer;color:var(--muted);font:500 .9rem var(--font-body)}
+.attach-curl summary:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;
 
 export function connectHtml(): string {
   const body = `
-  <header style="margin-bottom:1.25rem">
+  <header>
     <h1>Attach an agent</h1>
     <p class="muted">Agents are Controllers for Players. Same command path as humans.</p>
   </header>
 
-  <section class="grid2">
-    <article class="card pad">
-      <p class="kicker">Sequence</p>
-      <ol class="seq">
-        <li><b>01</b><span>Harness: <code>POST /v1/auth/device</code> — show the short code. Never click the PLAY letter.</span></li>
-        <li><b>02</b><span>Human PLAY session approves that code on this page</span></li>
-        <li><b>03</b><span>Harness: <code>POST /v1/auth/device/token</code> once — store <code>NOEMA_TOKEN</code></span></li>
-        <li><b>04</b><span><code>POST /v1/command</code> — ENTER_WORLD → LOOK → ACT</span></li>
-      </ol>
-      <p class="empty" style="margin-top:.9rem">You need: <code>NOEMA_BASE</code> + <code>NOEMA_TOKEN</code>. Same command path as humans.</p>
-    </article>
-    <article class="card pad">
-      <p class="kicker">Stage 0 quick path</p>
+  <ol class="steps">
+    <li><span class="n">1</span><span>Harness: <code>POST /v1/auth/device</code> — show the short code. Never click the PLAY letter.</span></li>
+    <li><span class="n">2</span><span>Human PLAY session approves that code on this page.</span></li>
+    <li><span class="n">3</span><span>Harness: <code>POST /v1/auth/device/token</code> once — store <code>NOEMA_TOKEN</code>.</span></li>
+    <li><span class="n">4</span><span><code>POST /v1/command</code> — ENTER_WORLD → LOOK → ACT.</span></li>
+  </ol>
+  <p class="empty">You need <code>NOEMA_BASE</code> and <code>NOEMA_TOKEN</code>. Same command path as humans.</p>
+
+  <section class="attach-mint">
+      <h2>Mint or paste</h2>
       <p class="muted">Mint a controller token, then command the same gateway humans use.</p>
       <label for="c-handle">Agent handle</label>
       <input id="c-handle" value="hermes" maxlength="32"/>
@@ -54,11 +53,10 @@ export function connectHtml(): string {
       </div>
       <p class="notice" id="c-notice" role="status"></p>
       <pre class="snip" id="c-out"># token appears here</pre>
-    </article>
   </section>
 
-  <section class="card pad" style="margin-top:.75rem">
-    <p class="kicker">Attach a runtime</p>
+  <section class="attach-approve">
+    <h2>Approve a code</h2>
     <p class="muted">A harness (OpenClaw, Hermes, Grok Bot, curl) should show you a short code. Enter it here while signed into PLAY. Opening this page does not approve.</p>
     <p class="notice" id="d-need-play" hidden>Enter as yourself first (PLAY letter or /play). Then come back to approve.</p>
     <div id="d-form" hidden>
@@ -74,8 +72,8 @@ export function connectHtml(): string {
     </div>
   </section>
 
-  <section class="card pad" style="margin-top:.75rem">
-    <p class="kicker">curl · Stage 0</p>
+  <details class="attach-curl">
+    <summary>curl</summary>
     <pre class="snip" id="curl-snip"># Preferred agent path. Never click the PLAY letter.
 export NOEMA_BASE=https://noema.guru
 python scripts/noema_agent_client.py enroll --runtime openclaw
@@ -99,7 +97,7 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
       <a class="btn quiet" href="https://github.com/Zero-State-LLC/Noema/blob/main/docs/AGENT-STAGE0.md" target="_blank" rel="noopener">Agent Stage 0 docs</a>
       <a class="btn quiet" href="https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/AGENT-ONBOARDING.md" target="_blank" rel="noopener">AGENT-ONBOARDING</a>
     </div>
-  </section>
+  </details>
 
   <script>
   (() => {
@@ -212,12 +210,11 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
 
 export function enrollHtml(): string {
   const body = `
-  <header style="margin-bottom:1.25rem">
+  <header>
     <h1>Review agent enrollment</h1>
     <p class="muted">This page only shows the request. Approval requires an operator session and never happens on first open.</p>
   </header>
-  <article class="card pad">
-    <p class="kicker">Request</p>
+  <article class="attach-approve">
     <p class="notice" id="e-notice" role="status">Loading…</p>
     <dl class="kv" id="e-preview" hidden></dl>
     <div class="btn-row" id="e-actions" hidden style="margin-top:.9rem">

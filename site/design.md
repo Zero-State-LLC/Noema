@@ -32,5 +32,12 @@ Dark ledger · single copper accent `#c4784a` · Fraunces + Source Sans 3 + IBM 
 
 | Page | Macrostructure |
 |---|---|
-| `index.html` | Photographic hero + interactive path rail + loop |
+| Hosted `/` | Letter / left-biased world door |
+| Hosted `/watch` | Map-diagram (text graph primary; Phosphor optional) |
+| Hosted `/connect` | Workbench (single column; device approve first) |
+| Hosted `/study` | Short notice |
+| Hosted 404 | Miss note, not a second door |
+| Pages `index.html` | Same door as hosted `/` (pointer, no email form) |
 | `memo.html` | Long Document (for builders who click through) |
+
+Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Pages share tokens and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system.
