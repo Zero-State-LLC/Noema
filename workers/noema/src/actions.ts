@@ -216,6 +216,8 @@ export type Organization = {
   /** GC4-S1 named seats. Not membership. Not WorldState geography. */
   offices?: Record<string, OfficeRecord>;
   public_notice?: string;
+  /** GC5-S7 last member channel note. Current members only. */
+  channel?: { text: string; cycle: number };
   /** GC4-S2 institution resource account. Not officer personal lots. */
   treasury?: import("./offices").Treasury;
   emergency_templates?: import("./emergency").EmergencyTemplate[];
@@ -260,7 +262,7 @@ export type CanonicalAction =
       arguments: {
         recipient_id?: string;
         text: string;
-        surface?: "BOARD" | "SHOUT" | "NOTICE";
+        surface?: "BOARD" | "SHOUT" | "NOTICE" | "CHANNEL";
         org_id?: string;
         subject_ref?: string;
         parent_claim_id?: string;
@@ -792,6 +794,15 @@ export function parseHumanCommand(
       ok: true,
       action: { verb: "MESSAGE", arguments: { surface: "SHOUT", text: shoutM[1] } },
       display: "You shout.",
+    };
+  }
+  // channel <org> "text" — GC5-S7, not listed in Chamber help
+  const channelM = trimmed.match(/^channel\s+(\S+)\s+["'](.+)["']\s*$/i);
+  if (channelM) {
+    return {
+      ok: true,
+      action: { verb: "MESSAGE", arguments: { surface: "CHANNEL", org_id: channelM[1], text: channelM[2] } },
+      display: "You leave a channel note.",
     };
   }
   // message / msg with quoted text
@@ -1708,20 +1719,25 @@ export function normalizeStructuredCommand(
   if (cmd === "MESSAGE") {
     const rawSurface = String(args.surface || "").toUpperCase();
     const surface =
-      rawSurface === "BOARD" || rawSurface === "SHOUT" || rawSurface === "NOTICE" ? rawSurface : undefined;
+      rawSurface === "BOARD" || rawSurface === "SHOUT" || rawSurface === "NOTICE" || rawSurface === "CHANNEL"
+        ? rawSurface
+        : undefined;
     const recipient_id = String(args.recipient_id || args.target || "").trim();
     const text = String(args.text || "").trim();
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
     const as_claim = Boolean(args.as_claim || parent_claim_id || subject_ref);
-    if (surface === "BOARD" || surface === "SHOUT" || surface === "NOTICE") {
+    if (surface === "BOARD" || surface === "SHOUT" || surface === "NOTICE" || surface === "CHANNEL") {
       if (!text) return { ok: false, error: "text required", code: "INVALID_REQUEST" };
-      if (surface === "NOTICE") {
+      if (surface === "NOTICE" || surface === "CHANNEL") {
         const org_id = String(args.org_id || "").trim() || undefined;
+        if (surface === "CHANNEL" && !org_id) {
+          return { ok: false, error: "org_id required", code: "INVALID_REQUEST" };
+        }
         return {
           ok: true,
-          action: { verb: "MESSAGE", arguments: { surface: "NOTICE", text, org_id } },
-          display: "MESSAGE NOTICE",
+          action: { verb: "MESSAGE", arguments: { surface, text, org_id } },
+          display: `MESSAGE ${surface}`,
         };
       }
       return {

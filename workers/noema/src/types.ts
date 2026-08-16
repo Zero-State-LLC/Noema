@@ -207,6 +207,8 @@ export interface Observation {
   shout_lines?: string[];
   /** GC5-S6 last institution notice. Public room only. Never put on WATCH. */
   notice_lines?: string[];
+  /** GC5-S7 last org channel notes. Current members only. Never put on WATCH. */
+  channel_lines?: string[];
   /** GC2-S7 UNCLAIMED public constructibles. Never put on WATCH. */
   unclaimed_lines?: string[];
   /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
