@@ -173,6 +173,7 @@ import {
   spendOrigin,
   spoilWornLots,
 } from "./lots";
+import { cargoLine, moveEnergyCost } from "./transport";
 import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
@@ -514,7 +515,9 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
-    lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines),
+    lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines).concat(
+      cargoLine(pl.budgets.storage ?? 0) || [],
+    ),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1144,7 +1147,8 @@ export async function applyWorldCommand(
 
   // ——— MOVE ———
   if (action.verb === "MOVE") {
-    if (!canPay(pl.budgets, COSTS.MOVE)) {
+    const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0) };
+    if (!canPay(pl.budgets, moveCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
     }
     const direction = action.arguments.direction;
@@ -1162,7 +1166,7 @@ export async function applyWorldCommand(
     if (isAccessDenied(w, principal.player_id, room.room_id, exit.direction)) {
       return fail(request_id, "MOVE_REJECTED", "That route is restricted.");
     }
-    debit(pl.budgets, COSTS.MOVE);
+    debit(pl.budgets, moveCost);
     const from = room.room_id;
     pl.room_id = exit.to_room_id;
     const ev = pushEvent("MOVE", {
@@ -1170,16 +1174,18 @@ export async function applyWorldCommand(
       from,
       to: exit.to_room_id,
       direction: exit.direction,
-      cost_paid: COSTS.MOVE,
+      cost_paid: moveCost,
     });
     await settleEv(ev);
     const dest = w.rooms[exit.to_room_id];
+    const carrying = (moveCost.energy || 0) > 1;
+    const arrive = dest ? `You arrive at ${dest.name}.` : `You move ${exit.direction}.`;
     const result = success(
       w,
       principal,
       request_id,
       events,
-      dest ? `You arrive at ${dest.name}.` : `You move ${exit.direction}.`,
+      carrying ? `${arrive} Carrying lots cost extra.` : arrive,
       settled,
     );
     w.seen_idempotency[idem] = result;

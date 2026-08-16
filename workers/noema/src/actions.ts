@@ -23,6 +23,7 @@ import {
   type OfficeRecord,
 } from "./offices";
 import { parseVisibility } from "./reconstruction";
+import { moveEnergyCost } from "./transport";
 
 export type Budgets = {
   attention: number;
@@ -2157,13 +2158,14 @@ export function deriveAffordances(input: {
   }
 
   for (const x of exits) {
-    const ok = canPay(budgets, COSTS.MOVE);
+    const moveCost = { energy: moveEnergyCost(budgets.storage ?? 0) };
+    const ok = canPay(budgets, moveCost);
     out.push({
       action: "MOVE",
       verb: "MOVE",
       label: `Move ${x.direction}${x.to_room_name ? " · " + x.to_room_name : ""}`,
       cmd: `move ${x.direction}`,
-      requires: COSTS.MOVE,
+      requires: moveCost,
       available: ok,
       reason: ok ? undefined : "You do not have enough energy.",
       kind: "move",
