@@ -196,7 +196,7 @@ export async function requestAdminMagicLink(
   body: { email?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendAdmin?: AdminMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
-  const email = normalizeEmail(String(body.email || ADMIN_OPERATOR_EMAIL));
+  const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
 
   const throttle = opts?.throttle || defaultThrottle;

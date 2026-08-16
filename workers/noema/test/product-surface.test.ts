@@ -101,6 +101,27 @@ describe("hosted /index.html", () => {
     }
   });
 
+  it("does not leak thrown Error messages on INTERNAL", async () => {
+    const envThrowing = {
+      NOEMA_ENV: "production",
+      WORLD_DO: {
+        idFromName: () => "id",
+        get: () => ({
+          fetch: async () => {
+            throw new Error("secret table xyz");
+          },
+        }),
+      },
+    } as unknown as Env;
+    const res = await worker.fetch(new Request("https://noema.guru/ready"), envThrowing);
+    expect(res.status).toBe(500);
+    const text = await res.text();
+    expect(text).not.toContain("secret table");
+    const body = JSON.parse(text) as { error?: { code?: string; message?: string } };
+    expect(body.error?.code).toBe("INTERNAL");
+    expect(body.error?.message).toBe("internal error");
+  });
+
   it("missing routes serve a game-first 404, not the splash", async () => {
     const res = await worker.fetch(new Request("https://noema.guru/no-such-page"), bareEnv);
     const html = await res.text();
