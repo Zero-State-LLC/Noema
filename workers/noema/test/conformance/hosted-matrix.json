@@ -51,13 +51,13 @@
       "test": null,
       "reason": "Worker pin is NOEMA_PROTOCOL_VERSION + deploy SHA, not the Compose upgrade fixture."
     },
-    { "id": "C18", "title": "Resource accounting", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C19", "title": "Production / consumption", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C20", "title": "Trade atomicity", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C21", "title": "Organization / faction persistence", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C22", "title": "Infrastructure state", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C23", "title": "Deterministic scheduler conflicts", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C24", "title": "World event pressure", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C18", "title": "Resource accounting", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C19", "title": "Production / consumption", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C20", "title": "Trade atomicity", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C21", "title": "Organization / faction persistence", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C22", "title": "Infrastructure state", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C23", "title": "Deterministic scheduler conflicts", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
+    { "id": "C24", "title": "World event pressure", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
     { "id": "C25", "title": "Spectator projection integrity", "mode": "behavioral", "status": "pass", "phase": "H2", "test": "c03-c04-c25.test.ts" },
     { "id": "C26", "title": "Strategic persistence across restart", "mode": "behavioral", "status": "pass", "phase": "H5", "test": "c15-c26.test.ts" }
   ]
