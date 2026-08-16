@@ -10,6 +10,7 @@ function req(url: string, origin?: string, method = "GET"): Request {
 describe("CORS allowlist", () => {
   it("treats watch/health/ready as public GET", () => {
     expect(isPublicReadPath("/v1/watch/live")).toBe(true);
+    expect(isPublicReadPath("/v1/watch/stream")).toBe(true);
     expect(isPublicReadPath("/health")).toBe(true);
     expect(isPublicReadPath("/ready")).toBe(true);
     expect(isPublicReadPath("/v1/command")).toBe(false);

@@ -70,6 +70,18 @@ const EXTRA = `
 .watch-feed .meta{grid-column:2;color:var(--faint);font:.7rem}
 .watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
+.watch-stage{position:relative}
+.watch-atmos{
+  position:absolute;inset:0;pointer-events:none;opacity:.14;
+  background:url(/assets/watch-spectator.jpg) center/cover no-repeat;
+}
+.watch-key{
+  margin:1.15rem 0 0;padding-top:.75rem;border-top:1px solid var(--line);
+  color:var(--faint);font:.75rem/1.4 var(--font-mono);
+}
+.watch-key summary{cursor:pointer;color:var(--muted)}
+.watch-key img{display:block;width:min(100%,40rem);height:auto;margin:.65rem 0;image-rendering:pixelated}
+.watch-key .more{margin:.35rem 0 0}
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero{transition:none}
 }
@@ -113,6 +125,7 @@ export function watchHtml(): string {
   </article>
 
   <section class="watch-stage">
+    <div class="watch-atmos" aria-hidden="true"></div>
     <section class="watch-col" aria-labelledby="watch-graph-label">
       <h2 id="watch-graph-label">Places</h2>
       <nav aria-label="Public sites">
@@ -132,13 +145,18 @@ export function watchHtml(): string {
     </section>
   </section>
 
+  <details class="watch-key">
+    <summary>Projection key</summary>
+    <img src="/assets/legend-mini.png" width="1100" height="168" alt="WATCH key: player, active site, uncertain site, route, recent movement, signal, anomaly"/>
+    <p class="more"><a href="/assets/legend.png">Full key</a></p>
+  </details>
   <p class="watch-note">This window is a projection, not the world.</p>
 
   <script>
   (() => {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null };
     const $ = id => document.getElementById(id);
 
     try {
@@ -331,7 +349,20 @@ export function watchHtml(): string {
       if (window.NoemaPhosphor) window.NoemaPhosphor.fail();
     }
 
-    async function refresh() {
+    function applyLive(data) {
+      render(data);
+      const tag = $("watch-state");
+      if (state.paused) {
+        tag.textContent = "paused";
+        tag.className = "tag warn";
+        return;
+      }
+      const fresh = data.freshness || "live";
+      tag.textContent = fresh === "live" ? "live" : fresh;
+      tag.className = "tag " + (fresh === "incident" ? "bad" : fresh === "live" ? "ok" : "warn");
+    }
+
+    async function refreshHttp() {
       if (state.busy || document.hidden) return;
       state.busy = true;
       const tag = $("watch-state");
@@ -343,20 +374,38 @@ export function watchHtml(): string {
           if (!r.ok) throw new Error((d.error && d.error.message) || r.statusText);
           return d;
         });
-        render(data);
-        if (state.paused) {
-          tag.textContent = "paused";
-          tag.className = "tag warn";
-        } else {
-          const fresh = data.freshness || "live";
-          tag.textContent = fresh === "live" ? "live" : fresh;
-          tag.className = "tag " + (fresh === "incident" ? "bad" : fresh === "live" ? "ok" : "warn");
-        }
+        applyLive(data);
       } catch (e) {
         showUnavailable(e.message || "Could not load public projection.");
       } finally {
         state.busy = false;
       }
+    }
+
+    function openStream() {
+      if (!window.WebSocket) return;
+      try {
+        const proto = location.protocol === "https:" ? "wss:" : "ws:";
+        const sock = new WebSocket(proto + "//" + location.host + "/v1/watch/stream");
+        sock.onmessage = (ev) => {
+          try { applyLive(JSON.parse(ev.data)); } catch (e) { /* keep last frame */ }
+        };
+        sock.onclose = () => { if (state.sock === sock) state.sock = null; };
+        sock.onerror = () => { try { sock.close(); } catch (e) { /* fall back to HTTP */ } };
+        state.sock = sock;
+      } catch (e) {
+        state.sock = null;
+      }
+    }
+
+    function refresh() {
+      if (state.paused || document.hidden) return;
+      if (state.sock && state.sock.readyState === 1) {
+        state.sock.send("poll");
+        return;
+      }
+      if (!state.sock || state.sock.readyState > 1) openStream();
+      refreshHttp();
     }
 
     $("watch-refresh").addEventListener("click", refresh);
@@ -372,6 +421,7 @@ export function watchHtml(): string {
         refresh();
       }
     });
+    openStream();
     refresh();
     setInterval(() => { if (!state.paused && !document.hidden) refresh(); }, POLL_MS);
   })();

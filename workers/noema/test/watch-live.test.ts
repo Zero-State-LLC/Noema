@@ -444,8 +444,10 @@ describe("watch HTML surface", () => {
   it("never assigns innerHTML and does not grow a KPI dashboard", () => {
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).not.toContain("Watch the world move");
-    expect(html).not.toMatch(/sparkline|WebSocket|WebGL/i);
+    expect(html).not.toMatch(/sparkline|WebGL/i);
+    expect(html).toContain("/v1/watch/stream");
     expect(html).toContain('id="watch-phosphor"');
+    expect(html).toContain("/assets/legend-mini.png");
   });
 });
 
@@ -454,7 +456,9 @@ describe("WATCH upgrade does not change other planes", () => {
     expect(playHtml()).toContain("/v1/play/login/request");
     expect(playHtml()).toContain("Enter world");
     expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
+    expect(playHtml()).not.toContain("watch-phosphor");
     expect(studyHtml()).toMatch(/not open/i);
+    expect(studyHtml()).not.toContain("watch-phosphor");
     expect(adminHtml()).toContain("Keep the world legible.");
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("system_actors");

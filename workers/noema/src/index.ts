@@ -255,6 +255,11 @@ export default {
         const body = await res.json();
         return cors(json(body, res.status));
       }
+      if (path === "/v1/watch/stream" || path === "/watch/stream") {
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        return stub.fetch(new Request("https://do/watch-stream", request));
+      }
 
       // ——— ADMIN API (operator token → admin-access JWT; never player tokens) ———
       if (request.method === "POST" && path === "/v1/admin/session") {

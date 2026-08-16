@@ -21,6 +21,11 @@ const EXTRA = `
 .miss h1{max-width:none}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){.door{grid-template-columns:1fr;gap:var(--space-lg)}}
+#main.wrap{
+  background:url(/assets/topology-bg.jpg) center top/cover no-repeat;
+}
+.door-art{margin:var(--space-xl) 0 0;max-width:52rem}
+.door-art img{display:block;width:100%;height:auto;border:1px solid var(--line);opacity:.88}
 `;
 
 export function landingHtml(): string {
@@ -35,7 +40,10 @@ export function landingHtml(): string {
       <h2 id="play-login-heading" class="sr">Enter</h2>
       ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}
     </div>
-  </section>`;
+  </section>
+  <figure class="door-art">
+    <img src="/assets/hero-phosphor.jpg" width="1600" height="900" alt=""/>
+  </figure>`;
 
   return productShell({
     title: "Perihelion Reach",

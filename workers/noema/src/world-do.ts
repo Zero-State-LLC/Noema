@@ -174,6 +174,75 @@ export class NoemaWorldDO {
     this.env = env;
   }
 
+  private async watchSnapshot() {
+    await this.load();
+    const marker =
+      this.meta!.status === "PAUSED"
+        ? "maintenance"
+        : this.meta!.status === "INCIDENT"
+          ? "incident"
+          : this.meta!.settlement_health === "DEGRADED" || this.meta!.settlement_health === "BLOCKING"
+            ? "stale"
+            : undefined;
+    const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+    const players: WatchPlayerIn[] = Object.entries(this.world!.players || {}).map(([player_id, p]) => ({
+      player_id,
+      handle: p.handle,
+      room_id: p.room_id,
+      entered: p.entered,
+      last_seen_ms: p.last_seen_ms,
+      actor_kind: p.actor_kind,
+    }));
+    const events: WatchSourceEvent[] = digestEvents.slice(-80).map((ev) => ({
+      event_type: ev.event_type,
+      sequence: ev.sequence,
+      cycle: ev.cycle,
+      handle: ev.handle,
+      player_id: ev.player_id,
+      at: ev.at,
+      payload: ev.payload,
+    }));
+    return buildWatchLive({
+      world_id: this.world!.world_id,
+      cycle: this.world!.cycle,
+      sequence: this.world!.sequence,
+      rooms: this.world!.rooms as Record<string, WatchRoomIn>,
+      players,
+      events,
+      handles: Object.fromEntries(
+        Object.entries(this.world!.players || {}).map(([id, p]) => [id, p.handle]),
+      ),
+      world_status: this.meta!.status,
+      freshness: marker,
+      public_pulses: [
+        ...publicCulturePulses(
+          this.world!.culture,
+          this.world!.cycle,
+          Object.values(this.world!.reconstructions || {}).map((r) => ({
+            subject_ref: r.subject_ref,
+            visibility: r.visibility,
+            claim: r.claim,
+            epistemic: r.epistemic,
+          })),
+        ),
+        ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
+        ...publicRumorPulses(this.world!.rumor),
+        ...(this.world!.institution_pulses || []),
+        ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
+      ],
+    });
+  }
+
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    const text = typeof message === "string" ? message : "";
+    if (text === "pause") return;
+    try {
+      ws.send(JSON.stringify(await this.watchSnapshot()));
+    } catch {
+      ws.send(JSON.stringify({ pin: "watch-live/1.0", freshness: "unavailable" }));
+    }
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -243,64 +312,18 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/watch")) {
-      await this.load();
-      const marker =
-        this.meta!.status === "PAUSED"
-          ? "maintenance"
-          : this.meta!.status === "INCIDENT"
-            ? "incident"
-            : this.meta!.settlement_health === "DEGRADED" || this.meta!.settlement_health === "BLOCKING"
-              ? "stale"
-              : undefined;
-      const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
-      const players: WatchPlayerIn[] = Object.entries(this.world!.players || {}).map(([player_id, p]) => ({
-        player_id,
-        handle: p.handle,
-        room_id: p.room_id,
-        entered: p.entered,
-        last_seen_ms: p.last_seen_ms,
-        actor_kind: p.actor_kind,
-      }));
-      const events: WatchSourceEvent[] = digestEvents.slice(-80).map((ev) => ({
-        event_type: ev.event_type,
-        sequence: ev.sequence,
-        cycle: ev.cycle,
-        handle: ev.handle,
-        player_id: ev.player_id,
-        at: ev.at,
-        payload: ev.payload,
-      }));
-      return Response.json(
-        buildWatchLive({
-          world_id: this.world!.world_id,
-          cycle: this.world!.cycle,
-          sequence: this.world!.sequence,
-          rooms: this.world!.rooms as Record<string, WatchRoomIn>,
-          players,
-          events,
-          handles: Object.fromEntries(
-            Object.entries(this.world!.players || {}).map(([id, p]) => [id, p.handle]),
-          ),
-          world_status: this.meta!.status,
-          freshness: marker,
-          public_pulses: [
-            ...publicCulturePulses(
-              this.world!.culture,
-              this.world!.cycle,
-              Object.values(this.world!.reconstructions || {}).map((r) => ({
-                subject_ref: r.subject_ref,
-                visibility: r.visibility,
-                claim: r.claim,
-                epistemic: r.epistemic,
-              })),
-            ),
-            ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
-            ...publicRumorPulses(this.world!.rumor),
-            ...(this.world!.institution_pulses || []),
-            ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
-          ],
-        }),
-      );
+      return Response.json(await this.watchSnapshot());
+    }
+
+    if (path.endsWith("/watch-stream") && request.headers.get("Upgrade") === "websocket") {
+      const pair = new WebSocketPair();
+      this.state.acceptWebSocket(pair[1]);
+      try {
+        pair[1].send(JSON.stringify(await this.watchSnapshot()));
+      } catch {
+        pair[1].send(JSON.stringify({ pin: "watch-live/1.0", freshness: "unavailable" }));
+      }
+      return new Response(null, { status: 101, webSocket: pair[0] });
     }
 
     if (request.method === "GET" && path.endsWith("/admin-status")) {
