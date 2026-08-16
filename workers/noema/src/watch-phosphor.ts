@@ -395,6 +395,11 @@ export function drawPhosphorFrame(
   ctx.globalAlpha = 1;
 }
 
+function pageIsHidden(): boolean {
+  const g = globalThis as unknown as { document?: { hidden?: boolean } };
+  return Boolean(g.document && g.document.hidden);
+}
+
 function stampGlyph(ctx: DrawCtx, x: number, y: number, color: string): void {
   ctx.fillStyle = color;
   for (let row = 0; row < PLAYER_GLYPH.length; row++) {
@@ -465,7 +470,7 @@ export function createPhosphorSession(opts: {
 
   function loop(ts: number) {
     rafId = 0;
-    if (typeof document !== "undefined" && document.hidden) return;
+    if (pageIsHidden()) return;
     const t = nowFn();
     if (ts - lastFrame < frameGap) {
       if (pulses.length && opts.raf) {
@@ -480,7 +485,7 @@ export function createPhosphorSession(opts: {
   }
 
   function kick() {
-    if (typeof document !== "undefined" && document.hidden) return;
+    if (pageIsHidden()) return;
     if (mode !== "pixel" || reduced || !pulses.length || !opts.raf) return;
     if (rafId) return;
     rafStarts += 1;
@@ -570,6 +575,7 @@ export function phosphorInlineScript(): string {
     const expirePulses = ${expirePulses.toString()};
     const certaintyFill = ${certaintyFill.toString()};
     const stampGlyph = ${stampGlyph.toString()};
+    const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
 
