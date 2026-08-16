@@ -180,6 +180,33 @@ export function applyPracticeCredits(
   return next;
 }
 
+export const ENGINEER_TRACK: PracticeTrackId = "track.engineer.01";
+export const REPAIR_BASE = 15;
+export const REPAIR_REPEAT_BONUS = 5;
+export const CONDITION_CAP = 100;
+export const PRACTICED_REPAIR_LINE = "You work this {label} with practiced hands.";
+
+export function isRecognizedEngineer(state: PracticeState | undefined | null): boolean {
+  const rec = ensurePractice(state).recognition?.[ENGINEER_TRACK] || [];
+  return rec.length >= 3;
+}
+
+export function hasRepairedEntity(state: PracticeState | undefined | null, entityId: string): boolean {
+  if (!entityId) return false;
+  const rec = ensurePractice(state).recognition?.[ENGINEER_TRACK] || [];
+  return rec.includes(entityId);
+}
+
+export function repairConditionDelta(
+  state: PracticeState | undefined | null,
+  entityId: string,
+): { delta: 15 | 20; bonus: 0 | 5 } {
+  if (isRecognizedEngineer(state) && hasRepairedEntity(state, entityId)) {
+    return { delta: 20, bonus: 5 };
+  }
+  return { delta: 15, bonus: 0 };
+}
+
 export function practiceLines(state: PracticeState | undefined | null): string[] {
   const snap = ensurePractice(state);
   const ordered = [...PRACTICE_TRACKS].sort((a, b) => a.display_order - b.display_order);
