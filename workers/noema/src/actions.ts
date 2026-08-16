@@ -55,6 +55,8 @@ export type EntityRuntime = {
   hidden?: boolean;
   /** GC7-S3: further INSPECT sealed until this cycle. */
   inspect_restricted_until?: number;
+  /** GC10-S2 irreversible leftover. Not live infrastructure. */
+  scar?: boolean;
 };
 
 export type PlayerRuntime = {
@@ -469,6 +471,7 @@ export function enrichEntity(e: {
   infra_type?: ConstructibleClass;
   hidden?: boolean;
   inspect_restricted_until?: number;
+  scar?: boolean;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -490,12 +493,14 @@ export function enrichEntity(e: {
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
     infra_type: e.infra_type,
+    scar: e.scar === true ? true : undefined,
     hidden: e.hidden === true ? true : undefined,
     inspect_restricted_until: e.inspect_restricted_until,
   };
 }
 
 export function isRepairable(e: EntityRuntime): boolean {
+  if (e.scar === true) return false;
   if (e.entity_type !== "INFRASTRUCTURE" && e.entity_type !== "RUIN") return false;
   const c = e.condition ?? 100;
   return c < 100;

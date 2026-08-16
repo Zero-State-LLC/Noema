@@ -119,6 +119,23 @@ export function allocateInfraId(classId: ConstructibleClass): string {
   return `entity.${classId.replace(/_/g, "-")}.${hex}`;
 }
 
+export function scarFromDismantle(classId: ConstructibleClass): {
+  entity_id: string;
+  label: string;
+  entity_type: "RUIN";
+  condition: number;
+  scar: true;
+} {
+  const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  return {
+    entity_id: `entity.scar.${hex}`,
+    label: `scarred-${classId.replace(/_/g, "-")}`,
+    entity_type: "RUIN",
+    condition: 0,
+    scar: true,
+  };
+}
+
 /** Labels keep the class token so GC5 relay matching and crowding stay honest. */
 export function constructLabel(classId: ConstructibleClass): string {
   return classId.replace(/_/g, "-");
