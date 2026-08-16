@@ -47,7 +47,11 @@ describe("auth email templates", () => {
     expect(admin).toContain("NOEMA ADMIN");
     expect(admin).toContain("privileged administrative access");
     expect(admin).toContain("Do not forward or share this message.");
+    expect(admin).toContain("OPERATOR AGENT BRIEF");
+    expect(admin).toContain("/v1/admin/login/consume");
+    expect(admin).toContain('{"action":"recover"}');
     expect(admin).toContain("Operator Plane");
+    expect(admin).not.toMatch(/ADMIN_OPERATOR_TOKEN|Activate Genesis|access_token|Bearer /);
     expect(admin).not.toContain("ENTER NOEMA");
     expect(play).not.toContain("OPEN ADMIN");
   });

@@ -102,6 +102,9 @@ describe("admin mail render", () => {
     expect(mail.subject).toBe("NOEMA Admin Access");
     expect(mail.to).toBe("zer0state@zer0state.com");
     expect(mail.text).toContain("Operator Plane");
+    expect(mail.text).toContain("OPERATOR AGENT BRIEF");
+    expect(mail.text).toContain("spawn a dedicated Admin agent");
+    expect(mail.html + mail.text).not.toMatch(/ADMIN_OPERATOR_TOKEN|Activate Genesis|access_token|Bearer /);
   });
 });
 
