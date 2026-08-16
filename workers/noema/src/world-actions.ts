@@ -192,6 +192,7 @@ import {
   RESTORE_CONDITION_CAP,
   MULTI_CYCLE_CLASS,
   VEST_COST,
+  SHARE_COST,
   isInProgress,
   allocateInfraId,
   clampSalvage,
@@ -657,8 +658,12 @@ function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string)
   return occupiedOfficesFor(org, playerId, REPAIR_PROFILE).length > 0;
 }
 
-function isConstructSteward(w: WorldRuntime, entity: { owner_id?: string }, playerId: string): boolean {
-  if (entity.owner_id === playerId) return true;
+function isConstructSteward(
+  w: WorldRuntime,
+  entity: { owner_id?: string; co_owner_id?: string },
+  playerId: string,
+): boolean {
+  if (entity.owner_id === playerId || entity.co_owner_id === playerId) return true;
   const orgId = entity.owner_id;
   if (orgId && w.organizations[orgId]) return holdsNamedAssetOffice(w, playerId, orgId);
   return false;
@@ -2362,7 +2367,8 @@ export async function applyWorldCommand(
       if (idx >= 0) room.entities[idx] = entity;
       if (
         !entity.unclaimed &&
-        ((!acting_for && entity.owner_id === principal.player_id) ||
+        ((!acting_for &&
+          (entity.owner_id === principal.player_id || entity.co_owner_id === principal.player_id)) ||
           (acting_for && entity.owner_id === acting_for && holdsNamedAssetOffice(w, principal.player_id, acting_for)))
       ) {
         entity.last_steward_cycle = w.cycle;
@@ -2810,7 +2816,7 @@ export async function applyWorldCommand(
       if (!classId) {
         return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
       }
-      if (here.scar || here.entity_type === "RUIN" || here.unclaimed || isInProgress(here)) {
+      if (here.scar || here.entity_type === "RUIN" || here.unclaimed || isInProgress(here) || here.co_owner_id) {
         return fail(request_id, "FORBIDDEN", "That cannot be vested.");
       }
       if (here.owner_id !== principal.player_id) {
@@ -2848,6 +2854,69 @@ export async function applyWorldCommand(
         request_id,
         events,
         `The ${here.label.replace(/-/g, " ")} is held by ${org.name}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+
+    if (action.arguments.operation === "SHARE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to share here.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      const classId = infraClassOf(here);
+      if (!classId) {
+        return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
+      }
+      if (here.scar || here.entity_type === "RUIN" || here.unclaimed || isInProgress(here)) {
+        return fail(request_id, "FORBIDDEN", "That cannot be shared.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      if (here.co_owner_id) {
+        return fail(request_id, "FORBIDDEN", "That is already shared.");
+      }
+      if (here.owner_id && w.organizations[here.owner_id]) {
+        return fail(request_id, "FORBIDDEN", "An institution cannot share that way.");
+      }
+      const partner_id = String(action.arguments.player_id || "").trim();
+      const partner = partner_id ? w.players[partner_id] : undefined;
+      if (!partner?.entered || partner_id === principal.player_id) {
+        return fail(request_id, "NOT_ADDRESSABLE", "That Player is not addressable.");
+      }
+      if (!canPay(pl.budgets, SHARE_COST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, SHARE_COST);
+      here.co_owner_id = partner_id;
+      here.last_steward_cycle = w.cycle;
+      const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: SHARE_COST,
+        reason: "SHARE",
+        co_owner_id: partner_id,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: here.entity_id,
+        set: { co_owner_id: partner_id, last_steward_cycle: w.cycle, infra_type: classId },
+        unset: [],
+        operation: "SHARE",
+      });
+      await settleEv(ev);
+      const handle = partner.handle || partner_id;
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `You share the ${here.label.replace(/-/g, " ")} with ${handle}.`,
         settled,
       );
       w.seen_idempotency[idem] = posted;

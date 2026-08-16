@@ -144,6 +144,7 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
     if (payload?.operation === "CONSENT" || payload?.operation === "CONSENSUS") return null;
     if (payload?.operation === "PROMOTE" || payload?.in_progress === true) return null;
     if (payload?.operation === "VEST") return null;
+    if (payload?.operation === "SHARE") return null;
     if (payload?.kind === "repair" || payload?.operation === "REPAIR") return "production";
     if (payload?.band === "failed" || payload?.status === "failed") return "infrastructure_disrupted";
     if (payload?.kind === "infra" || payload?.entity_type === "INFRASTRUCTURE") return "infrastructure";

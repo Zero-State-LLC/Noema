@@ -52,6 +52,8 @@ export type EntityRuntime = {
   archive_claim?: "DESTROYED" | "OPERATING";
   /** GC2-S0 constructing Player. Genesis assets have none. */
   owner_id?: string;
+  /** GC2-S11. One additional Player steward. Absent = sole owner. */
+  co_owner_id?: string;
   /** GC2-S0 class. Explicit wins over id/label matching. */
   infra_type?: ConstructibleClass;
   /** Spectator / LOOK-hidden. Never inferred. */
@@ -359,7 +361,8 @@ export type CanonicalAction =
         | { operation: "UPGRADE"; entity_id: string }
         | { operation: "REPURPOSE"; entity_id: string }
         | { operation: "RESTORE"; entity_id: string }
-        | { operation: "VEST"; entity_id: string; org_id: string };
+        | { operation: "VEST"; entity_id: string; org_id: string }
+        | { operation: "SHARE"; entity_id: string; player_id: string };
     };
 
 export type Affordance = {
@@ -516,6 +519,7 @@ export function enrichEntity(e: {
     archive_subject_entity_id: e.archive_subject_entity_id,
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
+    co_owner_id: e.co_owner_id,
     infra_type: e.infra_type,
     scar: e.scar === true ? true : undefined,
     hidden: e.hidden === true ? true : undefined,
@@ -1697,6 +1701,34 @@ export function parseHumanCommand(
       display: `You try to vest to ${org_id}.`,
     };
   }
+  // share <thing> with <player> — GC2-S11, not listed in Chamber help
+  if (v === "share") {
+    const rest = parts.join(" ");
+    const m = rest.match(/^(.+?)\s+with\s+(\S+)\s*$/i);
+    if (!m) return { ok: false, error: "Share syntax: share <thing> with <player>" };
+    const raw = m[1].replace(/^["']|["']$/g, "").trim();
+    const who = m[2];
+    let player_id = who;
+    if (ctx.players && ctx.selfId) {
+      const pr = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+      if (!pr.ok) return { ok: false, error: pr.message, code: pr.code, choices: pr.choices };
+      player_id = pr.player_id;
+    }
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "SHARE", entity_id: r.entity.entity_id, player_id } },
+        display: `You share the structure with ${who}.`,
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "SHARE", entity_id: raw, player_id } },
+      display: `You try to share with ${who}.`,
+    };
+  }
 
   // Known but not hosted yet (v0.2 strategic)
   if (["agreement", "terminate", "access"].includes(v)) {
@@ -2309,7 +2341,19 @@ export function normalizeStructuredCommand(
         display: `BUILD.VEST ${entity_id} ${org_id}`,
       };
     }
-    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, RESTORE, or VEST", code: "INVALID_REQUEST" };
+    if (operation === "SHARE") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      const player_id = String(args.player_id || args.agent_id || args.partner_id || "").trim();
+      if (!entity_id || !player_id) {
+        return { ok: false, error: "entity_id and player_id required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "SHARE", entity_id, player_id } },
+        display: `BUILD.SHARE ${entity_id} ${player_id}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, RESTORE, VEST, or SHARE", code: "INVALID_REQUEST" };
   }
   if (cmd === "CONTEST_DECLARE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });
