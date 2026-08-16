@@ -252,7 +252,7 @@ export type RoomState = {
   /** GC2-S0: hidden rooms are not construct targets. */
   hidden?: boolean;
   tags?: string[];
-  /** GC5-S3 public board notices. Last 3. Never on hidden rooms. */
+  /** GC5-S5 public board notices. Last 5. Never on hidden rooms. */
   board?: Array<{ text: string; cycle: number }>;
   /** GC5-S4 last public shout. Never on hidden rooms. */
   shout?: { text: string; cycle: number };
@@ -1341,7 +1341,7 @@ export async function applyWorldCommand(
       const notice = action.arguments.text.slice(0, 500).trim();
       if (!notice) return fail(request_id, "INVALID_REQUEST", "Write a notice.");
       debit(pl.budgets, COSTS.MESSAGE);
-      here.board = [...(here.board || []), { text: notice, cycle: w.cycle }].slice(-3);
+      here.board = [...(here.board || []), { text: notice, cycle: w.cycle }].slice(-5);
       const ev = pushEvent("MESSAGE", {
         message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
         sender_id: principal.player_id,

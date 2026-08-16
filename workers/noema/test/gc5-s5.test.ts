@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
-import { DEFAULT_BUDGETS, cloneBudgets, helpText, parseHumanCommand } from "../src/actions";
+import { DEFAULT_BUDGETS, cloneBudgets, helpText } from "../src/actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string): PlayerPrincipal {
@@ -18,7 +18,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.gc5-s3",
+    world_id: "test.hosted-canonical.gc5-s5",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -60,41 +60,36 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("GC5-S3 mapper", () => {
-  it("parses board notices and keeps help quiet", () => {
-    const parsed = parseHumanCommand('board "Relay is down."');
-    expect(parsed.ok).toBe(true);
-    if (parsed.ok) {
-      expect(parsed.action).toEqual({
-        verb: "MESSAGE",
-        arguments: { surface: "BOARD", text: "Relay is down." },
-      });
-    }
+describe("GC5-S5 mapper", () => {
+  it("keeps help quiet", () => {
     expect(helpText()).not.toMatch(/\bboard\b/i);
     expect(helpText()).not.toMatch(/\bSHOUT\b/);
     expect(helpText("message")).not.toMatch(/\bboard\b/i);
   });
 });
 
-describe("GC5-S3 world path", () => {
-  it("posts to a public board and rejects hidden rooms", async () => {
+describe("GC5-S5 world path", () => {
+  it("keeps the last 5 public notices, leaves shout last-1, and rejects hidden rooms", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const first = await run(w, p, "MESSAGE", { surface: "BOARD", text: "First." });
-    expect(first.ok).toBe(true);
-    expect(first.events?.map((e) => e.event_type)).toEqual(["MESSAGE"]);
-    expect(first.observation?.board_lines).toContain("A notice on the board: First.");
-    await run(w, p, "MESSAGE", { surface: "BOARD", text: "Second." });
-    const third = await run(w, p, "MESSAGE", { surface: "BOARD", text: "Third." });
-    expect(third.ok).toBe(true);
-    expect(third.observation?.board_lines).toEqual([
-      "A notice on the board: First.",
-      "A notice on the board: Second.",
-      "A notice on the board: Third.",
-    ]);
-    expect(JSON.stringify(third.events || [])).not.toContain("MESSAGE_DELIVERED");
+    for (const text of ["One.", "Two.", "Three.", "Four.", "Five."]) {
+      const posted = await run(w, p, "MESSAGE", { surface: "BOARD", text });
+      expect(posted.ok).toBe(true);
+    }
+    const sixth = await run(w, p, "MESSAGE", { surface: "BOARD", text: "Six." });
+    expect(sixth.ok).toBe(true);
+    const lines = sixth.observation?.board_lines || [];
+    expect(lines).toHaveLength(5);
+    expect(lines[0]).toBe("A notice on the board: Two.");
+    expect(lines[4]).toBe("A notice on the board: Six.");
+    expect(JSON.stringify(sixth.events || [])).not.toContain("MESSAGE_DELIVERED");
+
+    const shoutA = await run(w, p, "MESSAGE", { surface: "SHOUT", text: "First shout." });
+    expect(shoutA.ok).toBe(true);
+    const shoutB = await run(w, p, "MESSAGE", { surface: "SHOUT", text: "Second shout." });
+    expect(shoutB.observation?.shout_lines).toEqual(["A shout: Second shout."]);
 
     const hidden = world();
     const q = principal("player.vesper");
