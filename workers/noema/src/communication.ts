@@ -5,7 +5,9 @@
 
 import { enrichEntity } from "./actions";
 
-export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s1";
+export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s9";
+/** GC5-S9. Last public shout drops after this many committed cycles. */
+export const SHOUT_EXPIRE_AFTER_CYCLES = 1;
 export const LONG_RANGE_MIN_CONDITION = 25;
 export const SAME_CYCLE_MIN_CONDITION = 50;
 export const DELAY_CYCLES = 1;
