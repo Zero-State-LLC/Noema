@@ -20,9 +20,9 @@
     { "id": "C08", "title": "Tool sandbox deny-default", "mode": "behavioral", "status": "pass", "phase": "H3", "test": "c05-c10.test.ts" },
     { "id": "C09", "title": "Consent partition", "mode": "behavioral", "status": "pass", "phase": "H3", "test": "c05-c10.test.ts" },
     { "id": "C10", "title": "No private cognition request", "mode": "behavioral", "status": "pass", "phase": "H3", "test": "c05-c10.test.ts" },
-    { "id": "C11", "title": "Human onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
-    { "id": "C12", "title": "Agent onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
-    { "id": "C13", "title": "Spectator onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
+    { "id": "C11", "title": "Human onboarding", "mode": "behavioral", "status": "pass", "phase": "H4", "test": "c11-c13.test.ts" },
+    { "id": "C12", "title": "Agent onboarding", "mode": "behavioral", "status": "pass", "phase": "H4", "test": "c11-c13.test.ts" },
+    { "id": "C13", "title": "Spectator onboarding", "mode": "behavioral", "status": "pass", "phase": "H4", "test": "c11-c13.test.ts" },
     {
       "id": "C14",
       "title": "Reference deployment",
