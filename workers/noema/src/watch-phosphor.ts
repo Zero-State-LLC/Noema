@@ -10,15 +10,15 @@ export const PHOSPHOR_JS_BUDGET = 100 * 1024;
 export const PHOSPHOR_ASSET_BUDGET = 200 * 1024;
 
 export const PHOSPHOR_COLORS = {
-  ground: "#070a10",
+  ground: "#0a0e14",
   ink: "#101820",
-  dim: "#2a3342",
-  copper: "#c4784a",
-  amber: "#e0a05a",
+  dim: "rgba(196, 122, 58, 0.45)",
+  copper: "#c47a3a",
+  amber: "#e8a050",
   wash: "#1a1008",
 } as const;
 
-export type PhosphorCertainty = "unknown" | "partial" | "known" | "active";
+export type PhosphorCertainty = "unknown" | "empty" | "partial" | "known" | "active";
 export type PhosphorTier = "NORMAL" | "NOTABLE" | "MAJOR";
 export type PhosphorMode = "text" | "pixel";
 
@@ -86,21 +86,20 @@ export type PhosphorGlyphId =
   | "pulse_notable"
   | "pulse_major";
 
-/** 8×8 atlas. 0 = off, 1 = dim copper, 2 = bright copper/amber. */
-export const PHOSPHOR_GLYPHS: Record<PhosphorGlyphId, number[]> = {
-  room_empty: [0x00, 0x7e, 0x42, 0x42, 0x42, 0x42, 0x7e, 0x00],
-  room_known: [0x00, 0x7e, 0x5a, 0x66, 0x66, 0x5a, 0x7e, 0x00],
-  room_active: [0x18, 0x7e, 0x7e, 0xff, 0xff, 0x7e, 0x7e, 0x18],
-  room_partial: [0x00, 0x60, 0x70, 0x38, 0x1c, 0x0e, 0x06, 0x00],
-  player_single: [0x18, 0x3c, 0x18, 0x7e, 0x18, 0x3c, 0x24, 0x00],
-  player_multi: [0x00, 0x66, 0xff, 0x66, 0x00, 0x66, 0xff, 0x66],
-  player_cluster: [0x00, 0x2a, 0x7f, 0x2a, 0x7f, 0x2a, 0x00, 0x00],
-  exit: [0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00],
-  exit_active: [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x7e, 0x3c, 0x18],
-  pulse_normal: [0x00, 0x18, 0x18, 0x7e, 0x7e, 0x18, 0x18, 0x00],
-  pulse_notable: [0x18, 0x24, 0x42, 0x81, 0x81, 0x42, 0x24, 0x18],
-  pulse_major: [0x3c, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3c],
-};
+export const PHOSPHOR_GLYPH_IDS: PhosphorGlyphId[] = [
+  "room_empty",
+  "room_known",
+  "room_active",
+  "room_partial",
+  "player_single",
+  "player_multi",
+  "player_cluster",
+  "exit",
+  "exit_active",
+  "pulse_normal",
+  "pulse_notable",
+  "pulse_major",
+];
 
 export function roomGlyphId(certainty: PhosphorCertainty): PhosphorGlyphId {
   if (certainty === "active") return "room_active";
@@ -157,11 +156,6 @@ const PULSE_TTL: Record<PhosphorTier, number> = {
   MAJOR: 920,
 };
 
-/** 8×8 player glyph — amber later. 1 = on. */
-export const PLAYER_GLYPH = [
-  0b00111100, 0b01111110, 0b11011011, 0b11111111, 0b11111111, 0b11011011, 0b01100110, 0b00111100,
-];
-
 export function isPublicWatchRoom(room: PhosphorRoom | null | undefined): boolean {
   if (!room || !room.room_id) return false;
   if (room.hidden === true) return false;
@@ -190,7 +184,11 @@ export function roomCertainty(room: PhosphorRoom, recent?: PhosphorEvent[]): Pho
   if (hit) return "active";
   const ents = (room.entities || []).filter((e) => e && e.hidden !== true);
   if (ents.length || String(room.description || "").trim()) return "known";
-  return "partial";
+  const tags = room.tags || [];
+  for (let i = 0; i < tags.length; i++) {
+    if (String(tags[i] || "").toLowerCase() === "partial") return "partial";
+  }
+  return "empty";
 }
 
 function publicExits(room: PhosphorRoom, allowed: Set<string>): PhosphorExit[] {
@@ -376,22 +374,116 @@ type DrawCtx = {
   fillStyle: string;
   strokeStyle: string;
   globalAlpha: number;
+  lineWidth: number;
+  lineCap: string;
   font: string;
   imageSmoothingEnabled?: boolean;
   fillRect(x: number, y: number, w: number, h: number): void;
-  strokeRect?(x: number, y: number, w: number, h: number): void;
+  strokeRect(x: number, y: number, w: number, h: number): void;
   beginPath(): void;
   moveTo(x: number, y: number): void;
   lineTo(x: number, y: number): void;
+  closePath(): void;
   stroke(): void;
+  fill(): void;
   fillText?(text: string, x: number, y: number): void;
 };
 
-function certaintyFill(c: PhosphorCertainty): string {
-  if (c === "active") return PHOSPHOR_COLORS.amber;
-  if (c === "known") return PHOSPHOR_COLORS.copper;
-  if (c === "partial") return PHOSPHOR_COLORS.dim;
-  return PHOSPHOR_COLORS.ink;
+function inkFor(intensity: number): string {
+  if (intensity > 0.7) return PHOSPHOR_COLORS.amber;
+  if (intensity > 0.35) return PHOSPHOR_COLORS.copper;
+  return PHOSPHOR_COLORS.dim;
+}
+
+export function drawDiamond(ctx: DrawCtx, x: number, y: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.lineTo(x + r, y);
+  ctx.lineTo(x, y + r);
+  ctx.lineTo(x - r, y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+export function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: number, intensity = 1): void {
+  const c = inkFor(intensity);
+  ctx.fillStyle = c;
+  ctx.strokeStyle = c;
+  ctx.lineWidth = 1;
+  ctx.lineCap = "square";
+  switch (id) {
+    case "room_empty":
+      ctx.strokeRect(cx + 1, cy + 1, 6, 6);
+      return;
+    case "room_known":
+      ctx.fillRect(cx + 1, cy + 1, 6, 6);
+      return;
+    case "room_active":
+      ctx.fillStyle = PHOSPHOR_COLORS.amber;
+      ctx.fillRect(cx + 1, cy + 1, 6, 6);
+      return;
+    case "room_partial":
+      ctx.beginPath();
+      ctx.moveTo(cx + 1, cy + 7);
+      ctx.lineTo(cx + 1, cy + 1);
+      ctx.lineTo(cx + 7, cy + 1);
+      ctx.lineTo(cx + 7, cy + 7);
+      ctx.stroke();
+      return;
+    case "player_single":
+      drawDiamond(ctx, cx + 4, cy + 4, 3);
+      return;
+    case "player_multi":
+      drawDiamond(ctx, cx + 4, cy + 2, 2);
+      drawDiamond(ctx, cx + 4, cy + 5, 2);
+      return;
+    case "player_cluster":
+      ctx.fillRect(cx + 2, cy + 2, 4, 4);
+      ctx.fillStyle = PHOSPHOR_COLORS.amber;
+      ctx.fillRect(cx + 3, cy + 3, 2, 2);
+      return;
+    default:
+      return;
+  }
+}
+
+export function drawExit(ctx: DrawCtx, x1: number, y1: number, x2: number, y2: number, active = false): void {
+  ctx.strokeStyle = active ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.dim;
+  ctx.lineWidth = 1;
+  ctx.lineCap = "square";
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+export function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void {
+  const t = Math.max(0, Math.min(1, age));
+  const span = tier === "MAJOR" ? 14 : tier === "NOTABLE" ? 10 : 6;
+  const r = 3 + t * span;
+  ctx.globalAlpha = 1 - t;
+  ctx.strokeStyle = tier === "MAJOR" ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.copper;
+  ctx.lineWidth = 1;
+  ctx.lineCap = "square";
+  ctx.beginPath();
+  ctx.moveTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.lineTo(cx, cy - r);
+  ctx.closePath();
+  ctx.stroke();
+  if (tier === "MAJOR" && t < 0.45) {
+    const inner = Math.max(2, r - 3);
+    ctx.globalAlpha = 0.45 * (1 - t);
+    ctx.beginPath();
+    ctx.moveTo(cx + inner, cy);
+    ctx.lineTo(cx, cy + inner);
+    ctx.lineTo(cx - inner, cy);
+    ctx.lineTo(cx, cy - inner);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 
 export function drawPhosphorFrame(
@@ -406,35 +498,25 @@ export function drawPhosphorFrame(
   if (ctx.imageSmoothingEnabled != null) ctx.imageSmoothingEnabled = false;
 
   const byId = new Map(layout.nodes.map((n) => [n.room_id, n]));
-  ctx.strokeStyle = PHOSPHOR_COLORS.dim;
-  ctx.globalAlpha = 0.7;
+  ctx.globalAlpha = 1;
   for (let i = 0; i < layout.edges.length; i++) {
     const e = layout.edges[i];
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    stampGlyph(
-      ctx,
-      Math.round((a.x + b.x) / 2) - 4,
-      Math.round((a.y + b.y) / 2) - 4,
-      e.active ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.dim,
-      e.active ? "exit_active" : "exit",
-    );
+    drawExit(ctx, a.x, a.y, b.x, b.y, e.active === true);
   }
 
   for (let i = 0; i < layout.nodes.length; i++) {
     const n = layout.nodes[i];
-    ctx.globalAlpha = n.certainty === "active" ? 1 : n.certainty === "known" ? 0.85 : 0.55;
-    stampGlyph(ctx, n.x - 4, n.y - 4, certaintyFill(n.certainty), roomGlyphId(n.certainty));
+    const intensity = n.certainty === "active" ? 1 : n.certainty === "known" ? 0.55 : 0.3;
+    drawGlyph(ctx, roomGlyphId(n.certainty), n.x - 4, n.y - 4, intensity);
+  }
+
+  for (let i = 0; i < layout.nodes.length; i++) {
+    const n = layout.nodes[i];
     const pg = playerGlyphId(n.players);
-    if (pg) {
-      ctx.globalAlpha = 1;
-      stampGlyph(ctx, n.x + 5, n.y + 2, PHOSPHOR_COLORS.amber, pg);
-    }
+    if (pg) drawGlyph(ctx, pg, n.x + 5, n.y + 2, 1);
   }
 
   let majorSeen = false;
@@ -446,15 +528,7 @@ export function drawPhosphorFrame(
     }
     const n = byId.get(p.room_id);
     if (!n) continue;
-    const t = Math.max(0, Math.min(1, (now - p.born) / p.ttl));
-    ctx.globalAlpha = 1 - t;
-    stampGlyph(
-      ctx,
-      n.x - 4,
-      n.y - 12,
-      p.tier === "MAJOR" ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.copper,
-      pulseGlyphId(p.tier),
-    );
+    drawPulse(ctx, n.x, n.y, p.tier, (now - p.born) / p.ttl);
   }
   ctx.globalAlpha = 1;
 }
@@ -464,16 +538,7 @@ function pageIsHidden(): boolean {
   return Boolean(g.document && g.document.hidden);
 }
 
-function stampGlyph(ctx: DrawCtx, x: number, y: number, color: string, id: PhosphorGlyphId = "player_single"): void {
-  const rows = PHOSPHOR_GLYPHS[id] || PHOSPHOR_GLYPHS.player_single;
-  ctx.fillStyle = color;
-  for (let row = 0; row < rows.length; row++) {
-    const bits = rows[row];
-    for (let col = 0; col < 8; col++) {
-      if (bits & (1 << (7 - col))) ctx.fillRect(x + col, y + row, 1, 1);
-    }
-  }
-}
+
 
 export type PhosphorSession = {
   mode: PhosphorMode;
@@ -626,8 +691,6 @@ export function phosphorInlineScript(): string {
     const PHOSPHOR_HEIGHT = ${PHOSPHOR_HEIGHT};
     const PHOSPHOR_MAX_FPS = ${PHOSPHOR_MAX_FPS};
     const PHOSPHOR_COLORS = ${JSON.stringify(PHOSPHOR_COLORS)};
-    const PLAYER_GLYPH = ${JSON.stringify(PLAYER_GLYPH)};
-    const PHOSPHOR_GLYPHS = ${JSON.stringify(PHOSPHOR_GLYPHS)};
     const PHOSPHOR_DIR = ${JSON.stringify(PHOSPHOR_DIR)};
     const PULSE_TTL = ${JSON.stringify(PULSE_TTL)};
     const isPublicWatchRoom = ${isPublicWatchRoom.toString()};
@@ -643,8 +706,11 @@ export function phosphorInlineScript(): string {
     const layoutPublicTopology = ${layoutPublicTopology.toString()};
     const collectPulses = ${collectPulses.toString()};
     const expirePulses = ${expirePulses.toString()};
-    const certaintyFill = ${certaintyFill.toString()};
-    const stampGlyph = ${stampGlyph.toString()};
+    const inkFor = ${inkFor.toString()};
+    const drawDiamond = ${drawDiamond.toString()};
+    const drawGlyph = ${drawGlyph.toString()};
+    const drawExit = ${drawExit.toString()};
+    const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
