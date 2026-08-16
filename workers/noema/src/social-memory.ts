@@ -394,16 +394,38 @@ export function liveHostileToward(
   return dangerLive || deceptiveLive;
 }
 
-export function tradeCautionCost(liveHostile: boolean): {
+export function liveReliableToward(
+  trade: TradeMemoryState | undefined | null,
+  otherId: string,
+  asOfCycle?: number,
+): boolean {
+  const tr = ensureTradeMemory(trade);
+  const ids = tr.edges[otherId] || [];
+  return ids.length >= RELIABLE_THRESHOLD && familyLive(ids, tr.at?.[otherId], asOfCycle);
+}
+
+export function liveInstitutionReliableToward(
+  state: InstitutionMemoryState | undefined | null,
+  otherId: string,
+  asOfCycle?: number,
+): boolean {
+  const snap = ensureInstitutionMemory(state);
+  const ids = snap.trades[otherId] || [];
+  return ids.length >= RELIABLE_THRESHOLD && familyLive(ids, snap.trade_at?.[otherId], asOfCycle);
+}
+
+export function tradeCautionCost(liveHostile: boolean, liveReliable = false): {
   extra_compute: number;
   auto_reject: false;
+  auto_accept: false;
   reason_code: string | null;
   total_compute: number;
 } {
-  const extra = liveHostile ? TRADE_CAUTION_EXTRA : 0;
+  const extra = liveHostile && !liveReliable ? TRADE_CAUTION_EXTRA : 0;
   return {
     extra_compute: extra,
     auto_reject: false,
+    auto_accept: false,
     reason_code: extra ? TRADE_CAUTION_CODE : null,
     total_compute: 1 + extra,
   };

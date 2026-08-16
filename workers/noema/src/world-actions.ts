@@ -73,6 +73,8 @@ import {
   institutionMemoryLines,
   liveHostileToward,
   liveInstitutionHostileToward,
+  liveInstitutionReliableToward,
+  liveReliableToward,
   socialMemoryLines,
   tradeCautionCost,
   watchPublicDescriptorLines,
@@ -356,13 +358,15 @@ export function buildObservation(
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
   const cautionToward: Record<string, boolean> = {};
   for (const p of otherPlayers) {
-    cautionToward[p.player_id] = liveHostileToward(
+    const hostile = liveHostileToward(
       pl.danger_memory,
       pl.deceptive_memory,
       pl.trade_memory,
       p.player_id,
       w.cycle,
     );
+    const preferred = liveReliableToward(pl.trade_memory, p.player_id, w.cycle);
+    cautionToward[p.player_id] = hostile && !preferred;
   }
   const affordances = deriveAffordances({
     entities,
@@ -1362,7 +1366,10 @@ export async function applyWorldCommand(
       const liveHostile = actingPreview && w.organizations[actingPreview]
         ? liveInstitutionHostileToward(w.organizations[actingPreview].institution_memory, counterparty_id, w.cycle)
         : liveHostileToward(pl.danger_memory, pl.deceptive_memory, pl.trade_memory, counterparty_id, w.cycle);
-      const caution = tradeCautionCost(liveHostile);
+      const liveReliable = actingPreview && w.organizations[actingPreview]
+        ? liveInstitutionReliableToward(w.organizations[actingPreview].institution_memory, counterparty_id, w.cycle)
+        : liveReliableToward(pl.trade_memory, counterparty_id, w.cycle);
+      const caution = tradeCautionCost(liveHostile, liveReliable);
       const tradeCost = { compute: caution.total_compute };
       if (!canPay(pl.budgets, tradeCost)) {
         return fail(
