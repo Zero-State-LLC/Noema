@@ -12,7 +12,7 @@ PLAY → NOTICE → TEST → CAPTURE → LEARN
 
 | User concept | Spec packages | Runtime modules |
 |---|---|---|
-| PLAY | Chamber C01–C26 | `world/`, `actions/`, `persistence/`, `observations/`, `cli/play` |
+| PLAY | Chamber C01–C26 | Offline: `world/`, `actions/`, `persistence/`. Hosted suite: isolated `test.hosted-canonical.*` only — see `workers/noema/test/conformance/hosted-matrix.json`. Perihelion is not a conformance target. |
 | NOTICE (conditions) | Frontier F01–F15 | `research/frontier/`, post-persist capture |
 | NOTICE (detection) | Observatory O01–O16 | `research/observatory/` |
 | TEST | Lab L01–L34 | `research/lab/` (isolated forks only) |
