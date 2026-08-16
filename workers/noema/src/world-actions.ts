@@ -191,6 +191,7 @@ import {
   shouldAbandon,
   RESTORE_CONDITION_CAP,
   MULTI_CYCLE_CLASS,
+  VEST_COST,
   isInProgress,
   allocateInfraId,
   clampSalvage,
@@ -648,6 +649,19 @@ function fail(
   choices?: string[],
 ): CommandResult {
   return { ok: false, request_id, error: { code, message, choices } };
+}
+
+function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean {
+  const org = w.organizations[orgId];
+  if (!org || org.status !== "ACTIVE") return false;
+  return occupiedOfficesFor(org, playerId, REPAIR_PROFILE).length > 0;
+}
+
+function isConstructSteward(w: WorldRuntime, entity: { owner_id?: string }, playerId: string): boolean {
+  if (entity.owner_id === playerId) return true;
+  const orgId = entity.owner_id;
+  if (orgId && w.organizations[orgId]) return holdsNamedAssetOffice(w, playerId, orgId);
+  return false;
 }
 
 function recordPractice(
@@ -2346,7 +2360,11 @@ export async function applyWorldCommand(
       entity.condition = Math.min(100, before + quality.delta);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
-      if (!acting_for && entity.owner_id === principal.player_id && !entity.unclaimed) {
+      if (
+        !entity.unclaimed &&
+        ((!acting_for && entity.owner_id === principal.player_id) ||
+          (acting_for && entity.owner_id === acting_for && holdsNamedAssetOffice(w, principal.player_id, acting_for)))
+      ) {
         entity.last_steward_cycle = w.cycle;
       }
       if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
@@ -2558,7 +2576,7 @@ export async function applyWorldCommand(
       if (!classId) {
         return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
       }
-      if (!here.unclaimed && here.owner_id !== principal.player_id) {
+      if (!here.unclaimed && !isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
       if (!canPay(pl.budgets, DISMANTLE_COST)) {
@@ -2623,7 +2641,7 @@ export async function applyWorldCommand(
       if (infraClassOf(here) !== "workshop") {
         return fail(request_id, "FORBIDDEN", "Only a workshop can be upgraded.");
       }
-      if (here.owner_id !== principal.player_id) {
+      if (!isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
       if ((here.upgrade_tier || 0) >= 1) {
@@ -2674,7 +2692,7 @@ export async function applyWorldCommand(
       if (infraClassOf(here) !== REPURPOSE_FROM_CLASS) {
         return fail(request_id, "FORBIDDEN", "Only a workshop can be repurposed as a storage bay.");
       }
-      if (here.owner_id !== principal.player_id) {
+      if (!isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
       const storageNeed = constructStorageCost(REPURPOSE_COST.storage || 0, pl.lot_grades?.storage);
@@ -2736,7 +2754,7 @@ export async function applyWorldCommand(
       if (!here.unclaimed) {
         return fail(request_id, "FORBIDDEN", "That is not unclaimed.");
       }
-      if (here.owner_id !== principal.player_id) {
+      if (!isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
       const base = CONSTRUCT_COSTS[classId];
@@ -2774,6 +2792,62 @@ export async function applyWorldCommand(
         request_id,
         events,
         `You restored the ${here.label.replace(/-/g, " ")}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+
+    if (action.arguments.operation === "VEST") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to vest here.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      const classId = infraClassOf(here);
+      if (!classId) {
+        return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
+      }
+      if (here.scar || here.entity_type === "RUIN" || here.unclaimed || isInProgress(here)) {
+        return fail(request_id, "FORBIDDEN", "That cannot be vested.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      const org_id = String(action.arguments.org_id || "").trim();
+      const org = org_id ? w.organizations[org_id] : undefined;
+      if (!org || org.status !== "ACTIVE" || !holdsNamedAssetOffice(w, principal.player_id, org_id)) {
+        return fail(request_id, "FORBIDDEN", "You do not hold a named-asset office there.");
+      }
+      if (!canPay(pl.budgets, VEST_COST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, VEST_COST);
+      here.owner_id = org.org_id;
+      here.last_steward_cycle = w.cycle;
+      const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: VEST_COST,
+        reason: "VEST",
+        org_id: org.org_id,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: here.entity_id,
+        set: { owner_id: org.org_id, last_steward_cycle: w.cycle, infra_type: classId },
+        unset: [],
+        operation: "VEST",
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `The ${here.label.replace(/-/g, " ")} is held by ${org.name}.`,
         settled,
       );
       w.seen_idempotency[idem] = posted;

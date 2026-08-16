@@ -358,7 +358,8 @@ export type CanonicalAction =
         | { operation: "DISMANTLE"; entity_id: string }
         | { operation: "UPGRADE"; entity_id: string }
         | { operation: "REPURPOSE"; entity_id: string }
-        | { operation: "RESTORE"; entity_id: string };
+        | { operation: "RESTORE"; entity_id: string }
+        | { operation: "VEST"; entity_id: string; org_id: string };
     };
 
 export type Affordance = {
@@ -1674,6 +1675,28 @@ export function parseHumanCommand(
       display: "You try to restore.",
     };
   }
+  // vest <thing> to <org> — GC2-S10, not listed in Chamber help
+  if (v === "vest") {
+    const rest = parts.join(" ");
+    const m = rest.match(/^(.+?)\s+(?:to|for)\s+(\S+)\s*$/i);
+    if (!m) return { ok: false, error: 'Vest syntax: vest <thing> to <org>' };
+    const raw = m[1].replace(/^["']|["']$/g, "").trim();
+    const org_id = m[2];
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "VEST", entity_id: r.entity.entity_id, org_id } },
+        display: `You vest the structure to ${org_id}.`,
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "VEST", entity_id: raw, org_id } },
+      display: `You try to vest to ${org_id}.`,
+    };
+  }
 
   // Known but not hosted yet (v0.2 strategic)
   if (["agreement", "terminate", "access"].includes(v)) {
@@ -2276,7 +2299,17 @@ export function normalizeStructuredCommand(
         display: `BUILD.RESTORE ${entity_id}`,
       };
     }
-    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, or RESTORE", code: "INVALID_REQUEST" };
+    if (operation === "VEST") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      const org_id = String(args.org_id || args.acting_for || "").trim();
+      if (!entity_id || !org_id) return { ok: false, error: "entity_id and org_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "VEST", entity_id, org_id } },
+        display: `BUILD.VEST ${entity_id} ${org_id}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, RESTORE, or VEST", code: "INVALID_REQUEST" };
   }
   if (cmd === "CONTEST_DECLARE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });
