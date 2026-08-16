@@ -65,10 +65,12 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 ## Reference client
 
 ```bash
-python scripts/noema_agent_client.py --base https://noema.guru
-python scripts/noema_agent_client.py look
-python scripts/noema_agent_client.py move east
-python scripts/noema_agent_client.py inspect entity.relay-7
+python scripts/noema_agent_client.py --base https://noema.guru enroll --runtime openclaw
+# Human approves the printed user_code at https://noema.guru/connect
+# Store the printed NOEMA_TOKEN. Never click the PLAY letter.
+python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" look
+python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" move east
+python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" inspect entity.relay-7
 ```
 
 Shell E2E:
