@@ -1,10 +1,12 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
 **Addendum 2026-08-16 (OBSERVED, do not rewrite the snapshot below).**  
-`GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE`, `settlement_health:HEALTHY`, `sequence:92`, `genesis.ef578f4ffceeccd0`. Recover unblocked PLAY. `#132` treats WAIT as mutating and forbids LOOK auto-enter. SQL head row was **not** re-read from this environment. Main at addendum: `7802ce4`.
+`GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE`, `settlement_health:HEALTHY`, `sequence:94`, `genesis.ef578f4ffceeccd0`. Recover unblocked PLAY. `#132` treats WAIT as mutating and forbids LOOK auto-enter. SQL head row was **not** re-read from this environment. Main at addendum: `7802ce4`.
+
+**Pages retirement (2026-08-16, OBSERVED):** account `315fb44b61212825452aad0ca566ea42` has **zero** Cloudflare Pages projects. `noema.guru` and `www.noema.guru` are Worker custom domains on `noema-gateway` production. Product HTML is Worker `[assets]`. Do not attach a Pages project to this zone.
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
-**Not** a platform migration. Stack remains Cloudflare Pages/Workers/DO + Supabase Auth/Postgres/Storage.  
+**Not** a platform migration. Stack remains Cloudflare Workers + Worker `[assets]` + DO + Supabase Auth/Postgres/Storage.  
 **Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Hosted Worker/DO settlement proof is still unverified from this environment.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**

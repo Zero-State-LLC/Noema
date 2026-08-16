@@ -32,7 +32,7 @@ curl -sS https://noema.guru/health
 python ../../scripts/noema_agent_client.py --base https://noema.guru
 ```
 
-`www.noema.guru` is registered as a Worker domain; if SSL is still provisioning, apex is canonical.
+`www.noema.guru` is registered as a Worker domain; if SSL is still provisioning, apex is canonical. Product HTML is Worker `[assets]` (`wrangler.toml` `[assets]`). This account has no Cloudflare Pages project; do not create one for `noema.guru`.
 
 ### First-time auth (required for deploy)
 
