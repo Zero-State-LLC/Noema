@@ -54,6 +54,8 @@ export type EntityRuntime = {
   owner_id?: string;
   /** GC2-S11. One additional Player steward. Absent = sole owner. */
   co_owner_id?: string;
+  /** GC2-S12. Public dest room a route_link faces. Never a new exit. */
+  dest_room_id?: string;
   /** GC2-S0 class. Explicit wins over id/label matching. */
   infra_type?: ConstructibleClass;
   /** Spectator / LOOK-hidden. Never inferred. */
@@ -364,7 +366,8 @@ export type CanonicalAction =
         | { operation: "REPURPOSE"; entity_id: string }
         | { operation: "RESTORE"; entity_id: string }
         | { operation: "VEST"; entity_id: string; org_id: string }
-        | { operation: "SHARE"; entity_id: string; player_id: string };
+        | { operation: "SHARE"; entity_id: string; player_id: string }
+        | { operation: "CONNECT"; entity_id: string; dest: string };
     };
 
 export type Affordance = {
@@ -522,6 +525,7 @@ export function enrichEntity(e: {
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
     co_owner_id: e.co_owner_id,
+    dest_room_id: e.dest_room_id,
     infra_type: e.infra_type,
     scar: e.scar === true ? true : undefined,
     hidden: e.hidden === true ? true : undefined,
@@ -1746,6 +1750,28 @@ export function parseHumanCommand(
       display: `You try to share with ${who}.`,
     };
   }
+  // connect <link> to <dir|room> — GC2-S12, not listed in Chamber help
+  if (v === "connect") {
+    const rest = parts.join(" ");
+    const m = rest.match(/^(.+?)\s+to\s+(\S+)\s*$/i);
+    if (!m) return { ok: false, error: "Connect syntax: connect <link> to <dir|room>" };
+    const raw = m[1].replace(/^["']|["']$/g, "").trim();
+    const dest = m[2];
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "CONNECT", entity_id: r.entity.entity_id, dest } },
+        display: `You face the route link toward ${dest}.`,
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "CONNECT", entity_id: raw, dest } },
+      display: `You try to connect toward ${dest}.`,
+    };
+  }
 
   // Known but not hosted yet (v0.2 strategic)
   if (["agreement", "terminate", "access"].includes(v)) {
@@ -2382,7 +2408,19 @@ export function normalizeStructuredCommand(
         display: `BUILD.SHARE ${entity_id} ${player_id}`,
       };
     }
-    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, RESTORE, VEST, or SHARE", code: "INVALID_REQUEST" };
+    if (operation === "CONNECT") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      const dest = String(args.dest || args.dest_room_id || args.direction || "").trim();
+      if (!entity_id || !dest) {
+        return { ok: false, error: "entity_id and dest required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "CONNECT", entity_id, dest } },
+        display: `BUILD.CONNECT ${entity_id} ${dest}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, RESTORE, VEST, SHARE, or CONNECT", code: "INVALID_REQUEST" };
   }
   if (cmd === "CONTEST_DECLARE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });

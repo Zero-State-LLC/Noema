@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s11";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s12";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -120,6 +120,8 @@ export const MULTI_CYCLE_CLASS: ConstructibleClass = "relay";
 export const VEST_COST: ConstructionCost = { compute: 1 };
 /** GC2-S11. Sole personal owner names one co-owner. */
 export const SHARE_COST: ConstructionCost = { compute: 1 };
+/** GC2-S12. Steward pins a public two-way dest on a route_link. */
+export const CONNECT_COST: ConstructionCost = { compute: 1 };
 
 export function isInProgress(entity: { in_progress?: boolean } | null | undefined): boolean {
   return entity?.in_progress === true;

@@ -194,6 +194,7 @@ import {
   MULTI_CYCLE_CLASS,
   VEST_COST,
   SHARE_COST,
+  CONNECT_COST,
   isInProgress,
   allocateInfraId,
   clampSalvage,
@@ -657,6 +658,21 @@ function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string)
   const org = w.organizations[orgId];
   if (!org || org.status !== "ACTIVE") return false;
   return occupiedOfficesFor(org, playerId, REPAIR_PROFILE).length > 0;
+}
+
+function publicExitDest(room: RoomState, raw: string): string | null {
+  const t = String(raw || "").trim();
+  if (!t) return null;
+  const exits = room.exits || [];
+  const byDir = exits.find((e) => !e.hidden && e.direction.toLowerCase() === t.toLowerCase());
+  if (byDir) return byDir.to_room_id;
+  const byId = exits.find((e) => !e.hidden && e.to_room_id === t);
+  return byId ? byId.to_room_id : null;
+}
+
+function hasPublicReverse(room: RoomState | undefined, fromRoomId: string): boolean {
+  if (!room || isHiddenRoom(room)) return false;
+  return (room.exits || []).some((e) => !e.hidden && e.to_room_id === fromRoomId);
 }
 
 function isConstructSteward(
@@ -2922,6 +2938,57 @@ export async function applyWorldCommand(
         request_id,
         events,
         `You share the ${here.label.replace(/-/g, " ")} with ${handle}.`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+
+    if (action.arguments.operation === "CONNECT") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "That way is not a public route.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      if (infraClassOf(here) !== "route_link" || here.unclaimed || isInProgress(here) || here.scar) {
+        return fail(request_id, "FORBIDDEN", "That is not a live route link.");
+      }
+      if (!isConstructSteward(w, here, principal.player_id)) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      const destId = publicExitDest(room, action.arguments.dest);
+      const destRoom = destId ? w.rooms[destId] : undefined;
+      if (!destId || !hasPublicReverse(destRoom, room.room_id)) {
+        return fail(request_id, "NOT_OBSERVABLE", "That way is not a public route.");
+      }
+      if (!canPay(pl.budgets, CONNECT_COST)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, CONNECT_COST);
+      here.dest_room_id = destId;
+      const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: CONNECT_COST,
+        reason: "CONNECT",
+        dest_room_id: destId,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: here.entity_id,
+        set: { dest_room_id: destId, infra_type: "route_link" },
+        unset: [],
+        operation: "CONNECT",
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `The route link faces ${destRoom!.name}.`,
         settled,
       );
       w.seen_idempotency[idem] = posted;
