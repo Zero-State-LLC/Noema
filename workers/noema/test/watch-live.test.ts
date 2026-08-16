@@ -444,7 +444,8 @@ describe("watch HTML surface", () => {
   it("never assigns innerHTML and does not grow a KPI dashboard", () => {
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).not.toContain("Watch the world move");
-    expect(html).not.toMatch(/sparkline|WebSocket|canvas|WebGL/i);
+    expect(html).not.toMatch(/sparkline|WebSocket|WebGL/i);
+    expect(html).toContain('id="watch-phosphor"');
   });
 });
 

@@ -1,6 +1,7 @@
 /** Public WATCH — Lightweight Spectator Upgrade (watch-live/1.0). */
 
 import { productShell } from "./shell";
+import { phosphorInlineScript } from "./watch-phosphor";
 
 const EXTRA = `
 .watch-head{margin:0 0 1.25rem}
@@ -69,6 +70,21 @@ const EXTRA = `
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero{transition:none}
 }
+.watch-phos{
+  margin:.85rem 0 0;padding:.55rem .55rem .4rem;
+  border:1px solid var(--line);background:#070a10;
+}
+.watch-phos[hidden]{display:none}
+.watch-phos-bar{
+  display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
+  margin:0 0 .4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+}
+.watch-phos-bar .btn{padding:.15rem .45rem;font-size:.62rem}
+.watch-phos-bar .btn[aria-pressed="true"]{border-color:var(--copper);color:var(--copper)}
+.watch-phosphor{
+  display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
+  background:#070a10;image-rendering:pixelated;image-rendering:crisp-edges;
+}
 `;
 
 export function watchHtml(): string {
@@ -86,6 +102,8 @@ export function watchHtml(): string {
       <span id="watch-updated" class="sr">waiting</span>
       <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
+      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="false">TEXT</button>
+      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="true">PIXEL</button>
     </div>
   </header>
 
@@ -102,6 +120,12 @@ export function watchHtml(): string {
       <nav aria-label="Public sites">
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
+      <div class="watch-phos" id="watch-phos-wrap" hidden>
+        <div class="watch-phos-bar">
+          <span>Phosphor cartography — public sketch, not the world.</span>
+        </div>
+        <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch"></canvas>
+      </div>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
     </section>
     <section class="watch-col" aria-labelledby="watch-feed-label">
@@ -294,6 +318,7 @@ export function watchHtml(): string {
         pre.hidden = true;
         pre.textContent = "";
       }
+      if (window.NoemaPhosphor) window.NoemaPhosphor.update(data);
     }
 
     function showUnavailable(msg) {
@@ -305,6 +330,7 @@ export function watchHtml(): string {
       $("watch-feed").replaceChildren(el("li", "watch-empty", "Projection unavailable."));
       $("watch-pre").hidden = true;
       $("watch-pre").textContent = "";
+      if (window.NoemaPhosphor) window.NoemaPhosphor.fail();
     }
 
     async function refresh() {
@@ -351,6 +377,9 @@ export function watchHtml(): string {
     refresh();
     setInterval(() => { if (!state.paused && !document.hidden) refresh(); }, POLL_MS);
   })();
+  </script>
+  <script>
+  ${phosphorInlineScript()}
   </script>
   `;
   return productShell({
