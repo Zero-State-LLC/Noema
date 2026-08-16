@@ -237,6 +237,8 @@ export type RoomState = {
   /** GC2-S0: hidden rooms are not construct targets. */
   hidden?: boolean;
   tags?: string[];
+  /** GC5-S3 public board notices. Last 3. Never on hidden rooms. */
+  board?: Array<{ text: string; cycle: number }>;
 };
 
 export type WorldRuntime = {
@@ -581,6 +583,9 @@ export function buildObservation(
       w.cycle,
       Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
     ),
+    board_lines: isHiddenRoom(room)
+      ? []
+      : (room.board || []).map((n) => `A notice on the board: ${n.text}`),
     reconstruction_lines: reconstructionLines(
       Object.values(w.reconstructions || {}).filter((rec) => {
         const org = rec.org_id ? w.organizations[rec.org_id] : undefined;
@@ -1269,6 +1274,36 @@ export async function applyWorldCommand(
   if (action.verb === "MESSAGE") {
     if (!canPay(pl.budgets, COSTS.MESSAGE)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+    }
+    if (action.arguments.surface === "BOARD") {
+      const here = w.rooms[pl.room_id];
+      if (!here) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      if (isHiddenRoom(here)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is no board here.");
+      }
+      const notice = action.arguments.text.slice(0, 500).trim();
+      if (!notice) return fail(request_id, "INVALID_REQUEST", "Write a notice.");
+      debit(pl.budgets, COSTS.MESSAGE);
+      here.board = [...(here.board || []), { text: notice, cycle: w.cycle }].slice(-3);
+      const ev = pushEvent("MESSAGE", {
+        message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
+        sender_id: principal.player_id,
+        surface: "BOARD",
+        room_id: here.room_id,
+        text: notice,
+        cost_paid: COSTS.MESSAGE,
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `A notice on the board: ${notice}`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
     }
     const recipient_id = action.arguments.recipient_id;
     const text = action.arguments.text.slice(0, 500);
