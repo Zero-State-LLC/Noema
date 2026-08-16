@@ -1,0 +1,64 @@
+{
+  "schema_version": "hosted-conformance-matrix/1.0",
+  "suite_id": "noema-v0.1-chamber-hosted",
+  "specs_suite": "noema-v0.1-chamber",
+  "target": "isolated",
+  "forbidden_world_ids": [
+    "world.perihelion-reach",
+    "world-01"
+  ],
+  "admitted_world_prefix": "test.hosted-canonical.",
+  "note": "Hosted C01–C26 is behavioral against the Worker on isolated worlds only. Python remains ADR-005 digest authority. Perihelion is not a conformance target.",
+  "cases": [
+    { "id": "C01", "title": "Protocol negotiation", "mode": "behavioral", "status": "pending", "phase": "H1", "test": null },
+    { "id": "C02", "title": "Identity authz denial", "mode": "behavioral", "status": "pending", "phase": "H1", "test": null },
+    { "id": "C03", "title": "Idempotent action replay", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
+    { "id": "C04", "title": "Deterministic MOVE ordering", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
+    { "id": "C05", "title": "Observation no leak", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C06", "title": "Attention exhaustion", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C07", "title": "Delivery retry no rollback", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C08", "title": "Tool sandbox deny-default", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C09", "title": "Consent partition", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C10", "title": "No private cognition request", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
+    { "id": "C11", "title": "Human onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
+    { "id": "C12", "title": "Agent onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
+    { "id": "C13", "title": "Spectator onboarding", "mode": "behavioral", "status": "pending", "phase": "H4", "test": null },
+    {
+      "id": "C14",
+      "title": "Reference deployment",
+      "mode": "skip",
+      "status": "skip",
+      "phase": "H0",
+      "test": null,
+      "reason": "Specs reference is Compose + Postgres, not the Cloudflare Worker host."
+    },
+    { "id": "C15", "title": "World persistence across restart", "mode": "behavioral", "status": "pending", "phase": "H5", "test": null },
+    {
+      "id": "C16",
+      "title": "Backup/restore equivalence",
+      "mode": "skip",
+      "status": "skip",
+      "phase": "H0",
+      "test": null,
+      "reason": "No hosted noema restore bundle on the Worker."
+    },
+    {
+      "id": "C17",
+      "title": "Upgrade/version pinning",
+      "mode": "skip",
+      "status": "skip",
+      "phase": "H0",
+      "test": null,
+      "reason": "Worker pin is NOEMA_PROTOCOL_VERSION + deploy SHA, not the Compose upgrade fixture."
+    },
+    { "id": "C18", "title": "Resource accounting", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C19", "title": "Production / consumption", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C20", "title": "Trade atomicity", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C21", "title": "Organization / faction persistence", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C22", "title": "Infrastructure state", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C23", "title": "Deterministic scheduler conflicts", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C24", "title": "World event pressure", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
+    { "id": "C25", "title": "Spectator projection integrity", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
+    { "id": "C26", "title": "Strategic persistence across restart", "mode": "behavioral", "status": "pending", "phase": "H5", "test": null }
+  ]
+}

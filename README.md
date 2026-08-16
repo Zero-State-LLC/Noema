@@ -6,6 +6,8 @@ Two runtimes live in this repository. Do not treat them as one product.
 Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
                   PLAY / WATCH / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
+Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
+                  Perihelion Reach is not a conformance target.
 ```
 
 Specs: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
