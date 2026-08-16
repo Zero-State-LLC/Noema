@@ -146,11 +146,16 @@ describe("approveDevice", () => {
       { store },
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { player_id: string; access_token?: string; status: string };
+    const body = (await res.json()) as {
+      player_id: string;
+      access_token?: string;
+      status: string;
+      controller_id: string;
+    };
     expect(body.status).toBe("approved");
     expect(body.player_id).toBe("player.prabu");
     expect(body.access_token).toBeUndefined();
-    expect((body as { controller_id: string }).controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
   });
 
   it("rejects an agent bearer", async () => {
