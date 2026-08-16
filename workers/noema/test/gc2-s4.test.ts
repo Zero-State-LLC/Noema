@@ -88,7 +88,9 @@ describe("GC2-S4 world path", () => {
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(built.ok).toBe(true);
-    expect(built.observation?.consequence).toMatch(/archive annex is open/i);
+    expect(built.observation?.consequence).toMatch(/archive annex is under construction/i);
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
     const beforeInspect = w.players[p.player_id].budgets.attention;
     const looked = await run(w, p, "INSPECT", { entity_id: "entity.tablet" });
     expect(looked.ok).toBe(true);

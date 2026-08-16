@@ -71,7 +71,8 @@ describe("GC2-S16 mapper", () => {
     expect(isMultiCycleClass("storage_bay")).toBe(true);
     expect(isMultiCycleClass("production_node")).toBe(true);
     expect(isMultiCycleClass("defensive_work")).toBe(true);
-    expect(isMultiCycleClass("archive_annex")).toBe(false);
+    expect(isMultiCycleClass("archive_annex")).toBe(true);
+    expect(isMultiCycleClass("route_link")).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b/);
   });

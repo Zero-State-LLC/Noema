@@ -8,6 +8,7 @@
 import {
   liveClassInRoom,
   parseConstructibleClass,
+  readyClassInRoom,
   withAnnexAttention,
   withWorkshopStorage,
   workshopStorageDiscount,
@@ -2497,7 +2498,7 @@ export function deriveAffordances(input: {
 
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
-    const inspectCost = withAnnexAttention({ ...COSTS.INSPECT }, liveClassInRoom(entities, "archive_annex"));
+    const inspectCost = withAnnexAttention({ ...COSTS.INSPECT }, readyClassInRoom(entities, "archive_annex"));
     out.push({
       action: "INSPECT",
       verb: "INSPECT",

@@ -96,7 +96,7 @@ describe("GC2-S17 mapper", () => {
   it("keeps relay as MULTI_CYCLE_CLASS, adds defensive_work, and stays silent", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(isMultiCycleClass("defensive_work")).toBe(true);
-    expect(isMultiCycleClass("archive_annex")).toBe(false);
+    expect(isMultiCycleClass("archive_annex")).toBe(true);
     expect(isMultiCycleClass("route_link")).toBe(false);
     expect(
       liveClassInRoom(
