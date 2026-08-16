@@ -679,10 +679,12 @@ function hasPublicReverse(room: RoomState | undefined, fromRoomId: string): bool
 
 function isConstructSteward(
   w: WorldRuntime,
-  entity: { owner_id?: string; co_owner_id?: string },
+  entity: { owner_id?: string; co_owner_id?: string; co_owner_2_id?: string },
   playerId: string,
 ): boolean {
-  if (entity.owner_id === playerId || entity.co_owner_id === playerId) return true;
+  if (entity.owner_id === playerId || entity.co_owner_id === playerId || entity.co_owner_2_id === playerId) {
+    return true;
+  }
   const orgId = entity.owner_id;
   if (orgId && w.organizations[orgId]) return holdsNamedAssetOffice(w, playerId, orgId);
   return false;
@@ -2392,7 +2394,9 @@ export async function applyWorldCommand(
       if (
         !entity.unclaimed &&
         ((!acting_for &&
-          (entity.owner_id === principal.player_id || entity.co_owner_id === principal.player_id)) ||
+          (entity.owner_id === principal.player_id ||
+            entity.co_owner_id === principal.player_id ||
+            entity.co_owner_2_id === principal.player_id)) ||
           (acting_for && entity.owner_id === acting_for && holdsNamedAssetOffice(w, principal.player_id, acting_for)))
       ) {
         entity.last_steward_cycle = w.cycle;
@@ -2852,7 +2856,14 @@ export async function applyWorldCommand(
       if (!classId) {
         return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
       }
-      if (here.scar || here.entity_type === "RUIN" || here.unclaimed || isInProgress(here) || here.co_owner_id) {
+      if (
+        here.scar ||
+        here.entity_type === "RUIN" ||
+        here.unclaimed ||
+        isInProgress(here) ||
+        here.co_owner_id ||
+        here.co_owner_2_id
+      ) {
         return fail(request_id, "FORBIDDEN", "That cannot be vested.");
       }
       if (here.owner_id !== principal.player_id) {
@@ -2914,22 +2925,30 @@ export async function applyWorldCommand(
       if (here.owner_id !== principal.player_id) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
-      if (here.co_owner_id) {
-        return fail(request_id, "FORBIDDEN", "That is already shared.");
-      }
       if (here.owner_id && w.organizations[here.owner_id]) {
         return fail(request_id, "FORBIDDEN", "An institution cannot share that way.");
       }
       const partner_id = String(action.arguments.player_id || "").trim();
       const partner = partner_id ? w.players[partner_id] : undefined;
-      if (!partner?.entered || partner_id === principal.player_id) {
+      if (
+        !partner?.entered ||
+        partner_id === principal.player_id ||
+        partner_id === here.owner_id ||
+        partner_id === here.co_owner_id ||
+        partner_id === here.co_owner_2_id
+      ) {
         return fail(request_id, "NOT_ADDRESSABLE", "That Player is not addressable.");
+      }
+      const slot = !here.co_owner_id ? "co_owner_id" : !here.co_owner_2_id ? "co_owner_2_id" : null;
+      if (!slot) {
+        return fail(request_id, "FORBIDDEN", "That is already shared.");
       }
       if (!canPay(pl.budgets, SHARE_COST)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
       }
       debit(pl.budgets, SHARE_COST);
-      here.co_owner_id = partner_id;
+      if (slot === "co_owner_id") here.co_owner_id = partner_id;
+      else here.co_owner_2_id = partner_id;
       here.last_steward_cycle = w.cycle;
       const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
       if (idx >= 0) room.entities[idx] = here;
@@ -2937,11 +2956,11 @@ export async function applyWorldCommand(
         player_id: principal.player_id,
         cost_paid: SHARE_COST,
         reason: "SHARE",
-        co_owner_id: partner_id,
+        [slot]: partner_id,
       });
       const ev = pushEvent("ENTITY_UPDATE", {
         entity_id: here.entity_id,
-        set: { co_owner_id: partner_id, last_steward_cycle: w.cycle, infra_type: classId },
+        set: { [slot]: partner_id, last_steward_cycle: w.cycle, infra_type: classId },
         unset: [],
         operation: "SHARE",
       });

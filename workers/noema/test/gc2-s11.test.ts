@@ -123,10 +123,10 @@ describe("GC2-S11 world path", () => {
     const again = await run(w, a, "BUILD", {
       operation: "SHARE",
       entity_id: entityId,
-      player_id: c.player_id,
+      player_id: b.player_id,
     });
     expect(again.ok).toBe(false);
-    expect(again.error?.code).toBe("FORBIDDEN");
+    expect(again.error?.code).toBe("NOT_ADDRESSABLE");
 
     w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const upgrade = await run(w, b, "BUILD", { operation: "UPGRADE", entity_id: entityId });
