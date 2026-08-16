@@ -39,12 +39,14 @@ export function eligibleSuccessor(
   org: OrgLike,
   players: Record<string, unknown> | undefined,
   departedId: string,
+  extra?: (id: string) => boolean,
 ): string | null {
   if (org.status !== "ACTIVE") return null;
   for (const id of successors || []) {
     if (!id || id === departedId) continue;
     if (!players?.[id]) continue;
     if (!(org.members || []).some((m) => m.agent_id === id)) continue;
+    if (extra && !extra(id)) continue;
     return id;
   }
   return null;
@@ -56,9 +58,10 @@ export function activateOfficeSuccession(
   players: Record<string, unknown> | undefined,
   departedId: string,
   cycle: number,
+  extra?: (id: string) => boolean,
 ): { holder_player_id: string } | null {
   if (office.status !== "VACANT") return null;
-  const id = eligibleSuccessor(office.succession?.successors, org, players, departedId);
+  const id = eligibleSuccessor(office.succession?.successors, org, players, departedId, extra);
   if (!id) return null;
   office.holder_player_id = id;
   office.status = "OCCUPIED";

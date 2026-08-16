@@ -20,6 +20,7 @@ import {
 } from "./contest";
 import {
   parseOfficeProfile,
+  parseRequiresTrack,
   sanitizeIdList,
   sanitizePrecedence,
   type OfficeProfile,
@@ -335,6 +336,7 @@ export type CanonicalAction =
         successors?: string[];
         object_set?: string[];
         office_precedence?: string[] | "append" | "lead";
+        requires_track?: import("./offices").OfficeRequiredTrack;
       };
     }
   | {
@@ -1109,11 +1111,13 @@ export function parseHumanCommand(
       const profileM = rest.match(/\bprofile=(\S+)/i);
       const objectSetM = rest.match(/\b(?:object_set|scope)=(\S+)/i);
       const precedenceM = rest.match(/\b(?:office_precedence|precedence)=(\S+)/i);
+      const requiresM = rest.match(/\brequires(?:_track)?=(\S+)/i);
       const org_id = rest
         .replace(/name=["'][^"']+["']/i, "")
         .replace(/\bprofile=\S+/i, "")
         .replace(/\b(?:object_set|scope)=\S+/i, "")
         .replace(/\b(?:office_precedence|precedence)=\S+/i, "")
+        .replace(/\brequires(?:_track)?=\S+/i, "")
         .trim();
       const display_name = nameM?.[1]?.trim() || "";
       const profile = parseOfficeProfile(profileM?.[1]);
@@ -1135,6 +1139,10 @@ export function parseHumanCommand(
             ? precRaw.split(",").map((s) => s.trim()).filter(Boolean)
             : undefined,
       );
+      const requires_track = parseRequiresTrack(requiresM?.[1]);
+      if (requiresM?.[1] && requires_track === null) {
+        return { ok: false, error: "requires=engineer or requires=broker", code: "INVALID_REQUEST" };
+      }
       return {
         ok: true,
         action: {
@@ -1146,6 +1154,7 @@ export function parseHumanCommand(
             authority_profile: profile,
             ...(object_set ? { object_set } : {}),
             ...(office_precedence ? { office_precedence } : {}),
+            ...(requires_track ? { requires_track } : {}),
           },
         },
         display: `You create office ${display_name}.`,
@@ -1792,6 +1801,10 @@ export function normalizeStructuredCommand(
       if (!org_id || !display_name || !profile) {
         return { ok: false, error: "org_id, display_name, and profile required", code: "INVALID_REQUEST" };
       }
+      const requires_track = parseRequiresTrack(args.requires_track);
+      if (args.requires_track && requires_track === null) {
+        return { ok: false, error: "requires_track must be engineer or broker", code: "INVALID_REQUEST" };
+      }
       return {
         ok: true,
         action: {
@@ -1803,6 +1816,7 @@ export function normalizeStructuredCommand(
             authority_profile: profile,
             object_set: sanitizeIdList(args.object_set),
             office_precedence: sanitizePrecedence(args.office_precedence),
+            ...(requires_track ? { requires_track } : {}),
           },
         },
         display: `COMMIT.ORG_OFFICE_CREATE ${display_name}`,
