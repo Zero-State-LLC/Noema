@@ -724,6 +724,32 @@ export default {
           body?: { access_token?: string; token?: string };
         };
         if (body.type === "HELLO") {
+          const helloBody = (body as { body?: { supported_protocols?: unknown } }).body;
+          const offered = Array.isArray(helloBody?.supported_protocols)
+            ? helloBody.supported_protocols.map((p) => String(p))
+            : [];
+          if (offered.length && !offered.includes("agent-protocol/v1")) {
+            return cors(
+              json(
+                {
+                  protocol: "agent-protocol/v1",
+                  type: "ERROR",
+                  request_id: body.request_id,
+                  error: {
+                    code: "NO_COMPATIBLE_PROTOCOL",
+                    message: "No mutually supported protocol/schema set",
+                    retryable: false,
+                    details: {
+                      server_protocols: ["agent-protocol/v1"],
+                      client_protocols: offered,
+                    },
+                    caused_by_request_id: body.request_id,
+                  },
+                },
+                400,
+              ),
+            );
+          }
           return cors(
             json({
               protocol: "agent-protocol/v1",

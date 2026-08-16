@@ -33,7 +33,7 @@ describe("hosted C01–C26 matrix", () => {
     expect(JSON.stringify(matrix.cases)).not.toMatch(/world\.perihelion-reach/);
   });
 
-  it("marks C14 C16 C17 skip with a reason; others start pending", () => {
+  it("marks C14 C16 C17 skip with a reason; behavioral rows are pending or pass", () => {
     for (const c of matrix.cases) {
       if (c.mode === "skip") {
         expect(c.status).toBe("skip");
@@ -41,8 +41,9 @@ describe("hosted C01–C26 matrix", () => {
         expect(["C14", "C16", "C17"]).toContain(c.id);
       } else {
         expect(c.mode).toBe("behavioral");
-        expect(c.status).toBe("pending");
-        expect(c.test).toBeNull();
+        expect(["pending", "pass"]).toContain(c.status);
+        if (c.status === "pass") expect(String(c.test || "")).toMatch(/\.test\.ts$/);
+        if (c.status === "pending") expect(c.test).toBeNull();
       }
     }
   });

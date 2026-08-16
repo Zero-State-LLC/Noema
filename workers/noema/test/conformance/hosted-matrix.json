@@ -10,8 +10,8 @@
   "admitted_world_prefix": "test.hosted-canonical.",
   "note": "Hosted C01–C26 is behavioral against the Worker on isolated worlds only. Python remains ADR-005 digest authority. Perihelion is not a conformance target.",
   "cases": [
-    { "id": "C01", "title": "Protocol negotiation", "mode": "behavioral", "status": "pending", "phase": "H1", "test": null },
-    { "id": "C02", "title": "Identity authz denial", "mode": "behavioral", "status": "pending", "phase": "H1", "test": null },
+    { "id": "C01", "title": "Protocol negotiation", "mode": "behavioral", "status": "pass", "phase": "H1", "test": "c01-c02.test.ts" },
+    { "id": "C02", "title": "Identity authz denial", "mode": "behavioral", "status": "pass", "phase": "H1", "test": "c01-c02.test.ts" },
     { "id": "C03", "title": "Idempotent action replay", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
     { "id": "C04", "title": "Deterministic MOVE ordering", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
     { "id": "C05", "title": "Observation no leak", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
