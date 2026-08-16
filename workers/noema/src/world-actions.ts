@@ -2573,6 +2573,8 @@ export async function applyWorldCommand(
             ? `A route link was opened (${entity_id}).`
             : classId === "workshop"
               ? `A workshop is under construction (${entity_id}).`
+              : classId === "generator"
+                ? `A generator is under construction (${entity_id}).`
               : classId === "defensive_work"
                 ? `A defensive work stands (${entity_id}).`
                 : classId === "archive_annex"
