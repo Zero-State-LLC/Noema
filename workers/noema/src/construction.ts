@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s17";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s18";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -129,6 +129,7 @@ export const MULTI_CYCLE_CLASSES: readonly ConstructibleClass[] = [
   "storage_bay",
   "production_node",
   "defensive_work",
+  "archive_annex",
 ];
 
 export function isMultiCycleClass(classId: ConstructibleClass | null | undefined): boolean {

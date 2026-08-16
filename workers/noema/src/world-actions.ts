@@ -1332,7 +1332,7 @@ export async function applyWorldCommand(
     }
     const inspectCost = withAnnexAttention(
       inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
-      liveClassInRoom(roomEntities(room), "archive_annex"),
+      readyClassInRoom(roomEntities(room), "archive_annex"),
     );
     if (!canPay(pl.budgets, inspectCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
@@ -2583,7 +2583,7 @@ export async function applyWorldCommand(
               : classId === "defensive_work"
                 ? `A defensive work is under construction (${entity_id}).`
                 : classId === "archive_annex"
-                  ? `An archive annex is open (${entity_id}).`
+                  ? `An archive annex is under construction (${entity_id}).`
                   : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
@@ -4536,7 +4536,7 @@ async function applyAttest(
   }
   const attestCost = withAnnexAttention(
     { ...COSTS.ATTEST },
-    liveClassInRoom(roomEntities(room), "archive_annex"),
+    readyClassInRoom(roomEntities(room), "archive_annex"),
   );
   if (!canPay(pl.budgets, attestCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
