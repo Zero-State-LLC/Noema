@@ -11,7 +11,8 @@ export const MAX_SUCCESSORS = 2;
 export const WATCH_SUCCESSION_PULSE = "A designated successor has taken an institution office.";
 
 export const RULE_MEMBER_ORDER = "MEMBER_ORDER" as const;
-export type SuccessionRuleId = typeof RULE_MEMBER_ORDER;
+export const RULE_INHERITED = "INHERITED_BY_ORGANIZATION" as const;
+export type SuccessionRuleId = typeof RULE_MEMBER_ORDER | typeof RULE_INHERITED;
 
 export type SuccessionRule = {
   successors?: string[];
@@ -62,6 +63,7 @@ export function parseSuccessionRuleId(raw: unknown): SuccessionRuleId | null {
     .toUpperCase()
     .replace(/[-\s]+/g, "_");
   if (t === RULE_MEMBER_ORDER) return RULE_MEMBER_ORDER;
+  if (t === RULE_INHERITED || t === "INHERITED" || t === "INHERIT") return RULE_INHERITED;
   return null;
 }
 
@@ -91,6 +93,7 @@ export function activateOfficeSuccession(
   extra?: (id: string) => boolean,
 ): { holder_player_id: string } | null {
   if (office.status !== "VACANT") return null;
+  if (office.succession?.rule_id === RULE_INHERITED) return null;
   const designated = office.succession?.successors || [];
   const id = designated.length
     ? eligibleSuccessor(designated, org, players, departedId, extra)

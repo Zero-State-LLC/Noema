@@ -3163,7 +3163,7 @@ async function applySuccessionRule(
   const office_id = String(args.office_id || "").trim();
   const rule_id = parseSuccessionRuleId(args.rule_id);
   if (!office_id || !rule_id) {
-    return fail(request_id, "INVALID_REQUEST", "Name an office and member_order.");
+    return fail(request_id, "INVALID_REQUEST", "Name an office and member_order or inherited.");
   }
   const found = findOffice(w.organizations, office_id);
   if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
@@ -3207,7 +3207,9 @@ async function applySuccessionRule(
     principal,
     request_id,
     events,
-    `Member-order succession published for ${office.display_name}.`,
+    rule_id === "INHERITED_BY_ORGANIZATION"
+      ? `The organization keeps ${office.display_name}.`
+      : `Member-order succession published for ${office.display_name}.`,
     false,
   );
   w.seen_idempotency[idem] = result;
