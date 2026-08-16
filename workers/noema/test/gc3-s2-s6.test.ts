@@ -13,6 +13,7 @@ import {
   emptyDeceptiveMemory,
   emptyTradeMemory,
   liveHostileToward,
+  liveReliableToward,
   socialMemoryLines,
   tradeCautionCost,
   watchPublicDescriptorLines,
@@ -371,5 +372,82 @@ describe("GC3-S2–S6 world path", () => {
     const lookA = await run(w, a, "LOOK");
     expect(lookA.observation?.social_memory_lines || []).not.toContain("You have found Vesper deceptive.");
     expect(emptyDeceptiveMemory().edges).toEqual({});
+  });
+});
+
+describe("GC3-S7 preferred discount", () => {
+  it("waives TRADE_CAUTION when live RELIABLE; never auto-accepts", () => {
+    const waived = tradeCautionCost(true, true);
+    expect(waived.extra_compute).toBe(0);
+    expect(waived.auto_accept).toBe(false);
+    expect(waived.reason_code).toBeNull();
+    const caution = tradeCautionCost(true, false);
+    expect(caution.extra_compute).toBe(1);
+    expect(caution.auto_accept).toBe(false);
+    expect(tradeCautionCost(false, false).extra_compute).toBe(0);
+  });
+
+  it("three accepted trades then danger still propose at base compute", async () => {
+    const w = fixtureWorld();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].handle = "Nacre";
+    w.players[b.player_id].handle = "Vesper";
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    for (let i = 0; i < 3; i += 1) {
+      const prop = await run(w, a, "TRADE", {
+        phase: "propose",
+        counterparty_id: b.player_id,
+        offered: { energy: 1 },
+        requested: { compute: 1 },
+      });
+      expect(prop.ok).toBe(true);
+      const tradeId = Object.keys(w.trades).find((id) => w.trades[id].status === "OPEN");
+      w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+      await run(w, b, "TRADE", { phase: "accept", trade_id: tradeId });
+      w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    }
+    expect(liveReliableToward(w.players[b.player_id].trade_memory, a.player_id, w.cycle)).toBe(true);
+
+    const declared = await run(w, a, "CONTEST_DECLARE", {
+      contest_form: "INFRASTRUCTURE_DISRUPTION",
+      target: { kind: "ENTITY", entity_id: "entity.relay-7" },
+      stake: { energy: 12, influence: 8, compute: 4 },
+    });
+    expect(declared.ok).toBe(true);
+    const contestId = Object.keys(w.contests || {})[0];
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    await run(w, b, "CONTEST_DEFEND", {
+      contest_id: contestId,
+      stake: { energy: 10, influence: 14, compute: 4 },
+    });
+    await run(w, a, "WAIT");
+    await run(w, b, "WAIT");
+    const c = principal("player.oriole");
+    await run(w, c, "ENTER_WORLD");
+    await run(w, c, "WAIT");
+
+    expect(
+      liveHostileToward(
+        w.players[b.player_id].danger_memory,
+        w.players[b.player_id].deceptive_memory,
+        w.players[b.player_id].trade_memory,
+        a.player_id,
+        w.cycle,
+      ),
+    ).toBe(true);
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const before = w.players[b.player_id].budgets.compute;
+    const prop = await run(w, b, "TRADE", {
+      phase: "propose",
+      counterparty_id: a.player_id,
+      offered: { energy: 1 },
+      requested: { compute: 1 },
+    });
+    expect(prop.ok).toBe(true);
+    expect(w.players[b.player_id].budgets.compute).toBe(before - COSTS.TRADE.compute!);
   });
 });

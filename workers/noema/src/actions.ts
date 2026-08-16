@@ -2394,7 +2394,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  trade <player> offer=energy:3 want=storage:1");
     lines.push("  accept <trade_id> · reject <trade_id> · cancel <trade_id>");
     lines.push("  Offered resources are reserved until accept/reject.");
-    lines.push("  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION). Trade stays available.");
+    lines.push("  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION) unless you have found them reliable.");
   } else if (t === "repair") {
     lines.push("REPAIR");
     lines.push("  repair <visible infrastructure>");
