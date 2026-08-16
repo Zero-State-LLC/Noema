@@ -187,6 +187,7 @@ import {
   REPURPOSE_FROM_CLASS,
   REPURPOSE_TO_CLASS,
   shouldAbandon,
+  RESTORE_CONDITION_CAP,
   allocateInfraId,
   clampSalvage,
   constructLabel,
@@ -2517,6 +2518,68 @@ export async function applyWorldCommand(
         request_id,
         events,
         "The workshop was repurposed as a storage bay.",
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+
+    if (action.arguments.operation === "RESTORE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to restore here.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      if (here.scar || here.entity_type === "RUIN") {
+        return fail(request_id, "FORBIDDEN", "That scar cannot be restored.");
+      }
+      const classId = infraClassOf(here);
+      if (!classId) {
+        return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
+      }
+      if (!here.unclaimed) {
+        return fail(request_id, "FORBIDDEN", "That is not unclaimed.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      const base = CONSTRUCT_COSTS[classId];
+      const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
+      const cost = { ...base, storage: storageNeed || undefined };
+      if (!canPay(pl.budgets, cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to restore.");
+      }
+      debit(pl.budgets, cost);
+      if (storageNeed) {
+        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+      }
+      here.unclaimed = undefined;
+      here.last_steward_cycle = w.cycle;
+      here.condition = Math.min(here.condition ?? 100, RESTORE_CONDITION_CAP);
+      const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: cost,
+        reason: "RESTORE",
+        class: classId,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: here.entity_id,
+        set: { unclaimed: false, condition: here.condition, last_steward_cycle: w.cycle },
+        unset: ["unclaimed"],
+        operation: "RESTORE",
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `You restored the ${here.label.replace(/-/g, " ")}.`,
         settled,
       );
       w.seen_idempotency[idem] = posted;

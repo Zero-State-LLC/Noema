@@ -351,7 +351,8 @@ export type CanonicalAction =
         | { operation: "CONSTRUCT"; class: ConstructibleClass; room_id?: string }
         | { operation: "DISMANTLE"; entity_id: string }
         | { operation: "UPGRADE"; entity_id: string }
-        | { operation: "REPURPOSE"; entity_id: string };
+        | { operation: "REPURPOSE"; entity_id: string }
+        | { operation: "RESTORE"; entity_id: string };
     };
 
 export type Affordance = {
@@ -1598,6 +1599,25 @@ export function parseHumanCommand(
       display: "You try to repurpose.",
     };
   }
+  // restore <thing> — GC2-S8, not listed in Chamber help
+  if (v === "restore") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "");
+    if (!raw) return { ok: false, error: "Restore what? Name an unclaimed structure." };
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "RESTORE", entity_id: r.entity.entity_id } },
+        display: "You restore the structure.",
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "RESTORE", entity_id: raw } },
+      display: "You try to restore.",
+    };
+  }
 
   // Known but not hosted yet (v0.2 strategic)
   if (["agreement", "terminate", "access"].includes(v)) {
@@ -2151,7 +2171,16 @@ export function normalizeStructuredCommand(
         display: `BUILD.REPURPOSE ${entity_id}`,
       };
     }
-    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, or REPURPOSE", code: "INVALID_REQUEST" };
+    if (operation === "RESTORE") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "RESTORE", entity_id } },
+        display: `BUILD.RESTORE ${entity_id}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, UPGRADE, REPURPOSE, or RESTORE", code: "INVALID_REQUEST" };
   }
   if (cmd === "CONTEST_DECLARE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });
