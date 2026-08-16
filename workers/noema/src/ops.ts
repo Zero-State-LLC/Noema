@@ -12,7 +12,6 @@ export const READ_COMMANDS = new Set([
   "INSPECT",
   "HELP",
   "QUERY",
-  "WAIT",
   "OBSERVE",
   "TALK",
   "USE",

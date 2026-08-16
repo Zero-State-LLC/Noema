@@ -872,8 +872,7 @@ export async function applyWorldCommand(
   // ——— LOOK / OBSERVE ———
   if (action.verb === "LOOK" || action.verb === "OBSERVE") {
     if (!pl.entered) {
-      pl.room_id = entry;
-      pl.entered = true;
+      return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
     }
     if (action.verb === "LOOK") {
       if (!canPay(pl.budgets, COSTS.LOOK)) {

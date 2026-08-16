@@ -44,6 +44,12 @@ describe("command mutation class", () => {
     expect(isMutatingCommand("JOIN")).toBe(true);
   });
 
+  it("treats WAIT as mutating so incident and settlement gates apply", () => {
+    expect(isMutatingCommand("WAIT")).toBe(true);
+    expect(isMutatingCommand("wait")).toBe(true);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "wait" }))).toBe(true);
+  });
+
   it("counts only entered Players as present", () => {
     expect(
       countEnteredPlayers({
