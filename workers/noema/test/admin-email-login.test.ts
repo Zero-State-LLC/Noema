@@ -523,6 +523,13 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/System actors/);
   });
 
+  it("offers close incident without reseed", () => {
+    const html = adminHtml();
+    expect(html).toContain('id="life-close"');
+    expect(html).toMatch(/Close incident/);
+    expect(html).toMatch(/without reseeding|does not reseed/i);
+  });
+
   it("does not assign attention messages or actor labels via unescaped innerHTML", () => {
     const html = adminHtml();
     expect(html).not.toMatch(/li\.innerHTML\s*=\s*"<strong>"\s*\+\s*\(m\.message/);

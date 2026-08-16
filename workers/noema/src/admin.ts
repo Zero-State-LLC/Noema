@@ -291,7 +291,7 @@ export function adminHtml(): string {
           </div>
           <dl class="kv" id="kv-world" style="margin-top:.75rem"></dl>
           <p class="kicker" style="margin-top:1rem">Lifecycle</p>
-          <p class="empty">Pause rejects mutating PLAY. Resume requires settlement not BLOCKING. Incident fail-closes mutation.</p>
+          <p class="empty">Pause rejects mutating PLAY. Resume requires settlement not BLOCKING. Incident fail-closes mutation. Close incident returns ACTIVE without reseeding.</p>
           <label for="life-reason">Reason (optional)</label>
           <input id="life-reason" maxlength="200" autocomplete="off" placeholder="maintenance window"/>
           <div class="btn-row" style="margin-top:.7rem">
@@ -301,6 +301,10 @@ export function adminHtml(): string {
           <div class="danger" style="margin-top:.75rem">
             <label><input type="checkbox" id="life-incident-confirm"/><span>I understand Declare incident fail-closes mutating PLAY until recovery.</span></label>
             <button class="btn danger" type="button" id="life-incident" disabled style="margin-top:.7rem">Declare incident</button>
+          </div>
+          <div class="danger" style="margin-top:.75rem">
+            <label><input type="checkbox" id="life-close-confirm"/><span>I understand Close incident returns ACTIVE without reseeding or a new Genesis.</span></label>
+            <button class="btn" type="button" id="life-close" disabled style="margin-top:.7rem">Close incident</button>
           </div>
           <p class="notice" id="life-notice" role="status"></p>
         </article>
@@ -880,10 +884,13 @@ export function adminHtml(): string {
   $("life-incident-confirm").addEventListener("change", (e) => {
     $("life-incident").disabled = !e.target.checked;
   });
+  $("life-close-confirm").addEventListener("change", (e) => {
+    $("life-close").disabled = !e.target.checked;
+  });
   async function lifecycle(action) {
     const n = $("life-notice");
     n.className = "notice";
-    n.textContent = action === "incident" ? "Declaring incident…" : action === "pause" ? "Pausing…" : "Resuming…";
+    n.textContent = action === "incident" ? "Declaring incident…" : action === "close" ? "Closing incident…" : action === "pause" ? "Pausing…" : "Resuming…";
     try {
       const r = await api("/v1/admin/lifecycle", {
         method: "POST",
@@ -893,11 +900,13 @@ export function adminHtml(): string {
       n.textContent = "World is now " + (r.status || action) + ".";
       $("life-incident-confirm").checked = false;
       $("life-incident").disabled = true;
+      $("life-close-confirm").checked = false;
+      $("life-close").disabled = true;
       await load();
     } catch (e) {
       n.className = "notice bad";
       n.textContent = e.code === "RECOVERY_REQUIRED"
-        ? "Settlement must recover before resume (RECOVERY_REQUIRED)."
+        ? "Settlement must recover before resume or close (RECOVERY_REQUIRED)."
         : (e.message || "Lifecycle change failed");
     }
   }
@@ -906,6 +915,10 @@ export function adminHtml(): string {
   $("life-incident").addEventListener("click", () => {
     if (!$("life-incident-confirm").checked) return;
     lifecycle("incident");
+  });
+  $("life-close").addEventListener("click", () => {
+    if (!$("life-close-confirm").checked) return;
+    lifecycle("close");
   });
   $("d-save").addEventListener("click", async () => {
     $("d-notice").textContent = "Saving…";

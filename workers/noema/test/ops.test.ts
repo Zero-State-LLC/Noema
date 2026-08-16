@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   actorKindFromPrincipal,
   applyControllingSession,
+  applyWorldLifecycle,
   commandForOps,
   countEnteredPlayers,
   countLivePlayers,
@@ -94,6 +95,36 @@ describe("PAUSED / INCIDENT / settlement bound", () => {
   it("returns HEALTHY after a successful settle", () => {
     expect(nextSettlementHealth("DEGRADED", true)).toBe("HEALTHY");
     expect(nextSettlementHealth("BLOCKING", true)).toBe("HEALTHY");
+  });
+});
+
+describe("applyWorldLifecycle", () => {
+  it("closes INCIDENT to ACTIVE when settlement is not BLOCKING", () => {
+    const degraded = applyWorldLifecycle("INCIDENT", "close", "DEGRADED");
+    expect(degraded).toEqual({ ok: true, status: "ACTIVE" });
+    const healthy = applyWorldLifecycle("INCIDENT", "close", "HEALTHY");
+    expect(healthy).toEqual({ ok: true, status: "ACTIVE" });
+  });
+
+  it("refuses to close INCIDENT while settlement is BLOCKING", () => {
+    const r = applyWorldLifecycle("INCIDENT", "close", "BLOCKING");
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("RECOVERY_REQUIRED");
+      expect(r.http).toBe(409);
+    }
+  });
+
+  it("does not close INCIDENT from ACTIVE or PAUSED", () => {
+    expect(applyWorldLifecycle("ACTIVE", "close", "HEALTHY").ok).toBe(false);
+    expect(applyWorldLifecycle("PAUSED", "close", "HEALTHY").ok).toBe(false);
+  });
+
+  it("keeps pause / resume / declare-incident rules", () => {
+    expect(applyWorldLifecycle("ACTIVE", "pause", "HEALTHY")).toEqual({ ok: true, status: "PAUSED" });
+    expect(applyWorldLifecycle("PAUSED", "resume", "HEALTHY")).toEqual({ ok: true, status: "ACTIVE" });
+    expect(applyWorldLifecycle("PAUSED", "resume", "BLOCKING").ok).toBe(false);
+    expect(applyWorldLifecycle("ACTIVE", "incident", "HEALTHY")).toEqual({ ok: true, status: "INCIDENT" });
   });
 });
 
