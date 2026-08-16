@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { runIncidentRecover } from "../src/incident-recover";
+import { runIncidentRecover, type AdoptLiveHeadInput } from "../src/incident-recover";
 import type { WorldHead } from "../src/settle";
 import type { WorldRuntime } from "../src/world-actions";
 
@@ -64,7 +64,12 @@ describe("runIncidentRecover", () => {
       revision: 1,
       state_digest: "sha256:live",
     };
-    const adoptLiveHead = vi.fn(async () => ({ ok: true as const, revision: 1, sequence: 92, idempotent: false }));
+    const adoptLiveHead = vi.fn(async (_input: AdoptLiveHeadInput) => ({
+      ok: true as const,
+      revision: 1,
+      sequence: 92,
+      idempotent: false,
+    }));
     const getHead = vi.fn()
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(adopted);
@@ -93,7 +98,9 @@ describe("runIncidentRecover", () => {
     expect(result.world.sequence).toBe(92);
     expect(result.world.unsettled).toEqual([]);
     expect(adoptLiveHead).toHaveBeenCalledTimes(1);
-    const persisted = adoptLiveHead.mock.calls[0][0];
+    const persisted = adoptLiveHead.mock.calls[0]?.[0];
+    expect(persisted).toBeDefined();
+    if (!persisted) return;
     expect(persisted.world.world_id).toBe("world.perihelion-reach");
     expect(persisted.world.sequence).toBe(92);
     expect(persisted.world.unsettled).toEqual([]);
