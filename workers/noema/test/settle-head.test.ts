@@ -4,11 +4,14 @@ import {
   putWorldHead,
   replayUnsettled,
   shouldRestoreFromHead,
+  summarizeCanonicalHead,
   worldFromHead,
   type WorldHead,
 } from "../src/settle";
 import type { Env } from "../src/types";
 import type { WorldRuntime } from "../src/world-actions";
+import worker from "../src/index";
+import { mintControllerToken } from "../src/auth";
 
 function emptyWorld(id = "world.test"): WorldRuntime {
   return {
@@ -225,5 +228,60 @@ describe("RFC-0016 unsettled replay", () => {
     } finally {
       globalThis.fetch = orig;
     }
+  });
+});
+
+describe("canonical head pulse", () => {
+  it("reports missing head without leaking state_json", () => {
+    const pulse = summarizeCanonicalHead(null, { sequence: 92, cycle: 0, revision: 3 });
+    expect(pulse).toEqual({
+      head_present: false,
+      head_revision: null,
+      head_sequence: null,
+      head_cycle: null,
+      do_sequence: 92,
+      do_cycle: 0,
+      do_revision: 3,
+    });
+    expect(JSON.stringify(pulse)).not.toMatch(/state_json|player|world_seed/);
+  });
+
+  it("reports a present head next to the live DO counters", () => {
+    const pulse = summarizeCanonicalHead(
+      {
+        world_id: "world.perihelion-reach",
+        sequence: 92,
+        cycle: 0,
+        status: "ACTIVE",
+        settlement_health: "HEALTHY",
+        revision: 4,
+        state_json: emptyWorld("world.perihelion-reach"),
+      },
+      { sequence: 92, cycle: 0, revision: 4 },
+    );
+    expect(pulse.head_present).toBe(true);
+    expect(pulse.head_sequence).toBe(92);
+    expect(pulse.head_revision).toBe(4);
+    expect(pulse.do_sequence).toBe(92);
+    expect(JSON.stringify(pulse)).not.toContain("room.hub");
+  });
+});
+
+describe("admin overview head pulse auth", () => {
+  const bare = { NOEMA_ENV: "production", TOKEN_SIGNING_SECRET: "test-signing-secret" } as unknown as Env;
+
+  it("rejects anonymous and Player tokens", async () => {
+    const anon = await worker.fetch(new Request("https://noema.guru/v1/admin/overview"), bare);
+    expect(anon.status).toBe(401);
+    const play = await mintControllerToken(bare, { handle: "vesper", controllerType: "human" });
+    const asPlayer = await worker.fetch(
+      new Request("https://noema.guru/v1/admin/overview", {
+        headers: { Authorization: `Bearer ${play.access_token}` },
+      }),
+      bare,
+    );
+    expect([401, 403]).toContain(asPlayer.status);
+    const text = await asPlayer.text();
+    expect(text).not.toMatch(/head_present|state_json/);
   });
 });

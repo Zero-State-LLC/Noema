@@ -185,6 +185,32 @@ export async function putWorldHead(
   }
 }
 
+export type CanonicalHeadPulse = {
+  head_present: boolean;
+  head_revision: number | null;
+  head_sequence: number | null;
+  head_cycle: number | null;
+  do_sequence: number | null;
+  do_cycle: number | null;
+  do_revision: number | null;
+};
+
+/** Admin-only counters. Never includes state_json, players, or genesis inputs. */
+export function summarizeCanonicalHead(
+  head: WorldHead | null | undefined,
+  live: { sequence?: number; cycle?: number; revision?: number | null },
+): CanonicalHeadPulse {
+  return {
+    head_present: Boolean(head && typeof head.sequence === "number"),
+    head_revision: typeof head?.revision === "number" ? head.revision : null,
+    head_sequence: typeof head?.sequence === "number" ? head.sequence : null,
+    head_cycle: typeof head?.cycle === "number" ? head.cycle : null,
+    do_sequence: typeof live.sequence === "number" ? live.sequence : null,
+    do_cycle: typeof live.cycle === "number" ? live.cycle : null,
+    do_revision: typeof live.revision === "number" ? live.revision : null,
+  };
+}
+
 export async function getWorldHead(env: Env, worldId: string): Promise<WorldHead | null> {
   const rest = restBase(env);
   if (!rest) return null;
