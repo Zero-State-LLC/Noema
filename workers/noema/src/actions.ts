@@ -50,6 +50,8 @@ export type EntityRuntime = {
   infra_type?: ConstructibleClass;
   /** Spectator / LOOK-hidden. Never inferred. */
   hidden?: boolean;
+  /** GC7-S3: further INSPECT sealed until this cycle. */
+  inspect_restricted_until?: number;
 };
 
 export type PlayerRuntime = {
@@ -455,6 +457,7 @@ export function enrichEntity(e: {
   owner_id?: string;
   infra_type?: ConstructibleClass;
   hidden?: boolean;
+  inspect_restricted_until?: number;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -477,6 +480,7 @@ export function enrichEntity(e: {
     owner_id: e.owner_id,
     infra_type: e.infra_type,
     hidden: e.hidden === true ? true : undefined,
+    inspect_restricted_until: e.inspect_restricted_until,
   };
 }
 
@@ -582,7 +586,7 @@ function resolveContestTarget(
   | { ok: true; target: ContestTarget }
   | { ok: false; error: string; code?: string; choices?: string[] } {
   const t = raw.replace(/^["']|["']$/g, "").trim();
-  if (form === "INFRASTRUCTURE_DISRUPTION") {
+  if (form === "INFRASTRUCTURE_DISRUPTION" || form === "INFORMATION_CONTEST") {
     if (ctx.entities?.length) {
       const r = resolveVisibleEntity(t, ctx.entities);
       if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
