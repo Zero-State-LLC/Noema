@@ -35,6 +35,7 @@ import type { EnrollmentRecord } from "./enrollment";
 import { runIncidentRecover } from "./incident-recover";
 import {
   commitAdoptedLiveHead,
+  canonicalEventsForCommit,
   commitCanonicalSettlement,
   getWorldHead,
   replayUnsettled,
@@ -760,10 +761,11 @@ export class NoemaWorldDO {
     if (mutating && w.players[principal.player_id]) {
       w.players[principal.player_id].controlling_session_id = principal.session_id;
     }
-    if (mutating && result.ok && result.events?.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const ledgerEvents = canonicalEventsForCommit(result.events);
+    if (mutating && result.ok && ledgerEvents.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
       const committed = await commitCanonicalSettlement(this.env, {
-        settlement_id: `settlement.${result.events.map((event) => event.event_id).join(".")}`,
+        settlement_id: `settlement.${ledgerEvents.map((event) => event.event_id).join(".")}`,
         expected_revision: this.meta!.revision ?? 0,
         writer_generation: this.meta!.writer_generation || "do.1",
         genesis_id: this.meta!.genesis_id || null,
@@ -771,7 +773,7 @@ export class NoemaWorldDO {
         settlement_health: "HEALTHY",
         world: w,
         principal,
-        events: result.events,
+        events: ledgerEvents,
         previous_digest: durable?.ledger_head_digest ?? null,
         allow_bootstrap: this.allowCanonicalBootstrap,
       });

@@ -789,8 +789,12 @@ export async function applyWorldCommand(
   const entry = w.entry_room_id || "room.relay-quarter";
 
   const OBS_EVENT_TYPES = new Set(["LOOK", "OBSERVATION_GENERATED", "INSPECT", "WAIT"]);
-  const pushEvent = (event_type: string, payload: Record<string, unknown>) => {
-    const ledger = !OBS_EVENT_TYPES.has(event_type);
+  const pushEvent = (
+    event_type: string,
+    payload: Record<string, unknown>,
+    opts?: { ledger?: boolean },
+  ) => {
+    const ledger = opts?.ledger ?? !OBS_EVENT_TYPES.has(event_type);
     if (ledger) w.sequence += 1;
     const sequence = w.sequence;
     const event_id = ledger
@@ -929,13 +933,17 @@ export async function applyWorldCommand(
     pl.budgets.attention = Math.min(8, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(64, pl.budgets.compute + 4);
     const committed = commitCycleIfReady(w);
-    pushEvent("WAIT", {
-      player_id: principal.player_id,
-      cycles: waitCycles,
-      wait_until_cycle: pl.wait_until_cycle,
-      world_cycle: w.cycle,
-      cycle_committed: committed,
-    });
+    pushEvent(
+      "WAIT",
+      {
+        player_id: principal.player_id,
+        cycles: waitCycles,
+        wait_until_cycle: pl.wait_until_cycle,
+        world_cycle: w.cycle,
+        cycle_committed: committed,
+      },
+      { ledger: committed },
+    );
     if (committed) {
       await resolveDueContests(w, pushEvent, settleEv);
       await applyScheduledPressure(w, pushEvent, settleEv);
