@@ -91,7 +91,7 @@ describe("GC2-S3 world path", () => {
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
     expect(built.ok).toBe(true);
-    expect(built.observation?.consequence).toMatch(/defensive work stands/i);
+    expect(built.observation?.consequence).toMatch(/defensive work is under construction/i);
     expect(w.rooms["room.hub"].entities[0].infra_type).toBe("defensive_work");
 
     const hidden = world();

@@ -204,6 +204,7 @@ import {
   isHiddenEntity,
   isHiddenRoom,
   liveClassInRoom,
+  readyClassInRoom,
   scarFromDismantle,
   withAnnexAttention,
   withWorkshopStorage,
@@ -2580,7 +2581,7 @@ export async function applyWorldCommand(
               : classId === "production_node"
                 ? `A production node is under construction (${entity_id}).`
               : classId === "defensive_work"
-                ? `A defensive work stands (${entity_id}).`
+                ? `A defensive work is under construction (${entity_id}).`
                 : classId === "archive_annex"
                   ? `An archive annex is open (${entity_id}).`
                   : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
@@ -4735,7 +4736,7 @@ async function resolveDueContests(
         infra_condition: infra,
         defensive_work: Boolean(
           w.rooms[contest.room_id] &&
-            liveClassInRoom(roomEntities(w.rooms[contest.room_id]), "defensive_work"),
+            readyClassInRoom(roomEntities(w.rooms[contest.room_id]), "defensive_work"),
         ),
         seed_perturbation: pert,
       });
