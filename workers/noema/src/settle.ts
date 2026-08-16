@@ -34,6 +34,13 @@ export type CanonicalCommit =
   | { ok: true; revision: number; sequence: number; idempotent: boolean }
   | { ok: false; code: string };
 
+/** Observational candidates use evt.obs.* and must not enter the canonical RPC. */
+export function canonicalEventsForCommit<T extends { event_id: string }>(
+  events: T[] | undefined | null,
+): T[] {
+  return (events || []).filter((event) => !event.event_id.startsWith("evt.obs."));
+}
+
 function restBase(env: Env): { url: string; key: string } | null {
   const url = env.SUPABASE_URL;
   const key = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -307,7 +314,7 @@ export async function commitCanonicalSettlement(
       }),
     });
     const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (!res.ok || !body || body.ok !== true) return { ok: false, code: String(body?.code || `HTTP_${res.status}`) };
+    if (!res.ok || !body || body.ok !== true) return { ok: false, code: rpcFailureCode(body, res.status) };
     return { ok: true, revision: Number(body.revision), sequence: Number(body.sequence), idempotent: body.idempotent === true };
   } catch {
     return { ok: false, code: "SETTLEMENT_UNCERTAIN" };
