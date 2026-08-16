@@ -128,6 +128,7 @@ import {
   activateEmergencySuccession,
   activateOfficeSuccession,
   parseSuccessorList,
+  parseSuccessionRuleId,
   WATCH_SUCCESSION_PULSE,
   consentWinner,
   recordConsent,
@@ -941,6 +942,7 @@ export async function applyWorldCommand(
       "ORG_EMERGENCY_REVOKE",
       "ORG_SUCCESSION_DESIGNATE",
       "ORG_SUCCESSION_CONSENT",
+      "ORG_SUCCESSION_RULE",
       "RECONSTRUCT",
       "RECONSTRUCT_SUPERSEDE",
       "RECONSTRUCT_PUBLISH",
@@ -2060,6 +2062,9 @@ export async function applyWorldCommand(
     if (action.arguments.operation === "ORG_SUCCESSION_CONSENT") {
       return applySuccessionConsent(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
+    if (action.arguments.operation === "ORG_SUCCESSION_RULE") {
+      return applySuccessionRule(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
     if (
       action.arguments.operation === "RECONSTRUCT" ||
       action.arguments.operation === "RECONSTRUCT_SUPERSEDE" ||
@@ -3138,6 +3143,71 @@ async function applySuccessionDesignate(
     office
       ? `Designated successor for ${office.display_name}.`
       : `Designated successor for ${scope!.scope_id}.`,
+    false,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function applySuccessionRule(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const office_id = String(args.office_id || "").trim();
+  const rule_id = parseSuccessionRuleId(args.rule_id);
+  if (!office_id || !rule_id) {
+    return fail(request_id, "INVALID_REQUEST", "Name an office and member_order.");
+  }
+  const found = findOffice(w.organizations, office_id);
+  if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+  const org = w.organizations[found.org_id];
+  const office = found.office;
+  if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+  if (!isOrgOfficer(org, principal.player_id)) {
+    return fail(request_id, "FORBIDDEN", "Only a founder or officer may publish a succession rule.");
+  }
+  if (office.status === "RETIRED") {
+    return fail(request_id, "FORBIDDEN", "A retired office cannot succeed.");
+  }
+  if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+  }
+  debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+  office.succession = {
+    rule_id,
+    designated_by: principal.player_id,
+    designated_cycle: w.cycle,
+  };
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: COSTS.ORG_OFFICE_ACT,
+    reason: "ORG_SUCCESSION_RULE",
+  });
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: office.office_id,
+    set: {
+      rule_id,
+      designated_by: principal.player_id,
+      designated_cycle: w.cycle,
+      office_kind: "INSTITUTION_OFFICE",
+    },
+    unset: ["successors"],
+    operation: "RULE",
+  });
+  await settleEv(ev);
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `Member-order succession published for ${office.display_name}.`,
     false,
   );
   w.seen_idempotency[idem] = result;
