@@ -90,6 +90,12 @@ export function isHiddenRoom(room: { hidden?: boolean; tags?: string[] } | null 
   return (room.tags || []).some((t) => String(t).toLowerCase() === "hidden");
 }
 
+export function isHiddenEntity(entity: { hidden?: boolean; tags?: string[] } | null | undefined): boolean {
+  if (!entity) return false;
+  if (entity.hidden === true) return true;
+  return (entity.tags || []).some((t) => String(t).toLowerCase() === "hidden");
+}
+
 export function allocateInfraId(classId: ConstructibleClass): string {
   const hex = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
   return `entity.${classId.replace(/_/g, "-")}.${hex}`;

@@ -46,6 +46,8 @@ export type EntityRuntime = {
   owner_id?: string;
   /** GC2-S0 class. Explicit wins over id/label matching. */
   infra_type?: ConstructibleClass;
+  /** Spectator / LOOK-hidden. Never inferred. */
+  hidden?: boolean;
 };
 
 export type PlayerRuntime = {
@@ -436,6 +438,7 @@ export function enrichEntity(e: {
   archive_claim?: "DESTROYED" | "OPERATING";
   owner_id?: string;
   infra_type?: ConstructibleClass;
+  hidden?: boolean;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -457,6 +460,7 @@ export function enrichEntity(e: {
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
     infra_type: e.infra_type,
+    hidden: e.hidden === true ? true : undefined,
   };
 }
 

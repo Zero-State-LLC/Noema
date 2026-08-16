@@ -150,9 +150,11 @@ import {
   clampSalvage,
   constructLabel,
   infraClassOf,
+  isHiddenEntity,
   isHiddenRoom,
   liveClassInRoom,
 } from "./construction";
+import { hasPrivateCognition } from "./cognition";
 import {
   DECLARE_COST,
   DEFEND_COST,
@@ -194,7 +196,7 @@ export type RoomState = {
   room_id: string;
   name: string;
   description: string;
-  exits: Array<{ direction: string; to_room_id: string }>;
+  exits: Array<{ direction: string; to_room_id: string; hidden?: boolean }>;
   entities: EntityRuntime[];
   /** GC2-S0: hidden rooms are not construct targets. */
   hidden?: boolean;
@@ -260,7 +262,17 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
 
 function roomEntities(room: RoomState): EntityRuntime[] {
   room.entities = (room.entities || []).map((e) => enrichEntity(e));
-  return room.entities;
+  return room.entities.filter((e) => !isHiddenEntity(e));
+}
+
+function publicExits(
+  w: WorldRuntime,
+  room: RoomState | undefined,
+): Array<{ direction: string; to_room_id: string }> {
+  return (room?.exits || []).filter((exit) => {
+    if (exit.hidden === true) return false;
+    return !isHiddenRoom(w.rooms[exit.to_room_id]);
+  });
 }
 
 function findEntity(room: RoomState, idOrLabel: string): EntityRuntime | null {
@@ -313,7 +325,7 @@ export function buildObservation(
   const room_id = pl.entered ? pl.room_id : w.entry_room_id || "room.relay-quarter";
   const room = w.rooms[room_id] || Object.values(w.rooms)[0];
   const entities = roomEntities(room);
-  const exits = (room.exits || []).map((e) => ({
+  const exits = publicExits(w, room).map((e) => ({
     direction: e.direction,
     to_room_id: e.to_room_id,
     to_room_name: w.rooms[e.to_room_id]?.name,
@@ -628,6 +640,10 @@ export async function applyWorldCommand(
   const request_id = envl.request_id || crypto.randomUUID();
   const idem = `${principal.player_id}::${envl.idempotency_key || request_id}`;
   if (w.seen_idempotency[idem]) return w.seen_idempotency[idem];
+
+  if (hasPrivateCognition(envl)) {
+    return fail(request_id, "INVALID_REQUEST", "private cognition fields are not accepted");
+  }
 
   if (envl.player_id && envl.player_id !== principal.player_id) {
     return fail(request_id, "FORBIDDEN", "player_id does not match principal");
@@ -962,7 +978,7 @@ export async function applyWorldCommand(
     }
     const direction = action.arguments.direction;
     const room = w.rooms[pl.room_id];
-    const exit = room?.exits.find(
+    const exit = publicExits(w, room).find(
       (e) => e.direction === direction || e.to_room_id === direction,
     );
     if (!exit) {

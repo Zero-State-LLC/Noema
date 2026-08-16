@@ -53,6 +53,7 @@ import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
+import { hasPrivateCognition } from "./cognition";
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 
@@ -672,6 +673,9 @@ export default {
         if (!envelope?.command || !envelope?.request_id) {
           return cors(err("INVALID_REQUEST", "command and request_id required", 400));
         }
+        if (hasPrivateCognition(envelope)) {
+          return cors(err("INVALID_REQUEST", "private cognition fields are not accepted", 400));
+        }
 
         const cmd = envelope.command.toUpperCase();
         if (cmd === "OBSERVE" || cmd === "LOOK") {
@@ -702,6 +706,9 @@ export default {
         if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
         if (!body.command || !body.request_id) {
           return cors(err("INVALID_REQUEST", "command and request_id required", 400));
+        }
+        if (hasPrivateCognition(body)) {
+          return cors(err("INVALID_REQUEST", "private cognition fields are not accepted", 400));
         }
 
         const envelope: CommandEnvelope = {
