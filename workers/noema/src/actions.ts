@@ -8,6 +8,7 @@
 import {
   liveClassInRoom,
   parseConstructibleClass,
+  withAnnexAttention,
   withWorkshopStorage,
   type ConstructibleClass,
 } from "./construction";
@@ -1496,7 +1497,7 @@ export function parseHumanCommand(
   if (v === "construct" || v === "build") {
     const classRaw = parts.join(" ");
     if (!classRaw) {
-      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link, workshop, defensive_work." };
+      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link, workshop, defensive_work, archive_annex." };
     }
     const classId = parseConstructibleClass(classRaw);
     if (!classId) {
@@ -2023,7 +2024,7 @@ export function normalizeStructuredCommand(
     if (operation === "CONSTRUCT") {
       const classId = parseConstructibleClass(String(args.class || args.class_id || args.target || ""));
       if (!classId) {
-        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link|workshop|defensive_work)", code: "CLASS_FORBIDDEN" };
+        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link|workshop|defensive_work|archive_annex)", code: "CLASS_FORBIDDEN" };
       }
       return {
         ok: true,
@@ -2118,6 +2119,7 @@ export function deriveAffordances(input: {
 
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
+    const inspectCost = withAnnexAttention({ ...COSTS.INSPECT }, liveClassInRoom(entities, "archive_annex"));
     out.push({
       action: "INSPECT",
       verb: "INSPECT",
@@ -2125,9 +2127,9 @@ export function deriveAffordances(input: {
       cmd: `inspect ${e.label}`,
       target_id: e.entity_id,
       target_label: e.label,
-      requires: COSTS.INSPECT,
-      available: canPay(budgets, COSTS.INSPECT),
-      reason: canPay(budgets, COSTS.INSPECT) ? undefined : "You do not have enough attention.",
+      requires: inspectCost,
+      available: canPay(budgets, inspectCost),
+      reason: canPay(budgets, inspectCost) ? undefined : "You do not have enough attention.",
       kind: "primary",
     });
     if (isRepairable(e)) {
