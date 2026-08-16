@@ -14,8 +14,6 @@ export const READ_COMMANDS = new Set([
   "QUERY",
   "WAIT",
   "OBSERVE",
-  "ENTER_WORLD",
-  "JOIN",
   "TALK",
   "USE",
   "CONSULT",
@@ -258,6 +256,30 @@ export function applyWorldLifecycle(
     return { ok: true, status: "ACTIVE" };
   }
   return { ok: false, code: "INVALID_REQUEST", message: "action=pause|resume|incident|close", http: 400 };
+}
+
+export type RecoverPlan =
+  | { ok: true; restore: true; status: "ACTIVE"; settlement: "HEALTHY" }
+  | { ok: false; code: string; message: string; http: number };
+
+/** Restore from the durable head. Does not invent a new ledger. */
+export function planIncidentRecover(
+  status: WorldOpStatus,
+  _settlement: SettlementHealth,
+  headRevision: number | null,
+): RecoverPlan {
+  if (status !== "INCIDENT") {
+    return { ok: false, code: "INVALID_STATE", message: `cannot recover from ${status}`, http: 409 };
+  }
+  if (headRevision == null) {
+    return {
+      ok: false,
+      code: "RECOVERY_REQUIRED",
+      message: "no durable world head to restore",
+      http: 409,
+    };
+  }
+  return { ok: true, restore: true, status: "ACTIVE", settlement: "HEALTHY" };
 }
 
 export function playReady(

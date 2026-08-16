@@ -8,6 +8,7 @@ import { publicEmergencyPulses } from "./emergency";
 import {
   applyControllingSession,
   applyWorldLifecycle,
+  planIncidentRecover,
   commandForOps,
   countLivePlayers,
   expireStalePresence,
@@ -327,10 +328,38 @@ export class NoemaWorldDO {
     if (request.method === "POST" && path.endsWith("/admin-lifecycle")) {
       await this.load();
       const body = (await request.json()) as { action?: string; reason?: string };
-      const action = String(body.action || "").toLowerCase() as LifecycleAction;
+      const action = String(body.action || "").toLowerCase();
+      if (action === "recover") {
+        const head = await getWorldHead(this.env, this.world!.world_id);
+        const planned = planIncidentRecover(
+          this.meta!.status,
+          (this.meta!.settlement_health || "HEALTHY") as SettlementHealth,
+          typeof head?.revision === "number" ? head.revision : null,
+        );
+        if (!planned.ok) {
+          return Response.json({ error: { code: planned.code, message: planned.message } }, { status: planned.http });
+        }
+        if (planned.restore && head) {
+          this.world = worldFromHead(head, this.world!);
+          migrateWorldRuntime(this.world);
+          this.meta!.revision = head.revision;
+        }
+        this.meta!.status = planned.status;
+        this.meta!.settlement_health = planned.settlement;
+        this.meta!.settlement_ok = true;
+        await this.state.storage.put("world_meta", this.meta);
+        await this.save();
+        return Response.json({
+          ok: true,
+          status: this.meta!.status,
+          settlement_health: this.meta!.settlement_health,
+          revision: this.meta!.revision ?? null,
+          reason: body.reason || null,
+        });
+      }
       const decided = applyWorldLifecycle(
         this.meta!.status,
-        action,
+        action as LifecycleAction,
         (this.meta!.settlement_health || "HEALTHY") as SettlementHealth,
       );
       if (!decided.ok) {

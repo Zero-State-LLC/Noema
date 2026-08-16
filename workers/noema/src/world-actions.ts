@@ -788,11 +788,16 @@ export async function applyWorldCommand(
   let settled = false;
   const entry = w.entry_room_id || "room.relay-quarter";
 
+  const OBS_EVENT_TYPES = new Set(["LOOK", "OBSERVATION_GENERATED", "INSPECT", "WAIT"]);
   const pushEvent = (event_type: string, payload: Record<string, unknown>) => {
-    w.sequence += 1;
-    const event_id = `evt.${w.sequence.toString().padStart(6, "0")}`;
-    events.push({ event_id, event_type, sequence: w.sequence, payload });
-    return { event_id, event_type, sequence: w.sequence, payload };
+    const ledger = !OBS_EVENT_TYPES.has(event_type);
+    if (ledger) w.sequence += 1;
+    const sequence = w.sequence;
+    const event_id = ledger
+      ? `evt.${sequence.toString().padStart(6, "0")}`
+      : `evt.obs.${crypto.randomUUID()}`;
+    events.push({ event_id, event_type, sequence, payload });
+    return { event_id, event_type, sequence, payload };
   };
 
   const settleEv = async (ev: {
