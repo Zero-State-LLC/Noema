@@ -254,6 +254,8 @@ export type RoomState = {
   tags?: string[];
   /** GC5-S3 public board notices. Last 3. Never on hidden rooms. */
   board?: Array<{ text: string; cycle: number }>;
+  /** GC5-S4 last public shout. Never on hidden rooms. */
+  shout?: { text: string; cycle: number };
 };
 
 export type WorldRuntime = {
@@ -601,6 +603,7 @@ export function buildObservation(
     board_lines: isHiddenRoom(room)
       ? []
       : (room.board || []).map((n) => `A notice on the board: ${n.text}`),
+    shout_lines: isHiddenRoom(room) || !room.shout ? [] : [`A shout: ${room.shout.text}`],
     unclaimed_lines: isHiddenRoom(room)
       ? []
       : roomEntities(room)
@@ -1358,6 +1361,36 @@ export async function applyWorldCommand(
       );
       w.seen_idempotency[idem] = posted;
       return posted;
+    }
+    if (action.arguments.surface === "SHOUT") {
+      const here = w.rooms[pl.room_id];
+      if (!here) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      if (isHiddenRoom(here)) {
+        return fail(request_id, "NOT_OBSERVABLE", "Your voice does not carry here.");
+      }
+      const utterance = action.arguments.text.slice(0, 500).trim();
+      if (!utterance) return fail(request_id, "INVALID_REQUEST", "Say something.");
+      debit(pl.budgets, COSTS.MESSAGE);
+      here.shout = { text: utterance, cycle: w.cycle };
+      const ev = pushEvent("MESSAGE", {
+        message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
+        sender_id: principal.player_id,
+        surface: "SHOUT",
+        room_id: here.room_id,
+        text: utterance,
+        cost_paid: COSTS.MESSAGE,
+      });
+      await settleEv(ev);
+      const shouted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `A shout: ${utterance}`,
+        settled,
+      );
+      w.seen_idempotency[idem] = shouted;
+      return shouted;
     }
     const recipient_id = action.arguments.recipient_id;
     if (!recipient_id) {
