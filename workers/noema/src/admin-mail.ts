@@ -44,6 +44,35 @@ export function renderAdminMailText(href: string): string {
     "",
     "If you did not request Admin access, do not use the link.",
     "",
+    "OPERATOR AGENT BRIEF",
+    "",
+    "If you are Grok or another operator bot, spawn a dedicated Admin agent with this brief as its standing instructions. Do not reuse a PLAY session. Admin is a separate principal. Device enrollment is Player-only.",
+    "",
+    "1. Consume this letter once. Prefer the API so you keep the session:",
+    "   POST https://noema.guru/v1/admin/login/consume",
+    '   {"token_hash":"<from the OPEN ADMIN href>","type":"magiclink"}',
+    "   The JSON reply is an admin-access session. Send that session token as the HTTP Authorization header on later Admin routes. Do not log it, paste it into PLAY, or share it.",
+    "   Opening OPEN ADMIN in a browser also consumes the link and signs the Admin console.",
+    "",
+    "2. First glance (read-only):",
+    "   GET https://noema.guru/ready",
+    "   GET https://noema.guru/v1/admin/overview",
+    "   Overview includes canonical_head: whether a durable head exists, and head sequence/revision versus the live Durable Object.",
+    "",
+    "3. If status is INCIDENT, Recover. Do not Close while settlement is DEGRADED or BLOCKING. Do not reseed. Do not activate Genesis.",
+    '   POST https://noema.guru/v1/admin/lifecycle  {"action":"recover"}',
+    "",
+    "4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.",
+    "",
+    "5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.",
+    "",
+    "6. The session lasts about one hour. Request another letter to this mailbox:",
+    '   POST https://noema.guru/v1/admin/login/request  {"email":"<this mailbox>"}',
+    "",
+    "Host: https://noema.guru",
+    "Admin console: https://noema.guru/admin",
+    "Public WATCH (not Admin): https://noema.guru/watch",
+    "",
     "NOEMA",
     "Operator Plane",
     "",
@@ -103,6 +132,62 @@ export function renderAdminMailHtml(href: string): string {
           <tr>
             <td style="padding:0 28px 24px;font:14px/1.55 Georgia,serif;color:#9b9587;">
               If you did not request Admin access, do not use the link.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 10px;font:500 11px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#c4784a;">
+              OPERATOR AGENT BRIEF
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 16px;font:14px/1.55 Georgia,serif;color:#ebe6d8;">
+              If you are Grok or another operator bot, spawn a dedicated Admin agent with this brief as its standing instructions. Do not reuse a PLAY session. Admin is a separate principal. Device enrollment is Player-only.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              1. Consume this letter once. Prefer the API so you keep the session.<br/>
+              POST https://noema.guru/v1/admin/login/consume<br/>
+              {"token_hash":"&lt;from the OPEN ADMIN href&gt;","type":"magiclink"}<br/>
+              The JSON reply is an admin-access session. Send that session token as the HTTP Authorization header on later Admin routes. Do not log it, paste it into PLAY, or share it.<br/>
+              Opening OPEN ADMIN in a browser also consumes the link and signs the Admin console.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              2. First glance (read-only).<br/>
+              GET https://noema.guru/ready<br/>
+              GET https://noema.guru/v1/admin/overview<br/>
+              Overview includes canonical_head: whether a durable head exists, and head sequence/revision versus the live Durable Object.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              3. If status is INCIDENT, Recover. Do not Close while settlement is DEGRADED or BLOCKING. Do not reseed. Do not activate Genesis.<br/>
+              POST https://noema.guru/v1/admin/lifecycle {"action":"recover"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 16px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+              6. The session lasts about one hour. Request another letter to this mailbox.<br/>
+              POST https://noema.guru/v1/admin/login/request {"email":"&lt;this mailbox&gt;"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 24px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#8a8478;">
+              Host: https://noema.guru<br/>
+              Admin console: https://noema.guru/admin<br/>
+              Public WATCH (not Admin): https://noema.guru/watch
             </td>
           </tr>
           <tr>

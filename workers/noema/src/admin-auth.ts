@@ -129,8 +129,13 @@ export async function resolveSignedAdminHeader(req: Request, env: Env): Promise<
 export const GENERIC_LOGIN_MESSAGE =
   "If that mailbox is authorized, a link is on the way.";
 
-/** Sole first-world operator mailbox. Always allowed; secret may add extras. */
+/** Human operator mailbox. Always allowed; secret may add extras. */
 export const ADMIN_OPERATOR_EMAIL = "zer0state@zer0state.com";
+
+/** Dedicated Admin-agent mailbox. Always allowed so consume cannot depend on the secret alone. */
+export const ADMIN_AGENT_OPERATOR_EMAIL = "boof@agentmail.to";
+
+export const LOCKED_ADMIN_EMAILS = [ADMIN_OPERATOR_EMAIL, ADMIN_AGENT_OPERATOR_EMAIL] as const;
 
 export function parseAllowlist(raw?: string): string[] {
   if (!raw) return [];
@@ -142,8 +147,8 @@ export function parseAllowlist(raw?: string): string[] {
 
 export function adminAllowlist(env: Env): string[] {
   const extra = parseAllowlist(env.ADMIN_ALLOWLIST_EMAILS);
-  const locked = ADMIN_OPERATOR_EMAIL.toLowerCase();
-  return Array.from(new Set([locked, ...extra]));
+  const locked = LOCKED_ADMIN_EMAILS.map((email) => email.toLowerCase());
+  return Array.from(new Set([...locked, ...extra]));
 }
 
 export function normalizeEmail(raw: string): string | null {
