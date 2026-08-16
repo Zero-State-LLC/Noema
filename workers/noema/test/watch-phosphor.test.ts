@@ -522,6 +522,8 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(studyHtml()).toMatch(/not open/i);
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("ADMIN / operations");
-    expect(watchHtml()).not.toMatch(/WebGL|WebSocket/i);
+    expect(watchHtml()).not.toMatch(/WebGL/i);
+    expect(playHtml()).not.toMatch(/WebSocket/i);
+    expect(studyHtml()).not.toMatch(/WebSocket/i);
   });
 });

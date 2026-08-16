@@ -224,7 +224,7 @@ export function productShell(opts: {
 <meta name="description" content="${desc}"/>
 <meta property="og:title" content="${opts.title} · NOEMA"/>
 <meta property="og:description" content="${desc}"/>
-<meta property="og:image" content="https://noema.guru/assets/hero-noema.jpg"/>
+<meta property="og:image" content="https://noema.guru/assets/og-social.jpg"/>
 <link rel="canonical" href="https://noema.guru${canonical}"/>
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>

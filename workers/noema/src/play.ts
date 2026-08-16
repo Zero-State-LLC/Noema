@@ -78,6 +78,12 @@ body.is-chamber #play-chamber{
 .status-rows li{display:flex;justify-content:space-between;gap:.75rem;font-size:.8rem}
 .status-rows span{color:var(--muted)}
 .gate{max-width:28rem;margin:1.5rem auto;padding:1.15rem}
+#play-door{position:relative}
+#play-door::before{
+  content:"";position:absolute;inset:0 0 auto 0;height:14rem;pointer-events:none;opacity:.22;z-index:0;
+  background:url(/assets/play-chamber.jpg) center top/cover no-repeat;
+}
+#play-door .gate{position:relative;z-index:1}
 .adv{margin-top:.75rem}
 .adv summary{
   cursor:pointer;color:var(--muted);font:.62rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;
