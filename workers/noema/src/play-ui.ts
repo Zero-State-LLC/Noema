@@ -398,6 +398,12 @@ export function humanizeError(code?: string, message?: string): { primary: strin
   }
   if (c === "NOT_IN_WORLD") return { primary: "Enter the world first.", advanced: `${c}: ${m}` };
   if (c === "UNKNOWN_COMMAND") return { primary: "That action is not available here yet.", advanced: `${c}: ${m}` };
+  if (c === "TRADE_CAUTION") {
+    return {
+      primary: "You proceed with caution toward that counterparty. It costs one extra compute.",
+      advanced: `${c}: ${m}`,
+    };
+  }
   if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
   if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
   return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };

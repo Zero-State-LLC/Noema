@@ -278,6 +278,9 @@ export class NoemaWorldDO {
           rooms: this.world!.rooms as Record<string, WatchRoomIn>,
           players,
           events,
+          handles: Object.fromEntries(
+            Object.entries(this.world!.players || {}).map(([id, p]) => [id, p.handle]),
+          ),
           world_status: this.meta!.status,
           freshness: marker,
           public_pulses: [

@@ -63,9 +63,19 @@ import {
 import {
   creditAcceptedTrade,
   creditDangerEvidence,
+  creditDeceptiveEvidence,
+  creditInstitutionDanger,
+  creditInstitutionMember,
+  creditInstitutionTrade,
   creditsFromDangerEvent,
+  creditsFromDeceptiveEvent,
   creditsFromTradeAccepted,
+  institutionMemoryLines,
+  liveHostileToward,
+  liveInstitutionHostileToward,
   socialMemoryLines,
+  tradeCautionCost,
+  watchPublicDescriptorLines,
   type SocialEvent,
 } from "./social-memory";
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
@@ -240,6 +250,8 @@ export type WorldRuntime = {
   rumor?: import("./rumor").RumorState;
   /** Public institution consequence pulses. No balances. */
   institution_pulses?: string[];
+  /** GC3-S2 public social events for WATCH/PLAY bands. Derived cache. */
+  public_social_events?: import("./social-memory").SocialEvent[];
 };
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
@@ -342,6 +354,16 @@ export function buildObservation(
       (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
   );
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
+  const cautionToward: Record<string, boolean> = {};
+  for (const p of otherPlayers) {
+    cautionToward[p.player_id] = liveHostileToward(
+      pl.danger_memory,
+      pl.deceptive_memory,
+      pl.trade_memory,
+      p.player_id,
+      w.cycle,
+    );
+  }
   const affordances = deriveAffordances({
     entities,
     exits,
@@ -350,6 +372,7 @@ export function buildObservation(
     openTrades,
     organizations: orgs,
     selfId: principal.player_id,
+    cautionToward,
   });
   const available_actions = [
     ...new Set(
@@ -476,6 +499,24 @@ export function buildObservation(
         Object.entries(w.players).map(([id, p]) => [id, p.handle]),
       ),
       pl.danger_memory,
+      {
+        asOfCycle: w.cycle,
+        deceptive: pl.deceptive_memory,
+        institutionLines: orgs.flatMap((o) =>
+          institutionMemoryLines(
+            o.institution_memory,
+            o.name,
+            isOrgOfficer(o, principal.player_id) ? "officer" : isOrgMember(o, principal.player_id) ? "member" : "other",
+            principal.player_id,
+            Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+            w.cycle,
+          ),
+        ),
+        publicLines: watchPublicDescriptorLines(
+          w.public_social_events || [],
+          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+        ),
+      },
     ),
     culture_lines: cultureLines(
       w.culture,
@@ -577,28 +618,109 @@ function recordTradeMemory(
   events: NonNullable<CommandResult["events"]> | undefined,
 ): void {
   if (!events?.length) return;
-  const trades: Record<string, { proposer_id: string; counterparty_id: string }> = {};
+  const trades: Record<string, { proposer_id: string; counterparty_id: string; acting_for?: string }> = {};
   for (const [id, trade] of Object.entries(w.trades || {})) {
-    trades[id] = { proposer_id: trade.proposer_id, counterparty_id: trade.counterparty_id };
+    trades[id] = {
+      proposer_id: trade.proposer_id,
+      counterparty_id: trade.counterparty_id,
+      acting_for: trade.acting_for,
+    };
   }
-  for (const ev of events) {
-    for (const credit of creditsFromTradeAccepted(ev as SocialEvent, trades)) {
+  w.public_social_events = w.public_social_events || [];
+  const socialEvents: SocialEvent[] = events.map((ev) => {
+    if (ev.event_type === "ENTITY_UPDATE" && ev.payload?.operation === "ATTEST") {
+      return {
+        event_id: ev.event_id,
+        event_type: "ATTEST",
+        payload: {
+          ...ev.payload,
+          attester_id: ev.payload.attester_id,
+          visibility: ev.payload.visibility || "PUBLIC",
+          subject_entity_id: ev.payload.subject_entity_id || (ev.payload.set as { archive_subject_entity_id?: string } | undefined)?.archive_subject_entity_id,
+          archive_claim: ev.payload.archive_claim || (ev.payload.set as { archive_claim?: string } | undefined)?.archive_claim,
+        },
+      };
+    }
+    return ev as SocialEvent;
+  });
+  for (const ev of socialEvents) {
+    const et = ev.event_type;
+    if (
+      et === "CONTEST_RESOLVED" ||
+      (et === "AGREEMENT_BROKEN" && ev.payload?.visibility === "PUBLIC") ||
+      (et === "CRIME_DETECTED" && ev.payload?.visibility === "PUBLIC") ||
+      (et === "ATTEST" && (!ev.payload?.visibility || ev.payload.visibility === "PUBLIC"))
+    ) {
+      w.public_social_events.push(ev);
+    }
+    for (const credit of creditsFromTradeAccepted(ev, trades)) {
       const player = w.players[credit.player_id];
       if (!player) continue;
       player.trade_memory = creditAcceptedTrade(
         player.trade_memory,
         credit.other_id,
         credit.trade_id,
+        w.cycle,
       );
     }
-    for (const credit of creditsFromDangerEvent(ev as SocialEvent)) {
+    if (et === "TRADE_ACCEPTED") {
+      const tradeId = ev.payload?.trade_id;
+      const trade = typeof tradeId === "string" ? trades[tradeId] : undefined;
+      if (trade?.acting_for && w.organizations[trade.acting_for]) {
+        const org = w.organizations[trade.acting_for];
+        org.institution_memory = creditInstitutionTrade(
+          org.institution_memory,
+          trade.counterparty_id,
+          typeof tradeId === "string" ? tradeId : ev.event_id,
+          w.cycle,
+        );
+      }
+    }
+    if (et === "ORG_MEMBER_ADD" || et === "ORG_MEMBER_REMOVE") {
+      const orgId = ev.payload?.org_id;
+      const agentId = ev.payload?.agent_id;
+      if (typeof orgId === "string" && typeof agentId === "string" && w.organizations[orgId]) {
+        w.organizations[orgId].institution_memory = creditInstitutionMember(
+          w.organizations[orgId].institution_memory,
+          agentId,
+          et === "ORG_MEMBER_ADD" ? "member" : "removed",
+        );
+      }
+    }
+    for (const credit of creditsFromDangerEvent(ev)) {
       const player = w.players[credit.player_id];
-      if (!player) continue;
-      player.danger_memory = creditDangerEvidence(
-        player.danger_memory,
-        credit.other_id,
-        credit.evidence_id,
-      );
+      if (player) {
+        player.danger_memory = creditDangerEvidence(
+          player.danger_memory,
+          credit.other_id,
+          credit.evidence_id,
+          w.cycle,
+        );
+      }
+      if (credit.player_id.startsWith("org.") && w.organizations[credit.player_id]) {
+        w.organizations[credit.player_id].institution_memory = creditInstitutionDanger(
+          w.organizations[credit.player_id].institution_memory,
+          credit.other_id,
+          credit.evidence_id,
+          w.cycle,
+        );
+      }
+    }
+    for (const credit of creditsFromDeceptiveEvent(ev, [...(w.public_social_events || []), ...socialEvents])) {
+      const targets =
+        credit.player_id === "*"
+          ? Object.values(w.players)
+          : w.players[credit.player_id]
+            ? [w.players[credit.player_id]]
+            : [];
+      for (const player of targets) {
+        player.deceptive_memory = creditDeceptiveEvidence(
+          player.deceptive_memory,
+          credit.other_id,
+          credit.evidence_id,
+          w.cycle,
+        );
+      }
     }
   }
 }
@@ -1221,9 +1343,6 @@ export async function applyWorldCommand(
     const phase = action.arguments.phase;
 
     if (phase === "propose") {
-      if (!canPay(pl.budgets, COSTS.TRADE)) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
-      }
       const counterparty_id = action.arguments.counterparty_id || "";
       const offered = sanitizeTradeAmounts(action.arguments.offered);
       const requested = sanitizeTradeAmounts(action.arguments.requested);
@@ -1238,6 +1357,21 @@ export async function applyWorldCommand(
       }
       if (counterpartyIsOrg && (!w.organizations[counterparty_id] || w.organizations[counterparty_id].status !== "ACTIVE")) {
         return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+      }
+      const actingPreview = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
+      const liveHostile = actingPreview && w.organizations[actingPreview]
+        ? liveInstitutionHostileToward(w.organizations[actingPreview].institution_memory, counterparty_id, w.cycle)
+        : liveHostileToward(pl.danger_memory, pl.deceptive_memory, pl.trade_memory, counterparty_id, w.cycle);
+      const caution = tradeCautionCost(liveHostile);
+      const tradeCost = { compute: caution.total_compute };
+      if (!canPay(pl.budgets, tradeCost)) {
+        return fail(
+          request_id,
+          "BUDGET_EXCEEDED",
+          caution.reason_code
+            ? "TRADE_CAUTION: You do not have enough compute to proceed with caution."
+            : "You do not have enough compute.",
+        );
       }
       let source = pl.budgets;
       let grantOfficeId: string | undefined;
@@ -1276,7 +1410,7 @@ export async function applyWorldCommand(
           return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} in the ${acting_for ? "treasury" : "offer"}.`);
         }
       }
-      debit(pl.budgets, COSTS.TRADE);
+      debit(pl.budgets, tradeCost);
       const reserved: Record<string, number> = {};
       for (const [res, amt] of Object.entries(offered)) {
         source[res as keyof Budgets] = (source[res as keyof Budgets] ?? 0) - amt;
@@ -1305,7 +1439,8 @@ export async function applyWorldCommand(
         counterparty_id,
         offered,
         requested,
-        cost_paid: COSTS.TRADE,
+        cost_paid: tradeCost,
+        caution: caution.reason_code,
         acting_for: acting_for || null,
         office_id: grantOfficeId || null,
       });
@@ -2070,12 +2205,14 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     if (!p.practice) p.practice = { catalog_id: "mastery-catalog/gc1-s1", tracks: {}, recognition: {} };
     if (!p.trade_memory) p.trade_memory = { catalog_id: "social-memory-catalog/gc3-s0", edges: {} };
     if (!p.danger_memory) p.danger_memory = { catalog_id: "social-memory-catalog/gc3-s1", edges: {} };
+    if (!p.deceptive_memory) p.deceptive_memory = { catalog_id: "social-memory-catalog/gc3-s6", edges: {} };
   }
   w.contests = w.contests || {};
   w.access_restrictions = w.access_restrictions || [];
   if (!w.pressure) w.pressure = emptyPressure();
   if (!w.rumor) w.rumor = emptyRumor();
   w.institution_pulses = w.institution_pulses || [];
+  w.public_social_events = w.public_social_events || [];
   w.pending_messages = w.pending_messages || [];
   for (const org of Object.values(w.organizations || {})) {
     ensureTreasury(org);
@@ -3313,6 +3450,10 @@ async function applyAttest(
   const ev = pushEvent("ENTITY_UPDATE", {
     entity_id: entity.entity_id,
     operation: "ATTEST",
+    attester_id: principal.player_id,
+    visibility: "PUBLIC",
+    subject_entity_id: subject,
+    archive_claim: claim,
     set: {
       archive_subject_entity_id: subject,
       archive_claim: claim,

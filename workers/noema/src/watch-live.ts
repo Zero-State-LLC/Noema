@@ -5,6 +5,7 @@
 
 import { isHiddenRoom } from "./construction";
 import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
+import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
 
@@ -361,6 +362,7 @@ export function buildWatchLive(input: {
   players: WatchPlayerIn[];
   events: WatchSourceEvent[];
   public_pulses?: string[];
+  handles?: Record<string, string | undefined>;
   world_status?: string;
   freshness?: string;
   held?: HeldHeadline | null;
@@ -432,6 +434,11 @@ export function buildWatchLive(input: {
   });
 
   const playersPresent = live.filter((p) => p.room_id && publicRooms[p.room_id]).length;
+  const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
+  const public_descriptor_lines = watchPublicDescriptorLines(
+    (input.events || []) as SocialEvent[],
+    handles,
+  );
 
   return {
     watch_live: WATCH_LIVE_PIN,
@@ -443,6 +450,7 @@ export function buildWatchLive(input: {
     world_status: input.world_status || null,
     freshness,
     public_pulses: pulses,
+    public_descriptor_lines,
     rooms: roomsOut,
     recent_events: recent,
     notable_event: notable,
