@@ -201,7 +201,7 @@ export interface Observation {
   reconstruction_lines?: string[];
   /** GC5-S2 held-claim lines. Never put on WATCH. Not truth. */
   rumor_lines?: string[];
-  /** GC5-S3 room board notices. Public room only. Never put on WATCH. */
+  /** GC5-S5 room board notices. Last 5. Public room only. Never put on WATCH. */
   board_lines?: string[];
   /** GC5-S4 last room shout. Public room only. Never put on WATCH. */
   shout_lines?: string[];
