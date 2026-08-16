@@ -256,6 +256,8 @@ export type RoomState = {
   board?: Array<{ text: string; cycle: number }>;
   /** GC5-S4 last public shout. Never on hidden rooms. */
   shout?: { text: string; cycle: number };
+  /** GC5-S6 last institution notice. Never on hidden rooms. */
+  institution_notice?: { text: string; cycle: number; org_id: string; org_name: string };
 };
 
 export type WorldRuntime = {
@@ -604,6 +606,10 @@ export function buildObservation(
       ? []
       : (room.board || []).map((n) => `A notice on the board: ${n.text}`),
     shout_lines: isHiddenRoom(room) || !room.shout ? [] : [`A shout: ${room.shout.text}`],
+    notice_lines:
+      isHiddenRoom(room) || !room.institution_notice
+        ? []
+        : [`A notice from ${room.institution_notice.org_name}: ${room.institution_notice.text}`],
     unclaimed_lines: isHiddenRoom(room)
       ? []
       : roomEntities(room)
@@ -1391,6 +1397,59 @@ export async function applyWorldCommand(
       );
       w.seen_idempotency[idem] = shouted;
       return shouted;
+    }
+    if (action.arguments.surface === "NOTICE") {
+      const here = w.rooms[pl.room_id];
+      if (!here) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      if (isHiddenRoom(here)) {
+        return fail(request_id, "NOT_OBSERVABLE", "That notice would not carry here.");
+      }
+      const utterance = action.arguments.text.slice(0, 500).trim();
+      if (!utterance) return fail(request_id, "INVALID_REQUEST", "Write a notice.");
+      const wantedOrg = String(action.arguments.org_id || "").trim();
+      let orgId = "";
+      let orgName = "";
+      if (wantedOrg) {
+        const org = w.organizations[wantedOrg];
+        const held = occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE");
+        if (!org || org.status !== "ACTIVE" || !held.length) {
+          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+        }
+        orgId = org.org_id;
+        orgName = org.name;
+      } else {
+        const found = Object.values(w.organizations).find((org) => {
+          if (org.status !== "ACTIVE") return false;
+          return occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE").length > 0;
+        });
+        if (!found) {
+          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+        }
+        orgId = found.org_id;
+        orgName = found.name;
+      }
+      debit(pl.budgets, COSTS.MESSAGE);
+      here.institution_notice = { text: utterance, cycle: w.cycle, org_id: orgId, org_name: orgName };
+      const ev = pushEvent("MESSAGE", {
+        message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
+        sender_id: principal.player_id,
+        surface: "NOTICE",
+        room_id: here.room_id,
+        org_id: orgId,
+        text: utterance,
+        cost_paid: COSTS.MESSAGE,
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `A notice from ${orgName}: ${utterance}`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
     }
     const recipient_id = action.arguments.recipient_id;
     if (!recipient_id) {

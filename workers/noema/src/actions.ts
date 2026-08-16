@@ -260,7 +260,8 @@ export type CanonicalAction =
       arguments: {
         recipient_id?: string;
         text: string;
-        surface?: "BOARD" | "SHOUT";
+        surface?: "BOARD" | "SHOUT" | "NOTICE";
+        org_id?: string;
         subject_ref?: string;
         parent_claim_id?: string;
         as_claim?: boolean;
@@ -1706,14 +1707,23 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "MESSAGE") {
     const rawSurface = String(args.surface || "").toUpperCase();
-    const surface = rawSurface === "BOARD" || rawSurface === "SHOUT" ? rawSurface : undefined;
+    const surface =
+      rawSurface === "BOARD" || rawSurface === "SHOUT" || rawSurface === "NOTICE" ? rawSurface : undefined;
     const recipient_id = String(args.recipient_id || args.target || "").trim();
     const text = String(args.text || "").trim();
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
     const as_claim = Boolean(args.as_claim || parent_claim_id || subject_ref);
-    if (surface === "BOARD" || surface === "SHOUT") {
+    if (surface === "BOARD" || surface === "SHOUT" || surface === "NOTICE") {
       if (!text) return { ok: false, error: "text required", code: "INVALID_REQUEST" };
+      if (surface === "NOTICE") {
+        const org_id = String(args.org_id || "").trim() || undefined;
+        return {
+          ok: true,
+          action: { verb: "MESSAGE", arguments: { surface: "NOTICE", text, org_id } },
+          display: "MESSAGE NOTICE",
+        };
+      }
       return {
         ok: true,
         action: { verb: "MESSAGE", arguments: { surface, text } },
