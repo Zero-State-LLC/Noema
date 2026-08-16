@@ -161,6 +161,7 @@ import {
 import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
+  SHOUT_EXPIRE_AFTER_CYCLES,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
   bestLiveRelayCondition,
@@ -1255,6 +1256,12 @@ export async function applyWorldCommand(
             operation: "PROMOTE",
           });
           await settleEv(ev);
+        }
+      }
+      for (const room of Object.values(w.rooms)) {
+        if (isHiddenRoom(room) || !room.shout) continue;
+        if (w.cycle - room.shout.cycle >= SHOUT_EXPIRE_AFTER_CYCLES) {
+          room.shout = undefined;
         }
       }
     }
