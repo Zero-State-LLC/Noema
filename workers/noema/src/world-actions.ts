@@ -516,7 +516,11 @@ export function buildObservation(
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
     lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines).concat(
-      cargoLine(pl.budgets.storage ?? 0) || [],
+      cargoLine(
+        pl.budgets.storage ?? 0,
+        undefined,
+        liveClassInRoom(roomEntities(room), "route_link"),
+      ) || [],
     ),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
@@ -1147,12 +1151,16 @@ export async function applyWorldCommand(
 
   // ——— MOVE ———
   if (action.verb === "MOVE") {
-    const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0) };
+    const room = w.rooms[pl.room_id];
+    if (!room) {
+      return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+    }
+    const waivesCargo = liveClassInRoom(roomEntities(room), "route_link");
+    const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0, undefined, waivesCargo) };
     if (!canPay(pl.budgets, moveCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
     }
     const direction = action.arguments.direction;
-    const room = w.rooms[pl.room_id];
     const exit = publicExits(w, room).find(
       (e) => e.direction === direction || e.to_room_id === direction,
     );
@@ -2233,7 +2241,9 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+        classId === "route_link"
+          ? `A route link was opened (${entity_id}).`
+          : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
       w.seen_idempotency[idem] = result;

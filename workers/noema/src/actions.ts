@@ -6,6 +6,7 @@
  */
 
 import {
+  liveClassInRoom,
   parseConstructibleClass,
   type ConstructibleClass,
 } from "./construction";
@@ -1489,7 +1490,7 @@ export function parseHumanCommand(
   if (v === "construct" || v === "build") {
     const classRaw = parts.join(" ");
     if (!classRaw) {
-      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node." };
+      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link." };
     }
     const classId = parseConstructibleClass(classRaw);
     if (!classId) {
@@ -2016,7 +2017,7 @@ export function normalizeStructuredCommand(
     if (operation === "CONSTRUCT") {
       const classId = parseConstructibleClass(String(args.class || args.class_id || args.target || ""));
       if (!classId) {
-        return { ok: false, error: "class required (relay|generator|storage_bay|production_node)", code: "CLASS_FORBIDDEN" };
+        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link)", code: "CLASS_FORBIDDEN" };
       }
       return {
         ok: true,
@@ -2158,7 +2159,9 @@ export function deriveAffordances(input: {
   }
 
   for (const x of exits) {
-    const moveCost = { energy: moveEnergyCost(budgets.storage ?? 0) };
+    const moveCost = {
+      energy: moveEnergyCost(budgets.storage ?? 0, undefined, liveClassInRoom(entities, "route_link")),
+    };
     const ok = canPay(budgets, moveCost);
     out.push({
       action: "MOVE",
