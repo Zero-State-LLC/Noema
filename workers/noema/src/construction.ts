@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s5";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s6";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -108,6 +108,10 @@ export function liveClassInRoom(entities: InfraLike[], classId: ConstructibleCla
 export const WORKSHOP_STORAGE_DISCOUNT = 1;
 export const WORKSHOP_UPGRADE_DISCOUNT = 2;
 export const UPGRADE_COST: ConstructionCost = { energy: 4, compute: 2, storage: 2, influence: 1 };
+/** GC2-S6 closed table: workshop → storage_bay. Same entity_id. */
+export const REPURPOSE_COST: ConstructionCost = { energy: 4, compute: 2, storage: 2, influence: 1 };
+export const REPURPOSE_FROM_CLASS = "workshop" as const;
+export const REPURPOSE_TO_CLASS = "storage_bay" as const;
 
 export function workshopStorageDiscount(entities: InfraLike[]): number {
   const shops = entities.filter((e) => infraClassOf(e) === "workshop");
