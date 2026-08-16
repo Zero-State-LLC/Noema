@@ -124,7 +124,7 @@ Response `200`:
 Public. No secrets.
 
 `200`: `{ user_code, status, scopes, runtime, expires_at }`  
-`404`: unknown code.
+`401`: unknown code (`NOT_AUTHORIZED` — same as other auth failure; do not distinguish).
 
 `status` is `pending` | `approved` | `denied` | `expired` | `redeemed`. Preview of `approved` does **not** include tokens.
 
