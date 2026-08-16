@@ -499,7 +499,7 @@ export function buildObservation(
       kind: a.kind,
     })),
     consequence,
-    practice_lines: practiceLines(pl.practice),
+    practice_lines: practiceLines(pl.practice, w.cycle),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -607,7 +607,7 @@ function recordPractice(
   for (const [playerId, credits] of byPlayer) {
     const player = w.players[playerId];
     if (!player) continue;
-    player.practice = applyPracticeCredits(player.practice, credits);
+    player.practice = applyPracticeCredits(player.practice, credits, w.cycle);
   }
 }
 
@@ -1973,7 +1973,7 @@ export async function applyWorldCommand(
         );
       }
       const before = entity.condition ?? 0;
-      const quality = repairConditionDelta(pl.practice, entity.entity_id);
+      const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
       debit(payFrom, COSTS.REPAIR);
       entity.condition = Math.min(100, before + quality.delta);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
