@@ -156,7 +156,8 @@ describe("GC8-S0 already-true distance interdependence", () => {
     });
     expect(h1.ok && moved.ok && h2.ok).toBe(true);
     const loneSpent = lone0 - lone.players[solo.player_id].budgets.energy + 2;
-    expect(loneSpent).toBe(5);
+    // S4: harvest spends storage, so the hop is cargo MOVE 2. Pair still 4.
+    expect(loneSpent).toBe(6);
     expect(loneSpent).toBeGreaterThan(pairHarvestSpent);
   });
 
