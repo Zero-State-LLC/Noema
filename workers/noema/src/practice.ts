@@ -49,6 +49,7 @@ export type PracticeState = {
   recognition?: Partial<Record<PracticeTrackId, string[]>>;
   last_work_cycle?: Partial<Record<PracticeTrackId, number>>;
   latent_progress?: Partial<Record<PracticeTrackId, number>>;
+  counterparties?: Partial<Record<PracticeTrackId, string[]>>;
 };
 
 export type PracticeEvent = {
@@ -72,6 +73,7 @@ function ensurePractice(raw: PracticeState | undefined | null): PracticeState {
   const recognition = { ...(raw.recognition || {}) };
   const last_work_cycle = { ...(raw.last_work_cycle || {}) };
   const latent_progress = { ...(raw.latent_progress || {}) };
+  const counterparties = { ...(raw.counterparties || {}) };
   // S0 caches: reuse distinct units as recognition except engineer (entity ids unknown).
   if (raw.catalog_id === "mastery-catalog/gc1-s0") {
     for (const track of PRACTICE_TRACKS) {
@@ -81,7 +83,7 @@ function ensurePractice(raw: PracticeState | undefined | null): PracticeState {
       }
     }
   }
-  return { catalog_id: MASTERY_CATALOG_ID, tracks, recognition, last_work_cycle, latent_progress };
+  return { catalog_id: MASTERY_CATALOG_ID, tracks, recognition, last_work_cycle, latent_progress, counterparties };
 }
 
 function payloadPlayer(payload: Record<string, unknown> | undefined): string | null {
@@ -150,7 +152,14 @@ export function creditsFromEvent(
     if (trade?.counterparty_id) parties.add(trade.counterparty_id);
     if (acceptedBy) parties.add(acceptedBy);
     for (const player_id of parties) {
-      out.push({ player_id, track_id: "track.broker.01", unit: tradeId });
+      const others = [...parties].filter((id) => id !== player_id);
+      if (others.length) {
+        for (const other of others) {
+          out.push({ player_id, track_id: "track.broker.01", unit: tradeId, party_id: other });
+        }
+      } else {
+        out.push({ player_id, track_id: "track.broker.01", unit: tradeId });
+      }
     }
   } else if (ev.event_type === "ENTITY_UPDATE") {
     const hostedRepair = payload.operation === "REPAIR";
@@ -175,6 +184,7 @@ export type PracticeCredit = {
   track_id: PracticeTrackId;
   unit: string;
   recognition_unit?: string;
+  party_id?: string;
 };
 
 export type PracticeEventCredit = PracticeCredit & { player_id: string };
@@ -188,6 +198,13 @@ export function applyPracticeCredits(
   for (const c of credits) {
     const wasLatent = cycle != null && isTrackLatent(next, c.track_id, cycle);
     next = credit(next, c.track_id, c.unit, c.recognition_unit ?? c.unit);
+    if (c.party_id) {
+      const parties = [...(next.counterparties?.[c.track_id] || [])];
+      if (!parties.includes(c.party_id)) {
+        parties.push(c.party_id);
+        next.counterparties = { ...(next.counterparties || {}), [c.track_id]: parties };
+      }
+    }
     if (cycle == null) continue;
     if (wasLatent) {
       const progress = (next.latent_progress?.[c.track_id] || 0) + 1;
@@ -205,6 +222,9 @@ export function applyPracticeCredits(
   return next;
 }
 
+export const EXPLORER_TRACK: PracticeTrackId = "track.explorer.01";
+export const SURVEYOR_TRACK: PracticeTrackId = "track.surveyor.01";
+export const BROKER_TRACK: PracticeTrackId = "track.broker.01";
 export const ENGINEER_TRACK: PracticeTrackId = "track.engineer.01";
 export const REPAIR_BASE = 15;
 export const REPAIR_REPEAT_BONUS = 5;
@@ -275,4 +295,53 @@ export function practiceLines(state: PracticeState | undefined | null, now = 0):
     } else practicing.push(track.play_line);
   }
   return [...recognized, ...practicing].slice(0, MAX_PLAY_LINES);
+}
+
+export function trackMaintained(
+  state: PracticeState | undefined | null,
+  trackId: PracticeTrackId,
+  now: number,
+): boolean {
+  return isTrackRecognized(state, trackId) && !isTrackLatent(state, trackId, now);
+}
+
+export function hasVisitedRoom(state: PracticeState | undefined | null, roomId: string): boolean {
+  if (!roomId) return false;
+  return (ensurePractice(state).tracks[EXPLORER_TRACK] || []).includes(roomId);
+}
+
+export function hasSurveyedEntity(state: PracticeState | undefined | null, entityId: string): boolean {
+  if (!entityId) return false;
+  return (ensurePractice(state).tracks[SURVEYOR_TRACK] || []).includes(entityId);
+}
+
+export function hasBrokeredWith(state: PracticeState | undefined | null, otherId: string): boolean {
+  if (!otherId) return false;
+  return (ensurePractice(state).counterparties?.[BROKER_TRACK] || []).includes(otherId);
+}
+
+export function lookAttentionCost(
+  state: PracticeState | undefined | null,
+  roomId: string,
+  now: number,
+): Partial<{ attention: number }> {
+  if (trackMaintained(state, EXPLORER_TRACK, now) && hasVisitedRoom(state, roomId)) return {};
+  return { attention: 1 };
+}
+
+export function inspectAttentionCost(
+  state: PracticeState | undefined | null,
+  entityId: string,
+  now: number,
+): Partial<{ attention: number }> {
+  if (trackMaintained(state, SURVEYOR_TRACK, now) && hasSurveyedEntity(state, entityId)) return {};
+  return { attention: 2 };
+}
+
+export function brokerWaivesCaution(
+  state: PracticeState | undefined | null,
+  otherId: string,
+  now: number,
+): boolean {
+  return trackMaintained(state, BROKER_TRACK, now) && hasBrokeredWith(state, otherId);
 }

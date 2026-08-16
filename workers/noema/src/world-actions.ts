@@ -55,7 +55,10 @@ import {
 } from "./pressure";
 import {
   applyPracticeCredits,
+  brokerWaivesCaution,
   creditsFromEvent,
+  inspectAttentionCost,
+  lookAttentionCost,
   practiceLines,
   repairConditionDelta,
   PRACTICED_REPAIR_LINE,
@@ -600,6 +603,7 @@ function recordPractice(
         track_id: credit.track_id,
         unit: credit.unit,
         recognition_unit: credit.recognition_unit,
+        party_id: credit.party_id,
       });
       byPlayer.set(credit.player_id, list);
     }
@@ -1027,15 +1031,16 @@ export async function applyWorldCommand(
       return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
     }
     if (action.verb === "LOOK") {
-      if (!canPay(pl.budgets, COSTS.LOOK)) {
+      const lookCost = lookAttentionCost(pl.practice, pl.room_id, w.cycle);
+      if (!canPay(pl.budgets, lookCost)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
       }
-      debit(pl.budgets, COSTS.LOOK);
+      debit(pl.budgets, lookCost);
       const room_id = pl.room_id;
       const lookEv = pushEvent("LOOK", {
         player_id: principal.player_id,
         room_id,
-        cost_paid: COSTS.LOOK,
+        cost_paid: lookCost,
       });
       await settleEv(lookEv);
       // Specs: LOOK → OBSERVATION_GENERATED (same cycle batch)
@@ -1149,9 +1154,6 @@ export async function applyWorldCommand(
 
   // ——— INSPECT ———
   if (action.verb === "INSPECT") {
-    if (!canPay(pl.budgets, COSTS.INSPECT)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
-    }
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id);
     if (!entity) {
@@ -1160,13 +1162,17 @@ export async function applyWorldCommand(
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
       return fail(request_id, "FORBIDDEN", "The record is sealed.");
     }
-    debit(pl.budgets, COSTS.INSPECT);
+    const inspectCost = inspectAttentionCost(pl.practice, entity.entity_id, w.cycle);
+    if (!canPay(pl.budgets, inspectCost)) {
+      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+    }
+    debit(pl.budgets, inspectCost);
     const detail = inspectDetail(entity);
     const inspEv = pushEvent("INSPECT", {
       player_id: principal.player_id,
       entity_id: entity.entity_id,
       room_id: pl.room_id,
-      cost_paid: COSTS.INSPECT,
+      cost_paid: inspectCost,
       detail,
     });
     await settleEv(inspEv);
@@ -1375,7 +1381,8 @@ export async function applyWorldCommand(
       const liveReliable = actingPreview && w.organizations[actingPreview]
         ? liveInstitutionReliableToward(w.organizations[actingPreview].institution_memory, counterparty_id, w.cycle)
         : liveReliableToward(pl.trade_memory, counterparty_id, w.cycle);
-      const caution = tradeCautionCost(liveHostile, liveReliable);
+      const brokerKnown = brokerWaivesCaution(pl.practice, counterparty_id, w.cycle);
+      const caution = tradeCautionCost(liveHostile, liveReliable || brokerKnown);
       const tradeCost = { compute: caution.total_compute };
       if (!canPay(pl.budgets, tradeCost)) {
         return fail(
