@@ -78,11 +78,30 @@ describe("GC4-S1 mapper", () => {
       expect(created.action.verb).toBe("COMMIT");
       expect(created.action.arguments.operation).toBe("ORG_OFFICE_CREATE");
     }
+    const scoped = parseHumanCommand(
+      'office create org.x name="Relay" profile=OPERATE_NAMED_ASSET object_set=entity.relay,entity.vault precedence=lead',
+    );
+    expect(scoped.ok).toBe(true);
+    if (scoped.ok && scoped.action.verb === "COMMIT") {
+      expect(scoped.action.arguments.object_set).toEqual(["entity.relay", "entity.vault"]);
+      expect(scoped.action.arguments.office_precedence).toBe("lead");
+    }
+    const aliased = parseHumanCommand(
+      'office create org.x name="Relay" profile=OPERATE_NAMED_ASSET scope=entity.relay office_precedence=append',
+    );
+    expect(aliased.ok).toBe(true);
+    if (aliased.ok && aliased.action.verb === "COMMIT") {
+      expect(aliased.action.arguments.object_set).toEqual(["entity.relay"]);
+      expect(aliased.action.arguments.office_precedence).toBe("append");
+    }
     const text = helpText();
     expect(text).toMatch(/KNOWN COMMANDS/);
     expect(text).not.toMatch(/\boffice\b/i);
     expect(text).not.toMatch(/\btreasurer\b/i);
     expect(text).not.toMatch(/\bconstruct\b|\bcontest\b|\battest\b|\bwed\b/i);
+    const orgHelp = helpText("org");
+    expect(orgHelp).toMatch(/object_set=/);
+    expect(orgHelp).toMatch(/precedence=append\|lead/);
   });
 });
 
@@ -397,5 +416,26 @@ describe("office conflict-precedence", () => {
     });
     expect(denied.ok).toBe(false);
     expect(denied.error?.code).toBe("AUTHORITY_CONFLICT");
+  });
+
+  it("human office create line publishes the same object_set and precedence as structured create", async () => {
+    const w = world();
+    w.world_id = "test.hosted-canonical.office-play-copy";
+    const founder = principal("player.nacre");
+    await run(w, founder, "ENTER_WORLD");
+    w.players[founder.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    await run(w, founder, "ORG_CREATE", { name: "Line", charter: "grid", org_id: "org.play" });
+    const parsed = parseHumanCommand(
+      'office create org.play name="Narrow" profile=OPERATE_NAMED_ASSET object_set=entity.relay precedence=lead',
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok || parsed.action.verb !== "COMMIT") throw new Error("expected COMMIT");
+    const applied = await run(w, founder, "COMMIT", parsed.action.arguments as Record<string, unknown>);
+    expect(applied.ok).toBe(true);
+    const office = Object.values(w.organizations["org.play"].offices || {}).find(
+      (o) => o.display_name === "Narrow",
+    );
+    expect(office?.object_set).toEqual(["entity.relay"]);
+    expect(w.organizations["org.play"].office_precedence).toEqual([office?.office_id]);
   });
 });

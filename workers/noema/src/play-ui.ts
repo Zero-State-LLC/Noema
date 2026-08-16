@@ -384,6 +384,13 @@ export function humanizeError(code?: string, message?: string): { primary: strin
   }
   if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: `${c}: ${m}` };
   if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: `${c}: ${m}` };
+  if (c === "AUTHORITY_CONFLICT") {
+    return {
+      primary:
+        "Another office already has precedence over that object. Create with object_set=… and precedence=append|lead.",
+      advanced: `${c}: ${m}`,
+    };
+  }
   if (c === "AMBIGUOUS_TARGET") return { primary: m, advanced: c };
   if (c === "MOVE_REJECTED") return { primary: "You cannot go that way from here.", advanced: `${c}: ${m}` };
   if (c === "INSPECT_FAILED" || c === "NOT_FOUND") {
