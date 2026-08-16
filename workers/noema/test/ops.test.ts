@@ -3,6 +3,7 @@ import {
   actorKindFromPrincipal,
   applyControllingSession,
   applyWorldLifecycle,
+  planIncidentRecover,
   commandForOps,
   countEnteredPlayers,
   countLivePlayers,
@@ -32,9 +33,14 @@ describe("command mutation class", () => {
   it("maps PLAY LOOK+line to the real verb for gates", () => {
     expect(isMutatingCommand(commandForOps("LOOK", { line: "leave" }))).toBe(true);
     expect(isMutatingCommand(commandForOps("LOOK", { line: "message nacre \"hi\"" }))).toBe(true);
-    expect(isMutatingCommand(commandForOps("LOOK", { line: "enter" }))).toBe(false);
+    expect(isMutatingCommand(commandForOps("LOOK", { line: "enter" }))).toBe(true);
     expect(isMutatingCommand(commandForOps("LOOK", { line: "look" }))).toBe(false);
     expect(isMutatingCommand(commandForOps("LOOK", { line: "talk broker" }))).toBe(false);
+  });
+
+  it("treats ENTER_WORLD as mutating so it settles on the ledger", () => {
+    expect(isMutatingCommand("ENTER_WORLD")).toBe(true);
+    expect(isMutatingCommand("JOIN")).toBe(true);
   });
 
   it("counts only entered Players as present", () => {
@@ -125,6 +131,26 @@ describe("applyWorldLifecycle", () => {
     expect(applyWorldLifecycle("PAUSED", "resume", "HEALTHY")).toEqual({ ok: true, status: "ACTIVE" });
     expect(applyWorldLifecycle("PAUSED", "resume", "BLOCKING").ok).toBe(false);
     expect(applyWorldLifecycle("ACTIVE", "incident", "HEALTHY")).toEqual({ ok: true, status: "INCIDENT" });
+  });
+});
+
+describe("planIncidentRecover", () => {
+  it("restores ACTIVE and HEALTHY from INCIDENT when a durable head exists", () => {
+    const r = planIncidentRecover("INCIDENT", "BLOCKING", 4);
+    expect(r).toEqual({ ok: true, restore: true, status: "ACTIVE", settlement: "HEALTHY" });
+  });
+
+  it("refuses recover without a durable head", () => {
+    const r = planIncidentRecover("INCIDENT", "BLOCKING", null);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("RECOVERY_REQUIRED");
+      expect(r.http).toBe(409);
+    }
+  });
+
+  it("does not recover from ACTIVE", () => {
+    expect(planIncidentRecover("ACTIVE", "HEALTHY", 3).ok).toBe(false);
   });
 });
 

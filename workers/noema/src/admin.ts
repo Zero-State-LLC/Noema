@@ -306,6 +306,10 @@ export function adminHtml(): string {
             <label><input type="checkbox" id="life-close-confirm"/><span>I understand Close incident returns ACTIVE without reseeding or a new Genesis.</span></label>
             <button class="btn" type="button" id="life-close" disabled style="margin-top:.7rem">Close incident</button>
           </div>
+          <div class="danger" style="margin-top:.75rem">
+            <label><input type="checkbox" id="life-recover-confirm"/><span>I understand Recover restores the durable ledger head and does not reseed Genesis.</span></label>
+            <button class="btn" type="button" id="life-recover" disabled style="margin-top:.7rem">Recover from head</button>
+          </div>
           <p class="notice" id="life-notice" role="status"></p>
         </article>
         <article class="card pad s5" id="reseed-card">
@@ -887,10 +891,13 @@ export function adminHtml(): string {
   $("life-close-confirm").addEventListener("change", (e) => {
     $("life-close").disabled = !e.target.checked;
   });
+  $("life-recover-confirm").addEventListener("change", (e) => {
+    $("life-recover").disabled = !e.target.checked;
+  });
   async function lifecycle(action) {
     const n = $("life-notice");
     n.className = "notice";
-    n.textContent = action === "incident" ? "Declaring incident…" : action === "close" ? "Closing incident…" : action === "pause" ? "Pausing…" : "Resuming…";
+    n.textContent = action === "incident" ? "Declaring incident…" : action === "recover" ? "Restoring durable head…" : action === "close" ? "Closing incident…" : action === "pause" ? "Pausing…" : "Resuming…";
     try {
       const r = await api("/v1/admin/lifecycle", {
         method: "POST",
@@ -902,6 +909,8 @@ export function adminHtml(): string {
       $("life-incident").disabled = true;
       $("life-close-confirm").checked = false;
       $("life-close").disabled = true;
+      $("life-recover-confirm").checked = false;
+      $("life-recover").disabled = true;
       await load();
     } catch (e) {
       n.className = "notice bad";
@@ -919,6 +928,10 @@ export function adminHtml(): string {
   $("life-close").addEventListener("click", () => {
     if (!$("life-close-confirm").checked) return;
     lifecycle("close");
+  });
+  $("life-recover").addEventListener("click", () => {
+    if (!$("life-recover-confirm").checked) return;
+    lifecycle("recover");
   });
   $("d-save").addEventListener("click", async () => {
     $("d-notice").textContent = "Saving…";

@@ -428,3 +428,16 @@ describe("GC1-S0 derived practice", () => {
     expect(w.players[p.player_id].practice?.tracks["track.engineer.01"] || []).toEqual([]);
   });
 });
+
+describe("ledger sequence", () => {
+  it("does not advance world.sequence on LOOK", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.looker");
+    await run(w, p, "ENTER_WORLD");
+    const afterEnter = w.sequence;
+    expect(afterEnter).toBeGreaterThan(0);
+    await run(w, p, "LOOK");
+    await run(w, p, "LOOK");
+    expect(w.sequence).toBe(afterEnter);
+  });
+});
