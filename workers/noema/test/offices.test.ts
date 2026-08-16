@@ -7,6 +7,7 @@ import {
   helpText,
   parseHumanCommand,
 } from "../src/actions";
+import { resolveOfficeConflict } from "../src/offices";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -231,5 +232,110 @@ describe("GC4-S1 world integration", () => {
     expect(w.organizations[orgId].offices?.[officeId]?.status).toBe("VACANT");
     expect(w.players[b.player_id].budgets.compute).toBe(computeBefore - COSTS.ORG_MEMBER_REMOVE.compute!);
     expect(left.events?.some((e) => e.event_type === "ENTITY_UPDATE")).toBe(true);
+  });
+});
+
+describe("office conflict-precedence", () => {
+  function seat(id: string, extra: Record<string, unknown> = {}) {
+    return {
+      office_id: id,
+      institution_id: "org.line",
+      display_name: id,
+      status: "OCCUPIED" as const,
+      holder_player_id: `player.${id}`,
+      authority_profile: "OPERATE_NAMED_ASSET" as const,
+      created_cycle: 0,
+      history: [],
+      ...extra,
+    };
+  }
+
+  it("fails closed when two offices overlap with no published rule", () => {
+    const r = resolveOfficeConflict(
+      { offices: { a: seat("a"), b: seat("b") } },
+      "a",
+      "entity.relay",
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("AUTHORITY_CONFLICT");
+  });
+
+  it("follows published office_precedence and does not let founder identity win", () => {
+    const org = {
+      office_precedence: ["b", "a"],
+      offices: { a: seat("a"), b: seat("b") },
+    };
+    expect(resolveOfficeConflict(org, "b", "entity.relay").ok).toBe(true);
+    const later = resolveOfficeConflict(org, "a", "entity.relay");
+    expect(later.ok).toBe(false);
+    if (!later.ok) expect(later.code).toBe("AUTHORITY_CONFLICT");
+  });
+
+  it("lets the strict-subset object_set act and forbids the broader grant", () => {
+    const org = {
+      offices: {
+        a: seat("a", { object_set: ["entity.relay"] }),
+        b: seat("b", { object_set: ["entity.relay", "entity.vault"] }),
+      },
+    };
+    expect(resolveOfficeConflict(org, "a", "entity.relay").ok).toBe(true);
+    const broad = resolveOfficeConflict(org, "b", "entity.relay");
+    expect(broad.ok).toBe(false);
+    if (!broad.ok) expect(broad.code).toBe("AUTHORITY_CONFLICT");
+  });
+
+  it("blocks institution REPAIR when two custodians overlap with no rule", async () => {
+    const w = world();
+    w.world_id = "test.hosted-canonical.office-prec";
+    const founder = principal("player.nacre");
+    const a = principal("player.alpha");
+    const b = principal("player.beta");
+    await run(w, founder, "ENTER_WORLD");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[founder.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    await run(w, founder, "ORG_CREATE", { name: "Line", charter: "grid", org_id: "org.line" });
+    await run(w, founder, "ORG_MEMBER_ADD", { org_id: "org.line", agent_id: a.player_id, role: "member" });
+    await run(w, founder, "ORG_MEMBER_ADD", { org_id: "org.line", agent_id: b.player_id, role: "member" });
+    await run(w, founder, "ORG_OFFICE_CREATE", {
+      org_id: "org.line",
+      display_name: "Custodian A",
+      authority_profile: "OPERATE_NAMED_ASSET",
+    });
+    await run(w, founder, "ORG_OFFICE_CREATE", {
+      org_id: "org.line",
+      display_name: "Custodian B",
+      authority_profile: "OPERATE_NAMED_ASSET",
+    });
+    const ids = Object.keys(w.organizations["org.line"].offices || {});
+    expect(ids.length).toBe(2);
+    await run(w, founder, "ORG_OFFICE_ASSIGN", { office_id: ids[0], agent_id: a.player_id });
+    await run(w, founder, "ORG_OFFICE_ASSIGN", { office_id: ids[1], agent_id: b.player_id });
+    w.organizations["org.line"].treasury = {
+      attention: 0,
+      compute: 20,
+      energy: 20,
+      influence: 0,
+      storage: 10,
+    };
+    const blocked = await run(w, a, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay",
+      acting_for: "org.line",
+      office_id: ids[0],
+    });
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error?.code).toBe("AUTHORITY_CONFLICT");
+
+    w.organizations["org.line"].office_precedence = [ids[0], ids[1]];
+    const allowed = await run(w, a, "COMMIT", {
+      operation: "REPAIR",
+      entity_id: "entity.relay",
+      acting_for: "org.line",
+      office_id: ids[0],
+    });
+    expect(allowed.ok).toBe(true);
   });
 });
