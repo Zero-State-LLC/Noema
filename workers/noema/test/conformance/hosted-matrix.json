@@ -12,8 +12,8 @@
   "cases": [
     { "id": "C01", "title": "Protocol negotiation", "mode": "behavioral", "status": "pass", "phase": "H1", "test": "c01-c02.test.ts" },
     { "id": "C02", "title": "Identity authz denial", "mode": "behavioral", "status": "pass", "phase": "H1", "test": "c01-c02.test.ts" },
-    { "id": "C03", "title": "Idempotent action replay", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
-    { "id": "C04", "title": "Deterministic MOVE ordering", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
+    { "id": "C03", "title": "Idempotent action replay", "mode": "behavioral", "status": "pass", "phase": "H2", "test": "c03-c04-c25.test.ts" },
+    { "id": "C04", "title": "Deterministic MOVE ordering", "mode": "behavioral", "status": "pass", "phase": "H2", "test": "c03-c04-c25.test.ts" },
     { "id": "C05", "title": "Observation no leak", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
     { "id": "C06", "title": "Attention exhaustion", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
     { "id": "C07", "title": "Delivery retry no rollback", "mode": "behavioral", "status": "pending", "phase": "H3", "test": null },
@@ -58,7 +58,7 @@
     { "id": "C22", "title": "Infrastructure state", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
     { "id": "C23", "title": "Deterministic scheduler conflicts", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
     { "id": "C24", "title": "World event pressure", "mode": "behavioral", "status": "pending", "phase": "H6", "test": null },
-    { "id": "C25", "title": "Spectator projection integrity", "mode": "behavioral", "status": "pending", "phase": "H2", "test": null },
+    { "id": "C25", "title": "Spectator projection integrity", "mode": "behavioral", "status": "pass", "phase": "H2", "test": "c03-c04-c25.test.ts" },
     { "id": "C26", "title": "Strategic persistence across restart", "mode": "behavioral", "status": "pending", "phase": "H5", "test": null }
   ]
 }
