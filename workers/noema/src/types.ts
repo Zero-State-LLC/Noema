@@ -187,6 +187,8 @@ export interface Observation {
   consequence?: string;
   /** GC1 self-only practice lines. Never put on WATCH or players_here. */
   practice_lines?: string[];
+  /** GC8-S1 self-only worn holdings. Never put on WATCH. */
+  lot_lines?: string[];
   /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
   social_memory_lines?: string[];
   /** GC9-S0 site custom lines for the current room. Never put on WATCH. */

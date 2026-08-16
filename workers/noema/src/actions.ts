@@ -90,6 +90,8 @@ export type PlayerRuntime = {
     edges: Record<string, string[]>;
     at?: Record<string, Record<string, number>>;
   };
+  /** GC8-S1 SOUND/WORN grades on current holdings. Not a parallel inventory. */
+  lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
     catalog_id: "discovery-catalog/gc6-s0";
@@ -106,6 +108,7 @@ export type OpenTrade = {
   requested: Record<string, number>;
   status: "OPEN" | "SETTLED" | "REJECTED" | "CANCELLED";
   reserved: Record<string, number>;
+  offered_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
   expires_cycle?: number;
   acting_for?: string;
   office_id?: string;

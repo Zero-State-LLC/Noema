@@ -513,6 +513,7 @@ export function statusFromObservation(obs: {
   location?: LocationObs;
   world_name?: string;
   practice_lines?: string[];
+  lot_lines?: string[];
   social_memory_lines?: string[];
   culture_lines?: string[];
   discovery_lines?: string[];
@@ -528,6 +529,9 @@ export function statusFromObservation(obs: {
   if (typeof obs.cycle === "number") rows.push({ label: "Time", value: `cycle ${obs.cycle}` });
   for (const line of (obs.practice_lines || []).slice(0, 3)) {
     if (line) rows.push({ label: "Work", value: line });
+  }
+  for (const line of (obs.lot_lines || []).slice(0, 2)) {
+    if (line) rows.push({ label: "Lot", value: line });
   }
   for (const line of (obs.social_memory_lines || []).slice(0, 3)) {
     if (line) rows.push({ label: "Tie", value: line });
