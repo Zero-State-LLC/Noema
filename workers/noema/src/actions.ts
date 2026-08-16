@@ -262,7 +262,7 @@ export type CanonicalAction =
       arguments: {
         recipient_id?: string;
         text: string;
-        surface?: "BOARD" | "SHOUT" | "NOTICE" | "CHANNEL";
+        surface?: "BOARD" | "SHOUT" | "NOTICE" | "CHANNEL" | "TRADE_NOTICE";
         org_id?: string;
         subject_ref?: string;
         parent_claim_id?: string;
@@ -803,6 +803,15 @@ export function parseHumanCommand(
       ok: true,
       action: { verb: "MESSAGE", arguments: { surface: "CHANNEL", org_id: channelM[1], text: channelM[2] } },
       display: "You leave a channel note.",
+    };
+  }
+  // market "text" — GC5-S8, not listed in Chamber help
+  const marketM = trimmed.match(/^market\s+["'](.+)["']\s*$/i);
+  if (marketM) {
+    return {
+      ok: true,
+      action: { verb: "MESSAGE", arguments: { surface: "TRADE_NOTICE", text: marketM[1] } },
+      display: "You post a trade notice.",
     };
   }
   // message / msg with quoted text
@@ -1719,7 +1728,11 @@ export function normalizeStructuredCommand(
   if (cmd === "MESSAGE") {
     const rawSurface = String(args.surface || "").toUpperCase();
     const surface =
-      rawSurface === "BOARD" || rawSurface === "SHOUT" || rawSurface === "NOTICE" || rawSurface === "CHANNEL"
+      rawSurface === "BOARD" ||
+      rawSurface === "SHOUT" ||
+      rawSurface === "NOTICE" ||
+      rawSurface === "CHANNEL" ||
+      rawSurface === "TRADE_NOTICE"
         ? rawSurface
         : undefined;
     const recipient_id = String(args.recipient_id || args.target || "").trim();
@@ -1727,7 +1740,13 @@ export function normalizeStructuredCommand(
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
     const as_claim = Boolean(args.as_claim || parent_claim_id || subject_ref);
-    if (surface === "BOARD" || surface === "SHOUT" || surface === "NOTICE" || surface === "CHANNEL") {
+    if (
+      surface === "BOARD" ||
+      surface === "SHOUT" ||
+      surface === "NOTICE" ||
+      surface === "CHANNEL" ||
+      surface === "TRADE_NOTICE"
+    ) {
       if (!text) return { ok: false, error: "text required", code: "INVALID_REQUEST" };
       if (surface === "NOTICE" || surface === "CHANNEL") {
         const org_id = String(args.org_id || "").trim() || undefined;
