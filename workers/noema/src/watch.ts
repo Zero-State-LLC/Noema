@@ -3,106 +3,114 @@
 import { productShell } from "./shell";
 
 const EXTRA = `
-.watch-head{margin-bottom:1.1rem}
-.watch-head h1{margin:0 0 .3rem}
-.watch-meta{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center}
-.watch-hero{
-  min-height:6.5rem;padding:1rem 1.05rem .9rem;
-  border:1px solid var(--line);border-left:3px solid var(--copper);
-  border-radius:var(--r);background:#0a1016;
+.watch-head{margin:0 0 1.25rem}
+.watch-head h1{
+  margin:0 0 .35rem;max-width:none;
+  font:550 clamp(1.8rem,4.5vw,2.6rem)/1.05 var(--font-display);
+  letter-spacing:-.02em;
 }
-.watch-hero.major{border-left-color:var(--ember)}
-.watch-kicker{margin:0 0 .35rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}
-.watch-hero h2{margin:0;font:550 clamp(1.15rem,2.6vw,1.7rem)/1.25 var(--font-display)}
-.watch-hero .sub{margin:.4rem 0 0;color:var(--muted);font:.82rem/1.4 var(--font-mono)}
-.watch-banner{
-  display:none;margin:.75rem 0 0;padding:.55rem .2rem;text-align:center;
-  color:var(--ember);font:.72rem/1.3 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;
+.watch-head .muted{max-width:42rem}
+.watch-meta{
+  display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:center;
+  margin-top:.75rem;color:var(--faint);font:.68rem/1.3 var(--font-mono);
+}
+.watch-meta .tag{margin:0}
+.watch-hero{
+  min-height:5.5rem;padding:1.05rem 0 1.15rem;
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);
 }
-.watch-banner.on{display:block}
-.watch-stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(16rem,.85fr);gap:.75rem;margin-top:.75rem}
-@media(max-width:860px){.watch-stage{grid-template-columns:1fr}}
-.watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.4rem}
-.watch-site{
-  padding:.65rem .75rem;border:1px solid var(--line);border-radius:var(--r);background:#0a1016;
+.watch-hero.major{border-color:color-mix(in srgb,var(--ember) 55%, var(--line))}
+.watch-kicker{margin:0 0 .4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);letter-spacing:.14em;text-transform:uppercase}
+.watch-line{
+  display:flex;gap:.65rem;align-items:flex-start;
+  margin:0;font:550 clamp(1.25rem,2.8vw,1.85rem)/1.25 var(--font-display);
 }
-.watch-site.active{border-color:var(--line-hot)}
+.watch-line .mark{flex:0 0 auto;color:var(--copper);font:550 1.05em var(--font-mono);line-height:1.2}
+.watch-hero.major .watch-line .mark{color:var(--ember)}
+.watch-hero .sub{margin:.4rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
+.watch-banner{display:none}
+.watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
+@media(max-width:860px){.watch-stage{grid-template-columns:1fr;gap:1.25rem}}
+.watch-col .kicker{margin:0 0 .55rem}
+.watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.15rem}
+.watch-site{padding:.2rem 0 .45rem;border-bottom:1px solid rgba(42,51,66,.45);font:500 .86rem/1.45 var(--font-mono)}
+.watch-site.active{color:var(--ink)}
+.watch-site-row{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:baseline}
 .watch-site summary{
-  cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;gap:.35rem .65rem;align-items:baseline;
-  font:550 1rem/1.3 var(--font-display);
+  cursor:pointer;list-style:none;margin-top:.15rem;
+  color:var(--faint);font:.7rem/1.3 var(--font-mono);
 }
 .watch-site summary::-webkit-details-marker{display:none}
 .watch-site summary:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
-.watch-mark{color:var(--copper);font:550 .85rem var(--font-mono)}
-.watch-count{color:var(--muted);font:.68rem var(--font-mono)}
-.watch-exits{display:block;margin:.3rem 0 0;color:var(--faint);font:.7rem/1.4 var(--font-mono)}
-.watch-inspect{margin:.65rem 0 0;padding-top:.55rem;border-top:1px solid var(--line);font:.8rem/1.45 var(--font-mono);color:var(--ink)}
-.watch-inspect p{margin:.2rem 0}
+.watch-mark{color:var(--copper)}
+.watch-count{color:var(--muted)}
+.watch-exits{display:block;margin:.1rem 0 0 0;color:var(--faint);font:.78rem/1.4 var(--font-mono)}
+.watch-inspect{margin:.45rem 0 .15rem;color:var(--ink);font:.78rem/1.45 var(--font-mono)}
+.watch-inspect p{margin:.15rem 0}
 .watch-pre{
-  margin:.75rem 0 0;padding:.7rem .8rem;border:1px solid var(--line);border-radius:var(--r);
-  background:#080c12;color:var(--faint);font:.68rem/1.45 var(--font-mono);white-space:pre;overflow:auto;
+  margin:.7rem 0 0;padding:0;border:0;background:transparent;
+  color:var(--faint);font:.72rem/1.45 var(--font-mono);white-space:pre;overflow:auto;
 }
 @media(max-width:860px){.watch-pre{display:none}}
-.watch-feed{display:grid;gap:.35rem;margin:0;padding:0;list-style:none}
+.watch-feed{display:grid;gap:.15rem;margin:0;padding:0;list-style:none}
 .watch-feed li{
-  display:grid;grid-template-columns:auto 1fr;gap:.15rem .55rem;align-items:baseline;
-  min-height:2.4rem;padding:.55rem .7rem;border:1px solid var(--line);border-radius:var(--r);
-  background:rgba(7,10,16,.45);color:var(--ink);
+  display:grid;grid-template-columns:1.1rem 1fr;gap:.1rem .45rem;align-items:baseline;
+  padding:.28rem 0;border-bottom:1px solid rgba(42,51,66,.35);
+  color:var(--ink);font:.86rem/1.4 var(--font-mono);
 }
-.watch-feed li.quiet{opacity:.62}
-.watch-feed .mark{color:var(--faint);font:.75rem var(--font-mono)}
+.watch-feed li.quiet{opacity:.58}
+.watch-feed .mark{color:var(--faint)}
 .watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
 .watch-feed li.major .mark{color:var(--ember);font-weight:700}
-.watch-feed .line{font:.86rem/1.35 var(--font-body);overflow-wrap:anywhere}
-.watch-feed .meta{grid-column:2;color:var(--faint);font:.68rem var(--font-mono)}
-.watch-empty{color:var(--muted);font:.86rem}
+.watch-feed .line{overflow-wrap:anywhere}
+.watch-feed .meta{grid-column:2;color:var(--faint);font:.7rem}
+.watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
+.watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 @media(prefers-reduced-motion:reduce){
-  .watch-feed li,.watch-hero,.watch-banner{transition:none}
+  .watch-feed li,.watch-hero{transition:none}
 }
 `;
 
 export function watchHtml(): string {
   const body = `
   <header class="watch-head">
-    <h1>Public projection</h1>
-    <p class="muted">Read-only. Redacted. Not world truth.</p>
-    <div class="watch-meta meta">
-      <span>read-only</span>
-      <span id="watch-world">world —</span>
+    <h1>The Chamber</h1>
+    <p class="muted">A public window on the live world. Not the world itself.</p>
+    <div class="watch-meta">
+      <span id="watch-world" class="sr">world —</span>
       <span id="watch-cycle">cycle —</span>
       <span id="watch-seq">seq —</span>
-      <span id="watch-players">players —</span>
-      <span id="watch-updated">waiting</span>
-      <button type="button" class="btn primary" id="watch-refresh">Refresh projection</button>
-      <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause updates</button>
+      <span id="watch-players">0 players</span>
       <span class="tag" id="watch-state" aria-live="polite">connecting</span>
-      <span class="tag" id="watch-fresh">freshness —</span>
+      <span id="watch-fresh" class="sr">freshness —</span>
+      <span id="watch-updated" class="sr">waiting</span>
+      <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
+      <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
     </div>
   </header>
 
   <article class="watch-hero" id="watch-hero">
-    <p class="watch-kicker">Current event</p>
-    <h2 id="watch-headline" aria-live="polite">Connecting…</h2>
+    <p class="watch-kicker">Now</p>
+    <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
   </article>
 
   <section class="watch-stage">
-    <section class="card pad" aria-labelledby="watch-graph-label">
-      <p class="kicker" id="watch-graph-label">Public sites</p>
+    <section class="watch-col" aria-labelledby="watch-graph-label">
+      <p class="kicker" id="watch-graph-label">Places</p>
       <nav aria-label="Public sites">
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
     </section>
-    <section class="card pad" aria-labelledby="watch-feed-label">
+    <section class="watch-col" aria-labelledby="watch-feed-label">
       <p class="kicker" id="watch-feed-label">Recent</p>
       <ol class="watch-feed" id="watch-feed"></ol>
     </section>
   </section>
 
-  <p class="limit">Spectator projection is never world truth and never mutates the ledger.</p>
+  <p class="watch-note">This window is a projection, not the world.</p>
 
   <script>
   (() => {
@@ -193,13 +201,14 @@ export function watchHtml(): string {
       const events = Array.isArray(data.recent_events) ? data.recent_events : [];
       $("watch-cycle").textContent = "cycle " + (data.cycle ?? "—");
       $("watch-seq").textContent = "seq " + (data.sequence ?? "—");
-      $("watch-players").textContent = "players " + players;
+      $("watch-players").textContent = players + " player" + (players === 1 ? "" : "s");
       $("watch-world").textContent = data.world_id || "world —";
       $("watch-updated").textContent = "updated " + new Date().toLocaleTimeString();
       $("watch-fresh").textContent = (status ? status + " · " : "") + (fresh || "live");
 
       const head = pickHeadline(data);
       state.held = head;
+      $("watch-mark").textContent = markFor(head.tier || "NORMAL");
       $("watch-headline").textContent = head.line || "The Chamber is quiet.";
       const site = roomName(rooms, head.room_id);
       const when = ago(head.occurred_at);
@@ -248,17 +257,20 @@ export function watchHtml(): string {
       } else {
         rooms.forEach(r => {
           const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : ""));
-          const det = document.createElement("details");
-          const sum = document.createElement("summary");
-          sum.append(el("span", "", r.name || r.room_id || "site"));
-          if (r.active || r.players_present > 0) sum.append(el("span", "watch-mark", "*"));
-          if (r.players_present > 0) sum.append(el("span", "watch-count", String(r.players_present)));
-          det.append(sum);
+          const row = el("div", "watch-site-row");
+          row.append(el("span", "", r.name || r.room_id || "site"));
+          if (r.active || r.players_present > 0) row.append(el("span", "watch-mark", "*"));
+          if (r.players_present > 0) row.append(el("span", "watch-count", String(r.players_present)));
+          li.append(row);
           const exits = Array.isArray(r.exits) ? r.exits : [];
           const exitLine = exits.length
-            ? exits.map(x => (x.direction || "") + (x.to_room_name ? " to " + x.to_room_name : "")).join(" · ")
+            ? exits.map(x => (x.direction || "") + " → " + (x.to_room_name || x.to_room_id || "")).join(" · ")
             : "no listed exits";
-          det.append(el("span", "watch-exits", exitLine));
+          li.append(el("span", "watch-exits", exitLine));
+          const det = document.createElement("details");
+          const sum = document.createElement("summary");
+          sum.textContent = "Look closer";
+          det.append(sum);
           const box = el("div", "watch-inspect");
           const labels = Array.isArray(r.public_player_labels) ? r.public_player_labels : [];
           box.append(el("p", "", "Players:   " + (labels.length ? labels.join(", ") : "none visible")));

@@ -268,6 +268,17 @@ describe("watch event tiers and phrasing", () => {
       ),
     ).toBe("Vesper-7 entered Chamber Market");
     expect(
+      phraseWatchEvent(
+        src({
+          handle: "a7a22752ad02",
+          event_type: "MOVE",
+          sequence: 4,
+          payload: { to: "room.market", to_room_name: "Chamber Market" },
+        }),
+        { "room.market": { name: "Chamber Market" } },
+      ),
+    ).toBe("A player entered Chamber Market");
+    expect(
       phraseWatchEvent(src({ event_type: "TRADE_PROPOSED", sequence: 5, payload: { offered: { energy: 9 } } }), {}),
     ).toBe("Vesper-7 offered a trade");
     expect(phraseWatchEvent(src({ event_type: "TRADE_REJECTED", sequence: 6 }), {})).toBe(
@@ -424,6 +435,10 @@ describe("watch HTML surface", () => {
     expect(html).toContain("No public sites exposed yet.");
     expect(html).toContain("Nothing public yet.");
     expect(html).toContain("Projection unavailable.");
+    expect(html).not.toContain("Public projection");
+    expect(html).not.toMatch(/\bledger\b/i);
+    expect(html).toContain(" → ");
+    expect(html).toContain("var(--font-mono)");
   });
 
   it("never assigns innerHTML and does not grow a KPI dashboard", () => {
