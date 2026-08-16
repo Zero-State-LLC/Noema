@@ -7,6 +7,7 @@ Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noem
                   PLAY / WATCH / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
+                  23 pass / 3 skip (C14 C16 C17). Not ADR-005 digest-equivalent.
                   Perihelion Reach is not a conformance target.
 ```
 
@@ -20,7 +21,7 @@ Admin Genesis → Cycle 0 → Deep Time history
 
 | Layer | Spec | Hosted Worker | Offline Python |
 |---|---|---|---|
-| Chamber | v0.1 | **PARTIAL** — PLAY/WATCH/CONNECT/Admin Live | Complete (C01–C26 spine) |
+| Chamber | v0.1 | **PARTIAL** — PLAY/WATCH/CONNECT/Admin Live; isolated C01–C26 23 pass / 3 skip | Complete (C01–C26 spine) |
 | Frontier | v0.2 | not on Stage 0 | Complete |
 | Observatory | v0.3 | not on Stage 0 | Complete |
 | Lab | v0.4 | STUDY stub | Complete |
