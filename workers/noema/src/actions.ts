@@ -8,6 +8,7 @@
 import {
   liveClassInRoom,
   parseConstructibleClass,
+  withWorkshopStorage,
   type ConstructibleClass,
 } from "./construction";
 import {
@@ -1490,7 +1491,7 @@ export function parseHumanCommand(
   if (v === "construct" || v === "build") {
     const classRaw = parts.join(" ");
     if (!classRaw) {
-      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link." };
+      return { ok: false, error: "Name a class: relay, generator, storage_bay, production_node, route_link, workshop." };
     }
     const classId = parseConstructibleClass(classRaw);
     if (!classId) {
@@ -2017,7 +2018,7 @@ export function normalizeStructuredCommand(
     if (operation === "CONSTRUCT") {
       const classId = parseConstructibleClass(String(args.class || args.class_id || args.target || ""));
       if (!classId) {
-        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link)", code: "CLASS_FORBIDDEN" };
+        return { ok: false, error: "class required (relay|generator|storage_bay|production_node|route_link|workshop)", code: "CLASS_FORBIDDEN" };
       }
       return {
         ok: true,
@@ -2125,7 +2126,8 @@ export function deriveAffordances(input: {
       kind: "primary",
     });
     if (isRepairable(e)) {
-      const ok = canPay(budgets, COSTS.REPAIR);
+      const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, liveClassInRoom(entities, "workshop"));
+      const ok = canPay(budgets, repairCost);
       out.push({
         action: "REPAIR",
         verb: "COMMIT",
@@ -2134,7 +2136,7 @@ export function deriveAffordances(input: {
         cmd: `repair ${e.label}`,
         target_id: e.entity_id,
         target_label: e.label,
-        requires: COSTS.REPAIR,
+        requires: repairCost,
         available: ok,
         reason: ok ? undefined : "You do not have enough energy, compute, or storage.",
         kind: "primary",

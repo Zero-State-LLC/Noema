@@ -185,6 +185,7 @@ import {
   isHiddenEntity,
   isHiddenRoom,
   liveClassInRoom,
+  withWorkshopStorage,
 } from "./construction";
 import { hasPrivateCognition } from "./cognition";
 import {
@@ -2060,7 +2061,11 @@ export async function applyWorldCommand(
           payFrom = ensureTreasury(org);
         }
       }
-      if (!canPay(payFrom, COSTS.REPAIR)) {
+      const repairCost = withWorkshopStorage(
+        { ...COSTS.REPAIR },
+        liveClassInRoom(roomEntities(room), "workshop"),
+      );
+      if (!canPay(payFrom, repairCost)) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
@@ -2071,14 +2076,14 @@ export async function applyWorldCommand(
       }
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
-      debit(payFrom, COSTS.REPAIR);
+      debit(payFrom, repairCost);
       entity.condition = Math.min(100, before + quality.delta);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
-        cost_paid: COSTS.REPAIR,
+        cost_paid: repairCost,
         reason: "REPAIR",
         acting_for: acting_for || null,
         office_id: grantOfficeId || null,
@@ -2199,7 +2204,10 @@ export async function applyWorldCommand(
       }
       const base = CONSTRUCT_COSTS[classId];
       const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
-      const cost = { ...base, storage: storageNeed || undefined };
+      const cost = withWorkshopStorage(
+        { ...base, storage: storageNeed || undefined },
+        liveClassInRoom(roomEntities(target), "workshop"),
+      );
       if (!canPay(pl.budgets, cost)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
       }
@@ -2243,7 +2251,9 @@ export async function applyWorldCommand(
         events,
         classId === "route_link"
           ? `A route link was opened (${entity_id}).`
-          : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+          : classId === "workshop"
+            ? `A workshop is open (${entity_id}).`
+            : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
       w.seen_idempotency[idem] = result;
