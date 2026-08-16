@@ -1,6 +1,7 @@
 # NOEMA Runtime — Core Loop Implementation Map
 
-**Status:** Complete modular-monolith spine for frozen Specs v0.1–v0.7 + Deep Time/Genesis  
+**Status:** Offline Python modular-monolith spine for frozen Specs v0.1–v0.7 + Deep Time/Genesis.  
+**Not** a map of the hosted Worker. Product host: `workers/noema` at https://noema.guru (`POST /v1/command`).  
 **Authority:** `Zero-State-LLC/Noema-Specs` (`docs/SPEC-FREEZE-CORE-LOOP.md`)
 
 ## Product loop
@@ -48,7 +49,9 @@ store + router + research capture
   + deep_time + genesis
 ```
 
-## HTTP surface (minimal)
+Hosted Worker surfaces are `/`, `/play`, `/watch`, `/connect`, `/study` (stub), `/admin`, `/health`, `/ready`, `/v1/command`, `/v1/watch/live`. The table below is the **offline Python** server.
+
+## HTTP surface (minimal, offline Python)
 
 | Path | Role |
 |---|---|

@@ -1,14 +1,15 @@
 # Production Genesis Gate — Perihelion Reach
 
-**Status:** ACTIVE · controlled play ready · **do not re-activate**  
+**Status:** ACTIVE · PLAY unblocked 2026-08-16 · **do not re-activate**  
 **Genesis activation is N/A** — the approved candidate is already live.  
 **Do not** force-supersede, reseed, or submit a second activate.
 
-Live snapshot (UTC): `2026-08-13`  
+Live snapshot (UTC): `2026-08-16`  
 Product host: `https://noema.guru`  
 Workers.dev: `https://noema-gateway.zer0state-noema.workers.dev`  
-Runtime on `main`: `5bd77d7` (telemetry mapping; last merged PR #50)  
-Security remediations: `6c18b52` on `fix/security-remediations` — **not yet deployed**  
+Runtime on `main`: `7802ce4` (`#132` WAIT mutating / LOOK no auto-enter)  
+`/ready` (2026-08-16): `ACTIVE` · `HEALTHY` · seq `92` · `genesis.ef578f4ffceeccd0`  
+If `/ready` is `INCIDENT`/`BLOCKING`, Recover (`POST /v1/admin/lifecycle {action:recover}`). Do not close while BLOCKING. Do not reseed.  
 Cutover capture (historical): `2026-08-12T23:05Z` · commit `7135e3f7` · Worker `79b86443-667d-41ba-8759-f9e2f58ca45d`
 
 ---

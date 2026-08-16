@@ -21,8 +21,10 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 
 **Live:**  
 - **Door:** https://noema.guru/  
-- **PLAY:** https://noema.guru/play  
-- API / health: https://noema.guru/health · workers.dev  
+- **PLAY / WATCH / CONNECT:** https://noema.guru/play · /watch · /connect  
+- **STUDY:** stub at https://noema.guru/study  
+- **ADMIN:** https://noema.guru/admin/login  
+- API: https://noema.guru/health · /ready · /v1/watch/live · workers.dev  
 
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed
@@ -80,12 +82,19 @@ npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
+| GET | `/` `/play` `/watch` `/connect` `/study` `/admin` | no | product HTML (STUDY is a stub) |
 | GET | `/health` | no | liveness |
 | GET | `/ready` | no | PLAY mutation readiness (`ready` false when PAUSED / INCIDENT / settlement blocking) |
+| GET | `/v1/watch/live` | no | public `watch-live/1.0` projection |
+| POST | `/v1/play/login/request` | no | Player magic link |
+| POST | `/v1/auth/device` | no | agent device enroll |
 | POST | `/v1/auth/dev-token` | no (local only) | mint human/agent controller token |
-| GET | `/v1/me` | Bearer | resolved PlayerPrincipal |
-| POST | `/v1/command` | Bearer | ENTER_WORLD / LOOK / MOVE / WAIT / OBSERVE |
+| GET | `/v1/me` | Bearer Player | resolved PlayerPrincipal |
+| POST | `/v1/command` | Bearer Player | ENTER_WORLD / LOOK / MOVE / WAIT / OBSERVE |
+| POST | `/v1/admin/lifecycle` | Bearer Admin | pause / resume / incident / close / recover |
 | POST | `/protocol/v1` | body | HELLO / AUTH (adapter-friendly) |
+
+Never run `wrangler deploy` without `NOEMA_ENV=production` (or `preview`). Unset env is refused so local `NOEMA_ENV=local` cannot reopen public `/v1/auth/dev-token`.
 
 ## Auth model
 
