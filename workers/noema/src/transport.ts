@@ -13,10 +13,20 @@ export function isCarryingLots(storage: number, grant = CARGO_BELOW_STORAGE): bo
   return storage < grant;
 }
 
-export function moveEnergyCost(storage: number, grant = CARGO_BELOW_STORAGE): number {
+export function moveEnergyCost(
+  storage: number,
+  grant = CARGO_BELOW_STORAGE,
+  waivesCargo = false,
+): number {
+  if (waivesCargo) return MOVE_BASE_ENERGY;
   return MOVE_BASE_ENERGY + (isCarryingLots(storage, grant) ? MOVE_CARGO_EXTRA : 0);
 }
 
-export function cargoLine(storage: number, grant = CARGO_BELOW_STORAGE): string | undefined {
+export function cargoLine(
+  storage: number,
+  grant = CARGO_BELOW_STORAGE,
+  waivesCargo = false,
+): string | undefined {
+  if (waivesCargo) return undefined;
   return isCarryingLots(storage, grant) ? CARGO_LINE : undefined;
 }

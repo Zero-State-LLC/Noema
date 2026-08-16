@@ -4,13 +4,14 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s0";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s1";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
   "generator",
   "storage_bay",
   "production_node",
+  "route_link",
 ] as const;
 
 export type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
@@ -32,6 +33,7 @@ export const CONSTRUCT_COSTS: Record<ConstructibleClass, ConstructionCost> = {
   generator: { energy: 8, compute: 3, storage: 5, influence: 0 },
   storage_bay: { energy: 5, compute: 2, storage: 6, influence: 0 },
   production_node: { energy: 7, compute: 3, storage: 4, influence: 0 },
+  route_link: { energy: 8, compute: 4, storage: 4, influence: 2 },
 };
 
 export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
@@ -39,6 +41,7 @@ export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
   generator: 2,
   storage_bay: 3,
   production_node: 2,
+  route_link: 2,
 };
 
 const CLASS_SET = new Set<string>(CONSTRUCTIBLE_CLASSES);
@@ -58,6 +61,7 @@ export function parseConstructibleClass(raw: string): ConstructibleClass | null 
   if (t === "generator") return "generator";
   if (t === "storage bay" || t === "storage") return "storage_bay";
   if (t === "production node" || t === "production") return "production_node";
+  if (t === "route link" || t === "routelink") return "route_link";
   return null;
 }
 
@@ -77,6 +81,7 @@ export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if (blob.includes("generator")) return "generator";
   if (blob.includes("production node") || /\bproduction\b/.test(blob)) return "production_node";
   if (blob.includes("storage bay") || /\bstorage\b/.test(blob)) return "storage_bay";
+  if (blob.includes("route link") || blob.includes("routelink")) return "route_link";
   return null;
 }
 
