@@ -300,8 +300,8 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     g.window = g;
     try {
       (0, eval)(src);
-      expect(g.NoemaPhosphor?.mode).toBe("pixel");
-      expect(wrap.hidden).toBe(false);
+      expect(g.NoemaPhosphor?.mode).toBe("text");
+      expect(wrap.hidden).toBe(true);
       g.NoemaPhosphor?.update({
         sequence: 1,
         rooms: [{ room_id: "room.a", name: "Alpha", description: "A" }],
@@ -355,6 +355,7 @@ describe("slice 5 — budgets, idle, regressions", () => {
     const ctx = mockCtx();
     const session = createPhosphorSession({
       canvas: { width: 0, height: 0, getContext: () => ctx },
+      mode: "pixel",
       now: () => now,
       raf: (cb) => {
         pending = cb;

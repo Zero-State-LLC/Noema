@@ -448,7 +448,7 @@ export function createPhosphorSession(opts: {
     opts.canvas.width = PHOSPHOR_WIDTH;
     opts.canvas.height = PHOSPHOR_HEIGHT;
   }
-  let mode: PhosphorMode = !ctx ? "text" : opts.mode || "pixel";
+  let mode: PhosphorMode = !ctx ? "text" : opts.mode || "text";
   let reduced = Boolean(opts.reducedMotion);
   let pulses: PhosphorPulse[] = [];
   let lastSeq = -1;
@@ -589,6 +589,7 @@ export function phosphorInlineScript(): string {
     const session = createPhosphorSession({
       canvas: canvas,
       reducedMotion: reduce,
+      mode: "text",
       now: function() { return Date.now(); },
       raf: function(cb) { return window.requestAnimationFrame(cb); },
       caf: function(id) { window.cancelAnimationFrame(id); }

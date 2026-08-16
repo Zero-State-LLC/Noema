@@ -4,6 +4,7 @@ import { productShell } from "./shell";
 import { phosphorInlineScript } from "./watch-phosphor";
 
 const EXTRA = `
+/* Hallmark · genre: atmospheric · macrostructure: Map-Diagram · design-system: site/design.md */
 .watch-head{margin:0 0 1.25rem}
 .watch-head h1{
   margin:0 0 .35rem;max-width:none;
@@ -21,7 +22,7 @@ const EXTRA = `
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);
 }
 .watch-hero.major{border-color:color-mix(in srgb,var(--ember) 55%, var(--line))}
-.watch-kicker{margin:0 0 .4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);letter-spacing:.14em;text-transform:uppercase}
+.watch-col h2{margin:0 0 .55rem;font:550 1.05rem/1.2 var(--font-display)}
 .watch-line{
   display:flex;gap:.65rem;align-items:flex-start;
   margin:0;font:550 clamp(1.25rem,2.8vw,1.85rem)/1.25 var(--font-display);
@@ -32,9 +33,11 @@ const EXTRA = `
 .watch-banner{display:none}
 .watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
 @media(max-width:860px){.watch-stage{grid-template-columns:1fr;gap:1.25rem}}
-.watch-col .kicker{margin:0 0 .55rem}
+.watch-phos{
+  margin:.85rem 0 0;padding:0;border:0;background:transparent;
+}
 .watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.15rem}
-.watch-site{padding:.2rem 0 .45rem;border-bottom:1px solid rgba(42,51,66,.45);font:500 .86rem/1.45 var(--font-mono)}
+.watch-site{padding:.2rem 0 .45rem;border-bottom:1px solid var(--line);font:500 .86rem/1.45 var(--font-mono)}
 .watch-site.active{color:var(--ink)}
 .watch-site-row{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:baseline}
 .watch-site summary{
@@ -70,20 +73,16 @@ const EXTRA = `
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero{transition:none}
 }
-.watch-phos{
-  margin:.85rem 0 0;padding:.55rem .55rem .4rem;
-  border:1px solid var(--line);background:#070a10;
-}
 .watch-phos[hidden]{display:none}
 .watch-phos-bar{
   display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
-  margin:0 0 .4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+  margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body);
 }
 .watch-phos-bar .btn{padding:.15rem .45rem;font-size:.62rem}
 .watch-phos-bar .btn[aria-pressed="true"]{border-color:var(--copper);color:var(--copper)}
 .watch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
-  background:#070a10;image-rendering:pixelated;image-rendering:crisp-edges;
+  background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
 }
 `;
 
@@ -102,13 +101,12 @@ export function watchHtml(): string {
       <span id="watch-updated" class="sr">waiting</span>
       <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
-      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="false">TEXT</button>
-      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="true">PIXEL</button>
+      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="true">TEXT</button>
+      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="false">PIXEL</button>
     </div>
   </header>
 
   <article class="watch-hero" id="watch-hero">
-    <p class="watch-kicker">Now</p>
     <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
@@ -116,20 +114,20 @@ export function watchHtml(): string {
 
   <section class="watch-stage">
     <section class="watch-col" aria-labelledby="watch-graph-label">
-      <p class="kicker" id="watch-graph-label">Places</p>
+      <h2 id="watch-graph-label">Places</h2>
       <nav aria-label="Public sites">
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
         <div class="watch-phos-bar">
-          <span>Phosphor cartography — public sketch, not the world.</span>
+          <span>Public sketch — not the world.</span>
         </div>
         <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch"></canvas>
       </div>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
     </section>
     <section class="watch-col" aria-labelledby="watch-feed-label">
-      <p class="kicker" id="watch-feed-label">Recent</p>
+      <h2 id="watch-feed-label">Recent</h2>
       <ol class="watch-feed" id="watch-feed"></ol>
     </section>
   </section>
