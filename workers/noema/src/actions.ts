@@ -10,6 +10,7 @@ import {
   parseConstructibleClass,
   withAnnexAttention,
   withWorkshopStorage,
+  workshopStorageDiscount,
   type ConstructibleClass,
 } from "./construction";
 import {
@@ -59,6 +60,8 @@ export type EntityRuntime = {
   inspect_restricted_until?: number;
   /** GC10-S2 irreversible leftover. Not live infrastructure. */
   scar?: boolean;
+  /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */
+  upgrade_tier?: number;
 };
 
 export type PlayerRuntime = {
@@ -343,7 +346,8 @@ export type CanonicalAction =
       verb: "BUILD";
       arguments:
         | { operation: "CONSTRUCT"; class: ConstructibleClass; room_id?: string }
-        | { operation: "DISMANTLE"; entity_id: string };
+        | { operation: "DISMANTLE"; entity_id: string }
+        | { operation: "UPGRADE"; entity_id: string };
     };
 
 export type Affordance = {
@@ -476,6 +480,7 @@ export function enrichEntity(e: {
   hidden?: boolean;
   inspect_restricted_until?: number;
   scar?: boolean;
+  upgrade_tier?: number;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -500,6 +505,7 @@ export function enrichEntity(e: {
     scar: e.scar === true ? true : undefined,
     hidden: e.hidden === true ? true : undefined,
     inspect_restricted_until: e.inspect_restricted_until,
+    upgrade_tier: e.upgrade_tier,
   };
 }
 
@@ -1546,6 +1552,25 @@ export function parseHumanCommand(
       display: `You try to dismantle ${raw}.`,
     };
   }
+  // upgrade <workshop> — GC2-S5, not listed in Chamber help
+  if (v === "upgrade") {
+    const raw = parts.join(" ").replace(/^["']|["']$/g, "");
+    if (!raw) return { ok: false, error: "Upgrade what? Name a workshop." };
+    if (ctx.entities && ctx.entities.length) {
+      const r = resolveVisibleEntity(raw, ctx.entities);
+      if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "UPGRADE", entity_id: r.entity.entity_id } },
+        display: "You upgrade the workshop.",
+      };
+    }
+    return {
+      ok: true,
+      action: { verb: "BUILD", arguments: { operation: "UPGRADE", entity_id: raw } },
+      display: "You try to upgrade.",
+    };
+  }
 
   // Known but not hosted yet (v0.2 strategic)
   if (["agreement", "terminate", "access"].includes(v)) {
@@ -2081,7 +2106,16 @@ export function normalizeStructuredCommand(
         display: `BUILD.DISMANTLE ${entity_id}`,
       };
     }
-    return { ok: false, error: "BUILD operation must be CONSTRUCT or DISMANTLE", code: "INVALID_REQUEST" };
+    if (operation === "UPGRADE") {
+      const entity_id = String(args.entity_id || args.target || "").trim();
+      if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "BUILD", arguments: { operation: "UPGRADE", entity_id } },
+        display: `BUILD.UPGRADE ${entity_id}`,
+      };
+    }
+    return { ok: false, error: "BUILD operation must be CONSTRUCT, DISMANTLE, or UPGRADE", code: "INVALID_REQUEST" };
   }
   if (cmd === "CONTEST_DECLARE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "CONTEST_DECLARE" });
@@ -2166,7 +2200,7 @@ export function deriveAffordances(input: {
       kind: "primary",
     });
     if (isRepairable(e)) {
-      const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, liveClassInRoom(entities, "workshop"));
+      const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
       const ok = canPay(budgets, repairCost);
       out.push({
         action: "REPAIR",

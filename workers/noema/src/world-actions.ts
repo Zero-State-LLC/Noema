@@ -182,6 +182,7 @@ import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
   SALVAGE_STORAGE,
+  UPGRADE_COST,
   allocateInfraId,
   clampSalvage,
   constructLabel,
@@ -192,6 +193,7 @@ import {
   scarFromDismantle,
   withAnnexAttention,
   withWorkshopStorage,
+  workshopStorageDiscount,
 } from "./construction";
 import { hasPrivateCognition } from "./cognition";
 import {
@@ -2110,7 +2112,7 @@ export async function applyWorldCommand(
       }
       const repairCost = withWorkshopStorage(
         { ...COSTS.REPAIR },
-        liveClassInRoom(roomEntities(room), "workshop"),
+        workshopStorageDiscount(roomEntities(room)),
       );
       if (!canPay(payFrom, repairCost)) {
         return fail(
@@ -2253,7 +2255,7 @@ export async function applyWorldCommand(
       const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
       const cost = withWorkshopStorage(
         { ...base, storage: storageNeed || undefined },
-        liveClassInRoom(roomEntities(target), "workshop"),
+        workshopStorageDiscount(roomEntities(target)),
       );
       if (!canPay(pl.budgets, cost)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
@@ -2384,6 +2386,53 @@ export async function applyWorldCommand(
       );
       w.seen_idempotency[idem] = result;
       return result;
+    }
+
+    if (action.arguments.operation === "UPGRADE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to upgrade here.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      if (infraClassOf(here) !== "workshop") {
+        return fail(request_id, "FORBIDDEN", "Only a workshop can be upgraded.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      if ((here.upgrade_tier || 0) >= 1) {
+        return fail(request_id, "FORBIDDEN", "That workshop is already upgraded.");
+      }
+      const storageNeed = constructStorageCost(UPGRADE_COST.storage || 0, pl.lot_grades?.storage);
+      const cost = { ...UPGRADE_COST, storage: storageNeed || undefined };
+      if (!canPay(pl.budgets, cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to upgrade.");
+      }
+      debit(pl.budgets, cost);
+      if (storageNeed) {
+        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+      }
+      here.upgrade_tier = 1;
+      const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: cost,
+        reason: "UPGRADE",
+        class: "workshop",
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: here.entity_id,
+        set: { upgrade_tier: 1, infra_type: "workshop" },
+        unset: [],
+      });
+      await settleEv(ev);
+      const posted = success(w, principal, request_id, events, "The workshop was upgraded.", settled);
+      w.seen_idempotency[idem] = posted;
+      return posted;
     }
   }
 
