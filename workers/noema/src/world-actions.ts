@@ -258,6 +258,8 @@ export type RoomState = {
   shout?: { text: string; cycle: number };
   /** GC5-S6 last institution notice. Never on hidden rooms. */
   institution_notice?: { text: string; cycle: number; org_id: string; org_name: string };
+  /** GC5-S8 last public trade notice. Never on hidden rooms. */
+  trade_notice?: { text: string; cycle: number };
 };
 
 export type WorldRuntime = {
@@ -615,6 +617,8 @@ export function buildObservation(
       : Object.values(w.organizations)
           .filter((o) => o.status === "ACTIVE" && o.channel && isOrgMember(o, principal.player_id))
           .map((o) => `A channel note in ${o.name}: ${o.channel!.text}`),
+    trade_notice_lines:
+      isHiddenRoom(room) || !room.trade_notice ? [] : [`A trade notice: ${room.trade_notice.text}`],
     unclaimed_lines: isHiddenRoom(room)
       ? []
       : roomEntities(room)
@@ -1486,6 +1490,36 @@ export async function applyWorldCommand(
         request_id,
         events,
         `A channel note in ${org.name}: ${utterance}`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+    if (action.arguments.surface === "TRADE_NOTICE") {
+      const here = w.rooms[pl.room_id];
+      if (!here) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      if (isHiddenRoom(here)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is no stall here.");
+      }
+      const utterance = action.arguments.text.slice(0, 500).trim();
+      if (!utterance) return fail(request_id, "INVALID_REQUEST", "Write a trade notice.");
+      debit(pl.budgets, COSTS.MESSAGE);
+      here.trade_notice = { text: utterance, cycle: w.cycle };
+      const ev = pushEvent("MESSAGE", {
+        message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
+        sender_id: principal.player_id,
+        surface: "TRADE_NOTICE",
+        room_id: here.room_id,
+        text: utterance,
+        cost_paid: COSTS.MESSAGE,
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `A trade notice: ${utterance}`,
         settled,
       );
       w.seen_idempotency[idem] = posted;
