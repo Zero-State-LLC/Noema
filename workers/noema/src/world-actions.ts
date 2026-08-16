@@ -192,6 +192,7 @@ import {
   shouldAbandon,
   RESTORE_CONDITION_CAP,
   MULTI_CYCLE_CLASS,
+  isMultiCycleClass,
   VEST_COST,
   SHARE_COST,
   CONNECT_COST,
@@ -1238,14 +1239,15 @@ export async function applyWorldCommand(
       for (const room of Object.values(w.rooms)) {
         if (isHiddenRoom(room)) continue;
         for (const ent of roomEntities(room)) {
-          if (!isInProgress(ent) || infraClassOf(ent) !== MULTI_CYCLE_CLASS) continue;
+          const classId = infraClassOf(ent);
+          if (!isInProgress(ent) || !isMultiCycleClass(classId)) continue;
           ent.in_progress = undefined;
           ent.last_steward_cycle = w.cycle;
           const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
           if (idx >= 0) room.entities[idx] = ent;
           const ev = pushEvent("ENTITY_UPDATE", {
             entity_id: ent.entity_id,
-            set: { in_progress: false, last_steward_cycle: w.cycle, infra_type: MULTI_CYCLE_CLASS },
+            set: { in_progress: false, last_steward_cycle: w.cycle, infra_type: classId },
             unset: ["in_progress"],
             operation: "PROMOTE",
           });
@@ -2540,7 +2542,7 @@ export async function applyWorldCommand(
         owner_id: principal.player_id,
         infra_type: classId,
         last_steward_cycle: w.cycle,
-        ...(classId === MULTI_CYCLE_CLASS ? { in_progress: true } : {}),
+        ...(isMultiCycleClass(classId) ? { in_progress: true } : {}),
       };
       target.entities = [...roomEntities(target), created];
       pushEvent("BUDGET_CONSUMED", {
@@ -2556,7 +2558,7 @@ export async function applyWorldCommand(
         location: target.room_id,
         room_id: target.room_id,
         label,
-        properties: { infra_type: classId, ...(classId === MULTI_CYCLE_CLASS ? { in_progress: true } : {}) },
+        properties: { infra_type: classId, ...(isMultiCycleClass(classId) ? { in_progress: true } : {}) },
         state: { condition: 100 },
       });
       await settleEv(ev);
@@ -2570,7 +2572,7 @@ export async function applyWorldCommand(
           : classId === "route_link"
             ? `A route link was opened (${entity_id}).`
             : classId === "workshop"
-              ? `A workshop is open (${entity_id}).`
+              ? `A workshop is under construction (${entity_id}).`
               : classId === "defensive_work"
                 ? `A defensive work stands (${entity_id}).`
                 : classId === "archive_annex"
@@ -2668,6 +2670,9 @@ export async function applyWorldCommand(
       if (infraClassOf(here) !== "workshop") {
         return fail(request_id, "FORBIDDEN", "Only a workshop can be upgraded.");
       }
+      if (isInProgress(here)) {
+        return fail(request_id, "FORBIDDEN", "That workshop is still under construction.");
+      }
       if (!isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
@@ -2718,6 +2723,9 @@ export async function applyWorldCommand(
       }
       if (infraClassOf(here) !== REPURPOSE_FROM_CLASS) {
         return fail(request_id, "FORBIDDEN", "Only a workshop can be repurposed as a storage bay.");
+      }
+      if (isInProgress(here)) {
+        return fail(request_id, "FORBIDDEN", "That workshop is still under construction.");
       }
       if (!isConstructSteward(w, here, principal.player_id)) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");

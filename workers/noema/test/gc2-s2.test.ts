@@ -85,8 +85,11 @@ describe("GC2-S2 world path", () => {
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const first = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(first.ok).toBe(true);
-    expect(first.observation?.consequence).toMatch(/workshop is open/i);
+    expect(first.observation?.consequence).toMatch(/workshop is under construction/i);
     expect(w.players[p.player_id].budgets.storage).toBe(DEFAULT_BUDGETS.storage - 5);
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
+    expect(w.cycle).toBe(1);
 
     const storageBeforeGen = w.players[p.player_id].budgets.storage;
     const gen = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });

@@ -99,6 +99,8 @@ describe("GC2-S6 world path", () => {
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
     const before = { ...w.players[p.player_id].budgets };
 
     const first = await run(w, p, "BUILD", { operation: "REPURPOSE", entity_id: shop.entity_id });
@@ -145,11 +147,13 @@ describe("GC2-S6 world path", () => {
     const owner = principal("player.nacre");
     const other = principal("player.other");
     await run(w, owner, "ENTER_WORLD");
-    await run(w, other, "ENTER_WORLD");
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.players[other.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
+    const opened = await run(w, owner, "WAIT");
+    expect(opened.ok).toBe(true);
+    await run(w, other, "ENTER_WORLD");
+    w.players[other.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
     const stolen = await run(w, other, "BUILD", { operation: "REPURPOSE", entity_id: shop.entity_id });
     expect(stolen.ok).toBe(false);

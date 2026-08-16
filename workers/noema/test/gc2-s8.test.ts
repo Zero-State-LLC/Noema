@@ -92,7 +92,9 @@ describe("GC2-S8 world path", () => {
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
-    w.cycle = 11;
+    const opened = await run(w, owner, "WAIT");
+    expect(opened.ok).toBe(true);
+    w.cycle = 12;
     await run(w, owner, "WAIT");
     expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)?.unclaimed).toBe(true);
 

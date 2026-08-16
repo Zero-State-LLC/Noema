@@ -91,6 +91,8 @@ describe("GC2-S5 world path", () => {
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
     const first = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: shop.entity_id });
     expect(first.ok).toBe(true);
     expect(first.events?.map((e) => e.event_type).sort()).toEqual(["BUDGET_CONSUMED", "ENTITY_UPDATE"]);
