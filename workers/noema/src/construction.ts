@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s7";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s8";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -113,6 +113,7 @@ export const REPURPOSE_COST: ConstructionCost = { energy: 4, compute: 2, storage
 export const REPURPOSE_FROM_CLASS = "workshop" as const;
 export const REPURPOSE_TO_CLASS = "storage_bay" as const;
 export const ABANDON_AFTER_CYCLES = 12;
+export const RESTORE_CONDITION_CAP = 50;
 
 export function shouldAbandon(
   entity: InfraLike & { unclaimed?: boolean; scar?: boolean; last_steward_cycle?: number },
