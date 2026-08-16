@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s3";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s4";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -14,6 +14,7 @@ export const CONSTRUCTIBLE_CLASSES = [
   "route_link",
   "workshop",
   "defensive_work",
+  "archive_annex",
 ] as const;
 
 export type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
@@ -38,6 +39,7 @@ export const CONSTRUCT_COSTS: Record<ConstructibleClass, ConstructionCost> = {
   route_link: { energy: 8, compute: 4, storage: 4, influence: 2 },
   workshop: { energy: 6, compute: 3, storage: 5, influence: 0 },
   defensive_work: { energy: 7, compute: 3, storage: 4, influence: 3 },
+  archive_annex: { energy: 6, compute: 4, storage: 4, influence: 2 },
 };
 
 export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
@@ -48,6 +50,7 @@ export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
   route_link: 2,
   workshop: 2,
   defensive_work: 2,
+  archive_annex: 2,
 };
 
 const CLASS_SET = new Set<string>(CONSTRUCTIBLE_CLASSES);
@@ -70,6 +73,7 @@ export function parseConstructibleClass(raw: string): ConstructibleClass | null 
   if (t === "route link" || t === "routelink") return "route_link";
   if (t === "workshop") return "workshop";
   if (t === "defensive work" || t === "defensive") return "defensive_work";
+  if (t === "archive annex" || t === "annex") return "archive_annex";
   return null;
 }
 
@@ -92,6 +96,7 @@ export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if (blob.includes("route link") || blob.includes("routelink")) return "route_link";
   if (blob.includes("workshop")) return "workshop";
   if (blob.includes("defensive work") || blob.includes("defensivework")) return "defensive_work";
+  if (blob.includes("archive annex") || blob.includes("archiveannex")) return "archive_annex";
   return null;
 }
 
@@ -105,6 +110,14 @@ export function withWorkshopStorage<T extends { storage?: number }>(cost: T, has
   if (!hasWorkshop || !cost.storage) return cost;
   const storage = Math.max(0, cost.storage - WORKSHOP_STORAGE_DISCOUNT);
   return { ...cost, storage: storage || undefined };
+}
+
+export const ANNEX_ATTENTION_DISCOUNT = 1;
+
+export function withAnnexAttention<T extends { attention?: number }>(cost: T, hasAnnex: boolean): T {
+  if (!hasAnnex || !cost.attention) return cost;
+  const attention = Math.max(0, cost.attention - ANNEX_ATTENTION_DISCOUNT);
+  return { ...cost, attention: attention || undefined };
 }
 
 export function isHiddenRoom(room: { hidden?: boolean; tags?: string[] } | null | undefined): boolean {

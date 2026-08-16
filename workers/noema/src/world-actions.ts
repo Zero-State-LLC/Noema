@@ -186,6 +186,7 @@ import {
   isHiddenRoom,
   liveClassInRoom,
   scarFromDismantle,
+  withAnnexAttention,
   withWorkshopStorage,
 } from "./construction";
 import { hasPrivateCognition } from "./cognition";
@@ -1212,7 +1213,10 @@ export async function applyWorldCommand(
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
       return fail(request_id, "FORBIDDEN", "The record is sealed.");
     }
-    const inspectCost = inspectAttentionCost(pl.practice, entity.entity_id, w.cycle);
+    const inspectCost = withAnnexAttention(
+      inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
+      liveClassInRoom(roomEntities(room), "archive_annex"),
+    );
     if (!canPay(pl.budgets, inspectCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
     }
@@ -2256,7 +2260,9 @@ export async function applyWorldCommand(
             ? `A workshop is open (${entity_id}).`
             : classId === "defensive_work"
               ? `A defensive work stands (${entity_id}).`
-              : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
+              : classId === "archive_annex"
+                ? `An archive annex is open (${entity_id}).`
+                : `Constructed ${label.replace(/-/g, " ")} (${entity_id}).`,
         settled,
       );
       w.seen_idempotency[idem] = result;
@@ -3670,17 +3676,21 @@ async function applyAttest(
   if (entity.archive_subject_entity_id || entity.archive_claim) {
     return fail(request_id, "FORBIDDEN", "That claim is already set.");
   }
-  if (!canPay(pl.budgets, COSTS.ATTEST)) {
+  const attestCost = withAnnexAttention(
+    { ...COSTS.ATTEST },
+    liveClassInRoom(roomEntities(room), "archive_annex"),
+  );
+  if (!canPay(pl.budgets, attestCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
-  debit(pl.budgets, COSTS.ATTEST);
+  debit(pl.budgets, attestCost);
   entity.archive_subject_entity_id = subject;
   entity.archive_claim = claim;
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
-    cost_paid: COSTS.ATTEST,
+    cost_paid: attestCost,
     reason: "ATTEST",
   });
   const ev = pushEvent("ENTITY_UPDATE", {
