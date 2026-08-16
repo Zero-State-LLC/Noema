@@ -285,7 +285,7 @@ export default {
 
       // Public PLAY email login (any mailbox → Player JWT; never admin-access)
       if (request.method === "POST" && path === "/v1/play/login/request") {
-        const body = (await request.json().catch(() => ({}))) as { email?: string };
+        const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string };
         return cors(await requestPlayMagicLink(env, request, body));
       }
       if (request.method === "POST" && path === "/v1/play/login/consume") {

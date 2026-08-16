@@ -4,9 +4,24 @@ import { normalizeEmail } from "./admin-auth";
 export const PLAY_MAIL_SUBJECT = "Enter NOEMA";
 export const PLAY_MAIL_FROM = "NOEMA <play@noema.guru>";
 
-export function playMagicLinkHref(origin: string, tokenHash: string, type = "magiclink"): string {
+/** Only /connect is a legal post-login landing besides /play. */
+export function safePlayNext(raw?: string | null): "/connect" | null {
+  const n = String(raw || "").trim();
+  if (n === "/connect" || n === "connect") return "/connect";
+  return null;
+}
+
+export function playMagicLinkHref(
+  origin: string,
+  tokenHash: string,
+  type = "magiclink",
+  next?: string | null,
+): string {
   const base = origin.replace(/\/$/, "");
-  return `${base}/play/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
+  let href = `${base}/play/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
+  const safe = safePlayNext(next);
+  if (safe) href += `&next=${encodeURIComponent(safe)}`;
+  return href;
 }
 
 export function renderPlayMailText(href: string): string {

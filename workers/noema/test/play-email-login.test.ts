@@ -114,6 +114,50 @@ describe("requestPlayMagicLink", () => {
     ]);
   });
 
+  it("puts next=/connect on the letter href and ignores other next values", async () => {
+    const sent: string[] = [];
+    const fetchImpl = async () =>
+      new Response(
+        JSON.stringify({ properties: { hashed_token: "playhash", verification_type: "magiclink" } }),
+        { status: 200 },
+      );
+    const e = env({
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "srk",
+      POSTMARK_SERVER_TOKEN: "pm_test",
+    });
+    await requestPlayMagicLink(
+      e,
+      new Request("https://noema.guru/x"),
+      { email: "prabu.openclaw@gmail.com", next: "/connect" },
+      {
+        fetch: fetchImpl,
+        throttle: new LoginThrottle(),
+        sendPlay: async (mail) => {
+          sent.push(mail.href);
+        },
+      },
+    );
+    expect(sent[0]).toBe(
+      "https://noema.guru/play/callback?token_hash=playhash&type=magiclink&next=%2Fconnect",
+    );
+    sent.length = 0;
+    await requestPlayMagicLink(
+      e,
+      new Request("https://noema.guru/x"),
+      { email: "prabu.openclaw@gmail.com", next: "https://evil.example/phish" },
+      {
+        fetch: fetchImpl,
+        throttle: new LoginThrottle(),
+        sendPlay: async (mail) => {
+          sent.push(mail.href);
+        },
+      },
+    );
+    expect(sent[0]).toBe("https://noema.guru/play/callback?token_hash=playhash&type=magiclink");
+    expect(sent[0]).not.toMatch(/evil/);
+  });
+
   it("falls back to Supabase otp when Postmark delivery fails", async () => {
     const calls: string[] = [];
     const res = await requestPlayMagicLink(

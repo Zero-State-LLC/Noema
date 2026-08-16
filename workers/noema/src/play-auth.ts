@@ -16,6 +16,7 @@ import {
   extractHashedToken,
   PLAY_MAIL_FROM,
   playMagicLinkHref,
+  safePlayNext,
   type PlayMailer,
 } from "./play-mail";
 import { sendTransactionalEmail } from "./email-provider";
@@ -29,11 +30,12 @@ export const playLoginThrottle = new LoginThrottle();
 export async function requestPlayMagicLink(
   env: Env,
   req: Request,
-  body: { email?: string },
+  body: { email?: string; next?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
+  const next = safePlayNext(body.next);
 
   const throttle = opts?.throttle || playLoginThrottle;
   const ip = clientIp(req);
@@ -45,6 +47,7 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
+      const callback = next ? `${origin}/play/callback?next=${encodeURIComponent(next)}` : `${origin}/play/callback`;
       const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN);
       let sent = false;
       if (canProvider) {
@@ -58,13 +61,13 @@ export async function requestPlayMagicLink(
           body: JSON.stringify({
             type: "magiclink",
             email,
-            options: { redirect_to: `${origin}/play/callback` },
+            options: { redirect_to: callback },
           }),
         });
         const payload = await res.json().catch(() => ({}));
         const extracted = extractHashedToken(payload);
         if (res.ok && extracted) {
-          const href = playMagicLinkHref(origin, extracted.token, extracted.type);
+          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next);
           const mail = composePlayMail(email, href);
           const send =
             opts?.sendPlay ||
@@ -99,7 +102,7 @@ export async function requestPlayMagicLink(
             email,
             create_user: true,
             options: {
-              email_redirect_to: `${origin}/play/callback`,
+              email_redirect_to: callback,
               should_create_user: true,
             },
           }),

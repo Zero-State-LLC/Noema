@@ -186,6 +186,8 @@ describe("callback", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening PLAY");
+    expect(html).toContain('raw === "/connect"');
+    expect(html).toContain("location.href = next");
     expect(html).not.toContain("/v1/admin/login");
     const hay = firstReadHaystack(html).toLowerCase();
     expect(hay).not.toContain("research");
