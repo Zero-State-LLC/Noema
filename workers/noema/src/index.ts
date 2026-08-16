@@ -26,6 +26,7 @@ import {
   resolvePrincipal,
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
+import { applyCors } from "./cors";
 import {
   approveDevice,
   denyDevice,
@@ -68,14 +69,6 @@ function html(body: string, status = 200, cache = "no-store"): Response {
       "x-content-type-options": "nosniff",
     },
   });
-}
-
-function cors(res: Response): Response {
-  const h = new Headers(res.headers);
-  h.set("Access-Control-Allow-Origin", "*");
-  h.set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Noema-Access-Token, X-Noema-Admin-Token");
-  h.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  return new Response(res.body, { status: res.status, headers: h });
 }
 
 function wantsHtml(request: Request): boolean {
@@ -125,7 +118,7 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
   if (wantsHtml(request) || method === "GET" || method === "HEAD") {
     return html(notFoundHtml(), 404, "no-store");
   }
-  return cors(err("NOT_FOUND", path, 404));
+  return applyCors(err("NOT_FOUND", path, 404), request, env);
 }
 
 async function routeToWorld(
@@ -157,6 +150,7 @@ export default {
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {
+    const cors = (res: Response) => applyCors(res, request, env);
     if (request.method === "OPTIONS") {
       return cors(new Response(null, { status: 204 }));
     }
