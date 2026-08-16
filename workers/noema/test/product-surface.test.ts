@@ -168,6 +168,8 @@ describe("planes", () => {
     expect(html).toContain("noema.play.token");
     expect(html).toMatch(/Enter as yourself first|enter via PLAY/i);
     expect(html).not.toMatch(/\.innerHTML\s*=/);
+    expect(html).toMatch(/catch\(e\)[\s\S]{0,200}hideDecide\(\)/);
+    expect(html).toMatch(/decide\(path\)[\s\S]{0,400}sessionStorage.getItem\("noema.play.token"\)/);
   });
   it("enrollment review page does not auto-approve", () => {
     const html = enrollHtml();

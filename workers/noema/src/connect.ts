@@ -148,10 +148,15 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
+    function hideDecide(){
+      document.getElementById("d-approve").hidden = true;
+      document.getElementById("d-deny").hidden = true;
+    }
     document.getElementById("d-lookup").addEventListener("click", async () => {
       const code = (document.getElementById("d-code").value || "").trim();
       dNotice.className = "notice"; dNotice.textContent = "Looking up…";
       preview.hidden = true; preview.textContent = "";
+      hideDecide();
       try {
         const r = await fetch("/v1/auth/device/preview?user_code="+encodeURIComponent(code));
         const j = await r.json();
@@ -165,16 +170,18 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
         document.getElementById("d-approve").hidden = j.status !== "pending";
         document.getElementById("d-deny").hidden = j.status !== "pending";
       } catch(e) {
+        hideDecide();
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "unknown code";
       }
     });
     async function decide(path){
       const code = (document.getElementById("d-code").value || "").trim();
+      const tok = (() => { try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; } })();
       dNotice.className = "notice"; dNotice.textContent = "Sending…";
       try {
         const r = await fetch(path, {
           method: "POST",
-          headers: { "content-type": "application/json", authorization: "Bearer "+playTok },
+          headers: { "content-type": "application/json", authorization: "Bearer "+tok },
           body: JSON.stringify({ user_code: code })
         });
         const j = await r.json();
