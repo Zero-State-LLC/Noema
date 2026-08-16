@@ -249,8 +249,9 @@ export type CanonicalAction =
   | {
       verb: "MESSAGE";
       arguments: {
-        recipient_id: string;
+        recipient_id?: string;
         text: string;
+        surface?: "BOARD";
         subject_ref?: string;
         parent_claim_id?: string;
         as_claim?: boolean;
@@ -750,6 +751,15 @@ export function parseHumanCommand(
         arguments: { recipient_id: r.player_id, text, as_claim: true, parent_claim_id },
       },
       display: `You repeat a report to ${who}.`,
+    };
+  }
+  // board "text" — GC5-S3, not listed in Chamber help
+  const boardM = trimmed.match(/^board\s+["'](.+)["']\s*$/i);
+  if (boardM) {
+    return {
+      ok: true,
+      action: { verb: "MESSAGE", arguments: { surface: "BOARD", text: boardM[1] } },
+      display: "You post a notice.",
     };
   }
   // message / msg with quoted text
@@ -1579,11 +1589,20 @@ export function normalizeStructuredCommand(
     return { ok: true, action: { verb: "INSPECT", arguments: { entity_id } }, display: `INSPECT ${entity_id}` };
   }
   if (cmd === "MESSAGE") {
+    const surface = String(args.surface || "").toUpperCase() === "BOARD" ? "BOARD" : undefined;
     const recipient_id = String(args.recipient_id || args.target || "").trim();
     const text = String(args.text || "").trim();
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
     const as_claim = Boolean(args.as_claim || parent_claim_id || subject_ref);
+    if (surface === "BOARD") {
+      if (!text) return { ok: false, error: "text required", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: { verb: "MESSAGE", arguments: { surface: "BOARD", text } },
+        display: "MESSAGE BOARD",
+      };
+    }
     if (!recipient_id || (!text && !parent_claim_id)) {
       return { ok: false, error: "recipient_id and text required", code: "INVALID_REQUEST" };
     }
