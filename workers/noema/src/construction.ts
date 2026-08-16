@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s4";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s5";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -82,6 +82,7 @@ export type InfraLike = {
   label: string;
   entity_type?: string;
   infra_type?: string;
+  upgrade_tier?: number;
 };
 
 /** Live INFRASTRUCTURE only. Explicit infra_type wins; else id/label tokens. */
@@ -105,10 +106,19 @@ export function liveClassInRoom(entities: InfraLike[], classId: ConstructibleCla
 }
 
 export const WORKSHOP_STORAGE_DISCOUNT = 1;
+export const WORKSHOP_UPGRADE_DISCOUNT = 2;
+export const UPGRADE_COST: ConstructionCost = { energy: 4, compute: 2, storage: 2, influence: 1 };
 
-export function withWorkshopStorage<T extends { storage?: number }>(cost: T, hasWorkshop: boolean): T {
-  if (!hasWorkshop || !cost.storage) return cost;
-  const storage = Math.max(0, cost.storage - WORKSHOP_STORAGE_DISCOUNT);
+export function workshopStorageDiscount(entities: InfraLike[]): number {
+  const shops = entities.filter((e) => infraClassOf(e) === "workshop");
+  if (!shops.length) return 0;
+  return shops.some((e) => (e.upgrade_tier || 0) >= 1) ? WORKSHOP_UPGRADE_DISCOUNT : WORKSHOP_STORAGE_DISCOUNT;
+}
+
+export function withWorkshopStorage<T extends { storage?: number }>(cost: T, workshop: boolean | number): T {
+  const discount = typeof workshop === "number" ? workshop : workshop ? WORKSHOP_STORAGE_DISCOUNT : 0;
+  if (!discount || !cost.storage) return cost;
+  const storage = Math.max(0, cost.storage - discount);
   return { ...cost, storage: storage || undefined };
 }
 
