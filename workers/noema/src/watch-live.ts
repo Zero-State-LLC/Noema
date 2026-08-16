@@ -263,7 +263,7 @@ export function holdHeadline(
   const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier]);
   const aged = newestSequence - held.sequence > 8;
   if (inWindow && !higher && !aged) {
-    return { cycle: inWindow.cycle, ...held, ...inWindow };
+    return { ...held, ...inWindow };
   }
   const pool = aged && inWindow ? window.filter((e) => e.sequence !== held.sequence) : window;
   return rankEvents(pool)[0] || rankEvents(window)[0] || null;
