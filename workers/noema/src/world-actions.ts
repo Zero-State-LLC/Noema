@@ -183,6 +183,9 @@ import {
   DISMANTLE_COST,
   SALVAGE_STORAGE,
   UPGRADE_COST,
+  REPURPOSE_COST,
+  REPURPOSE_FROM_CLASS,
+  REPURPOSE_TO_CLASS,
   allocateInfraId,
   clampSalvage,
   constructLabel,
@@ -2431,6 +2434,61 @@ export async function applyWorldCommand(
       });
       await settleEv(ev);
       const posted = success(w, principal, request_id, events, "The workshop was upgraded.", settled);
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+
+    if (action.arguments.operation === "REPURPOSE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to repurpose here.");
+      }
+      const here = findEntity(room, action.arguments.entity_id);
+      if (!here) {
+        return fail(request_id, "NOT_FOUND", `You do not see “${action.arguments.entity_id}” here.`);
+      }
+      if (infraClassOf(here) !== REPURPOSE_FROM_CLASS) {
+        return fail(request_id, "FORBIDDEN", "Only a workshop can be repurposed as a storage bay.");
+      }
+      if (here.owner_id !== principal.player_id) {
+        return fail(request_id, "NOT_OWNER", "You do not own that.");
+      }
+      const storageNeed = constructStorageCost(REPURPOSE_COST.storage || 0, pl.lot_grades?.storage);
+      const cost = { ...REPURPOSE_COST, storage: storageNeed || undefined };
+      if (!canPay(pl.budgets, cost)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to repurpose.");
+      }
+      debit(pl.budgets, cost);
+      if (storageNeed) {
+        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+      }
+      const entity_id = here.entity_id;
+      here.infra_type = REPURPOSE_TO_CLASS;
+      here.label = constructLabel(REPURPOSE_TO_CLASS);
+      const idx = room.entities.findIndex((e) => e.entity_id === entity_id);
+      if (idx >= 0) room.entities[idx] = here;
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: cost,
+        reason: "REPURPOSE",
+        class: REPURPOSE_TO_CLASS,
+        from_class: REPURPOSE_FROM_CLASS,
+      });
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id,
+        set: { infra_type: REPURPOSE_TO_CLASS, label: here.label },
+        unset: [],
+        operation: "REPURPOSE",
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        "The workshop was repurposed as a storage bay.",
+        settled,
+      );
       w.seen_idempotency[idem] = posted;
       return posted;
     }
