@@ -1,7 +1,7 @@
 /**
- * GC8-S1 SOUND/WORN grades + GC8-S2 public origin stamps on existing budget keys.
- * Authority: Noema-Specs docs/GC8-S1-LOT-QUALITY.md / RFC-0045
- * and docs/GC8-S2-PROVENANCE.md / RFC-0046.
+ * GC8-S1 SOUND/WORN grades, GC8-S2 public origin stamps, GC8-S3 WORN spoilage.
+ * Authority: Noema-Specs docs/GC8-S1-LOT-QUALITY.md / RFC-0045,
+ * docs/GC8-S2-PROVENANCE.md / RFC-0046, docs/GC8-S3-SPOILAGE.md / RFC-0047.
  */
 
 import type { Budgets } from "./actions";
@@ -11,6 +11,7 @@ export const LOT_GRADES = ["SOUND", "WORN"] as const;
 export type LotGrade = (typeof LOT_GRADES)[number];
 export const WORN_BELOW_CONDITION = 50;
 export const WORN_CONSTRUCT_STORAGE_EXTRA = 1;
+export const WORN_SPOIL_PER_CYCLE = 1;
 
 export type LotGrades = Partial<Record<keyof Budgets, LotGrade>>;
 
@@ -49,7 +50,7 @@ export function spendLot(grades: LotGrades | undefined, remaining: number, resou
   return next;
 }
 
-export function lotLines(grades: LotGrades | undefined, origins?: LotOrigins): string[] {
+export function lotLines(grades: LotGrades | undefined, origins?: LotOrigins, spoils?: string[]): string[] {
   const out: string[] = [];
   if (grades) {
     for (const [res, g] of Object.entries(grades) as Array<[string, LotGrade]>) {
@@ -61,7 +62,41 @@ export function lotLines(grades: LotGrades | undefined, origins?: LotOrigins): s
       if (origin?.room_name) out.push(`Your ${res} is from ${origin.room_name}.`);
     }
   }
+  if (spoils) {
+    for (const line of spoils) {
+      if (line) out.push(line);
+    }
+  }
   return out;
+}
+
+export function spoilWornLots(
+  grades: LotGrades | undefined,
+  budgets: Budgets,
+  origins?: LotOrigins,
+): { grades: LotGrades; origins: LotOrigins; losses: Array<{ resource: keyof Budgets; amount: number }>; lines: string[] } {
+  const nextGrades: LotGrades = { ...(grades || {}) };
+  const nextOrigins: LotOrigins = { ...(origins || {}) };
+  const losses: Array<{ resource: keyof Budgets; amount: number }> = [];
+  const lines: string[] = [];
+  for (const key of Object.keys(nextGrades) as Array<keyof Budgets>) {
+    if (nextGrades[key] !== "WORN") continue;
+    const have = budgets[key] ?? 0;
+    if (have <= 0) {
+      delete nextGrades[key];
+      delete nextOrigins[key];
+      continue;
+    }
+    const loss = Math.min(WORN_SPOIL_PER_CYCLE, have);
+    budgets[key] = have - loss;
+    losses.push({ resource: key, amount: loss });
+    lines.push(`Your worn ${key} spoiled.`);
+    if ((budgets[key] ?? 0) <= 0) {
+      delete nextGrades[key];
+      delete nextOrigins[key];
+    }
+  }
+  return { grades: nextGrades, origins: nextOrigins, losses, lines };
 }
 
 export type LotOrigin = { room_id: string; room_name: string; producer_id: string };

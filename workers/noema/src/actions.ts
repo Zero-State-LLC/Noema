@@ -94,6 +94,8 @@ export type PlayerRuntime = {
   lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
   /** GC8-S2 public origin of current holdings. Hidden rooms never stored. */
   lot_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
+  /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
+  spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
     catalog_id: "discovery-catalog/gc6-s0";

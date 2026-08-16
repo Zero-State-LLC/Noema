@@ -171,6 +171,7 @@ import {
   publicHarvestOrigin,
   spendLot,
   spendOrigin,
+  spoilWornLots,
 } from "./lots";
 import {
   CONSTRUCT_COSTS,
@@ -513,7 +514,7 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
-    lot_lines: lotLines(pl.lot_grades, pl.lot_origins),
+    lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1109,12 +1110,34 @@ export async function applyWorldCommand(
       { ledger: committed },
     );
     if (committed) {
+      for (const [pid, player] of Object.entries(w.players)) {
+        const spoiled = spoilWornLots(player.lot_grades, player.budgets, player.lot_origins);
+        player.lot_grades = spoiled.grades;
+        player.lot_origins = spoiled.origins;
+        player.spoil_lines = spoiled.lines;
+        for (const loss of spoiled.losses) {
+          const spoilEv = pushEvent("BUDGET_CONSUMED", {
+            player_id: pid,
+            cost_paid: { [loss.resource]: loss.amount },
+            reason: "SPOILAGE",
+          });
+          await settleEv(spoilEv);
+        }
+      }
       await resolveDueContests(w, pushEvent, settleEv);
       await applyScheduledPressure(w, pushEvent, settleEv);
       await deliverDelayedMessages(w, pushEvent, settleEv);
       await expireInstitutionEmergencies(w, pushEvent, settleEv);
     }
-    const result = success(w, principal, request_id, events, "You wait.", false);
+    const spoilNote = (pl.spoil_lines || []).join(" ");
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      spoilNote ? `You wait. ${spoilNote}` : "You wait.",
+      false,
+    );
     w.seen_idempotency[idem] = result;
     return result;
   }
