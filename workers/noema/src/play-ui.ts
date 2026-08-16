@@ -530,7 +530,7 @@ export function statusFromObservation(obs: {
   for (const line of (obs.practice_lines || []).slice(0, 3)) {
     if (line) rows.push({ label: "Work", value: line });
   }
-  for (const line of (obs.lot_lines || []).slice(0, 2)) {
+  for (const line of (obs.lot_lines || []).slice(0, 4)) {
     if (line) rows.push({ label: "Lot", value: line });
   }
   for (const line of (obs.social_memory_lines || []).slice(0, 3)) {

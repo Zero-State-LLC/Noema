@@ -1,6 +1,7 @@
 /**
- * GC8-S1 SOUND/WORN lot grades on existing budget keys.
- * Authority: Noema-Specs docs/GC8-S1-LOT-QUALITY.md / RFC-0045.
+ * GC8-S1 SOUND/WORN grades + GC8-S2 public origin stamps on existing budget keys.
+ * Authority: Noema-Specs docs/GC8-S1-LOT-QUALITY.md / RFC-0045
+ * and docs/GC8-S2-PROVENANCE.md / RFC-0046.
  */
 
 import type { Budgets } from "./actions";
@@ -48,9 +49,67 @@ export function spendLot(grades: LotGrades | undefined, remaining: number, resou
   return next;
 }
 
-export function lotLines(grades: LotGrades | undefined): string[] {
-  if (!grades) return [];
-  return (Object.entries(grades) as Array<[string, LotGrade]>)
-    .filter(([, g]) => g === "WORN")
-    .map(([res]) => `Your ${res} is worn.`);
+export function lotLines(grades: LotGrades | undefined, origins?: LotOrigins): string[] {
+  const out: string[] = [];
+  if (grades) {
+    for (const [res, g] of Object.entries(grades) as Array<[string, LotGrade]>) {
+      if (g === "WORN") out.push(`Your ${res} is worn.`);
+    }
+  }
+  if (origins) {
+    for (const [res, origin] of Object.entries(origins) as Array<[string, LotOrigin]>) {
+      if (origin?.room_name) out.push(`Your ${res} is from ${origin.room_name}.`);
+    }
+  }
+  return out;
+}
+
+export type LotOrigin = { room_id: string; room_name: string; producer_id: string };
+export type LotOrigins = Partial<Record<keyof Budgets, LotOrigin>>;
+
+export function publicHarvestOrigin(
+  room: { room_id: string; name: string; hidden?: boolean; tags?: string[] } | undefined,
+  producerId: string,
+): LotOrigin | undefined {
+  if (!room || !producerId || !room.room_id || !room.name) return undefined;
+  if (room.hidden === true) return undefined;
+  if ((room.tags || []).some((t) => String(t).toLowerCase() === "hidden")) return undefined;
+  return { room_id: room.room_id, room_name: room.name, producer_id: producerId };
+}
+
+export function mixOrigin(
+  haveAmount: number,
+  have: LotOrigin | undefined,
+  addAmount: number,
+  add: LotOrigin | undefined,
+): LotOrigin | undefined {
+  if (addAmount <= 0) return have;
+  if (haveAmount <= 0 || !have) return add;
+  if (have.room_id && add?.room_id && have.room_id === add.room_id) return have;
+  return undefined;
+}
+
+export function creditOrigin(
+  origins: LotOrigins | undefined,
+  budgets: Budgets,
+  resource: keyof Budgets,
+  amount: number,
+  incoming: LotOrigin | undefined,
+): LotOrigins {
+  const next = { ...(origins || {}) };
+  const have = (budgets[resource] ?? 0) - amount;
+  const mixed = mixOrigin(have, origins?.[resource], amount, incoming);
+  if (mixed) next[resource] = mixed;
+  else delete next[resource];
+  return next;
+}
+
+export function spendOrigin(
+  origins: LotOrigins | undefined,
+  remaining: number,
+  resource: keyof Budgets,
+): LotOrigins {
+  const next = { ...(origins || {}) };
+  if (remaining <= 0) delete next[resource];
+  return next;
 }
