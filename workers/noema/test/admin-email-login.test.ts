@@ -529,7 +529,8 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/Close incident/);
     expect(html).toMatch(/without reseeding|does not reseed/i);
     expect(html).toContain('id="life-recover"');
-    expect(html).toMatch(/Recover from head/);
+    expect(html).toMatch(/Recover world/);
+    expect(html).toMatch(/live Durable Object snapshot|first canonical head/i);
   });
 
   it("does not assign attention messages or actor labels via unescaped innerHTML", () => {

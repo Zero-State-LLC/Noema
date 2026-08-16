@@ -259,27 +259,48 @@ export function applyWorldLifecycle(
 }
 
 export type RecoverPlan =
-  | { ok: true; restore: true; status: "ACTIVE"; settlement: "HEALTHY" }
+  | { ok: true; restore: true; adopt: false; status: "ACTIVE"; settlement: "HEALTHY" }
+  | { ok: true; restore: false; adopt: true; status: "ACTIVE"; settlement: "HEALTHY" }
   | { ok: false; code: string; message: string; http: number };
 
-/** Restore from the durable head. Does not invent a new ledger. */
+/** Stored DO world is coherent enough to become the first canonical head. */
+export function isUsableLiveWorld(world: {
+  world_id?: string;
+  sequence?: number;
+  rooms?: Record<string, unknown>;
+} | null | undefined): boolean {
+  if (!world) return false;
+  if (!world.world_id || typeof world.world_id !== "string") return false;
+  if (!Number.isFinite(world.sequence) || (world.sequence as number) < 0) return false;
+  if (!world.rooms || typeof world.rooms !== "object") return false;
+  return Object.keys(world.rooms).length > 0;
+}
+
+/**
+ * Restore from the durable head when one exists.
+ * If the head is missing, adopt a usable live DO snapshot instead of inventing a ledger.
+ */
 export function planIncidentRecover(
   status: WorldOpStatus,
   _settlement: SettlementHealth,
   headRevision: number | null,
+  liveUsable = false,
 ): RecoverPlan {
   if (status !== "INCIDENT") {
     return { ok: false, code: "INVALID_STATE", message: `cannot recover from ${status}`, http: 409 };
   }
-  if (headRevision == null) {
-    return {
-      ok: false,
-      code: "RECOVERY_REQUIRED",
-      message: "no durable world head to restore",
-      http: 409,
-    };
+  if (headRevision != null) {
+    return { ok: true, restore: true, adopt: false, status: "ACTIVE", settlement: "HEALTHY" };
   }
-  return { ok: true, restore: true, status: "ACTIVE", settlement: "HEALTHY" };
+  if (liveUsable) {
+    return { ok: true, restore: false, adopt: true, status: "ACTIVE", settlement: "HEALTHY" };
+  }
+  return {
+    ok: false,
+    code: "RECOVERY_REQUIRED",
+    message: "no durable world head to restore",
+    http: 409,
+  };
 }
 
 export function playReady(

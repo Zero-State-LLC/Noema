@@ -288,6 +288,120 @@ export async function commitCanonicalSettlement(
   }
 }
 
+function rpcFailureCode(body: Record<string, unknown> | null, status: number): string {
+  const message = typeof body?.message === "string" ? body.message : "";
+  if (message && (body?.code === "P0001" || status >= 400)) return message;
+  return String(body?.code || message || `HTTP_${status}`);
+}
+
+/**
+ * Persist a live DO snapshot as the first canonical head.
+ * Does not invent ledger events 0..n and does not clobber an existing head.
+ */
+export async function commitAdoptedLiveHead(
+  env: Env,
+  input: {
+    settlement_id: string;
+    writer_generation: string;
+    genesis_id?: string | null;
+    status: string;
+    settlement_health: string;
+    world: WorldRuntime;
+  },
+): Promise<CanonicalCommit> {
+  const rest = restBase(env);
+  if (!rest) return { ok: false, code: "SETTLEMENT_UNCONFIGURED" };
+  const existing = await getWorldHead(env, input.world.world_id);
+  if (existing) return { ok: false, code: "HEAD_ALREADY_PRESENT" };
+  try {
+    const material = await canonicalStateMaterial(input.world);
+    const res = await fetch(`${rest.url}/rest/v1/rpc/noema_adopt_live_world_head`, {
+      method: "POST",
+      headers: {
+        apikey: rest.key,
+        Authorization: `Bearer ${rest.key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        p_settlement_id: input.settlement_id,
+        p_world_id: input.world.world_id,
+        p_writer_generation: input.writer_generation,
+        p_genesis_id: input.genesis_id ?? null,
+        p_status: input.status,
+        p_settlement_health: input.settlement_health,
+        p_state_json: material.state_json,
+        p_canonical_state_json: material.canonical_json,
+        p_state_digest: material.state_digest,
+        p_sequence: input.world.sequence,
+        p_cycle: input.world.cycle,
+      }),
+    });
+    const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    if (res.ok && body?.ok === true) {
+      return {
+        ok: true,
+        revision: Number(body.revision),
+        sequence: Number(body.sequence),
+        idempotent: body.idempotent === true,
+      };
+    }
+    // RPC not applied yet: write the same live snapshot. Never invent events.
+    if (res.status === 404 || res.status === 406) {
+      return insertAdoptedLiveHeadRow(rest, input, material);
+    }
+    return { ok: false, code: rpcFailureCode(body, res.status) };
+  } catch {
+    return { ok: false, code: "SETTLEMENT_UNCERTAIN" };
+  }
+}
+
+async function insertAdoptedLiveHeadRow(
+  rest: { url: string; key: string },
+  input: {
+    settlement_id: string;
+    writer_generation: string;
+    genesis_id?: string | null;
+    status: string;
+    settlement_health: string;
+    world: WorldRuntime;
+  },
+  material: { state_json: Record<string, unknown>; canonical_json: string; state_digest: string },
+): Promise<CanonicalCommit> {
+  try {
+    const res = await fetch(`${rest.url}/rest/v1/noema_world_heads`, {
+      method: "POST",
+      headers: {
+        apikey: rest.key,
+        Authorization: `Bearer ${rest.key}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        world_id: input.world.world_id,
+        sequence: input.world.sequence,
+        cycle: input.world.cycle,
+        genesis_id: input.genesis_id ?? null,
+        status: input.status,
+        settlement_health: input.settlement_health,
+        state_json: material.state_json,
+        revision: 1,
+        ledger_head_event_id: input.settlement_id,
+        state_digest: material.state_digest,
+        writer_generation: input.writer_generation,
+        canonicalization_version: "noema-jcs/1",
+        canonical_state_json: material.canonical_json,
+        ledger_head_digest: material.state_digest,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    if (res.status === 409) return { ok: false, code: "HEAD_ALREADY_PRESENT" };
+    if (!res.ok) return { ok: false, code: `HTTP_${res.status}` };
+    return { ok: true, revision: 1, sequence: input.world.sequence, idempotent: false };
+  } catch {
+    return { ok: false, code: "SETTLEMENT_UNCERTAIN" };
+  }
+}
+
 export async function replayUnsettled(
   env: Env,
   worldId: string,

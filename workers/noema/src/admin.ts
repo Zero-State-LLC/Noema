@@ -291,7 +291,7 @@ export function adminHtml(): string {
           </div>
           <dl class="kv" id="kv-world" style="margin-top:.75rem"></dl>
           <p class="kicker" style="margin-top:1rem">Lifecycle</p>
-          <p class="empty">Pause rejects mutating PLAY. Resume requires settlement not BLOCKING. Incident fail-closes mutation. Close incident returns ACTIVE without reseeding.</p>
+          <p class="empty">Pause rejects mutating PLAY. Resume requires settlement not BLOCKING. Incident fail-closes mutation. Recover persists a live DO snapshot when the canonical head is missing, or restores from an existing head. Close incident returns ACTIVE without reseeding.</p>
           <label for="life-reason">Reason (optional)</label>
           <input id="life-reason" maxlength="200" autocomplete="off" placeholder="maintenance window"/>
           <div class="btn-row" style="margin-top:.7rem">
@@ -307,8 +307,8 @@ export function adminHtml(): string {
             <button class="btn" type="button" id="life-close" disabled style="margin-top:.7rem">Close incident</button>
           </div>
           <div class="danger" style="margin-top:.75rem">
-            <label><input type="checkbox" id="life-recover-confirm"/><span>I understand Recover restores the durable ledger head and does not reseed Genesis.</span></label>
-            <button class="btn" type="button" id="life-recover" disabled style="margin-top:.7rem">Recover from head</button>
+            <label><input type="checkbox" id="life-recover-confirm"/><span>I understand Recover persists the live Durable Object snapshot as the first canonical head when none exists, or restores from an existing head. It does not reseed Genesis or invent ledger history.</span></label>
+            <button class="btn" type="button" id="life-recover" disabled style="margin-top:.7rem">Recover world</button>
           </div>
           <p class="notice" id="life-notice" role="status"></p>
         </article>
@@ -897,14 +897,16 @@ export function adminHtml(): string {
   async function lifecycle(action) {
     const n = $("life-notice");
     n.className = "notice";
-    n.textContent = action === "incident" ? "Declaring incident…" : action === "recover" ? "Restoring durable head…" : action === "close" ? "Closing incident…" : action === "pause" ? "Pausing…" : "Resuming…";
+    n.textContent = action === "incident" ? "Declaring incident…" : action === "recover" ? "Recovering world…" : action === "close" ? "Closing incident…" : action === "pause" ? "Pausing…" : "Resuming…";
     try {
       const r = await api("/v1/admin/lifecycle", {
         method: "POST",
         body: JSON.stringify({ action, reason: $("life-reason").value || undefined }),
       });
       n.className = "notice ok";
-      n.textContent = "World is now " + (r.status || action) + ".";
+      n.textContent = r.recover_mode === "adopt"
+        ? "Live world snapshot is now the canonical head. World is ACTIVE."
+        : "World is now " + (r.status || action) + ".";
       $("life-incident-confirm").checked = false;
       $("life-incident").disabled = true;
       $("life-close-confirm").checked = false;
@@ -914,7 +916,7 @@ export function adminHtml(): string {
       await load();
     } catch (e) {
       n.className = "notice bad";
-      n.textContent = e.code === "RECOVERY_REQUIRED"
+      n.textContent = e.code === "RECOVERY_REQUIRED" && /resume|close/i.test(action)
         ? "Settlement must recover before resume or close (RECOVERY_REQUIRED)."
         : (e.message || "Lifecycle change failed");
     }
