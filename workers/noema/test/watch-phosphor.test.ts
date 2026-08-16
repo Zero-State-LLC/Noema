@@ -9,12 +9,13 @@ import { watchHtml } from "../src/watch";
 import { buildWatchLive } from "../src/watch-live";
 import {
   PHOSPHOR_ASSET_BUDGET,
-  PHOSPHOR_GLYPHS,
+  PHOSPHOR_GLYPH_IDS,
   PHOSPHOR_HEIGHT,
   PHOSPHOR_JS_BUDGET,
   PHOSPHOR_WIDTH,
   collectPulses,
   createPhosphorSession,
+  drawGlyph,
   drawPhosphorFrame,
   layoutPublicTopology,
   playerGlyphId,
@@ -73,10 +74,15 @@ function mockCtx() {
     fillStyle: "",
     strokeStyle: "",
     globalAlpha: 1,
+    lineWidth: 1,
+    lineCap: "butt",
     font: "",
     imageSmoothingEnabled: true,
     fillRect(x: number, y: number, w: number, h: number) {
       ops.push(`fillRect:${x},${y},${w},${h}`);
+    },
+    strokeRect(x: number, y: number, w: number, h: number) {
+      ops.push(`strokeRect:${x},${y},${w},${h}`);
     },
     beginPath() {
       ops.push("beginPath");
@@ -87,8 +93,14 @@ function mockCtx() {
     lineTo(x: number, y: number) {
       ops.push(`lineTo:${x},${y}`);
     },
+    closePath() {
+      ops.push("closePath");
+    },
     stroke() {
       ops.push("stroke");
+    },
+    fill() {
+      ops.push("fill");
     },
     fillText(text: string, x: number, y: number) {
       ops.push(`fillText:${text}@${x},${y}`);
@@ -152,6 +164,51 @@ describe("slice 1 — deterministic public topology", () => {
     expect(layoutPublicTopology(rooms)).toEqual(layoutPublicTopology(rooms.slice().reverse()));
   });
 
+  it("lays out the example four-site public fragment without hidden rooms", () => {
+    const layout = layoutPublicTopology(
+      [
+        {
+          room_id: "room.a",
+          name: "Site A",
+          description: "A",
+          players_present: 3,
+          active: true,
+          exits: [
+            { direction: "south", to_room_id: "room.b" },
+            { direction: "east", to_room_id: "room.c" },
+          ],
+        },
+        {
+          room_id: "room.b",
+          name: "Site B",
+          description: "B",
+          exits: [
+            { direction: "north", to_room_id: "room.a" },
+            { direction: "south", to_room_id: "room.d" },
+          ],
+        },
+        {
+          room_id: "room.c",
+          name: "Site C",
+          description: "C",
+          players_present: 1,
+          active: true,
+          exits: [{ direction: "west", to_room_id: "room.a" }],
+        },
+        { room_id: "room.d", name: "Site D", exits: [{ direction: "north", to_room_id: "room.b" }] },
+        { room_id: "room.vault", name: "Hidden", hidden: true, exits: [] },
+      ],
+      [{ sequence: 2, room_id: "room.a", tier: "NORMAL" }],
+    );
+    expect(layout.nodes.map((n) => n.room_id).sort()).toEqual(["room.a", "room.b", "room.c", "room.d"]);
+    expect(roomGlyphId(layout.nodes.find((n) => n.room_id === "room.a")!.certainty)).toBe("room_active");
+    expect(playerGlyphId(layout.nodes.find((n) => n.room_id === "room.a")!.players)).toBe("player_multi");
+    expect(playerGlyphId(layout.nodes.find((n) => n.room_id === "room.c")!.players)).toBe("player_single");
+    expect(roomGlyphId(layout.nodes.find((n) => n.room_id === "room.d")!.certainty)).toBe("room_empty");
+    expect(layout.edges.some((e) => e.active)).toBe(true);
+    expect(JSON.stringify(layout)).not.toMatch(/vault|Hidden/i);
+  });
+
   it("fits the 320×180 logical frame", () => {
     const layout = layoutPublicTopology([
       { room_id: "room.a", name: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
@@ -182,9 +239,7 @@ describe("slice 2 — certainty and glyphs", () => {
       "pulse_notable",
       "pulse_major",
     ] as const;
-    for (const id of ids) {
-      expect(PHOSPHOR_GLYPHS[id]).toHaveLength(8);
-    }
+    expect(PHOSPHOR_GLYPH_IDS).toEqual([...ids]);
     expect(roomGlyphId("active")).toBe("room_active");
     expect(roomGlyphId("known")).toBe("room_known");
     expect(roomGlyphId("partial")).toBe("room_partial");
@@ -193,6 +248,17 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(playerGlyphId(4)).toBe("player_multi");
     expect(playerGlyphId(12)).toBe("player_cluster");
     expect(pulseGlyphId("MAJOR")).toBe("pulse_major");
+    const partial = mockCtx();
+    drawGlyph(partial, "room_partial", 0, 0);
+    expect(partial.ops.join(" ")).toMatch(/moveTo:1,7.*lineTo:1,1.*lineTo:7,1.*lineTo:7,7/);
+    expect(partial.ops).not.toContain("fillRect:1,1,6,6");
+    const multi = mockCtx();
+    drawGlyph(multi, "player_multi", 0, 0);
+    expect(multi.ops.filter((o) => o === "fill").length).toBe(2);
+    const cluster = mockCtx();
+    drawGlyph(cluster, "player_cluster", 0, 0);
+    expect(cluster.ops).toContain("fillRect:2,2,4,4");
+    expect(cluster.ops).toContain("fillRect:3,3,2,2");
   });
 
   it("marks a public exit active only from a public recent event", () => {
@@ -211,7 +277,8 @@ describe("slice 2 — certainty and glyphs", () => {
 
   it("maps unknown / partial / known / active from public fields only", () => {
     expect(roomCertainty({ room_id: "room.x", hidden: true })).toBe("unknown");
-    expect(roomCertainty({ room_id: "room.x" })).toBe("partial");
+    expect(roomCertainty({ room_id: "room.x" })).toBe("empty");
+    expect(roomCertainty({ room_id: "room.x", tags: ["partial"] })).toBe("partial");
     expect(roomCertainty({ room_id: "room.x", description: "A public floor." })).toBe("known");
     expect(roomCertainty({ room_id: "room.x", players_present: 2 })).toBe("active");
     expect(roomCertainty({ room_id: "room.x" }, [{ room_id: "room.x", sequence: 1 }])).toBe("active");
@@ -321,13 +388,18 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
           fillStyle: "",
           strokeStyle: "",
           globalAlpha: 1,
+          lineWidth: 1,
+          lineCap: "square",
           font: "",
           imageSmoothingEnabled: true,
           fillRect() {},
+          strokeRect() {},
           beginPath() {},
           moveTo() {},
           lineTo() {},
+          closePath() {},
           stroke() {},
+          fill() {},
           fillText() {},
         };
       },
