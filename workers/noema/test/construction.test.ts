@@ -310,6 +310,7 @@ describe("GC2-S0 DISMANTLE", () => {
     await run(w, p, "MOVE", { direction: "east" });
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
+    await run(w, p, "WAIT");
     const entityId = w.rooms["room.east"].entities[0].entity_id;
     const before = { ...w.players[p.player_id].budgets };
     const result = await run(w, p, "BUILD", { operation: "DISMANTLE", entity_id: entityId });

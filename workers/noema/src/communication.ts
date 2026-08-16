@@ -30,10 +30,12 @@ export type RelayLike = {
   label: string;
   entity_type: string;
   condition?: number;
+  in_progress?: boolean;
 };
 
 export function isRelayEntity(e: RelayLike): boolean {
   if ((e.entity_type || "").toUpperCase() !== "INFRASTRUCTURE") return false;
+  if (e.in_progress === true) return false;
   const blob = `${e.entity_id} ${e.label}`.toLowerCase();
   return blob.includes("relay");
 }

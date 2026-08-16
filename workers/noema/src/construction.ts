@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s8";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s9";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -83,6 +83,7 @@ export type InfraLike = {
   entity_type?: string;
   infra_type?: string;
   upgrade_tier?: number;
+  in_progress?: boolean;
 };
 
 /** Live INFRASTRUCTURE only. Explicit infra_type wins; else id/label tokens. */
@@ -114,19 +115,24 @@ export const REPURPOSE_FROM_CLASS = "workshop" as const;
 export const REPURPOSE_TO_CLASS = "storage_bay" as const;
 export const ABANDON_AFTER_CYCLES = 12;
 export const RESTORE_CONDITION_CAP = 50;
+export const MULTI_CYCLE_CLASS: ConstructibleClass = "relay";
+
+export function isInProgress(entity: { in_progress?: boolean } | null | undefined): boolean {
+  return entity?.in_progress === true;
+}
 
 export function shouldAbandon(
   entity: InfraLike & { unclaimed?: boolean; scar?: boolean; last_steward_cycle?: number },
   nowCycle: number,
 ): boolean {
-  if (entity.unclaimed || entity.scar) return false;
+  if (entity.unclaimed || entity.scar || entity.in_progress) return false;
   if (!infraClassOf(entity)) return false;
   if (entity.last_steward_cycle == null) return false;
   return nowCycle - entity.last_steward_cycle >= ABANDON_AFTER_CYCLES;
 }
 
 export function workshopStorageDiscount(entities: InfraLike[]): number {
-  const shops = entities.filter((e) => infraClassOf(e) === "workshop");
+  const shops = entities.filter((e) => infraClassOf(e) === "workshop" && !e.in_progress);
   if (!shops.length) return 0;
   return shops.some((e) => (e.upgrade_tier || 0) >= 1) ? WORKSHOP_UPGRADE_DISCOUNT : WORKSHOP_STORAGE_DISCOUNT;
 }
