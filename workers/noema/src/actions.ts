@@ -53,8 +53,10 @@ export type EntityRuntime = {
   archive_claim?: "DESTROYED" | "OPERATING";
   /** GC2-S0 constructing Player. Genesis assets have none. */
   owner_id?: string;
-  /** GC2-S11. One additional Player steward. Absent = sole owner. */
+  /** GC2-S11. First additional Player steward. Absent = sole owner. */
   co_owner_id?: string;
+  /** GC2-S20. Second additional Player steward. */
+  co_owner_2_id?: string;
   /** GC2-S12. Public dest room a route_link faces. Never a new exit. */
   dest_room_id?: string;
   /** GC2-S0 class. Explicit wins over id/label matching. */
@@ -497,6 +499,8 @@ export function enrichEntity(e: {
   archive_subject_entity_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
   owner_id?: string;
+  co_owner_id?: string;
+  co_owner_2_id?: string;
   infra_type?: ConstructibleClass;
   hidden?: boolean;
   inspect_restricted_until?: number;
@@ -526,6 +530,7 @@ export function enrichEntity(e: {
     archive_claim: e.archive_claim,
     owner_id: e.owner_id,
     co_owner_id: e.co_owner_id,
+    co_owner_2_id: e.co_owner_2_id,
     dest_room_id: e.dest_room_id,
     infra_type: e.infra_type,
     scar: e.scar === true ? true : undefined,
