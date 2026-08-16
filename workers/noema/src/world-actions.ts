@@ -551,7 +551,7 @@ export function buildObservation(
       cargoLine(
         pl.budgets.storage ?? 0,
         undefined,
-        liveClassInRoom(roomEntities(room), "route_link"),
+        readyClassInRoom(roomEntities(room), "route_link"),
       ) || [],
     ),
     social_memory_lines: socialMemoryLines(
@@ -1275,7 +1275,7 @@ export async function applyWorldCommand(
     if (!room) {
       return fail(request_id, "NOT_FOUND", "You are not in a known room.");
     }
-    const waivesCargo = liveClassInRoom(roomEntities(room), "route_link");
+    const waivesCargo = readyClassInRoom(roomEntities(room), "route_link");
     const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0, undefined, waivesCargo) };
     if (!canPay(pl.budgets, moveCost)) {
       return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
@@ -2571,7 +2571,7 @@ export async function applyWorldCommand(
         classId === MULTI_CYCLE_CLASS
           ? `A relay is under construction (${entity_id}).`
           : classId === "route_link"
-            ? `A route link was opened (${entity_id}).`
+            ? `A route link is under construction (${entity_id}).`
             : classId === "workshop"
               ? `A workshop is under construction (${entity_id}).`
               : classId === "generator"
