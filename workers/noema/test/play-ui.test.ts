@@ -312,6 +312,22 @@ describe("play-ui desks and players", () => {
     expect(humanizeError("WORLD_INCIDENT", "inc").primary).toMatch(/incident/i);
     expect(humanizeError("SETTLEMENT_BLOCKED", "block").primary).toMatch(/settlement|blocked/i);
   });
+
+  it("humanizes AUTHORITY_CONFLICT and parses office create scope args", () => {
+    const h = humanizeError("AUTHORITY_CONFLICT", "Overlapping offices have no published precedence.");
+    expect(h.primary).not.toBe("AUTHORITY_CONFLICT");
+    expect(h.primary.toLowerCase()).toMatch(/precedence|object_set|office/);
+    expect(h.advanced).toMatch(/AUTHORITY_CONFLICT/);
+    const parsed = parsePlayCommand(
+      'office create org.x name="Relay" profile=OPERATE_NAMED_ASSET object_set=entity.relay precedence=lead',
+    );
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.command).toBe("COMMIT");
+      expect(parsed.arguments.object_set).toEqual(["entity.relay"]);
+      expect(parsed.arguments.office_precedence).toBe("lead");
+    }
+  });
 });
 
 describe("play-ui HTML escaping", () => {

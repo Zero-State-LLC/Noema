@@ -1066,20 +1066,46 @@ export function parseHumanCommand(
     if (sub === "create") {
       const nameM = rest.match(/name=["']([^"']+)["']/i);
       const profileM = rest.match(/\bprofile=(\S+)/i);
-      const org_id = rest.replace(/name=["'][^"']+["']/i, "").replace(/\bprofile=\S+/i, "").trim();
+      const objectSetM = rest.match(/\b(?:object_set|scope)=(\S+)/i);
+      const precedenceM = rest.match(/\b(?:office_precedence|precedence)=(\S+)/i);
+      const org_id = rest
+        .replace(/name=["'][^"']+["']/i, "")
+        .replace(/\bprofile=\S+/i, "")
+        .replace(/\b(?:object_set|scope)=\S+/i, "")
+        .replace(/\b(?:office_precedence|precedence)=\S+/i, "")
+        .trim();
       const display_name = nameM?.[1]?.trim() || "";
       const profile = parseOfficeProfile(profileM?.[1]);
       if (!org_id || !display_name || !profile) {
         return {
           ok: false,
-          error: 'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE',
+          error:
+            'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]',
         };
       }
+      const object_set = sanitizeIdList(
+        (objectSetM?.[1] || "").split(",").map((s) => s.trim()).filter(Boolean),
+      );
+      const precRaw = (precedenceM?.[1] || "").trim();
+      const office_precedence = sanitizePrecedence(
+        precRaw === "append" || precRaw === "lead"
+          ? precRaw
+          : precRaw
+            ? precRaw.split(",").map((s) => s.trim()).filter(Boolean)
+            : undefined,
+      );
       return {
         ok: true,
         action: {
           verb: "COMMIT",
-          arguments: { operation: "ORG_OFFICE_CREATE", org_id, display_name, authority_profile: profile },
+          arguments: {
+            operation: "ORG_OFFICE_CREATE",
+            org_id,
+            display_name,
+            authority_profile: profile,
+            ...(object_set ? { object_set } : {}),
+            ...(office_precedence ? { office_precedence } : {}),
+          },
         },
         display: `You create office ${display_name}.`,
       };
@@ -1133,7 +1159,8 @@ export function parseHumanCommand(
     }
     return {
       ok: false,
-      error: 'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE',
+      error:
+        'Office syntax: office create <org> name="Treasurer" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]',
     };
   }
   if (v === "resign") {
@@ -2345,6 +2372,10 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  succession <office> <player> [player2]");
     lines.push("  succession scope <scope> <player> [player2]");
     lines.push("  Designation is explicit. Vacancy without a successor is allowed.");
+    lines.push(
+      '  office create <org> name="Treasurer" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]',
+    );
+    lines.push("  Overlapping offices fail closed unless a narrower object_set or office_precedence is published.");
   } else if (t === "trade") {
     lines.push("TRADE");
     lines.push("  trade <player> offer=energy:3 want=storage:1");
@@ -2374,6 +2405,13 @@ export function humanizeActionError(code?: string, message?: string): { primary:
   const m = message || "That did not work.";
   if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: `${c}: ${m}` };
   if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: `${c}: ${m}` };
+  if (c === "AUTHORITY_CONFLICT") {
+    return {
+      primary:
+        "Another office already has precedence over that object. Create with object_set=… and precedence=append|lead.",
+      advanced: `${c}: ${m}`,
+    };
+  }
   if (c === "AMBIGUOUS_TARGET") return { primary: m, advanced: c };
   if (c === "MOVE_REJECTED") return { primary: "You cannot go that way from here.", advanced: `${c}: ${m}` };
   if (c === "INSPECT_FAILED" || c === "NOT_FOUND") return { primary: m.includes("see") ? m : "You do not see that here.", advanced: `${c}: ${m}` };
