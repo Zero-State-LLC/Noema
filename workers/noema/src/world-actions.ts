@@ -163,6 +163,13 @@ import {
 } from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
 import {
+  constructStorageCost,
+  creditLot,
+  harvestGrade,
+  lotLines,
+  spendLot,
+} from "./lots";
+import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
   SALVAGE_STORAGE,
@@ -503,6 +510,7 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
+    lot_lines: lotLines(pl.lot_grades),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1432,9 +1440,13 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, tradeCost);
       const reserved: Record<string, number> = {};
+      const offered_grades: Partial<Record<keyof Budgets, "SOUND" | "WORN">> = {};
       for (const [res, amt] of Object.entries(offered)) {
-        source[res as keyof Budgets] = (source[res as keyof Budgets] ?? 0) - amt;
+        const key = res as keyof Budgets;
+        offered_grades[key] = !acting_for ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
+        source[key] = (source[key] ?? 0) - amt;
         reserved[res] = amt;
+        if (!acting_for) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
       }
       if (emergencyScope) {
         emergencyScope.spent = emergencyScope.spent || {};
@@ -1449,6 +1461,7 @@ export async function applyWorldCommand(
         requested: { ...requested },
         status: "OPEN",
         reserved,
+        offered_grades,
         expires_cycle: action.arguments.expires_cycle,
         acting_for,
         office_id: grantOfficeId,
@@ -1531,11 +1544,28 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, COSTS.TRADE);
       for (const [res, amt] of Object.entries(trade.requested)) {
-        payFrom[res as keyof Budgets] = (payFrom[res as keyof Budgets] ?? 0) - amt;
-        proposerDest[res as keyof Budgets] = (proposerDest[res as keyof Budgets] ?? 0) + amt;
+        const key = res as keyof Budgets;
+        const incoming = !acceptActingFor ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
+        payFrom[key] = (payFrom[key] ?? 0) - amt;
+        proposerDest[key] = (proposerDest[key] ?? 0) + amt;
+        if (!acceptActingFor) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
+        const proposer = w.players[trade.proposer_id];
+        if (proposer && proposerDest === proposer.budgets) {
+          proposer.lot_grades = creditLot(proposer.lot_grades, proposer.budgets, key, amt, incoming);
+        }
       }
       for (const [res, amt] of Object.entries(trade.offered)) {
-        receiveInto[res as keyof Budgets] = (receiveInto[res as keyof Budgets] ?? 0) + amt;
+        const key = res as keyof Budgets;
+        receiveInto[key] = (receiveInto[key] ?? 0) + amt;
+        if (receiveInto === pl.budgets) {
+          pl.lot_grades = creditLot(
+            pl.lot_grades,
+            pl.budgets,
+            key,
+            amt,
+            trade.offered_grades?.[key] || "SOUND",
+          );
+        }
       }
       trade.reserved = {};
       trade.status = "SETTLED";
@@ -2035,17 +2065,14 @@ export async function applyWorldCommand(
       if (!canPay(pl.budgets, COSTS.HARVEST)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
       }
-      const resource = entity.stock_resource || "energy";
+      const resource = (entity.stock_resource || "energy") as keyof Budgets;
       debit(pl.budgets, COSTS.HARVEST);
       entity.stock_amount = (entity.stock_amount ?? 0) - amount;
       pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
-      // harvested resource credit (energy/compute/etc.)
-      if (resource in pl.budgets) {
-        pl.budgets[resource as keyof Budgets] =
-          (pl.budgets[resource as keyof Budgets] ?? 0) + amount;
-      } else {
-        pl.budgets.energy = (pl.budgets.energy ?? 0) + amount;
-      }
+      const credited = resource in pl.budgets ? resource : "energy";
+      const incoming = harvestGrade(entity.condition);
+      pl.budgets[credited] = (pl.budgets[credited] ?? 0) + amount;
+      pl.lot_grades = creditLot(pl.lot_grades, pl.budgets, credited, amount, incoming);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       pushEvent("BUDGET_CONSUMED", {
@@ -2056,8 +2083,9 @@ export async function applyWorldCommand(
       pushEvent("RESOURCE_TRANSFER", {
         from_id: entity.entity_id,
         to_id: principal.player_id,
-        resource,
+        resource: credited,
         amount,
+        grade: incoming,
       });
       const ev = pushEvent("ENTITY_UPDATE", {
         entity_id: entity.entity_id,
@@ -2071,7 +2099,7 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        `Harvested ${amount} ${resource} from ${titleCaseLabel(entity.label)}.`,
+        `Harvested ${amount} ${credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`,
         settled,
       );
       w.seen_idempotency[idem] = result;
@@ -2102,11 +2130,14 @@ export async function applyWorldCommand(
       if (liveClassInRoom(roomEntities(target), classId)) {
         return fail(request_id, "SLOT_OCCUPIED", `A ${classId.replace(/_/g, " ")} is already here.`);
       }
-      const cost = CONSTRUCT_COSTS[classId];
+      const base = CONSTRUCT_COSTS[classId];
+      const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
+      const cost = { ...base, storage: storageNeed || undefined };
       if (!canPay(pl.budgets, cost)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
       }
       debit(pl.budgets, cost);
+      if (storageNeed) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
       const entity_id = allocateInfraId(classId);
       const label = constructLabel(classId);
       const created: EntityRuntime = {
