@@ -55,6 +55,8 @@ export type OfficeRecord = {
   object_set?: string[];
   /** GC1-S5. Absent = any member. engineer|broker only. */
   requires_track?: OfficeRequiredTrack;
+  /** GC4-S5 CONSENSUS consents. Vacant office only. */
+  consents?: import("./succession").OfficeConsent[];
 };
 
 export type OfficePublic = {

@@ -129,6 +129,8 @@ import {
   activateOfficeSuccession,
   parseSuccessorList,
   WATCH_SUCCESSION_PULSE,
+  consentWinner,
+  recordConsent,
 } from "./succession";
 import {
   allocateReconstructionId,
@@ -899,6 +901,7 @@ export async function applyWorldCommand(
       "ORG_EMERGENCY_ACTIVATE",
       "ORG_EMERGENCY_REVOKE",
       "ORG_SUCCESSION_DESIGNATE",
+      "ORG_SUCCESSION_CONSENT",
       "RECONSTRUCT",
       "RECONSTRUCT_SUPERSEDE",
       "RECONSTRUCT_PUBLISH",
@@ -1849,6 +1852,9 @@ export async function applyWorldCommand(
     }
     if (action.arguments.operation === "ORG_SUCCESSION_DESIGNATE") {
       return applySuccessionDesignate(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
+    if (action.arguments.operation === "ORG_SUCCESSION_CONSENT") {
+      return applySuccessionConsent(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
     if (
       action.arguments.operation === "RECONSTRUCT" ||
@@ -2805,6 +2811,101 @@ async function applySuccessionDesignate(
   );
   w.seen_idempotency[idem] = result;
   return result;
+}
+
+async function applySuccessionConsent(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  const office_id = String(args.office_id || "").trim();
+  const candidate_id = String(args.agent_id || "").trim();
+  const found = findOffice(w.organizations, office_id);
+  if (!found) return fail(request_id, "NOT_FOUND", "Office not found.");
+  const org = w.organizations[found.org_id];
+  const office = found.office;
+  if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+  if (office.status === "RETIRED") {
+    return fail(request_id, "FORBIDDEN", "A retired office cannot succeed.");
+  }
+  if (office.status !== "VACANT") {
+    return fail(request_id, "FORBIDDEN", "That office is occupied.");
+  }
+  if (!isOrgMember(org, principal.player_id)) {
+    return fail(request_id, "FORBIDDEN", "Only a member may consent.");
+  }
+  if (!w.players[candidate_id]) return fail(request_id, "NOT_FOUND", "That Player is not in this world.");
+  if (!isOrgMember(org, candidate_id)) {
+    return fail(request_id, "FORBIDDEN", "A consensus candidate must be a current member.");
+  }
+  if (!playerMeetsOfficeTrack(w, candidate_id, office)) {
+    return fail(request_id, "FORBIDDEN", officeTrackReject(office.requires_track!));
+  }
+  if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+  }
+  debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+  office.consents = recordConsent(office.consents, principal.player_id, candidate_id);
+  const memberIds = (org.members || []).map((m) => m.agent_id);
+  const winner = consentWinner(office.consents, memberIds);
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    cost_paid: COSTS.ORG_OFFICE_ACT,
+    reason: "ORG_SUCCESSION_CONSENT",
+  });
+  if (winner) {
+    office.holder_player_id = winner;
+    office.status = "OCCUPIED";
+    office.history.push({ cycle: w.cycle, holder_player_id: winner, kind: "ASSIGNED" });
+    office.consents = [];
+    noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
+    const ev = pushEvent("ENTITY_UPDATE", {
+      entity_id: office.office_id,
+      set: {
+        office_status: "OCCUPIED",
+        holder_player_id: winner,
+        institution_id: org.org_id,
+        office_kind: "INSTITUTION_OFFICE",
+        succession_to: winner,
+      },
+      unset: [],
+      operation: "CONSENSUS",
+    });
+    await settleEv(ev);
+    const seated = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Consensus seated ${w.players[winner]?.handle || winner} in ${office.display_name}.`,
+      false,
+    );
+    w.seen_idempotency[idem] = seated;
+    return seated;
+  }
+  const ev = pushEvent("ENTITY_UPDATE", {
+    entity_id: office.office_id,
+    set: { consents: office.consents, office_kind: "INSTITUTION_OFFICE" },
+    unset: [],
+    operation: "CONSENT",
+  });
+  await settleEv(ev);
+  const recorded = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `Consent recorded for ${office.display_name}.`,
+    false,
+  );
+  w.seen_idempotency[idem] = recorded;
+  return recorded;
 }
 
 function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {

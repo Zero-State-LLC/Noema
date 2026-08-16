@@ -69,6 +69,38 @@ export function activateOfficeSuccession(
   return { holder_player_id: id };
 }
 
+export type OfficeConsent = { member_id: string; candidate_id: string };
+
+export function consensusThreshold(memberCount: number): number {
+  if (memberCount <= 0) return 1;
+  return Math.ceil(memberCount / 2);
+}
+
+export function recordConsent(
+  consents: OfficeConsent[] | undefined,
+  memberId: string,
+  candidateId: string,
+): OfficeConsent[] {
+  const rest = (consents || []).filter((c) => c.member_id !== memberId);
+  return [...rest, { member_id: memberId, candidate_id: candidateId }];
+}
+
+export function consentWinner(
+  consents: OfficeConsent[] | undefined,
+  memberIds: string[],
+): string | null {
+  const live = new Set(memberIds);
+  const counts: Record<string, number> = {};
+  for (const c of consents || []) {
+    if (!live.has(c.member_id) || !live.has(c.candidate_id)) continue;
+    counts[c.candidate_id] = (counts[c.candidate_id] || 0) + 1;
+  }
+  const need = consensusThreshold(memberIds.length);
+  const winners = Object.keys(counts).filter((id) => (counts[id] || 0) >= need);
+  if (winners.length !== 1) return null;
+  return winners[0];
+}
+
 export function activateEmergencySuccession(
   scope: EmergencyScope,
   org: OrgLike,
