@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s13";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s14";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -117,7 +117,7 @@ export const ABANDON_AFTER_CYCLES = 12;
 export const RESTORE_CONDITION_CAP = 50;
 export const MULTI_CYCLE_CLASS: ConstructibleClass = "relay";
 /** S9 relay plus S13 workshop. Other classes stay instant. */
-export const MULTI_CYCLE_CLASSES: readonly ConstructibleClass[] = ["relay", "workshop"];
+export const MULTI_CYCLE_CLASSES: readonly ConstructibleClass[] = ["relay", "workshop", "generator"];
 
 export function isMultiCycleClass(classId: ConstructibleClass | null | undefined): boolean {
   return Boolean(classId && (MULTI_CYCLE_CLASSES as readonly string[]).includes(classId));
