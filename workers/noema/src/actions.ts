@@ -92,6 +92,8 @@ export type PlayerRuntime = {
   };
   /** GC8-S1 SOUND/WORN grades on current holdings. Not a parallel inventory. */
   lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
+  /** GC8-S2 public origin of current holdings. Hidden rooms never stored. */
+  lot_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
     catalog_id: "discovery-catalog/gc6-s0";
@@ -109,6 +111,7 @@ export type OpenTrade = {
   status: "OPEN" | "SETTLED" | "REJECTED" | "CANCELLED";
   reserved: Record<string, number>;
   offered_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
+  offered_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
   expires_cycle?: number;
   acting_for?: string;
   office_id?: string;

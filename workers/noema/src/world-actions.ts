@@ -165,9 +165,12 @@ import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } fro
 import {
   constructStorageCost,
   creditLot,
+  creditOrigin,
   harvestGrade,
   lotLines,
+  publicHarvestOrigin,
   spendLot,
+  spendOrigin,
 } from "./lots";
 import {
   CONSTRUCT_COSTS,
@@ -510,7 +513,7 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
-    lot_lines: lotLines(pl.lot_grades),
+    lot_lines: lotLines(pl.lot_grades, pl.lot_origins),
     social_memory_lines: socialMemoryLines(
       pl.trade_memory,
       Object.fromEntries(
@@ -1441,12 +1444,19 @@ export async function applyWorldCommand(
       debit(pl.budgets, tradeCost);
       const reserved: Record<string, number> = {};
       const offered_grades: Partial<Record<keyof Budgets, "SOUND" | "WORN">> = {};
+      const offered_origins: NonNullable<OpenTrade["offered_origins"]> = {};
       for (const [res, amt] of Object.entries(offered)) {
         const key = res as keyof Budgets;
         offered_grades[key] = !acting_for ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
+        if (!acting_for && pl.lot_origins?.[key]) {
+          offered_origins[key] = { ...pl.lot_origins[key] };
+        }
         source[key] = (source[key] ?? 0) - amt;
         reserved[res] = amt;
-        if (!acting_for) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
+        if (!acting_for) {
+          pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
+          pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets[key] ?? 0, key);
+        }
       }
       if (emergencyScope) {
         emergencyScope.spent = emergencyScope.spent || {};
@@ -1462,6 +1472,7 @@ export async function applyWorldCommand(
         status: "OPEN",
         reserved,
         offered_grades,
+        offered_origins,
         expires_cycle: action.arguments.expires_cycle,
         acting_for,
         office_id: grantOfficeId,
@@ -1546,12 +1557,17 @@ export async function applyWorldCommand(
       for (const [res, amt] of Object.entries(trade.requested)) {
         const key = res as keyof Budgets;
         const incoming = !acceptActingFor ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
+        const incomingOrigin = !acceptActingFor ? pl.lot_origins?.[key] : undefined;
         payFrom[key] = (payFrom[key] ?? 0) - amt;
         proposerDest[key] = (proposerDest[key] ?? 0) + amt;
-        if (!acceptActingFor) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
+        if (!acceptActingFor) {
+          pl.lot_grades = spendLot(pl.lot_grades, pl.budgets[key] ?? 0, key);
+          pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets[key] ?? 0, key);
+        }
         const proposer = w.players[trade.proposer_id];
         if (proposer && proposerDest === proposer.budgets) {
           proposer.lot_grades = creditLot(proposer.lot_grades, proposer.budgets, key, amt, incoming);
+          proposer.lot_origins = creditOrigin(proposer.lot_origins, proposer.budgets, key, amt, incomingOrigin);
         }
       }
       for (const [res, amt] of Object.entries(trade.offered)) {
@@ -1564,6 +1580,13 @@ export async function applyWorldCommand(
             key,
             amt,
             trade.offered_grades?.[key] || "SOUND",
+          );
+          pl.lot_origins = creditOrigin(
+            pl.lot_origins,
+            pl.budgets,
+            key,
+            amt,
+            trade.offered_origins?.[key],
           );
         }
       }
@@ -2073,6 +2096,13 @@ export async function applyWorldCommand(
       const incoming = harvestGrade(entity.condition);
       pl.budgets[credited] = (pl.budgets[credited] ?? 0) + amount;
       pl.lot_grades = creditLot(pl.lot_grades, pl.budgets, credited, amount, incoming);
+      pl.lot_origins = creditOrigin(
+        pl.lot_origins,
+        pl.budgets,
+        credited,
+        amount,
+        publicHarvestOrigin(isHiddenRoom(room) ? undefined : room, principal.player_id),
+      );
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       pushEvent("BUDGET_CONSUMED", {
@@ -2137,7 +2167,10 @@ export async function applyWorldCommand(
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
       }
       debit(pl.budgets, cost);
-      if (storageNeed) pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
+      if (storageNeed) {
+        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+      }
       const entity_id = allocateInfraId(classId);
       const label = constructLabel(classId);
       const created: EntityRuntime = {
