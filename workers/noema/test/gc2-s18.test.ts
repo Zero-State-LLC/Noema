@@ -79,7 +79,7 @@ describe("GC2-S18 mapper", () => {
   it("keeps relay as MULTI_CYCLE_CLASS, adds archive_annex, and stays silent", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(isMultiCycleClass("archive_annex")).toBe(true);
-    expect(isMultiCycleClass("route_link")).toBe(false);
+    expect(isMultiCycleClass("route_link")).toBe(true);
     expect(
       liveClassInRoom(
         [{ entity_id: "a", label: "annex", entity_type: "INFRASTRUCTURE", infra_type: "archive_annex", in_progress: true }],

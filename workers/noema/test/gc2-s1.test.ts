@@ -95,7 +95,9 @@ describe("GC2-S1 world path", () => {
     w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 80, storage: 16 });
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(built.ok).toBe(true);
-    expect(built.observation?.consequence).toMatch(/route link was opened/i);
+    expect(built.observation?.consequence).toMatch(/route link is under construction/i);
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
     const harvested = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.cell", amount: 1 });
     expect(harvested.ok).toBe(true);
     expect(w.players[p.player_id].budgets.storage).toBeLessThan(16);

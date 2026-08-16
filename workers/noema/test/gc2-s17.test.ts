@@ -97,7 +97,7 @@ describe("GC2-S17 mapper", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(isMultiCycleClass("defensive_work")).toBe(true);
     expect(isMultiCycleClass("archive_annex")).toBe(true);
-    expect(isMultiCycleClass("route_link")).toBe(false);
+    expect(isMultiCycleClass("route_link")).toBe(true);
     expect(
       liveClassInRoom(
         [{ entity_id: "w", label: "work", entity_type: "INFRASTRUCTURE", infra_type: "defensive_work", in_progress: true }],

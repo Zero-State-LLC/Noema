@@ -2548,7 +2548,7 @@ export function deriveAffordances(input: {
 
   for (const x of exits) {
     const moveCost = {
-      energy: moveEnergyCost(budgets.storage ?? 0, undefined, liveClassInRoom(entities, "route_link")),
+      energy: moveEnergyCost(budgets.storage ?? 0, undefined, readyClassInRoom(entities, "route_link")),
     };
     const ok = canPay(budgets, moveCost);
     out.push({

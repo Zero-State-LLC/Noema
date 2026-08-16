@@ -78,7 +78,7 @@ describe("GC2-S13 mapper", () => {
     expect(isMultiCycleClass("production_node")).toBe(true);
     expect(isMultiCycleClass("defensive_work")).toBe(true);
     expect(isMultiCycleClass("archive_annex")).toBe(true);
-    expect(isMultiCycleClass("route_link")).toBe(false);
+    expect(isMultiCycleClass("route_link")).toBe(true);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b/);
   });
@@ -115,7 +115,7 @@ describe("GC2-S13 world path", () => {
     const link = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(link.ok).toBe(true);
     expect(storageBeforeLink - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.route_link.storage);
-    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "route_link")!)).toBe(false);
+    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "route_link")!)).toBe(true);
 
     const waited = await run(w, p, "WAIT");
     expect(waited.ok).toBe(true);
