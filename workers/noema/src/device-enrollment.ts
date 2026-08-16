@@ -120,6 +120,10 @@ export function verificationUri(env: Env, req: Request): string {
   return `${loginRedirectOrigin(env, req).replace(/\/$/, "")}/connect`;
 }
 
+export function allocateDeviceControllerId(): string {
+  return `ctrl.device.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
 export async function startDeviceEnrollment(
   env: Env,
   req: Request,
@@ -138,7 +142,7 @@ export async function startDeviceEnrollment(
     runtime: String(body.metadata?.runtime || "external").slice(0, 64),
     status: "pending",
     player_id: null,
-    controller_id: null,
+    controller_id: allocateDeviceControllerId(),
     issued_at: new Date(now).toISOString(),
     expires_at: new Date(now + DEVICE_TTL_MS).toISOString(),
   };
@@ -146,6 +150,7 @@ export async function startDeviceEnrollment(
   return json({
     device_code,
     user_code: rec.user_code,
+    controller_id: rec.controller_id,
     verification_uri: verificationUri(env, req),
     expires_in: 600,
     interval: 5,
@@ -210,17 +215,19 @@ export async function approveDevice(
   const status = await effectiveDeviceStatus(rec, now);
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
   const handle = approver.player_id.replace(/^player\./, "").slice(0, 32) || "player";
+  const controller_id = rec.controller_id || allocateDeviceControllerId();
   const minted = await mintControllerToken(env, {
     handle,
     controllerType: "agent",
     playerId: approver.player_id,
+    controllerId: controller_id,
     amr: "device_enrollment",
   });
   const next: DeviceRecord = {
     ...rec,
     status: "approved",
     player_id: approver.player_id,
-    controller_id: minted.controller_id,
+    controller_id,
     access_token: minted.access_token,
   };
   await store.put(next);
@@ -228,7 +235,7 @@ export async function approveDevice(
     status: "approved",
     user_code: rec.user_code,
     player_id: approver.player_id,
-    controller_id: minted.controller_id,
+    controller_id,
     scopes: rec.scopes,
     runtime: rec.runtime,
   });

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
-import { generateEs256Pair, mintEs256, mintHs256, resetJwksCache } from "../src/jwt";
+import { generateEs256Pair, mintEs256, mintHs256, resetJwksCache, verifyHs256 } from "../src/jwt";
 import { resolveAdmin } from "../src/admin-auth";
 import type { Env } from "../src/types";
 import type { PlayerPrincipal } from "../src/types";
@@ -27,6 +27,22 @@ describe("controller JWT fail-closed", () => {
     );
     expect(res).toBeInstanceOf(Response);
     expect((res as Response).status).toBe(503);
+  });
+
+  it("reuses sid from the bearer instead of minting a new sess per request", async () => {
+    const e = env();
+    const minted = await mintControllerToken(e, { handle: "nacre", controllerType: "human" });
+    const claims = await verifyHs256(minted.access_token, "test-signing-secret");
+    expect(String(claims.sid || "")).toMatch(/^sess\./);
+    const req = new Request("https://noema.local/v1/me", {
+      headers: { Authorization: `Bearer ${minted.access_token}` },
+    });
+    const a = await resolvePrincipal(req, e);
+    const b = await resolvePrincipal(req, e);
+    expect(a).not.toBeInstanceOf(Response);
+    expect(b).not.toBeInstanceOf(Response);
+    expect((a as PlayerPrincipal).session_id).toBe(String(claims.sid));
+    expect((b as PlayerPrincipal).session_id).toBe((a as PlayerPrincipal).session_id);
   });
 
   it("refuses to mint without TOKEN_SIGNING_SECRET", async () => {
