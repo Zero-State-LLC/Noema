@@ -248,6 +248,69 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain('height="180"');
     expect(html).toContain("createPhosphorSession");
     expect(html).toContain("NoemaPhosphor.update");
+    expect(html).toContain("const __name = function(fn) { return fn; }");
+  });
+
+  it("boots the inlined client without esbuild __name", () => {
+    const src = watchHtml().split("<script>")[2].split("</script>")[0];
+    expect(src).toContain("__name");
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext() {
+        return {
+          fillStyle: "",
+          strokeStyle: "",
+          globalAlpha: 1,
+          font: "",
+          imageSmoothingEnabled: true,
+          fillRect() {},
+          beginPath() {},
+          moveTo() {},
+          lineTo() {},
+          stroke() {},
+          fillText() {},
+        };
+      },
+    };
+    const wrap = { hidden: true };
+    const g = globalThis as unknown as {
+      document: {
+        hidden: boolean;
+        getElementById(id: string): unknown;
+        addEventListener(): void;
+      };
+      window: unknown;
+      NoemaPhosphor?: { mode: string; update(s: object): void };
+    };
+    const prevDoc = g.document;
+    const prevWin = g.window;
+    g.document = {
+      hidden: false,
+      getElementById(id: string) {
+        if (id === "watch-phosphor") return canvas;
+        if (id === "watch-phos-wrap") return wrap;
+        if (id === "watch-mode-text" || id === "watch-mode-pixel") {
+          return { setAttribute() {}, addEventListener() {} };
+        }
+        return null;
+      },
+      addEventListener() {},
+    };
+    g.window = g;
+    try {
+      (0, eval)(src);
+      expect(g.NoemaPhosphor?.mode).toBe("pixel");
+      expect(wrap.hidden).toBe(false);
+      g.NoemaPhosphor?.update({
+        sequence: 1,
+        rooms: [{ room_id: "room.a", name: "Alpha", description: "A" }],
+      });
+    } finally {
+      g.document = prevDoc;
+      g.window = prevWin;
+      delete g.NoemaPhosphor;
+    }
   });
 
   it("TEXT mode and failed canvas do not draw and do not schedule rAF", () => {

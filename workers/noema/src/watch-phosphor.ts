@@ -556,6 +556,7 @@ export function createPhosphorSession(opts: {
 
 export function phosphorInlineScript(): string {
   return `(() => {
+    const __name = function(fn) { return fn; };
     const PHOSPHOR_WIDTH = ${PHOSPHOR_WIDTH};
     const PHOSPHOR_HEIGHT = ${PHOSPHOR_HEIGHT};
     const PHOSPHOR_MAX_FPS = ${PHOSPHOR_MAX_FPS};
