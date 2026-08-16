@@ -185,6 +185,7 @@ import {
   isHiddenEntity,
   isHiddenRoom,
   liveClassInRoom,
+  scarFromDismantle,
   withWorkshopStorage,
 } from "./construction";
 import { hasPrivateCognition } from "./cognition";
@@ -2306,12 +2307,29 @@ export async function applyWorldCommand(
         owner_id: here.owner_id,
       });
       await settleEv(ev);
+      const leaveScar = !isHiddenRoom(room);
+      if (leaveScar) {
+        const scar = scarFromDismantle(classId);
+        room.entities = [...roomEntities(room), scar];
+        const scarEv = pushEvent("ENTITY_CREATE", {
+          entity_id: scar.entity_id,
+          entity_type: "RUIN",
+          location: room.room_id,
+          room_id: room.room_id,
+          label: scar.label,
+          properties: { scar: true },
+          state: { condition: 0 },
+        });
+        await settleEv(scarEv);
+      }
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `Dismantled ${titleCaseLabel(here.label)}.`,
+        leaveScar
+          ? `Dismantled ${titleCaseLabel(here.label)}. A scar remains.`
+          : `Dismantled ${titleCaseLabel(here.label)}.`,
         settled,
       );
       w.seen_idempotency[idem] = result;

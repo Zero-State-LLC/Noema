@@ -312,12 +312,18 @@ describe("GC2-S0 DISMANTLE", () => {
     const before = { ...w.players[p.player_id].budgets };
     const result = await run(w, p, "BUILD", { operation: "DISMANTLE", entity_id: entityId });
     expect(result.ok).toBe(true);
-    expect(result.events?.map((e) => e.event_type)).toEqual(["BUDGET_CONSUMED", "ENTITY_DESTROY"]);
+    expect(result.events?.map((e) => e.event_type)).toEqual([
+      "BUDGET_CONSUMED",
+      "ENTITY_DESTROY",
+      "ENTITY_CREATE",
+    ]);
     expect(result.events?.some((e) => /^STRUCTURE_/.test(e.event_type))).toBe(false);
     expect(result.events?.find((e) => e.event_type === "ENTITY_DESTROY")?.payload?.reason).toBe(
       "DISMANTLED",
     );
-    expect(w.rooms["room.east"].entities).toHaveLength(0);
+    expect(w.rooms["room.east"].entities).toHaveLength(1);
+    expect(w.rooms["room.east"].entities[0].scar).toBe(true);
+    expect(w.rooms["room.east"].entities[0].entity_type).toBe("RUIN");
     expect(w.players[p.player_id].budgets.energy).toBe(before.energy - 4);
     expect(w.players[p.player_id].budgets.compute).toBe(before.compute - 2);
     expect(w.players[p.player_id].budgets.storage).toBe(before.storage + 2);
