@@ -81,12 +81,14 @@ describe("GC2-S10 world path", () => {
     const a = principal("player.nacre");
     const b = principal("player.vesper");
     await run(w, a, "ENTER_WORLD");
-    await run(w, b, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
 
     const built = await run(w, a, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
+    const opened = await run(w, a, "WAIT");
+    expect(opened.ok).toBe(true);
+    await run(w, b, "ENTER_WORLD");
+    w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
     const entityId = shop.entity_id;
 

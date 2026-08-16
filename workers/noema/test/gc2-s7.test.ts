@@ -99,13 +99,17 @@ describe("GC2-S7 world path", () => {
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
-    expect(shop.last_steward_cycle).toBe(0);
-    expect(shop.unclaimed).toBeFalsy();
+    const opened = await run(w, owner, "WAIT");
+    expect(opened.ok).toBe(true);
+    expect(w.cycle).toBe(1);
+    const live = w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)!;
+    expect(live.last_steward_cycle).toBe(1);
+    expect(live.unclaimed).toBeFalsy();
 
-    w.cycle = 11;
+    w.cycle = 12;
     const waited = await run(w, owner, "WAIT");
     expect(waited.ok).toBe(true);
-    expect(w.cycle).toBe(12);
+    expect(w.cycle).toBe(13);
     const left = w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)!;
     expect(left.unclaimed).toBe(true);
     expect(left.owner_id).toBe(owner.player_id);
@@ -129,14 +133,16 @@ describe("GC2-S7 world path", () => {
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    const opened = await run(w, p, "WAIT");
+    expect(opened.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
     shop.condition = 40;
     const repaired = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: shop.entity_id });
     expect(repaired.ok).toBe(true);
-    expect(shop.last_steward_cycle).toBe(0);
-    w.cycle = 10;
+    expect(shop.last_steward_cycle).toBe(1);
+    w.cycle = 11;
     await run(w, p, "WAIT");
-    expect(w.cycle).toBe(11);
+    expect(w.cycle).toBe(12);
     expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)?.unclaimed).toBeFalsy();
 
     const hidden = world();
