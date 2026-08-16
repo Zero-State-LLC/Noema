@@ -218,6 +218,48 @@ export type PlayReady = {
 };
 
 /** PLAY mutation readiness — not “Durable Object answered”. */
+export type LifecycleAction = "pause" | "resume" | "incident" | "close";
+
+export type LifecycleResult =
+  | { ok: true; status: WorldOpStatus }
+  | { ok: false; code: string; message: string; http: number };
+
+/** CONTROL_PLANE world status transitions. Does not reseed or activate Genesis. */
+export function applyWorldLifecycle(
+  current: WorldOpStatus,
+  action: LifecycleAction,
+  settlement: SettlementHealth,
+): LifecycleResult {
+  if (action === "pause") {
+    if (current !== "ACTIVE" && current !== "PAUSED") {
+      return { ok: false, code: "INVALID_STATE", message: `cannot pause from ${current}`, http: 409 };
+    }
+    return { ok: true, status: "PAUSED" };
+  }
+  if (action === "resume") {
+    if (current !== "PAUSED") {
+      return { ok: false, code: "INVALID_STATE", message: `cannot resume from ${current}`, http: 409 };
+    }
+    if (settlement === "BLOCKING") {
+      return { ok: false, code: "RECOVERY_REQUIRED", message: "settlement must recover before resume", http: 409 };
+    }
+    return { ok: true, status: "ACTIVE" };
+  }
+  if (action === "incident") {
+    return { ok: true, status: "INCIDENT" };
+  }
+  if (action === "close") {
+    if (current !== "INCIDENT") {
+      return { ok: false, code: "INVALID_STATE", message: `cannot close incident from ${current}`, http: 409 };
+    }
+    if (settlement === "BLOCKING") {
+      return { ok: false, code: "RECOVERY_REQUIRED", message: "settlement must recover before close", http: 409 };
+    }
+    return { ok: true, status: "ACTIVE" };
+  }
+  return { ok: false, code: "INVALID_REQUEST", message: "action=pause|resume|incident|close", http: 400 };
+}
+
 export function playReady(
   status?: string | null,
   settlement?: string | null,

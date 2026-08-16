@@ -7,6 +7,7 @@ import { publicRumorPulses } from "./rumor";
 import { publicEmergencyPulses } from "./emergency";
 import {
   applyControllingSession,
+  applyWorldLifecycle,
   commandForOps,
   countLivePlayers,
   expireStalePresence,
@@ -15,6 +16,7 @@ import {
   isMutatingCommand,
   mutationBlocked,
   nextSettlementHealth,
+  type LifecycleAction,
   type SettlementHealth,
   type WorldOpStatus,
 } from "./ops";
@@ -325,35 +327,16 @@ export class NoemaWorldDO {
     if (request.method === "POST" && path.endsWith("/admin-lifecycle")) {
       await this.load();
       const body = (await request.json()) as { action?: string; reason?: string };
-      const action = String(body.action || "").toLowerCase();
-      const current = this.meta!.status;
-      if (action === "pause") {
-        if (current !== "ACTIVE" && current !== "PAUSED") {
-          return Response.json(
-            { error: { code: "INVALID_STATE", message: `cannot pause from ${current}` } },
-            { status: 409 },
-          );
-        }
-        this.meta!.status = "PAUSED";
-      } else if (action === "resume") {
-        if (current !== "PAUSED") {
-          return Response.json(
-            { error: { code: "INVALID_STATE", message: `cannot resume from ${current}` } },
-            { status: 409 },
-          );
-        }
-        if ((this.meta!.settlement_health || "HEALTHY") === "BLOCKING") {
-          return Response.json(
-            { error: { code: "RECOVERY_REQUIRED", message: "settlement must recover before resume" } },
-            { status: 409 },
-          );
-        }
-        this.meta!.status = "ACTIVE";
-      } else if (action === "incident") {
-        this.meta!.status = "INCIDENT";
-      } else {
-        return Response.json({ error: { code: "INVALID_REQUEST", message: "action=pause|resume|incident" } }, { status: 400 });
+      const action = String(body.action || "").toLowerCase() as LifecycleAction;
+      const decided = applyWorldLifecycle(
+        this.meta!.status,
+        action,
+        (this.meta!.settlement_health || "HEALTHY") as SettlementHealth,
+      );
+      if (!decided.ok) {
+        return Response.json({ error: { code: decided.code, message: decided.message } }, { status: decided.http });
       }
+      this.meta!.status = decided.status;
       await this.state.storage.put("world_meta", this.meta);
       return Response.json({
         ok: true,
