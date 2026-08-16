@@ -40,6 +40,8 @@ export type OpenContest = {
   contest_id: string;
   declarer_id: string;
   defender_id?: string;
+  acting_for?: string;
+  defender_acting_for?: string;
   contest_form: ContestForm;
   target: ContestTarget;
   room_id: string;
@@ -49,6 +51,12 @@ export type OpenContest = {
   seed_stream_id: string;
   status: "OPEN" | "CLOSED";
 };
+
+export function contestOfficeProfile(
+  form: ContestForm,
+): "OPERATE_RESOURCE_ACCOUNT" | "OPERATE_NAMED_ASSET" {
+  return form === "RESOURCE_SEIZURE" ? "OPERATE_RESOURCE_ACCOUNT" : "OPERATE_NAMED_ASSET";
+}
 
 type FormSpec = {
   minimum_stake: StakeMap;
