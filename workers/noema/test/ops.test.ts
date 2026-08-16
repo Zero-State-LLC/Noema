@@ -3,6 +3,7 @@ import {
   actorKindFromPrincipal,
   applyControllingSession,
   applyWorldLifecycle,
+  isUsableLiveWorld,
   planIncidentRecover,
   commandForOps,
   countEnteredPlayers,
@@ -137,10 +138,15 @@ describe("applyWorldLifecycle", () => {
 describe("planIncidentRecover", () => {
   it("restores ACTIVE and HEALTHY from INCIDENT when a durable head exists", () => {
     const r = planIncidentRecover("INCIDENT", "BLOCKING", 4);
-    expect(r).toEqual({ ok: true, restore: true, status: "ACTIVE", settlement: "HEALTHY" });
+    expect(r).toEqual({ ok: true, restore: true, adopt: false, status: "ACTIVE", settlement: "HEALTHY" });
   });
 
-  it("refuses recover without a durable head", () => {
+  it("adopts a usable live DO when the canonical head is missing", () => {
+    const r = planIncidentRecover("INCIDENT", "BLOCKING", null, true);
+    expect(r).toEqual({ ok: true, restore: false, adopt: true, status: "ACTIVE", settlement: "HEALTHY" });
+  });
+
+  it("refuses recover without a durable head or usable live world", () => {
     const r = planIncidentRecover("INCIDENT", "BLOCKING", null);
     expect(r.ok).toBe(false);
     if (!r.ok) {
@@ -151,6 +157,18 @@ describe("planIncidentRecover", () => {
 
   it("does not recover from ACTIVE", () => {
     expect(planIncidentRecover("ACTIVE", "HEALTHY", 3).ok).toBe(false);
+  });
+});
+
+describe("isUsableLiveWorld", () => {
+  it("requires a stored world with rooms and a sequence", () => {
+    expect(isUsableLiveWorld(null)).toBe(false);
+    expect(isUsableLiveWorld({ world_id: "world.perihelion-reach", sequence: 92, rooms: {} })).toBe(false);
+    expect(isUsableLiveWorld({
+      world_id: "world.perihelion-reach",
+      sequence: 92,
+      rooms: { "room.relay-quarter": { room_id: "room.relay-quarter" } },
+    })).toBe(true);
   });
 });
 

@@ -62,7 +62,8 @@ BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
 Apply settlement tables in Supabase (SQL editor or CLI):
 
 `supabase/migrations/20260812193000_noema_settled_events.sql`  
-`supabase/migrations/20260813210000_noema_world_heads.sql`
+`supabase/migrations/20260813210000_noema_world_heads.sql`  
+`supabase/migrations/20260816013000_noema_adopt_live_world_head.sql`
 
 ## Commands
 
@@ -113,7 +114,10 @@ Worker-only secrets — never browser, never agents, never git.
 Settlement posts events to `noema_settled_events` and upserts `noema_world_heads` (RFC-0016) when URL + service role are set (soft-fail if missing). Apply:
 
 `supabase/migrations/20260812193000_noema_settled_events.sql`  
-`supabase/migrations/20260813210000_noema_world_heads.sql`
+`supabase/migrations/20260813210000_noema_world_heads.sql`  
+`supabase/migrations/20260816013000_noema_adopt_live_world_head.sql`
+
+Admin `POST /v1/admin/lifecycle { "action": "recover" }` restores an existing head, or persists the live Durable Object snapshot as the first canonical head when the row is missing. It does not invent ledger events or reseed Genesis.
 
 After LOOK, response field `settled: true` means a row was accepted.
 

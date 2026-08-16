@@ -8,7 +8,6 @@ import { publicEmergencyPulses } from "./emergency";
 import {
   applyControllingSession,
   applyWorldLifecycle,
-  planIncidentRecover,
   commandForOps,
   countLivePlayers,
   expireStalePresence,
@@ -33,7 +32,9 @@ import {
 } from "./operator-digests";
 import type { DeviceRecord } from "./device-enrollment";
 import type { EnrollmentRecord } from "./enrollment";
+import { runIncidentRecover } from "./incident-recover";
 import {
+  commitAdoptedLiveHead,
   commitCanonicalSettlement,
   getWorldHead,
   replayUnsettled,
@@ -349,22 +350,29 @@ export class NoemaWorldDO {
       const body = (await request.json()) as { action?: string; reason?: string };
       const action = String(body.action || "").toLowerCase();
       if (action === "recover") {
-        const head = await getWorldHead(this.env, this.world!.world_id);
-        const planned = planIncidentRecover(
-          this.meta!.status,
-          (this.meta!.settlement_health || "HEALTHY") as SettlementHealth,
-          typeof head?.revision === "number" ? head.revision : null,
+        const stored = await this.state.storage.get<WorldState>("world");
+        const recovered = await runIncidentRecover(
+          {
+            status: this.meta!.status,
+            settlement: (this.meta!.settlement_health || "HEALTHY") as SettlementHealth,
+            storedWorld: stored,
+            currentWorld: this.world!,
+            genesisId: this.meta!.genesis_id || null,
+            writerGeneration: this.meta!.writer_generation || "do.1",
+          },
+          {
+            getHead: (worldId) => getWorldHead(this.env, worldId),
+            adoptLiveHead: (input) => commitAdoptedLiveHead(this.env, input),
+          },
         );
-        if (!planned.ok) {
-          return Response.json({ error: { code: planned.code, message: planned.message } }, { status: planned.http });
+        if (!recovered.ok) {
+          return Response.json({ error: { code: recovered.code, message: recovered.message } }, { status: recovered.http });
         }
-        if (planned.restore && head) {
-          this.world = worldFromHead(head, this.world!);
-          migrateWorldRuntime(this.world);
-          this.meta!.revision = head.revision;
-        }
-        this.meta!.status = planned.status;
-        this.meta!.settlement_health = planned.settlement;
+        this.world = recovered.world;
+        migrateWorldRuntime(this.world);
+        this.meta!.revision = recovered.revision;
+        this.meta!.status = recovered.status;
+        this.meta!.settlement_health = recovered.settlement;
         this.meta!.settlement_ok = true;
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
@@ -373,6 +381,8 @@ export class NoemaWorldDO {
           status: this.meta!.status,
           settlement_health: this.meta!.settlement_health,
           revision: this.meta!.revision ?? null,
+          recover_mode: recovered.mode,
+          head_present: recovered.head_present,
           reason: body.reason || null,
         });
       }
