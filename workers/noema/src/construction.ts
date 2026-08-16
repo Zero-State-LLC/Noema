@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s6";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s7";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -112,6 +112,17 @@ export const UPGRADE_COST: ConstructionCost = { energy: 4, compute: 2, storage: 
 export const REPURPOSE_COST: ConstructionCost = { energy: 4, compute: 2, storage: 2, influence: 1 };
 export const REPURPOSE_FROM_CLASS = "workshop" as const;
 export const REPURPOSE_TO_CLASS = "storage_bay" as const;
+export const ABANDON_AFTER_CYCLES = 12;
+
+export function shouldAbandon(
+  entity: InfraLike & { unclaimed?: boolean; scar?: boolean; last_steward_cycle?: number },
+  nowCycle: number,
+): boolean {
+  if (entity.unclaimed || entity.scar) return false;
+  if (!infraClassOf(entity)) return false;
+  if (entity.last_steward_cycle == null) return false;
+  return nowCycle - entity.last_steward_cycle >= ABANDON_AFTER_CYCLES;
+}
 
 export function workshopStorageDiscount(entities: InfraLike[]): number {
   const shops = entities.filter((e) => infraClassOf(e) === "workshop");

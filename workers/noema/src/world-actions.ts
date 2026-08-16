@@ -186,6 +186,7 @@ import {
   REPURPOSE_COST,
   REPURPOSE_FROM_CLASS,
   REPURPOSE_TO_CLASS,
+  shouldAbandon,
   allocateInfraId,
   clampSalvage,
   constructLabel,
@@ -595,6 +596,11 @@ export function buildObservation(
     board_lines: isHiddenRoom(room)
       ? []
       : (room.board || []).map((n) => `A notice on the board: ${n.text}`),
+    unclaimed_lines: isHiddenRoom(room)
+      ? []
+      : roomEntities(room)
+          .filter((e) => e.unclaimed)
+          .map((e) => `The ${e.label.replace(/-/g, " ")} is unclaimed.`),
     reconstruction_lines: reconstructionLines(
       Object.values(w.reconstructions || {}).filter((rec) => {
         const org = rec.org_id ? w.organizations[rec.org_id] : undefined;
@@ -1152,6 +1158,22 @@ export async function applyWorldCommand(
       await applyScheduledPressure(w, pushEvent, settleEv);
       await deliverDelayedMessages(w, pushEvent, settleEv);
       await expireInstitutionEmergencies(w, pushEvent, settleEv);
+      for (const room of Object.values(w.rooms)) {
+        if (isHiddenRoom(room)) continue;
+        for (const ent of roomEntities(room)) {
+          if (!shouldAbandon(ent, w.cycle)) continue;
+          ent.unclaimed = true;
+          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+          if (idx >= 0) room.entities[idx] = ent;
+          const ev = pushEvent("ENTITY_UPDATE", {
+            entity_id: ent.entity_id,
+            set: { unclaimed: true },
+            unset: [],
+            operation: "ABANDON",
+          });
+          await settleEv(ev);
+        }
+      }
     }
     const spoilNote = (pl.spoil_lines || []).join(" ");
     const result = success(
@@ -2132,6 +2154,9 @@ export async function applyWorldCommand(
       entity.condition = Math.min(100, before + quality.delta);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
+      if (!acting_for && entity.owner_id === principal.player_id && !entity.unclaimed) {
+        entity.last_steward_cycle = w.cycle;
+      }
       if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
@@ -2277,6 +2302,7 @@ export async function applyWorldCommand(
         condition: 100,
         owner_id: principal.player_id,
         infra_type: classId,
+        last_steward_cycle: w.cycle,
       };
       target.entities = [...roomEntities(target), created];
       pushEvent("BUDGET_CONSUMED", {
@@ -2337,7 +2363,7 @@ export async function applyWorldCommand(
       if (!classId) {
         return fail(request_id, "NOT_FOUND", "That is not constructible infrastructure.");
       }
-      if (here.owner_id !== principal.player_id) {
+      if (!here.unclaimed && here.owner_id !== principal.player_id) {
         return fail(request_id, "NOT_OWNER", "You do not own that.");
       }
       if (!canPay(pl.budgets, DISMANTLE_COST)) {
@@ -2408,6 +2434,9 @@ export async function applyWorldCommand(
       if ((here.upgrade_tier || 0) >= 1) {
         return fail(request_id, "FORBIDDEN", "That workshop is already upgraded.");
       }
+      if (here.unclaimed) {
+        return fail(request_id, "FORBIDDEN", "That workshop is unclaimed.");
+      }
       const storageNeed = constructStorageCost(UPGRADE_COST.storage || 0, pl.lot_grades?.storage);
       const cost = { ...UPGRADE_COST, storage: storageNeed || undefined };
       if (!canPay(pl.budgets, cost)) {
@@ -2419,6 +2448,7 @@ export async function applyWorldCommand(
         pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
       }
       here.upgrade_tier = 1;
+      here.last_steward_cycle = w.cycle;
       const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
       if (idx >= 0) room.entities[idx] = here;
       pushEvent("BUDGET_CONSUMED", {

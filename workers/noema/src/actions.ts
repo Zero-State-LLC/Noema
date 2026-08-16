@@ -62,6 +62,9 @@ export type EntityRuntime = {
   scar?: boolean;
   /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */
   upgrade_tier?: number;
+  /** GC2-S7. Public constructible with no steward work for 12 cycles. */
+  unclaimed?: boolean;
+  last_steward_cycle?: number;
 };
 
 export type PlayerRuntime = {
@@ -482,6 +485,8 @@ export function enrichEntity(e: {
   inspect_restricted_until?: number;
   scar?: boolean;
   upgrade_tier?: number;
+  unclaimed?: boolean;
+  last_steward_cycle?: number;
 }): EntityRuntime {
   const s = `${e.label} ${e.entity_type}`.toLowerCase();
   let condition = e.condition;
@@ -507,6 +512,8 @@ export function enrichEntity(e: {
     hidden: e.hidden === true ? true : undefined,
     inspect_restricted_until: e.inspect_restricted_until,
     upgrade_tier: e.upgrade_tier,
+    unclaimed: e.unclaimed === true ? true : undefined,
+    last_steward_cycle: e.last_steward_cycle,
   };
 }
 
