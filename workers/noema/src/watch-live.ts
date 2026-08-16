@@ -300,14 +300,7 @@ export function capVisibleEvents(candidates: WatchEvent[], max = 8, min = 5, max
     kept.push(ev);
     if (kept.length >= max) break;
   }
-  if (kept.length < min) {
-    for (const ev of newestFirst) {
-      if (kept.some((k) => k.sequence === ev.sequence && k.projection_id === ev.projection_id)) continue;
-      kept.push(ev);
-      if (kept.length >= min) break;
-    }
-  }
-  return kept.sort((a, b) => b.sequence - a.sequence).slice(0, max);
+  return kept.sort((a, b) => b.sequence - a.sequence);
 }
 
 function isPublicEntity(e: { hidden?: boolean }): boolean {

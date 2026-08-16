@@ -371,6 +371,16 @@ describe("notable headline and visible feed", () => {
     expect(visible.some((e) => e.projection_id === "trade")).toBe(true);
   });
 
+  it("does not pad the feed with extra movement to hit five rows", () => {
+    const onlyMoves: WatchEvent[] = [];
+    for (let i = 10; i >= 1; i--) {
+      onlyMoves.push(ev({ sequence: i, tier: "NORMAL", projection_id: "agent_move", line: `move ${i}` }));
+    }
+    const visible = capVisibleEvents(onlyMoves);
+    expect(visible).toHaveLength(2);
+    expect(visible.map((e) => e.sequence)).toEqual([10, 9]);
+  });
+
   it("maps pulses into recent_events without inventing actors", () => {
     const snap = buildWatchLive({
       world_id: "w",
