@@ -194,7 +194,6 @@ describe("GC1-S5 world path", () => {
       w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     }
     w.players[rusted.player_id].practice = recognize(ENGINEER_TRACK);
-    w.players[rusted.player_id].practice!.last_work_cycle = { [ENGINEER_TRACK]: 0 };
     w.cycle = LATENT_AFTER_CYCLES + 1;
     w.players[ready.player_id].practice = recognize(ENGINEER_TRACK);
 
