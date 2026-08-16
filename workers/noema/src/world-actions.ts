@@ -610,6 +610,11 @@ export function buildObservation(
       isHiddenRoom(room) || !room.institution_notice
         ? []
         : [`A notice from ${room.institution_notice.org_name}: ${room.institution_notice.text}`],
+    channel_lines: isHiddenRoom(room)
+      ? []
+      : Object.values(w.organizations)
+          .filter((o) => o.status === "ACTIVE" && o.channel && isOrgMember(o, principal.player_id))
+          .map((o) => `A channel note in ${o.name}: ${o.channel!.text}`),
     unclaimed_lines: isHiddenRoom(room)
       ? []
       : roomEntities(room)
@@ -1446,6 +1451,41 @@ export async function applyWorldCommand(
         request_id,
         events,
         `A notice from ${orgName}: ${utterance}`,
+        settled,
+      );
+      w.seen_idempotency[idem] = posted;
+      return posted;
+    }
+    if (action.arguments.surface === "CHANNEL") {
+      const here = w.rooms[pl.room_id];
+      if (!here) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      if (isHiddenRoom(here)) {
+        return fail(request_id, "NOT_OBSERVABLE", "That channel would not carry here.");
+      }
+      const utterance = action.arguments.text.slice(0, 500).trim();
+      if (!utterance) return fail(request_id, "INVALID_REQUEST", "Write a note.");
+      const org_id = String(action.arguments.org_id || "").trim();
+      const org = org_id ? w.organizations[org_id] : undefined;
+      if (!org || org.status !== "ACTIVE" || !isOrgMember(org, principal.player_id)) {
+        return fail(request_id, "NOT_ADDRESSABLE", "That channel is not addressable.");
+      }
+      debit(pl.budgets, COSTS.MESSAGE);
+      org.channel = { text: utterance, cycle: w.cycle };
+      const ev = pushEvent("MESSAGE", {
+        message_id: `msg.${w.sequence + 1}.${crypto.randomUUID().slice(0, 8)}`,
+        sender_id: principal.player_id,
+        surface: "CHANNEL",
+        org_id: org.org_id,
+        text: utterance,
+        cost_paid: COSTS.MESSAGE,
+      });
+      await settleEv(ev);
+      const posted = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `A channel note in ${org.name}: ${utterance}`,
         settled,
       );
       w.seen_idempotency[idem] = posted;
