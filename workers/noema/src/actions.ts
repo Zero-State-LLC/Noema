@@ -74,11 +74,19 @@ export type PlayerRuntime = {
   trade_memory?: {
     catalog_id: "social-memory-catalog/gc3-s0";
     edges: Record<string, string[]>;
+    at?: Record<string, Record<string, number>>;
   };
   /** GC3-S1 derived danger edges. Not WorldState. Separate from trade reliability. */
   danger_memory?: {
     catalog_id: "social-memory-catalog/gc3-s1";
     edges: Record<string, string[]>;
+    at?: Record<string, Record<string, number>>;
+  };
+  /** GC3-S6 derived deceptive edges. Not WorldState. */
+  deceptive_memory?: {
+    catalog_id: "social-memory-catalog/gc3-s6";
+    edges: Record<string, string[]>;
+    at?: Record<string, Record<string, number>>;
   };
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
   discovery?: {
@@ -189,6 +197,8 @@ export type Organization = {
   emergency_scopes?: import("./emergency").EmergencyScope[];
   /** Published office_id order. Earlier wins exclusive overlap. */
   office_precedence?: string[];
+  /** GC3-S3 institution→player memory. Not WorldState. */
+  institution_memory?: import("./social-memory").InstitutionMemoryState;
 };
 
 export const COSTS = {
@@ -2065,6 +2075,7 @@ export function deriveAffordances(input: {
   openTrades: OpenTrade[];
   organizations?: Organization[];
   selfId: string;
+  cautionToward?: Record<string, boolean>;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -2147,7 +2158,9 @@ export function deriveAffordances(input: {
       reason: msgOk ? undefined : "You do not have enough compute.",
       kind: "social",
     });
-    const tradeOk = canPay(budgets, COSTS.TRADE);
+    const caution = input.cautionToward?.[p.player_id];
+    const tradeCost = { compute: (COSTS.TRADE.compute || 1) + (caution ? 1 : 0) };
+    const tradeOk = canPay(budgets, tradeCost);
     out.push({
       action: "TRADE",
       verb: "TRADE",
@@ -2155,9 +2168,9 @@ export function deriveAffordances(input: {
       cmd: `trade ${handle} offer=energy:1 want=energy:1`,
       target_id: p.player_id,
       target_label: handle,
-      requires: COSTS.TRADE,
+      requires: tradeCost,
       available: tradeOk,
-      reason: tradeOk ? undefined : "You do not have enough compute.",
+      reason: tradeOk ? undefined : caution ? "TRADE_CAUTION: You do not have enough compute." : "You do not have enough compute.",
       kind: "social",
     });
   }
@@ -2381,6 +2394,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  trade <player> offer=energy:3 want=storage:1");
     lines.push("  accept <trade_id> · reject <trade_id> · cancel <trade_id>");
     lines.push("  Offered resources are reserved until accept/reject.");
+    lines.push("  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION). Trade stays available.");
   } else if (t === "repair") {
     lines.push("REPAIR");
     lines.push("  repair <visible infrastructure>");

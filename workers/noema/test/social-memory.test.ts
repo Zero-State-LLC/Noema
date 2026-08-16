@@ -292,7 +292,8 @@ describe("GC3-S1 world integration", () => {
     expect(lookA.observation?.social_memory_lines || []).not.toContain(
       "You have found Vesper dangerous.",
     );
-    expect(lookC.observation?.social_memory_lines || []).toEqual([]);
+    expect(lookC.observation?.social_memory_lines || []).not.toContain("You have found Nacre dangerous.");
+    expect(lookC.observation?.social_memory_lines || []).toContain("Nacre is publicly dangerous.");
     expect(JSON.stringify(lookB.observation?.players_here || [])).not.toMatch(/dangerous/i);
     expect(lookB.observation?.social_memory_lines?.join(" ")).not.toMatch(
       /amount|stock|entity_id|hidden|reputation|hp|contest_id/i,
