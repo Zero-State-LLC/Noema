@@ -57,6 +57,8 @@ import {
   applyPracticeCredits,
   creditsFromEvent,
   practiceLines,
+  repairConditionDelta,
+  PRACTICED_REPAIR_LINE,
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
@@ -1967,8 +1969,9 @@ export async function applyWorldCommand(
         );
       }
       const before = entity.condition ?? 0;
+      const quality = repairConditionDelta(pl.practice, entity.entity_id);
       debit(payFrom, COSTS.REPAIR);
-      entity.condition = Math.min(100, before + 15);
+      entity.condition = Math.min(100, before + quality.delta);
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
@@ -1985,16 +1988,22 @@ export async function applyWorldCommand(
         from: before,
         to: entity.condition,
         operation: "REPAIR",
+        actor_id: principal.player_id,
+        quality_bonus: quality.bonus || undefined,
         acting_for: acting_for || null,
         office_id: grantOfficeId || null,
       });
       await settleEv(ev);
+      const practiced =
+        quality.bonus > 0
+          ? ` ${PRACTICED_REPAIR_LINE.replace("{label}", titleCaseLabel(entity.label))}`
+          : "";
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `${titleCaseLabel(entity.label)} repaired. Condition ${before}% → ${entity.condition}%.`,
+        `${titleCaseLabel(entity.label)} repaired. Condition ${before}% → ${entity.condition}%.${practiced}`,
         settled,
       );
       w.seen_idempotency[idem] = result;
