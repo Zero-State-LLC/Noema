@@ -76,7 +76,8 @@ describe("GC2-S13 mapper", () => {
     expect(isMultiCycleClass("generator")).toBe(true);
     expect(isMultiCycleClass("storage_bay")).toBe(true);
     expect(isMultiCycleClass("production_node")).toBe(true);
-    expect(isMultiCycleClass("defensive_work")).toBe(false);
+    expect(isMultiCycleClass("defensive_work")).toBe(true);
+    expect(isMultiCycleClass("archive_annex")).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b/);
   });
@@ -109,11 +110,11 @@ describe("GC2-S13 world path", () => {
     expect(repurpose.ok).toBe(false);
     expect(repurpose.error?.code).toBe("FORBIDDEN");
 
-    const storageBeforeWork = w.players[p.player_id].budgets.storage;
-    const work = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
-    expect(work.ok).toBe(true);
-    expect(storageBeforeWork - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.defensive_work.storage);
-    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "defensive_work")!)).toBe(false);
+    const storageBeforeAnnex = w.players[p.player_id].budgets.storage;
+    const annex = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
+    expect(annex.ok).toBe(true);
+    expect(storageBeforeAnnex - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.archive_annex.storage);
+    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "archive_annex")!)).toBe(false);
 
     const waited = await run(w, p, "WAIT");
     expect(waited.ok).toBe(true);
