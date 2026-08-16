@@ -297,6 +297,7 @@ export type CanonicalAction =
           | "ORG_EMERGENCY_ACTIVATE"
           | "ORG_EMERGENCY_REVOKE"
           | "ORG_SUCCESSION_DESIGNATE"
+          | "ORG_SUCCESSION_CONSENT"
           | "RECONSTRUCT"
           | "RECONSTRUCT_SUPERSEDE"
           | "RECONSTRUCT_PUBLISH"
@@ -1338,6 +1339,27 @@ export function parseHumanCommand(
       display: "You designate a successor.",
     };
   }
+  // consent <office> <player> — GC4-S5, not listed in Chamber help
+  if (v === "consent") {
+    const office_id = parts[0] || "";
+    let agent_id = parts.slice(1).join(" ").trim();
+    if (!office_id || !agent_id) {
+      return { ok: false, error: "Consent syntax: consent <office_id> <player>" };
+    }
+    if (ctx.players && ctx.selfId) {
+      const r = resolvePlayerTarget(agent_id, ctx.players, ctx.selfId);
+      if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+      agent_id = r.player_id;
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "ORG_SUCCESSION_CONSENT", office_id, agent_id },
+      },
+      display: "You consent.",
+    };
+  }
 
   // RFC-0024: reconstruct / revise — not listed in Chamber help.
   if (v === "reconstruct" || v === "assemble") {
@@ -2018,6 +2040,21 @@ export function normalizeStructuredCommand(
         display: "COMMIT.ORG_SUCCESSION_DESIGNATE",
       };
     }
+    if (operation === "ORG_SUCCESSION_CONSENT") {
+      const office_id = String(args.office_id || "").trim();
+      const agent_id = String(args.agent_id || args.candidate_id || args.player_id || "").trim();
+      if (!office_id || !agent_id) {
+        return { ok: false, error: "office_id and candidate required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "ORG_SUCCESSION_CONSENT", office_id, agent_id },
+        },
+        display: `COMMIT.ORG_SUCCESSION_CONSENT ${office_id}`,
+      };
+    }
     if (operation === "RECONSTRUCT") {
       const subject_ref = String(args.subject_ref || args.subject || args.entity_id || "").trim();
       const claim = String(args.claim || args.narrative || "").trim();
@@ -2223,6 +2260,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ORG_SUCCESSION_DESIGNATE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_SUCCESSION_DESIGNATE" });
+  }
+  if (cmd === "ORG_SUCCESSION_CONSENT") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_SUCCESSION_CONSENT" });
   }
   if (cmd === "RECONSTRUCT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "RECONSTRUCT" });
