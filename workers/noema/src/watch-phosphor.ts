@@ -69,7 +69,58 @@ export type PhosphorEdge = {
   from: string;
   to: string;
   direction: string;
+  active?: boolean;
 };
+
+export type PhosphorGlyphId =
+  | "room_empty"
+  | "room_known"
+  | "room_active"
+  | "room_partial"
+  | "player_single"
+  | "player_multi"
+  | "player_cluster"
+  | "exit"
+  | "exit_active"
+  | "pulse_normal"
+  | "pulse_notable"
+  | "pulse_major";
+
+/** 8×8 atlas. 0 = off, 1 = dim copper, 2 = bright copper/amber. */
+export const PHOSPHOR_GLYPHS: Record<PhosphorGlyphId, number[]> = {
+  room_empty: [0x00, 0x7e, 0x42, 0x42, 0x42, 0x42, 0x7e, 0x00],
+  room_known: [0x00, 0x7e, 0x5a, 0x66, 0x66, 0x5a, 0x7e, 0x00],
+  room_active: [0x18, 0x7e, 0x7e, 0xff, 0xff, 0x7e, 0x7e, 0x18],
+  room_partial: [0x00, 0x60, 0x70, 0x38, 0x1c, 0x0e, 0x06, 0x00],
+  player_single: [0x18, 0x3c, 0x18, 0x7e, 0x18, 0x3c, 0x24, 0x00],
+  player_multi: [0x00, 0x66, 0xff, 0x66, 0x00, 0x66, 0xff, 0x66],
+  player_cluster: [0x00, 0x2a, 0x7f, 0x2a, 0x7f, 0x2a, 0x00, 0x00],
+  exit: [0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00],
+  exit_active: [0x18, 0x3c, 0x7e, 0x18, 0x18, 0x7e, 0x3c, 0x18],
+  pulse_normal: [0x00, 0x18, 0x18, 0x7e, 0x7e, 0x18, 0x18, 0x00],
+  pulse_notable: [0x18, 0x24, 0x42, 0x81, 0x81, 0x42, 0x24, 0x18],
+  pulse_major: [0x3c, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3c],
+};
+
+export function roomGlyphId(certainty: PhosphorCertainty): PhosphorGlyphId {
+  if (certainty === "active") return "room_active";
+  if (certainty === "known") return "room_known";
+  if (certainty === "partial") return "room_partial";
+  return "room_empty";
+}
+
+export function playerGlyphId(count: number): PhosphorGlyphId | null {
+  if (count <= 0) return null;
+  if (count === 1) return "player_single";
+  if (count < 10) return "player_multi";
+  return "player_cluster";
+}
+
+export function pulseGlyphId(tier: PhosphorTier): PhosphorGlyphId {
+  if (tier === "MAJOR") return "pulse_major";
+  if (tier === "NOTABLE") return "pulse_notable";
+  return "pulse_normal";
+}
 
 export type PhosphorLayout = {
   nodes: PhosphorNode[];
@@ -184,7 +235,10 @@ function nudge(x: number, y: number, taken: Set<string>): [number, number] {
 }
 
 /** Deterministic public topology. Hidden rooms/exits never enter the graph. */
-export function layoutPublicTopology(rooms: PhosphorRoom[] | undefined | null): PhosphorLayout {
+export function layoutPublicTopology(
+  rooms: PhosphorRoom[] | undefined | null,
+  recent?: PhosphorEvent[],
+): PhosphorLayout {
   const publicRooms = (rooms || []).filter(isPublicWatchRoom).slice().sort((a, b) =>
     String(a.room_id).localeCompare(String(b.room_id)),
   );
@@ -214,7 +268,10 @@ export function layoutPublicTopology(rooms: PhosphorRoom[] | undefined | null): 
         const pair = id < to ? id + ">" + to : to + ">" + id;
         if (!edgeSeen.has(pair)) {
           edgeSeen.add(pair);
-          edges.push({ from: id, to, direction: String(exits[i].direction || "") });
+          const hit = (recent || []).some(
+            (ev) => ev.room_id === id || ev.room_id === to,
+          );
+          edges.push({ from: id, to, direction: String(exits[i].direction || ""), active: hit });
         }
         if (seen.has(to)) continue;
         const vec = dirVec(exits[i].direction, i + id.length);
@@ -274,7 +331,7 @@ export function layoutPublicTopology(rooms: PhosphorRoom[] | undefined | null): 
       name: safePhosphorLabel(room.name || id),
       x: Math.round(x),
       y: Math.round(y),
-      certainty: roomCertainty(room),
+      certainty: roomCertainty(room, recent),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
     };
@@ -292,6 +349,7 @@ export function collectPulses(
   if (reducedMotion) return [];
   const events = snapshot.recent_events || [];
   const pulses: PhosphorPulse[] = [];
+  let major: PhosphorPulse | null = null;
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
     const seq = Number(ev.sequence || 0);
@@ -299,8 +357,14 @@ export function collectPulses(
     const room = String(ev.room_id || "");
     if (!room) continue;
     const tier = ev.tier === "MAJOR" || ev.tier === "NOTABLE" ? ev.tier : "NORMAL";
-    pulses.push({ room_id: room, tier, born: now, ttl: PULSE_TTL[tier] });
+    const pulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier] };
+    if (tier === "MAJOR") {
+      if (!major) major = pulse;
+      continue;
+    }
+    pulses.push(pulse);
   }
+  if (major) pulses.push(major);
   return pulses;
 }
 
@@ -343,7 +407,7 @@ export function drawPhosphorFrame(
 
   const byId = new Map(layout.nodes.map((n) => [n.room_id, n]));
   ctx.strokeStyle = PHOSPHOR_COLORS.dim;
-  ctx.globalAlpha = 0.85;
+  ctx.globalAlpha = 0.7;
   for (let i = 0; i < layout.edges.length; i++) {
     const e = layout.edges[i];
     const a = byId.get(e.from);
@@ -353,44 +417,44 @@ export function drawPhosphorFrame(
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
+    stampGlyph(
+      ctx,
+      Math.round((a.x + b.x) / 2) - 4,
+      Math.round((a.y + b.y) / 2) - 4,
+      e.active ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.dim,
+      e.active ? "exit_active" : "exit",
+    );
   }
 
   for (let i = 0; i < layout.nodes.length; i++) {
     const n = layout.nodes[i];
-    const size = n.certainty === "active" ? 7 : 5;
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = certaintyFill(n.certainty);
-    ctx.fillRect(n.x - Math.floor(size / 2), n.y - Math.floor(size / 2), size, size);
-    if (ctx.fillText) {
-      ctx.fillStyle = PHOSPHOR_COLORS.copper;
-      ctx.font = "6px monospace";
-      ctx.fillText(n.name.slice(0, 14), n.x + 5, n.y - 4);
-    }
-    const count = Math.min(6, n.players);
-    for (let g = 0; g < count; g++) {
-      stampGlyph(ctx, n.x - 10 + g * 5, n.y + 6, PHOSPHOR_COLORS.amber);
-    }
-    if (n.players > 0 && ctx.fillText) {
-      ctx.fillStyle = PHOSPHOR_COLORS.amber;
-      ctx.fillText(String(n.players), n.x + 5, n.y + 10);
+    ctx.globalAlpha = n.certainty === "active" ? 1 : n.certainty === "known" ? 0.85 : 0.55;
+    stampGlyph(ctx, n.x - 4, n.y - 4, certaintyFill(n.certainty), roomGlyphId(n.certainty));
+    const pg = playerGlyphId(n.players);
+    if (pg) {
+      ctx.globalAlpha = 1;
+      stampGlyph(ctx, n.x + 5, n.y + 2, PHOSPHOR_COLORS.amber, pg);
     }
   }
 
+  let majorSeen = false;
   for (let i = 0; i < pulses.length; i++) {
     const p = pulses[i];
+    if (p.tier === "MAJOR") {
+      if (majorSeen) continue;
+      majorSeen = true;
+    }
     const n = byId.get(p.room_id);
     if (!n) continue;
     const t = Math.max(0, Math.min(1, (now - p.born) / p.ttl));
-    const radius = 4 + t * (p.tier === "MAJOR" ? 16 : p.tier === "NOTABLE" ? 11 : 7);
     ctx.globalAlpha = 1 - t;
-    ctx.strokeStyle = p.tier === "MAJOR" ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.copper;
-    ctx.beginPath();
-    ctx.moveTo(n.x + radius, n.y);
-    ctx.lineTo(n.x, n.y + radius);
-    ctx.lineTo(n.x - radius, n.y);
-    ctx.lineTo(n.x, n.y - radius);
-    ctx.lineTo(n.x + radius, n.y);
-    ctx.stroke();
+    stampGlyph(
+      ctx,
+      n.x - 4,
+      n.y - 12,
+      p.tier === "MAJOR" ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.copper,
+      pulseGlyphId(p.tier),
+    );
   }
   ctx.globalAlpha = 1;
 }
@@ -400,10 +464,11 @@ function pageIsHidden(): boolean {
   return Boolean(g.document && g.document.hidden);
 }
 
-function stampGlyph(ctx: DrawCtx, x: number, y: number, color: string): void {
+function stampGlyph(ctx: DrawCtx, x: number, y: number, color: string, id: PhosphorGlyphId = "player_single"): void {
+  const rows = PHOSPHOR_GLYPHS[id] || PHOSPHOR_GLYPHS.player_single;
   ctx.fillStyle = color;
-  for (let row = 0; row < PLAYER_GLYPH.length; row++) {
-    const bits = PLAYER_GLYPH[row];
+  for (let row = 0; row < rows.length; row++) {
+    const bits = rows[row];
     for (let col = 0; col < 8; col++) {
       if (bits & (1 << (7 - col))) ctx.fillRect(x + col, y + row, 1, 1);
     }
@@ -527,7 +592,7 @@ export function createPhosphorSession(opts: {
       paint(nowFn());
     },
     update(snapshot: PhosphorSnapshot) {
-      lastLayout = layoutPublicTopology(snapshot.rooms || []);
+      lastLayout = layoutPublicTopology(snapshot.rooms || [], snapshot.recent_events);
       const t = nowFn();
       if (!reduced && ctx && mode === "pixel") {
         const born = collectPulses(lastSeq, snapshot, t, reduced);
@@ -562,11 +627,15 @@ export function phosphorInlineScript(): string {
     const PHOSPHOR_MAX_FPS = ${PHOSPHOR_MAX_FPS};
     const PHOSPHOR_COLORS = ${JSON.stringify(PHOSPHOR_COLORS)};
     const PLAYER_GLYPH = ${JSON.stringify(PLAYER_GLYPH)};
+    const PHOSPHOR_GLYPHS = ${JSON.stringify(PHOSPHOR_GLYPHS)};
     const PHOSPHOR_DIR = ${JSON.stringify(PHOSPHOR_DIR)};
     const PULSE_TTL = ${JSON.stringify(PULSE_TTL)};
     const isPublicWatchRoom = ${isPublicWatchRoom.toString()};
     const safePhosphorLabel = ${safePhosphorLabel.toString()};
     const roomCertainty = ${roomCertainty.toString()};
+    const roomGlyphId = ${roomGlyphId.toString()};
+    const playerGlyphId = ${playerGlyphId.toString()};
+    const pulseGlyphId = ${pulseGlyphId.toString()};
     const publicExits = ${publicExits.toString()};
     const dirVec = ${dirVec.toString()};
     const occupyKey = ${occupyKey.toString()};

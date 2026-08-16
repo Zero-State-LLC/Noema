@@ -9,6 +9,7 @@ import { watchHtml } from "../src/watch";
 import { buildWatchLive } from "../src/watch-live";
 import {
   PHOSPHOR_ASSET_BUDGET,
+  PHOSPHOR_GLYPHS,
   PHOSPHOR_HEIGHT,
   PHOSPHOR_JS_BUDGET,
   PHOSPHOR_WIDTH,
@@ -16,7 +17,10 @@ import {
   createPhosphorSession,
   drawPhosphorFrame,
   layoutPublicTopology,
+  playerGlyphId,
+  pulseGlyphId,
   roomCertainty,
+  roomGlyphId,
   safePhosphorLabel,
   type PhosphorRoom,
 } from "../src/watch-phosphor";
@@ -163,6 +167,48 @@ describe("slice 1 — deterministic public topology", () => {
 });
 
 describe("slice 2 — certainty and glyphs", () => {
+  it("defines the v0.1 8×8 glyph atlas", () => {
+    const ids = [
+      "room_empty",
+      "room_known",
+      "room_active",
+      "room_partial",
+      "player_single",
+      "player_multi",
+      "player_cluster",
+      "exit",
+      "exit_active",
+      "pulse_normal",
+      "pulse_notable",
+      "pulse_major",
+    ] as const;
+    for (const id of ids) {
+      expect(PHOSPHOR_GLYPHS[id]).toHaveLength(8);
+    }
+    expect(roomGlyphId("active")).toBe("room_active");
+    expect(roomGlyphId("known")).toBe("room_known");
+    expect(roomGlyphId("partial")).toBe("room_partial");
+    expect(playerGlyphId(0)).toBeNull();
+    expect(playerGlyphId(1)).toBe("player_single");
+    expect(playerGlyphId(4)).toBe("player_multi");
+    expect(playerGlyphId(12)).toBe("player_cluster");
+    expect(pulseGlyphId("MAJOR")).toBe("pulse_major");
+  });
+
+  it("marks a public exit active only from a public recent event", () => {
+    const layout = layoutPublicTopology(
+      [
+        { room_id: "room.a", name: "A", description: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
+        { room_id: "room.b", name: "B", description: "B", exits: [{ direction: "west", to_room_id: "room.a" }] },
+        { room_id: "room.vault", name: "Vault", hidden: true, exits: [{ direction: "up", to_room_id: "room.a" }] },
+      ],
+      [{ sequence: 4, room_id: "room.b", tier: "NORMAL" }],
+    );
+    expect(layout.nodes.map((n) => n.room_id).sort()).toEqual(["room.a", "room.b"]);
+    expect(layout.edges.some((e) => e.active)).toBe(true);
+    expect(JSON.stringify(layout)).not.toMatch(/vault/i);
+  });
+
   it("maps unknown / partial / known / active from public fields only", () => {
     expect(roomCertainty({ room_id: "room.x", hidden: true })).toBe("unknown");
     expect(roomCertainty({ room_id: "room.x" })).toBe("partial");
@@ -205,6 +251,19 @@ describe("slice 3 — event-driven pulses", () => {
     );
     expect(born.map((p) => p.tier).sort()).toEqual(["MAJOR", "NOTABLE"]);
     expect(collectPulses(12, { sequence: 12, recent_events: born as never[] }, 100, false)).toEqual([]);
+    const twoMajor = collectPulses(
+      0,
+      {
+        sequence: 4,
+        recent_events: [
+          { sequence: 3, tier: "MAJOR", room_id: "room.a" },
+          { sequence: 4, tier: "MAJOR", room_id: "room.b" },
+        ],
+      },
+      1,
+      false,
+    );
+    expect(twoMajor.filter((p) => p.tier === "MAJOR")).toHaveLength(1);
   });
 
   it("reduced-motion produces no pulses and no rAF", () => {
