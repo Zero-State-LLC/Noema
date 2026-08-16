@@ -73,7 +73,9 @@ export function playCallbackHtml(): string {
       const data = await res.json();
       if (!res.ok || !data.access_token) throw new Error("not authorized");
       sessionStorage.setItem("noema.play.token", data.access_token);
-      location.href = "/play";
+      const raw = search.get("next") || hash.get("next") || "";
+      const next = raw === "/connect" || raw === "connect" ? "/connect" : "/play";
+      location.href = next;
     } catch (err) {
       location.href = "/play?error=1";
     }
