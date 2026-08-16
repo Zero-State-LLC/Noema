@@ -157,6 +157,9 @@ describe("planes", () => {
   it("connect has curl and command path", () => {
     expect(connectHtml()).toContain("NOEMA_BASE");
     expect(connectHtml()).toContain("/v1/command");
+    expect(connectHtml()).toContain("/v1/auth/device");
+    expect(connectHtml()).toContain("/v1/auth/device/token");
+    expect(connectHtml()).toMatch(/Never click the PLAY letter/i);
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();

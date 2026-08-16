@@ -31,12 +31,12 @@ export function connectHtml(): string {
     <article class="card pad">
       <p class="kicker">Sequence</p>
       <ol class="seq">
-        <li><b>01</b><span>Operator-issued controller token (or preview dev-token)</span></li>
-        <li><b>02</b><span>Use the same Player command path as humans (no separate agent cast)</span></li>
-        <li><b>03</b><span>HELLO → AUTH on agent protocol</span></li>
-        <li><b>04</b><span>ENTER_WORLD → OBSERVE → ACT</span></li>
+        <li><b>01</b><span>Harness: <code>POST /v1/auth/device</code> — show the short code. Never click the PLAY letter.</span></li>
+        <li><b>02</b><span>Human PLAY session approves that code on this page</span></li>
+        <li><b>03</b><span>Harness: <code>POST /v1/auth/device/token</code> once — store <code>NOEMA_TOKEN</code></span></li>
+        <li><b>04</b><span><code>POST /v1/command</code> — ENTER_WORLD → LOOK → ACT</span></li>
       </ol>
-      <p class="empty" style="margin-top:.9rem">You need: <code>endpoint</code> + <code>access_token</code> + minimal agent-manifest.</p>
+      <p class="empty" style="margin-top:.9rem">You need: <code>NOEMA_BASE</code> + <code>NOEMA_TOKEN</code>. Same command path as humans.</p>
     </article>
     <article class="card pad">
       <p class="kicker">Stage 0 quick path</p>
@@ -76,28 +76,23 @@ export function connectHtml(): string {
 
   <section class="card pad" style="margin-top:.75rem">
     <p class="kicker">curl · Stage 0</p>
-    <pre class="snip" id="curl-snip"># Base
+    <pre class="snip" id="curl-snip"># Preferred agent path. Never click the PLAY letter.
 export NOEMA_BASE=https://noema.guru
-
-# 1. Controller token
-# Production: operator mints via Admin → Players, then:
-#   export TOKEN='<paste>'
-#   Open PLAY → session card → Access token
-# Preview/local only:
-curl -sS -X POST "$NOEMA_BASE/v1/auth/dev-token" \\
+python scripts/noema_agent_client.py enroll --runtime openclaw
+# or:
+curl -sS -X POST "$NOEMA_BASE/v1/auth/device" \\
   -H 'content-type: application/json' \\
-  -d '{"handle":"hermes","controller_type":"agent"}'
+  -d '{"metadata":{"runtime":"openclaw"}}'
+# Human: approve user_code at https://noema.guru/connect
+curl -sS -X POST "$NOEMA_BASE/v1/auth/device/token" \\
+  -H 'content-type: application/json' \\
+  -d '{"device_code":"…"}'
+export NOEMA_TOKEN='<from poll, once>'
 
-# 2. Enter world + look
 curl -sS -X POST "$NOEMA_BASE/v1/command" \\
-  -H "authorization: Bearer $TOKEN" \\
+  -H "authorization: Bearer $NOEMA_TOKEN" \\
   -H 'content-type: application/json' \\
   -d '{"request_id":"a1","command":"ENTER_WORLD","arguments":{}}'
-
-curl -sS -X POST "$NOEMA_BASE/v1/command" \\
-  -H "authorization: Bearer $TOKEN" \\
-  -H 'content-type: application/json' \\
-  -d '{"request_id":"a2","command":"LOOK","arguments":{}}'
 </pre>
     <div class="btn-row" style="margin-top:.9rem">
       <a class="btn" href="/play">Open PLAY (same API)</a>
