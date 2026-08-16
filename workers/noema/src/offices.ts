@@ -63,6 +63,46 @@ export type OfficePublic = {
   successor_handle?: string;
 };
 
+export function sanitizeIdList(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: string[] = [];
+  for (const item of raw) {
+    const id = String(item || "").trim();
+    if (!id || id.length > 64) continue;
+    if (!/^[a-z0-9][a-z0-9._:-]{0,63}$/i.test(id)) continue;
+    if (!out.includes(id)) out.push(id);
+    if (out.length >= 16) break;
+  }
+  return out.length ? out : undefined;
+}
+
+export function sanitizePrecedence(
+  raw: unknown,
+): string[] | "append" | "lead" | undefined {
+  if (raw === "append" || raw === "lead") return raw;
+  if (typeof raw === "string" && (raw === "append" || raw === "lead")) return raw;
+  return sanitizeIdList(raw);
+}
+
+export function applyPublishedPrecedence(
+  org: { office_precedence?: string[] },
+  officeId: string,
+  spec: string[] | "append" | "lead" | undefined,
+): void {
+  if (!spec) return;
+  if (spec === "append") {
+    const cur = org.office_precedence || [];
+    if (!cur.includes(officeId)) org.office_precedence = [...cur, officeId];
+    return;
+  }
+  if (spec === "lead") {
+    const cur = (org.office_precedence || []).filter((id) => id !== officeId);
+    org.office_precedence = [officeId, ...cur];
+    return;
+  }
+  org.office_precedence = spec.map((id) => (id === "self" || id === "$new" ? officeId : id));
+}
+
 export function parseOfficeProfile(raw: string | undefined | null): OfficeProfile | null {
   const v = String(raw || "").trim().toUpperCase();
   return (OFFICE_PROFILES as readonly string[]).includes(v) ? (v as OfficeProfile) : null;
