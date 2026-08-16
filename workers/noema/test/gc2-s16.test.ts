@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  MULTI_CYCLE_CLASS,
-  isInProgress,
-  isMultiCycleClass,
-  workshopStorageDiscount,
-} from "../src/construction";
+import { MULTI_CYCLE_CLASS, isInProgress, isMultiCycleClass } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
-import { CONSTRUCT_COSTS } from "../src/construction";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText } from "../src/actions";
 import { projectionIdForEvent } from "../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -26,7 +20,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.gc2-s13",
+    world_id: "test.hosted-canonical.gc2-s16",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -68,8 +62,8 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("GC2-S13 mapper", () => {
-  it("keeps relay as MULTI_CYCLE_CLASS, adds workshop, and stays silent", () => {
+describe("GC2-S16 mapper", () => {
+  it("keeps relay as MULTI_CYCLE_CLASS, adds production_node, and stays silent", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(isMultiCycleClass("relay")).toBe(true);
     expect(isMultiCycleClass("workshop")).toBe(true);
@@ -82,38 +76,24 @@ describe("GC2-S13 mapper", () => {
   });
 });
 
-describe("GC2-S13 world path", () => {
-  it("constructs an IN_PROGRESS workshop, then the same entity_id goes live after one WAIT", async () => {
+describe("GC2-S16 world path", () => {
+  it("constructs an IN_PROGRESS production node, then the same entity_id goes live after one WAIT", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "production_node" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
     expect(built.events?.map((e) => e.event_type)).toEqual(["BUDGET_CONSUMED", "ENTITY_CREATE"]);
     expect(built.events?.some((e) => /^STRUCTURE_/.test(e.event_type))).toBe(false);
     const created = w.rooms["room.yard"].entities[0];
-    expect(created.infra_type).toBe("workshop");
+    expect(created.infra_type).toBe("production_node");
     expect(isInProgress(created)).toBe(true);
-    expect(workshopStorageDiscount(w.rooms["room.yard"].entities)).toBe(0);
 
-    const again = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    const again = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "production_node" });
     expect(again.ok).toBe(false);
     expect(again.error?.code).toBe("SLOT_OCCUPIED");
-
-    const upgrade = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: created.entity_id });
-    expect(upgrade.ok).toBe(false);
-    expect(upgrade.error?.code).toBe("FORBIDDEN");
-    const repurpose = await run(w, p, "BUILD", { operation: "REPURPOSE", entity_id: created.entity_id });
-    expect(repurpose.ok).toBe(false);
-    expect(repurpose.error?.code).toBe("FORBIDDEN");
-
-    const storageBeforeWork = w.players[p.player_id].budgets.storage;
-    const work = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
-    expect(work.ok).toBe(true);
-    expect(storageBeforeWork - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.defensive_work.storage);
-    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "defensive_work")!)).toBe(false);
 
     const waited = await run(w, p, "WAIT");
     expect(waited.ok).toBe(true);
@@ -121,17 +101,16 @@ describe("GC2-S13 world path", () => {
     const same = w.rooms["room.yard"].entities.find((e) => e.entity_id === created.entity_id)!;
     expect(same).toBeTruthy();
     expect(isInProgress(same)).toBe(false);
-    expect(workshopStorageDiscount(w.rooms["room.yard"].entities)).toBe(1);
     expect(waited.events?.some((e) => e.event_type === "ENTITY_UPDATE")).toBe(true);
     expect(JSON.stringify(waited.events || [])).not.toMatch(/STRUCTURE_/);
   });
 
-  it("salvages an in-progress workshop with no scar and no live leftover", async () => {
+  it("salvages an in-progress production node with no scar and no live leftover", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "production_node" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities[0].entity_id;
     const storageBefore = w.players[p.player_id].budgets.storage;
@@ -143,7 +122,7 @@ describe("GC2-S13 world path", () => {
     expect(w.players[p.player_id].budgets.storage).toBe(storageBefore + 2);
 
     w.players[p.player_id].room_id = "room.vault";
-    const hidden = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    const hidden = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "production_node" });
     expect(hidden.ok).toBe(false);
     expect(hidden.error?.code).toBe("NOT_OBSERVABLE");
   });

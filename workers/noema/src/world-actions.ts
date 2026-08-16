@@ -2577,6 +2577,8 @@ export async function applyWorldCommand(
                 ? `A generator is under construction (${entity_id}).`
               : classId === "storage_bay"
                 ? `A storage bay is under construction (${entity_id}).`
+              : classId === "production_node"
+                ? `A production node is under construction (${entity_id}).`
               : classId === "defensive_work"
                 ? `A defensive work stands (${entity_id}).`
                 : classId === "archive_annex"

@@ -69,7 +69,8 @@ describe("GC2-S15 mapper", () => {
     expect(isMultiCycleClass("workshop")).toBe(true);
     expect(isMultiCycleClass("generator")).toBe(true);
     expect(isMultiCycleClass("storage_bay")).toBe(true);
-    expect(isMultiCycleClass("production_node")).toBe(false);
+    expect(isMultiCycleClass("production_node")).toBe(true);
+    expect(isMultiCycleClass("defensive_work")).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b/);
   });
