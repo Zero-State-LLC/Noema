@@ -9,6 +9,8 @@ Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
                   23 pass / 3 skip (C14 C16 C17). Not ADR-005 digest-equivalent.
                   Perihelion Reach is not a conformance target.
+                  Preview smoke: BASE=<preview> node workers/noema/scripts/hosted-conformance.mjs
+                  (never defaults to noema.guru).
 ```
 
 Specs: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
