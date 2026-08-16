@@ -151,6 +151,8 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
   if (!h) return null;
   if (/^player\./i.test(h)) return null;
   if (p.player_id && h === p.player_id) return null;
+  // Default mint is the 12-hex suffix of player_id — counts only, not a public name.
+  if (/^[0-9a-f]{12}$/i.test(h)) return null;
   return h.slice(0, 32);
 }
 
