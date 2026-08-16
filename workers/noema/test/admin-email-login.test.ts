@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { adminCallbackHtml, adminHtml, adminLoginHtml } from "../src/admin";
 import {
+  ADMIN_AGENT_OPERATOR_EMAIL,
   ADMIN_OPERATOR_EMAIL,
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
@@ -47,13 +48,16 @@ describe("allowlist + throttle", () => {
     expect(parseAllowlist("")).toEqual([]);
   });
 
-  it("always allows the hardcoded operator mailbox", () => {
+  it("always allows the hardcoded operator mailboxes", () => {
     expect(ADMIN_OPERATOR_EMAIL).toBe("zer0state@zer0state.com");
+    expect(ADMIN_AGENT_OPERATOR_EMAIL).toBe("boof@agentmail.to");
     expect(adminAllowlist(env({ ADMIN_ALLOWLIST_EMAILS: "" }))).toEqual([
       "zer0state@zer0state.com",
+      "boof@agentmail.to",
     ]);
     expect(adminAllowlist(env())).toEqual([
       "zer0state@zer0state.com",
+      "boof@agentmail.to",
       "ops@example.com",
     ]);
   });
@@ -285,6 +289,28 @@ describe("requestAdminMagicLink", () => {
     );
     expect(res.status).toBe(200);
     expect(sent.map((mail) => mail.to)).toEqual(["ops@example.com"]);
+  });
+
+  it("sends to the locked Admin-agent mailbox even when the secret is empty", async () => {
+    const sent: Array<{ to: string }> = [];
+    const res = await requestAdminMagicLink(
+      env({ ADMIN_ALLOWLIST_EMAILS: "" }),
+      new Request("https://noema.guru/x"),
+      { email: ADMIN_AGENT_OPERATOR_EMAIL },
+      {
+        throttle: new LoginThrottle(),
+        fetch: async () =>
+          new Response(
+            JSON.stringify({ hashed_token: "tok_admin_agent", verification_type: "magiclink" }),
+            { status: 200 },
+          ),
+        sendAdmin: async (mail) => {
+          sent.push(mail);
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(sent.map((mail) => mail.to)).toEqual(["boof@agentmail.to"]);
   });
 
   it("wires an Admin request through the real Postmark adapter", async () => {
