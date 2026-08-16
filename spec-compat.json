@@ -11,7 +11,16 @@
     "durable_object": "NoemaWorldDO",
     "product_url": "https://noema.guru",
     "command_path": "/v1/command",
-    "study": "stub"
+    "study": "stub",
+    "chamber_suite": {
+      "matrix": "workers/noema/test/conformance/hosted-matrix.json",
+      "target": "isolated",
+      "pass": 23,
+      "skip": 3,
+      "pending": 0,
+      "skip_ids": ["C14", "C16", "C17"],
+      "note": "Behavioral Worker tests on test.hosted-canonical.* only. Python remains ADR-005 digest authority. Perihelion is not a conformance target."
+    }
   },
   "offline_runtime": {
     "host": "python-modular-monolith",
