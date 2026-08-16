@@ -176,6 +176,7 @@ import {
   DECLARE_COST,
   DEFEND_COST,
   FORM_SPECS,
+  contestOfficeProfile,
   MAX_OPEN_PER_AGENT,
   MAX_OPEN_PER_ROOM,
   defaultExpiresCycle,
@@ -2424,6 +2425,16 @@ function isAccessDenied(
   return false;
 }
 
+function contestStakeBudgets(
+  w: WorldRuntime,
+  playerId: string | undefined,
+  actingFor?: string,
+): Budgets | undefined {
+  if (actingFor && w.organizations[actingFor]) return ensureTreasury(w.organizations[actingFor]);
+  if (playerId) return w.players[playerId]?.budgets;
+  return undefined;
+}
+
 function reserveStake(budgets: Budgets, stake: StakeMap): void {
   for (const [k, amt] of Object.entries(stake)) {
     budgets[k as keyof Budgets] = (budgets[k as keyof Budgets] ?? 0) - amt;
@@ -2523,8 +2534,30 @@ async function applyContestDeclare(
   }
   const target = normalizeDeclareTarget(w, room, form, args.target, principal.player_id);
   if (!target.ok) return fail(request_id, target.code, target.message);
-  if (!canAffordStake(pl.budgets, DECLARE_COST, stake)) {
-    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to declare.");
+  const acting_for = args.acting_for ? String(args.acting_for) : undefined;
+  const office_id = args.office_id ? String(args.office_id) : undefined;
+  let payFrom = pl.budgets;
+  let grantOfficeId: string | undefined;
+  if (acting_for) {
+    const grant = resolveInstitutionGrant(
+      w.organizations,
+      principal.player_id,
+      acting_for,
+      office_id,
+      contestOfficeProfile(form),
+    );
+    if (!grant.ok) return fail(request_id, grant.code, grant.message);
+    const conflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "contest");
+    if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
+    payFrom = ensureTreasury(w.organizations[grant.org_id]);
+    grantOfficeId = grant.office.office_id;
+  }
+  if (!canAffordStake(payFrom, DECLARE_COST, stake)) {
+    return fail(
+      request_id,
+      "BUDGET_EXCEEDED",
+      acting_for ? "The institution treasury cannot fund this contest." : "You do not have enough resources to declare.",
+    );
   }
   w.contests = w.contests || {};
   const open = openContests(w);
@@ -2537,14 +2570,21 @@ async function applyContestDeclare(
   let expires = args.expires_cycle ?? defaultExpiresCycle(w.cycle, form);
   if (expires <= w.cycle) expires = defaultExpiresCycle(w.cycle, form);
   if (expires > maxExpiresCycle(w.cycle, form)) expires = maxExpiresCycle(w.cycle, form);
-  debit(pl.budgets, DECLARE_COST);
-  reserveStake(pl.budgets, stake);
+  if (acting_for) {
+    const orgOpen = open.filter((c) => c.acting_for === acting_for).length;
+    if (orgOpen >= MAX_OPEN_PER_AGENT) {
+      return fail(request_id, "FORBIDDEN", "That institution already has the maximum open contests.");
+    }
+  }
+  debit(payFrom, DECLARE_COST);
+  reserveStake(payFrom, stake);
   const contest_id = `contest.${(w.sequence + 1).toString().padStart(4, "0")}`;
   const seed_stream_id = args.seed_stream_id || `stream.contest.${w.world_id || "world"}`;
   w.contests[contest_id] = {
     contest_id,
     declarer_id: principal.player_id,
     defender_id: args.defender_id,
+    acting_for,
     contest_form: form,
     target: target.target,
     room_id: room.room_id,
@@ -2558,6 +2598,8 @@ async function applyContestDeclare(
     player_id: principal.player_id,
     cost_paid: DECLARE_COST,
     reason: "CONTEST_DECLARE",
+    acting_for: acting_for || null,
+    office_id: grantOfficeId || null,
   });
   const ev = pushEvent("CONTEST_DECLARED", {
     contest_id,
@@ -2567,6 +2609,7 @@ async function applyContestDeclare(
     room_id: room.room_id,
     stake,
     defender_id: args.defender_id || null,
+    acting_for: acting_for || null,
     expires_cycle: expires,
     seed_stream_id,
   });
@@ -2618,17 +2661,45 @@ async function applyContestDefend(
   if (Object.keys(contest.defender_stake).length) {
     return fail(request_id, "FORBIDDEN", "Defense is already reserved.");
   }
-  if (!canAffordStake(pl.budgets, DEFEND_COST, stake)) {
-    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to defend.");
+  const defendFor = args.acting_for ? String(args.acting_for) : undefined;
+  const defendOffice = args.office_id ? String(args.office_id) : undefined;
+  let defendPay = pl.budgets;
+  let defendOfficeId: string | undefined;
+  if (defendFor) {
+    if (contest.acting_for && contest.acting_for === defendFor) {
+      return fail(request_id, "FORBIDDEN", "That institution is already a party to this contest.");
+    }
+    const grant = resolveInstitutionGrant(
+      w.organizations,
+      principal.player_id,
+      defendFor,
+      defendOffice,
+      contestOfficeProfile(contest.contest_form),
+    );
+    if (!grant.ok) return fail(request_id, grant.code, grant.message);
+    const conflict = resolveOfficeConflict(w.organizations[grant.org_id], grant.office.office_id, "contest");
+    if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
+    defendPay = ensureTreasury(w.organizations[grant.org_id]);
+    defendOfficeId = grant.office.office_id;
   }
-  debit(pl.budgets, DEFEND_COST);
-  reserveStake(pl.budgets, stake);
+  if (!canAffordStake(defendPay, DEFEND_COST, stake)) {
+    return fail(
+      request_id,
+      "BUDGET_EXCEEDED",
+      defendFor ? "The institution treasury cannot fund this defense." : "You do not have enough resources to defend.",
+    );
+  }
+  debit(defendPay, DEFEND_COST);
+  reserveStake(defendPay, stake);
   contest.defender_id = principal.player_id;
+  contest.defender_acting_for = defendFor;
   contest.defender_stake = stake;
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
     cost_paid: DEFEND_COST,
     reason: "CONTEST_DEFEND",
+    acting_for: defendFor || null,
+    office_id: defendOfficeId || null,
   });
   const result = success(w, principal, request_id, events, `Defense reserved on ${contest_id}.`, false);
   w.seen_idempotency[idem] = result;
@@ -2669,7 +2740,10 @@ async function applyContestWithdraw(
   const spentDeclarer: StakeMap = { ...contest.stake };
   const spentDefender: StakeMap = isDeclarer ? {} : { ...contest.defender_stake };
   if (isDeclarer) {
-    releaseStake(w.players[contest.defender_id || ""]?.budgets, contest.defender_stake);
+    releaseStake(
+      contestStakeBudgets(w, contest.defender_id, contest.defender_acting_for),
+      contest.defender_stake,
+    );
   }
   contest.status = "CLOSED";
   const digest = await resolutionDigest({
@@ -3605,8 +3679,11 @@ async function resolveDueContests(
     const spentDeclarer: StakeMap = expired ? {} : { ...contest.stake };
     const spentDefender: StakeMap = expired ? {} : { ...contest.defender_stake };
     if (expired) {
-      releaseStake(w.players[contest.declarer_id]?.budgets, contest.stake);
-      releaseStake(w.players[contest.defender_id || ""]?.budgets, contest.defender_stake);
+      releaseStake(contestStakeBudgets(w, contest.declarer_id, contest.acting_for), contest.stake);
+      releaseStake(
+        contestStakeBudgets(w, contest.defender_id, contest.defender_acting_for),
+        contest.defender_stake,
+      );
     }
     if (!expired) {
       let infra = 0;

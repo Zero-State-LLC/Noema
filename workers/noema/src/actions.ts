@@ -1406,7 +1406,9 @@ export function parseHumanCommand(
     const stake = parseResourceMap(stakeM[1]);
     if (!stake) return { ok: false, error: "Stake must be resource:amount pairs.", code: "INVALID_REQUEST" };
     const beforeStake = rest.slice(0, stakeM.index).trim();
-    const bits = beforeStake.split(/\s+/).filter(Boolean);
+    const forM = beforeStake.match(/^for\s+(\S+)\s+(.+)$/i);
+    const acting_for = forM?.[1];
+    const bits = (forM ? forM[2] : beforeStake).split(/\s+/).filter(Boolean);
     const form = parseContestForm(bits.shift() || "");
     if (!form) return { ok: false, error: "That contest form is not allowed.", code: "FORM_FORBIDDEN" };
     const targetRaw = bits.join(" ");
@@ -1424,15 +1426,21 @@ export function parseHumanCommand(
           target: target.target,
           stake,
           expires_cycle: expiresM ? Number(expiresM[1]) : undefined,
+          acting_for,
         },
       },
-      display: `You declare a ${form.replace(/_/g, " ").toLowerCase()} contest.`,
+      display: acting_for
+        ? `You declare a ${form.replace(/_/g, " ").toLowerCase()} contest for ${acting_for}.`
+        : `You declare a ${form.replace(/_/g, " ").toLowerCase()} contest.`,
     };
   }
   if (v === "defend") {
     const rest = parts.join(" ");
     const stakeM = rest.match(/\bstake=([^\s]+)/i);
-    const contest_id = (stakeM ? rest.slice(0, stakeM.index) : rest).trim().split(/\s+/)[0] || "";
+    const head = (stakeM ? rest.slice(0, stakeM.index) : rest).trim();
+    const defendFor = head.match(/^(\S+)\s+for\s+(\S+)$/i);
+    const contest_id = defendFor ? defendFor[1] : head.split(/\s+/)[0] || "";
+    const acting_for = defendFor?.[2];
     if (!contest_id || !stakeM) {
       return { ok: false, error: "Defend syntax: defend <contest_id> stake=energy:10,influence:6" };
     }
@@ -1442,9 +1450,9 @@ export function parseHumanCommand(
       ok: true,
       action: {
         verb: "COMMIT",
-        arguments: { operation: "CONTEST_DEFEND", contest_id, stake },
+        arguments: { operation: "CONTEST_DEFEND", contest_id, stake, acting_for },
       },
-      display: `You defend ${contest_id}.`,
+      display: acting_for ? `You defend ${contest_id} for ${acting_for}.` : `You defend ${contest_id}.`,
     };
   }
   // RFC-0026: withdraw <contest_id> — not listed in Chamber help. Not MOVE.
@@ -1672,6 +1680,8 @@ export function normalizeStructuredCommand(
             expires_cycle: args.expires_cycle != null ? Number(args.expires_cycle) : undefined,
             seed_stream_id: args.seed_stream_id ? String(args.seed_stream_id) : undefined,
             defender_id: args.defender_id ? String(args.defender_id) : undefined,
+            acting_for: args.acting_for ? String(args.acting_for) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
           },
         },
         display: `COMMIT.CONTEST_DECLARE ${form}`,
@@ -1687,7 +1697,13 @@ export function normalizeStructuredCommand(
         ok: true,
         action: {
           verb: "COMMIT",
-          arguments: { operation: "CONTEST_DEFEND", contest_id, stake },
+          arguments: {
+            operation: "CONTEST_DEFEND",
+            contest_id,
+            stake,
+            acting_for: args.acting_for ? String(args.acting_for) : undefined,
+            office_id: args.office_id ? String(args.office_id) : undefined,
+          },
         },
         display: `COMMIT.CONTEST_DEFEND ${contest_id}`,
       };
