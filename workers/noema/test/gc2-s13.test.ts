@@ -74,7 +74,8 @@ describe("GC2-S13 mapper", () => {
     expect(isMultiCycleClass("relay")).toBe(true);
     expect(isMultiCycleClass("workshop")).toBe(true);
     expect(isMultiCycleClass("generator")).toBe(true);
-    expect(isMultiCycleClass("storage_bay")).toBe(false);
+    expect(isMultiCycleClass("storage_bay")).toBe(true);
+    expect(isMultiCycleClass("production_node")).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b/);
   });
@@ -107,11 +108,11 @@ describe("GC2-S13 world path", () => {
     expect(repurpose.ok).toBe(false);
     expect(repurpose.error?.code).toBe("FORBIDDEN");
 
-    const storageBeforeBay = w.players[p.player_id].budgets.storage;
-    const bay = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "storage_bay" });
-    expect(bay.ok).toBe(true);
-    expect(storageBeforeBay - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.storage_bay.storage);
-    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "storage_bay")!)).toBe(false);
+    const storageBeforeNode = w.players[p.player_id].budgets.storage;
+    const node = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "production_node" });
+    expect(node.ok).toBe(true);
+    expect(storageBeforeNode - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.production_node.storage);
+    expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "production_node")!)).toBe(false);
 
     const waited = await run(w, p, "WAIT");
     expect(waited.ok).toBe(true);

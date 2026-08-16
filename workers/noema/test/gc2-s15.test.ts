@@ -20,7 +20,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.gc2-s14",
+    world_id: "test.hosted-canonical.gc2-s15",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -62,8 +62,8 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("GC2-S14 mapper", () => {
-  it("keeps relay as MULTI_CYCLE_CLASS, adds generator, and stays silent", () => {
+describe("GC2-S15 mapper", () => {
+  it("keeps relay as MULTI_CYCLE_CLASS, adds storage_bay, and stays silent", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(isMultiCycleClass("relay")).toBe(true);
     expect(isMultiCycleClass("workshop")).toBe(true);
@@ -75,22 +75,22 @@ describe("GC2-S14 mapper", () => {
   });
 });
 
-describe("GC2-S14 world path", () => {
-  it("constructs an IN_PROGRESS generator, then the same entity_id goes live after one WAIT", async () => {
+describe("GC2-S15 world path", () => {
+  it("constructs an IN_PROGRESS storage bay, then the same entity_id goes live after one WAIT", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "storage_bay" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
     expect(built.events?.map((e) => e.event_type)).toEqual(["BUDGET_CONSUMED", "ENTITY_CREATE"]);
     expect(built.events?.some((e) => /^STRUCTURE_/.test(e.event_type))).toBe(false);
     const created = w.rooms["room.yard"].entities[0];
-    expect(created.infra_type).toBe("generator");
+    expect(created.infra_type).toBe("storage_bay");
     expect(isInProgress(created)).toBe(true);
 
-    const again = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    const again = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "storage_bay" });
     expect(again.ok).toBe(false);
     expect(again.error?.code).toBe("SLOT_OCCUPIED");
 
@@ -104,12 +104,12 @@ describe("GC2-S14 world path", () => {
     expect(JSON.stringify(waited.events || [])).not.toMatch(/STRUCTURE_/);
   });
 
-  it("salvages an in-progress generator with no scar and no live leftover", async () => {
+  it("salvages an in-progress storage bay with no scar and no live leftover", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "storage_bay" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities[0].entity_id;
     const storageBefore = w.players[p.player_id].budgets.storage;
@@ -118,10 +118,10 @@ describe("GC2-S14 world path", () => {
     expect(torn.events?.some((e) => /^STRUCTURE_/.test(e.event_type))).toBe(false);
     expect(w.rooms["room.yard"].entities).toHaveLength(0);
     expect(String(torn.observation?.consequence || "")).not.toMatch(/A scar remains/);
-    expect(w.players[p.player_id].budgets.storage).toBe(storageBefore + 2);
+    expect(w.players[p.player_id].budgets.storage).toBe(storageBefore + 3);
 
     w.players[p.player_id].room_id = "room.vault";
-    const hidden = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    const hidden = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "storage_bay" });
     expect(hidden.ok).toBe(false);
     expect(hidden.error?.code).toBe("NOT_OBSERVABLE");
   });
