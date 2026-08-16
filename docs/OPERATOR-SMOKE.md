@@ -1,7 +1,9 @@
 # Operator smoke — Perihelion Reach (no activate)
 
-**Authority:** first world is already ACTIVE. This is a read-and-enter check, not a Genesis run.  
+**Authority:** first world is already activated. This is a read-and-enter check, not a Genesis run.  
 **Do not** activate, force-supersede, or reseed.
+
+If `GET /ready` shows `INCIDENT` and `settlement_health: BLOCKING`, PLAY is blocked. **Recover** from Admin Live (`POST /v1/admin/lifecycle {action:recover}`). Do not Close while BLOCKING. Confirm `/ready` is `ACTIVE`/`HEALTHY` before enter smoke.
 
 ```text
 World:        Perihelion Reach

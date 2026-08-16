@@ -1,28 +1,31 @@
 # NOEMA Runtime
 
-World Engine **modular monolith** implementing the frozen NOEMA core loop from  
-[`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).
+Two runtimes live in this repository. Do not treat them as one product.
+
+```text
+Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
+                  PLAY / WATCH / CONNECT / Admin Live. STUDY is a stub.
+Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
+```
+
+Specs: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
+Hosted routes: Worker `POST /v1/command` with a Bearer Player token. Python `/session` and `/play/action` are offline only.
 
 ```text
 PLAY → NOTICE → TEST → CAPTURE → LEARN
 Admin Genesis → Cycle 0 → Deep Time history
 ```
 
-| Layer | Spec | Status |
-|---|---|---|
-| Chamber | v0.1 | Complete |
-| Frontier | v0.2 | Complete |
-| Observatory | v0.3 | Complete |
-| Lab | v0.4 | Complete |
-| Compiler | v0.5 | Complete |
-| Deep Time + Genesis | v0.6 | Complete |
-| LEARN | v0.7 | Complete |
-| **Core-loop E2E** | — | **Phase 7** |
-| Postgres production backend | DEPLOYMENT / C14 | **Phase 8** |
-| Operator verify/backup/restore + CI PG | OPERATIONS / C15–C16 | **Phase 9** |
-| Deployment config + WATCH/PLAY HTML | DEPLOYMENT / C14 | **Phase 10** |
-| Evidence receipts + resume/ack windows | SECURITY / RFC-0003 | **Phase 11** |
-| Identity / auth gateway | AUTH-AND-IDENTITY | **Phase 12** (Supabase-ready) |
+| Layer | Spec | Hosted Worker | Offline Python |
+|---|---|---|---|
+| Chamber | v0.1 | **PARTIAL** — PLAY/WATCH/CONNECT/Admin Live | Complete (C01–C26 spine) |
+| Frontier | v0.2 | not on Stage 0 | Complete |
+| Observatory | v0.3 | not on Stage 0 | Complete |
+| Lab | v0.4 | STUDY stub | Complete |
+| Compiler | v0.5 | not on Stage 0 | Complete |
+| Deep Time + Genesis | v0.6 | Genesis admin-only, freeze after activate | Complete |
+| LEARN | v0.7 | not on Stage 0 | Complete |
+| Identity / auth gateway | AUTH-AND-IDENTITY | Player email + device enroll + Admin email | Phase 12 |
 
 Claim labels: `OBSERVED` / `INFERRED` / `SPECULATIVE` / `NOT_COMPUTABLE`.  
 No consciousness or scalar intelligence scores.

@@ -2,14 +2,28 @@
   "schema_version": "noema-runtime-spec-compat/1.0",
   "runtime_name": "noema",
   "runtime_version": "0.12.0-identity",
-  "product_milestone": "identity-gateway",
-  "implementation_phase": "phase-12-identity-connect",
-  "core_loop_status": "complete",
+  "product_milestone": "hosted-chamber-stage-0",
+  "implementation_phase": "hosted-chamber-stage-0",
+  "core_loop_status": "offline-complete-hosted-partial",
+  "hosted_runtime": {
+    "host": "cloudflare-worker",
+    "worker": "noema-gateway",
+    "durable_object": "NoemaWorldDO",
+    "product_url": "https://noema.guru",
+    "command_path": "/v1/command",
+    "study": "stub"
+  },
+  "offline_runtime": {
+    "host": "python-modular-monolith",
+    "entry": "noema-serve",
+    "note": "C01–C26 / ADR-005 conformance. Not the live door."
+  },
   "persistence": {
     "local_default": "sqlite",
     "production": "postgresql",
     "cycle_isolation": "SERIALIZABLE",
-    "writer": "single_fenced_per_process"
+    "writer": "single_fenced_per_process",
+    "note": "sqlite/SERIALIZABLE fields describe the offline Python runtime. Hosted live writer is the Durable Object; Postgres is the durable head."
   },
   "operations": {
     "verify": "noema-verify",
@@ -20,8 +34,9 @@
   "deployment": {
     "config_schema": "deployment-config/1.0",
     "config_fixture": "examples/deployment/local-deployment-config.json",
-    "ui_surfaces": ["/", "/watch", "/play"],
-    "json_surfaces": ["/health", "/ready", "/version", "/manifest", "/config"]
+    "ui_surfaces": ["/", "/play", "/watch", "/connect", "/study", "/admin"],
+    "json_surfaces_hosted": ["/health", "/ready", "/v1/watch/live", "/v1/command"],
+    "json_surfaces_offline": ["/health", "/ready", "/version", "/manifest", "/config"]
   },
   "evidence": {
     "receipt_version": "evidence-receipt/1.0",
@@ -41,7 +56,7 @@
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
-    "pin_note": "Core loop + Postgres + ops + config/UI + evidence receipts + resume windows",
+    "pin_note": "Hosted Stage 0 is the Worker at noema.guru. Python src/noema is offline conformance for the v0.1–v0.7 freeze.",
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",

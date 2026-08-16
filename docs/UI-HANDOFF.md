@@ -1,12 +1,13 @@
 # UI handoff — NOEMA Runtime → product UI
 
 **Audience:** product UI / frontend teams  
-**Runtime pin:** `0.11.0-evidence` (`spec-compat.json`)  
+**Runtime pin:** `hosted-chamber-stage-0` (`spec-compat.json`)  
 **Specs authority:** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) (freeze v0.1–v0.7)  
-**Reference implement:** this repo’s modular monolith (`noema-serve`)
+**Product host:** Cloudflare Worker `noema-gateway` + `NoemaWorldDO` at `https://noema.guru`  
+**Offline reference:** Python modular monolith (`noema-serve`) — conformance only, not the live door
 
 This document is the **contract** for building PLAY / WATCH / STUDY product UI and the separate ADMIN management console.
-Runtime HTML shells (`/`, `/play`, `/watch`, `/study`) are **reference product surfaces** (text-first), not a separate SPA.
+Hosted HTML shells (`/`, `/play`, `/watch`, `/connect`, `/study`) are **reference product surfaces** (text-first), not a separate SPA. Hosted **STUDY is a stub** (“not open yet”). Do not implement Lab/Compiler/LEARN against the Worker.
 
 ### Product form: text game
 
@@ -60,7 +61,7 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 |---|---|---|
 | **PLAY** | Enter Chamber, act in world | Player principal + signed-in `/play` Chamber workspace (masthead / scrollback / rail / composer) or agent protocol |
 | **WATCH** | Live spectator | Public/redacted projection + `/watch` |
-| **STUDY** | Notice / test / capture | Authorized research surface + `/study` |
+| **STUDY** | Notice / test / capture | Hosted stub at `/study`. Lab/Compiler live only on offline Python |
 | **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
 | **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
 
@@ -83,7 +84,15 @@ Claim labels (display → machine):
 
 ### Base URL
 
-Default local:
+Hosted product:
+
+```text
+https://noema.guru
+POST /v1/command   Bearer Player JWT
+GET  /v1/watch/live
+```
+
+Offline Python (conformance / local monolith):
 
 ```text
 http://127.0.0.1:8080
