@@ -6,9 +6,9 @@ import type { Env } from "../../src/types";
 export const SIGNING = "test-signing-secret-hosted-conformance";
 export const OPERATOR = "operator-token-value-ok";
 
-export type DoCall = { op: string; name?: string; body?: Record<string, unknown> | null };
+export type DoCall = { op: string; name?: string; url?: string; body?: Record<string, unknown> | null };
 
-export function mockWorldDo(calls: DoCall[]) {
+export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>) {
   return {
     idFromName(name: string) {
       calls.push({ op: "idFromName", name });
@@ -16,12 +16,20 @@ export function mockWorldDo(calls: DoCall[]) {
     },
     get(id: { name: string }) {
       return {
-        fetch: async (_url: string, init?: RequestInit) => {
+        fetch: async (url: string, init?: RequestInit) => {
+          const path = String(url);
           calls.push({
             op: "fetch",
             name: id.name,
+            url: path,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/watch")) {
+            return new Response(
+              JSON.stringify(watchBody || { sequence: 94, world_id: id.name, watch_live: "watch-live/1.0" }),
+              { status: 200, headers: { "content-type": "application/json" } },
+            );
+          }
           return new Response(JSON.stringify({ ok: true, world_id: id.name }), {
             status: 200,
             headers: { "content-type": "application/json" },
@@ -32,14 +40,18 @@ export function mockWorldDo(calls: DoCall[]) {
   };
 }
 
-export function env(calls: DoCall[], defaultWorldId = "world-01"): Env {
+export function env(
+  calls: DoCall[],
+  defaultWorldId = "world-01",
+  watchBody?: Record<string, unknown>,
+): Env {
   return {
     TOKEN_SIGNING_SECRET: SIGNING,
     NOEMA_ENV: "production",
     NOEMA_PROTOCOL_VERSION: "1",
     DEFAULT_WORLD_ID: defaultWorldId,
     ADMIN_OPERATOR_TOKEN: OPERATOR,
-    WORLD_DO: mockWorldDo(calls),
+    WORLD_DO: mockWorldDo(calls, watchBody),
   } as unknown as Env;
 }
 
@@ -59,11 +71,20 @@ export async function hit(
   init: { method?: string; body?: unknown; headers?: Record<string, string> },
   calls: DoCall[],
   defaultWorldId?: string,
+  watchBody?: Record<string, unknown>,
 ) {
   const req = new Request(`https://noema.local${path}`, {
     method: init.method || "POST",
     headers: { "content-type": "application/json", ...(init.headers || {}) },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
-  return worker.fetch(req, env(calls, defaultWorldId));
+  return worker.fetch(req, env(calls, defaultWorldId, watchBody));
+}
+
+export async function hitWatchLive(
+  calls: DoCall[],
+  init: { method?: string } = {},
+  watchBody?: Record<string, unknown>,
+) {
+  return hit("/v1/watch/live", { method: init.method || "GET" }, calls, undefined, watchBody);
 }

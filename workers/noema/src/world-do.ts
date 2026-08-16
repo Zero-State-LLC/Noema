@@ -46,6 +46,7 @@ import {
 } from "./settle";
 import { checkExpectedHead } from "./settle-fence";
 import { admitTestWorldId, resolveLoadWorldId } from "./test-world";
+import { MINI_ENTRY_ROOM_ID, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -123,6 +124,12 @@ function demoState(world_id: string): WorldState {
     seen_idempotency: {},
     unsettled: [],
   };
+}
+
+/** Isolated test worlds get the mini chamber. Production / demo keep DEMO_ROOMS. */
+export function bootstrapWorldState(world_id: string): WorldState {
+  if (admitTestWorldId(world_id).ok) return miniChamberState(world_id);
+  return demoState(world_id);
 }
 
 function cycle0ToWorld(c0: Cycle0World): WorldState {
@@ -676,12 +683,16 @@ export class NoemaWorldDO {
       const worldId = resolveLoadWorldId(this.requestedWorldId, this.env.DEFAULT_WORLD_ID);
       if (shouldRestoreFromHead(stored)) {
         const head = await getWorldHead(this.env, worldId);
-        this.world = worldFromHead(head, demoState(worldId));
+        this.world = worldFromHead(head, bootstrapWorldState(worldId));
       } else {
-        this.world = stored || demoState(worldId);
+        this.world = stored || bootstrapWorldState(worldId);
       }
       // migrate old states without entry_room_id / budgets / entity runtime fields
-      if (!this.world.entry_room_id) this.world.entry_room_id = "room.relay-quarter";
+      if (!this.world.entry_room_id) {
+        this.world.entry_room_id = admitTestWorldId(worldId).ok
+          ? MINI_ENTRY_ROOM_ID
+          : "room.relay-quarter";
+      }
       migrateWorldRuntime(this.world);
     }
     if (expireStalePresence(this.world.players)) {
