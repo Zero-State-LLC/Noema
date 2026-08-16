@@ -53,6 +53,7 @@ import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
+import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
@@ -399,6 +400,13 @@ export default {
         const worldRes = await stub.fetch("https://do/admin-status");
         const world = (await worldRes.json()) as Record<string, unknown>;
         const meta = (world.meta || {}) as Record<string, unknown>;
+        const worldId = String(world.world_id || env.DEFAULT_WORLD_ID || "world-01");
+        const head = await getWorldHead(env, worldId);
+        const canonical_head = summarizeCanonicalHead(head, {
+          sequence: typeof world.sequence === "number" ? world.sequence : undefined,
+          cycle: typeof world.cycle === "number" ? world.cycle : undefined,
+          revision: typeof meta.revision === "number" ? meta.revision : null,
+        });
         const attention: Array<{ message: string; level: string }> = [];
         if (!adminTokenConfigured(env)) {
           attention.push({ message: "ADMIN_OPERATOR_TOKEN not configured.", level: "attention" });
@@ -428,6 +436,7 @@ export default {
             ready: true,
             health,
             world,
+            canonical_head,
             genesis: {
               status: meta.status,
               genesis_id: meta.genesis_id,

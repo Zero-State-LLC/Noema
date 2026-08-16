@@ -658,6 +658,7 @@ export class NoemaWorldDO {
       settlement_ok: m.settlement_ok ?? null,
       settlement_health: m.settlement_health || "HEALTHY",
       do_digest: m.do_digest || null,
+      revision: m.revision ?? null,
     };
   }
 
