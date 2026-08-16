@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s1";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s2";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -12,6 +12,7 @@ export const CONSTRUCTIBLE_CLASSES = [
   "storage_bay",
   "production_node",
   "route_link",
+  "workshop",
 ] as const;
 
 export type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
@@ -34,6 +35,7 @@ export const CONSTRUCT_COSTS: Record<ConstructibleClass, ConstructionCost> = {
   storage_bay: { energy: 5, compute: 2, storage: 6, influence: 0 },
   production_node: { energy: 7, compute: 3, storage: 4, influence: 0 },
   route_link: { energy: 8, compute: 4, storage: 4, influence: 2 },
+  workshop: { energy: 6, compute: 3, storage: 5, influence: 0 },
 };
 
 export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
@@ -42,6 +44,7 @@ export const SALVAGE_STORAGE: Record<ConstructibleClass, number> = {
   storage_bay: 3,
   production_node: 2,
   route_link: 2,
+  workshop: 2,
 };
 
 const CLASS_SET = new Set<string>(CONSTRUCTIBLE_CLASSES);
@@ -62,6 +65,7 @@ export function parseConstructibleClass(raw: string): ConstructibleClass | null 
   if (t === "storage bay" || t === "storage") return "storage_bay";
   if (t === "production node" || t === "production") return "production_node";
   if (t === "route link" || t === "routelink") return "route_link";
+  if (t === "workshop") return "workshop";
   return null;
 }
 
@@ -82,11 +86,20 @@ export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if (blob.includes("production node") || /\bproduction\b/.test(blob)) return "production_node";
   if (blob.includes("storage bay") || /\bstorage\b/.test(blob)) return "storage_bay";
   if (blob.includes("route link") || blob.includes("routelink")) return "route_link";
+  if (blob.includes("workshop")) return "workshop";
   return null;
 }
 
 export function liveClassInRoom(entities: InfraLike[], classId: ConstructibleClass): boolean {
   return entities.some((e) => infraClassOf(e) === classId);
+}
+
+export const WORKSHOP_STORAGE_DISCOUNT = 1;
+
+export function withWorkshopStorage<T extends { storage?: number }>(cost: T, hasWorkshop: boolean): T {
+  if (!hasWorkshop || !cost.storage) return cost;
+  const storage = Math.max(0, cost.storage - WORKSHOP_STORAGE_DISCOUNT);
+  return { ...cost, storage: storage || undefined };
 }
 
 export function isHiddenRoom(room: { hidden?: boolean; tags?: string[] } | null | undefined): boolean {

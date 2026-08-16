@@ -107,7 +107,7 @@ describe("GC2-S0 catalog mapper", () => {
     expect(parseConstructibleClass("storage bay")).toBe("storage_bay");
     expect(parseConstructibleClass("storage_bay")).toBe("storage_bay");
     expect(parseConstructibleClass("production-node")).toBe("production_node");
-    expect(parseConstructibleClass("workshop")).toBeNull();
+    expect(parseConstructibleClass("workshop")).toBe("workshop");
     expect(parseConstructibleClass("route_link")).toBe("route_link");
     expect(parseConstructibleClass("route link")).toBe("route_link");
   });
@@ -150,6 +150,7 @@ describe("GC2-S0 catalog mapper", () => {
     expect(CONSTRUCT_COSTS.storage_bay).toEqual({ energy: 5, compute: 2, storage: 6, influence: 0 });
     expect(CONSTRUCT_COSTS.production_node).toEqual({ energy: 7, compute: 3, storage: 4, influence: 0 });
     expect(CONSTRUCT_COSTS.route_link).toEqual({ energy: 8, compute: 4, storage: 4, influence: 2 });
+    expect(CONSTRUCT_COSTS.workshop).toEqual({ energy: 6, compute: 3, storage: 5, influence: 0 });
     expect(DISMANTLE_COST).toEqual({ energy: 4, compute: 2 });
     expect(SALVAGE_STORAGE.storage_bay).toBe(3);
     expect(clampSalvage(15, 2)).toEqual({ added: 1, overflow: 1, next: 16 });
@@ -190,7 +191,9 @@ describe("GC2-S0 parse", () => {
         arguments: { operation: "DISMANTLE", entity_id: "entity.relay-7" },
       });
     }
-    const bad = parseHumanCommand("construct workshop");
+    const shop = parseHumanCommand("construct workshop");
+    expect(shop.ok).toBe(true);
+    const bad = parseHumanCommand("construct fortress");
     expect(bad.ok).toBe(false);
     if (!bad.ok) expect(bad.code).toBe("CLASS_FORBIDDEN");
     const structured = normalizeStructuredCommand("BUILD", {
