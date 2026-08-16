@@ -440,4 +440,14 @@ describe("ledger sequence", () => {
     await run(w, p, "LOOK");
     expect(w.sequence).toBe(afterEnter);
   });
+
+  it("LOOK does not mark a Player entered without ENTER_WORLD", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.aaaaaaaaaaaa");
+    const r = await run(w, p, "LOOK");
+    expect(r.ok).toBe(false);
+    expect(r.error?.code).toBe("NOT_IN_WORLD");
+    expect(w.players[p.player_id]?.entered).not.toBe(true);
+    expect((r.events || []).map((e) => e.event_type)).not.toContain("AGENT_ENTERED_WORLD");
+  });
 });
