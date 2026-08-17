@@ -10,6 +10,8 @@ import sys
 from noema.harness.auth import StaticTokenProvider, enroll_device, resolve_token
 from noema.harness.observe import to_state
 from noema.harness.policy import HarnessPolicy
+from noema.harness.report import write_report
+from noema.harness.tenant import TenantError, resolve_tenant
 from noema.harness.transport import GatewayClient, default_http
 from noema.harness.types import ActionProposal
 from noema.harness.validate import validate_proposal
@@ -74,6 +76,9 @@ def main(argv: list[str] | None = None, http=None) -> int:
     p.add_argument("--controller-type", default="agent", choices=["agent", "human"])
     p.add_argument("--runtime", default="openclaw")
     p.add_argument("--turns", type=int, default=8, help="unattended run length (ENTER + OBSERVE count)")
+    p.add_argument("--tenant", default=None, help="test.hosted-canonical.<suffix> or perihelion")
+    p.add_argument("--live-tenant", action="store_true", help="allow Perihelion Reach (live tenant)")
+    p.add_argument("--report", default=None, help="write local tester report JSON here")
     p.add_argument("--adapter", default="first-valid", choices=["first-valid", "scripted"])
     p.add_argument(
         "action",
@@ -86,13 +91,20 @@ def main(argv: list[str] | None = None, http=None) -> int:
 
     transport = http or default_http
     base = args.base.rstrip("/")
+    tenant = None
+    action = args.action.lower()
+    if action == "run":
+        try:
+            tenant = resolve_tenant(args.tenant, live=args.live_tenant, env=os.environ)
+        except TenantError as exc:
+            print("tenant refused", exc.code, exc.message)
+            return 2
+
     health = transport("GET", f"{base}/health")
     if health.get("status") != "ok":
         print("health failed", health)
         return 1
     print("health", health.get("service"), "stage", health.get("stage"), "via", base)
-
-    action = args.action.lower()
     if action == "enroll":
         try:
             token = enroll_device(base, runtime=args.runtime, http=transport)
@@ -108,6 +120,13 @@ def main(argv: list[str] | None = None, http=None) -> int:
     except Exception as exc:
         print("enroll failed", exc)
         return 1
+    if tenant is not None:
+        client.command_path = tenant.command_path
+        client.world_id = tenant.world_id
+        client.admin_token = os.environ.get("NOEMA_ADMIN_TOKEN") if tenant.isolated else None
+        if tenant.isolated and not client.admin_token:
+            print("tenant refused", "ADMIN_TOKEN_REQUIRED", "isolated tenant needs NOEMA_ADMIN_TOKEN (signed admin JWT)")
+            return 2
 
     if action == "inspect-status":
         result = client.send_command("OBSERVE", {})
@@ -144,6 +163,14 @@ def main(argv: list[str] | None = None, http=None) -> int:
             print("---", label)
             if turn.result:
                 print_obs(turn.result)
+        if run.report:
+            report = dict(run.report)
+            report["tenant_id"] = tenant.world_id if tenant else None
+            report["live"] = bool(tenant.live) if tenant else False
+            dest = args.report or os.environ.get("NOEMA_TESTER_REPORT")
+            if dest:
+                write_report(dest, report)
+            print("report", report.get("classification"), report.get("mode_at_stop"))
         if not run.orientation_ok:
             print("ORIENTATION", run.orientation_reason)
             return 1

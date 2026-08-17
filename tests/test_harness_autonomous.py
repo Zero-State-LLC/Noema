@@ -357,9 +357,15 @@ def test_unattended_paused_stops_mutation():
 
 def test_cli_run_unattended_against_fake_twice():
     http = FakeGateway(quiet_obs())
-    code1 = main(["--base", "https://noema.guru", "--token", "tok", "--turns", "3", "run"], http=http)
+    code1 = main(
+        ["--base", "https://noema.guru", "--token", "tok", "--tenant", "perihelion", "--live-tenant", "--turns", "3", "run"],
+        http=http,
+    )
     http2 = FakeGateway(quiet_obs())
-    code2 = main(["--base", "https://noema.guru", "--token", "tok", "--turns", "3", "run"], http=http2)
+    code2 = main(
+        ["--base", "https://noema.guru", "--token", "tok", "--tenant", "perihelion", "--live-tenant", "--turns", "3", "run"],
+        http=http2,
+    )
     assert code1 == 0 and code2 == 0
     for gw in (http, http2):
         cmds = [p["body"]["command"] for p in gw.posts if p.get("body")]
@@ -459,7 +465,20 @@ def test_cli_run_after_one_connect_never_hits_play():
 
     run_http = ConnectGateway(quiet_obs())
     code = main(
-        ["--base", "https://noema.guru", "--token", approved, "--runtime", "openclaw", "--turns", "3", "run"],
+        [
+            "--base",
+            "https://noema.guru",
+            "--token",
+            approved,
+            "--runtime",
+            "openclaw",
+            "--tenant",
+            "perihelion",
+            "--live-tenant",
+            "--turns",
+            "3",
+            "run",
+        ],
         http=run_http,
     )
     assert code == 0
