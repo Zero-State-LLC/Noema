@@ -11,7 +11,7 @@ import { loadOperatorEnv, resolveAdminMaterial } from "./operator-env.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_BASE = "https://noema-gateway.zer0state-noema.workers.dev";
-const DEFAULT_WORLD = "test.hosted-canonical.ack-s0";
+const DEFAULT_WORLD = "test.hosted-canonical.ack-s3";
 
 async function json(res) {
   const text = await res.text();
@@ -128,6 +128,7 @@ async function main() {
     base,
     enter_http: enter.status,
     enter_ok: enterBody.ok === true,
+    enter_error: enterBody.error || null,
     perihelion_test_world_http: perihelionDenied.status,
     player_typ_note: "minted Player controller token; admin JWT used only on X-Noema-Admin-Token",
   }));

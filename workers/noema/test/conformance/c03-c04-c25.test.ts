@@ -79,6 +79,8 @@ describe("C03 idempotent action replay", () => {
     expect(enter2.ok).toBe(true);
     expect(enter1.events?.map((e) => e.event_id)).toEqual(enter2.events?.map((e) => e.event_id));
     expect(enter1.events?.map((e) => e.event_type)).toEqual(["AGENT_ENTERED_WORLD"]);
+    expect(enter1.events?.[0]?.sequence).toBe(0);
+    expect(enter1.events?.[0]?.event_id).toBe("evt.000000");
 
     const move1 = await run(w, "MOVE", { direction: "east" }, moveKey);
     const seqAfterFirst = w.sequence;

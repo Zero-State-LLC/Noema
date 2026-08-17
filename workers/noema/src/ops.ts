@@ -270,7 +270,8 @@ export function isUsableLiveWorld(world: {
 } | null | undefined): boolean {
   if (!world) return false;
   if (!world.world_id || typeof world.world_id !== "string") return false;
-  if (!Number.isFinite(world.sequence) || (world.sequence as number) < 0) return false;
+  // -1 = isolated mini-chamber seed before first ledger event (evt.000000).
+  if (!Number.isFinite(world.sequence) || (world.sequence as number) < -1) return false;
   if (!world.rooms || typeof world.rooms !== "object") return false;
   return Object.keys(world.rooms).length > 0;
 }
