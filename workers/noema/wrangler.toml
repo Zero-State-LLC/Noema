@@ -29,7 +29,7 @@ html_handling = "none"
 not_found_handling = "none"
 
 [vars]
-NOEMA_ENV = "local"
+NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
 DEFAULT_WORLD_ID = "world-01"
 POSTMARK_MESSAGE_STREAM = "outbound"

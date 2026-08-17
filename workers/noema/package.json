@@ -4,12 +4,13 @@
   "private": true,
   "description": "Noema Stage 0 Cloudflare Worker + World Durable Object",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var NOEMA_ENV:local",
     "deploy": "bash ./scripts/deploy-stage0.sh",
     "types": "wrangler types",
     "typecheck": "npm run types && tsc --noEmit",
     "test": "vitest run",
     "smoke": "node ./scripts/smoke.mjs",
+    "smoke:hosted": "node ./scripts/hosted-conformance.mjs",
     "secrets:push": "bash ./scripts/push-secrets-from-env.sh",
     "secrets:list": "wrangler secret list"
   },

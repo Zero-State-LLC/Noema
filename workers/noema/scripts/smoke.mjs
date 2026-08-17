@@ -1,29 +1,73 @@
 #!/usr/bin/env node
 /**
  * Smoke against local wrangler dev (http://127.0.0.1:8787 by default).
- * Usage: BASE=http://127.0.0.1:8787 node scripts/smoke.mjs
+ * Hosted preview verification uses scripts/hosted-conformance.mjs instead.
  */
-const BASE = process.env.BASE || "http://127.0.0.1:8787";
+import { pathToFileURL } from "node:url";
+
+const DEFAULT_BASE = "http://127.0.0.1:8787";
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "[::1]", "localhost"]);
+
+export function admitLocalSmokeBase(raw) {
+  const base = String(raw || DEFAULT_BASE).trim().replace(/\/$/, "");
+  let url;
+  try {
+    url = new URL(base);
+  } catch {
+    return { ok: false, message: "BASE must be an absolute loopback http URL" };
+  }
+  if (url.protocol !== "http:" || !LOOPBACK_HOSTS.has(url.hostname.toLowerCase())) {
+    return {
+      ok: false,
+      message: "local smoke refuses non-loopback BASE; use npm run smoke:hosted for preview verification",
+    };
+  }
+  if ((url.pathname !== "/" && url.pathname !== "") || url.search || url.hash || url.username || url.password) {
+    return { ok: false, message: "BASE must be a loopback origin without credentials, path, query, or fragment" };
+  }
+  return { ok: true, base };
+}
+
+async function json(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+async function mintLocalDevToken(base, controllerType) {
+  const res = await fetch(`${base}/v1/auth/dev-token`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ handle: `smoke-${controllerType}`, controller_type: controllerType }),
+  });
+  const body = await json(res);
+  if (res.status !== 200 || !body.access_token) {
+    throw new Error(`local ${controllerType} token mint failed (${res.status}); is npm run dev running?`);
+  }
+  return body;
+}
 
 async function main() {
-  const health = await fetch(`${BASE}/health`).then((r) => r.json());
+  const gate = admitLocalSmokeBase(process.env.BASE);
+  if (!gate.ok) {
+    console.error(`error: ${gate.message}`);
+    process.exit(2);
+  }
+  const base = gate.base;
+
+  const health = await fetch(`${base}/health`).then(json);
   console.log("health", health.status, health.stage);
 
-  const human = await fetch(`${BASE}/v1/auth/dev-token`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ handle: "smoke-human", controller_type: "human" }),
-  }).then((r) => r.json());
+  const human = await mintLocalDevToken(base, "human");
   console.log("human_token", !!human.access_token, human.player_id);
 
-  const agent = await fetch(`${BASE}/v1/auth/dev-token`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ handle: "smoke-agent", controller_type: "agent" }),
-  }).then((r) => r.json());
+  const agent = await mintLocalDevToken(base, "agent");
   console.log("agent_token", !!agent.access_token, agent.player_id);
 
-  const enter = await fetch(`${BASE}/v1/command`, {
+  const enter = await fetch(`${base}/v1/command`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -36,10 +80,10 @@ async function main() {
       arguments: {},
       client: { type: "agent", runtime: "curl" },
     }),
-  }).then((r) => r.json());
+  }).then(json);
   console.log("enter", enter.ok, enter.observation?.location?.name);
 
-  const look = await fetch(`${BASE}/v1/command`, {
+  const look = await fetch(`${base}/v1/command`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -51,10 +95,10 @@ async function main() {
       command: "LOOK",
       arguments: {},
     }),
-  }).then((r) => r.json());
+  }).then(json);
   console.log("look", look.ok, look.events?.[0]?.event_type, look.provenance?.controller_id);
 
-  const again = await fetch(`${BASE}/v1/command`, {
+  const again = await fetch(`${base}/v1/command`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -65,10 +109,10 @@ async function main() {
       idempotency_key: "idem-look-1",
       command: "LOOK",
     }),
-  }).then((r) => r.json());
+  }).then(json);
   console.log("idempotent", again.events?.[0]?.sequence === look.events?.[0]?.sequence);
 
-  const unauth = await fetch(`${BASE}/v1/command`, {
+  const unauth = await fetch(`${base}/v1/command`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ request_id: "x", command: "LOOK" }),
@@ -81,7 +125,10 @@ async function main() {
   console.log("SMOKE_OK");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const invoked = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invoked) {
+  main().catch((e) => {
+    console.error(e instanceof Error ? e.message : e);
+    process.exit(1);
+  });
+}
