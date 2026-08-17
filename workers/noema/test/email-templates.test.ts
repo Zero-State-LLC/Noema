@@ -53,6 +53,9 @@ describe("auth email templates", () => {
     expect(admin).toContain("Operator Plane");
     expect(admin).not.toMatch(/ADMIN_OPERATOR_TOKEN|Activate Genesis|access_token|Bearer /);
     expect(admin).not.toContain("ENTER NOEMA");
+    expect(admin).not.toMatch(/#c4784a|Georgia|Fraunces|--copper/i);
+    expect(admin).toContain("#FFB020");
+    expect(admin).toContain("IBM Plex Sans");
     expect(play).not.toContain("OPEN ADMIN");
   });
 

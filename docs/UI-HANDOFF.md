@@ -56,7 +56,8 @@ No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.
 A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
 
 Slice 6: 640px contract — 44px targets, 16px command (no iOS zoom), wrapping strip, sticky composer, overflow-x clip.
-Slice 7: one-shot motion — cyan signal edge 200ms, amber threshold band 240ms, panel/strip 160ms; reduced-motion kills all three. Next: Slice 8 Admin relationship.
+Slice 7: one-shot motion — cyan signal edge 200ms, amber threshold band 240ms, panel/strip 160ms; reduced-motion kills all three.
+Slice 8: Admin shares tokens as `--operator-accent` (warning); OPERATOR mark; skip + reduced-motion; mail remapped off copper. Health, head, Genesis stay. Next: Slice 9 Visual QA.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 

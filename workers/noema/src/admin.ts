@@ -10,17 +10,30 @@ const FONTS = FONT_LINKS;
 const CSS = `
 ${TOKEN_CSS}
 :root{
-  --copper:var(--color-state-warning);
-  --copper-soft:color-mix(in srgb,var(--color-state-warning) 18%, transparent);
-  --copper-ink:var(--color-text-inverse);
+  --operator-accent:var(--color-state-warning);
+  --operator-accent-soft:color-mix(in srgb,var(--color-state-warning) 18%, transparent);
+  --operator-ink:var(--color-text-inverse);
   --r:2px;
 }
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--void);color:var(--ink);font:15px/1.5 var(--font-body)}
-body{background:radial-gradient(ellipse 50% 40% at 80% -5%,rgba(196,120,74,.1),transparent),var(--void)}
-a{color:var(--copper);text-decoration:none}a:hover{color:var(--ink)}
+body{background:radial-gradient(ellipse 50% 40% at 80% -5%,color-mix(in srgb,var(--color-state-warning) 10%, transparent),transparent),var(--void)}
+a{color:var(--operator-accent);text-decoration:none}a:hover{color:var(--ink)}
 button,input,select{font:inherit}button{cursor:pointer;color:inherit;background:none;border:0}
 button:disabled{opacity:.45;cursor:not-allowed}
-:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:2px}
+.skip{
+  position:fixed;z-index:var(--z-skip);top:.75rem;left:.75rem;padding:.5rem .75rem;
+  background:var(--color-state-active);color:var(--color-text-inverse);font:600 .75rem var(--font-interface);
+  transform:translateY(-160%);text-decoration:none;white-space:nowrap;
+}
+.skip:focus{transform:none}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media(max-width:640px){
+  .btn,input,select,.nav a{min-height:44px}
+}
 .top{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between;padding:.7rem 1.25rem;border-bottom:1px solid var(--line);background:rgba(7,10,16,.92)}
 .brand{font:550 1rem var(--font-display);letter-spacing:.16em;text-transform:uppercase;color:var(--ink)}
 .brand span{display:block;margin-top:.15rem;color:var(--faint);font:.55rem var(--font-mono);letter-spacing:.1em}
@@ -28,13 +41,13 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .nav a{padding:.45rem .6rem;color:var(--muted);font:.62rem var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
 .nav a[aria-current=page],.nav a:hover{color:var(--ink)}
 .tag{display:inline-flex;padding:.28rem .45rem;border:1px solid var(--line);color:var(--muted);font:.55rem var(--font-mono);text-transform:uppercase}
-.tag.ok{color:var(--teal);border-color:rgba(107,155,143,.45)}.tag.warn{color:var(--copper)}.tag.bad{color:var(--ember)}
-.kicker{color:var(--copper);font:500 .6rem var(--font-mono);letter-spacing:.14em;text-transform:uppercase}
+.tag.ok{color:var(--teal);border-color:rgba(107,155,143,.45)}.tag.warn{color:var(--operator-accent)}.tag.bad{color:var(--ember)}
+.kicker{color:var(--operator-accent);font:500 .6rem var(--font-mono);letter-spacing:.14em;text-transform:uppercase}
 h1{margin:.25rem 0;font:550 clamp(1.8rem,4vw,2.8rem)/1.05 var(--font-display)}
 h2{margin:.2rem 0;font:550 1.25rem var(--font-display)}
 .muted{color:var(--muted)}.faint{color:var(--faint)}.empty{color:var(--faint);font-size:.82rem}
 .btn{display:inline-flex;min-height:2.4rem;align-items:center;justify-content:center;padding:.5rem .85rem;border:1px solid var(--line-hot);border-radius:var(--r);background:var(--panel-2);font-weight:600}
-.btn.primary{background:var(--copper);color:var(--copper-ink);border-color:var(--copper)}
+.btn.primary{background:var(--operator-accent);color:var(--operator-ink);border-color:var(--operator-accent)}
 .btn.quiet{background:transparent;color:var(--muted)}
 .btn.danger{border-color:rgba(196,106,90,.55);color:var(--ember)}
 .btn-row{display:flex;flex-wrap:wrap;gap:.45rem}
@@ -49,7 +62,7 @@ input,select{width:100%;min-height:2.35rem;padding:.5rem .65rem;border:1px solid
 .rail strong{display:block;font:550 1.1rem var(--font-display);letter-spacing:.12em}
 .rail-nav{display:grid;gap:.15rem;margin-top:1rem}
 .rail-nav a{padding:.55rem .55rem;border-left:2px solid transparent;color:var(--muted);font:.65rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase}
-.rail-nav a:hover,.rail-nav a.active{border-left-color:var(--copper);color:var(--ink);background:var(--copper-soft)}
+.rail-nav a:hover,.rail-nav a.active{border-left-color:var(--operator-accent);color:var(--ink);background:var(--operator-accent-soft)}
 .rail-foot{margin-top:1.5rem;padding:.7rem;border:1px solid var(--line);color:var(--faint);font:.58rem/1.45 var(--font-mono)}
 .main{padding:1.25rem clamp(1rem,3vw,2rem) 3rem}
 .section{scroll-margin-top:1rem;padding:1.5rem 0 0}
@@ -57,19 +70,19 @@ input,select{width:100%;min-height:2.35rem;padding:.5rem .65rem;border:1px solid
 .s3{grid-column:span 3}.s4{grid-column:span 4}.s5{grid-column:span 5}.s6{grid-column:span 6}.s7{grid-column:span 7}.s8{grid-column:span 8}.s12{grid-column:1/-1}
 @media(max-width:900px){.s3,.s4,.s5,.s6,.s7,.s8{grid-column:1/-1}}
 .metric{padding:1rem;border-top:2px solid var(--line-hot);background:#0a1016}
-.metric.teal{border-top-color:var(--teal)}.metric.copper{border-top-color:var(--copper)}
+.metric.teal{border-top-color:var(--teal)}.metric.warn{border-top-color:var(--operator-accent)}
 .metric strong{display:block;margin-top:.3rem;font:550 clamp(1.5rem,3vw,2.1rem) var(--font-display)}
 .metric span{color:var(--faint);font:.58rem var(--font-mono);text-transform:uppercase}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:0;font-size:.8rem}
 .kv dt{color:var(--faint);font:.58rem var(--font-mono);text-transform:uppercase}.kv dd{margin:0;overflow-wrap:anywhere}
 .notice{min-height:1.2rem;margin:.7rem 0 0;color:var(--muted);font-size:.8rem}.notice.ok{color:var(--teal)}.notice.bad{color:var(--ember)}
-.danger{margin-top:.9rem;padding:.85rem;border:1px solid rgba(196,120,74,.45);background:var(--copper-soft)}
+.danger{margin-top:.9rem;padding:.85rem;border:1px solid color-mix(in srgb,var(--color-state-warning) 45%, var(--line));background:var(--operator-accent-soft)}
 .danger label{display:flex!important;gap:.5rem;align-items:flex-start;margin:0}
 .danger input{width:1rem;height:1rem;min-height:0;margin-top:.15rem}
 .login{display:grid;min-height:calc(100vh - 3.5rem);place-items:center;padding:2rem}
 .login-card{width:min(100%,28rem);padding:1.5rem}
 .login-card h1{font-size:clamp(2rem,6vw,3rem)}
-.banner{margin:0 0 1rem;padding:.75rem 1rem;border:1px solid rgba(196,120,74,.4);background:var(--copper-soft);font-size:.84rem;color:var(--muted)}
+.banner{margin:0 0 1rem;padding:.75rem 1rem;border:1px solid color-mix(in srgb,var(--color-state-warning) 40%, var(--line));background:var(--operator-accent-soft);font-size:.84rem;color:var(--muted)}
 code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .list{margin:0;padding:0;list-style:none;display:grid;gap:.3rem}
 .list li{display:flex;justify-content:space-between;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(42,51,66,.5);font-size:.8rem}
@@ -85,8 +98,9 @@ function adminChrome(title: string, body: string): string {
 ${FONTS}<style>${CSS}</style>
 </head>
 <body>
+<a class="skip" href="#admin-main">Skip to operator content</a>
 <header class="top">
-  <div class="brand">NOEMA<span>operator plane · admin ≠ player</span></div>
+  <div class="brand">OPERATOR<span>admin ≠ player · not PLAY</span></div>
   <nav class="nav" aria-label="Planes">
     <a href="/">Product</a>
     <a href="/play">Play</a>
@@ -141,7 +155,7 @@ export function adminEmailGateMarkup(): string {
 export function adminLoginHtml(): string {
   return adminChrome(
     "Admin login",
-    `<main class="login">
+    `<main class="login" id="admin-main">
   <section class="card pad login-card" aria-labelledby="login-title">
     <p class="kicker">Operator access</p>
     <h1 id="login-title">Open the control plane.</h1>
@@ -190,7 +204,7 @@ export function adminLoginHtml(): string {
 export function adminCallbackHtml(): string {
   return adminChrome(
     "Admin callback",
-    `<main class="login">
+    `<main class="login" id="admin-main">
   <section class="card pad login-card" aria-labelledby="callback-title">
     <p class="kicker">Operator access</p>
     <h1 id="callback-title">Opening ADMIN…</h1>
@@ -231,7 +245,7 @@ export function adminHtml(): string {
     "Admin",
     `<div class="frame">
   <aside class="rail" aria-label="Admin sections">
-    <strong>NOEMA</strong>
+    <strong>OPERATOR</strong>
     <p class="empty" style="margin:.35rem 0 0">management console</p>
     <nav class="rail-nav">
       <a class="active" href="#overview">Overview</a>
@@ -264,7 +278,7 @@ export function adminHtml(): string {
       <h2>Operating picture</h2>
       <div class="grid" style="margin-top:.75rem">
         <article class="metric teal s3"><span>Live players</span><strong id="m-players">—</strong><span id="m-player-note">present now · 30m</span></article>
-        <article class="metric copper s3"><span>World</span><strong id="m-world">—</strong><span id="m-world-state">checking</span></article>
+        <article class="metric warn s3"><span>World</span><strong id="m-world">—</strong><span id="m-world-state">checking</span></article>
         <article class="metric s3"><span>Cycle</span><strong id="m-cycle">—</strong><span id="m-seq">sequence —</span></article>
         <article class="metric s3"><span>Rooms</span><strong id="m-rooms">—</strong><span>chamber sites</span></article>
         <article class="card pad s6">

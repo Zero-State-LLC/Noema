@@ -601,6 +601,36 @@ describe("admin login HTML", () => {
     expect(html).not.toContain("refresh_token");
   });
 
+  it("shares semantic tokens as an operator register, not PLAY fantasy", () => {
+    const html = adminHtml();
+    const login = adminLoginHtml();
+    for (const page of [html, login]) {
+      expect(page).toContain("--color-state-warning");
+      expect(page).toContain("--operator-accent:var(--color-state-warning)");
+      expect(page).toContain(":focus-visible{outline:2px solid var(--color-border-focus)");
+      expect(page).toContain('href="#admin-main"');
+      expect(page).toContain("prefers-reduced-motion");
+      expect(page).toContain("OPERATOR");
+      expect(page).not.toContain("var(--copper)");
+      expect(page).not.toContain("--copper:");
+      expect(page).not.toContain("NOEMA // PERIHELION");
+      expect(page).not.toContain("AVAILABLE HERE");
+      expect(page).not.toContain('id="cmd"');
+      expect(page).not.toContain("TOKEN_SIGNING_SECRET");
+      expect(page).not.toContain("ADMIN_OPERATOR_TOKEN");
+      expect(page).not.toMatch(/Bearer [A-Za-z0-9._-]{20,}/);
+    }
+    expect(html).toContain('id="overview"');
+    expect(html).toContain('id="kv-world"');
+    expect(html).toContain('id="genesis"');
+    expect(html).toContain("canonical_head");
+    expect(html).toContain("Health");
+    expect(html).toContain("Head present");
+    expect(html).toContain("Genesis ID");
+    expect(html).toContain("ADMIN / operations");
+    expect(html).toContain("Keep the world legible.");
+  });
+
   it("callback posts token_hash to consume", () => {
     const html = adminCallbackHtml();
     expect(html).toContain("/v1/admin/login/consume");

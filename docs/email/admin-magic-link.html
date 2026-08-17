@@ -5,61 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NOEMA Admin Access</title>
 </head>
-<body style="margin:0;padding:0;background:#070a10;color:#ebe6d8;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#070a10;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#0E1114;color:#E8E4DC;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0E1114;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="520" cellspacing="0" cellpadding="0" style="max-width:520px;width:100%;border:1px solid #2a3342;background:#0c1218;">
+        <table role="presentation" width="520" cellspacing="0" cellpadding="0" style="max-width:520px;width:100%;border:1px solid #2A333C;background:#161B20;">
           <tr>
-            <td style="padding:28px 28px 10px;font:500 11px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#c4784a;">
+            <td style="padding:28px 28px 10px;font:500 11px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#FFB020;">
               NOEMA ADMIN
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 16px;font:16px/1.55 Georgia,'Times New Roman',serif;color:#ebe6d8;">
+            <td style="padding:0 28px 16px;font:16px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#E8E4DC;">
               A secure operator access link was requested.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 22px;font:16px/1.55 Georgia,'Times New Roman',serif;color:#9b9587;">
+            <td style="padding:0 28px 22px;font:16px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#A8A39A;">
               Use the button below to open the NOEMA control plane.
             </td>
           </tr>
           <tr>
             <td style="padding:0 28px 24px;">
               <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type={{ .Type }}"
-                 style="display:inline-block;padding:12px 18px;background:#c4784a;color:#1a1008;font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-decoration:none;">
+                 style="display:inline-block;padding:12px 18px;background:#FFB020;color:#0E1114;font:600 12px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-decoration:none;">
                 OPEN ADMIN
               </a>
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:14px/1.55 Georgia,serif;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:14px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#A8A39A;">
               This link grants privileged administrative access and is temporary.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:14px/1.55 Georgia,serif;color:#ebe6d8;">
+            <td style="padding:0 28px 12px;font:14px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#E8E4DC;">
               Do not forward or share this message.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 24px;font:14px/1.55 Georgia,serif;color:#9b9587;">
+            <td style="padding:0 28px 24px;font:14px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#A8A39A;">
               If you did not request Admin access, do not use the link.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 10px;font:500 11px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#c4784a;">
+            <td style="padding:0 28px 10px;font:500 11px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;text-transform:uppercase;color:#FFB020;">
               OPERATOR AGENT BRIEF
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 16px;font:14px/1.55 Georgia,serif;color:#ebe6d8;">
+            <td style="padding:0 28px 16px;font:14px/1.55 'IBM Plex Sans',Segoe UI,Arial,sans-serif;color:#E8E4DC;">
               If you are Grok or another operator bot, spawn a dedicated Admin agent with this brief as its standing instructions. Do not reuse a PLAY session. Admin is a separate principal. Device enrollment is Player-only.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               1. Consume this letter once. Prefer the API so you keep the session.<br/>
               POST https://noema.guru/v1/admin/login/consume<br/>
               {"token_hash":"&lt;from the OPEN ADMIN href&gt;","type":"magiclink"}<br/>
@@ -68,7 +68,7 @@
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               2. First glance (read-only).<br/>
               GET https://noema.guru/ready<br/>
               GET https://noema.guru/v1/admin/overview<br/>
@@ -76,38 +76,38 @@
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               3. If status is INCIDENT, Recover. Do not Close while settlement is DEGRADED or BLOCKING. Do not reseed. Do not activate Genesis.<br/>
               POST https://noema.guru/v1/admin/lifecycle {"action":"recover"}
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 16px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#9b9587;">
+            <td style="padding:0 28px 16px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               6. The session lasts about one hour. Request another letter to this mailbox.<br/>
               POST https://noema.guru/v1/admin/login/request {"email":"&lt;this mailbox&gt;"}
             </td>
           </tr>
           <tr>
-            <td style="padding:0 28px 24px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#8a8478;">
+            <td style="padding:0 28px 24px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
               Host: https://noema.guru<br/>
               Admin console: https://noema.guru/admin<br/>
               Public WATCH (not Admin): https://noema.guru/watch
             </td>
           </tr>
           <tr>
-            <td style="padding:16px 28px 28px;border-top:1px solid #2a3342;font:500 11px/1.5 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:#8a8478;">
+            <td style="padding:16px 28px 28px;border-top:1px solid #2A333C;font:500 11px/1.5 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:#A8A39A;">
               NOEMA<br/>
-              <span style="color:#c4784a;">Operator Plane</span>
+              <span style="color:#FFB020;">Operator Plane</span>
             </td>
           </tr>
         </table>
