@@ -426,12 +426,12 @@ export function allocateOrgId(name: string): string {
 }
 
 export function isOrgOfficer(org: Organization, playerId: string): boolean {
-  const m = org.members.find((x) => x.agent_id === playerId);
+  const m = (org.members || []).find((x) => x.agent_id === playerId);
   return Boolean(m && (m.role === "founder" || m.role === "officer"));
 }
 
 export function isOrgMember(org: Organization, playerId: string): boolean {
-  return org.members.some((x) => x.agent_id === playerId);
+  return (org.members || []).some((x) => x.agent_id === playerId);
 }
 
 export function cloneBudgets(b?: Partial<Budgets> | null): Budgets {
