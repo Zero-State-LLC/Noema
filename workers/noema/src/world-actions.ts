@@ -90,6 +90,7 @@ import {
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
+import { situationFromLive } from "./orientation";
 import {
   creditAcceptedTrade,
   creditDangerEvidence,
@@ -474,6 +475,7 @@ export function buildObservation(
       text: m.text,
       delivered_cycle: m.delivered_cycle,
     }));
+  const roomCondition = deriveRoomCondition(room);
 
   return {
     cycle: w.cycle,
@@ -483,7 +485,7 @@ export function buildObservation(
       room_id: room.room_id,
       name: room.name,
       description: room.description,
-      condition: deriveRoomCondition(room),
+      condition: roomCondition,
       exits,
       entities: entities.map((e) => ({
         entity_id: e.entity_id,
@@ -496,6 +498,12 @@ export function buildObservation(
         harvestable: isHarvestable(e),
       })),
     },
+    situation: situationFromLive({
+      name: room.name,
+      condition: roomCondition,
+      entities,
+      report_lines: w.last_report?.lines,
+    }),
     player_id: principal.player_id,
     budgets: { ...pl.budgets },
     messages: inbox,
