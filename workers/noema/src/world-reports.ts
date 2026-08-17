@@ -1,12 +1,12 @@
 /**
- * WR-S0 public world report. Projection only.
- * Authority: Noema-Specs docs/WR-S0-WORLD-REPORT.md / RFC-0088.
+ * WR-S0..S3 public world report. Projection only.
+ * Authority: Noema-Specs docs/WR-S3-ACCESS-REPORT.md / RFC-0093.
  */
 
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s2";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s3";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -25,9 +25,17 @@ export type ReportInfra = {
 };
 
 export function publicReportLines(
-  rooms: Record<string, { hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>,
+  rooms: Record<string, { name?: string; hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>,
   organizations?: Record<string, { org_id?: string; name?: string; status?: string }>,
   contests?: Record<string, { contest_id?: string; contest_form?: string; room_id?: string; status?: string }>,
+  restrictions?: Array<{
+    restriction_id?: string;
+    scope?: string;
+    room_id?: string;
+    exit_id?: string;
+    expires_cycle?: number;
+  }>,
+  cycle?: number,
 ): string[] {
   const lines: string[] = [];
   const roomIds = Object.keys(rooms || {}).sort();
@@ -61,6 +69,24 @@ export function publicReportLines(
   for (const c of open) {
     const form = String(c.contest_form).replace(/_/g, " ").toLowerCase();
     lines.push(`${form} is contested.`);
+  }
+  const now = typeof cycle === "number" ? cycle : 0;
+  const live = [...(restrictions || [])]
+    .filter((r) => {
+      if (r.expires_cycle != null && now > r.expires_cycle) return false;
+      if (!r.room_id) return false;
+      const room = rooms[r.room_id];
+      return Boolean(room) && !isHiddenRoom(room);
+    })
+    .sort((a, b) => String(a.restriction_id || "").localeCompare(String(b.restriction_id || "")));
+  for (const r of live) {
+    const room = rooms[r.room_id!];
+    const place = room.name || r.room_id;
+    if (r.scope === "EXIT" && r.exit_id) {
+      lines.push(`${place} ${r.exit_id} is restricted.`);
+    } else {
+      lines.push(`${place} is restricted.`);
+    }
   }
   return lines;
 }
