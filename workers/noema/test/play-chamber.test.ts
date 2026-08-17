@@ -174,6 +174,8 @@ describe("look and trail text", () => {
   it("serializes the new helpers into the page runtime", () => {
     expect(playUiRuntimeSource()).toContain("function renderLookHtml");
     expect(playUiRuntimeSource()).toContain("function renderTrailHtml");
+    expect(playUiRuntimeSource()).toContain("const __name = function(fn) { return fn; }");
+    expect(playUiRuntimeSource()).toContain("function lookCopyFromObservation");
   });
 });
 

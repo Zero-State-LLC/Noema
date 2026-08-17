@@ -365,6 +365,14 @@ export function parsePlayCommand(line: string, entities: EntityObs[] = []): Pars
   };
 }
 
+/** Raw engine/exception text that must never become WHERE or trail copy. */
+export function isRawExceptionMessage(message?: string): boolean {
+  const m = String(message || "");
+  return /is not defined|is not a function|Cannot read propert|TypeError|ReferenceError|undefined is not/i.test(
+    m,
+  );
+}
+
 export function humanizeError(code?: string, message?: string): { primary: string; advanced?: string } {
   const c = (code || "").toUpperCase();
   const m = message || "That did not work.";
@@ -384,7 +392,8 @@ export function humanizeError(code?: string, message?: string): { primary: strin
     return { primary: "The world is not ready to enter yet.", advanced: `${c}: ${m}` };
   }
   if (c === "COMMAND_FAILED") {
-    return { primary: m && m !== "internal error" ? m : "The world could not apply that action.", advanced: `${c}: ${m}` };
+    const safe = Boolean(m) && m !== "internal error" && !isRawExceptionMessage(m);
+    return { primary: safe ? m : "The world could not apply that action.", advanced: `${c}: ${m}` };
   }
   if (c === "INTERNAL") {
     return {
@@ -415,7 +424,12 @@ export function humanizeError(code?: string, message?: string): { primary: strin
     };
   }
   if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
-  if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
+  if (m && !/^[A-Z_]+$/.test(m)) {
+    if (isRawExceptionMessage(m)) {
+      return { primary: "The world could not show that place.", advanced: `${c || "INTERNAL"}: ${m}` };
+    }
+    return { primary: m, advanced: c || undefined };
+  }
   return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };
 }
 
@@ -432,6 +446,33 @@ export function waitingCopy(opts: {
   return { worldLine, roomDesc: "Waiting for the world." };
 }
 
+/** WHERE fields from a successful location observation, or a typed wait/error. */
+export function lookCopyFromObservation(
+  obs: {
+    location?: { name?: string; description?: string };
+    world_name?: string;
+    consequence?: string;
+  } | null,
+  err?: { code?: string; message?: string },
+): { worldLine: string; roomName: string; roomDesc: string } {
+  const loc = obs?.location;
+  const roomName = String(loc?.name || "").trim();
+  const roomDesc = String(loc?.description || "").trim();
+  if (roomName || roomDesc) {
+    return {
+      worldLine: String(obs?.world_name || "").trim() || "In world",
+      roomName,
+      roomDesc,
+    };
+  }
+  const wait = waitingCopy({
+    code: err?.code,
+    message: err?.message || obs?.consequence,
+    worldName: obs?.world_name,
+  });
+  return { worldLine: wait.worldLine, roomName: "", roomDesc: wait.roomDesc };
+}
+
 export function trailFromResult(opts: {
   display: string;
   command: string;
@@ -442,7 +483,9 @@ export function trailFromResult(opts: {
   errorPrimary?: string;
 }): TrailItem[] {
   if (!opts.ok) {
-    return [{ kind: "fail", title: opts.errorPrimary || "Action failed." }];
+    const raw = opts.errorPrimary || "Action failed.";
+    const title = isRawExceptionMessage(raw) ? humanizeError("INTERNAL", raw).primary : raw;
+    return [{ kind: "fail", title }];
   }
   const items: TrailItem[] = [{ kind: "you", title: opts.display }];
   const cmd = opts.command.toUpperCase();
@@ -1267,6 +1310,9 @@ export function fillDisclosure(
 /** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
 export function playUiRuntimeSource(): string {
   return [
+    // wrangler/esbuild keepNames wraps nested helpers as __name(fn, "name").
+    // Function.prototype.toString() then inlines those calls into /play.
+    "const __name = function(fn) { return fn; };",
     label,
     toPlayerView,
     glyphMeta,
@@ -1280,8 +1326,10 @@ export function playUiRuntimeSource(): string {
     entityConditionText,
     deriveLocalCondition,
     deriveOpportunities,
+    isRawExceptionMessage,
     humanizeError,
     waitingCopy,
+    lookCopyFromObservation,
     trailFromResult,
     routeDiagram,
     statusFromObservation,
@@ -1311,7 +1359,7 @@ export function playUiRuntimeSource(): string {
     fillActionRail,
     fillDisclosure,
   ]
-    .map((fn) => fn.toString())
+    .map((fn) => (typeof fn === "string" ? fn : fn.toString()))
     .join("\n");
 }
 

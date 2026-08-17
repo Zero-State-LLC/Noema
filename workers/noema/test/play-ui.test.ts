@@ -5,6 +5,7 @@ import {
   containsHiddenHistory,
   deriveOpportunities,
   humanizeError,
+  lookCopyFromObservation,
   parsePlayCommand,
   playUiRuntimeSource,
   renderBondsHtml,
@@ -264,6 +265,40 @@ describe("play shell HTML", () => {
     expect(html).toContain("function deriveOpportunities");
     expect(html).toContain("function renderServiceDesksHtml");
     expect(playUiRuntimeSource()).toContain("function deriveOpportunities");
+  });
+
+  it("shims esbuild keepNames __name so inlined toPlayerView can run", () => {
+    const src = playUiRuntimeSource();
+    expect(src).toContain('const __name = function(fn) { return fn; }');
+    expect(html).toContain('const __name = function(fn) { return fn; }');
+    const shim = 'const __name = function(fn) { return fn; };';
+    expect(src.startsWith(shim)).toBe(true);
+    const keepNames = new Function(`${shim}\nreturn __name(function probe() { return "ok"; }, "probe")();`)();
+    expect(keepNames).toBe("ok");
+  });
+});
+
+describe("play-ui look copy", () => {
+  it("shows the room after LOOK and never prints raw __name exceptions", () => {
+    const look = lookCopyFromObservation({
+      world_name: "Perihelion Reach",
+      location: { name: "Relay Quarter", description: "A frontier station." },
+    });
+    expect(look.roomName).toBe("Relay Quarter");
+    expect(look.roomDesc).toMatch(/frontier station/i);
+    expect(`${look.worldLine} ${look.roomName} ${look.roomDesc}`).not.toContain("__name is not defined");
+
+    const poisoned = lookCopyFromObservation(null, { code: "INTERNAL", message: "__name is not defined" });
+    expect(poisoned.roomDesc).not.toContain("__name");
+    expect(humanizeError(undefined, "__name is not defined").primary).not.toContain("__name");
+    expect(humanizeError("COMMAND_FAILED", "TypeError: x is not a function").primary).not.toMatch(/TypeError|is not a function/);
+    const trail = trailFromResult({
+      display: "look",
+      command: "LOOK",
+      ok: false,
+      errorPrimary: "__name is not defined",
+    });
+    expect(trail[0].title).not.toContain("__name");
   });
 });
 
