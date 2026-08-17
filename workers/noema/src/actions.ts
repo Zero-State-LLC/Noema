@@ -9,6 +9,7 @@
  */
 
 import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
+import { parseFocusTrack } from "./focus";
 import {
   liveClassInRoom,
   parseConstructibleClass,
@@ -105,6 +106,8 @@ export type PlayerRuntime = {
     tracks: Partial<Record<string, string[]>>;
     recognition?: Partial<Record<string, string[]>>;
   };
+  /** GC1-S7 declared focus. Player snapshot, not an event. */
+  focus?: { track: "explorer" | "surveyor" | "broker" | "engineer"; declared_cycle: number };
   /** GC3-S0 derived dyadic trade memory. Not WorldState. */
   trade_memory?: {
     catalog_id: "social-memory-catalog/gc3-s0";
@@ -330,7 +333,8 @@ export type CanonicalAction =
           | "ATTEST"
           | "AGREEMENT_FORM"
           | "AGREEMENT_TERMINATE"
-          | "ACCESS_POLICY";
+          | "ACCESS_POLICY"
+          | "FOCUS";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -366,6 +370,8 @@ export type CanonicalAction =
         supersedes_reconstruction_id?: string;
         acting_for?: string;
         scope?: "EXIT" | "ROOM";
+        track?: string;
+        clear?: boolean;
         mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
         applies_to?: string;
         direction?: string;
@@ -1183,6 +1189,21 @@ export function parseHumanCommand(
   }
   if (v === "access") {
     return parseAccessPolicyLine(parts, ctx);
+  }
+  if (v === "focus") {
+    const raw = parts[0] || "clear";
+    const track = parseFocusTrack(raw);
+    if (!track) {
+      return { ok: false, error: "Focus: explorer, surveyor, broker, engineer, or clear.", code: "INVALID_REQUEST" };
+    }
+    return {
+      ok: true,
+      action: {
+        verb: "COMMIT",
+        arguments: { operation: "FOCUS", track: track === "clear" ? undefined : track, clear: track === "clear" },
+      },
+      display: track === "clear" ? "You clear your focus." : `You focus on ${track}.`,
+    };
   }
 
   // invite <player> to <org> role=<role>
@@ -2188,6 +2209,20 @@ export function normalizeStructuredCommand(
         display: `COMMIT.AGREEMENT_TERMINATE ${agreement_id}`,
       };
     }
+    if (operation === "FOCUS") {
+      const track = parseFocusTrack(args.clear === true ? "clear" : String(args.track || ""));
+      if (!track) {
+        return { ok: false, error: "Focus: explorer, surveyor, broker, engineer, or clear.", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "FOCUS", track: track === "clear" ? undefined : track, clear: track === "clear" },
+        },
+        display: track === "clear" ? "COMMIT.FOCUS clear" : `COMMIT.FOCUS ${track}`,
+      };
+    }
     if (operation === "ACCESS_POLICY") {
       const mode = parseAccessMode(String(args.mode || ""));
       const scopeHint = String(args.scope || args.direction || args.target || "").trim();
@@ -2619,6 +2654,9 @@ export function normalizeStructuredCommand(
   if (cmd === "ACCESS_POLICY") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ACCESS_POLICY" });
   }
+  if (cmd === "FOCUS") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "FOCUS" });
+  }
   if (isForbiddenContestVerb(cmd.toLowerCase())) {
     return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
   }
@@ -2974,7 +3012,13 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  CONTEST             help contest");
     lines.push("  AGREEMENT           help agreement");
     lines.push("  ACCESS              help access");
-    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access]");
+    lines.push("  FOCUS               help focus");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus]");
+  } else if (t === "focus") {
+    lines.push("FOCUS");
+    lines.push("  focus explorer|surveyor|broker|engineer");
+    lines.push("  focus clear");
+    lines.push("  One track. Not a class. Grants no verbs.");
   } else if (t === "access") {
     lines.push("ACCESS");
     lines.push("  access <dir> deny for <org>");

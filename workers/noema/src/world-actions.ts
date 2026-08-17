@@ -91,6 +91,7 @@ import {
   type PracticeEvent,
 } from "./practice";
 import { situationFromLive } from "./orientation";
+import { focusSelfLine, publicFocusLine, parseFocusTrack, type FocusId } from "./focus";
 import {
   creditAcceptedTrade,
   creditDangerEvidence,
@@ -555,9 +556,18 @@ export function buildObservation(
         const titles = isHiddenRoom(room)
           ? []
           : publicTitleLines(other?.handle || p.handle, other?.practice, w.cycle, p.player_id);
-        return titles.length
-          ? { player_id: p.player_id, handle: p.handle, public_practice_lines: titles }
-          : { player_id: p.player_id, handle: p.handle };
+        const focus = isHiddenRoom(room)
+          ? undefined
+          : publicFocusLine(other?.handle || p.handle, other?.focus, other?.practice, w.cycle, p.player_id);
+        const row: {
+          player_id: string;
+          handle?: string;
+          public_practice_lines?: string[];
+          public_focus_lines?: string[];
+        } = { player_id: p.player_id, handle: p.handle };
+        if (titles.length) row.public_practice_lines = titles;
+        if (focus) row.public_focus_lines = [focus];
+        return row;
       }),
     services: servicesAtRoom({
       room_id: room.room_id,
@@ -597,6 +607,10 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
+    focus_lines: (() => {
+      const line = focusSelfLine(pl.focus);
+      return line ? [line] : [];
+    })(),
     lot_lines: lotLines(pl.lot_grades, pl.lot_origins, pl.spoil_lines).concat(
       cargoLine(
         pl.budgets.storage ?? 0,
@@ -1046,6 +1060,7 @@ export async function applyWorldCommand(
       "ATTEST",
       "AGREEMENT_FORM",
       "AGREEMENT_TERMINATE",
+      "FOCUS",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -2177,6 +2192,9 @@ export async function applyWorldCommand(
     }
     if (action.arguments.operation === "ACCESS_POLICY") {
       return applyAccessPolicy(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
+    if (action.arguments.operation === "FOCUS") {
+      return applyFocus(w, principal, request_id, idem, action.arguments, pl);
     }
     if (
       action.arguments.operation === "ORG_OFFICE_CREATE" ||
@@ -3879,6 +3897,30 @@ async function applyAgreementTerminate(
     `Trade agreement ${agr.agreement_id} is broken.`,
     true,
   );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+function applyFocus(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+): CommandResult {
+  if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
+  const parsed = parseFocusTrack(args.clear ? "clear" : String(args.track || ""));
+  if (!parsed) return fail(request_id, "INVALID_REQUEST", "Focus: explorer, surveyor, broker, engineer, or clear.");
+  if (parsed === "clear") {
+    delete pl.focus;
+    const result = success(w, principal, request_id, [], "You clear your focus.", true);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  pl.focus = { track: parsed as FocusId, declared_cycle: w.cycle };
+  const line = focusSelfLine(pl.focus) || "You set a focus.";
+  const result = success(w, principal, request_id, [], line, true);
   w.seen_idempotency[idem] = result;
   return result;
 }
