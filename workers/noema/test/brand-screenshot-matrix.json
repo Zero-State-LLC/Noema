@@ -1,0 +1,23 @@
+{
+  "slice": "0",
+  "kind": "visual-qa-stub",
+  "note": "No Playwright in this repo yet. Slice 9 takes shots against this matrix. Slice 0 only asserts the matrix exists.",
+  "viewports": [
+    { "id": "mobile-narrow", "width": 360, "height": 800 },
+    { "id": "mobile-wide", "width": 390, "height": 844 },
+    { "id": "tablet", "width": 768, "height": 1024 },
+    { "id": "laptop", "width": 1280, "height": 800 },
+    { "id": "desktop", "width": 1440, "height": 900 }
+  ],
+  "screens": [
+    { "id": "door", "route": "/", "states": ["default"] },
+    { "id": "play-signed-out", "route": "/play", "states": ["default", "spent-link"] },
+    { "id": "play-chamber", "route": "/play", "states": ["in-world", "empty-here", "command-error", "paused"] },
+    { "id": "watch", "route": "/watch", "states": ["empty", "live", "major"] },
+    { "id": "connect", "route": "/connect", "states": ["default"] },
+    { "id": "study-stub", "route": "/study", "states": ["default"] },
+    { "id": "admin-login", "route": "/admin/login", "states": ["default"] },
+    { "id": "admin", "route": "/admin", "states": ["healthy", "degraded"] }
+  ],
+  "reduced_motion": true
+}
