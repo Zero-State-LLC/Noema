@@ -74,7 +74,8 @@ describe("GC2-S4 mapper", () => {
     expect(parseConstructibleClass("archive annex")).toBe("archive_annex");
     expect(withAnnexAttention({ attention: 2 }, true).attention).toBe(1);
     expect(withAnnexAttention({ ...COSTS.ATTEST }, true).attention).toBe(1);
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
     expect(helpText()).not.toMatch(/\bQUEST\b/);
   });

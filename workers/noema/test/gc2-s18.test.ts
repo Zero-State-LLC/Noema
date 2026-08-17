@@ -93,7 +93,8 @@ describe("GC2-S18 mapper", () => {
       ),
     ).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
   });
 });

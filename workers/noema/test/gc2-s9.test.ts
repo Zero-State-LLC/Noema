@@ -67,7 +67,8 @@ describe("GC2-S9 mapper", () => {
   it("keeps help quiet and WATCH silent on promote", () => {
     expect(MULTI_CYCLE_CLASS).toBe("relay");
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
   });
 });
 

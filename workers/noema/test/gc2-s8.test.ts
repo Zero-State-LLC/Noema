@@ -78,7 +78,7 @@ describe("GC2-S8 mapper", () => {
     }
     expect(RESTORE_CONDITION_CAP).toBe(50);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "RESTORE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\brestore\b/i);
+    expect(helpText()).not.toMatch(/\brestore\b/i);
   });
 });
 

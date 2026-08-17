@@ -78,7 +78,7 @@ describe("GC2-S5 mapper", () => {
     expect(workshopStorageDiscount([{ entity_id: "w", label: "workshop", entity_type: "INFRASTRUCTURE", infra_type: "workshop", upgrade_tier: 1 }])).toBe(2);
     expect(withWorkshopStorage({ storage: 5 }, 2).storage).toBe(3);
     expect(UPGRADE_COST).toEqual({ energy: 4, compute: 2, storage: 2, influence: 1 });
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bupgrade\b/i);
+    expect(helpText()).not.toMatch(/\bupgrade\b/i);
   });
 });
 

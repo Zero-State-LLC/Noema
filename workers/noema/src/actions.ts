@@ -2,7 +2,7 @@
  * Hosted Player Action Map — Specs-aligned costs, normalization, affordances.
  * Authority: Noema-Specs PLAYER-ACTION-MAP + action-contracts.v01
  * COMMIT is wire/internal; humans use intent language.
- * GC2-S0 BUILD is accepted but not listed in Chamber help (S0 out-of-list).
+ * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD. CONTEST / WED / ATTEST stay omitted.
  */
 
 import {
@@ -2803,7 +2803,20 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  invite <player> to <org> role=member");
     lines.push("  leave <org> · remove <player> from <org>");
     lines.push("  talk <desk>     World Service (not a Player)");
-    lines.push("  help [trade|repair|harvest|message|org]");
+    lines.push("  BUILD               help build");
+    lines.push("  help [trade|repair|harvest|message|org|build]");
+  } else if (t === "build") {
+    lines.push("BUILD");
+    lines.push("  construct <class>     relay · generator · storage_bay · production_node");
+    lines.push("                        route_link · workshop · defensive_work · archive_annex");
+    lines.push("  dismantle <thing>");
+    lines.push("  upgrade <thing>       owned public workshop, once");
+    lines.push("  repurpose <thing>     owned public workshop → storage_bay");
+    lines.push("  restore <thing>       owned UNCLAIMED");
+    lines.push("  vest <thing> <org>    personal constructible to occupied office");
+    lines.push("  share <thing> <player>  up to five co-owners");
+    lines.push("  connect <link> <dest> public two-way neighbor only");
+    lines.push("  Public rooms only. Hidden rooms cannot be built.");
   } else if (t === "org" || t === "organization" || t === "organizations") {
     lines.push("ORGANIZATIONS");
     lines.push('  form <name> charter="purpose"');

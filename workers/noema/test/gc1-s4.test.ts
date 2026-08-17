@@ -100,7 +100,8 @@ describe("GC1-S4 mapper", () => {
     expect(brokerWaivesCaution(broker, "player.vesper", 0)).toBe(true);
     expect(brokerWaivesCaution(broker, "player.oriel", 0)).toBe(false);
     expect(brokerWaivesCaution(broker, "player.vesper", 12)).toBe(false);
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
   });
 });
 

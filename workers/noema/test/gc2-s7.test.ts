@@ -85,7 +85,7 @@ describe("GC2-S7 mapper", () => {
       ),
     ).toBe(false);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "ABANDON" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bunclaimed\b|\babandon/i);
+    expect(helpText()).not.toMatch(/\bunclaimed\b|\babandon/i);
   });
 });
 

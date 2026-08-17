@@ -83,7 +83,8 @@ describe("GC2-S1 mapper", () => {
     expect(parseConstructibleClass("route_link")).toBe("route_link");
     expect(moveEnergyCost(15)).toBe(2);
     expect(moveEnergyCost(15, undefined, true)).toBe(1);
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
   });
 });
 

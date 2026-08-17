@@ -93,7 +93,7 @@ describe("GC2-S12 mapper", () => {
     }
     expect(CONNECT_COST).toEqual({ compute: 1 });
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "CONNECT" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bCONNECT\b|\bconnect\b/i);
+    expect(helpText()).not.toMatch(/\bCONNECT\b|\bconnect\b/i);
   });
 });
 
