@@ -6,6 +6,9 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+# workers/noema/src/orientation.ts — liveStrainLine uses this cutoff.
+SITUATION_STRAIN_BELOW = 70
+
 _FORBIDDEN: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\byou should\b"), "YOU_SHOULD"),
     (re.compile(r"\b(win condition|the point of the game|world thesis)\b"), "THESIS"),
@@ -39,22 +42,23 @@ def _blob(observation: dict[str, Any] | None) -> str:
 
 
 def room_has_strain(observation: dict[str, Any] | None) -> bool:
-    """Live strain is entity-backed. Situation copy is not evidence."""
+    """Entity-backed live work. Report lines in situation.strain are not this."""
     obs = observation or {}
     loc = obs.get("location") if isinstance(obs.get("location"), dict) else {}
     ents = list(loc.get("entities") or obs.get("entities") or [])
     for ent in ents:
         if not isinstance(ent, dict):
             continue
-        if ent.get("repairable"):
+        if ent.get("repairable") or ent.get("harvestable"):
             return True
         cond = ent.get("condition")
-        if isinstance(cond, (int, float)) and cond < 50:
+        if isinstance(cond, (int, float)) and cond < SITUATION_STRAIN_BELOW:
             return True
     return False
 
 
 def check_orientation_s0(observation: dict[str, Any] | None) -> OrientationCheck:
+    """Withhold thesis/quest/class/verb-dump. Server-authored strain stays legal."""
     loc = (observation or {}).get("location") if isinstance((observation or {}).get("location"), dict) else {}
     name = str(loc.get("name") or "").strip()
     if not name:
@@ -63,8 +67,4 @@ def check_orientation_s0(observation: dict[str, Any] | None) -> OrientationCheck
     for rx, why in _FORBIDDEN:
         if rx.search(blob):
             return OrientationCheck(False, why)
-    sit = (observation or {}).get("situation") if isinstance((observation or {}).get("situation"), dict) else {}
-    strain = sit.get("strain")
-    if strain and not room_has_strain(observation):
-        return OrientationCheck(False, "INVENTED_STRAIN")
     return OrientationCheck(True, None)

@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
+from noema.harness.orientation import SITUATION_STRAIN_BELOW
 from noema.harness.types import ActionProposal
+
+_DIRECTIONS = ("north", "south", "east", "west", "up", "down", "in", "out")
+_MOVE_DIR = re.compile(
+    r"\bmove\s+(north|south|east|west|up|down|in|out)\b",
+    re.IGNORECASE,
+)
 
 
 class ScriptedAdapter:
@@ -18,18 +26,28 @@ class ScriptedAdapter:
 
 
 def _quiet_room(canonical: dict[str, Any]) -> bool:
-    sit = canonical.get("situation") or {}
-    if str(sit.get("strain") or "").strip():
-        return False
+    """Quiet = no live-room work. last_report strain text is not work."""
     for ent in canonical.get("entities") or []:
         if not isinstance(ent, dict):
             continue
         if ent.get("repairable") or ent.get("harvestable"):
             return False
         cond = ent.get("condition")
-        if isinstance(cond, (int, float)) and cond < 50:
+        if isinstance(cond, (int, float)) and cond < SITUATION_STRAIN_BELOW:
             return False
     return True
+
+
+def move_direction(aff: dict[str, Any]) -> str | None:
+    """Live deriveAffordances MOVE rows have cmd='move <dir>' and no target_id."""
+    tid = aff.get("target_id")
+    if isinstance(tid, str) and tid.lower() in _DIRECTIONS:
+        return tid.lower()
+    for field in (aff.get("cmd"), aff.get("label"), aff.get("target_label")):
+        match = _MOVE_DIR.search(str(field or ""))
+        if match:
+            return match.group(1).lower()
+    return None
 
 
 class FirstValidAffordanceAdapter:
@@ -57,11 +75,12 @@ class FirstValidAffordanceAdapter:
                 continue
             if action == "HARVEST" and policy.get("harvest") is False:
                 continue
-            if action == "MOVE" and not (aff.get("target_id") or (aff.get("cmd") or "").startswith("move")):
-                continue
             args: dict[str, Any] = {}
             if action == "MOVE":
-                args["direction"] = aff.get("target_id") or "east"
+                direction = move_direction(aff)
+                if not direction:
+                    continue
+                args["direction"] = direction
             return ActionProposal(action=action, target_id=aff.get("target_id"), arguments=args)
         available = list(canonical.get("available_actions") or [])
         if "WAIT" in available or _quiet_room(canonical):

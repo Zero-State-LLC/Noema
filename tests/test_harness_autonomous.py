@@ -55,6 +55,105 @@ def thesis_obs() -> dict:
     return q
 
 
+def hosted_report_obs() -> dict:
+    """Live first OBSERVE: last_report copied into situation.strain; MOVE has cmd only."""
+    return {
+        "cycle": 72,
+        "sequence": 210,
+        "world_name": "Perihelion Reach",
+        "location": {
+            "room_id": "room.grid-anchor",
+            "name": "Grid Anchor",
+            "description": "A frontier anchor.",
+            "condition": "Open ground — routes lead outward.",
+            "exits": [{"direction": "west", "to_room_id": "room.coldline", "to_room_name": "Coldline"}],
+            "entities": [],
+        },
+        "situation": {"place": "Grid Anchor", "strain": "An organization acted"},
+        "player_id": "player.nacre",
+        "budgets": {"energy": 10, "attention": 6},
+        "available_actions": ["LOOK", "WAIT", "MOVE", "OBSERVE"],
+        "affordances": [
+            {
+                "action": "MOVE",
+                "verb": "MOVE",
+                "label": "Move west · Coldline",
+                "cmd": "move west",
+                "available": True,
+                "kind": "move",
+            }
+        ],
+        "consequence": "You take in Grid Anchor.",
+        "messages": [],
+    }
+
+
+def hosted_worn_obs() -> dict:
+    """Server SITUATION_STRAIN_BELOW=70: condition 60 is live strain."""
+    return {
+        "cycle": 1,
+        "sequence": 2,
+        "world_name": "Perihelion Reach",
+        "location": {
+            "room_id": "room.grid-anchor",
+            "name": "Grid Anchor",
+            "description": "A frontier anchor.",
+            "exits": [{"direction": "west", "to_room_id": "room.coldline"}],
+            "entities": [
+                {
+                    "entity_id": "entity.relay-trunk",
+                    "label": "Relay Trunk",
+                    "entity_type": "INFRASTRUCTURE",
+                    "condition": 60,
+                    "repairable": True,
+                    "harvestable": False,
+                }
+            ],
+        },
+        "situation": {"place": "Grid Anchor", "strain": "Relay Trunk condition 60."},
+        "player_id": "player.nacre",
+        "budgets": {"energy": 10, "attention": 6},
+        "available_actions": ["LOOK", "WAIT", "MOVE", "OBSERVE", "REPAIR", "INSPECT"],
+        "affordances": [
+            {
+                "action": "REPAIR",
+                "verb": "COMMIT",
+                "operation": "REPAIR",
+                "label": "Repair Relay Trunk",
+                "cmd": "repair Relay Trunk",
+                "target_id": "entity.relay-trunk",
+                "available": True,
+            },
+            {
+                "action": "MOVE",
+                "verb": "MOVE",
+                "label": "Move west · Coldline",
+                "cmd": "move west",
+                "available": True,
+                "kind": "move",
+            },
+        ],
+        "consequence": "You look around.",
+        "messages": [],
+    }
+
+
+def hosted_west_move_obs() -> dict:
+    """Worn room whose first advertised act is MOVE with live deriveAffordances shape."""
+    data = hosted_worn_obs()
+    data["affordances"] = [
+        {
+            "action": "MOVE",
+            "verb": "MOVE",
+            "label": "Move west · Coldline",
+            "cmd": "move west",
+            "available": True,
+            "kind": "move",
+        }
+    ]
+    return data
+
+
 class FakeGateway:
     def __init__(self, observation: dict) -> None:
         self.observation = observation
@@ -84,7 +183,7 @@ def test_orientation_s0_accepts_location_only_and_live_strain():
     assert bad.reason in {"YOU_SHOULD", "THESIS", "CLASS", "ARRIVAL"}
 
 
-def test_orientation_s0_rejects_forbidden_and_invented_strain():
+def test_orientation_s0_rejects_forbidden_copy_only():
     cases = [
         ("The point of the game is to persist.", "THESIS"),
         ("You should inspect the relay.", "YOU_SHOULD"),
@@ -100,11 +199,56 @@ def test_orientation_s0_rejects_forbidden_and_invented_strain():
         got = check_orientation_s0(obs)
         assert not got.ok, text
         assert got.reason == why, (text, got.reason)
-    invented = quiet_obs()
-    invented["situation"] = {"place": "Grid Anchor", "strain": "The vault is collapsing."}
-    got = check_orientation_s0(invented)
-    assert not got.ok
-    assert got.reason == "INVENTED_STRAIN"
+
+
+def test_orientation_s0_accepts_hosted_report_and_midband_strain():
+    assert check_orientation_s0(hosted_report_obs()).ok
+    assert check_orientation_s0(hosted_worn_obs()).ok
+    report_only = quiet_obs()
+    report_only["situation"] = {"place": "Grid Anchor", "strain": "An organization acted"}
+    assert check_orientation_s0(report_only).ok
+    worn_line = quiet_obs()
+    worn_line["location"]["condition"] = "The floor is worn thin."
+    worn_line["situation"] = {"place": "Grid Anchor", "strain": "The floor is worn thin."}
+    assert check_orientation_s0(worn_line).ok
+
+
+def test_unattended_hosted_report_strain_still_plays():
+    http = FakeGateway(hosted_report_obs())
+    client = GatewayClient("https://noema.guru", StaticTokenProvider("tok"), http=http)
+    harness = HeadlessHarness(client, FirstValidAffordanceAdapter(), HarnessPolicy(cooldown_seconds=0))
+    run = harness.run_unattended(max_turns=4)
+    cmds = [p["body"]["command"] for p in http.posts if p.get("body")]
+    assert run.orientation_ok, run.orientation_reason
+    assert cmds[:2] == ["ENTER_WORLD", "OBSERVE"]
+    assert "WAIT" in cmds
+    assert not any((p.get("body") or {}).get("command") == "MOVE" for p in http.posts)
+
+
+def test_move_parses_direction_from_live_cmd_not_east():
+    from noema.harness.observe import prepare_context, to_state
+    from noema.harness.memory import WorkingMemory
+
+    state = to_state(hosted_west_move_obs())
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    proposal = FirstValidAffordanceAdapter().decide(ctx)
+    assert proposal is not None
+    assert proposal.action == "MOVE"
+    assert proposal.arguments.get("direction") == "west"
+    assert proposal.arguments.get("direction") != "east"
+
+    http = FakeGateway(hosted_west_move_obs())
+    client = GatewayClient("https://noema.guru", StaticTokenProvider("tok"), http=http)
+    harness = HeadlessHarness(
+        client,
+        FirstValidAffordanceAdapter(),
+        HarnessPolicy(cooldown_seconds=0),
+        initial_observation=hosted_west_move_obs(),
+    )
+    turn = harness.run_turn()
+    assert turn.ok
+    assert http.posts[0]["body"]["command"] == "MOVE"
+    assert http.posts[0]["body"]["arguments"]["direction"] == "west"
 
 
 def test_quiet_room_waits_instead_of_inventing_pressure():
