@@ -175,6 +175,16 @@ describe("isUsableLiveWorld", () => {
       sequence: 92,
       rooms: { "room.relay-quarter": { room_id: "room.relay-quarter" } },
     })).toBe(true);
+    expect(isUsableLiveWorld({
+      world_id: "test.hosted-canonical.seed",
+      sequence: -1,
+      rooms: { "room.anchor": { room_id: "room.anchor" } },
+    })).toBe(true);
+    expect(isUsableLiveWorld({
+      world_id: "test.hosted-canonical.seed",
+      sequence: -2,
+      rooms: { "room.anchor": { room_id: "room.anchor" } },
+    })).toBe(false);
   });
 });
 

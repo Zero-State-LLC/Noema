@@ -57,7 +57,8 @@ export function miniChamberState(world_id: string): WorldRuntime {
     world_name: "Mini Chamber",
     world_seed: "mini-chamber-h2",
     cycle: 0,
-    sequence: 0,
+    // Last ledger seq. -1 so the first ENTER is evt.000000 (RPC bootstrap expects 0).
+    sequence: -1,
     entry_room_id: MINI_ENTRY_ROOM_ID,
     rooms,
     players: {},

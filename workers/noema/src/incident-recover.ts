@@ -71,7 +71,7 @@ export async function runIncidentRecover(
   }
 
   const live = input.storedWorld;
-  if (!isUsableLiveWorld(live) || !live) {
+  if (!isUsableLiveWorld(live) || !live || (live.sequence as number) < 0) {
     return { ok: false, code: "RECOVERY_REQUIRED", message: "no durable world head to restore", http: 409 };
   }
   const snapshot = structuredClone(input.currentWorld.rooms ? input.currentWorld : live);
