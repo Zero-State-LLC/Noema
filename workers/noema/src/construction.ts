@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s23";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s24";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",
@@ -140,8 +140,9 @@ export function isMultiCycleClass(classId: ConstructibleClass | null | undefined
 export const VEST_COST: ConstructionCost = { compute: 1 };
 /** GC2-S11. Sole personal owner names one co-owner. */
 export const SHARE_COST: ConstructionCost = { compute: 1 };
-/** GC2-S23. Owner plus five co-owners. Sixth-and-later stay closed. */
+/** GC2-S24. SHARE family closed. Owner plus five co-owners. No sixth stamp. */
 export const SHARE_MAX_CO_OWNERS = 5;
+export const SHARE_FAMILY_CLOSED = true;
 /** GC2-S12. Steward pins a public two-way dest on a route_link. */
 export const CONNECT_COST: ConstructionCost = { compute: 1 };
 
