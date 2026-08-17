@@ -3,7 +3,8 @@
  * Authority: Noema-Specs PLAYER-ACTION-MAP + action-contracts.v01
  * COMMIT is wire/internal; humans use intent language.
  * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
- * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST. WED / ATTEST stay omitted.
+ * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST.
+ * Diplomacy S2 (RFC-0100): Chamber help names AGREEMENT. WED / ATTEST stay omitted.
  */
 
 import {
@@ -760,7 +761,7 @@ function parseAgreementFormLine(
       verb: "COMMIT",
       arguments: { operation: "AGREEMENT_FORM", agreement_type: typ, party_ids: [party_id] },
     },
-    display: `You offer a trade agreement.`,
+    display: `You offer a ${typ.replace(/_/g, " ").toLowerCase()} agreement.`,
   };
 }
 
@@ -2926,7 +2927,14 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  talk <desk>     World Service (not a Player)");
     lines.push("  BUILD               help build");
     lines.push("  CONTEST             help contest");
-    lines.push("  help [trade|repair|harvest|message|org|build|contest]");
+    lines.push("  AGREEMENT           help agreement");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement]");
+  } else if (t === "agreement") {
+    lines.push("AGREEMENT");
+    lines.push("  form agreement <type> with <player>");
+    lines.push("  terminate agreement <id> reason=mutual");
+    lines.push("  Types: trade · non_aggression · access · commitment · defense");
+    lines.push("  Both parties must be here. Public rooms only.");
   } else if (t === "contest") {
     lines.push("CONTEST");
     lines.push("  contest <form> <target> stake=energy:10,influence:6");

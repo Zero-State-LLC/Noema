@@ -64,12 +64,11 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
 }
 
 describe("Diplomacy S0 mapper", () => {
-  it("hosts TRADE only and keeps AGREEMENT off help", () => {
+  it("hosts TRADE form and keeps WED/ATTEST off help", () => {
     expect(DIPLOMACY_CATALOG_ID).toMatch(/^diplomacy-catalog\/s/);
     expect(parseAgreementType("trade")).toBe("TRADE");
-    expect(parseAgreementType("NON_AGGRESSION")).toBeNull();
-    expect(helpText()).not.toMatch(/\bAGREEMENT\b/);
-    expect(helpText()).not.toMatch(/\bTERMINATE\b/);
+    expect(helpText()).not.toMatch(/\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b/);
     const parsed = parseHumanCommand("form agreement trade with player.vesper");
     expect(parsed.ok).toBe(true);
     if (parsed.ok && parsed.action.verb === "COMMIT") {
@@ -117,13 +116,6 @@ describe("Diplomacy S0 world path", () => {
     expect(Object.values(w.agreements || {})[0].status).toBe("ACTIVE");
     expect((accepted.events || []).some((e) => e.event_type === "AGREEMENT_FORMED")).toBe(true);
     expect(JSON.stringify(accepted.events || [])).not.toMatch(/AGREEMENT_BROKEN/);
-
-    const war = await run(w, a, "AGREEMENT_FORM", {
-      agreement_type: "NON_AGGRESSION",
-      party_ids: [b.player_id],
-    });
-    expect(war.ok).toBe(false);
-    if (!war.ok) expect(war.error?.code).toBe("FORM_FORBIDDEN");
   });
 
   it("rejects a hidden-room form", async () => {
