@@ -91,13 +91,17 @@ async function seatGrant(w: WorldRuntime, founder: PlayerPrincipal): Promise<str
 
 describe("ACCESS_POLICY S0 mapper", () => {
   it("hosts EXIT DENY/CLEAR and keeps ACCESS_POLICY off help", () => {
-    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s2");
+    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s3");
     expect(parseAccessMode("deny")).toBe("DENY");
     expect(parseAccessMode("ALLOW_ONLY")).toBe("ALLOW_ONLY");
     expect(parseAccessMode("allow")).toBe("ALLOW_ONLY");
+    expect(helpText()).toMatch(/\bACCESS\b/);
     expect(helpText()).not.toMatch(/ACCESS_POLICY/);
     expect(helpText()).not.toMatch(/\bWED\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
+    expect(helpText("access")).toMatch(/deny for <org>/);
+    expect(helpText("access")).toMatch(/allow for <org>/);
+    expect(helpText("access")).not.toMatch(/ACCESS_POLICY/);
     const parsed = parseHumanCommand("access east deny for org.line");
     expect(parsed.ok).toBe(true);
     if (parsed.ok && parsed.action.verb === "COMMIT") {
