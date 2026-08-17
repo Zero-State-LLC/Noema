@@ -1,15 +1,28 @@
 # Production Genesis Gate — Perihelion Reach
 
-**Status:** ACTIVE · PLAY unblocked 2026-08-16 · **do not re-activate**  
-**Genesis activation is N/A** — the approved candidate is already live.  
-**Do not** force-supersede, reseed, or submit a second activate.
+**Status:** already-activated candidate · **do not re-activate** · **do not reseed** `genesis.ef578f4ffceeccd0`  
+**Genesis activation is N/A** — the approved candidate is the live identity.  
+**Do not** force-supersede or submit a second activate.
 
-Live snapshot (UTC): `2026-08-16`  
+**Stores:** [DATA-STORES.md](DATA-STORES.md).
+
+**Live `GET /ready` 2026-08-17 (OBSERVED):** `ACTIVE` · `HEALTHY` · cycle 105 · seq 288 · `genesis.ef578f4ffceeccd0`. SQL head row and RPCs **not** read (no service-role session). Did **not** apply SQL. Did **not** invent a head.
+
+### Verified this inventory (2026-08-17)
+
+On-disk Worker/SQL only:
+
+- Production PLAY: `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`.
+- Recover is the only path when the DO has state and the SQL head is missing (`noema_adopt_live_world_head` or REST snapshot; no invented events).
+- Admin ≠ Player. WORLD TRUTH ≠ RESEARCH. One fenced writer.
+- Hosted apply of `20260813210000`, `20260813223000`, `20260813233000`, `20260816013000` **not independently verified**. Hosted RPCs **not inspected**. Hosted Worker/DO settlement proof **not executed**.
+
+Prior-doc `/ready` notes (`2026-08-16` ACTIVE/HEALTHY, seq `92` here vs `94` in RUNTIME-READINESS) are **not re-verified**. Do not treat those sequences as current.
+
+If `/ready` is `INCIDENT`/`BLOCKING`, Recover (`POST /v1/admin/lifecycle {action:recover}`). Do not close while BLOCKING. Do not reseed.
+
 Product host: `https://noema.guru`  
 Workers.dev: `https://noema-gateway.zer0state-noema.workers.dev`  
-Runtime on `main`: `7802ce4` (`#132` WAIT mutating / LOOK no auto-enter)  
-`/ready` (2026-08-16): `ACTIVE` · `HEALTHY` · seq `92` · `genesis.ef578f4ffceeccd0`  
-If `/ready` is `INCIDENT`/`BLOCKING`, Recover (`POST /v1/admin/lifecycle {action:recover}`). Do not close while BLOCKING. Do not reseed.  
 Cutover capture (historical): `2026-08-12T23:05Z` · commit `7135e3f7` · Worker `79b86443-667d-41ba-8759-f9e2f58ca45d`
 
 ---
@@ -98,15 +111,17 @@ No secrets printed. No secrets in health/ready/watch/public responses.
 
 ## Supabase settlement
 
+Historical activation-time checks below are **not** a hosted SQL inspection from this inventory. Required writers and gaps: [DATA-STORES.md](DATA-STORES.md).
+
 | Check | Result |
 |-------|--------|
-| Settlement backend reachable | PASS (prior activation settled; overview reports ok) |
-| Schema compatible | PASS (`noema_settled_events` path used at activation) |
-| Credentials valid | PASS (`settlement_ok: true`) |
-| Safe non-Genesis probe | Via admin overview + ready (no fake history written) |
+| Settlement backend reachable | Prior-doc PASS (activation-time overview). **Not re-verified.** |
+| Schema compatible | Prior-doc PASS (`noema_settled_events` path used at activation). Hosted apply of head/fence/RPC/adopt SQL **not independently verified.** |
+| Credentials valid | Prior-doc PASS (`settlement_ok: true`). **Not re-verified.** |
+| Safe non-Genesis probe | Do not invent a Perihelion head. Do not reseed. |
 
-Settlement ID: `settlement.genesis.ef578f4ffceeccd0`  
-DO digest == Cycle 0 digest: match.
+Settlement ID (prior-doc): `settlement.genesis.ef578f4ffceeccd0`  
+DO digest == Cycle 0 digest: prior-doc match; SQL head row **not read** this inventory.
 
 ---
 

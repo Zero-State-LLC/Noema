@@ -2,7 +2,17 @@
 
 **Authority:** [Noema-Specs GENESIS.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/GENESIS.md)  
 **Runtime:** Cloudflare Worker `noema-gateway` + `NoemaWorldDO` + optional Supabase settlement  
-**Scope:** ONE world. Admin-only. No multi-world, no lore generation, no research spine.
+**Scope:** ONE world. Admin-only. No multi-world, no lore generation, no research spine.  
+**Stores:** [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
+
+### Verified 2026-08-17
+
+OBSERVED live `GET /ready`: ACTIVE / HEALTHY / cycle 105 / seq 288 / `genesis.ef578f4ffceeccd0`. Four settlement SQL files are on disk. SQL head row and RPC bodies were not read (no service-role session). Did not apply SQL. Did not invent a head. Inspect: `workers/noema/scripts/inspect-settlement.mjs`.
+
+- Production PLAY commits via `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Isolated `test.hosted-canonical.*` is the only bootstrap path.
+- Recover is the only path when the DO has state and the SQL head is missing: `noema_adopt_live_world_head`, or the same live snapshot via REST if that RPC is not applied. No invented ledger events.
+- Hosted apply of `20260813210000`, `20260813223000`, `20260813233000`, `20260816013000` is **not independently verified**.
+- Admin ≠ Player. WORLD TRUTH ≠ RESEARCH. One fenced writer.
 
 ## Boundary
 
@@ -127,10 +137,10 @@ Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 ## Recovery
 
 - **Failure before activation commit:** world remains NOT ACTIVE / DEMO_SEED; re-preview.  
-- **Failure after activation:** do not re-run Genesis; recover against same Genesis/world identity (DO live + settlement event `GENESIS_ACTIVATED`).  
-- **INCIDENT + BLOCKING + missing canonical head:** if the live Durable Object still has a coherent stored world, admin `POST /v1/admin/lifecycle { "action": "recover" }` persists that snapshot as the first `noema_world_heads` row (no invented events, no Genesis reseed), verifies `HEAD_PRESENT`, then returns ACTIVE + HEALTHY. If the DO has no usable stored world, Recover stays 409.  
+- **Failure after activation:** do not re-run Genesis; recover against same Genesis/world identity (DO live + settlement event `GENESIS_ACTIVATED`). **Do not reseed** `genesis.ef578f4ffceeccd0`.  
+- **INCIDENT + BLOCKING + missing canonical head:** Recover is the only path. If the live Durable Object still has a coherent stored world, admin `POST /v1/admin/lifecycle { "action": "recover" }` persists that snapshot as the first `noema_world_heads` row via `noema_adopt_live_world_head` (no invented events, no Genesis reseed), verifies `HEAD_PRESENT`, then returns ACTIVE + HEALTHY. If the DO has no usable stored world, Recover stays 409.  
 - **INCIDENT with an existing head:** Recover restores the durable head into the DO, then ACTIVE + HEALTHY.  
-- Apply `supabase/migrations/20260816013000_noema_adopt_live_world_head.sql` so the adopt RPC is the writer. If the function is not applied yet, Recover writes the same live snapshot via REST and still does not invent ledger events.
+- SQL file `supabase/migrations/20260816013000_noema_adopt_live_world_head.sql` is on disk. Hosted apply of that file and live presence of the RPC are **not independently verified**. If the function is not applied yet, Recover writes the same live snapshot via REST and still does not invent ledger events.
 
 ## API (admin JWT)
 
