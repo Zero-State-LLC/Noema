@@ -81,7 +81,7 @@ describe("GC2-S13 mapper", () => {
     expect(isMultiCycleClass("route_link")).toBe(true);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
     expect(helpText()).toMatch(/\bBUILD\b/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 });
 

@@ -14,7 +14,7 @@ import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 /**
  * GC7-S3 isolated INFORMATION_CONTEST.
  * Authority: Noema-Specs docs/GC7-S3-INFORMATION-CONTEST.md / RFC-0042.
- * Isolated world id only. Chamber help still omits CONTEST.
+ * Isolated world id only. Chamber help names CONTEST.
  */
 
 const STAKE = { energy: 8, influence: 10, compute: 4 };
@@ -106,7 +106,7 @@ describe("GC7-S3 mapper", () => {
       expect(parsed.action.arguments.operation).toBe("CONTEST_DECLARE");
       expect(parsed.action.arguments.contest_form).toBe("INFORMATION_CONTEST");
     }
-    expect(helpText()).not.toMatch(/\bcontest\b/i);
+    expect(helpText()).toMatch(/\bCONTEST\b/);
   });
 });
 

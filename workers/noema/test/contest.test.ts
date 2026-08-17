@@ -120,12 +120,13 @@ describe("GC7-S0 mapper", () => {
     if (!structured.ok) expect(structured.code).toBe("VERB_FORBIDDEN");
   });
 
-  it("does not advertise CONTEST in Chamber help or leak HP", () => {
+  it("advertises CONTEST in Chamber help and does not leak HP", () => {
     const text = helpText();
     expect(text).toMatch(/KNOWN COMMANDS/);
-    expect(text).not.toMatch(/\bcontest\b/i);
-    expect(text).not.toMatch(/\bdefend\b/i);
+    expect(text).toMatch(/\bCONTEST\b/);
+    expect(helpText("contest")).toMatch(/\bdefend\b/);
     expect(text).not.toMatch(/\bHP\b|\bhealth bar\b/i);
+    expect(helpText("contest")).toMatch(/No HP/);
   });
 });
 

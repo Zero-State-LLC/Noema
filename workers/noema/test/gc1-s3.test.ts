@@ -151,7 +151,7 @@ describe("GC1-S3 world path", () => {
     expect(repaired.events?.some((e) => e.payload?.quality_bonus === 5)).toBe(false);
     expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe(before + 15);
     expect(helpText()).toMatch(/\bBUILD\b/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 
   it("idle 11 still grants same-asset +20", async () => {

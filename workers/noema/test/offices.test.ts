@@ -98,7 +98,7 @@ describe("GC4-S1 mapper", () => {
     expect(text).toMatch(/KNOWN COMMANDS/);
     expect(text).not.toMatch(/\boffice\b/i);
     expect(text).not.toMatch(/\btreasurer\b/i);
-    expect(text).not.toMatch(/\bconstruct\b|\bcontest\b|\battest\b|\bwed\b/i);
+    expect(text).not.toMatch(/\bconstruct\b|\battest\b|\bwed\b/i);
     const orgHelp = helpText("org");
     expect(orgHelp).toMatch(/object_set=/);
     expect(orgHelp).toMatch(/precedence=append\|lead/);

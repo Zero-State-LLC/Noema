@@ -75,7 +75,7 @@ describe("GC2-S4 mapper", () => {
     expect(withAnnexAttention({ attention: 2 }, true).attention).toBe(1);
     expect(withAnnexAttention({ ...COSTS.ATTEST }, true).attention).toBe(1);
     expect(helpText()).toMatch(/\bBUILD\b/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
     expect(helpText()).not.toMatch(/\bQUEST\b/);
   });

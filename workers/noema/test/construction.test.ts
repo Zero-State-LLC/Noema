@@ -205,13 +205,13 @@ describe("GC2-S0 parse", () => {
     expect(structured.ok).toBe(true);
   });
 
-  it("advertises BUILD in Chamber help and still omits CONTEST", () => {
+  it("advertises BUILD in Chamber help and still omits WED/ATTEST", () => {
     const text = helpText();
     expect(text).toMatch(/KNOWN COMMANDS/);
     expect(text).toMatch(/\bBUILD\b/);
     expect(helpText("build")).toMatch(/\bconstruct\b/i);
     expect(helpText("build")).toMatch(/\bdismantle\b/i);
-    expect(helpText()).not.toMatch(/\bCONTEST\b/);
+    expect(helpText()).not.toMatch(/\bWED\b|\bATTEST\b/);
     expect(helpText("repair")).not.toMatch(/\bCONTEST\b/);
   });
 });

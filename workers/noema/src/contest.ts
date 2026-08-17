@@ -1,13 +1,13 @@
 /**
  * GC7-S0 contest rhythm on existing v0.2 events.
  * Authority: Noema-Specs docs/GC7-FIRST-SLICE.md / RFC-0011 / CONTEST-RESOLUTION.md
- * CONTEST_RESOLVE is world-side. No HP. No SCAN/ATTACK. Help does not advertise CONTEST.
+ * CONTEST_RESOLVE is world-side. No HP. No SCAN/ATTACK. RFC-0095 lists CONTEST on help.
  */
 
 import { sha256Hex } from "./genesis";
 import type { Budgets } from "./actions";
 
-export const CONFLICT_CATALOG_ID = "conflict-catalog/gc7-s0";
+export const CONFLICT_CATALOG_ID = "conflict-catalog/gc7-thaw-play";
 export const CONTEST_RULES_VERSION = "contest-rules/0.2.0";
 
 export const CONTEST_FORMS = [

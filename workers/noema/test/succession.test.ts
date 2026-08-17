@@ -140,7 +140,7 @@ describe("GC4-S4 designated succession", () => {
     expect(scope.ok).toBe(true);
     if (scope.ok && scope.action.verb === "COMMIT") expect(scope.action.arguments.emergency_scope_id).toBe("emscope.x");
     expect(helpText()).toMatch(/KNOWN COMMANDS/);
-    expect(helpText()).not.toMatch(/succession|SUCCESSION_|DYNASTY|\bWED\b|ATTEST|CONTEST/i);
+    expect(helpText()).not.toMatch(/succession|SUCCESSION_|DYNASTY|\bWED\b|ATTEST/i);
     expect(helpText("org")).toMatch(/succession <office>/);
   });
 

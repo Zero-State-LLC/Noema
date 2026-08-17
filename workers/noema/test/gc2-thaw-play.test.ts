@@ -8,9 +8,8 @@ describe("GC2 PLAY thaw", () => {
     expect(helpText("build")).toMatch(/dismantle/);
     expect(helpText("build")).toMatch(/upgrade/);
     expect(helpText("build")).toMatch(/share/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
     expect(helpText()).not.toMatch(/\bWED\b/);
-    expect(helpText("build")).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText("build")).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 });
