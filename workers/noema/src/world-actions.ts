@@ -52,6 +52,7 @@ import {
   parseAccessScope,
 } from "./access-policy";
 import { actorKindFromPrincipal, isUsableLiveWorld } from "./ops";
+import { isolatedLedgerEventId } from "./test-world";
 import { commitCycleIfReady } from "./world-time";
 import {
   ACCESS_CLASS,
@@ -1231,7 +1232,7 @@ export async function applyWorldCommand(
     if (ledger) w.sequence += 1;
     const sequence = w.sequence;
     const event_id = ledger
-      ? `evt.${sequence.toString().padStart(6, "0")}`
+      ? isolatedLedgerEventId(String(w.world_id || ""), sequence)
       : `evt.obs.${crypto.randomUUID()}`;
     events.push({ event_id, event_type, sequence, payload });
     return { event_id, event_type, sequence, payload };

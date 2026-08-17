@@ -17,6 +17,15 @@ export function isAdmittedTestWorldId(worldId: string): boolean {
   return admitTestWorldId(worldId).ok;
 }
 
+/** Ledger event ids are a global PK. Isolated worlds must not reuse Perihelion `evt.000000`. */
+export function isolatedLedgerEventId(worldId: string, sequence: number): string {
+  const admitted = admitTestWorldId(worldId);
+  const seq = sequence.toString().padStart(6, "0");
+  if (!admitted.ok) return `evt.${seq}`;
+  const suffix = admitted.world_id.slice(TEST_WORLD_PREFIX.length).replace(/[^a-zA-Z0-9.-]+/g, ".");
+  return `evt.tw.${suffix}.${seq}`;
+}
+
 /**
  * Admit only `test.hosted-canonical.<suffix>`.
  * Deny Perihelion, DEFAULT_WORLD_ID, and arbitrary ids before any DO lookup.
