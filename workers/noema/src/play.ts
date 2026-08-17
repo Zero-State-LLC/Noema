@@ -388,6 +388,16 @@ function playClientBundle(): string {
     }
 
     function renderObs(obs) {
+      try {
+        renderObsInner(obs);
+      } catch (err) {
+        notice("The view could not refresh. Type look.", "bad");
+        const adv = $("err-advanced");
+        if (adv) adv.textContent = String(err && err.message || err || "render failed");
+      }
+    }
+
+    function renderObsInner(obs) {
       state.obs = obs;
       const desksEl = $("desk-list");
       const playersEl = $("players-here");

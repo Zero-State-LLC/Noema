@@ -768,7 +768,7 @@ export function buildObservation(
     reconstruction_lines: reconstructionLines(
       Object.values(w.reconstructions || {}).filter((rec) => {
         const org = rec.org_id ? w.organizations[rec.org_id] : undefined;
-        const role = org?.members.find((m) => m.agent_id === principal.player_id)?.role || null;
+        const role = (org?.members || []).find((m) => m.agent_id === principal.player_id)?.role || null;
         const held = Object.values(org?.offices || {}).some(
           (o) => o.holder_player_id === principal.player_id && o.status === "OCCUPIED",
         );
@@ -1037,6 +1037,7 @@ export async function applyWorldCommand(
   }) => Promise<boolean>,
 ): Promise<CommandResult> {
   const request_id = envl.request_id || crypto.randomUUID();
+  migrateWorldRuntime(w);
   if (!w.seen_idempotency || typeof w.seen_idempotency !== "object") w.seen_idempotency = {};
   if (!Array.isArray(w.unsettled)) w.unsettled = [];
   if (!w.players || typeof w.players !== "object") w.players = {};
