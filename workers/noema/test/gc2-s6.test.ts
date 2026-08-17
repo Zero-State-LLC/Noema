@@ -85,7 +85,7 @@ describe("GC2-S6 mapper", () => {
     expect(REPURPOSE_TO_CLASS).toBe("storage_bay");
     expect(REPURPOSE_COST).toEqual({ energy: 4, compute: 2, storage: 2, influence: 1 });
     expect(helpText()).not.toMatch(/\brepurpose\b/i);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bWED\b|\bATTEST\b/);
+    expect(helpText()).not.toMatch(/\bWED\b|\bATTEST\b/);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "REPURPOSE" })).toBeNull();
   });
 });

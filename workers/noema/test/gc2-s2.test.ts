@@ -74,7 +74,7 @@ describe("GC2-S2 mapper", () => {
     expect(withWorkshopStorage({ storage: 4 }, true).storage).toBe(3);
     expect(withWorkshopStorage({ ...COSTS.REPAIR }, true).storage).toBeUndefined();
     expect(helpText()).toMatch(/\bBUILD\b/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 });
 

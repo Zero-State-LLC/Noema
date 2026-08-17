@@ -15,7 +15,7 @@ import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 /**
  * GC7-S2 isolated institution contest party (acting_for + treasury).
  * Authority: Noema-Specs docs/GC7-S2-INSTITUTION-PARTY.md / RFC-0041.
- * Isolated world id only. Chamber help still omits CONTEST.
+ * Isolated world id only. Chamber help names CONTEST; WED/ATTEST stay omitted.
  */
 
 const STAKE = { energy: 12, influence: 8, compute: 4 };
@@ -189,8 +189,8 @@ describe("GC7-S2 mapper", () => {
     }
   });
 
-  it("keeps CONTEST off Chamber help", () => {
-    expect(helpText()).not.toMatch(/\bcontest\b/i);
+  it("names CONTEST on Chamber help and keeps it off org help", () => {
+    expect(helpText()).toMatch(/\bCONTEST\b/);
     expect(helpText("org")).not.toMatch(/\bcontest\b/i);
   });
 });

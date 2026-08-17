@@ -82,7 +82,9 @@ describe("GC7-S1 mapper", () => {
     expect(parsed.ok).toBe(true);
     if (parsed.ok && parsed.action.verb === "COMMIT") expect(parsed.action.arguments.operation).toBe("CONTEST_WITHDRAW");
     const text = helpText();
-    expect(text).not.toMatch(/\bwithdraw\b|\bcontest\b|\bretreat\b|\bHP\b/i);
+    expect(text).toMatch(/\bCONTEST\b/);
+    expect(text).not.toMatch(/\bwithdraw\b|\bretreat\b|\bHP\b/i);
+    expect(helpText("contest")).toMatch(/\bwithdraw\b/);
   });
 });
 

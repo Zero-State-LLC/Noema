@@ -70,9 +70,8 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
 }
 
 describe("WR-S2 mapper", () => {
-  it("extends S1 and keeps CONTEST off help", () => {
+  it("extends S1 and keeps NEWS off help", () => {
     expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b/);
     expect(helpText()).not.toMatch(/\bNEWS\b/);
   });
 });

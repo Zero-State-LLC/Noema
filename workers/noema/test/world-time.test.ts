@@ -116,14 +116,13 @@ describe("RFC-0019 WAIT quorum", () => {
     expect(second.events?.[0]?.payload?.cycle_committed).toBe(true);
   });
 
-  it("LOOK does not commit; help omits contest and WED", async () => {
+  it("LOOK does not commit; help omits WED", async () => {
     const w = fixtureWorld();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     const look = await run(w, p, "LOOK");
     expect(look.ok).toBe(true);
     expect(w.cycle).toBe(0);
-    expect(helpText()).not.toMatch(/\bcontest\b/i);
     expect(helpText()).not.toMatch(/\bWED\b/);
     expect(helpText()).not.toMatch(/cycle commit/i);
   });

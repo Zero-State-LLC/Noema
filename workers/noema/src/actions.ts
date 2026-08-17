@@ -2,7 +2,8 @@
  * Hosted Player Action Map — Specs-aligned costs, normalization, affordances.
  * Authority: Noema-Specs PLAYER-ACTION-MAP + action-contracts.v01
  * COMMIT is wire/internal; humans use intent language.
- * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD. CONTEST / WED / ATTEST stay omitted.
+ * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
+ * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST. WED / ATTEST stay omitted.
  */
 
 import {
@@ -1551,7 +1552,7 @@ export function parseHumanCommand(
   }
 
   // GC7-S0: contest <form> <target> stake=energy:10,influence:6
-  // Not listed in Chamber help.
+  // RFC-0095: listed on help contest.
   if (v === "contest") {
     const rest = parts.join(" ");
     const stakeM = rest.match(/\bstake=([^\s]+)/i);
@@ -1610,7 +1611,7 @@ export function parseHumanCommand(
       display: acting_for ? `You defend ${contest_id} for ${acting_for}.` : `You defend ${contest_id}.`,
     };
   }
-  // RFC-0026: withdraw <contest_id> — not listed in Chamber help. Not MOVE.
+  // RFC-0026: withdraw <contest_id> — not MOVE. RFC-0095 lists it on help contest.
   if (v === "withdraw" || v === "retreat" || v === "disengage") {
     const contest_id = parts.join(" ").trim().split(/\s+/)[0] || "";
     if (!contest_id) {
@@ -2804,7 +2805,19 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  leave <org> · remove <player> from <org>");
     lines.push("  talk <desk>     World Service (not a Player)");
     lines.push("  BUILD               help build");
-    lines.push("  help [trade|repair|harvest|message|org|build]");
+    lines.push("  CONTEST             help contest");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest]");
+  } else if (t === "contest") {
+    lines.push("CONTEST");
+    lines.push("  contest <form> <target> stake=energy:10,influence:6");
+    lines.push("  defend <contest_id> stake=energy:10,influence:6");
+    lines.push("  withdraw <contest_id>");
+    lines.push("  contest for <org> <form> <target> stake=energy:10,influence:6");
+    lines.push("  defend <contest_id> for <org> stake=energy:10,influence:6");
+    lines.push("  Forms: resource_seizure · infrastructure_disruption · access");
+    lines.push("         presence_pressure · information");
+    lines.push("  Public rooms only. Hidden rooms cannot be contested.");
+    lines.push("  No HP. No scan or attack.");
   } else if (t === "build") {
     lines.push("BUILD");
     lines.push("  construct <class>     relay · generator · storage_bay · production_node");

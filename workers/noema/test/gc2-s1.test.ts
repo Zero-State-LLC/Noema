@@ -84,7 +84,7 @@ describe("GC2-S1 mapper", () => {
     expect(moveEnergyCost(15)).toBe(2);
     expect(moveEnergyCost(15, undefined, true)).toBe(1);
     expect(helpText()).toMatch(/\bBUILD\b/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 });
 

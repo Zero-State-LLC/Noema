@@ -104,7 +104,7 @@ describe("GC6-S1 mapper", () => {
     }
     const text = helpText();
     expect(text).toMatch(/KNOWN COMMANDS/);
-    expect(text).not.toMatch(/\breconstruct\b|\bquest\b|\battest\b|\bconstruct\b|\bcontest\b/i);
+    expect(text).not.toMatch(/\breconstruct\b|\bquest\b|\battest\b|\bconstruct\b/i);
   });
 });
 
