@@ -3,6 +3,7 @@
 **Audience:** product UI / frontend teams  
 **Runtime pin:** `hosted-chamber-stage-0` (`spec-compat.json`)  
 **Specs authority:** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) (freeze v0.1–v0.7)  
+**Brand:** Specs `docs/PLAYER-BRAND.md` · `docs/VISUAL-DESIGN.md` · `docs/PLAYER-BRAND-IMPLEMENTATION.md`  
 **Product host:** Cloudflare Worker `noema-gateway` + `NoemaWorldDO` at `https://noema.guru`  
 **Offline reference:** Python modular monolith (`noema-serve`) — conformance only, not the live door
 
@@ -24,7 +25,37 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 `/` is a world door: Perihelion Reach, one place line, Player email. Operator login is `/admin/login`, not a peer card on `/`. First-read copy is game/place/play. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
-Graphics, if any, stay minimal chrome (borders, type hierarchy)—never the content.
+Player visual identity follows Specs brand canon. **This runtime has not yet applied Slice 1 tokens.** Slice 0 only captures the current HTML so later slices can migrate without inventing brand while editing JSX.
+
+Graphics, if any, stay functional chrome (borders, type hierarchy)—never a substitute for world text.
+
+### Brand Slice 0 baseline (hosted Worker @ `2b5e8d2` + this capture)
+
+No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.ts`. Screenshot matrix stub: `workers/noema/test/brand-screenshot-matrix.json` (Slice 9 takes shots; no Playwright yet).
+
+| Route | HTML | Job |
+|---|---|---|
+| `GET /` | `landingHtml` | World door + Player email |
+| `GET /play` | `playHtml` | Door + chamber (mast / scroll / rail / command) |
+| `GET /play/callback` | `playCallbackHtml` | Magic-link consume |
+| `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor |
+| `GET /connect` | `connectHtml` | External Controller |
+| `GET /study` | `studyHtml` | Honest stub |
+| `GET /admin/login` | `adminLoginHtml` | Operator email |
+| `GET /admin` | `adminHtml` | Control plane (not PLAY) |
+| `POST /v1/command` | World DO | PLAY/agent actions |
+| `GET /v1/watch/live` | World DO | Public projection |
+
+| Budget | Ceiling | Notes |
+|---|---|---|
+| PLAY HTML gzip | 180 KiB | `brand-baseline.test.ts` |
+| WATCH HTML gzip | 180 KiB | same |
+| Phosphor JS | 100 KiB | `PHOSPHOR_JS_BUDGET` |
+| Phosphor assets | 200 KiB | `PHOSPHOR_ASSET_BUDGET` |
+
+A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
+
+Next implementation slice: **Slice 1 — tokens + `toPlayerView`**. Do not invent Pressure / Population / Trade Index.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 
