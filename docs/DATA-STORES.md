@@ -6,19 +6,28 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
-### Live probe 2026-08-17 (this pass)
+### Live probe 2026-08-17 (SQL session)
+
+Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover. Did **not** reseed.
 
 | Check | Result | Label |
 |---|---|---|
 | `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, world `world.perihelion-reach`, cycle 105, sequence 288, `genesis_id:genesis.ef578f4ffceeccd0` | OBSERVED |
 | Four migration files on disk in order | present under `supabase/migrations/` | OBSERVED |
+| Hosted `schema_migrations` | `20260812181043_noema_world_schema`, `20260812195616_noema_settled_events`, `20260816023118_noema_adopt_live_world_head` | OBSERVED |
+| Tables `noema_world_heads` / `noema_settled_events` / `noema_canonical_settlements` | present; row counts 1 / 268 / 160 | OBSERVED |
+| RPCs `noema_commit_canonical_settlement` and `noema_adopt_live_world_head` | present, `SECURITY DEFINER`; `EXECUTE` for `service_role` and `postgres` only; `anon` / `authenticated` false | OBSERVED |
+| Perihelion `noema_world_heads` row | `world.perihelion-reach` · cycle 105 · seq 288 · revision 160 · writer `do.1` · `HEALTHY` · `ACTIVE` · `genesis.ef578f4ffceeccd0` · digest prefix `sha256:f163f` | OBSERVED |
+| Perihelion receipts / events | 160 receipts (max revision 160); 261 settled events (seq 0..288) | OBSERVED |
 | Worker secrets named on `noema-gateway` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` listed by `wrangler secret list` (values not read) | OBSERVED |
-| Project host `dezykkherxlaysxyvgbs.supabase.co` | HTTP 401 `UNAUTHORIZED_MISSING_API_KEY` without apikey | OBSERVED (project live; not a schema proof) |
 | `commitCanonicalSettlement` on missing RPC | Worker treats non-ok as fail; DO restores pre-command state and enters INCIDENT | OBSERVED in `settle.ts` / `world-do.ts` |
-| Hosted RPC applied + Perihelion `noema_world_heads` row | No `SUPABASE_SERVICE_ROLE_KEY` in this shell. Did **not** apply SQL. Did **not** invent a head. | not independently verified |
-| Mutating PLAY + Recover settlement proof | not executed | not independently verified |
+| Mutating PLAY + Recover settlement proof | not executed this pass | not independently verified |
 
-INFERRED: because production secrets are configured and `/ready` is ACTIVE/HEALTHY, the last mutating ACK that emitted canonical events did not take the INCIDENT path. That is not a substitute for reading the SQL head row. Operator inspect (values stay in env, never argv):
+Hosted `/ready` cycle/sequence/genesis/health **match** the SQL head. Recover is not indicated (head present).
+
+Do **not** apply the four disk files. Hosted objects already exist. Hosted migration version stamps differ from some disk filenames (`20260812195616` vs `20260812193000`; `20260816023118` vs `20260816013000`; heads/fence/atomic are not separate hosted versions). Re-applying would collide.
+
+Operator inspect (values stay in env, never argv):
 
 ```bash
 # from a secret store, not the shell history:
@@ -26,8 +35,6 @@ INFERRED: because production secrets are configured and `/ready` is ACTIVE/HEALT
 #   export SUPABASE_SERVICE_ROLE_KEY=…
 cd workers/noema && node ./scripts/inspect-settlement.mjs
 ```
-
-Do not apply the four migrations until that script reports `present:false` for a table or RPC. Applying blindly is not authorized here.
 
 ---
 
@@ -50,7 +57,7 @@ OBSERVED from `20260813210000` + `20260813223000` + `20260813233000`:
 
 `world_id` (PK), `sequence`, `cycle`, `genesis_id`, `status`, `settlement_health`, `state_json`, `updated_at`, `revision`, `ledger_head_event_id`, `state_digest`, `writer_generation`, `canonicalization_version`, `canonical_state_json`, `ledger_head_digest`.
 
-Hosted row for Perihelion: **not read this inventory. Do not invent.**
+Hosted row for Perihelion (OBSERVED this pass): `world.perihelion-reach`, cycle 105, sequence 288, revision 160, `writer_generation=do.1`, `settlement_health=HEALTHY`, `status=ACTIVE`, `genesis_id=genesis.ef578f4ffceeccd0`, `state_digest` prefix `sha256:f163f`. State JSON not dumped here.
 
 ### `noema_settled_events` columns (required for canonical commit)
 
@@ -90,7 +97,7 @@ OBSERVED names in `store.py` / first schema. `WorldStore.clear_research_indexes(
 
 ## RPCs
 
-Both functions are `SECURITY DEFINER`, `REVOKE` from `PUBLIC` / `anon` / `authenticated`, `GRANT EXECUTE` to `service_role` only. Hosted presence of either function was **not inspected** this inventory.
+Both functions are `SECURITY DEFINER`. Hosted (OBSERVED this pass): both exist; `EXECUTE` is true for `service_role` and `postgres`, false for `anon` and `authenticated`.
 
 ### `public.noema_commit_canonical_settlement`
 
@@ -132,7 +139,7 @@ OBSERVED in `supabase/migrations/20260816013000_noema_adopt_live_world_head.sql`
 | **Test world ≠ Perihelion** | `admitTestWorldId` denies `world-01` / `world.perihelion-reach` before DO lookup. | OBSERVED (`test-world.ts`) |
 | **Observational ≠ canonical** | `canonicalEventsForCommit` drops `evt.obs.*`. | OBSERVED (`settle.ts`) |
 | **Unmigrated unsettled history** | If hosted secrets are set and DO `unsettled` is non-empty, mutation fail-closes (`UNMIGRATED_UNSETTLED_HISTORY`) instead of folding old candidates into the RPC. | OBSERVED (`world-do.ts`) |
-| **RPC callers** | Only `service_role`. Players and anon cannot execute the writers. | OBSERVED in SQL; hosted grants not inspected |
+| **RPC callers** | Only `service_role`. Players and anon cannot execute the writers. | OBSERVED on hosted grants this pass |
 
 ---
 
@@ -166,13 +173,15 @@ Do not create these on hosted Postgres until a later identity/evidence slice exp
 
 ## Inventory gaps
 
-Still **not** independently verified without a service-role session:
+Closed this pass (read-only SQL): hosted tables, both RPCs + grants, Perihelion head row matching `/ready`.
+
+Still **not** independently verified:
 
 ```json
-["hosted apply of 20260813210000_noema_world_heads.sql not independently verified","hosted apply of 20260813223000_noema_world_head_fence.sql not independently verified","hosted apply of 20260813233000_noema_atomic_canonical_settlement.sql not independently verified","hosted apply of 20260816013000_noema_adopt_live_world_head.sql not independently verified","hosted RPC public.noema_commit_canonical_settlement not inspected with service role","hosted RPC public.noema_adopt_live_world_head not inspected with service role","hosted noema_world_heads row for Perihelion not read (do not invent)","hosted Worker/DO settlement proof not executed"]
+["hosted Worker/DO settlement proof not executed","mutating PLAY ACK not re-driven this pass"]
 ```
 
-Live `GET /ready` **was** fetched this pass (see Live probe). Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
+Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
 
 ---
 
@@ -188,5 +197,5 @@ Live `GET /ready` **was** fetched this pass (see Live probe). Prior-doc sequence
 | RPCs grant execute to `service_role` only (in SQL files) | OBSERVED |
 | Research tables are rebuildable and offline-only | OBSERVED in code; hosted copies if any are unused by the Worker |
 | Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 288 | OBSERVED 2026-08-17 |
-| Hosted SQL apply + RPC + Perihelion head row via service role | **not verified** (see gaps). Use `inspect-settlement.mjs` |
-| A current Perihelion `noema_world_heads` sequence or digest | SPECULATIVE if invented — **do not invent** |
+| Hosted tables + both RPCs + Perihelion head (rev 160, digest prefix `sha256:f163f`) | OBSERVED 2026-08-17 via read-only SQL |
+| Mutating PLAY ACK / Recover proof this pass | not executed |

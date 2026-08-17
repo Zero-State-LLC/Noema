@@ -6,16 +6,14 @@
 
 **Stores:** [DATA-STORES.md](DATA-STORES.md).
 
-**Live `GET /ready` 2026-08-17 (OBSERVED):** `ACTIVE` · `HEALTHY` · cycle 105 · seq 288 · `genesis.ef578f4ffceeccd0`. SQL head row and RPCs **not** read (no service-role session). Did **not** apply SQL. Did **not** invent a head.
+**Live `GET /ready` 2026-08-17 (OBSERVED):** `ACTIVE` · `HEALTHY` · cycle 105 · seq 288 · `genesis.ef578f4ffceeccd0`. Read-only SQL head matches (revision 160, `do.1`, digest prefix `sha256:f163f`). Both RPCs present. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover.
 
 ### Verified this inventory (2026-08-17)
 
-On-disk Worker/SQL only:
-
 - Production PLAY: `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`.
-- Recover is the only path when the DO has state and the SQL head is missing (`noema_adopt_live_world_head` or REST snapshot; no invented events).
+- Recover is the only path when the DO has state and the SQL head is missing (`noema_adopt_live_world_head` or REST snapshot; no invented events). Head is present; Recover is not indicated.
 - Admin ≠ Player. WORLD TRUTH ≠ RESEARCH. One fenced writer.
-- Hosted apply of `20260813210000`, `20260813223000`, `20260813233000`, `20260816013000` **not independently verified**. Hosted RPCs **not inspected**. Hosted Worker/DO settlement proof **not executed**.
+- Hosted tables + RPCs + Perihelion head: OBSERVED (see [DATA-STORES.md](DATA-STORES.md)). Mutating PLAY / Recover proof **not executed**.
 
 Prior-doc `/ready` notes (`2026-08-16` ACTIVE/HEALTHY, seq `92` here vs `94` in RUNTIME-READINESS) are **not re-verified**. Do not treat those sequences as current.
 
@@ -116,12 +114,12 @@ Historical activation-time checks below are **not** a hosted SQL inspection from
 | Check | Result |
 |-------|--------|
 | Settlement backend reachable | Prior-doc PASS (activation-time overview). **Not re-verified.** |
-| Schema compatible | Prior-doc PASS (`noema_settled_events` path used at activation). Hosted apply of head/fence/RPC/adopt SQL **not independently verified.** |
+| Schema compatible | OBSERVED 2026-08-17: heads + settled events + canonical settlements + both RPCs present. |
 | Credentials valid | Prior-doc PASS (`settlement_ok: true`). **Not re-verified.** |
 | Safe non-Genesis probe | Do not invent a Perihelion head. Do not reseed. |
 
 Settlement ID (prior-doc): `settlement.genesis.ef578f4ffceeccd0`  
-DO digest == Cycle 0 digest: prior-doc match; SQL head row **not read** this inventory.
+DO digest == Cycle 0 digest: prior-doc match. SQL head row OBSERVED this inventory (seq 288, revision 160).
 
 ---
 

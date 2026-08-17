@@ -5,7 +5,7 @@ Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffce
 
 OBSERVED `GET https://noema.guru/ready`: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence 288, `genesis_id:genesis.ef578f4ffceeccd0`. Worker secret names include `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Host `dezykkherxlaysxyvgbs.supabase.co` answers 401 without apikey.
 
-SQL head row and RPC bodies were **not** read (no service-role session). Did **not** apply migrations. Did **not** invent a Perihelion head. Operator inspect: `workers/noema/scripts/inspect-settlement.mjs`.
+Read-only SQL later the same day: Perihelion head matches `/ready` (revision 160, digest prefix `sha256:f163f`). Both RPCs present. Did **not** apply migrations. Did **not** invent a Perihelion head. See [DATA-STORES.md](DATA-STORES.md).
 
 **Addendum 2026-08-17 inventory (on disk).**  
 This pass also read Worker/SQL on disk. Production PLAY commits via `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Recover is the only path when the DO has state and the SQL head is missing.
@@ -135,7 +135,7 @@ supabase/migrations/20260813233000_noema_atomic_canonical_settlement.sql
 supabase/migrations/20260816013000_noema_adopt_live_world_head.sql
 ```
 
-All four files are on disk. Hosted apply of each is **not independently verified**. After the Worker is on the atomic RPC, a mutating PLAY command fail-closes (`MISSING_CANONICAL_HEAD` / RPC miss) and enters INCIDENT rather than skip. Recover is the only path when the DO has state and the SQL head is missing.
+All four files are on disk. Hosted objects (tables + both RPCs + Perihelion head) were read 2026-08-17 — do not re-apply. After the Worker is on the atomic RPC, a mutating PLAY command fail-closes (`MISSING_CANONICAL_HEAD` / RPC miss) and enters INCIDENT rather than skip. Recover is the only path when the DO has state and the SQL head is missing. Head is present.
 
 ## Next (not authorized here)
 

@@ -21,6 +21,9 @@ describe("DATA-STORES.md", () => {
     expect(DOC).toContain("WORLD TRUTH");
     expect(DOC).toContain("Admin ≠ Player");
     expect(DOC).toContain("inspect-settlement.mjs");
+    expect(DOC).toContain("revision 160");
+    expect(DOC).toContain("sha256:f163f");
+    expect(DOC).toMatch(/Do \*\*not\*\* apply the four disk files/);
     expect(DOC).not.toMatch(/Genesis reseed/);
   });
 });
