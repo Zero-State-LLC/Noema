@@ -442,7 +442,27 @@ function playClientBundle(): string {
         return;
       }
       const loc = Object.assign({}, obs.location, { services: obs.location.services || obs.services || [] });
-      const view = toPlayerView(obs);
+      let view;
+      try {
+        view = toPlayerView(obs);
+      } catch (err) {
+        const look = lookCopyFromObservation(obs, { code: "INTERNAL", message: err && err.message });
+        const h = humanizeError("INTERNAL", err && err.message);
+        view = {
+          worldName: look.worldLine,
+          cycleLabel: "",
+          locationName: look.roomName,
+          locationDescription: look.roomDesc,
+          cultureLine: "",
+          strip: [],
+          signals: [],
+          actions: [],
+          status: [],
+          systems: { rumors: [], comms: [], archive: [], contests: [], unclaimed: [], offices: [] },
+        };
+        const adv = $("err-advanced");
+        if (adv) adv.textContent = h.advanced || "";
+      }
       $("world-line").textContent = view.worldName || "In world";
       const cyc = $("ch-cycle");
       if (cyc) cyc.textContent = view.cycleLabel;
