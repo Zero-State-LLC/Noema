@@ -19,7 +19,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.wr-s5",
+    world_id: "test.hosted-canonical.wr-s6",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -29,7 +29,7 @@ function world(): WorldRuntime {
         room_id: "room.hub",
         name: "Hub",
         description: "Grid.",
-        exits: [{ direction: "east", to_room_id: "room.civic" }],
+        exits: [],
         entities: [
           {
             entity_id: "entity.relay-7",
@@ -39,35 +39,12 @@ function world(): WorldRuntime {
           },
         ],
       },
-      "room.civic": {
-        room_id: "room.civic",
-        name: "Civic",
-        description: "Trade.",
-        exits: [{ direction: "west", to_room_id: "room.hub" }],
-        entities: [],
-      },
-      "room.vault": {
-        room_id: "room.vault",
-        name: "Hidden Vault",
-        description: "Unadvertised.",
-        exits: [],
-        entities: [
-          {
-            entity_id: "entity.vault-core",
-            label: "Vault Core",
-            entity_type: "INFRASTRUCTURE",
-            condition: 70,
-          },
-        ],
-        hidden: true,
-        tags: ["hidden"],
-      },
     },
     players: {},
     trades: {},
     messages: [],
     organizations: {},
-    reconstructions: {},
+    agreements: {},
     seen_idempotency: {},
     unsettled: [],
   };
@@ -83,53 +60,48 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WR-S5 mapper", () => {
-  it("extends S4 and keeps NEWS and QUEST off help", () => {
-    expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
+describe("WR-S6 mapper", () => {
+  it("extends S5 and keeps NEWS and AGREEMENT off help", () => {
+    expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s6");
     expect(helpText()).not.toMatch(/\bNEWS\b/);
-    expect(helpText()).not.toMatch(/\bQUEST\b/);
+    expect(helpText()).not.toMatch(/\bAGREEMENT\b/);
   });
 });
 
-describe("WR-S5 world path", () => {
-  it("lists public reconstructions after five WAITs and omits hidden, private, claim, and author", async () => {
+describe("WR-S6 world path", () => {
+  it("lists active public agreements after five WAITs and omits offered, broken, and parties", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.reconstructions = {
-      "recon.public": {
-        reconstruction_id: "recon.public",
-        author_player_id: "player.vesper",
-        subject_ref: "entity.relay-7",
-        claim: "The relay was abandoned then secretly restored.",
-        evidence_refs: [],
-        created_cycle: 0,
-        status: "RECORDED",
+    w.agreements = {
+      "agreement.live": {
+        agreement_id: "agreement.live",
+        agreement_type: "TRADE",
+        party_ids: ["player.nacre", "player.vesper"],
+        status: "ACTIVE",
+        offered_by: "player.nacre",
+        cost_payer_id: "player.nacre",
         visibility: "PUBLIC",
-        epistemic: "OPEN",
+        formed_cycle: 0,
       },
-      "recon.hidden": {
-        reconstruction_id: "recon.hidden",
-        author_player_id: "player.vesper",
-        subject_ref: "entity.vault-core",
-        claim: "The vault still runs.",
-        evidence_refs: [],
-        created_cycle: 0,
-        status: "RECORDED",
+      "agreement.offer": {
+        agreement_id: "agreement.offer",
+        agreement_type: "TRADE",
+        party_ids: ["player.nacre", "player.other"],
+        status: "OFFERED",
+        offered_by: "player.nacre",
+        cost_payer_id: "player.nacre",
         visibility: "PUBLIC",
-        epistemic: "OPEN",
       },
-      "recon.private": {
-        reconstruction_id: "recon.private",
-        author_player_id: "player.vesper",
-        subject_ref: "entity.relay-7",
-        claim: "A private account of the civic stall.",
-        evidence_refs: [],
-        created_cycle: 0,
-        status: "RECORDED",
-        visibility: "PRIVATE",
-        epistemic: "OPEN",
+      "agreement.dead": {
+        agreement_id: "agreement.dead",
+        agreement_type: "TRADE",
+        party_ids: ["player.nacre", "player.gone"],
+        status: "BROKEN",
+        offered_by: "player.nacre",
+        cost_payer_id: "player.nacre",
+        visibility: "PUBLIC",
       },
     };
 
@@ -141,9 +113,8 @@ describe("WR-S5 world path", () => {
     const fifth = await run(w, p, "WAIT");
     expect(fifth.ok).toBe(true);
     const lines = fifth.observation?.report_lines || [];
-    expect(lines).toContain("Relay 7 is reconstructed.");
-    expect(lines.join(" ")).not.toMatch(/Vault Core/);
-    expect(lines.join(" ")).not.toMatch(/secretly restored/);
+    expect(lines).toContain("trade is agreed.");
+    expect(lines.filter((l) => l === "trade is agreed.")).toHaveLength(1);
     expect(lines.join(" ")).not.toMatch(/vesper/i);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
   });
