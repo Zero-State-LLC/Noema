@@ -128,6 +128,8 @@ describe("development token deployment boundary", () => {
     const workerRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
     const wrangler = readFileSync(resolve(workerRoot, "wrangler.toml"), "utf8");
     expect(wrangler).toMatch(/\[vars\][\s\S]*?NOEMA_ENV\s*=\s*"production"/);
+    expect(wrangler).toMatch(/\[observability\][\s\S]*?enabled\s*=\s*true/);
+    expect(wrangler).toMatch(/\[observability\.logs\][\s\S]*?invocation_logs\s*=\s*true/);
 
     const deploy = readFileSync(resolve(workerRoot, "scripts/deploy-stage0.sh"), "utf8");
     expect(deploy).toMatch(/preview\)[\s\S]*?preview deployment is disabled/);
