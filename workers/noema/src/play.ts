@@ -15,7 +15,7 @@ body.is-chamber .top,body.is-chamber .foot{display:none}
 body.is-chamber #main.wrap{width:100%;max-width:none;padding:0;margin:0}
 body.is-chamber #play-door{display:none}
 body.is-chamber #play-chamber{
-  display:grid;grid-template-rows:auto 1fr auto;height:100dvh;min-height:100dvh;overflow:hidden;
+  display:grid;grid-template-rows:auto auto 1fr auto;height:100dvh;min-height:100dvh;overflow:hidden;
 }
 .ch-mast{
   display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;
@@ -24,6 +24,24 @@ body.is-chamber #play-chamber{
 }
 .ch-mast a{color:var(--ink);text-decoration:none}
 .ch-mast #leave{margin-left:auto;text-transform:none;letter-spacing:0}
+.ch-strip{
+  display:flex;flex-wrap:wrap;gap:.35rem 1rem;align-items:baseline;
+  min-height:1.9rem;padding:.35rem .85rem;
+  background:var(--color-surface-band);border-bottom:1px solid var(--line);
+  font:500 .78rem/1.3 var(--font-interface);
+}
+.ch-strip[hidden]{display:none}
+.strip-item{display:inline-flex;gap:.35rem;align-items:baseline}
+.strip-k{color:var(--color-text-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.62rem}
+.strip-v{color:var(--color-text-primary);font-weight:600}
+.signals{margin:1rem 0 0}
+.signals h3{
+  margin:0 0 .35rem;color:var(--color-text-secondary);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
+}
+.signals[hidden]{display:none}
+#signal-feed{margin:0;padding:0;list-style:none}
+#signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem}
 .ch-body{
   display:grid;grid-template-columns:minmax(0,1fr) 16rem;min-height:0;overflow:auto;
 }
@@ -123,6 +141,7 @@ export function playHtml(): string {
       <span id="handle-live">—</span>
       <button class="btn quiet" id="leave" type="button">Leave world</button>
     </header>
+    <div id="world-strip" class="ch-strip" hidden role="status" aria-label="World state"></div>
     <div class="ch-body">
       <section class="ch-scroll" aria-label="World">
         <article class="look" id="loc-card">
@@ -136,6 +155,10 @@ export function playHtml(): string {
           </div>
           <p id="look-exits" hidden></p>
         </article>
+        <section class="signals" id="signals" hidden>
+          <h3>Signals</h3>
+          <ul id="signal-feed" aria-label="Signals"></ul>
+        </section>
         <ol class="trail" id="trail" aria-live="polite"></ol>
       </section>
       <aside class="ch-rail" aria-label="Here">
@@ -147,7 +170,8 @@ export function playHtml(): string {
         <h3>EXITS</h3>
         <ul class="tok-list" id="exit-list" aria-label="Exits"></ul>
         <div class="route-box" id="route-box" hidden aria-label="Local routes"></div>
-        <ul class="tok-list" id="opp-list" aria-label="Local opportunities"></ul>
+        <h3>AVAILABLE HERE</h3>
+        <ul class="tok-list" id="action-rail" aria-label="Available here"></ul>
         <h3>STATUS</h3>
         <ul class="status-rows" id="status-rows"></ul>
         <details class="adv" id="advanced">
@@ -280,10 +304,15 @@ function playClientBundle(): string {
         if (desksEl) desksEl.replaceChildren();
         if (bondsCard) bondsCard.hidden = true;
         if (bondsBody) bondsBody.replaceChildren();
-        $("opp-list").replaceChildren();
+        const actionRailOff = $("action-rail");
+        if (actionRailOff) actionRailOff.replaceChildren();
         $("exit-list").replaceChildren();
         $("route-box").hidden = true;
         $("status-rows").replaceChildren();
+        const stripOff = $("world-strip");
+        if (stripOff) { stripOff.hidden = true; stripOff.replaceChildren(); }
+        const sigOff = $("signals");
+        if (sigOff) sigOff.hidden = true;
         $("meta-seq").textContent = "—";
         const cyc = $("ch-cycle");
         if (cyc) cyc.textContent = "";
@@ -341,7 +370,9 @@ function playClientBundle(): string {
         $("route-box").hidden = true;
       }
 
-      fillOpportunities($("opp-list"), loc);
+      fillWorldStrip($("world-strip"), view.strip);
+      fillSignalFeed($("signal-feed"), view.signals);
+      fillActionRail($("action-rail"), view.actions, loc);
       fillStatusRows($("status-rows"), view.status);
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;

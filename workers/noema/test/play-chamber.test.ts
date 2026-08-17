@@ -54,8 +54,12 @@ describe("play chamber HTML", () => {
     expect(chamber).toContain('id="leave"');
     expect(chamber).toContain('id="trail"');
     expect(chamber).toContain('id="exit-list"');
+    expect(chamber).toContain('id="world-strip"');
+    expect(chamber).toContain('id="signal-feed"');
+    expect(chamber).toContain('id="action-rail"');
     expect(chamber).toContain("HERE");
     expect(chamber).toContain("EXITS");
+    expect(chamber).toContain("AVAILABLE HERE");
   });
 
   it("chamber default copy is not Outside / Enter world", () => {
