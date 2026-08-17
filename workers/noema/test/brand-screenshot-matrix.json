@@ -1,7 +1,7 @@
 {
-  "slice": "0",
-  "kind": "visual-qa-stub",
-  "note": "No Playwright in this repo yet. Slice 9 takes shots against this matrix. Slice 0 only asserts the matrix exists.",
+  "slice": "9",
+  "kind": "visual-qa",
+  "note": "Automated contracts live in brand-visual-qa.test.ts. Optional Chromium shots: docs/BRAND-VISUAL-QA.md. No Playwright required.",
   "viewports": [
     { "id": "mobile-narrow", "width": 360, "height": 800 },
     { "id": "mobile-wide", "width": 390, "height": 844 },
@@ -19,5 +19,7 @@
     { "id": "admin-login", "route": "/admin/login", "states": ["default"] },
     { "id": "admin", "route": "/admin", "states": ["healthy", "degraded"] }
   ],
-  "reduced_motion": true
+  "required_states": ["empty", "loading", "error", "paused", "major"],
+  "reduced_motion": true,
+  "statements": 14
 }

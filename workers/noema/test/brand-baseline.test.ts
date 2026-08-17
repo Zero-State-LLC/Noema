@@ -23,6 +23,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const MATRIX = JSON.parse(
   readFileSync(join(HERE, "brand-screenshot-matrix.json"), "utf8"),
 ) as {
+  slice?: string;
   viewports: Array<{ id: string; width: number }>;
   screens: Array<{ id: string; route: string }>;
   reduced_motion: boolean;
@@ -39,6 +40,7 @@ const bareEnv = { NOEMA_ENV: "production" } as unknown as Env;
 
 describe("brand slice 0 — screenshot matrix stub", () => {
   it("lists required viewports and screens", () => {
+    expect(MATRIX.slice === "0" || MATRIX.slice === "9").toBe(true);
     expect(MATRIX.reduced_motion).toBe(true);
     expect(MATRIX.viewports.map((v) => v.id)).toEqual([
       "mobile-narrow",
