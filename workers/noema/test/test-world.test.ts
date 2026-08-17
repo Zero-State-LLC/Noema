@@ -3,7 +3,7 @@ import { mintAdminSession } from "../src/admin-auth";
 import { mintControllerToken } from "../src/auth";
 import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
-import { admitTestWorldId, resolveLoadWorldId } from "../src/test-world";
+import { admitTestWorldId, isolatedLedgerEventId, resolveLoadWorldId } from "../src/test-world";
 import type { Env } from "../src/types";
 
 const SIGNING = "test-signing-secret-isolated-world";
@@ -70,6 +70,14 @@ async function hit(
   });
   return worker.fetch(req, env(calls, defaultWorldId));
 }
+
+describe("isolatedLedgerEventId", () => {
+  it("namespaces isolated worlds and leaves Perihelion bare", () => {
+    expect(isolatedLedgerEventId("test.hosted-canonical.ack-s0", 0)).toBe("evt.tw.ack-s0.000000");
+    expect(isolatedLedgerEventId("world.perihelion-reach", 0)).toBe("evt.000000");
+    expect(isolatedLedgerEventId("world-01", 1)).toBe("evt.000001");
+  });
+});
 
 describe("admitTestWorldId", () => {
   it("admits test.hosted-canonical.<suffix>", () => {
