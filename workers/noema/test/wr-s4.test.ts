@@ -19,7 +19,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.wr-s3",
+    world_id: "test.hosted-canonical.wr-s4",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -60,7 +60,7 @@ function world(): WorldRuntime {
     trades: {},
     messages: [],
     organizations: {},
-    access_restrictions: [],
+    public_social_events: [],
     seen_idempotency: {},
     unsettled: [],
   };
@@ -76,54 +76,56 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WR-S3 mapper", () => {
-  it("extends S2 and keeps NEWS off help", () => {
-    expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
+describe("WR-S4 mapper", () => {
+  it("extends S3 and keeps NEWS and CRIME off help", () => {
+    expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s4");
     expect(helpText()).not.toMatch(/\bNEWS\b/);
-    expect(helpText()).not.toMatch(/ACCESS_POLICY/);
+    expect(helpText()).not.toMatch(/\bCRIME\b/);
   });
 });
 
-describe("WR-S3 world path", () => {
-  it("lists live public restrictions after five WAITs and omits hidden and expired", async () => {
+describe("WR-S4 world path", () => {
+  it("lists public crimes after five WAITs and omits hidden, private, subject, and method", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.access_restrictions = [
+    w.public_social_events = [
       {
-        restriction_id: "restr.public",
-        scope: "EXIT",
-        mode: "DENY",
-        applies_to: "*",
-        room_id: "room.hub",
-        exit_id: "east",
-        expires_cycle: 99,
+        event_id: "evt.crime.public",
+        event_type: "CRIME_DETECTED",
+        payload: {
+          detection_id: "det.public",
+          subject_id: "player.vesper",
+          category: "SABOTAGE",
+          room_id: "room.hub",
+          visibility: "PUBLIC",
+          flags: ["PUBLIC_HISTORY"],
+          detection_method: "WITNESS",
+        },
       },
       {
-        restriction_id: "restr.hidden",
-        scope: "ROOM",
-        mode: "DENY",
-        applies_to: "*",
-        room_id: "room.vault",
-        expires_cycle: 99,
+        event_id: "evt.crime.hidden",
+        event_type: "CRIME_DETECTED",
+        payload: {
+          detection_id: "det.hidden",
+          subject_id: "player.vesper",
+          category: "SEIZURE",
+          room_id: "room.vault",
+          visibility: "PUBLIC",
+          flags: ["PUBLIC_HISTORY"],
+        },
       },
       {
-        restriction_id: "restr.expired",
-        scope: "EXIT",
-        mode: "DENY",
-        applies_to: "*",
-        room_id: "room.civic",
-        exit_id: "west",
-        expires_cycle: 1,
-      },
-      {
-        restriction_id: "restr.room-public",
-        scope: "ROOM",
-        mode: "DENY",
-        applies_to: "*",
-        room_id: "room.civic",
-        expires_cycle: 99,
+        event_id: "evt.crime.private",
+        event_type: "CRIME_DETECTED",
+        payload: {
+          detection_id: "det.private",
+          subject_id: "player.vesper",
+          category: "POLICY_VIOLATION",
+          room_id: "room.civic",
+          visibility: "PRIVATE",
+        },
       },
     ];
 
@@ -135,10 +137,11 @@ describe("WR-S3 world path", () => {
     const fifth = await run(w, p, "WAIT");
     expect(fifth.ok).toBe(true);
     const lines = fifth.observation?.report_lines || [];
-    expect(lines).toContain("Hub east is restricted.");
-    expect(lines).toContain("Civic is restricted.");
-    expect(lines.join(" ")).not.toMatch(/Hidden Vault/);
-    expect(lines.join(" ")).not.toMatch(/Civic west/);
+    expect(lines).toContain("sabotage is detected.");
+    expect(lines.join(" ")).not.toMatch(/seizure/i);
+    expect(lines.join(" ")).not.toMatch(/policy violation/i);
+    expect(lines.join(" ")).not.toMatch(/vesper/i);
+    expect(lines.join(" ")).not.toMatch(/WITNESS/);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
   });
 });

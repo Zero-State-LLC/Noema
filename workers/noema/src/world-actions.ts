@@ -1304,7 +1304,14 @@ export async function applyWorldCommand(
       if (shouldWriteWorldReport(w.cycle)) {
         w.last_report = {
           cycle: w.cycle,
-          lines: publicReportLines(w.rooms, w.organizations, w.contests, w.access_restrictions, w.cycle),
+          lines: publicReportLines(
+            w.rooms,
+            w.organizations,
+            w.contests,
+            w.access_restrictions,
+            w.cycle,
+            w.public_social_events,
+          ),
         };
       }
     }
