@@ -149,7 +149,7 @@ describe("GC1-S3 world path", () => {
     const repaired = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-a" });
     expect(repaired.ok).toBe(true);
     expect(repaired.events?.some((e) => e.payload?.quality_bonus === 5)).toBe(false);
-    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe(before + 15);
+    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe((before ?? 0) + 15);
     expect(helpText()).toMatch(/\bBUILD\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
@@ -163,7 +163,7 @@ describe("GC1-S3 world path", () => {
     const repaired = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-a" });
     expect(repaired.ok).toBe(true);
     expect(repaired.events?.some((e) => e.payload?.quality_bonus === 5)).toBe(true);
-    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe(before + 20);
+    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe((before ?? 0) + 20);
   });
 
   it("three rehab repairs restore +20 on the next known-asset repair", async () => {
@@ -180,6 +180,6 @@ describe("GC1-S3 world path", () => {
     const restored = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-a" });
     expect(restored.ok).toBe(true);
     expect(restored.events?.some((e) => e.payload?.quality_bonus === 5)).toBe(true);
-    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe(before + 20);
+    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition).toBe((before ?? 0) + 20);
   });
 });

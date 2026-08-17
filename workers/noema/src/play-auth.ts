@@ -25,7 +25,7 @@ import type { Env } from "./types";
 export const GENERIC_PLAY_LOGIN_MESSAGE =
   "If that mailbox can play, a link is on the way.";
 
-export function playHandleFromEmail(email: string): string {
+export function playHandleFromEmail(email: string | null | undefined): string {
   const raw = String(email || "")
     .split("@")[0]
     .replace(/[^a-zA-Z0-9_-]/g, "")

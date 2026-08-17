@@ -819,6 +819,7 @@ export class NoemaWorldDO {
           world_name: w.world_name,
           player_id: principal.player_id,
           in_world: false,
+          available_actions: [],
           consequence: message,
         },
       };

@@ -73,8 +73,8 @@ describe("C05 observation no leak", () => {
     expect(look.ok).toBe(true);
     const lookBlob = blobOf(look.observation);
     expect(lookBlob).not.toMatch(leakRe());
-    expect(look.observation?.location.entities.map((e) => e.entity_id)).toEqual(["entity.way-lamp"]);
-    expect(look.observation?.location.exits.map((e) => e.to_room_id)).toEqual([MINI_HALL_ROOM_ID]);
+    expect(look.observation?.location?.entities.map((e) => e.entity_id)).toEqual(["entity.way-lamp"]);
+    expect(look.observation?.location?.exits.map((e) => e.to_room_id)).toEqual([MINI_HALL_ROOM_ID]);
 
     const inspectHidden = await run(w, "INSPECT", { entity_id: "Hidden cache" }, "insp.hid", p);
     expect(inspectHidden.ok).toBe(false);

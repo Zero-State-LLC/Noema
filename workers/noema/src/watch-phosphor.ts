@@ -354,8 +354,9 @@ export function collectPulses(
     if (seq <= prevSeq) continue;
     const room = String(ev.room_id || "");
     if (!room) continue;
-    const tier = ev.tier === "MAJOR" || ev.tier === "NOTABLE" ? ev.tier : "NORMAL";
-    const pulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier] };
+    const tier: PhosphorTier =
+      ev.tier === "MAJOR" ? "MAJOR" : ev.tier === "NOTABLE" ? "NOTABLE" : "NORMAL";
+    const pulse: PhosphorPulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier] };
     if (tier === "MAJOR") {
       if (!major) major = pulse;
       continue;

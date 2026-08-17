@@ -530,6 +530,7 @@ export function enrichEntity(e: {
   co_owner_3_id?: string;
   co_owner_4_id?: string;
   co_owner_5_id?: string;
+  dest_room_id?: string;
   infra_type?: ConstructibleClass;
   hidden?: boolean;
   inspect_restricted_until?: number;

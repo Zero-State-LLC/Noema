@@ -185,7 +185,7 @@ describe("C22 infrastructure state", () => {
     expect(w.rooms[MINI_ENTRY_ROOM_ID].entities.find((e) => e.entity_id === RELAY_ID)!.condition).toBe(85);
     const look = await run(w, p, "LOOK");
     expect(look.ok).toBe(true);
-    expect(look.observation?.location.entities.find((e) => e.entity_id === RELAY_ID)?.condition).toBe(85);
+    expect(look.observation?.location?.entities.find((e) => e.entity_id === RELAY_ID)?.condition).toBe(85);
   });
 });
 

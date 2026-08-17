@@ -373,6 +373,7 @@ function emptyPlayObservation(
     world_name: w.world_name,
     player_id: principal.player_id,
     in_world: false,
+    available_actions: [],
     consequence: consequence || "The world has no playable location yet.",
   };
 }
@@ -1567,10 +1568,12 @@ export async function applyWorldCommand(
     recordCulture(w, principal.player_id, events);
     pl.discovery = applyInspectEvidence(pl.discovery, entity);
     const obs = buildObservation(w, principal, detail);
-    obs.location = {
-      ...obs.location,
-      description: `${obs.location.description} You inspect ${titleCaseLabel(entity.label)}: ${detail}`,
-    };
+    if (obs.location) {
+      obs.location = {
+        ...obs.location,
+        description: `${obs.location.description} You inspect ${titleCaseLabel(entity.label)}: ${detail}`,
+      };
+    }
     const result: CommandResult = {
       ok: true,
       request_id,
@@ -4048,7 +4051,6 @@ async function applyAccessPolicy(
     const named = Object.entries(w.players).find(
       ([id, p]) =>
         id === applies_to ||
-        p.player_id === applies_to ||
         p.handle?.toLowerCase() === applies_to.toLowerCase(),
     );
     if (!named) return fail(request_id, "NOT_FOUND", "That Player is not known here.");
