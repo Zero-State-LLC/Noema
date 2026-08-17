@@ -30,6 +30,13 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import {
+  AGREEMENT_FORM_COST,
+  allocateAgreementId,
+  parseAgreementType,
+  samePair,
+  type FormalAgreement,
+} from "./diplomacy";
 import { actorKindFromPrincipal } from "./ops";
 import { commitCycleIfReady } from "./world-time";
 import {
@@ -290,6 +297,7 @@ export type WorldRuntime = {
   pending_messages?: PendingMessage[];
   organizations: Record<string, Organization>;
   reconstructions?: Record<string, ReconstructionRecord>;
+  agreements?: Record<string, FormalAgreement>;
   contests?: Record<string, OpenContest>;
   access_restrictions?: Array<{
     restriction_id: string;
@@ -1002,6 +1010,7 @@ export async function applyWorldCommand(
       "CONTEST_DEFEND",
       "CONTEST_WITHDRAW",
       "ATTEST",
+      "AGREEMENT_FORM",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -2109,6 +2118,9 @@ export async function applyWorldCommand(
     if (action.arguments.operation === "ATTEST") {
       return applyAttest(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
+    if (action.arguments.operation === "AGREEMENT_FORM") {
+      return applyAgreementForm(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
     if (
       action.arguments.operation === "ORG_OFFICE_CREATE" ||
       action.arguments.operation === "ORG_OFFICE_ASSIGN" ||
@@ -3139,6 +3151,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     if (!p.deceptive_memory) p.deceptive_memory = { catalog_id: "social-memory-catalog/gc3-s6", edges: {} };
   }
   w.contests = w.contests || {};
+  w.agreements = w.agreements || {};
   w.access_restrictions = w.access_restrictions || [];
   if (!w.pressure) w.pressure = emptyPressure();
   if (!w.rumor) w.rumor = emptyRumor();
@@ -3606,6 +3619,116 @@ function normalizeDeclareTarget(
     return { ok: true, target };
   }
   return { ok: false, code: "FORM_FORBIDDEN", message: "Unknown target." };
+}
+
+async function applyAgreementForm(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
+  const typ = parseAgreementType(String(args.agreement_type || ""));
+  if (!typ) return fail(request_id, "FORM_FORBIDDEN", "That agreement type is not allowed.");
+  const room = w.rooms[pl.room_id];
+  if (!room) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+  if (isHiddenRoom(room)) {
+    return fail(request_id, "NOT_OBSERVABLE", "That place cannot host a formal agreement.");
+  }
+  const named = [...(args.party_ids || [])].map((id) => String(id || "").trim()).filter(Boolean);
+  const otherId = named.find((id) => id !== principal.player_id);
+  if (!otherId) return fail(request_id, "INVALID_REQUEST", "Name the other party.");
+  if (otherId === principal.player_id) {
+    return fail(request_id, "FORBIDDEN", "You cannot form an agreement with yourself.");
+  }
+  const other = w.players[otherId];
+  if (!other?.entered || other.room_id !== pl.room_id) {
+    return fail(request_id, "NOT_COLOCATED", "That Player is not here.");
+  }
+  if (!canPay(pl.budgets, AGREEMENT_FORM_COST)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to form an agreement.");
+  }
+  w.agreements = w.agreements || {};
+  const offered = Object.values(w.agreements).find(
+    (a) =>
+      a.status === "OFFERED" &&
+      a.agreement_type === typ &&
+      a.offered_by === otherId &&
+      samePair(a.party_ids, principal.player_id, otherId),
+  );
+  if (offered) {
+    debit(pl.budgets, AGREEMENT_FORM_COST);
+    offered.status = "ACTIVE";
+    offered.formed_cycle = w.cycle;
+    const ev = pushEvent("AGREEMENT_FORMED", {
+      agreement_id: offered.agreement_id,
+      agreement_type: offered.agreement_type,
+      party_ids: offered.party_ids,
+      terms: { machine: { preferential_trade: true } },
+      formed_cycle: w.cycle,
+      cost_payer_id: principal.player_id,
+      cost_paid: { ...AGREEMENT_FORM_COST },
+      signatories: offered.party_ids,
+      visibility: "PUBLIC",
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Trade agreement ${offered.agreement_id} stands.`,
+      true,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  const existingActive = Object.values(w.agreements).find(
+    (a) =>
+      a.status === "ACTIVE" &&
+      a.agreement_type === typ &&
+      samePair(a.party_ids, principal.player_id, otherId),
+  );
+  if (existingActive) {
+    return fail(request_id, "FORBIDDEN", "That trade agreement already stands.");
+  }
+  const existingOffer = Object.values(w.agreements).find(
+    (a) =>
+      a.status === "OFFERED" &&
+      a.agreement_type === typ &&
+      a.offered_by === principal.player_id &&
+      samePair(a.party_ids, principal.player_id, otherId),
+  );
+  if (existingOffer) {
+    return fail(request_id, "NOT_ADDRESSABLE", "You already offered that trade agreement.");
+  }
+  debit(pl.budgets, AGREEMENT_FORM_COST);
+  const agreement_id = allocateAgreementId();
+  const party_ids = [principal.player_id, otherId].sort();
+  w.agreements[agreement_id] = {
+    agreement_id,
+    agreement_type: typ,
+    party_ids,
+    status: "OFFERED",
+    offered_by: principal.player_id,
+    cost_payer_id: principal.player_id,
+    visibility: "PUBLIC",
+  };
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `You offer a trade agreement to ${other.handle || otherId.replace(/^player\./, "")}.`,
+    true,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
 }
 
 async function applyContestDeclare(
