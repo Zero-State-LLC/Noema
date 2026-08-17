@@ -67,6 +67,29 @@ describe("toPlayerView", () => {
     ]);
   });
 
+  it("hedges rumors and hides contest ids", () => {
+    const view = toPlayerView({
+      location: ROOM,
+      rumor_lines: ["The vault is empty."],
+      board_lines: ["Need fuel"],
+      shout_lines: ["Hold the east"],
+      reconstruction_lines: ["A record says Nacre built it."],
+      contests: [
+        {
+          contest_form: "INFRASTRUCTURE_CONTROL",
+          status: "OPEN",
+          expires_cycle: 12,
+        },
+      ],
+    });
+    expect(view.systems.rumors[0]).toBe("Unconfirmed — The vault is empty.");
+    expect(view.systems.comms.some((l) => l.startsWith("Board — "))).toBe(true);
+    expect(view.systems.comms.some((l) => l.startsWith("Shout — "))).toBe(true);
+    expect(view.systems.archive[0]).toMatch(/record says/i);
+    expect(view.systems.contests[0]).toMatch(/INFRASTRUCTURE CONTROL · OPEN/);
+    expect(JSON.stringify(view.systems)).not.toMatch(/contest[._]id/i);
+  });
+
   it("does not invent relay integrity without evidence", () => {
     const view = toPlayerView({
       location: { name: "Open", description: "", exits: [], entities: [] },

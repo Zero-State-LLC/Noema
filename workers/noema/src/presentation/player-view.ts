@@ -20,6 +20,14 @@ export type PlayerWorldView = {
   signals: string[];
   actions: PlayerAction[];
   status: PlayerStatusRow[];
+  systems: {
+    rumors: string[];
+    comms: string[];
+    archive: string[];
+    contests: string[];
+    unclaimed: string[];
+    offices: string[];
+  };
 };
 
 type ViewObs = {
@@ -60,6 +68,20 @@ type ViewObs = {
     cmd?: string;
     available?: boolean;
   }>;
+  rumor_lines?: string[];
+  board_lines?: string[];
+  shout_lines?: string[];
+  notice_lines?: string[];
+  channel_lines?: string[];
+  trade_notice_lines?: string[];
+  office_lines?: string[];
+  reconstruction_lines?: string[];
+  unclaimed_lines?: string[];
+  contests?: Array<{
+    contest_form?: string;
+    status?: string;
+    expires_cycle?: number;
+  }>;
 } | null;
 
 export function toPlayerView(obs: ViewObs): PlayerWorldView {
@@ -76,6 +98,7 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
     signals: [],
     actions: [],
     status: [],
+    systems: { rumors: [], comms: [], archive: [], contests: [], unclaimed: [], offices: [] },
   };
   if (!obs?.location) return empty;
 
@@ -161,6 +184,35 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
     if (actions.length >= 8) break;
   }
 
+  const clean = (arr?: string[]) =>
+    (arr || []).map((l) => String(l || "").trim()).filter(Boolean);
+  const rumors = clean(obs.rumor_lines).slice(0, 6).map((line) => {
+    if (/^(unconfirmed|a record says|rumor)\b/i.test(line)) return line;
+    return "Unconfirmed — " + line;
+  });
+  const comms: string[] = [];
+  for (const line of clean(obs.shout_lines).slice(0, 1)) comms.push("Shout — " + line);
+  for (const line of clean(obs.board_lines).slice(0, 5)) comms.push("Board — " + line);
+  for (const line of clean(obs.notice_lines).slice(0, 1)) comms.push("Notice — " + line);
+  for (const line of clean(obs.channel_lines).slice(0, 1)) comms.push("Channel — " + line);
+  for (const line of clean(obs.trade_notice_lines).slice(0, 1)) comms.push("Trade — " + line);
+  const archive = [
+    ...clean(obs.discovery_lines).slice(0, 3),
+    ...clean(obs.reconstruction_lines).slice(0, 3),
+  ];
+  const unclaimed = clean(obs.unclaimed_lines).slice(0, 6);
+  const offices = clean(obs.office_lines).slice(0, 6);
+  const contests: string[] = [];
+  for (const c of obs.contests || []) {
+    const form = String(c.contest_form || "").replace(/_/g, " ").trim();
+    const st = String(c.status || "").trim();
+    if (!form) continue;
+    let line = st ? form + " · " + st : form + " is contested.";
+    if (typeof c.expires_cycle === "number") line += " · through cycle " + c.expires_cycle;
+    contests.push(line);
+    if (contests.length >= 6) break;
+  }
+
   return {
     worldName: obs.world_name || "",
     cycle,
@@ -174,5 +226,6 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
     signals,
     actions,
     status,
+    systems: { rumors, comms, archive, contests, unclaimed, offices },
   };
 }

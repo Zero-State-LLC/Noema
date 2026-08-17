@@ -55,7 +55,7 @@ No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.
 
 A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
 
-Slice 2 adds the honest world-state strip, signal feed (`report_lines`), and AVAILABLE HERE rail (`affordances`, else derived opportunities). Still no Pressure / Population / Trade Index. Next: Slice 3 gameplay systems.
+Slice 3 discloses existing rumor, traffic, archive, contest, unclaimed, and office lines behind `<details>`. Rumors are hedged and use the unknown token. Next: Slice 4 glyph/legend.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 

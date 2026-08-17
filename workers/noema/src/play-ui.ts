@@ -1188,6 +1188,24 @@ export function fillActionRail(
   el.append(h("li", "empty", "Look, wait, or follow a route."));
 }
 
+export function fillDisclosure(
+  details: (DomRoot & { hidden?: boolean }) | null,
+  list: DomRoot | null,
+  lines: string[],
+  itemClass?: string,
+): void {
+  if (!details || !list) return;
+  list.replaceChildren();
+  if (!lines.length) {
+    details.hidden = true;
+    return;
+  }
+  details.hidden = false;
+  for (const line of lines) {
+    list.append(h("li", itemClass || "", line));
+  }
+}
+
 /** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
 export function playUiRuntimeSource(): string {
   return [
@@ -1228,6 +1246,7 @@ export function playUiRuntimeSource(): string {
     fillWorldStrip,
     fillSignalFeed,
     fillActionRail,
+    fillDisclosure,
   ]
     .map((fn) => fn.toString())
     .join("\n");
