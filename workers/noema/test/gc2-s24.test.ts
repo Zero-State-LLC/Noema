@@ -10,11 +10,11 @@ import { projectionIdForEvent } from "../src/watch-live";
 
 describe("GC2-S24 mapper", () => {
   it("closes SHARE at five and does not add a sixth stamp", () => {
-    expect(CONSTRUCTION_CATALOG_ID).toBe("construction-catalog/gc2-s24");
+    expect(CONSTRUCTION_CATALOG_ID).toBe("construction-catalog/gc2-thaw-play");
     expect(SHARE_COST).toEqual({ compute: 1 });
     expect(SHARE_FAMILY_CLOSED).toBe(true);
     expect(SHARE_MAX_CO_OWNERS).toBe(5);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "SHARE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bSHARE\b/i);
+    expect(helpText()).not.toMatch(/\bSHARE\b/i);
   });
 });

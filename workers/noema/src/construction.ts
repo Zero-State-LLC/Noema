@@ -4,7 +4,7 @@
  * Events stay event-catalog/0.1. No STRUCTURE_*. Chamber help does not advertise BUILD.
  */
 
-export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-s24";
+export const CONSTRUCTION_CATALOG_ID = "construction-catalog/gc2-thaw-play";
 
 export const CONSTRUCTIBLE_CLASSES = [
   "relay",

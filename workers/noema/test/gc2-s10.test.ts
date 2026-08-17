@@ -71,7 +71,7 @@ describe("GC2-S10 mapper", () => {
     }
     expect(VEST_COST).toEqual({ compute: 1 });
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "VEST" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bvest\b/i);
+    expect(helpText()).not.toMatch(/\bvest\b/i);
   });
 });
 

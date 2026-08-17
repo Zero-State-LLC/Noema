@@ -74,7 +74,8 @@ describe("GC2-S14 mapper", () => {
     expect(isMultiCycleClass("archive_annex")).toBe(true);
     expect(isMultiCycleClass("route_link")).toBe(true);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PROMOTE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
   });
 });
 

@@ -109,7 +109,7 @@ describe("GC8-S2 mapper", () => {
     );
     expect(mixOrigin(3, stamped, 1, { room_id: east.room_id, room_name: east.name, producer_id: "player.nacre" })).toBeUndefined();
     expect(helpText()).not.toMatch(/\bcurrency\b/i);
-    expect(helpText()).not.toMatch(/\bCONTEST\b|\bBUILD\b|\bATTEST\b|\bWED\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
   });
 });
 

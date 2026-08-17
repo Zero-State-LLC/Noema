@@ -75,7 +75,7 @@ describe("GC2-S11 mapper", () => {
     }
     expect(SHARE_COST).toEqual({ compute: 1 });
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "SHARE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bSHARE\b|\bvest\b/i);
+    expect(helpText()).not.toMatch(/\bSHARE\b|\bvest\b/i);
   });
 });
 

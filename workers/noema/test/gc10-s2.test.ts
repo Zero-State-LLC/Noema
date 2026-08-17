@@ -84,7 +84,8 @@ describe("GC10-S2 mapper", () => {
     expect(scar.scar).toBe(true);
     expect(isRepairable(scar)).toBe(false);
     expect(scar.label).toBe("scarred-relay");
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
     expect(helpText()).not.toMatch(/\bWED\b/);
   });
 });

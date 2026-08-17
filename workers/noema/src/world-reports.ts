@@ -6,7 +6,7 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s0";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s1";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -24,7 +24,10 @@ export type ReportInfra = {
   scar?: boolean;
 };
 
-export function publicReportLines(rooms: Record<string, { hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>): string[] {
+export function publicReportLines(
+  rooms: Record<string, { hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>,
+  organizations?: Record<string, { org_id?: string; name?: string; status?: string }>,
+): string[] {
   const lines: string[] = [];
   const roomIds = Object.keys(rooms || {}).sort();
   for (const roomId of roomIds) {
@@ -40,6 +43,12 @@ export function publicReportLines(rooms: Record<string, { hidden?: boolean; tags
       const label = (e.label || e.entity_id).replace(/-/g, " ");
       lines.push(`${label} condition ${cond}.`);
     }
+  }
+  const orgs = Object.values(organizations || {})
+    .filter((o) => o.status === "ACTIVE" && o.name)
+    .sort((a, b) => String(a.org_id || a.name).localeCompare(String(b.org_id || b.name)));
+  for (const org of orgs) {
+    lines.push(`${org.name} stands.`);
   }
   return lines;
 }

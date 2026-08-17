@@ -78,7 +78,8 @@ describe("GC2-S3 mapper", () => {
     expect(plain.score).toBe(-38);
     const walled = scoreContest({ ...SCORE_INPUT, defensive_work: true });
     expect(walled.score).toBe(-88);
-    expect(helpText()).not.toMatch(/\bBUILD\b/);
+    expect(helpText()).toMatch(/\bBUILD\b/);
+    expect(helpText()).not.toMatch(/\bCONTEST\b|\bATTEST\b|\bWED\b/);
     expect(helpText()).not.toMatch(/\bCONTEST\b/);
   });
 });

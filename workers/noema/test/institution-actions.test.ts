@@ -124,7 +124,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
       expect(trade.action.arguments.acting_for).toBe("org.line");
     }
     const known = helpText();
-    expect(known).not.toMatch(/INSTITUTION_TRADE|TREASURER_POWER|BUILD|CONTEST|\bWED\b|ATTEST/);
+    expect(known).not.toMatch(/INSTITUTION_TRADE|TREASURER_POWER|CONTEST|\bWED\b|ATTEST/);
     const orgHelp = helpText("org");
     expect(orgHelp).toMatch(/trade for <org>/);
   });

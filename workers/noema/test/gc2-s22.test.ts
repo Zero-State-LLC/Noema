@@ -67,7 +67,7 @@ describe("GC2-S22 mapper", () => {
     expect(SHARE_COST).toEqual({ compute: 1 });
     expect(SHARE_MAX_CO_OWNERS).toBeGreaterThanOrEqual(4);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "SHARE" })).toBeNull();
-    expect(helpText()).not.toMatch(/\bBUILD\b|\bSHARE\b/i);
+    expect(helpText()).not.toMatch(/\bSHARE\b/i);
   });
 });
 
