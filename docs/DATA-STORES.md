@@ -23,6 +23,7 @@ Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply
 | Post-adopt ledger 93..288 | 196 events, **0 holes** | OBSERVED |
 | Pre-adopt holes (28) | `17,31,37,39,41,43,50,63,68,72,74,76–92` — expected; adopt does not backfill | OBSERVED |
 | Isolated `POST /v1/operator/test-world/command` | `401 NOT_AUTHORIZED` without bearer (route present). Perihelion `/v1/command` also 401 | OBSERVED |
+| Workers Logs for `noema-gateway` | wrangler `[observability]` enabled (invocation logs). Prior MCP query only saw `agi-public`. | OBSERVED on disk; live ingest after deploy |
 | Worker secrets named on `noema-gateway` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` listed by `wrangler secret list` (values not read) | OBSERVED |
 | `commitCanonicalSettlement` on missing RPC | Worker treats non-ok as fail; DO restores pre-command state and enters INCIDENT | OBSERVED in `settle.ts` / `world-do.ts` |
 | New mutating PLAY ACK this pass | not driven (no Player + admin tokens). Historical receipts 2..160 are post-adopt ACKs | OBSERVED receipts; new command not executed |

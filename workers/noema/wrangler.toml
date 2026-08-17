@@ -46,6 +46,14 @@ new_classes = ["NoemaWorldDO"]
 [triggers]
 crons = ["*/15 * * * *"]
 
+# Persist Workers Logs so settlement/INCIDENT lines are queryable (MCP + dashboard).
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+invocation_logs = true
+
 # Optional: bound secrets via dashboard / `wrangler secret put`
 # TOKEN_SIGNING_SECRET
 # SUPABASE_JWT_SECRET
