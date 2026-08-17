@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { enrichEntity } from "../src/actions";
+import { enrichEntity, helpText } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 import { buildWatchLive } from "../src/watch-live";
@@ -137,5 +137,20 @@ describe("hosted-mp S0 first-accepted harvest", () => {
     if (harvestLine) {
       expect(harvestLine).not.toMatch(/\b\d+\b/);
     }
+  });
+});
+
+describe("hosted-mp S0 talk first", () => {
+  it("help harvest names finite stock and message, not chat", () => {
+    const h = helpText("harvest");
+    expect(h).toMatch(/finite|Not enough stock/i);
+    expect(h).toMatch(/message/i);
+    expect(h).not.toMatch(/websocket|live chat|real-time chat/i);
+  });
+  it("help message stays mail", () => {
+    const h = helpText("message");
+    expect(h).toMatch(/message <player>/i);
+    expect(h).toMatch(/private|not on WATCH/i);
+    expect(h).not.toMatch(/websocket|live chat/i);
   });
 });

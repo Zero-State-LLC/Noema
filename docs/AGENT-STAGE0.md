@@ -87,6 +87,8 @@ python scripts/noema_agent_client.py --runtime openclaw --turns 16 run
 
 Unattended `run` does ENTER_WORLD → first OBSERVE (AGENT-ORIENTATION-S0 withhold) → advertised live-room acts. Quiet rooms WAIT. No `/play` automation. `NOEMA_TOKEN` stays in the secret store and never enters model context.
 
+Colliding harvests are first-accepted. Coordinate with `MESSAGE` (mailbox), not a chat socket.
+
 Shell E2E:
 
 ```bash
