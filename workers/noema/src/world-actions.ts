@@ -684,14 +684,21 @@ function hasPublicReverse(room: RoomState | undefined, fromRoomId: string): bool
 
 function isConstructSteward(
   w: WorldRuntime,
-  entity: { owner_id?: string; co_owner_id?: string; co_owner_2_id?: string; co_owner_3_id?: string },
+  entity: {
+    owner_id?: string;
+    co_owner_id?: string;
+    co_owner_2_id?: string;
+    co_owner_3_id?: string;
+    co_owner_4_id?: string;
+  },
   playerId: string,
 ): boolean {
   if (
     entity.owner_id === playerId ||
     entity.co_owner_id === playerId ||
     entity.co_owner_2_id === playerId ||
-    entity.co_owner_3_id === playerId
+    entity.co_owner_3_id === playerId ||
+    entity.co_owner_4_id === playerId
   ) {
     return true;
   }
@@ -2428,7 +2435,8 @@ export async function applyWorldCommand(
           (entity.owner_id === principal.player_id ||
             entity.co_owner_id === principal.player_id ||
             entity.co_owner_2_id === principal.player_id ||
-            entity.co_owner_3_id === principal.player_id)) ||
+            entity.co_owner_3_id === principal.player_id ||
+            entity.co_owner_4_id === principal.player_id)) ||
           (acting_for && entity.owner_id === acting_for && holdsNamedAssetOffice(w, principal.player_id, acting_for)))
       ) {
         entity.last_steward_cycle = w.cycle;
@@ -2895,7 +2903,8 @@ export async function applyWorldCommand(
         isInProgress(here) ||
         here.co_owner_id ||
         here.co_owner_2_id ||
-        here.co_owner_3_id
+        here.co_owner_3_id ||
+        here.co_owner_4_id
       ) {
         return fail(request_id, "FORBIDDEN", "That cannot be vested.");
       }
@@ -2969,7 +2978,8 @@ export async function applyWorldCommand(
         partner_id === here.owner_id ||
         partner_id === here.co_owner_id ||
         partner_id === here.co_owner_2_id ||
-        partner_id === here.co_owner_3_id
+        partner_id === here.co_owner_3_id ||
+        partner_id === here.co_owner_4_id
       ) {
         return fail(request_id, "NOT_ADDRESSABLE", "That Player is not addressable.");
       }
@@ -2979,7 +2989,9 @@ export async function applyWorldCommand(
           ? "co_owner_2_id"
           : !here.co_owner_3_id
             ? "co_owner_3_id"
-            : null;
+            : !here.co_owner_4_id
+              ? "co_owner_4_id"
+              : null;
       if (!slot) {
         return fail(request_id, "FORBIDDEN", "That is already shared.");
       }
@@ -2989,7 +3001,8 @@ export async function applyWorldCommand(
       debit(pl.budgets, SHARE_COST);
       if (slot === "co_owner_id") here.co_owner_id = partner_id;
       else if (slot === "co_owner_2_id") here.co_owner_2_id = partner_id;
-      else here.co_owner_3_id = partner_id;
+      else if (slot === "co_owner_3_id") here.co_owner_3_id = partner_id;
+      else here.co_owner_4_id = partner_id;
       here.last_steward_cycle = w.cycle;
       const idx = room.entities.findIndex((e) => e.entity_id === here.entity_id);
       if (idx >= 0) room.entities[idx] = here;
