@@ -79,6 +79,21 @@ describe("play chamber HTML", () => {
     expect(html).toMatch(/overflow-x:clip/);
   });
 
+  it("declares one-shot semantic motion and honors reduced-motion", () => {
+    expect(html).toMatch(/animation:signal-in 200ms[^;]* 1 both/);
+    expect(html).toMatch(/animation:threshold-in 240ms[^;]* 1 both/);
+    expect(html).toMatch(/animation:panel-in 160ms[^;]* 1 both/);
+    expect(html).toMatch(/transition:opacity 160ms/);
+    expect(html).not.toMatch(/animation:[^;]*infinite/);
+    expect(html).not.toMatch(/scanline/i);
+    expect(html).not.toMatch(/glitch/i);
+    expect(html).toContain("pulseThreshold");
+    expect(html).toContain('classList.add("threshold-in")');
+    expect(html).toMatch(
+      /@media\(prefers-reduced-motion:reduce\)[\s\S]*#signal-feed li\.signal-new[\s\S]*animation:none!important;transition:none!important/,
+    );
+  });
+
   it("chamber default copy is not Outside / Enter world", () => {
     expect(chamber).not.toMatch(/Outside/);
     expect(chamber).not.toMatch(/Enter world/);

@@ -42,7 +42,31 @@ body.is-chamber #play-chamber{
 }
 .signals[hidden]{display:none}
 #signal-feed{margin:0;padding:0;list-style:none}
-#signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem}
+#signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem;border-left:2px solid transparent;padding-left:.45rem}
+#signal-feed li.signal-new{animation:signal-in 200ms var(--ease) 1 both}
+@keyframes signal-in{
+  from{border-left-color:var(--color-state-active);background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
+  to{border-left-color:transparent;background:transparent}
+}
+@keyframes threshold-in{
+  from{box-shadow:inset 0 -2px 0 var(--color-state-warning);background:color-mix(in srgb,var(--color-state-warning) 14%,transparent)}
+  to{box-shadow:none;background:transparent}
+}
+@keyframes panel-in{
+  from{opacity:.35}
+  to{opacity:1}
+}
+.ch-strip .strip-v{transition:opacity 160ms var(--ease)}
+.trail li{animation:panel-in 160ms var(--ease) 1 both}
+.just-happened.threshold-in,.play-health.threshold-in,.sys-list li.threshold-in{
+  animation:threshold-in 240ms var(--ease) 1 both;
+}
+@media(prefers-reduced-motion:reduce){
+  #signal-feed li.signal-new,.just-happened.threshold-in,.play-health.threshold-in,
+  .sys-list li.threshold-in,.trail li,.ch-strip .strip-v{
+    animation:none!important;transition:none!important;
+  }
+}
 .sys{margin:.85rem 0 0;border-top:1px solid var(--line);padding-top:.45rem}
 .sys[hidden]{display:none}
 .sys summary{
@@ -298,7 +322,15 @@ function playClientBundle(): string {
       busy: false,
       prevRoomId: null,
       env: "local",
+      prevContestKey: "",
     };
+
+    function pulseThreshold(el) {
+      if (!el) return;
+      el.classList.remove("threshold-in");
+      void el.offsetWidth;
+      el.classList.add("threshold-in");
+    }
     const storeKey = "noema.play.v2";
 
     ${playUiRuntimeSource()}
@@ -453,6 +485,13 @@ function playClientBundle(): string {
       fillDisclosure($("sys-contest"), $("contest-list"), sys.contests);
       fillDisclosure($("sys-unclaimed"), $("unclaimed-list"), sys.unclaimed);
       fillDisclosure($("sys-offices"), $("office-list"), sys.offices);
+      const contestList = $("contest-list");
+      const contestKey = (sys.contests || []).join("\\n");
+      if (contestList && contestKey && contestKey !== state.prevContestKey) {
+        const first = contestList.firstElementChild;
+        if (first) pulseThreshold(first);
+      }
+      state.prevContestKey = contestKey;
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;
     }
@@ -500,6 +539,7 @@ function playClientBundle(): string {
             k.className = "k";
             k.textContent = "Just happened";
             happened.append(k, document.createTextNode(line));
+            pulseThreshold(happened);
           }
         }
         notice(res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "Done.", "ok");
@@ -678,6 +718,7 @@ function playClientBundle(): string {
           const h = humanizeError(ready.code, "");
           banner.hidden = false;
           banner.textContent = h.primary;
+          pulseThreshold(banner);
         }
       } catch (_) {}
       renderObs(null);

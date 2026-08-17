@@ -421,6 +421,11 @@ describe("watch HTML surface", () => {
     expect(html).toContain("document.hidden");
     expect(html).toMatch(/state\.paused/);
     expect(html).toContain("prefers-reduced-motion");
+    expect(html).toMatch(/\.watch-hero\.major\{[\s\S]*animation:threshold-in 240ms[^;]* 1 both/);
+    expect(html).not.toMatch(/animation:[^;]*infinite/);
+    expect(html).toMatch(
+      /@media\(prefers-reduced-motion:reduce\)[\s\S]*\.watch-hero\.major[\s\S]*animation:none!important/,
+    );
   });
 
   it("is text-first theater: headline, semantic graph, details, bounded feed", () => {
