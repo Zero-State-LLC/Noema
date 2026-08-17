@@ -24,6 +24,8 @@ describe("DATA-STORES.md", () => {
     expect(DOC).toContain("revision 160");
     expect(DOC).toContain("sha256:f163f");
     expect(DOC).toMatch(/Do \*\*not\*\* apply the four disk files/);
+    expect(DOC).toMatch(/Post-adopt ledger 93\.\.288/);
+    expect(DOC).toContain("settlement.adopt-live.world.perihelion-reach");
     expect(DOC).not.toMatch(/Genesis reseed/);
   });
 });

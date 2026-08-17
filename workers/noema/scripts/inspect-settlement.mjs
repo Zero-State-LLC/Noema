@@ -5,6 +5,7 @@
  * Prints status codes and redacted head fields. Never prints secrets.
  * Does not apply SQL, invent events, or reseed Genesis.
  */
+import { adoptSequenceFromReceipt, summarizeChain } from "./settlement-chain.mjs";
 const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const worldId = process.env.SUPABASE_CANONICAL_WORLD_ID || "world.perihelion-reach";
@@ -48,15 +49,22 @@ function redactHead(row) {
     settlement_health: row.settlement_health ?? null,
     genesis_id: row.genesis_id ?? null,
     state_digest_prefix: typeof row.state_digest === "string" ? row.state_digest.slice(0, 12) : null,
+    ledger_head_event_id: row.ledger_head_event_id ?? null,
   };
 }
 
-const headUrl = `${url}/rest/v1/noema_world_heads?world_id=eq.${encodeURIComponent(worldId)}&select=world_id,cycle,sequence,revision,writer_generation,settlement_health,genesis_id,state_digest&limit=1`;
+const headUrl = `${url}/rest/v1/noema_world_heads?world_id=eq.${encodeURIComponent(worldId)}&select=world_id,cycle,sequence,revision,writer_generation,settlement_health,genesis_id,state_digest,ledger_head_event_id&limit=1`;
+const eventsUrl = `${url}/rest/v1/noema_settled_events?world_id=eq.${encodeURIComponent(worldId)}&select=sequence&order=sequence`;
+const firstReceiptUrl = `${url}/rest/v1/noema_canonical_settlements?world_id=eq.${encodeURIComponent(worldId)}&select=revision,sequence,ledger_head_event_id&order=revision.asc&limit=1`;
+const lastReceiptUrl = `${url}/rest/v1/noema_canonical_settlements?world_id=eq.${encodeURIComponent(worldId)}&select=revision,sequence,ledger_head_event_id&order=revision.desc&limit=1`;
 const commitRpc = `${url}/rest/v1/rpc/noema_commit_canonical_settlement`;
 const adoptRpc = `${url}/rest/v1/rpc/noema_adopt_live_world_head`;
 
-const [head, commit, adopt] = await Promise.all([
+const [head, events, firstReceipt, lastReceipt, commit, adopt] = await Promise.all([
   probe("noema_world_heads", headUrl, { headers }),
+  probe("noema_settled_events", eventsUrl, { headers }),
+  probe("first_receipt", firstReceiptUrl, { headers }),
+  probe("last_receipt", lastReceiptUrl, { headers }),
   probe("noema_commit_canonical_settlement", commitRpc, {
     method: "POST",
     headers,
@@ -73,6 +81,24 @@ const rows = Array.isArray(head.body) ? head.body : [];
 const tablePresent = head.status === 200;
 const commitPresent = commit.status !== 404 && commit.status !== 406;
 const adoptPresent = adopt.status !== 404 && adopt.status !== 406;
+const eventRows = Array.isArray(events.body) ? events.body : [];
+const firstRec = Array.isArray(firstReceipt.body) ? firstReceipt.body[0] : null;
+const lastRec = Array.isArray(lastReceipt.body) ? lastReceipt.body[0] : null;
+const adoptSeq = adoptSequenceFromReceipt(firstRec);
+const chain = summarizeChain({
+  sequences: eventRows.map((r) => r?.sequence),
+  headSequence: rows[0]?.sequence,
+  adoptSequence: adoptSeq,
+});
+
+function redactReceipt(row) {
+  if (!row || typeof row !== "object") return null;
+  return {
+    revision: row.revision ?? null,
+    sequence: row.sequence ?? null,
+    ledger_head_event_id: row.ledger_head_event_id ?? null,
+  };
+}
 
 const out = {
   ok: tablePresent && commitPresent && adoptPresent,
@@ -98,6 +124,12 @@ const out = {
     http: adopt.status,
     present: adoptPresent,
     hint: adopt.status === 404 || adopt.status === 406 ? "RPC missing from schema cache" : "function exists (empty body is expected to fail closed)",
+  },
+  chain: {
+    ...chain,
+    events_http: events.status,
+    first_receipt: redactReceipt(firstRec),
+    last_receipt: redactReceipt(lastRec),
   },
   genesis_pin: "genesis.ef578f4ffceeccd0",
 };

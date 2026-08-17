@@ -19,11 +19,15 @@ Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply
 | RPCs `noema_commit_canonical_settlement` and `noema_adopt_live_world_head` | present, `SECURITY DEFINER`; `EXECUTE` for `service_role` and `postgres` only; `anon` / `authenticated` false | OBSERVED |
 | Perihelion `noema_world_heads` row | `world.perihelion-reach` · cycle 105 · seq 288 · revision 160 · writer `do.1` · `HEALTHY` · `ACTIVE` · `genesis.ef578f4ffceeccd0` · digest prefix `sha256:f163f` | OBSERVED |
 | Perihelion receipts / events | 160 receipts (max revision 160); 261 settled events (seq 0..288) | OBSERVED |
+| Adopt receipt (revision 1) | sequence 92 · `settlement.adopt-live.world.perihelion-reach` · 2026-08-16 · no invented `0..n` | OBSERVED |
+| Post-adopt ledger 93..288 | 196 events, **0 holes** | OBSERVED |
+| Pre-adopt holes (28) | `17,31,37,39,41,43,50,63,68,72,74,76–92` — expected; adopt does not backfill | OBSERVED |
+| Isolated `POST /v1/operator/test-world/command` | `401 NOT_AUTHORIZED` without bearer (route present). Perihelion `/v1/command` also 401 | OBSERVED |
 | Worker secrets named on `noema-gateway` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` listed by `wrangler secret list` (values not read) | OBSERVED |
 | `commitCanonicalSettlement` on missing RPC | Worker treats non-ok as fail; DO restores pre-command state and enters INCIDENT | OBSERVED in `settle.ts` / `world-do.ts` |
-| Mutating PLAY + Recover settlement proof | not executed this pass | not independently verified |
+| New mutating PLAY ACK this pass | not driven (no Player + admin tokens). Historical receipts 2..160 are post-adopt ACKs | OBSERVED receipts; new command not executed |
 
-Hosted `/ready` cycle/sequence/genesis/health **match** the SQL head. Recover is not indicated (head present).
+Hosted `/ready` cycle/sequence/genesis/health **match** the SQL head. Recover already ran (rev 1); do not Recover again. Do not invent events for pre-adopt holes.
 
 Do **not** apply the four disk files. Hosted objects already exist. Hosted migration version stamps differ from some disk filenames (`20260812195616` vs `20260812193000`; `20260816023118` vs `20260816013000`; heads/fence/atomic are not separate hosted versions). Re-applying would collide.
 
@@ -178,7 +182,7 @@ Closed this pass (read-only SQL): hosted tables, both RPCs + grants, Perihelion 
 Still **not** independently verified:
 
 ```json
-["hosted Worker/DO settlement proof not executed","mutating PLAY ACK not re-driven this pass"]
+["new isolated test.hosted-canonical.* ACK this pass (needs PLAYER_TOKEN + X-Noema-Admin-Token)"]
 ```
 
 Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
@@ -198,4 +202,5 @@ Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
 | Research tables are rebuildable and offline-only | OBSERVED in code; hosted copies if any are unused by the Worker |
 | Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 288 | OBSERVED 2026-08-17 |
 | Hosted tables + both RPCs + Perihelion head (rev 160, digest prefix `sha256:f163f`) | OBSERVED 2026-08-17 via read-only SQL |
-| Mutating PLAY ACK / Recover proof this pass | not executed |
+| Adopt at rev 1 seq 92; post-adopt 93..288 contiguous; receipts 2..160 | OBSERVED |
+| New isolated test-world ACK this pass | blocked (no Player + admin tokens in this shell) |
