@@ -21,6 +21,7 @@ import {
   type ContestForm,
   type ContestTarget,
 } from "./contest";
+import { parseAgreementType } from "./diplomacy";
 import {
   parseOfficeProfile,
   parseRequiresTrack,
@@ -202,7 +203,6 @@ export const HOSTED_TIER1 = [
 export const BACKEND_GAPS_TIER2 = [] as const;
 
 export const BACKEND_GAPS_TIER3 = [
-  "AGREEMENT_FORM",
   "AGREEMENT_TERMINATE",
   "ACCESS_POLICY",
 ] as const;
@@ -260,6 +260,7 @@ export const COSTS = {
   ORG_OFFICE_ACT: { compute: 1 } as Partial<Budgets>,
   RECONSTRUCT: { attention: 2, compute: 1 } as Partial<Budgets>,
   ATTEST: { attention: 2 } as Partial<Budgets>,
+  AGREEMENT_FORM: { compute: 2, influence: 1 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -324,7 +325,8 @@ export type CanonicalAction =
           | "CONTEST_DECLARE"
           | "CONTEST_DEFEND"
           | "CONTEST_WITHDRAW"
-          | "ATTEST";
+          | "ATTEST"
+          | "AGREEMENT_FORM";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -342,6 +344,9 @@ export type CanonicalAction =
         defender_id?: string;
         contest_id?: string;
         expected_status?: "OPEN" | "CLOSED";
+        agreement_type?: string;
+        party_ids?: string[];
+        agreement_id?: string;
         subject_entity_id?: string;
         archive_claim?: "DESTROYED" | "OPERATING";
         office_id?: string;
@@ -718,6 +723,46 @@ export type ParseResult =
   | { ok: true; action: CanonicalAction; display: string }
   | { ok: false; error: string; code?: string; choices?: string[] };
 
+function parseAgreementFormLine(
+  parts: string[],
+  ctx: {
+    players?: Array<{ player_id: string; handle?: string }>;
+    selfId?: string;
+  },
+): ParseResult {
+  const rest = parts.join(" ");
+  const typeRaw =
+    (rest.match(/\btype=([^\s]+)/i) || [])[1] ||
+    parts.find((p) => !/^(with|type=)/i.test(p) && !p.includes("=")) ||
+    "";
+  const typ = parseAgreementType(typeRaw);
+  if (!typ) {
+    return { ok: false, error: "That agreement type is not allowed.", code: "FORM_FORBIDDEN" };
+  }
+  const withRaw =
+    (rest.match(/\bwith\s+(\S+)/i) || [])[1] ||
+    (rest.match(/\bparties=([^\s]+)/i) || [])[1] ||
+    "";
+  const who = withRaw.split(",")[0]?.trim() || "";
+  if (!who) {
+    return { ok: false, error: "Agreement syntax: form agreement trade with <player>", code: "INVALID_REQUEST" };
+  }
+  let party_id = who;
+  if (ctx.players && ctx.selfId) {
+    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    party_id = r.player_id;
+  }
+  return {
+    ok: true,
+    action: {
+      verb: "COMMIT",
+      arguments: { operation: "AGREEMENT_FORM", agreement_type: typ, party_ids: [party_id] },
+    },
+    display: `You offer a trade agreement.`,
+  };
+}
+
 /**
  * Human command → canonical action (no world mutation).
  * Target resolution uses visible entities/players when provided.
@@ -1068,11 +1113,8 @@ export function parseHumanCommand(
   if (v === "form") {
     if (parts[0]?.toLowerCase() === "organization") parts.shift();
     if (parts[0]?.toLowerCase() === "agreement") {
-      return {
-        ok: false,
-        error: "“form agreement” is a v0.2 strategic action — not available in this stage.",
-        code: "NOT_IMPLEMENTED",
-      };
+      parts.shift();
+      return parseAgreementFormLine(parts, ctx);
     }
     const rest = parts.join(" ");
     const cm = rest.match(/^(.+?)\s+charter=["'](.+)["']\s*$/i);
@@ -1095,6 +1137,9 @@ export function parseHumanCommand(
       },
       display: `You form ${name}.`,
     };
+  }
+  if (v === "agree") {
+    return parseAgreementFormLine(parts, ctx);
   }
 
   // invite <player> to <org> role=<role>
@@ -2064,6 +2109,28 @@ export function normalizeStructuredCommand(
         display: `COMMIT.ATTEST ${entity_id}`,
       };
     }
+    if (operation === "AGREEMENT_FORM") {
+      const typ = parseAgreementType(String(args.agreement_type || args.type || "TRADE"));
+      if (!typ) {
+        return { ok: false, error: "That agreement type is not allowed.", code: "FORM_FORBIDDEN" };
+      }
+      const rawParties = Array.isArray(args.party_ids)
+        ? args.party_ids.map((p) => String(p || "").trim()).filter(Boolean)
+        : [];
+      const other = String(args.counterparty_id || args.player_id || args.agent_id || "").trim();
+      const party_ids = rawParties.length ? rawParties : other ? [other] : [];
+      if (!party_ids.length) {
+        return { ok: false, error: "party_ids required", code: "INVALID_REQUEST" };
+      }
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "AGREEMENT_FORM", agreement_type: typ, party_ids },
+        },
+        display: `COMMIT.AGREEMENT_FORM ${typ}`,
+      };
+    }
     if (operation === "ORG_OFFICE_CREATE") {
       const org_id = String(args.org_id || "").trim();
       const display_name = String(args.display_name || args.name || "").trim();
@@ -2452,6 +2519,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "ATTEST") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ATTEST" });
+  }
+  if (cmd === "AGREEMENT_FORM") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "AGREEMENT_FORM" });
   }
   if (isForbiddenContestVerb(cmd.toLowerCase())) {
     return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
