@@ -5,10 +5,12 @@ import {
   containsHiddenHistory,
   deriveOpportunities,
   humanizeError,
+  lookCopyFromObservation,
   parsePlayCommand,
   playUiRuntimeSource,
   renderBondsHtml,
   renderEntityListHtml,
+  renderLookHtml,
   renderPlayersHereHtml,
   renderServiceDesksHtml,
   renderTrailHtml,
@@ -17,6 +19,7 @@ import {
   statusFromObservation,
   titleCaseLabel,
   trailFromResult,
+  waitingCopy,
 } from "../src/play-ui";
 import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
@@ -247,6 +250,11 @@ describe("play shell HTML", () => {
     expect(html).toContain("function renderServiceDesksHtml");
     expect(playUiRuntimeSource()).toContain("function deriveOpportunities");
   });
+
+  it("shims esbuild keepNames __name so inlined toPlayerView can run", () => {
+    expect(html).toContain("const __name = function(fn) { return fn; }");
+    expect(playUiRuntimeSource()).toContain("const __name = function(fn) { return fn; }");
+  });
 });
 
 describe("play-ui desks and players", () => {
@@ -386,6 +394,97 @@ describe("play-ui HTML escaping", () => {
     const trail = renderTrailHtml([{ kind: "you", title: xss, detail: xss }]);
     expect(trail).not.toContain("<img");
     expect(trail).toContain("&lt;img");
+  });
+});
+
+const LOOK_OBS = {
+  world_name: "Perihelion Reach",
+  cycle: 0,
+  sequence: 95,
+  in_world: true,
+  location: {
+    room_id: "room.relay-quarter",
+    name: "Relay Quarter",
+    description: "A frontier station on the old commercial spine.",
+    exits: [{ direction: "east", to_room_id: "room.transit-ring", to_room_name: "Coldline" }],
+    entities: [] as Array<{ entity_id: string; label: string; entity_type: string }>,
+  },
+};
+
+function evalPlayRuntime<T>(expr: string, extra = ""): T {
+  const src = playUiRuntimeSource();
+  return (0, eval)(`(function(){\n${src}\n${extra}\nreturn (${expr});\n})()`) as T;
+}
+
+describe("play HUD observation path", () => {
+  it("renders a room name from a successful ENTER/LOOK observation", () => {
+    const look = lookCopyFromObservation(LOOK_OBS);
+    expect(look.roomName).toBe("Relay Quarter");
+    expect(look.roomDesc).toMatch(/frontier station/i);
+    expect(look.worldLine).toBe("Perihelion Reach");
+    expect(`${look.worldLine} ${look.roomName} ${look.roomDesc}`).not.toContain("__name is not defined");
+
+    const html = renderLookHtml({ name: look.roomName, description: look.roomDesc });
+    expect(html).toContain("Relay Quarter");
+    expect(html).toContain("frontier station");
+    expect(html).not.toContain("__name is not defined");
+
+    const trail = trailFromResult({
+      display: "You look around.",
+      command: "LOOK",
+      ok: true,
+      observation: LOOK_OBS,
+    });
+    expect(trail.some((t) => t.kind === "local" && /Relay Quarter/.test(t.title))).toBe(true);
+    expect(JSON.stringify(trail)).not.toContain("__name is not defined");
+  });
+
+  it("never paints __name is not defined into WHERE or trail", () => {
+    const leaked = "__name is not defined";
+    expect(humanizeError(undefined, leaked).primary).not.toContain("__name");
+    expect(humanizeError(undefined, leaked).primary).toMatch(/could not show that place/i);
+    expect(humanizeError(undefined, leaked).advanced).toMatch(/INTERNAL/);
+    expect(humanizeError("COMMAND_FAILED", leaked).primary).not.toContain("__name");
+    expect(waitingCopy({ message: leaked, worldName: "Perihelion Reach" }).roomDesc).not.toContain(
+      "__name",
+    );
+    expect(lookCopyFromObservation(null, { message: leaked }).roomDesc).not.toContain("__name");
+    expect(lookCopyFromObservation(LOOK_OBS, { message: leaked }).roomName).toBe("Relay Quarter");
+    const fail = trailFromResult({
+      display: "look",
+      command: "LOOK",
+      ok: false,
+      errorPrimary: leaked,
+    });
+    expect(fail[0].kind).toBe("fail");
+    expect(fail[0].title).not.toContain("__name");
+  });
+
+  it("evals the inlined runtime with wrangler keepNames __name and paints the room", () => {
+    const extra = `
+      const cleanLive = /* @__PURE__ */ __name((arr) => (arr || []).map((l) => String(l || "").trim()).filter(Boolean), "clean");
+      if (cleanLive(["Relay Quarter"])[0] !== "Relay Quarter") throw new Error("shim failed");
+    `;
+    const painted = evalPlayRuntime<{
+      view: { locationName: string; locationDescription: string };
+      look: string;
+      wait: { roomDesc: string };
+      trail: Array<{ kind: string; title: string }>;
+    }>(
+      `{
+        view: toPlayerView(${JSON.stringify(LOOK_OBS)}),
+        look: renderLookHtml({ name: "Relay Quarter", description: "A frontier station on the old commercial spine." }),
+        wait: waitingCopy({ message: "__name is not defined", worldName: "Perihelion Reach" }),
+        trail: trailFromResult({ display: "look", command: "LOOK", ok: true, observation: ${JSON.stringify(LOOK_OBS)} })
+      }`,
+      extra,
+    );
+    expect(painted.view.locationName).toBe("Relay Quarter");
+    expect(painted.view.locationDescription).toMatch(/frontier station/i);
+    expect(painted.look).toContain("Relay Quarter");
+    expect(painted.wait.roomDesc).not.toContain("__name");
+    expect(painted.trail.some((t) => /Relay Quarter/.test(t.title))).toBe(true);
+    expect(JSON.stringify(painted)).not.toContain("__name is not defined");
   });
 });
 

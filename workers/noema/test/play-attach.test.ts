@@ -367,6 +367,10 @@ describe("play attach presentation", () => {
     expect(look.roomDesc).not.toMatch(/internal error/i);
 
     expect(humanizeError("INTERNAL", "internal error").primary).not.toBe("internal error");
+    expect(humanizeError(undefined, "__name is not defined").primary).not.toContain("__name");
+    expect(waitingCopy({ message: "__name is not defined", worldName: "Perihelion Reach" }).roomDesc).not.toContain(
+      "__name",
+    );
   });
 
   it("playReady fail-closes when the live snapshot is not playable", () => {
