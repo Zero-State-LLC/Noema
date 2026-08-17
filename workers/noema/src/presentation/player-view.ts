@@ -5,6 +5,8 @@ import { label } from "./terms";
 
 export type PlayerStatusRow = { label: string; value: string };
 
+export type PlayerAction = { label: string; cmd: string; available: boolean };
+
 export type PlayerWorldView = {
   worldName: string;
   cycle: number | null;
@@ -14,6 +16,9 @@ export type PlayerWorldView = {
   condition: string;
   cultureLine: string;
   relayIntegrity: number | null;
+  strip: PlayerStatusRow[];
+  signals: string[];
+  actions: PlayerAction[];
   status: PlayerStatusRow[];
 };
 
@@ -50,6 +55,11 @@ type ViewObs = {
   culture_lines?: string[];
   discovery_lines?: string[];
   report_lines?: string[];
+  affordances?: Array<{
+    label?: string;
+    cmd?: string;
+    available?: boolean;
+  }>;
 } | null;
 
 export function toPlayerView(obs: ViewObs): PlayerWorldView {
@@ -62,6 +72,9 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
     condition: "",
     cultureLine: "",
     relayIntegrity: null,
+    strip: [],
+    signals: [],
+    actions: [],
     status: [],
   };
   if (!obs?.location) return empty;
@@ -127,15 +140,39 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
     status.push({ label: label("here"), value: String(obs.players_here.length) });
   }
 
+  const condition = String(loc.condition || "").trim();
+  const strip: PlayerStatusRow[] = [];
+  if (obs.world_name) strip.push({ label: label("world"), value: obs.world_name });
+  if (loc.name) strip.push({ label: label("place"), value: loc.name });
+  if (cycle !== null) strip.push({ label: label("cycle"), value: String(cycle) });
+  if (relayIntegrity !== null) strip.push({ label: label("relay_integrity"), value: `${relayIntegrity}%` });
+  if (condition) strip.push({ label: "Local", value: condition });
+  if (obs.players_here) strip.push({ label: label("here"), value: String(obs.players_here.length) });
+
+  const signals = (obs.report_lines || []).map((l) => String(l || "").trim()).filter(Boolean).slice(0, 6);
+
+  const actions: PlayerAction[] = [];
+  for (const a of obs.affordances || []) {
+    if (a.available === false) continue;
+    const cmd = String(a.cmd || "").trim();
+    const lab = String(a.label || "").trim();
+    if (!cmd || !lab) continue;
+    actions.push({ label: lab, cmd, available: true });
+    if (actions.length >= 8) break;
+  }
+
   return {
     worldName: obs.world_name || "",
     cycle,
     cycleLabel: cycle === null ? "" : `${label("cycle")} ${cycle}`,
     locationName: loc.name || "",
     locationDescription: loc.description || "",
-    condition: String(loc.condition || "").trim(),
+    condition,
     cultureLine: (obs.culture_lines && obs.culture_lines[0]) || "",
     relayIntegrity,
+    strip,
+    signals,
+    actions,
     status,
   };
 }

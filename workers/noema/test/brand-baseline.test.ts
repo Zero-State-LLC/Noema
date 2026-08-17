@@ -133,7 +133,10 @@ describe("brand slice 0 — gameplay command surface", () => {
     const html = playHtml();
     expect(html).toContain('id="room-name"');
     expect(html).toContain('id="trail"');
-    expect(html).toContain('id="opp-list"');
+    expect(html).toContain('id="action-rail"');
+    expect(html).toContain("AVAILABLE HERE");
+    expect(html).toContain('id="world-strip"');
+    expect(html).toContain('id="signal-feed"');
     expect(html).toContain('id="entity-list"');
     expect(html).toContain('id="exit-list"');
     expect(html).toContain('id="cmd-form"');

@@ -47,8 +47,24 @@ describe("toPlayerView", () => {
     expect(view.status.find((r) => r.label === "Relay")?.value).toBe("83%");
     expect(view.status.find((r) => r.label === "Influence")?.value).toBe("1");
     expect(view.status.find((r) => r.label === "Here")?.value).toBe("1");
+    expect(view.strip.find((r) => r.label === "Relay")?.value).toBe("83%");
+    expect(view.strip.find((r) => r.label === "Cycle")?.value).toBe("4");
+    expect(view.signals).toEqual(["scarred conduit condition 83."]);
     expect(JSON.stringify(view)).not.toMatch(/SEVERE|Population|Trade Index/i);
     expect(JSON.stringify(view)).not.toMatch(/consciousness|experiment|subject/i);
+  });
+
+  it("prefers available affordances for the action rail", () => {
+    const view = toPlayerView({
+      location: ROOM,
+      affordances: [
+        { label: "Inspect Scarred Conduit", cmd: "inspect scarred-conduit", available: true },
+        { label: "Hidden", cmd: "look", available: false },
+      ],
+    });
+    expect(view.actions).toEqual([
+      { label: "Inspect Scarred Conduit", cmd: "inspect scarred-conduit", available: true },
+    ]);
   });
 
   it("does not invent relay integrity without evidence", () => {

@@ -1135,6 +1135,59 @@ export function fillStatusRows(el: DomRoot, rows: { label: string; value: string
   }
 }
 
+export function fillWorldStrip(
+  el: DomRoot & { hidden?: boolean },
+  rows: { label: string; value: string }[],
+): void {
+  el.replaceChildren();
+  if (!rows.length) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  for (const r of rows) {
+    const item = h("span", "strip-item");
+    item.append(h("span", "strip-k", r.label), h("b", "strip-v", r.value));
+    el.append(item);
+  }
+}
+
+export function fillSignalFeed(el: DomRoot & { hidden?: boolean }, lines: string[]): void {
+  const wrap = (el as { parentElement?: (DomRoot & { hidden?: boolean }) | null }).parentElement;
+  el.replaceChildren();
+  if (!lines.length) {
+    el.append(h("li", "empty", "No public signals this cycle."));
+    if (wrap) wrap.hidden = true;
+    return;
+  }
+  if (wrap) wrap.hidden = false;
+  for (const line of lines) {
+    el.append(h("li", "", line));
+  }
+}
+
+export function fillActionRail(
+  el: DomRoot,
+  actions: Array<{ label: string; cmd: string; available?: boolean }>,
+  loc?: LocationObs,
+): void {
+  if (actions.length) {
+    el.replaceChildren();
+    for (const a of actions) {
+      const li = h("li");
+      li.append(cmdBtn(a.cmd, a.label));
+      el.append(li);
+    }
+    return;
+  }
+  if (loc) {
+    fillOpportunities(el, loc);
+    return;
+  }
+  el.replaceChildren();
+  el.append(h("li", "empty", "Look, wait, or follow a route."));
+}
+
 /** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
 export function playUiRuntimeSource(): string {
   return [
@@ -1172,6 +1225,9 @@ export function playUiRuntimeSource(): string {
     fillEntityList,
     fillOpportunities,
     fillStatusRows,
+    fillWorldStrip,
+    fillSignalFeed,
+    fillActionRail,
   ]
     .map((fn) => fn.toString())
     .join("\n");
