@@ -190,7 +190,7 @@ describe("Tier 1 world mutations", () => {
 
     r = await run(w, human, "INSPECT", { entity_id: "scarred-conduit" });
     expect(r.ok).toBe(true);
-    expect(r.observation!.consequence || r.observation!.location.description).toMatch(/condition|scarred|damaged/i);
+    expect(r.observation!.consequence || r.observation!.location?.description).toMatch(/condition|scarred|damaged/i);
     expect(r.events?.map((e) => e.event_type)).toEqual(
       expect.arrayContaining(["INSPECT", "OBSERVATION_GENERATED"]),
     );
@@ -241,7 +241,7 @@ describe("Tier 1 world mutations", () => {
     // MOVE
     r = await run(w, human, "MOVE", { direction: "east" });
     expect(r.ok).toBe(true);
-    expect(r.observation!.location.name).toBe("Coldline");
+    expect(r.observation!.location?.name).toBe("Coldline");
   });
 
   it("precondition failures do not debit resources", async () => {

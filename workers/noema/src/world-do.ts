@@ -14,6 +14,7 @@ import {
   listLivePlayers,
   listSystemActors,
   isMutatingCommand,
+  isUsableLiveWorld,
   mutationBlocked,
   nextSettlementHealth,
   type LifecycleAction,
@@ -304,12 +305,14 @@ export class NoemaWorldDO {
       return Response.json({
         ok: true,
         world_id: this.world!.world_id,
+        world_name: this.world!.world_name || null,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
         players: countLivePlayers(this.world!.players),
         status: this.meta!.status,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         genesis_id: this.meta!.genesis_id || null,
+        playable: isUsableLiveWorld(this.world),
       });
     }
 
@@ -790,13 +793,37 @@ export class NoemaWorldDO {
     // Reducers may mutate only behind a durable commit.  Preserve the precise
     // pre-command state so an RPC rejection cannot become DO-only truth.
     const before = structuredClone(w);
-    const result = await applyWorldCommand(w, principal, envl, async (ev) => {
-      // applyWorldCommand emits candidates one-by-one.  They are collected in
-      // result.events and committed as one batch below, after the final state
-      // is known.  Never write a candidate separately here.
-      void ev;
-      return true;
-    });
+    let result: CommandResult;
+    try {
+      result = await applyWorldCommand(w, principal, envl, async (ev) => {
+        // applyWorldCommand emits candidates one-by-one.  They are collected in
+        // result.events and committed as one batch below, after the final state
+        // is known.  Never write a candidate separately here.
+        void ev;
+        return true;
+      });
+    } catch {
+      this.world = before;
+      const code = isUsableLiveWorld(w) ? "COMMAND_FAILED" : "WORLD_NOT_READY";
+      const message =
+        code === "WORLD_NOT_READY"
+          ? "The world has no playable location yet."
+          : "The world could not apply that action.";
+      return {
+        ok: false,
+        request_id: envl.request_id || "unknown",
+        error: { code, message },
+        observation: {
+          cycle: w.cycle || 0,
+          sequence: w.sequence || 0,
+          world_name: w.world_name,
+          player_id: principal.player_id,
+          in_world: false,
+          available_actions: [],
+          consequence: message,
+        },
+      };
+    }
     if (mutating && w.players[principal.player_id]) {
       w.players[principal.player_id].controlling_session_id = principal.session_id;
     }

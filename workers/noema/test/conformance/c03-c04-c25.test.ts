@@ -152,8 +152,8 @@ describe("C04 deterministic MOVE ordering", () => {
     expect(east.ok).toBe(true);
     expect(east.events?.map((e) => e.event_type)).toEqual(["MOVE"]);
     expect(w.players[principal().player_id].room_id).toBe(MINI_HALL_ROOM_ID);
-    expect(east.observation?.location.room_id || east.observation?.location.name).toBeDefined();
-    expect(east.observation?.location.name).toBe("Hall");
+    expect(east.observation?.location?.room_id || east.observation?.location?.name).toBeDefined();
+    expect(east.observation?.location?.name).toBe("Hall");
 
     const ordered = [rejected.error?.code, ...(east.events || []).map((e) => e.event_type)];
     expect(ordered).toEqual(["MOVE_REJECTED", "MOVE"]);

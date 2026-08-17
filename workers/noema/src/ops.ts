@@ -305,6 +305,7 @@ export function planIncidentRecover(
 export function playReady(
   status?: string | null,
   settlement?: string | null,
+  livePlayable = true,
 ): PlayReady {
   const st = (status || "NOT_ACTIVE") as WorldOpStatus;
   const sh = (settlement || "HEALTHY") as SettlementHealth;
@@ -323,6 +324,15 @@ export function playReady(
       ready: false,
       play_blocked: true,
       code: gate.code,
+      status: st,
+      settlement_health: sh,
+    };
+  }
+  if (livePlayable === false) {
+    return {
+      ready: false,
+      play_blocked: true,
+      code: "WORLD_NOT_READY",
       status: st,
       settlement_health: sh,
     };

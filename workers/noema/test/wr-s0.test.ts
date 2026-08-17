@@ -113,7 +113,7 @@ describe("WR-S0 world path", () => {
     expect(w.last_report?.lines).toEqual([expected]);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
     expect(fifth.observation?.report_lines).toEqual([expected]);
-    const rows = statusFromObservation(fifth.observation);
+    const rows = statusFromObservation(fifth.observation ?? null);
     expect(rows.some((r) => r.label === "World" && r.value === expected)).toBe(true);
     expect((fifth.observation?.report_lines || []).join(" ")).not.toMatch(/Hidden Relay/);
 

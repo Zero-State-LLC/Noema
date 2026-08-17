@@ -25,6 +25,14 @@ import type { Env } from "./types";
 export const GENERIC_PLAY_LOGIN_MESSAGE =
   "If that mailbox can play, a link is on the way.";
 
+export function playHandleFromEmail(email: string | null | undefined): string {
+  const raw = String(email || "")
+    .split("@")[0]
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 32);
+  return raw.length >= 2 ? raw : "player";
+}
+
 export const playLoginThrottle = new LoginThrottle();
 
 export async function requestPlayMagicLink(
@@ -122,7 +130,7 @@ export async function consumePlayMagicLink(
   body: { token_hash?: string; type?: string; code?: string },
   opts?: { fetch?: AdminFetch },
 ): Promise<
-  | { access_token: string; player_id: string; controller_type: "human"; expires_in: number }
+  | { access_token: string; player_id: string; handle: string; controller_type: "human"; expires_in: number }
   | Response
 > {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -175,7 +183,7 @@ export async function consumePlayMagicLink(
   if (!id) return err("NOT_AUTHORIZED", "invalid play token", 401);
 
   const email = normalizeEmail(String(payload.user?.email || payload.email || ""));
-  const handle = email ? email.split("@")[0] : "player";
+  const handle = playHandleFromEmail(email);
   const compact = id.replace(/-/g, "").slice(0, 12);
 
   const minted = await mintControllerToken(env, {
@@ -190,6 +198,7 @@ export async function consumePlayMagicLink(
   return {
     access_token: minted.access_token,
     player_id: minted.player_id,
+    handle,
     controller_type: "human",
     expires_in: minted.expires_in,
   };

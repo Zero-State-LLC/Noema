@@ -149,12 +149,13 @@ describe("GC1-S4 world path", () => {
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[known.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[stranger.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.players[a.player_id].practice = applyPracticeCredits(recognize(BROKER_TRACK, 3), [
+    w.players[a.player_id]!.practice = applyPracticeCredits(recognize(BROKER_TRACK, 3), [
       { track_id: BROKER_TRACK, unit: "trade.old", recognition_unit: "trade.old", party_id: known.player_id },
     ], 0);
-    w.players[a.player_id].danger_memory = emptyDangerMemory();
-    w.players[a.player_id].danger_memory.edges[known.player_id] = ["ev.danger.1"];
-    w.players[a.player_id].danger_memory.edges[stranger.player_id] = ["ev.danger.2"];
+    const danger = emptyDangerMemory();
+    danger.edges[known.player_id] = ["ev.danger.1"];
+    danger.edges[stranger.player_id] = ["ev.danger.2"];
+    w.players[a.player_id]!.danger_memory = danger;
     const beforeKnown = w.players[a.player_id].budgets.compute;
     const prior = await run(w, a, "TRADE", {
       phase: "propose",

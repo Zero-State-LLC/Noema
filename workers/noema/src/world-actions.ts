@@ -51,7 +51,7 @@ import {
   parseAccessMode,
   parseAccessScope,
 } from "./access-policy";
-import { actorKindFromPrincipal } from "./ops";
+import { actorKindFromPrincipal, isUsableLiveWorld } from "./ops";
 import { commitCycleIfReady } from "./world-time";
 import {
   ACCESS_CLASS,
@@ -340,14 +340,74 @@ export type WorldRuntime = {
   public_social_events?: import("./social-memory").SocialEvent[];
 };
 
+function handleFromPrincipal(principal: PlayerPrincipal): string {
+  const agent = String(principal.agent_id || "").replace(/^agent\./, "");
+  if (agent && agent.length >= 2 && !/^player\./i.test(agent) && !/^[0-9a-f]{12}$/i.test(agent)) {
+    return agent.slice(0, 32);
+  }
+  const raw = principal.player_id.replace(/^player\./, "").slice(0, 32);
+  return raw || "player";
+}
+
+/** First playable room: requested id, then entry, then any intact room. */
+export function resolvePlayRoom(w: WorldRuntime, roomId?: string | null): RoomState | null {
+  const rooms = w?.rooms;
+  if (!rooms || typeof rooms !== "object") return null;
+  const wanted = String(roomId || w.entry_room_id || "").trim();
+  const hit = wanted ? rooms[wanted] : undefined;
+  if (hit && typeof hit === "object" && hit.room_id) return hit;
+  for (const room of Object.values(rooms)) {
+    if (room && typeof room === "object" && room.room_id) return room;
+  }
+  return null;
+}
+
+function emptyPlayObservation(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  consequence?: string,
+): Observation {
+  return {
+    cycle: Number.isFinite(w.cycle) ? w.cycle : 0,
+    sequence: Number.isFinite(w.sequence) ? w.sequence : 0,
+    world_name: w.world_name,
+    player_id: principal.player_id,
+    in_world: false,
+    available_actions: [],
+    consequence: consequence || "The world has no playable location yet.",
+  };
+}
+
+function failPlay(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  code: string,
+  message: string,
+  choices?: string[],
+): CommandResult {
+  const result = fail(request_id, code, message, choices);
+  try {
+    result.observation = {
+      ...buildObservation(w, principal, message),
+      in_world: false,
+      consequence: message,
+    };
+  } catch {
+    result.observation = emptyPlayObservation(w, principal, message);
+  }
+  return result;
+}
+
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
+  if (!w.players || typeof w.players !== "object") w.players = {};
   let p = w.players[principal.player_id];
   if (!p) {
     p = {
       room_id,
       entered: false,
       budgets: cloneBudgets(null),
-      handle: principal.player_id.replace(/^player\./, "").slice(0, 32),
+      handle: handleFromPrincipal(principal),
     };
     w.players[principal.player_id] = p;
   } else if (!p.budgets) {
@@ -355,13 +415,15 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
   } else {
     p.budgets = cloneBudgets(p.budgets);
   }
-  if (!p.handle) p.handle = principal.player_id.replace(/^player\./, "").slice(0, 32);
+  if (!p.handle) p.handle = handleFromPrincipal(principal);
+  if (!p.room_id) p.room_id = room_id;
   p.actor_kind = actorKindFromPrincipal(principal);
   p.last_seen_ms = Date.now();
   return p;
 }
 
-function roomEntities(room: RoomState): EntityRuntime[] {
+function roomEntities(room: RoomState | null | undefined): EntityRuntime[] {
+  if (!room || typeof room !== "object") return [];
   room.entities = (room.entities || []).map((e) => enrichEntity(e));
   return room.entities.filter((e) => !isHiddenEntity(e));
 }
@@ -422,9 +484,10 @@ export function buildObservation(
   principal: PlayerPrincipal,
   consequence?: string,
 ): Observation {
-  const pl = ensurePlayer(w, principal, w.entry_room_id || "room.relay-quarter");
-  const room_id = pl.entered ? pl.room_id : w.entry_room_id || "room.relay-quarter";
-  const room = w.rooms[room_id] || Object.values(w.rooms)[0];
+  const existing = w.players?.[principal.player_id];
+  const room = resolvePlayRoom(w, existing?.entered ? existing.room_id : w.entry_room_id);
+  if (!room) return emptyPlayObservation(w, principal, consequence);
+  const pl = ensurePlayer(w, principal, room.room_id);
   const entities = roomEntities(room);
   const exits = publicExits(w, room).map((e) => ({
     direction: e.direction,
@@ -969,6 +1032,16 @@ export async function applyWorldCommand(
     return fail(request_id, "FORBIDDEN", "player_id does not match principal");
   }
 
+  if (!isUsableLiveWorld(w) || !resolvePlayRoom(w)) {
+    return failPlay(
+      w,
+      principal,
+      request_id,
+      "WORLD_NOT_READY",
+      "The world has no playable location yet.",
+    );
+  }
+
   const rawLine =
     typeof (envl.arguments || {}).line === "string"
       ? String((envl.arguments as { line?: string }).line)
@@ -1003,8 +1076,7 @@ export async function applyWorldCommand(
     typeof rawArgs.line === "string"
       ? parseHumanCommand(String(rawArgs.line), {
           entities: roomEntities(
-            w.rooms[w.players[principal.player_id]?.room_id || w.entry_room_id] ||
-              Object.values(w.rooms)[0],
+            resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id),
           ),
           players: Object.entries(w.players).map(([id, p]) => ({
             player_id: id,
@@ -1063,10 +1135,10 @@ export async function applyWorldCommand(
       "FOCUS",
     ].includes(envl.command.toUpperCase())
   ) {
-    const pl = w.players[principal.player_id];
-    const room = w.rooms[pl?.room_id || w.entry_room_id];
     parsed = parseHumanCommand(envl.command, {
-      entities: room ? roomEntities(room) : [],
+      entities: roomEntities(
+        resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id),
+      ),
       players: Object.entries(w.players).map(([id, p]) => ({ player_id: id, handle: p.handle })),
       selfId: principal.player_id,
       openTrades: Object.values(w.trades || {}),
@@ -1197,7 +1269,7 @@ export async function applyWorldCommand(
   if (action.verb === "LEAVE_WORLD") {
     const leaving = ensurePlayer(w, principal, entry);
     if (!leaving.entered) {
-      return fail(request_id, "NOT_IN_WORLD", "You are not in the world.");
+      return failPlay(w, principal, request_id, "NOT_IN_WORLD", "You are not in the world.");
     }
     const fromRoom = leaving.room_id;
     leaving.entered = false;
@@ -1217,7 +1289,7 @@ export async function applyWorldCommand(
   // ——— LOOK / OBSERVE ———
   if (action.verb === "LOOK" || action.verb === "OBSERVE") {
     if (!pl.entered) {
-      return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
+      return failPlay(w, principal, request_id, "NOT_IN_WORLD", "Enter the world first.");
     }
     if (action.verb === "LOOK") {
       const lookCost = lookAttentionCost(pl.practice, pl.room_id, w.cycle);
@@ -1256,7 +1328,7 @@ export async function applyWorldCommand(
   }
 
   if (!pl.entered) {
-    return fail(request_id, "NOT_IN_WORLD", "Enter the world first.");
+    return failPlay(w, principal, request_id, "NOT_IN_WORLD", "Enter the world first.");
   }
 
   if (
@@ -1496,10 +1568,12 @@ export async function applyWorldCommand(
     recordCulture(w, principal.player_id, events);
     pl.discovery = applyInspectEvidence(pl.discovery, entity);
     const obs = buildObservation(w, principal, detail);
-    obs.location = {
-      ...obs.location,
-      description: `${obs.location.description} You inspect ${titleCaseLabel(entity.label)}: ${detail}`,
-    };
+    if (obs.location) {
+      obs.location = {
+        ...obs.location,
+        description: `${obs.location.description} You inspect ${titleCaseLabel(entity.label)}: ${detail}`,
+      };
+    }
     const result: CommandResult = {
       ok: true,
       request_id,
@@ -3206,6 +3280,8 @@ export async function applyWorldCommand(
 
 /** Migrate legacy player/entity shapes after load. */
 export function migrateWorldRuntime(w: WorldRuntime): void {
+  if (!w.rooms || typeof w.rooms !== "object") w.rooms = {};
+  if (!w.players || typeof w.players !== "object") w.players = {};
   w.trades = w.trades || {};
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
@@ -3975,7 +4051,6 @@ async function applyAccessPolicy(
     const named = Object.entries(w.players).find(
       ([id, p]) =>
         id === applies_to ||
-        p.player_id === applies_to ||
         p.handle?.toLowerCase() === applies_to.toLowerCase(),
     );
     if (!named) return fail(request_id, "NOT_FOUND", "That Player is not known here.");

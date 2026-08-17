@@ -295,14 +295,14 @@ describe("GC7-S2 institution contest party", () => {
     });
     expect(sameOrg.ok).toBe(false);
     expect(sameOrg.error?.code).toBe("FORBIDDEN");
-    expect(w.contests[contestId].defender_id).toBeUndefined();
+    expect(w.contests?.[contestId]?.defender_id).toBeUndefined();
 
     const personal = await run(w, treas, "CONTEST_DEFEND", {
       contest_id: contestId,
       stake: STAKE,
     });
     expect(personal.ok).toBe(true);
-    expect(w.contests[contestId].defender_id).toBe(treas.player_id);
-    expect(w.contests[contestId].defender_acting_for).toBeUndefined();
+    expect(w.contests?.[contestId]?.defender_id).toBe(treas.player_id);
+    expect(w.contests?.[contestId]?.defender_acting_for).toBeUndefined();
   });
 });

@@ -382,6 +382,15 @@ export function humanizeError(code?: string, message?: string): { primary: strin
   if (c === "WORLD_NOT_READY") {
     return { primary: "The world is not ready to enter yet.", advanced: `${c}: ${m}` };
   }
+  if (c === "COMMAND_FAILED") {
+    return { primary: m && m !== "internal error" ? m : "The world could not apply that action.", advanced: `${c}: ${m}` };
+  }
+  if (c === "INTERNAL") {
+    return {
+      primary: "The world could not apply that action.",
+      advanced: `${c}: ${m}`,
+    };
+  }
   if (c === "BUDGET_EXCEEDED") return { primary: "You do not have enough resources for that.", advanced: `${c}: ${m}` };
   if (c === "FORBIDDEN") return { primary: "You do not have authority to do that.", advanced: `${c}: ${m}` };
   if (c === "AUTHORITY_CONFLICT") {
@@ -407,6 +416,19 @@ export function humanizeError(code?: string, message?: string): { primary: strin
   if (c === "TRADE_REJECTED" || c === "TRADE_FAILED") return { primary: m, advanced: c };
   if (m && !/^[A-Z_]+$/.test(m)) return { primary: m, advanced: c || undefined };
   return { primary: "Something blocked that action.", advanced: c ? `${c}: ${m}` : m };
+}
+
+/** WHERE / mast copy when the snapshot has no location or attach failed. */
+export function waitingCopy(opts: {
+  code?: string;
+  message?: string;
+  worldName?: string;
+}): { worldLine: string; roomDesc: string } {
+  const worldLine = String(opts.worldName || "").trim() || "—";
+  if (opts.code || opts.message) {
+    return { worldLine, roomDesc: humanizeError(opts.code, opts.message).primary };
+  }
+  return { worldLine, roomDesc: "Waiting for the world." };
 }
 
 export function trailFromResult(opts: {
@@ -1255,6 +1277,7 @@ export function playUiRuntimeSource(): string {
     deriveLocalCondition,
     deriveOpportunities,
     humanizeError,
+    waitingCopy,
     trailFromResult,
     routeDiagram,
     statusFromObservation,

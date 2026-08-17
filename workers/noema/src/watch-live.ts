@@ -467,7 +467,7 @@ export function buildWatchLive(input: {
     .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(
-    (input.events || []) as SocialEvent[],
+    (input.events || []) as unknown as SocialEvent[],
     handles,
   );
 
