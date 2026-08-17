@@ -174,6 +174,7 @@ import {
   type PendingMessage,
 } from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
+import { publicReportLines, shouldWriteWorldReport } from "./world-reports";
 import {
   constructStorageCost,
   creditLot,
@@ -279,6 +280,8 @@ export type WorldRuntime = {
   world_seed?: string;
   cycle: number;
   sequence: number;
+  /** WR-S0 last public report. Projection only. Never on WATCH. */
+  last_report?: { cycle: number; lines: string[] };
   entry_room_id: string;
   rooms: Record<string, RoomState>;
   players: Record<string, PlayerRuntime>;
@@ -630,6 +633,7 @@ export function buildObservation(
           .map((o) => `A channel note in ${o.name}: ${o.channel!.text}`),
     trade_notice_lines:
       isHiddenRoom(room) || !room.trade_notice ? [] : [`A trade notice: ${room.trade_notice.text}`],
+    report_lines: w.last_report?.lines || [],
     unclaimed_lines: isHiddenRoom(room)
       ? []
       : roomEntities(room)
@@ -1296,6 +1300,9 @@ export async function applyWorldCommand(
         if (org.channel && w.cycle - org.channel.cycle >= CHANNEL_EXPIRE_AFTER_CYCLES) {
           org.channel = undefined;
         }
+      }
+      if (shouldWriteWorldReport(w.cycle)) {
+        w.last_report = { cycle: w.cycle, lines: publicReportLines(w.rooms) };
       }
     }
     const spoilNote = (pl.spoil_lines || []).join(" ");

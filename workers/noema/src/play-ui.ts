@@ -414,7 +414,7 @@ export function trailFromResult(opts: {
   command: string;
   ok: boolean;
   events?: Array<{ event_type?: string; sequence?: number }>;
-  observation?: { location?: LocationObs };
+  observation?: { location?: LocationObs; report_lines?: string[] };
   previousRoomId?: string;
   errorPrimary?: string;
 }): TrailItem[] {
@@ -461,6 +461,9 @@ export function trailFromResult(opts: {
     items.push({ kind: "world", title: "A message is delivered." });
   } else if (cmd === "TRADE") {
     items.push({ kind: "world", title: "A trade changes hands." });
+  }
+  for (const line of (opts.observation?.report_lines || []).slice(0, 4)) {
+    if (line) items.push({ kind: "world", title: line });
   }
   return items;
 }
@@ -517,6 +520,7 @@ export function statusFromObservation(obs: {
   social_memory_lines?: string[];
   culture_lines?: string[];
   discovery_lines?: string[];
+  report_lines?: string[];
 } | null): Array<{ label: string; value: string }> {
   if (!obs?.location) return [];
   const loc = obs.location;
@@ -538,6 +542,9 @@ export function statusFromObservation(obs: {
   }
   for (const line of (obs.discovery_lines || []).slice(0, 1)) {
     if (line) rows.push({ label: "Record", value: line });
+  }
+  for (const line of (obs.report_lines || []).slice(0, 4)) {
+    if (line) rows.push({ label: "World", value: line });
   }
   return rows;
 }

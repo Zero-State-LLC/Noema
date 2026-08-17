@@ -211,6 +211,8 @@ export interface Observation {
   channel_lines?: string[];
   /** GC5-S8 last trade notice. Public room only. Never put on WATCH. */
   trade_notice_lines?: string[];
+  /** WR-S0 last public world report. Never put on WATCH. */
+  report_lines?: string[];
   /** GC2-S7 UNCLAIMED public constructibles. Never put on WATCH. */
   unclaimed_lines?: string[];
   /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
