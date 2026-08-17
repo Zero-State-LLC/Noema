@@ -69,7 +69,10 @@ class DeviceEnrollmentProvider:
         self._interval = float(started.get("interval") or 5)
         self._deadline = time.time() + float(started.get("expires_in") or 600)
         user_code = started.get("user_code") or ""
-        uri = started.get("verification_uri") or f"{self.base_url}/connect"
+        uri = str(started.get("verification_uri") or f"{self.base_url}/connect")
+        if user_code:
+            sep = "&" if "?" in uri else "?"
+            uri = f"{uri}{sep}code={user_code}"
         self._announce(f"Approve {user_code} at {uri}")
         self._announce("Never click the PLAY letter.")
         return {

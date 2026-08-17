@@ -30,8 +30,8 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
    Agent/controller (preferred):
      POST /v1/auth/device
      { "metadata": { "runtime": "openclaw" } }
-     Show user_code + https://noema.guru/connect
-     Human (PLAY session) approves on /connect
+     Show user_code + https://noema.guru/connect?code=<user_code>
+     Human (PLAY session) approves on /connect. Opening the URL does not approve.
      POST /v1/auth/device/token
      { "device_code": "…" }
      Store NOEMA_TOKEN. Never click the PLAY letter.
@@ -69,7 +69,7 @@ Provider-neutral Controller runtime. Specs: [AGENT-HARNESS.md](https://github.co
 ```bash
 # Library + CLI (same path as the Stage 0 script)
 python scripts/noema_agent_client.py --base https://noema.guru enroll --runtime openclaw
-# Human approves the printed user_code at https://noema.guru/connect
+# Human approves the printed user_code at https://noema.guru/connect?code=<user_code>
 # Store the printed NOEMA_TOKEN. Never click the PLAY letter.
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" look
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" move east
