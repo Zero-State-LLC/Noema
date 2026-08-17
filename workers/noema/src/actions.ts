@@ -5,8 +5,10 @@
  * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
  * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST.
  * Diplomacy S2 (RFC-0100): Chamber help names AGREEMENT. WED / ATTEST stay omitted.
+ * ACCESS_POLICY S0 (RFC-0101): EXIT DENY/CLEAR hosted. Help still omits ACCESS_POLICY.
  */
 
+import { parseAccessMode, parseAccessPolicyLine } from "./access-policy";
 import {
   liveClassInRoom,
   parseConstructibleClass,
@@ -203,9 +205,7 @@ export const HOSTED_TIER1 = [
 /** Remaining Specs v0.2 strategic gap. */
 export const BACKEND_GAPS_TIER2 = [] as const;
 
-export const BACKEND_GAPS_TIER3 = [
-  "ACCESS_POLICY",
-] as const;
+export const BACKEND_GAPS_TIER3 = [] as const;
 
 export type OrgRole = "founder" | "officer" | "member" | "advisor";
 
@@ -262,6 +262,7 @@ export const COSTS = {
   ATTEST: { attention: 2 } as Partial<Budgets>,
   AGREEMENT_FORM: { compute: 2, influence: 1 } as Partial<Budgets>,
   AGREEMENT_TERMINATE: { compute: 1 } as Partial<Budgets>,
+  ACCESS_POLICY: { compute: 1, influence: 2 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -328,7 +329,8 @@ export type CanonicalAction =
           | "CONTEST_WITHDRAW"
           | "ATTEST"
           | "AGREEMENT_FORM"
-          | "AGREEMENT_TERMINATE";
+          | "AGREEMENT_TERMINATE"
+          | "ACCESS_POLICY";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -363,6 +365,10 @@ export type CanonicalAction =
         visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
         supersedes_reconstruction_id?: string;
         acting_for?: string;
+        scope?: "EXIT" | "ROOM";
+        mode?: "DENY" | "CLEAR";
+        applies_to?: string;
+        direction?: string;
         emergency_scope_id?: string;
         template_id?: string;
         target_ref?: string;
@@ -1175,6 +1181,9 @@ export function parseHumanCommand(
     if (parts[0]?.toLowerCase() === "agreement") parts.shift();
     return parseAgreementTerminateLine(parts);
   }
+  if (v === "access") {
+    return parseAccessPolicyLine(parts, ctx);
+  }
 
   // invite <player> to <org> role=<role>
   if (v === "invite") {
@@ -1872,7 +1881,7 @@ export function parseHumanCommand(
   }
 
   // Known but not hosted yet (v0.2 strategic)
-  if (["agreement", "access"].includes(v)) {
+  if (v === "agreement") {
     return {
       ok: false,
       error: `“${v}” is a v0.2 strategic action — not available in this stage.`,
@@ -2177,6 +2186,34 @@ export function normalizeStructuredCommand(
           arguments: { operation: "AGREEMENT_TERMINATE", agreement_id, reason },
         },
         display: `COMMIT.AGREEMENT_TERMINATE ${agreement_id}`,
+      };
+    }
+    if (operation === "ACCESS_POLICY") {
+      const mode = parseAccessMode(String(args.mode || ""));
+      const direction = String(args.direction || args.exit_id || args.target || "").trim();
+      if (!mode) return { ok: false, error: "mode must be DENY or CLEAR", code: "FORM_FORBIDDEN" };
+      if (!direction) return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
+      const applies_to = String(args.applies_to || "*").trim() || "*";
+      const acting_for = args.acting_for ? String(args.acting_for) : undefined;
+      const expires_cycle =
+        args.expires_cycle != null && Number.isFinite(Number(args.expires_cycle))
+          ? Number(args.expires_cycle)
+          : undefined;
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "ACCESS_POLICY",
+            scope: "EXIT",
+            mode,
+            applies_to,
+            acting_for,
+            expires_cycle,
+            direction: direction.toLowerCase(),
+          },
+        },
+        display: `COMMIT.ACCESS_POLICY ${mode} ${direction}`,
       };
     }
     if (operation === "ORG_OFFICE_CREATE") {
@@ -2573,6 +2610,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "AGREEMENT_TERMINATE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "AGREEMENT_TERMINATE" });
+  }
+  if (cmd === "ACCESS_POLICY") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ACCESS_POLICY" });
   }
   if (isForbiddenContestVerb(cmd.toLowerCase())) {
     return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
