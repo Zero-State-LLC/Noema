@@ -51,9 +51,9 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
 export function playCallbackHtml(): string {
   const body = `
   <section class="card pad" aria-labelledby="callback-title">
-    <p class="kicker">Player access</p>
-    <h1 id="callback-title">Opening PLAY…</h1>
-    <p class="muted">Confirming the login link.</p>
+    <p class="kicker">World entry</p>
+    <h1 id="callback-title">Entering the world…</h1>
+    <p class="muted">Confirming the play link.</p>
     <p class="notice" id="notice" role="status">Checking the link…</p>
   </section>
 <script>

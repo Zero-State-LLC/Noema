@@ -70,6 +70,15 @@ body.is-chamber #play-chamber{
 .look #loc-custom{margin:.55rem 0 0;max-width:44rem;color:var(--ink)}
 .look #loc-cond{margin:.65rem 0 0}
 .look #look-exits{margin:.45rem 0 0;color:var(--muted);font-size:.84rem}
+.just-happened{
+  margin:.85rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);
+  color:var(--color-text-primary);font:500 .95rem/1.4 var(--font-interface);
+}
+.just-happened[hidden]{display:none}
+.just-happened .k{
+  display:block;margin:0 0 .2rem;color:var(--color-text-secondary);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
+}
 .ch-rail{
   border-left:1px solid var(--line);padding:.75rem .8rem;overflow:auto;
   font-size:.84rem;min-height:0;
@@ -129,7 +138,7 @@ export function playHtml(): string {
       <div id="session-out">
         ${playEmailGateMarkup({ operatorLink: false })}
         <label for="handle">Your name</label>
-        <input id="handle" value="player1" autocomplete="username" maxlength="32"/>
+        <input id="handle" value="" autocomplete="username" maxlength="32" minlength="2" placeholder="choose a name" required/>
         <details class="adv" id="token-primary">
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
@@ -166,6 +175,7 @@ export function playHtml(): string {
           </div>
           <p id="look-exits" hidden></p>
         </article>
+        <p id="just-happened" class="just-happened" hidden role="status"></p>
         <section class="signals" id="signals" hidden>
           <h3>Signals</h3>
           <ul id="signal-feed" aria-label="Signals"></ul>
@@ -262,7 +272,7 @@ function playClientBundle(): string {
       token: null,
       player_id: null,
       controller_id: null,
-      handle: "player1",
+      handle: "",
       obs: null,
       trail: [],
       busy: false,
@@ -350,6 +360,8 @@ function playClientBundle(): string {
         if (stripOff) { stripOff.hidden = true; stripOff.replaceChildren(); }
         const sigOff = $("signals");
         if (sigOff) sigOff.hidden = true;
+        const happenedOff = $("just-happened");
+        if (happenedOff) { happenedOff.hidden = true; happenedOff.textContent = ""; }
         ["sys-rumors","sys-comms","sys-archive","sys-contest","sys-unclaimed","sys-offices"].forEach((id) => {
           const n = $(id); if (n) n.hidden = true;
         });
@@ -458,6 +470,18 @@ function playClientBundle(): string {
             : []),
         ]);
         $("cmd").value = "";
+        const happened = $("just-happened");
+        if (happened) {
+          const line = (res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "").trim();
+          if (line) {
+            happened.hidden = false;
+            happened.replaceChildren();
+            const k = document.createElement("span");
+            k.className = "k";
+            k.textContent = "Just happened";
+            happened.append(k, document.createTextNode(line));
+          }
+        }
         notice(res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "Done.", "ok");
         setTimeout(() => { if (($("notice").textContent || "").indexOf("Done") === 0 || ($("notice").className || "").indexOf("ok") >= 0) notice(""); }, 1600);
       } catch (e) {
@@ -490,9 +514,15 @@ function playClientBundle(): string {
     async function enterWorld(preToken) {
       if (state.busy) return;
       state.busy = true;
-      sessionNotice("Opening session…");
+      sessionNotice("Entering…");
       try {
-        const handle = ($("handle").value || "player1").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player1";
+        const handle = ($("handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+        if (handle.length < 2) {
+          state.busy = false;
+          sessionNotice("Choose a name (2–32 letters, numbers, _ or -).", "bad");
+          $("handle").focus();
+          return;
+        }
         state.handle = handle;
         const pasted = readPastedToken();
         if (preToken) {
