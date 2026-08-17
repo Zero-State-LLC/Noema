@@ -64,6 +64,8 @@ describe("play chamber HTML", () => {
     expect(chamber).toContain('id="comms-list"');
     expect(chamber).toContain('id="archive-list"');
     expect(chamber).toContain("Unconfirmed. A record says");
+    expect(chamber).toContain('id="world-key"');
+    expect(chamber).toContain("<summary>Key</summary>");
   });
 
   it("chamber default copy is not Outside / Enter world", () => {

@@ -55,7 +55,7 @@ No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.
 
 A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
 
-Slice 3 discloses existing rumor, traffic, archive, contest, unclaimed, and office lines behind `<details>`. Rumors are hedged and use the unknown token. Next: Slice 4 glyph/legend.
+Slice 4 adds fourteen SVG marks and a keyboard Key on PLAY and WATCH. Meaning is never color-only. Next: Slice 5 onboarding.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 

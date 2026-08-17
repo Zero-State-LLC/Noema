@@ -1,6 +1,7 @@
 /** Text-first PLAY — situation, opportunity, action, consequence. */
 
 import { playEmailGateMarkup } from "./play-login-html";
+import { legendHtml } from "./presentation/glyphs";
 import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
@@ -155,7 +156,7 @@ export function playHtml(): string {
     <div class="ch-body">
       <section class="ch-scroll" aria-label="World">
         <article class="look" id="loc-card">
-          <p class="where role-place">WHERE</p>
+          <p class="where role-place"><span class="glyph glyph-loc" role="img" aria-label="Location" title="here"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 2h10v10H2z M2 6h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="sr">here</span></span>WHERE</p>
           <h2 id="room-name"></h2>
           <p id="room-desc"></p>
           <p id="loc-custom" hidden></p>
@@ -209,6 +210,7 @@ export function playHtml(): string {
         <ul class="tok-list" id="action-rail" aria-label="Available here"></ul>
         <h3>STATUS</h3>
         <ul class="status-rows" id="status-rows"></ul>
+        ${legendHtml()}
         <details class="adv" id="advanced">
           <summary>Advanced details</summary>
           <div id="token-advanced-wrap">

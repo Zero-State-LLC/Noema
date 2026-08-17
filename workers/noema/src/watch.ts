@@ -1,5 +1,6 @@
 /** Public WATCH — Lightweight Spectator Upgrade (watch-live/1.0). */
 
+import { legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
 import { phosphorInlineScript } from "./watch-phosphor";
 
@@ -116,6 +117,7 @@ export function watchHtml(): string {
       <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="true">TEXT</button>
       <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="false">PIXEL</button>
     </div>
+    ${legendHtml()}
   </header>
 
   <article class="watch-hero" id="watch-hero">
