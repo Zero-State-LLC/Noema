@@ -25,13 +25,13 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 `/` is a world door: Perihelion Reach, one place line, Player email. Operator login is `/admin/login`, not a peer card on `/`. First-read copy is game/place/play. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
-Player visual identity follows Specs brand canon. **This runtime has not yet applied Slice 1 tokens.** Slice 0 only captures the current HTML so later slices can migrate without inventing brand while editing JSX.
+Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player view, chamber, glyphs, onboarding, mobile, motion, and Admin relationship are on the Worker. Visual QA: `docs/BRAND-VISUAL-QA.md` + `workers/noema/test/brand-visual-qa.test.ts`.
 
 Graphics, if any, stay functional chrome (borders, type hierarchy)—never a substitute for world text.
 
 ### Brand Slice 0 baseline (hosted Worker @ `2b5e8d2` + this capture)
 
-No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.ts`. Screenshot matrix stub: `workers/noema/test/brand-screenshot-matrix.json` (Slice 9 takes shots; no Playwright yet).
+Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/test/brand-visual-qa.test.ts`. Capture matrix: `workers/noema/test/brand-screenshot-matrix.json`.
 
 | Route | HTML | Job |
 |---|---|---|
@@ -57,7 +57,8 @@ A11y already present (do not remove): skip link, `:focus-visible`, `prefers-redu
 
 Slice 6: 640px contract — 44px targets, 16px command (no iOS zoom), wrapping strip, sticky composer, overflow-x clip.
 Slice 7: one-shot motion — cyan signal edge 200ms, amber threshold band 240ms, panel/strip 160ms; reduced-motion kills all three.
-Slice 8: Admin shares tokens as `--operator-accent` (warning); OPERATOR mark; skip + reduced-motion; mail remapped off copper. Health, head, Genesis stay. Next: Slice 9 Visual QA.
+Slice 8: Admin shares tokens as `--operator-accent` (warning); OPERATOR mark; skip + reduced-motion; mail remapped off copper. Health, head, Genesis stay.
+Slice 9: Visual QA — 14 PLAYER-BRAND statements are automated; contrast AA; keyboard hooks; gzip ceilings; optional Chromium shots in `docs/BRAND-VISUAL-QA.md`. Brand campaign complete.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 
