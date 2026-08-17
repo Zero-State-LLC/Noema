@@ -1,12 +1,12 @@
 /**
- * WR-S0..S4 public world report. Projection only.
- * Authority: Noema-Specs docs/WR-S4-CRIME-REPORT.md / RFC-0094.
+ * WR-S0..S5 public world report. Projection only.
+ * Authority: Noema-Specs docs/WR-S5-DISCOVERY-REPORT.md / RFC-0096.
  */
 
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s4";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s5";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -40,6 +40,14 @@ export function publicReportLines(
     event_id?: string;
     event_type?: string;
     payload?: Record<string, unknown>;
+  }>,
+  reconstructions?: Array<{
+    reconstruction_id?: string;
+    subject_ref?: string;
+    visibility?: string;
+    status?: string;
+    claim?: string;
+    author_player_id?: string;
   }>,
 ): string[] {
   const lines: string[] = [];
@@ -115,5 +123,37 @@ export function publicReportLines(
       .toLowerCase();
     if (category) lines.push(`${category} is detected.`);
   }
+  const recs = [...(reconstructions || [])]
+    .filter((rec) => {
+      if (rec.visibility !== "PUBLIC" || rec.status !== "RECORDED") return false;
+      if (!rec.subject_ref) return false;
+      const found = findPublicSubject(rooms, rec.subject_ref);
+      return Boolean(found);
+    })
+    .sort((a, b) =>
+      String(a.reconstruction_id || "").localeCompare(String(b.reconstruction_id || "")),
+    );
+  for (const rec of recs) {
+    const found = findPublicSubject(rooms, rec.subject_ref || "");
+    if (found) lines.push(`${found} is reconstructed.`);
+  }
   return lines;
+}
+
+function findPublicSubject(
+  rooms: Record<string, { name?: string; hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>,
+  ref: string,
+): string | null {
+  const asRoom = rooms[ref];
+  if (asRoom && !isHiddenRoom(asRoom)) return asRoom.name || ref.replace(/^room\./, "");
+  for (const room of Object.values(rooms || {})) {
+    if (isHiddenRoom(room)) continue;
+    for (const raw of room.entities || []) {
+      if (raw.hidden) continue;
+      if (raw.entity_id === ref || raw.label === ref) {
+        return (raw.label || raw.entity_id).replace(/-/g, " ");
+      }
+    }
+  }
+  return null;
 }

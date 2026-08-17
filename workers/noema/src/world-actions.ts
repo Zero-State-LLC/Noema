@@ -1311,6 +1311,7 @@ export async function applyWorldCommand(
             w.access_restrictions,
             w.cycle,
             w.public_social_events,
+            Object.values(w.reconstructions || {}),
           ),
         };
       }
