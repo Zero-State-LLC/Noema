@@ -10,7 +10,7 @@
 OBSERVED live `GET /ready`: ACTIVE / HEALTHY / cycle 105 / seq 288 / `genesis.ef578f4ffceeccd0`. Read-only SQL: Perihelion head matches (revision 160, writer `do.1`, digest prefix `sha256:f163f`). Both settlement RPCs present; `service_role` execute only. Did not apply SQL. Did not invent a head. Did not Recover. Inspect: [DATA-STORES.md](DATA-STORES.md).
 
 - Production PLAY commits via `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Isolated `test.hosted-canonical.*` is the only bootstrap path.
-- Recover is the only path when the DO has state and the SQL head is missing: `noema_adopt_live_world_head`, or the same live snapshot via REST if that RPC is not applied. No invented ledger events. Head is present; Recover is not indicated.
+- Recover is the only path when the DO has state and the SQL head is missing: `noema_adopt_live_world_head`, or the same live snapshot via REST if that RPC is not applied. No invented ledger events. OBSERVED: adopt already committed as revision 1 at sequence 92 (`settlement.adopt-live.world.perihelion-reach`). Do not Recover again.
 - Admin ≠ Player. WORLD TRUTH ≠ RESEARCH. One fenced writer.
 
 ## Boundary
