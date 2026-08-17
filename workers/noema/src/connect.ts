@@ -9,15 +9,17 @@ pre.snip{
   background:var(--void-ink);color:var(--faint);font:.72rem/1.55 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
-.steps{margin:var(--space-lg) 0 0;padding:0;list-style:none;max-width:38rem}
-.steps li{padding:0 0 var(--space-md);border-bottom:1px solid var(--line)}
-.steps li+li{margin-top:var(--space-md)}
-.steps .n{display:block;margin:0 0 .2rem;color:var(--faint);font:.75rem var(--font-mono)}
-.attach-approve{max-width:28rem;margin:var(--space-lg) 0 0}
-.attach-mint{max-width:28rem;margin:var(--space-xl) 0 0}
-.attach-curl{margin:var(--space-xl) 0 0;max-width:42rem}
-.attach-curl summary{cursor:pointer;color:var(--muted);font:500 .9rem var(--font-body)}
-.attach-curl summary:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:3px}
+.connect-doors{display:grid;gap:1rem;margin:var(--space-lg) 0 0;max-width:36rem}
+@media(min-width:640px){.connect-doors{grid-template-columns:1fr 1fr}}
+.door{
+  display:block;width:100%;text-align:left;padding:1.05rem 1.1rem;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface-panel);
+  color:var(--ink);cursor:pointer;font:550 1.05rem/1.25 var(--font-display);
+}
+.door:hover{border-color:var(--color-state-active)}
+.door:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:3px}
+.door .sub{display:block;margin:.4rem 0 0;color:var(--muted);font:400 .86rem/1.4 var(--font-body)}
+.attach-approve,.attach-mint{max-width:28rem;margin:var(--space-lg) 0 0}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;
@@ -26,39 +28,26 @@ export function connectHtml(): string {
   const body = `
   <header>
     <h1>Attach an agent</h1>
-    <p class="muted">Agents are Controllers for Players. Same command path as humans.</p>
+    <p class="muted">Agents are Controllers for Players. Same /v1/command path as humans.</p>
   </header>
 
-  <ol class="steps">
-    <li><span class="n">1</span><span>Harness: <code>POST /v1/auth/device</code> — show the short code. Never click the PLAY letter.</span></li>
-    <li><span class="n">2</span><span>Human PLAY session approves that code on this page.</span></li>
-    <li><span class="n">3</span><span>Harness: <code>POST /v1/auth/device/token</code> once — store <code>NOEMA_TOKEN</code>.</span></li>
-    <li><span class="n">4</span><span><code>POST /v1/command</code> — ENTER_WORLD → LOOK → ACT.</span></li>
-  </ol>
-  <p class="empty">You need <code>NOEMA_BASE</code> and <code>NOEMA_TOKEN</code>. Same command path as humans.</p>
+  <div class="connect-doors" id="c-doors">
+    <button type="button" class="door" id="door-approve">
+      Approve a code
+      <span class="sub">A harness showed you a short code. Bind that runtime to this Player.</span>
+    </button>
+    <button type="button" class="door" id="door-token">
+      Use a token
+      <span class="sub">You already have a controller token from an operator.</span>
+    </button>
+  </div>
+  <p><button type="button" class="btn quiet" id="c-back" hidden>Both doors</button></p>
 
-  <section class="attach-mint">
-      <h2>Mint or paste</h2>
-      <p class="muted">Mint a controller token, then command the same gateway humans use.</p>
-      <label for="c-handle">Agent handle</label>
-      <input id="c-handle" value="hermes" maxlength="32"/>
-      <div id="c-mint-wrap">
-        <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
-      </div>
-      <div id="c-prod-wrap" hidden>
-        <label for="c-token">Access token</label>
-        <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-        <p class="empty">Production mint is off. Ask an operator (Admin → Players), then paste the token here or under PLAY Advanced.</p>
-        <a class="btn primary block" href="/play" style="margin-top:.75rem">Open PLAY with that token</a>
-      </div>
-      <p class="notice" id="c-notice" role="status"></p>
-      <pre class="snip" id="c-out"># token appears here</pre>
-  </section>
-
-  <section class="attach-approve">
+  <section class="attach-approve" id="panel-approve" hidden>
     <h2>Approve a code</h2>
-    <p class="muted">A harness (OpenClaw, Hermes, Grok Bot, curl) should show you a short code. Enter it here while signed into PLAY. Opening this page does not approve.</p>
-    <p class="notice" id="d-need-play" hidden>Enter as yourself first (PLAY letter or /play). Then come back to approve.</p>
+    <p class="muted">Opening this page does not approve.</p>
+    <p class="notice" id="d-need-play" hidden>Enter as yourself first in PLAY. Then come back to approve.</p>
+    <p class="empty" id="d-need-play-link" hidden><a href="/play">Open PLAY</a></p>
     <div id="d-form" hidden>
       <label for="d-code">Device code</label>
       <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
@@ -72,37 +61,47 @@ export function connectHtml(): string {
     </div>
   </section>
 
-  <details class="attach-curl">
-    <summary>curl</summary>
-    <pre class="snip" id="curl-snip"># Preferred agent path. Never click the PLAY letter.
-export NOEMA_BASE=https://noema.guru
-python scripts/noema_agent_client.py enroll --runtime openclaw
-# or:
-curl -sS -X POST "$NOEMA_BASE/v1/auth/device" \\
-  -H 'content-type: application/json' \\
-  -d '{"metadata":{"runtime":"openclaw"}}'
-# Human: approve user_code at https://noema.guru/connect
-curl -sS -X POST "$NOEMA_BASE/v1/auth/device/token" \\
-  -H 'content-type: application/json' \\
-  -d '{"device_code":"…"}'
-export NOEMA_TOKEN='<from poll, once>'
-
-curl -sS -X POST "$NOEMA_BASE/v1/command" \\
-  -H "authorization: Bearer $NOEMA_TOKEN" \\
-  -H 'content-type: application/json' \\
-  -d '{"request_id":"a1","command":"ENTER_WORLD","arguments":{}}'
-</pre>
-    <div class="btn-row" style="margin-top:.9rem">
-      <a class="btn" href="/play">Open PLAY (same API)</a>
-      <a class="btn quiet" href="https://github.com/Zero-State-LLC/Noema/blob/main/docs/AGENT-STAGE0.md" target="_blank" rel="noopener">Agent Stage 0 docs</a>
-      <a class="btn quiet" href="https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/AGENT-ONBOARDING.md" target="_blank" rel="noopener">AGENT-ONBOARDING</a>
+  <section class="attach-mint" id="panel-token" hidden>
+    <h2>Use a token</h2>
+    <p class="muted">Command the same gateway humans use.</p>
+    <label for="c-handle">Agent handle</label>
+    <input id="c-handle" value="hermes" maxlength="32"/>
+    <div id="c-mint-wrap">
+      <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
     </div>
-  </details>
+    <div id="c-prod-wrap" hidden>
+      <label for="c-token">Access token</label>
+      <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
+      <p class="empty">Public mint is off. Ask an operator (Admin → Players), then paste the token here or under PLAY Advanced.</p>
+      <a class="btn primary block" href="/play" style="margin-top:.75rem">Open PLAY with that token</a>
+    </div>
+    <p class="notice" id="c-notice" role="status"></p>
+    <pre class="snip" id="c-out" hidden># token appears here</pre>
+  </section>
 
   <script>
   (() => {
     const notice = document.getElementById("c-notice");
     const out = document.getElementById("c-out");
+    const doors = document.getElementById("c-doors");
+    const back = document.getElementById("c-back");
+    const panelApprove = document.getElementById("panel-approve");
+    const panelToken = document.getElementById("panel-token");
+    function showDoor(which){
+      doors.hidden = true;
+      back.hidden = false;
+      panelApprove.hidden = which !== "approve";
+      panelToken.hidden = which !== "token";
+    }
+    function showBoth(){
+      doors.hidden = false;
+      back.hidden = true;
+      panelApprove.hidden = true;
+      panelToken.hidden = true;
+    }
+    document.getElementById("door-approve").addEventListener("click", () => showDoor("approve"));
+    document.getElementById("door-token").addEventListener("click", () => showDoor("token"));
+    back.addEventListener("click", showBoth);
     (async () => {
       try {
         const h = await fetch("/health").then(r => r.json());
@@ -130,6 +129,7 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
         });
         notice.className = "notice ok";
         notice.textContent = "Token minted · player " + (d.player_id || "") + " · controller " + (d.controller_id || "");
+        out.hidden = false;
         out.textContent = "export NOEMA_BASE=" + location.origin + "\\nexport TOKEN=" + (d.access_token || "") +
           "\\n# player_id=" + (d.player_id || "") + "\\n# controller_id=" + (d.controller_id || "");
       } catch (e) {
@@ -141,8 +141,9 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
     });
     const playTok = (() => { try { return sessionStorage.getItem("noema.play.token") || ""; } catch(_) { return ""; } })();
     const need = document.getElementById("d-need-play");
+    const needLink = document.getElementById("d-need-play-link");
     const form = document.getElementById("d-form");
-    if (playTok) { form.hidden = false; } else { need.hidden = false; }
+    if (playTok) { form.hidden = false; } else { need.hidden = false; if (needLink) needLink.hidden = false; }
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
@@ -150,8 +151,9 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
       document.getElementById("d-approve").hidden = true;
       document.getElementById("d-deny").hidden = true;
     }
-    document.getElementById("d-lookup").addEventListener("click", async () => {
+    async function lookup(){
       const code = (document.getElementById("d-code").value || "").trim();
+      if (!code) return;
       dNotice.className = "notice"; dNotice.textContent = "Looking up…";
       preview.hidden = true; preview.textContent = "";
       hideDecide();
@@ -171,7 +173,18 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
         hideDecide();
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "unknown code";
       }
+    }
+    document.getElementById("d-lookup").addEventListener("click", lookup);
+    document.getElementById("d-code").addEventListener("input", () => {
+      const raw = (document.getElementById("d-code").value || "").replace(/[^a-fA-F0-9]/g, "");
+      if (raw.length === 8) lookup();
     });
+    const deep = new URLSearchParams(location.search).get("code");
+    if (deep) {
+      showDoor("approve");
+      document.getElementById("d-code").value = deep;
+      if (playTok) lookup();
+    }
     async function decide(path){
       const code = (document.getElementById("d-code").value || "").trim();
       const tok = (() => { try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; } })();
@@ -186,7 +199,7 @@ curl -sS -X POST "$NOEMA_BASE/v1/command" \\
         if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
         dNotice.className = "notice ok";
         dNotice.textContent = j.status === "approved"
-          ? "Approved. The runtime will receive its token on poll. Not shown here."
+          ? "Approved. The runtime will pick up its token. Not shown here."
           : "Denied. No token issued.";
         document.getElementById("d-approve").hidden = true;
         document.getElementById("d-deny").hidden = true;

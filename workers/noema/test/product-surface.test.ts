@@ -175,12 +175,18 @@ describe("planes", () => {
     expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
-  it("connect has curl and command path", () => {
-    expect(connectHtml()).toContain("NOEMA_BASE");
-    expect(connectHtml()).toContain("/v1/command");
-    expect(connectHtml()).toContain("/v1/auth/device");
-    expect(connectHtml()).toContain("/v1/auth/device/token");
-    expect(connectHtml()).toMatch(/Never click the PLAY letter/i);
+  it("connect first paint is two doors", () => {
+    const html = connectHtml();
+    expect(html).toContain("Approve a code");
+    expect(html).toContain("Use a token");
+    expect(html).toContain("door-approve");
+    expect(html).toContain("door-token");
+    expect(html).not.toMatch(/<ol class="steps"/);
+    expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
+    expect(html).not.toContain("POST /v1/auth/device/token");
+    expect(html).not.toMatch(/Never click the PLAY letter/i);
+    expect(html).toContain('new URLSearchParams(location.search).get("code")');
+    expect(html).toContain('showDoor("approve")');
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();

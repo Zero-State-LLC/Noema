@@ -256,8 +256,10 @@ def test_device_enrollment_client_against_fake():
     )
     public = provider.start()
     assert public["user_code"] == "AB12-CD34"
+    assert public["verification_uri"] == "https://noema.guru/connect?code=AB12-CD34"
     assert "access_token" not in public
     assert "device_code" not in public
+    assert any("connect?code=AB12-CD34" in line for line in shown)
     provider.poll_until_ready()
     assert provider.reveal() == TOKEN
     blob = "\n".join(shown) + json.dumps(public)
