@@ -5,13 +5,15 @@
 
 import { enrichEntity } from "./actions";
 
-export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s11";
+export const COMMUNICATION_CATALOG_ID = "communication-catalog/gc5-s12";
 /** GC5-S9. Last public shout drops after this many committed cycles. */
 export const SHOUT_EXPIRE_AFTER_CYCLES = 1;
 /** GC5-S10. Public board notices drop after this many committed cycles. */
 export const BOARD_EXPIRE_AFTER_CYCLES = 1;
 /** GC5-S11. Occupied institution notice drops after this many committed cycles. */
 export const NOTICE_EXPIRE_AFTER_CYCLES = 1;
+/** GC5-S12. Last org channel note drops after this many committed cycles. */
+export const CHANNEL_EXPIRE_AFTER_CYCLES = 1;
 export const LONG_RANGE_MIN_CONDITION = 25;
 export const SAME_CYCLE_MIN_CONDITION = 50;
 export const DELAY_CYCLES = 1;
