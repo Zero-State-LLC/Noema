@@ -20,7 +20,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.gc2-s20",
+    world_id: "test.hosted-canonical.gc2-s21",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -62,22 +62,23 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("GC2-S20 mapper", () => {
-  it("keeps SHARE cost, caps at two co-owners, and stays silent", () => {
+describe("GC2-S21 mapper", () => {
+  it("keeps SHARE cost, caps at three co-owners, and stays silent", () => {
     expect(SHARE_COST).toEqual({ compute: 1 });
-    expect(SHARE_MAX_CO_OWNERS).toBeGreaterThanOrEqual(2);
+    expect(SHARE_MAX_CO_OWNERS).toBe(3);
     expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "SHARE" })).toBeNull();
     expect(helpText()).not.toMatch(/\bBUILD\b|\bSHARE\b/i);
   });
 });
 
-describe("GC2-S20 world path", () => {
-  it("lets the owner name a second co-owner and rejects re-sharing that partner", async () => {
+describe("GC2-S21 world path", () => {
+  it("lets the owner name a third co-owner and rejects a fourth", async () => {
     const w = world();
     const a = principal("player.nacre");
     const b = principal("player.vesper");
     const c = principal("player.oriole");
     const d = principal("player.kite");
+    const e = principal("player.tern");
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].handle = "Nacre";
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
@@ -88,11 +89,14 @@ describe("GC2-S20 world path", () => {
     await run(w, b, "ENTER_WORLD");
     await run(w, c, "ENTER_WORLD");
     await run(w, d, "ENTER_WORLD");
+    await run(w, e, "ENTER_WORLD");
     w.players[b.player_id].handle = "Vesper";
     w.players[c.player_id].handle = "Oriole";
+    w.players[d.player_id].handle = "Kite";
     w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[c.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
+    w.players[d.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const shop = w.rooms["room.hub"].entities.find((ent) => ent.infra_type === "workshop")!;
     const entityId = shop.entity_id;
 
     const first = await run(w, a, "BUILD", {
@@ -101,16 +105,6 @@ describe("GC2-S20 world path", () => {
       player_id: b.player_id,
     });
     expect(first.ok).toBe(true);
-    expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === entityId)?.co_owner_id).toBe(b.player_id);
-
-    const byCoOwner = await run(w, b, "BUILD", {
-      operation: "SHARE",
-      entity_id: entityId,
-      player_id: c.player_id,
-    });
-    expect(byCoOwner.ok).toBe(false);
-    expect(byCoOwner.error?.code).toBe("NOT_OWNER");
-
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const second = await run(w, a, "BUILD", {
       operation: "SHARE",
@@ -118,29 +112,46 @@ describe("GC2-S20 world path", () => {
       player_id: c.player_id,
     });
     expect(second.ok).toBe(true);
-    expect(second.events?.map((e) => e.event_type).sort()).toEqual(["BUDGET_CONSUMED", "ENTITY_UPDATE"]);
-    expect(JSON.stringify(second.events || [])).not.toMatch(/STRUCTURE_/);
-    const after = w.rooms["room.hub"].entities.find((e) => e.entity_id === entityId)!;
-    expect(after.co_owner_id).toBe(b.player_id);
-    expect(after.co_owner_2_id).toBe(c.player_id);
-    expect(second.observation?.consequence).toMatch(/share the workshop with Oriole/i);
 
-    const again = await run(w, a, "BUILD", {
+    const byCoOwner = await run(w, c, "BUILD", {
       operation: "SHARE",
       entity_id: entityId,
-      player_id: c.player_id,
+      player_id: d.player_id,
     });
-    expect(again.ok).toBe(false);
-    expect(again.error?.code).toBe("NOT_ADDRESSABLE");
+    expect(byCoOwner.ok).toBe(false);
+    expect(byCoOwner.error?.code).toBe("NOT_OWNER");
 
-    const upgrade = await run(w, c, "BUILD", { operation: "UPGRADE", entity_id: entityId });
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const third = await run(w, a, "BUILD", {
+      operation: "SHARE",
+      entity_id: entityId,
+      player_id: d.player_id,
+    });
+    expect(third.ok).toBe(true);
+    expect(third.events?.map((ev) => ev.event_type).sort()).toEqual(["BUDGET_CONSUMED", "ENTITY_UPDATE"]);
+    expect(JSON.stringify(third.events || [])).not.toMatch(/STRUCTURE_/);
+    const after = w.rooms["room.hub"].entities.find((ent) => ent.entity_id === entityId)!;
+    expect(after.co_owner_id).toBe(b.player_id);
+    expect(after.co_owner_2_id).toBe(c.player_id);
+    expect(after.co_owner_3_id).toBe(d.player_id);
+    expect(third.observation?.consequence).toMatch(/share the workshop with Kite/i);
+
+    const fourth = await run(w, a, "BUILD", {
+      operation: "SHARE",
+      entity_id: entityId,
+      player_id: e.player_id,
+    });
+    expect(fourth.ok).toBe(false);
+    expect(fourth.error?.code).toBe("FORBIDDEN");
+
+    const upgrade = await run(w, d, "BUILD", { operation: "UPGRADE", entity_id: entityId });
     expect(upgrade.ok).toBe(true);
 
     w.players[a.player_id].room_id = "room.vault";
     const hidden = await run(w, a, "BUILD", {
       operation: "SHARE",
       entity_id: entityId,
-      player_id: d.player_id,
+      player_id: e.player_id,
     });
     expect(hidden.ok).toBe(false);
     expect(hidden.error?.code).toBe("NOT_OBSERVABLE");

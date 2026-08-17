@@ -57,6 +57,8 @@ export type EntityRuntime = {
   co_owner_id?: string;
   /** GC2-S20. Second additional Player steward. */
   co_owner_2_id?: string;
+  /** GC2-S21. Third additional Player steward. */
+  co_owner_3_id?: string;
   /** GC2-S12. Public dest room a route_link faces. Never a new exit. */
   dest_room_id?: string;
   /** GC2-S0 class. Explicit wins over id/label matching. */
@@ -501,6 +503,7 @@ export function enrichEntity(e: {
   owner_id?: string;
   co_owner_id?: string;
   co_owner_2_id?: string;
+  co_owner_3_id?: string;
   infra_type?: ConstructibleClass;
   hidden?: boolean;
   inspect_restricted_until?: number;
@@ -531,6 +534,7 @@ export function enrichEntity(e: {
     owner_id: e.owner_id,
     co_owner_id: e.co_owner_id,
     co_owner_2_id: e.co_owner_2_id,
+    co_owner_3_id: e.co_owner_3_id,
     dest_room_id: e.dest_room_id,
     infra_type: e.infra_type,
     scar: e.scar === true ? true : undefined,
