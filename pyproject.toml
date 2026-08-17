@@ -28,6 +28,7 @@ noema-restore = "noema.cli.restore:main"
 noema-keygen-evidence = "noema.cli.evidence:main_keygen"
 noema-export-evidence = "noema.cli.evidence:main_export"
 noema-verify-evidence = "noema.cli.evidence:main_verify"
+noema-agent = "noema.cli.agent:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/noema"]

@@ -59,8 +59,8 @@ The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the C
 
 ```bash
 ./scripts/agent_cf_e2e.sh
-python scripts/noema_agent_client.py --base https://noema.guru
-# docs: docs/AGENT-STAGE0.md
+python scripts/noema_agent_client.py --base https://noema.guru enroll
+# docs: docs/AGENT-STAGE0.md · Specs: AGENT-HARNESS.md
 ```
 
 ```bash
