@@ -32,7 +32,10 @@ import {
 } from "./actions";
 import {
   AGREEMENT_FORM_COST,
+  AGREEMENT_TERMINATE_COST,
   allocateAgreementId,
+  allocateBreachId,
+  parseAgreementReason,
   parseAgreementType,
   samePair,
   type FormalAgreement,
@@ -1011,6 +1014,7 @@ export async function applyWorldCommand(
       "CONTEST_WITHDRAW",
       "ATTEST",
       "AGREEMENT_FORM",
+      "AGREEMENT_TERMINATE",
     ].includes(envl.command.toUpperCase())
   ) {
     const pl = w.players[principal.player_id];
@@ -2120,6 +2124,9 @@ export async function applyWorldCommand(
     }
     if (action.arguments.operation === "AGREEMENT_FORM") {
       return applyAgreementForm(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
+    if (action.arguments.operation === "AGREEMENT_TERMINATE") {
+      return applyAgreementTerminate(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
     if (
       action.arguments.operation === "ORG_OFFICE_CREATE" ||
@@ -3725,6 +3732,69 @@ async function applyAgreementForm(
     request_id,
     events,
     `You offer a trade agreement to ${other.handle || otherId.replace(/^player\./, "")}.`,
+    true,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function applyAgreementTerminate(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
+  const agreement_id = String(args.agreement_id || "").trim();
+  const reason = parseAgreementReason(String(args.reason || ""));
+  if (!agreement_id) return fail(request_id, "INVALID_REQUEST", "agreement_id required");
+  if (!reason) return fail(request_id, "INVALID_REQUEST", "reason must be a catalog terminate reason");
+  if (!canPay(pl.budgets, AGREEMENT_TERMINATE_COST)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute to end that agreement.");
+  }
+  w.agreements = w.agreements || {};
+  const agr = w.agreements[agreement_id];
+  if (!agr) return fail(request_id, "NOT_FOUND", "There is no such agreement.");
+  if (!agr.party_ids.includes(principal.player_id)) {
+    return fail(request_id, "FORBIDDEN", "You are not a party to that agreement.");
+  }
+  if (agr.status === "OFFERED") {
+    if (agr.offered_by !== principal.player_id) {
+      return fail(request_id, "FORBIDDEN", "Only the offerer can withdraw that offer.");
+    }
+    debit(pl.budgets, AGREEMENT_TERMINATE_COST);
+    delete w.agreements[agreement_id];
+    const result = success(w, principal, request_id, events, `You withdraw the trade offer.`, true);
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  if (agr.status !== "ACTIVE") {
+    return fail(request_id, "FORBIDDEN", "That agreement is already ended.");
+  }
+  debit(pl.budgets, AGREEMENT_TERMINATE_COST);
+  agr.status = "BROKEN";
+  const ev = pushEvent("AGREEMENT_BROKEN", {
+    breach_id: allocateBreachId(),
+    agreement_id: agr.agreement_id,
+    broken_by: principal.player_id,
+    reason,
+    breach_type: "EXPLICIT_TERMINATION",
+    influence_delta_by_party: { [principal.player_id]: 0 },
+    release_commitments: true,
+    visibility: "PUBLIC",
+  });
+  await settleEv(ev);
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `Trade agreement ${agr.agreement_id} is broken.`,
     true,
   );
   w.seen_idempotency[idem] = result;
