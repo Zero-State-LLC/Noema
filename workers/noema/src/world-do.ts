@@ -737,28 +737,29 @@ export class NoemaWorldDO {
 
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
-    const w = this.world!;
     const mutating = isMutatingCommand(commandForOps(envl.command, envl.arguments));
     const health = this.meta!.settlement_health || "HEALTHY";
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const durable = await getWorldHead(this.env, w.world_id);
+      const durable = await getWorldHead(this.env, this.world!.world_id);
       if (durable && typeof durable.revision === "number") {
         const durableRev = durable.revision;
         const localRev = this.meta!.revision ?? 0;
         const gate = checkExpectedHead(localRev, {
-          world_id: w.world_id,
+          world_id: this.world!.world_id,
           revision: durableRev,
           sequence: durable.sequence,
           cycle: durable.cycle,
           writer_generation: durable.writer_generation,
         }, this.meta!.writer_generation || "do.1");
         if (!gate.ok) {
-          this.world = worldFromHead(durable, w);
+          this.world = worldFromHead(durable, this.world!);
+          migrateWorldRuntime(this.world);
           this.meta!.revision = durableRev;
           await this.save();
         }
       }
     }
+    const w = this.world!;
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
       if (gate) {
@@ -864,7 +865,7 @@ export class NoemaWorldDO {
     if (result.ok && result.events?.length) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
-    const keys = Object.keys(w.seen_idempotency);
+    const keys = Object.keys(w.seen_idempotency || {});
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
     }

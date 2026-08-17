@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken } from "../src/auth";
+import { canonicalWorldState } from "../src/canonical-state";
 import worker from "../src/index";
-import { playReady } from "../src/ops";
+import { countEnteredPlayers, countLivePlayers, playReady } from "../src/ops";
 import { humanizeError, waitingCopy } from "../src/play-ui";
 import { playCallbackHtml } from "../src/play-login-html";
 import { playHtml } from "../src/play";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "../src/types";
-import { applyWorldCommand, buildObservation, type WorldRuntime } from "../src/world-actions";
+import { applyWorldCommand, buildObservation, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
 
 function principal(id = "player.a7a22752ad02"): PlayerPrincipal {
   return {
@@ -102,7 +103,7 @@ function liveDo(world: WorldRuntime) {
             world_name: world.world_name,
             cycle: world.cycle,
             sequence: world.sequence,
-            players: 0,
+            players: countLivePlayers(world.players),
             status: "ACTIVE",
             settlement_health: "HEALTHY",
             genesis_id: "genesis.ef578f4ffceeccd0",
@@ -192,6 +193,126 @@ describe("play attach — empty world snapshot", () => {
     expect(body.error?.code).toBe("WORLD_NOT_READY");
     expect(body.error?.message).not.toMatch(/internal error/i);
     expect(body.observation?.world_name).toBe("Perihelion Reach");
+  });
+});
+
+describe("play attach — canonical head snapshot", () => {
+  it("ENTER then LOOK on a head snapshot (no seen_idempotency) binds the player and returns a location", async () => {
+    const head = canonicalWorldState(perihelionWorld()) as WorldRuntime;
+    expect(head.seen_idempotency).toBeUndefined();
+    const p = principal();
+    const entered = await run(head, p, "LOOK", { line: "enter" });
+    expect(entered.ok).toBe(true);
+    expect(entered.error).toBeUndefined();
+    expect(head.players[p.player_id]?.entered).toBe(true);
+    expect(head.players[p.player_id]?.room_id).toBe("room.relay-quarter");
+    expect(entered.observation?.in_world).toBe(true);
+    expect(entered.observation?.location?.name).toMatch(/Relay/);
+    expect(countEnteredPlayers(head.players)).toBe(1);
+    expect(countLivePlayers(head.players)).toBe(1);
+
+    const looked = await run(head, p, "LOOK", { line: "look" });
+    expect(looked.ok).toBe(true);
+    expect(looked.error).toBeUndefined();
+    expect(looked.observation?.location?.description).toMatch(/frontier station/i);
+    expect(looked.observation?.sequence).toBeGreaterThan(0);
+    expect(looked.observation?.in_world).toBe(true);
+  });
+
+  it("LOOK before ENTER on a head snapshot is NOT_IN_WORLD, not COMMAND_FAILED", async () => {
+    const head = canonicalWorldState(perihelionWorld()) as WorldRuntime;
+    const looked = await run(head, principal(), "LOOK", { line: "look" });
+    expect(looked.ok).toBe(false);
+    expect(looked.error?.code).toBe("NOT_IN_WORLD");
+    expect(looked.error?.message).toMatch(/enter/i);
+    expect(looked.observation?.world_name).toBe("Perihelion Reach");
+    expect(looked.observation?.in_world).toBe(false);
+    expect(countEnteredPlayers(head.players)).toBe(0);
+  });
+
+  it("migrate + ENTER then LOOK matches the Durable Object load path from a head", async () => {
+    const head = canonicalWorldState(perihelionWorld()) as WorldRuntime;
+    migrateWorldRuntime(head);
+    expect(head.seen_idempotency).toEqual({});
+    const p = principal();
+    const entered = await run(head, p, "LOOK", { line: "enter" });
+    expect(entered.ok).toBe(true);
+    const looked = await run(head, p, "LOOK", { line: "look" });
+    expect(looked.ok).toBe(true);
+    expect(looked.observation?.location?.name).toMatch(/Relay/);
+  });
+
+  it("authenticated magic-link session ENTER then LOOK attaches against a head snapshot", async () => {
+    const head = canonicalWorldState(perihelionWorld()) as WorldRuntime;
+    const enter = await authedCommand(head, {
+      request_id: "web.head-enter",
+      idempotency_key: "web.head-enter",
+      command: "LOOK",
+      arguments: { line: "enter" },
+    });
+    expect(enter.status).toBe(200);
+    const entered = (await enter.json()) as {
+      ok?: boolean;
+      error?: { code?: string };
+      observation?: { in_world?: boolean; location?: { name?: string }; sequence?: number };
+    };
+    expect(entered.ok).toBe(true);
+    expect(entered.error).toBeUndefined();
+    expect(entered.observation?.in_world).toBe(true);
+    expect(entered.observation?.location?.name).toMatch(/Relay/);
+    expect(head.players["player.a7a22752ad02"]?.entered).toBe(true);
+    expect(countLivePlayers(head.players)).toBe(1);
+
+    const look = await authedCommand(head, {
+      request_id: "web.head-look",
+      idempotency_key: "web.head-look",
+      command: "LOOK",
+      arguments: { line: "look" },
+    });
+    expect(look.status).toBe(200);
+    const looked = (await look.json()) as {
+      ok?: boolean;
+      observation?: { location?: { description?: string }; sequence?: number };
+    };
+    expect(looked.ok).toBe(true);
+    expect(looked.observation?.location?.description).toMatch(/frontier station/i);
+    expect(looked.observation?.sequence).not.toBeUndefined();
+
+    const env = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret",
+      NOEMA_ENV: "production",
+      NOEMA_PROTOCOL_VERSION: "1",
+      DEFAULT_WORLD_ID: "world.perihelion-reach",
+      WORLD_DO: liveDo(head),
+    } as unknown as Env;
+    const ready = await worker.fetch(new Request("https://noema.guru/ready"), env);
+    const readyBody = (await ready.json()) as { ready?: boolean; world?: { players?: number; playable?: boolean } };
+    expect(readyBody.ready).toBe(true);
+    expect(readyBody.world?.playable).toBe(true);
+    expect(readyBody.world?.players).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ENTER then LOOK still attaches when the head snapshot has an org without members", async () => {
+    const live = perihelionWorld();
+    live.organizations = {
+      "org.worn-compact": {
+        org_id: "org.worn-compact",
+        name: "Worn Compact",
+        charter: "hold the relay",
+        status: "ACTIVE",
+        creator_id: "player.prior",
+        members: undefined as unknown as [],
+        created_cycle: 0,
+      },
+    };
+    const head = canonicalWorldState(live) as WorldRuntime;
+    const p = principal();
+    const entered = await run(head, p, "LOOK", { line: "enter" });
+    expect(entered.ok).toBe(true);
+    expect(entered.observation?.location?.name).toMatch(/Relay/);
+    const looked = await run(head, p, "LOOK", { line: "look" });
+    expect(looked.ok).toBe(true);
+    expect(looked.observation?.in_world).toBe(true);
   });
 });
 

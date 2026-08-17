@@ -424,7 +424,10 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
 
 function roomEntities(room: RoomState | null | undefined): EntityRuntime[] {
   if (!room || typeof room !== "object") return [];
-  room.entities = (room.entities || []).map((e) => enrichEntity(e));
+  const raw = Array.isArray(room.entities) ? room.entities : [];
+  room.entities = raw
+    .filter((e): e is NonNullable<typeof e> => Boolean(e && typeof e === "object"))
+    .map((e) => enrichEntity(e));
   return room.entities.filter((e) => !isHiddenEntity(e));
 }
 
@@ -587,8 +590,8 @@ export function buildObservation(
         charter: o.charter,
         status: o.status,
         creator_id: o.creator_id,
-        members: o.members.map((m) => ({ agent_id: m.agent_id, role: m.role })),
-        my_role: o.members.find((m) => m.agent_id === principal.player_id)?.role || null,
+        members: (o.members || []).map((m) => ({ agent_id: m.agent_id, role: m.role })),
+        my_role: (o.members || []).find((m) => m.agent_id === principal.player_id)?.role || null,
         created_cycle: o.created_cycle,
         offices: publicOffices(
           o.offices,
@@ -994,10 +997,19 @@ function success(
   recordPractice(w, principal.player_id, events);
   recordTradeMemory(w, events);
   recordCulture(w, principal.player_id, events);
+  let observation: Observation;
+  try {
+    observation = buildObservation(w, principal, consequence);
+  } catch {
+    observation = {
+      ...emptyPlayObservation(w, principal, consequence),
+      in_world: Boolean(w.players?.[principal.player_id]?.entered),
+    };
+  }
   return {
     ok: true,
     request_id,
-    observation: buildObservation(w, principal, consequence),
+    observation,
     events,
     provenance: {
       player_id: principal.player_id,
@@ -1021,6 +1033,9 @@ export async function applyWorldCommand(
   }) => Promise<boolean>,
 ): Promise<CommandResult> {
   const request_id = envl.request_id || crypto.randomUUID();
+  if (!w.seen_idempotency || typeof w.seen_idempotency !== "object") w.seen_idempotency = {};
+  if (!Array.isArray(w.unsettled)) w.unsettled = [];
+  if (!w.players || typeof w.players !== "object") w.players = {};
   const idem = `${principal.player_id}::${envl.idempotency_key || request_id}`;
   if (w.seen_idempotency[idem]) return w.seen_idempotency[idem];
 
@@ -3282,16 +3297,24 @@ export async function applyWorldCommand(
 export function migrateWorldRuntime(w: WorldRuntime): void {
   if (!w.rooms || typeof w.rooms !== "object") w.rooms = {};
   if (!w.players || typeof w.players !== "object") w.players = {};
+  if (!w.seen_idempotency || typeof w.seen_idempotency !== "object") w.seen_idempotency = {};
+  if (!Array.isArray(w.unsettled)) w.unsettled = [];
   w.trades = w.trades || {};
   w.messages = w.messages || [];
   w.organizations = w.organizations || {};
   w.reconstructions = w.reconstructions || {};
   for (const org of Object.values(w.organizations)) {
     if (!org.offices) org.offices = {};
+    if (!Array.isArray(org.members)) org.members = [];
   }
   if (!w.culture) w.culture = emptyCulture();
   for (const room of Object.values(w.rooms)) {
-    room.entities = (room.entities || []).map((e) => enrichEntity(e));
+    if (!room || typeof room !== "object") continue;
+    const raw = Array.isArray(room.entities) ? room.entities : [];
+    room.entities = raw
+      .filter((e): e is NonNullable<typeof e> => Boolean(e && typeof e === "object"))
+      .map((e) => enrichEntity(e));
+    if (!Array.isArray(room.exits)) room.exits = [];
   }
   for (const p of Object.values(w.players)) {
     if (!p.budgets) p.budgets = cloneBudgets(null);
