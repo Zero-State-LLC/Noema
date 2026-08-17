@@ -141,6 +141,11 @@ code{color:var(--color-text-machine);font-size:.88em}
   .top{flex-direction:column;align-items:flex-start}
   .nav{margin-left:0;justify-content:flex-start}
 }
+@media(max-width:640px){
+  .btn{min-height:44px}
+  .nav a{min-height:44px;display:inline-flex;align-items:center}
+  input,select{min-height:44px;font-size:16px}
+}
 @media(max-width:540px){
   .brand-sub{display:none}
   .runtime{font-size:.65rem}

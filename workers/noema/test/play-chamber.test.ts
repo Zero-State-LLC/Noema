@@ -71,6 +71,14 @@ describe("play chamber HTML", () => {
     expect(html).not.toContain('value="player1"');
   });
 
+  it("declares a 640px mobile contract: 44px targets, 16px command, sticky composer", () => {
+    expect(html).toMatch(/@media\(max-width:640px\)/);
+    expect(html).toMatch(/min-height:44px/);
+    expect(html).toMatch(/\.cmdform input[^}]*font-size:16px/);
+    expect(html).toMatch(/\.ch-cmd\{[^}]*position:sticky/);
+    expect(html).toMatch(/overflow-x:clip/);
+  });
+
   it("chamber default copy is not Outside / Enter world", () => {
     expect(chamber).not.toMatch(/Outside/);
     expect(chamber).not.toMatch(/Enter world/);
