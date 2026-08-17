@@ -1,7 +1,21 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
-**Addendum 2026-08-16 (OBSERVED, do not rewrite the snapshot below).**  
-`GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE`, `settlement_health:HEALTHY`, `sequence:94`, `genesis.ef578f4ffceeccd0`. Recover unblocked PLAY. `#132` treats WAIT as mutating and forbids LOOK auto-enter. SQL head row was **not** re-read from this environment. Main at addendum: `7802ce4`.
+**Addendum 2026-08-17 live probe.**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
+
+OBSERVED `GET https://noema.guru/ready`: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence 288, `genesis_id:genesis.ef578f4ffceeccd0`. Worker secret names include `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Host `dezykkherxlaysxyvgbs.supabase.co` answers 401 without apikey.
+
+SQL head row and RPC bodies were **not** read (no service-role session). Did **not** apply migrations. Did **not** invent a Perihelion head. Operator inspect: `workers/noema/scripts/inspect-settlement.mjs`.
+
+**Addendum 2026-08-17 inventory (on disk).**  
+This pass also read Worker/SQL on disk. Production PLAY commits via `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Recover is the only path when the DO has state and the SQL head is missing.
+
+Worker `settle.ts` commits via `noema_commit_canonical_settlement` (`p_allow_bootstrap=false` on `/v1/command`). Recover adopts via `noema_adopt_live_world_head` or REST snapshot only (`incident-recover.ts`; `world-do.ts` admin-lifecycle recover). Recover is the only path when the DO has state and the SQL head is missing. Admin ≠ Player. WORLD TRUTH ≠ RESEARCH. One fenced writer.
+
+Prior-doc `2026-08-16` notes claimed `GET https://noema.guru/ready` ACTIVE/HEALTHY and also disagreed on sequence (`94` here vs `92` in PRODUCTION-GENESIS-GATE). Those live numbers are **not re-verified**. Same notes already recorded `Migration applied: NO`, RPC not inspected, SQL head not re-read. That gap list still stands.
+
+**Addendum 2026-08-16 (prior-doc, not re-fetched).**  
+Documented then: `GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE`, `settlement_health:HEALTHY`, `sequence:94`, `genesis.ef578f4ffceeccd0`. Recover unblocked PLAY. `#132` treats WAIT as mutating and forbids LOOK auto-enter. SQL head row was **not** re-read. Main at that addendum: `7802ce4`.
 
 **Pages retirement (2026-08-16, OBSERVED):** account `315fb44b61212825452aad0ca566ea42` has **zero** Cloudflare Pages projects. `noema.guru` and `www.noema.guru` are Worker custom domains on `noema-gateway` production. Product HTML is Worker `[assets]`. Do not attach a Pages project to this zone.
 
@@ -19,13 +33,13 @@ CANONICAL_HEAD_SCHEMA_VERIFIED
 PERIHELION_CANONICAL_BOOTSTRAP_BLOCKED
 ```
 
-First-world PLAY on Perihelion is live (`ACTIVE` / `HEALTHY` / `genesis.ef578f4ffceeccd0`, cycle 0, seq 75). Isolated harness #99 is on production (`3229a75`). This environment could not execute the Worker/DO settlement proof (no Player+admin dual-auth, no SQL session). Schema status is the prior operator claim; it was **not** re-read here.
+First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Isolated harness #99 is on production (`3229a75`) per prior deploy note. This inventory still could not execute the Worker/DO settlement proof and did not fetch live `/ready`. Schema status is the prior operator claim; hosted SQL was **not** re-read here.
 
 ## Scorecard (post-S0)
 
 | Domain | Status | Notes |
 |---|---|---|
-| A Hosted authority | PARTIAL | #96 Worker calls `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Hosted RPC not confirmed applied. |
+| A Hosted authority | PARTIAL | Worker calls `noema_commit_canonical_settlement` with `p_allow_bootstrap=false`. Hosted RPC not inspected this inventory. |
 | B Canonical writers | PARTIAL | Mutating ACK waits on that RPC; failure restores pre-command DO state and sets INCIDENT. |
 | C Idempotency | IMPLEMENTED | `seen_idempotency[player_id::key]` |
 | D Atomic cycle / settlement | PARTIAL | Isolated operator route is deployed. Hosted Worker/DO settlement proof not executed. |
@@ -112,15 +126,16 @@ Fixed since the morning audit (do not re-open as defects):
 
 ## Operator SQL (still required)
 
-Apply in order, hosted Postgres only. Do not reset. Do not fabricate a Perihelion head.
+Apply in order, hosted Postgres only. Do not reset. Do not fabricate a Perihelion head. Do not reseed Genesis.
 
 ```text
-Noema/supabase/migrations/20260813210000_noema_world_heads.sql
-Noema/supabase/migrations/20260813223000_noema_world_head_fence.sql
-Noema/supabase/migrations/20260813233000_noema_atomic_canonical_settlement.sql
+supabase/migrations/20260813210000_noema_world_heads.sql
+supabase/migrations/20260813223000_noema_world_head_fence.sql
+supabase/migrations/20260813233000_noema_atomic_canonical_settlement.sql
+supabase/migrations/20260816013000_noema_adopt_live_world_head.sql
 ```
 
-This environment cannot apply them. After #96 deploy, a mutating PLAY command will fail-closed (`MISSING_CANONICAL_HEAD` / RPC miss) and enter INCIDENT rather than skip. Apply SQL before the next production mutation.
+All four files are on disk. Hosted apply of each is **not independently verified**. After the Worker is on the atomic RPC, a mutating PLAY command fail-closes (`MISSING_CANONICAL_HEAD` / RPC miss) and enters INCIDENT rather than skip. Recover is the only path when the DO has state and the SQL head is missing.
 
 ## Next (not authorized here)
 
