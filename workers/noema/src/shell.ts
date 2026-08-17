@@ -150,6 +150,24 @@ code{color:var(--color-text-machine);font-size:.88em}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+.glyph{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em;flex:0 0 auto}
+.glyph svg{display:block;width:100%;height:100%}
+.glyph-player{color:var(--color-state-social)}
+.glyph-trade,.glyph-economy{color:var(--color-state-economic)}
+.glyph-danger{color:var(--color-state-critical)}
+.glyph-distress,.glyph-threshold{color:var(--color-state-warning)}
+.glyph-rumor,.glyph-unknown{color:var(--color-state-unknown)}
+.glyph-comms,.glyph-event,.glyph-loc{color:var(--color-state-active)}
+.glyph-infra{color:var(--color-text-machine)}
+.glyph-resource,.glyph-org{color:var(--color-text-secondary)}
+.legend{margin:.75rem 0 0}
+.legend summary{
+  cursor:pointer;color:var(--color-text-secondary);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
+}
+.key-body{display:grid;gap:.35rem;margin:.55rem 0 0}
+.key-row{display:flex;gap:.55rem;align-items:flex-start;font-size:.8rem;color:var(--color-text-primary)}
+.key-row strong{font-weight:600}
 `;
 
 export type ProductNav = "home" | "play" | "watch" | "study" | "connect";

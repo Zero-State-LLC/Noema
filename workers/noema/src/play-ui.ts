@@ -4,6 +4,7 @@
  */
 
 import { helpText, parseHumanCommand } from "./actions";
+import { glyphEl, glyphForEntity, glyphForLine, glyphMeta } from "./presentation/glyphs";
 import { toPlayerView } from "./presentation/player-view";
 import { label } from "./presentation/terms";
 
@@ -955,6 +956,7 @@ export function fillPlayersHere(
     const handle = playerHandle(p);
     const li = h("li");
     li.append(
+      glyphEl("player"),
       cmdBtn("message " + handle + ' "', handle, "Message " + handle),
       " ",
       cmdBtn("trade " + handle + " offer=", "trade", "Trade " + handle),
@@ -1105,7 +1107,12 @@ export function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void
       sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
     }
     const li = h("li");
-    li.append(cmdBtn("inspect " + e.label, name), " ", h("span", "muted", sub));
+    li.append(
+      glyphEl(glyphForEntity(e.entity_type, e.label, e.condition)),
+      cmdBtn("inspect " + e.label, name),
+      " ",
+      h("span", "muted", sub),
+    );
     if (e.repairable) li.append(" ", cmdBtn("repair " + e.label, "repair"));
     if (e.harvestable) li.append(" ", cmdBtn("harvest " + e.label, "harvest"));
     el.append(li);
@@ -1162,7 +1169,9 @@ export function fillSignalFeed(el: DomRoot & { hidden?: boolean }, lines: string
   }
   if (wrap) wrap.hidden = false;
   for (const line of lines) {
-    el.append(h("li", "", line));
+    const li = h("li");
+    li.append(glyphEl(glyphForLine(line)), " ", line);
+    el.append(li);
   }
 }
 
@@ -1202,7 +1211,15 @@ export function fillDisclosure(
   }
   details.hidden = false;
   for (const line of lines) {
-    list.append(h("li", itemClass || "", line));
+    const li = h("li", itemClass || "");
+    const mark =
+      itemClass === "rumor"
+        ? "rumor"
+        : /contest|danger/i.test(line)
+          ? "danger"
+          : glyphForLine(line);
+    li.append(glyphEl(mark), " ", line);
+    list.append(li);
   }
 }
 
@@ -1211,6 +1228,10 @@ export function playUiRuntimeSource(): string {
   return [
     label,
     toPlayerView,
+    glyphMeta,
+    glyphForEntity,
+    glyphForLine,
+    glyphEl,
     escHtml,
     titleCaseLabel,
     entityKindPhrase,
