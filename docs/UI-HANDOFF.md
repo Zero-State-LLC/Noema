@@ -38,7 +38,7 @@ Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/te
 | `GET /` | `landingHtml` | World door + Player email |
 | `GET /play` | `playHtml` | Door + chamber (mast / scroll / rail / command) |
 | `GET /play/callback` | `playCallbackHtml` | Magic-link consume |
-| `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor |
+| `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor. Visual map: [WATCH-VISUAL-MAP.md](WATCH-VISUAL-MAP.md). |
 | `GET /connect` | `connectHtml` | External Controller |
 | `GET /study` | `studyHtml` | Honest stub |
 | `GET /admin/login` | `adminLoginHtml` | Operator email |

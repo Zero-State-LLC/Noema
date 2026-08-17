@@ -85,3 +85,13 @@ class TurnResult:
     failure: FailureClass | None = None
     proposal: ActionProposal | None = None
     result: CommandResult | None = None
+
+
+@dataclass
+class UnattendedRun:
+    turns: list[TurnResult]
+    first_observe: dict[str, Any] | None
+    orientation_ok: bool
+    orientation_reason: str | None
+    stopped: bool
+    reason: str | None = None

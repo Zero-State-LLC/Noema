@@ -10,7 +10,8 @@ from noema.harness.memory import WorkingMemory
 from noema.harness.observe import prepare_context, to_state
 from noema.harness.policy import HarnessPolicy
 from noema.harness.transport import GatewayClient
-from noema.harness.types import ActionProposal, FailureClass, NoemaState, TurnResult
+from noema.harness.orientation import check_orientation_s0
+from noema.harness.types import ActionProposal, FailureClass, NoemaState, TurnResult, UnattendedRun
 from noema.harness.validate import validate_proposal
 
 
@@ -120,3 +121,70 @@ class HeadlessHarness:
             proposal=proposal,
             result=result,
         )
+
+    def _act(self, proposal: ActionProposal) -> TurnResult:
+        saved = self.adapter
+        self.adapter = ScriptedOnce(proposal)
+        try:
+            return self.run_turn()
+        finally:
+            self.adapter = saved
+
+    def run_unattended(self, max_turns: int = 8, *, enter: bool = True) -> UnattendedRun:
+        """ENTER → first OBSERVE (S0) → advertised acts until stop or max_turns."""
+        turns: list[TurnResult] = []
+        first_obs: dict[str, Any] | None = None
+        if enter:
+            entered = self._act(ActionProposal(action="ENTER_WORLD"))
+            turns.append(entered)
+            if not entered.ok:
+                return UnattendedRun(
+                    turns=turns,
+                    first_observe=None,
+                    orientation_ok=False,
+                    orientation_reason="ENTER_FAILED",
+                    stopped=True,
+                    reason=entered.reason or (entered.failure.value if entered.failure else "enter_failed"),
+                )
+        observed = self._act(ActionProposal(action="OBSERVE"))
+        turns.append(observed)
+        if observed.result and observed.result.observation:
+            first_obs = observed.result.observation
+        elif self._observation:
+            first_obs = self._observation
+        orient = check_orientation_s0(first_obs)
+        if not orient.ok:
+            self.breaker.trip("orientation_s0")
+            return UnattendedRun(
+                turns=turns,
+                first_observe=first_obs,
+                orientation_ok=False,
+                orientation_reason=orient.reason,
+                stopped=True,
+                reason="orientation_s0",
+            )
+        while len(turns) < max_turns:
+            turn = self.run_turn()
+            turns.append(turn)
+            if turn.stopped or not turn.ok:
+                break
+        return UnattendedRun(
+            turns=turns,
+            first_observe=first_obs,
+            orientation_ok=True,
+            orientation_reason=None,
+            stopped=turns[-1].stopped if turns else True,
+            reason=turns[-1].reason if turns else None,
+        )
+
+
+class ScriptedOnce:
+    def __init__(self, proposal: ActionProposal) -> None:
+        self._proposal = proposal
+        self._used = False
+
+    def decide(self, _context: dict[str, Any]) -> ActionProposal | None:
+        if self._used:
+            return None
+        self._used = True
+        return self._proposal

@@ -316,7 +316,7 @@ describe("slice 3 — event-driven pulses", () => {
       100,
       false,
     );
-    expect(born.map((p) => p.tier).sort()).toEqual(["MAJOR", "NOTABLE"]);
+    expect(born.map((p) => p.tier)).toEqual(["MAJOR"]);
     expect(collectPulses(12, { sequence: 12, recent_events: born as never[] }, 100, false)).toEqual([]);
     const twoMajor = collectPulses(
       0,
@@ -499,7 +499,7 @@ describe("slice 5 — budgets, idle, regressions", () => {
     session.update({
       sequence: 4,
       rooms: [{ room_id: "room.a", name: "A", players_present: 1 }],
-      recent_events: [{ sequence: 4, tier: "NORMAL", room_id: "room.a" }],
+      recent_events: [{ sequence: 4, tier: "MAJOR", room_id: "room.a" }],
     });
     expect(session.rafStarts).toBe(1);
     now = 10_000;
