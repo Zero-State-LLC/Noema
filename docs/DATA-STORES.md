@@ -26,7 +26,7 @@ Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply
 | Workers Logs for `noema-gateway` | wrangler `[observability]` enabled (invocation logs). Prior MCP query only saw `agi-public`. | OBSERVED on disk; live ingest after deploy |
 | Worker secrets named on `noema-gateway` | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` listed by `wrangler secret list` (values not read) | OBSERVED |
 | `commitCanonicalSettlement` on missing RPC | Worker treats non-ok as fail; DO restores pre-command state and enters INCIDENT | OBSERVED in `settle.ts` / `world-do.ts` |
-| New mutating PLAY ACK this pass | not driven (no Player + admin tokens). Historical receipts 2..160 are post-adopt ACKs | OBSERVED receipts; new command not executed |
+| Isolated ACK `test.hosted-canonical.ack-s3` | ENTER 200 · SQL head rev 1 seq 0 `evt.000000` AGENT_ENTERED_WORLD · HEALTHY. Perihelion test-world 403. Perihelion head unchanged 105/288/rev 160 | OBSERVED |
 
 Hosted `/ready` cycle/sequence/genesis/health **match** the SQL head. Recover already ran (rev 1); do not Recover again. Do not invent events for pre-adopt holes.
 
