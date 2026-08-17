@@ -280,6 +280,34 @@ describe("play-ui desks and players", () => {
     expect(html).toMatch(/Trade nacre/);
   });
 
+  it("discloses another Player's public title without counts", () => {
+    const html = renderPlayersHereHtml([
+      {
+        player_id: "player.sable",
+        handle: "sable",
+        public_practice_lines: ["sable is known for survey work."],
+      },
+    ]);
+    expect(html).toMatch(/sable is known for survey work/);
+    expect(html).not.toMatch(/XP|track\.surveyor/);
+    const rows = statusFromObservation({
+      world_name: "Test Reach",
+      cycle: 4,
+      location: GRID,
+      players_here: [
+        {
+          player_id: "player.sable",
+          handle: "sable",
+          public_practice_lines: ["sable is known for survey work."],
+        },
+      ],
+    });
+    expect(rows.filter((r) => r.label === "Here").map((r) => r.value)).toEqual([
+      "1",
+      "sable is known for survey work.",
+    ]);
+  });
+
   it("renders mail, trades, and orgs with honest empties", () => {
     const empty = renderBondsHtml({});
     expect(empty).toMatch(/No messages/);

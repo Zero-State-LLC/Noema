@@ -4,6 +4,7 @@ import {
   creditsFromEvent,
   emptyPractice,
   practiceLines,
+  publicTitleLine,
 } from "../src/practice";
 
 describe("GC1-S0 practice mapper", () => {
@@ -119,5 +120,6 @@ describe("GC1-S0 practice mapper", () => {
     expect(lines).toContain("You are known for survey work.");
     expect(lines).toContain("You have been keeping infrastructure alive.");
     expect(lines).not.toContain("You are known for keeping infrastructure alive.");
+    expect(publicTitleLine("sable", state)).toBe("sable is known for survey work.");
   });
 });

@@ -5,6 +5,7 @@
 
 import { isHiddenRoom } from "./construction";
 import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
+import { publicTitleLine, type PracticeState } from "./practice";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
@@ -43,7 +44,7 @@ export type WatchRoomIn = {
   tags?: string[];
 };
 
-export type WatchPlayerIn = PresencePlayer & { player_id: string };
+export type WatchPlayerIn = PresencePlayer & { player_id: string; practice?: PracticeState };
 
 export type HeldHeadline = Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line"> &
   Partial<Pick<WatchEvent, "cycle" | "room_id" | "occurred_at" | "detail">>;
@@ -439,10 +440,18 @@ export function buildWatchLive(input: {
       active: here.length > 0 || recentHere,
     };
     if (labels.length) row.public_player_labels = labels;
+    const titles = here
+      .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
+      .filter((line): line is string => Boolean(line));
+    if (titles.length) row.public_title_lines = titles;
     return row;
   });
 
   const playersPresent = live.filter((p) => p.room_id && publicRooms[p.room_id]).length;
+  const public_title_lines = live
+    .filter((p) => p.room_id && publicRooms[p.room_id])
+    .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
+    .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(
     (input.events || []) as SocialEvent[],
@@ -460,6 +469,7 @@ export function buildWatchLive(input: {
     freshness,
     public_pulses: pulses,
     public_descriptor_lines,
+    ...(public_title_lines.length ? { public_title_lines } : {}),
     rooms: roomsOut,
     recent_events: recent,
     notable_event: notable,

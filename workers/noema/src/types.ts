@@ -178,14 +178,14 @@ export interface Observation {
       storage: number;
     };
   }>;
-  /** Other active players (addressable handles, no secrets). */
-  players_here?: Array<{ player_id: string; handle?: string }>;
+  /** Other active players (addressable handles, no secrets). GC1-S6 may add public_practice_lines. */
+  players_here?: Array<{ player_id: string; handle?: string; public_practice_lines?: string[] }>;
   /** Legacy string list + structured affordances */
   available_actions: string[];
   affordances?: ObservationAffordance[];
   /** Last action consequence for UI */
   consequence?: string;
-  /** GC1 self-only practice lines. Never put on WATCH or players_here. */
+  /** GC1 self-only practice lines. Never put first-person lines on WATCH. */
   practice_lines?: string[];
   /** GC8-S1 self-only worn holdings. Never put on WATCH. */
   lot_lines?: string[];

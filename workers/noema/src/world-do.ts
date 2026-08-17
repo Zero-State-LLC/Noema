@@ -192,6 +192,7 @@ export class NoemaWorldDO {
       entered: p.entered,
       last_seen_ms: p.last_seen_ms,
       actor_kind: p.actor_kind,
+      practice: p.practice,
     }));
     const events: WatchSourceEvent[] = digestEvents.slice(-80).map((ev) => ({
       event_type: ev.event_type,

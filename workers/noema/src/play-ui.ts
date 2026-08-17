@@ -47,6 +47,7 @@ export type LocationObs = {
 export type PlayerHere = {
   player_id: string;
   handle?: string;
+  public_practice_lines?: string[];
 };
 
 export type MailItem = {
@@ -645,6 +646,8 @@ export function renderPlayersHereHtml(
           "</button>";
       }
       void selfId;
+      const title = (p.public_practice_lines || []).find((line) => String(line || "").trim());
+      const titleHtml = title ? ' <span class="d">' + escHtml(title) + "</span>" : "";
       return (
         '<li><button type="button" class="role-here" data-cmd="' +
         escHtml(msgCmd) +
@@ -658,6 +661,7 @@ export function renderPlayersHereHtml(
         name +
         '">trade</button>' +
         extra +
+        titleHtml +
         "</li>"
       );
     })
@@ -965,6 +969,8 @@ export function fillPlayersHere(
         cmdBtn("invite " + handle + " to " + o.org_id + " role=member", "invite " + o.name),
       );
     }
+    const title = (p.public_practice_lines || []).find((line) => String(line || "").trim());
+    if (title) li.append(" ", h("span", "d", title));
     ul.append(li);
   }
   void selfId;

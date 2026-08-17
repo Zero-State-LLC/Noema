@@ -82,6 +82,7 @@ import {
   isTrackRecognized,
   lookAttentionCost,
   practiceLines,
+  publicTitleLines,
   repairConditionDelta,
   BROKER_TRACK,
   ENGINEER_TRACK,
@@ -534,12 +535,22 @@ export function buildObservation(
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
     in_world: pl.entered,
-    players_here: otherPlayers.filter(
-      (p) =>
-        p.player_id !== principal.player_id &&
-        w.players[p.player_id]?.entered &&
-        w.players[p.player_id]?.room_id === room.room_id,
-    ),
+    players_here: otherPlayers
+      .filter(
+        (p) =>
+          p.player_id !== principal.player_id &&
+          w.players[p.player_id]?.entered &&
+          w.players[p.player_id]?.room_id === room.room_id,
+      )
+      .map((p) => {
+        const other = w.players[p.player_id];
+        const titles = isHiddenRoom(room)
+          ? []
+          : publicTitleLines(other?.handle || p.handle, other?.practice, w.cycle, p.player_id);
+        return titles.length
+          ? { player_id: p.player_id, handle: p.handle, public_practice_lines: titles }
+          : { player_id: p.player_id, handle: p.handle };
+      }),
     services: servicesAtRoom({
       room_id: room.room_id,
       name: room.name,

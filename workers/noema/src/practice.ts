@@ -1,10 +1,11 @@
 /**
  * GC1-S0/S1 derived practice. Rebuildable cache, not WorldState.
- * Authority: Noema-Specs GC1-FIRST-SLICE / GC1-S1-RECOGNITION / RFC-0004 / RFC-0005.
+ * Authority: Noema-Specs GC1-FIRST-SLICE / GC1-S1-RECOGNITION / GC1-S6-PUBLIC-TITLES / RFC-0004 / RFC-0005 / RFC-0105.
  */
 
 export const MASTERY_CATALOG_ID = "mastery-catalog/gc1-s1";
 export const MAX_PLAY_LINES = 3;
+export const PUBLIC_TITLE_CAP = 1;
 
 export const PRACTICE_TRACKS = [
   {
@@ -14,6 +15,7 @@ export const PRACTICE_TRACKS = [
     play_line: "You have been learning the rooms.",
     recognized_play_line: "You know these rooms.",
     latent_play_line: "You were learning the rooms.",
+    public_title_line: "{handle} knows these rooms.",
   },
   {
     track_id: "track.surveyor.01",
@@ -22,6 +24,7 @@ export const PRACTICE_TRACKS = [
     play_line: "You have been doing survey work.",
     recognized_play_line: "You are known for survey work.",
     latent_play_line: "You were known for survey work.",
+    public_title_line: "{handle} is known for survey work.",
   },
   {
     track_id: "track.broker.01",
@@ -30,6 +33,7 @@ export const PRACTICE_TRACKS = [
     play_line: "You have been closing exchanges.",
     recognized_play_line: "You are known for closing exchanges.",
     latent_play_line: "You were known for closing exchanges.",
+    public_title_line: "{handle} is known for closing exchanges.",
   },
   {
     track_id: "track.engineer.01",
@@ -38,6 +42,7 @@ export const PRACTICE_TRACKS = [
     play_line: "You have been keeping infrastructure alive.",
     recognized_play_line: "You are known for keeping infrastructure alive.",
     latent_play_line: "You were known for keeping infrastructure alive.",
+    public_title_line: "{handle} is known for keeping infrastructure alive.",
   },
 ] as const;
 
@@ -295,6 +300,45 @@ export function practiceLines(state: PracticeState | undefined | null, now = 0):
     } else practicing.push(track.play_line);
   }
   return [...recognized, ...practicing].slice(0, MAX_PLAY_LINES);
+}
+
+/** World-native handle only. Raw player ids and hex suffixes stay unpublished. */
+export function titleHandle(handle?: string | null, playerId?: string | null): string | undefined {
+  const h = String(handle || "").trim();
+  if (!h) return undefined;
+  if (/^player\./i.test(h)) return undefined;
+  if (playerId && h === playerId) return undefined;
+  if (/^[0-9a-f]{12}$/i.test(h)) return undefined;
+  return h.slice(0, 32);
+}
+
+/** GC1-S6: at most one third-person public title. LATENT and unnamed handles withhold. */
+export function publicTitleLine(
+  handle: string | undefined | null,
+  state: PracticeState | undefined | null,
+  now = 0,
+  playerId?: string | null,
+): string | undefined {
+  const name = titleHandle(handle, playerId);
+  if (!name) return undefined;
+  const snap = ensurePractice(state);
+  const ordered = [...PRACTICE_TRACKS].sort((a, b) => a.display_order - b.display_order);
+  for (const track of ordered) {
+    if (!isTrackRecognized(snap, track.track_id)) continue;
+    if (isTrackLatent(snap, track.track_id, now)) continue;
+    return track.public_title_line.replace("{handle}", name);
+  }
+  return undefined;
+}
+
+export function publicTitleLines(
+  handle: string | undefined | null,
+  state: PracticeState | undefined | null,
+  now = 0,
+  playerId?: string | null,
+): string[] {
+  const line = publicTitleLine(handle, state, now, playerId);
+  return line ? [line].slice(0, PUBLIC_TITLE_CAP) : [];
 }
 
 export function trackMaintained(
