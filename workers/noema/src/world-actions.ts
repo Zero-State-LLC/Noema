@@ -165,6 +165,7 @@ import {
   CHANNEL_EXPIRE_AFTER_CYCLES,
   NOTICE_EXPIRE_AFTER_CYCLES,
   SHOUT_EXPIRE_AFTER_CYCLES,
+  TRADE_NOTICE_EXPIRE_AFTER_CYCLES,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
   bestLiveRelayCondition,
@@ -1272,6 +1273,9 @@ export async function applyWorldCommand(
         }
         if (room.institution_notice && w.cycle - room.institution_notice.cycle >= NOTICE_EXPIRE_AFTER_CYCLES) {
           room.institution_notice = undefined;
+        }
+        if (room.trade_notice && w.cycle - room.trade_notice.cycle >= TRADE_NOTICE_EXPIRE_AFTER_CYCLES) {
+          room.trade_notice = undefined;
         }
       }
       for (const org of Object.values(w.organizations)) {
