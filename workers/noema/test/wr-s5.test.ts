@@ -19,7 +19,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.wr-s4",
+    world_id: "test.hosted-canonical.wr-s5",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -51,7 +51,14 @@ function world(): WorldRuntime {
         name: "Hidden Vault",
         description: "Unadvertised.",
         exits: [],
-        entities: [],
+        entities: [
+          {
+            entity_id: "entity.vault-core",
+            label: "Vault Core",
+            entity_type: "INFRASTRUCTURE",
+            condition: 70,
+          },
+        ],
         hidden: true,
         tags: ["hidden"],
       },
@@ -60,7 +67,7 @@ function world(): WorldRuntime {
     trades: {},
     messages: [],
     organizations: {},
-    public_social_events: [],
+    reconstructions: {},
     seen_idempotency: {},
     unsettled: [],
   };
@@ -76,58 +83,55 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WR-S4 mapper", () => {
-  it("extends S3 and keeps NEWS and CRIME off help", () => {
-    expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
+describe("WR-S5 mapper", () => {
+  it("extends S4 and keeps NEWS and QUEST off help", () => {
+    expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s5");
     expect(helpText()).not.toMatch(/\bNEWS\b/);
-    expect(helpText()).not.toMatch(/\bCRIME\b/);
+    expect(helpText()).not.toMatch(/\bQUEST\b/);
   });
 });
 
-describe("WR-S4 world path", () => {
-  it("lists public crimes after five WAITs and omits hidden, private, subject, and method", async () => {
+describe("WR-S5 world path", () => {
+  it("lists public reconstructions after five WAITs and omits hidden, private, claim, and author", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.public_social_events = [
-      {
-        event_id: "evt.crime.public",
-        event_type: "CRIME_DETECTED",
-        payload: {
-          detection_id: "det.public",
-          subject_id: "player.vesper",
-          category: "SABOTAGE",
-          room_id: "room.hub",
-          visibility: "PUBLIC",
-          flags: ["PUBLIC_HISTORY"],
-          detection_method: "WITNESS",
-        },
+    w.reconstructions = {
+      "recon.public": {
+        reconstruction_id: "recon.public",
+        author_player_id: "player.vesper",
+        subject_ref: "entity.relay-7",
+        claim: "The relay was abandoned then secretly restored.",
+        evidence_refs: [],
+        created_cycle: 0,
+        status: "RECORDED",
+        visibility: "PUBLIC",
+        epistemic: "OPEN",
       },
-      {
-        event_id: "evt.crime.hidden",
-        event_type: "CRIME_DETECTED",
-        payload: {
-          detection_id: "det.hidden",
-          subject_id: "player.vesper",
-          category: "SEIZURE",
-          room_id: "room.vault",
-          visibility: "PUBLIC",
-          flags: ["PUBLIC_HISTORY"],
-        },
+      "recon.hidden": {
+        reconstruction_id: "recon.hidden",
+        author_player_id: "player.vesper",
+        subject_ref: "entity.vault-core",
+        claim: "The vault still runs.",
+        evidence_refs: [],
+        created_cycle: 0,
+        status: "RECORDED",
+        visibility: "PUBLIC",
+        epistemic: "OPEN",
       },
-      {
-        event_id: "evt.crime.private",
-        event_type: "CRIME_DETECTED",
-        payload: {
-          detection_id: "det.private",
-          subject_id: "player.vesper",
-          category: "POLICY_VIOLATION",
-          room_id: "room.civic",
-          visibility: "PRIVATE",
-        },
+      "recon.private": {
+        reconstruction_id: "recon.private",
+        author_player_id: "player.vesper",
+        subject_ref: "entity.relay-7",
+        claim: "A private account of the civic stall.",
+        evidence_refs: [],
+        created_cycle: 0,
+        status: "RECORDED",
+        visibility: "PRIVATE",
+        epistemic: "OPEN",
       },
-    ];
+    };
 
     for (let i = 0; i < 4; i++) {
       expect((await run(w, p, "WAIT")).ok).toBe(true);
@@ -137,11 +141,10 @@ describe("WR-S4 world path", () => {
     const fifth = await run(w, p, "WAIT");
     expect(fifth.ok).toBe(true);
     const lines = fifth.observation?.report_lines || [];
-    expect(lines).toContain("sabotage is detected.");
-    expect(lines.join(" ")).not.toMatch(/seizure/i);
-    expect(lines.join(" ")).not.toMatch(/policy violation/i);
+    expect(lines).toContain("Relay 7 is reconstructed.");
+    expect(lines.join(" ")).not.toMatch(/Vault Core/);
+    expect(lines.join(" ")).not.toMatch(/secretly restored/);
     expect(lines.join(" ")).not.toMatch(/vesper/i);
-    expect(lines.join(" ")).not.toMatch(/WITNESS/);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
   });
 });
