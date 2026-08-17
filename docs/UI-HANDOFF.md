@@ -29,7 +29,7 @@ Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player 
 
 Graphics, if any, stay functional chrome (borders, type hierarchy)—never a substitute for world text.
 
-### Brand Slice 0 baseline (hosted Worker @ `2b5e8d2` + this capture)
+### Brand Slices 0–9 (hosted Worker; closeout pin `c5a9bc0`)
 
 Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/test/brand-visual-qa.test.ts`. Capture matrix: `workers/noema/test/brand-screenshot-matrix.json`.
 
