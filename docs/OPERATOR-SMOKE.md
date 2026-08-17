@@ -61,7 +61,18 @@ https://noema.guru/admin/callback
 http://127.0.0.1:8787/admin/callback
 ```
 
-**Emergency CLI** (not the UI) — `ADMIN_OPERATOR_TOKEN` Worker secret:
+**Emergency CLI** (not the UI) — `ADMIN_OPERATOR_TOKEN` Worker secret.
+
+One-time local drop so agents do not need the secret in chat (TTY, hidden input):
+
+```bash
+cd workers/noema && bash scripts/capture-operator-token.sh
+node scripts/isolated-ack.mjs
+```
+
+That writes `~/.config/noema/operator.env` mode `600` and runs ENTER on `test.hosted-canonical.ack-s0` only. Never Perihelion. Never print the file.
+
+Manual equivalent:
 
 ```bash
 export BASE=https://noema.guru
