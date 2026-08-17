@@ -1325,6 +1325,7 @@ export async function applyWorldCommand(
             w.cycle,
             w.public_social_events,
             Object.values(w.reconstructions || {}),
+            Object.values(w.agreements || {}),
           ),
         };
       }

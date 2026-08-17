@@ -1,12 +1,12 @@
 /**
- * WR-S0..S5 public world report. Projection only.
- * Authority: Noema-Specs docs/WR-S5-DISCOVERY-REPORT.md / RFC-0096.
+ * WR-S0..S6 public world report. Projection only.
+ * Authority: Noema-Specs docs/WR-S6-DIPLOMACY-REPORT.md / RFC-0099.
  */
 
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s5";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s6";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -48,6 +48,13 @@ export function publicReportLines(
     status?: string;
     claim?: string;
     author_player_id?: string;
+  }>,
+  agreements?: Array<{
+    agreement_id?: string;
+    agreement_type?: string;
+    status?: string;
+    visibility?: string;
+    party_ids?: string[];
   }>,
 ): string[] {
   const lines: string[] = [];
@@ -136,6 +143,15 @@ export function publicReportLines(
   for (const rec of recs) {
     const found = findPublicSubject(rooms, rec.subject_ref || "");
     if (found) lines.push(`${found} is reconstructed.`);
+  }
+  const liveAgreements = [...(agreements || [])]
+    .filter((a) => a.status === "ACTIVE" && a.visibility === "PUBLIC" && a.agreement_type)
+    .sort((a, b) => String(a.agreement_id || "").localeCompare(String(b.agreement_id || "")));
+  for (const a of liveAgreements) {
+    const typ = String(a.agreement_type || "")
+      .replace(/_/g, " ")
+      .toLowerCase();
+    if (typ) lines.push(`${typ} is agreed.`);
   }
   return lines;
 }
