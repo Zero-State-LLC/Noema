@@ -33,8 +33,13 @@ import {
 import {
   AGREEMENT_FORM_COST,
   AGREEMENT_TERMINATE_COST,
+  accessException,
   allocateAgreementId,
   allocateBreachId,
+  defaultTerms,
+  defenseSupportFor,
+  forbiddenByNonAggression,
+  missedCommitments,
   parseAgreementReason,
   parseAgreementType,
   samePair,
@@ -1313,6 +1318,21 @@ export async function applyWorldCommand(
         if (org.channel && w.cycle - org.channel.cycle >= CHANNEL_EXPIRE_AFTER_CYCLES) {
           org.channel = undefined;
         }
+      }
+      for (const agr of missedCommitments(w.agreements, w.cycle)) {
+        agr.status = "BROKEN";
+        const fromId = agr.terms?.machine.resource_commitments?.[0]?.from_id || agr.party_ids[0];
+        const ev = pushEvent("AGREEMENT_BROKEN", {
+          breach_id: allocateBreachId(),
+          agreement_id: agr.agreement_id,
+          broken_by: fromId,
+          reason: "VIOLATION",
+          breach_type: "COMMITMENT_MISS",
+          influence_delta_by_party: { [fromId]: 0 },
+          release_commitments: true,
+          visibility: "PUBLIC",
+        });
+        await settleEv(ev);
       }
       if (shouldWriteWorldReport(w.cycle)) {
         w.last_report = {
@@ -3537,8 +3557,12 @@ function isAccessDenied(
     if (r.mode !== "DENY") continue;
     if (w.cycle > r.expires_cycle) continue;
     if (r.applies_to !== playerId && r.applies_to !== "*") continue;
-    if (r.scope === "ROOM" && r.room_id === roomId) return true;
-    if (r.scope === "EXIT" && r.room_id === roomId && direction && r.exit_id === direction) return true;
+    const hit =
+      (r.scope === "ROOM" && r.room_id === roomId) ||
+      (r.scope === "EXIT" && r.room_id === roomId && direction && r.exit_id === direction);
+    if (!hit) continue;
+    if (accessException(w.agreements, playerId, r.room_id || roomId, r.exit_id)) continue;
+    return true;
   }
   return false;
 }
@@ -3677,7 +3701,12 @@ async function applyAgreementForm(
       agreement_id: offered.agreement_id,
       agreement_type: offered.agreement_type,
       party_ids: offered.party_ids,
-      terms: { machine: { preferential_trade: true } },
+      terms: offered.terms || defaultTerms(typ, {
+        offerer_id: offered.offered_by,
+        other_id: otherId,
+        room_id: room.room_id,
+        cycle: w.cycle,
+      }),
       formed_cycle: w.cycle,
       cost_payer_id: principal.player_id,
       cost_paid: { ...AGREEMENT_FORM_COST },
@@ -3690,7 +3719,7 @@ async function applyAgreementForm(
       principal,
       request_id,
       events,
-      `Trade agreement ${offered.agreement_id} stands.`,
+      `${typ.replace(/_/g, " ").toLowerCase()} agreement ${offered.agreement_id} stands.`,
       true,
     );
     w.seen_idempotency[idem] = result;
@@ -3703,7 +3732,7 @@ async function applyAgreementForm(
       samePair(a.party_ids, principal.player_id, otherId),
   );
   if (existingActive) {
-    return fail(request_id, "FORBIDDEN", "That trade agreement already stands.");
+    return fail(request_id, "FORBIDDEN", "That agreement already stands.");
   }
   const existingOffer = Object.values(w.agreements).find(
     (a) =>
@@ -3713,7 +3742,7 @@ async function applyAgreementForm(
       samePair(a.party_ids, principal.player_id, otherId),
   );
   if (existingOffer) {
-    return fail(request_id, "NOT_ADDRESSABLE", "You already offered that trade agreement.");
+    return fail(request_id, "NOT_ADDRESSABLE", "You already offered that agreement.");
   }
   debit(pl.budgets, AGREEMENT_FORM_COST);
   const agreement_id = allocateAgreementId();
@@ -3726,13 +3755,19 @@ async function applyAgreementForm(
     offered_by: principal.player_id,
     cost_payer_id: principal.player_id,
     visibility: "PUBLIC",
+    terms: defaultTerms(typ, {
+      offerer_id: principal.player_id,
+      other_id: otherId,
+      room_id: room.room_id,
+      cycle: w.cycle,
+    }),
   };
   const result = success(
     w,
     principal,
     request_id,
     events,
-    `You offer a trade agreement to ${other.handle || otherId.replace(/^player\./, "")}.`,
+    `You offer a ${typ.replace(/_/g, " ").toLowerCase()} agreement to ${other.handle || otherId.replace(/^player\./, "")}.`,
     true,
   );
   w.seen_idempotency[idem] = result;
@@ -3908,6 +3943,20 @@ async function applyContestDeclare(
     seed_stream_id,
   });
   await settleEv(ev);
+  for (const agr of forbiddenByNonAggression(w.agreements, principal.player_id, form)) {
+    agr.status = "BROKEN";
+    const broke = pushEvent("AGREEMENT_BROKEN", {
+      breach_id: allocateBreachId(),
+      agreement_id: agr.agreement_id,
+      broken_by: principal.player_id,
+      reason: "VIOLATION",
+      breach_type: "CONTEST_VIOLATION",
+      influence_delta_by_party: { [principal.player_id]: 0 },
+      release_commitments: true,
+      visibility: "PUBLIC",
+    });
+    await settleEv(broke);
+  }
   const result = success(
     w,
     principal,
@@ -5027,6 +5076,7 @@ async function resolveDueContests(
         declarer_stake: contest.stake,
         defender_stake: contest.defender_stake,
         infra_condition: infra,
+        org_defense_support_millipoints: defenseSupportFor(w.agreements, contest.defender_id),
         defensive_work: Boolean(
           w.rooms[contest.room_id] &&
             readyClassInRoom(roomEntities(w.rooms[contest.room_id]), "defensive_work"),

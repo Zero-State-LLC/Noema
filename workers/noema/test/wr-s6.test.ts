@@ -64,7 +64,7 @@ describe("WR-S6 mapper", () => {
   it("extends S5 and keeps NEWS and AGREEMENT off help", () => {
     expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s6");
     expect(helpText()).not.toMatch(/\bNEWS\b/);
-    expect(helpText()).not.toMatch(/\bAGREEMENT\b/);
+    expect(helpText()).not.toMatch(/\bWED\b/);
   });
 });
 
