@@ -732,6 +732,39 @@ export default {
         return cors(json(data, doRes.status));
       }
 
+      // Isolated recover/pause for test.hosted-canonical.* only.
+      // Never use /v1/admin/lifecycle here — that path is DEFAULT_WORLD_ID (Perihelion).
+      if (request.method === "POST" && path === "/v1/operator/test-world/lifecycle") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(principal, "noema.action.submit");
+        if (denied) return cors(denied);
+
+        const body = (await request.json().catch(() => ({}))) as { world_id?: string; action?: string; reason?: string };
+        const admitted = admitTestWorldId(body.world_id, env.DEFAULT_WORLD_ID);
+        if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
+        const action = String(body.action || "").toLowerCase();
+        if (action !== "recover") {
+          return cors(err("INVALID_REQUEST", "action must be recover", 400));
+        }
+        const id = env.WORLD_DO.idFromName(admitted.world_id);
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-lifecycle", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-noema-world-id": admitted.world_id },
+          body: JSON.stringify({
+            action: "recover",
+            reason: body.reason || "isolated test-world recover",
+            admin_session_id: admin.session_id,
+            world_id: admitted.world_id,
+          }),
+        });
+        const payload = (await res.json()) as Record<string, unknown>;
+        return cors(json({ ...payload, world_id: admitted.world_id }, res.status));
+      }
+
       // Minimal agent-protocol-shaped AUTH for adapters
       if (request.method === "POST" && path === "/protocol/v1") {
         const body = (await request.json()) as {
