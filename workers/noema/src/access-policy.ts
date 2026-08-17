@@ -1,19 +1,27 @@
 /**
- * ACCESS_POLICY S0 — EXIT DENY/CLEAR via occupied GRANT_ACCESS.
- * Authority: Noema-Specs docs/ACCESS-POLICY-S0.md / RFC-0101.
+ * ACCESS_POLICY S1 — EXIT/ROOM DENY/CLEAR via occupied GRANT_ACCESS.
+ * Authority: Noema-Specs docs/ACCESS-POLICY-S1.md / RFC-0102.
  */
 
-export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s0";
+export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s1";
 export const ACCESS_POLICY_DEFAULT_DURATION = 4;
 export const ACCESS_POLICY_COST = { compute: 1, influence: 2 } as const;
 export const ACCESS_PROFILE = "GRANT_ACCESS" as const;
 
 export type AccessPolicyMode = "DENY" | "CLEAR";
+export type AccessPolicyScope = "EXIT" | "ROOM";
 
 export function parseAccessMode(raw: string): AccessPolicyMode | null {
   const t = String(raw || "").trim().toUpperCase().replace(/-/g, "_");
   if (t === "DENY") return "DENY";
   if (t === "CLEAR") return "CLEAR";
+  return null;
+}
+
+export function parseAccessScope(raw: string): AccessPolicyScope | null {
+  const t = String(raw || "").trim().toUpperCase();
+  if (t === "EXIT") return "EXIT";
+  if (t === "ROOM" || t === "HERE") return "ROOM";
   return null;
 }
 
@@ -27,12 +35,12 @@ export function parseAccessPolicyLine(
         verb: "COMMIT";
         arguments: {
           operation: "ACCESS_POLICY";
-          scope: "EXIT";
+          scope: AccessPolicyScope;
           mode: AccessPolicyMode;
           applies_to: string;
           acting_for?: string;
           expires_cycle?: number;
-          direction: string;
+          direction?: string;
         };
       };
       display: string;
@@ -47,18 +55,16 @@ export function parseAccessPolicyLine(
   if (!mode) {
     return {
       ok: false,
-      error: "Access syntax: access <dir> deny for <org>",
+      error: "Access syntax: access <dir|here> deny for <org>",
       code: "INVALID_REQUEST",
     };
   }
-  const dir =
-    parts.find(
-      (p) =>
-        !/^(deny|clear)$/i.test(p) &&
-        !/^(for|mode=|applies_to=|expires=)/i.test(p) &&
-        !p.includes("="),
-    ) || "";
-  if (!dir) {
+  const scopeKw = (rest.match(/\bscope=([^\s]+)/i) || [])[1] || "";
+  const head = (parts[0] || "").toLowerCase();
+  const explicit = parseAccessScope(scopeKw) || parseAccessScope(head);
+  const target = /^(here|room|exit|deny|clear)$/i.test(head) ? "" : head;
+  const scope: AccessPolicyScope = explicit || (target ? "EXIT" : "ROOM");
+  if (scope === "EXIT" && !target) {
     return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
   }
   const acting_for =
@@ -77,20 +83,22 @@ export function parseAccessPolicyLine(
   }
   const expiresRaw = (rest.match(/\bexpires=(\d+)/i) || [])[1];
   const expires_cycle = expiresRaw ? Number(expiresRaw) : undefined;
+  const direction = scope === "EXIT" ? target.toLowerCase() : undefined;
+  const label = scope === "ROOM" ? "here" : target;
   return {
     ok: true,
     action: {
       verb: "COMMIT",
       arguments: {
         operation: "ACCESS_POLICY",
-        scope: "EXIT",
+        scope,
         mode,
         applies_to,
         acting_for: acting_for || undefined,
         expires_cycle,
-        direction: dir.toLowerCase(),
+        direction,
       },
     },
-    display: mode === "CLEAR" ? `You clear access ${dir}.` : `You restrict access ${dir}.`,
+    display: mode === "CLEAR" ? `You clear access ${label}.` : `You restrict access ${label}.`,
   };
 }

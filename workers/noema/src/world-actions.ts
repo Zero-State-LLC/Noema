@@ -49,6 +49,7 @@ import {
   ACCESS_POLICY_COST,
   ACCESS_POLICY_DEFAULT_DURATION,
   parseAccessMode,
+  parseAccessScope,
 } from "./access-policy";
 import { actorKindFromPrincipal } from "./ops";
 import { commitCycleIfReady } from "./world-time";
@@ -3865,9 +3866,15 @@ async function applyAccessPolicy(
   if (isHiddenRoom(room)) {
     return fail(request_id, "NOT_OBSERVABLE", "That place cannot host an access policy.");
   }
+  const scope =
+    parseAccessScope(String(args.scope || "")) ||
+    (parseAccessScope(String(args.direction || "")) === "ROOM" ? "ROOM" : "EXIT");
   const direction = String(args.direction || "").trim().toLowerCase();
-  const exit = (room.exits || []).find((e) => !e.hidden && e.direction.toLowerCase() === direction);
-  if (!exit) return fail(request_id, "NOT_FOUND", "There is no such exit here.");
+  const exit =
+    scope === "EXIT"
+      ? (room.exits || []).find((e) => !e.hidden && e.direction.toLowerCase() === direction)
+      : undefined;
+  if (scope === "EXIT" && !exit) return fail(request_id, "NOT_FOUND", "There is no such exit here.");
   const grant = resolveInstitutionGrant(
     w.organizations,
     principal.player_id,
@@ -3895,9 +3902,9 @@ async function applyAccessPolicy(
     const next = w.access_restrictions.filter(
       (r) =>
         !(
-          r.scope === "EXIT" &&
+          r.scope === scope &&
           r.room_id === room.room_id &&
-          r.exit_id === exit.direction &&
+          (scope === "ROOM" || r.exit_id === exit?.direction) &&
           r.applies_to === applies_to &&
           w.cycle <= r.expires_cycle
         ),
@@ -3915,14 +3922,14 @@ async function applyAccessPolicy(
     w.access_restrictions = next;
     const ev = pushEvent("ACCESS_RESTRICTED", {
       restriction_id: `restr.policy.clear.${w.cycle}.${request_id.slice(-6)}`,
-      scope: "EXIT",
+      scope,
       mode: "CLEAR",
       applies_to,
       reason: "POLICY",
       expires_cycle: w.cycle,
       authorized_by: grant.org_id,
       room_id: room.room_id,
-      exit_id: exit.direction,
+      exit_id: exit?.direction,
     });
     await settleEv(ev);
     const result = success(
@@ -3930,7 +3937,7 @@ async function applyAccessPolicy(
       principal,
       request_id,
       events,
-      `Access ${exit.direction} is cleared.`,
+      scope === "ROOM" ? `Access here is cleared.` : `Access ${exit?.direction} is cleared.`,
       true,
     );
     w.seen_idempotency[idem] = result;
@@ -3950,23 +3957,23 @@ async function applyAccessPolicy(
   const restriction_id = `restr.policy.${w.cycle}.${request_id.slice(-6)}`;
   w.access_restrictions.push({
     restriction_id,
-    scope: "EXIT",
+    scope,
     mode: "DENY",
     applies_to,
     room_id: room.room_id,
-    exit_id: exit.direction,
+    exit_id: exit?.direction,
     expires_cycle,
   });
   const ev = pushEvent("ACCESS_RESTRICTED", {
     restriction_id,
-    scope: "EXIT",
+    scope,
     mode: "DENY",
     applies_to,
     reason: "POLICY",
     expires_cycle,
     authorized_by: grant.org_id,
     room_id: room.room_id,
-    exit_id: exit.direction,
+    exit_id: exit?.direction,
   });
   await settleEv(ev);
   const result = success(
@@ -3974,7 +3981,9 @@ async function applyAccessPolicy(
     principal,
     request_id,
     events,
-    `Access ${exit.direction} is restricted through cycle ${expires_cycle}.`,
+    scope === "ROOM"
+      ? `Access here is restricted through cycle ${expires_cycle}.`
+      : `Access ${exit?.direction} is restricted through cycle ${expires_cycle}.`,
     true,
   );
   w.seen_idempotency[idem] = result;
