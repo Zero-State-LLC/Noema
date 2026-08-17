@@ -3,18 +3,17 @@
  * Specs: PLATFORM (admin ≠ player) · GENESIS (admin-only) · UI-HANDOFF.
  */
 
-const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet"/>`;
+import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
+
+const FONTS = FONT_LINKS;
 
 const CSS = `
+${TOKEN_CSS}
 :root{
-  color-scheme:dark;
-  --void:#070a10;--panel:#121a22;--panel-2:#18232d;--ink:#ebe6d8;--muted:#9b9587;--faint:#8a8478;
-  --line:#2a3342;--line-hot:#3d4a58;--copper:#c4784a;--copper-soft:rgba(196,120,74,.14);
-  --teal:#6b9b8f;--ember:#c46a5a;--copper-ink:#1a1008;
-  --font-display:"Fraunces",Georgia,serif;--font-body:"Source Sans 3",system-ui,sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,monospace;--r:2px;
+  --copper:var(--color-state-warning);
+  --copper-soft:color-mix(in srgb,var(--color-state-warning) 18%, transparent);
+  --copper-ink:var(--color-text-inverse);
+  --r:2px;
 }
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--void);color:var(--ink);font:15px/1.5 var(--font-body)}
 body{background:radial-gradient(ellipse 50% 40% at 80% -5%,rgba(196,120,74,.1),transparent),var(--void)}

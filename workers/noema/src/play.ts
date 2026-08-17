@@ -5,10 +5,11 @@ import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
 const EXTRA = `
-.role-place,.role-you{color:var(--copper)}
-.role-here{color:var(--teal)}
-.role-fail{color:var(--ember)}
-.role-ok{color:var(--ok)}
+.role-place{color:var(--color-text-primary)}
+.role-you{color:var(--color-state-social)}
+.role-here{color:var(--color-state-active)}
+.role-fail{color:var(--color-state-critical)}
+.role-ok{color:var(--color-state-active)}
 #play-chamber{display:none}
 body.is-chamber .top,body.is-chamber .foot{display:none}
 body.is-chamber #main.wrap{width:100%;max-width:none;padding:0;margin:0}
@@ -19,7 +20,7 @@ body.is-chamber #play-chamber{
 .ch-mast{
   display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;
   min-height:2.6rem;padding:.45rem .85rem;border-bottom:1px solid var(--line);
-  font:500 .68rem/1.3 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;
+  font:500 .68rem/1.3 var(--font-interface);letter-spacing:.06em;text-transform:uppercase;
 }
 .ch-mast a{color:var(--ink);text-decoration:none}
 .ch-mast #leave{margin-left:auto;text-transform:none;letter-spacing:0}
@@ -31,10 +32,10 @@ body.is-chamber #play-chamber{
   .ch-rail{order:2}
 }
 .ch-scroll{min-height:0;overflow:auto;padding:.85rem 1rem 1.25rem}
-.look .where{margin:0 0 .2rem;font:500 .62rem var(--font-mono);letter-spacing:.14em}
+.look .where{margin:0 0 .2rem;font:500 .62rem var(--font-interface);letter-spacing:.14em}
 .look #room-name,#room-name{
-  margin:0 0 .35rem;font:550 clamp(1.4rem,3vw,2.1rem)/1.05 var(--font-display);
-  color:var(--copper);
+  margin:0 0 .35rem;font:600 clamp(1.4rem,3vw,2.1rem)/1.05 var(--font-display);
+  color:var(--color-text-primary);
 }
 .look #room-desc{margin:0;max-width:44rem;color:var(--muted)}
 .look #loc-custom{margin:.55rem 0 0;max-width:44rem;color:var(--ink)}
@@ -45,14 +46,14 @@ body.is-chamber #play-chamber{
   font-size:.84rem;min-height:0;
 }
 .ch-rail h3,.ch-rail h4{
-  margin:.85rem 0 .35rem;color:var(--copper);
-  font:500 .62rem/1.3 var(--font-mono);letter-spacing:.14em;text-transform:uppercase;
+  margin:.85rem 0 .35rem;color:var(--color-text-secondary);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
 }
 .ch-rail h3:first-child{margin-top:0}
 .tok-list,.trail{margin:0;padding:0;list-style:none}
 .tok-list li{padding:.28rem 0;border-bottom:1px solid rgba(42,51,66,.45)}
 .tok-list button{
-  padding:0;border:0;background:none;color:var(--teal);font:inherit;text-align:left;
+  padding:0;border:0;background:none;color:var(--color-state-active);font:inherit;text-align:left;
 }
 .tok-list button:hover{color:var(--ink)}
 .trail{margin-top:1rem}
@@ -70,10 +71,10 @@ body.is-chamber #play-chamber{
 }
 .cmdform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}
 .cmdform input{
-  min-height:2.5rem;font-family:var(--font-mono);font-size:.9rem;color:var(--teal);
+  min-height:2.5rem;font-family:var(--font-machine);font-size:.9rem;color:var(--color-text-machine);
 }
 .ch-cmd .hint{margin:.4rem 0 0;color:var(--faint);font-size:.72rem}
-.ch-cmd .hint [data-cmd]{color:var(--teal);cursor:pointer}
+.ch-cmd .hint [data-cmd]{color:var(--color-state-active);cursor:pointer}
 .status-rows{margin:.35rem 0 0;padding:0;list-style:none}
 .status-rows li{display:flex;justify-content:space-between;gap:.75rem;font-size:.8rem}
 .status-rows span{color:var(--muted)}
@@ -289,12 +290,13 @@ function playClientBundle(): string {
         return;
       }
       const loc = Object.assign({}, obs.location, { services: obs.location.services || obs.services || [] });
-      $("world-line").textContent = obs.world_name || "In world";
+      const view = toPlayerView(obs);
+      $("world-line").textContent = view.worldName || "In world";
       const cyc = $("ch-cycle");
-      if (cyc) cyc.textContent = typeof obs.cycle === "number" ? "Cycle " + obs.cycle : "";
-      $("room-name").textContent = loc.name || "Unknown place";
-      $("room-desc").textContent = loc.description || "";
-      const customLine = (obs.culture_lines && obs.culture_lines[0]) || "";
+      if (cyc) cyc.textContent = view.cycleLabel;
+      $("room-name").textContent = view.locationName || "Unknown place";
+      $("room-desc").textContent = view.locationDescription || "";
+      const customLine = view.cultureLine;
       const locCustom = $("loc-custom");
       if (locCustom) {
         locCustom.hidden = !customLine;
@@ -340,18 +342,7 @@ function playClientBundle(): string {
       }
 
       fillOpportunities($("opp-list"), loc);
-
-      const rows = statusFromObservation(obs);
-      if (obs.budgets) {
-        rows.push({ label: "Energy", value: String(obs.budgets.energy) });
-        rows.push({ label: "Compute", value: String(obs.budgets.compute) });
-        rows.push({ label: "Storage", value: String(obs.budgets.storage) });
-        rows.push({ label: "Attention", value: String(obs.budgets.attention) });
-      }
-      rows.push({ label: "Mail", value: String((obs.messages || []).length) });
-      rows.push({ label: "Trades", value: String((obs.trades || []).length) });
-      rows.push({ label: "Orgs", value: String((obs.organizations || []).length) });
-      fillStatusRows($("status-rows"), rows);
+      fillStatusRows($("status-rows"), view.status);
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;
     }

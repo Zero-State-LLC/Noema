@@ -27,7 +27,7 @@ const EXTRA = `
   display:flex;gap:.65rem;align-items:flex-start;
   margin:0;font:550 clamp(1.25rem,2.8vw,1.85rem)/1.25 var(--font-display);
 }
-.watch-line .mark{flex:0 0 auto;color:var(--copper);font:550 1.05em var(--font-mono);line-height:1.2}
+.watch-line .mark{flex:0 0 auto;color:var(--color-state-active);font:550 1.05em var(--font-mono);line-height:1.2}
 .watch-hero.major .watch-line .mark{color:var(--ember)}
 .watch-hero .sub{margin:.4rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
 .watch-banner{display:none}
@@ -45,8 +45,8 @@ const EXTRA = `
   color:var(--faint);font:.7rem/1.3 var(--font-mono);
 }
 .watch-site summary::-webkit-details-marker{display:none}
-.watch-site summary:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
-.watch-mark{color:var(--copper)}
+.watch-site summary:focus-visible{outline:2px solid var(--color-state-active);outline-offset:3px}
+.watch-mark{color:var(--color-state-active)}
 .watch-count{color:var(--muted)}
 .watch-exits{display:block;margin:.1rem 0 0 0;color:var(--faint);font:.78rem/1.4 var(--font-mono)}
 .watch-inspect{margin:.45rem 0 .15rem;color:var(--ink);font:.78rem/1.45 var(--font-mono)}
@@ -91,7 +91,7 @@ const EXTRA = `
   margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body);
 }
 .watch-phos-bar .btn{padding:.15rem .45rem;font-size:.62rem}
-.watch-phos-bar .btn[aria-pressed="true"]{border-color:var(--copper);color:var(--copper)}
+.watch-phos-bar .btn[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
 .watch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;

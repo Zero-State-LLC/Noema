@@ -1,63 +1,25 @@
 /**
  * Shared product chrome for NOEMA surfaces (home, PLAY, WATCH, CONNECT).
- *
- * Specs split: landing may carry brand; PLAY/WATCH stay text-first.
- * Tokens align with site/design.md while product surfaces optimize for
- * readable world text, not dashboard chrome.
+ * Visual tokens: Noema-Specs VISUAL-DESIGN.md via theme/tokens.ts.
  */
 
+import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
+
 export const PRODUCT_CSS = `
-/* Hallmark · genre: atmospheric · nav: N9 edge-aligned · footer: Ft2
- * design-system: site/design.md · designed-as-app · text-first */
-:root{
-  color-scheme:dark;
-  --void:#070a10;
-  --void-2:#0c1218;
-  --void-ink:#0a1016;
-  --panel:#121a22;
-  --panel-2:#18232d;
-  --panel-hover:#1c2a34;
-  --ink:#ebe6d8;
-  --muted:#9b9587;
-  --faint:#8a8478;
-  --line:#2a3342;
-  --line-hot:#3d4a58;
-  --copper:#c4784a;
-  --copper-hot:#d48a58;
-  --copper-soft:rgba(196,120,74,.16);
-  --copper-ink:#1a1008;
-  --teal:#6b9b8f;
-  --ember:#c46a5a;
-  --ok:#6b9b6e;
-  --font-display:"Fraunces","Palatino Linotype",Palatino,Georgia,serif;
-  --font-body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
-  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  --r:2px;
-  --max:68rem;
-  --pad:clamp(1rem,3.5vw,2.25rem);
-  --space-2xs:.35rem;
-  --space-xs:.55rem;
-  --space-sm:.85rem;
-  --space-md:1.25rem;
-  --space-lg:2rem;
-  --space-xl:3.25rem;
-  --ease:cubic-bezier(.22,1,.36,1);
-  --z-skip:6;
-  --z-nav:4;
-}
+${TOKEN_CSS}
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth;overflow-x:clip}
 html,body{margin:0;min-height:100%;overflow-x:clip;background:var(--void);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
 body{background:var(--void);min-height:100vh}
-a{color:var(--copper);text-underline-offset:.15em}
+a{color:var(--color-state-active);text-underline-offset:.15em}
 a:hover{color:var(--ink)}
 button,input,select{font:inherit}
 button{cursor:pointer;color:inherit;background:none;border:0}
 button:disabled{opacity:.42;cursor:not-allowed}
-:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
+:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:3px}
 .skip{
   position:fixed;z-index:var(--z-skip);top:.75rem;left:.75rem;padding:.5rem .75rem;
-  background:var(--copper);color:var(--copper-ink);font:600 .75rem var(--font-mono);
+  background:var(--color-state-active);color:var(--color-text-inverse);font:600 .75rem var(--font-interface);
   transform:translateY(-160%);text-decoration:none;white-space:nowrap;
 }
 .skip:focus{transform:none}
@@ -72,7 +34,7 @@ button:disabled{opacity:.42;cursor:not-allowed}
 }
 .brand{display:flex;flex-direction:column;gap:.12rem;min-width:0;text-decoration:none;color:inherit}
 .brand-mark{
-  font:550 1.05rem/1 var(--font-display);letter-spacing:.04em;
+  font:700 1.05rem/1 var(--font-display);letter-spacing:.18em;
   color:var(--ink);
 }
 .brand-sub{color:var(--faint);font:.7rem/1.2 var(--font-body)}
@@ -83,22 +45,22 @@ button:disabled{opacity:.42;cursor:not-allowed}
   transition:color .15s var(--ease);
 }
 .nav a:hover,.nav a[aria-current=page]{color:var(--ink)}
-.nav a[aria-current=page]{color:var(--copper)}
+.nav a[aria-current=page]{color:var(--color-state-active)}
 .runtime{
   display:inline-flex;align-items:center;gap:.45rem;
   color:var(--faint);font:.7rem/1 var(--font-mono);
   white-space:nowrap;
 }
 .dot{width:.42rem;height:.42rem;border-radius:50%;background:var(--faint);flex:0 0 auto}
-.dot.ok{background:var(--teal)}
-.dot.warn{background:var(--copper)}
-.dot.bad{background:var(--ember)}
+.dot.ok{background:var(--color-state-active)}
+.dot.warn{background:var(--color-state-warning)}
+.dot.bad{background:var(--color-state-critical)}
 
 /* —— type + layout —— */
 .wrap{width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:var(--space-lg) 0 var(--space-xl);scroll-margin-top:5.5rem}
 #main{scroll-margin-top:5.5rem}
 .kicker{
-  color:var(--copper);font:500 .65rem/1.3 var(--font-mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--color-text-secondary);font:500 .65rem/1.3 var(--font-interface);letter-spacing:.16em;text-transform:uppercase;
 }
 h1{
   margin:.2rem 0 .55rem;max-width:16ch;
@@ -128,13 +90,13 @@ p{margin:.45rem 0}
   background:var(--panel-2);color:var(--ink);font:600 .84rem/1 var(--font-body);
   text-decoration:none;white-space:nowrap;transition:border-color .15s var(--ease),background .15s var(--ease);
 }
-.btn:hover{border-color:var(--copper);background:var(--panel-hover)}
+.btn:hover{border-color:var(--color-state-active);background:var(--panel-hover)}
 .btn:active{transform:translateY(1px)}
 .btn.primary{
-  border-color:var(--copper);
-  background:var(--copper);color:var(--copper-ink);
+  border-color:var(--color-text-primary);
+  background:var(--color-text-primary);color:var(--color-text-inverse);
 }
-.btn.primary:hover{background:var(--copper-hot);border-color:var(--copper-hot)}
+.btn.primary:hover{background:var(--color-state-active);border-color:var(--color-state-active);color:var(--color-text-inverse)}
 .btn.quiet{background:transparent;color:var(--muted);border-color:transparent}
 .btn.quiet:hover{color:var(--ink);border-color:var(--line)}
 .btn.block{width:100%}
@@ -157,13 +119,13 @@ select{cursor:pointer}
   border:1px solid var(--line);border-radius:var(--r);
   color:var(--muted);font:.58rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;
 }
-.tag.ok{color:var(--teal);border-color:var(--line)}
-.tag.warn{color:var(--copper);border-color:var(--line)}
+.tag.ok{color:var(--color-state-active);border-color:var(--line)}
+.tag.warn{color:var(--color-state-warning);border-color:var(--line)}
 .notice{min-height:1.2rem;margin:.55rem 0 0;color:var(--muted);font-size:.82rem}
-.notice.ok{color:var(--teal)}.notice.bad{color:var(--ember)}
+.notice.ok{color:var(--color-state-active)}.notice.bad{color:var(--color-state-critical)}
 .empty{color:var(--faint);font-size:.84rem}
 code,.mono{font-family:var(--font-mono)}
-code{color:var(--teal);font-size:.88em}
+code{color:var(--color-text-machine);font-size:.88em}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 
 .foot{
@@ -192,9 +154,7 @@ code{color:var(--teal);font-size:.88em}
 
 export type ProductNav = "home" | "play" | "watch" | "study" | "connect";
 
-const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,550;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet"/>`;
+const FONTS = FONT_LINKS;
 
 export function productShell(opts: {
   title: string;
@@ -219,7 +179,7 @@ export function productShell(opts: {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="theme-color" content="#070a10"/>
+<meta name="theme-color" content="#0E1114"/>
 <title>${opts.title} · NOEMA</title>
 <meta name="description" content="${desc}"/>
 <meta property="og:title" content="${opts.title} · NOEMA"/>

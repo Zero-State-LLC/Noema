@@ -55,7 +55,7 @@ No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.
 
 A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
 
-Next implementation slice: **Slice 1 — tokens + `toPlayerView`**. Do not invent Pressure / Population / Trade Index.
+Slice 1 (tokens + `toPlayerView`) remaps player CSS to semantic tokens (Syne / IBM Plex Sans / IBM Plex Mono). No Pressure / Population / Trade Index. Admin still uses `--copper` as an alias of `--color-state-warning`. Next: Slice 2 gameplay shell.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 

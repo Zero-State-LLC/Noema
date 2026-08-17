@@ -10,12 +10,12 @@ export const PHOSPHOR_JS_BUDGET = 100 * 1024;
 export const PHOSPHOR_ASSET_BUDGET = 200 * 1024;
 
 export const PHOSPHOR_COLORS = {
-  ground: "#0a0e14",
+  ground: "#0E1114",
   ink: "#101820",
-  dim: "rgba(196, 122, 58, 0.45)",
-  copper: "#c47a3a",
-  amber: "#e8a050",
-  wash: "#1a1008",
+  dim: "rgba(61, 220, 255, 0.45)",
+  copper: "#3DDCFF",
+  amber: "#FFB020",
+  wash: "#0E1114",
 } as const;
 
 export type PhosphorCertainty = "unknown" | "empty" | "partial" | "known" | "active";

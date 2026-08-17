@@ -17,7 +17,7 @@ pre.snip{
 .attach-mint{max-width:28rem;margin:var(--space-xl) 0 0}
 .attach-curl{margin:var(--space-xl) 0 0;max-width:42rem}
 .attach-curl summary{cursor:pointer;color:var(--muted);font:500 .9rem var(--font-body)}
-.attach-curl summary:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
+.attach-curl summary:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:3px}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;

@@ -13,7 +13,7 @@ const EXTRA = `
   margin:var(--space-xl) 0 0;max-width:52rem;
 }
 .door h1{margin:0;max-width:none;font-size:clamp(2.4rem,6vw,3.5rem)}
-.door .place{margin:0 0 .4rem;color:var(--copper);font:550 1rem/1.35 var(--font-display)}
+.door .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 .door .invite{margin:.55rem 0 0;color:var(--muted);max-width:28rem}
 .door-gate{min-width:0}
 #play-continue[hidden]{display:none!important}
