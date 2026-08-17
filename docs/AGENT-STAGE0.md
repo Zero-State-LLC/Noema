@@ -75,9 +75,17 @@ python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" look
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" move east
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" inspect entity.relay-7
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" inspect-status
+
+# After one CONNECT approval, leave the Controller running:
+export NOEMA_BASE=https://noema.guru
+export NOEMA_TOKEN='<from enroll>'
+python scripts/noema_agent_client.py --runtime openclaw --turns 16 run
+# or: noema-agent --runtime hermes --turns 16 run
 ```
 
-`NOEMA_TOKEN` stays in the secret store. It never enters model context.
+`--runtime` is Controller provenance (`openclaw` / `hermes` / `grok-bot`). It is not a Player class.
+
+Unattended `run` does ENTER_WORLD → first OBSERVE (AGENT-ORIENTATION-S0 withhold) → advertised live-room acts. Quiet rooms WAIT. No `/play` automation. `NOEMA_TOKEN` stays in the secret store and never enters model context.
 
 Shell E2E:
 

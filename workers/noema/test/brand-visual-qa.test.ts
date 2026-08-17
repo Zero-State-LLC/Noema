@@ -16,7 +16,7 @@ import { label } from "../src/presentation/terms";
 import { studyHtml } from "../src/study";
 import { TOKEN } from "../src/theme/tokens";
 import { watchHtml } from "../src/watch";
-import { PHOSPHOR_ASSET_BUDGET, PHOSPHOR_JS_BUDGET } from "../src/watch-phosphor";
+import { collectPulses, PHOSPHOR_ASSET_BUDGET, PHOSPHOR_JS_BUDGET } from "../src/watch-phosphor";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MATRIX = JSON.parse(readFileSync(join(HERE, "brand-screenshot-matrix.json"), "utf8")) as {
@@ -276,5 +276,43 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(gz(landingHtml())).toBeLessThan(180 * 1024);
     expect(PHOSPHOR_JS_BUDGET).toBe(100 * 1024);
     expect(PHOSPHOR_ASSET_BUDGET).toBe(200 * 1024);
+  });
+
+  it("WATCH visual map pins inventory, MAJOR-only phosphor, reduced-motion, viewports, budgets", () => {
+    const map = readFileSync(join(HERE, "../../../docs/WATCH-VISUAL-MAP.md"), "utf8");
+    expect(map).toMatch(/## Inventory/);
+    expect(map).toMatch(/## Token mapping/);
+    expect(map).toMatch(/## Phosphor trigger rules/);
+    expect(map).toMatch(/## States and viewports/);
+    expect(map).toMatch(/## Budgets/);
+    expect(map).toMatch(/Motion is \*\*MAJOR only\*\*/);
+    expect(map).toMatch(/360 \/ 390 \/ 768 \/ 1280 \/ 1440/);
+    expect(map).toMatch(/≤ 180 KiB/);
+    expect(map).toMatch(/≤ 100 KiB/);
+    expect(map).toMatch(/≤ 200 KiB/);
+    expect(map).not.toMatch(/Genesis reseed/);
+    expect(map).toMatch(/No new Player verbs/);
+    const watch = watchHtml();
+    expect(watch).toContain('id="watch-map"');
+    expect(watch).toContain('id="watch-feed"');
+    expect(watch).toContain('id="watch-phosphor"');
+    expect(watch).toContain("prefers-reduced-motion");
+    const pulses = collectPulses(
+      0,
+      {
+        sequence: 3,
+        recent_events: [
+          { sequence: 1, tier: "NORMAL", room_id: "room.a" },
+          { sequence: 2, tier: "NOTABLE", room_id: "room.a" },
+          { sequence: 3, tier: "MAJOR", room_id: "room.a" },
+        ],
+      },
+      1,
+      false,
+    );
+    expect(pulses.map((p) => p.tier)).toEqual(["MAJOR"]);
+    expect(collectPulses(0, { recent_events: [{ sequence: 1, tier: "MAJOR", room_id: "room.a" }] }, 1, true)).toEqual(
+      [],
+    );
   });
 });

@@ -54,3 +54,5 @@ Door email, skip link, chamber command, leave, WATCH pause/refresh, Admin skip. 
 ## Performance
 
 Unchanged ceilings: PLAY/WATCH gzip 180 KiB; phosphor JS 100 KiB; phosphor assets 200 KiB.
+
+WATCH inventory, tokens, MAJOR-only phosphor triggers, reduced-motion, viewports, and those ceilings: [WATCH-VISUAL-MAP.md](WATCH-VISUAL-MAP.md).

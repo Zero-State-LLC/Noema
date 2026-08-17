@@ -44,9 +44,9 @@ def print_obs(result) -> None:
         print("player:", prov.get("player_id"), "controller:", prov.get("controller_id"))
 
 
-def _client(args) -> GatewayClient:
-    token = resolve_token(args.base, existing=args.token, runtime=args.runtime)
-    return GatewayClient(args.base, StaticTokenProvider(token), runtime=args.runtime)
+def _client(args, http=None) -> GatewayClient:
+    token = resolve_token(args.base, existing=args.token, runtime=args.runtime, http=http)
+    return GatewayClient(args.base, StaticTokenProvider(token), runtime=args.runtime, http=http)
 
 
 def _send(client: GatewayClient, action: str, arg: str | None):
@@ -66,13 +66,15 @@ def _send(client: GatewayClient, action: str, arg: str | None):
     return 0 if result.ok else 1
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, http=None) -> int:
     p = argparse.ArgumentParser(description="NOEMA headless agent harness")
     p.add_argument("--base", default=os.environ.get("NOEMA_BASE", "https://noema.guru"))
     p.add_argument("--token", default=os.environ.get("NOEMA_TOKEN"))
     p.add_argument("--handle", default="ref-agent")
     p.add_argument("--controller-type", default="agent", choices=["agent", "human"])
     p.add_argument("--runtime", default="openclaw")
+    p.add_argument("--turns", type=int, default=8, help="unattended run length (ENTER + OBSERVE count)")
+    p.add_argument("--adapter", default="first-valid", choices=["first-valid", "scripted"])
     p.add_argument(
         "action",
         nargs="?",
@@ -82,8 +84,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("arg", nargs="?", help="direction, target, or script path")
     args = p.parse_args(argv)
 
+    transport = http or default_http
     base = args.base.rstrip("/")
-    health = default_http("GET", f"{base}/health")
+    health = transport("GET", f"{base}/health")
     if health.get("status") != "ok":
         print("health failed", health)
         return 1
@@ -92,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     action = args.action.lower()
     if action == "enroll":
         try:
-            token = enroll_device(base, runtime=args.runtime)
+            token = enroll_device(base, runtime=args.runtime, http=transport)
         except Exception as exc:
             print("enroll failed", exc)
             return 1
@@ -101,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        client = _client(args)
+        client = _client(args, http=transport)
     except Exception as exc:
         print("enroll failed", exc)
         return 1
@@ -122,29 +125,29 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if result.ok else 1
 
     if action == "run":
-        from noema.harness.adapters import ScriptedAdapter
+        from noema.harness.adapters import FirstValidAffordanceAdapter, ScriptedAdapter
         from noema.harness.loop import HeadlessHarness
 
-        steps: list[ActionProposal] = []
-        if args.arg:
-            data = json.loads(PathRead(args.arg))
-            for item in data:
-                steps.append(ActionProposal(**item))
+        if args.adapter == "scripted":
+            steps: list[ActionProposal] = []
+            if args.arg:
+                data = json.loads(PathRead(args.arg))
+                for item in data:
+                    steps.append(ActionProposal(**item))
+            adapter = ScriptedAdapter(steps)
         else:
-            steps = [
-                ActionProposal(action="ENTER_WORLD"),
-                ActionProposal(action="LOOK"),
-            ]
-        harness = HeadlessHarness(client, ScriptedAdapter(steps), HarnessPolicy(cooldown_seconds=0))
-        code = 0
-        while True:
-            turn = harness.run_turn()
-            if turn.stopped and turn.reason == "no_proposal":
-                break
-            if not turn.ok:
-                code = 1
-                break
-        return code
+            adapter = FirstValidAffordanceAdapter()
+        harness = HeadlessHarness(client, adapter, HarnessPolicy(cooldown_seconds=0))
+        run = harness.run_unattended(max_turns=max(2, args.turns))
+        for turn in run.turns:
+            label = turn.proposal.action if turn.proposal else (turn.reason or "stop")
+            print("---", label)
+            if turn.result:
+                print_obs(turn.result)
+        if not run.orientation_ok:
+            print("ORIENTATION", run.orientation_reason)
+            return 1
+        return 0 if all(t.ok or t.stopped for t in run.turns) else 1
 
     if action == "tour":
         for step, payload in [
