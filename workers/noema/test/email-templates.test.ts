@@ -38,7 +38,7 @@ describe("auth email templates", () => {
     const admin = email("admin-magic-link.html");
     expect(play).toContain("ENTER NOEMA");
     expect(play).toContain("Follow this link to enter and play.");
-    expect(play).toContain("signed into PLAY");
+    expect(play).toContain("You will enter the world.");
     expect(play).toContain("works once");
     expect(play).toContain("Player account");
     expect(play).toContain("Perihelion Reach");

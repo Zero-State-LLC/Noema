@@ -4,7 +4,7 @@ NOEMA
 
 Follow this link to enter and play.
 
-Open ENTER NOEMA in this message. You will be signed into PLAY and can act in the world.
+Open ENTER NOEMA in this message. You will enter the world.
 
 ENTER NOEMA
 {{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}

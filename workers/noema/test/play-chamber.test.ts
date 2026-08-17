@@ -66,6 +66,9 @@ describe("play chamber HTML", () => {
     expect(chamber).toContain("Unconfirmed. A record says");
     expect(chamber).toContain('id="world-key"');
     expect(chamber).toContain("<summary>Key</summary>");
+    expect(chamber).toContain('id="just-happened"');
+    expect(html).toContain('id="handle"');
+    expect(html).not.toContain('value="player1"');
   });
 
   it("chamber default copy is not Outside / Enter world", () => {
