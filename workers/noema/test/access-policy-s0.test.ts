@@ -91,7 +91,7 @@ async function seatGrant(w: WorldRuntime, founder: PlayerPrincipal): Promise<str
 
 describe("ACCESS_POLICY S0 mapper", () => {
   it("hosts EXIT DENY/CLEAR and keeps ACCESS_POLICY off help", () => {
-    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s0");
+    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s1");
     expect(parseAccessMode("deny")).toBe("DENY");
     expect(parseAccessMode("ALLOW_ONLY")).toBeNull();
     expect(helpText()).not.toMatch(/ACCESS_POLICY/);
@@ -102,8 +102,15 @@ describe("ACCESS_POLICY S0 mapper", () => {
     if (parsed.ok && parsed.action.verb === "COMMIT") {
       expect(parsed.action.arguments.operation).toBe("ACCESS_POLICY");
       expect(parsed.action.arguments.mode).toBe("DENY");
+      expect(parsed.action.arguments.scope).toBe("EXIT");
       expect(parsed.action.arguments.direction).toBe("east");
       expect(parsed.action.arguments.acting_for).toBe("org.line");
+    }
+    const room = parseHumanCommand("access here deny for org.line");
+    expect(room.ok).toBe(true);
+    if (room.ok && room.action.verb === "COMMIT") {
+      expect(room.action.arguments.scope).toBe("ROOM");
+      expect(room.action.arguments.direction).toBeUndefined();
     }
   });
 });
@@ -148,6 +155,26 @@ describe("ACCESS_POLICY S0 world path", () => {
     const res = await run(w, p, "LOOK", { line: "access east deny for org.missing" });
     expect(res.ok).toBe(false);
     expect(res.error?.code).toBe("NOT_FOUND");
+  });
+
+  it("denies the whole public room and blocks every exit", async () => {
+    const w = world();
+    const gate = principal("player.nacre");
+    const walker = principal("player.sable");
+    const orgId = await seatGrant(w, gate);
+    await run(w, walker, "ENTER_WORLD");
+    w.players[walker.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const denied = await run(w, gate, "LOOK", { line: `access here deny for ${orgId}` });
+    expect(denied.ok).toBe(true);
+    expect(w.access_restrictions?.some((r) => r.scope === "ROOM" && r.room_id === "room.hub")).toBe(true);
+    const moved = await run(w, walker, "MOVE", { direction: "east" });
+    expect(moved.ok).toBe(false);
+    expect(moved.error?.code).toBe("MOVE_REJECTED");
+    const cleared = await run(w, gate, "LOOK", { line: `access here clear for ${orgId}` });
+    expect(cleared.ok).toBe(true);
+    const after = await run(w, walker, "MOVE", { direction: "east" });
+    expect(after.ok).toBe(true);
+    expect(w.players[walker.player_id].room_id).toBe("room.quay");
   });
 
   it("rejects hidden rooms", async () => {

@@ -5,10 +5,10 @@
  * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
  * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST.
  * Diplomacy S2 (RFC-0100): Chamber help names AGREEMENT. WED / ATTEST stay omitted.
- * ACCESS_POLICY S0 (RFC-0101): EXIT DENY/CLEAR hosted. Help still omits ACCESS_POLICY.
+ * ACCESS_POLICY S1 (RFC-0102): EXIT/ROOM DENY/CLEAR hosted. Help still omits ACCESS_POLICY.
  */
 
-import { parseAccessMode, parseAccessPolicyLine } from "./access-policy";
+import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
 import {
   liveClassInRoom,
   parseConstructibleClass,
@@ -2190,9 +2190,11 @@ export function normalizeStructuredCommand(
     }
     if (operation === "ACCESS_POLICY") {
       const mode = parseAccessMode(String(args.mode || ""));
-      const direction = String(args.direction || args.exit_id || args.target || "").trim();
+      const scopeHint = String(args.scope || args.direction || args.target || "").trim();
+      const scope = parseAccessScope(String(args.scope || "")) || (parseAccessScope(scopeHint) === "ROOM" ? "ROOM" : "EXIT");
+      const direction = String(args.direction || args.exit_id || (scope === "EXIT" ? args.target : "") || "").trim();
       if (!mode) return { ok: false, error: "mode must be DENY or CLEAR", code: "FORM_FORBIDDEN" };
-      if (!direction) return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
+      if (scope === "EXIT" && !direction) return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
       const applies_to = String(args.applies_to || "*").trim() || "*";
       const acting_for = args.acting_for ? String(args.acting_for) : undefined;
       const expires_cycle =
@@ -2205,15 +2207,15 @@ export function normalizeStructuredCommand(
           verb: "COMMIT",
           arguments: {
             operation: "ACCESS_POLICY",
-            scope: "EXIT",
+            scope,
             mode,
             applies_to,
             acting_for,
             expires_cycle,
-            direction: direction.toLowerCase(),
+            direction: scope === "EXIT" ? direction.toLowerCase() : undefined,
           },
         },
-        display: `COMMIT.ACCESS_POLICY ${mode} ${direction}`,
+        display: `COMMIT.ACCESS_POLICY ${mode} ${scope === "ROOM" ? "ROOM" : direction}`,
       };
     }
     if (operation === "ORG_OFFICE_CREATE") {
