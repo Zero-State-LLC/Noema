@@ -3116,10 +3116,13 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("HARVEST");
     lines.push("  harvest <resource-node> [amount]");
     lines.push("  Costs: energy 2, compute 1 · needs free storage");
+    lines.push("  Stock is finite. First accepted take wins. Empty: Not enough stock available.");
+    lines.push("  Talk first: message <player> \"text\" (same room, this cycle). Not a chat.");
   } else if (t === "message") {
     lines.push("MESSAGE");
     lines.push("  message <player> \"text\"");
     lines.push("  Costs: compute 1 · private (not on WATCH)");
+    lines.push("  Same room delivers this cycle. Far rooms need a live relay. Mail, not a chat.");
   } else {
     lines.push(`No help topic “${topic}”. Try help trade.`);
   }

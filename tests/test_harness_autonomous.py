@@ -367,3 +367,43 @@ def test_cli_run_unattended_against_fake_twice():
         assert "OBSERVE" in cmds
         assert "WAIT" in cmds
         assert all("NOEMA_TOKEN" not in json.dumps(p.get("body") or {}) for p in gw.posts)
+
+
+def empty_stock_obs() -> dict:
+    q = quiet_obs()
+    q["location"]["entities"] = [
+        {
+            "entity_id": "entity.cell",
+            "label": "cell",
+            "entity_type": "INFRASTRUCTURE",
+            "condition": 80,
+            "repairable": False,
+            "harvestable": False,
+            "stock_amount": 0,
+        }
+    ]
+    q["available_actions"] = ["LOOK", "WAIT", "MOVE", "OBSERVE"]
+    q["affordances"] = [
+        {
+            "action": "MOVE",
+            "verb": "MOVE",
+            "label": "Move west",
+            "cmd": "move west",
+            "available": True,
+            "kind": "move",
+        }
+    ]
+    q["situation"] = {"place": "Grid Anchor", "strain": "An organization acted"}
+    return q
+
+
+def test_empty_stock_does_not_invent_harvest():
+    http = FakeGateway(empty_stock_obs())
+    client = GatewayClient("https://noema.guru", StaticTokenProvider("tok"), http=http)
+    harness = HeadlessHarness(client, FirstValidAffordanceAdapter(), HarnessPolicy(cooldown_seconds=0))
+    run = harness.run_unattended(max_turns=4)
+    cmds = [p["body"]["command"] for p in http.posts if p.get("body")]
+    assert run.orientation_ok
+    assert "COMMIT" not in cmds
+    assert "HARVEST" not in cmds
+    assert "WAIT" in cmds or "MOVE" in cmds
