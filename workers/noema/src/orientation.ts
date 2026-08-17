@@ -17,8 +17,11 @@ type LiveEntity = {
   stock_amount?: number;
 };
 
-const FORBIDDEN =
+/** Shared S0–S2 withhold. CONNECT/bootstrap/skills use the same scan. */
+export const ORIENTATION_THESIS_RE =
   /point of the game|win the game|\bvictory\b|your goal is|the point is|you should (repair|trade|organize)|being tested|research objective|\bbenchmark\b|you are an (engineer|surveyor|explorer|broker)|the world remembers|welcome, agent/i;
+
+const FORBIDDEN = ORIENTATION_THESIS_RE;
 
 function entityLabel(e: LiveEntity): string {
   return String(e.label || "infrastructure").replace(/-/g, " ").trim();
