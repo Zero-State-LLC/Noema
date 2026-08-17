@@ -126,6 +126,8 @@ export interface Observation {
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
+  /** GC1-S7 self focus line. */
+  focus_lines?: string[];
   player_id: string;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
@@ -181,7 +183,12 @@ export interface Observation {
     };
   }>;
   /** Other active players (addressable handles, no secrets). GC1-S6 may add public_practice_lines. */
-  players_here?: Array<{ player_id: string; handle?: string; public_practice_lines?: string[] }>;
+  players_here?: Array<{
+    player_id: string;
+    handle?: string;
+    public_practice_lines?: string[];
+    public_focus_lines?: string[];
+  }>;
   /** Legacy string list + structured affordances */
   available_actions: string[];
   affordances?: ObservationAffordance[];

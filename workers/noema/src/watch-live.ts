@@ -6,6 +6,7 @@
 import { isHiddenRoom } from "./construction";
 import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
+import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
@@ -44,7 +45,11 @@ export type WatchRoomIn = {
   tags?: string[];
 };
 
-export type WatchPlayerIn = PresencePlayer & { player_id: string; practice?: PracticeState };
+export type WatchPlayerIn = PresencePlayer & {
+  player_id: string;
+  practice?: PracticeState;
+  focus?: FocusState;
+};
 
 export type HeldHeadline = Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line"> &
   Partial<Pick<WatchEvent, "cycle" | "room_id" | "occurred_at" | "detail">>;
@@ -444,6 +449,10 @@ export function buildWatchLive(input: {
       .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (titles.length) row.public_title_lines = titles;
+    const focuses = here
+      .map((p) => publicFocusLine(publicHandle(p), p.focus, p.practice, input.cycle, p.player_id))
+      .filter((line): line is string => Boolean(line));
+    if (focuses.length) row.public_focus_lines = focuses;
     return row;
   });
 
@@ -451,6 +460,10 @@ export function buildWatchLive(input: {
   const public_title_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
     .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
+    .filter((line): line is string => Boolean(line));
+  const public_focus_lines = live
+    .filter((p) => p.room_id && publicRooms[p.room_id])
+    .map((p) => publicFocusLine(publicHandle(p), p.focus, p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(
@@ -470,6 +483,7 @@ export function buildWatchLive(input: {
     public_pulses: pulses,
     public_descriptor_lines,
     ...(public_title_lines.length ? { public_title_lines } : {}),
+    ...(public_focus_lines.length ? { public_focus_lines } : {}),
     rooms: roomsOut,
     recent_events: recent,
     notable_event: notable,
