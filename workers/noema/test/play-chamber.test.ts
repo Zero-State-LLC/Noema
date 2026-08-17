@@ -85,14 +85,14 @@ describe("play chamber HTML", () => {
     expect(html).not.toContain("paste it under Advanced details.");
   });
 
-  it("colors the room name copper", () => {
-    expect(html).toMatch(/#room-name\{[^}]*var\(--copper\)/);
-    expect(html).toContain("var(--copper)");
+  it("colors the room name with primary text, not copper", () => {
+    expect(html).toMatch(/#room-name\{[^}]*var\(--color-text-primary\)/);
+    expect(html).not.toContain("var(--copper)");
   });
 });
 
 describe("look and trail text", () => {
-  it("LOOK is a WHERE block with copper roles, no exit essay when rail is open", () => {
+  it("LOOK is a WHERE block with place roles, no exit essay when rail is open", () => {
     const html = renderLookHtml({
       name: "The Broken Exchange",
       description: "Dust, copper, a stalled ledger.",

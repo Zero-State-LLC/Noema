@@ -4,6 +4,8 @@
  */
 
 import { helpText, parseHumanCommand } from "./actions";
+import { toPlayerView } from "./presentation/player-view";
+import { label } from "./presentation/terms";
 
 export type ExitObs = {
   direction: string;
@@ -519,32 +521,19 @@ export function statusFromObservation(obs: {
   culture_lines?: string[];
   discovery_lines?: string[];
   report_lines?: string[];
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  messages?: unknown[];
+  trades?: unknown[];
+  organizations?: unknown[];
+  players_here?: unknown[];
 } | null): Array<{ label: string; value: string }> {
-  if (!obs?.location) return [];
-  const loc = obs.location;
-  const rows: Array<{ label: string; value: string }> = [];
-  if (obs.world_name) rows.push({ label: "World", value: obs.world_name });
-  rows.push({ label: "Place", value: loc.name });
-  rows.push({ label: "Exits", value: String(loc.exits?.length ?? 0) });
-  rows.push({ label: "Nearby", value: String(loc.entities?.length ?? 0) });
-  // Only include cycle if meaningful — hide raw sequence from normal status
-  if (typeof obs.cycle === "number") rows.push({ label: "Time", value: `cycle ${obs.cycle}` });
-  for (const line of (obs.practice_lines || []).slice(0, 3)) {
-    if (line) rows.push({ label: "Work", value: line });
-  }
-  for (const line of (obs.lot_lines || []).slice(0, 4)) {
-    if (line) rows.push({ label: "Lot", value: line });
-  }
-  for (const line of (obs.social_memory_lines || []).slice(0, 3)) {
-    if (line) rows.push({ label: "Tie", value: line });
-  }
-  for (const line of (obs.discovery_lines || []).slice(0, 1)) {
-    if (line) rows.push({ label: "Record", value: line });
-  }
-  for (const line of (obs.report_lines || []).slice(0, 4)) {
-    if (line) rows.push({ label: "World", value: line });
-  }
-  return rows;
+  return toPlayerView(obs).status;
 }
 
 export function escHtml(s: string): string {
@@ -1149,6 +1138,8 @@ export function fillStatusRows(el: DomRoot, rows: { label: string; value: string
 /** Serialized into the PLAY page so the browser uses these helpers, not a fork. */
 export function playUiRuntimeSource(): string {
   return [
+    label,
+    toPlayerView,
     escHtml,
     titleCaseLabel,
     entityKindPhrase,

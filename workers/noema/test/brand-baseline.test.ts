@@ -167,6 +167,23 @@ describe("brand slice 0 — accessibility hooks", () => {
   });
 });
 
+describe("brand slice 1 — player tokens", () => {
+  it("player HTML has semantic tokens and no copper/Fraunces", () => {
+    for (const html of [landingHtml(), playHtml(), watchHtml(), connectHtml(), studyHtml()]) {
+      expect(html).toContain("--color-surface-world");
+      expect(html).toContain("IBM+Plex+Sans");
+      expect(html).toContain("family=Syne");
+      expect(html).not.toContain("var(--copper)");
+      expect(html).not.toContain("Fraunces");
+      expect(html).not.toContain("Source Sans 3");
+    }
+  });
+
+  it("command input stays machine voice", () => {
+    expect(playHtml()).toMatch(/\.cmdform input\{[^}]*font-family:var\(--font-machine\)/);
+  });
+});
+
 describe("brand slice 0 — performance ceilings", () => {
   it("PLAY and WATCH stay under the gzip budget", () => {
     const play = gzipBytes(playHtml());
