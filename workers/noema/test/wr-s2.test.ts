@@ -19,7 +19,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.wr-s1",
+    world_id: "test.hosted-canonical.wr-s2",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -44,14 +44,7 @@ function world(): WorldRuntime {
         name: "Hidden Vault",
         description: "Unadvertised.",
         exits: [],
-        entities: [
-          {
-            entity_id: "entity.hidden-relay",
-            label: "Hidden Relay",
-            entity_type: "INFRASTRUCTURE",
-            condition: 40,
-          },
-        ],
+        entities: [],
         hidden: true,
         tags: ["hidden"],
       },
@@ -60,6 +53,7 @@ function world(): WorldRuntime {
     trades: {},
     messages: [],
     organizations: {},
+    contests: {},
     seen_idempotency: {},
     unsettled: [],
   };
@@ -75,22 +69,46 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WR-S1 mapper", () => {
-  it("extends S0 and stays silent", () => {
-    expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
+describe("WR-S2 mapper", () => {
+  it("extends S1 and keeps CONTEST off help", () => {
+    expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s2");
+    expect(helpText()).not.toMatch(/\bCONTEST\b/);
     expect(helpText()).not.toMatch(/\bNEWS\b/);
   });
 });
 
-describe("WR-S1 world path", () => {
-  it("lists ACTIVE orgs with public infra after five WAITs", async () => {
+describe("WR-S2 world path", () => {
+  it("lists public OPEN contests after five WAITs and omits hidden rooms", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const formed = await run(w, p, "ORG_CREATE", { name: "Nacre Compact", charter: "local coordination" });
-    expect(formed.ok).toBe(true);
-    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.contests = {
+      "contest.public": {
+        contest_id: "contest.public",
+        declarer_id: p.player_id,
+        contest_form: "INFRASTRUCTURE_DISRUPTION",
+        target: { kind: "ENTITY", entity_id: "entity.relay-7" },
+        room_id: "room.hub",
+        stake: {},
+        defender_stake: {},
+        expires_cycle: 99,
+        seed_stream_id: "stream.wr-s2",
+        status: "OPEN",
+      },
+      "contest.hidden": {
+        contest_id: "contest.hidden",
+        declarer_id: p.player_id,
+        contest_form: "PRESENCE_PRESSURE",
+        target: { kind: "AGENT", agent_id: p.player_id },
+        room_id: "room.vault",
+        stake: {},
+        defender_stake: {},
+        expires_cycle: 99,
+        seed_stream_id: "stream.wr-s2-h",
+        status: "OPEN",
+      },
+    };
 
     for (let i = 0; i < 4; i++) {
       expect((await run(w, p, "WAIT")).ok).toBe(true);
@@ -100,9 +118,8 @@ describe("WR-S1 world path", () => {
     const fifth = await run(w, p, "WAIT");
     expect(fifth.ok).toBe(true);
     const lines = fifth.observation?.report_lines || [];
-    expect(lines.some((l) => /Relay 7 condition \d+\./.test(l))).toBe(true);
-    expect(lines).toContain("Nacre Compact stands.");
-    expect(lines.join(" ")).not.toMatch(/Hidden Relay/);
+    expect(lines).toContain("infrastructure disruption is contested.");
+    expect(lines.join(" ")).not.toMatch(/presence pressure/);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
   });
 });
