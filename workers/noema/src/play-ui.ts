@@ -1159,20 +1159,31 @@ export function fillWorldStrip(
   }
 }
 
-export function fillSignalFeed(el: DomRoot & { hidden?: boolean }, lines: string[]): void {
+export function fillSignalFeed(
+  el: DomRoot & {
+    hidden?: boolean;
+    getAttribute?: (name: string) => string | null;
+    setAttribute?: (name: string, value: string) => void;
+  },
+  lines: string[],
+): void {
   const wrap = (el as { parentElement?: (DomRoot & { hidden?: boolean }) | null }).parentElement;
+  const prev = (el.getAttribute && el.getAttribute("data-head")) || "";
+  const head = lines[0] || "";
   el.replaceChildren();
   if (!lines.length) {
     el.append(h("li", "empty", "No public signals this cycle."));
     if (wrap) wrap.hidden = true;
+    if (el.setAttribute) el.setAttribute("data-head", "");
     return;
   }
   if (wrap) wrap.hidden = false;
-  for (const line of lines) {
-    const li = h("li");
+  lines.forEach((line, i) => {
+    const li = h("li", i === 0 && head !== prev ? "signal-new" : "");
     li.append(glyphEl(glyphForLine(line)), " ", line);
     el.append(li);
-  }
+  });
+  if (el.setAttribute) el.setAttribute("data-head", head);
 }
 
 export function fillActionRail(
