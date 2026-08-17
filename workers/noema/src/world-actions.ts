@@ -162,6 +162,7 @@ import {
   DELAY_CYCLES,
   DELAYED_MESSAGE,
   BOARD_EXPIRE_AFTER_CYCLES,
+  NOTICE_EXPIRE_AFTER_CYCLES,
   SHOUT_EXPIRE_AFTER_CYCLES,
   UNREACHABLE_MESSAGE,
   UNREACHABLE_REASON,
@@ -1267,6 +1268,9 @@ export async function applyWorldCommand(
         if (room.board?.length) {
           room.board = room.board.filter((n) => w.cycle - n.cycle < BOARD_EXPIRE_AFTER_CYCLES);
           if (!room.board.length) room.board = undefined;
+        }
+        if (room.institution_notice && w.cycle - room.institution_notice.cycle >= NOTICE_EXPIRE_AFTER_CYCLES) {
+          room.institution_notice = undefined;
         }
       }
     }
