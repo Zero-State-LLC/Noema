@@ -45,6 +45,11 @@ import {
   samePair,
   type FormalAgreement,
 } from "./diplomacy";
+import {
+  ACCESS_POLICY_COST,
+  ACCESS_POLICY_DEFAULT_DURATION,
+  parseAccessMode,
+} from "./access-policy";
 import { actorKindFromPrincipal } from "./ops";
 import { commitCycleIfReady } from "./world-time";
 import {
@@ -107,6 +112,7 @@ import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } fro
 import { applyInspectEvidence, discoveryLines } from "./discovery";
 import {
   HOSTED_ACT_PROFILES,
+  ACCESS_PROFILE,
   REPAIR_PROFILE,
   TRADE_PROFILE,
   allocateOfficeId,
@@ -2149,6 +2155,9 @@ export async function applyWorldCommand(
     if (action.arguments.operation === "AGREEMENT_TERMINATE") {
       return applyAgreementTerminate(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
     }
+    if (action.arguments.operation === "ACCESS_POLICY") {
+      return applyAccessPolicy(w, principal, request_id, idem, action.arguments, pl, events, pushEvent, settleEv);
+    }
     if (
       action.arguments.operation === "ORG_OFFICE_CREATE" ||
       action.arguments.operation === "ORG_OFFICE_ASSIGN" ||
@@ -3831,6 +3840,141 @@ async function applyAgreementTerminate(
     request_id,
     events,
     `Trade agreement ${agr.agreement_id} is broken.`,
+    true,
+  );
+  w.seen_idempotency[idem] = result;
+  return result;
+}
+
+async function applyAccessPolicy(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  idem: string,
+  args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"],
+  pl: PlayerRuntime,
+  events: NonNullable<CommandResult["events"]>,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<CommandResult> {
+  if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
+  const mode = parseAccessMode(String(args.mode || ""));
+  if (!mode) return fail(request_id, "FORM_FORBIDDEN", "mode must be DENY or CLEAR.");
+  const room = w.rooms[pl.room_id];
+  if (!room) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+  if (isHiddenRoom(room)) {
+    return fail(request_id, "NOT_OBSERVABLE", "That place cannot host an access policy.");
+  }
+  const direction = String(args.direction || "").trim().toLowerCase();
+  const exit = (room.exits || []).find((e) => !e.hidden && e.direction.toLowerCase() === direction);
+  if (!exit) return fail(request_id, "NOT_FOUND", "There is no such exit here.");
+  const grant = resolveInstitutionGrant(
+    w.organizations,
+    principal.player_id,
+    args.acting_for,
+    args.office_id,
+    ACCESS_PROFILE,
+  );
+  if (!grant.ok) return fail(request_id, grant.code, grant.message);
+  const org = w.organizations[grant.org_id];
+  const purse = ensureTreasury(org);
+  if (!canPay(purse, ACCESS_POLICY_COST)) {
+    return fail(request_id, "BUDGET_EXCEEDED", "The institution cannot pay that access change.");
+  }
+  let applies_to = String(args.applies_to || "*").trim() || "*";
+  if (applies_to !== "*") {
+    const named = Object.values(w.players).find(
+      (p) => p.player_id === applies_to || p.handle?.toLowerCase() === applies_to.toLowerCase(),
+    );
+    if (!named) return fail(request_id, "NOT_FOUND", "That Player is not known here.");
+    applies_to = named.player_id;
+  }
+  w.access_restrictions = w.access_restrictions || [];
+  if (mode === "CLEAR") {
+    const before = w.access_restrictions.length;
+    const next = w.access_restrictions.filter(
+      (r) =>
+        !(
+          r.scope === "EXIT" &&
+          r.room_id === room.room_id &&
+          r.exit_id === exit.direction &&
+          r.applies_to === applies_to &&
+          w.cycle <= r.expires_cycle
+        ),
+    );
+    if (next.length === before) {
+      return fail(request_id, "NOT_FOUND", "There is no matching restriction to clear.");
+    }
+    debit(purse, ACCESS_POLICY_COST);
+    pushEvent("BUDGET_CONSUMED", {
+      player_id: principal.player_id,
+      org_id: grant.org_id,
+      cost_paid: { ...ACCESS_POLICY_COST },
+      reason: "ACCESS_POLICY",
+    });
+    w.access_restrictions = next;
+    const ev = pushEvent("ACCESS_RESTRICTED", {
+      restriction_id: `restr.policy.clear.${w.cycle}.${request_id.slice(-6)}`,
+      scope: "EXIT",
+      mode: "CLEAR",
+      applies_to,
+      reason: "POLICY",
+      expires_cycle: w.cycle,
+      authorized_by: grant.org_id,
+      room_id: room.room_id,
+      exit_id: exit.direction,
+    });
+    await settleEv(ev);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      `Access ${exit.direction} is cleared.`,
+      true,
+    );
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  const expires_cycle =
+    args.expires_cycle != null && Number(args.expires_cycle) > w.cycle
+      ? Math.min(Number(args.expires_cycle), w.cycle + 8)
+      : w.cycle + ACCESS_POLICY_DEFAULT_DURATION;
+  debit(purse, ACCESS_POLICY_COST);
+  pushEvent("BUDGET_CONSUMED", {
+    player_id: principal.player_id,
+    org_id: grant.org_id,
+    cost_paid: { ...ACCESS_POLICY_COST },
+    reason: "ACCESS_POLICY",
+  });
+  const restriction_id = `restr.policy.${w.cycle}.${request_id.slice(-6)}`;
+  w.access_restrictions.push({
+    restriction_id,
+    scope: "EXIT",
+    mode: "DENY",
+    applies_to,
+    room_id: room.room_id,
+    exit_id: exit.direction,
+    expires_cycle,
+  });
+  const ev = pushEvent("ACCESS_RESTRICTED", {
+    restriction_id,
+    scope: "EXIT",
+    mode: "DENY",
+    applies_to,
+    reason: "POLICY",
+    expires_cycle,
+    authorized_by: grant.org_id,
+    room_id: room.room_id,
+    exit_id: exit.direction,
+  });
+  await settleEv(ev);
+  const result = success(
+    w,
+    principal,
+    request_id,
+    events,
+    `Access ${exit.direction} is restricted through cycle ${expires_cycle}.`,
     true,
   );
   w.seen_idempotency[idem] = result;

@@ -123,9 +123,7 @@ export const HOSTED_ACTIONS = [
 ] as const;
 
 /** v0.2 strategic — not hosted yet. */
-export const BACKEND_GAPS = [
-  "ACCESS_POLICY",
-] as const;
+export const BACKEND_GAPS = [] as const;
 
 const DIR_ARROW: Record<string, string> = {
   north: "↑",

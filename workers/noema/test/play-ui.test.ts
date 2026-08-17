@@ -190,7 +190,7 @@ describe("play-ui helpers", () => {
     expect(HOSTED_ACTIONS).toContain("ORG_CREATE");
     expect(BACKEND_GAPS).not.toContain("AGREEMENT_FORM");
     expect(BACKEND_GAPS).not.toContain("AGREEMENT_TERMINATE");
-    expect(BACKEND_GAPS).toContain("ACCESS_POLICY");
+    expect(BACKEND_GAPS).not.toContain("ACCESS_POLICY");
     expect(BACKEND_GAPS).not.toContain("CONTEST_DECLARE");
   });
 });
