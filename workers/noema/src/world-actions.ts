@@ -84,9 +84,13 @@ import {
   practiceLines,
   publicTitleLines,
   repairConditionDelta,
+  canOverhaul,
   BROKER_TRACK,
   ENGINEER_TRACK,
   PRACTICED_REPAIR_LINE,
+  OVERHAUL_CONDITION_EXTRA,
+  OVERHAUL_ENERGY_EXTRA,
+  OVERHAUL_LINE,
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
@@ -2606,23 +2610,28 @@ export async function applyWorldCommand(
           payFrom = ensureTreasury(org);
         }
       }
-      const repairCost = withWorkshopStorage(
-        { ...COSTS.REPAIR },
-        workshopStorageDiscount(roomEntities(room)),
-      );
+      const overhaul = action.arguments.extent === "overhaul";
+      if (overhaul && !canOverhaul(pl.practice, w.cycle)) {
+        return fail(request_id, "FORBIDDEN", "You lack the practiced hands for an overhaul.");
+      }
+      const baseRepair = { ...COSTS.REPAIR };
+      if (overhaul) baseRepair.energy = (baseRepair.energy || 0) + OVERHAUL_ENERGY_EXTRA;
+      const repairCost = withWorkshopStorage(baseRepair, workshopStorageDiscount(roomEntities(room)));
       if (!canPay(payFrom, repairCost)) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
           acting_for
             ? "The institution treasury cannot pay this repair."
-            : "You need energy 3, compute 2, and storage 1 to repair.",
+            : overhaul
+              ? "You need energy 4, compute 2, and storage 1 to overhaul."
+              : "You need energy 3, compute 2, and storage 1 to repair.",
         );
       }
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
       debit(payFrom, repairCost);
-      entity.condition = Math.min(100, before + quality.delta);
+      entity.condition = Math.min(100, before + quality.delta + (overhaul ? OVERHAUL_CONDITION_EXTRA : 0));
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
       if (
@@ -2662,12 +2671,15 @@ export async function applyWorldCommand(
         quality.bonus > 0
           ? ` ${PRACTICED_REPAIR_LINE.replace("{label}", titleCaseLabel(entity.label))}`
           : "";
+      const lead = overhaul
+        ? OVERHAUL_LINE.replace("{label}", titleCaseLabel(entity.label))
+        : `${titleCaseLabel(entity.label)} repaired.`;
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `${titleCaseLabel(entity.label)} repaired. Condition ${before}% → ${entity.condition}%.${practiced}`,
+        `${lead} Condition ${before}% → ${entity.condition}%.${overhaul ? "" : practiced}`,
         settled,
       );
       w.seen_idempotency[idem] = result;

@@ -237,6 +237,9 @@ export const CONDITION_CAP = 100;
 export const LATENT_AFTER_CYCLES = 12;
 export const REHAB_WORKS = 3;
 export const PRACTICED_REPAIR_LINE = "You work this {label} with practiced hands.";
+export const OVERHAUL_ENERGY_EXTRA = 1;
+export const OVERHAUL_CONDITION_EXTRA = 5;
+export const OVERHAUL_LINE = "You overhaul {label}.";
 export const ENGINEER_LATENT_LINE = "You were known for keeping infrastructure alive.";
 
 export function isTrackRecognized(state: PracticeState | undefined | null, trackId: PracticeTrackId): boolean {
@@ -267,6 +270,10 @@ export function hasRepairedEntity(state: PracticeState | undefined | null, entit
   if (!entityId) return false;
   const rec = ensurePractice(state).recognition?.[ENGINEER_TRACK] || [];
   return rec.includes(entityId);
+}
+
+export function canOverhaul(state: PracticeState | undefined | null, now = 0): boolean {
+  return isRecognizedEngineer(state) && !isTrackLatent(state, ENGINEER_TRACK, now);
 }
 
 export function repairConditionDelta(

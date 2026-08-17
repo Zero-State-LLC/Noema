@@ -336,6 +336,7 @@ export type CanonicalAction =
           | "ACCESS_POLICY"
           | "FOCUS";
         entity_id?: string;
+        extent?: "standard" | "overhaul";
         amount?: number;
         org_id?: string;
         name?: string;
@@ -1069,6 +1070,12 @@ export function parseHumanCommand(
       acting_for = parts[forIdx + 1];
       parts.splice(forIdx, 2);
     }
+    let extent: "overhaul" | undefined;
+    const ohIdx = parts.findIndex((p) => p.toLowerCase() === "overhaul");
+    if (ohIdx >= 0) {
+      extent = "overhaul";
+      parts.splice(ohIdx, 1);
+    }
     const raw = parts.join(" ").replace(/^["']|["']$/g, "");
     if (!raw) return { ok: false, error: "Repair what? Name visible infrastructure." };
     if (ctx.entities && ctx.entities.length) {
@@ -1076,16 +1083,25 @@ export function parseHumanCommand(
       if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
       return {
         ok: true,
-        action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: r.entity.entity_id, acting_for } },
-        display: acting_for
-          ? `You repair ${titleCaseLabel(r.entity.label)} for ${acting_for}.`
-          : `You repair ${titleCaseLabel(r.entity.label)}.`,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "REPAIR", entity_id: r.entity.entity_id, acting_for, extent },
+        },
+        display: extent
+          ? `You overhaul ${titleCaseLabel(r.entity.label)}.`
+          : acting_for
+            ? `You repair ${titleCaseLabel(r.entity.label)} for ${acting_for}.`
+            : `You repair ${titleCaseLabel(r.entity.label)}.`,
       };
     }
     return {
       ok: true,
-      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: raw, acting_for } },
-      display: acting_for ? `You try to repair ${raw} for ${acting_for}.` : `You try to repair ${raw}.`,
+      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id: raw, acting_for, extent } },
+      display: extent
+        ? `You try to overhaul ${raw}.`
+        : acting_for
+          ? `You try to repair ${raw} for ${acting_for}.`
+          : `You try to repair ${raw}.`,
     };
   }
   if (v === "harvest") {
@@ -2031,6 +2047,8 @@ export function normalizeStructuredCommand(
     if (operation === "REPAIR" || operation === "HARVEST") {
       const entity_id = String(args.entity_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+      const extent =
+        operation === "REPAIR" && String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
       return {
         ok: true,
         action: {
@@ -2042,9 +2060,10 @@ export function normalizeStructuredCommand(
             acting_for: args.acting_for ? String(args.acting_for) : undefined,
             office_id: args.office_id ? String(args.office_id) : undefined,
             emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
+            extent,
           },
         },
-        display: `${operation} ${entity_id}`,
+        display: extent ? `${operation} ${entity_id} overhaul` : `${operation} ${entity_id}`,
       };
     }
     if (operation === "ORG_CREATE") {
@@ -2524,10 +2543,11 @@ export function normalizeStructuredCommand(
   if (cmd === "REPAIR") {
     const entity_id = String(args.entity_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
+    const extent = String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
     return {
       ok: true,
-      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id } },
-      display: "COMMIT.REPAIR",
+      action: { verb: "COMMIT", arguments: { operation: "REPAIR", entity_id, extent } },
+      display: extent ? "COMMIT.REPAIR overhaul" : "COMMIT.REPAIR",
     };
   }
   if (cmd === "HARVEST") {
@@ -3088,7 +3108,9 @@ export function helpText(topic?: string, available?: Affordance[]): string {
   } else if (t === "repair") {
     lines.push("REPAIR");
     lines.push("  repair <visible infrastructure>");
+    lines.push("  repair <visible infrastructure> overhaul");
     lines.push("  Costs: energy 3, compute 2, storage 1");
+    lines.push("  Overhaul: +1 energy, practiced Engineer only");
     lines.push("  Condition +15 (max 100). No debit on failure.");
   } else if (t === "harvest") {
     lines.push("HARVEST");
