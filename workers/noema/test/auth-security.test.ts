@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import worker from "../src/index";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
 import { generateEs256Pair, mintEs256, mintHs256, resetJwksCache, verifyHs256 } from "../src/jwt";
 import { resolveAdmin } from "../src/admin-auth";
@@ -79,6 +83,60 @@ describe("controller JWT fail-closed", () => {
     expect((p as PlayerPrincipal).authentication_context).toBe("supabase_jwt");
     expect((p as PlayerPrincipal).player_id).toBe("player.111111112222");
     expect((p as PlayerPrincipal).controller_type).toBe("human");
+  });
+});
+
+describe("development token deployment boundary", () => {
+  async function requestDevToken(noemaEnv?: string): Promise<Response> {
+    const e = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret",
+      NOEMA_ENV: noemaEnv,
+      NOEMA_PROTOCOL_VERSION: "1",
+      DEFAULT_WORLD_ID: "world-01",
+    } as unknown as Env;
+    return worker.fetch(
+      new Request("https://noema.guru/v1/auth/dev-token", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ handle: "security-test", controller_type: "agent" }),
+      }),
+      e,
+    );
+  }
+
+  it.each([undefined, "production", "preview"])(
+    "denies public development-token minting for deployment mode %s",
+    async (noemaEnv) => {
+      const res = await requestDevToken(noemaEnv);
+      expect(res.status).toBe(403);
+      const body = (await res.json()) as { error?: { code?: string } };
+      expect(body.error?.code).toBe("NOT_AUTHORIZED");
+    },
+  );
+
+  it.each(["local", "test", "dev"])(
+    "preserves explicit %s development-token minting",
+    async (noemaEnv) => {
+      const res = await requestDevToken(noemaEnv);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { access_token?: string };
+      expect(body.access_token).toBeTruthy();
+    },
+  );
+
+  it("keeps deployable defaults production-safe and local development explicit", () => {
+    const workerRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+    const wrangler = readFileSync(resolve(workerRoot, "wrangler.toml"), "utf8");
+    expect(wrangler).toMatch(/\[vars\][\s\S]*?NOEMA_ENV\s*=\s*"production"/);
+
+    const deploy = readFileSync(resolve(workerRoot, "scripts/deploy-stage0.sh"), "utf8");
+    expect(deploy).toMatch(/preview\)[\s\S]*?preview deployment is disabled/);
+    expect(deploy).not.toMatch(/production\|preview/);
+
+    const packageJson = JSON.parse(
+      readFileSync(resolve(workerRoot, "package.json"), "utf8"),
+    ) as { scripts?: { dev?: string } };
+    expect(packageJson.scripts?.dev).toContain("NOEMA_ENV:local");
   });
 });
 

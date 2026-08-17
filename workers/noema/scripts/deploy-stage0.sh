@@ -6,19 +6,23 @@ cd "$(dirname "$0")/.."
 
 ACCOUNT_EXPECT="315fb44b61212825452aad0ca566ea42"
 
-# wrangler.toml defaults NOEMA_ENV=local for `npm run dev`. A silent fallback
-# here would deploy that local default and re-enable public /v1/auth/dev-token.
+# wrangler.toml fails closed with NOEMA_ENV=production. This wrapper permits
+# only the production target: no isolated [env.preview] Worker/DO exists yet.
 if [ -z "${NOEMA_ENV:-}" ]; then
-  echo "error: NOEMA_ENV must be set explicitly to production or preview."
+  echo "error: NOEMA_ENV must be set explicitly to production."
   echo "  production: NOEMA_ENV=production npm run deploy"
-  echo "  preview:    NOEMA_ENV=preview npm run deploy"
-  echo "  local/dev:  npm run dev  (uses wrangler.toml NOEMA_ENV=local)"
+  echo "  local/dev:  npm run dev  (passes NOEMA_ENV=local explicitly)"
   exit 1
 fi
 case "${NOEMA_ENV}" in
-  production|preview) ENV_NAME="${NOEMA_ENV}" ;;
+  production) ENV_NAME="production" ;;
+  preview)
+    echo "error: preview deployment is disabled: wrangler.toml has no isolated [env.preview] Worker and Durable Object namespace."
+    echo "Provision an independently named preview environment before enabling this path."
+    exit 1
+    ;;
   *)
-    echo "error: NOEMA_ENV must be production or preview, got: ${NOEMA_ENV}"
+    echo "error: NOEMA_ENV must be production, got: ${NOEMA_ENV}"
     echo "  local/dev uses npm run dev — do not deploy NOEMA_ENV=local"
     exit 1
     ;;
@@ -47,4 +51,3 @@ echo "  npx wrangler secret put SUPABASE_URL"
 echo "  npx wrangler secret put SUPABASE_JWT_SECRET"
 echo "  npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY"
 echo "  npx wrangler secret put POSTMARK_SERVER_TOKEN"
-echo "Smoke: BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke"

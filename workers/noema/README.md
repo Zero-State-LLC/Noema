@@ -55,10 +55,14 @@ npx wrangler login   # once per machine — account 315fb44b61212825452aad0ca566
 # npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 
 NOEMA_ENV=production npm run deploy   # required for noema.guru
-# or: NOEMA_ENV=preview npm run deploy # rehearsal / workers.dev only
-# npm run deploy with NOEMA_ENV unset is refused (prevents local fallback)
+# preview deploy is refused until wrangler.toml defines a separately named
+# Worker and Durable Object namespace under [env.preview]
+# npm run deploy with NOEMA_ENV unset/local/preview is refused
 
-BASE=https://noema-gateway.<subdomain>.workers.dev npm run smoke
+# For an independently provisioned, isolated preview environment, use
+# short-lived normal Player/Admin credentials. The harness refuses noema.guru.
+BASE=https://noema-gateway.<subdomain>.workers.dev \
+PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smoke:hosted
 ```
 
 Apply settlement tables in Supabase (SQL editor or CLI):
@@ -75,7 +79,9 @@ npm install
 npm run dev          # wrangler dev → http://127.0.0.1:8787
 NOEMA_ENV=production npm run deploy   # production must set env explicitly
 npm test             # unit (JWT)
-npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
+npm run smoke        # loopback wrangler dev only; uses local dev-token
+BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smoke:hosted
+                     # isolated preview verification; refuses noema.guru
 ```
 
 ## Endpoints
@@ -94,7 +100,7 @@ npm run smoke        # needs wrangler dev (or BASE=… deployed URL)
 | POST | `/v1/admin/lifecycle` | Bearer Admin | pause / resume / incident / close / recover |
 | POST | `/protocol/v1` | body | HELLO / AUTH (adapter-friendly) |
 
-Never run `wrangler deploy` without `NOEMA_ENV=production` (or `preview`). Unset env is refused so local `NOEMA_ENV=local` cannot reopen public `/v1/auth/dev-token`.
+Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses preview because this repository does not yet define an independently named preview Worker and Durable Object namespace. The deployable Wrangler default is production-safe, and `/v1/auth/dev-token` is enabled only by explicit local/test/dev modes.
 
 ## Auth model
 

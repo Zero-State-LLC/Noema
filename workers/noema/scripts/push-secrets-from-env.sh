@@ -55,4 +55,3 @@ echo "==> current secret names"
 npx wrangler secret list
 
 echo "done. Redeploy not required for secret changes."
-echo "Smoke: BASE=https://noema-gateway.zer0state-noema.workers.dev npm run smoke"
