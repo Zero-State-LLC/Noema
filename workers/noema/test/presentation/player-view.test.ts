@@ -54,6 +54,24 @@ describe("toPlayerView", () => {
     expect(JSON.stringify(view)).not.toMatch(/consciousness|experiment|subject/i);
   });
 
+  it("discloses another Player's public title on Here without invented indices", () => {
+    const view = toPlayerView({
+      location: ROOM,
+      players_here: [
+        {
+          player_id: "player.sable",
+          handle: "sable",
+          public_practice_lines: ["sable is known for survey work."],
+        },
+      ],
+    });
+    expect(view.status.filter((r) => r.label === "Here").map((r) => r.value)).toEqual([
+      "1",
+      "sable is known for survey work.",
+    ]);
+    expect(JSON.stringify(view)).not.toMatch(/XP|Population|Trade Index/i);
+  });
+
   it("prefers available affordances for the action rail", () => {
     const view = toPlayerView({
       location: ROOM,
