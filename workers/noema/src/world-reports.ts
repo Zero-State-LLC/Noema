@@ -1,12 +1,12 @@
 /**
- * WR-S0..S3 public world report. Projection only.
- * Authority: Noema-Specs docs/WR-S3-ACCESS-REPORT.md / RFC-0093.
+ * WR-S0..S4 public world report. Projection only.
+ * Authority: Noema-Specs docs/WR-S4-CRIME-REPORT.md / RFC-0094.
  */
 
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s3";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s4";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -36,6 +36,11 @@ export function publicReportLines(
     expires_cycle?: number;
   }>,
   cycle?: number,
+  social?: Array<{
+    event_id?: string;
+    event_type?: string;
+    payload?: Record<string, unknown>;
+  }>,
 ): string[] {
   const lines: string[] = [];
   const roomIds = Object.keys(rooms || {}).sort();
@@ -87,6 +92,28 @@ export function publicReportLines(
     } else {
       lines.push(`${place} is restricted.`);
     }
+  }
+  const crimes = [...(social || [])]
+    .filter((ev) => {
+      if (ev.event_type !== "CRIME_DETECTED") return false;
+      const p = ev.payload || {};
+      if (typeof p.category !== "string" || typeof p.room_id !== "string") return false;
+      const flags = Array.isArray(p.flags) ? p.flags.map(String) : [];
+      const pub = p.visibility === "PUBLIC" || flags.includes("PUBLIC_HISTORY");
+      if (!pub) return false;
+      const room = rooms[p.room_id];
+      return Boolean(room) && !isHiddenRoom(room);
+    })
+    .sort((a, b) =>
+      String(a.payload?.detection_id || a.event_id || "").localeCompare(
+        String(b.payload?.detection_id || b.event_id || ""),
+      ),
+    );
+  for (const ev of crimes) {
+    const category = String(ev.payload?.category || "")
+      .replace(/_/g, " ")
+      .toLowerCase();
+    if (category) lines.push(`${category} is detected.`);
   }
   return lines;
 }
