@@ -2688,7 +2688,7 @@ export async function applyWorldCommand(
     }
 
     if (action.arguments.operation === "HARVEST") {
-      if (!isHarvestable(entity)) {
+      if (!entity.stock_resource) {
         return fail(request_id, "FORBIDDEN", "Nothing to harvest there.");
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
