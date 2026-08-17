@@ -83,6 +83,15 @@ python scripts/noema_agent_client.py --runtime openclaw --turns 16 run
 # or: noema-agent --runtime hermes --turns 16 run
 ```
 
+Unattended `run` takes a tenant. Isolated default; Perihelion only with `--live-tenant`:
+
+```bash
+python scripts/noema_agent_client.py --tenant test.hosted-canonical.ack-s3 run
+# isolated: Player token + NOEMA_ADMIN_TOKEN (signed admin JWT). No /connect.
+python scripts/noema_agent_client.py --tenant perihelion --live-tenant run
+# live: device enroll + human /connect?code=…  Never falls back to DEFAULT_WORLD_ID.
+```
+
 `--runtime` is Controller provenance (`openclaw` / `hermes` / `grok-bot`). It is not a Player class.
 
 Unattended `run` does ENTER_WORLD → first OBSERVE (AGENT-ORIENTATION-S0 withhold) → advertised live-room acts. Quiet rooms WAIT. No `/play` automation. `NOEMA_TOKEN` stays in the secret store and never enters model context.

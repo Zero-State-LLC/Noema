@@ -29,16 +29,24 @@ def _ipv4_opener() -> urllib.request.OpenerDirector:
 _OPENER = _ipv4_opener()
 
 
-def default_http(method: str, url: str, body: dict | None = None, token: str | None = None) -> dict:
+def default_http(
+    method: str,
+    url: str,
+    body: dict | None = None,
+    token: str | None = None,
+    headers: dict[str, str] | None = None,
+) -> dict:
     data = None if body is None else json.dumps(body).encode()
-    headers = {
+    hdrs = {
         "content-type": "application/json",
         "accept": "application/json",
         "user-agent": "NoemaHarness/0.1 (+https://noema.guru)",
     }
     if token:
-        headers["authorization"] = f"Bearer {token}"
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        hdrs["authorization"] = f"Bearer {token}"
+    if headers:
+        hdrs.update({k: v for k, v in headers.items() if v})
+    req = urllib.request.Request(url, data=data, headers=hdrs, method=method)
     try:
         with _OPENER.open(req, timeout=30) as resp:
             raw = resp.read().decode()
@@ -69,10 +77,24 @@ def classify(payload: dict[str, Any], http_status: int | None) -> FailureClass |
     if status in {"PREVIEW", "ARCHIVED"} or code in {"WORLD_NOT_READY", "NOT_ACTIVE"}:
         return FailureClass.WORLD_NOT_READY
     if payload.get("ok") is False or (http_status and http_status >= 400):
-        if code in {"CONFLICT", "INVALID_SCHEMA"}:
+        if code in {"CONFLICT", "INVALID_SCHEMA", "NONCONTIGUOUS_SEQUENCE", "DUPLICATE_EVENT_CONFLICT"}:
             return FailureClass.SETTLEMENT_FAILURE
         return FailureClass.ACTION_REJECTED
     return None
+
+
+def call_http(
+    fn: Callable[..., dict[str, Any]],
+    method: str,
+    url: str,
+    body: dict | None,
+    token: str | None,
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    try:
+        return fn(method, url, body, token, headers=headers)
+    except TypeError:
+        return fn(method, url, body, token)
 
 
 class GatewayClient:
@@ -83,11 +105,17 @@ class GatewayClient:
         *,
         http: Callable[..., dict[str, Any]] | None = None,
         runtime: str = "python-harness",
+        command_path: str = "/v1/command",
+        world_id: str | None = None,
+        admin_token: str | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self._tokens = token_provider
         self._http = http or default_http
         self.runtime = runtime
+        self.command_path = command_path or "/v1/command"
+        self.world_id = world_id
+        self.admin_token = admin_token
 
     def send_command(
         self,
@@ -104,17 +132,23 @@ class GatewayClient:
         attempts = retries + 1
         for _ in range(attempts):
             try:
-                payload = self._http(
+                body: dict[str, Any] = {
+                    "request_id": req_id,
+                    "idempotency_key": key,
+                    "command": command,
+                    "arguments": arguments or {},
+                    "client": {"type": "agent", "runtime": self.runtime},
+                }
+                if self.world_id and self.command_path.endswith("/test-world/command"):
+                    body["world_id"] = self.world_id
+                extra = {"X-Noema-Admin-Token": self.admin_token} if self.admin_token else None
+                payload = call_http(
+                    self._http,
                     "POST",
-                    f"{self.base_url}/v1/command",
-                    {
-                        "request_id": req_id,
-                        "idempotency_key": key,
-                        "command": command,
-                        "arguments": arguments or {},
-                        "client": {"type": "agent", "runtime": self.runtime},
-                    },
+                    f"{self.base_url}{self.command_path}",
+                    body,
                     self._tokens.reveal(),
+                    extra,
                 )
                 last_timeout = None
                 break

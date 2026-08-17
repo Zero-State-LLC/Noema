@@ -95,3 +95,4 @@ class UnattendedRun:
     orientation_reason: str | None
     stopped: bool
     reason: str | None = None
+    report: dict[str, Any] | None = None

@@ -11,6 +11,9 @@ from noema.harness.observe import prepare_context, to_state
 from noema.harness.policy import HarnessPolicy
 from noema.harness.transport import GatewayClient
 from noema.harness.orientation import check_orientation_s0
+from noema.harness.debug import DebugAdapter
+from noema.harness.report import classify_with_model
+from noema.harness.smell import detect_smell
 from noema.harness.types import ActionProposal, FailureClass, NoemaState, TurnResult, UnattendedRun
 from noema.harness.validate import validate_proposal
 
@@ -50,6 +53,7 @@ class HeadlessHarness:
         *,
         initial_observation: dict[str, Any] | None = None,
         world_status: str | None = None,
+        call_model=None,
     ) -> None:
         self.client = client
         self.adapter = adapter
@@ -60,6 +64,10 @@ class HeadlessHarness:
         self.world_status = world_status
         self.state: NoemaState | None = to_state(initial_observation, world_status=world_status) if initial_observation else None
         self.operator_stop = False
+        self.call_model = call_model
+        self.mode = "play"
+        self.last_smell = None
+        self.debug_probes: list[str] = []
 
     def stop(self) -> None:
         self.operator_stop = True
@@ -163,11 +171,39 @@ class HeadlessHarness:
                 stopped=True,
                 reason="orientation_s0",
             )
+        previous_room = ((self.state.location or {}) if self.state else {}).get("room_id")
+        previous_room = str(previous_room) if previous_room else None
         while len(turns) < max_turns:
+            if self.mode == "debug" and isinstance(self.adapter, DebugAdapter) and self.adapter.remaining() == 0:
+                break
             turn = self.run_turn()
             turns.append(turn)
-            if turn.stopped or not turn.ok:
+            if self.mode == "debug" and turn.proposal:
+                self.debug_probes.append(turn.proposal.action)
+            smell = detect_smell(turn, previous_room)
+            room_now = ((self.state.location or {}) if self.state else {}).get("room_id")
+            if room_now:
+                previous_room = str(room_now)
+            if smell and self.mode == "play":
+                self.last_smell = smell
+                self.mode = "debug"
+                if smell.kind == "auth":
+                    self.breaker.trip("auth_failure")
+                    break
+                self.adapter = DebugAdapter(turn.proposal)
+                if smell.kind == "incident":
+                    observed = self._act(ActionProposal(action="OBSERVE"))
+                    turns.append(observed)
+                    self.debug_probes.append("OBSERVE")
+                    self.breaker.trip("WORLD_INCIDENT")
+                    break
+                continue
+            if turn.stopped:
                 break
+            if self.mode == "play" and not turn.ok:
+                break
+        if self.mode == "debug":
+            self.breaker.trip(self.last_smell.kind if self.last_smell else "debug")
         return UnattendedRun(
             turns=turns,
             first_observe=first_obs,
@@ -175,7 +211,41 @@ class HeadlessHarness:
             orientation_reason=None,
             stopped=turns[-1].stopped if turns else True,
             reason=turns[-1].reason if turns else None,
+            report=self._build_report(turns),
         )
+
+    def _build_report(self, turns: list[TurnResult]) -> dict[str, Any]:
+        last = next((t for t in reversed(turns) if t.proposal), None)
+        result = last.result if last else None
+        obs = (result.observation if result else None) or {}
+        loc = obs.get("location") if isinstance(obs.get("location"), dict) else {}
+        err = (result.error if result else None) or {}
+        kind = "ok"
+        summary = ""
+        if self.last_smell:
+            kind, summary = classify_with_model(
+                {
+                    "last_command": last.proposal.action if last and last.proposal else None,
+                    "error": err,
+                    "smell": self.last_smell.kind,
+                    "detail": self.last_smell.detail,
+                    "room_id": loc.get("room_id"),
+                    "probes": list(self.debug_probes),
+                },
+                self.call_model,
+            )
+        return {
+            "mode_at_stop": self.mode,
+            "last_command": last.proposal.action if last and last.proposal else None,
+            "error_code": err.get("code") if self.last_smell and self.last_smell.kind != "contradiction" else None,
+            "contradiction": self.last_smell.detail if self.last_smell and self.last_smell.kind == "contradiction" else None,
+            "cycle": obs.get("cycle"),
+            "sequence": obs.get("sequence"),
+            "room_id": loc.get("room_id"),
+            "probes": list(self.debug_probes),
+            "classification": kind if self.last_smell else "ok",
+            "summary": summary,
+        }
 
 
 class ScriptedOnce:
