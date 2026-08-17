@@ -42,6 +42,16 @@ body.is-chamber #play-chamber{
 .signals[hidden]{display:none}
 #signal-feed{margin:0;padding:0;list-style:none}
 #signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.sys{margin:.85rem 0 0;border-top:1px solid var(--line);padding-top:.45rem}
+.sys[hidden]{display:none}
+.sys summary{
+  cursor:pointer;color:var(--color-text-secondary);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
+}
+.sys-hedge{margin:.35rem 0 .25rem;color:var(--color-state-unknown);font-size:.78rem}
+.sys-list{margin:0;padding:0;list-style:none}
+.sys-list li{padding:.3rem 0;border-bottom:1px solid var(--line);font-size:.84rem}
+.sys-list li.rumor{color:var(--color-state-unknown)}
 .ch-body{
   display:grid;grid-template-columns:minmax(0,1fr) 16rem;min-height:0;overflow:auto;
 }
@@ -159,6 +169,31 @@ export function playHtml(): string {
           <h3>Signals</h3>
           <ul id="signal-feed" aria-label="Signals"></ul>
         </section>
+        <details class="sys" id="sys-rumors" hidden>
+          <summary>Rumors</summary>
+          <p class="sys-hedge">Unconfirmed. A record says — not world truth.</p>
+          <ul id="rumor-list" class="sys-list" aria-label="Rumors"></ul>
+        </details>
+        <details class="sys" id="sys-comms" hidden>
+          <summary>Traffic</summary>
+          <ul id="comms-list" class="sys-list" aria-label="Traffic"></ul>
+        </details>
+        <details class="sys" id="sys-archive" hidden>
+          <summary>Archive</summary>
+          <ul id="archive-list" class="sys-list" aria-label="Archive"></ul>
+        </details>
+        <details class="sys" id="sys-contest" hidden>
+          <summary>Contested</summary>
+          <ul id="contest-list" class="sys-list" aria-label="Contests"></ul>
+        </details>
+        <details class="sys" id="sys-unclaimed" hidden>
+          <summary>Unclaimed</summary>
+          <ul id="unclaimed-list" class="sys-list" aria-label="Unclaimed works"></ul>
+        </details>
+        <details class="sys" id="sys-offices" hidden>
+          <summary>Offices</summary>
+          <ul id="office-list" class="sys-list" aria-label="Offices"></ul>
+        </details>
         <ol class="trail" id="trail" aria-live="polite"></ol>
       </section>
       <aside class="ch-rail" aria-label="Here">
@@ -313,6 +348,9 @@ function playClientBundle(): string {
         if (stripOff) { stripOff.hidden = true; stripOff.replaceChildren(); }
         const sigOff = $("signals");
         if (sigOff) sigOff.hidden = true;
+        ["sys-rumors","sys-comms","sys-archive","sys-contest","sys-unclaimed","sys-offices"].forEach((id) => {
+          const n = $(id); if (n) n.hidden = true;
+        });
         $("meta-seq").textContent = "—";
         const cyc = $("ch-cycle");
         if (cyc) cyc.textContent = "";
@@ -374,6 +412,13 @@ function playClientBundle(): string {
       fillSignalFeed($("signal-feed"), view.signals);
       fillActionRail($("action-rail"), view.actions, loc);
       fillStatusRows($("status-rows"), view.status);
+      const sys = view.systems || { rumors: [], comms: [], archive: [], contests: [], unclaimed: [], offices: [] };
+      fillDisclosure($("sys-rumors"), $("rumor-list"), sys.rumors, "rumor");
+      fillDisclosure($("sys-comms"), $("comms-list"), sys.comms);
+      fillDisclosure($("sys-archive"), $("archive-list"), sys.archive);
+      fillDisclosure($("sys-contest"), $("contest-list"), sys.contests);
+      fillDisclosure($("sys-unclaimed"), $("unclaimed-list"), sys.unclaimed);
+      fillDisclosure($("sys-offices"), $("office-list"), sys.offices);
       $("meta-seq").textContent = String(obs.sequence ?? "—");
       state.prevRoomId = loc.room_id;
     }

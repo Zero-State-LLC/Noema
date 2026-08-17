@@ -60,6 +60,10 @@ describe("play chamber HTML", () => {
     expect(chamber).toContain("HERE");
     expect(chamber).toContain("EXITS");
     expect(chamber).toContain("AVAILABLE HERE");
+    expect(chamber).toContain('id="rumor-list"');
+    expect(chamber).toContain('id="comms-list"');
+    expect(chamber).toContain('id="archive-list"');
+    expect(chamber).toContain("Unconfirmed. A record says");
   });
 
   it("chamber default copy is not Outside / Enter world", () => {
