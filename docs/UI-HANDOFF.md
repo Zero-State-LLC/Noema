@@ -55,7 +55,7 @@ No visual change in Slice 0. Contracts: `workers/noema/test/brand-baseline.test.
 
 A11y already present (do not remove): skip link, `:focus-visible`, `prefers-reduced-motion`, `#trail` live region, command label, status notices.
 
-Slice 5: empty handle default, persistent Just happened, world-entry callback/email copy. Next: Slice 6 responsive/mobile.
+Slice 6: 640px contract — 44px targets, 16px command (no iOS zoom), wrapping strip, sticky composer, overflow-x clip. Next: Slice 7 motion.
 
 ### Text-first is a gameplay rule, not a universal interface rule
 

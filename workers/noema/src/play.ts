@@ -58,7 +58,27 @@ body.is-chamber #play-chamber{
 }
 @media(max-width:900px){
   .ch-body{grid-template-columns:1fr}
-  .ch-rail{order:2}
+  .ch-rail{order:2;border-left:0;border-top:1px solid var(--line)}
+}
+@media(max-width:640px){
+  body.is-chamber #play-chamber{overflow-x:clip}
+  .ch-mast{gap:.45rem .75rem;padding:.4rem .7rem}
+  .ch-mast #leave{min-height:44px;min-width:44px;padding:.45rem .7rem}
+  .ch-strip{gap:.25rem .7rem;padding:.4rem .7rem;align-items:flex-start}
+  .strip-item{flex:1 1 calc(50% - .7rem);min-width:8rem}
+  .ch-scroll{padding:.7rem .7rem 1rem}
+  .ch-rail{padding:.65rem .7rem}
+  .ch-cmd{
+    position:sticky;bottom:0;z-index:3;
+    padding:.55rem .7rem calc(.55rem + env(safe-area-inset-bottom,0px));
+  }
+  .cmdform input,.cmdform .btn,#enter,.gate .btn{
+    min-height:44px;font-size:16px;
+  }
+  .tok-list button,.ch-cmd .hint [data-cmd],.sys summary,.legend summary,.adv summary{
+    min-height:44px;display:inline-flex;align-items:center;
+  }
+  .look #room-name,#room-name{font-size:1.25rem}
 }
 .ch-scroll{min-height:0;overflow:auto;padding:.85rem 1rem 1.25rem}
 .look .where{margin:0 0 .2rem;font:500 .62rem var(--font-interface);letter-spacing:.14em}
