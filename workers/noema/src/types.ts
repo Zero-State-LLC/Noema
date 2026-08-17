@@ -124,6 +124,8 @@ export interface Observation {
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
   };
+  /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
+  situation?: { place: string; strain?: string };
   player_id: string;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
