@@ -79,7 +79,7 @@ def main(argv: list[str] | None = None, http=None) -> int:
     p.add_argument("--tenant", default=None, help="test.hosted-canonical.<suffix> or perihelion")
     p.add_argument("--live-tenant", action="store_true", help="allow Perihelion Reach (live tenant)")
     p.add_argument("--report", default=None, help="write local tester report JSON here")
-    p.add_argument("--adapter", default="first-valid", choices=["first-valid", "scripted"])
+    p.add_argument("--adapter", default="first-valid", choices=["first-valid", "scripted", "llm"])
     p.add_argument(
         "action",
         nargs="?",
@@ -154,6 +154,18 @@ def main(argv: list[str] | None = None, http=None) -> int:
                 for item in data:
                     steps.append(ActionProposal(**item))
             adapter = ScriptedAdapter(steps)
+        elif args.adapter == "llm":
+            from noema.llm.adapter import LlmProposeAdapter
+            from noema.llm.providers import OpenAICompatibleProposer, StaticProposer
+
+            if os.environ.get("NOEMA_LLM_KEY"):
+                propose = OpenAICompatibleProposer(
+                    base_url=os.environ.get("NOEMA_LLM_BASE", "https://api.openai.com/v1"),
+                    model=os.environ.get("NOEMA_LLM_MODEL", "gpt-4.1-mini"),
+                )
+            else:
+                propose = StaticProposer()
+            adapter = LlmProposeAdapter(propose)
         else:
             adapter = FirstValidAffordanceAdapter()
         harness = HeadlessHarness(client, adapter, HarnessPolicy(cooldown_seconds=0))

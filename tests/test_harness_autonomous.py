@@ -375,6 +375,32 @@ def test_cli_run_unattended_against_fake_twice():
         assert all("NOEMA_TOKEN" not in json.dumps(p.get("body") or {}) for p in gw.posts)
 
 
+def test_cli_run_adapter_llm_does_not_invent_verbs():
+    http = FakeGateway(quiet_obs())
+    code = main(
+        [
+            "--base",
+            "https://noema.guru",
+            "--token",
+            "tok",
+            "--tenant",
+            "perihelion",
+            "--live-tenant",
+            "--adapter",
+            "llm",
+            "--turns",
+            "3",
+            "run",
+        ],
+        http=http,
+    )
+    assert code == 0
+    cmds = [p["body"]["command"] for p in http.posts if p.get("body")]
+    assert cmds[:2] == ["ENTER_WORLD", "OBSERVE"]
+    assert "HACK_RELAY" not in cmds
+    assert all("prompt" not in json.dumps(p.get("body") or {}) for p in http.posts)
+
+
 def empty_stock_obs() -> dict:
     q = quiet_obs()
     q["location"]["entities"] = [
