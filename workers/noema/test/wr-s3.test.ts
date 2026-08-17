@@ -19,7 +19,7 @@ function principal(id: string): PlayerPrincipal {
 
 function world(): WorldRuntime {
   return {
-    world_id: "test.hosted-canonical.wr-s2",
+    world_id: "test.hosted-canonical.wr-s3",
     world_name: "Test",
     cycle: 0,
     sequence: 0,
@@ -29,7 +29,7 @@ function world(): WorldRuntime {
         room_id: "room.hub",
         name: "Hub",
         description: "Grid.",
-        exits: [],
+        exits: [{ direction: "east", to_room_id: "room.civic" }],
         entities: [
           {
             entity_id: "entity.relay-7",
@@ -38,6 +38,13 @@ function world(): WorldRuntime {
             condition: 70,
           },
         ],
+      },
+      "room.civic": {
+        room_id: "room.civic",
+        name: "Civic",
+        description: "Trade.",
+        exits: [{ direction: "west", to_room_id: "room.hub" }],
+        entities: [],
       },
       "room.vault": {
         room_id: "room.vault",
@@ -53,7 +60,7 @@ function world(): WorldRuntime {
     trades: {},
     messages: [],
     organizations: {},
-    contests: {},
+    access_restrictions: [],
     seen_idempotency: {},
     unsettled: [],
   };
@@ -69,46 +76,56 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
-describe("WR-S2 mapper", () => {
-  it("extends S1 and keeps CONTEST off help", () => {
-    expect(WORLD_REPORT_CATALOG_ID).toMatch(/^world-report-catalog\/wr-s/);
-    expect(helpText()).not.toMatch(/\bCONTEST\b/);
+describe("WR-S3 mapper", () => {
+  it("extends S2 and keeps NEWS off help", () => {
+    expect(WORLD_REPORT_CATALOG_ID).toBe("world-report-catalog/wr-s3");
     expect(helpText()).not.toMatch(/\bNEWS\b/);
+    expect(helpText()).not.toMatch(/ACCESS_POLICY/);
   });
 });
 
-describe("WR-S2 world path", () => {
-  it("lists public OPEN contests after five WAITs and omits hidden rooms", async () => {
+describe("WR-S3 world path", () => {
+  it("lists live public restrictions after five WAITs and omits hidden and expired", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    w.contests = {
-      "contest.public": {
-        contest_id: "contest.public",
-        declarer_id: p.player_id,
-        contest_form: "INFRASTRUCTURE_DISRUPTION",
-        target: { kind: "ENTITY", entity_id: "entity.relay-7" },
+    w.access_restrictions = [
+      {
+        restriction_id: "restr.public",
+        scope: "EXIT",
+        mode: "DENY",
+        applies_to: "*",
         room_id: "room.hub",
-        stake: {},
-        defender_stake: {},
+        exit_id: "east",
         expires_cycle: 99,
-        seed_stream_id: "stream.wr-s2",
-        status: "OPEN",
       },
-      "contest.hidden": {
-        contest_id: "contest.hidden",
-        declarer_id: p.player_id,
-        contest_form: "PRESENCE_PRESSURE",
-        target: { kind: "AGENT", agent_id: p.player_id },
+      {
+        restriction_id: "restr.hidden",
+        scope: "ROOM",
+        mode: "DENY",
+        applies_to: "*",
         room_id: "room.vault",
-        stake: {},
-        defender_stake: {},
         expires_cycle: 99,
-        seed_stream_id: "stream.wr-s2-h",
-        status: "OPEN",
       },
-    };
+      {
+        restriction_id: "restr.expired",
+        scope: "EXIT",
+        mode: "DENY",
+        applies_to: "*",
+        room_id: "room.civic",
+        exit_id: "west",
+        expires_cycle: 1,
+      },
+      {
+        restriction_id: "restr.room-public",
+        scope: "ROOM",
+        mode: "DENY",
+        applies_to: "*",
+        room_id: "room.civic",
+        expires_cycle: 99,
+      },
+    ];
 
     for (let i = 0; i < 4; i++) {
       expect((await run(w, p, "WAIT")).ok).toBe(true);
@@ -118,8 +135,10 @@ describe("WR-S2 world path", () => {
     const fifth = await run(w, p, "WAIT");
     expect(fifth.ok).toBe(true);
     const lines = fifth.observation?.report_lines || [];
-    expect(lines).toContain("infrastructure disruption is contested.");
-    expect(lines.join(" ")).not.toMatch(/presence pressure/);
+    expect(lines).toContain("Hub east is restricted.");
+    expect(lines).toContain("Civic is restricted.");
+    expect(lines.join(" ")).not.toMatch(/Hidden Vault/);
+    expect(lines.join(" ")).not.toMatch(/Civic west/);
     expect(JSON.stringify(fifth.events || [])).not.toMatch(/REPORT_/);
   });
 });
