@@ -220,6 +220,7 @@ export default {
           ok?: boolean;
           status?: string;
           settlement_health?: string;
+          playable?: boolean;
         };
         if (!h.ok) {
           const pr = playReady("NOT_ACTIVE", "HEALTHY");
@@ -234,7 +235,7 @@ export default {
             }),
           );
         }
-        const pr = playReady(body.status, body.settlement_health);
+        const pr = playReady(body.status, body.settlement_health, body.playable !== false);
         return cors(
           json({
             ready: pr.ready,

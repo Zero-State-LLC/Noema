@@ -248,8 +248,9 @@ describe("consumePlayMagicLink", () => {
       { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
     );
     expect(minted).not.toBeInstanceOf(Response);
-    const ok = minted as { access_token: string; player_id: string; controller_type: string };
+    const ok = minted as { access_token: string; player_id: string; handle: string; controller_type: string };
     expect(ok.player_id).toBe("player.111111112222");
+    expect(ok.handle).toBe("adalovelace");
     expect(ok.controller_type).toBe("human");
     expect("refresh_token" in ok).toBe(false);
     const claims = await verifyHs256(ok.access_token, "test-signing-secret");

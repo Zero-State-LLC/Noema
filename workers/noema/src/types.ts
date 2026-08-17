@@ -115,7 +115,8 @@ export interface Observation {
   sequence: number;
   /** World display name when known (never seed / profile / story seeds). */
   world_name?: string;
-  location: {
+  /** Absent when the live snapshot has no playable room. */
+  location?: {
     room_id: string;
     name: string;
     description: string;

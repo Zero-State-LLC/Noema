@@ -323,6 +323,9 @@ function playClientBundle(): string {
       prevRoomId: null,
       env: "local",
       prevContestKey: "",
+      worldName: "",
+      attachCode: "",
+      attachReason: "",
     };
 
     function pulseThreshold(el) {
@@ -366,6 +369,7 @@ function playClientBundle(): string {
         const err = new Error(msg);
         err.code = data.error && data.error.code;
         err.choices = data.error && data.error.choices;
+        err.observation = data.observation;
         throw err;
       }
       return data;
@@ -389,10 +393,15 @@ function playClientBundle(): string {
       const playersEl = $("players-here");
       const bondsCard = $("bonds-card");
       const bondsBody = $("bonds-body");
-      if (!obs || !obs.location || obs.in_world === false) {
-        $("world-line").textContent = "—";
+      if (!obs || !obs.location) {
+        const wait = waitingCopy({
+          code: state.attachCode,
+          message: (obs && obs.consequence) || state.attachReason,
+          worldName: (obs && obs.world_name) || state.worldName,
+        });
+        $("world-line").textContent = wait.worldLine;
         $("room-name").textContent = "";
-        $("room-desc").textContent = "Waiting for the world.";
+        $("room-desc").textContent = wait.roomDesc;
         const locCustomOff = $("loc-custom");
         if (locCustomOff) { locCustomOff.hidden = true; locCustomOff.textContent = ""; }
         $("loc-cond").hidden = true;
@@ -542,11 +551,17 @@ function playClientBundle(): string {
             pulseThreshold(happened);
           }
         }
+        if (res.observation && res.observation.world_name) state.worldName = res.observation.world_name;
+        state.attachCode = "";
+        state.attachReason = "";
         notice(res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "Done.", "ok");
         setTimeout(() => { if (($("notice").textContent || "").indexOf("Done") === 0 || ($("notice").className || "").indexOf("ok") >= 0) notice(""); }, 1600);
       } catch (e) {
         const h = humanizeError(e.code, e.message);
         let primary = h.primary;
+        state.attachCode = e.code || "";
+        state.attachReason = primary;
+        if (e.observation && e.observation.world_name) state.worldName = e.observation.world_name;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
           state.token = null;
           try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
@@ -558,6 +573,7 @@ function playClientBundle(): string {
           notice(primary, "bad");
           $("err-advanced").textContent = h.advanced || "";
           pushTrailItems([{ kind: "fail", title: primary.split("\\n")[0] }]);
+          renderObs(e.observation || null);
         }
       } finally {
         state.busy = false;
@@ -576,7 +592,14 @@ function playClientBundle(): string {
       state.busy = true;
       sessionNotice("Entering…");
       try {
-        const handle = ($("handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+        let handle = ($("handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+        if (handle.length < 2) {
+          handle = String(state.handle || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+        }
+        const pasted = readPastedToken();
+        if (handle.length < 2 && (preToken || pasted || state.token)) {
+          handle = "player";
+        }
         if (handle.length < 2) {
           state.busy = false;
           sessionNotice("Choose a name (2–32 letters, numbers, _ or -).", "bad");
@@ -584,7 +607,7 @@ function playClientBundle(): string {
           return;
         }
         state.handle = handle;
-        const pasted = readPastedToken();
+        try { sessionStorage.setItem("noema.play.handle", handle); } catch (_) {}
         if (preToken) {
           state.token = preToken;
           state.player_id = "session";
@@ -627,6 +650,10 @@ function playClientBundle(): string {
           setSessionUi(true);
           sessionNotice("");
           notice(msg, "bad");
+          state.attachCode = e.code || state.attachCode;
+          state.attachReason = msg;
+          if (e.observation) renderObs(e.observation);
+          else renderObs(null);
           pushTrailItems([{ kind: "fail", title: (msg || "Action failed.").split("\\n")[0] }]);
         } else {
           setSessionUi(false);
@@ -714,11 +741,15 @@ function playClientBundle(): string {
       try {
         const ready = await fetch("/ready").then(r => r.json());
         const banner = $("play-health");
-        if (banner && ready && ready.play_blocked) {
-          const h = humanizeError(ready.code, "");
-          banner.hidden = false;
-          banner.textContent = h.primary;
-          pulseThreshold(banner);
+        if (ready && ready.world && ready.world.world_name) state.worldName = ready.world.world_name;
+        if (ready && (ready.play_blocked || (ready.world && ready.world.playable === false))) {
+          state.attachCode = ready.code || "WORLD_NOT_READY";
+          state.attachReason = humanizeError(state.attachCode, "").primary;
+          if (banner) {
+            banner.hidden = false;
+            banner.textContent = state.attachReason;
+            pulseThreshold(banner);
+          }
         }
       } catch (_) {}
       renderObs(null);

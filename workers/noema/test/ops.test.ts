@@ -209,6 +209,13 @@ describe("playReady", () => {
   it("allows DEMO_SEED", () => {
     expect(playReady("DEMO_SEED", "HEALTHY").ready).toBe(true);
   });
+
+  it("blocks ACTIVE when the live snapshot is not playable", () => {
+    const r = playReady("ACTIVE", "HEALTHY", false);
+    expect(r.ready).toBe(false);
+    expect(r.play_blocked).toBe(true);
+    expect(r.code).toBe("WORLD_NOT_READY");
+  });
 });
 
 describe("session takeover", () => {
