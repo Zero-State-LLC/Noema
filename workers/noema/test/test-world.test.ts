@@ -242,6 +242,72 @@ describe("POST /v1/operator/test-world/command", () => {
   });
 });
 
+describe("POST /v1/operator/test-world/lifecycle", () => {
+  it("denies Perihelion recover before DO lookup", async () => {
+    const calls: DoCall[] = [];
+    const res = await hit(
+      "/v1/operator/test-world/lifecycle",
+      { world_id: "world.perihelion-reach", action: "recover" },
+      { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() },
+      calls,
+    );
+    expect(res.status).toBe(403);
+    expect(calls).toEqual([]);
+  });
+
+  it("denies default world recover before DO lookup", async () => {
+    const calls: DoCall[] = [];
+    const res = await hit(
+      "/v1/operator/test-world/lifecycle",
+      { world_id: "world-01", action: "recover" },
+      { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() },
+      calls,
+    );
+    expect(res.status).toBe(403);
+    expect(calls).toEqual([]);
+  });
+
+  it("rejects missing dual-auth", async () => {
+    const calls: DoCall[] = [];
+    const res = await hit(
+      "/v1/operator/test-world/lifecycle",
+      { world_id: "test.hosted-canonical.ack-s0", action: "recover" },
+      {},
+      calls,
+    );
+    expect(res.status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it("rejects non-recover actions", async () => {
+    const calls: DoCall[] = [];
+    const res = await hit(
+      "/v1/operator/test-world/lifecycle",
+      { world_id: "test.hosted-canonical.ack-s0", action: "pause" },
+      { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() },
+      calls,
+    );
+    expect(res.status).toBe(400);
+    expect(calls).toEqual([]);
+  });
+
+  it("routes recover to the admitted test world only", async () => {
+    const calls: DoCall[] = [];
+    const res = await hit(
+      "/v1/operator/test-world/lifecycle",
+      { world_id: "test.hosted-canonical.ack-s0", action: "recover" },
+      { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() },
+      calls,
+    );
+    expect(res.status).toBe(200);
+    expect(calls.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
+    expect(calls[0].name).toBe("test.hosted-canonical.ack-s0");
+    expect(calls[0].name).not.toBe("world-01");
+    expect(calls[1].body?.action).toBe("recover");
+    expect(calls[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
+  });
+});
+
 describe("POST /v1/command is unchanged", () => {
   it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap", async () => {
     const calls: DoCall[] = [];
