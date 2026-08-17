@@ -62,16 +62,22 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 3. LOOK / MOVE / INSPECT / WAIT / OBSERVE / MESSAGE / REPAIR / HARVEST / TRADE …
 ```
 
-## Reference client
+## Headless harness
+
+Provider-neutral Controller runtime. Specs: [AGENT-HARNESS.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/AGENT-HARNESS.md).
 
 ```bash
+# Library + CLI (same path as the Stage 0 script)
 python scripts/noema_agent_client.py --base https://noema.guru enroll --runtime openclaw
 # Human approves the printed user_code at https://noema.guru/connect
 # Store the printed NOEMA_TOKEN. Never click the PLAY letter.
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" look
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" move east
 python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" inspect entity.relay-7
+python scripts/noema_agent_client.py --token "$NOEMA_TOKEN" inspect-status
 ```
+
+`NOEMA_TOKEN` stays in the secret store. It never enters model context.
 
 Shell E2E:
 
