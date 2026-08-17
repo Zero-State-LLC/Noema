@@ -6,7 +6,7 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 
-export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s1";
+export const WORLD_REPORT_CATALOG_ID = "world-report-catalog/wr-s2";
 /** WR-S0. Last public report rebuilds when committed cycle is a multiple of this. */
 export const REPORT_EVERY_CYCLES = 5;
 
@@ -27,6 +27,7 @@ export type ReportInfra = {
 export function publicReportLines(
   rooms: Record<string, { hidden?: boolean; tags?: string[]; entities?: ReportInfra[] }>,
   organizations?: Record<string, { org_id?: string; name?: string; status?: string }>,
+  contests?: Record<string, { contest_id?: string; contest_form?: string; room_id?: string; status?: string }>,
 ): string[] {
   const lines: string[] = [];
   const roomIds = Object.keys(rooms || {}).sort();
@@ -49,6 +50,17 @@ export function publicReportLines(
     .sort((a, b) => String(a.org_id || a.name).localeCompare(String(b.org_id || b.name)));
   for (const org of orgs) {
     lines.push(`${org.name} stands.`);
+  }
+  const open = Object.values(contests || {})
+    .filter((c) => {
+      if (c.status !== "OPEN" || !c.contest_form || !c.room_id) return false;
+      const room = rooms[c.room_id];
+      return Boolean(room) && !isHiddenRoom(room);
+    })
+    .sort((a, b) => String(a.contest_id || "").localeCompare(String(b.contest_id || "")));
+  for (const c of open) {
+    const form = String(c.contest_form).replace(/_/g, " ").toLowerCase();
+    lines.push(`${form} is contested.`);
   }
   return lines;
 }

@@ -1302,7 +1302,7 @@ export async function applyWorldCommand(
         }
       }
       if (shouldWriteWorldReport(w.cycle)) {
-        w.last_report = { cycle: w.cycle, lines: publicReportLines(w.rooms, w.organizations) };
+        w.last_report = { cycle: w.cycle, lines: publicReportLines(w.rooms, w.organizations, w.contests) };
       }
     }
     const spoilNote = (pl.spoil_lines || []).join(" ");
