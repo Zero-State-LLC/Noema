@@ -23,7 +23,7 @@ const EXTRA = `
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);
 }
 .watch-hero.major{
-  border-color:color-mix(in srgb,var(--ember) 55%, var(--line));
+  border-color:color-mix(in srgb,var(--color-state-warning) 55%, var(--line));
   animation:threshold-in 240ms var(--ease) 1 both;
 }
 @keyframes threshold-in{
@@ -36,7 +36,7 @@ const EXTRA = `
   margin:0;font:550 clamp(1.25rem,2.8vw,1.85rem)/1.25 var(--font-display);
 }
 .watch-line .mark{flex:0 0 auto;color:var(--color-state-active);font:550 1.05em var(--font-mono);line-height:1.2}
-.watch-hero.major .watch-line .mark{color:var(--ember)}
+.watch-hero.major .watch-line .mark{color:var(--color-state-warning)}
 .watch-hero .sub{margin:.4rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
 .watch-banner{display:none}
 .watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
@@ -73,7 +73,7 @@ const EXTRA = `
 .watch-feed li.quiet{opacity:.58}
 .watch-feed .mark{color:var(--faint)}
 .watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
-.watch-feed li.major .mark{color:var(--ember);font-weight:700}
+.watch-feed li.major .mark{color:var(--color-state-warning);font-weight:700}
 .watch-feed .line{overflow-wrap:anywhere}
 .watch-feed .meta{grid-column:2;color:var(--faint);font:.7rem}
 .watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}

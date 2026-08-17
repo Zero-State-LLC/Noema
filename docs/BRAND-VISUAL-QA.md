@@ -19,7 +19,7 @@ No Playwright dependency. Shots below are optional operator evidence.
 | 5 | Mono only for machine/data | Room prose Interface; command/receipts Machine | Command vs room |
 | 6 | Major change is apparent | 240ms amber threshold; WATCH `.major` | WATCH MAJOR if live |
 | 7 | Five questions from first paint | Place, strip, signals, actions, command, consequence | Chamber @ 1440 |
-| 8 | No cyberpunk clichés | No scanline / glitch / Orbitron / reticle | Any viewport |
+| 8 | No cyberpunk clichés | No scanline / glitch / Orbitron / reticle / dashboard / continuous particles | Any viewport |
 | 9 | Mobile usable | 640px: 44px targets, 16px command, sticky bar | 360 and 390 |
 | 10 | Text-game core remains | LOOK/room text primary; no SPA | Chamber |
 | 11 | Research/admin still precise | `/study` stub; `/admin` OPERATOR + Genesis | `/admin/login` |

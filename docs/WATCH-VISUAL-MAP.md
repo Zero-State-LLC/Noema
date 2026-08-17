@@ -4,6 +4,8 @@
 
 **Kind.** Implementation map. No new brand decisions. No new Player verbs. No Genesis change.
 
+**Named pins.** Inventory. Tokens. MAJOR-only phosphor. Reduced-motion. Viewports 360 / 390 / 768 / 1280 / 1440. Budgets 180 / 100 / 200.
+
 Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.md) · [PLAYER-BRAND](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/PLAYER-BRAND.md) · [VISUAL-DESIGN](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/VISUAL-DESIGN.md) · `workers/noema/src/watch.ts` · `workers/noema/src/watch-phosphor.ts`.
 
 ---
@@ -41,12 +43,14 @@ No operator plane, no budgets, no secrets, no Story Seed IDs.
 | Body type | `--font-body` | Phosphor bar |
 | Ink / faint / muted / line | `--ink` `--faint` `--muted` `--line` | Text hierarchy |
 | Active | `--color-state-active` | TEXT pressed, marks |
-| MAJOR / ember | `--ember` `--color-state-warning` | One-shot threshold, major feed mark |
+| MAJOR / warning | `--color-state-warning` | One-shot threshold, major feed mark |
 | Phosphor ground | `#0E1114` / `--void` | Canvas wash |
-| Phosphor copper | `#3DDCFF` | Sparse known nodes |
-| Phosphor amber | `#FFB020` | MAJOR pulse only |
+| Phosphor copper | `#3DDCFF` | Sparse known nodes (`color.state.active`) |
+| Phosphor amber | `#FFB020` | MAJOR pulse only (`color.state.warning`) |
 
-Forbidden: scanlines, glitch, Orbitron, reticle, continuous ambient particles, SaaS dashboard chrome.
+`--ember` is `--color-state-critical` and is not the MAJOR token.
+
+Forbidden: scanlines, glitch, Orbitron, reticle, dashboard, continuous particles.
 
 ---
 

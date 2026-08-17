@@ -76,6 +76,10 @@ describe("brand slice 9 — capture matrix", () => {
     expect(states.has("empty") || states.has("empty-here")).toBe(true);
     expect(MATRIX.screens.every((s) => s.route.startsWith("/"))).toBe(true);
     expect(MATRIX.required_states).toEqual(["empty", "loading", "error", "paused", "major"]);
+    const watchScreen = MATRIX.screens.find((s) => s.id === "watch");
+    expect(watchScreen?.states).toEqual(
+      expect.arrayContaining(["empty", "loading", "error", "paused", "major"]),
+    );
   });
 });
 
@@ -166,9 +170,11 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
       expect(html).not.toMatch(/scanline/i);
       expect(html).not.toMatch(/glitch/i);
       expect(html).not.toMatch(/Orbitron/i);
-      expect(html).not.toMatch(/military reticle/i);
+      expect(html).not.toMatch(/reticle/i);
       expect(html).not.toMatch(/neon-grid|neon grid/i);
     }
+    expect(watch).not.toMatch(/dashboard/i);
+    expect(watch).not.toMatch(/particle/i);
   });
 
   it("9. Mobile remains usable", () => {
@@ -278,25 +284,42 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(PHOSPHOR_ASSET_BUDGET).toBe(200 * 1024);
   });
 
-  it("WATCH visual map pins inventory, MAJOR-only phosphor, reduced-motion, viewports, budgets", () => {
+  it("WATCH visual map pins inventory, tokens, MAJOR-only phosphor, reduced-motion, viewports, budgets", () => {
     const map = readFileSync(join(HERE, "../../../docs/WATCH-VISUAL-MAP.md"), "utf8");
+    expect(map).toMatch(/Inventory/);
+    expect(map).toMatch(/Tokens/);
+    expect(map).toMatch(/MAJOR-only phosphor/);
+    expect(map).toMatch(/Reduced-motion/);
+    expect(map).toMatch(/360 \/ 390 \/ 768 \/ 1280 \/ 1440/);
+    expect(map).toMatch(/180 \/ 100 \/ 200/);
     expect(map).toMatch(/## Inventory/);
     expect(map).toMatch(/## Token mapping/);
     expect(map).toMatch(/## Phosphor trigger rules/);
     expect(map).toMatch(/## States and viewports/);
     expect(map).toMatch(/## Budgets/);
     expect(map).toMatch(/Motion is \*\*MAJOR only\*\*/);
-    expect(map).toMatch(/360 \/ 390 \/ 768 \/ 1280 \/ 1440/);
     expect(map).toMatch(/≤ 180 KiB/);
     expect(map).toMatch(/≤ 100 KiB/);
     expect(map).toMatch(/≤ 200 KiB/);
+    expect(map).toMatch(/14 PLAYER-BRAND/);
+    expect(map).toMatch(/`--color-state-warning`/);
     expect(map).not.toMatch(/Genesis reseed/);
     expect(map).toMatch(/No new Player verbs/);
+    expect(map).toMatch(/No Genesis change/);
+    expect(map).toMatch(/scanlines?, glitch, Orbitron, reticle, dashboard, continuous particles/);
     const watch = watchHtml();
     expect(watch).toContain('id="watch-map"');
     expect(watch).toContain('id="watch-feed"');
     expect(watch).toContain('id="watch-phosphor"');
     expect(watch).toContain("prefers-reduced-motion");
+    expect(watch).toContain("--color-state-warning");
+    expect(watch).not.toMatch(/\.watch-hero\.major\{[^}]*--ember/);
+    expect(watch).not.toMatch(/scanline/i);
+    expect(watch).not.toMatch(/glitch/i);
+    expect(watch).not.toMatch(/Orbitron/i);
+    expect(watch).not.toMatch(/reticle/i);
+    expect(watch).not.toMatch(/dashboard/i);
+    expect(watch).not.toMatch(/particle/i);
     const pulses = collectPulses(
       0,
       {

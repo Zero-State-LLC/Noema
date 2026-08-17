@@ -407,3 +407,90 @@ def test_empty_stock_does_not_invent_harvest():
     assert "COMMIT" not in cmds
     assert "HARVEST" not in cmds
     assert "WAIT" in cmds or "MOVE" in cmds
+
+
+def test_unattended_token_never_enters_model_context():
+    from noema.harness.memory import WorkingMemory
+    from noema.harness.observe import prepare_context, to_state
+
+    state = to_state(quiet_obs())
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    blob = json.dumps(ctx)
+    assert TOKEN not in blob
+    assert "authorization" not in blob.lower()
+    assert "Bearer" not in blob
+
+    http = FakeGateway(quiet_obs())
+    client = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=http)
+    harness = HeadlessHarness(client, FirstValidAffordanceAdapter(), HarnessPolicy(cooldown_seconds=0))
+    run = harness.run_unattended(max_turns=3)
+    assert run.orientation_ok
+    for rec in http.posts:
+        assert rec.get("token") == TOKEN
+        body = json.dumps(rec.get("body") or {})
+        assert TOKEN not in body
+        assert "NOEMA_TOKEN" not in body
+
+
+def test_cli_run_after_one_connect_never_hits_play():
+    approved = "tok-after-connect"
+    device_starts = {"n": 0}
+
+    class ConnectGateway(FakeGateway):
+        def __call__(self, method, url, body=None, token=None):
+            url_s = str(url)
+            assert "/play" not in url_s
+            if url_s.endswith("/v1/auth/device"):
+                device_starts["n"] += 1
+                return {
+                    "device_code": "secret-device",
+                    "user_code": "AB12-CD34",
+                    "verification_uri": "https://noema.guru/connect",
+                    "expires_in": 600,
+                    "interval": 0,
+                }
+            if url_s.endswith("/v1/auth/device/token"):
+                return {"status": "approved", "access_token": approved, "player_id": "player.nacre"}
+            return super().__call__(method, url, body=body, token=token)
+
+    enroll_http = ConnectGateway(quiet_obs())
+    assert main(["--base", "https://noema.guru", "--runtime", "openclaw", "enroll"], http=enroll_http) == 0
+    assert device_starts["n"] == 1
+
+    run_http = ConnectGateway(quiet_obs())
+    code = main(
+        ["--base", "https://noema.guru", "--token", approved, "--runtime", "openclaw", "--turns", "3", "run"],
+        http=run_http,
+    )
+    assert code == 0
+    urls = [str(p["url"]) for p in run_http.posts]
+    assert urls
+    assert all("/play" not in u for u in urls)
+    assert all("/v1/auth/device" not in u for u in urls)
+    assert any(u.endswith("/v1/command") for u in urls)
+    cmds = [p["body"]["command"] for p in run_http.posts if p.get("body")]
+    assert cmds[:2] == ["ENTER_WORLD", "OBSERVE"]
+    assert "WAIT" in cmds
+    invented = {"HACK_RELAY", "QUEST", "ASCEND"}
+    assert invented.isdisjoint(set(cmds))
+    assert all("NOEMA_TOKEN" not in json.dumps(p.get("body") or {}) for p in run_http.posts)
+    assert all(p.get("token") == approved for p in run_http.posts if p.get("body"))
+
+
+def test_no_agent_player_class_and_no_play_dom():
+    import noema.harness as harness
+    import noema.harness.types as types
+
+    exported = set(types.__dict__) | set(harness.__dict__)
+    assert "AGENT_PLAYER" not in exported
+    assert "BOT_PLAYER" not in exported
+    assert "AUTONOMOUS_PLAYER" not in exported
+
+    http = FakeGateway(quiet_obs())
+    client = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=http)
+    harness_rt = HeadlessHarness(client, FirstValidAffordanceAdapter(), HarnessPolicy(cooldown_seconds=0))
+    run = harness_rt.run_unattended(max_turns=3)
+    assert run.orientation_ok
+    for rec in http.posts:
+        assert "/play" not in str(rec["url"])
+        assert rec["url"].endswith("/v1/command")
