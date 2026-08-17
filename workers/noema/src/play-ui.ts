@@ -178,15 +178,16 @@ export function entityConditionText(label: string, entity_type: string): string 
 
 /** Local condition line derived from room text + entities (no invented lore). */
 export function deriveLocalCondition(loc: LocationObs): string {
-  if (loc.condition) return loc.condition;
-  const blob = `${loc.description} ${loc.entities.map((e) => e.label).join(" ")}`.toLowerCase();
+  if (loc.condition) return String(loc.condition);
+  const ents = loc.entities || [];
+  const blob = `${loc.description || ""} ${ents.map((e) => e.label || "").join(" ")}`.toLowerCase();
   const bits: string[] = [];
   if (/scar|damag|broken|fail/.test(blob)) bits.push("Local infrastructure shows damage.");
   if (/trade|market|exchange|bond/.test(blob)) bits.push("Trade structures are nearby.");
   if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
   if (/route|ghost|thin|spindle|link/.test(blob)) bits.push("Routes continue outward.");
   if (!bits.length) {
-    if (loc.entities.length) bits.push("Objects here can be inspected.");
+    if (ents.length) bits.push("Objects here can be inspected.");
     else bits.push("Open ground — exits are your next information.");
   }
   return bits.slice(0, 2).join(" ");
@@ -241,7 +242,7 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
     }
   }
   for (const x of loc.exits || []) {
-    const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+    const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
     out.push({
       id: `opp-exit-${x.direction}`,
       text: `A route leads ${x.direction} toward ${dest}.`,
@@ -498,8 +499,10 @@ export function routeDiagram(
   if (!exits?.length) return { lines: [], hasRoutes: false };
   const byDir: Record<string, string> = {};
   for (const x of exits) {
-    const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
-    byDir[x.direction.toLowerCase()] = dest;
+    const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
+    const dir = String(x.direction || "").toLowerCase();
+    if (!dir) continue;
+    byDir[dir] = dest;
   }
   const n = byDir.north || byDir.up || byDir.n;
   const s = byDir.south || byDir.down || byDir.s;
@@ -834,7 +837,7 @@ export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
   if (!exits || !exits.length) return "";
   return exits
     .map((x) => {
-      const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+      const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
       return (
         '<li><button type="button" class="role-here" data-cmd="move ' +
         escHtml(x.direction) +
@@ -1112,9 +1115,10 @@ export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
   el.replaceChildren();
   if (!exits || !exits.length) return;
   for (const x of exits) {
-    const dest = x.to_room_name || titleCaseLabel(x.to_room_id.replace(/^room\./, ""));
+    const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
     const li = h("li");
-    li.append(cmdBtn("move " + x.direction, x.direction), " ", h("span", "muted", dest));
+    const dir = String(x.direction || "").trim() || "ahead";
+    li.append(cmdBtn("move " + dir, dir), " ", h("span", "muted", dest));
     el.append(li);
   }
 }

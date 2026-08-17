@@ -13,6 +13,7 @@ import {
   renderServiceDesksHtml,
   renderTrailHtml,
   resolveEntityTarget,
+  deriveLocalCondition,
   routeDiagram,
   statusFromObservation,
   titleCaseLabel,
@@ -141,6 +142,23 @@ describe("play-ui helpers", () => {
     const text = d.lines.join("\n");
     expect(text).toMatch(/YOU/);
     expect(text).toMatch(/Coldline|Contract Town/);
+  });
+
+  it("HUD helpers survive missing exits, entities, and to_room_id", () => {
+    expect(() =>
+      routeDiagram("Relay Quarter", [{ direction: "east", to_room_id: undefined as unknown as string }]),
+    ).not.toThrow();
+    expect(() =>
+      deriveLocalCondition({
+        room_id: "room.x",
+        name: "X",
+        description: "A room.",
+        exits: [],
+        entities: undefined as unknown as [],
+      }),
+    ).not.toThrow();
+    const d = routeDiagram("Relay Quarter", [{ direction: "east", to_room_id: undefined as unknown as string }]);
+    expect(d.hasRoutes).toBe(true);
   });
 
   it("status surface uses only known observation fields", () => {

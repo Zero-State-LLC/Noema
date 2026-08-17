@@ -334,6 +334,7 @@ describe("play attach — live Perihelion Reach", () => {
     expect(looked.error).toBeUndefined();
     expect(looked.observation?.location?.description).toBeTruthy();
     expect(looked.observation?.consequence).toMatch(/Relay/);
+    expect(looked.observation?.location?.exits?.[0]?.to_room_id).toBeTruthy();
   });
 
   it("LOOK before ENTER is NOT_IN_WORLD with a typed reason and world name, not INTERNAL", async () => {
@@ -374,6 +375,22 @@ describe("play attach presentation", () => {
     expect(r.ready).toBe(false);
     expect(r.play_blocked).toBe(true);
     expect(r.code).toBe("WORLD_NOT_READY");
+  });
+
+  it("www HTML navigations redirect to the apex so the PLAY token stays on one origin", async () => {
+    const env = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret",
+      NOEMA_ENV: "production",
+      NOEMA_PROTOCOL_VERSION: "1",
+      DEFAULT_WORLD_ID: "world.perihelion-reach",
+      WORLD_DO: liveDo(perihelionWorld()),
+    } as unknown as Env;
+    const res = await worker.fetch(
+      new Request("https://www.noema.guru/play", { headers: { accept: "text/html" } }),
+      env,
+    );
+    expect(res.status).toBe(308);
+    expect(res.headers.get("location")).toBe("https://noema.guru/play");
   });
 
   it("magic-link callback stores the play handle so ENTER is not skipped", () => {

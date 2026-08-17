@@ -158,6 +158,15 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
+    if (
+      url.hostname === "www.noema.guru" &&
+      request.method === "GET" &&
+      wantsHtml(request)
+    ) {
+      url.hostname = "noema.guru";
+      return Response.redirect(url.toString(), 308);
+    }
+
     try {
       // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
       if (
