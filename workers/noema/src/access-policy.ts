@@ -1,9 +1,9 @@
 /**
- * ACCESS_POLICY S2 — EXIT/ROOM DENY/CLEAR/ALLOW_ONLY via occupied GRANT_ACCESS.
- * Authority: Noema-Specs docs/ACCESS-POLICY-S2.md / RFC-0103.
+ * ACCESS_POLICY S3 — Chamber ACCESS help. Modes unchanged from S2.
+ * Authority: Noema-Specs docs/ACCESS-POLICY-S3.md / RFC-0104.
  */
 
-export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s2";
+export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s3";
 export const ACCESS_POLICY_DEFAULT_DURATION = 4;
 export const ACCESS_POLICY_COST = { compute: 1, influence: 2 } as const;
 export const ACCESS_PROFILE = "GRANT_ACCESS" as const;

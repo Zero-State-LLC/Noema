@@ -5,7 +5,7 @@
  * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
  * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST.
  * Diplomacy S2 (RFC-0100): Chamber help names AGREEMENT. WED / ATTEST stay omitted.
- * ACCESS_POLICY S2 (RFC-0103): EXIT/ROOM DENY/CLEAR/ALLOW_ONLY. Help still omits ACCESS_POLICY.
+ * ACCESS_POLICY S3 (RFC-0104): Chamber help names ACCESS. WED / ATTEST stay omitted.
  */
 
 import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
@@ -2973,7 +2973,15 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  BUILD               help build");
     lines.push("  CONTEST             help contest");
     lines.push("  AGREEMENT           help agreement");
-    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement]");
+    lines.push("  ACCESS              help access");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access]");
+  } else if (t === "access") {
+    lines.push("ACCESS");
+    lines.push("  access <dir> deny for <org>");
+    lines.push("  access <dir> clear for <org>");
+    lines.push("  access <dir> allow for <org> applies_to=<player>");
+    lines.push("  access here deny|clear|allow for <org>");
+    lines.push("  Occupied GRANT_ACCESS office. Public rooms only.");
   } else if (t === "agreement") {
     lines.push("AGREEMENT");
     lines.push("  form agreement <type> with <player>");
