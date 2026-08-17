@@ -1,6 +1,6 @@
 # NOEMA auth email templates
 
-Dark ledger, copper accent, one CTA. PLAY and ADMIN share the chrome; ADMIN copy is explicit about privilege.
+Dark graphite, semantic accent, one CTA. PLAY uses world tokens; ADMIN uses the operator warning accent. ADMIN copy stays privilege-distinct.
 
 | File | Subject | After auth |
 |------|---------|------------|
