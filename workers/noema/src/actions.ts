@@ -5,7 +5,7 @@
  * GC2 PLAY thaw (RFC-0090): Chamber help names BUILD.
  * GC7 PLAY thaw (RFC-0095): Chamber help names CONTEST.
  * Diplomacy S2 (RFC-0100): Chamber help names AGREEMENT. WED / ATTEST stay omitted.
- * ACCESS_POLICY S1 (RFC-0102): EXIT/ROOM DENY/CLEAR hosted. Help still omits ACCESS_POLICY.
+ * ACCESS_POLICY S2 (RFC-0103): EXIT/ROOM DENY/CLEAR/ALLOW_ONLY. Help still omits ACCESS_POLICY.
  */
 
 import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
@@ -366,7 +366,7 @@ export type CanonicalAction =
         supersedes_reconstruction_id?: string;
         acting_for?: string;
         scope?: "EXIT" | "ROOM";
-        mode?: "DENY" | "CLEAR";
+        mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
         applies_to?: string;
         direction?: string;
         emergency_scope_id?: string;
@@ -2193,9 +2193,12 @@ export function normalizeStructuredCommand(
       const scopeHint = String(args.scope || args.direction || args.target || "").trim();
       const scope = parseAccessScope(String(args.scope || "")) || (parseAccessScope(scopeHint) === "ROOM" ? "ROOM" : "EXIT");
       const direction = String(args.direction || args.exit_id || (scope === "EXIT" ? args.target : "") || "").trim();
-      if (!mode) return { ok: false, error: "mode must be DENY or CLEAR", code: "FORM_FORBIDDEN" };
+      if (!mode) return { ok: false, error: "mode must be DENY, CLEAR, or ALLOW_ONLY", code: "FORM_FORBIDDEN" };
       if (scope === "EXIT" && !direction) return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
-      const applies_to = String(args.applies_to || "*").trim() || "*";
+      const applies_to = String(args.applies_to || (mode === "ALLOW_ONLY" ? "" : "*")).trim();
+      if (mode === "ALLOW_ONLY" && (!applies_to || applies_to === "*")) {
+        return { ok: false, error: "ALLOW_ONLY requires applies_to=<player>.", code: "INVALID_REQUEST" };
+      }
       const acting_for = args.acting_for ? String(args.acting_for) : undefined;
       const expires_cycle =
         args.expires_cycle != null && Number.isFinite(Number(args.expires_cycle))

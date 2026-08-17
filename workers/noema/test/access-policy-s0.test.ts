@@ -91,9 +91,10 @@ async function seatGrant(w: WorldRuntime, founder: PlayerPrincipal): Promise<str
 
 describe("ACCESS_POLICY S0 mapper", () => {
   it("hosts EXIT DENY/CLEAR and keeps ACCESS_POLICY off help", () => {
-    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s1");
+    expect(ACCESS_POLICY_CATALOG_ID).toBe("access-policy-catalog/s2");
     expect(parseAccessMode("deny")).toBe("DENY");
-    expect(parseAccessMode("ALLOW_ONLY")).toBeNull();
+    expect(parseAccessMode("ALLOW_ONLY")).toBe("ALLOW_ONLY");
+    expect(parseAccessMode("allow")).toBe("ALLOW_ONLY");
     expect(helpText()).not.toMatch(/ACCESS_POLICY/);
     expect(helpText()).not.toMatch(/\bWED\b/);
     expect(helpText()).not.toMatch(/\bATTEST\b/);
@@ -112,6 +113,14 @@ describe("ACCESS_POLICY S0 mapper", () => {
       expect(room.action.arguments.scope).toBe("ROOM");
       expect(room.action.arguments.direction).toBeUndefined();
     }
+    const allow = parseHumanCommand("access east allow for org.line applies_to=player.sable");
+    expect(allow.ok).toBe(true);
+    if (allow.ok && allow.action.verb === "COMMIT") {
+      expect(allow.action.arguments.mode).toBe("ALLOW_ONLY");
+      expect(allow.action.arguments.applies_to).toBe("player.sable");
+    }
+    const star = parseHumanCommand("access east allow for org.line applies_to=*");
+    expect(star.ok).toBe(false);
   });
 });
 
@@ -175,6 +184,49 @@ describe("ACCESS_POLICY S0 world path", () => {
     const after = await run(w, walker, "MOVE", { direction: "east" });
     expect(after.ok).toBe(true);
     expect(w.players[walker.player_id].room_id).toBe("room.quay");
+  });
+
+  it("allows listed MOVE under ALLOW_ONLY and rejects everyone else", async () => {
+    const w = world();
+    const gate = principal("player.nacre");
+    const listed = principal("player.sable");
+    const other = principal("player.vesper");
+    const orgId = await seatGrant(w, gate);
+    await run(w, listed, "ENTER_WORLD");
+    await run(w, other, "ENTER_WORLD");
+    w.players[listed.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[other.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const set = await run(w, gate, "LOOK", {
+      line: `access east allow for ${orgId} applies_to=${listed.player_id}`,
+    });
+    expect(set.ok).toBe(true);
+    expect(set.events?.some((e) => e.event_type === "ACCESS_RESTRICTED")).toBe(true);
+    expect(w.access_restrictions?.some((r) => r.mode === "ALLOW_ONLY" && r.applies_to === listed.player_id)).toBe(
+      true,
+    );
+    const okMove = await run(w, listed, "MOVE", { direction: "east" });
+    expect(okMove.ok).toBe(true);
+    expect(w.players[listed.player_id].room_id).toBe("room.quay");
+    const blocked = await run(w, other, "MOVE", { direction: "east" });
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error?.code).toBe("MOVE_REJECTED");
+    expect(w.players[other.player_id].room_id).toBe("room.hub");
+  });
+
+  it("keeps DENY stronger than ALLOW_ONLY", async () => {
+    const w = world();
+    const gate = principal("player.nacre");
+    const listed = principal("player.sable");
+    const orgId = await seatGrant(w, gate);
+    await run(w, listed, "ENTER_WORLD");
+    w.players[listed.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    await run(w, gate, "LOOK", { line: `access east allow for ${orgId} applies_to=${listed.player_id}` });
+    w.organizations[orgId].treasury!.compute = 8;
+    w.organizations[orgId].treasury!.influence = 8;
+    await run(w, gate, "LOOK", { line: `access east deny for ${orgId}` });
+    const moved = await run(w, listed, "MOVE", { direction: "east" });
+    expect(moved.ok).toBe(false);
+    expect(moved.error?.code).toBe("MOVE_REJECTED");
   });
 
   it("rejects hidden rooms", async () => {

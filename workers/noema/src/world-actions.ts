@@ -317,7 +317,7 @@ export type WorldRuntime = {
   access_restrictions?: Array<{
     restriction_id: string;
     scope: "EXIT" | "ROOM";
-    mode: "DENY";
+    mode: "DENY" | "ALLOW_ONLY";
     applies_to: string;
     room_id?: string;
     exit_id?: string;
@@ -3557,6 +3557,17 @@ function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {
   trade.reserved = {};
 }
 
+function restrictionHits(
+  r: { scope: "EXIT" | "ROOM"; room_id?: string; exit_id?: string },
+  roomId: string,
+  direction?: string,
+): boolean {
+  return (
+    (r.scope === "ROOM" && r.room_id === roomId) ||
+    (r.scope === "EXIT" && r.room_id === roomId && Boolean(direction) && r.exit_id === direction)
+  );
+}
+
 function isAccessDenied(
   w: WorldRuntime,
   playerId: string,
@@ -3567,14 +3578,20 @@ function isAccessDenied(
     if (r.mode !== "DENY") continue;
     if (w.cycle > r.expires_cycle) continue;
     if (r.applies_to !== playerId && r.applies_to !== "*") continue;
-    const hit =
-      (r.scope === "ROOM" && r.room_id === roomId) ||
-      (r.scope === "EXIT" && r.room_id === roomId && direction && r.exit_id === direction);
-    if (!hit) continue;
+    if (!restrictionHits(r, roomId, direction)) continue;
     if (accessException(w.agreements, playerId, r.room_id || roomId, r.exit_id)) continue;
     return true;
   }
-  return false;
+  let allowHit = false;
+  let listed = false;
+  for (const r of w.access_restrictions || []) {
+    if (r.mode !== "ALLOW_ONLY") continue;
+    if (w.cycle > r.expires_cycle) continue;
+    if (!restrictionHits(r, roomId, direction)) continue;
+    allowHit = true;
+    if (r.applies_to === playerId) listed = true;
+  }
+  return allowHit && !listed;
 }
 
 function contestStakeBudgets(
@@ -3860,7 +3877,7 @@ async function applyAccessPolicy(
 ): Promise<CommandResult> {
   if (!pl.entered) return fail(request_id, "FORBIDDEN", "You must enter the world first.");
   const mode = parseAccessMode(String(args.mode || ""));
-  if (!mode) return fail(request_id, "FORM_FORBIDDEN", "mode must be DENY or CLEAR.");
+  if (!mode) return fail(request_id, "FORM_FORBIDDEN", "mode must be DENY, CLEAR, or ALLOW_ONLY.");
   const room = w.rooms[pl.room_id];
   if (!room) return fail(request_id, "NOT_FOUND", "You are not in a known room.");
   if (isHiddenRoom(room)) {
@@ -3888,13 +3905,20 @@ async function applyAccessPolicy(
   if (!canPay(purse, ACCESS_POLICY_COST)) {
     return fail(request_id, "BUDGET_EXCEEDED", "The institution cannot pay that access change.");
   }
-  let applies_to = String(args.applies_to || "*").trim() || "*";
+  let applies_to = String(args.applies_to || (mode === "ALLOW_ONLY" ? "" : "*")).trim();
+  if (mode === "ALLOW_ONLY" && (!applies_to || applies_to === "*")) {
+    return fail(request_id, "INVALID_REQUEST", "ALLOW_ONLY requires applies_to=<player>.");
+  }
+  if (!applies_to) applies_to = "*";
   if (applies_to !== "*") {
-    const named = Object.values(w.players).find(
-      (p) => p.player_id === applies_to || p.handle?.toLowerCase() === applies_to.toLowerCase(),
+    const named = Object.entries(w.players).find(
+      ([id, p]) =>
+        id === applies_to ||
+        p.player_id === applies_to ||
+        p.handle?.toLowerCase() === applies_to.toLowerCase(),
     );
     if (!named) return fail(request_id, "NOT_FOUND", "That Player is not known here.");
-    applies_to = named.player_id;
+    applies_to = named[0];
   }
   w.access_restrictions = w.access_restrictions || [];
   if (mode === "CLEAR") {
@@ -3958,7 +3982,7 @@ async function applyAccessPolicy(
   w.access_restrictions.push({
     restriction_id,
     scope,
-    mode: "DENY",
+    mode,
     applies_to,
     room_id: room.room_id,
     exit_id: exit?.direction,
@@ -3967,7 +3991,7 @@ async function applyAccessPolicy(
   const ev = pushEvent("ACCESS_RESTRICTED", {
     restriction_id,
     scope,
-    mode: "DENY",
+    mode,
     applies_to,
     reason: "POLICY",
     expires_cycle,
@@ -3976,14 +4000,15 @@ async function applyAccessPolicy(
     exit_id: exit?.direction,
   });
   await settleEv(ev);
+  const where = scope === "ROOM" ? "here" : exit?.direction;
   const result = success(
     w,
     principal,
     request_id,
     events,
-    scope === "ROOM"
-      ? `Access here is restricted through cycle ${expires_cycle}.`
-      : `Access ${exit?.direction} is restricted through cycle ${expires_cycle}.`,
+    mode === "ALLOW_ONLY"
+      ? `Access ${where} is allowed only for ${applies_to} through cycle ${expires_cycle}.`
+      : `Access ${where} is restricted through cycle ${expires_cycle}.`,
     true,
   );
   w.seen_idempotency[idem] = result;

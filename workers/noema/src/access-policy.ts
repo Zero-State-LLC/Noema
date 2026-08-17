@@ -1,20 +1,21 @@
 /**
- * ACCESS_POLICY S1 — EXIT/ROOM DENY/CLEAR via occupied GRANT_ACCESS.
- * Authority: Noema-Specs docs/ACCESS-POLICY-S1.md / RFC-0102.
+ * ACCESS_POLICY S2 — EXIT/ROOM DENY/CLEAR/ALLOW_ONLY via occupied GRANT_ACCESS.
+ * Authority: Noema-Specs docs/ACCESS-POLICY-S2.md / RFC-0103.
  */
 
-export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s1";
+export const ACCESS_POLICY_CATALOG_ID = "access-policy-catalog/s2";
 export const ACCESS_POLICY_DEFAULT_DURATION = 4;
 export const ACCESS_POLICY_COST = { compute: 1, influence: 2 } as const;
 export const ACCESS_PROFILE = "GRANT_ACCESS" as const;
 
-export type AccessPolicyMode = "DENY" | "CLEAR";
+export type AccessPolicyMode = "DENY" | "CLEAR" | "ALLOW_ONLY";
 export type AccessPolicyScope = "EXIT" | "ROOM";
 
 export function parseAccessMode(raw: string): AccessPolicyMode | null {
   const t = String(raw || "").trim().toUpperCase().replace(/-/g, "_");
   if (t === "DENY") return "DENY";
   if (t === "CLEAR") return "CLEAR";
+  if (t === "ALLOW_ONLY" || t === "ALLOWONLY" || t === "ALLOW") return "ALLOW_ONLY";
   return null;
 }
 
@@ -49,20 +50,20 @@ export function parseAccessPolicyLine(
   const rest = parts.join(" ");
   const modeRaw =
     (rest.match(/\bmode=([^\s]+)/i) || [])[1] ||
-    parts.find((p) => /^(deny|clear)$/i.test(p)) ||
+    parts.find((p) => /^(deny|clear|allow|allow-only|allow_only)$/i.test(p)) ||
     "";
   const mode = parseAccessMode(modeRaw);
   if (!mode) {
     return {
       ok: false,
-      error: "Access syntax: access <dir|here> deny for <org>",
+      error: "Access syntax: access <dir|here> deny|allow for <org>",
       code: "INVALID_REQUEST",
     };
   }
   const scopeKw = (rest.match(/\bscope=([^\s]+)/i) || [])[1] || "";
   const head = (parts[0] || "").toLowerCase();
   const explicit = parseAccessScope(scopeKw) || parseAccessScope(head);
-  const target = /^(here|room|exit|deny|clear)$/i.test(head) ? "" : head;
+  const target = /^(here|room|exit|deny|clear|allow|allow-only|allow_only)$/i.test(head) ? "" : head;
   const scope: AccessPolicyScope = explicit || (target ? "EXIT" : "ROOM");
   if (scope === "EXIT" && !target) {
     return { ok: false, error: "Name the exit.", code: "INVALID_REQUEST" };
@@ -71,7 +72,10 @@ export function parseAccessPolicyLine(
     (rest.match(/\bfor\s+(\S+)/i) || [])[1] ||
     (rest.match(/\bacting_for=([^\s]+)/i) || [])[1] ||
     "";
-  const appliesRaw = (rest.match(/\bapplies_to=([^\s]+)/i) || [])[1] || "*";
+  const appliesRaw = (rest.match(/\bapplies_to=([^\s]+)/i) || [])[1] || (mode === "ALLOW_ONLY" ? "" : "*");
+  if (mode === "ALLOW_ONLY" && (!appliesRaw || appliesRaw === "*")) {
+    return { ok: false, error: "ALLOW_ONLY requires applies_to=<player>.", code: "INVALID_REQUEST" };
+  }
   let applies_to = appliesRaw;
   if (applies_to !== "*" && ctx.players && ctx.selfId) {
     const hit = ctx.players.find(
@@ -99,6 +103,11 @@ export function parseAccessPolicyLine(
         direction,
       },
     },
-    display: mode === "CLEAR" ? `You clear access ${label}.` : `You restrict access ${label}.`,
+    display:
+      mode === "CLEAR"
+        ? `You clear access ${label}.`
+        : mode === "ALLOW_ONLY"
+          ? `You allow only listed access ${label}.`
+          : `You restrict access ${label}.`,
   };
 }
