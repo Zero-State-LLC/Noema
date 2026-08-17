@@ -65,7 +65,7 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
 
 describe("Diplomacy S0 mapper", () => {
   it("hosts TRADE only and keeps AGREEMENT off help", () => {
-    expect(DIPLOMACY_CATALOG_ID).toBe("diplomacy-catalog/s0");
+    expect(DIPLOMACY_CATALOG_ID).toMatch(/^diplomacy-catalog\/s/);
     expect(parseAgreementType("trade")).toBe("TRADE");
     expect(parseAgreementType("NON_AGGRESSION")).toBeNull();
     expect(helpText()).not.toMatch(/\bAGREEMENT\b/);

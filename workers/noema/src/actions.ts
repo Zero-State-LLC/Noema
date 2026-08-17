@@ -21,7 +21,7 @@ import {
   type ContestForm,
   type ContestTarget,
 } from "./contest";
-import { parseAgreementType } from "./diplomacy";
+import { parseAgreementReason, parseAgreementType } from "./diplomacy";
 import {
   parseOfficeProfile,
   parseRequiresTrack,
@@ -203,7 +203,6 @@ export const HOSTED_TIER1 = [
 export const BACKEND_GAPS_TIER2 = [] as const;
 
 export const BACKEND_GAPS_TIER3 = [
-  "AGREEMENT_TERMINATE",
   "ACCESS_POLICY",
 ] as const;
 
@@ -261,6 +260,7 @@ export const COSTS = {
   RECONSTRUCT: { attention: 2, compute: 1 } as Partial<Budgets>,
   ATTEST: { attention: 2 } as Partial<Budgets>,
   AGREEMENT_FORM: { compute: 2, influence: 1 } as Partial<Budgets>,
+  AGREEMENT_TERMINATE: { compute: 1 } as Partial<Budgets>,
   WAIT: {} as Partial<Budgets>,
 };
 
@@ -326,7 +326,8 @@ export type CanonicalAction =
           | "CONTEST_DEFEND"
           | "CONTEST_WITHDRAW"
           | "ATTEST"
-          | "AGREEMENT_FORM";
+          | "AGREEMENT_FORM"
+          | "AGREEMENT_TERMINATE";
         entity_id?: string;
         amount?: number;
         org_id?: string;
@@ -763,6 +764,34 @@ function parseAgreementFormLine(
   };
 }
 
+function parseAgreementTerminateLine(parts: string[]): ParseResult {
+  const rest = parts.join(" ");
+  const reasonRaw =
+    (rest.match(/\breason=["']?([A-Za-z_]+)["']?/i) || [])[1] ||
+    (rest.match(/\breason=([^\s]+)/i) || [])[1] ||
+    "";
+  const reason = parseAgreementReason(reasonRaw);
+  if (!reason) {
+    return {
+      ok: false,
+      error: "Terminate syntax: terminate agreement <id> reason=mutual",
+      code: "INVALID_REQUEST",
+    };
+  }
+  const id = parts.find((p) => !/^reason=/i.test(p))?.trim() || "";
+  if (!id) {
+    return { ok: false, error: "agreement_id required", code: "INVALID_REQUEST" };
+  }
+  return {
+    ok: true,
+    action: {
+      verb: "COMMIT",
+      arguments: { operation: "AGREEMENT_TERMINATE", agreement_id: id, reason },
+    },
+    display: `You end agreement ${id}.`,
+  };
+}
+
 /**
  * Human command → canonical action (no world mutation).
  * Target resolution uses visible entities/players when provided.
@@ -1140,6 +1169,10 @@ export function parseHumanCommand(
   }
   if (v === "agree") {
     return parseAgreementFormLine(parts, ctx);
+  }
+  if (v === "terminate" || v === "end") {
+    if (parts[0]?.toLowerCase() === "agreement") parts.shift();
+    return parseAgreementTerminateLine(parts);
   }
 
   // invite <player> to <org> role=<role>
@@ -1838,7 +1871,7 @@ export function parseHumanCommand(
   }
 
   // Known but not hosted yet (v0.2 strategic)
-  if (["agreement", "terminate", "access"].includes(v)) {
+  if (["agreement", "access"].includes(v)) {
     return {
       ok: false,
       error: `“${v}” is a v0.2 strategic action — not available in this stage.`,
@@ -2129,6 +2162,20 @@ export function normalizeStructuredCommand(
           arguments: { operation: "AGREEMENT_FORM", agreement_type: typ, party_ids },
         },
         display: `COMMIT.AGREEMENT_FORM ${typ}`,
+      };
+    }
+    if (operation === "AGREEMENT_TERMINATE") {
+      const agreement_id = String(args.agreement_id || args.id || "").trim();
+      const reason = parseAgreementReason(String(args.reason || ""));
+      if (!agreement_id) return { ok: false, error: "agreement_id required", code: "INVALID_REQUEST" };
+      if (!reason) return { ok: false, error: "reason must be a catalog terminate reason", code: "INVALID_REQUEST" };
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: { operation: "AGREEMENT_TERMINATE", agreement_id, reason },
+        },
+        display: `COMMIT.AGREEMENT_TERMINATE ${agreement_id}`,
       };
     }
     if (operation === "ORG_OFFICE_CREATE") {
@@ -2522,6 +2569,9 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "AGREEMENT_FORM") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "AGREEMENT_FORM" });
+  }
+  if (cmd === "AGREEMENT_TERMINATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "AGREEMENT_TERMINATE" });
   }
   if (isForbiddenContestVerb(cmd.toLowerCase())) {
     return { ok: false, error: `“${cmd}” is not a legal verb.`, code: "VERB_FORBIDDEN" };
