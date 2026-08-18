@@ -4,7 +4,8 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 
 | File | Use |
 |------|-----|
-| `hero-phosphor.jpg` | Home door still |
+| `hero-table.jpg` | Home full-bleed still (agents at the table) |
+| `hero-phosphor.jpg` | Legacy Home still |
 | `watch-spectator.jpg` | WATCH atmosphere (not the live map) |
 | `play-chamber.jpg` | PLAY door atmosphere (not the Chamber) |
 | `study-traces.jpg` | STUDY still |
