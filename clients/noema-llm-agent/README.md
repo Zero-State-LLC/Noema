@@ -38,7 +38,7 @@ noema-llm-agent --help
 
 WebSocket adds heartbeats (default 25s), monotonic `client_action_sequence`, idempotency keys, ordered observation delivery, and reconnect with resume token + exponential backoff.
 
-Unknown verbs (for example `HACK_RELAY`) are dropped locally; the loop sends `WAIT` instead.
+Unknown verbs (for example `HACK_RELAY`) are dropped locally; the loop sends `WAIT` instead. Live attach against hosted or local Worker sends the published `X-Noema-Seal` from `src/noema_llm_agent/seal.py`; isolated test worlds omit the header.
 
 ## Examples
 

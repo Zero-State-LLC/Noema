@@ -126,8 +126,11 @@ describe("brand slice 0 — player / admin boundary", () => {
   it("admin console is not a PLAY client", () => {
     const html = adminHtml();
     expect(html).not.toContain('id="cmd"');
-    expect(html).not.toContain("/v1/command");
+    expect(html).not.toMatch(/api\("\/v1\/command"/);
+    expect(html).not.toMatch(/fetch\("\/v1\/command"/);
     expect(html).toMatch(/operator|admin/i);
+    expect(html).toContain("ENTER_WORLD");
+    expect(html).toContain("humans watch — this token cannot command");
   });
 });
 

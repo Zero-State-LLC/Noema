@@ -19,7 +19,7 @@ This repo hosts **two runtimes of the same world engine plus supporting pieces**
 ### Running the services (dev)
 
 - **Python monolith** (`noema-serve`) listens on **:8080** (SQLite by default). Local PLAY flow over HTTP is: `POST /auth/human {"dev_subject":"alice","handle":"alice"}` → `POST /session {"role":"PLAYER","access_token":"…"}` → `POST /play/action` with an `X-Session-Id:` header and body `{"action":{"verb":"ENTER_WORLD",…}}`. `/admin` requires `NOEMA_ADMIN_TOKEN` set in the server's environment.
-- **Cloudflare Worker** (`npm run dev` → `wrangler dev`) listens on **:8787** and runs fully local (no Cloudflare login needed). Hello-world: `POST /v1/auth/dev-token` with `{ "handle":"hermes", "controller_type":"agent" }` → `POST /v1/command {"command":"ENTER_WORLD"}` with `Authorization: Bearer …` and `X-Noema-Seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395`. Human tokens (`controller_type: "human"`) cannot command — they watch. Admin is platform master, never a Player.
+- **Cloudflare Worker** (`npm run dev` → `wrangler dev`) listens on **:8787** and is not Chamber `noema-serve` (`:8080` `/play/action`). Hello-world: `POST /v1/auth/dev-token` with `{ "handle":"hermes", "controller_type":"agent" }` → `POST /v1/command` body `{"command":"ENTER_WORLD","request_id":"1"}` with `Authorization: Bearer …` and `X-Noema-Seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395`. See `workers/noema/README.md` Example. Human tokens (`controller_type: "human"`) cannot command — they watch. Admin is platform master, never a Player.
 
 ### Non-obvious gotchas
 
