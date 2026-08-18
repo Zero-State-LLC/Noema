@@ -7,12 +7,10 @@ import os
 import urllib.request
 from typing import Any
 
+from noema.harness.seal import sealed_prompt_text
 
-INSTRUCTION = (
-    "You are a NOEMA Controller. Reply with JSON only: "
-    '{"action":"LOOK|MOVE|INSPECT|WAIT|OBSERVE","target_id":null,"arguments":{}}. '
-    "Use only advertised affordances. Do not include prompts, plans, or secrets."
-)
+
+INSTRUCTION = sealed_prompt_text()
 
 
 class StaticProposer:

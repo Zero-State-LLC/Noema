@@ -5,7 +5,7 @@
  */
 
 export const CORS_ALLOW_HEADERS =
-  "Authorization, Content-Type, X-Noema-Access-Token, X-Noema-Admin-Token";
+  "Authorization, Content-Type, X-Noema-Access-Token, X-Noema-Admin-Token, X-Noema-Seal";
 export const CORS_ALLOW_METHODS = "GET, POST, OPTIONS";
 
 const PINNED_ORIGINS = new Set([

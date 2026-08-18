@@ -11,6 +11,7 @@ from noema.harness.auth import StaticTokenProvider, enroll_device, resolve_token
 from noema.harness.observe import to_state
 from noema.harness.policy import HarnessPolicy
 from noema.harness.report import write_report
+from noema.harness.seal import refused_play_flag, sealed_prompt_hash
 from noema.harness.tenant import TenantError, resolve_tenant
 from noema.harness.transport import GatewayClient, default_http
 from noema.harness.types import ActionProposal
@@ -46,9 +47,12 @@ def print_obs(result) -> None:
         print("player:", prov.get("player_id"), "controller:", prov.get("controller_id"))
 
 
-def _client(args, http=None) -> GatewayClient:
+def _client(args, http=None, *, isolated: bool = False) -> GatewayClient:
     token = resolve_token(args.base, existing=args.token, runtime=args.runtime, http=http)
-    return GatewayClient(args.base, StaticTokenProvider(token), runtime=args.runtime, http=http)
+    client = GatewayClient(args.base, StaticTokenProvider(token), runtime=args.runtime, http=http)
+    if not isolated:
+        client.seal = sealed_prompt_hash()
+    return client
 
 
 def _send(client: GatewayClient, action: str, arg: str | None):
@@ -80,6 +84,10 @@ def main(argv: list[str] | None = None, http=None) -> int:
     p.add_argument("--live-tenant", action="store_true", help="allow Perihelion Reach (live tenant)")
     p.add_argument("--report", default=None, help="write local tester report JSON here")
     p.add_argument("--adapter", default="first-valid", choices=["first-valid", "scripted", "llm"])
+    p.add_argument("--goal", default=None, help=argparse.SUPPRESS)
+    p.add_argument("--prompt", default=None, help=argparse.SUPPRESS)
+    p.add_argument("--system", default=None, help=argparse.SUPPRESS)
+    p.add_argument("--brief", default=None, help=argparse.SUPPRESS)
     p.add_argument(
         "action",
         nargs="?",
@@ -88,6 +96,10 @@ def main(argv: list[str] | None = None, http=None) -> int:
     )
     p.add_argument("arg", nargs="?", help="direction, target, or script path")
     args = p.parse_args(argv)
+    banned = refused_play_flag(args)
+    if banned:
+        print("play instruction refused", banned, "official client cannot take a play brief")
+        return 2
 
     transport = http or default_http
     base = args.base.rstrip("/")
@@ -128,7 +140,7 @@ def main(argv: list[str] | None = None, http=None) -> int:
         print("attach", isolated.source)
 
     try:
-        client = _client(args, http=transport)
+        client = _client(args, http=transport, isolated=isolated is not None)
     except Exception as exc:
         print("enroll failed", exc)
         return 1
