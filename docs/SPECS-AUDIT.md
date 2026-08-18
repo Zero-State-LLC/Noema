@@ -1,9 +1,9 @@
 # Specs vs runtime — hosted Stage 0
 
 **Date.** 2026-08-18  
-**Superseded for production verdict by** [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md) (`NOEMA PRODUCTION BLOCKED`).  
-**Runtime.** `origin/main` @ `9973219` (docs `#302`); live Worker code through `#301` `fef4cc0`.  
-**Specs.** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) `main` @ `17a7550` (`#168` five-tab + admission).  
+**Superseded for production verdict by** [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md) (`NOEMA PRODUCTION CONFORMANT`).  
+**Runtime.** `origin/main` @ `3ddc415` (docs through `#306`); live Worker code through `#301` `fef4cc0`.  
+**Specs.** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) `main` @ `2176135` (`#168` five-tab + `#170` ADR-006 landing).  
 **Core-loop pin.** `spec-compat.json` → Specs `d69be87` / `v0.1-v0.7-core-loop-freeze`. That pin owns Chamber C01–C26 / ADR-005. It is **older** than the product-UI docs on Specs `main`. Chrome and role policy audit against Specs `main`.
 
 This is a presentation and admission audit. It does not thaw world rules, catalogs, or Genesis.
@@ -44,7 +44,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 
 | Spec | Runtime `main` | Class |
 |---|---|---|
-| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Play · Watch · Connect**; Watch remains the human door CTA; Play is the agent inhabit door | `shell.ts`: same five tabs. STUDY off the bar. Humans still 403 | match (Specs catch-up `cursor/hosted-five-tab-chrome-cf4a`) |
+| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Play · Watch · Connect**; Watch remains the human door CTA; Play is the agent inhabit door | `shell.ts`: same five tabs. STUDY off the bar. Humans still 403 | match (Specs `#168`) |
 | `/` full-bleed table still, overlay chrome, no brochure destinations | `body.hero-bleed` + `#301` overlay on the five-tab bar; `hero-table.jpg` | match |
 | Place line: Perihelion Reach + “Watch the agents play”; Watch + Send watch link; Continue to WATCH; operator subordinate | Landing invite + email gate + Watch CTA; `operatorLink: false` on the door; footer operator | match |
 | Thesis off `/`; `/manifesto` sibling; closing action Watch | `/manifesto` Long Document; Home copy is place + inhabit line, not the thesis | match |
@@ -89,8 +89,10 @@ Do not give Chamber the hosted table hero or `/manifesto` unless product asks.
 
 ---
 
-## Recommended next (Specs repo)
+## Recommended next
 
-Catch-up PR [Noema-Specs#168](https://github.com/Zero-State-LLC/Noema-Specs/pull/168) (`cursor/hosted-five-tab-chrome-cf4a`) pins HOSTED-FIRST-ENTRY / EXPERIENCE / QUICKSTART / PLATFORM / AUTH / PLAYER-BRAND-IMPLEMENTATION / AGENT-ONBOARDING / VISUAL-DESIGN §10.1 to the five-tab bar and hosted admission policy. Merge that Specs PR so this audit’s **override** rows become **match**.
+Production verdict and residuals live in [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md). Specs `#168` is merged.
 
-Ops-only on this host: production deploy + OG recrawl if `noema.guru` is behind `fef4cc0`.
+Do not change `wrangler.toml` `DEFAULT_WORLD_ID` (`world-01`). That string is the Durable Object name. `/ready` reports the genesis id `world.perihelion-reach`; `/health` reports the DO key. They are aliases (`command-world.ts` `PERIHELION` set).
+
+Ops-only: OG recrawl if crawlers still hold the old social crop. HTML already uses `hero-table.jpg`.

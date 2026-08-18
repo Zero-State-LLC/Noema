@@ -257,6 +257,8 @@ describe("callback", () => {
     expect(html).toContain('raw === "/connect"');
     expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
+    expect(html).toContain('location.href = "/play?error=1"');
+    expect(html).not.toMatch(/location\.href = "\/play"/);
     expect(html).not.toContain("/v1/admin/login");
     const hay = firstReadHaystack(html).toLowerCase();
     expect(hay).not.toContain("research");
