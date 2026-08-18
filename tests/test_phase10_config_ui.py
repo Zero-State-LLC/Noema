@@ -134,8 +134,9 @@ def test_html_shells_render():
 def test_index_is_world_door_not_research_brochure():
     html = index_html()
     assert "Perihelion Reach" in html
-    assert "Enter the world" in html
-    assert "Enter world" in html
+    assert "Watch the agents play" in html
+    assert 'href="/watch">Watch</a>' in html
+    assert "Enter world" not in html
     assert "The world is the text" not in html
     assert "Open STUDY" not in html
     assert 'aria-label="NOEMA surfaces"' not in html
@@ -144,6 +145,8 @@ def test_index_is_world_door_not_research_brochure():
     assert "Operator surface" not in html
     nav = html[html.find("<nav") : html.find("</nav>")]
     assert "Study" not in nav
+    assert ">Watch<" in nav
+    assert ">Play<" not in nav
 
 
 def test_play_watch_study_share_hosted_chrome():
@@ -211,7 +214,8 @@ def test_http_ui_and_manifest_endpoints(tmp_path: Path):
                 assert body
                 if path == "/":
                     assert b"Perihelion Reach" in body
-                    assert b"Enter world" in body
+                    assert b"Watch the agents play" in body
+                    assert b"Enter world" not in body
                     assert b"Open STUDY" not in body
                 if path == "/watch":
                     assert b"WATCH" in body
@@ -238,7 +242,8 @@ def test_configuration_digest_stable_for_fixture():
 def test_product_ui_world_gate_and_study_learn():
     home = index_html()
     assert "Perihelion Reach" in home
-    assert "Enter the world" in home
+    assert "Watch the agents play" in home
+    assert "Enter the world" not in home
     assert "The world is the text" not in home
     assert "Load Chamber seed" not in home
     assert "/admin/start" not in home

@@ -128,10 +128,12 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
   background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;
 }
 .awatch-pick[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-phos{position:relative;z-index:1}
 .awatch-phos[hidden]{display:none}
-.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body)}
+.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body);pointer-events:none}
 .awatch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
+  position:relative;z-index:1;pointer-events:auto;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
   border:1px solid var(--line);cursor:pointer;
 }
@@ -867,7 +869,10 @@ export function adminHtml(): string {
   window.NoemaAdminPhosphorPick = function(roomId) {
     const id = String(roomId || "");
     if (!id) return;
-    setWatchFollow({ handle: "", room_id: id });
+    Promise.resolve(setWatchFollow({ handle: "", room_id: id })).then(() => {
+      const site = document.querySelector('#awatch-sites .awatch-pick[aria-pressed="true"]');
+      if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
+    }).catch(() => undefined);
   };
 
   async function loadAgentWatch() {

@@ -23,7 +23,7 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 ### Hosted first-entry (reference Worker)
 
-`/` is a world door: Perihelion Reach, one place line, Player email. Operator login is `/admin/login`, not a peer card on `/`. First-read copy is game/place/play. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
+`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. PLAY is the agent inhabit console. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
 Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player view, chamber, glyphs, onboarding, mobile, motion, and Admin relationship are on the Worker. Visual QA: `docs/BRAND-VISUAL-QA.md` + `workers/noema/test/brand-visual-qa.test.ts`.
 
@@ -35,8 +35,8 @@ Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/te
 
 | Route | HTML | Job |
 |---|---|---|
-| `GET /` | `landingHtml` | World door + Player email |
-| `GET /play` | `playHtml` | Door + chamber (mast / scroll / rail / command) |
+| `GET /` | `landingHtml` | World door + Watch CTA (email is identity when needed) |
+| `GET /play` | `playHtml` | Agent inhabit door + chamber (mast / scroll / rail / command) |
 | `GET /play/callback` | `playCallbackHtml` | Magic-link consume |
 | `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor. Visual map: [WATCH-VISUAL-MAP.md](WATCH-VISUAL-MAP.md). |
 | `GET /connect` | `connectHtml` | External Controller |
@@ -99,7 +99,7 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 | **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
 | **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
 
-The hosted product entry at `/` presents the Player email gate as the single primary action. PLAY is the default human path; after login, signed-in PLAY is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. WATCH, STUDY, and CONNECT are explicit secondary doors. ADMIN is linked only as a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
+The hosted product entry at `/` presents Watch as the human door. Email is identity when needed (magic-link lands on `/watch`; CONNECT approve still uses that token). PLAY is the agent inhabit console, not a human Player path. After an agent token, signed-in PLAY is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. STUDY is a stub. CONNECT is device approve. ADMIN is a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
 
 Claim labels (display → machine):
 

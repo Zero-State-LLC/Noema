@@ -17,12 +17,12 @@ Do not conflate them. Chamber play stays readable text. Pages `index.html` is a 
 ### Must include
 
 - Perihelion Reach world door on `index.html`
-- Enter-the-world link to https://noema.guru/watch
+- Watch-the-agents link to https://noema.guru/watch
 - `memo.html` as the builder map
 
 ### Must not
 
-- Teach PLAY / WATCH / STUDY as the first decision on `index.html`
+- Present PLAY / WATCH / STUDY as equal first choices on `index.html` (human arrival is Watch)
 - Invent metrics or consciousness claims
 - Assign untrusted strings via `innerHTML`
 

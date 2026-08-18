@@ -105,7 +105,7 @@ describe("watch-live/1.0 projection contract", () => {
     expect(snap).not.toHaveProperty("payload");
   });
 
-  it("counts present Players including agents, without leaking system handles", () => {
+  it("counts present Players including agents, without leaking operator or smoke handles", () => {
     const snap = buildWatchLive({
       world_id: "w",
       cycle: 1,
@@ -114,8 +114,16 @@ describe("watch-live/1.0 projection contract", () => {
       players: [
         livePlayer("player.aaaaaaaaaaaa", "Vesper-7", "room.market"),
         {
-          player_id: "player.sysbot",
-          handle: "SYS",
+          player_id: "player.hermes",
+          handle: "hermes",
+          room_id: "room.market",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+        {
+          player_id: "player.smoke-agent",
+          handle: "smoke-agent",
           room_id: "room.market",
           entered: true,
           last_seen_ms: NOW,
@@ -145,12 +153,12 @@ describe("watch-live/1.0 projection contract", () => {
     expect(JSON.stringify(snap)).not.toContain("Sealed Vault");
     expect(JSON.stringify(snap)).not.toContain("room.vault");
     expect(JSON.stringify(snap)).not.toContain("Hidden cache");
-    expect(JSON.stringify(snap)).not.toContain("SYS");
+    expect(JSON.stringify(snap)).not.toContain("smoke-agent");
     expect(JSON.stringify(snap)).not.toContain("Ghost");
     expect(JSON.stringify(snap)).not.toMatch(/player\./);
     const market = (snap.rooms as Array<Record<string, unknown>>).find((r) => r.room_id === "room.market")!;
-    expect(market.players_present).toBe(2);
-    expect(market.public_player_labels).toEqual(["Vesper-7"]);
+    expect(market.players_present).toBe(3);
+    expect(market.public_player_labels).toEqual(["Vesper-7", "hermes"]);
     expect(market.glyph).toBe("loc");
     expect(market.player_glyph).toBe("player");
     expect(market.active).toBe(true);
@@ -461,6 +469,8 @@ describe("watch HTML surface", () => {
     expect(html).toContain("NoemaPhosphorPick");
     expect(html).toContain("watch-phos-caption");
     expect(html).toContain('id="world-key"');
+    expect(html).toContain('present === 1 ? "an agent"');
+    expect(html).toContain("none visible");
     expect(html).not.toContain("/assets/legend-mini.png");
     expect(html).not.toContain("/assets/legend.png");
   });

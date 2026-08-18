@@ -330,4 +330,70 @@ describe("operator watch theater", () => {
     expect(pixel.rooms.find((r) => r.room_id === "room.a")?.active).toBe(false);
     expect(pixel.recent_events.every((e) => e.room_id === "room.b")).toBe(true);
   });
+
+  it("PIXEL room pick follows that site on live text", () => {
+    const built = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 1,
+      sequence: 4,
+      now: NOW,
+      rooms: {
+        "room.a": { room_id: "room.a", name: "Relay Quarter", exits: [], entities: [] },
+        "room.b": { room_id: "room.b", name: "Transit Ring", exits: [], entities: [] },
+      },
+      players: {
+        "player.mine": {
+          handle: "vesper",
+          room_id: "room.b",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          operator_id: "op.token",
+        },
+      },
+      operator_id: "op.token",
+      lines: [
+        {
+          at: NOW,
+          handle: "vesper",
+          room_id: "room.b",
+          room_name: "Transit Ring",
+          command: "LOOK",
+          line: "Transit Ring — a public corridor.",
+          glyph: "loc",
+          operator_id: "op.token",
+        },
+        {
+          at: NOW + 1,
+          handle: "vesper",
+          room_id: "room.a",
+          room_name: "Relay Quarter",
+          command: "MOVE",
+          line: "You arrive at Relay Quarter.",
+          glyph: "player",
+          operator_id: "op.token",
+        },
+      ],
+    });
+    const focused = followOperatorWatch(
+      {
+        agents: built.agents as Array<{ handle: string; room_id?: string; glyph: "player" }>,
+        sites: built.sites as OperatorWatchSite[],
+        lines: built.lines as Array<{ handle?: string; room_id?: string }>,
+      },
+      { room_id: "room.b" },
+    );
+    expect(focused.focus_room_id).toBe("room.b");
+    expect(focused.lines.map((l) => l.room_id)).toEqual(["room.b"]);
+    expect(focused.sites.find((s) => s.room_id === "room.b")?.active).toBe(true);
+    expect(focused.sites.find((s) => s.room_id === "room.a")?.active).toBe(false);
+    const pixel = phosphorSnapshotFromOperatorWatch({
+      sequence: Number(built.sequence),
+      sites: built.sites as OperatorWatchSite[],
+      lines: built.lines as Array<{ room_id?: string; handle?: string }>,
+      follow: { room_id: "room.b" },
+    });
+    expect(pixel.focus_room_id).toBe("room.b");
+    expect(pixel.rooms.find((r) => r.room_id === "room.b")?.active).toBe(true);
+  });
 });

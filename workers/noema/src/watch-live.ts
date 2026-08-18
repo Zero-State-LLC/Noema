@@ -170,6 +170,14 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
   return null;
 }
 
+function isOperatorOrSmokeHandle(handle: string): boolean {
+  const n = handle.trim().toLowerCase();
+  if (!n) return true;
+  if (/^smoke[-_]/.test(n)) return true;
+  if (/^op\./.test(n) || /^operator[._-]/.test(n)) return true;
+  return false;
+}
+
 function publicHandle(p: { handle?: string; player_id?: string }): string | null {
   const h = String(p.handle || "").trim();
   if (!h) return null;
@@ -177,6 +185,7 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
   if (p.player_id && h === p.player_id) return null;
   // Default mint is the 12-hex suffix of player_id — counts only, not a public name.
   if (/^[0-9a-f]{12}$/i.test(h)) return null;
+  if (isOperatorOrSmokeHandle(h)) return null;
   return h.slice(0, 32);
 }
 
@@ -344,7 +353,6 @@ function livePublicPlayers(players: WatchPlayerIn[], now: number): WatchPlayerIn
 }
 
 function publicPlayerLabel(p: WatchPlayerIn): string | null {
-  if (inferActorKind(p.player_id, p.actor_kind) === "system") return null;
   return publicHandle(p);
 }
 
