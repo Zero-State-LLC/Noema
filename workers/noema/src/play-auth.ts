@@ -11,6 +11,7 @@ import {
   normalizeEmail,
 } from "./admin-auth";
 import { err, json, mintControllerToken } from "./auth";
+import { allowLoginThrottled } from "./rate-limit";
 import {
   composePlayMail,
   extractHashedToken,
@@ -47,7 +48,7 @@ export async function requestPlayMagicLink(
 
   const throttle = opts?.throttle || playLoginThrottle;
   const ip = clientIp(req);
-  if (!throttle.hit(`ip:${ip}`) || !throttle.hit(`email:${email}`)) {
+  if (!(await allowLoginThrottled(throttle, env, ip, email))) {
     return err("RATE_LIMITED", "too many login requests", 429, true);
   }
 

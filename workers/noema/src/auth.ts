@@ -30,6 +30,7 @@ export function json(data: unknown, status = 200): Response {
       "content-type": "application/json; charset=utf-8",
       "x-content-type-options": "nosniff",
       "referrer-policy": "no-referrer",
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
     },
   });
 }

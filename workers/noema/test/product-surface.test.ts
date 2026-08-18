@@ -94,6 +94,8 @@ describe("hosted /index.html", () => {
       const html = await res.text();
       expect(res.status).toBe(200);
       expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+      expect(res.headers.get("content-security-policy")).toContain("connect-src 'self' wss:");
+      expect(res.headers.get("content-security-policy")).not.toMatch(/connect-src[^;]* https:/);
       expect(html).toContain("Perihelion Reach");
       expect(html).toContain("/v1/play/login/request");
       expect(html).not.toContain("/assets/site.js");

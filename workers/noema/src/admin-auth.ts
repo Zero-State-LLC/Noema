@@ -13,6 +13,7 @@ import {
 } from "./admin-mail";
 import { err, json } from "./auth";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
+import { SlidingWindowThrottle, allowLoginThrottled } from "./rate-limit";
 import type { AdminPrincipal, Env } from "./types";
 
 const ADMIN_SCOPES = ["noema.world.admin", "noema.simulation.admin"];
@@ -163,28 +164,15 @@ export function clientIp(req: Request): string {
   return req.headers.get("CF-Connecting-IP")?.trim() || "0.0.0.0";
 }
 
-export class LoginThrottle {
-  private hits = new Map<string, number[]>();
-  constructor(
-    private limit = 5,
-    private windowMs = 3_600_000,
-  ) {}
-  hit(key: string, now = Date.now()): boolean {
-    const cut = now - this.windowMs;
-    const prev = (this.hits.get(key) || []).filter((t) => t > cut);
-    if (prev.length >= this.limit) {
-      this.hits.set(key, prev);
-      return false;
-    }
-    prev.push(now);
-    this.hits.set(key, prev);
-    return true;
+export class LoginThrottle extends SlidingWindowThrottle {
+  constructor(limit = 5, windowMs = 3_600_000) {
+    super(limit, windowMs);
   }
 }
 
 export type AdminFetch = (input: string, init?: RequestInit) => Promise<Response>;
 
-const defaultThrottle = new LoginThrottle();
+export const adminLoginThrottle = new LoginThrottle();
 
 export function loginRedirectOrigin(env: Env, req: Request): string {
   if ((env.NOEMA_ENV || "").toLowerCase() === "production") return "https://noema.guru";
@@ -204,9 +192,9 @@ export async function requestAdminMagicLink(
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
 
-  const throttle = opts?.throttle || defaultThrottle;
+  const throttle = opts?.throttle || adminLoginThrottle;
   const ip = clientIp(req);
-  if (!throttle.hit(`ip:${ip}`) || !throttle.hit(`email:${email}`)) {
+  if (!(await allowLoginThrottled(throttle, env, ip, email))) {
     return err("RATE_LIMITED", "too many login requests", 429, true);
   }
 

@@ -169,6 +169,11 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
     assert approved["status"] == "approved"
     assert approved["controller_id"].startswith("ctrl.")
     assert approved["player_id"] == human["player_id"]
+    stored = rt.store.identity_get_device_by_code(device["device_code"])
+    assert stored is not None
+    assert stored.get("access_token") is None
+    assert stored.get("refresh_token") is None
+    assert stored.get("status") == "approved"
 
     pending = rt.identity.poll_device_token(device["device_code"])
     assert pending["status"] == "approved"
@@ -194,6 +199,7 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
 
 def test_approve_requires_human_token_when_not_dev(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("NOEMA_ENV", "production")
+    monkeypatch.setenv("TOKEN_SIGNING_SECRET", "prod-signing-secret")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "prod-secret")
     rt = NoemaRuntime(db_path=tmp_path / "prod.sqlite3")
     # force non-dev path
@@ -206,7 +212,19 @@ def test_approve_requires_human_token_when_not_dev(tmp_path: Path, monkeypatch):
         assert "token" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
 
 
-def test_protocol_auth_with_controller_token(tmp_path: Path):
+def test_allow_dev_human_false_refuses_dev_subject_and_tokenless_approve(tmp_path: Path):
+    rt = NoemaRuntime(db_path=tmp_path / "lan.sqlite3", allow_dev_human=False)
+    try:
+        rt.identity.bind_human_dev("alice")
+        assert False, "expected auth failure"
+    except Exception as exc:
+        assert "NOT_AUTHORIZED" in str(exc) or "disabled" in str(exc).lower()
+    device = rt.identity.start_device_enrollment()
+    try:
+        rt.identity.approve_device(user_code=device["user_code"], player_id="player.x")
+        assert False, "expected auth failure"
+    except Exception as exc:
+        assert "token" in str(exc).lower() or "NOT_AUTHORIZED" in str(exc)
     rt = NoemaRuntime(db_path=tmp_path / "p.sqlite3")
     seed = Path("fixtures/v01-seed/world-seed.json")
     if seed.is_file():

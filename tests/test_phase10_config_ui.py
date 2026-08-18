@@ -253,6 +253,11 @@ def test_product_ui_world_gate_and_study_learn():
     play = play_html()
     assert "command-form" in play
     assert "Situation Genome" not in play
+    assert "JSON.stringify({access_token:token})" in play
+    assert '{role:"PLAYER",agent_id' not in play
+    assert "role:'RESEARCHER'" not in study
+    assert "id=\"study-token\"" in study
+    assert "/admin/session" in study
 
 
 def test_product_ui_surfaces_runtime_version_errors_and_notice():

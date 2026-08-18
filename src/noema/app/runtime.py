@@ -6,6 +6,7 @@ import json
 import hmac
 import os
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -63,6 +64,7 @@ class NoemaRuntime:
         research_capture: bool = True,
         frontier_config: dict[str, Any] | None = None,
         admin_token: str | None = None,
+        allow_dev_human: bool | None = None,
     ):
         self.store = open_store(db_path)
         self.router: ActionRouter | None = None
@@ -73,7 +75,7 @@ class NoemaRuntime:
         # The token is an operator-side development gate. Keep it in memory only:
         # it is never included in config views, sessions, or admin projections.
         self.admin_token = admin_token if admin_token is not None else os.environ.get("NOEMA_ADMIN_TOKEN")
-        self.identity = IdentityService(self.store)
+        self.identity = IdentityService(self.store, allow_dev_human=allow_dev_human)
         self.sessions: dict[str, dict[str, Any]] = {}
         self.resume = ResumeRegistry(default_max_window=256)
         self.research = ResearchCapture(self.store, enabled=research_capture)
@@ -245,6 +247,8 @@ class NoemaRuntime:
         scopes: list[str] | None = None,
     ) -> dict[str, Any]:
         session_id = f"sess.{uuid.uuid4().hex[:12]}"
+        now = int(time.time())
+        ttl = int(os.environ.get("NOEMA_SESSION_TTL_SECONDS") or 86400)
         data = {
             "session_id": session_id,
             "principal_id": principal_id or player_id or f"principal.{uuid.uuid4().hex[:8]}",
@@ -254,6 +258,8 @@ class NoemaRuntime:
             "controller_id": controller_id,
             "scopes": scopes or [],
             "epoch": 1,
+            "created_at": now,
+            "expires_at": now + max(ttl, 1),
         }
         self.sessions[session_id] = data
         self.store.save_session(session_id, data)
@@ -284,6 +290,9 @@ class NoemaRuntime:
         data = self.sessions.get(session_id) or self.store.load_session(session_id)
         if not data:
             raise ActionError(NOT_AUTHORIZED, "unknown session")
+        expires_at = data.get("expires_at")
+        if expires_at is not None and int(expires_at) < int(time.time()):
+            raise ActionError(NOT_AUTHORIZED, "session expired")
         return Principal(data["principal_id"], Role(data["role"]), data.get("agent_id"))
 
     def _require_admin(self, session_id: str) -> Principal:

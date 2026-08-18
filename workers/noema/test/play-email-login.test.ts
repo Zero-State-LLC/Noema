@@ -207,6 +207,26 @@ describe("requestPlayMagicLink", () => {
     expect(sixth.status).toBe(429);
   });
 
+  it("429s when the durable WORLD_DO throttle refuses", async () => {
+    const e = env({
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "srk",
+      WORLD_DO: {
+        idFromName: (name: string) => name,
+        get: () => ({
+          fetch: async () => new Response(JSON.stringify({ allowed: false }), { status: 200 }),
+        }),
+      } as unknown as DurableObjectNamespace,
+    });
+    const res = await requestPlayMagicLink(
+      e,
+      new Request("https://noema.guru/x", { headers: { "CF-Connecting-IP": "9.9.9.9" } }),
+      { email: "anyone@x.io" },
+      { fetch: async () => new Response("{}"), throttle: new LoginThrottle() },
+    );
+    expect(res.status).toBe(429);
+  });
+
   it("PLAY throttle does not increment an admin throttle instance", async () => {
     const adminT = new LoginThrottle();
     const playT = new LoginThrottle();

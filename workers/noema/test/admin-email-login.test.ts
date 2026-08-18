@@ -205,6 +205,23 @@ describe("requestAdminMagicLink", () => {
     expect(body.error.retryable).toBe(true);
   });
 
+  it("429s when the durable WORLD_DO throttle refuses", async () => {
+    const res = await requestAdminMagicLink(
+      env({
+        WORLD_DO: {
+          idFromName: (name: string) => name,
+          get: () => ({
+            fetch: async () => new Response(JSON.stringify({ allowed: false }), { status: 200 }),
+          }),
+        } as unknown as DurableObjectNamespace,
+      }),
+      new Request("https://noema.guru/x", { headers: { "CF-Connecting-IP": "203.0.113.10" } }),
+      { email: "fresh@x.io" },
+      { fetch: async () => new Response("{}"), throttle: new LoginThrottle() },
+    );
+    expect(res.status).toBe(429);
+  });
+
   it("reads hashed_token from generate_link properties (Supabase admin shape)", async () => {
     const sent: Array<{ href: string }> = [];
     const res = await requestAdminMagicLink(

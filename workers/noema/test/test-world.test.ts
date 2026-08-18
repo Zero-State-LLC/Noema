@@ -4,6 +4,7 @@ import { mintControllerToken } from "../src/auth";
 import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
 import { admitTestWorldId, isolatedLedgerEventId, resolveLoadWorldId } from "../src/test-world";
+import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
 import type { Env } from "../src/types";
 
 const SIGNING = "test-signing-secret-isolated-world";
@@ -327,7 +328,7 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME)).toEqual([]);
   });
 
   it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap when world_id is omitted", async () => {
@@ -340,9 +341,10 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    expect(calls[0].name).toBe("world-01");
-    expect(calls[1].body?.allow_bootstrap).toBe(false);
-    expect(calls[1].body?.world_id).toBe("world-01");
+    const worldCalls = calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME);
+    expect(worldCalls[0].name).toBe("world-01");
+    expect(worldCalls[1].body?.allow_bootstrap).toBe(false);
+    expect(worldCalls[1].body?.world_id).toBe("world-01");
   });
 
   it("does not accept a forged signed header as PLAY authority", async () => {

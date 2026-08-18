@@ -23,7 +23,6 @@ export type DeviceRecord = {
   controller_id: string | null;
   issued_at: string;
   expires_at: string;
-  access_token?: string;
 };
 
 export interface DeviceStore {
@@ -60,7 +59,9 @@ export function parseDeviceRecord(data: unknown): DeviceRecord | null {
   if (typeof o.device_code !== "string" || !o.device_code) return null;
   if (typeof o.user_code !== "string") return null;
   if (typeof o.status !== "string") return null;
-  return o as unknown as DeviceRecord;
+  const rec = { ...o } as DeviceRecord & { access_token?: unknown };
+  delete rec.access_token;
+  return rec;
 }
 
 export function durableDeviceStore(env: Env): DeviceStore {
@@ -214,21 +215,12 @@ export async function approveDevice(
   const now = opts?.now ?? Date.now();
   const status = await effectiveDeviceStatus(rec, now);
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
-  const handle = approver.player_id.replace(/^player\./, "").slice(0, 32) || "player";
   const controller_id = rec.controller_id || allocateDeviceControllerId();
-  const minted = await mintControllerToken(env, {
-    handle,
-    controllerType: "agent",
-    playerId: approver.player_id,
-    controllerId: controller_id,
-    amr: "device_enrollment",
-  });
   const next: DeviceRecord = {
     ...rec,
     status: "approved",
     player_id: approver.player_id,
     controller_id,
-    access_token: minted.access_token,
   };
   await store.put(next);
   return json({
@@ -280,13 +272,27 @@ export async function pollDeviceToken(
     return err("NOT_AUTHORIZED", "device code expired", 401);
   }
   if (status !== "approved") return err("NOT_AUTHORIZED", `device enrollment ${status}`, 401);
-  const access = rec.access_token;
-  if (!access) return err("NOT_AUTHORIZED", "tokens already redeemed", 401);
-  const { access_token: _drop, ...rest } = rec;
-  await store.put({ ...rest, status: "redeemed" });
+  if (!rec.player_id || !rec.controller_id) {
+    return err("NOT_AUTHORIZED", "tokens already redeemed", 401);
+  }
+  const handle = rec.player_id.replace(/^player\./, "").slice(0, 32) || "player";
+  const minted = await mintControllerToken(env, {
+    handle,
+    controllerType: "agent",
+    playerId: rec.player_id,
+    controllerId: rec.controller_id,
+    amr: "device_enrollment",
+  });
+  const { player_id, controller_id, ...rest } = rec;
+  await store.put({
+    ...rest,
+    player_id,
+    controller_id,
+    status: "redeemed",
+  });
   return json({
     status: "approved",
-    access_token: access,
+    access_token: minted.access_token,
     token_type: "bearer",
     player_id: rec.player_id,
     controller_id: rec.controller_id,

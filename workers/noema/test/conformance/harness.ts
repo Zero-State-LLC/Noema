@@ -1,12 +1,17 @@
 import { mintAdminSession } from "../../src/admin-auth";
 import { mintControllerToken } from "../../src/auth";
 import worker from "../../src/index";
+import { RATE_LIMIT_DO_NAME } from "../../src/rate-limit";
 import type { Env } from "../../src/types";
 
 export const SIGNING = "test-signing-secret-hosted-conformance";
 export const OPERATOR = "operator-token-value-ok";
 
 export type DoCall = { op: string; name?: string; url?: string; body?: Record<string, unknown> | null };
+
+export function worldDoCalls(calls: DoCall[]): DoCall[] {
+  return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME);
+}
 
 export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>) {
   const devices = new Map<string, Record<string, unknown>>();

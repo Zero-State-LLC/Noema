@@ -725,7 +725,7 @@ class WorldStore:
     def identity_upsert_device_code(self, row: dict[str, Any]) -> None:
         payload = {
             k: row.get(k)
-            for k in ("access_token", "refresh_token", "interval")
+            for k in ("interval",)
             if row.get(k) is not None
         }
         with self._lock:
@@ -785,6 +785,8 @@ class WorldStore:
         if payload:
             try:
                 extra = json.loads(payload)
+                extra.pop("access_token", None)
+                extra.pop("refresh_token", None)
                 d.update(extra)
             except Exception:  # noqa: BLE001
                 pass

@@ -39,6 +39,21 @@ ADMIN_SCOPES = frozenset(
         "noema.simulation.admin",
     }
 )
+DEFAULT_DEV_SECRET = "dev-token-secret-change-me"
+_LOCAL_ENVS = frozenset({"local", "test", "dev"})
+
+
+def resolve_token_secret(token_secret: str | None = None, *, env_name: str | None = None) -> str:
+    """Refuse the built-in development secret outside explicit local/test/dev."""
+    env = (env_name if env_name is not None else os.environ.get("NOEMA_ENV") or "local").lower()
+    secret = token_secret or os.environ.get("TOKEN_SIGNING_SECRET") or os.environ.get("AUTH_SECRET")
+    if not secret:
+        if env in _LOCAL_ENVS:
+            return DEFAULT_DEV_SECRET
+        raise RuntimeError("TOKEN_SIGNING_SECRET is required when NOEMA_ENV is not local/test/dev")
+    if secret == DEFAULT_DEV_SECRET and env not in _LOCAL_ENVS:
+        raise RuntimeError("refusing built-in development signing secret outside local/test/dev")
+    return secret
 
 
 def _new_id(prefix: str) -> str:
@@ -67,9 +82,7 @@ class IdentityService:
         jwks_fetch: Any | None = None,
     ):
         self.store = store
-        self.token_secret = token_secret or os.environ.get("TOKEN_SIGNING_SECRET") or os.environ.get(
-            "AUTH_SECRET", "dev-token-secret-change-me"
-        )
+        self.token_secret = resolve_token_secret(token_secret)
         self.supabase_jwt_secret = supabase_jwt_secret or os.environ.get("SUPABASE_JWT_SECRET") or ""
         self.supabase_url = supabase_url or os.environ.get("SUPABASE_URL") or ""
         self._jwks_fetch = jwks_fetch
@@ -455,13 +468,12 @@ class IdentityService:
         }
         self.store.identity_upsert_controller(controller)
         scopes = json.loads(rec.get("scopes_json") or "[]")
-        access, refresh, scope_list = self._issue_tokens(controller["controller_id"], player, scopes)
         rec["status"] = "approved"
         rec["player_id"] = player_id
         rec["controller_id"] = controller["controller_id"]
-        rec["access_token"] = access
-        rec["refresh_token"] = refresh
-        rec["scopes_json"] = json.dumps(scope_list, sort_keys=True)
+        rec.pop("access_token", None)
+        rec.pop("refresh_token", None)
+        rec["scopes_json"] = json.dumps(scopes, sort_keys=True)
         self._pending_devices[rec["device_code"]] = rec
         self.store.identity_upsert_device_code(rec)
         return {
@@ -470,7 +482,7 @@ class IdentityService:
             "player_id": player_id,
             "agent_id": player.get("agent_id"),
             "controller_id": controller["controller_id"],
-            "scopes": scope_list,
+            "scopes": scopes,
             "framework": controller["provider"],
         }
 
@@ -509,22 +521,24 @@ class IdentityService:
             return {"status": "authorization_pending", "interval": rec.get("interval", 5)}
         if status != "approved":
             raise ActionError(NOT_AUTHORIZED, f"device enrollment {status}")
-        # one-shot: clear secrets after first successful poll
-        access = rec.pop("access_token", None)
-        refresh = rec.pop("refresh_token", None)
-        if not access or not refresh:
+        player = self.store.identity_get_player(rec["player_id"])
+        controller_id = rec.get("controller_id")
+        if not player or not controller_id:
             raise ActionError(NOT_AUTHORIZED, "tokens already redeemed")
+        scopes = json.loads(rec.get("scopes_json") or "[]")
+        access, refresh, scope_list = self._issue_tokens(str(controller_id), player, scopes)
         rec["status"] = "redeemed"
+        rec.pop("access_token", None)
+        rec.pop("refresh_token", None)
         self.store.identity_upsert_device_code(rec)
         self._pending_devices[device_code] = rec
-        player = self.store.identity_get_player(rec["player_id"])
         return {
             "status": "approved",
             "access_token": access,
             "refresh_token": refresh,
             "player_id": rec["player_id"],
-            "agent_id": (player or {}).get("agent_id"),
-            "controller_id": rec["controller_id"],
-            "scopes": json.loads(rec.get("scopes_json") or "[]"),
+            "agent_id": player.get("agent_id"),
+            "controller_id": controller_id,
+            "scopes": scope_list,
             "token_type": "bearer",
         }

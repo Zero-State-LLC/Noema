@@ -250,6 +250,33 @@ export class NoemaWorldDO {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    if (path.endsWith("/ratelimit") || path === "/ratelimit") {
+      if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const body = (await request.json().catch(() => ({}))) as {
+        key?: string;
+        limit?: number;
+        windowMs?: number;
+        now?: number;
+      };
+      const key = String(body.key || "");
+      const limit = Number(body.limit);
+      const windowMs = Number(body.windowMs);
+      const now = Number(body.now) || Date.now();
+      if (!key || !Number.isFinite(limit) || !Number.isFinite(windowMs) || limit < 1 || windowMs < 1) {
+        return Response.json({ error: "invalid ratelimit" }, { status: 400 });
+      }
+      const storageKey = `rl:${key}`;
+      const prev = (await this.state.storage.get<number[]>(storageKey)) || [];
+      const hits = prev.filter((t) => t > now - windowMs);
+      if (hits.length >= limit) {
+        await this.state.storage.put(storageKey, hits);
+        return Response.json({ allowed: false });
+      }
+      hits.push(now);
+      await this.state.storage.put(storageKey, hits);
+      return Response.json({ allowed: true });
+    }
+
     if (path.endsWith("/enroll") || path === "/enroll") {
       const bag =
         (await this.state.storage.get<Record<string, EnrollmentRecord>>("enrollments")) || {};
