@@ -1122,7 +1122,7 @@ export function phosphorInlineScript(bind?: {
       canvas.addEventListener("click", function(ev) {
         if (session.mode !== "pixel") return;
         const pt = canvasPointFromEvent(canvas, ev);
-        const n = hitPhosphorNode(session.lastLayout, pt.x, pt.y);
+        const n = session.hit(pt.x, pt.y);
         if (!n) return;
         const pick = window[${JSON.stringify(globalName + "Pick")}];
         if (typeof pick === "function") pick(n.room_id);

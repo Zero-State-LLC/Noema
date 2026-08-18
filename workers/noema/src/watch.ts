@@ -95,9 +95,10 @@ const EXTRA = `
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
 .watch-atmos{
-  position:absolute;inset:0;pointer-events:none;opacity:.14;
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.14;
   background:url(/assets/watch-spectator.jpg) center/cover no-repeat;
 }
+.watch-col{position:relative;z-index:1}
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero,.watch-hero.major{
     transition:none!important;animation:none!important;

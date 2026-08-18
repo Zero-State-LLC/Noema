@@ -533,9 +533,11 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain("NoemaPhosphor.update");
     expect(html).toContain("NoemaPhosphorPick");
     expect(html).toContain("hitPhosphorNode");
+    expect(html).toContain("session.hit");
     expect(html).toContain("PHOSPHOR_HIT_RADIUS");
     expect(html).toContain("phosphorLabelAnchor");
     expect(html).toContain("clampPhosphorNode");
+    expect(html).toContain(".watch-col{position:relative;z-index:1}");
     expect(html).toContain("const __name = function(fn) { return fn; }");
   });
 
