@@ -9,8 +9,8 @@
 
 | Repo | `origin/main` | Note |
 |---|---|---|
-| Noema-Specs | `17a75505ff32b9a044ef88c7e1bbb51565c04e71` | `#168` five-tab + gateway admission |
-| Noema | `997321984355437f41935a41c93e79c0a9c28009` | `#302` specs audit (docs). Live Worker code is `#301` `fef4cc0` + earlier inhabit/seal |
+| Noema-Specs | `2176135c94f8e2aae7dd4ef9bf9cf1f4ff768d6b` | `#170` ADR-006 Perihelion landing |
+| Noema | `b5ff7439ca6ff369b2c11246590197f7d1b979c0` | `#304` closeout CONFORMANT. Live Worker code through `#301` |
 
 **Open PRs at start of this run.** none (both repos).
 
@@ -75,7 +75,7 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 | Agent auth | AUTH | Bearer controller JWT | discovery `/.well-known/noema-agent.json` OBSERVED | MATCH |
 | Sealed attach RFC-0115 | AGENT-SEAL-S0 | `seal.ts` `sha256:9b9c211c…`; isolated exempt | official client `noema_llm_agent/seal.py` same hash; no `--goal/--prompt/--system/--brief` on CLI | MATCH |
 | Agent Protocol | agent-protocol/v1 | WS + `/v1/command` | discovery URIs OBSERVED | MATCH |
-| Headless harness | AGENT-HARNESS | `src/noema/harness/*` + `clients/noema-llm-agent` | CONNECT inhabit snippet live | MATCH (code). Live ENTER not executed this run |
+| Headless harness | AGENT-HARNESS | `src/noema/harness/*` + `clients/noema-llm-agent` | CONNECT inhabit snippet live. Isolated: LOOK validates non-mutating; ScriptedAdapter LOOK; FirstValidAffordanceAdapter picks live-room work; 31 Worker inhabit/ADR/seal tests pass | MATCH (isolated). Live ENTER not executed |
 | LLM adapter | RFC-0114 | model proposes; `validate.py` + NOEMA | `cognition.py` strips private keys off the wire | MATCH (code) |
 | Action taxonomy | EVENT-CATALOG / PLAY | Worker `world-actions.ts` / Python actions | no new verbs in this campaign | MATCH (no new verbs added here) |
 | Dynamic affordances | COMMAND-DISCOVERY | observation affordances | isolated tests | MATCH (tests) |
@@ -145,12 +145,20 @@ Do not delete historical Players. `0` on `/ready` is not “the world is empty o
 - Admin session / operator digest fetch
 - Bump `spec-compat.json` SHA
 
+### Isolated first-run smoke (OBSERVED, this continue)
+
+Worker vitest (31): `agent-play-scope`, `play-attach`, `agent-inhabit`, ADR-006, ADR-007 — pass. Human/hybrid command 403; agent inhabit + seal path covered; isolated 10-room fixture still 10.
+
+Harness S0 (Python, no live host): token never in context; `validate_proposal(LOOK)` → non-mutating `LOOK`; ScriptedAdapter proposes `LOOK`; FirstValidAffordanceAdapter proposes `REPAIR` on `entity.relay-trunk` from the fixture (affordance-first, not a new verb).
+
+Re-read live `GET /ready` this continue: still ACTIVE / HEALTHY, cycle 105, sequence 301, `players` 0, genesis `genesis.ef578f4ffceeccd0`. WATCH still 5 public rooms, `players_present` 0.
+
 ---
 
 ## Residuals (not blockers)
 
-1. Operator-only census of persisted Players (read-only). Historical `players: 17` was a different metric than `/ready.players`.
-2. Authorized isolated-then-live agent LOOK smoke (not run; would mutate).
+1. Operator-only census of persisted Players (read-only). Historical `players: 17` was a different metric than `/ready.players`. Requires an Admin session; this run does not consume Admin letters.
+2. Live Perihelion agent LOOK smoke. Isolated path is green. Live attach would mutate; no authorized production agent token in this run.
 3. Cycle 0 digest / profile / story-seed not re-read from Admin this run.
 
 A new hosted world that is not `genesis.ef578f4ffceeccd0` MUST still ship the 10-room chamber-world seed.
