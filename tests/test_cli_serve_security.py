@@ -119,3 +119,42 @@ def test_configured_production_bind_preserves_public_deployment(monkeypatch, tmp
         == 0
     )
     assert observed["host"] == "0.0.0.0"
+
+
+def test_production_loopback_refuses_missing_signing_secret(monkeypatch, tmp_path):
+    class FakeServer:
+        def serve_forever(self) -> None:
+            return None
+
+        def server_close(self) -> None:
+            return None
+
+    monkeypatch.setenv("NOEMA_ENV", "production")
+    monkeypatch.delenv("TOKEN_SIGNING_SECRET", raising=False)
+    monkeypatch.delenv("AUTH_SECRET", raising=False)
+    monkeypatch.setattr(serve_cli, "serve", lambda runtime, *, host, port: FakeServer())
+
+    with pytest.raises(SystemExit) as exc:
+        serve_cli.main(
+            [
+                "--db",
+                str(tmp_path / "prod-secret.sqlite3"),
+                "--no-autoload",
+            ]
+        )
+    assert exc.value.code == 2
+
+
+def test_production_refuses_builtin_dev_secret(monkeypatch):
+    from noema.auth.identity import DEFAULT_DEV_SECRET, resolve_token_secret
+
+    monkeypatch.setenv("NOEMA_ENV", "production")
+    with pytest.raises(RuntimeError, match="development signing secret"):
+        resolve_token_secret(DEFAULT_DEV_SECRET, env_name="production")
+
+    monkeypatch.delenv("TOKEN_SIGNING_SECRET", raising=False)
+    monkeypatch.delenv("AUTH_SECRET", raising=False)
+    with pytest.raises(RuntimeError, match="TOKEN_SIGNING_SECRET is required"):
+        resolve_token_secret(env_name="production")
+
+    assert resolve_token_secret(env_name="local") == DEFAULT_DEV_SECRET

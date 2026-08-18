@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,29 @@ from noema.gateway.ui import (
 from noema.protocol.agent_v1 import AgentProtocolV1
 
 MAX_REQUEST_BODY = 256 * 1024
+
+_HTML_CSP = (
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+)
+
+
+def _security_headers(*, html: bool = False) -> dict[str, str]:
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "no-referrer",
+    }
+    if html:
+        headers["Content-Security-Policy"] = _HTML_CSP
+    return headers
+
+
+def _admin_session_cookie(session_id: str) -> str:
+    parts = [f"noema_admin_session={session_id}", "Path=/", "HttpOnly", "SameSite=Strict"]
+    if (os.environ.get("NOEMA_ENV") or "").lower() == "production":
+        parts.append("Secure")
+    return "; ".join(parts)
 
 
 class RequestEntityTooLarge(Exception):
@@ -47,6 +71,8 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
+            for key, value in _security_headers().items():
+                self.send_header(key, value)
             for key, value in (headers or {}).items():
                 self.send_header(key, value)
             self.end_headers()
@@ -57,6 +83,8 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             self.send_response(code)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(raw)))
+            for key, value in _security_headers(html=True).items():
+                self.send_header(key, value)
             self.end_headers()
             self.wfile.write(raw)
 
@@ -216,7 +244,7 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         200,
                         session,
                         headers={
-                            "Set-Cookie": f"noema_admin_session={session['session_id']}; Path=/; HttpOnly; SameSite=Strict"
+                            "Set-Cookie": _admin_session_cookie(session["session_id"])
                         },
                     )
                 if path == "/admin/start":

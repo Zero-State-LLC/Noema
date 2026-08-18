@@ -169,6 +169,11 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
     assert approved["status"] == "approved"
     assert approved["controller_id"].startswith("ctrl.")
     assert approved["player_id"] == human["player_id"]
+    stored = rt.store.identity_get_device_by_code(device["device_code"])
+    assert stored is not None
+    assert stored.get("access_token") is None
+    assert stored.get("refresh_token") is None
+    assert stored.get("status") == "approved"
 
     pending = rt.identity.poll_device_token(device["device_code"])
     assert pending["status"] == "approved"
@@ -194,6 +199,7 @@ def test_human_dev_bind_and_device_enrollment(tmp_path: Path):
 
 def test_approve_requires_human_token_when_not_dev(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("NOEMA_ENV", "production")
+    monkeypatch.setenv("TOKEN_SIGNING_SECRET", "prod-signing-secret")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "prod-secret")
     rt = NoemaRuntime(db_path=tmp_path / "prod.sqlite3")
     # force non-dev path

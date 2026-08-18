@@ -66,7 +66,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     _validate_network_bind(parser, args)
+    env_name = (os.environ.get("NOEMA_ENV") or "local").lower()
     if not (os.environ.get("TOKEN_SIGNING_SECRET") or os.environ.get("AUTH_SECRET")):
+        if env_name not in {"local", "test", "dev"}:
+            parser.error("TOKEN_SIGNING_SECRET is required when NOEMA_ENV is not local/test/dev")
         print(
             "warning: TOKEN_SIGNING_SECRET unset; using the built-in local development secret",
             file=sys.stderr,
