@@ -89,13 +89,15 @@ input,select{width:100%;min-height:2.35rem;padding:.5rem .65rem;border:1px solid
 code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .list{margin:0;padding:0;list-style:none;display:grid;gap:.3rem}
 .list li{display:flex;justify-content:space-between;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(42,51,66,.5);font-size:.8rem}
-.awatch{display:grid;grid-template-columns:minmax(11rem,.7fr) minmax(0,1fr) minmax(16rem,.95fr);gap:1rem}
+.awatch{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(16rem,.9fr);gap:1rem}
 @media(max-width:900px){.awatch{grid-template-columns:1fr}}
 .awatch-feed,.awatch-sites,.awatch-agents{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;max-height:22rem;overflow:auto}
+.awatch-agents{grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));max-height:none;margin:.75rem 0 0}
 .awatch-feed li,.awatch-sites li,.awatch-agents li{padding:.4rem 0;border-bottom:1px solid rgba(42,51,66,.45);font:.8rem/1.4 var(--font-mono)}
+.awatch-agents li{padding:0;border-bottom:0}
 .awatch-feed .meta,.awatch-sites .meta,.awatch-agents .meta{color:var(--faint);font-size:.72rem}
-.awatch .glyph{display:inline-flex;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em}
-.awatch .glyph svg{display:block;width:100%;height:100%}
+.awatch .glyph,.awatch-roster .glyph,.awatch-pick .glyph{display:inline-flex;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em}
+.awatch .glyph svg,.awatch-roster .glyph svg,.awatch-pick .glyph svg{display:block;width:100%;height:100%}
 .glyph-player{color:var(--color-state-social)}
 .glyph-trade,.glyph-economy{color:var(--color-state-economic)}
 .glyph-danger{color:var(--color-state-critical)}
@@ -118,6 +120,8 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .awatch-toolbar{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;margin:.75rem 0 0}
 .awatch-toolbar .kicker{margin:0 .35rem 0 0}
 .awatch-toolbar .btn[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-roster{margin:.75rem 0 0}
+.awatch-roster .kicker{margin:0 0 .4rem}
 .awatch-pick{
   display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
   width:100%;margin:0;padding:.35rem .45rem;border:1px solid var(--line);
@@ -558,15 +562,15 @@ export function adminHtml(): string {
         <button type="button" class="btn" id="awatch-mode-pixel" aria-pressed="false">PIXEL</button>
         <button type="button" class="btn" id="awatch-follow-all" aria-pressed="true">All agents</button>
       </div>
+      <div class="awatch-roster">
+        <p class="kicker">Agents</p>
+        <ul class="awatch-agents" id="awatch-agents"><li class="empty">No agents on this operator yet.</li></ul>
+      </div>
       <div class="awatch-phos" id="awatch-phos-wrap" hidden>
         <div class="awatch-phos-bar" id="awatch-phos-bar">Operator sketch — not the world. Your agents only.</div>
         <canvas class="awatch-phosphor" id="awatch-phosphor" width="320" height="180" role="img" aria-label="Operator topology sketch"></canvas>
       </div>
       <div class="awatch" style="margin-top:.75rem">
-        <article class="card pad">
-          <p class="kicker">Agents</p>
-          <ul class="awatch-agents" id="awatch-agents"><li class="empty">No agents on this operator yet.</li></ul>
-        </article>
         <article class="card pad">
           <p class="kicker">Sites</p>
           <ul class="awatch-sites" id="awatch-sites"><li class="empty">No public sites.</li></ul>

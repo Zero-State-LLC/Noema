@@ -594,6 +594,7 @@ describe("admin login HTML", () => {
     expect(html).toContain('id="awatch-agents"');
     expect(html).toContain('id="awatch-follow-all"');
     expect(html).toContain("All agents");
+    expect(html).toContain("awatch-roster");
     expect(html).not.toContain("legend.png");
   });
 
