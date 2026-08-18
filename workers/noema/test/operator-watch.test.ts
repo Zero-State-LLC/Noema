@@ -102,5 +102,93 @@ describe("operator watch theater", () => {
     const lines = snap.lines as Array<{ handle: string; line: string }>;
     expect(lines[0].handle).toBe("hermes");
     expect(lines[0].line).toMatch(/Open stalls/);
+    expect(JSON.stringify(lines[0])).not.toMatch(/operator_id|op\./);
+  });
+
+  it("hides other operators' owned agents and keeps unowned legacy visible", () => {
+    const snap = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 1,
+      sequence: 1,
+      now: NOW,
+      operator_id: "op.mail.aaaaaaaaaaaaaaaa",
+      rooms: {
+        "room.market": {
+          room_id: "room.market",
+          name: "Chamber Market",
+          exits: [],
+          entities: [],
+        },
+      },
+      players: {
+        "player.mine": {
+          handle: "mine",
+          room_id: "room.market",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+          operator_id: "op.mail.aaaaaaaaaaaaaaaa",
+        },
+        "player.theirs": {
+          handle: "theirs",
+          room_id: "room.market",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+          operator_id: "op.mail.bbbbbbbbbbbbbbbb",
+        },
+        "player.legacy": {
+          handle: "legacy",
+          room_id: "room.market",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+        "player.smoke-human": {
+          handle: "smoke-human",
+          room_id: "room.market",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "human",
+          operator_id: "op.mail.aaaaaaaaaaaaaaaa",
+        },
+      },
+      lines: [
+        {
+          at: NOW,
+          handle: "mine",
+          command: "LOOK",
+          line: "mine looked",
+          glyph: "loc",
+          operator_id: "op.mail.aaaaaaaaaaaaaaaa",
+        },
+        {
+          at: NOW + 1,
+          handle: "theirs",
+          command: "MOVE",
+          line: "theirs moved",
+          glyph: "threshold",
+          operator_id: "op.mail.bbbbbbbbbbbbbbbb",
+        },
+        {
+          at: NOW + 2,
+          handle: "legacy",
+          command: "LOOK",
+          line: "legacy looked",
+          glyph: "loc",
+        },
+      ],
+    });
+    const agents = snap.agents as Array<{ handle: string }>;
+    expect(agents.map((a) => a.handle).sort()).toEqual(["legacy", "mine"]);
+    const market = (snap.sites as Array<{ player_labels: string[] }>).find((s) => s.room_id === "room.market")!;
+    expect(market.player_labels.sort()).toEqual(["legacy", "mine"]);
+    const lines = snap.lines as Array<{ handle: string; line: string }>;
+    expect(lines.map((l) => l.handle).sort()).toEqual(["legacy", "mine"]);
+    expect(JSON.stringify(snap)).not.toMatch(/theirs moved|player\.theirs|"theirs"/);
+    expect(JSON.stringify(snap)).not.toMatch(/smoke-human/);
   });
 });

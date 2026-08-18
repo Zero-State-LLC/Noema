@@ -26,6 +26,7 @@ export type OperatorWatchLine = {
   command: string;
   line: string;
   glyph: GlyphId;
+  operator_id?: string;
 };
 
 export type OperatorWatchSite = {
@@ -40,6 +41,22 @@ export type OperatorWatchSite = {
 };
 
 const PRIVATE_VERBS = new Set(["MESSAGE", "TALK"]);
+
+export function actorVisibleToOperator(
+  actor: { operator_id?: string; controller_type?: string },
+  operatorId?: string,
+): boolean {
+  if (actor.controller_type && actor.controller_type !== "agent") return false;
+  if (!actor.operator_id) return true;
+  if (!operatorId) return true;
+  return actor.operator_id === operatorId;
+}
+
+export function lineVisibleToOperator(line: { operator_id?: string }, operatorId?: string): boolean {
+  if (!operatorId) return true;
+  if (!line.operator_id) return true;
+  return line.operator_id === operatorId;
+}
 
 export function redactOperatorWatchText(raw: unknown): string {
   return String(raw || "")
@@ -105,6 +122,8 @@ export function buildOperatorWatch(input: {
   players: Record<string, PresencePlayer>;
   lines: OperatorWatchLine[];
   now?: number;
+  /** When set, hide other operators' owned agents. Unowned/legacy stay visible. */
+  operator_id?: string;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const publicRooms: typeof input.rooms = {};
@@ -112,7 +131,9 @@ export function buildOperatorWatch(input: {
     if (!r || isHiddenRoom(r)) continue;
     publicRooms[r.room_id] = r;
   }
-  const actors = listSystemActors(input.players).map((row) => {
+  const actors = listSystemActors(input.players)
+    .filter((row) => actorVisibleToOperator(row, input.operator_id))
+    .map((row) => {
     const room = row.room_id && publicRooms[row.room_id] ? publicRooms[row.room_id] : undefined;
     return {
       handle: row.handle,
@@ -156,10 +177,14 @@ export function buildOperatorWatch(input: {
   });
   const lines = (input.lines || [])
     .filter((row) => row && row.line)
+    .filter((row) => lineVisibleToOperator(row, input.operator_id))
     .slice(-40)
     .map((row) => ({
-      ...row,
+      at: row.at,
       handle: redactOperatorWatchText(row.handle).slice(0, 32),
+      room_id: row.room_id,
+      room_name: row.room_name,
+      command: row.command,
       line: redactOperatorWatchText(row.line),
       glyph: row.glyph || glyphForProjection(),
     }))
@@ -169,7 +194,8 @@ export function buildOperatorWatch(input: {
     world_id: input.world_id,
     cycle: input.cycle,
     sequence: input.sequence,
-    note: "Operator theater for agent-controlled Players. Not public WATCH. Not world truth.",
+    operator_id: input.operator_id || null,
+    note: "Operator theater for agent-controlled Players you minted or enrolled. Not public WATCH. Not world truth.",
     agents: actors,
     sites,
     lines,

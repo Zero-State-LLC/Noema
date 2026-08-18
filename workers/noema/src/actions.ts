@@ -96,6 +96,8 @@ export type PlayerRuntime = {
   controlling_session_id?: string;
   last_seen_ms?: number;
   actor_kind?: "live" | "system";
+  controller_type?: "human" | "agent" | "hybrid";
+  operator_id?: string;
   /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
   wait_until_cycle?: number;
   /** GC7-S0 PRESENCE_PRESSURE disable. Never permanent. */

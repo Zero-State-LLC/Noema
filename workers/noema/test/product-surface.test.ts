@@ -211,6 +211,7 @@ describe("planes", () => {
     expect(html).toContain("Review agent enrollment");
     expect(html).toContain("did not approve");
     expect(html).toContain("/v1/admin/agent/enroll/decide");
+    expect(html).toContain("/admin#agent-watch");
     expect(html).not.toMatch(/\.innerHTML\s*=/);
   });
   it("play spent-link copy is on the door", () => {

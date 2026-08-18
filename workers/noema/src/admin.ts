@@ -521,7 +521,7 @@ export function adminHtml(): string {
     <section class="section" id="agent-watch">
       <p class="kicker">04b / watch agents</p>
       <h2>Watch agents play</h2>
-      <p class="muted">Live LOOK / MOVE / action lines for operator-minted and agent Players, plus the public site map. Same glyphs as PLAY and public WATCH. Private MESSAGE bodies stay off this surface.</p>
+      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
       <div class="awatch" style="margin-top:.75rem">
         <article class="card pad">
           <p class="kicker">Sites</p>
@@ -862,6 +862,16 @@ export function adminHtml(): string {
         feedEl.append(li);
       });
     }
+  }
+
+  function showAgentWatch() {
+    location.hash = "#agent-watch";
+    document.querySelectorAll(".rail-nav a").forEach((x) => {
+      x.classList.toggle("active", x.getAttribute("href") === "#agent-watch");
+    });
+    const target = document.querySelector("#agent-watch");
+    if (target) target.scrollIntoView({ block: "start" });
+    return loadAgentWatch();
   }
 
   async function load() {
@@ -1211,6 +1221,7 @@ export function adminHtml(): string {
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;
+      if ((data.controller_type || ctype) === "agent") await showAgentWatch();
     } catch (e) {
       $("tok-notice").className = "notice bad";
       $("tok-notice").textContent = e.message || "mint failed";

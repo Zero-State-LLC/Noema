@@ -424,6 +424,8 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
   if (!p.room_id) p.room_id = room_id;
   p.actor_kind = actorKindFromPrincipal(principal);
   p.last_seen_ms = Date.now();
+  if (principal.controller_type) p.controller_type = principal.controller_type;
+  if (principal.operator_id) p.operator_id = principal.operator_id;
   return p;
 }
 

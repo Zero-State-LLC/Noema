@@ -21,6 +21,7 @@ import {
   inferActorKind,
   listLivePlayers,
   listSystemActors,
+  parseOperatorId,
   isMutatingCommand,
   isUsableLiveWorld,
   mutationBlocked,
@@ -245,7 +246,7 @@ export class NoemaWorldDO {
     });
   }
 
-  private async operatorWatchSnapshot() {
+  private async operatorWatchSnapshot(operatorId?: string) {
     await this.load();
     const lines = (await this.state.storage.get<OperatorWatchLine[]>("operator_watch_lines")) || [];
     return buildOperatorWatch({
@@ -255,6 +256,7 @@ export class NoemaWorldDO {
       rooms: this.world!.rooms,
       players: this.world!.players,
       lines,
+      operator_id: operatorId,
     });
   }
 
@@ -370,7 +372,8 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/admin-watch")) {
-      return Response.json(await this.operatorWatchSnapshot());
+      const operatorId = parseOperatorId(url.searchParams.get("operator_id"));
+      return Response.json(await this.operatorWatchSnapshot(operatorId));
     }
 
     if (path.endsWith("/watch-stream") && request.headers.get("Upgrade") === "websocket") {
@@ -918,6 +921,14 @@ export class NoemaWorldDO {
     if (result.ok && result.events?.length) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
+    if (result.ok) {
+      const actor = w.players[principal.player_id];
+      if (actor) {
+        if (principal.controller_type) actor.controller_type = principal.controller_type;
+        const oid = parseOperatorId(principal.operator_id);
+        if (oid) actor.operator_id = oid;
+      }
+    }
     if (result.ok && inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system") {
       await this.recordOperatorWatch(principal, envl, result);
     }
@@ -983,6 +994,7 @@ export class NoemaWorldDO {
       command: phrased.command,
       line: phrased.line,
       glyph: phrased.glyph,
+      operator_id: parseOperatorId(principal.operator_id) || parseOperatorId(player?.operator_id),
     });
     await this.state.storage.put("operator_watch_lines", next);
   }

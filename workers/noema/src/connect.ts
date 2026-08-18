@@ -285,6 +285,14 @@ export function enrollHtml(): string {
           notice.textContent="Approved. Controller token shown once below — not mailed.";
           out.hidden=false;
           out.textContent="export NOEMA_BASE="+location.origin+"\\nexport TOKEN="+(j.access_token||"");
+          const watch = document.createElement("p");
+          watch.className = "empty";
+          watch.setAttribute("style", "margin-top:.7rem");
+          const a = document.createElement("a");
+          a.href = "/admin#agent-watch";
+          a.textContent = "Watch this agent";
+          watch.appendChild(a);
+          out.after(watch);
         } else {
           notice.className="notice"; notice.textContent="Denied. No credential was issued.";
         }
