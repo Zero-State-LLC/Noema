@@ -22,7 +22,7 @@ Endpoint mapping:
 - `wss://host/path` → WebSocket only unless `auto` then HTTP origin `https://host`
 - `http://host` → try `ws://host/protocol/v1/ws`
 
-Hosted Stage 0 (`noema.guru`) is HTTP-only for protocol. `auto` MUST fall back cleanly.
+Hosted `GET /protocol/v1/ws` speaks Agent Protocol v1. `auto` MUST fall back to HTTP if the handshake fails.
 
 ## Lifecycle
 

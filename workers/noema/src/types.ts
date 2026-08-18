@@ -83,6 +83,8 @@ export interface CommandEnvelope {
   client?: { type?: string; runtime?: string };
   /** Never trusted for authority — observational only. */
   player_id?: string;
+  /** Isolated test tenant only when dual-auth is present. Omitted = DEFAULT_WORLD_ID. */
+  world_id?: string;
 }
 
 export interface ObservationEntity {

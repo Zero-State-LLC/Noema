@@ -1,6 +1,7 @@
 /**
  * Isolated hosted canonical-verification world admission.
- * Production PLAY (/v1/command) never uses this path.
+ * PLAY /v1/command may target an admitted id only with dual-auth
+ * (see resolvePlayWorld). This helper never admits Perihelion.
  */
 
 export const TEST_WORLD_PREFIX = "test.hosted-canonical.";

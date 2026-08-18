@@ -140,6 +140,7 @@ export function discoveryDocument(origin: string): Record<string, unknown> {
     origin,
     verification_uri: `${origin}/connect`,
     command_uri: `${origin}/v1/command`,
+    websocket_uri: `${origin}/protocol/v1/ws`,
     bootstrap_schema: "noema-agent-bootstrap/1.0",
   };
 }

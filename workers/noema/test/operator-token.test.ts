@@ -39,5 +39,7 @@ describe("operator-minted controller tokens", () => {
     expect(short.expires_in).toBe(60);
     const long = await mintControllerToken(env, { handle: "y", expiresIn: 99_999_999 });
     expect(long.expires_in).toBe(7 * 24 * 3600);
+    const tester = await mintControllerToken(env, { handle: "z", expiresIn: 99_999_999, issuedByAdmin: true });
+    expect(tester.expires_in).toBe(30 * 24 * 3600);
   });
 });
