@@ -5,11 +5,13 @@ import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev } from ".
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
+import { SEAL_HEADER, checkLiveAgentSeal, parseSeal, sealHelloFields } from "./seal";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "./types";
 
 export type ProtocolState = {
   principal: PlayerPrincipal | null;
   adminToken: string;
+  seal?: string | null;
 };
 
 type Frame = {
@@ -40,7 +42,7 @@ export function protocolAuthMethods(env?: { NOEMA_ENV?: string }): string[] {
 export function protocolHelloAck(
   requestId: string | undefined,
   extra?: Record<string, unknown>,
-  env?: { NOEMA_ENV?: string },
+  env?: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string },
 ) {
   return {
     protocol: "agent-protocol/v1",
@@ -57,24 +59,35 @@ export function protocolHelloAck(
   };
 }
 
-export function protocolHello(body: Frame, env?: { NOEMA_ENV?: string }): Record<string, unknown> {
+export function protocolHello(
+  body: Frame,
+  env?: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string },
+): Record<string, unknown> {
   const offeredRaw = body.body?.supported_protocols;
   const offered = Array.isArray(offeredRaw) ? offeredRaw.map((p) => String(p)) : [];
   if (offered.length && !offered.includes("agent-protocol/v1")) {
     return protoErr(body.request_id, "NO_COMPATIBLE_PROTOCOL", "No mutually supported protocol/schema set");
   }
-  const extra: Record<string, unknown> = {};
+  const extra: Record<string, unknown> = {
+    ...sealHelloFields(String(body.world_id || body.body?.world_id || ""), env?.DEFAULT_WORLD_ID),
+  };
   if (body.body?.resume_token) extra.resume_offered = true;
   return protocolHelloAck(body.request_id, extra, env);
 }
 
-export async function mintResumeToken(env: Env, principal: PlayerPrincipal): Promise<string> {
+export async function mintResumeToken(
+  env: Env,
+  principal: PlayerPrincipal,
+  seal?: string | null,
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   return mintHs256(
     {
       typ: "resume",
       player_id: principal.player_id,
       controller_id: principal.controller_id,
+      controller_type: principal.controller_type,
+      seal: seal || "",
       sid: principal.session_id,
       iat: now,
       exp: now + 3600,
@@ -83,20 +96,25 @@ export async function mintResumeToken(env: Env, principal: PlayerPrincipal): Pro
   );
 }
 
-export async function principalFromResume(env: Env, token: string): Promise<PlayerPrincipal | null> {
+export async function principalFromResume(
+  env: Env,
+  token: string,
+): Promise<{ principal: PlayerPrincipal; seal: string | null } | null> {
   try {
     const claims = await verifyHs256(token, env.TOKEN_SIGNING_SECRET!);
     if (claims.typ !== "resume" || !claims.player_id || !claims.controller_id) return null;
-    return {
+    const ctype = String(claims.controller_type || "agent");
+    const principal = {
       player_id: String(claims.player_id),
       agent_id: `agent.${String(claims.player_id).replace(/^player\./, "")}`,
       controller_id: String(claims.controller_id),
-      controller_type: "agent",
+      controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
       session_id: String(claims.sid || "sess.resume"),
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
       protocol_version: "1",
       authentication_context: "resume",
     } as PlayerPrincipal;
+    return { principal, seal: parseSeal(claims.seal) };
   } catch {
     return null;
   }
@@ -131,6 +149,12 @@ export async function applyPlayerCommand(
   }
   const target = resolvePlayWorld(envelope.world_id, env.DEFAULT_WORLD_ID);
   if (target.kind === "deny") return err(target.code, target.message, 403);
+  const sealed = checkLiveAgentSeal({
+    controllerType: principal.controller_type,
+    worldKind: target.kind,
+    presented: parseSeal(request.headers.get(SEAL_HEADER)),
+  });
+  if (!sealed.ok) return err(sealed.code, sealed.message, 401);
   if (target.kind === "isolated") {
     const admin = await resolveSignedAdminHeader(request, env);
     if (admin instanceof Response) return admin;
@@ -176,8 +200,8 @@ export async function handleProtocolFrame(
   if (type === "HELLO") {
     const resume = String(msg.body?.resume_token || "");
     if (resume) {
-      const principal = await principalFromResume(env, resume);
-      if (principal) state = { ...state, principal };
+      const restored = await principalFromResume(env, resume);
+      if (restored) state = { ...state, principal: restored.principal, seal: restored.seal };
     }
     return { reply: protocolHello(msg, env), state };
   }
@@ -193,11 +217,19 @@ export async function handleProtocolFrame(
         state,
       };
     }
+    const worldKind = resolvePlayWorld(msg.world_id || msg.body?.world_id, env.DEFAULT_WORLD_ID).kind;
+    const sealed = checkLiveAgentSeal({
+      controllerType: principal.controller_type,
+      worldKind,
+      presented: parseSeal(msg.body?.prompt_version_hash || msg.body?.prompt_version),
+    });
+    if (!sealed.ok) return { reply: protoErr(msg.request_id, sealed.code, sealed.message, 401), state };
     state = {
       principal,
       adminToken: String(msg.body?.admin_token || state.adminToken || ""),
+      seal: sealed.seal,
     };
-    const resume_token = await mintResumeToken(env, principal);
+    const resume_token = await mintResumeToken(env, principal, sealed.seal);
     return {
       reply: {
         protocol: "agent-protocol/v1",
@@ -234,6 +266,7 @@ export async function handleProtocolFrame(
   const envelope = commandFromFrame(msg);
   const headers: Record<string, string> = { Authorization: "Bearer session" };
   if (state.adminToken) headers["X-Noema-Admin-Token"] = state.adminToken;
+  if (state.seal) headers[SEAL_HEADER] = state.seal;
   const synth = new Request(request.url, { headers });
   const res = await applyPlayerCommand(env, synth, state.principal, envelope, route);
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -272,7 +305,7 @@ export function acceptProtocolWebSocket(
   const pair = new WebSocketPair();
   const server = pair[1];
   server.accept();
-  let state: ProtocolState = { principal: null, adminToken: "" };
+  let state: ProtocolState = { principal: null, adminToken: "", seal: null };
   server.addEventListener("message", (evt: MessageEvent) => {
     void (async () => {
       try {

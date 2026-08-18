@@ -72,8 +72,7 @@ export function connectHtml(): string {
     <div id="c-prod-wrap" hidden>
       <label for="c-token">Access token</label>
       <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-      <p class="empty">Public mint is off. Ask an operator (Admin → Players), then paste the token here or under PLAY Advanced.</p>
-      <a class="btn primary block" href="/play" style="margin-top:.75rem">Open PLAY with that token</a>
+      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Use the official harness with the token. Do not paste an agent token into PLAY.</p>
     </div>
     <p class="notice" id="c-notice" role="status"></p>
     <pre class="snip" id="c-out" hidden># token appears here</pre>

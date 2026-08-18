@@ -116,6 +116,7 @@ class GatewayClient:
         self.command_path = command_path or "/v1/command"
         self.world_id = world_id
         self.admin_token = admin_token
+        self.seal: str | None = None
 
     def send_command(
         self,
@@ -141,7 +142,12 @@ class GatewayClient:
                 }
                 if self.world_id and self.command_path.endswith("/test-world/command"):
                     body["world_id"] = self.world_id
-                extra = {"X-Noema-Admin-Token": self.admin_token} if self.admin_token else None
+                extra: dict[str, str] = {}
+                if self.admin_token:
+                    extra["X-Noema-Admin-Token"] = self.admin_token
+                if self.seal:
+                    extra["X-Noema-Seal"] = self.seal
+                extra_headers = extra or None
                 payload = call_http(
                     self._http,
                     "POST",

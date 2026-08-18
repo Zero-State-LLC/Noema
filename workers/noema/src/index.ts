@@ -57,7 +57,8 @@ import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand } from "./protocol-ws";
-import { acceptProtocolWebSocket, protocolAuthMethods } from "./protocol-ws";
+import { acceptProtocolWebSocket, protocolHello } from "./protocol-ws";
+import { checkLiveAgentSeal, parseSeal } from "./seal";
 import {
   ADMIN_SESSION_LIMIT,
   ADMIN_SESSION_WINDOW_MS,
@@ -801,56 +802,24 @@ export default {
           body?: { access_token?: string; token?: string };
         };
         if (body.type === "HELLO") {
-          const helloBody = (body as { body?: { supported_protocols?: unknown } }).body;
-          const offered = Array.isArray(helloBody?.supported_protocols)
-            ? helloBody.supported_protocols.map((p) => String(p))
-            : [];
-          if (offered.length && !offered.includes("agent-protocol/v1")) {
-            return cors(
-              json(
-                {
-                  protocol: "agent-protocol/v1",
-                  type: "ERROR",
-                  request_id: body.request_id,
-                  error: {
-                    code: "NO_COMPATIBLE_PROTOCOL",
-                    message: "No mutually supported protocol/schema set",
-                    retryable: false,
-                    details: {
-                      server_protocols: ["agent-protocol/v1"],
-                      client_protocols: offered,
-                    },
-                    caused_by_request_id: body.request_id,
-                  },
-                },
-                400,
-              ),
-            );
-          }
-          return cors(
-            json({
-              protocol: "agent-protocol/v1",
-              type: "HELLO_ACK",
-              request_id: body.request_id,
-              body: {
-                selected_protocol: "agent-protocol/v1",
-                auth_methods: protocolAuthMethods(env),
-                transports: ["websocket", "http"],
-                websocket_uri: "/protocol/v1/ws",
-                stage: "0",
-              },
-            }),
-          );
+          const hello = protocolHello(body as { type?: string; request_id?: string; body?: Record<string, unknown> }, env);
+          const status = hello.type === "ERROR" ? 400 : 200;
+          return cors(json(hello, status));
         }
         if (body.type === "AUTH") {
           const token = body.body?.access_token || body.body?.token;
           if (!token) return cors(err("NOT_AUTHORIZED", "access_token required"));
-          // Re-build request with token for resolvePrincipal
           const fake = new Request(request.url, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const principal = await resolvePrincipal(fake, env);
           if (principal instanceof Response) return cors(principal);
+          const sealed = checkLiveAgentSeal({
+            controllerType: principal.controller_type,
+            worldKind: "default",
+            presented: parseSeal((body.body as { prompt_version_hash?: string } | undefined)?.prompt_version_hash),
+          });
+          if (!sealed.ok) return cors(err(sealed.code, sealed.message, 401));
           return cors(
             json({
               protocol: "agent-protocol/v1",
