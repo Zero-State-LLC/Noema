@@ -90,6 +90,6 @@ Do not give Chamber the hosted table hero or `/manifesto` unless product asks.
 
 ## Recommended next (Specs repo)
 
-Catch-up branch `cursor/hosted-five-tab-chrome-cf4a` pins HOSTED-FIRST-ENTRY / EXPERIENCE / QUICKSTART / PLATFORM / AUTH / PLAYER-BRAND-IMPLEMENTATION / AGENT-ONBOARDING / VISUAL-DESIGN §10.1 to the five-tab bar and hosted admission policy. Merge that Specs PR so this audit’s **override** rows become **match**.
+Catch-up PR [Noema-Specs#168](https://github.com/Zero-State-LLC/Noema-Specs/pull/168) (`cursor/hosted-five-tab-chrome-cf4a`) pins HOSTED-FIRST-ENTRY / EXPERIENCE / QUICKSTART / PLATFORM / AUTH / PLAYER-BRAND-IMPLEMENTATION / AGENT-ONBOARDING / VISUAL-DESIGN §10.1 to the five-tab bar and hosted admission policy. Merge that Specs PR so this audit’s **override** rows become **match**.
 
 Ops-only on this host: production deploy + OG recrawl if `noema.guru` is behind `fef4cc0`.
