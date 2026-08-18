@@ -18,10 +18,12 @@ import {
   collectPulses,
   collectSiteMarks,
   createPhosphorSession,
+  canvasPointFromEvent,
   drawCatalogMark,
   drawExit,
   drawGlyph,
   drawPhosphorFrame,
+  hitPhosphorNode,
   layoutPublicTopology,
   phosphorCatalogMark,
   playerGlyphId,
@@ -174,6 +176,26 @@ describe("slice 1 — deterministic public topology", () => {
       },
     ];
     expect(layoutPublicTopology(rooms)).toEqual(layoutPublicTopology(rooms.slice().reverse()));
+  });
+
+  it("hits the nearest public PIXEL node and misses empty space", () => {
+    const layout = layoutPublicTopology([
+      { room_id: "room.a", name: "Alpha", description: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
+      { room_id: "room.b", name: "Beta", description: "B", exits: [{ direction: "west", to_room_id: "room.a" }] },
+      { room_id: "room.vault", name: "Vault", hidden: true },
+    ]);
+    const a = layout.nodes.find((n) => n.room_id === "room.a");
+    expect(a).toBeTruthy();
+    expect(hitPhosphorNode(layout, a!.x, a!.y)?.room_id).toBe("room.a");
+    expect(hitPhosphorNode(layout, a!.x + 2, a!.y - 2)?.room_id).toBe("room.a");
+    expect(hitPhosphorNode(layout, 1000, 1000)).toBeNull();
+    expect(JSON.stringify(hitPhosphorNode(layout, a!.x, a!.y))).not.toMatch(/vault/i);
+    const pt = canvasPointFromEvent(
+      { getBoundingClientRect: () => ({ left: 10, top: 20, width: 640, height: 360 }) },
+      { clientX: 10 + 320, clientY: 20 + 180 },
+    );
+    expect(pt.x).toBeCloseTo(PHOSPHOR_WIDTH / 2, 5);
+    expect(pt.y).toBeCloseTo(PHOSPHOR_HEIGHT / 2, 5);
   });
 
   it("lays out the example four-site public fragment without hidden rooms", () => {
@@ -480,6 +502,8 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain('height="180"');
     expect(html).toContain("createPhosphorSession");
     expect(html).toContain("NoemaPhosphor.update");
+    expect(html).toContain("NoemaPhosphorPick");
+    expect(html).toContain("hitPhosphorNode");
     expect(html).toContain("const __name = function(fn) { return fn; }");
   });
 

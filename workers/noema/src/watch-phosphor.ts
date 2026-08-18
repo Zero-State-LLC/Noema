@@ -828,7 +828,47 @@ export type PhosphorSession = {
   update(snapshot: PhosphorSnapshot): void;
   fail(): void;
   tick(now?: number): void;
+  hit(x: number, y: number): PhosphorNode | null;
 };
+
+export const PHOSPHOR_HIT_RADIUS = 16;
+
+export function canvasPointFromEvent(
+  canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } },
+  ev: { clientX: number; clientY: number },
+): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  const w = Number(rect.width) || PHOSPHOR_WIDTH;
+  const h = Number(rect.height) || PHOSPHOR_HEIGHT;
+  return {
+    x: ((Number(ev.clientX) - Number(rect.left)) / w) * PHOSPHOR_WIDTH,
+    y: ((Number(ev.clientY) - Number(rect.top)) / h) * PHOSPHOR_HEIGHT,
+  };
+}
+
+/** Nearest public node within radius. Hidden rooms never enter lastLayout. */
+export function hitPhosphorNode(
+  layout: PhosphorLayout | undefined | null,
+  x: number,
+  y: number,
+  radius = PHOSPHOR_HIT_RADIUS,
+): PhosphorNode | null {
+  const nodes = layout && Array.isArray(layout.nodes) ? layout.nodes : [];
+  let best: PhosphorNode | null = null;
+  let bestD = radius * radius;
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (!n || !n.room_id) continue;
+    const dx = Number(n.x) - x;
+    const dy = Number(n.y) - y;
+    const d = dx * dx + dy * dy;
+    if (d <= bestD) {
+      bestD = d;
+      best = n;
+    }
+  }
+  return best;
+}
 
 type CanvasLike = {
   width: number;
@@ -961,6 +1001,9 @@ export function createPhosphorSession(opts: {
       paint(t);
       if (!pulses.length) stopRaf();
     },
+    hit(x: number, y: number) {
+      return hitPhosphorNode(lastLayout, x, y);
+    },
   };
   return session;
 }
@@ -1016,6 +1059,8 @@ export function phosphorInlineScript(bind?: {
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
+    const canvasPointFromEvent = ${canvasPointFromEvent.toString()};
+    const hitPhosphorNode = ${hitPhosphorNode.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
 
     const canvas = document.getElementById(${JSON.stringify(canvasId)});
@@ -1040,6 +1085,17 @@ export function phosphorInlineScript(bind?: {
     }
     if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); syncMode(); });
     if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); syncMode(); });
+    if (canvas && typeof canvas.addEventListener === "function") {
+      try { if (canvas.style) canvas.style.cursor = "pointer"; } catch (e) {}
+      canvas.addEventListener("click", function(ev) {
+        if (session.mode !== "pixel") return;
+        const pt = canvasPointFromEvent(canvas, ev);
+        const n = hitPhosphorNode(session.lastLayout, pt.x, pt.y);
+        if (!n) return;
+        const pick = window[${JSON.stringify(globalName + "Pick")}];
+        if (typeof pick === "function") pick(n.room_id);
+      });
+    }
     window[${JSON.stringify(globalName)}] = session;
     syncMode();
     document.addEventListener("visibilitychange", function() {
