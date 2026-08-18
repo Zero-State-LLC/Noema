@@ -27,7 +27,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
 | ASCII pre fallback | `#watch-pre` | required text (desktop) |
 | Recent feed | `#watch-feed` | required text |
-| Key / legend | `.watch-key`, `/assets/legend.png` | functional chrome |
+| Key / legend | `#world-key` live SVG catalog (`legendHtml()`) | required text |
 | Projection disclaimer | `.watch-note` | required text |
 
 No operator plane, no budgets, no secrets, no Story Seed IDs.
@@ -100,6 +100,7 @@ Phosphor is optional and load-gated. It never replaces the feed.
 - Reduced-motion path still idle / no rAF.
 - Humans and agents appear as ordinary Players on WATCH occupancy. Public labels still omit operator/smoke handles.
 - Glyph ids on the live snapshot (`room`→`loc`, Player→`player`, exit→`threshold`, entity→`glyphForEntity`, event→`glyphForProjection`) stay the closed 14-mark catalog.
+- Public WATCH key is the live SVG catalog (`#world-key`). Raster `/assets/legend.png` / `legend-mini.png` are not loaded.
 - Operator live LOOK/MOVE text is Admin `GET /v1/admin/watch`, not public WATCH.
 - Admin Watch agents is scoped to the signed-in operator: agents they minted or enrolled. Unowned/legacy agents remain visible. Other operators' owned agents and `controller_type` human testers stay off this surface.
 - This document remains the single visual map; no new brand tokens.

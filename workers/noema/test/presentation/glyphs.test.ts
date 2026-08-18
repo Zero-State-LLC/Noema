@@ -64,5 +64,7 @@ describe("glyph catalog", () => {
     expect(playHtml()).not.toContain("legend.png");
     expect(watchHtml()).toContain('id="world-key"');
     expect(watchHtml()).not.toContain("glyphs-entities.png");
+    expect(watchHtml()).not.toContain("legend.png");
+    expect(watchHtml()).not.toContain("legend-mini.png");
   });
 });

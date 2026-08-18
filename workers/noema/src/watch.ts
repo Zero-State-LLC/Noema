@@ -97,13 +97,6 @@ const EXTRA = `
   position:absolute;inset:0;pointer-events:none;opacity:.14;
   background:url(/assets/watch-spectator.jpg) center/cover no-repeat;
 }
-.watch-key{
-  margin:1.15rem 0 0;padding-top:.75rem;border-top:1px solid var(--line);
-  color:var(--faint);font:.75rem/1.4 var(--font-mono);
-}
-.watch-key summary{cursor:pointer;color:var(--muted)}
-.watch-key img{display:block;width:min(100%,40rem);height:auto;margin:.65rem 0;image-rendering:pixelated}
-.watch-key .more{margin:.35rem 0 0}
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero,.watch-hero.major{
     transition:none!important;animation:none!important;
@@ -175,11 +168,6 @@ export function watchHtml(): string {
     </section>
   </section>
 
-  <details class="watch-key">
-    <summary>Projection key</summary>
-    <img src="/assets/legend-mini.png" width="1100" height="168" alt="WATCH key: player, active site, uncertain site, route, recent movement, signal, anomaly"/>
-    <p class="more"><a href="/assets/legend.png">Full key</a></p>
-  </details>
   <p class="watch-note">This window is a projection, not the world.</p>
 
   <script>
