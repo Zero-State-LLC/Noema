@@ -56,6 +56,8 @@ export type PhosphorSnapshot = {
   rooms?: PhosphorRoom[];
   recent_events?: PhosphorEvent[];
   sequence?: number;
+  /** Operator follow: light this room without MAJOR pulses. Public WATCH leaves this unset. */
+  focus_room_id?: string;
 };
 
 export type PhosphorNode = {
@@ -195,16 +197,28 @@ export function safePhosphorLabel(raw: unknown): string {
     .slice(0, 24);
 }
 
-export function roomCertainty(room: PhosphorRoom, recent?: PhosphorEvent[]): PhosphorCertainty {
+export function roomCertainty(
+  room: PhosphorRoom,
+  recent?: PhosphorEvent[],
+  focusRoomId?: string,
+): PhosphorCertainty {
   if (!isPublicWatchRoom(room)) return "unknown";
   const players = Number(room.players_present || 0);
-  const active = room.active === true || players > 0;
-  if (active) return "active";
+  const focus = String(focusRoomId || "");
+  if (focus) {
+    if (String(room.room_id || "") === focus) return "active";
+  } else {
+    const active = room.active === true || players > 0;
+    if (active) return "active";
+  }
   const id = room.room_id || "";
-  const hit = (recent || []).some((ev) => ev.room_id === id);
-  if (hit) return "active";
+  if (!focus) {
+    const hit = (recent || []).some((ev) => ev.room_id === id);
+    if (hit) return "active";
+  }
   const ents = (room.entities || []).filter((e) => e && e.hidden !== true);
   if (ents.length || String(room.description || "").trim()) return "known";
+  if (focus && players > 0) return "known";
   const tags = room.tags || [];
   for (let i = 0; i < tags.length; i++) {
     if (String(tags[i] || "").toLowerCase() === "partial") return "partial";
@@ -257,6 +271,7 @@ function nudge(x: number, y: number, taken: Set<string>): [number, number] {
 export function layoutPublicTopology(
   rooms: PhosphorRoom[] | undefined | null,
   recent?: PhosphorEvent[],
+  focusRoomId?: string,
 ): PhosphorLayout {
   const publicRooms = (rooms || []).filter(isPublicWatchRoom).slice().sort((a, b) =>
     String(a.room_id).localeCompare(String(b.room_id)),
@@ -350,7 +365,7 @@ export function layoutPublicTopology(
       name: safePhosphorLabel(room.name || id),
       x: Math.round(x),
       y: Math.round(y),
-      certainty: roomCertainty(room, recent),
+      certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
     };
@@ -789,7 +804,11 @@ export function createPhosphorSession(opts: {
       paint(nowFn());
     },
     update(snapshot: PhosphorSnapshot) {
-      lastLayout = layoutPublicTopology(snapshot.rooms || [], snapshot.recent_events);
+      lastLayout = layoutPublicTopology(
+        snapshot.rooms || [],
+        snapshot.recent_events,
+        snapshot.focus_room_id,
+      );
       const t = nowFn();
       if (!reduced && ctx && mode === "pixel") {
         const born = collectPulses(lastSeq, snapshot, t, reduced);

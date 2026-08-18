@@ -590,6 +590,10 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/Sketch/);
     expect(html).toContain("NoemaAdminPhosphor");
     expect(html).toContain("phosphorSnapshotFromOperatorWatch");
+    expect(html).toContain("followOperatorWatch");
+    expect(html).toContain('id="awatch-agents"');
+    expect(html).toContain('id="awatch-follow-all"');
+    expect(html).toContain("All agents");
     expect(html).not.toContain("legend.png");
   });
 

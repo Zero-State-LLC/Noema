@@ -40,6 +40,67 @@ export type OperatorWatchSite = {
   entities: Array<{ label: string; entity_type: string; glyph: GlyphId }>;
 };
 
+export type OperatorWatchAgent = {
+  handle: string;
+  room_id?: string;
+  room_name?: string;
+  entered?: boolean;
+  present?: boolean;
+  glyph: GlyphId;
+};
+
+export type OperatorWatchFollow = {
+  handle?: string;
+  room_id?: string;
+};
+
+export type OperatorWatchLineView = {
+  handle?: string;
+  room_id?: string;
+  room_name?: string;
+  command?: string;
+  line?: string;
+  glyph?: GlyphId;
+  at?: number;
+};
+
+/** Follow one of this operator's agents, or one public site. Empty follow is the full theater. */
+export function followOperatorWatch(data: {
+  agents?: OperatorWatchAgent[];
+  sites?: OperatorWatchSite[];
+  lines?: OperatorWatchLineView[];
+}, follow?: OperatorWatchFollow): {
+  agents: OperatorWatchAgent[];
+  sites: OperatorWatchSite[];
+  lines: OperatorWatchLineView[];
+  focus_room_id?: string;
+} {
+  const handle = String(follow?.handle || "").trim().slice(0, 32);
+  const roomId = String(follow?.room_id || "").trim().slice(0, 80);
+  const agents = Array.isArray(data.agents) ? data.agents : [];
+  let focus = roomId;
+  if (handle) {
+    const row = agents.find((a) => a && a.handle === handle);
+    if (row && row.room_id) focus = String(row.room_id);
+  }
+  const lines = (Array.isArray(data.lines) ? data.lines : []).filter((row) => {
+    if (!row) return false;
+    if (handle && String(row.handle || "") !== handle) return false;
+    if (!handle && roomId && String(row.room_id || "") !== roomId) return false;
+    return true;
+  });
+  const sites = (Array.isArray(data.sites) ? data.sites : []).map((s) => ({
+    ...s,
+    active: focus ? s.room_id === focus : s.active,
+  }));
+  return {
+    agents,
+    sites,
+    lines,
+    focus_room_id: focus || undefined,
+  };
+}
+
 const PRIVATE_VERBS = new Set(["MESSAGE", "TALK"]);
 
 export function actorVisibleToOperator(
@@ -206,7 +267,9 @@ export function buildOperatorWatch(input: {
 export function phosphorSnapshotFromOperatorWatch(data: {
   sequence?: number;
   sites?: OperatorWatchSite[];
-  lines?: Array<{ room_id?: string }>;
+  lines?: OperatorWatchLineView[];
+  agents?: OperatorWatchAgent[];
+  follow?: OperatorWatchFollow;
 }): {
   sequence: number;
   rooms: Array<{
@@ -219,18 +282,25 @@ export function phosphorSnapshotFromOperatorWatch(data: {
     entities: OperatorWatchSite["entities"];
   }>;
   recent_events: Array<{ sequence: number; room_id: string; tier: "NORMAL" }>;
+  focus_room_id?: string;
 } {
+  const focused = followOperatorWatch(
+    { agents: data.agents || [], sites: data.sites || [], lines: data.lines || [] },
+    data.follow,
+  );
   const sequence = Number(data.sequence || 0);
-  const rooms = (data.sites || []).map((s) => ({
+  const rooms = focused.sites.map((s) => ({
     room_id: s.room_id,
     name: s.name,
     players_present: Number(s.players_present || 0),
     public_player_labels: Array.isArray(s.player_labels) ? s.player_labels : [],
-    active: s.active === true || Number(s.players_present || 0) > 0,
+    active: focused.focus_room_id
+      ? s.room_id === focused.focus_room_id
+      : s.active === true || Number(s.players_present || 0) > 0,
     exits: s.exits || [],
     entities: s.entities || [],
   }));
-  const recent_events = (data.lines || [])
+  const recent_events = focused.lines
     .filter((row) => row && row.room_id)
     .slice(0, 12)
     .map((row, i) => ({
@@ -238,5 +308,5 @@ export function phosphorSnapshotFromOperatorWatch(data: {
       room_id: String(row.room_id),
       tier: "NORMAL" as const,
     }));
-  return { sequence, rooms, recent_events };
+  return { sequence, rooms, recent_events, focus_room_id: focused.focus_room_id };
 }
