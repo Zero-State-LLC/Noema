@@ -78,7 +78,7 @@ curl -sX POST localhost:8080/auth/device -H 'content-type: application/json' -d 
 
 ## Spec pin
 
-See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md), and the hosted Worker audit [`docs/RUNTIME-READINESS-2026-08-13.md`](docs/RUNTIME-READINESS-2026-08-13.md).
+See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md), the hosted Worker audit [`docs/RUNTIME-READINESS-2026-08-13.md`](docs/RUNTIME-READINESS-2026-08-13.md), and the production closeout [`docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md`](docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md).
 
 **Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
 

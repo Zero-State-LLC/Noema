@@ -1,8 +1,9 @@
 # Specs vs runtime — hosted Stage 0
 
 **Date.** 2026-08-18  
-**Runtime.** `origin/main` @ `fef4cc0` (`fix(home): restore the table overlay on the five-tab bar (#301)`)  
-**Specs.** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) `main` @ `82820a5` (`docs: pin hosted Watch-first door and manifesto tab (#167)`)  
+**Superseded for production verdict by** [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md) (`NOEMA PRODUCTION BLOCKED`).  
+**Runtime.** `origin/main` @ `9973219` (docs `#302`); live Worker code through `#301` `fef4cc0`.  
+**Specs.** [Zero-State-LLC/Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) `main` @ `17a7550` (`#168` five-tab + admission).  
 **Core-loop pin.** `spec-compat.json` → Specs `d69be87` / `v0.1-v0.7-core-loop-freeze`. That pin owns Chamber C01–C26 / ADR-005. It is **older** than the product-UI docs on Specs `main`. Chrome and role policy audit against Specs `main`.
 
 This is a presentation and admission audit. It does not thaw world rules, catalogs, or Genesis.
