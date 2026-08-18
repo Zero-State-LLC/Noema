@@ -64,6 +64,17 @@ def main(argv: list[str] | None = None) -> int:
         if hello.get("type") == "ERROR":
             return 1
 
+    isolated = None
+    if tenant.isolated:
+        from noema.harness.operator_env import AttachError, resolve_isolated_attach
+
+        try:
+            isolated = resolve_isolated_attach(base, env=os.environ, http=http, handle="tester")
+        except AttachError as exc:
+            print("attach refused", exc.code, exc.message)
+            return 2
+        args.token = isolated.player_token
+        print("attach", isolated.source)
     if not args.token:
         print("AUTH_REQUIRED set NOEMA_TOKEN")
         return 2
@@ -82,11 +93,8 @@ def main(argv: list[str] | None = None) -> int:
         runtime=args.runtime,
         command_path=tenant.command_path,
         world_id=tenant.world_id,
-        admin_token=os.environ.get("NOEMA_ADMIN_TOKEN") if tenant.isolated else None,
+        admin_token=isolated.admin_jwt if isolated else None,
     )
-    if tenant.isolated and not client.admin_token:
-        print("tenant refused ADMIN_TOKEN_REQUIRED")
-        return 2
     harness = HeadlessHarness(client, adapter, HarnessPolicy(cooldown_seconds=0))
     run = harness.run_unattended(max_turns=max(2, args.turns))
     for turn in run.turns:
