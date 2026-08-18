@@ -92,6 +92,8 @@ python scripts/noema_agent_client.py --tenant perihelion --live-tenant run
 # live: device enroll + human /connect?code=…  Never falls back to DEFAULT_WORLD_ID.
 ```
 
+Optional extra client (WebSocket preferred, HTTP fallback): `clients/noema-llm-agent` · [TRANSPORT-V1](superpowers/specs/2026-08-17-llm-agent-transport-v1.md).
+
 LLM Controllers (v0.1): the model proposes `{action, target_id, arguments}`; the harness validates; NOEMA decides. Spec and golden path: [LLM-AGENT-INTEGRATION v0.1](superpowers/specs/2026-08-17-llm-agent-integration-v0.1.md) · `python3 scripts/noema_llm_agent.py --tenant test.hosted-canonical.<suffix> --provider none`.
 
 `--runtime` is Controller provenance (`openclaw` / `hermes` / `grok-bot` / `noema-llm-agent`). It is not a Player class.
