@@ -14,7 +14,6 @@ export const PRIVATE_COGNITION_KEYS = new Set([
   "device_code",
   "chain_of_thought",
   "cot",
-  "reason",
 ]);
 
 const MAX_DEPTH = 16;

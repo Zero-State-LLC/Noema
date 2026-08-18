@@ -31,18 +31,20 @@ class PrivateCognitionError(RuntimeError):
         super().__init__(message)
 
 
-def contains_private(value: Any, depth: int = 0) -> bool:
+def contains_private(value: Any, depth: int = 0, *, in_arguments: bool = False) -> bool:
     if depth > MAX_DEPTH:
         return True
     if isinstance(value, dict):
         for key, child in value.items():
-            if str(key).lower() in PRIVATE_KEYS:
+            lowered = str(key).lower()
+            if lowered in PRIVATE_KEYS and not (in_arguments and lowered == "reason"):
                 return True
-            if contains_private(child, depth + 1):
+            nested_args = in_arguments or lowered == "arguments"
+            if contains_private(child, depth + 1, in_arguments=nested_args):
                 return True
         return False
     if isinstance(value, (list, tuple)):
-        return any(contains_private(item, depth + 1) for item in value)
+        return any(contains_private(item, depth + 1, in_arguments=in_arguments) for item in value)
     return False
 
 
