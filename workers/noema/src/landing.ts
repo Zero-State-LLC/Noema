@@ -12,24 +12,32 @@ const EXTRA = `
  * design-system: site/design.md · designed-as-app
  */
 body.hero-bleed .top{
-  position:absolute;inset:0 0 auto 0;width:100%;
-  background:transparent;border-bottom:0;z-index:var(--z-nav);
+  position:absolute;inset:0 0 auto 0;width:100%;flex-wrap:nowrap;
+  padding:1.15rem var(--pad) 2.4rem;
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--void) 72%,transparent) 0%,transparent 100%);
+  border-bottom:0;z-index:var(--z-nav);
 }
+body.hero-bleed .brand-sub{display:none}
+body.hero-bleed .nav{flex-wrap:nowrap;gap:.15rem 1.05rem}
 body.hero-bleed .wrap{width:100%;max-width:none;margin:0;padding:0}
-body.hero-bleed .foot{border-top:0;background:var(--void)}
+body.hero-bleed .foot{
+  position:absolute;inset:auto 0 0 0;width:100%;max-width:none;
+  padding:.55rem var(--pad) .85rem;
+  border-top:0;background:transparent;z-index:2;
+}
 .hero{
   position:relative;min-height:100vh;min-height:100dvh;
   display:flex;flex-direction:column;justify-content:flex-end;overflow:clip;
 }
 .hero-art{position:absolute;inset:0;margin:0}
-.hero-art img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 42%;border:0}
+.hero-art img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 38%;border:0}
 .hero::after{
   content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to bottom,color-mix(in srgb,var(--void) 62%,transparent) 0%,transparent 26%,transparent 48%,color-mix(in srgb,var(--void) 78%,transparent) 100%);
+  background:linear-gradient(to bottom,color-mix(in srgb,var(--void) 38%,transparent) 0%,transparent 22%,transparent 52%,color-mix(in srgb,var(--void) 68%,transparent) 100%);
 }
 .hero-copy{
   position:relative;z-index:1;width:min(68rem,calc(100% - 2*var(--pad)));
-  margin:0 auto;padding:0 0 var(--space-xl);text-align:center;min-width:0;
+  margin:0 auto;padding:0 0 4.25rem;text-align:center;min-width:0;
 }
 .hero-copy .place{margin:0 0 .55rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 .hero-lines{
@@ -78,6 +86,8 @@ body.hero-bleed .foot{border-top:0;background:var(--void)}
 .miss h1{max-width:none;min-width:0;overflow-wrap:anywhere}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){
+  body.hero-bleed .top{flex-wrap:wrap;padding-bottom:1.2rem}
+  body.hero-bleed .nav{flex-wrap:wrap}
   .hero-lines{grid-template-columns:1fr}
   .hero-gate{
     grid-template-columns:1fr;width:min(22rem,100%);
