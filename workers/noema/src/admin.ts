@@ -5,6 +5,8 @@
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
+import { followOperatorWatch, phosphorSnapshotFromOperatorWatch } from "./operator-watch";
+import { phosphorInlineScript } from "./watch-phosphor";
 
 const FONTS = FONT_LINKS;
 
@@ -89,11 +91,13 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .list li{display:flex;justify-content:space-between;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(42,51,66,.5);font-size:.8rem}
 .awatch{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(16rem,.9fr);gap:1rem}
 @media(max-width:900px){.awatch{grid-template-columns:1fr}}
-.awatch-feed,.awatch-sites{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;max-height:22rem;overflow:auto}
-.awatch-feed li,.awatch-sites li{padding:.4rem 0;border-bottom:1px solid rgba(42,51,66,.45);font:.8rem/1.4 var(--font-mono)}
-.awatch-feed .meta,.awatch-sites .meta{color:var(--faint);font-size:.72rem}
-.awatch .glyph{display:inline-flex;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em}
-.awatch .glyph svg{display:block;width:100%;height:100%}
+.awatch-feed,.awatch-sites,.awatch-agents{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;max-height:22rem;overflow:auto}
+.awatch-agents{grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));max-height:none;margin:.75rem 0 0}
+.awatch-feed li,.awatch-sites li,.awatch-agents li{padding:.4rem 0;border-bottom:1px solid rgba(42,51,66,.45);font:.8rem/1.4 var(--font-mono)}
+.awatch-agents li{padding:0;border-bottom:0}
+.awatch-feed .meta,.awatch-sites .meta,.awatch-agents .meta{color:var(--faint);font-size:.72rem}
+.awatch .glyph,.awatch-roster .glyph,.awatch-pick .glyph{display:inline-flex;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em}
+.awatch .glyph svg,.awatch-roster .glyph svg,.awatch-pick .glyph svg{display:block;width:100%;height:100%}
 .glyph-player{color:var(--color-state-social)}
 .glyph-trade,.glyph-economy{color:var(--color-state-economic)}
 .glyph-danger{color:var(--color-state-critical)}
@@ -113,6 +117,24 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .key-row{display:flex;gap:.55rem;align-items:flex-start;font-size:.8rem;color:var(--ink)}
 .key-row .glyph{width:1.15rem;height:1.15rem}
 .key-row strong{font-weight:600}
+.awatch-toolbar{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;margin:.75rem 0 0}
+.awatch-toolbar .kicker{margin:0 .35rem 0 0}
+.awatch-toolbar .btn[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-roster{margin:.75rem 0 0}
+.awatch-roster .kicker{margin:0 0 .4rem}
+.awatch-pick{
+  display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
+  width:100%;margin:0;padding:.35rem .45rem;border:1px solid var(--line);
+  background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;
+}
+.awatch-pick[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-phos[hidden]{display:none}
+.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body)}
+.awatch-phosphor{
+  display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
+  background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
+  border:1px solid var(--line);
+}
 `;
 
 function adminChrome(title: string, body: string): string {
@@ -532,8 +554,22 @@ export function adminHtml(): string {
     <section class="section" id="agent-watch">
       <p class="kicker">04b / watch agents</p>
       <h2>Watch agents play</h2>
-      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
+      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. PIXEL is the same catalog sketch as public WATCH, with this operator's occupancy. Click an agent or a site to follow their live text and light that room on the sketch. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
       ${legendHtml()}
+      <div class="awatch-toolbar">
+        <span class="kicker">Sketch</span>
+        <button type="button" class="btn" id="awatch-mode-text" aria-pressed="true">TEXT</button>
+        <button type="button" class="btn" id="awatch-mode-pixel" aria-pressed="false">PIXEL</button>
+        <button type="button" class="btn" id="awatch-follow-all" aria-pressed="true">All agents</button>
+      </div>
+      <div class="awatch-roster">
+        <p class="kicker">Agents</p>
+        <ul class="awatch-agents" id="awatch-agents"><li class="empty">No agents on this operator yet.</li></ul>
+      </div>
+      <div class="awatch-phos" id="awatch-phos-wrap" hidden>
+        <div class="awatch-phos-bar" id="awatch-phos-bar">Operator sketch — not the world. Your agents only.</div>
+        <canvas class="awatch-phosphor" id="awatch-phosphor" width="320" height="180" role="img" aria-label="Operator topology sketch"></canvas>
+      </div>
       <div class="awatch" style="margin-top:.75rem">
         <article class="card pad">
           <p class="kicker">Sites</p>
@@ -616,6 +652,8 @@ export function adminHtml(): string {
 <script>
 (() => {
   const GLYPHS = ${JSON.stringify(glyphCatalog())};
+  const followOperatorWatch = ${followOperatorWatch.toString()};
+  const phosphorSnapshotFromOperatorWatch = ${phosphorSnapshotFromOperatorWatch.toString()};
   const token = sessionStorage.getItem("noema.admin.token");
   if (!token) {
     if (location.hash) sessionStorage.setItem("noema.admin.next", location.hash);
@@ -807,12 +845,62 @@ export function adminHtml(): string {
     $("g-activate").disabled = true;
   }
 
+  let watchFollow = { handle: "", room_id: "" };
+
+  function syncFollowAll() {
+    const allBtn = $("awatch-follow-all");
+    if (!allBtn) return;
+    allBtn.setAttribute("aria-pressed", (!watchFollow.handle && !watchFollow.room_id) ? "true" : "false");
+  }
+
+  function setWatchFollow(next) {
+    const handle = String((next && next.handle) || "");
+    const roomId = String((next && next.room_id) || "");
+    if (watchFollow.handle === handle && watchFollow.room_id === roomId) {
+      watchFollow = { handle: "", room_id: "" };
+    } else {
+      watchFollow = { handle, room_id: roomId };
+    }
+    syncFollowAll();
+    return loadAgentWatch();
+  }
+
   async function loadAgentWatch() {
+    const agentsEl = $("awatch-agents");
     const sitesEl = $("awatch-sites");
     const feedEl = $("awatch-feed");
     if (!sitesEl || !feedEl) return;
     const data = await api("/v1/admin/watch");
-    const sites = data.sites || [];
+    const focused = followOperatorWatch(data, watchFollow);
+    const followHandle = String(watchFollow.handle || "");
+    const followRoom = String(focused.focus_room_id || watchFollow.room_id || "");
+    if (agentsEl) {
+      const agents = data.agents || [];
+      agentsEl.replaceChildren();
+      if (!agents.length) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "No agents on this operator yet. Mint or enroll an agent.";
+        agentsEl.append(li);
+      } else {
+        agents.forEach((a) => {
+          const li = document.createElement("li");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "awatch-pick";
+          btn.setAttribute("aria-pressed", a.handle === followHandle ? "true" : "false");
+          btn.append(glyphNode(a.glyph || "player"), document.createTextNode(a.handle || "agent"));
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = a.present && a.room_name ? a.room_name : (a.present ? "present" : "not in a public site");
+          btn.append(meta);
+          btn.addEventListener("click", () => { setWatchFollow({ handle: a.handle || "", room_id: "" }); });
+          li.append(btn);
+          agentsEl.append(li);
+        });
+      }
+    }
+    const sites = focused.sites || [];
     sitesEl.replaceChildren();
     if (!sites.length) {
       const li = document.createElement("li");
@@ -822,7 +910,11 @@ export function adminHtml(): string {
     } else {
       sites.forEach((r) => {
         const li = document.createElement("li");
-        const row = document.createElement("div");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "awatch-pick";
+        btn.setAttribute("aria-pressed", r.room_id === followRoom ? "true" : "false");
+        const row = document.createElement("span");
         row.append(glyphNode(r.glyph || "loc"), document.createTextNode(r.name || r.room_id || "site"));
         if (r.players_present > 0) {
           const n = document.createElement("span");
@@ -830,30 +922,34 @@ export function adminHtml(): string {
           n.append(glyphNode("player"), document.createTextNode(" " + String(r.players_present)));
           row.append(n);
         }
-        li.append(row);
+        btn.append(row);
         const exits = Array.isArray(r.exits) ? r.exits : [];
         if (exits.length) {
           const meta = document.createElement("div");
           meta.className = "meta";
           meta.textContent = exits.map((x) => (x.direction || "") + " → " + (x.to_room_name || "")).join(" · ");
-          li.append(meta);
+          btn.append(meta);
         }
         const labels = Array.isArray(r.player_labels) ? r.player_labels : [];
         if (labels.length) {
           const meta = document.createElement("div");
           meta.className = "meta";
           meta.textContent = labels.join(", ");
-          li.append(meta);
+          btn.append(meta);
         }
+        btn.addEventListener("click", () => { setWatchFollow({ handle: "", room_id: r.room_id || "" }); });
+        li.append(btn);
         sitesEl.append(li);
       });
     }
-    const lines = data.lines || [];
+    const lines = focused.lines || [];
     feedEl.replaceChildren();
     if (!lines.length) {
       const li = document.createElement("li");
       li.className = "empty";
-      li.textContent = "No agent lines yet. Connected agents appear here as they LOOK and MOVE.";
+      li.textContent = followHandle || watchFollow.room_id
+        ? "No lines for this follow yet."
+        : "No agent lines yet. Connected agents appear here as they LOOK and MOVE.";
       feedEl.append(li);
     } else {
       lines.forEach((row) => {
@@ -874,9 +970,24 @@ export function adminHtml(): string {
         feedEl.append(li);
       });
     }
+    const bar = $("awatch-phos-bar");
+    if (bar) {
+      bar.textContent = followHandle
+        ? ("Following " + followHandle + " — not the world.")
+        : (watchFollow.room_id
+          ? "Following this site — not the world. Your agents only."
+          : "Operator sketch — not the world. Your agents only.");
+    }
+    syncFollowAll();
+    try {
+      if (window.NoemaAdminPhosphor) {
+        window.NoemaAdminPhosphor.update(phosphorSnapshotFromOperatorWatch(Object.assign({}, data, { follow: watchFollow })));
+      }
+    } catch (e) {}
   }
 
-  function showAgentWatch() {
+  function showAgentWatch(handle) {
+    if (handle) watchFollow = { handle: String(handle), room_id: "" };
     location.hash = "#agent-watch";
     document.querySelectorAll(".rail-nav a").forEach((x) => {
       x.classList.toggle("active", x.getAttribute("href") === "#agent-watch");
@@ -1233,7 +1344,7 @@ export function adminHtml(): string {
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;
-      if ((data.controller_type || ctype) === "agent") await showAgentWatch();
+      if ((data.controller_type || ctype) === "agent") await showAgentWatch(handle);
     } catch (e) {
       $("tok-notice").className = "notice bad";
       $("tok-notice").textContent = e.message || "mint failed";
@@ -1313,6 +1424,14 @@ export function adminHtml(): string {
       a.classList.add("active");
     });
   });
+  const allFollow = $("awatch-follow-all");
+  if (allFollow) {
+    allFollow.addEventListener("click", () => {
+      watchFollow = { handle: "", room_id: "" };
+      syncFollowAll();
+      loadAgentWatch().catch(() => undefined);
+    });
+  }
 
   const hash = location.hash;
   if (hash) {
@@ -1325,6 +1444,15 @@ export function adminHtml(): string {
   load();
   setInterval(() => { loadAgentWatch().catch(() => undefined); }, 5000);
 })();
+</script>
+<script>
+${phosphorInlineScript({
+  canvasId: "awatch-phosphor",
+  wrapId: "awatch-phos-wrap",
+  textBtnId: "awatch-mode-text",
+  pixelBtnId: "awatch-mode-pixel",
+  globalName: "NoemaAdminPhosphor",
+})}
 </script>`,
   );
 }

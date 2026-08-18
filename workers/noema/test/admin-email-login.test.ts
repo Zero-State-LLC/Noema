@@ -584,6 +584,17 @@ describe("admin login HTML", () => {
     expect(html).toMatch(/agents you minted or enrolled/i);
     expect(html).toContain('id="world-key"');
     expect(html).toContain("<summary>Key</summary>");
+    expect(html).toContain('id="awatch-phosphor"');
+    expect(html).toContain('id="awatch-mode-pixel"');
+    expect(html).toContain(">PIXEL</button>");
+    expect(html).toMatch(/Sketch/);
+    expect(html).toContain("NoemaAdminPhosphor");
+    expect(html).toContain("phosphorSnapshotFromOperatorWatch");
+    expect(html).toContain("followOperatorWatch");
+    expect(html).toContain('id="awatch-agents"');
+    expect(html).toContain('id="awatch-follow-all"');
+    expect(html).toContain("All agents");
+    expect(html).toContain("awatch-roster");
     expect(html).not.toContain("legend.png");
   });
 

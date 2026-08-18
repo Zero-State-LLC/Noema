@@ -314,6 +314,8 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(roomCertainty({ room_id: "room.x", description: "A public floor." })).toBe("known");
     expect(roomCertainty({ room_id: "room.x", players_present: 2 })).toBe("active");
     expect(roomCertainty({ room_id: "room.x" }, [{ room_id: "room.x", sequence: 1 }])).toBe("active");
+    expect(roomCertainty({ room_id: "room.b", players_present: 1 }, undefined, "room.b")).toBe("active");
+    expect(roomCertainty({ room_id: "room.a", players_present: 1 }, [{ room_id: "room.a" }], "room.b")).toBe("known");
   });
 
   it("strips markup from public labels before any render", () => {

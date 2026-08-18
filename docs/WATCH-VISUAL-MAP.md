@@ -104,4 +104,5 @@ Phosphor is optional and load-gated. It never replaces the feed.
 - PIXEL canvas room / player / exit marks trace the same catalog `d` paths (`loc`, `player`, `unknown`, `threshold`). Certainty and occupancy still select the phosphor atlas id; MAJOR pulses stay motion-only.
 - Operator live LOOK/MOVE text is Admin `GET /v1/admin/watch`, not public WATCH.
 - Admin Watch agents is scoped to the signed-in operator: agents they minted or enrolled. Unowned/legacy agents remain visible. Other operators' owned agents and `controller_type` human testers stay off this surface.
+- Admin Watch PIXEL is opt-in and traces the same catalog `d` paths. Occupancy is that operator's agents. Clicking an agent or site follows live text and lights that room on PIXEL. It is not public WATCH.
 - This document remains the single visual map; no new brand tokens.
