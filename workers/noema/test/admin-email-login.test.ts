@@ -582,6 +582,9 @@ describe("admin login HTML", () => {
     expect(html).toContain('id="agent-watch"');
     expect(html).toContain("showAgentWatch");
     expect(html).toMatch(/agents you minted or enrolled/i);
+    expect(html).toContain('id="world-key"');
+    expect(html).toContain("<summary>Key</summary>");
+    expect(html).not.toContain("legend.png");
   });
 
   it("offers close incident without reseed", () => {

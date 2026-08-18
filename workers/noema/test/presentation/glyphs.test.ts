@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   GLYPH_IDS,
@@ -11,6 +14,7 @@ import {
   glyphMeta,
   legendHtml,
 } from "../../src/presentation/glyphs";
+import { adminHtml } from "../../src/admin";
 import { playHtml } from "../../src/play";
 import { watchHtml } from "../../src/watch";
 
@@ -58,7 +62,7 @@ describe("glyph catalog", () => {
     expect(html).not.toContain("glyphs-players.png");
   });
 
-  it("PLAY and WATCH ship the key and skip raster sheets", () => {
+  it("PLAY, WATCH, and Admin Watch agents ship the key and skip raster sheets", () => {
     expect(playHtml()).toContain('id="world-key"');
     expect(playHtml()).toContain('aria-label="Location"');
     expect(playHtml()).not.toContain("legend.png");
@@ -66,5 +70,21 @@ describe("glyph catalog", () => {
     expect(watchHtml()).not.toContain("glyphs-entities.png");
     expect(watchHtml()).not.toContain("legend.png");
     expect(watchHtml()).not.toContain("legend-mini.png");
+    expect(adminHtml()).toContain('id="agent-watch"');
+    expect(adminHtml()).toContain('id="world-key"');
+    expect(adminHtml()).toContain('aria-label="Location"');
+    expect(adminHtml()).not.toContain("legend.png");
+    expect(adminHtml()).not.toContain("glyphs-players.png");
+  });
+
+  it("does not ship retired copper raster keys", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const assets = join(here, "../../public/assets");
+    for (const name of ["legend.png", "legend-mini.png", "glyphs-players.png", "glyphs-entities.png"]) {
+      expect(existsSync(join(assets, name))).toBe(false);
+    }
+    const builder = readFileSync(join(here, "../../scripts/build-phosphor-assets.py"), "utf8");
+    expect(builder).not.toMatch(/legend\.png|glyphs-players\.png/);
+    expect(builder).not.toMatch(/196,\s*122,\s*58/);
   });
 });

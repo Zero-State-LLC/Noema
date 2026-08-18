@@ -1,6 +1,6 @@
 # Phosphor Cartography assets
 
-Still photography is atmospheric only. Live WATCH topology is the Phosphor canvas + `watch-live/1.0` text. Glyphs and legends are drawn in `scripts/build-phosphor-assets.py`.
+Still photography is atmospheric only. Live WATCH topology is the Phosphor canvas + `watch-live/1.0` text. The 14-mark catalog and spectator key live in `src/presentation/glyphs.ts` (`legendHtml()`, `#world-key`).
 
 | File | Use |
 |------|-----|
@@ -12,9 +12,5 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 | `anomaly-signal.jpg` | Isolated signal |
 | `og-social.jpg` | Open Graph (no baked text) |
 | `hero-noema.jpg` | Legacy OG alias of `og-social.jpg` |
-| `glyphs-players.png` | 20 player marks, transparent |
-| `glyphs-entities.png` | 12 object marks, transparent |
-| `legend.png` | Full spectator key |
-| `legend-mini.png` | Casual WATCH key |
 
-WATCH PIXEL remains the locked Glyph Atlas v0.1 in `watch-phosphor.ts`. Live PLAY/WATCH keys are the SVG catalog from `legendHtml()` (`#world-key`). These raster sheets do not replace it and are not loaded by WATCH.
+`scripts/build-phosphor-assets.py` copies stills only. It does not emit raster glyph sheets or a second key. PLAY, WATCH, and Admin Watch agents use the live SVG catalog.
