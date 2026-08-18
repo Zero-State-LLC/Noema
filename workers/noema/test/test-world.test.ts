@@ -316,13 +316,26 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
   });
 });
 
-describe("POST /v1/command is unchanged", () => {
-  it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap", async () => {
+describe("POST /v1/command world routing", () => {
+  it("rejects an isolated world_id without dual-auth", async () => {
     const calls: DoCall[] = [];
     const player = await playerToken();
     const res = await hit(
       "/v1/command",
       { request_id: "r2", command: "LOOK", arguments: {}, world_id: "test.hosted-canonical.sneak" },
+      { Authorization: `Bearer ${player}` },
+      calls,
+    );
+    expect(res.status).toBe(401);
+    expect(calls).toEqual([]);
+  });
+
+  it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap when world_id is omitted", async () => {
+    const calls: DoCall[] = [];
+    const player = await playerToken();
+    const res = await hit(
+      "/v1/command",
+      { request_id: "r2b", command: "LOOK", arguments: {} },
       { Authorization: `Bearer ${player}` },
       calls,
     );

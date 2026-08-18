@@ -60,16 +60,21 @@ export function classifyAdminMaterial(raw) {
   return { ok: false, kind: null };
 }
 
-export function resolveAdminMaterial(envLike = process.env, fileValues = {}) {
+/**
+ * @param {Record<string, string | undefined>} [envLike]
+ * @param {Record<string, string | undefined>} [fileValues]
+ */
+export function resolveAdminMaterial(envLike, fileValues = {}) {
+  const envSrc = envLike || {};
   const merged = { ...fileValues };
   for (const k of ["ADMIN_TOKEN", "ADMIN_OPERATOR_TOKEN"]) {
-    if (envLike[k]) merged[k] = envLike[k];
+    if (envSrc[k]) merged[k] = envSrc[k];
   }
   const raw = merged.ADMIN_TOKEN || merged.ADMIN_OPERATOR_TOKEN || "";
   const classified = classifyAdminMaterial(raw);
-  return { ...classified, present: Boolean(raw), source: envLike.ADMIN_TOKEN
+  return { ...classified, present: Boolean(raw), source: envSrc.ADMIN_TOKEN
     ? "env.ADMIN_TOKEN"
-    : envLike.ADMIN_OPERATOR_TOKEN
+    : envSrc.ADMIN_OPERATOR_TOKEN
       ? "env.ADMIN_OPERATOR_TOKEN"
       : fileValues.ADMIN_TOKEN
         ? "file.ADMIN_TOKEN"

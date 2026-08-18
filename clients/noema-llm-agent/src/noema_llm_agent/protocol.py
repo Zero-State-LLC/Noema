@@ -74,7 +74,14 @@ class ProtocolClient(ABC):
         self.client_action_sequence: int = 0
         self.last_ack_obs_seq: int = 0
         self.resume_token: str | None = None
+        self.resume_enabled: bool = True
         self.session_epoch: str = uuid.uuid4().hex[:8]
+
+    def store_resume_token(self, token: Any) -> None:
+        if self.resume_enabled and token:
+            self.resume_token = str(token)
+        elif not self.resume_enabled:
+            self.resume_token = None
 
     @abstractmethod
     async def connect(self) -> None: ...
@@ -167,7 +174,7 @@ class LocalMockClient(ProtocolClient):
         self.agent_id = "player.mock"
         self.controller_id = "ctrl.mock"
         self.session_id = "sess.mock"
-        self.resume_token = "resume.mock"
+        self.store_resume_token("resume.mock")
         return {
             "type": "AUTH_ACK",
             "body": {
@@ -290,7 +297,7 @@ class HttpProtocolClient(ProtocolClient):
         self.agent_id = str(body.get("player_id") or ack.get("agent_id") or "") or None
         self.controller_id = str(body.get("controller_id") or "") or None
         self.session_id = str(body.get("session_id") or "") or None
-        self.resume_token = body.get("resume_token")
+        self.store_resume_token(body.get("resume_token"))
         return ack
 
     async def register(self, manifest: dict[str, Any] | None = None) -> Envelope:
@@ -378,8 +385,10 @@ class WebSocketProtocolClient(ProtocolClient):
         max_reconnects: int = 8,
         ws_factory: WsFactory | None = None,
         log: Callable[[str], None] | None = None,
+        resume: bool = True,
     ) -> None:
         super().__init__()
+        self.resume_enabled = resume
         self.url = url
         self.token = token
         self.heartbeat_interval = heartbeat_interval
@@ -532,7 +541,7 @@ class WebSocketProtocolClient(ProtocolClient):
 
     async def hello(self) -> Envelope:
         body: dict[str, Any] = {"supported_protocols": ["agent-protocol/v1"]}
-        if self.resume_token:
+        if self.resume_enabled and self.resume_token:
             body["resume_token"] = self.resume_token
             body["last_ack_obs_seq"] = self.last_ack_obs_seq
         msg = self.envelope("HELLO", body)
@@ -554,7 +563,7 @@ class WebSocketProtocolClient(ProtocolClient):
         self.agent_id = str(body.get("player_id") or ack.get("agent_id") or self.agent_id or "") or None
         self.controller_id = str(body.get("controller_id") or self.controller_id or "") or None
         self.session_id = str(body.get("session_id") or self.session_id or "") or None
-        self.resume_token = body.get("resume_token") or self.resume_token
+        self.store_resume_token(body.get("resume_token") or self.resume_token)
         return ack
 
     async def register(self, manifest: dict[str, Any] | None = None) -> Envelope:
@@ -692,14 +701,17 @@ async def connect_protocol(
     heartbeat_interval: float = 25.0,
     max_reconnects: int = 8,
     ws_factory: WsFactory | None = None,
+    resume: bool = True,
 ) -> ProtocolClient:
     mode = (transport or "auto").lower()
     if mode == "mock" or endpoint in {"mock", "local"}:
         client = LocalMockClient()
+        client.resume_enabled = resume
         await client.connect()
         return client
     if mode == "http":
         http = HttpProtocolClient(derive_http_origin(endpoint), token=token)
+        http.resume_enabled = resume
         await http.connect()
         return http
     if mode == "websocket":
@@ -709,6 +721,7 @@ async def connect_protocol(
             heartbeat_interval=heartbeat_interval,
             max_reconnects=max_reconnects,
             ws_factory=ws_factory,
+            resume=resume,
         )
         await ws.connect()
         return ws
@@ -720,6 +733,7 @@ async def connect_protocol(
         heartbeat_interval=heartbeat_interval,
         max_reconnects=max_reconnects,
         ws_factory=ws_factory,
+        resume=resume,
     )
     try:
         await ws.connect()
@@ -727,5 +741,6 @@ async def connect_protocol(
     except Exception:
         console.log("websocket unavailable; falling back to HTTP")
         http = HttpProtocolClient(derive_http_origin(endpoint), token=token)
+        http.resume_enabled = resume
         await http.connect()
         return http

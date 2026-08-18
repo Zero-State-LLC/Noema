@@ -257,6 +257,35 @@ def test_protocol_auth_with_controller_token(tmp_path: Path):
     assert bad.get("error", {}).get("code") in ("FORBIDDEN", "NOT_AUTHORIZED") or "FORBIDDEN" in json.dumps(bad)
 
 
+def test_spectator_cannot_observe_another_agent(tmp_path: Path):
+    from noema.actions.errors import ActionError
+    from noema.auth.roles import Role
+
+    rt = NoemaRuntime(db_path=tmp_path / "obs.sqlite3")
+    seed = Path("fixtures/v01-seed/world-seed.json")
+    if seed.is_file():
+        rt.start_world(seed)
+    player = rt.create_session(role=Role.PLAYER, agent_id="agent.alice")
+    rt.apply_player_action(
+        player["session_id"],
+        {
+            "verb": "ENTER_WORLD",
+            "agent_id": "agent.alice",
+            "client_action_sequence": 1,
+            "action_id": "act.enter",
+            "idempotency_key": "idem.enter",
+            "parameters": {},
+        },
+    )
+    spectator = rt.create_session(role=Role.SPECTATOR)
+    try:
+        rt.observe(spectator["session_id"], "agent.alice")
+        assert False, "spectator must not read a private agent projection"
+    except ActionError as exc:
+        assert exc.code == "NOT_AUTHORIZED"
+
+
+
 def test_http_auth_routes(tmp_path: Path):
     from http.server import ThreadingHTTPServer
     import threading

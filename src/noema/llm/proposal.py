@@ -23,8 +23,11 @@ PRIVATE_KEYS = frozenset(
         "device_code",
         "chain_of_thought",
         "cot",
+        "reason",
     }
 )
+
+MAX_PRIVATE_DEPTH = 16
 
 ALLOWED_ACTIONS = frozenset(
     {
@@ -55,14 +58,20 @@ class ProposalError(Exception):
         self.message = message
 
 
-def contains_private(value: Any, depth: int = 0) -> bool:
-    if not isinstance(value, dict) or depth > 2:
+def contains_private(value: Any, depth: int = 0, *, in_arguments: bool = False) -> bool:
+    if depth > MAX_PRIVATE_DEPTH:
+        return True
+    if isinstance(value, dict):
+        for key, child in value.items():
+            lowered = str(key).lower()
+            if lowered in PRIVATE_KEYS and not (in_arguments and lowered == "reason"):
+                return True
+            nested_args = in_arguments or lowered == "arguments"
+            if contains_private(child, depth + 1, in_arguments=nested_args):
+                return True
         return False
-    for key, child in value.items():
-        if str(key).lower() in PRIVATE_KEYS:
-            return True
-        if isinstance(child, dict) and contains_private(child, depth + 1):
-            return True
+    if isinstance(value, (list, tuple)):
+        return any(contains_private(item, depth + 1, in_arguments=in_arguments) for item in value)
     return False
 
 

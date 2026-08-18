@@ -26,12 +26,22 @@ function bearer(req: Request): string | null {
 export function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
+    },
   });
 }
 
 export function err(code: string, message: string, status = 401, retryable = false): Response {
   return json({ error: { code, message, retryable } }, status);
+}
+
+/** Dev-token mint/resolve only when NOEMA_ENV is an explicit local/test/dev value. Missing env is fail-closed. */
+export function isExplicitLocalDev(env: { NOEMA_ENV?: string }): boolean {
+  const name = (env.NOEMA_ENV || "").toLowerCase();
+  return name === "local" || name === "test" || name === "dev";
 }
 
 /** Resolve PlayerPrincipal from controller access token or Supabase human JWT. */
@@ -99,8 +109,9 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
     }
   }
 
-  // Local/dev only: issue a throwaway principal for Stage 0 demos
-  if ((env.NOEMA_ENV || "local") === "local" || env.NOEMA_ENV === "test" || env.NOEMA_ENV === "dev") {
+  // Explicit local/test/dev only: throwaway principal for Stage 0 demos.
+  // Missing, preview, and production modes fail closed (same gate as /v1/auth/dev-token mint).
+  if (isExplicitLocalDev(env)) {
     if (token === "dev" || token.startsWith("dev:")) {
       const handle = token === "dev" ? "dev-player" : token.slice(4) || "dev-player";
       const now = Math.floor(Date.now() / 1000);

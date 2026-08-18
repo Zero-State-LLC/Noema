@@ -63,7 +63,11 @@ class AgentProtocolV1:
                 "selected_protocol": self.PROTOCOL,
                 "agent_protocol": "agent-protocol/v1",
                 "supported_verbs": sorted(self.runtime.router.SUPPORTED_VERBS) if self.runtime.router else [],
-                "auth_methods": ["controller-token", "dev-token"],
+                "auth_methods": (
+                    ["controller-token", "dev-token"]
+                    if self.runtime.identity.allow_dev_protocol_auth
+                    else ["controller-token"]
+                ),
                 "versions": self.runtime.version().get("versions"),
             },
         }

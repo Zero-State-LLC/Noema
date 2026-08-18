@@ -1,6 +1,6 @@
 /** Private cognition fields are never a hosted command surface. */
 
-const PRIVATE_COGNITION_KEYS = new Set([
+export const PRIVATE_COGNITION_KEYS = new Set([
   "cognition",
   "prompt",
   "plan",
@@ -8,13 +8,25 @@ const PRIVATE_COGNITION_KEYS = new Set([
   "inner_monologue",
   "system_prompt",
   "private_cognition",
+  "api_key",
+  "secret",
+  "access_token",
+  "device_code",
+  "chain_of_thought",
+  "cot",
 ]);
 
+const MAX_DEPTH = 16;
+
 export function hasPrivateCognition(value: unknown, depth = 0): boolean {
-  if (!value || typeof value !== "object" || depth > 2) return false;
+  if (value == null || depth > MAX_DEPTH) return depth > MAX_DEPTH;
+  if (Array.isArray(value)) {
+    return value.some((child) => hasPrivateCognition(child, depth + 1));
+  }
+  if (typeof value !== "object") return false;
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
     if (PRIVATE_COGNITION_KEYS.has(key.toLowerCase())) return true;
-    if (child && typeof child === "object" && hasPrivateCognition(child, depth + 1)) return true;
+    if (hasPrivateCognition(child, depth + 1)) return true;
   }
   return false;
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from pathlib import Path
 
 from noema.app.runtime import NoemaRuntime
@@ -65,6 +66,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     _validate_network_bind(parser, args)
+    if not (os.environ.get("TOKEN_SIGNING_SECRET") or os.environ.get("AUTH_SECRET")):
+        print(
+            "warning: TOKEN_SIGNING_SECRET unset; using the built-in local development secret",
+            file=sys.stderr,
+        )
 
     if not is_postgres_url(args.db):
         Path(args.db).parent.mkdir(parents=True, exist_ok=True)

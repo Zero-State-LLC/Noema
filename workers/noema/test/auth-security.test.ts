@@ -114,6 +114,15 @@ describe("development token deployment boundary", () => {
     },
   );
 
+  it("refuses Bearer dev/dev:* when NOEMA_ENV is missing", async () => {
+    const res = await resolvePrincipal(
+      new Request("https://noema.local/v1/me", { headers: { Authorization: "Bearer dev:intruder" } }),
+      env({ NOEMA_ENV: "" }),
+    );
+    expect(res).toBeInstanceOf(Response);
+    expect((res as Response).status).toBe(401);
+  });
+
   it.each(["local", "test", "dev"])(
     "preserves explicit %s development-token minting",
     async (noemaEnv) => {

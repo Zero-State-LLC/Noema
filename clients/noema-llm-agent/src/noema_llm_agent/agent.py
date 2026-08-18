@@ -13,6 +13,24 @@ from noema_llm_agent.schemas import ActResult, ActionProposal, Observation
 
 _PROSE = re.compile(r"^\s*(MOVE|LOOK|WAIT|INSPECT|POST\s)", re.I)
 
+ALLOWED_ACTIONS = frozenset(
+    {
+        "LOOK",
+        "MOVE",
+        "INSPECT",
+        "WAIT",
+        "OBSERVE",
+        "ENTER_WORLD",
+        "LEAVE_WORLD",
+        "REPAIR",
+        "HARVEST",
+        "MESSAGE",
+        "TRADE",
+        "TRADE_PROPOSE",
+        "ORG_CREATE",
+    }
+)
+
 
 class LocalMind:
     """In-process only. Never serialized onto the protocol client."""
@@ -43,8 +61,14 @@ class NoemaAgent:
             data = json.loads(fence.group(0))
         if not isinstance(data, dict) or contains_private(data):
             raise PrivateCognitionError("proposal contains private fields")
+        args = data.get("arguments") if isinstance(data.get("arguments"), dict) else {}
+        if contains_private(args):
+            raise PrivateCognitionError("arguments contain private fields")
+        action = str(data.get("action") or "").upper()
+        if action not in ALLOWED_ACTIONS:
+            raise ValueError(f"UNKNOWN_ACTION:{action or '<empty>'}")
         return ActionProposal.model_validate(
-            {"action": str(data.get("action") or "WAIT").upper(), "target_id": data.get("target_id"), "arguments": data.get("arguments") or {}}
+            {"action": action, "target_id": data.get("target_id"), "arguments": args}
         )
 
     def decide(self, observation: Observation) -> ActionProposal:

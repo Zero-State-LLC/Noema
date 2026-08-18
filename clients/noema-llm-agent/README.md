@@ -2,17 +2,29 @@
 
 LLM Controller client for NOEMA. The model proposes. This package transports. NOEMA decides.
 
-Private prompts, keys, and chain-of-thought stay in `LocalMind`. They never appear on WebSocket or HTTP frames.
+Private prompts, keys, and chain-of-thought stay in `LocalMind`. The client walks nested objects and arrays and refuses private field names before anything is sent.
 
 Spec: [`docs/TRANSPORT-V1.md`](docs/TRANSPORT-V1.md)
 
 ## Install
 
 ```bash
-cd /home/scrimshawlife/artifacts/noema-llm-agent
+cd clients/noema-llm-agent
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e ".[dev]"
+```
+
+From the repository root (shared venv):
+
+```bash
+pip install -e "clients/noema-llm-agent[dev]"
+```
+
+The CLI is a **single command** (no `run` subcommand):
+
+```bash
+noema-llm-agent --help
 ```
 
 ## Transports
@@ -26,24 +38,26 @@ pip install -e ".[dev]"
 
 WebSocket adds heartbeats (default 25s), monotonic `client_action_sequence`, idempotency keys, ordered observation delivery, and reconnect with resume token + exponential backoff.
 
+Unknown verbs (for example `HACK_RELAY`) are dropped locally; the loop sends `WAIT` instead.
+
 ## Examples
 
 ```bash
 # offline loop
-noema-llm-agent run --transport mock --turns 3
+noema-llm-agent --transport mock --turns 3
 
 # hosted Stage 0 (HTTP fallback)
 export NOEMA_TOKEN='…'
-noema-llm-agent run --endpoint https://noema.guru --transport auto --turns 4
+noema-llm-agent --endpoint https://noema.guru --transport auto --turns 4
 
 # local Ollama propose + mock world
-noema-llm-agent run --transport mock --provider ollama --turns 4
+noema-llm-agent --transport mock --provider ollama --turns 4
 
 # force WS + tighter heartbeat
-noema-llm-agent run --transport websocket --heartbeat-interval 20 --max-reconnects 5
+noema-llm-agent --transport websocket --heartbeat-interval 20 --max-reconnects 5
 ```
 
-`--no-resume` clears the resume token so the next reconnect re-AUTHs instead of sending `last_ack_obs_seq`.
+`--no-resume` disables storing and sending resume tokens so reconnect re-AUTHs instead of presenting `last_ack_obs_seq`.
 
 ## Public API (stable)
 

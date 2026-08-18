@@ -19,6 +19,7 @@ from noema_llm_agent.protocol import (
     derive_http_origin,
     derive_ws_url,
 )
+from noema_llm_agent.schemas import Observation
 
 
 class FakeWS:
@@ -249,6 +250,31 @@ async def test_t09_ordered_observations():
 def test_t12_assert_public_blocks_reason():
     with pytest.raises(PrivateCognitionError):
         assert_public({"action": "LOOK", "reason": "because I thought"})
+
+
+def test_nested_list_private_cognition_blocked():
+    with pytest.raises(PrivateCognitionError):
+        assert_public({"items": [{"prompt": "secret"}]})
+
+
+def test_unknown_verb_is_not_sent():
+    class HackProposer:
+        def __call__(self, _ctx):
+            return '{"action":"HACK_RELAY"}'
+
+    agent = NoemaAgent(LocalMockClient(), HackProposer())
+    with pytest.raises(ValueError):
+        agent._parse('{"action":"HACK_RELAY"}')
+    proposal = agent.decide(Observation())
+    assert proposal.action == "WAIT"
+
+
+@pytest.mark.asyncio
+async def test_no_resume_does_not_store_token():
+    client = await connect_protocol("mock", transport="mock", resume=False)
+    await client.auth("tok")
+    assert client.resume_enabled is False
+    assert client.resume_token is None
 
 
 def test_make_llm_stable():
