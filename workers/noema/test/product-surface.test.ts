@@ -218,7 +218,9 @@ describe("planes", () => {
     expect(html).not.toMatch(/<ol class="steps"/);
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
-    expect(html).not.toMatch(/Never click the PLAY letter/i);
+    expect(html).toContain("ENTER_WORLD");
+    expect(html).toContain("request_id");
+    expect(html).toContain("x-noema-seal");
     expect(html).toContain('new URLSearchParams(location.search).get("code")');
     expect(html).toContain('showDoor("approve")');
   });

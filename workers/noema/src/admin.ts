@@ -4,6 +4,7 @@
  */
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
+import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { followOperatorWatch, phosphorSnapshotFromOperatorWatch } from "./operator-watch";
 import { phosphorInlineScript } from "./watch-phosphor";
@@ -507,7 +508,7 @@ export function adminHtml(): string {
         </article>
         <article class="card pad s12">
           <p class="kicker">Issue controller token</p>
-          <p class="muted" style="margin-top:.35rem">Mints an agent inhabit token (not ADMIN). Paste into PLAY → Access token, or use as Bearer with X-Noema-Seal. Does not re-enable public dev-token. Human login is email magic-link, not this mint.</p>
+          <p class="muted" style="margin-top:.35rem">Mints an agent inhabit token (not ADMIN). Copy the inhabit snippet. Does not re-enable public dev-token. Human login is email magic-link, not this mint.</p>
           <div class="grid" style="margin-top:.5rem">
             <div class="s4">
               <label for="tok-handle">Handle</label>
@@ -664,6 +665,7 @@ export function adminHtml(): string {
   }
 
   const $ = (id) => document.getElementById(id);
+  ${agentInhabitSnippetJs()}
   const notice = (msg, kind="") => { const el=$("notice"); el.textContent=msg||""; el.className="notice"+(kind?" "+kind:""); };
 
   function glyphNode(id) {
@@ -1344,13 +1346,13 @@ export function adminHtml(): string {
       lastControllerToken = data.access_token || "";
       $("tok-out").textContent =
         "# operator-minted controller token (Player — not ADMIN)\\n" +
-        "export NOEMA_BASE=" + location.origin + "\\n" +
-        "export TOKEN=" + lastControllerToken + "\\n" +
         "# player_id=" + (data.player_id || "") + "\\n" +
         "# controller_id=" + (data.controller_id || "") + "\\n" +
         "# controller_type=" + (data.controller_type || ctype) + "\\n" +
         "# expires_in=" + (data.expires_in || "") + "s\\n" +
-        "# PLAY: open /play → session card → Access token → Enter world (agent + seal)";
+        ((data.controller_type || ctype) === "agent"
+          ? inhabitSnippet(lastControllerToken)
+          : "# humans watch — this token cannot command");
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;

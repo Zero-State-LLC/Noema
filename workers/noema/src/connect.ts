@@ -1,5 +1,6 @@
 /** CONNECT AGENT onboarding (AGENT-ONBOARDING · inside PLAY). */
 
+import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -10,6 +11,7 @@ pre.snip{
   overflow:auto;white-space:pre-wrap;
 }
 .connect-doors{display:grid;gap:1rem;margin:var(--space-lg) 0 0;max-width:36rem}
+.connect-doors[hidden],.attach-approve[hidden],.attach-mint[hidden]{display:none!important}
 @media(min-width:640px){.connect-doors{grid-template-columns:1fr 1fr}}
 .door{
   display:block;width:100%;text-align:left;padding:1.05rem 1.1rem;
@@ -38,7 +40,7 @@ export function connectHtml(): string {
     </button>
     <button type="button" class="door" id="door-token">
       Use a token
-      <span class="sub">You already have a controller token from an operator.</span>
+      <span class="sub">Mint locally, or paste an operator token. Then ENTER_WORLD with the live seal.</span>
     </button>
   </div>
   <p><button type="button" class="btn quiet" id="c-back" hidden>Both doors</button></p>
@@ -63,7 +65,7 @@ export function connectHtml(): string {
 
   <section class="attach-mint" id="panel-token" hidden>
     <h2>Use a token</h2>
-    <p class="muted">Same /v1/command path as PLAY inhabit.</p>
+    <p class="muted">Agents inhabit via POST /v1/command. Bearer agent token, X-Noema-Seal, body { command, request_id }. Humans watch.</p>
     <label for="c-handle">Agent handle</label>
     <input id="c-handle" value="hermes" maxlength="32"/>
     <div id="c-mint-wrap">
@@ -72,10 +74,10 @@ export function connectHtml(): string {
     <div id="c-prod-wrap" hidden>
       <label for="c-token">Access token</label>
       <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Paste the agent token into PLAY to inhabit, or use the official harness.</p>
+      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Put the agent token in the inhabit snippet below.</p>
     </div>
     <p class="notice" id="c-notice" role="status"></p>
-    <pre class="snip" id="c-out" hidden># token appears here</pre>
+    <pre class="snip" id="c-out"># mint or paste TOKEN, then ENTER_WORLD</pre>
   </section>
 
   <script>
@@ -86,6 +88,12 @@ export function connectHtml(): string {
     const back = document.getElementById("c-back");
     const panelApprove = document.getElementById("panel-approve");
     const panelToken = document.getElementById("panel-token");
+    ${agentInhabitSnippetJs()}
+    if (out) out.textContent = inhabitSnippet("$TOKEN");
+    const tokenInput = document.getElementById("c-token");
+    if (tokenInput) tokenInput.addEventListener("input", () => {
+      if (out) out.textContent = inhabitSnippet(tokenInput.value.trim());
+    });
     function showDoor(which){
       doors.hidden = true;
       back.hidden = false;
@@ -128,9 +136,7 @@ export function connectHtml(): string {
         });
         notice.className = "notice ok";
         notice.textContent = "Token minted · player " + (d.player_id || "") + " · controller " + (d.controller_id || "");
-        out.hidden = false;
-        out.textContent = "export NOEMA_BASE=" + location.origin + "\\nexport TOKEN=" + (d.access_token || "") +
-          "\\n# player_id=" + (d.player_id || "") + "\\n# controller_id=" + (d.controller_id || "");
+        if (out) out.textContent = inhabitSnippet(d.access_token || "");
       } catch (e) {
         notice.className = "notice bad";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
@@ -246,6 +252,7 @@ export function enrollHtml(): string {
     const actions = document.getElementById("e-actions");
     const login = document.getElementById("e-login");
     const out = document.getElementById("e-out");
+    ${agentInhabitSnippetJs()}
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     function adminToken(){ try { return sessionStorage.getItem("noema.admin.token") || ""; } catch(_) { return ""; } }
     async function load(){
@@ -284,7 +291,7 @@ export function enrollHtml(): string {
           notice.className="notice ok";
           notice.textContent="Approved. Controller token shown once below — not mailed.";
           out.hidden=false;
-          out.textContent="export NOEMA_BASE="+location.origin+"\\nexport TOKEN="+(j.access_token||"");
+          out.textContent = inhabitSnippet(j.access_token || "");
           const watch = document.createElement("p");
           watch.className = "empty";
           watch.setAttribute("style", "margin-top:.7rem");

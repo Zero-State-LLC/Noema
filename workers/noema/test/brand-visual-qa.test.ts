@@ -219,7 +219,9 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
     expect(admin).toContain("Head present");
     expect(admin).toContain("Genesis ID");
     expect(admin).not.toContain('id="cmd"');
-    expect(admin).not.toContain("/v1/command");
+    expect(admin).not.toMatch(/api\("\/v1\/command"/);
+    expect(admin).not.toMatch(/fetch\("\/v1\/command"/);
+    expect(admin).toContain("ENTER_WORLD");
     expect(login).toMatch(/not a player/i);
     expect(admin).toContain("--operator-accent:var(--color-state-warning)");
   });
