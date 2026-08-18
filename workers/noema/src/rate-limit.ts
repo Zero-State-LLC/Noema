@@ -30,6 +30,27 @@ export const commandThrottle = new SlidingWindowThrottle(120, 60_000);
 /** Device enrollment start: 20 per hour per client IP. */
 export const deviceThrottle = new SlidingWindowThrottle(20, 3_600_000);
 
+/** Admin operator-token mint: 30 per hour per client IP. */
+export const adminSessionThrottle = new SlidingWindowThrottle(30, 3_600_000);
+
+export const LOGIN_LIMIT = 5;
+export const LOGIN_WINDOW_MS = 3_600_000;
+export const ADMIN_SESSION_LIMIT = 30;
+export const ADMIN_SESSION_WINDOW_MS = 3_600_000;
+
+export async function allowLoginThrottled(
+  local: SlidingWindowThrottle,
+  env: RateLimitEnv,
+  ip: string,
+  email: string,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!(await allowThrottled(local, env, `login-ip:${ip}`, LOGIN_LIMIT, LOGIN_WINDOW_MS, now))) {
+    return false;
+  }
+  return allowThrottled(local, env, `login-email:${email}`, LOGIN_LIMIT, LOGIN_WINDOW_MS, now);
+}
+
 export const RATE_LIMIT_DO_NAME = "__noema_rate_limits__";
 
 type RateLimitEnv = {

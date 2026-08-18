@@ -142,4 +142,27 @@ describe("admin provider management", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("rate-limits admin session mint when the durable throttle refuses", async () => {
+    const e = env({
+      TOKEN_SIGNING_SECRET: "signing-secret",
+      ADMIN_OPERATOR_TOKEN: "operator-secret",
+      WORLD_DO: {
+        idFromName: (name: string) => name,
+        get: () => ({
+          fetch: async () => new Response(JSON.stringify({ allowed: false }), { status: 200 }),
+        }),
+      } as unknown as DurableObjectNamespace,
+    });
+    const res = await worker.fetch(
+      new Request("https://noema.guru/v1/admin/session", {
+        method: "POST",
+        headers: { "content-type": "application/json", "CF-Connecting-IP": "198.51.100.9" },
+        body: JSON.stringify({ admin_token: "operator-secret" }),
+      }),
+      e,
+    );
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ error: { code: "RATE_LIMITED", retryable: true } });
+  });
 });

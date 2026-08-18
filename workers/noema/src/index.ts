@@ -58,11 +58,21 @@ import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand } from "./protocol-ws";
 import { acceptProtocolWebSocket, protocolAuthMethods } from "./protocol-ws";
-import { allowThrottled, commandThrottle, deviceThrottle } from "./rate-limit";
+import {
+  ADMIN_SESSION_LIMIT,
+  ADMIN_SESSION_WINDOW_MS,
+  adminSessionThrottle,
+  allowThrottled,
+  commandThrottle,
+  deviceThrottle,
+} from "./rate-limit";
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
+
+const HTML_CSP =
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {
@@ -73,8 +83,7 @@ function html(body: string, status = 200, cache = "no-store"): Response {
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
       "referrer-policy": "no-referrer",
-      "content-security-policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: https: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+      "content-security-policy": HTML_CSP,
       "strict-transport-security": "max-age=31536000; includeSubDomains",
     },
   });
@@ -126,7 +135,7 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
         if (ctype.includes("text/html") && !h.has("content-security-policy")) {
           h.set(
             "content-security-policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            HTML_CSP,
           );
         }
         return new Response(res.body, { status: 200, headers: h });
@@ -294,6 +303,17 @@ export default {
       if (request.method === "POST" && path === "/v1/admin/session") {
         const body = (await request.json().catch(() => ({}))) as { admin_token?: string };
         if (!body.admin_token) return cors(err("INVALID_REQUEST", "admin_token required", 400));
+        if (
+          !(await allowThrottled(
+            adminSessionThrottle,
+            env,
+            `admin-session-ip:${clientIp(request)}`,
+            ADMIN_SESSION_LIMIT,
+            ADMIN_SESSION_WINDOW_MS,
+          ))
+        ) {
+          return cors(err("RATE_LIMITED", "too many admin session requests", 429, true));
+        }
         const minted = await mintAdminSession(env, body.admin_token);
         if (minted instanceof Response) return cors(minted);
         return cors(json({ ...minted, token_type: "bearer" }));

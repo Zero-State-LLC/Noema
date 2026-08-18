@@ -393,4 +393,15 @@ describe("parseDeviceRecord", () => {
     expect(rec?.user_code).toBe("ABCD-1234");
     expect(rec?.status).toBe("pending");
   });
+
+  it("drops leftover access_token fields from stored JSON", () => {
+    const rec = parseDeviceRecord({
+      device_code: "abc",
+      user_code: "ABCD-1234",
+      status: "approved",
+      access_token: "should-not-survive",
+    });
+    expect(rec?.device_code).toBe("abc");
+    expect(rec).not.toHaveProperty("access_token");
+  });
 });

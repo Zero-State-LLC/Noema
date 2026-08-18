@@ -23,7 +23,6 @@ export type DeviceRecord = {
   controller_id: string | null;
   issued_at: string;
   expires_at: string;
-  access_token?: string;
 };
 
 export interface DeviceStore {
@@ -60,7 +59,9 @@ export function parseDeviceRecord(data: unknown): DeviceRecord | null {
   if (typeof o.device_code !== "string" || !o.device_code) return null;
   if (typeof o.user_code !== "string") return null;
   if (typeof o.status !== "string") return null;
-  return o as unknown as DeviceRecord;
+  const rec = { ...o } as DeviceRecord & { access_token?: unknown };
+  delete rec.access_token;
+  return rec;
 }
 
 export function durableDeviceStore(env: Env): DeviceStore {
@@ -215,9 +216,8 @@ export async function approveDevice(
   const status = await effectiveDeviceStatus(rec, now);
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
   const controller_id = rec.controller_id || allocateDeviceControllerId();
-  const { access_token: _neverStore, ...safe } = rec;
   const next: DeviceRecord = {
-    ...safe,
+    ...rec,
     status: "approved",
     player_id: approver.player_id,
     controller_id,
@@ -283,7 +283,7 @@ export async function pollDeviceToken(
     controllerId: rec.controller_id,
     amr: "device_enrollment",
   });
-  const { access_token: _drop, player_id, controller_id, ...rest } = rec;
+  const { player_id, controller_id, ...rest } = rec;
   await store.put({
     ...rest,
     player_id,
