@@ -188,6 +188,7 @@ describe("slice 1 — deterministic public topology", () => {
     expect(a).toBeTruthy();
     expect(hitPhosphorNode(layout, a!.x, a!.y)?.room_id).toBe("room.a");
     expect(hitPhosphorNode(layout, a!.x + 2, a!.y - 2)?.room_id).toBe("room.a");
+    expect(hitPhosphorNode(layout, a!.x + 10, a!.y + 3)?.room_id).toBe("room.a");
     expect(hitPhosphorNode(layout, 1000, 1000)).toBeNull();
     expect(JSON.stringify(hitPhosphorNode(layout, a!.x, a!.y))).not.toMatch(/vault/i);
     const pt = canvasPointFromEvent(

@@ -831,7 +831,7 @@ export type PhosphorSession = {
   hit(x: number, y: number): PhosphorNode | null;
 };
 
-export const PHOSPHOR_HIT_RADIUS = 16;
+export const PHOSPHOR_HIT_RADIUS = 28;
 
 export function canvasPointFromEvent(
   canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } },
@@ -846,7 +846,7 @@ export function canvasPointFromEvent(
   };
 }
 
-/** Nearest public node within radius. Hidden rooms never enter lastLayout. */
+/** Nearest public node or its room label. Hidden rooms never enter lastLayout. */
 export function hitPhosphorNode(
   layout: PhosphorLayout | undefined | null,
   x: number,
@@ -859,12 +859,18 @@ export function hitPhosphorNode(
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     if (!n || !n.room_id) continue;
-    const dx = Number(n.x) - x;
-    const dy = Number(n.y) - y;
-    const d = dx * dx + dy * dy;
-    if (d <= bestD) {
-      bestD = d;
-      best = n;
+    const spots = [
+      [Number(n.x), Number(n.y)],
+      [Number(n.x) + 10, Number(n.y) + 3],
+    ];
+    for (let s = 0; s < spots.length; s++) {
+      const dx = spots[s][0] - x;
+      const dy = spots[s][1] - y;
+      const d = dx * dx + dy * dy;
+      if (d <= bestD) {
+        bestD = d;
+        best = n;
+      }
     }
   }
   return best;

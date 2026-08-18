@@ -156,7 +156,7 @@ export function watchHtml(): string {
       </nav>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
         <div class="watch-phos-bar">
-          <span>Public sketch — not the world. Click a site to look closer.</span>
+          <span id="watch-phos-caption">Public sketch — not the world. Click a site to look closer.</span>
         </div>
         <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch. Click a site to look closer."></canvas>
       </div>
@@ -412,6 +412,7 @@ export function watchHtml(): string {
         const snap = state.focusRoomId ? Object.assign({}, data, { focus_room_id: state.focusRoomId }) : data;
         window.NoemaPhosphor.update(snap);
       }
+      paintPhosCaption();
     }
 
     function showUnavailable(msg) {
@@ -485,11 +486,24 @@ export function watchHtml(): string {
       refreshHttp();
     }
 
+    function paintPhosCaption() {
+      const cap = $("watch-phos-caption");
+      if (!cap) return;
+      if (!state.focusRoomId) {
+        cap.textContent = "Public sketch — not the world. Click a site to look closer.";
+        return;
+      }
+      const rooms = state.last && Array.isArray(state.last.rooms) ? state.last.rooms : [];
+      const hit = rooms.find((r) => r && r.room_id === state.focusRoomId);
+      const name = (hit && (hit.name || hit.room_id)) || "this site";
+      cap.textContent = "Looking at " + name + " — not the world.";
+    }
     window.NoemaPhosphorPick = function(roomId) {
       const id = String(roomId || "");
       if (!id) return;
       state.focusRoomId = state.focusRoomId === id ? "" : id;
       if (state.last) render(state.last);
+      else paintPhosCaption();
       if (state.focusRoomId) {
         const site = document.querySelector('[data-room="' + CSS.escape(state.focusRoomId) + '"]');
         if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
