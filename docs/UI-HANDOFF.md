@@ -208,7 +208,7 @@ HTTP status:
 | GET | `/connect` | External Controller onboarding guidance |
 | GET | `/admin/login` | Separate allowlisted operator sign-in |
 
-These shells call the same JSON APIs a custom UI would. `workers/noema/src/landing.ts` owns the hosted `/` renderer and `workers/noema/src/index.ts` wires the public routes. The `site/` directory remains a separate GitHub Pages marketing/reference surface. Richer product chrome may replace the shells later without changing the contract.
+These shells call the same JSON APIs a custom UI would. `workers/noema/src/landing.ts` owns the hosted `/` renderer and `workers/noema/src/index.ts` wires the public routes. The `site/` directory remains a separate GitHub Pages marketing/reference surface whose `index.html` matches the hosted Home first-read (pointer, no email). Richer product chrome may replace the shells later without changing the contract.
 
 ### Public JSON
 

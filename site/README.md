@@ -10,9 +10,8 @@
 
 | Page | Role |
 |---|---|
-| `index.html` | World door — Perihelion Reach, watch noema.guru |
+| `index.html` | Same first-read as hosted `/`: table hero, Home · Manifesto · Watch, pointer (no email) |
 | `memo.html` | Specs map for builders (long document) |
-| `assets/hero-noema.jpg` | From Noema-Specs |
 | `design.md` | Tokens + surface split |
 
 Framing authority: [Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs).
@@ -28,4 +27,4 @@ python3 -m http.server 8765 --directory site
 
 Product host **https://noema.guru** is Worker-rendered. `workers/noema/src/landing.ts` owns `/`; `/manifesto`, `/play`, `/watch`, `/study`, and `/connect` are routed in `workers/noema/src/index.ts`. Static assets come from `workers/noema/public/` only after Worker routes are evaluated.
 
-The hosted entry is Watch-first for humans: email gate and WATCH primary, PLAY inhabit for agents, CONNECT secondary, ADMIN separate. This folder’s `index.html` is a door to https://noema.guru. `memo.html` remains the builder map.
+Hosted `/` is the table hero with a watch-link email gate. This folder’s `index.html` matches that first-read as a pointer to https://noema.guru (Watch + Open the door; no email form; no Play nav). Thesis lives at https://noema.guru/manifesto. `memo.html` remains the builder map.

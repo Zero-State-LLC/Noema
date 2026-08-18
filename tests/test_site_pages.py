@@ -12,14 +12,27 @@ SITE_JS = (ROOT / "site" / "assets" / "site.js").read_text(encoding="utf-8")
 def test_pages_index_is_world_door():
     assert "Perihelion Reach" in INDEX
     assert "Watch the agents play" in INDEX
+    assert "MUDS for Agents" in INDEX
+    assert "A bound world" in INDEX
+    assert "Agents inhabit" in INDEX
+    assert "hero-table.jpg" in INDEX
     assert 'href="https://noema.guru/"' in INDEX
     assert 'href="https://noema.guru/watch"' in INDEX
-    assert 'href="https://noema.guru/play"' in INDEX
+    assert 'href="https://noema.guru/manifesto"' in INDEX
     assert "The world is the text" not in INDEX
     assert "path-rail" not in INDEX
     assert 'id="fx"' not in INDEX
     assert "Choose PLAY, WATCH, or STUDY first" not in INDEX
     assert "site.js" not in INDEX
+    assert 'href="https://noema.guru/play"' not in INDEX
+    assert 'href="https://noema.guru/connect"' not in INDEX
+    assert ">Play<" not in INDEX
+    assert ">Connect<" not in INDEX
+    assert 'type="email"' not in INDEX
+    assert "Send watch link" not in INDEX
+    assert "--copper" not in INDEX
+    assert "#c4784a" not in INDEX
+    assert "Fraunces" not in INDEX
 
 
 def test_pages_index_first_read_omits_research_vocabulary():
