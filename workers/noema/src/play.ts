@@ -81,8 +81,36 @@ body.is-chamber #play-chamber{
   display:grid;grid-template-columns:minmax(0,1fr) 16rem;min-height:0;overflow:auto;
 }
 @media(max-width:900px){
-  .ch-body{grid-template-columns:1fr}
-  .ch-rail{order:2;border-left:0;border-top:1px solid var(--line)}
+  .ch-body{display:block;grid-template-columns:1fr}
+  .ch-mast #world-line,.ch-mast #ch-cycle,.ch-mast #handle-live,.ch-mast #play-health,.ch-strip,#look-exits{display:none!important}
+  .hint-more{display:none}
+  #trail li:nth-child(n+6){display:none}
+  #here-open{display:block;width:100%;min-height:44px;margin:.4rem 0 0}
+  .here-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .65rem}
+  .here-head strong{font:500 .78rem/1.3 var(--font-interface);letter-spacing:.06em;text-transform:uppercase}
+  #here-close{min-height:44px;min-width:44px}
+  .here-backdrop{display:none;position:fixed;inset:0;z-index:5;background:rgba(8,10,12,.5)}
+  .here-backdrop.is-open{display:block}
+  .ch-rail{
+    position:fixed;left:0;right:0;bottom:0;z-index:6;order:0;
+    height:min(78dvh,36rem);max-height:78dvh;
+    border-left:0;border-top:1px solid var(--line);
+    background:var(--color-surface-raised,#161B20);
+    transform:translateY(110%);visibility:hidden;pointer-events:none;
+    transition:transform 180ms var(--ease),visibility 0s linear 180ms;
+  }
+  .ch-rail.is-open{
+    transform:none;visibility:visible;pointer-events:auto;transition:transform 180ms var(--ease);
+  }
+}
+@media(min-width:901px){
+  #here-open{display:none}
+  .here-head,.here-backdrop{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .ch-rail{transition:opacity 150ms var(--ease);transform:none}
+  .ch-rail:not(.is-open){opacity:0}
+  .ch-rail.is-open{opacity:1}
 }
 @media(max-width:640px){
   body.is-chamber #play-chamber{overflow-x:clip}
@@ -251,7 +279,11 @@ export function playHtml(): string {
         </details>
         <ol class="trail" id="trail" aria-live="polite"></ol>
       </section>
-      <aside class="ch-rail" aria-label="Here">
+      <aside class="ch-rail" id="here-sheet" aria-label="Here">
+        <div class="here-head">
+          <strong>Here</strong>
+          <button class="btn quiet" id="here-close" type="button" aria-label="Close">×</button>
+        </div>
         <h3 class="role-here">HERE</h3>
         <ul class="tok-list" id="entity-list" aria-label="Nearby objects"></ul>
         <div id="players-here"></div>
@@ -287,9 +319,11 @@ export function playHtml(): string {
         <input id="cmd" autocomplete="off" spellcheck="false" placeholder="look" disabled aria-describedby="cmd-hint"/>
         <button class="btn primary" id="send" type="submit" disabled>Send</button>
       </form>
-      <p class="hint" id="cmd-hint"><button type="button" data-cmd="look">look</button> · <button type="button" data-cmd="move ">move east</button> · <button type="button" data-cmd="inspect ">inspect</button> · <button type="button" data-cmd="talk ">talk</button> · message nacre "hi" · trade nacre offer=energy:1 want=compute:1 · accept · form · leave &lt;org&gt; · help</p>
+      <button class="btn quiet" id="here-open" type="button" aria-expanded="false" aria-controls="here-sheet">Here</button>
+      <p class="hint" id="cmd-hint"><button type="button" data-cmd="look">look</button> · <button type="button" data-cmd="help">help</button><span class="hint-more"> · <button type="button" data-cmd="move ">move east</button> · <button type="button" data-cmd="inspect ">inspect</button> · <button type="button" data-cmd="talk ">talk</button> · message nacre "hi" · trade nacre offer=energy:1 want=compute:1 · accept · form · leave &lt;org&gt;</span></p>
       <p class="notice" id="notice" role="status"></p>
     </footer>
+    <div class="here-backdrop" id="here-backdrop" hidden></div>
   </div>
 
   <script type="module">
@@ -349,11 +383,31 @@ function playClientBundle(): string {
       el.className = "notice" + (kind ? " " + kind : "");
     };
 
+    function setHereOpen(on) {
+      const sheet = $("here-sheet");
+      const btn = $("here-open");
+      const back = $("here-backdrop");
+      if (!sheet || !btn) return;
+      sheet.classList.toggle("is-open", !!on);
+      if (back) {
+        back.classList.toggle("is-open", !!on);
+        back.hidden = !on;
+      }
+      btn.setAttribute("aria-expanded", on ? "true" : "false");
+      if (on) {
+        const close = $("here-close");
+        if (close) close.focus();
+      } else if ($("cmd") && !$("cmd").disabled) {
+        $("cmd").focus();
+      }
+    }
+
     function setSessionUi(on) {
       document.body.classList.toggle("is-chamber", on);
       $("cmd").disabled = !on;
       $("send").disabled = !on;
       $("handle-live").textContent = state.handle || "—";
+      if (!on) setHereOpen(false);
       if (on) $("cmd").focus();
       else $("handle").focus();
     }
@@ -495,14 +549,8 @@ function playClientBundle(): string {
       fillExitTokens($("exit-list"), exits);
       const lookExits = $("look-exits");
       if (lookExits) {
-        const narrow = window.matchMedia("(max-width: 900px)").matches;
-        if (narrow && exits.length) {
-          lookExits.hidden = false;
-          lookExits.textContent = "exits: " + exits.map((x) => x.direction).join(" · ");
-        } else {
-          lookExits.hidden = true;
-          lookExits.textContent = "";
-        }
+        lookExits.hidden = true;
+        lookExits.textContent = "";
       }
 
       const rd = routeDiagram(loc.name, exits);
@@ -516,7 +564,11 @@ function playClientBundle(): string {
       fillWorldStrip($("world-strip"), view.strip);
       fillSignalFeed($("signal-feed"), view.signals);
       fillActionRail($("action-rail"), view.actions, loc);
-      fillStatusRows($("status-rows"), view.status);
+      const statusRows = (view.status || []).slice();
+      if (state.handle && !statusRows.some((r) => r.label === "You")) {
+        statusRows.unshift({ label: "You", value: state.handle });
+      }
+      fillStatusRows($("status-rows"), statusRows);
       const sys = view.systems || { rumors: [], comms: [], archive: [], contests: [], unclaimed: [], offices: [] };
       fillDisclosure($("sys-rumors"), $("rumor-list"), sys.rumors, "rumor");
       fillDisclosure($("sys-comms"), $("comms-list"), sys.comms);
@@ -734,14 +786,29 @@ function playClientBundle(): string {
       e.preventDefault();
       sendCommand($("cmd").value);
     });
+    const hereOpen = $("here-open");
+    const hereClose = $("here-close");
+    const hereBack = $("here-backdrop");
+    if (hereOpen) hereOpen.addEventListener("click", () => setHereOpen(true));
+    if (hereClose) hereClose.addEventListener("click", () => setHereOpen(false));
+    if (hereBack) hereBack.addEventListener("click", () => setHereOpen(false));
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const sheet = $("here-sheet");
+      if (!sheet || !sheet.classList.contains("is-open")) return;
+      e.preventDefault();
+      setHereOpen(false);
+    });
     document.body.addEventListener("click", (e) => {
       const b = e.target.closest("[data-cmd]");
       if (!b) return;
       const c = b.getAttribute("data-cmd") || "";
       if (c.endsWith(" ") || c.endsWith("=") || c.endsWith('"')) {
         $("cmd").value = c;
+        setHereOpen(false);
         $("cmd").focus();
       } else {
+        setHereOpen(false);
         sendCommand(c);
       }
     });
