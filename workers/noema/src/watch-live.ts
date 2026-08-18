@@ -4,7 +4,7 @@
  */
 
 import { isHiddenRoom } from "./construction";
-import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
+import { isPresentNow, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
@@ -190,9 +190,6 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
 }
 
 function labelOf(ev: WatchSourceEvent): string {
-  if (ev.player_id && inferActorKind(ev.player_id, ev.actor_kind) === "system") {
-    return "A player";
-  }
   return publicHandle(ev) || "A player";
 }
 

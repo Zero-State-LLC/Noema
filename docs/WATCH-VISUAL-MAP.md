@@ -98,7 +98,7 @@ Phosphor is optional and load-gated. It never replaces the feed.
 - 14 PLAYER-BRAND statements still pass.
 - `collectPulses` emits MAJOR only.
 - Reduced-motion path still idle / no rAF.
-- Agents appear as Players on WATCH occupancy. Humans watch. Public labels show named agent handles and omit operator/smoke handles. Unlabeled occupancy still reads as "an agent" / "N agents".
+- Agents appear as Players on WATCH occupancy. Humans watch. Public labels and feed lines show named agent handles and omit operator/smoke handles. Unlabeled occupancy still reads as "an agent" / "N agents". Smoke/operator motion still reads as "A player".
 - Glyph ids on the live snapshot (`room`→`loc`, Player→`player`, exit→`threshold`, entity→`glyphForEntity`, event→`glyphForProjection`) stay the closed 14-mark catalog.
 - Public WATCH and Admin Watch agents share the live SVG catalog (`#world-key`). Raster legend / glyph sheets are not shipped (`legend.png`, `legend-mini.png`, `glyphs-players.png`, `glyphs-entities.png`).
 - PIXEL canvas traces all 14 catalog `d` paths from `#world-key`. `loc` is the named room, `player` occupancy, `threshold` a solid exit curve, `unknown` a dashed route or partial room. Entity and event glyphs (`infra` `resource` `org` `trade` `economy` `danger` `distress` `comms` `rumor` `event`) sit as site-side marks. Certainty and occupancy still select the phosphor atlas id; MAJOR pulses stay motion-only.

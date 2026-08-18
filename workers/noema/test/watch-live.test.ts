@@ -170,6 +170,57 @@ describe("watch-live/1.0 projection contract", () => {
     expect(ents[0].glyph).toBe("trade");
   });
 
+  it("names public agents on the feed and keeps smoke anonymous", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 1,
+      sequence: 4,
+      rooms: rooms(),
+      players: [
+        {
+          player_id: "player.hermes",
+          handle: "hermes",
+          room_id: "room.relay",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+        {
+          player_id: "player.smoke-agent",
+          handle: "smoke-agent",
+          room_id: "room.relay",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+      ],
+      events: [
+        src({
+          handle: "hermes",
+          player_id: "player.hermes",
+          actor_kind: "system",
+          event_type: "MOVE",
+          sequence: 4,
+          payload: { to: "room.relay", to_room_name: "Relay Quarter" },
+        }),
+        src({
+          handle: "smoke-agent",
+          player_id: "player.smoke-agent",
+          actor_kind: "system",
+          event_type: "MOVE",
+          sequence: 3,
+          payload: { to: "room.relay", to_room_name: "Relay Quarter" },
+        }),
+      ],
+      now: NOW,
+    });
+    const lines = (snap.recent_events as Array<{ line: string }>).map((e) => e.line);
+    expect(lines).toContain("hermes entered Relay Quarter");
+    expect(lines).toContain("A player entered Relay Quarter");
+    expect(JSON.stringify(snap)).not.toContain("smoke-agent");
+    expect(snap.players_present).toBe(2);
+  });
+
   it("does not invent edges to missing rooms", () => {
     const snap = buildWatchLive({
       world_id: "w",
@@ -282,8 +333,21 @@ describe("watch event tiers and phrasing", () => {
     expect(
       phraseWatchEvent(
         src({
-          handle: "SYS",
-          player_id: "player.sysbot",
+          handle: "hermes",
+          player_id: "player.hermes",
+          actor_kind: "system",
+          event_type: "MOVE",
+          sequence: 4,
+          payload: { to: "room.market", to_room_name: "Chamber Market" },
+        }),
+        { "room.market": { name: "Chamber Market" } },
+      ),
+    ).toBe("hermes entered Chamber Market");
+    expect(
+      phraseWatchEvent(
+        src({
+          handle: "smoke-agent",
+          player_id: "player.smoke-agent",
           actor_kind: "system",
           event_type: "MOVE",
           sequence: 4,
