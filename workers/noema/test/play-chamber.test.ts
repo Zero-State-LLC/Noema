@@ -87,6 +87,14 @@ describe("play chamber HTML", () => {
     expect(html).toMatch(/sendCommand\("enter", \{ silent: true \}\)/);
     expect(html).toMatch(/sendCommand\("look", \{ silent: true \}\)/);
     expect(html).toContain("firstSessionActs");
+    expect(html).toContain("paintHappened");
+    expect(html).toContain("applyDisclosure");
+    expect(html).toContain("firstStrainLine");
+    expect(html).toContain("BUDGET_EXCEEDED");
+    expect(html).toContain("show-exits");
+    expect(html).toContain("show-bonds");
+    expect(chamber).toContain('id="strain-line"');
+    expect(chamber).toContain('id="bite-status"');
     expect(chamber).not.toContain("Connect an agent");
   });
 

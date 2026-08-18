@@ -16,6 +16,8 @@ import {
   resolveEntityTarget,
   deriveLocalCondition,
   firstSessionActs,
+  firstStrainLine,
+  resourceBiteLabel,
   routeDiagram,
   statusFromObservation,
   titleCaseLabel,
@@ -275,6 +277,23 @@ describe("play shell HTML", () => {
     expect(worn.length).toBeLessThanOrEqual(3);
     const quiet = firstSessionActs({ name: "Quiet", description: "Still.", entities: [], exits: [] });
     expect(quiet).toEqual([{ label: "wait", cmd: "wait" }]);
+    const social = firstSessionActs(
+      { name: "Hall", description: "People.", entities: [], exits: [] },
+      [],
+      [{ handle: "nacre" }],
+    );
+    expect(social.some((a) => a.cmd === "talk nacre")).toBe(true);
+  });
+
+  it("first strain line is one live sentence or empty", () => {
+    expect(firstStrainLine({ condition: "crane seized and worn." })).toMatch(/worn|seiz/i);
+    expect(firstStrainLine({ entities: [{ entity_id: "e", label: "relay", entity_type: "infra", condition: 20 }] })).toMatch(/relay/i);
+    expect(firstStrainLine({ description: "Quiet dust." })).toBe("");
+  });
+
+  it("resource bite names the pressure that failed", () => {
+    expect(resourceBiteLabel("BUDGET_EXCEEDED", "energy 0")).toBe("energy");
+    expect(resourceBiteLabel("BUDGET_EXCEEDED", "blocked")).toBe("pressure");
   });
 
   it("embeds play-ui helpers instead of a forked copy", () => {

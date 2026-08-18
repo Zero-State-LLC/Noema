@@ -22,9 +22,16 @@ body.is-arrive #world-strip,body.is-arrive #signals,body.is-arrive .sys,
 body.is-arrive #world-key,body.is-arrive #advanced,body.is-arrive #status-rows,
 body.is-arrive .status-head,body.is-arrive #route-box,body.is-arrive #desk-list,
 body.is-arrive #bonds-card,body.is-arrive .hint-more,body.is-arrive .where,
-body.is-arrive #loc-cond b,body.is-arrive #exit-wrap,body.is-arrive .acts-head{
+body.is-arrive #loc-cond,body.is-arrive #exit-wrap,body.is-arrive .acts-head{
   display:none!important;
 }
+body.is-arrive.show-exits #exit-wrap{display:block!important}
+body.is-arrive.show-bonds #bonds-card{display:block!important}
+body.is-arrive #trail li:nth-child(n+4){display:none}
+.strain-line{margin:.55rem 0 0;max-width:44rem;color:var(--color-text-primary)}
+.strain-line[hidden]{display:none}
+.bite-status{margin:.35rem 0 0;color:var(--color-text-secondary);font-size:.82rem}
+.bite-status[hidden]{display:none}
 #arrive-name{margin:1rem 0;padding:.75rem 0;border-top:1px solid var(--line)}
 #arrive-name[hidden]{display:none}
 .ch-mast{
@@ -253,6 +260,7 @@ export function playHtml(): string {
           </div>
           <h2 id="room-name"></h2>
           <p id="room-desc"></p>
+          <p id="strain-line" class="strain-line" hidden></p>
           <p id="loc-custom" hidden></p>
           <div id="loc-cond" hidden>
             <b class="role-place">CONDITION</b>
@@ -336,6 +344,7 @@ export function playHtml(): string {
       </form>
       <button class="btn quiet" id="here-open" type="button" aria-expanded="false" aria-controls="here-sheet">Here</button>
       <p class="hint" id="cmd-hint"><button type="button" data-cmd="look">look</button> · <button type="button" data-cmd="help">help</button><span class="hint-more"> · <button type="button" data-cmd="move ">move east</button> · <button type="button" data-cmd="inspect ">inspect</button> · <button type="button" data-cmd="talk ">talk</button> · message nacre "hi" · trade nacre offer=energy:1 want=compute:1 · accept · form · leave &lt;org&gt;</span></p>
+      <p id="bite-status" class="bite-status" hidden></p>
       <p class="notice" id="notice" role="status"></p>
     </footer>
     <div class="here-backdrop" id="here-backdrop" hidden></div>
@@ -514,6 +523,8 @@ function playClientBundle(): string {
         if (sigOff) sigOff.hidden = true;
         const happenedOff = $("just-happened");
         if (happenedOff) { happenedOff.hidden = true; happenedOff.textContent = ""; }
+        const strainOff = $("strain-line");
+        if (strainOff) { strainOff.hidden = true; strainOff.textContent = ""; }
         ["sys-rumors","sys-comms","sys-archive","sys-contest","sys-unclaimed","sys-offices"].forEach((id) => {
           const n = $(id); if (n) n.hidden = true;
         });
@@ -558,6 +569,12 @@ function playClientBundle(): string {
       const cond = deriveLocalCondition(loc);
       $("loc-cond").hidden = !cond;
       $("loc-cond-text").textContent = cond;
+      const strainEl = $("strain-line");
+      if (strainEl) {
+        const strain = firstStrainLine(loc);
+        strainEl.hidden = !strain;
+        strainEl.textContent = strain;
+      }
 
       const ents = loc.entities || [];
       fillEntityList($("entity-list"), state.arriving ? ents.slice(0, 4) : ents);
@@ -590,7 +607,11 @@ function playClientBundle(): string {
 
       fillWorldStrip($("world-strip"), view.strip);
       fillSignalFeed($("signal-feed"), view.signals);
-      const sessionActs = state.arriving ? firstSessionActs(loc, view.actions) : null;
+      const others = (obs.players_here || []).filter((p) => {
+        const id = p && p.player_id;
+        return id && id !== obs.player_id && id !== state.player_id;
+      });
+      const sessionActs = state.arriving ? firstSessionActs(loc, view.actions, others) : null;
       if (sessionActs) {
         fillActionRail($("action-rail"), sessionActs, loc);
         const encouraged = sessionActs[0];
@@ -621,6 +642,39 @@ function playClientBundle(): string {
       state.prevRoomId = loc.room_id;
     }
 
+    function paintHappened(text) {
+      const happened = $("just-happened");
+      if (!happened) return;
+      const line = String(text || "").split("\\n")[0].trim();
+      if (!line) return;
+      happened.hidden = false;
+      happened.replaceChildren();
+      const k = document.createElement("span");
+      k.className = "k";
+      k.textContent = "Just happened";
+      happened.append(k, document.createTextNode(line));
+      pulseThreshold(happened);
+    }
+
+    function applyDisclosure(raw, code) {
+      if (state.playerActs >= 3 || /^(move|walk)\\b/i.test(raw)) {
+        document.body.classList.add("show-exits");
+        const exits = $("exit-wrap");
+        if (exits) exits.style.display = "";
+      }
+      if (/^(talk|message|trade|accept)\\b/i.test(raw)) {
+        document.body.classList.add("show-bonds");
+      }
+      if (String(code || "").toUpperCase() === "BUDGET_EXCEEDED") {
+        const bite = $("bite-status");
+        if (bite) {
+          bite.hidden = false;
+          bite.textContent = resourceBiteLabel(code, raw);
+        }
+      }
+      if (state.playerActs >= 5) setArrive(false);
+    }
+
     async function sendCommand(line, opts) {
       if (!state.token || state.busy) return;
       const silent = !!(opts && opts.silent);
@@ -648,41 +702,20 @@ function playClientBundle(): string {
         renderObs(res.observation);
         $("meta-settled").textContent = res.settled === true ? "settled" : "";
         const consequence = (res.observation && res.observation.consequence) || raw;
-        if (!silent) {
-          pushTrailItems([
-            { kind: "you", title: consequence.split("\\n")[0] },
-            ...(res.observation && res.observation.location
-              ? [{ kind: "local", title: "You are at " + res.observation.location.name + "." }]
-              : []),
-          ]);
-        }
         $("cmd").value = "";
-        const happened = $("just-happened");
-        if (happened && !silent) {
-          const line = (res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "").trim();
-          if (line) {
-            happened.hidden = false;
-            happened.replaceChildren();
-            const k = document.createElement("span");
-            k.className = "k";
-            k.textContent = "Just happened";
-            happened.append(k, document.createTextNode(line));
-            pulseThreshold(happened);
-          }
-        }
         if (!silent) {
-          state.playerActs += 1;
-          if (state.playerActs >= 5 || /^(move|walk)\\b/i.test(raw)) {
-            const exits = $("exit-wrap");
-            if (exits) exits.style.display = "";
+          const line = String(consequence).split("\\n")[0].trim();
+          paintHappened(line);
+          if (state.playerActs >= 1) {
+            pushTrailItems([{ kind: "you", title: line }]);
           }
-          if (state.playerActs >= 5) setArrive(false);
+          state.playerActs += 1;
+          applyDisclosure(raw, "");
         }
         if (res.observation && res.observation.world_name) state.worldName = res.observation.world_name;
         state.attachCode = "";
         state.attachReason = "";
-        notice(res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "Done.", "ok");
-        setTimeout(() => { if (($("notice").textContent || "").indexOf("Done") === 0 || ($("notice").className || "").indexOf("ok") >= 0) notice(""); }, 1600);
+        notice("");
       } catch (e) {
         const h = humanizeError(e.code, e.message);
         let primary = h.primary;
@@ -697,9 +730,15 @@ function playClientBundle(): string {
           sessionNotice(primary, "bad");
         } else {
           if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
-          notice(primary, "bad");
+          const failLine = primary.split("\\n")[0];
+          paintHappened(failLine);
+          if (state.playerActs >= 1) pushTrailItems([{ kind: "fail", title: failLine }]);
           $("err-advanced").textContent = h.advanced || "";
-          pushTrailItems([{ kind: "fail", title: primary.split("\\n")[0] }]);
+          notice("");
+          if (!silent) {
+            state.playerActs += 1;
+            applyDisclosure(raw, e.code);
+          }
           renderObs(e.observation || null);
         }
       } finally {

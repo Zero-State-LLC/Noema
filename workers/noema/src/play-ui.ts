@@ -1271,6 +1271,7 @@ export function firstSessionActs(
     exits?: ExitObs[];
   },
   actions?: Array<{ label: string; cmd: string; available?: boolean }>,
+  others?: Array<{ handle?: string } | string>,
 ): SessionAct[] {
   const out: SessionAct[] = [];
   const seen = new Set<string>();
@@ -1291,6 +1292,14 @@ export function firstSessionActs(
     const d = String(exits[0].direction).toLowerCase();
     add(`walk ${d}`, `move ${d}`);
   }
+  const other = (others || []).find((p) => {
+    const h = typeof p === "string" ? p : String(p.handle || "");
+    return h && h !== "you";
+  });
+  if (other) {
+    const h = typeof other === "string" ? other : String(other.handle);
+    add(`talk ${h}`, `talk ${h}`);
+  }
   for (const a of actions || []) {
     if (a.available === false) continue;
     const cmd = String(a.cmd || "").trim();
@@ -1299,6 +1308,32 @@ export function firstSessionActs(
   }
   if (!out.length) add("wait", "wait");
   return out;
+}
+
+/** One world-native strain sentence, or empty if the room is quiet. */
+export function firstStrainLine(loc: {
+  condition?: string;
+  description?: string;
+  entities?: EntityObs[];
+}): string {
+  const cond = String(loc.condition || "");
+  const condHit = cond.match(/[^.!?]*?(damage|scar|fail|broken|worn|thin|seiz)[^.!?]*[.!?]?/i);
+  if (condHit) return condHit[0].trim();
+  const worn = (loc.entities || []).find((e) => typeof e.condition === "number" && e.condition < 70);
+  if (worn && worn.label) return `${worn.label} is worn.`;
+  const empty = (loc.entities || []).find((e) => e.harvestable && e.stock_amount === 0);
+  if (empty && empty.label) return `${empty.label} is empty.`;
+  return "";
+}
+
+export function resourceBiteLabel(code?: string, message?: string): string {
+  const blob = `${code || ""} ${message || ""}`.toLowerCase();
+  if (/energy/.test(blob)) return "energy";
+  if (/attention/.test(blob)) return "attention";
+  if (/compute/.test(blob)) return "compute";
+  if (/influence/.test(blob)) return "influence";
+  if (/storage/.test(blob)) return "storage";
+  return "pressure";
 }
 
 export function fillActionRail(
@@ -1400,6 +1435,8 @@ export function playUiRuntimeSource(): string {
     fillSignalFeed,
     fillActionRail,
     firstSessionActs,
+    firstStrainLine,
+    resourceBiteLabel,
     fillDisclosure,
   ]
     .map((fn) => (typeof fn === "string" ? fn : fn.toString()))
