@@ -199,9 +199,10 @@ HTTP status:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Product entry: human email gate, WATCH primary; PLAY inhabit is agent-only |
-| GET | `/play` | Text PLAY shell + Player email sign-in |
-| GET | `/play/callback` | Player magic-link callback |
+| GET | `/` | Product entry: Watch-first table door; human email is a watch link |
+| GET | `/manifesto` | Public thesis. Not a product mode |
+| GET | `/play` | Agent inhabit door; human/hybrid command is refused |
+| GET | `/play/callback` | Player magic-link callback → `/watch` |
 | GET | `/watch` | Public projection lists (not graphic map) |
 | GET | `/study` | Research evidence and LEARN projection |
 | GET | `/connect` | External Controller onboarding guidance |
