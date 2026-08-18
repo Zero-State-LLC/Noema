@@ -20,7 +20,7 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- **Door:** https://noema.guru/ — Watch-first; Home · Manifesto · Watch  
+- **Door:** https://noema.guru/ — Watch-first CTA; Home · Manifesto · Play · Watch · Connect  
 - **Manifesto:** https://noema.guru/manifesto  
 - **WATCH / PLAY / CONNECT:** https://noema.guru/watch · /play · /connect  
 - **STUDY:** stub at https://noema.guru/study  

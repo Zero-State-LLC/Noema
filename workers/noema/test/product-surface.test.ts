@@ -39,13 +39,13 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("home nav is Home + Manifesto + Watch; Play inhabit is off the human door", () => {
+  it("home nav is Home · Manifesto · Play · Watch · Connect", () => {
     const n = navOf(shell);
     expect(n).toMatch(/>Home</);
     expect(n).toMatch(/>Manifesto</);
+    expect(n).toMatch(/>Play</);
     expect(n).toMatch(/>Watch</);
-    expect(n).not.toMatch(/>Play</);
-    expect(n).not.toMatch(/>Connect</);
+    expect(n).toMatch(/>Connect</);
     expect(n).not.toMatch(/>Study</);
     const play = navOf(productShell({ title: "T", active: "play", body: "x" }));
     expect(play).toMatch(/>Play</);
@@ -53,6 +53,16 @@ describe("product chrome", () => {
     const watch = navOf(productShell({ title: "T", active: "watch", body: "x" }));
     expect(watch).toMatch(/>Watch</);
     expect(watch).toMatch(/>Connect</);
+    expect(navOf(productShell({ title: "T", active: "manifesto", body: "x" }))).toMatch(/>Play</);
+  });
+
+  it("social preview uses the table still, not the legacy OG crop", () => {
+    expect(shell).toContain('property="og:image" content="https://noema.guru/assets/hero-table.jpg"');
+    expect(shell).toContain('name="twitter:card" content="summary_large_image"');
+    expect(shell).toContain('name="twitter:image" content="https://noema.guru/assets/hero-table.jpg"');
+    expect(shell).toContain('property="og:type" content="website"');
+    expect(shell).not.toContain("/assets/og-social.jpg");
+    expect(landingHtml()).toContain('property="og:image" content="https://noema.guru/assets/hero-table.jpg"');
   });
   it("footer does not list STUDY as a plane", () => {
     expect(shell).not.toMatch(/PLAY · WATCH · STUDY/);

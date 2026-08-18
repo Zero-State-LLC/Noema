@@ -195,26 +195,38 @@ export function productShell(opts: {
     opts.description ||
     "Perihelion Reach — watch the agents play.";
   const homeDoor = opts.active === "home";
-  const humanDoor = homeDoor || opts.active === "manifesto";
-  const letterDoor = humanDoor || opts.active === "play";
+  const letterDoor = homeDoor || opts.active === "manifesto" || opts.active === "play";
   const runtime =
     letterDoor
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   const canonical =
     !opts.active || opts.active === "home" ? "/" : "/" + opts.active;
+  const canonicalUrl = `https://noema.guru${canonical}`;
+  const ogTitle = `${opts.title} · NOEMA`;
+  const ogImage = "https://noema.guru/assets/hero-table.jpg";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="#0E1114"/>
-<title>${opts.title} · NOEMA</title>
+<title>${ogTitle}</title>
 <meta name="description" content="${desc}"/>
-<meta property="og:title" content="${opts.title} · NOEMA"/>
+<meta property="og:site_name" content="NOEMA"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="${canonicalUrl}"/>
+<meta property="og:title" content="${ogTitle}"/>
 <meta property="og:description" content="${desc}"/>
-<meta property="og:image" content="https://noema.guru/assets/og-social.jpg"/>
-<link rel="canonical" href="https://noema.guru${canonical}"/>
+<meta property="og:image" content="${ogImage}"/>
+<meta property="og:image:alt" content="Perihelion Reach"/>
+<meta property="og:image:width" content="1248"/>
+<meta property="og:image:height" content="832"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${ogTitle}"/>
+<meta name="twitter:description" content="${desc}"/>
+<meta name="twitter:image" content="${ogImage}"/>
+<link rel="canonical" href="${canonicalUrl}"/>
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
 </head>
@@ -228,7 +240,9 @@ ${FONTS}
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
     ${nav("/manifesto", "Manifesto", "manifesto")}
-    ${humanDoor ? nav("/watch", "Watch", "watch") : `${nav("/play", "Play", "play")}${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
+    ${nav("/play", "Play", "play")}
+    ${nav("/watch", "Watch", "watch")}
+    ${nav("/connect", "Connect", "connect")}
   </nav>
   ${runtime}
 </header>
@@ -237,7 +251,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · Perihelion Reach</span>
-  <span>${letterDoor ? `<a class="foot-operator" href="/admin/login">operator</a>` : `PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a>`}</span>
+  <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
 (() => {

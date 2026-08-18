@@ -91,8 +91,8 @@ describe("brand slice 0 — hosted HTML routes", () => {
     expect(nav).toMatch(/>Home</);
     expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
-    expect(nav).not.toMatch(/>Play</);
-    expect(nav).not.toMatch(/>Connect</);
+    expect(nav).toMatch(/>Play</);
+    expect(nav).toMatch(/>Connect</);
     expect(nav).not.toMatch(/>Study</);
   });
 });
