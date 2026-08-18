@@ -184,7 +184,7 @@ describe("operator watch theater", () => {
     });
     const agents = snap.agents as Array<{ handle: string }>;
     expect(agents.map((a) => a.handle).sort()).toEqual(["legacy", "mine"]);
-    const market = (snap.sites as Array<{ player_labels: string[] }>).find((s) => s.room_id === "room.market")!;
+    const market = (snap.sites as Array<{ room_id: string; player_labels: string[] }>).find((s) => s.room_id === "room.market")!;
     expect(market.player_labels.sort()).toEqual(["legacy", "mine"]);
     const lines = snap.lines as Array<{ handle: string; line: string }>;
     expect(lines.map((l) => l.handle).sort()).toEqual(["legacy", "mine"]);
