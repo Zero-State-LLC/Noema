@@ -1,7 +1,10 @@
 /**
  * Phosphor Cartography — optional WATCH pixel layer.
  * Same public watch-live/1.0 snapshot. Never a second authority.
+ * Room / player / exit marks stroke the live 14-mark catalog paths.
  */
+
+import { glyphMeta } from "./presentation/glyphs";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
@@ -100,6 +103,24 @@ export const PHOSPHOR_GLYPH_IDS: PhosphorGlyphId[] = [
   "pulse_notable",
   "pulse_major",
 ];
+
+/** Live catalog `d` strings PIXEL traces. Certainty/count still select PhosphorGlyphId. */
+export const PHOSPHOR_CATALOG_PATHS = {
+  loc: glyphMeta("loc").d,
+  player: glyphMeta("player").d,
+  unknown: glyphMeta("unknown").d,
+  threshold: glyphMeta("threshold").d,
+} as const;
+
+export type PhosphorCatalogMark = keyof typeof PHOSPHOR_CATALOG_PATHS;
+
+export function phosphorCatalogMark(id: PhosphorGlyphId): PhosphorCatalogMark | null {
+  if (id === "room_partial") return "unknown";
+  if (id.startsWith("room_")) return "loc";
+  if (id.startsWith("player_")) return "player";
+  if (id === "exit" || id === "exit_active") return "threshold";
+  return null;
+}
 
 export function roomGlyphId(certainty: PhosphorCertainty): PhosphorGlyphId {
   if (certainty === "active") return "room_active";
@@ -393,13 +414,104 @@ function inkFor(intensity: number): string {
   return PHOSPHOR_COLORS.dim;
 }
 
-export function drawDiamond(ctx: DrawCtx, x: number, y: number, r: number): void {
+function locOuterPath(): string {
+  const d = PHOSPHOR_CATALOG_PATHS.loc;
+  const i = d.indexOf(" M");
+  return i < 0 ? d : d.slice(0, i);
+}
+
+function locInnerPath(): string {
+  const d = PHOSPHOR_CATALOG_PATHS.loc;
+  const i = d.indexOf(" M");
+  return i < 0 ? "" : d.slice(i + 1);
+}
+
+/** Subset stroker for catalog `d` (M/L/H/V/m/l/h/v/z). PIXEL does not need arcs. */
+function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: number): void {
+  const tokens = d.match(/[MmLlHhVvZz]|[-+]?\d*\.?\d+/g);
+  if (!tokens) return;
+  let i = 0;
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  let cmd = "";
+  const isCmd = (t: string | undefined): boolean => Boolean(t && /^[MmLlHhVvZz]$/.test(t));
+  const num = (): number => {
+    const n = Number(tokens[i]);
+    i += 1;
+    return n;
+  };
+  const px = (nx: number, ny: number): [number, number] => [
+    Math.round((ox + nx * scale) * 1000) / 1000,
+    Math.round((oy + ny * scale) * 1000) / 1000,
+  ];
+  while (i < tokens.length) {
+    if (isCmd(tokens[i])) {
+      cmd = tokens[i] as string;
+      i += 1;
+      if (cmd === "Z" || cmd === "z") {
+        ctx.closePath();
+        x = startX;
+        y = startY;
+        continue;
+      }
+    }
+    if (!cmd || i >= tokens.length) break;
+    if (cmd === "M") {
+      x = num();
+      y = num();
+      startX = x;
+      startY = y;
+      const p = px(x, y);
+      ctx.moveTo(p[0], p[1]);
+      cmd = "L";
+      continue;
+    }
+    if (cmd === "m") {
+      x += num();
+      y += num();
+      startX = x;
+      startY = y;
+      const p = px(x, y);
+      ctx.moveTo(p[0], p[1]);
+      cmd = "l";
+      continue;
+    }
+    if (cmd === "L") {
+      x = num();
+      y = num();
+    } else if (cmd === "l") {
+      x += num();
+      y += num();
+    } else if (cmd === "H") {
+      x = num();
+    } else if (cmd === "h") {
+      x += num();
+    } else if (cmd === "V") {
+      y = num();
+    } else if (cmd === "v") {
+      y += num();
+    } else {
+      i += 1;
+      continue;
+    }
+    const p = px(x, y);
+    ctx.lineTo(p[0], p[1]);
+  }
+}
+
+function strokeCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void {
+  if (!d) return;
   ctx.beginPath();
-  ctx.moveTo(x, y - r);
-  ctx.lineTo(x + r, y);
-  ctx.lineTo(x, y + r);
-  ctx.lineTo(x - r, y);
-  ctx.closePath();
+  traceSvgPath(ctx, d, ox, oy, size / 16);
+  ctx.stroke();
+}
+
+function fillCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void {
+  if (!d) return;
+  ctx.beginPath();
+  traceSvgPath(ctx, d, ox, oy, size / 16);
   ctx.fill();
 }
 
@@ -411,37 +523,40 @@ export function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: num
   ctx.lineCap = "square";
   switch (id) {
     case "room_empty":
-      ctx.strokeRect(cx + 0.5, cy + 0.5, 7, 7);
+      strokeCatalogPath(ctx, locOuterPath(), cx, cy, 8);
       return;
     case "room_known":
-      ctx.strokeRect(cx + 0.5, cy + 0.5, 7, 7);
-      ctx.fillRect(cx + 2, cy + 2, 4, 4);
+      strokeCatalogPath(ctx, locOuterPath(), cx, cy, 8);
+      fillCatalogPath(ctx, locInnerPath(), cx, cy, 8);
       return;
     case "room_active":
       ctx.fillStyle = PHOSPHOR_COLORS.amber;
-      ctx.fillRect(cx + 0.5, cy + 0.5, 7, 7);
+      ctx.strokeStyle = PHOSPHOR_COLORS.amber;
+      fillCatalogPath(ctx, locOuterPath(), cx, cy, 8);
       ctx.fillStyle = PHOSPHOR_COLORS.ink;
-      ctx.fillRect(cx + 2.5, cy + 2.5, 3, 3);
+      fillCatalogPath(ctx, locInnerPath(), cx, cy, 8);
       return;
     case "room_partial":
-      ctx.beginPath();
-      ctx.moveTo(cx + 1, cy + 7);
-      ctx.lineTo(cx + 1, cy + 1);
-      ctx.lineTo(cx + 7, cy + 1);
-      ctx.lineTo(cx + 7, cy + 7);
-      ctx.stroke();
+      strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.unknown, cx, cy, 8);
       return;
     case "player_single":
-      drawDiamond(ctx, cx + 4, cy + 4, 3);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx, cy, 8);
       return;
     case "player_multi":
-      drawDiamond(ctx, cx + 3, cy + 2, 2);
-      drawDiamond(ctx, cx + 5, cy + 6, 2);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx - 1, cy - 1, 5);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx + 3, cy + 2, 5);
       return;
     case "player_cluster":
-      drawDiamond(ctx, cx + 2, cy + 5, 2);
-      drawDiamond(ctx, cx + 6, cy + 5, 2);
-      drawDiamond(ctx, cx + 4, cy + 2, 2);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx - 1, cy + 2, 5);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx + 3, cy + 2, 5);
+      fillCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.player, cx + 1, cy - 1, 5);
+      return;
+    case "exit":
+      strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.threshold, cx, cy, 8);
+      return;
+    case "exit_active":
+      ctx.strokeStyle = PHOSPHOR_COLORS.amber;
+      strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.threshold, cx, cy, 8);
       return;
     default:
       return;
@@ -456,15 +571,7 @@ export function drawExit(ctx: DrawCtx, x1: number, y1: number, x2: number, y2: n
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  const ux = dx / len;
-  const uy = dy / len;
-  ctx.beginPath();
-  ctx.moveTo(x2 - uy * 3, y2 + ux * 3);
-  ctx.lineTo(x2 + uy * 3, y2 - ux * 3);
-  ctx.stroke();
+  strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.threshold, x2 - 4, y2 - 4, 8);
 }
 
 function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
@@ -732,7 +839,12 @@ export function phosphorInlineScript(): string {
     const collectPulses = ${collectPulses.toString()};
     const expirePulses = ${expirePulses.toString()};
     const inkFor = ${inkFor.toString()};
-    const drawDiamond = ${drawDiamond.toString()};
+    const PHOSPHOR_CATALOG_PATHS = ${JSON.stringify(PHOSPHOR_CATALOG_PATHS)};
+    const locOuterPath = ${locOuterPath.toString()};
+    const locInnerPath = ${locInnerPath.toString()};
+    const traceSvgPath = ${traceSvgPath.toString()};
+    const strokeCatalogPath = ${strokeCatalogPath.toString()};
+    const fillCatalogPath = ${fillCatalogPath.toString()};
     const drawGlyph = ${drawGlyph.toString()};
     const drawExit = ${drawExit.toString()};
     const drawRoomLabel = ${drawRoomLabel.toString()};

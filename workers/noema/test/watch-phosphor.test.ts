@@ -7,17 +7,21 @@ import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
 import { watchHtml } from "../src/watch";
 import { buildWatchLive } from "../src/watch-live";
+import { glyphMeta } from "../src/presentation/glyphs";
 import {
   PHOSPHOR_ASSET_BUDGET,
+  PHOSPHOR_CATALOG_PATHS,
   PHOSPHOR_GLYPH_IDS,
   PHOSPHOR_HEIGHT,
   PHOSPHOR_JS_BUDGET,
   PHOSPHOR_WIDTH,
   collectPulses,
   createPhosphorSession,
+  drawExit,
   drawGlyph,
   drawPhosphorFrame,
   layoutPublicTopology,
+  phosphorCatalogMark,
   playerGlyphId,
   pulseGlyphId,
   roomCertainty,
@@ -248,16 +252,45 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(playerGlyphId(4)).toBe("player_multi");
     expect(playerGlyphId(12)).toBe("player_cluster");
     expect(pulseGlyphId("MAJOR")).toBe("pulse_major");
+    expect(PHOSPHOR_CATALOG_PATHS.loc).toBe(glyphMeta("loc").d);
+    expect(PHOSPHOR_CATALOG_PATHS.player).toBe(glyphMeta("player").d);
+    expect(PHOSPHOR_CATALOG_PATHS.unknown).toBe(glyphMeta("unknown").d);
+    expect(PHOSPHOR_CATALOG_PATHS.threshold).toBe(glyphMeta("threshold").d);
+    expect(phosphorCatalogMark("room_empty")).toBe("loc");
+    expect(phosphorCatalogMark("room_known")).toBe("loc");
+    expect(phosphorCatalogMark("room_active")).toBe("loc");
+    expect(phosphorCatalogMark("room_partial")).toBe("unknown");
+    expect(phosphorCatalogMark("player_single")).toBe("player");
+    expect(phosphorCatalogMark("exit_active")).toBe("threshold");
+    expect(phosphorCatalogMark("pulse_major")).toBeNull();
+    const empty = mockCtx();
+    drawGlyph(empty, "room_empty", 0, 0);
+    expect(empty.ops.some((o) => o.startsWith("strokeRect"))).toBe(false);
+    expect(empty.ops).toContain("moveTo:1.6,1.6");
+    expect(empty.ops).toContain("closePath");
+    const known = mockCtx();
+    drawGlyph(known, "room_known", 0, 0);
+    expect(known.ops.filter((o) => o === "fill").length).toBe(1);
     const partial = mockCtx();
     drawGlyph(partial, "room_partial", 0, 0);
-    expect(partial.ops.join(" ")).toMatch(/moveTo:1,7.*lineTo:1,1.*lineTo:7,1.*lineTo:7,7/);
-    expect(partial.ops).not.toContain("fillRect:1,1,6,6");
+    expect(partial.ops).toContain("moveTo:2.6,1.6");
+    expect(partial.ops.join(" ")).not.toMatch(/moveTo:1,7/);
+    expect(partial.ops.some((o) => o.startsWith("fillRect"))).toBe(false);
     const multi = mockCtx();
     drawGlyph(multi, "player_multi", 0, 0);
     expect(multi.ops.filter((o) => o === "fill").length).toBe(2);
     const cluster = mockCtx();
     drawGlyph(cluster, "player_cluster", 0, 0);
     expect(cluster.ops.filter((o) => o === "fill").length).toBe(3);
+    const door = mockCtx();
+    drawGlyph(door, "exit", 0, 0);
+    expect(door.ops).toContain("moveTo:2.1,6.5");
+    const edge = mockCtx();
+    drawExit(edge, 0, 0, 20, 0, false);
+    expect(edge.ops[0]).toBe("beginPath");
+    expect(edge.ops).toContain("moveTo:0,0");
+    expect(edge.ops).toContain("lineTo:20,0");
+    expect(edge.ops).toContain("moveTo:18.1,2.5");
   });
 
   it("marks a public exit active only from a public recent event", () => {

@@ -17,4 +17,4 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 | `legend.png` | Full spectator key |
 | `legend-mini.png` | Casual WATCH key |
 
-WATCH PIXEL remains the locked Glyph Atlas v0.1 in `watch-phosphor.ts`. These sheets do not replace it.
+WATCH PIXEL remains the locked Glyph Atlas v0.1 in `watch-phosphor.ts`. Live PLAY/WATCH keys are the SVG catalog from `legendHtml()` (`#world-key`). These raster sheets do not replace it and are not loaded by WATCH.
