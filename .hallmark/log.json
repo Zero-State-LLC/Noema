@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-08-18",
+    "scope": "workers/noema manifesto",
+    "macrostructure": "Long Document",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "Hosted /manifesto as written thesis; Home · Manifesto · Watch on the human door. Thesis stays off Home first-read.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
     "scope": "workers/noema homepage",
     "macrostructure": "Marquee Hero",
     "genre": "atmospheric",

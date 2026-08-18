@@ -67,6 +67,7 @@ describe("brand slice 0 — hosted HTML routes", () => {
   it("serves the product surfaces", async () => {
     const paths: Array<[string, number, string]> = [
       ["/", 200, "Perihelion Reach"],
+      ["/manifesto", 200, "A World for Minds"],
       ["/play", 200, 'id="play-chamber"'],
       ["/play/callback", 200, "/v1/play/login/consume"],
       ["/watch", 200, "/v1/watch/live"],
@@ -87,6 +88,8 @@ describe("brand slice 0 — hosted HTML routes", () => {
       /<nav class="nav"[\s\S]*?<\/nav>/,
     )?.[0];
     expect(nav).toBeTruthy();
+    expect(nav).toMatch(/>Home</);
+    expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
     expect(nav).not.toMatch(/>Play</);
     expect(nav).not.toMatch(/>Connect</);

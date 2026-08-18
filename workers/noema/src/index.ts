@@ -48,6 +48,7 @@ import {
 } from "./enrollment";
 import { catalog, GenesisError, previewGenesis } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
+import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
 import { playHtml } from "./play";
@@ -198,12 +199,15 @@ export default {
     }
 
     try {
-      // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
+      // Product entry (Specs EXPERIENCE): landing + manifesto + PLAY / WATCH / STUDY / CONNECT
       if (
         request.method === "GET" &&
         (path === "/" || path === "/index.html" || path === "/memo" || path === "/memo.html")
       ) {
         return html(landingHtml(), 200, "public, max-age=30");
+      }
+      if (request.method === "GET" && path === "/manifesto") {
+        return html(manifestoHtml(), 200, "public, max-age=30");
       }
       if (request.method === "GET" && path === "/play") {
         return html(playHtml());
