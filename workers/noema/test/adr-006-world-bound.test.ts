@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
 import { isHiddenRoom } from "../src/construction";
@@ -27,28 +28,16 @@ const HIDDEN_DIR = "west";
 const MISSING_DIR = "up";
 const SECRET_PROSE = "Hidden west door to the Sealed Vault.";
 
-const CHAMBER_SEED_CANDIDATES = [
-  process.env.NOEMA_SPECS_ROOT
-    ? resolve(process.env.NOEMA_SPECS_ROOT, "examples/chamber-world/world-seed.json")
-    : "",
-  "/home/scrimshawlife/work/Noema-Specs-adr006/examples/chamber-world/world-seed.json",
-  "/home/scrimshawlife/Noema-Specs/examples/chamber-world/world-seed.json",
-].filter(Boolean);
-
-const V01_SEED = resolve(process.cwd(), "../../fixtures/v01-seed/world-seed.json");
+const HERE = dirname(fileURLToPath(import.meta.url));
+const CHAMBER_ROOM_IDS = JSON.parse(
+  readFileSync(join(HERE, "fixtures/adr-006-chamber-rooms.json"), "utf8"),
+) as string[];
+const V01_SEED = join(HERE, "../../../fixtures/v01-seed/world-seed.json");
 
 type SeedRoom = { room_id?: string; hidden?: boolean; tags?: string[] };
 
 function loadJson(path: string): { rooms?: SeedRoom[] } {
   return JSON.parse(readFileSync(path, "utf8")) as { rooms?: SeedRoom[] };
-}
-
-function chamberWorldSeedPath(): string {
-  const hit = CHAMBER_SEED_CANDIDATES.find((p) => existsSync(p));
-  if (!hit) {
-    throw new Error("chamber-world world-seed.json not found");
-  }
-  return hit;
 }
 
 function principal(id: string): PlayerPrincipal {
@@ -168,16 +157,8 @@ describe("ADR-006 world bound and exit visibility", () => {
     expect(PRODUCT_ROOMS).toHaveLength(10);
     expect(new Set(PRODUCT_ROOMS).size).toBe(10);
 
-    const seed = loadJson(chamberWorldSeedPath());
-    const seedIds = (seed.rooms || [])
-      .filter((r) => !isHiddenRoom(r))
-      .map((r) => String(r.room_id || ""))
-      .filter(Boolean)
-      .sort();
-    expect(seedIds).toHaveLength(10);
-    expect(seedIds.length).toBeGreaterThanOrEqual(8);
-    expect(seedIds.length).toBeLessThanOrEqual(15);
-    expect(seedIds).toEqual([...PRODUCT_ROOMS].sort());
+    expect(CHAMBER_ROOM_IDS).toHaveLength(10);
+    expect([...CHAMBER_ROOM_IDS].sort()).toEqual([...PRODUCT_ROOMS].sort());
 
     const v01 = loadJson(V01_SEED);
     expect((v01.rooms || []).length).toBe(4);
