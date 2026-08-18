@@ -1,10 +1,12 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
 import { isHiddenRoom } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { buildWatchLive } from "../src/watch-live";
 import { layoutPublicTopology, type PhosphorRoom } from "../src/watch-phosphor";
-import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
+import type { CommandEnvelope, Observation, PlayerPrincipal } from "../src/types";
 
 /** CHAMBER-MAP product set. Hosted first world is exactly these 10 rooms. */
 const PRODUCT_ROOMS = [
@@ -20,6 +22,35 @@ const PRODUCT_ROOMS = [
   "room.frontier-gate",
 ] as const;
 
+const HIDDEN_DEST = "room.vault";
+const HIDDEN_DIR = "west";
+const MISSING_DIR = "up";
+const SECRET_PROSE = "Hidden west door to the Sealed Vault.";
+
+const CHAMBER_SEED_CANDIDATES = [
+  process.env.NOEMA_SPECS_ROOT
+    ? resolve(process.env.NOEMA_SPECS_ROOT, "examples/chamber-world/world-seed.json")
+    : "",
+  "/home/scrimshawlife/work/Noema-Specs-adr006/examples/chamber-world/world-seed.json",
+  "/home/scrimshawlife/Noema-Specs/examples/chamber-world/world-seed.json",
+].filter(Boolean);
+
+const V01_SEED = resolve(process.cwd(), "../../fixtures/v01-seed/world-seed.json");
+
+type SeedRoom = { room_id?: string; hidden?: boolean; tags?: string[] };
+
+function loadJson(path: string): { rooms?: SeedRoom[] } {
+  return JSON.parse(readFileSync(path, "utf8")) as { rooms?: SeedRoom[] };
+}
+
+function chamberWorldSeedPath(): string {
+  const hit = CHAMBER_SEED_CANDIDATES.find((p) => existsSync(p));
+  if (!hit) {
+    throw new Error("chamber-world world-seed.json not found");
+  }
+  return hit;
+}
+
 function principal(id: string): PlayerPrincipal {
   return {
     player_id: id,
@@ -33,7 +64,7 @@ function principal(id: string): PlayerPrincipal {
   };
 }
 
-function chamberWorld(): WorldRuntime {
+function isolatedWorld(): WorldRuntime {
   const rooms: WorldRuntime["rooms"] = {};
   for (const id of PRODUCT_ROOMS) {
     rooms[id] = {
@@ -46,11 +77,18 @@ function chamberWorld(): WorldRuntime {
   }
   rooms["room.civic-exchange"].exits = [
     { direction: "north", to_room_id: "room.relay-quarter" },
-    { direction: "west", to_room_id: "room.vault", hidden: true },
+    { direction: HIDDEN_DIR, to_room_id: HIDDEN_DEST, hidden: true },
+  ];
+  rooms["room.civic-exchange"].entities = [
+    {
+      entity_id: "entity.scrap-note",
+      label: "scrap note",
+      entity_type: "ARTIFACT",
+    },
   ];
   rooms["room.relay-quarter"].exits = [{ direction: "south", to_room_id: "room.civic-exchange" }];
-  rooms["room.vault"] = {
-    room_id: "room.vault",
+  rooms[HIDDEN_DEST] = {
+    room_id: HIDDEN_DEST,
     name: "Sealed Vault",
     description: "Not for spectators.",
     hidden: true,
@@ -74,7 +112,12 @@ function chamberWorld(): WorldRuntime {
   };
 }
 
-async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}) {
+async function run(
+  w: WorldRuntime,
+  p: PlayerPrincipal,
+  command: string,
+  args: Record<string, unknown> = {},
+) {
   const envl: CommandEnvelope = {
     request_id: `r.${Math.random().toString(16).slice(2)}`,
     idempotency_key: `i.${Math.random().toString(16).slice(2)}`,
@@ -84,28 +127,74 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
   return applyWorldCommand(w, p, envl, async () => true);
 }
 
+function publicRoomIds(w: WorldRuntime): string[] {
+  return Object.values(w.rooms)
+    .filter((r) => !isHiddenRoom(r))
+    .map((r) => r.room_id)
+    .sort();
+}
+
+function listedDests(obs: Observation | undefined): string[] {
+  return (obs?.location?.exits || []).map((x) => String(x.to_room_id || "")).filter(Boolean);
+}
+
+function listedDirs(obs: Observation | undefined): string[] {
+  return (obs?.location?.exits || []).map((x) => String(x.direction || "").toLowerCase()).filter(Boolean);
+}
+
+function moveAffordances(obs: Observation | undefined): string {
+  return (obs?.affordances || [])
+    .filter((a) => a.action === "MOVE" || a.verb === "MOVE")
+    .map((a) => `${a.cmd || ""} ${a.label || ""} ${a.target_id || ""}`)
+    .join(" ");
+}
+
+function assertNoHiddenRoute(obs: Observation | undefined) {
+  expect(listedDests(obs)).not.toContain(HIDDEN_DEST);
+  expect(listedDirs(obs)).not.toContain(HIDDEN_DIR);
+  expect(moveAffordances(obs)).not.toMatch(/west|vault/i);
+  const actions = JSON.stringify(obs?.available_actions || []);
+  expect(actions).not.toMatch(/vault|west/i);
+  const blob = JSON.stringify({
+    exits: obs?.location?.exits || [],
+    available_actions: obs?.available_actions || [],
+    affordances: obs?.affordances || [],
+  });
+  expect(blob).not.toMatch(/room\.vault|"hidden"|Sealed Vault/i);
+}
+
 describe("ADR-006 world bound and exit visibility", () => {
-  it("pins the hosted product map at exactly 10 public rooms", () => {
+  it("pins hosted chamber-world public rooms at exactly 10", () => {
     expect(PRODUCT_ROOMS).toHaveLength(10);
     expect(new Set(PRODUCT_ROOMS).size).toBe(10);
-    const w = chamberWorld();
-    const publicIds = Object.values(w.rooms)
+
+    const seed = loadJson(chamberWorldSeedPath());
+    const seedIds = (seed.rooms || [])
       .filter((r) => !isHiddenRoom(r))
-      .map((r) => r.room_id)
+      .map((r) => String(r.room_id || ""))
+      .filter(Boolean)
       .sort();
-    expect(publicIds).toEqual([...PRODUCT_ROOMS].sort());
+    expect(seedIds).toHaveLength(10);
+    expect(seedIds.length).toBeGreaterThanOrEqual(8);
+    expect(seedIds.length).toBeLessThanOrEqual(15);
+    expect(seedIds).toEqual([...PRODUCT_ROOMS].sort());
+
+    const v01 = loadJson(V01_SEED);
+    expect((v01.rooms || []).length).toBe(4);
+
+    const w = isolatedWorld();
+    expect(publicRoomIds(w)).toEqual([...PRODUCT_ROOMS].sort());
+    expect(w.world_id.startsWith("test.hosted-canonical.")).toBe(true);
   });
 
   it("omits hidden exits from observation, AVAILABLE_ACTIONS, WATCH, and Phosphor", async () => {
-    const w = chamberWorld();
+    const w = isolatedWorld();
     const p = principal("player.sable");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     const look = await run(w, p, "LOOK");
-    const exits = look.observation?.location?.exits || [];
-    expect(exits.map((x: { to_room_id?: string }) => x.to_room_id)).toEqual(["room.relay-quarter"]);
-    expect(JSON.stringify(look.observation || {})).not.toMatch(/room\.vault|Sealed Vault|"hidden"/i);
-    expect(JSON.stringify(look.observation?.available_actions || [])).not.toMatch(/vault|west/i);
+    expect(listedDests(look.observation)).toEqual(["room.relay-quarter"]);
+    assertNoHiddenRoute(look.observation);
 
     const snap = buildWatchLive({
       world_id: w.world_id,
@@ -116,61 +205,95 @@ describe("ADR-006 world bound and exit visibility", () => {
       events: [],
       now: 1_700_000_000_000,
     });
-    expect(JSON.stringify(snap)).not.toMatch(/room\.vault|Sealed Vault/i);
+    expect(JSON.stringify(snap)).not.toMatch(/room\.vault|Sealed Vault|"hidden"/i);
+    const watchExits = (snap.rooms || []).flatMap(
+      (r: { exits?: Array<{ direction?: string; to_room_id?: string }> }) => r.exits || [],
+    );
+    expect(watchExits.map((x) => x.to_room_id)).not.toContain(HIDDEN_DEST);
+    expect(watchExits.map((x) => String(x.direction || "").toLowerCase())).not.toContain(HIDDEN_DIR);
+
     const layout = layoutPublicTopology(snap.rooms as PhosphorRoom[]);
     expect(layout.nodes.map((n) => n.room_id).sort()).toEqual([...PRODUCT_ROOMS].sort());
-    expect(JSON.stringify(layout)).not.toMatch(/room\.vault|Sealed Vault/i);
+    expect(layout.edges.some((e) => e.to === HIDDEN_DEST || e.from === HIDDEN_DEST)).toBe(false);
+    expect(JSON.stringify(layout)).not.toMatch(/room\.vault|Sealed Vault|"hidden"/i);
+    expect(layout.edges.some((e) => e.dashed)).toBe(false);
   });
 
   it("rejects MOVE on a hidden direction with the same code as a missing exit", async () => {
-    const w = chamberWorld();
+    const w = isolatedWorld();
     const p = principal("player.sable");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const hidden = await run(w, p, "MOVE", { direction: "west" });
-    const missing = await run(w, p, "MOVE", { direction: "up" });
+    const hidden = await run(w, p, "MOVE", { direction: HIDDEN_DIR });
+    const missing = await run(w, p, "MOVE", { direction: MISSING_DIR });
     expect(hidden.ok).toBe(false);
     expect(missing.ok).toBe(false);
     expect(hidden.error?.code).toBe("MOVE_REJECTED");
     expect(missing.error?.code).toBe(hidden.error?.code);
-    expect(hidden.error?.message).toBe("There is no exit west from here.");
-    expect(missing.error?.message).toBe("There is no exit up from here.");
+    expect(hidden.error?.message).toBe(`There is no exit ${HIDDEN_DIR} from here.`);
+    expect(missing.error?.message).toBe(`There is no exit ${MISSING_DIR} from here.`);
     expect(JSON.stringify(hidden)).not.toMatch(/hidden|secret|vault/i);
     expect(JSON.stringify(missing)).not.toMatch(/hidden|secret|vault/i);
+    expect(hidden.error?.code).toBe(missing.error?.code);
+    expect(Object.keys(hidden.error || {}).sort()).toEqual(Object.keys(missing.error || {}).sort());
   });
 
-  it("does not add a hidden exit to a recipient after MESSAGE prose", async () => {
-    const w = chamberWorld();
+  it("does not add a hidden exit after MESSAGE, board, or artifact prose", async () => {
+    const w = isolatedWorld();
     const a = principal("player.alpha");
     const b = principal("player.beta");
     await run(w, a, "ENTER_WORLD");
     await run(w, b, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[b.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+
     const sent = await run(w, a, "MESSAGE", {
       recipient_id: b.player_id,
-      text: "Hidden west door to the Sealed Vault.",
+      text: SECRET_PROSE,
     });
     expect(sent.ok).toBe(true);
-    const look = await run(w, b, "LOOK");
-    const exits = look.observation?.location?.exits || [];
-    expect(exits.map((x: { to_room_id?: string }) => x.to_room_id)).toEqual(["room.relay-quarter"]);
-    expect(JSON.stringify(look.observation?.location || {})).not.toMatch(/room\.vault|west/i);
+    const afterMsg = await run(w, b, "OBSERVE");
+    expect(listedDests(afterMsg.observation)).toEqual(["room.relay-quarter"]);
+    assertNoHiddenRoute(afterMsg.observation);
+
+    const posted = await run(w, a, "MESSAGE", { surface: "BOARD", text: SECRET_PROSE });
+    expect(posted.ok).toBe(true);
+    const afterBoard = await run(w, b, "OBSERVE");
+    expect(listedDests(afterBoard.observation)).toEqual(["room.relay-quarter"]);
+    assertNoHiddenRoute(afterBoard.observation);
+
+    const inspected = await run(w, b, "INSPECT", { entity_id: "entity.scrap-note" });
+    expect(inspected.ok).toBe(true);
+    const afterInspect = await run(w, b, "OBSERVE");
+    expect(listedDests(afterInspect.observation)).toEqual(["room.relay-quarter"]);
+    assertNoHiddenRoute(afterInspect.observation);
   });
 
-  it("keeps first LOOK local — no full graph dump", async () => {
-    const w = chamberWorld();
+  it("keeps first agent OBSERVE local — no full room or exit graph", async () => {
+    const w = isolatedWorld();
     const p = principal("player.sable");
-    await run(w, p, "ENTER_WORLD");
+    const joined = await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-    const look = await run(w, p, "LOOK");
-    const blob = JSON.stringify(look.observation || {});
-    expect(look.observation?.location?.room_id).toBe("room.civic-exchange");
-    expect(look.observation?.location?.exits || []).toHaveLength(1);
-    for (const id of PRODUCT_ROOMS) {
-      if (id === "room.civic-exchange" || id === "room.relay-quarter") continue;
-      expect(blob).not.toContain(id);
+    const first = await run(w, p, "OBSERVE");
+    expect(first.ok).toBe(true);
+    expect(first.observation?.location?.room_id).toBe("room.civic-exchange");
+    expect(first.observation?.location?.exits || []).toHaveLength(1);
+    expect(listedDests(first.observation)).toEqual(["room.relay-quarter"]);
+    assertNoHiddenRoute(first.observation);
+    assertNoHiddenRoute(joined.observation);
+
+    const blobs = [JSON.stringify(joined.observation || {}), JSON.stringify(first.observation || {})];
+    for (const blob of blobs) {
+      for (const id of PRODUCT_ROOMS) {
+        if (id === "room.civic-exchange" || id === "room.relay-quarter") continue;
+        expect(blob).not.toContain(id);
+      }
+      expect(blob).not.toContain(HIDDEN_DEST);
+      expect(blob).not.toMatch(/full.?graph|all rooms|world map/i);
     }
-    expect(blob).not.toContain("room.vault");
+    const moveCmds = (first.observation?.affordances || [])
+      .filter((a) => a.action === "MOVE" && a.available !== false)
+      .map((a) => a.cmd);
+    expect(moveCmds).toEqual(["move north"]);
   });
 });
