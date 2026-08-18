@@ -8,6 +8,7 @@ import { GLYPH_IDS, glyphMeta, type GlyphId } from "./presentation/glyphs";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
+export const PHOSPHOR_HIT_RADIUS = 28;
 export const PHOSPHOR_MAX_FPS = 20;
 export const PHOSPHOR_JS_BUDGET = 100 * 1024;
 export const PHOSPHOR_ASSET_BUDGET = 200 * 1024;
@@ -396,14 +397,15 @@ export function layoutPublicTopology(
   const nodes: PhosphorNode[] = publicRooms.map((room) => {
     const id = String(room.room_id);
     const p = pos.get(id) || [0, 0];
-    const x = padX + ((p[0] - minX) / spanX) * innerW;
-    const y = padY + ((p[1] - minY) / spanY) * innerH;
+    const rawX = padX + ((p[0] - minX) / spanX) * innerW;
+    const rawY = padY + ((p[1] - minY) / spanY) * innerH;
+    const clamped = clampPhosphorNode(rawX, rawY);
     const labels = (room.public_player_labels || []).map(safePhosphorLabel).filter(Boolean);
     return {
       room_id: id,
       name: safePhosphorLabel(room.name || id),
-      x: Math.round(x),
-      y: Math.round(y),
+      x: clamped.x,
+      y: clamped.y,
       certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
@@ -693,9 +695,8 @@ function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
   if (!label) return;
   ctx.fillStyle = PHOSPHOR_COLORS.dim;
   ctx.font = "8px ui-monospace, monospace";
-  const tx = Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, x + 10));
-  const ty = Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, y + 3));
-  ctx.fillText(label, tx, ty);
+  const a = phosphorLabelAnchor(x, y);
+  ctx.fillText(label, a.x, a.y);
 }
 
 const MARK_RING: Array<[number, number]> = [
@@ -831,7 +832,19 @@ export type PhosphorSession = {
   hit(x: number, y: number): PhosphorNode | null;
 };
 
-export const PHOSPHOR_HIT_RADIUS = 28;
+export function phosphorLabelAnchor(x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, Number(x) + 10)),
+    y: Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, Number(y) + 3)),
+  };
+}
+
+function clampPhosphorNode(x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.max(12, Math.min(PHOSPHOR_WIDTH - 12, Math.round(x))),
+    y: Math.max(14, Math.min(PHOSPHOR_HEIGHT - 14, Math.round(y))),
+  };
+}
 
 export function canvasPointFromEvent(
   canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } },
@@ -859,9 +872,19 @@ export function hitPhosphorNode(
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     if (!n || !n.room_id) continue;
+    const nx = Number(n.x);
+    const ny = Number(n.y);
+    const a = phosphorLabelAnchor(nx, ny);
+    const x0 = a.x - 2;
+    const y0 = a.y - 10;
+    const x1 = a.x + 56;
+    const y1 = a.y + 6;
+    const cx = Math.max(x0, Math.min(x1, x));
+    const cy = Math.max(y0, Math.min(y1, y));
     const spots = [
-      [Number(n.x), Number(n.y)],
-      [Number(n.x) + 10, Number(n.y) + 3],
+      [nx, ny],
+      [a.x, a.y],
+      [cx, cy],
     ];
     for (let s = 0; s < spots.length; s++) {
       const dx = spots[s][0] - x;
@@ -1030,6 +1053,7 @@ export function phosphorInlineScript(bind?: {
     const __name = function(fn) { return fn; };
     const PHOSPHOR_WIDTH = ${PHOSPHOR_WIDTH};
     const PHOSPHOR_HEIGHT = ${PHOSPHOR_HEIGHT};
+    const PHOSPHOR_HIT_RADIUS = ${PHOSPHOR_HIT_RADIUS};
     const PHOSPHOR_MAX_FPS = ${PHOSPHOR_MAX_FPS};
     const PHOSPHOR_COLORS = ${JSON.stringify(PHOSPHOR_COLORS)};
     const PHOSPHOR_DIR = ${JSON.stringify(PHOSPHOR_DIR)};
@@ -1044,6 +1068,8 @@ export function phosphorInlineScript(bind?: {
     const dirVec = ${dirVec.toString()};
     const occupyKey = ${occupyKey.toString()};
     const nudge = ${nudge.toString()};
+    const phosphorLabelAnchor = ${phosphorLabelAnchor.toString()};
+    const clampPhosphorNode = ${clampPhosphorNode.toString()};
     const layoutPublicTopology = ${layoutPublicTopology.toString()};
     const collectPulses = ${collectPulses.toString()};
     const expirePulses = ${expirePulses.toString()};

@@ -25,6 +25,7 @@ import {
   drawPhosphorFrame,
   hitPhosphorNode,
   layoutPublicTopology,
+  phosphorLabelAnchor,
   phosphorCatalogMark,
   playerGlyphId,
   pulseGlyphId,
@@ -188,7 +189,11 @@ describe("slice 1 — deterministic public topology", () => {
     expect(a).toBeTruthy();
     expect(hitPhosphorNode(layout, a!.x, a!.y)?.room_id).toBe("room.a");
     expect(hitPhosphorNode(layout, a!.x + 2, a!.y - 2)?.room_id).toBe("room.a");
-    expect(hitPhosphorNode(layout, a!.x + 10, a!.y + 3)?.room_id).toBe("room.a");
+    const label = phosphorLabelAnchor(a!.x, a!.y);
+    expect(hitPhosphorNode(layout, label.x, label.y)?.room_id).toBe("room.a");
+    expect(hitPhosphorNode(layout, label.x + 40, label.y)?.room_id).toBe("room.a");
+    expect(layout.nodes.every((n) => n.y >= 14 && n.y <= PHOSPHOR_HEIGHT - 14)).toBe(true);
+    expect(layout.nodes.every((n) => n.x >= 12 && n.x <= PHOSPHOR_WIDTH - 12)).toBe(true);
     expect(hitPhosphorNode(layout, 1000, 1000)).toBeNull();
     expect(JSON.stringify(hitPhosphorNode(layout, a!.x, a!.y))).not.toMatch(/vault/i);
     const pt = canvasPointFromEvent(
@@ -197,6 +202,29 @@ describe("slice 1 — deterministic public topology", () => {
     );
     expect(pt.x).toBeCloseTo(PHOSPHOR_WIDTH / 2, 5);
     expect(pt.y).toBeCloseTo(PHOSPHOR_HEIGHT / 2, 5);
+  });
+
+  it("hits the on-canvas label when a node sits off the bitmap", () => {
+    const layout = {
+      nodes: [
+        {
+          room_id: "room.relay-quarter",
+          name: "Relay Quarter",
+          x: 9,
+          y: 196,
+          certainty: "known" as const,
+          players: 0,
+          labels: [],
+          marks: [],
+        },
+      ],
+      edges: [],
+    };
+    const label = phosphorLabelAnchor(9, 196);
+    expect(label.y).toBeLessThanOrEqual(PHOSPHOR_HEIGHT);
+    expect(label.x).toBeGreaterThanOrEqual(0);
+    expect(hitPhosphorNode(layout, label.x, label.y)?.room_id).toBe("room.relay-quarter");
+    expect(hitPhosphorNode(layout, label.x + 30, label.y)?.room_id).toBe("room.relay-quarter");
   });
 
   it("lays out the example four-site public fragment without hidden rooms", () => {
@@ -505,6 +533,9 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain("NoemaPhosphor.update");
     expect(html).toContain("NoemaPhosphorPick");
     expect(html).toContain("hitPhosphorNode");
+    expect(html).toContain("PHOSPHOR_HIT_RADIUS");
+    expect(html).toContain("phosphorLabelAnchor");
+    expect(html).toContain("clampPhosphorNode");
     expect(html).toContain("const __name = function(fn) { return fn; }");
   });
 
@@ -545,7 +576,12 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
         addEventListener(): void;
       };
       window: unknown;
-      NoemaPhosphor?: { mode: string; update(s: object): void };
+      NoemaPhosphor?: {
+        mode: string;
+        update(s: object): void;
+        hit(x: number, y: number): { room_id: string } | null;
+        lastLayout?: { nodes: Array<{ x: number; y: number; room_id: string }> };
+      };
     };
     const prevDoc = g.document;
     const prevWin = g.window;
@@ -570,6 +606,10 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
         sequence: 1,
         rooms: [{ room_id: "room.a", name: "Alpha", description: "A" }],
       });
+      const node = g.NoemaPhosphor?.lastLayout?.nodes[0];
+      expect(node?.room_id).toBe("room.a");
+      expect(node && node.y <= 180 && node.x <= 320).toBe(true);
+      expect(g.NoemaPhosphor?.hit(node!.x, node!.y)?.room_id).toBe("room.a");
     } finally {
       g.document = prevDoc;
       g.window = prevWin;
