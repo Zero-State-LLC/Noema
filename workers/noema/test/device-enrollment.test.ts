@@ -156,6 +156,9 @@ describe("approveDevice", () => {
     expect(body.player_id).toBe("player.prabu");
     expect(body.access_token).toBeUndefined();
     expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    const stored = await store.getByUserCode(user_code);
+    expect(stored?.access_token).toBeUndefined();
+    expect(stored?.status).toBe("approved");
   });
 
   it("rejects an agent bearer", async () => {

@@ -29,3 +29,40 @@ export const commandThrottle = new SlidingWindowThrottle(120, 60_000);
 
 /** Device enrollment start: 20 per hour per client IP. */
 export const deviceThrottle = new SlidingWindowThrottle(20, 3_600_000);
+
+export const RATE_LIMIT_DO_NAME = "__noema_rate_limits__";
+
+type RateLimitEnv = {
+  WORLD_DO?: DurableObjectNamespace;
+};
+
+/**
+ * Isolate-local first, then the shared WORLD_DO bag when that stub speaks `{ allowed: boolean }`.
+ * Mocks that return `{ ok: true }` or 404/400 are treated as "no durable backend".
+ */
+export async function allowThrottled(
+  local: SlidingWindowThrottle,
+  env: RateLimitEnv,
+  key: string,
+  limit: number,
+  windowMs: number,
+  now = Date.now(),
+): Promise<boolean> {
+  if (!local.hit(key, now)) return false;
+  const ns = env.WORLD_DO;
+  if (!ns?.idFromName) return true;
+  try {
+    const stub = ns.get(ns.idFromName(RATE_LIMIT_DO_NAME));
+    const res = await stub.fetch("https://do/ratelimit", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key, limit, windowMs, now }),
+    });
+    if (!res.ok) return true;
+    const body = (await res.json()) as { allowed?: unknown };
+    if (typeof body.allowed === "boolean") return body.allowed;
+    return true;
+  } catch {
+    return true;
+  }
+}
