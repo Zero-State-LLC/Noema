@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from noema.harness.seal import sealed_prompt_hash
+
 HttpFn = Callable[..., dict[str, Any]]
 
 
@@ -21,7 +23,17 @@ def protocol_hello(base: str, http: HttpFn, request_id: str = "req.hello") -> di
     )
 
 
-def protocol_auth(base: str, token: str, http: HttpFn, request_id: str = "req.auth") -> dict[str, Any]:
+def protocol_auth(
+    base: str,
+    token: str,
+    http: HttpFn,
+    request_id: str = "req.auth",
+    *,
+    isolated: bool = False,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {"access_token": token}
+    if not isolated:
+        body["prompt_version_hash"] = sealed_prompt_hash()
     return http(
         "POST",
         f"{base.rstrip('/')}/protocol/v1",
@@ -29,7 +41,7 @@ def protocol_auth(base: str, token: str, http: HttpFn, request_id: str = "req.au
             "protocol": "agent-protocol/v1",
             "type": "AUTH",
             "request_id": request_id,
-            "body": {"access_token": token},
+            "body": body,
         },
         None,
     )

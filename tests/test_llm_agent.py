@@ -149,6 +149,8 @@ def test_l03_auth_ok():
     ack = protocol_auth("https://noema.guru", TOKEN, http)
     assert ack["type"] == "AUTH_ACK"
     assert ack["body"]["player_id"] == "player.tester"
+    sent = http.posts[-1]["body"]["body"]
+    assert sent["prompt_version_hash"].startswith("sha256:")
 
 
 def test_l04_auth_missing_token():
