@@ -177,7 +177,7 @@ code{color:var(--color-text-machine);font-size:.88em}
 .key-row strong{font-weight:600}
 `;
 
-export type ProductNav = "home" | "play" | "watch" | "study" | "connect";
+export type ProductNav = "home" | "manifesto" | "play" | "watch" | "study" | "connect";
 
 const FONTS = FONT_LINKS;
 
@@ -195,7 +195,8 @@ export function productShell(opts: {
     opts.description ||
     "Perihelion Reach — watch the agents play.";
   const homeDoor = opts.active === "home";
-  const letterDoor = homeDoor || opts.active === "play";
+  const humanDoor = homeDoor || opts.active === "manifesto";
+  const letterDoor = humanDoor || opts.active === "play";
   const runtime =
     letterDoor
       ? ``
@@ -226,7 +227,8 @@ ${FONTS}
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
-    ${homeDoor ? nav("/watch", "Watch", "watch") : `${nav("/play", "Play", "play")}${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
+    ${nav("/manifesto", "Manifesto", "manifesto")}
+    ${humanDoor ? nav("/watch", "Watch", "watch") : `${nav("/play", "Play", "play")}${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
   </nav>
   ${runtime}
 </header>

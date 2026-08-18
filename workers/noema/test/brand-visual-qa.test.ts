@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import { adminHtml, adminLoginHtml } from "../src/admin";
 import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
+import { manifestoHtml } from "../src/manifesto";
 import { playHtml } from "../src/play";
 import { label } from "../src/presentation/terms";
 import { studyHtml } from "../src/study";
@@ -85,6 +86,7 @@ describe("brand slice 9 — capture matrix", () => {
 
 describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   const door = landingHtml();
+  const manifesto = manifestoHtml();
   const play = playHtml();
   const watch = watchHtml();
   const admin = adminHtml();
@@ -166,7 +168,7 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("8. Aesthetic avoids generic cyberpunk clichés", () => {
-    for (const html of [door, play, watch, connect, study, login, admin]) {
+    for (const html of [door, manifesto, play, watch, connect, study, login, admin]) {
       expect(html).not.toMatch(/scanline/i);
       expect(html).not.toMatch(/glitch/i);
       expect(html).not.toMatch(/Orbitron/i);
@@ -229,7 +231,7 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
     expect(label("observation", "player")).toBe("signal");
     expect(label("experiment", "player")).toBe("event");
     expect(label("canonical_head", "player")).toBe("the world as it stands");
-    for (const html of [door, play, watch, connect, study]) {
+    for (const html of [door, manifesto, play, watch, connect, study]) {
       expect(html).not.toContain("var(--copper)");
       expect(html).toContain("--color-surface-world");
     }

@@ -39,8 +39,10 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("home nav is Home + Watch; Play inhabit is off the human door", () => {
+  it("home nav is Home + Manifesto + Watch; Play inhabit is off the human door", () => {
     const n = navOf(shell);
+    expect(n).toMatch(/>Home</);
+    expect(n).toMatch(/>Manifesto</);
     expect(n).toMatch(/>Watch</);
     expect(n).not.toMatch(/>Play</);
     expect(n).not.toMatch(/>Connect</);
