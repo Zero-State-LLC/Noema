@@ -61,6 +61,13 @@ def test_pages_site_css_has_no_brochure_blocks():
     css = (ROOT / "site" / "assets" / "site.css").read_text(encoding="utf-8")
     for needle in (".path-rail", ".loop-section", ".fx-canvas", ".hero-visual", ".mosaic-grid"):
         assert needle not in css, needle
+    assert "#c4784a" not in css
+    assert "Fraunces" not in css
+    assert "#3DDCFF" in css
+    assert '"Syne"' in css
+    memo = (ROOT / "site" / "memo.html").read_text(encoding="utf-8")
+    assert "Fraunces" not in memo
+    assert "family=Syne" in memo
 
 
 def test_pages_site_js_has_no_innerhtml():

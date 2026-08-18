@@ -13,7 +13,7 @@ import { connectHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
 import { playHtml } from "../src/play";
-import { productShell } from "../src/shell";
+import { PRODUCT_CSS, productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
 import type { Env } from "../src/types";
 import { watchHtml } from "../src/watch";
@@ -94,6 +94,12 @@ describe("brand slice 0 — hosted HTML routes", () => {
     expect(nav).toMatch(/>Play</);
     expect(nav).toMatch(/>Connect</);
     expect(nav).not.toMatch(/>Study</);
+  });
+
+  it("product tabs use the hero type treatment", () => {
+    expect(PRODUCT_CSS).toMatch(/\.nav a\{[^}]*text-transform:uppercase/);
+    expect(PRODUCT_CSS).toMatch(/\.nav a\{[^}]*letter-spacing:\.14em/);
+    expect(landingHtml()).toContain("--color-state-active:#3DDCFF");
   });
 });
 

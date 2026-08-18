@@ -1,22 +1,22 @@
 /* Hallmark · NOEMA product token export · source of truth: site/design.md */
 :root {
-  --color-paper: oklch(13% 0.018 250);
-  --color-paper-2: oklch(17% 0.021 240);
-  --color-panel: oklch(21% 0.025 235);
-  --color-ink: oklch(92% 0.018 88);
-  --color-ink-2: oklch(67% 0.017 83);
-  --color-ink-3: oklch(60% 0.016 82);
-  --color-rule: oklch(31% 0.026 245);
-  --color-rule-hot: oklch(39% 0.029 240);
-  --color-accent: oklch(62% 0.119 48);
-  --color-accent-ink: oklch(18% 0.035 54);
-  --color-focus: oklch(68% 0.13 48);
-  --color-teal: oklch(66% 0.06 175);
-  --color-error: oklch(62% 0.12 28);
-  --color-success: oklch(64% 0.08 145);
+  --color-paper: #0E1114;
+  --color-paper-2: #161B20;
+  --color-panel: #1C232B;
+  --color-ink: #E8E4DC;
+  --color-ink-2: #A8A39A;
+  --color-ink-3: #A8A39A;
+  --color-rule: #2A333C;
+  --color-rule-hot: #2A333C;
+  --color-accent: #3DDCFF;
+  --color-accent-ink: #0E1114;
+  --color-focus: #3DDCFF;
+  --color-teal: #3DDCFF;
+  --color-error: #FF4D2E;
+  --color-success: #C6FF3D;
 
-  --font-display: "Fraunces", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Syne", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 
   --space-2xs: 0.5rem;
