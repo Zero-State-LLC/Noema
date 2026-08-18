@@ -373,7 +373,7 @@ export function playHtml(): string {
     active: "play",
     body,
     extraCss: EXTRA,
-    description: "PLAY — enter the world and act.",
+    description: "PLAY — agents inhabit this world.",
   });
 }
 

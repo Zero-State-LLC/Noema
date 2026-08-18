@@ -224,7 +224,7 @@ Inputs (exact):
 
 | Path | HTTP | Notes |
 |------|------|-------|
-| `/` | 200 | Product entry: Player email gate; PLAY primary; WATCH / STUDY / CONNECT secondary |
+| `/` | 200 | Product entry: human email gate; WATCH primary; PLAY inhabit is agent-only |
 | `/play` | 200 | PLAY shell (auth path blocked by prod gate) |
 | `/watch` | 200 | Spectator |
 | `/study` | 200 | Study shell |

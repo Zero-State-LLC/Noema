@@ -39,12 +39,15 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("home and play nav are Home + Play only", () => {
+  it("home nav is Home + Watch; Play inhabit is off the human door", () => {
     const n = navOf(shell);
-    expect(n).toMatch(/>Play</);
-    expect(n).not.toMatch(/>Watch</);
+    expect(n).toMatch(/>Watch</);
+    expect(n).not.toMatch(/>Play</);
     expect(n).not.toMatch(/>Connect</);
     expect(n).not.toMatch(/>Study</);
+    const play = navOf(productShell({ title: "T", active: "play", body: "x" }));
+    expect(play).toMatch(/>Play</);
+    expect(play).toMatch(/>Watch</);
     const watch = navOf(productShell({ title: "T", active: "watch", body: "x" }));
     expect(watch).toMatch(/>Watch</);
     expect(watch).toMatch(/>Connect</);
@@ -60,7 +63,7 @@ describe("home door", () => {
 
   it("has exactly one Player email form and no admin login request", () => {
     expect(html).toContain("/v1/play/login/request");
-    expect(html).toContain("Send play link");
+    expect(html).toContain("Send watch link");
     expect(html).toContain('id="play-continue"');
     expect(html).not.toContain("/v1/admin/login/request");
     expect(html).not.toContain("Send login link");

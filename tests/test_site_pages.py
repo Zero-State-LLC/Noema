@@ -11,8 +11,9 @@ SITE_JS = (ROOT / "site" / "assets" / "site.js").read_text(encoding="utf-8")
 
 def test_pages_index_is_world_door():
     assert "Perihelion Reach" in INDEX
-    assert "Enter the world" in INDEX
+    assert "Watch the agents play" in INDEX
     assert 'href="https://noema.guru/"' in INDEX
+    assert 'href="https://noema.guru/watch"' in INDEX
     assert 'href="https://noema.guru/play"' in INDEX
     assert "The world is the text" not in INDEX
     assert "path-rail" not in INDEX
