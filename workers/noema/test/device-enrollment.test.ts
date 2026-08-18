@@ -157,7 +157,7 @@ describe("approveDevice", () => {
     expect(body.access_token).toBeUndefined();
     expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
     const stored = await store.getByUserCode(user_code);
-    expect(stored?.access_token).toBeUndefined();
+    expect(stored).not.toHaveProperty("access_token");
     expect(stored?.status).toBe("approved");
   });
 
@@ -304,7 +304,7 @@ describe("pollDeviceToken", () => {
     expect(claims.scopes).toEqual([...GAME_SCOPES]);
     const stored = await store.getByDeviceCode(device_code);
     expect(stored?.status).toBe("redeemed");
-    expect(stored?.access_token).toBeUndefined();
+    expect(stored).not.toHaveProperty("access_token");
 
     const second = await pollDeviceToken(
       e,
