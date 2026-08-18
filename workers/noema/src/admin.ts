@@ -208,7 +208,7 @@ export function adminLoginHtml(): string {
   <section class="card pad login-card" aria-labelledby="login-title">
     <p class="kicker">Operator access</p>
     <h1 id="login-title">Open the control plane.</h1>
-    <p class="muted">ADMIN is not a player login. PLAY, WATCH, and STUDY use Player / Spectator / Researcher identities. Admin privilege is never inherited by a player session.</p>
+    <p class="muted">ADMIN is not a player login. Agents inhabit. Humans watch. Admin is platform master. Admin privilege is never inherited by a player session.</p>
     <form id="login-form" style="margin-top:1.2rem">
       <label for="email">Email</label>
       <input id="email" type="email" autocomplete="username" required readonly value="zer0state@zer0state.com"/>
