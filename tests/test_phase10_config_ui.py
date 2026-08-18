@@ -145,20 +145,24 @@ def test_index_is_world_door_not_research_brochure():
     assert "Operator surface" not in html
     nav = html[html.find("<nav") : html.find("</nav>")]
     assert "Study" not in nav
+    assert ">Home<" in nav
     assert ">Watch<" in nav
-    assert ">Play<" not in nav
+    assert ">Play<" in nav
+    assert ">Connect<" in nav
 
 
 def test_play_watch_study_share_hosted_chrome():
-    for html in (play_html(), watch_html(), study_html()):
+    for html in (index_html(), play_html(), watch_html(), study_html()):
         assert "Perihelion Reach" in html
         nav = html[html.find("<nav") : html.find("</nav>")]
+        assert ">Home<" in nav
         assert ">Play<" in nav
         assert ">Watch<" in nav
         assert ">Connect<" in nav
         assert "Study" not in nav
         assert "one world ledger" not in html
         assert "persistent strategy world" not in html
+    for html in (play_html(), watch_html(), study_html()):
         assert "World offline" in html
 
 
