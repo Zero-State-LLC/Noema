@@ -375,9 +375,13 @@ export function watchHtml(): string {
           det.append(sum);
           const box = el("div", "watch-inspect");
           const labels = Array.isArray(r.public_player_labels) ? r.public_player_labels : [];
+          const present = Number(r.players_present || 0);
+          const occupancy = labels.length
+            ? labels.join(", ")
+            : (present > 0 ? (present === 1 ? "an agent" : present + " agents") : "none visible");
           const pLine = el("p", "");
           pLine.append(glyphNode("player"));
-          pLine.append(document.createTextNode(labels.length ? labels.join(", ") : "none visible"));
+          pLine.append(document.createTextNode(occupancy));
           box.append(pLine);
           const ents = Array.isArray(r.entities) ? r.entities : [];
           const eLine = el("p", "watch-ents");

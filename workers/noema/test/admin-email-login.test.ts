@@ -596,6 +596,8 @@ describe("admin login HTML", () => {
     expect(html).toContain("All agents");
     expect(html).toContain("awatch-roster");
     expect(html).toContain("NoemaAdminPhosphorPick");
+    expect(html).toContain('#awatch-sites .awatch-pick[aria-pressed="true"]');
+    expect(html).toContain(".awatch-phos{position:relative;z-index:1}");
     expect(html).not.toContain("legend.png");
   });
 

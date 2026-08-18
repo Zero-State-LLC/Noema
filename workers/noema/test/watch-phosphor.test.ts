@@ -25,6 +25,7 @@ import {
   drawPhosphorFrame,
   hitPhosphorNode,
   layoutPublicTopology,
+  phosphorInlineScript,
   phosphorLabelAnchor,
   phosphorCatalogMark,
   playerGlyphId,
@@ -539,6 +540,20 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain("clampPhosphorNode");
     expect(html).toContain(".watch-col{position:relative;z-index:1}");
     expect(html).toContain("const __name = function(fn) { return fn; }");
+  });
+
+  it("admin PIXEL click binds the operator follow hook", () => {
+    const src = phosphorInlineScript({
+      canvasId: "awatch-phosphor",
+      wrapId: "awatch-phos-wrap",
+      textBtnId: "awatch-mode-text",
+      pixelBtnId: "awatch-mode-pixel",
+      globalName: "NoemaAdminPhosphor",
+    });
+    expect(src).toContain('window["NoemaAdminPhosphorPick"]');
+    expect(src).toContain("session.hit");
+    expect(adminHtml()).toContain("NoemaAdminPhosphorPick");
+    expect(adminHtml()).toContain('setWatchFollow({ handle: "", room_id: id })');
   });
 
   it("boots the inlined client without esbuild __name", () => {

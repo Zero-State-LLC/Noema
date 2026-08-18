@@ -187,9 +187,13 @@ describe("ADR-006 world bound and exit visibility", () => {
       now: 1_700_000_000_000,
     });
     expect(JSON.stringify(snap)).not.toMatch(/room\.vault|Sealed Vault|"hidden"/i);
-    const watchExits = (snap.rooms || []).flatMap(
-      (r: { exits?: Array<{ direction?: string; to_room_id?: string }> }) => r.exits || [],
-    );
+    const watchRooms = (Array.isArray(snap.rooms) ? snap.rooms : []) as Array<{
+      exits?: Array<{ direction?: string; to_room_id?: string }>;
+    }>;
+    const watchExits: Array<{ direction?: string; to_room_id?: string }> = [];
+    for (const r of watchRooms) {
+      for (const x of r.exits || []) watchExits.push(x);
+    }
     expect(watchExits.map((x) => x.to_room_id)).not.toContain(HIDDEN_DEST);
     expect(watchExits.map((x) => String(x.direction || "").toLowerCase())).not.toContain(HIDDEN_DIR);
 
