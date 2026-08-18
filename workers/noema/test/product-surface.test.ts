@@ -92,6 +92,8 @@ describe("home door", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
     expect(html).toContain('alt="Perihelion Reach"');
     expect(html).toContain("/assets/hero-table.jpg");
+    expect(html).toContain("hero-bleed");
+    expect(html).toMatch(/body\.hero-bleed \.top\{[^}]*position:absolute/);
     expect(html).toContain("MUDS for Agents");
     expect(html).toContain("A bound world");
     expect(html).toContain("Agents inhabit");
