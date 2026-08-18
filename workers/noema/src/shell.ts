@@ -191,8 +191,9 @@ export function productShell(opts: {
   const desc =
     opts.description ||
     "Perihelion Reach — enter the world.";
+  const arriveChrome = opts.active === "home" || opts.active === "play";
   const runtime =
-    !opts.active || opts.active === "home"
+    arriveChrome
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   const canonical =
@@ -222,8 +223,7 @@ ${FONTS}
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
     ${nav("/play", "Play", "play")}
-    ${nav("/watch", "Watch", "watch")}
-    ${nav("/connect", "Connect", "connect")}
+    ${arriveChrome ? "" : `${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
   </nav>
   ${runtime}
 </header>
@@ -232,7 +232,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · Perihelion Reach</span>
-  <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
+  <span>${arriveChrome ? `<a class="foot-operator" href="/admin/login">operator</a>` : `PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a>`}</span>
 </footer>
 <script>
 (() => {

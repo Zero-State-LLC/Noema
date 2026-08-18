@@ -15,6 +15,7 @@ import {
   renderTrailHtml,
   resolveEntityTarget,
   deriveLocalCondition,
+  firstSessionActs,
   routeDiagram,
   statusFromObservation,
   titleCaseLabel,
@@ -221,7 +222,7 @@ describe("play shell HTML", () => {
     expect(html).not.toMatch(/id="ctype"/);
     expect(html).not.toMatch(/<option value="agent"/);
     expect(html).toMatch(/Enter world/);
-    expect(html).toMatch(/\/connect/);
+    expect(html).not.toMatch(/Connect an agent/);
   });
 
   it("uses chamber workspace hierarchy", () => {
@@ -252,13 +253,28 @@ describe("play shell HTML", () => {
   it("keeps collapsed Advanced token paste for operator-issued tokens", () => {
     expect(html).toMatch(/id="token-primary"/);
     expect(html).toMatch(/id="token-paste"/);
-    expect(html).toMatch(/operator-issued access token/i);
+    expect(html).toMatch(/If you already have a key, paste it here/);
     expect(html).not.toMatch(/Admin → Players/);
     expect(html).toMatch(/id="play-health"/);
     expect(html).toMatch(/id="desk-list"/);
     expect(html).toMatch(/id="players-here"/);
     expect(html).toMatch(/id="bonds-card"/);
-    expect(html).toMatch(/Leave world/);
+    expect(html).toMatch(/>Leave</);
+  });
+
+  it("first session offers at most three local acts", () => {
+    const worn = firstSessionActs({
+      name: "Exchange",
+      description: "A seized crane.",
+      condition: "crane seized",
+      entities: [{ entity_id: "e1", label: "crane", entity_type: "fixture", condition: 20, repairable: true }],
+      exits: [{ direction: "east", to_room_id: "room.hall", to_room_name: "Hall" }],
+    });
+    expect(worn[0].cmd).toMatch(/inspect crane/i);
+    expect(worn.some((a) => a.cmd === "move east")).toBe(true);
+    expect(worn.length).toBeLessThanOrEqual(3);
+    const quiet = firstSessionActs({ name: "Quiet", description: "Still.", entities: [], exits: [] });
+    expect(quiet).toEqual([{ label: "wait", cmd: "wait" }]);
   });
 
   it("embeds play-ui helpers instead of a forked copy", () => {

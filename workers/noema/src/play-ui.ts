@@ -1259,6 +1259,48 @@ export function fillSignalFeed(
   if (el.setAttribute) el.setAttribute("data-head", head);
 }
 
+export type SessionAct = { label: string; cmd: string };
+
+/** First-session Do list. At most three local acts. Never the verb dictionary. */
+export function firstSessionActs(
+  loc: {
+    name?: string;
+    description?: string;
+    condition?: string;
+    entities?: EntityObs[];
+    exits?: ExitObs[];
+  },
+  actions?: Array<{ label: string; cmd: string; available?: boolean }>,
+): SessionAct[] {
+  const out: SessionAct[] = [];
+  const seen = new Set<string>();
+  const add = (label: string, cmd: string) => {
+    const key = cmd.trim().toLowerCase();
+    if (!key || seen.has(key) || out.length >= 3) return;
+    seen.add(key);
+    out.push({ label, cmd });
+  };
+  const worn = (loc.entities || []).find((e) => {
+    const n = typeof e.condition === "number" ? e.condition : 100;
+    const blob = `${e.label || ""} ${loc.condition || ""} ${loc.description || ""}`;
+    return n < 70 || /seiz|worn|broken|thin|fail|snap|damage/i.test(blob);
+  });
+  if (worn && worn.label) add(`inspect the ${worn.label}`, `inspect ${worn.label}`);
+  const exits = (loc.exits || []).filter((x) => String(x.direction || "").trim());
+  if (exits.length) {
+    const d = String(exits[0].direction).toLowerCase();
+    add(`walk ${d}`, `move ${d}`);
+  }
+  for (const a of actions || []) {
+    if (a.available === false) continue;
+    const cmd = String(a.cmd || "").trim();
+    if (!cmd || /^look\b/i.test(cmd)) continue;
+    add(String(a.label || cmd), cmd);
+  }
+  if (!out.length) add("wait", "wait");
+  return out;
+}
+
 export function fillActionRail(
   el: DomRoot,
   actions: Array<{ label: string; cmd: string; available?: boolean }>,
@@ -1357,6 +1399,7 @@ export function playUiRuntimeSource(): string {
     fillWorldStrip,
     fillSignalFeed,
     fillActionRail,
+    firstSessionActs,
     fillDisclosure,
   ]
     .map((fn) => (typeof fn === "string" ? fn : fn.toString()))
