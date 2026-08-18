@@ -100,7 +100,7 @@ Phosphor is optional and load-gated. It never replaces the feed.
 - Reduced-motion path still idle / no rAF.
 - Humans and agents appear as ordinary Players on WATCH occupancy. Public labels still omit operator/smoke handles.
 - Glyph ids on the live snapshot (`room`→`loc`, Player→`player`, exit→`threshold`, entity→`glyphForEntity`, event→`glyphForProjection`) stay the closed 14-mark catalog.
-- Public WATCH key is the live SVG catalog (`#world-key`). Raster `/assets/legend.png` / `legend-mini.png` are not loaded.
+- Public WATCH and Admin Watch agents share the live SVG catalog (`#world-key`). Raster legend / glyph sheets are not shipped (`legend.png`, `legend-mini.png`, `glyphs-players.png`, `glyphs-entities.png`).
 - PIXEL canvas room / player / exit marks trace the same catalog `d` paths (`loc`, `player`, `unknown`, `threshold`). Certainty and occupancy still select the phosphor atlas id; MAJOR pulses stay motion-only.
 - Operator live LOOK/MOVE text is Admin `GET /v1/admin/watch`, not public WATCH.
 - Admin Watch agents is scoped to the signed-in operator: agents they minted or enrolled. Unowned/legacy agents remain visible. Other operators' owned agents and `controller_type` human testers stay off this surface.

@@ -4,7 +4,7 @@
  */
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
-import { glyphCatalog } from "./presentation/glyphs";
+import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 
 const FONTS = FONT_LINKS;
 
@@ -102,6 +102,17 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .glyph-comms,.glyph-event,.glyph-loc{color:var(--color-state-active)}
 .glyph-infra{color:var(--color-text-machine)}
 .glyph-resource,.glyph-org{color:var(--color-text-secondary)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.legend{margin:.75rem 0 0}
+.legend summary{
+  cursor:pointer;color:var(--muted);
+  font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
+}
+.key-body{display:grid;gap:.4rem .85rem;margin:.55rem 0 0}
+@media(min-width:720px){.key-body{grid-template-columns:1fr 1fr}}
+.key-row{display:flex;gap:.55rem;align-items:flex-start;font-size:.8rem;color:var(--ink)}
+.key-row .glyph{width:1.15rem;height:1.15rem}
+.key-row strong{font-weight:600}
 `;
 
 function adminChrome(title: string, body: string): string {
@@ -522,6 +533,7 @@ export function adminHtml(): string {
       <p class="kicker">04b / watch agents</p>
       <h2>Watch agents play</h2>
       <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
+      ${legendHtml()}
       <div class="awatch" style="margin-top:.75rem">
         <article class="card pad">
           <p class="kicker">Sites</p>
