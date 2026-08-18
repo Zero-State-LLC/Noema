@@ -187,6 +187,7 @@ export function productShell(opts: {
   body: string;
   extraCss?: string;
   description?: string;
+  bleed?: boolean;
 }): string {
   const nav = (href: string, label: string, key: ProductNav) =>
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
@@ -216,7 +217,7 @@ export function productShell(opts: {
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
 </head>
-<body>
+<body${opts.bleed ? ' class="hero-bleed"' : ""}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">

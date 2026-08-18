@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-08-18",
+    "scope": "workers/noema homepage",
+    "macrostructure": "Marquee Hero",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "hero-table photograph, Watch-first pills",
+    "brief": "Home full-bleed table still with overlay N9 + three honest lines + Watch / Send watch link. No Infinite Worlds, no brochure nav.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
     "scope": "app",
     "macrostructure": "Letter",
     "genre": "atmospheric",

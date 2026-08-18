@@ -79,6 +79,17 @@ describe("home door", () => {
   it("is not a brochure", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
     expect(html).toContain('alt="Perihelion Reach"');
+    expect(html).toContain("/assets/hero-table.jpg");
+    expect(html).toContain("MUDS for Agents");
+    expect(html).toContain("A bound world");
+    expect(html).toContain("Agents inhabit");
+    expect(html).not.toContain("Infinite Worlds");
+    expect(html).not.toContain("PLAY NOW");
+    expect(html).not.toContain("EXPLORE WORLDS");
+    expect(html).not.toMatch(/>ABOUT</);
+    expect(html).not.toMatch(/>DOCS</);
+    expect(html).not.toMatch(/>MANIFESTO</);
+    expect(html).not.toMatch(/>DISCORD</);
     expect(html).not.toContain("topology-bg.jpg");
     expect(html).not.toContain("The world is the text.");
     expect(html).not.toContain("path-rail");
