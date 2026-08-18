@@ -57,6 +57,7 @@ const EXTRA = `
 .watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.35rem}
 .watch-site{padding:.45rem 0 .55rem;border-bottom:1px solid var(--line);font:500 .86rem/1.45 var(--font-mono)}
 .watch-site.active{color:var(--ink)}
+.watch-site.picked{border-color:var(--color-state-active);color:var(--color-state-active)}
 .watch-site-row{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center}
 .watch-site-name{color:var(--ink)}
 .watch-site summary{
@@ -94,9 +95,10 @@ const EXTRA = `
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
 .watch-atmos{
-  position:absolute;inset:0;pointer-events:none;opacity:.14;
+  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.14;
   background:url(/assets/watch-spectator.jpg) center/cover no-repeat;
 }
+.watch-col{position:relative;z-index:1}
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero,.watch-hero.major{
     transition:none!important;animation:none!important;
@@ -112,7 +114,7 @@ const EXTRA = `
 .watch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
-  border:1px solid var(--line);
+  border:1px solid var(--line);cursor:pointer;
 }
 `;
 
@@ -155,9 +157,9 @@ export function watchHtml(): string {
       </nav>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
         <div class="watch-phos-bar">
-          <span>Public sketch — not the world.</span>
+          <span id="watch-phos-caption">Public sketch — not the world. Click a site to look closer.</span>
         </div>
-        <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch"></canvas>
+        <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch. Click a site to look closer."></canvas>
       </div>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
     </section>
@@ -175,7 +177,7 @@ export function watchHtml(): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null };
     const $ = id => document.getElementById(id);
 
     try {
@@ -277,6 +279,7 @@ export function watchHtml(): string {
       return (events || []).filter(e => e.room_id === roomId).slice(0, 3);
     }
     function render(data) {
+      state.last = data;
       const rooms = Array.isArray(data.rooms) ? data.rooms : [];
       const players = data.players_present ?? 0;
       const status = data.world_status || "";
@@ -339,7 +342,9 @@ export function watchHtml(): string {
         map.append(el("li", "watch-empty", "No public sites exposed yet."));
       } else {
         rooms.forEach(r => {
-          const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : ""));
+          const picked = state.focusRoomId && r.room_id === state.focusRoomId;
+          const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : "") + (picked ? " picked" : ""));
+          li.setAttribute("data-room", r.room_id || "");
           const row = el("div", "watch-site-row");
           row.append(glyphNode(r.glyph || "loc"));
           row.append(el("span", "watch-site-name", r.name || r.room_id || "site"));
@@ -390,6 +395,7 @@ export function watchHtml(): string {
           const rec = siteRecent(events, r.room_id);
           box.append(el("p", "", "Recent:    " + (rec.length ? rec.map(e => e.line).join(" · ") : "nothing public yet")));
           det.append(box);
+          if (picked) det.open = true;
           li.append(det);
           map.append(li);
         });
@@ -403,7 +409,11 @@ export function watchHtml(): string {
         pre.hidden = true;
         pre.textContent = "";
       }
-      if (window.NoemaPhosphor) window.NoemaPhosphor.update(data);
+      if (window.NoemaPhosphor) {
+        const snap = state.focusRoomId ? Object.assign({}, data, { focus_room_id: state.focusRoomId }) : data;
+        window.NoemaPhosphor.update(snap);
+      }
+      paintPhosCaption();
     }
 
     function showUnavailable(msg) {
@@ -477,6 +487,29 @@ export function watchHtml(): string {
       refreshHttp();
     }
 
+    function paintPhosCaption() {
+      const cap = $("watch-phos-caption");
+      if (!cap) return;
+      if (!state.focusRoomId) {
+        cap.textContent = "Public sketch — not the world. Click a site to look closer.";
+        return;
+      }
+      const rooms = state.last && Array.isArray(state.last.rooms) ? state.last.rooms : [];
+      const hit = rooms.find((r) => r && r.room_id === state.focusRoomId);
+      const name = (hit && (hit.name || hit.room_id)) || "this site";
+      cap.textContent = "Looking at " + name + " — not the world.";
+    }
+    window.NoemaPhosphorPick = function(roomId) {
+      const id = String(roomId || "");
+      if (!id) return;
+      state.focusRoomId = state.focusRoomId === id ? "" : id;
+      if (state.last) render(state.last);
+      else paintPhosCaption();
+      if (state.focusRoomId) {
+        const site = document.querySelector('[data-room="' + CSS.escape(state.focusRoomId) + '"]');
+        if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
+      }
+    };
     $("watch-refresh").addEventListener("click", refresh);
     $("watch-pause").addEventListener("click", () => {
       state.paused = !state.paused;

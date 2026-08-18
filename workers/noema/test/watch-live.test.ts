@@ -458,6 +458,8 @@ describe("watch HTML surface", () => {
     expect(html).not.toMatch(/sparkline|WebGL/i);
     expect(html).toContain("/v1/watch/stream");
     expect(html).toContain('id="watch-phosphor"');
+    expect(html).toContain("NoemaPhosphorPick");
+    expect(html).toContain("watch-phos-caption");
     expect(html).toContain('id="world-key"');
     expect(html).not.toContain("/assets/legend-mini.png");
     expect(html).not.toContain("/assets/legend.png");

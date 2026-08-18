@@ -8,6 +8,7 @@ import { GLYPH_IDS, glyphMeta, type GlyphId } from "./presentation/glyphs";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
+export const PHOSPHOR_HIT_RADIUS = 28;
 export const PHOSPHOR_MAX_FPS = 20;
 export const PHOSPHOR_JS_BUDGET = 100 * 1024;
 export const PHOSPHOR_ASSET_BUDGET = 200 * 1024;
@@ -396,14 +397,15 @@ export function layoutPublicTopology(
   const nodes: PhosphorNode[] = publicRooms.map((room) => {
     const id = String(room.room_id);
     const p = pos.get(id) || [0, 0];
-    const x = padX + ((p[0] - minX) / spanX) * innerW;
-    const y = padY + ((p[1] - minY) / spanY) * innerH;
+    const rawX = padX + ((p[0] - minX) / spanX) * innerW;
+    const rawY = padY + ((p[1] - minY) / spanY) * innerH;
+    const clamped = clampPhosphorNode(rawX, rawY);
     const labels = (room.public_player_labels || []).map(safePhosphorLabel).filter(Boolean);
     return {
       room_id: id,
       name: safePhosphorLabel(room.name || id),
-      x: Math.round(x),
-      y: Math.round(y),
+      x: clamped.x,
+      y: clamped.y,
       certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
@@ -693,9 +695,8 @@ function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
   if (!label) return;
   ctx.fillStyle = PHOSPHOR_COLORS.dim;
   ctx.font = "8px ui-monospace, monospace";
-  const tx = Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, x + 10));
-  const ty = Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, y + 3));
-  ctx.fillText(label, tx, ty);
+  const a = phosphorLabelAnchor(x, y);
+  ctx.fillText(label, a.x, a.y);
 }
 
 const MARK_RING: Array<[number, number]> = [
@@ -828,7 +829,75 @@ export type PhosphorSession = {
   update(snapshot: PhosphorSnapshot): void;
   fail(): void;
   tick(now?: number): void;
+  hit(x: number, y: number): PhosphorNode | null;
 };
+
+export function phosphorLabelAnchor(x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, Number(x) + 10)),
+    y: Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, Number(y) + 3)),
+  };
+}
+
+function clampPhosphorNode(x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.max(12, Math.min(PHOSPHOR_WIDTH - 12, Math.round(x))),
+    y: Math.max(14, Math.min(PHOSPHOR_HEIGHT - 14, Math.round(y))),
+  };
+}
+
+export function canvasPointFromEvent(
+  canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } },
+  ev: { clientX: number; clientY: number },
+): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  const w = Number(rect.width) || PHOSPHOR_WIDTH;
+  const h = Number(rect.height) || PHOSPHOR_HEIGHT;
+  return {
+    x: ((Number(ev.clientX) - Number(rect.left)) / w) * PHOSPHOR_WIDTH,
+    y: ((Number(ev.clientY) - Number(rect.top)) / h) * PHOSPHOR_HEIGHT,
+  };
+}
+
+/** Nearest public node or its room label. Hidden rooms never enter lastLayout. */
+export function hitPhosphorNode(
+  layout: PhosphorLayout | undefined | null,
+  x: number,
+  y: number,
+  radius = PHOSPHOR_HIT_RADIUS,
+): PhosphorNode | null {
+  const nodes = layout && Array.isArray(layout.nodes) ? layout.nodes : [];
+  let best: PhosphorNode | null = null;
+  let bestD = radius * radius;
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (!n || !n.room_id) continue;
+    const nx = Number(n.x);
+    const ny = Number(n.y);
+    const a = phosphorLabelAnchor(nx, ny);
+    const x0 = a.x - 2;
+    const y0 = a.y - 10;
+    const x1 = a.x + 56;
+    const y1 = a.y + 6;
+    const cx = Math.max(x0, Math.min(x1, x));
+    const cy = Math.max(y0, Math.min(y1, y));
+    const spots = [
+      [nx, ny],
+      [a.x, a.y],
+      [cx, cy],
+    ];
+    for (let s = 0; s < spots.length; s++) {
+      const dx = spots[s][0] - x;
+      const dy = spots[s][1] - y;
+      const d = dx * dx + dy * dy;
+      if (d <= bestD) {
+        bestD = d;
+        best = n;
+      }
+    }
+  }
+  return best;
+}
 
 type CanvasLike = {
   width: number;
@@ -961,6 +1030,9 @@ export function createPhosphorSession(opts: {
       paint(t);
       if (!pulses.length) stopRaf();
     },
+    hit(x: number, y: number) {
+      return hitPhosphorNode(lastLayout, x, y);
+    },
   };
   return session;
 }
@@ -981,6 +1053,7 @@ export function phosphorInlineScript(bind?: {
     const __name = function(fn) { return fn; };
     const PHOSPHOR_WIDTH = ${PHOSPHOR_WIDTH};
     const PHOSPHOR_HEIGHT = ${PHOSPHOR_HEIGHT};
+    const PHOSPHOR_HIT_RADIUS = ${PHOSPHOR_HIT_RADIUS};
     const PHOSPHOR_MAX_FPS = ${PHOSPHOR_MAX_FPS};
     const PHOSPHOR_COLORS = ${JSON.stringify(PHOSPHOR_COLORS)};
     const PHOSPHOR_DIR = ${JSON.stringify(PHOSPHOR_DIR)};
@@ -995,6 +1068,8 @@ export function phosphorInlineScript(bind?: {
     const dirVec = ${dirVec.toString()};
     const occupyKey = ${occupyKey.toString()};
     const nudge = ${nudge.toString()};
+    const phosphorLabelAnchor = ${phosphorLabelAnchor.toString()};
+    const clampPhosphorNode = ${clampPhosphorNode.toString()};
     const layoutPublicTopology = ${layoutPublicTopology.toString()};
     const collectPulses = ${collectPulses.toString()};
     const expirePulses = ${expirePulses.toString()};
@@ -1016,6 +1091,8 @@ export function phosphorInlineScript(bind?: {
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
+    const canvasPointFromEvent = ${canvasPointFromEvent.toString()};
+    const hitPhosphorNode = ${hitPhosphorNode.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
 
     const canvas = document.getElementById(${JSON.stringify(canvasId)});
@@ -1040,6 +1117,17 @@ export function phosphorInlineScript(bind?: {
     }
     if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); syncMode(); });
     if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); syncMode(); });
+    if (canvas && typeof canvas.addEventListener === "function") {
+      try { if (canvas.style) canvas.style.cursor = "pointer"; } catch (e) {}
+      canvas.addEventListener("click", function(ev) {
+        if (session.mode !== "pixel") return;
+        const pt = canvasPointFromEvent(canvas, ev);
+        const n = session.hit(pt.x, pt.y);
+        if (!n) return;
+        const pick = window[${JSON.stringify(globalName + "Pick")}];
+        if (typeof pick === "function") pick(n.room_id);
+      });
+    }
     window[${JSON.stringify(globalName)}] = session;
     syncMode();
     document.addEventListener("visibilitychange", function() {

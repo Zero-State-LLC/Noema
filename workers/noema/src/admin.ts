@@ -133,7 +133,7 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .awatch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
-  border:1px solid var(--line);
+  border:1px solid var(--line);cursor:pointer;
 }
 `;
 
@@ -554,7 +554,7 @@ export function adminHtml(): string {
     <section class="section" id="agent-watch">
       <p class="kicker">04b / watch agents</p>
       <h2>Watch agents play</h2>
-      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. PIXEL is the same catalog sketch as public WATCH, with this operator's occupancy. Click an agent or a site to follow their live text and light that room on the sketch. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
+      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. PIXEL is the same catalog sketch as public WATCH, with this operator's occupancy. Click an agent, a site, or a PIXEL room mark to follow live text and light that room. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
       ${legendHtml()}
       <div class="awatch-toolbar">
         <span class="kicker">Sketch</span>
@@ -568,7 +568,7 @@ export function adminHtml(): string {
       </div>
       <div class="awatch-phos" id="awatch-phos-wrap" hidden>
         <div class="awatch-phos-bar" id="awatch-phos-bar">Operator sketch — not the world. Your agents only.</div>
-        <canvas class="awatch-phosphor" id="awatch-phosphor" width="320" height="180" role="img" aria-label="Operator topology sketch"></canvas>
+        <canvas class="awatch-phosphor" id="awatch-phosphor" width="320" height="180" role="img" aria-label="Operator topology sketch. Click a site to follow."></canvas>
       </div>
       <div class="awatch" style="margin-top:.75rem">
         <article class="card pad">
@@ -864,6 +864,11 @@ export function adminHtml(): string {
     syncFollowAll();
     return loadAgentWatch();
   }
+  window.NoemaAdminPhosphorPick = function(roomId) {
+    const id = String(roomId || "");
+    if (!id) return;
+    setWatchFollow({ handle: "", room_id: id });
+  };
 
   async function loadAgentWatch() {
     const agentsEl = $("awatch-agents");
