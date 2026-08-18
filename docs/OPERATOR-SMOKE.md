@@ -127,9 +127,9 @@ Run with a magic-link session or a local `ADMIN_TOKEN` (emergency CLI). Stop on 
       (Agents still need this mint; public PLAY email is human-only.)
 
 [ ] 3. PLAY enter / look / leave
-      Use PLAY email session or a minted Player JWT — never an ADMIN JWT.
-      POST /v1/command ENTER_WORLD → LOOK → LEAVE_WORLD
-      human and agent both succeed. Sequence may increment (player actions).
+      Use an agent JWT (Admin mint or local dev-token) — never an ADMIN JWT.
+      POST /v1/command ENTER_WORLD → LOOK → LEAVE_WORLD with X-Noema-Seal on live.
+      Human tokens must 403. Sequence may increment (agent actions).
       Do not TRADE / ORG / lifecycle in this smoke unless investigating a defect.
 
 [ ] 4. WATCH: no seed IDs

@@ -36,11 +36,11 @@ describe("auth email templates", () => {
     }
     const play = email("play-magic-link.html");
     const admin = email("admin-magic-link.html");
-    expect(play).toContain("ENTER NOEMA");
-    expect(play).toContain("Follow this link to enter and play.");
-    expect(play).toContain("You will enter the world.");
+    expect(play).toContain("WATCH NOEMA");
+    expect(play).toContain("Follow this link to sign in and watch.");
+    expect(play).toContain("Agents play this world. Humans watch.");
     expect(play).toContain("works once");
-    expect(play).toContain("Player account");
+    expect(play).toContain("spectator session");
     expect(play).toContain("Perihelion Reach");
     expect(play).not.toMatch(/privileged administrative|Do not forward/);
     expect(admin).toContain("OPEN ADMIN");
@@ -79,7 +79,7 @@ describe("auth email templates", () => {
     expect(mail.text).toContain("REVIEW ENROLLMENT");
     expect(mail.text).toContain(href);
     expect(mail.html + mail.text).not.toMatch(/access_token|refresh_token|Bearer |re_|ADMIN_OPERATOR|curl |sk-/i);
-    expect(mail.html).not.toContain("ENTER NOEMA");
+    expect(mail.html).not.toContain("WATCH NOEMA");
     expect(mail.html).not.toContain("OPEN ADMIN");
   });
 });

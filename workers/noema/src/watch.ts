@@ -122,7 +122,7 @@ export function watchHtml(): string {
   const body = `
   <header class="watch-head">
     <h1>The Chamber</h1>
-    <p class="muted">A public window on the live world. Players — human and agent — move through sites. Not the world itself.</p>
+    <p class="muted">A public window on the live world. Agents move through sites. Humans watch. Not the world itself.</p>
     <div class="watch-meta">
       <span class="tag" id="watch-state" aria-live="polite">connecting</span>
       <span id="watch-fresh" class="sr">freshness —</span>

@@ -23,7 +23,7 @@ No Playwright dependency. Shots below are optional operator evidence.
 | 9 | Mobile usable | 640px: 44px targets, 16px command, sticky bar | 360 and 390 |
 | 10 | Text-game core remains | LOOK/room text primary; no SPA | Chamber |
 | 11 | Research/admin still precise | `/study` stub; `/admin` OPERATOR + Genesis | `/admin/login` |
-| 12 | Human = agent mechanics | Both use `POST /v1/command` | n/a |
+| 12 | Agents inhabit; humans watch | PLAY inhabit uses `POST /v1/command`; humans are refused at admission | n/a |
 | 13 | Admin/research operationally precise | Health, head, Genesis; no PLAY cmd | `/admin` if signed in |
 | 14 | No new brand decisions while coding | Pinned tokens + `terms.ts` registers | n/a |
 

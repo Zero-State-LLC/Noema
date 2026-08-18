@@ -82,11 +82,11 @@ describe("composePlayMail", () => {
     const href = "https://noema.guru/play/callback?token_hash=abc&type=magiclink";
     const composed = composePlayMail("Ada@X.io", href);
     expect(composed.to).toBe("ada@x.io");
-    expect(composed.subject).toBe("Enter NOEMA");
-    expect(composed.text).toContain("ENTER NOEMA");
+    expect(composed.subject).toBe("Watch NOEMA");
+    expect(composed.text).toContain("WATCH NOEMA");
     expect(composed.text).toContain(href);
     expect(composed.text).toContain("Perihelion Reach");
-    expect(composed.html).toContain("ENTER NOEMA");
+    expect(composed.html).toContain("WATCH NOEMA");
     expect(composed.html).toContain(href.replace(/&/g, "&amp;"));
     expect(composed.html).not.toMatch(/privileged administrative|OPEN ADMIN/i);
   });

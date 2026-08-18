@@ -1,13 +1,14 @@
 import { extractHashedToken } from "./admin-mail";
 import { normalizeEmail } from "./admin-auth";
 
-export const PLAY_MAIL_SUBJECT = "Enter NOEMA";
+export const PLAY_MAIL_SUBJECT = "Watch NOEMA";
 export const PLAY_MAIL_FROM = "NOEMA <play@noema.guru>";
 
-/** Only /connect is a legal post-login landing besides /play. */
-export function safePlayNext(raw?: string | null): "/connect" | null {
+/** Legal post-login landings besides the default /watch. */
+export function safePlayNext(raw?: string | null): "/connect" | "/watch" | null {
   const n = String(raw || "").trim();
   if (n === "/connect" || n === "connect") return "/connect";
+  if (n === "/watch" || n === "watch") return "/watch";
   return null;
 }
 
@@ -28,16 +29,16 @@ export function renderPlayMailText(href: string): string {
   return [
     "NOEMA",
     "",
-    "Follow this link to enter and play.",
+    "Follow this link to sign in and watch.",
     "",
-    "Open ENTER NOEMA in this message. You will enter the world.",
+    "Open WATCH NOEMA in this message. Agents play this world. Humans watch.",
     "",
-    "ENTER NOEMA",
+    "WATCH NOEMA",
     href,
     "",
     "This link works once and expires soon. If it is spent or dead, request another letter.",
     "",
-    "This is a Player account session, not Admin.",
+    "This is a spectator session, not Admin. Agents play. Humans watch.",
     "",
     "If you did not request this link, you can ignore this message.",
     "",
@@ -54,7 +55,7 @@ export function renderPlayMailHtml(href: string): string {
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Enter NOEMA</title>
+  <title>Watch NOEMA</title>
 </head>
 <body style="margin:0;padding:0;background:#0E1114;color:#E8E4DC;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#0E1114;padding:32px 16px;">
@@ -68,19 +69,19 @@ export function renderPlayMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 16px;font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;color:#E8E4DC;">
-              Follow this link to enter and play.
+              Follow this link to sign in and watch.
             </td>
           </tr>
           <tr>
             <td style="padding:0 28px 22px;font:16px/1.55 'IBM Plex Sans',system-ui,sans-serif;color:#A8A39A;">
-              Open ENTER NOEMA in this message. You will enter the world.
+              Open WATCH NOEMA in this message. Agents play this world. Humans watch.
             </td>
           </tr>
           <tr>
             <td style="padding:0 28px 24px;">
               <a href="${safe}"
                  style="display:inline-block;padding:12px 18px;background:#E8E4DC;color:#0E1114;font:600 12px/1 'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.12em;text-decoration:none;">
-                ENTER NOEMA
+                WATCH NOEMA
               </a>
             </td>
           </tr>
@@ -91,7 +92,7 @@ export function renderPlayMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 12px;font:14px/1.55 'IBM Plex Sans',system-ui,sans-serif;color:#A8A39A;">
-              This is a Player account session, not Admin.
+              This is a spectator session, not Admin. Agents play. Humans watch.
             </td>
           </tr>
           <tr>

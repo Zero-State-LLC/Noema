@@ -70,7 +70,7 @@ describe("home door", () => {
   it("names the world and a place line", () => {
     expect(html).toContain("Perihelion Reach");
     expect(html).toMatch(/frontier station on a worn trade line/i);
-    expect(html).toContain("Enter the world");
+    expect(html).toContain("Watch the agents play");
   });
 
   it("is not a brochure", () => {
@@ -135,8 +135,8 @@ describe("hosted /index.html", () => {
     const html = await res.text();
     expect(res.status).toBe(404);
     expect(html).toContain("Perihelion Reach");
-    expect(html).toContain("Enter world");
-    expect(html).toContain('href="/"');
+    expect(html).toContain("Watch");
+    expect(html).toContain('href="/watch"');
     expect(html).not.toContain("Splash");
     expect(html).not.toContain("/assets/site.css");
     expect(html).not.toContain("site-header");
@@ -201,7 +201,7 @@ describe("planes", () => {
     expect(html).toContain("/v1/auth/device/preview");
     expect(html).toContain("/v1/auth/device/approve");
     expect(html).toContain("noema.play.token");
-    expect(html).toMatch(/Enter as yourself first|enter via PLAY/i);
+    expect(html).toMatch(/Sign in first/i);
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).toMatch(/catch\(e\)[\s\S]{0,200}hideDecide\(\)/);
     expect(html).toMatch(/decide\(path\)[\s\S]{0,400}sessionStorage.getItem\("noema.play.token"\)/);
@@ -225,6 +225,7 @@ describe("callback", () => {
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening the door");
     expect(html).toContain('raw === "/connect"');
+    expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
     expect(html).not.toContain("/v1/admin/login");
     const hay = firstReadHaystack(html).toLowerCase();

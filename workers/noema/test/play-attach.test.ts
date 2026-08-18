@@ -6,6 +6,7 @@ import { countEnteredPlayers, countLivePlayers, playReady } from "../src/ops";
 import { humanizeError, waitingCopy } from "../src/play-ui";
 import { playCallbackHtml } from "../src/play-login-html";
 import { playHtml } from "../src/play";
+import { ACCEPTED_SEALS } from "../src/seal";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "../src/types";
 import { applyWorldCommand, buildObservation, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
 
@@ -131,7 +132,7 @@ async function authedCommand(world: WorldRuntime, envelope: CommandEnvelope) {
   } as unknown as Env;
   const minted = await mintControllerToken(env, {
     handle: "ada",
-    controllerType: "human",
+    controllerType: "agent",
     playerId: "player.a7a22752ad02",
     identityId: "11111111-2222-3333-4444-555555555555",
     amr: "email_magic_link",
@@ -139,7 +140,11 @@ async function authedCommand(world: WorldRuntime, envelope: CommandEnvelope) {
   return worker.fetch(
     new Request("https://noema.guru/v1/command", {
       method: "POST",
-      headers: { "content-type": "application/json", Authorization: `Bearer ${minted.access_token}` },
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${minted.access_token}`,
+        "X-Noema-Seal": ACCEPTED_SEALS[0] || "",
+      },
       body: JSON.stringify(envelope),
     }),
     env,
@@ -242,7 +247,7 @@ describe("play attach — canonical head snapshot", () => {
     expect(looked.observation?.location?.name).toMatch(/Relay/);
   });
 
-  it("authenticated magic-link session ENTER then LOOK attaches against a head snapshot", async () => {
+  it("authenticated agent session ENTER then LOOK attaches against a head snapshot", async () => {
     const head = canonicalWorldState(perihelionWorld()) as WorldRuntime;
     const enter = await authedCommand(head, {
       request_id: "web.head-enter",
@@ -261,7 +266,8 @@ describe("play attach — canonical head snapshot", () => {
     expect(entered.observation?.in_world).toBe(true);
     expect(entered.observation?.location?.name).toMatch(/Relay/);
     expect(head.players["player.a7a22752ad02"]?.entered).toBe(true);
-    expect(countLivePlayers(head.players)).toBe(1);
+    expect(countEnteredPlayers(head.players)).toBe(1);
+    expect(countLivePlayers(head.players)).toBe(0);
 
     const look = await authedCommand(head, {
       request_id: "web.head-look",
@@ -289,7 +295,7 @@ describe("play attach — canonical head snapshot", () => {
     const readyBody = (await ready.json()) as { ready?: boolean; world?: { players?: number; playable?: boolean } };
     expect(readyBody.ready).toBe(true);
     expect(readyBody.world?.playable).toBe(true);
-    expect(readyBody.world?.players).toBeGreaterThanOrEqual(1);
+    expect(readyBody.world?.players).toBe(0);
   });
 
   it("ENTER then LOOK still attaches when the head snapshot has an org without members", async () => {

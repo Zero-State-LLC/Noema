@@ -1,5 +1,5 @@
 /**
- * Public Player email gate + magic-link callback (admin ≠ player).
+ * Public human email gate + magic-link callback (admin ≠ player; humans watch).
  */
 
 import { productShell } from "./shell";
@@ -9,12 +9,12 @@ export function playEmailGateMarkup(opts: { continueToPlay?: boolean; operatorLi
   const operatorLink = opts.operatorLink !== false;
   return `
 <form id="play-login-form">
-  <p class="muted">A link signs you into the world.</p>
+  <p class="muted">A link signs you in so you can watch.</p>
   <label for="email">Email</label>
   <input id="email" type="email" autocomplete="username" required/>
   <button class="btn primary block form-submit" type="submit">Send play link</button>
 </form>
-${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/play" hidden>Continue to PLAY</a>` : ""}
+${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/watch" hidden>Continue to WATCH</a>` : ""}
 <p class="notice" id="play-login-notice" role="status"></p>
 ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator login</a></p>` : ""}
 <script>
@@ -74,7 +74,7 @@ export function playCallbackHtml(): string {
       if (data.handle) sessionStorage.setItem("noema.play.handle", String(data.handle).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32));
       if (data.player_id) sessionStorage.setItem("noema.play.player_id", String(data.player_id));
       const raw = search.get("next") || hash.get("next") || "";
-      const next = raw === "/connect" || raw === "connect" ? "/connect" : "/play";
+      const next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       location.href = next;
     } catch (err) {
       location.href = "/play?error=1";

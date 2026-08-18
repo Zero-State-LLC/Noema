@@ -5,6 +5,7 @@ import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
 import { admitTestWorldId, isolatedLedgerEventId, resolveLoadWorldId } from "../src/test-world";
 import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
+import { ACCEPTED_SEALS } from "../src/seal";
 import type { Env } from "../src/types";
 
 const SIGNING = "test-signing-secret-isolated-world";
@@ -47,7 +48,7 @@ function env(calls: DoCall[], defaultWorldId = "world-01"): Env {
 }
 
 async function playerToken() {
-  const minted = await mintControllerToken(env([]), { handle: "probe", controllerType: "human" });
+  const minted = await mintControllerToken(env([]), { handle: "probe", controllerType: "agent" });
   return minted.access_token;
 }
 
@@ -64,9 +65,14 @@ async function hit(
   calls: DoCall[],
   defaultWorldId?: string,
 ) {
+  const hdrs: Record<string, string> = { "content-type": "application/json", ...headers };
+  const liveSeal = ACCEPTED_SEALS[0];
+  if (hdrs.Authorization && !hdrs["X-Noema-Seal"] && liveSeal) {
+    hdrs["X-Noema-Seal"] = liveSeal;
+  }
   const req = new Request(`https://noema.local${path}`, {
     method: "POST",
-    headers: { "content-type": "application/json", ...headers },
+    headers: hdrs,
     body: JSON.stringify(body),
   });
   return worker.fetch(req, env(calls, defaultWorldId));

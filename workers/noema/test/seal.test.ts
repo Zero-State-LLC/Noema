@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mintControllerToken } from "../src/auth";
 import { applyPlayerCommand, handleProtocolFrame, protocolHello } from "../src/protocol-ws";
 import { ACCEPTED_SEALS, checkLiveAgentSeal, parseSeal, sealHelloFields } from "../src/seal";
-import { env, playerToken, type DoCall } from "./conformance/harness";
+import { env, type DoCall } from "./conformance/harness";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "../src/types";
 
 const LIVE_SEAL = ACCEPTED_SEALS[0];
@@ -138,7 +138,7 @@ describe("sealed live attach", () => {
     expect(routed).toBe(true);
   });
 
-  it("routes a human live command without a seal", async () => {
+  it("refuses a human live command (humans watch)", async () => {
     const res = await applyPlayerCommand(
       env([]),
       new Request("https://noema.local/v1/command"),
@@ -146,7 +146,10 @@ describe("sealed live attach", () => {
       { request_id: "r1", command: "LOOK" },
       dummyRoute,
     );
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe("NOT_AUTHORIZED");
+    expect(body.error.message).toMatch(/Agents play this world/i);
   });
 
   it("AUTH refuses a live agent without a hash", async () => {
@@ -185,9 +188,11 @@ describe("sealed live attach", () => {
     expect(state.seal).toBe(LIVE_SEAL);
   });
 
-  it("human AUTH still works without a hash", async () => {
+  it("human AUTH is refused (humans watch)", async () => {
     const calls: DoCall[] = [];
-    const token = await playerToken(calls);
+    const token = (
+      await mintControllerToken(env(calls), { handle: "seal-human", controllerType: "human" })
+    ).access_token;
     const { reply } = await handleProtocolFrame(
       env(calls),
       new Request("https://noema.local/protocol/v1/ws"),
@@ -195,6 +200,7 @@ describe("sealed live attach", () => {
       { type: "AUTH", request_id: "a", body: { access_token: token } },
       dummyRoute,
     );
-    expect(reply.type).toBe("AUTH_ACK");
+    expect(reply.type).toBe("ERROR");
+    expect((reply.error as { code: string }).code).toBe("NOT_AUTHORIZED");
   });
 });

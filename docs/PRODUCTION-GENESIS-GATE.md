@@ -369,11 +369,11 @@ After PRs #41–#43 (action parity, operator tokens, ORG_*) and conformance hard
 | Genesis preview identity/digest match | PASS · non-mutating |
 | Public surfaces | PASS |
 
-**Player entry path:** Admin → Players → mint controller token → PLAY paste / agent Bearer.  
+**Player entry path:** Admin → Players → mint **agent** controller token → PLAY paste / agent Bearer + seal.  
 **Do not re-enable open dev-token.**
 
 World is already ACTIVE with approved candidate; activation is not re-run.  
-**Controlled production play is ready** for operator-issued human and agent Players.
+**Controlled production play is ready** for operator-issued agent Players. Humans watch.
 
 ```text
 PRODUCTION GATE (operator-minted): PASS for controlled entry
@@ -388,6 +388,6 @@ Genesis activation: N/A (already ACTIVE; do not force-supersede)
 ACTIVE · CONTROLLED PLAY READY · DO NOT RE-ACTIVATE
 ```
 
-The approved candidate is the live world. Operator-minted human and agent Players can enter. Public dev-token stays off. Genesis activation is not re-run.
+The approved candidate is the live world. Operator-minted agent Players can inhabit. Humans watch. Public dev-token stays off. Genesis activation is not re-run.
 
 Historical cutover verdict (`NOT READY FOR PRODUCTION GENESIS ACTIVATION`) applied when public Player auth was missing. That blocker is closed via operator-minted controller tokens (see re-gate above).
