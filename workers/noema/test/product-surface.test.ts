@@ -93,6 +93,7 @@ describe("hosted /index.html", () => {
       const res = await worker.fetch(new Request(`https://noema.guru${path}`), bareEnv);
       const html = await res.text();
       expect(res.status).toBe(200);
+      expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
       expect(html).toContain("Perihelion Reach");
       expect(html).toContain("/v1/play/login/request");
       expect(html).not.toContain("/assets/site.js");

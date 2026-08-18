@@ -1,7 +1,7 @@
 /** Agent Protocol v1 WebSocket. Same Player principal as HTTP. */
 
 import { mintHs256, verifyHs256 } from "./jwt";
-import { err, json, requireScope, resolvePrincipal } from "./auth";
+import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev } from "./auth";
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
@@ -33,14 +33,22 @@ function protoErr(requestId: string | undefined, code: string, message: string, 
   };
 }
 
-export function protocolHelloAck(requestId: string | undefined, extra?: Record<string, unknown>) {
+export function protocolAuthMethods(env?: { NOEMA_ENV?: string }): string[] {
+  return isExplicitLocalDev(env || {}) ? ["controller-token", "dev"] : ["controller-token"];
+}
+
+export function protocolHelloAck(
+  requestId: string | undefined,
+  extra?: Record<string, unknown>,
+  env?: { NOEMA_ENV?: string },
+) {
   return {
     protocol: "agent-protocol/v1",
     type: "HELLO_ACK",
     request_id: requestId,
     body: {
       selected_protocol: "agent-protocol/v1",
-      auth_methods: ["controller-token", "dev"],
+      auth_methods: protocolAuthMethods(env),
       transports: ["websocket", "http"],
       websocket_uri: "/protocol/v1/ws",
       stage: "0",
@@ -49,7 +57,7 @@ export function protocolHelloAck(requestId: string | undefined, extra?: Record<s
   };
 }
 
-export function protocolHello(body: Frame): Record<string, unknown> {
+export function protocolHello(body: Frame, env?: { NOEMA_ENV?: string }): Record<string, unknown> {
   const offeredRaw = body.body?.supported_protocols;
   const offered = Array.isArray(offeredRaw) ? offeredRaw.map((p) => String(p)) : [];
   if (offered.length && !offered.includes("agent-protocol/v1")) {
@@ -57,7 +65,7 @@ export function protocolHello(body: Frame): Record<string, unknown> {
   }
   const extra: Record<string, unknown> = {};
   if (body.body?.resume_token) extra.resume_offered = true;
-  return protocolHelloAck(body.request_id, extra);
+  return protocolHelloAck(body.request_id, extra, env);
 }
 
 export async function mintResumeToken(env: Env, principal: PlayerPrincipal): Promise<string> {
@@ -171,7 +179,7 @@ export async function handleProtocolFrame(
       const principal = await principalFromResume(env, resume);
       if (principal) state = { ...state, principal };
     }
-    return { reply: protocolHello(msg), state };
+    return { reply: protocolHello(msg, env), state };
   }
   if (type === "AUTH") {
     const token = String(msg.body?.access_token || msg.body?.token || "");

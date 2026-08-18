@@ -23,6 +23,8 @@ PRIVATE_KEYS = frozenset(
     }
 )
 
+MAX_DEPTH = 16
+
 
 class PrivateCognitionError(RuntimeError):
     def __init__(self, message: str = "private cognition must not cross the gateway") -> None:
@@ -30,13 +32,17 @@ class PrivateCognitionError(RuntimeError):
 
 
 def contains_private(value: Any, depth: int = 0) -> bool:
-    if not isinstance(value, dict) or depth > 2:
+    if depth > MAX_DEPTH:
+        return True
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if str(key).lower() in PRIVATE_KEYS:
+                return True
+            if contains_private(child, depth + 1):
+                return True
         return False
-    for key, child in value.items():
-        if str(key).lower() in PRIVATE_KEYS:
-            return True
-        if isinstance(child, dict) and contains_private(child, depth + 1):
-            return True
+    if isinstance(value, (list, tuple)):
+        return any(contains_private(item, depth + 1) for item in value)
     return False
 
 

@@ -39,9 +39,8 @@ def run(
             token=token,
             heartbeat_interval=heartbeat_interval,
             max_reconnects=max_reconnects,
+            resume=resume,
         )
-        if not resume:
-            client.resume_token = None
         llm = make_llm(provider, base_url=llm_base, model=llm_model)
         agent = NoemaAgent(client, llm)
         tok = token or "mock-token"

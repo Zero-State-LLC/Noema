@@ -107,7 +107,7 @@ class NoemaRuntime:
             if p.is_file():
                 return json.loads(p.read_text(encoding="utf-8"))
         return {
-            "runtime_version": "0.1.0",
+            "runtime_version": "0.12.0",
             "versions": {
                 "event_catalog": "event-catalog/0.1",
                 "world_rules": "world/v1",
@@ -579,10 +579,10 @@ class NoemaRuntime:
         aid = agent_id or principal.agent_id or sess.get("agent_id")
         if not aid:
             raise ActionError(NOT_AUTHORIZED, "agent_id required")
-        if principal.agent_id and aid != principal.agent_id and principal.role != Role.ADMIN:
-            raise ActionError(NOT_AUTHORIZED, "cannot observe other agent")
-        if sess.get("agent_id") and aid != sess.get("agent_id") and principal.role != Role.ADMIN:
-            raise ActionError(NOT_AUTHORIZED, "cannot observe other agent")
+        bound = principal.agent_id or sess.get("agent_id")
+        if principal.role != Role.ADMIN:
+            if not bound or aid != bound:
+                raise ActionError(NOT_AUTHORIZED, "cannot observe other agent")
         state = self.store.get_state()
         obs = project_agent_observation(state, aid)
         # strip any research-private keys from player/agent surface

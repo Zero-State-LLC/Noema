@@ -89,6 +89,15 @@ def test_l14_unknown_verb():
     assert exc.value.code == "UNKNOWN_ACTION"
 
 
+def test_l10_nested_private_cognition_rejected():
+    with pytest.raises(ProposalError) as exc:
+        parse_proposal({"action": "LOOK", "items": [{"prompt": "secret inner plan"}]})
+    assert exc.value.code == "PRIVATE_COGNITION"
+    with pytest.raises(ProposalError) as exc2:
+        parse_proposal({"action": "LOOK", "arguments": {"nested": {"api_key": "sk-live"}}})
+    assert exc2.value.code == "PRIVATE_COGNITION"
+
+
 class ProtocolHttp:
     def __init__(self) -> None:
         self.posts: list[dict] = []

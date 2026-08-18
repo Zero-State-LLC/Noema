@@ -23,6 +23,15 @@ describe("protocol frames", () => {
       body: { supported_protocols: ["agent-protocol/v1"] },
     });
     expect(ack.type).toBe("HELLO_ACK");
+    expect((ack.body as { auth_methods: string[] }).auth_methods).toEqual(["controller-token"]);
+  });
+
+  it("HELLO advertises dev only for explicit local env", () => {
+    const ack = protocolHello(
+      { type: "HELLO", request_id: "r1b", body: { supported_protocols: ["agent-protocol/v1"] } },
+      { NOEMA_ENV: "local" },
+    );
+    expect((ack.body as { auth_methods: string[] }).auth_methods).toEqual(["controller-token", "dev"]);
   });
 
   it("HELLO incompatible", () => {

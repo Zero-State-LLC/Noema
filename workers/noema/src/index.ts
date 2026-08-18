@@ -16,6 +16,7 @@ import {
   requestAdminMagicLink,
   resolveAdmin,
   resolveSignedAdminHeader,
+  clientIp,
 } from "./admin-auth";
 import {
   err,
@@ -56,7 +57,8 @@ import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand } from "./protocol-ws";
-import { acceptProtocolWebSocket } from "./protocol-ws";
+import { acceptProtocolWebSocket, protocolAuthMethods } from "./protocol-ws";
+import { commandThrottle, deviceThrottle } from "./rate-limit";
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 
@@ -69,6 +71,10 @@ function html(body: string, status = 200, cache = "no-store"): Response {
       "content-type": "text/html; charset=utf-8",
       "cache-control": cache,
       "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "no-referrer",
+      "content-security-policy":
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: https: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
     },
   });
 }
@@ -313,6 +319,9 @@ export default {
       }
 
       if (request.method === "POST" && path === "/v1/auth/device") {
+        if (!deviceThrottle.hit(`ip:${clientIp(request)}`)) {
+          return cors(err("RATE_LIMITED", "too many device enrollments", 429, true));
+        }
         const body = (await request.json().catch(() => ({}))) as {
           metadata?: { runtime?: string };
           scopes?: string[];
@@ -679,6 +688,9 @@ export default {
       if (request.method === "POST" && (path === "/v1/command" || path === "/protocol/v1/command")) {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
+        if (!commandThrottle.hit(`player:${principal.player_id}`)) {
+          return cors(err("RATE_LIMITED", "too many commands", 429, true));
+        }
 
         const envelope = (await request.json()) as CommandEnvelope;
         const doRes = await applyPlayerCommand(env, request, principal, envelope, routeToWorld);
@@ -791,7 +803,7 @@ export default {
               request_id: body.request_id,
               body: {
                 selected_protocol: "agent-protocol/v1",
-                auth_methods: ["controller-token", "dev"],
+                auth_methods: protocolAuthMethods(env),
                 transports: ["websocket", "http"],
                 websocket_uri: "/protocol/v1/ws",
                 stage: "0",
