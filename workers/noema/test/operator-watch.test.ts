@@ -321,7 +321,7 @@ describe("operator watch theater", () => {
       sequence: Number(built.sequence),
       sites: built.sites as OperatorWatchSite[],
       lines: built.lines as Array<{ room_id?: string; handle?: string }>,
-      agents: built.agents as Array<{ handle?: string; room_id?: string }>,
+      agents: built.agents as Array<{ handle?: string; room_id?: string; glyph: "player" }>,
       follow: { handle: "vesper" },
     });
     expect(pixel.focus_room_id).toBe("room.b");
