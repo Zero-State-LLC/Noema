@@ -4,7 +4,9 @@ import {
   buildOperatorWatch,
   lineFromObservation,
   OPERATOR_WATCH_PIN,
+  phosphorSnapshotFromOperatorWatch,
   redactOperatorWatchText,
+  type OperatorWatchSite,
 } from "../src/operator-watch";
 
 const NOW = 1_700_000_000_000;
@@ -190,5 +192,63 @@ describe("operator watch theater", () => {
     expect(lines.map((l) => l.handle).sort()).toEqual(["legacy", "mine"]);
     expect(JSON.stringify(snap)).not.toMatch(/theirs moved|player\.theirs|"theirs"/);
     expect(JSON.stringify(snap)).not.toMatch(/smoke-human/);
+  });
+
+  it("feeds PIXEL only this operator's public occupancy", () => {
+    const built = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 1,
+      sequence: 9,
+      now: NOW,
+      rooms: {
+        "room.a": {
+          room_id: "room.a",
+          name: "Relay Quarter",
+          exits: [{ direction: "east", to_room_id: "room.b" }],
+          entities: [],
+        },
+        "room.b": {
+          room_id: "room.b",
+          name: "Transit Ring",
+          exits: [{ direction: "west", to_room_id: "room.a" }],
+          entities: [],
+        },
+        "room.vault": { room_id: "room.vault", name: "Vault", hidden: true, exits: [], entities: [] },
+      },
+      players: {
+        "player.mine": {
+          handle: "vesper",
+          room_id: "room.b",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          operator_id: "op.token",
+        },
+      },
+      operator_id: "op.token",
+      lines: [
+        {
+          at: NOW,
+          handle: "vesper",
+          room_id: "room.b",
+          room_name: "Transit Ring",
+          command: "MOVE",
+          line: "You arrive at Transit Ring.",
+          glyph: "player",
+          operator_id: "op.token",
+        },
+      ],
+    });
+    const pixel = phosphorSnapshotFromOperatorWatch({
+      sequence: Number(built.sequence),
+      sites: built.sites as OperatorWatchSite[],
+      lines: built.lines as Array<{ room_id?: string }>,
+    });
+    expect(pixel.rooms.map((r) => r.room_id).sort()).toEqual(["room.a", "room.b"]);
+    expect(pixel.rooms.find((r) => r.room_id === "room.b")?.public_player_labels).toEqual(["vesper"]);
+    expect(pixel.rooms.find((r) => r.room_id === "room.b")?.players_present).toBe(1);
+    expect(pixel.recent_events[0]?.room_id).toBe("room.b");
+    expect(pixel.recent_events[0]?.tier).toBe("NORMAL");
+    expect(JSON.stringify(pixel)).not.toMatch(/vault/i);
   });
 });

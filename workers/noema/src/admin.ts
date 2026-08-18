@@ -5,6 +5,8 @@
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
+import { phosphorSnapshotFromOperatorWatch } from "./operator-watch";
+import { phosphorInlineScript } from "./watch-phosphor";
 
 const FONTS = FONT_LINKS;
 
@@ -113,6 +115,16 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .key-row{display:flex;gap:.55rem;align-items:flex-start;font-size:.8rem;color:var(--ink)}
 .key-row .glyph{width:1.15rem;height:1.15rem}
 .key-row strong{font-weight:600}
+.awatch-toolbar{display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;margin:.75rem 0 0}
+.awatch-toolbar .btn{padding:.15rem .45rem;font-size:.62rem}
+.awatch-toolbar .btn[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-phos[hidden]{display:none}
+.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body)}
+.awatch-phosphor{
+  display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
+  background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
+  border:1px solid var(--line);
+}
 `;
 
 function adminChrome(title: string, body: string): string {
@@ -532,8 +544,16 @@ export function adminHtml(): string {
     <section class="section" id="agent-watch">
       <p class="kicker">04b / watch agents</p>
       <h2>Watch agents play</h2>
-      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
+      <p class="muted">Live LOOK / MOVE / action lines for agents you minted or enrolled, plus the public site map. Same glyphs as PLAY and public WATCH. PIXEL is the same catalog sketch as public WATCH, with this operator's occupancy. Other operators' agents stay off this surface. Private MESSAGE bodies stay off this surface.</p>
       ${legendHtml()}
+      <div class="awatch-toolbar">
+        <button type="button" class="btn quiet" id="awatch-mode-text" aria-pressed="true">TEXT</button>
+        <button type="button" class="btn quiet" id="awatch-mode-pixel" aria-pressed="false">PIXEL</button>
+      </div>
+      <div class="awatch-phos" id="awatch-phos-wrap" hidden>
+        <div class="awatch-phos-bar">Operator sketch — not the world. Your agents only.</div>
+        <canvas class="awatch-phosphor" id="awatch-phosphor" width="320" height="180" role="img" aria-label="Operator topology sketch"></canvas>
+      </div>
       <div class="awatch" style="margin-top:.75rem">
         <article class="card pad">
           <p class="kicker">Sites</p>
@@ -616,6 +636,7 @@ export function adminHtml(): string {
 <script>
 (() => {
   const GLYPHS = ${JSON.stringify(glyphCatalog())};
+  const phosphorSnapshotFromOperatorWatch = ${phosphorSnapshotFromOperatorWatch.toString()};
   const token = sessionStorage.getItem("noema.admin.token");
   if (!token) {
     if (location.hash) sessionStorage.setItem("noema.admin.next", location.hash);
@@ -874,6 +895,9 @@ export function adminHtml(): string {
         feedEl.append(li);
       });
     }
+    try {
+      if (window.NoemaAdminPhosphor) window.NoemaAdminPhosphor.update(phosphorSnapshotFromOperatorWatch(data));
+    } catch (e) {}
   }
 
   function showAgentWatch() {
@@ -1325,6 +1349,15 @@ export function adminHtml(): string {
   load();
   setInterval(() => { loadAgentWatch().catch(() => undefined); }, 5000);
 })();
+</script>
+<script>
+${phosphorInlineScript({
+  canvasId: "awatch-phosphor",
+  wrapId: "awatch-phos-wrap",
+  textBtnId: "awatch-mode-text",
+  pixelBtnId: "awatch-mode-pixel",
+  globalName: "NoemaAdminPhosphor",
+})}
 </script>`,
   );
 }

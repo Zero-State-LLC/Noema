@@ -816,7 +816,18 @@ export function createPhosphorSession(opts: {
   return session;
 }
 
-export function phosphorInlineScript(): string {
+export function phosphorInlineScript(bind?: {
+  canvasId?: string;
+  wrapId?: string;
+  textBtnId?: string;
+  pixelBtnId?: string;
+  globalName?: string;
+}): string {
+  const canvasId = bind?.canvasId || "watch-phosphor";
+  const wrapId = bind?.wrapId || "watch-phos-wrap";
+  const textBtnId = bind?.textBtnId || "watch-mode-text";
+  const pixelBtnId = bind?.pixelBtnId || "watch-mode-pixel";
+  const globalName = bind?.globalName || "NoemaPhosphor";
   return `(() => {
     const __name = function(fn) { return fn; };
     const PHOSPHOR_WIDTH = ${PHOSPHOR_WIDTH};
@@ -853,10 +864,10 @@ export function phosphorInlineScript(): string {
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
 
-    const canvas = document.getElementById("watch-phosphor");
-    const wrap = document.getElementById("watch-phos-wrap");
-    const textBtn = document.getElementById("watch-mode-text");
-    const pixelBtn = document.getElementById("watch-mode-pixel");
+    const canvas = document.getElementById(${JSON.stringify(canvasId)});
+    const wrap = document.getElementById(${JSON.stringify(wrapId)});
+    const textBtn = document.getElementById(${JSON.stringify(textBtnId)});
+    const pixelBtn = document.getElementById(${JSON.stringify(pixelBtnId)});
     let reduce = false;
     try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
     const session = createPhosphorSession({
@@ -875,7 +886,7 @@ export function phosphorInlineScript(): string {
     }
     if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); syncMode(); });
     if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); syncMode(); });
-    window.NoemaPhosphor = session;
+    window[${JSON.stringify(globalName)}] = session;
     syncMode();
     document.addEventListener("visibilitychange", function() {
       if (document.hidden) session.setMode(session.mode);

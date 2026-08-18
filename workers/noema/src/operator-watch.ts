@@ -201,3 +201,42 @@ export function buildOperatorWatch(input: {
     lines,
   };
 }
+
+/** PIXEL sketch input from operator theater. Public rooms only; occupancy is this operator's agents. */
+export function phosphorSnapshotFromOperatorWatch(data: {
+  sequence?: number;
+  sites?: OperatorWatchSite[];
+  lines?: Array<{ room_id?: string }>;
+}): {
+  sequence: number;
+  rooms: Array<{
+    room_id: string;
+    name: string;
+    players_present: number;
+    public_player_labels: string[];
+    active: boolean;
+    exits: OperatorWatchSite["exits"];
+    entities: OperatorWatchSite["entities"];
+  }>;
+  recent_events: Array<{ sequence: number; room_id: string; tier: "NORMAL" }>;
+} {
+  const sequence = Number(data.sequence || 0);
+  const rooms = (data.sites || []).map((s) => ({
+    room_id: s.room_id,
+    name: s.name,
+    players_present: Number(s.players_present || 0),
+    public_player_labels: Array.isArray(s.player_labels) ? s.player_labels : [],
+    active: s.active === true || Number(s.players_present || 0) > 0,
+    exits: s.exits || [],
+    entities: s.entities || [],
+  }));
+  const recent_events = (data.lines || [])
+    .filter((row) => row && row.room_id)
+    .slice(0, 12)
+    .map((row, i) => ({
+      sequence: Math.max(0, sequence - i),
+      room_id: String(row.room_id),
+      tier: "NORMAL" as const,
+    }));
+  return { sequence, rooms, recent_events };
+}
