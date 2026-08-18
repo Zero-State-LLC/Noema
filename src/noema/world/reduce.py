@@ -11,6 +11,22 @@ class ReduceError(Exception):
     """Deterministic reducer rejection."""
 
 
+REGISTERED_SEED_STREAMS = frozenset(
+    {
+        "world_event_director.v1",
+        "noise.stream.v01",
+        "frontier.stream.v01",
+        "frontier.seed.v02",
+        "stream.contest.1",
+    }
+)
+
+
+def require_seed_stream(name: object) -> None:
+    if not isinstance(name, str) or name not in REGISTERED_SEED_STREAMS:
+        raise ReduceError(f"unknown seed stream: {name}")
+
+
 Reducer = Callable[[WorldState, dict[str, Any]], WorldState]
 
 
@@ -636,6 +652,9 @@ def apply_event(state: WorldState, event: dict[str, Any]) -> WorldState:
         _require(event.get("previous_digest") in (None, ""), "first event previous_digest must be null")
     else:
         _require(event.get("previous_digest") == state.last_event_digest, "digest chain break")
+    payload = event.get("payload")
+    if isinstance(payload, dict) and "seed_stream_id" in payload:
+        require_seed_stream(payload.get("seed_stream_id"))
 
     next_state = state.clone()
     next_state = reducer(next_state, event)
