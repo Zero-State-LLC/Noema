@@ -10,6 +10,7 @@ import {
   consumeAdminMagicLink,
   mintAdminSession,
   normalizeEmail,
+  operatorIdForEmail,
   parseAllowlist,
   requestAdminMagicLink,
   resolveAdmin,
@@ -481,6 +482,9 @@ describe("consumeAdminMagicLink", () => {
     const claims = await verifyHs256(ok.access_token, "test-signing-secret");
     expect(claims.typ).toBe("admin-access");
     expect(claims.amr).toBe("email_magic_link");
+    expect(claims.operator_id).toBe(await operatorIdForEmail("ops@example.com"));
+    expect(String(claims.operator_id)).toMatch(/^op\.mail\.[a-f0-9]{16}$/);
+    expect(JSON.stringify(claims)).not.toMatch(/ops@example.com/i);
   });
 
   it("401s when supabase verify returns 400 and returns no access_token", async () => {
@@ -560,16 +564,24 @@ describe("admin isolation", () => {
     expect((admin as { authentication_context: string }).authentication_context).toBe(
       "operator_token",
     );
+    expect((admin as { operator_id: string }).operator_id).toBe("op.token");
   });
 });
 
 describe("admin login HTML", () => {
-  it("splits live players and system actors", () => {
+  it("splits live players and system actors", async () => {
     const html = adminHtml();
     expect(html).toContain('id="live-player-list"');
     expect(html).toContain('id="system-actor-list"');
     expect(html).toMatch(/Live players/);
     expect(html).toMatch(/System actors/);
+  });
+
+  it("Watch agents is per-operator and jumps after agent mint", () => {
+    const html = adminHtml();
+    expect(html).toContain('id="agent-watch"');
+    expect(html).toContain("showAgentWatch");
+    expect(html).toMatch(/agents you minted or enrolled/i);
   });
 
   it("offers close incident without reseed", () => {

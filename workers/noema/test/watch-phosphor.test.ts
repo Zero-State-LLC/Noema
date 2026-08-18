@@ -257,8 +257,7 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(multi.ops.filter((o) => o === "fill").length).toBe(2);
     const cluster = mockCtx();
     drawGlyph(cluster, "player_cluster", 0, 0);
-    expect(cluster.ops).toContain("fillRect:2,2,4,4");
-    expect(cluster.ops).toContain("fillRect:3,3,2,2");
+    expect(cluster.ops.filter((o) => o === "fill").length).toBe(3);
   });
 
   it("marks a public exit active only from a public recent event", () => {

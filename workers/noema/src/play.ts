@@ -1,7 +1,7 @@
 /** Text-first PLAY — situation, opportunity, action, consequence. */
 
 import { playEmailGateMarkup } from "./play-login-html";
-import { legendHtml } from "./presentation/glyphs";
+import { legendHtml, glyphMeta } from "./presentation/glyphs";
 import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
@@ -224,6 +224,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 `;
 
 export function playHtml(): string {
+  const loc = glyphMeta("loc");
   const body = `
   <section class="door" id="play-door" aria-labelledby="play-title">
     <div>
@@ -260,7 +261,7 @@ export function playHtml(): string {
     <div class="ch-body">
       <section class="ch-scroll" aria-label="World">
         <article class="look" id="loc-card">
-          <p class="where role-place"><span class="glyph glyph-loc" role="img" aria-label="Location" title="here"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 2h10v10H2z M2 6h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="sr">here</span></span>WHERE</p>
+          <p class="where role-place"><span class="glyph glyph-loc" role="img" aria-label="${loc.label}" title="${loc.meaning}"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="${loc.d}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="sr">${loc.fallback}</span></span>WHERE</p>
           <div id="arrive-name" hidden>
             <label for="arrive-handle">What should they call you here?</label>
             <input id="arrive-handle" maxlength="32" minlength="2" autocomplete="username"/>

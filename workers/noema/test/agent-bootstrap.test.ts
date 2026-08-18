@@ -120,13 +120,17 @@ describe("RFC-0033 agent bootstrap", () => {
       env(),
       new Request("https://noema.guru/v1/admin/agent/enroll/decide"),
       { enrollment_id, token, decision: "approve" },
-      { store },
+      { store, operatorId: "op.mail.dddddddddddddddd" },
     );
     expect(approved.status).toBe(200);
     const body = (await approved.json()) as { access_token: string; player_id: string; controller_type: string };
     expect(body.controller_type).toBe("agent");
     expect(body.player_id).toBe("player.hermes");
     expect(body.access_token.length).toBeGreaterThan(20);
+    const { verifyHs256 } = await import("../src/jwt");
+    const claims = await verifyHs256(body.access_token, "test-signing-secret");
+    expect(claims.operator_id).toBe("op.mail.dddddddddddddddd");
+    expect(claims.issued_by).toBe("admin");
 
     const again = await decideAgentEnrollment(
       env(),

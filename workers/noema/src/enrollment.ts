@@ -25,6 +25,7 @@ export type EnrollmentRecord = {
   issued_at: string;
   expires_at: string;
   status: EnrollmentStatus;
+  operator_id?: string;
 };
 
 export interface EnrollmentStore {
@@ -174,6 +175,7 @@ export async function requestAgentEnrollment(
     now?: number;
     sendMail?: (mail: { to: string; subject: string; html: string; text: string }) => Promise<void>;
     mailFetch?: typeof fetch;
+    operatorId?: string;
   },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
@@ -199,6 +201,7 @@ export async function requestAgentEnrollment(
     issued_at: new Date(now).toISOString(),
     expires_at: new Date(now + ENROLLMENT_TTL_MS).toISOString(),
     status: "pending",
+    operator_id: opts?.operatorId,
   };
 
   for (const prev of await store.list()) {
@@ -257,7 +260,7 @@ export async function decideAgentEnrollment(
   env: Env,
   req: Request,
   body: { enrollment_id?: string; token?: string; decision?: string },
-  opts?: { store?: EnrollmentStore; now?: number },
+  opts?: { store?: EnrollmentStore; now?: number; operatorId?: string },
 ): Promise<Response> {
   const store = opts?.store;
   if (!store) return err("UNAVAILABLE", "enrollment store unavailable", 503);
@@ -286,8 +289,9 @@ export async function decideAgentEnrollment(
     issuedByAdmin: true,
     playerId: rec.player_id,
     amr: "agent_enrollment",
+    operatorId: rec.operator_id || opts?.operatorId,
   });
-  await store.put({ ...rec, status: "approved" });
+  await store.put({ ...rec, status: "approved", operator_id: rec.operator_id || opts?.operatorId });
   return json({
     ok: true,
     status: "approved",

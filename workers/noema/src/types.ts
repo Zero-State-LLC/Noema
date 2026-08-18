@@ -54,6 +54,8 @@ export interface AdminPrincipal {
   session_id: string;
   scopes: string[];
   authentication_context: "operator_token" | "email_magic_link";
+  /** Opaque operator scope id. Never an email. Shared token operators use `op.token`. */
+  operator_id: string;
 }
 
 export type ControllerType = "human" | "agent" | "hybrid";
@@ -67,6 +69,8 @@ export interface PlayerPrincipal {
   controller_id: string;
   controller_type: ControllerType;
   issued_by?: string;
+  /** Set when an ADMIN minted or enrolled this Controller. Opaque — not an email. */
+  operator_id?: string;
   amr?: string;
   scopes: string[];
   protocol_version: string;

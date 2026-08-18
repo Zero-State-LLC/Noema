@@ -105,7 +105,7 @@ describe("watch-live/1.0 projection contract", () => {
     expect(snap).not.toHaveProperty("payload");
   });
 
-  it("omits hidden rooms, hidden exits, hidden entities, and system actors", () => {
+  it("counts present Players including agents, without leaking system handles", () => {
     const snap = buildWatchLive({
       world_id: "w",
       cycle: 1,
@@ -149,13 +149,17 @@ describe("watch-live/1.0 projection contract", () => {
     expect(JSON.stringify(snap)).not.toContain("Ghost");
     expect(JSON.stringify(snap)).not.toMatch(/player\./);
     const market = (snap.rooms as Array<Record<string, unknown>>).find((r) => r.room_id === "room.market")!;
-    expect(market.players_present).toBe(1);
+    expect(market.players_present).toBe(2);
     expect(market.public_player_labels).toEqual(["Vesper-7"]);
+    expect(market.glyph).toBe("loc");
+    expect(market.player_glyph).toBe("player");
     expect(market.active).toBe(true);
-    const exits = market.exits as Array<{ to_room_id: string }>;
+    const exits = market.exits as Array<{ to_room_id: string; glyph?: string }>;
     expect(exits.map((x) => x.to_room_id)).toEqual(["room.relay"]);
-    const ents = market.entities as Array<{ label: string }>;
+    expect(exits[0].glyph).toBe("threshold");
+    const ents = market.entities as Array<{ label: string; glyph?: string }>;
     expect(ents.map((e) => e.label)).toEqual(["Trade stall"]);
+    expect(ents[0].glyph).toBe("trade");
   });
 
   it("does not invent edges to missing rooms", () => {
@@ -270,7 +274,9 @@ describe("watch event tiers and phrasing", () => {
     expect(
       phraseWatchEvent(
         src({
-          handle: "a7a22752ad02",
+          handle: "SYS",
+          player_id: "player.sysbot",
+          actor_kind: "system",
           event_type: "MOVE",
           sequence: 4,
           payload: { to: "room.market", to_room_name: "Chamber Market" },

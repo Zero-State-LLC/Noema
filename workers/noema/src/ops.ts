@@ -65,7 +65,18 @@ export type PresencePlayer = {
   actor_kind?: ActorKind;
   handle?: string;
   room_id?: string;
+  controller_type?: string;
+  operator_id?: string;
 };
+
+/** Shared ADMIN_OPERATOR_TOKEN operators. Email operators use `op.mail.<hash>`. */
+export const SHARED_TOKEN_OPERATOR_ID = "op.token";
+
+export function parseOperatorId(raw: unknown): string | undefined {
+  const value = String(raw || "").trim().toLowerCase();
+  if (/^op\.[a-z0-9._-]{1,48}$/.test(value)) return value;
+  return undefined;
+}
 
 /** Magic-link humans use player.{12 hex}. Operator mint uses player.{handle}. */
 export function inferActorKind(playerId: string, stored?: ActorKind): ActorKind {
@@ -137,6 +148,8 @@ export type ActorRow = {
   entered: boolean;
   last_seen_ms?: number;
   actor_kind: ActorKind;
+  controller_type?: string;
+  operator_id?: string;
 };
 
 export function listLivePlayers(
@@ -154,6 +167,8 @@ export function listLivePlayers(
       entered: true,
       last_seen_ms: p.last_seen_ms,
       actor_kind: "live" as const,
+      controller_type: p.controller_type,
+      operator_id: p.operator_id,
     }));
 }
 
@@ -168,6 +183,8 @@ export function listSystemActors(players: Record<string, PresencePlayer> | undef
       entered: Boolean(p.entered),
       last_seen_ms: p.last_seen_ms,
       actor_kind: "system" as const,
+      controller_type: p.controller_type,
+      operator_id: p.operator_id,
     }));
 }
 

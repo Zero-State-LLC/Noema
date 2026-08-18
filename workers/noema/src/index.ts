@@ -400,6 +400,7 @@ export default {
           controllerType: ctype,
           expiresIn: body.expires_in,
           issuedByAdmin: true,
+          operatorId: admin.operator_id,
         });
         return cors(
           json({
@@ -416,7 +417,12 @@ export default {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
         const body = (await request.json().catch(() => ({}))) as { email?: string; handle?: string };
-        return cors(await requestAgentEnrollment(env, request, body, { store: durableEnrollmentStore(env) }));
+        return cors(
+          await requestAgentEnrollment(env, request, body, {
+            store: durableEnrollmentStore(env),
+            operatorId: admin.operator_id,
+          }),
+        );
       }
       if (request.method === "GET" && path === "/v1/agent/enroll/preview") {
         return cors(await previewAgentEnrollment(env, request, { store: durableEnrollmentStore(env) }));
@@ -429,11 +435,28 @@ export default {
           token?: string;
           decision?: string;
         };
-        return cors(await decideAgentEnrollment(env, request, body, { store: durableEnrollmentStore(env) }));
+        return cors(
+          await decideAgentEnrollment(env, request, body, {
+            store: durableEnrollmentStore(env),
+            operatorId: admin.operator_id,
+          }),
+        );
       }
       if (request.method === "GET" && path.startsWith("/v1/agent/bootstrap/")) {
         const enrollmentId = path.slice("/v1/agent/bootstrap/".length);
         return cors(await getBootstrapDocument(env, request, enrollmentId, { store: durableEnrollmentStore(env) }));
+      }
+
+      if (request.method === "GET" && path === "/v1/admin/watch") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch(
+          `https://do/admin-watch?operator_id=${encodeURIComponent(admin.operator_id)}`,
+        );
+        const body = await res.json();
+        return cors(json(body, res.status));
       }
 
       if (request.method === "GET" && path === "/v1/admin/overview") {

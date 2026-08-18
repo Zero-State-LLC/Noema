@@ -52,10 +52,12 @@ describe("mintControllerToken identity overrides", () => {
     const m = await mintControllerToken(env(), {
       handle: "bob",
       issuedByAdmin: true,
+      operatorId: "op.token",
     });
     expect(m.player_id).toBe("player.bob");
     const claims = await verifyHs256(m.access_token, "test-signing-secret");
     expect(claims.issued_by).toBe("admin");
+    expect(claims.operator_id).toBe("op.token");
   });
 });
 

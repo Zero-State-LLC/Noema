@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   GLYPH_IDS,
+  glyphForCommandVerb,
   glyphForEntity,
+  glyphForExit,
   glyphForLine,
+  glyphForPlayer,
+  glyphForProjection,
+  glyphForRoom,
   glyphMeta,
   legendHtml,
 } from "../../src/presentation/glyphs";
@@ -17,15 +22,29 @@ describe("glyph catalog", () => {
     expect(new Set(labels).size).toBe(14);
     expect(fallbacks.every((f) => f.length > 0)).toBe(true);
     expect(GLYPH_IDS.every((id) => glyphMeta(id).d.length > 0)).toBe(true);
+    const paths = GLYPH_IDS.map((id) => glyphMeta(id).d);
+    expect(new Set(paths).size).toBe(14);
   });
 
-  it("maps entities and lines without color-only meaning", () => {
+  it("maps rooms, players, exits, entities, and projections to the catalog", () => {
+    expect(glyphForRoom()).toBe("loc");
+    expect(glyphForPlayer()).toBe("player");
+    expect(glyphForExit()).toBe("threshold");
     expect(glyphForEntity("INFRASTRUCTURE", "relay-7", 83)).toBe("infra");
     expect(glyphForEntity("INFRASTRUCTURE", "scarred-conduit", 20)).toBe("distress");
     expect(glyphForEntity("RESOURCE", "cache")).toBe("resource");
+    expect(glyphForEntity("PROP", "Trade stall")).toBe("trade");
     expect(glyphForLine("Unconfirmed — The vault is empty.")).toBe("rumor");
     expect(glyphForLine("Board — Need fuel")).toBe("comms");
     expect(glyphForLine("INFRASTRUCTURE CONTROL · OPEN")).toBe("danger");
+    expect(glyphForLine("Vesper-7 entered Chamber Market")).toBe("player");
+    expect(glyphForProjection("agent_move")).toBe("player");
+    expect(glyphForProjection("trade")).toBe("trade");
+    expect(glyphForProjection("infrastructure")).toBe("infra");
+    expect(glyphForProjection("harvest")).toBe("resource");
+    expect(glyphForCommandVerb("LOOK")).toBe("loc");
+    expect(glyphForCommandVerb("MOVE north")).toBe("player");
+    expect(glyphForCommandVerb("MESSAGE")).toBe("comms");
   });
 
   it("legend is a keyboard details key with aria labels", () => {

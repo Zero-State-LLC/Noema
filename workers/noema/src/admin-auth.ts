@@ -13,6 +13,7 @@ import {
 } from "./admin-mail";
 import { err, json } from "./auth";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
+import { parseOperatorId, SHARED_TOKEN_OPERATOR_ID } from "./ops";
 import { SlidingWindowThrottle, allowLoginThrottled } from "./rate-limit";
 import type { AdminPrincipal, Env } from "./types";
 
@@ -35,9 +36,25 @@ export function adminTokenConfigured(env: Env): boolean {
   return Boolean(env.ADMIN_OPERATOR_TOKEN && env.ADMIN_OPERATOR_TOKEN.length >= 8);
 }
 
+/** Opaque per-mailbox operator id. Never put the email on the JWT. */
+export async function operatorIdForEmail(email: string): Promise<string> {
+  const bytes = new TextEncoder().encode(email.trim().toLowerCase());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `op.mail.${hex.slice(0, 16)}`;
+}
+
+function operatorIdFromClaims(
+  claims: Record<string, unknown>,
+  amr: AdminPrincipal["authentication_context"],
+): string {
+  return parseOperatorId(claims.operator_id) || (amr === "email_magic_link" ? "op.legacy" : SHARED_TOKEN_OPERATOR_ID);
+}
+
 async function mintAdminAccess(
   env: Env,
   amr: "operator_token" | "email_magic_link",
+  operatorId: string,
 ): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response> {
   let signing: string;
   try {
@@ -55,6 +72,7 @@ async function mintAdminAccess(
       session_id,
       scopes: ADMIN_SCOPES,
       amr,
+      operator_id: operatorId,
       iat: now,
       exp: now + expires_in,
       jti: crypto.randomUUID(),
@@ -82,7 +100,7 @@ export async function mintAdminSession(
   }
   if (ok !== 0) return err("NOT_AUTHORIZED", "invalid operator token", 401);
 
-  return mintAdminAccess(env, "operator_token");
+  return mintAdminAccess(env, "operator_token", SHARED_TOKEN_OPERATOR_ID);
 }
 
 async function adminFromSignedToken(token: string, env: Env): Promise<AdminPrincipal | Response> {
@@ -107,6 +125,7 @@ async function adminFromSignedToken(token: string, env: Env): Promise<AdminPrinc
       session_id: String(claims.session_id || "asess.unknown"),
       scopes,
       authentication_context: amr,
+      operator_id: operatorIdFromClaims(claims, amr),
     };
   } catch (e) {
     if (e instanceof JwtError) return err("NOT_AUTHORIZED", e.message, 401);
@@ -323,7 +342,7 @@ export async function consumeAdminMagicLink(
   if (!adminAllowlist(env).includes(email)) {
     return err("NOT_AUTHORIZED", "invalid operator token", 401);
   }
-  return mintAdminAccess(env, "email_magic_link");
+  return mintAdminAccess(env, "email_magic_link", await operatorIdForEmail(email));
 }
 
 export { json, err };

@@ -1,4 +1,5 @@
 import { JwtError, mintHs256, supabaseIssuer, supabaseJwksUrl, verifyHs256, verifyJwt } from "./jwt";
+import { parseOperatorId } from "./ops";
 import type { ControllerType, Env, PlayerPrincipal } from "./types";
 
 const DEFAULT_SCOPES = [
@@ -68,6 +69,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
         controller_id: String(claims.controller_id),
         controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
         issued_by: claims.issued_by === "admin" ? "admin" : undefined,
+        operator_id: parseOperatorId(claims.operator_id),
         amr: claims.amr ? String(claims.amr) : undefined,
         scopes,
         protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
@@ -157,6 +159,8 @@ export type MintControllerOptions = {
   expiresIn?: number;
   /** Set when minted by ADMIN plane (audit claim only). */
   issuedByAdmin?: boolean;
+  /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */
+  operatorId?: string;
   playerId?: string;
   identityId?: string;
   amr?: string;
@@ -222,6 +226,8 @@ export async function mintControllerToken(
   }
   if (opts.amr) claims.amr = opts.amr;
   if (opts.issuedByAdmin) claims.issued_by = "admin";
+  const operatorId = opts.issuedByAdmin ? parseOperatorId(opts.operatorId) : undefined;
+  if (operatorId) claims.operator_id = operatorId;
   const access_token = await mintHs256(claims, signing);
   return {
     access_token,
