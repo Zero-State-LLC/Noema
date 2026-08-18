@@ -1,10 +1,10 @@
 /**
  * Phosphor Cartography — optional WATCH pixel layer.
  * Same public watch-live/1.0 snapshot. Never a second authority.
- * Room / player / exit marks stroke the live 14-mark catalog paths.
+ * All 14 catalog `d` paths stroke on the field to match `#world-key`.
  */
 
-import { glyphMeta } from "./presentation/glyphs";
+import { GLYPH_IDS, glyphMeta, type GlyphId } from "./presentation/glyphs";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
@@ -41,7 +41,13 @@ export type PhosphorRoom = {
   active?: boolean;
   players_present?: number;
   public_player_labels?: string[];
-  entities?: Array<{ hidden?: boolean; label?: string; entity_id?: string }>;
+  entities?: Array<{
+    hidden?: boolean;
+    label?: string;
+    entity_id?: string;
+    entity_type?: string;
+    glyph?: string;
+  }>;
   exits?: PhosphorExit[];
 };
 
@@ -50,6 +56,7 @@ export type PhosphorEvent = {
   tier?: string;
   room_id?: string;
   line?: string;
+  glyph?: string;
 };
 
 export type PhosphorSnapshot = {
@@ -68,6 +75,7 @@ export type PhosphorNode = {
   certainty: PhosphorCertainty;
   players: number;
   labels: string[];
+  marks: GlyphId[];
 };
 
 export type PhosphorEdge = {
@@ -75,6 +83,7 @@ export type PhosphorEdge = {
   to: string;
   direction: string;
   active?: boolean;
+  dashed?: boolean;
 };
 
 export type PhosphorGlyphId =
@@ -107,14 +116,11 @@ export const PHOSPHOR_GLYPH_IDS: PhosphorGlyphId[] = [
 ];
 
 /** Live catalog `d` strings PIXEL traces. Certainty/count still select PhosphorGlyphId. */
-export const PHOSPHOR_CATALOG_PATHS = {
-  loc: glyphMeta("loc").d,
-  player: glyphMeta("player").d,
-  unknown: glyphMeta("unknown").d,
-  threshold: glyphMeta("threshold").d,
-} as const;
+export const PHOSPHOR_CATALOG_PATHS = Object.fromEntries(
+  GLYPH_IDS.map((id) => [id, glyphMeta(id).d]),
+) as Record<GlyphId, string>;
 
-export type PhosphorCatalogMark = keyof typeof PHOSPHOR_CATALOG_PATHS;
+export type PhosphorCatalogMark = GlyphId;
 
 export function phosphorCatalogMark(id: PhosphorGlyphId): PhosphorCatalogMark | null {
   if (id === "room_partial") return "unknown";
@@ -224,6 +230,39 @@ export function roomCertainty(
     if (String(tags[i] || "").toLowerCase() === "partial") return "partial";
   }
   return "empty";
+}
+
+export function markFromRaw(raw: unknown): GlyphId | null {
+  const id = String(raw || "");
+  if (!id || id === "loc" || id === "player") return null;
+  if (!Object.prototype.hasOwnProperty.call(PHOSPHOR_CATALOG_PATHS, id)) return null;
+  return id as GlyphId;
+}
+
+/** Public entity + event catalog ids at a site. loc/player stay the room and occupancy marks. */
+export function collectSiteMarks(room: PhosphorRoom, recent?: PhosphorEvent[]): GlyphId[] {
+  const seen: Record<string, true> = {};
+  const out: GlyphId[] = [];
+  function add(id: GlyphId | null) {
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    out.push(id);
+  }
+  const ents = room.entities || [];
+  for (let i = 0; i < ents.length; i++) {
+    const e = ents[i];
+    if (!e || e.hidden === true) continue;
+    add(markFromRaw(e.glyph));
+  }
+  const rid = room.room_id || "";
+  const evs = recent || [];
+  for (let i = 0; i < evs.length; i++) {
+    const ev = evs[i];
+    if (!ev || ev.room_id !== rid) continue;
+    add(markFromRaw(ev.glyph));
+  }
+  out.sort();
+  return out.slice(0, 4);
 }
 
 function publicExits(room: PhosphorRoom, allowed: Set<string>): PhosphorExit[] {
@@ -368,8 +407,17 @@ export function layoutPublicTopology(
       certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
+      marks: collectSiteMarks(room, recent),
     };
   });
+
+  const certById = new Map(nodes.map((n) => [n.room_id, n.certainty]));
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    const ca = certById.get(e.from);
+    const cb = certById.get(e.to);
+    e.dashed = ca === "partial" || cb === "partial";
+  }
 
   return { nodes, edges };
 }
@@ -417,6 +465,8 @@ type DrawCtx = {
   beginPath(): void;
   moveTo(x: number, y: number): void;
   lineTo(x: number, y: number): void;
+  quadraticCurveTo?(cpx: number, cpy: number, x: number, y: number): void;
+  setLineDash?(segments: number[]): void;
   closePath(): void;
   stroke(): void;
   fill(): void;
@@ -441,9 +491,9 @@ function locInnerPath(): string {
   return i < 0 ? "" : d.slice(i + 1);
 }
 
-/** Subset stroker for catalog `d` (M/L/H/V/m/l/h/v/z). PIXEL does not need arcs. */
+/** Subset stroker for catalog `d` (M/L/H/V/A/m/l/h/v/a/z). Arcs become a single quadratic. */
 function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: number): void {
-  const tokens = d.match(/[MmLlHhVvZz]|[-+]?\d*\.?\d+/g);
+  const tokens = d.match(/[MmLlHhVvAaZz]|[-+]?\d*\.?\d+/g);
   if (!tokens) return;
   let i = 0;
   let x = 0;
@@ -451,7 +501,7 @@ function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: nu
   let startX = 0;
   let startY = 0;
   let cmd = "";
-  const isCmd = (t: string | undefined): boolean => Boolean(t && /^[MmLlHhVvZz]$/.test(t));
+  const isCmd = (t: string | undefined): boolean => Boolean(t && /^[MmLlHhVvAaZz]$/.test(t));
   const num = (): number => {
     const n = Number(tokens[i]);
     i += 1;
@@ -491,6 +541,28 @@ function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: nu
       const p = px(x, y);
       ctx.moveTo(p[0], p[1]);
       cmd = "l";
+      continue;
+    }
+    if (cmd === "A" || cmd === "a") {
+      const rx = num();
+      const ry = num();
+      num();
+      const large = num();
+      const sweep = num();
+      const nx = cmd === "A" ? num() : x + num();
+      const ny = cmd === "A" ? num() : y + num();
+      const dx = nx - x;
+      const dy = ny - y;
+      const len = Math.hypot(dx, dy) || 1;
+      const bulge = (sweep ? 1 : -1) * Math.min(rx, ry) * (large ? 1 : 0.55);
+      const cpx = (x + nx) / 2 + (-dy / len) * bulge * 0.5;
+      const cpy = (y + ny) / 2 + (dx / len) * bulge * 0.5;
+      const c = px(cpx, cpy);
+      const p = px(nx, ny);
+      if (ctx.quadraticCurveTo) ctx.quadraticCurveTo(c[0], c[1], p[0], p[1]);
+      else ctx.lineTo(p[0], p[1]);
+      x = nx;
+      y = ny;
       continue;
     }
     if (cmd === "L") {
@@ -578,26 +650,79 @@ export function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: num
   }
 }
 
-export function drawExit(ctx: DrawCtx, x1: number, y1: number, x2: number, y2: number, active = false): void {
+export function drawCatalogMark(ctx: DrawCtx, id: GlyphId, cx: number, cy: number, intensity = 0.55): void {
+  const d = PHOSPHOR_CATALOG_PATHS[id];
+  if (!d) return;
+  ctx.strokeStyle = inkFor(intensity);
+  ctx.lineWidth = 1;
+  ctx.lineCap = "square";
+  strokeCatalogPath(ctx, d, cx, cy, 8);
+}
+
+export function drawExit(
+  ctx: DrawCtx,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  active = false,
+  dashed = false,
+): void {
   ctx.strokeStyle = active ? PHOSPHOR_COLORS.amber : PHOSPHOR_COLORS.dim;
   ctx.lineWidth = 1;
   ctx.lineCap = "square";
+  if (ctx.setLineDash) ctx.setLineDash(dashed ? [3, 3] : []);
   ctx.beginPath();
   ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const bulge = Math.min(16, len * 0.2);
+  const cpx = (x1 + x2) / 2 - (dy / len) * bulge;
+  const cpy = (y1 + y2) / 2 + (dx / len) * bulge;
+  if (ctx.quadraticCurveTo) ctx.quadraticCurveTo(cpx, cpy, x2, y2);
+  else ctx.lineTo(x2, y2);
   ctx.stroke();
-  strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.threshold, x2 - 4, y2 - 4, 8);
+  if (ctx.setLineDash) ctx.setLineDash([]);
+  if (!dashed) strokeCatalogPath(ctx, PHOSPHOR_CATALOG_PATHS.threshold, x2 - 4, y2 - 4, 8);
 }
 
 function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
   if (!ctx.fillText) return;
-  const label = safePhosphorLabel(name).slice(0, 14);
+  const label = safePhosphorLabel(name).toUpperCase().slice(0, 14);
   if (!label) return;
   ctx.fillStyle = PHOSPHOR_COLORS.dim;
   ctx.font = "8px ui-monospace, monospace";
-  const tx = Math.max(4, Math.min(PHOSPHOR_WIDTH - 48, x - 10));
-  const ty = Math.max(12, Math.min(PHOSPHOR_HEIGHT - 4, y + 16));
+  const tx = Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, x + 10));
+  const ty = Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, y + 3));
   ctx.fillText(label, tx, ty);
+}
+
+const MARK_RING: Array<[number, number]> = [
+  [-11, -9],
+  [10, -9],
+  [-11, 9],
+  [10, 9],
+];
+
+function drawFieldWash(ctx: DrawCtx): void {
+  ctx.strokeStyle = PHOSPHOR_COLORS.dim;
+  ctx.globalAlpha = 0.12;
+  ctx.lineWidth = 1;
+  const rings: Array<[number, number, number, number, number, number]> = [
+    [28, 36, 140, 22, 292, 48],
+    [16, 92, 168, 118, 304, 86],
+    [36, 154, 170, 138, 288, 166],
+  ];
+  for (let i = 0; i < rings.length; i++) {
+    const r = rings[i];
+    ctx.beginPath();
+    ctx.moveTo(r[0], r[1]);
+    if (ctx.quadraticCurveTo) ctx.quadraticCurveTo(r[2], r[3], r[4], r[5]);
+    else ctx.lineTo(r[4], r[5]);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
 }
 
 export function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void {
@@ -639,6 +764,7 @@ export function drawPhosphorFrame(
   ctx.fillStyle = PHOSPHOR_COLORS.ground;
   ctx.fillRect(0, 0, PHOSPHOR_WIDTH, PHOSPHOR_HEIGHT);
   if (ctx.imageSmoothingEnabled != null) ctx.imageSmoothingEnabled = false;
+  drawFieldWash(ctx);
   ctx.strokeStyle = PHOSPHOR_COLORS.dim;
   ctx.lineWidth = 1;
   ctx.strokeRect(1, 1, PHOSPHOR_WIDTH - 2, PHOSPHOR_HEIGHT - 2);
@@ -650,13 +776,17 @@ export function drawPhosphorFrame(
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
-    drawExit(ctx, a.x, a.y, b.x, b.y, e.active === true);
+    drawExit(ctx, a.x, a.y, b.x, b.y, e.active === true, e.dashed === true);
   }
 
   for (let i = 0; i < layout.nodes.length; i++) {
     const n = layout.nodes[i];
     const intensity = n.certainty === "active" ? 1 : n.certainty === "known" ? 0.55 : 0.3;
     drawGlyph(ctx, roomGlyphId(n.certainty), n.x - 4, n.y - 4, intensity);
+    const marks = n.marks || [];
+    for (let m = 0; m < marks.length && m < MARK_RING.length; m++) {
+      drawCatalogMark(ctx, marks[m], n.x + MARK_RING[m][0], n.y + MARK_RING[m][1], intensity);
+    }
   }
 
   for (let i = 0; i < layout.nodes.length; i++) {
@@ -872,11 +1002,16 @@ export function phosphorInlineScript(bind?: {
     const PHOSPHOR_CATALOG_PATHS = ${JSON.stringify(PHOSPHOR_CATALOG_PATHS)};
     const locOuterPath = ${locOuterPath.toString()};
     const locInnerPath = ${locInnerPath.toString()};
+    const markFromRaw = ${markFromRaw.toString()};
+    const collectSiteMarks = ${collectSiteMarks.toString()};
     const traceSvgPath = ${traceSvgPath.toString()};
     const strokeCatalogPath = ${strokeCatalogPath.toString()};
     const fillCatalogPath = ${fillCatalogPath.toString()};
+    const drawCatalogMark = ${drawCatalogMark.toString()};
     const drawGlyph = ${drawGlyph.toString()};
     const drawExit = ${drawExit.toString()};
+    const MARK_RING = ${JSON.stringify(MARK_RING)};
+    const drawFieldWash = ${drawFieldWash.toString()};
     const drawRoomLabel = ${drawRoomLabel.toString()};
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};

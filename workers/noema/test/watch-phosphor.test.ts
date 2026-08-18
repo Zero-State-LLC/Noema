@@ -7,7 +7,7 @@ import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
 import { watchHtml } from "../src/watch";
 import { buildWatchLive } from "../src/watch-live";
-import { glyphMeta } from "../src/presentation/glyphs";
+import { GLYPH_IDS, glyphMeta } from "../src/presentation/glyphs";
 import {
   PHOSPHOR_ASSET_BUDGET,
   PHOSPHOR_CATALOG_PATHS,
@@ -16,7 +16,9 @@ import {
   PHOSPHOR_JS_BUDGET,
   PHOSPHOR_WIDTH,
   collectPulses,
+  collectSiteMarks,
   createPhosphorSession,
+  drawCatalogMark,
   drawExit,
   drawGlyph,
   drawPhosphorFrame,
@@ -96,6 +98,12 @@ function mockCtx() {
     },
     lineTo(x: number, y: number) {
       ops.push(`lineTo:${x},${y}`);
+    },
+    quadraticCurveTo(cpx: number, cpy: number, x: number, y: number) {
+      ops.push(`quadraticCurveTo:${cpx},${cpy},${x},${y}`);
+    },
+    setLineDash(segments: number[]) {
+      ops.push(`setLineDash:${segments.join(",")}`);
     },
     closePath() {
       ops.push("closePath");
@@ -252,10 +260,10 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(playerGlyphId(4)).toBe("player_multi");
     expect(playerGlyphId(12)).toBe("player_cluster");
     expect(pulseGlyphId("MAJOR")).toBe("pulse_major");
-    expect(PHOSPHOR_CATALOG_PATHS.loc).toBe(glyphMeta("loc").d);
-    expect(PHOSPHOR_CATALOG_PATHS.player).toBe(glyphMeta("player").d);
-    expect(PHOSPHOR_CATALOG_PATHS.unknown).toBe(glyphMeta("unknown").d);
-    expect(PHOSPHOR_CATALOG_PATHS.threshold).toBe(glyphMeta("threshold").d);
+    expect(Object.keys(PHOSPHOR_CATALOG_PATHS).sort()).toEqual([...GLYPH_IDS].sort());
+    for (const id of GLYPH_IDS) {
+      expect(PHOSPHOR_CATALOG_PATHS[id]).toBe(glyphMeta(id).d);
+    }
     expect(phosphorCatalogMark("room_empty")).toBe("loc");
     expect(phosphorCatalogMark("room_known")).toBe("loc");
     expect(phosphorCatalogMark("room_active")).toBe("loc");
@@ -287,10 +295,74 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(door.ops).toContain("moveTo:2.1,6.5");
     const edge = mockCtx();
     drawExit(edge, 0, 0, 20, 0, false);
-    expect(edge.ops[0]).toBe("beginPath");
+    expect(edge.ops).toContain("setLineDash:");
     expect(edge.ops).toContain("moveTo:0,0");
-    expect(edge.ops).toContain("lineTo:20,0");
+    expect(edge.ops).toContain("quadraticCurveTo:10,4,20,0");
+    expect(edge.ops).not.toContain("lineTo:20,0");
     expect(edge.ops).toContain("moveTo:18.1,2.5");
+    const dashed = mockCtx();
+    drawExit(dashed, 0, 0, 20, 0, false, true);
+    expect(dashed.ops).toContain("setLineDash:3,3");
+    expect(dashed.ops).toContain("quadraticCurveTo:10,4,20,0");
+    expect(dashed.ops.join(" ")).not.toMatch(/moveTo:18\.1,2\.5/);
+    const comms = mockCtx();
+    drawCatalogMark(comms, "comms", 0, 0);
+    expect(comms.ops.some((o) => o.startsWith("quadraticCurveTo:"))).toBe(true);
+    expect(comms.ops.filter((o) => o === "stroke").length).toBe(1);
+  });
+
+  it("maps every public key mark onto the live field", () => {
+    const layout = layoutPublicTopology(
+      [
+        {
+          room_id: "room.a",
+          name: "Site A",
+          description: "Open floor.",
+          tags: [],
+          entities: [
+            { glyph: "infra", entity_type: "INFRASTRUCTURE", label: "Relay" },
+            { glyph: "resource", entity_type: "RESOURCE", label: "Stock" },
+            { glyph: "org", entity_type: "ORG", label: "Desk" },
+            { glyph: "trade", entity_type: "TRADE", label: "Stall" },
+            { glyph: "loc", entity_type: "PROP", label: "Ignored room mark" },
+            { hidden: true, glyph: "danger", entity_type: "PROP", label: "Hidden" },
+          ],
+          exits: [{ direction: "east", to_room_id: "room.b" }],
+        },
+        {
+          room_id: "room.b",
+          name: "Site B",
+          tags: ["partial"],
+          exits: [{ direction: "west", to_room_id: "room.a" }],
+        },
+      ],
+      [
+        { sequence: 2, room_id: "room.a", glyph: "economy", line: "Index shifts." },
+        { sequence: 3, room_id: "room.a", glyph: "danger", line: "Contested." },
+        { sequence: 4, room_id: "room.a", glyph: "player", line: "Someone entered." },
+      ],
+    );
+    const a = layout.nodes.find((n) => n.room_id === "room.a")!;
+    const b = layout.nodes.find((n) => n.room_id === "room.b")!;
+    expect(a.marks).toEqual(["danger", "economy", "infra", "org"]);
+    expect(b.certainty).toBe("partial");
+    expect(b.marks).toEqual([]);
+    expect(layout.edges.every((e) => e.dashed === true)).toBe(true);
+    expect(JSON.stringify(layout)).not.toMatch(/Hidden|Ignored room mark/i);
+    expect(collectSiteMarks({
+      room_id: "room.a",
+      entities: [
+        { glyph: "distress" },
+        { glyph: "comms" },
+        { glyph: "rumor" },
+        { glyph: "event" },
+        { glyph: "economy" },
+      ],
+    })).toEqual(["comms", "distress", "economy", "event"]);
+    const painted = mockCtx();
+    drawPhosphorFrame(painted, layout, [], 0);
+    expect(painted.ops.some((o) => o.startsWith("fillText:SITE A@"))).toBe(true);
+    expect(painted.ops.join(" ")).not.toMatch(/\[X1\]|\[Y1\]/i);
   });
 
   it("marks a public exit active only from a public recent event", () => {
@@ -431,6 +503,8 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
           beginPath() {},
           moveTo() {},
           lineTo() {},
+          quadraticCurveTo() {},
+          setLineDash() {},
           closePath() {},
           stroke() {},
           fill() {},
