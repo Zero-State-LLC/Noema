@@ -18,6 +18,7 @@ from rich.console import Console
 from noema_llm_agent.cognition import assert_public
 from noema_llm_agent.errors import FATAL_CODES, ProtocolError, RESUME_CODES
 from noema_llm_agent.schemas import ActResult, Observation
+from noema_llm_agent.seal import auth_seal_fields as _auth_seal
 
 console = Console(stderr=True)
 
@@ -254,6 +255,10 @@ class HttpProtocolClient(ProtocolClient):
         headers: dict[str, str] = {"content-type": "application/json"}
         if bearer and self.token:
             headers["authorization"] = f"Bearer {self.token}"
+        if bearer:
+            from noema_llm_agent.seal import command_seal_headers
+
+            headers.update(command_seal_headers(self.world_id))
         resp = await self._client.post(f"{self.origin}{path}", json=payload, headers=headers)
         if resp.status_code == 429:
             retry = float(resp.headers.get("retry-after") or 1)
@@ -290,7 +295,7 @@ class HttpProtocolClient(ProtocolClient):
                 "protocol": "agent-protocol/v1",
                 "type": "AUTH",
                 "request_id": _rid(),
-                "body": {"access_token": access_token},
+                "body": {"access_token": access_token, **_auth_seal(self.world_id)},
             },
         )
         body = ack.get("body") or {}
@@ -553,7 +558,7 @@ class WebSocketProtocolClient(ProtocolClient):
 
     async def auth(self, access_token: str) -> Envelope:
         self.token = access_token
-        msg = self.envelope("AUTH", {"access_token": access_token})
+        msg = self.envelope("AUTH", {"access_token": access_token, **_auth_seal(self.world_id)})
         # AUTH body carries token by protocol; strip from logs only
         ack = await self._request(msg)
         if ack.get("type") == "ERROR":

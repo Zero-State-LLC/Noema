@@ -20,6 +20,7 @@ from noema_llm_agent.protocol import (
     derive_ws_url,
 )
 from noema_llm_agent.schemas import Observation
+from noema_llm_agent.seal import SEALED_PROMPT_HASH, command_seal_headers
 
 
 class FakeWS:
@@ -72,6 +73,7 @@ def gateway_handler(store: dict[str, Any]):
                 return {"type": "HELLO_ACK", "request_id": rid, "body": {"resumed": True, "selected_protocol": "agent-protocol/v1"}}
             return {"type": "HELLO_ACK", "request_id": rid, "body": {"selected_protocol": "agent-protocol/v1"}}
         if typ == "AUTH":
+            store["auth_body"] = msg.get("body")
             return {
                 "type": "AUTH_ACK",
                 "request_id": rid,
@@ -139,6 +141,7 @@ async def test_t01_t02_ws_handshake_and_act():
     assert hello["type"] == "HELLO_ACK"
     auth = await client.auth("sekrit-token")
     assert auth["body"]["player_id"] == "player.ws"
+    assert store["auth_body"]["prompt_version_hash"] == SEALED_PROMPT_HASH
     entered = await client.enter_world("world.test")
     assert entered.ok
     result = await client.act("LOOK")
@@ -245,6 +248,12 @@ async def test_t09_ordered_observations():
     while client._obs_out:
         names.append((client._obs_out.popleft().location or {}).get("name"))
     assert names == ["A", "B", "C"]
+
+
+def test_live_command_sends_seal_isolated_does_not():
+    assert command_seal_headers(None)["X-Noema-Seal"] == SEALED_PROMPT_HASH
+    assert command_seal_headers("world.perihelion-reach")["X-Noema-Seal"] == SEALED_PROMPT_HASH
+    assert command_seal_headers("test.hosted-canonical.ack-s3") == {}
 
 
 def test_t12_assert_public_blocks_reason():
