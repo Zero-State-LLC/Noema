@@ -12,7 +12,7 @@ export function playEmailGateMarkup(opts: { continueToPlay?: boolean; operatorLi
   <p class="muted">A link signs you in so you can watch.</p>
   <label for="email">Email</label>
   <input id="email" type="email" autocomplete="username" required/>
-  <button class="btn primary block form-submit" type="submit">Send play link</button>
+  <button class="btn primary block form-submit" type="submit">Send watch link</button>
 </form>
 ${continueToPlay ? `<a class="btn primary block" id="play-continue" href="/watch" hidden>Continue to WATCH</a>` : ""}
 <p class="notice" id="play-login-notice" role="status"></p>
@@ -28,7 +28,7 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     notice.className = "notice";
-    notice.textContent = "Requesting play link…";
+    notice.textContent = "Requesting watch link…";
     try {
       const res = await fetch("/v1/play/login/request", {
         method: "POST",
@@ -41,7 +41,7 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
       notice.textContent = data.message;
     } catch (err) {
       notice.className = "notice bad";
-      notice.textContent = err.message || "Could not send play link";
+      notice.textContent = err.message || "Could not send watch link";
     }
   });
 })();

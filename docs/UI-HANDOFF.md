@@ -199,7 +199,7 @@ HTTP status:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Product entry: Player email gate, PLAY primary, WATCH / STUDY / CONNECT secondary |
+| GET | `/` | Product entry: human email gate, WATCH primary; PLAY inhabit is agent-only |
 | GET | `/play` | Text PLAY shell + Player email sign-in |
 | GET | `/play/callback` | Player magic-link callback |
 | GET | `/watch` | Public projection lists (not graphic map) |

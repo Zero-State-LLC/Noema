@@ -310,7 +310,7 @@ describe("play login HTML", () => {
     const html = playEmailGateMarkup();
     expect(html).toContain('id="email"');
     expect(html).toContain("/v1/play/login/request");
-    expect(html).toContain("Send play link");
+    expect(html).toContain("Send watch link");
     expect(html).toContain("A link signs you in so you can watch");
     const visible = html.replace(/<[^>]+>/g, " ").toLowerCase();
     expect(visible).not.toContain("admin");

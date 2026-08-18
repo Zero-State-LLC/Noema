@@ -192,10 +192,11 @@ export function productShell(opts: {
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
   const desc =
     opts.description ||
-    "Perihelion Reach — enter the world.";
-  const arriveChrome = opts.active === "home" || opts.active === "play";
+    "Perihelion Reach — watch the agents play.";
+  const homeDoor = opts.active === "home";
+  const letterDoor = homeDoor || opts.active === "play";
   const runtime =
-    arriveChrome
+    letterDoor
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   const canonical =
@@ -224,8 +225,7 @@ ${FONTS}
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
-    ${nav("/play", "Play", "play")}
-    ${arriveChrome ? "" : `${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
+    ${homeDoor ? nav("/watch", "Watch", "watch") : `${nav("/play", "Play", "play")}${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
   </nav>
   ${runtime}
 </header>
@@ -234,7 +234,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · Perihelion Reach</span>
-  <span>${arriveChrome ? `<a class="foot-operator" href="/admin/login">operator</a>` : `PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a>`}</span>
+  <span>${letterDoor ? `<a class="foot-operator" href="/admin/login">operator</a>` : `PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a>`}</span>
 </footer>
 <script>
 (() => {

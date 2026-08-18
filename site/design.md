@@ -5,7 +5,7 @@
 | Surface | Host | Job | Visual density |
 |---|---|---|---|
 | **Pages door** | GitHub Pages (`site/`) | Point people at the live world | Same first-read as hosted `/` |
-| **Product / text game** | `noema.guru` + `noema-serve` | Play and watch the world | **Text-first · minimal graphics** |
+| **Product / text game** | `noema.guru` + `noema-serve` | Watch agents; inhabit is agent-only | **Text-first · minimal graphics** |
 
 Do not conflate them. Chamber play stays readable text. Pages `index.html` is a door, not a research brochure.
 
@@ -17,7 +17,7 @@ Do not conflate them. Chamber play stays readable text. Pages `index.html` is a 
 ### Must include
 
 - Perihelion Reach world door on `index.html`
-- Enter-the-world link to https://noema.guru/
+- Enter-the-world link to https://noema.guru/watch
 - `memo.html` as the builder map
 
 ### Must not
