@@ -7,13 +7,24 @@ from pathlib import Path
 import pytest
 
 from noema.cli import agent as agent_cli
+import base64
+import json
+import time
+
 from noema.harness.operator_env import (
+    TESTER_TTL_SECONDS,
     AttachError,
     classify_admin_material,
+    jwt_unexpired,
     load_operator_env,
     parse_operator_env,
     resolve_isolated_attach,
 )
+
+
+def _unsigned_jwt(*, exp: int) -> str:
+    payload = base64.urlsafe_b64encode(json.dumps({"exp": exp, "typ": "access"}).encode()).decode().rstrip("=")
+    return f"aaa.{payload}.sig"
 
 
 def test_parse_skips_comments_and_strips_quotes():
@@ -84,6 +95,55 @@ def test_mints_admin_and_player(tmp_path: Path):
     assert any(u.endswith("/v1/admin/session") for u in calls)
     assert any(u.endswith("/v1/admin/controller-token") for u in calls)
     assert "operator-secret-ok" not in str(calls)
+    tester = parse_operator_env((tmp_path / "tester.env").read_text())
+    assert tester["NOEMA_TOKEN"] == "player.jwt.token"
+    assert (tmp_path / "tester.env").stat().st_mode & 0o777 == 0o600
+
+
+def test_jwt_unexpired_reads_exp_only():
+    assert jwt_unexpired(_unsigned_jwt(exp=int(time.time()) + 3600))
+    assert not jwt_unexpired(_unsigned_jwt(exp=int(time.time()) - 10))
+    assert not jwt_unexpired("player.jwt.token")
+
+
+def test_reuses_unexpired_player_and_skips_mint(tmp_path: Path):
+    token = _unsigned_jwt(exp=int(time.time()) + 3600)
+    op = tmp_path / "op.env"
+    op.write_text(f"ADMIN_OPERATOR_TOKEN=aaa.bbb.ccc\nNOEMA_TOKEN={token}\n")
+
+    def http(method, url, body=None, token=None, headers=None):
+        raise AssertionError(url)
+
+    attach = resolve_isolated_attach(
+        "https://noema.guru",
+        env={"NOEMA_OPERATOR_ENV": str(op)},
+        cwd=tmp_path,
+        http=http,
+    )
+    assert attach.source == "admin_jwt+reuse"
+    assert attach.player_token == token
+
+
+def test_mint_requests_thirty_day_ttl(tmp_path: Path):
+    op = tmp_path / "op.env"
+    op.write_text("ADMIN_OPERATOR_TOKEN=operator-secret-ok\n")
+    seen: list[dict] = []
+
+    def http(method, url, body=None, token=None, headers=None):
+        if url.endswith("/v1/admin/session"):
+            return {"access_token": "aaa.bbb.ccc"}
+        if url.endswith("/v1/admin/controller-token"):
+            seen.append(body or {})
+            return {"access_token": "player.jwt.token"}
+        raise AssertionError(url)
+
+    resolve_isolated_attach(
+        "https://noema.guru",
+        env={"NOEMA_OPERATOR_ENV": str(op)},
+        cwd=tmp_path,
+        http=http,
+    )
+    assert seen[0]["expires_in"] == TESTER_TTL_SECONDS
 
 
 def test_cli_isolated_run_mints_and_uses_test_world_path(tmp_path: Path, monkeypatch):

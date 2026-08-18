@@ -141,7 +141,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
 export type MintControllerOptions = {
   handle: string;
   controllerType?: ControllerType;
-  /** Seconds until expiry. Default 3600. Clamped 60 … 7 days. */
+  /** Seconds until expiry. Default 3600. Clamped 60 … 7d, or 30d when issuedByAdmin. */
   expiresIn?: number;
   /** Set when minted by ADMIN plane (audit claim only). */
   issuedByAdmin?: boolean;
@@ -176,10 +176,8 @@ export async function mintControllerToken(
     opts.controllerType === "human" || opts.controllerType === "hybrid"
       ? opts.controllerType
       : "agent";
-  const expires_in = Math.min(
-    7 * 24 * 3600,
-    Math.max(60, Math.floor(opts.expiresIn ?? 3600)),
-  );
+  const maxAge = opts.issuedByAdmin ? 30 * 24 * 3600 : 7 * 24 * 3600;
+  const expires_in = Math.min(maxAge, Math.max(60, Math.floor(opts.expiresIn ?? 3600)));
   const signing = env.TOKEN_SIGNING_SECRET;
   if (!signing) {
     throw new Error("TOKEN_SIGNING_SECRET is not configured");

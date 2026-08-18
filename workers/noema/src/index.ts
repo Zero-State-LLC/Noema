@@ -55,6 +55,8 @@ import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
+import { applyPlayerCommand } from "./protocol-ws";
+import { acceptProtocolWebSocket } from "./protocol-ws";
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 
@@ -679,24 +681,7 @@ export default {
         if (principal instanceof Response) return cors(principal);
 
         const envelope = (await request.json()) as CommandEnvelope;
-        if (!envelope?.command || !envelope?.request_id) {
-          return cors(err("INVALID_REQUEST", "command and request_id required", 400));
-        }
-        if (hasPrivateCognition(envelope)) {
-          return cors(err("INVALID_REQUEST", "private cognition fields are not accepted", 400));
-        }
-
-        const cmd = envelope.command.toUpperCase();
-        if (cmd === "OBSERVE" || cmd === "LOOK") {
-          const denied = requireScope(principal, "noema.world.observe");
-          if (denied) return cors(denied);
-        } else {
-          const denied = requireScope(principal, "noema.action.submit");
-          if (denied) return cors(denied);
-        }
-
-        const worldId = env.DEFAULT_WORLD_ID || "world-01";
-        const doRes = await routeToWorld(env, worldId, principal, envelope);
+        const doRes = await applyPlayerCommand(env, request, principal, envelope, routeToWorld);
         const data = await doRes.json();
         return cors(json(data, doRes.status));
       }
@@ -807,6 +792,8 @@ export default {
               body: {
                 selected_protocol: "agent-protocol/v1",
                 auth_methods: ["controller-token", "dev"],
+                transports: ["websocket", "http"],
+                websocket_uri: "/protocol/v1/ws",
                 stage: "0",
               },
             }),
@@ -837,7 +824,11 @@ export default {
             }),
           );
         }
-        return cors(err("INVALID_REQUEST", "use POST /v1/command for ACT after AUTH", 400));
+        return cors(err("INVALID_REQUEST", "use POST /v1/command or GET /protocol/v1/ws for ACT after AUTH", 400));
+      }
+
+      if (path === "/protocol/v1/ws") {
+        return acceptProtocolWebSocket(request, env, routeToWorld);
       }
 
       // Static assets (/assets/*, 404). Product home aliases are landingHtml().

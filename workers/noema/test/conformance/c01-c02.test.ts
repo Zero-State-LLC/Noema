@@ -15,9 +15,14 @@ describe("C01 protocol negotiation", () => {
       [],
     );
     expect(res.status).toBe(200);
-    const j = (await res.json()) as { type: string; body: { selected_protocol: string } };
+    const j = (await res.json()) as {
+      type: string;
+      body: { selected_protocol: string; transports?: string[]; websocket_uri?: string };
+    };
     expect(j.type).toBe("HELLO_ACK");
     expect(j.body.selected_protocol).toBe("agent-protocol/v1");
+    expect(j.body.transports).toEqual(["websocket", "http"]);
+    expect(j.body.websocket_uri).toBe("/protocol/v1/ws");
   });
 
   it("incompatible HELLO does not AUTH and returns NO_COMPATIBLE_PROTOCOL", async () => {
@@ -99,7 +104,7 @@ describe("C02 identity authz denial", () => {
     expect(calls.some((c) => c.op === "idFromName")).toBe(false);
   });
 
-  it("PLAY /v1/command never forwards a test.hosted-canonical id", async () => {
+  it("PLAY /v1/command isolated world_id without admin is denied before DO lookup", async () => {
     const calls: DoCall[] = [];
     const res = await hit(
       "/v1/command",
@@ -114,10 +119,7 @@ describe("C02 identity authz denial", () => {
       },
       calls,
     );
-    expect(res.status).toBe(200);
-    const names = calls.filter((c) => c.op === "idFromName").map((c) => c.name);
-    expect(names).toEqual(["world-01"]);
-    expect(names.join("")).not.toContain("test.hosted-canonical");
-    expect(names.join("")).not.toContain("perihelion");
+    expect(res.status).toBe(401);
+    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
   });
 });
