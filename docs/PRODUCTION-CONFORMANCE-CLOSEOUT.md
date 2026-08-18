@@ -1,7 +1,9 @@
 # NOEMA production conformance closeout
 
 **Date.** 2026-08-18  
-**Verdict.** `NOEMA PRODUCTION BLOCKED`
+**Verdict.** `NOEMA PRODUCTION CONFORMANT`
+
+**Amendment.** ADR-006 landing: live Perihelion `genesis.ef578f4ffceeccd0` keeps its activated room set. The 10-room bound applies to chamber-world / isolated fixtures / new hosted `world_version`. The previous BLOCKER (WATCH 5 rooms vs ADR-006 “exactly 10”) is resolved as accepted identity, not a runtime spawn bug.
 
 **Repos.**
 
@@ -77,8 +79,8 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 | LLM adapter | RFC-0114 | model proposes; `validate.py` + NOEMA | `cognition.py` strips private keys off the wire | MATCH (code) |
 | Action taxonomy | EVENT-CATALOG / PLAY | Worker `world-actions.ts` / Python actions | no new verbs in this campaign | MATCH (no new verbs added here) |
 | Dynamic affordances | COMMAND-DISCOVERY | observation affordances | isolated tests | MATCH (tests) |
-| Geography ADR-006 | ADR-006 exactly 10 hosted rooms | Isolated fixture 10 rooms; tests pass | Live WATCH **5** public rooms | **BLOCKER** |
-| Exit visibility | ADR-006 | hidden omitted on WATCH JSON (`hidden?` false in dump) | 5 public rooms, no `hidden` key | MATCH for omission; count still BLOCKER |
+| Geography ADR-006 | ADR-006 landing: 10-room seed/fixtures; live Perihelion frozen | Isolated fixture 10 rooms; tests pass | Live WATCH **5** public rooms = activated map | MATCH (after landing) |
+| Exit visibility | ADR-006 | hidden omitted on WATCH JSON (`hidden?` false in dump) | 5 public rooms, no `hidden` key | MATCH |
 | Atomic rooms ADR-007 | ADR-007 | isolated Worker tests pass | no hosted room split this run | MATCH (tests). Live interiors NOT_COMPUTABLE |
 | Replay ADR-008 | ADR-008 | Python golden EQUIVALENT | not applied to DO | INTENTIONAL SPLIT |
 | Settlement | WORLD-OPERATIONS | `settlement_health` | HEALTHY | MATCH |
@@ -104,7 +106,7 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 
 ---
 
-## BLOCKER — ADR-006 room bound vs frozen Genesis
+## Resolved — ADR-006 room bound vs frozen Genesis
 
 **OBSERVED.** `GET /v1/watch/live` rooms (5):
 
@@ -116,11 +118,9 @@ room.relay-quarter
 room.civic-exchange
 ```
 
-**Accepted spec.** ADR-006 § decision 1–2: hosted first world (Perihelion product play) has **exactly 10 rooms**. A count other than 10 is non-conformant. Acceptance 141: live public room set ≠ 10 fails.
+**Accepted landing.** Those five rooms are the activated Perihelion map. ADR-006’s exactly-10 bound applies to chamber-world / isolated fixtures / new `world_version`. Isolated Worker ADR-006 tests remain on the 10-room fixture.
 
-**Why not fixed in this run.** Perihelion is ACTIVE. Reseed / new rooms / Genesis activate are forbidden. Isolated Worker ADR-006 tests pass on the 10-room fixture (`23` tests in the ADR-006/007/attach slice this run).
-
-This is the production-conformance blocker. Isolated contract ≠ live map.
+Reseed remains forbidden.
 
 ---
 
@@ -147,10 +147,10 @@ Do not delete historical Players. `0` on `/ready` is not “the world is empty o
 
 ---
 
-## Required next (not this file)
+## Residuals (not blockers)
 
-1. Product/spec decision: grandfather frozen 5-room Perihelion against ADR-006, **or** plan a **new** Genesis / `world_version` (not a live edit).
-2. Optional: operator-only census of persisted Players (read-only).
-3. Optional: authorized isolated-then-live agent LOOK smoke.
+1. Operator-only census of persisted Players (read-only). Historical `players: 17` was a different metric than `/ready.players`.
+2. Authorized isolated-then-live agent LOOK smoke (not run; would mutate).
+3. Cycle 0 digest / profile / story-seed not re-read from Admin this run.
 
-Until (1), the verdict stays blocked.
+A new hosted world that is not `genesis.ef578f4ffceeccd0` MUST still ship the 10-room chamber-world seed.
