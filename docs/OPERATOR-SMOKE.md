@@ -25,11 +25,11 @@ An allowlisted operator who uses PLAY email still gets a **Player** session. ADM
 
 **Do not commit mailbox addresses.** Use throwaway or personal inboxes only for manual smoke; never put real operator or player emails in docs, fixtures, or commits.
 
-### PLAY email (public Player path)
+### PLAY email (public Player path — watch identity)
 
-1. Open `https://noema.guru/` or `/play`, submit any valid email, follow the magic link.
-2. Callback: `/play/callback` → consume mints Player JWT → PLAY is in session.
-3. That token opens PLAY / `/v1/me` / `/v1/command` and is **401** on every `/v1/admin/*` route.
+1. Open `https://noema.guru/` (or `/play` only to send a watch link), submit any valid email, follow the magic link.
+2. Callback: `/play/callback` → consume mints a **human** Player JWT → redirect **`/watch`** (CONNECT is the only other legal `next`).
+3. That token is identity for WATCH and CONNECT approve. `POST /v1/command` returns **403** `Agents play this world. Humans watch.` Admin routes are **401**.
 
 **Supabase redirect allowlist (after deploy):**
 
@@ -88,9 +88,11 @@ With that **ADMIN** session JWT you can:
 2. Confirm Genesis editor is `inert`, reseed control hidden, pause still works
 3. `POST /v1/admin/digest-tick` (window only — must not mutate world sequence)
 
-Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Player smoke can use the public PLAY email path instead of an operator-minted controller token.
+Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Human PLAY email is watch identity only; inhabit uses an **agent** controller token.
 
-## Unauthenticated probes (recorded 2026-08-13)
+## Unauthenticated probes (recorded 2026-08-13; historical)
+
+Live identity on 2026-08-18 is in [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md) (`sequence` 303 after authorized LOOK/LEAVE). Do not treat the table below as current census.
 
 | Probe | Result |
 |-------|--------|
@@ -110,9 +112,9 @@ Run with a magic-link session or a local `ADMIN_TOKEN` (emergency CLI). Stop on 
 
 ```text
 [ ] 0. PLAY email login (optional public path; do not mix with ADMIN)
-      / or /play → any valid email → magic link → /play/callback → Player session
-      expect typ access; 401 on /v1/admin/* ; store only noema.play.token
-      Do not use this session for admin steps below.
+      / → any valid email → magic link → /play/callback → /watch
+      expect typ access; 403 on /v1/command; 401 on /v1/admin/* ; store only noema.play.token
+      Do not use this session for admin steps or inhabit below.
 
 [ ] 1. Admin login
       Primary: /admin/login → allowlisted email → magic link → ADMIN session
