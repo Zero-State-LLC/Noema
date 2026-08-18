@@ -79,6 +79,23 @@ describe("play chamber HTML", () => {
     expect(html).toMatch(/overflow-x:clip/);
   });
 
+  it("phone Chamber is room + command; Here sheet closed", () => {
+    expect(chamber).toContain('id="here-open"');
+    expect(chamber).toContain('id="here-close"');
+    expect(chamber).toContain('id="here-sheet"');
+    expect(chamber).toContain('aria-expanded="false"');
+    expect(chamber).toMatch(/aria-controls="here-sheet"/);
+    expect(html).toMatch(/@media\(max-width:900px\)[\s\S]*#here-open\{[^}]*display:block/);
+    expect(html).toMatch(/@media\(min-width:901px\)[\s\S]*#here-open\{[^}]*display:none/);
+    expect(html).toMatch(/\.hint-more/);
+    expect(html).toMatch(/@media\(max-width:900px\)[\s\S]*\.hint-more\{[^}]*display:none/);
+    expect(html).toContain("trade nacre");
+    expect(html).toMatch(/#trail li:nth-child\(n\+6\)/);
+    expect(html).toContain("Escape");
+    expect(html).toMatch(/\$\("cmd"\)\.focus/);
+    expect(chamber).not.toMatch(/id="here-sheet"[^>]*\sopen\b/);
+  });
+
   it("declares one-shot semantic motion and honors reduced-motion", () => {
     expect(html).toMatch(/animation:signal-in 200ms[^;]* 1 both/);
     expect(html).toMatch(/animation:threshold-in 240ms[^;]* 1 both/);
