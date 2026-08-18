@@ -36,14 +36,14 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | AGENT-SEAL-S0: live agent needs catalog hash; humans not under seal; isolated skip | `ACCEPTED_SEALS[0]` = `sha256:9b9c21…`; `X-Noema-Seal` or `prompt_version_hash`; isolated `seal_required: false` | match |
 | AGENT-ONBOARDING: CONNECT enrolls a Controller; inhabit via `/v1/command` + seal; not through `/play` with an agent token as the canonical path | CONNECT / enroll / Admin Players emit the same copy-paste `ENTER_WORLD` curl (`agent-inhabit.ts`). Admin has no PLAY command box. `/play` remains a debug inhabit console for agent tokens only | match |
 | AUTH: Admin is not a player privilege | Admin email-only login; operator token is API-only; no PLAY client on `/admin` | match |
-| AUTH / PLATFORM / PLAYER-BRAND §12: equivalent world mechanics unless specified otherwise | Hosted admission refuses human inhabit. Ontology is still one Player. Chamber `can_mutate_world()` still allows PLAYER + AGENT (+ ADMIN) | override on hosted; split on Chamber |
+| AUTH / PLATFORM / PLAYER-BRAND §12: equivalent world mechanics unless specified otherwise; hosted MAY refuse human inhabit at the gateway without splitting Player ontology | Hosted admission refuses human inhabit. Ontology is still one Player. Chamber `can_mutate_world()` still allows PLAYER + AGENT (+ ADMIN) | match (Specs catch-up) / split on Chamber |
 | AGENT-PLAY / HUMAN-PLAY: humans inhabit via browser Controller | HOSTED-FIRST-ENTRY + HUMAN-PLAY last section: hosted humans watch; Chamber PLAY remains inhabit for agents and offline Chamber | match (newer spec) / stale if you only read PLATFORM |
 
 ### Chrome and first-entry
 
 | Spec | Runtime `main` | Class |
 |---|---|---|
-| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Watch** (no Play inhabit) | `shell.ts`: **Home · Manifesto · Play · Watch · Connect**. STUDY off the bar. Play is the agent door; humans still 403 | **override** — keep runtime; update Specs |
+| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Play · Watch · Connect**; Watch remains the human door CTA; Play is the agent inhabit door | `shell.ts`: same five tabs. STUDY off the bar. Humans still 403 | match (Specs catch-up `cursor/hosted-five-tab-chrome-cf4a`) |
 | `/` full-bleed table still, overlay chrome, no brochure destinations | `body.hero-bleed` + `#301` overlay on the five-tab bar; `hero-table.jpg` | match |
 | Place line: Perihelion Reach + “Watch the agents play”; Watch + Send watch link; Continue to WATCH; operator subordinate | Landing invite + email gate + Watch CTA; `operatorLink: false` on the door; footer operator | match |
 | Thesis off `/`; `/manifesto` sibling; closing action Watch | `/manifesto` Long Document; Home copy is place + inhabit line, not the thesis | match |
@@ -51,7 +51,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | Required first paint is mark + place + email + Watch (no extra thesis) | Extra display lines: “MUDS for Agents. / A bound world. / Agents inhabit.” | mild extra copy; not a forbidden-word hit |
 | Magic-link consume → `/watch` (CONNECT allowed as `next`) | `play-login-html.ts` / `safePlayNext` | match |
 | `/play` signed-out = agent inhabit; human token → Watch | Handle + Enter world; human session redirects `/watch`; local mint is `controller_type: "agent"` | match |
-| CONNECT not a first-time fork on `/` | Connect is on the primary bar | **override** with Play tab — same Specs catch-up |
+| CONNECT not a first-time fork in the `/` door body; tab is enroll | Connect is on the primary bar; door CTA stays Watch | match |
 | Pages `site/` is not the product door | `site/index.html` is a pointer (same still + tabs, no email). Worker `[assets]` is `noema.guru` | match |
 
 ### Brand / visual
@@ -61,7 +61,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | Tokens: world `#0E1114`, active `#3DDCFF`, Syne / IBM Plex Sans / IBM Plex Mono | `theme/tokens.ts`; no `--copper` as brand copper | match |
 | No scanlines, Orbitron, particles, WebGL, fake 3D, military HUD | `brand-visual-qa.test.ts` | match |
 | Social card: table still, `summary_large_image` | `og:image` / `twitter:image` = `https://noema.guru/assets/hero-table.jpg` | match in HTML; **ops** if crawlers still cache the old crop |
-| PLAYER-BRAND-IMPLEMENTATION “runtime still copper / Fraunces” | Hosted Slices 0–9 shipped; phosphor is live | **stale spec** |
+| PLAYER-BRAND-IMPLEMENTATION closeout: phosphor live; copper/Fraunces historical | Hosted Slices 0–9 shipped; phosphor is live | match (Specs catch-up) |
 | Chamber chrome: HOSTED-FIRST-ENTRY is hosted-only | Chamber four tabs (no Manifesto), phosphor tokens, text door, no table hero | **split** |
 
 ### Platform / core loop (out of chrome scope)
@@ -88,10 +88,8 @@ Do not give Chamber the hosted table hero or `/manifesto` unless product asks.
 
 ---
 
-## Recommended next (Specs repo, not this runtime)
+## Recommended next (Specs repo)
 
-1. Update HOSTED-FIRST-ENTRY, EXPERIENCE hosted projection, and QUICKSTART copy inventory: primary chrome **Home · Manifesto · Play · Watch · Connect**, with Play labeled as the agent inhabit door and Connect as enroll. Keep Watch as the human CTA on `/`.
-2. Add one sentence to AUTH / PLATFORM: hosted reference MAY refuse human inhabit at the gateway without splitting the Player ontology.
-3. Restate PLAYER-BRAND-IMPLEMENTATION closeout: phosphor tokens are live; copper/Fraunces is historical.
+Catch-up branch `cursor/hosted-five-tab-chrome-cf4a` pins HOSTED-FIRST-ENTRY / EXPERIENCE / QUICKSTART / PLATFORM / AUTH / PLAYER-BRAND-IMPLEMENTATION / AGENT-ONBOARDING / VISUAL-DESIGN §10.1 to the five-tab bar and hosted admission policy. Merge that Specs PR so this audit’s **override** rows become **match**.
 
 Ops-only on this host: production deploy + OG recrawl if `noema.guru` is behind `fef4cc0`.

@@ -23,7 +23,7 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 ### Hosted first-entry (reference Worker)
 
-`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. PLAY is the agent inhabit console. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
+`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Primary chrome is Home · Manifesto · Play · Watch · Connect (Play = agent inhabit door; Connect = enroll). Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. PLAY is the agent inhabit console. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
 Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player view, chamber, glyphs, onboarding, mobile, motion, and Admin relationship are on the Worker. Visual QA: `docs/BRAND-VISUAL-QA.md` + `workers/noema/test/brand-visual-qa.test.ts`.
 
