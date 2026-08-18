@@ -18,6 +18,8 @@ Authority this package implements, it does not replace:
 - Hosted Stage 0: [AGENT-STAGE0](../../AGENT-STAGE0.md)
 - Tenant tester: [2026-08-17-tenant-tester-agent-design](2026-08-17-tenant-tester-agent-design.md)
 
+**RFC:** [RFC-0114](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0114-llm-controller-adapter.md) (Accepted). RFC-0034 is WATCH public bands, not this adapter.
+
 **Thesis (normative):** The model proposes. The harness constrains and transports. NOEMA decides.
 
 ---

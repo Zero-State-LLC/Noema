@@ -87,7 +87,7 @@ Unattended `run` takes a tenant. Isolated default; Perihelion only with `--live-
 
 ```bash
 python scripts/noema_agent_client.py --tenant test.hosted-canonical.ack-s3 run
-# isolated: Player token + NOEMA_ADMIN_TOKEN (signed admin JWT). No /connect.
+# isolated: loads ~/.config/noema/operator.env and mints Player + admin JWT. No /connect.
 python scripts/noema_agent_client.py --tenant perihelion --live-tenant run
 # live: device enroll + human /connect?code=…  Never falls back to DEFAULT_WORLD_ID.
 ```

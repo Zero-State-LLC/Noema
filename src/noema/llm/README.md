@@ -9,8 +9,7 @@ Spec: `docs/superpowers/specs/2026-08-17-llm-agent-integration-v0.1.md`
 ## Golden path (isolated tenant, no LLM network)
 
 ```bash
-# mint Player + admin JWT into ~/.config/noema/tester.env (see operator notes)
-set -a && source ~/.config/noema/tester.env && set +a
+# isolated: reads ~/.config/noema/operator.env and mints Player + admin JWT
 cd /path/to/Noema
 PYTHONPATH=src python3 scripts/noema_llm_agent.py \
   --tenant test.hosted-canonical.ack-s3 \
