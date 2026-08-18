@@ -39,12 +39,15 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("nav is Home Play Watch Connect without Study", () => {
+  it("home and play nav are Home + Play only", () => {
     const n = navOf(shell);
     expect(n).toMatch(/>Play</);
-    expect(n).toMatch(/>Watch</);
-    expect(n).toMatch(/>Connect</);
+    expect(n).not.toMatch(/>Watch</);
+    expect(n).not.toMatch(/>Connect</);
     expect(n).not.toMatch(/>Study</);
+    const watch = navOf(productShell({ title: "T", active: "watch", body: "x" }));
+    expect(watch).toMatch(/>Watch</);
+    expect(watch).toMatch(/>Connect</);
   });
   it("footer does not list STUDY as a plane", () => {
     expect(shell).not.toMatch(/PLAY · WATCH · STUDY/);
@@ -217,7 +220,7 @@ describe("callback", () => {
   it("is Player consume, not ADMIN", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
-    expect(html).toContain("Entering the world");
+    expect(html).toContain("Opening the door");
     expect(html).toContain('raw === "/connect"');
     expect(html).toContain("location.href = next");
     expect(html).not.toContain("/v1/admin/login");

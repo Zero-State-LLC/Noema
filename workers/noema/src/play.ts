@@ -18,6 +18,15 @@ body.is-chamber #play-door{display:none}
 body.is-chamber #play-chamber{
   display:grid;grid-template-rows:auto auto 1fr auto;height:100dvh;min-height:100dvh;overflow:hidden;
 }
+body.is-arrive #world-strip,body.is-arrive #signals,body.is-arrive .sys,
+body.is-arrive #world-key,body.is-arrive #advanced,body.is-arrive #status-rows,
+body.is-arrive .status-head,body.is-arrive #route-box,body.is-arrive #desk-list,
+body.is-arrive #bonds-card,body.is-arrive .hint-more,body.is-arrive .where,
+body.is-arrive #loc-cond b,body.is-arrive #exit-wrap,body.is-arrive .acts-head{
+  display:none!important;
+}
+#arrive-name{margin:1rem 0;padding:.75rem 0;border-top:1px solid var(--line)}
+#arrive-name[hidden]{display:none}
 .ch-mast{
   display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;
   min-height:2.6rem;padding:.45rem .85rem;border-bottom:1px solid var(--line);
@@ -215,10 +224,9 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" style="margin-top:.45rem" id="token-hint">Production entry requires an operator-issued access token. Public minting is disabled. Paste it in the Access token field.</p>
+          <p class="empty" style="margin-top:.45rem" id="token-hint">If you already have a key, paste it here.</p>
         </details>
         <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
-        <p class="empty" style="margin-top:.65rem"><a href="/connect">Connect an agent</a></p>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
     </article>
@@ -231,13 +239,18 @@ export function playHtml(): string {
       <span id="ch-cycle"></span>
       <p class="play-health" id="play-health" hidden role="status"></p>
       <span id="handle-live">—</span>
-      <button class="btn quiet" id="leave" type="button">Leave world</button>
+      <button class="btn quiet" id="leave" type="button">Leave</button>
     </header>
     <div id="world-strip" class="ch-strip" hidden role="status" aria-label="World state"></div>
     <div class="ch-body">
       <section class="ch-scroll" aria-label="World">
         <article class="look" id="loc-card">
           <p class="where role-place"><span class="glyph glyph-loc" role="img" aria-label="Location" title="here"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 2h10v10H2z M2 6h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="sr">here</span></span>WHERE</p>
+          <div id="arrive-name" hidden>
+            <label for="arrive-handle">What should they call you here?</label>
+            <input id="arrive-handle" maxlength="32" minlength="2" autocomplete="username"/>
+            <button class="btn primary" id="arrive-ok" type="button" style="margin-top:.55rem">Enter</button>
+          </div>
           <h2 id="room-name"></h2>
           <p id="room-desc"></p>
           <p id="loc-custom" hidden></p>
@@ -289,12 +302,14 @@ export function playHtml(): string {
         <div id="players-here"></div>
         <div id="desk-list"></div>
         <div id="bonds-card"><div id="bonds-body"></div></div>
+        <div id="exit-wrap">
         <h3>EXITS</h3>
         <ul class="tok-list" id="exit-list" aria-label="Exits"></ul>
         <div class="route-box" id="route-box" hidden aria-label="Local routes"></div>
-        <h3>AVAILABLE HERE</h3>
+        </div>
+        <h3 class="acts-head">AVAILABLE HERE</h3>
         <ul class="tok-list" id="action-rail" aria-label="Available here"></ul>
-        <h3>STATUS</h3>
+        <h3 class="status-head">STATUS</h3>
         <ul class="status-rows" id="status-rows"></ul>
         ${legendHtml()}
         <details class="adv" id="advanced">
@@ -360,6 +375,8 @@ function playClientBundle(): string {
       worldName: "",
       attachCode: "",
       attachReason: "",
+      playerActs: 0,
+      arriving: true,
     };
 
     function pulseThreshold(el) {
@@ -402,13 +419,23 @@ function playClientBundle(): string {
       }
     }
 
+    function setArrive(on) {
+      state.arriving = !!on;
+      document.body.classList.toggle("is-arrive", !!on);
+    }
+
     function setSessionUi(on) {
       document.body.classList.toggle("is-chamber", on);
+      if (on) setArrive(state.playerActs < 5);
+      else setArrive(false);
       $("cmd").disabled = !on;
       $("send").disabled = !on;
       $("handle-live").textContent = state.handle || "—";
       if (!on) setHereOpen(false);
-      if (on) $("cmd").focus();
+      if (on && $("arrive-name") && !$("arrive-name").hidden) {
+        const ah = $("arrive-handle");
+        if (ah) ah.focus();
+      } else if (on) $("cmd").focus();
       else $("handle").focus();
     }
 
@@ -533,7 +560,7 @@ function playClientBundle(): string {
       $("loc-cond-text").textContent = cond;
 
       const ents = loc.entities || [];
-      fillEntityList($("entity-list"), ents);
+      fillEntityList($("entity-list"), state.arriving ? ents.slice(0, 4) : ents);
       if (playersEl) fillPlayersHere(playersEl, obs.players_here, obs.organizations, obs.player_id);
       if (desksEl) fillServiceDesks(desksEl, loc.services);
       if (bondsCard && bondsBody) {
@@ -563,7 +590,14 @@ function playClientBundle(): string {
 
       fillWorldStrip($("world-strip"), view.strip);
       fillSignalFeed($("signal-feed"), view.signals);
-      fillActionRail($("action-rail"), view.actions, loc);
+      const sessionActs = state.arriving ? firstSessionActs(loc, view.actions) : null;
+      if (sessionActs) {
+        fillActionRail($("action-rail"), sessionActs, loc);
+        const encouraged = sessionActs[0];
+        if (encouraged && $("cmd") && !$("cmd").value) $("cmd").placeholder = encouraged.cmd;
+      } else {
+        fillActionRail($("action-rail"), view.actions, loc);
+      }
       const statusRows = (view.status || []).slice();
       if (state.handle && !statusRows.some((r) => r.label === "You")) {
         statusRows.unshift({ label: "You", value: state.handle });
@@ -587,8 +621,9 @@ function playClientBundle(): string {
       state.prevRoomId = loc.room_id;
     }
 
-    async function sendCommand(line) {
+    async function sendCommand(line, opts) {
       if (!state.token || state.busy) return;
+      const silent = !!(opts && opts.silent);
       const raw = String(line || "").trim();
       if (!raw) { notice("Type a command, or use an action below.", "bad"); return; }
       // HELP client-side shortcut when offline observation needed
@@ -613,15 +648,17 @@ function playClientBundle(): string {
         renderObs(res.observation);
         $("meta-settled").textContent = res.settled === true ? "settled" : "";
         const consequence = (res.observation && res.observation.consequence) || raw;
-        pushTrailItems([
-          { kind: "you", title: consequence.split("\\n")[0] },
-          ...(res.observation && res.observation.location
-            ? [{ kind: "local", title: "You are at " + res.observation.location.name + "." }]
-            : []),
-        ]);
+        if (!silent) {
+          pushTrailItems([
+            { kind: "you", title: consequence.split("\\n")[0] },
+            ...(res.observation && res.observation.location
+              ? [{ kind: "local", title: "You are at " + res.observation.location.name + "." }]
+              : []),
+          ]);
+        }
         $("cmd").value = "";
         const happened = $("just-happened");
-        if (happened) {
+        if (happened && !silent) {
           const line = (res.observation && res.observation.consequence ? res.observation.consequence.split("\\n")[0] : "").trim();
           if (line) {
             happened.hidden = false;
@@ -632,6 +669,14 @@ function playClientBundle(): string {
             happened.append(k, document.createTextNode(line));
             pulseThreshold(happened);
           }
+        }
+        if (!silent) {
+          state.playerActs += 1;
+          if (state.playerActs >= 5 || /^(move|walk)\\b/i.test(raw)) {
+            const exits = $("exit-wrap");
+            if (exits) exits.style.display = "";
+          }
+          if (state.playerActs >= 5) setArrive(false);
         }
         if (res.observation && res.observation.world_name) state.worldName = res.observation.world_name;
         state.attachCode = "";
@@ -674,17 +719,24 @@ function playClientBundle(): string {
       state.busy = true;
       sessionNotice("Entering…");
       try {
-        let handle = ($("handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
-        if (handle.length < 2) {
-          handle = String(state.handle || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
-        }
+        let handle = (
+          ($("arrive-handle") && $("arrive-handle").value) ||
+          ($("handle") && $("handle").value) ||
+          state.handle ||
+          ""
+        ).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
         const pasted = readPastedToken();
-        if (handle.length < 2 && (preToken || pasted || state.token)) {
-          handle = "player";
+        if (handle.length < 2 && (preToken || state.token) && !pasted) {
+          state.busy = false;
+          setSessionUi(true);
+          if ($("arrive-name")) $("arrive-name").hidden = false;
+          const ah = $("arrive-handle");
+          if (ah) ah.focus();
+          return;
         }
         if (handle.length < 2) {
           state.busy = false;
-          sessionNotice("Choose a name (2–32 letters, numbers, _ or -).", "bad");
+          sessionNotice("What should they call you here?", "bad");
           $("handle").focus();
           return;
         }
@@ -713,11 +765,12 @@ function playClientBundle(): string {
         localStorage.setItem(storeKey, JSON.stringify({ handle }));
         $("pid").textContent = state.player_id || "—";
         $("cid").textContent = state.controller_id || "—";
+        if ($("arrive-name")) $("arrive-name").hidden = true;
         setSessionUi(true);
         state.busy = false;
         sessionNotice("");
-        await sendCommand("enter");
-        await sendCommand("look");
+        await sendCommand("enter", { silent: true });
+        await sendCommand("look", { silent: true });
       } catch (e) {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
@@ -775,6 +828,14 @@ function playClientBundle(): string {
     }
 
     $("enter").addEventListener("click", () => enterWorld());
+    const arriveOk = $("arrive-ok");
+    if (arriveOk) arriveOk.addEventListener("click", () => enterWorld(state.token));
+    const arriveHandle = $("arrive-handle");
+    if (arriveHandle) {
+      arriveHandle.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); enterWorld(state.token); }
+      });
+    }
     const tokenPaste = $("token-paste");
     if (tokenPaste) {
       tokenPaste.addEventListener("keydown", (e) => {
@@ -823,6 +884,7 @@ function playClientBundle(): string {
       if (handle) {
         $("handle").value = handle;
         state.handle = handle;
+        if ($("arrive-handle")) $("arrive-handle").value = handle;
       }
       if (tok) {
         state.token = tok;
@@ -844,7 +906,7 @@ function playClientBundle(): string {
           state.attachReason = humanizeError(state.attachCode, "").primary;
           if (banner) {
             banner.hidden = false;
-            banner.textContent = state.attachReason;
+            banner.textContent = "The Reach is still. Wait.";
             pulseThreshold(banner);
           }
         }

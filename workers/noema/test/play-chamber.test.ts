@@ -79,6 +79,17 @@ describe("play chamber HTML", () => {
     expect(html).toMatch(/overflow-x:clip/);
   });
 
+  it("first ninety: authed arrival skips the second door and silences ENTER/LOOK", () => {
+    expect(chamber).toContain('id="arrive-handle"');
+    expect(chamber).toContain("What should they call you here?");
+    expect(html).toContain("is-arrive");
+    expect(html).toContain("silent: true");
+    expect(html).toMatch(/sendCommand\("enter", \{ silent: true \}\)/);
+    expect(html).toMatch(/sendCommand\("look", \{ silent: true \}\)/);
+    expect(html).toContain("firstSessionActs");
+    expect(chamber).not.toContain("Connect an agent");
+  });
+
   it("phone Chamber is room + command; Here sheet closed", () => {
     expect(chamber).toContain('id="here-open"');
     expect(chamber).toContain('id="here-close"');
@@ -257,8 +268,8 @@ describe("chamber client session", () => {
   it("still auto-enters when noema.play.token is set", () => {
     expect(html).toContain('sessionStorage.getItem("noema.play.token")');
     expect(html).toContain("enterWorld(tok)");
-    expect(html).toContain('await sendCommand("enter")');
-    expect(html).toContain('await sendCommand("look")');
+    expect(html).toContain('await sendCommand("enter", { silent: true })');
+    expect(html).toContain('await sendCommand("look", { silent: true })');
   });
   it("paints Chamber from stored token before health and enterWorld", () => {
     const boot = html.slice(html.lastIndexOf("(async () => {"));

@@ -88,8 +88,8 @@ describe("brand slice 0 — hosted HTML routes", () => {
     )?.[0];
     expect(nav).toBeTruthy();
     expect(nav).toMatch(/>Play</);
-    expect(nav).toMatch(/>Watch</);
-    expect(nav).toMatch(/>Connect</);
+    expect(nav).not.toMatch(/>Watch</);
+    expect(nav).not.toMatch(/>Connect</);
     expect(nav).not.toMatch(/>Study</);
   });
 });

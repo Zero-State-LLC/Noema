@@ -51,10 +51,8 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
 export function playCallbackHtml(): string {
   const body = `
   <section class="card pad" aria-labelledby="callback-title">
-    <p class="kicker">World entry</p>
-    <h1 id="callback-title">Entering the world…</h1>
-    <p class="muted">Confirming the play link.</p>
-    <p class="notice" id="notice" role="status">Checking the link…</p>
+    <h1 id="callback-title">Opening the door…</h1>
+    <p class="notice" id="notice" role="status">Opening the door…</p>
   </section>
 <script>
 (() => {
@@ -88,6 +86,6 @@ export function playCallbackHtml(): string {
     title: "Play login",
     active: "play",
     body,
-    description: "Confirming the login link.",
+    description: "Opening the door.",
   });
 }
