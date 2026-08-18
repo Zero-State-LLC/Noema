@@ -91,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     httpd = serve(runtime, host=args.host, port=args.port)
     print(f"noema listening on http://{args.host}:{args.port}")
     print(f"configuration_digest={runtime.configuration_digest}")
-    print("UI: /  /play  /watch  /study  /admin/login  /admin")
+    print("UI: /  /play  /watch  /connect  /study  /admin/login  /admin")
     print(
         "API: /health /auth/human /auth/device /auth/device/token /auth/token/refresh "
         "/session /play/action /protocol/v1 …"
