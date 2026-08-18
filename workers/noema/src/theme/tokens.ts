@@ -66,6 +66,9 @@ export const TOKEN_CSS = `:root{
   --faint:var(--color-text-secondary);
   --line:var(--color-border-subtle);
   --line-hot:var(--color-border-subtle);
+  --color-overlay:color-mix(in srgb,var(--color-surface-world) 50%,transparent);
+  --color-rule-soft:color-mix(in srgb,var(--color-border-subtle) 45%,transparent);
+  --color-cmd-bar:color-mix(in srgb,var(--color-surface-world) 92%,var(--color-surface-panel));
   --teal:var(--color-state-active);
   --ember:var(--color-state-critical);
   --ok:var(--color-state-active);

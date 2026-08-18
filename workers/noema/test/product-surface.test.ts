@@ -75,6 +75,8 @@ describe("home door", () => {
 
   it("is not a brochure", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
+    expect(html).toContain('alt="Perihelion Reach"');
+    expect(html).not.toContain("topology-bg.jpg");
     expect(html).not.toContain("The world is the text.");
     expect(html).not.toContain("path-rail");
     expect(html).not.toMatch(/id="home-health"/);

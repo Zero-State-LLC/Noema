@@ -6,6 +6,9 @@ import { playUiRuntimeSource } from "./play-ui";
 import { productShell } from "./shell";
 
 const EXTRA = `
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4
+ * genre: atmospheric · macrostructure: Letter · design-system: site/design.md · designed-as-app
+ */
 .role-place{color:var(--color-text-primary)}
 .role-you{color:var(--color-state-social)}
 .role-here{color:var(--color-state-active)}
@@ -58,11 +61,11 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 }
 .signals[hidden]{display:none}
 #signal-feed{margin:0;padding:0;list-style:none}
-#signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem;border-left:2px solid transparent;padding-left:.45rem}
+#signal-feed li{padding:.35rem 0;border-bottom:1px solid var(--line);font-size:.86rem}
 #signal-feed li.signal-new{animation:signal-in 200ms var(--ease) 1 both}
 @keyframes signal-in{
-  from{border-left-color:var(--color-state-active);background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
-  to{border-left-color:transparent;background:transparent}
+  from{background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
+  to{background:transparent}
 }
 @keyframes threshold-in{
   from{box-shadow:inset 0 -2px 0 var(--color-state-warning);background:color-mix(in srgb,var(--color-state-warning) 14%,transparent)}
@@ -105,13 +108,13 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
   .here-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .65rem}
   .here-head strong{font:500 .78rem/1.3 var(--font-interface);letter-spacing:.06em;text-transform:uppercase}
   #here-close{min-height:44px;min-width:44px}
-  .here-backdrop{display:none;position:fixed;inset:0;z-index:5;background:rgba(8,10,12,.5)}
+  .here-backdrop{display:none;position:fixed;inset:0;z-index:5;background:var(--color-overlay)}
   .here-backdrop.is-open{display:block}
   .ch-rail{
     position:fixed;left:0;right:0;bottom:0;z-index:6;order:0;
     height:min(78dvh,36rem);max-height:78dvh;
     border-left:0;border-top:1px solid var(--line);
-    background:var(--color-surface-raised,#161B20);
+    background:var(--color-surface-raised);
     transform:translateY(110%);visibility:hidden;pointer-events:none;
     transition:transform 180ms var(--ease),visibility 0s linear 180ms;
   }
@@ -140,7 +143,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
     position:sticky;bottom:0;z-index:3;
     padding:.55rem .7rem calc(.55rem + env(safe-area-inset-bottom,0px));
   }
-  .cmdform input,.cmdform .btn,#enter,.gate .btn{
+  .cmdform input,.cmdform .btn,#enter,.door-gate .btn{
     min-height:44px;font-size:16px;
   }
   .tok-list button,.ch-cmd .hint [data-cmd],.sys summary,.legend summary,.adv summary{
@@ -177,7 +180,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 }
 .ch-rail h3:first-child{margin-top:0}
 .tok-list,.trail{margin:0;padding:0;list-style:none}
-.tok-list li{padding:.28rem 0;border-bottom:1px solid rgba(42,51,66,.45)}
+.tok-list li{padding:.28rem 0;border-bottom:1px solid var(--color-rule-soft)}
 .tok-list button{
   padding:0;border:0;background:none;color:var(--color-state-active);font:inherit;text-align:left;
 }
@@ -185,7 +188,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 .trail{margin-top:1rem}
 .trail li{
   display:grid;grid-template-columns:3.4rem 1fr;gap:.45rem;
-  padding:.45rem 0;border-bottom:1px solid rgba(42,51,66,.45);font-size:.84rem;
+  padding:.45rem 0;border-bottom:1px solid var(--color-rule-soft);font-size:.84rem;
 }
 .trail .k{font:.56rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;padding-top:.2rem}
 .trail .k.world{color:var(--muted)}
@@ -193,7 +196,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 .trail .d{color:var(--muted)}
 .ch-cmd{
   border-top:1px solid var(--line);padding:.65rem .85rem .75rem;
-  background:rgba(12,18,24,.97);position:sticky;bottom:0;z-index:2;
+  background:var(--color-cmd-bar);position:sticky;bottom:0;z-index:2;
 }
 .cmdform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.5rem}
 .cmdform input{
@@ -204,13 +207,15 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 .status-rows{margin:.35rem 0 0;padding:0;list-style:none}
 .status-rows li{display:flex;justify-content:space-between;gap:.75rem;font-size:.8rem}
 .status-rows span{color:var(--muted)}
-.gate{max-width:28rem;margin:1.5rem auto;padding:1.15rem}
-#play-door{position:relative}
-#play-door::before{
-  content:"";position:absolute;inset:0 0 auto 0;height:14rem;pointer-events:none;opacity:.22;z-index:0;
-  background:url(/assets/play-chamber.jpg) center top/cover no-repeat;
+#play-door.door{
+  display:grid;grid-template-columns:minmax(0,1.15fr) minmax(16rem,20rem);
+  gap:var(--space-lg) var(--space-xl);align-items:end;
+  margin:var(--space-xl) 0 0;max-width:52rem;
 }
-#play-door .gate{position:relative;z-index:1}
+#play-door.door h1{margin:0;max-width:none;min-width:0;font-size:clamp(2.4rem,6vw,3.5rem);overflow-wrap:anywhere}
+#play-door .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
+#play-door .door-gate{min-width:0}
+@media(max-width:760px){#play-door.door{grid-template-columns:1fr;gap:var(--space-lg)}}
 .adv{margin-top:.75rem}
 .adv summary{
   cursor:pointer;color:var(--muted);font:.62rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;
@@ -220,9 +225,12 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 
 export function playHtml(): string {
   const body = `
-  <div id="play-door">
-    <article class="card gate" id="session-card">
-      <p class="kicker">Play</p>
+  <section class="door" id="play-door" aria-labelledby="play-title">
+    <div>
+      <p class="place">Perihelion Reach</p>
+      <h1 id="play-title">Enter</h1>
+    </div>
+    <div class="door-gate" id="session-card">
       <div id="session-out">
         ${playEmailGateMarkup({ operatorLink: false })}
         <label for="handle">Your name</label>
@@ -231,13 +239,13 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" style="margin-top:.45rem" id="token-hint">If you already have a key, paste it here.</p>
+          <p class="empty" id="token-hint">If you already have a key, paste it here.</p>
         </details>
-        <button class="btn primary block" id="enter" type="button" style="margin-top:.65rem">Enter world</button>
+        <button class="btn primary block form-submit" id="enter" type="button">Enter world</button>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
-    </article>
-  </div>
+    </div>
+  </section>
 
   <div id="play-chamber" aria-label="Chamber">
     <header class="ch-mast">

@@ -6,26 +6,25 @@ import { playEmailGateMarkup } from "./play-login-html";
 import { productShell } from "./shell";
 
 const EXTRA = `
-/* Hallmark · genre: atmospheric · macrostructure: Letter · design-system: site/design.md */
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4
+ * genre: atmospheric · macrostructure: Letter · design-system: site/design.md · designed-as-app
+ */
 .door{
   display:grid;grid-template-columns:minmax(0,1.15fr) minmax(16rem,20rem);
   gap:var(--space-lg) var(--space-xl);align-items:end;
   margin:var(--space-xl) 0 0;max-width:52rem;
 }
-.door h1{margin:0;max-width:none;font-size:clamp(2.4rem,6vw,3.5rem)}
+.door h1{margin:0;max-width:none;min-width:0;font-size:clamp(2.4rem,6vw,3.5rem);overflow-wrap:anywhere}
 .door .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 .door .invite{margin:.55rem 0 0;color:var(--muted);max-width:28rem}
 .door-gate{min-width:0}
 #play-continue[hidden]{display:none!important}
 .miss{max-width:28rem;margin:var(--space-xl) 0 0}
-.miss h1{max-width:none}
+.miss h1{max-width:none;min-width:0;overflow-wrap:anywhere}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){.door{grid-template-columns:1fr;gap:var(--space-lg)}}
-#main.wrap{
-  background:url(/assets/topology-bg.jpg) center top/cover no-repeat;
-}
 .door-art{margin:var(--space-xl) 0 0;max-width:52rem}
-.door-art img{display:block;width:100%;height:auto;border:1px solid var(--line);opacity:.88}
+.door-art img{display:block;width:100%;height:auto;border:1px solid var(--line)}
 `;
 
 export function landingHtml(): string {
@@ -42,7 +41,7 @@ export function landingHtml(): string {
     </div>
   </section>
   <figure class="door-art">
-    <img src="/assets/hero-phosphor.jpg" width="1600" height="900" alt=""/>
+    <img src="/assets/hero-phosphor.jpg" width="1600" height="900" alt="Perihelion Reach"/>
   </figure>`;
 
   return productShell({
