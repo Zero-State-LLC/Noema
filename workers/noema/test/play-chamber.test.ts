@@ -39,6 +39,15 @@ describe("play chamber HTML", () => {
     expect(html).not.toContain("/v1/admin/login/request");
   });
 
+  it("signed-out door is a left-biased Letter, not a centred kicker card", () => {
+    const door = doorOf(html);
+    expect(door).toMatch(/<h1 id="play-title">Enter<\/h1>/);
+    expect(door).not.toContain('class="kicker"');
+    expect(door).not.toContain("play-chamber.jpg");
+    expect(html).toMatch(/#play-door\.door\{/);
+    expect(html).not.toMatch(/#play-door::before/);
+  });
+
   it("hides chamber until body.is-chamber", () => {
     expect(html).toMatch(/#play-chamber\{[^}]*display:\s*none/);
     expect(html).toMatch(/body\.is-chamber\s+#play-chamber/);

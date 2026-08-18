@@ -28,11 +28,13 @@ Do not conflate them. Chamber play stays readable text. Pages `index.html` is a 
 
 ### Theme
 
-Dark ledger · single copper accent `#c4784a` · Fraunces + Source Sans 3 + IBM Plex Mono
+Dark ledger · cyan signal `#3DDCFF` · Syne + IBM Plex Sans + IBM Plex Mono  
+Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/src/theme/tokens.ts`.
 
 | Page | Macrostructure |
 |---|---|
 | Hosted `/` | Letter / left-biased world door |
+| Hosted `/play` (signed-out) | Letter / left-biased enter |
 | Hosted `/watch` | Map-diagram (text graph primary; Phosphor optional) |
 | Hosted `/connect` | Workbench (single column; device approve first) |
 | Hosted `/study` | Short notice |
@@ -40,4 +42,4 @@ Dark ledger · single copper accent `#c4784a` · Fraunces + Source Sans 3 + IBM 
 | Pages `index.html` | Same door as hosted `/` (pointer, no email form) |
 | `memo.html` | Long Document (for builders who click through) |
 
-Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Pages share tokens and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system.
+Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Pages share tokens and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. The signed-out `/play` door is in the system.

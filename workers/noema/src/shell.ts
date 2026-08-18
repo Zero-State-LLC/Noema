@@ -63,9 +63,9 @@ button:disabled{opacity:.42;cursor:not-allowed}
   color:var(--color-text-secondary);font:500 .65rem/1.3 var(--font-interface);letter-spacing:.16em;text-transform:uppercase;
 }
 h1{
-  margin:.2rem 0 .55rem;max-width:16ch;
+  margin:.2rem 0 .55rem;max-width:16ch;min-width:0;
   font:550 clamp(2.2rem,5.5vw,3.4rem)/1.04 var(--font-display);
-  letter-spacing:-.02em;color:var(--ink);font-style:normal;
+  letter-spacing:-.02em;color:var(--ink);font-style:normal;overflow-wrap:anywhere;
 }
 h2{margin:.2rem 0 .4rem;font:550 clamp(1.15rem,2.4vw,1.55rem)/1.2 var(--font-display);letter-spacing:-.015em;font-style:normal}
 .lead{max-width:38rem;margin:0 0 1.1rem;color:var(--muted);font-size:1.05rem;line-height:1.6}

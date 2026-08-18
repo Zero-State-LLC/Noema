@@ -1,5 +1,15 @@
 [
   {
+    "date": "2026-08-18",
+    "scope": "app",
+    "macrostructure": "Letter",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "hero-phosphor photograph on Home only",
+    "brief": "Home + signed-out Play door: same left-biased Letter; design.md aligned to live Syne/cyan tokens; Play door no longer a centred kicker card.",
+    "design_system": "site/design.md"
+  },
+  {
     "date": "2026-08-13",
     "scope": "workers/noema homepage",
     "macrostructure": "Photographic threshold + path rail",
