@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyWorldCommand, type WorldRuntime } from "../../src/world-actions";
 import { buildWatchLive, type WatchRoomIn } from "../../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../../src/types";
-import { adminToken, hit, hitWatchLive, playerToken, type DoCall } from "./harness";
+import { adminToken, hit, hitWatchLive, playerToken, worldDoCalls, type DoCall } from "./harness";
 import {
   MINI_DEADEND_ROOM_ID,
   MINI_ENTRY_ROOM_ID,
@@ -270,7 +270,7 @@ describe("C10 no private cognition request", () => {
     expect(isolated.status).toBe(400);
     const j = (await isolated.json()) as { error?: { code?: string } };
     expect(j.error?.code).toBe("INVALID_REQUEST");
-    expect(isolatedCalls.some((c) => c.op === "fetch")).toBe(false);
+    expect(worldDoCalls(isolatedCalls).some((c) => c.op === "fetch")).toBe(false);
 
     const playCalls: DoCall[] = [];
     const play = await hit(
@@ -287,7 +287,7 @@ describe("C10 no private cognition request", () => {
       playCalls,
     );
     expect(play.status).toBe(400);
-    expect(playCalls.some((c) => c.op === "fetch")).toBe(false);
+    expect(worldDoCalls(playCalls).some((c) => c.op === "fetch")).toBe(false);
   });
 
   it("WATCH live projection has no cognition fields", async () => {

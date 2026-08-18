@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { handleProtocolFrame, protocolHello, acceptProtocolWebSocket } from "../src/protocol-ws";
 import { adminToken, env, hit, playerToken, type DoCall } from "./conformance/harness";
+import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
 import type { CommandEnvelope, Env } from "../src/types";
 
 async function dummyRoute(
@@ -304,6 +305,6 @@ describe("PLAY tenant routing on /v1/command", () => {
     expect(res.status).toBe(403);
     const j = (await res.json()) as { error: { code: string } };
     expect(j.error.code).toBe("WORLD_FORBIDDEN");
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(calls.some((c) => c.op === "idFromName" && c.name !== RATE_LIMIT_DO_NAME)).toBe(false);
   });
 });

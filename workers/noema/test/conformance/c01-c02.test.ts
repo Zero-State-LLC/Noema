@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminToken, hit, playerToken, type DoCall } from "./harness";
+import { adminToken, hit, playerToken, worldDoCalls, type DoCall } from "./harness";
 
 describe("C01 protocol negotiation", () => {
   it("compatible HELLO returns HELLO_ACK agent-protocol/v1", async () => {
@@ -120,6 +120,6 @@ describe("C02 identity authz denial", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(worldDoCalls(calls).some((c) => c.op === "idFromName")).toBe(false);
   });
 });
