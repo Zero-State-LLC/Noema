@@ -266,7 +266,8 @@ describe("play attach — canonical head snapshot", () => {
     expect(entered.observation?.in_world).toBe(true);
     expect(entered.observation?.location?.name).toMatch(/Relay/);
     expect(head.players["player.a7a22752ad02"]?.entered).toBe(true);
-    expect(countLivePlayers(head.players)).toBe(1);
+    expect(countEnteredPlayers(head.players)).toBe(1);
+    expect(countLivePlayers(head.players)).toBe(0);
 
     const look = await authedCommand(head, {
       request_id: "web.head-look",
@@ -294,7 +295,7 @@ describe("play attach — canonical head snapshot", () => {
     const readyBody = (await ready.json()) as { ready?: boolean; world?: { players?: number; playable?: boolean } };
     expect(readyBody.ready).toBe(true);
     expect(readyBody.world?.playable).toBe(true);
-    expect(readyBody.world?.players).toBeGreaterThanOrEqual(1);
+    expect(readyBody.world?.players).toBe(0);
   });
 
   it("ENTER then LOOK still attaches when the head snapshot has an org without members", async () => {

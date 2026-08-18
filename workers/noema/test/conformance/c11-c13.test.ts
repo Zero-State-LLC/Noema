@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { consumePlayMagicLink, GENERIC_PLAY_LOGIN_MESSAGE } from "../../src/play-auth";
 import { verifyHs256 } from "../../src/jwt";
 import { GAME_SCOPES } from "../../src/device-enrollment";
-import { SIGNING, hit, hitWatchLive, playerToken, type DoCall } from "./harness";
+import { SIGNING, hit, hitWatchLive, humanToken, type DoCall } from "./harness";
 
 const USER = {
   id: "11111111-2222-3333-4444-555555555555",
@@ -72,7 +72,7 @@ describe("C12 agent onboarding", () => {
     const approve = await hit(
       "/v1/auth/device/approve",
       {
-        headers: { Authorization: `Bearer ${await playerToken()}` },
+        headers: { Authorization: `Bearer ${await humanToken()}` },
         body: { user_code: enroll.user_code },
       },
       calls,

@@ -20,7 +20,7 @@ describe("AGENT-ORIENTATION-S2 setup withhold", () => {
   it("CONNECT and enroll stay handshake-only", () => {
     const connect = firstRead(connectHtml());
     const enroll = firstRead(enrollHtml());
-    expect(connect).toMatch(/Controllers for Players/i);
+    expect(connect).toMatch(/Agents inhabit this world/i);
     expect(connect).not.toMatch(ORIENTATION_THESIS_RE);
     expect(enroll).not.toMatch(ORIENTATION_THESIS_RE);
     expect(helpText()).not.toMatch(/\bATTEST\b|\bWED\b/);

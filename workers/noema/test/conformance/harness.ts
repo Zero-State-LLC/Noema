@@ -98,6 +98,11 @@ export async function playerToken(calls: DoCall[] = []) {
   return minted.access_token;
 }
 
+export async function humanToken(calls: DoCall[] = []) {
+  const minted = await mintControllerToken(env(calls), { handle: "watcher", controllerType: "human" });
+  return minted.access_token;
+}
+
 export async function adminToken(calls: DoCall[] = []) {
   const minted = await mintAdminSession(env(calls), OPERATOR);
   if (minted instanceof Response) throw new Error("failed to mint admin");

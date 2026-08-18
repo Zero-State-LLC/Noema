@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { handleProtocolFrame, protocolHello, acceptProtocolWebSocket } from "../src/protocol-ws";
 import { adminToken, env, hit, playerToken, type DoCall } from "./conformance/harness";
 import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
+import { ACCEPTED_SEALS } from "../src/seal";
 import type { CommandEnvelope, Env } from "../src/types";
 
 async function dummyRoute(
@@ -82,7 +83,7 @@ describe("protocol frames", () => {
       e,
       req,
       { principal: null, adminToken: "" },
-      { type: "AUTH", request_id: "a", body: { access_token: token } },
+      { type: "AUTH", request_id: "a", body: { access_token: token, prompt_version_hash: ACCEPTED_SEALS[0] } },
       dummyRoute,
     );
     const { reply } = await handleProtocolFrame(
@@ -105,7 +106,7 @@ describe("protocol frames", () => {
       e,
       req,
       { principal: null, adminToken: "" },
-      { type: "AUTH", request_id: "a", body: { access_token: token } },
+      { type: "AUTH", request_id: "a", body: { access_token: token, prompt_version_hash: ACCEPTED_SEALS[0] } },
       dummyRoute,
     );
     const { reply } = await handleProtocolFrame(
@@ -133,7 +134,7 @@ describe("protocol frames", () => {
       e,
       req,
       { principal: null, adminToken: "" },
-      { type: "AUTH", request_id: "a", body: { access_token: token, admin_token: await adminToken(calls) } },
+      { type: "AUTH", request_id: "a", body: { access_token: token, admin_token: await adminToken(calls), prompt_version_hash: ACCEPTED_SEALS[0] } },
       dummyRoute,
     );
     const { reply } = await handleProtocolFrame(
@@ -160,7 +161,7 @@ describe("protocol frames", () => {
       e,
       req,
       { principal: null, adminToken: "" },
-      { type: "AUTH", request_id: "a", body: { access_token: token } },
+      { type: "AUTH", request_id: "a", body: { access_token: token, prompt_version_hash: ACCEPTED_SEALS[0] } },
       dummyRoute,
     );
     expect(auth.reply.type).toBe("AUTH_ACK");
@@ -183,7 +184,7 @@ describe("protocol frames", () => {
       e,
       req,
       { principal: null, adminToken: "" },
-      { type: "AUTH", request_id: "a", body: { access_token: token } },
+      { type: "AUTH", request_id: "a", body: { access_token: token, prompt_version_hash: ACCEPTED_SEALS[0] } },
       dummyRoute,
     );
     const resume = (auth.reply.body as { resume_token?: string }).resume_token;
