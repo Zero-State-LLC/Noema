@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from noema.actions.errors import ActionError
+from noema.actions.errors import ActionError, NOT_AUTHORIZED
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
 from noema.gateway.ui import (
@@ -42,11 +42,34 @@ def _security_headers(*, html: bool = False) -> dict[str, str]:
     return headers
 
 
+_LOCAL_ENVS = {"local", "test", "dev"}
+_DEFAULT_ADMIN_SEED = Path("fixtures") / "v01-seed" / "world-seed.json"
+
+
 def _admin_session_cookie(session_id: str) -> str:
     parts = [f"noema_admin_session={session_id}", "Path=/", "HttpOnly", "SameSite=Strict"]
-    if (os.environ.get("NOEMA_ENV") or "").lower() == "production":
+    env = (os.environ.get("NOEMA_ENV") or "local").lower()
+    if env not in _LOCAL_ENVS:
         parts.append("Secure")
     return "; ".join(parts)
+
+
+def resolve_admin_seed_path(raw: str | None, *, cwd: Path | None = None) -> Path:
+    """Confine /admin/start seed_path to files under fixtures/."""
+    root = (cwd or Path.cwd()).resolve()
+    fixtures = (root / "fixtures").resolve()
+    if raw is None or not str(raw).strip():
+        candidate = (root / _DEFAULT_ADMIN_SEED).resolve()
+    else:
+        given = Path(str(raw))
+        candidate = given.resolve() if given.is_absolute() else (root / given).resolve()
+    try:
+        candidate.relative_to(fixtures)
+    except ValueError as exc:
+        raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/") from exc
+    if not candidate.is_file():
+        raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/")
+    return candidate
 
 
 class RequestEntityTooLarge(Exception):
@@ -250,7 +273,7 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                 if path == "/admin/start":
                     if not self._require_admin(body.get("session_id")):
                         return None
-                    seed = body.get("seed_path") or str(Path.cwd() / "fixtures" / "v01-seed" / "world-seed.json")
+                    seed = resolve_admin_seed_path(body.get("seed_path") if isinstance(body.get("seed_path"), str) else None)
                     result = runtime.start_world(seed)
                     return self._json(200, result)
                 if path == "/admin/genesis/preview":

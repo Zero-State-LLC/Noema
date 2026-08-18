@@ -77,7 +77,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if not is_postgres_url(args.db):
         Path(args.db).parent.mkdir(parents=True, exist_ok=True)
-    runtime = NoemaRuntime(db_path=args.db, deployment_config=args.config)
+    loopback = args.host.lower() in _LOOPBACK_HOSTS
+    runtime = NoemaRuntime(
+        db_path=args.db,
+        deployment_config=args.config,
+        # Non-loopback binds (including --allow-insecure-dev-bind) never issue
+        # tokenless human credentials; keep that DX on loopback only.
+        allow_dev_human=None if loopback else False,
+    )
     if not args.no_autoload and args.seed.is_file():
         runtime.start_world(args.seed)
         print(f"loaded seed {args.seed}")

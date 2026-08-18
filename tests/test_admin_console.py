@@ -178,6 +178,16 @@ def test_genesis_and_verification_are_admin_gated(running_runtime):
     assert status == 403
     assert body["error"]["code"] == "NOT_AUTHORIZED"
 
+    status, _, body = _request(
+        opener,
+        base + "/admin/start",
+        method="POST",
+        body={"session_id": admin["session_id"], "seed_path": "/etc/passwd"},
+    )
+    assert status == 400
+    assert body["error"]["code"] == "NOT_AUTHORIZED"
+    assert "fixtures" in body["error"]["message"]
+
     status, _, preview = _request(
         opener,
         base + "/admin/genesis/preview",

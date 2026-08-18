@@ -64,6 +64,7 @@ class NoemaRuntime:
         research_capture: bool = True,
         frontier_config: dict[str, Any] | None = None,
         admin_token: str | None = None,
+        allow_dev_human: bool | None = None,
     ):
         self.store = open_store(db_path)
         self.router: ActionRouter | None = None
@@ -74,7 +75,7 @@ class NoemaRuntime:
         # The token is an operator-side development gate. Keep it in memory only:
         # it is never included in config views, sessions, or admin projections.
         self.admin_token = admin_token if admin_token is not None else os.environ.get("NOEMA_ADMIN_TOKEN")
-        self.identity = IdentityService(self.store)
+        self.identity = IdentityService(self.store, allow_dev_human=allow_dev_human)
         self.sessions: dict[str, dict[str, Any]] = {}
         self.resume = ResumeRegistry(default_max_window=256)
         self.research = ResearchCapture(self.store, enabled=research_capture)

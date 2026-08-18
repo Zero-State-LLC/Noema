@@ -18,13 +18,15 @@ def test_default_host_is_loopback(monkeypatch, tmp_path):
             return None
 
     def fake_serve(runtime, *, host: str, port: int):
-        observed.update(host=host, port=port)
+        observed.update(host=host, port=port, allow_dev_human=runtime.identity.allow_dev_human)
         return FakeServer()
 
     monkeypatch.setattr(serve_cli, "serve", fake_serve)
 
     assert serve_cli.main(["--db", str(tmp_path / "default.sqlite3"), "--no-autoload"]) == 0
-    assert observed == {"host": "127.0.0.1", "port": 8080}
+    assert observed["host"] == "127.0.0.1"
+    assert observed["port"] == 8080
+    assert observed["allow_dev_human"] is True
 
 
 def test_non_loopback_local_bind_requires_explicit_unsafe_opt_in(monkeypatch, tmp_path):
@@ -64,7 +66,7 @@ def test_explicit_unsafe_opt_in_preserves_local_network_development(monkeypatch,
             return None
 
     def fake_serve(runtime, *, host: str, port: int):
-        observed.update(host=host, port=port)
+        observed.update(host=host, port=port, allow_dev_human=runtime.identity.allow_dev_human)
         return FakeServer()
 
     monkeypatch.delenv("NOEMA_ENV", raising=False)
@@ -85,6 +87,7 @@ def test_explicit_unsafe_opt_in_preserves_local_network_development(monkeypatch,
         == 0
     )
     assert observed["host"] == "0.0.0.0"
+    assert observed["allow_dev_human"] is False
 
 
 def test_configured_production_bind_preserves_public_deployment(monkeypatch, tmp_path):
