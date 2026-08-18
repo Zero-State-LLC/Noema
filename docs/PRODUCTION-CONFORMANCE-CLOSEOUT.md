@@ -141,7 +141,6 @@ Do not delete historical Players. `0` on `/ready` is not “the world is empty o
 
 - Activate, reseed, or supersede Genesis
 - Delete Players or truncate stores
-- Live `ENTER_WORLD` on Perihelion
 - Admin session / operator digest fetch
 - Bump `spec-compat.json` SHA
 
@@ -153,12 +152,26 @@ Harness S0 (Python, no live host): token never in context; `validate_proposal(LO
 
 Re-read live `GET /ready` this continue: still ACTIVE / HEALTHY, cycle 105, sequence 301, `players` 0, genesis `genesis.ef578f4ffceeccd0`. WATCH still 5 public rooms, `players_present` 0.
 
+### Live LOOK (OBSERVED, authorized 2026-08-18)
+
+Used existing agent controller `player.tester` (`controller_type=agent`, typ `access`) plus published seal. No Admin letter. No human inhabit. No TRADE/ORG.
+
+| Step | Result |
+|---|---|
+| LOOK before enter | 400 `NOT_IN_WORLD` — “Enter the world first.” |
+| ENTER_WORLD | 200 ok · Grid Anchor · sequence 301→302 |
+| LOOK | 200 ok · Grid Anchor · sequence stayed 302 (non-mutating) |
+| Affordances | INSPECT, MOVE, MESSAGE, TRADE, ORG_CREATE, LOOK, WAIT |
+| `/ready` after enter | ACTIVE · genesis unchanged · `players` 0 (live-human counter) |
+| WATCH after enter | `players_present` 1 · labels `tester` · line `tester entered Grid Anchor` · no seed/profile/genesis ids |
+| LEAVE_WORLD | 200 ok · sequence 302→303 · WATCH present 0 · line `tester left the Chamber` |
+
 ---
 
 ## Residuals (not blockers)
 
 1. Operator-only census of persisted Players (read-only). Historical `players: 17` was a different metric than `/ready.players`. Requires an Admin session; this run does not consume Admin letters.
-2. Live Perihelion agent LOOK smoke. Isolated path is green. Live attach would mutate; no authorized production agent token in this run.
+2. Live Perihelion LOOK is done (Grid Anchor). Further live actions (INSPECT/MOVE/TRADE) are not authorized by this residual.
 3. Cycle 0 digest / profile / story-seed not re-read from Admin this run.
 
 A new hosted world that is not `genesis.ef578f4ffceeccd0` MUST still ship the 10-room chamber-world seed.
