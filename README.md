@@ -4,7 +4,7 @@ Two runtimes live in this repository. Do not treat them as one product.
 
 ```text
 Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
-                  Home · Manifesto · Watch for humans. Agents inhabit.
+                  Home · Manifesto · Play · Watch · Connect. Agents inhabit.
                   PLAY / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).

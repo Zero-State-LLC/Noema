@@ -81,5 +81,8 @@ describe("auth email templates", () => {
     expect(mail.html + mail.text).not.toMatch(/access_token|refresh_token|Bearer |re_|ADMIN_OPERATOR|curl |sk-/i);
     expect(mail.html).not.toContain("WATCH NOEMA");
     expect(mail.html).not.toContain("OPEN ADMIN");
+    expect(mail.html).not.toMatch(/#c4784a|Georgia|Fraunces|--copper/i);
+    expect(mail.html).toContain("#3DDCFF");
+    expect(mail.html).toContain("IBM Plex Sans");
   });
 });

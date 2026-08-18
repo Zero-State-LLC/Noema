@@ -15,21 +15,6 @@ body.hero-bleed .top{
   position:absolute;inset:0 0 auto 0;width:100%;
   background:transparent;border-bottom:0;z-index:var(--z-nav);
 }
-body.hero-bleed .nav a{
-  text-transform:uppercase;letter-spacing:.14em;font:600 .72rem/1.2 var(--font-interface);
-  color:var(--ink);
-}
-body.hero-bleed .nav a[aria-current=page]{color:var(--color-state-active)}
-body.hero-bleed .nav a[href="/watch"]{
-  display:inline-flex;align-items:center;justify-content:center;
-  min-height:2.35rem;padding:.45rem 1rem;
-  border:1px solid color-mix(in srgb,var(--ink) 35%,transparent);
-  border-radius:var(--r);
-  background:color-mix(in srgb,var(--void) 70%,transparent);color:var(--ink);
-}
-body.hero-bleed .nav a[href="/watch"]:hover{
-  border-color:var(--color-state-active);color:var(--ink);
-}
 body.hero-bleed .wrap{width:100%;max-width:none;margin:0;padding:0}
 body.hero-bleed .foot{border-top:0;background:var(--void)}
 .hero{

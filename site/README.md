@@ -10,7 +10,7 @@
 
 | Page | Role |
 |---|---|
-| `index.html` | Same first-read as hosted `/`: table hero, Home · Manifesto · Watch, pointer (no email) |
+| `index.html` | Same first-read as hosted `/`: table hero, Home · Manifesto · Play · Watch · Connect, pointer (no email) |
 | `memo.html` | Specs map for builders (long document) |
 | `design.md` | Tokens + surface split |
 
@@ -27,4 +27,4 @@ python3 -m http.server 8765 --directory site
 
 Product host **https://noema.guru** is Worker-rendered. `workers/noema/src/landing.ts` owns `/`; `/manifesto`, `/play`, `/watch`, `/study`, and `/connect` are routed in `workers/noema/src/index.ts`. Static assets come from `workers/noema/public/` only after Worker routes are evaluated.
 
-Hosted `/` is the table hero with a watch-link email gate. This folder’s `index.html` matches that first-read as a pointer to https://noema.guru (Watch + Open the door; no email form; no Play nav). Thesis lives at https://noema.guru/manifesto. `memo.html` remains the builder map.
+Hosted `/` is the table hero with a watch-link email gate. This folder’s `index.html` matches that first-read as a pointer to https://noema.guru (Watch + Open the door; no email form). Tabs match the hosted bar. Thesis lives at https://noema.guru/manifesto. `memo.html` remains the builder map.
