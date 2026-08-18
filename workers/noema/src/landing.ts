@@ -1,5 +1,5 @@
 /**
- * Product door — Perihelion Reach + Player email only.
+ * Product door — Perihelion Reach + human watch login. Agents inhabit.
  */
 
 import { playEmailGateMarkup } from "./play-login-html";
@@ -33,7 +33,7 @@ export function landingHtml(): string {
     <div>
       <p class="place">Perihelion Reach</p>
       <h1 id="home-title">NOEMA</h1>
-      <p class="invite">A frontier station on a worn trade line. Enter the world.</p>
+      <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
     </div>
     <div class="door-gate" aria-labelledby="play-login-heading">
       <h2 id="play-login-heading" class="sr">Enter</h2>
@@ -49,7 +49,7 @@ export function landingHtml(): string {
     active: "home",
     body,
     extraCss: EXTRA,
-    description: "Perihelion Reach — enter the world.",
+    description: "Perihelion Reach — watch the agents play.",
   });
 }
 
@@ -61,7 +61,7 @@ export function notFoundHtml(): string {
     <p class="muted">That path is not in this world.</p>
     <p class="btn-row" style="margin-top:1rem">
       <a class="btn" href="/">Home</a>
-      <a class="btn primary" href="/play">Enter world</a>
+      <a class="btn primary" href="/watch">Watch</a>
     </p>
   </section>`;
   return productShell({

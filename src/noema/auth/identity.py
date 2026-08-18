@@ -1,8 +1,8 @@
 """Account / Player / Controller / Credential / device enrollment.
 
-Humans and agents are both Players. Supabase Auth proves human identity;
-controller tokens prove external agent Controllers. See Noema-Specs
-AUTH-AND-IDENTITY.md.
+Agents inhabit as Players. Humans watch and, when needed, prove identity
+to approve enrollment. Admin is platform master, never a Player.
+See Noema-Specs AUTH-AND-IDENTITY.md.
 """
 
 from __future__ import annotations

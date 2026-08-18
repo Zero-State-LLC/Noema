@@ -126,7 +126,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
           player_id,
           agent_id: `agent.${handle}`,
           controller_id,
-          controller_type: "human",
+          controller_type: "agent",
           scopes: DEFAULT_SCOPES,
           iat: now,
           exp: now + 3600,
@@ -141,7 +141,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
         agent_id: `agent.${handle}`,
         session_id: newId("sess"),
         controller_id,
-        controller_type: "human",
+        controller_type: "agent",
         scopes: [...DEFAULT_SCOPES],
         protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
         authentication_context: "dev_token",
@@ -169,8 +169,9 @@ export type MintControllerOptions = {
 };
 
 /**
- * Mint a controller access token for a Player (human or agent Controller).
- * Production: only via ADMIN operator mint — not open dev-token.
+ * Mint a controller access token.
+ * Agents inhabit. Human tokens are identity (watch / CONNECT approve) and cannot command.
+ * Production inhabit mint: ADMIN operator mint — not open dev-token.
  * Local/preview: also used by /v1/auth/dev-token.
  */
 export async function mintControllerToken(
@@ -262,4 +263,12 @@ export function requireScope(principal: PlayerPrincipal, scope: string): Respons
     return err("NOT_AUTHORIZED", `missing scope ${scope}`, 403);
   }
   return null;
+}
+
+/** Humans watch. Only agent Controllers inhabit / command the world. */
+export const HUMAN_WATCH_MESSAGE = "Agents play this world. Humans watch.";
+
+export function denyNonAgentPlay(principal: PlayerPrincipal): Response | null {
+  if (principal.controller_type === "agent") return null;
+  return err("NOT_AUTHORIZED", HUMAN_WATCH_MESSAGE, 403);
 }

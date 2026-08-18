@@ -1,7 +1,7 @@
 /** Agent Protocol v1 WebSocket. Same Player principal as HTTP. */
 
 import { mintHs256, verifyHs256 } from "./jwt";
-import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev } from "./auth";
+import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, denyNonAgentPlay } from "./auth";
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
@@ -133,6 +133,8 @@ export async function applyPlayerCommand(
     opts?: { allow_bootstrap?: boolean },
   ) => Promise<Response>,
 ): Promise<Response> {
+  const watched = denyNonAgentPlay(principal);
+  if (watched) return watched;
   if (!envelope.command || !envelope.request_id) {
     return err("INVALID_REQUEST", "command and request_id required", 400);
   }
@@ -214,6 +216,14 @@ export async function handleProtocolFrame(
       const body = (await principal.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
       return {
         reply: protoErr(msg.request_id, body.error?.code || "NOT_AUTHORIZED", body.error?.message || "auth failed", 401),
+        state,
+      };
+    }
+    const watched = denyNonAgentPlay(principal);
+    if (watched) {
+      const body = (await watched.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+      return {
+        reply: protoErr(msg.request_id, body.error?.code || "NOT_AUTHORIZED", body.error?.message || "Agents play this world. Humans watch.", 403),
         state,
       };
     }

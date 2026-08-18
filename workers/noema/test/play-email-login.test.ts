@@ -311,12 +311,12 @@ describe("play login HTML", () => {
     expect(html).toContain('id="email"');
     expect(html).toContain("/v1/play/login/request");
     expect(html).toContain("Send play link");
-    expect(html).toContain("A link signs you into the world");
+    expect(html).toContain("A link signs you in so you can watch");
     const visible = html.replace(/<[^>]+>/g, " ").toLowerCase();
     expect(visible).not.toContain("admin");
     expect(visible).not.toContain("operator plane");
   });
-  it("Continue to PLAY is landing-only", () => {
+  it("Continue to WATCH is landing-only", () => {
     expect(playEmailGateMarkup()).not.toContain("play-continue");
     expect(playEmailGateMarkup({ continueToPlay: true })).toContain('id="play-continue"');
     expect(landingHtml()).toContain('id="play-continue"');
@@ -347,6 +347,6 @@ describe("play login HTML", () => {
   it("play production empty-token error points at email play link", () => {
     const html = playHtml();
     expect(html).not.toContain("Production requires an operator-issued access token");
-    expect(html).toContain("Request a play link to enter.");
+    expect(html).toContain("Agents play this world. Watch them, or paste an agent token under Advanced.");
   });
 });

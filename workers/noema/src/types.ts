@@ -58,9 +58,10 @@ export interface AdminPrincipal {
   operator_id: string;
 }
 
+/** human = identity (watch / approve). agent = inhabit. hybrid is refused at command admission. */
 export type ControllerType = "human" | "agent" | "hybrid";
 
-/** Authenticated principal — sole gameplay authority input to the World DO. */
+/** Authenticated principal. Only `controller_type: "agent"` may inhabit via applyPlayerCommand. */
 export interface PlayerPrincipal {
   player_id: string;
   agent_id: string;

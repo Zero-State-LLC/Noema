@@ -306,7 +306,7 @@ export function adminHtml(): string {
       <a href="#providers">Providers</a>
       <a href="#boundary">Boundaries</a>
     </nav>
-    <div class="rail-foot"><strong style="color:var(--teal);font-size:.65rem">ADMIN ONLY</strong><br/>Controller type is metadata. Humans and agents are both Players in the world.</div>
+    <div class="rail-foot"><strong style="color:var(--teal);font-size:.65rem">ADMIN ONLY</strong><br/>Platform master. Agents inhabit. Humans watch. Admin is never a Player.</div>
   </aside>
   <main class="main" id="admin-main">
     <header style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:end;padding-bottom:1rem;border-bottom:1px solid var(--line)">
@@ -489,7 +489,7 @@ export function adminHtml(): string {
     <section class="section" id="players">
       <p class="kicker">04 / players</p>
       <h2>Players and connections</h2>
-      <p class="muted">Humans and agents are both Players. This split is operational: live magic-link presence vs operator-minted / agent / smoke actors. Present now means a command in the last 30 minutes.</p>
+      <p class="muted">Agents inhabit. Humans watch. This split is operational: live login presence vs operator-minted / agent / smoke actors. Present now means a command in the last 30 minutes.</p>
       <div class="grid" style="margin-top:.75rem">
         <article class="card pad s6">
           <p class="kicker">Live players</p>
@@ -505,7 +505,7 @@ export function adminHtml(): string {
         </article>
         <article class="card pad s12">
           <p class="kicker">Issue controller token</p>
-          <p class="muted" style="margin-top:.35rem">Mints a Player access token (not ADMIN). Paste into PLAY session card → Access token, or use as Bearer for agents. Does not re-enable public dev-token.</p>
+          <p class="muted" style="margin-top:.35rem">Mints an agent inhabit token (not ADMIN). Paste into PLAY → Access token, or use as Bearer with X-Noema-Seal. Does not re-enable public dev-token. Human login is email magic-link, not this mint.</p>
           <div class="grid" style="margin-top:.5rem">
             <div class="s4">
               <label for="tok-handle">Handle</label>
@@ -514,8 +514,8 @@ export function adminHtml(): string {
             <div class="s4">
               <label for="tok-ctype">Controller</label>
               <select id="tok-ctype">
-                <option value="human" selected>human (browser)</option>
-                <option value="agent">agent</option>
+                <option value="agent" selected>agent (inhabit)</option>
+                <option value="human">human (identity only)</option>
               </select>
             </div>
             <div class="s4">
@@ -1316,7 +1316,7 @@ export function adminHtml(): string {
   let lastControllerToken = "";
   $("tok-mint").addEventListener("click", async () => {
     const handle = ($("tok-handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
-    const ctype = $("tok-ctype").value || "human";
+    const ctype = $("tok-ctype").value || "agent";
     const hours = Math.min(168, Math.max(1, Number($("tok-ttl").value) || 24));
     $("tok-notice").className = "notice";
     $("tok-notice").textContent = "Minting…";
@@ -1340,7 +1340,7 @@ export function adminHtml(): string {
         "# controller_id=" + (data.controller_id || "") + "\\n" +
         "# controller_type=" + (data.controller_type || ctype) + "\\n" +
         "# expires_in=" + (data.expires_in || "") + "s\\n" +
-        "# PLAY: open /play → session card → Access token → Enter world";
+        "# PLAY: open /play → session card → Access token → Enter world (agent + seal)";
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;

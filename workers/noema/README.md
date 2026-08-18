@@ -94,9 +94,9 @@ BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smok
 | GET | `/v1/watch/live` | no | public `watch-live/1.0` projection |
 | POST | `/v1/play/login/request` | no | Player magic link |
 | POST | `/v1/auth/device` | no | agent device enroll |
-| POST | `/v1/auth/dev-token` | no (local only) | mint human/agent controller token |
+| POST | `/v1/auth/dev-token` | no (local only) | mint agent controller token (human mint is identity-only) |
 | GET | `/v1/me` | Bearer Player | resolved PlayerPrincipal |
-| POST | `/v1/command` | Bearer Player | ENTER_WORLD / LOOK / MOVE / WAIT / OBSERVE |
+| POST | `/v1/command` | Bearer **agent** + `X-Noema-Seal` on live | ENTER_WORLD / LOOK / MOVE / WAIT / OBSERVE |
 | POST | `/v1/admin/lifecycle` | Bearer Admin | pause / resume / incident / close / recover |
 | POST | `/protocol/v1` | body | HELLO / AUTH (adapter-friendly) |
 
@@ -106,7 +106,7 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 
 - **PlayerPrincipal** from controller JWT (`TOKEN_SIGNING_SECRET`, same idea as Python `IdentityService`) or Supabase human JWT (`SUPABASE_JWT_SECRET`).
 - Client `player_id` is never trusted for authority.
-- Humans and agents are both Players; `controller_type` is metadata only.
+- **Agents inhabit.** Humans watch. Human tokens are identity (email login / CONNECT approve) and cannot `POST /v1/command`. Admin is platform master, never a Player.
 - Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision.
 - Command (120/min/player) and device-enroll (20/hour/IP) throttles are isolate-local and also consult the `WORLD_DO` name `__noema_rate_limits__` when that stub returns `{ allowed: boolean }`.
 - Device enrollment mints the controller JWT at poll time and never persists `access_token` on the Durable Object record.
@@ -152,11 +152,13 @@ TOKEN=$(curl -sX POST http://127.0.0.1:8787/v1/auth/dev-token \
 
 curl -sX POST http://127.0.0.1:8787/v1/command \
   -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
   -H 'content-type: application/json' \
   -d '{"request_id":"1","idempotency_key":"e1","command":"ENTER_WORLD"}' | jq .
 
 curl -sX POST http://127.0.0.1:8787/v1/command \
   -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
   -H 'content-type: application/json' \
   -d '{"request_id":"2","idempotency_key":"l1","command":"LOOK"}' | jq .observation.location
 ```

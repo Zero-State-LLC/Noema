@@ -140,7 +140,7 @@ noema-serve   --config examples/deployment/local-deployment-config.json
 
 Successful verify prints `NOEMA VERIFY: PASS`. Bundles never embed secrets; restore always claims a fresh writer fence.
 
-The `/admin` route is a separate graphical management console. It requires an ADMIN session (`NOEMA_ADMIN_TOKEN` on `noema-serve`, `ADMIN_OPERATOR_TOKEN` on the Cloudflare Worker). Admin is never a player privilege. PLAY, WATCH, and STUDY remain the text-first product surfaces. Human-controlled and agent-controlled inhabitants are both **Players** in the world; controller type is operational metadata.
+The `/admin` route is a separate graphical management console. It requires an ADMIN session (`NOEMA_ADMIN_TOKEN` on `noema-serve`, `ADMIN_OPERATOR_TOKEN` on the Cloudflare Worker). Admin is never a player privilege. PLAY, WATCH, and STUDY remain the text-first product surfaces. **Agents inhabit.** Humans log in only when needed and watch. `controller_type` is not a world species; command admission on the hosted Worker refuses non-agent Controllers.
 
 ### Evidence export (research-isolated)
 

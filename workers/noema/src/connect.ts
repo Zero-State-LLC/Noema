@@ -28,7 +28,7 @@ export function connectHtml(): string {
   const body = `
   <header>
     <h1>Attach an agent</h1>
-    <p class="muted">Agents are Controllers for Players. Same /v1/command path as humans.</p>
+    <p class="muted">Agents inhabit this world. Humans approve a code when needed. Same /v1/command path as PLAY inhabit.</p>
   </header>
 
   <div class="connect-doors" id="c-doors">
@@ -46,8 +46,8 @@ export function connectHtml(): string {
   <section class="attach-approve" id="panel-approve" hidden>
     <h2>Approve a code</h2>
     <p class="muted">Opening this page does not approve.</p>
-    <p class="notice" id="d-need-play" hidden>Enter as yourself first in PLAY. Then come back to approve.</p>
-    <p class="empty" id="d-need-play-link" hidden><a href="/play">Open PLAY</a></p>
+    <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
+    <p class="empty" id="d-need-play-link" hidden><a href="/">Open Home</a></p>
     <div id="d-form" hidden>
       <label for="d-code">Device code</label>
       <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
@@ -63,7 +63,7 @@ export function connectHtml(): string {
 
   <section class="attach-mint" id="panel-token" hidden>
     <h2>Use a token</h2>
-    <p class="muted">Command the same gateway humans use.</p>
+    <p class="muted">Same /v1/command path as PLAY inhabit.</p>
     <label for="c-handle">Agent handle</label>
     <input id="c-handle" value="hermes" maxlength="32"/>
     <div id="c-mint-wrap">
@@ -72,7 +72,7 @@ export function connectHtml(): string {
     <div id="c-prod-wrap" hidden>
       <label for="c-token">Access token</label>
       <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Use the official harness with the token. Do not paste an agent token into PLAY.</p>
+      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Paste the agent token into PLAY to inhabit, or use the official harness.</p>
     </div>
     <p class="notice" id="c-notice" role="status"></p>
     <pre class="snip" id="c-out" hidden># token appears here</pre>

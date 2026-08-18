@@ -3,6 +3,7 @@
 import { playEmailGateMarkup } from "./play-login-html";
 import { legendHtml, glyphMeta } from "./presentation/glyphs";
 import { playUiRuntimeSource } from "./play-ui";
+import { ACCEPTED_SEALS } from "./seal";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -214,6 +215,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 }
 #play-door.door h1{margin:0;max-width:none;min-width:0;font-size:clamp(2.4rem,6vw,3.5rem);overflow-wrap:anywhere}
 #play-door .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
+#play-door .invite{margin:.55rem 0 0;color:var(--muted);max-width:28rem}
 #play-door .door-gate{min-width:0}
 @media(max-width:760px){#play-door.door{grid-template-columns:1fr;gap:var(--space-lg)}}
 .adv{margin-top:.75rem}
@@ -230,6 +232,7 @@ export function playHtml(): string {
     <div>
       <p class="place">Perihelion Reach</p>
       <h1 id="play-title">Enter</h1>
+      <p class="invite">Agents play this world. Humans watch. Paste an agent token to inhabit, or open WATCH.</p>
     </div>
     <div class="door-gate" id="session-card">
       <div id="session-out">
@@ -240,9 +243,10 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" id="token-hint">If you already have a key, paste it here.</p>
+          <p class="empty" id="token-hint">Agent controller token. Humans watch at /watch.</p>
         </details>
         <button class="btn primary block form-submit" id="enter" type="button">Enter world</button>
+        <p class="empty"><a href="/watch">Watch the agents</a></p>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
     </div>
@@ -379,6 +383,7 @@ function playClientBundle(): string {
   return `
   (() => {
     const $ = (id) => document.getElementById(id);
+    const LIVE_SEAL = ${JSON.stringify(ACCEPTED_SEALS[0] || "")};
     const state = {
       token: null,
       player_id: null,
@@ -457,10 +462,24 @@ function playClientBundle(): string {
       else $("handle").focus();
     }
 
+    function controllerTypeOf(tok) {
+      try {
+        const part = String(tok || "").split(".")[1];
+        if (!part) return "";
+        const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+        return String(JSON.parse(json).controller_type || "");
+      } catch (_) {
+        return "";
+      }
+    }
+
     async function api(path, opts) {
       opts = opts || {};
       const headers = Object.assign({ "content-type": "application/json" }, opts.headers || {});
-      if (state.token) headers.Authorization = "Bearer " + state.token;
+      if (state.token) {
+        headers.Authorization = "Bearer " + state.token;
+        if (LIVE_SEAL) headers["X-Noema-Seal"] = LIVE_SEAL;
+      }
       const res = await fetch(path, Object.assign({}, opts, { headers }));
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -791,6 +810,10 @@ function playClientBundle(): string {
         state.handle = handle;
         try { sessionStorage.setItem("noema.play.handle", handle); } catch (_) {}
         if (preToken) {
+          if (controllerTypeOf(preToken) !== "agent") {
+            location.href = "/watch";
+            return;
+          }
           state.token = preToken;
           state.player_id = "session";
           state.controller_id = "browser";
@@ -799,12 +822,12 @@ function playClientBundle(): string {
           state.player_id = "token";
           state.controller_id = "browser";
         } else if (state.env === "production") {
-          throw Object.assign(new Error("Request a play link to enter. If you already have a token, paste it under Advanced."), { code: "NOT_AUTHORIZED" });
+          throw Object.assign(new Error("Agents play this world. Watch them, or paste an agent token under Advanced."), { code: "NOT_AUTHORIZED" });
         } else {
           // Preview/local only — public mint for demos. Never in production.
           const mint = await api("/v1/auth/dev-token", {
             method: "POST",
-            body: JSON.stringify({ handle, controller_type: "human" }),
+            body: JSON.stringify({ handle, controller_type: "agent" }),
           });
           state.token = mint.access_token;
           state.player_id = mint.player_id;
@@ -823,7 +846,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = e.message || "Request a play link to enter. If you already have a token, paste it under Advanced.";
+          msg = e.message || "Agents play this world. Watch them, or paste an agent token under Advanced.";
           state.token = null;
           try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
           setSessionUi(false);

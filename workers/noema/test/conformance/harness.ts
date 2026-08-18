@@ -2,6 +2,7 @@ import { mintAdminSession } from "../../src/admin-auth";
 import { mintControllerToken } from "../../src/auth";
 import worker from "../../src/index";
 import { RATE_LIMIT_DO_NAME } from "../../src/rate-limit";
+import { ACCEPTED_SEALS } from "../../src/seal";
 import type { Env } from "../../src/types";
 
 export const SIGNING = "test-signing-secret-hosted-conformance";
@@ -93,7 +94,7 @@ export function env(
 }
 
 export async function playerToken(calls: DoCall[] = []) {
-  const minted = await mintControllerToken(env(calls), { handle: "probe", controllerType: "human" });
+  const minted = await mintControllerToken(env(calls), { handle: "probe", controllerType: "agent" });
   return minted.access_token;
 }
 
@@ -110,9 +111,14 @@ export async function hit(
   defaultWorldId?: string,
   watchBody?: Record<string, unknown>,
 ) {
+  const headers: Record<string, string> = { "content-type": "application/json", ...(init.headers || {}) };
+  const liveSeal = ACCEPTED_SEALS[0];
+  if (headers.Authorization && !headers["X-Noema-Seal"] && liveSeal) {
+    headers["X-Noema-Seal"] = liveSeal;
+  }
   const req = new Request(`https://noema.local${path}`, {
     method: init.method || "POST",
-    headers: { "content-type": "application/json", ...(init.headers || {}) },
+    headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
   return worker.fetch(req, env(calls, defaultWorldId, watchBody));

@@ -123,7 +123,7 @@ describe("brand slice 0 — player / admin boundary", () => {
 });
 
 describe("brand slice 0 — gameplay command surface", () => {
-  it("PLAY posts human lines to /v1/command", () => {
+  it("PLAY posts inhabit lines to /v1/command", () => {
     const html = playHtml();
     expect(html).toContain("/v1/command");
     expect(html).toContain('id="cmd"');

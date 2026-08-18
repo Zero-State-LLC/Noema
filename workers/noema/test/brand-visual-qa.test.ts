@@ -95,7 +95,7 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   it("1. NOEMA reads immediately as a science-fiction game", () => {
     const hay = firstRead(door);
     expect(hay).toMatch(/Perihelion Reach/);
-    expect(hay).toMatch(/Enter the world/);
+    expect(hay).toMatch(/Watch the agents play/);
     expect(door).toContain("family=Syne");
     expect(hay).not.toMatch(/Sign in to your account/i);
     expect(hay).not.toMatch(/research apparatus/i);
@@ -202,11 +202,12 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
     expect(connect).toContain("/v1/command");
   });
 
-  it("12. Human and agent players share world mechanics", () => {
+  it("12. Agents inhabit; humans watch", () => {
     expect(play).toContain('command: "LOOK"');
     expect(play).toContain("arguments: { line: raw }");
     expect(play).toContain("/v1/command");
     expect(connect).toContain("/v1/command");
+    expect(play).toMatch(/Agents play this world/);
     expect(play).not.toContain("/v1/human-only");
   });
 

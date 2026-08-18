@@ -25,6 +25,7 @@ import {
   mintDevControllerToken,
   requireScope,
   resolvePrincipal,
+  denyNonAgentPlay,
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
 import { applyCors } from "./cors";
@@ -739,7 +740,7 @@ export default {
         return cors(json({ principal }));
       }
 
-      // Command path (HTTP). Same envelope for human and agent Players.
+      // Command path (HTTP). Agents inhabit. Humans watch.
       if (request.method === "POST" && (path === "/v1/command" || path === "/protocol/v1/command")) {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
@@ -757,6 +758,8 @@ export default {
       if (request.method === "POST" && path === "/v1/operator/test-world/command") {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
+        const watched = denyNonAgentPlay(principal);
+        if (watched) return cors(watched);
         const admin = await resolveSignedAdminHeader(request, env);
         if (admin instanceof Response) return cors(admin);
         const denied = requireScope(principal, "noema.action.submit");
@@ -837,6 +840,8 @@ export default {
           });
           const principal = await resolvePrincipal(fake, env);
           if (principal instanceof Response) return cors(principal);
+          const watched = denyNonAgentPlay(principal);
+          if (watched) return cors(watched);
           const sealed = checkLiveAgentSeal({
             controllerType: principal.controller_type,
             worldKind: "default",
