@@ -281,7 +281,13 @@ export function phosphorSnapshotFromOperatorWatch(data: {
     exits: OperatorWatchSite["exits"];
     entities: OperatorWatchSite["entities"];
   }>;
-  recent_events: Array<{ sequence: number; room_id: string; tier: "NORMAL" }>;
+  recent_events: Array<{
+    sequence: number;
+    room_id: string;
+    tier: "NORMAL";
+    glyph?: OperatorWatchLineView["glyph"];
+    line?: string;
+  }>;
   focus_room_id?: string;
 } {
   const focused = followOperatorWatch(
@@ -307,6 +313,8 @@ export function phosphorSnapshotFromOperatorWatch(data: {
       sequence: Math.max(0, sequence - i),
       room_id: String(row.room_id),
       tier: "NORMAL" as const,
+      glyph: row.glyph,
+      line: row.line,
     }));
   return { sequence, rooms, recent_events, focus_room_id: focused.focus_room_id };
 }

@@ -250,6 +250,7 @@ describe("operator watch theater", () => {
     expect(pixel.rooms.find((r) => r.room_id === "room.b")?.players_present).toBe(1);
     expect(pixel.recent_events[0]?.room_id).toBe("room.b");
     expect(pixel.recent_events[0]?.tier).toBe("NORMAL");
+    expect(pixel.recent_events[0]?.glyph).toBe("player");
     expect(JSON.stringify(pixel)).not.toMatch(/vault/i);
   });
 
@@ -321,7 +322,7 @@ describe("operator watch theater", () => {
       sequence: Number(built.sequence),
       sites: built.sites as OperatorWatchSite[],
       lines: built.lines as Array<{ room_id?: string; handle?: string }>,
-      agents: built.agents as Array<{ handle?: string; room_id?: string; glyph: "player" }>,
+      agents: built.agents as Array<{ handle: string; room_id?: string; glyph: "player" }>,
       follow: { handle: "vesper" },
     });
     expect(pixel.focus_room_id).toBe("room.b");

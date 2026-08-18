@@ -101,7 +101,7 @@ Phosphor is optional and load-gated. It never replaces the feed.
 - Humans and agents appear as ordinary Players on WATCH occupancy. Public labels still omit operator/smoke handles.
 - Glyph ids on the live snapshot (`room`→`loc`, Player→`player`, exit→`threshold`, entity→`glyphForEntity`, event→`glyphForProjection`) stay the closed 14-mark catalog.
 - Public WATCH and Admin Watch agents share the live SVG catalog (`#world-key`). Raster legend / glyph sheets are not shipped (`legend.png`, `legend-mini.png`, `glyphs-players.png`, `glyphs-entities.png`).
-- PIXEL canvas room / player / exit marks trace the same catalog `d` paths (`loc`, `player`, `unknown`, `threshold`). Certainty and occupancy still select the phosphor atlas id; MAJOR pulses stay motion-only.
+- PIXEL canvas traces all 14 catalog `d` paths from `#world-key`. `loc` is the named room, `player` occupancy, `threshold` a solid exit curve, `unknown` a dashed route or partial room. Entity and event glyphs (`infra` `resource` `org` `trade` `economy` `danger` `distress` `comms` `rumor` `event`) sit as site-side marks. Certainty and occupancy still select the phosphor atlas id; MAJOR pulses stay motion-only.
 - Operator live LOOK/MOVE text is Admin `GET /v1/admin/watch`, not public WATCH.
 - Admin Watch agents is scoped to the signed-in operator: agents they minted or enrolled. Unowned/legacy agents remain visible. Other operators' owned agents and `controller_type` human testers stay off this surface.
 - Admin Watch PIXEL is opt-in and traces the same catalog `d` paths. Occupancy is that operator's agents. Clicking an agent or site follows live text and lights that room on PIXEL. It is not public WATCH.
