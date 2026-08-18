@@ -1161,7 +1161,7 @@ export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
     const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
     const li = h("li");
     const dir = String(x.direction || "").trim() || "ahead";
-    li.append(cmdBtn("move " + dir, dir), " ", h("span", "muted", dest));
+    li.append(glyphEl("threshold"), cmdBtn("move " + dir, dir), " ", h("span", "muted", dest));
     el.append(li);
   }
 }

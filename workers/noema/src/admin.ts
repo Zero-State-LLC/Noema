@@ -4,6 +4,7 @@
  */
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
+import { glyphCatalog } from "./presentation/glyphs";
 
 const FONTS = FONT_LINKS;
 
@@ -86,6 +87,21 @@ input,select{width:100%;min-height:2.35rem;padding:.5rem .65rem;border:1px solid
 code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
 .list{margin:0;padding:0;list-style:none;display:grid;gap:.3rem}
 .list li{display:flex;justify-content:space-between;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(42,51,66,.5);font-size:.8rem}
+.awatch{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(16rem,.9fr);gap:1rem}
+@media(max-width:900px){.awatch{grid-template-columns:1fr}}
+.awatch-feed,.awatch-sites{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;max-height:22rem;overflow:auto}
+.awatch-feed li,.awatch-sites li{padding:.4rem 0;border-bottom:1px solid rgba(42,51,66,.45);font:.8rem/1.4 var(--font-mono)}
+.awatch-feed .meta,.awatch-sites .meta{color:var(--faint);font-size:.72rem}
+.awatch .glyph{display:inline-flex;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em}
+.awatch .glyph svg{display:block;width:100%;height:100%}
+.glyph-player{color:var(--color-state-social)}
+.glyph-trade,.glyph-economy{color:var(--color-state-economic)}
+.glyph-danger{color:var(--color-state-critical)}
+.glyph-distress,.glyph-threshold{color:var(--color-state-warning)}
+.glyph-rumor,.glyph-unknown{color:var(--color-state-unknown)}
+.glyph-comms,.glyph-event,.glyph-loc{color:var(--color-state-active)}
+.glyph-infra{color:var(--color-text-machine)}
+.glyph-resource,.glyph-org{color:var(--color-text-secondary)}
 `;
 
 function adminChrome(title: string, body: string): string {
@@ -253,6 +269,7 @@ export function adminHtml(): string {
       <a href="#genesis">Genesis</a>
       <a href="#digests">Digests</a>
       <a href="#players">Players</a>
+      <a href="#agent-watch">Watch agents</a>
       <a href="#providers">Providers</a>
       <a href="#boundary">Boundaries</a>
     </nav>
@@ -501,6 +518,22 @@ export function adminHtml(): string {
       </div>
     </section>
 
+    <section class="section" id="agent-watch">
+      <p class="kicker">04b / watch agents</p>
+      <h2>Watch agents play</h2>
+      <p class="muted">Live LOOK / MOVE / action lines for operator-minted and agent Players, plus the public site map. Same glyphs as PLAY and public WATCH. Private MESSAGE bodies stay off this surface.</p>
+      <div class="awatch" style="margin-top:.75rem">
+        <article class="card pad">
+          <p class="kicker">Sites</p>
+          <ul class="awatch-sites" id="awatch-sites"><li class="empty">No public sites.</li></ul>
+        </article>
+        <article class="card pad">
+          <p class="kicker">Live text</p>
+          <ul class="awatch-feed" id="awatch-feed"><li class="empty">No agent lines yet.</li></ul>
+        </article>
+      </div>
+    </section>
+
     <section class="section" id="providers">
       <p class="kicker">05 / providers</p>
       <h2>Deployment providers</h2>
@@ -570,6 +603,7 @@ export function adminHtml(): string {
 </div>
 <script>
 (() => {
+  const GLYPHS = ${JSON.stringify(glyphCatalog())};
   const token = sessionStorage.getItem("noema.admin.token");
   if (!token) {
     if (location.hash) sessionStorage.setItem("noema.admin.next", location.hash);
@@ -579,6 +613,29 @@ export function adminHtml(): string {
 
   const $ = (id) => document.getElementById(id);
   const notice = (msg, kind="") => { const el=$("notice"); el.textContent=msg||""; el.className="notice"+(kind?" "+kind:""); };
+
+  function glyphNode(id) {
+    const m = GLYPHS[id] || GLYPHS.unknown;
+    const wrap = document.createElement("span");
+    wrap.className = "glyph glyph-" + (id || "unknown");
+    wrap.setAttribute("role", "img");
+    wrap.setAttribute("aria-label", m.label);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 16 16");
+    svg.setAttribute("width", "16");
+    svg.setAttribute("height", "16");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", m.d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "currentColor");
+    path.setAttribute("stroke-width", "1.4");
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("stroke-linecap", "round");
+    svg.append(path);
+    wrap.append(svg);
+    return wrap;
+  }
 
   async function api(path, opts={}) {
     const headers = Object.assign({ "content-type": "application/json", Authorization: "Bearer " + token }, opts.headers||{});
@@ -738,6 +795,75 @@ export function adminHtml(): string {
     $("g-activate").disabled = true;
   }
 
+  async function loadAgentWatch() {
+    const sitesEl = $("awatch-sites");
+    const feedEl = $("awatch-feed");
+    if (!sitesEl || !feedEl) return;
+    const data = await api("/v1/admin/watch");
+    const sites = data.sites || [];
+    sitesEl.replaceChildren();
+    if (!sites.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No public sites.";
+      sitesEl.append(li);
+    } else {
+      sites.forEach((r) => {
+        const li = document.createElement("li");
+        const row = document.createElement("div");
+        row.append(glyphNode(r.glyph || "loc"), document.createTextNode(r.name || r.room_id || "site"));
+        if (r.players_present > 0) {
+          const n = document.createElement("span");
+          n.className = "meta";
+          n.append(glyphNode("player"), document.createTextNode(" " + String(r.players_present)));
+          row.append(n);
+        }
+        li.append(row);
+        const exits = Array.isArray(r.exits) ? r.exits : [];
+        if (exits.length) {
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = exits.map((x) => (x.direction || "") + " → " + (x.to_room_name || "")).join(" · ");
+          li.append(meta);
+        }
+        const labels = Array.isArray(r.player_labels) ? r.player_labels : [];
+        if (labels.length) {
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = labels.join(", ");
+          li.append(meta);
+        }
+        sitesEl.append(li);
+      });
+    }
+    const lines = data.lines || [];
+    feedEl.replaceChildren();
+    if (!lines.length) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No agent lines yet. Connected agents appear here as they LOOK and MOVE.";
+      feedEl.append(li);
+    } else {
+      lines.forEach((row) => {
+        const li = document.createElement("li");
+        const head = document.createElement("div");
+        head.append(glyphNode(row.glyph || "event"));
+        const who = document.createElement("strong");
+        who.textContent = row.handle || "agent";
+        head.append(who, document.createTextNode("  " + (row.command || "")));
+        li.append(head);
+        const line = document.createElement("div");
+        line.textContent = row.line || "";
+        li.append(line);
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = [row.room_name, row.command].filter(Boolean).join(" · ");
+        li.append(meta);
+        feedEl.append(li);
+      });
+    }
+  }
+
   async function load() {
     $("auth-tag").textContent = "ADMIN";
     $("auth-tag").className = "tag ok";
@@ -853,6 +979,7 @@ export function adminHtml(): string {
       };
       fillActors("live-player-list", live, "No live Players.");
       fillActors("system-actor-list", system, "No system actors on record.");
+      await loadAgentWatch();
       try {
         const dg = await api("/v1/admin/digests");
         const cfg = dg.config || {};
@@ -1173,6 +1300,7 @@ export function adminHtml(): string {
     if (target) target.scrollIntoView({ block: "start" });
   }
   load();
+  setInterval(() => { loadAgentWatch().catch(() => undefined); }, 5000);
 })();
 </script>`,
   );

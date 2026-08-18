@@ -1,6 +1,13 @@
 import { enrichEntity } from "./actions";
+import { isHiddenRoom } from "./construction";
 import type { Cycle0World, GenesisResult } from "./genesis";
 import { buildWatchLive, type WatchPlayerIn, type WatchRoomIn, type WatchSourceEvent } from "./watch-live";
+import {
+  appendOperatorWatchLine,
+  buildOperatorWatch,
+  lineFromObservation,
+  type OperatorWatchLine,
+} from "./operator-watch";
 import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
@@ -11,6 +18,7 @@ import {
   commandForOps,
   countLivePlayers,
   expireStalePresence,
+  inferActorKind,
   listLivePlayers,
   listSystemActors,
   isMutatingCommand,
@@ -202,6 +210,7 @@ export class NoemaWorldDO {
       cycle: ev.cycle,
       handle: ev.handle,
       player_id: ev.player_id,
+      actor_kind: inferActorKind(ev.player_id || "", this.world!.players[ev.player_id || ""]?.actor_kind),
       at: ev.at,
       payload: ev.payload,
     }));
@@ -233,6 +242,19 @@ export class NoemaWorldDO {
         ...(this.world!.institution_pulses || []),
         ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
       ],
+    });
+  }
+
+  private async operatorWatchSnapshot() {
+    await this.load();
+    const lines = (await this.state.storage.get<OperatorWatchLine[]>("operator_watch_lines")) || [];
+    return buildOperatorWatch({
+      world_id: this.world!.world_id,
+      cycle: this.world!.cycle,
+      sequence: this.world!.sequence,
+      rooms: this.world!.rooms,
+      players: this.world!.players,
+      lines,
     });
   }
 
@@ -345,6 +367,10 @@ export class NoemaWorldDO {
 
     if (request.method === "GET" && path.endsWith("/watch")) {
       return Response.json(await this.watchSnapshot());
+    }
+
+    if (request.method === "GET" && path.endsWith("/admin-watch")) {
+      return Response.json(await this.operatorWatchSnapshot());
     }
 
     if (path.endsWith("/watch-stream") && request.headers.get("Upgrade") === "websocket") {
@@ -892,6 +918,9 @@ export class NoemaWorldDO {
     if (result.ok && result.events?.length) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
+    if (result.ok && inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system") {
+      await this.recordOperatorWatch(principal, envl, result);
+    }
     const keys = Object.keys(w.seen_idempotency || {});
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
@@ -929,6 +958,33 @@ export class NoemaWorldDO {
     const prev = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
     const next = [...prev, ...rows];
     await this.state.storage.put("digest_events", next.slice(-2000));
+  }
+
+  private async recordOperatorWatch(
+    principal: PlayerPrincipal,
+    envl: CommandEnvelope,
+    result: CommandResult,
+  ): Promise<void> {
+    const player = this.world?.players[principal.player_id];
+    const roomId = player?.room_id;
+    const room = roomId ? this.world?.rooms[roomId] : undefined;
+    const phrased = lineFromObservation({
+      command: commandForOps(envl.command, envl.arguments),
+      consequence: result.observation?.consequence,
+      location: result.observation?.location,
+      situation: result.observation?.situation,
+    });
+    const prev = (await this.state.storage.get<OperatorWatchLine[]>("operator_watch_lines")) || [];
+    const next = appendOperatorWatchLine(prev, {
+      at: Date.now(),
+      handle: player?.handle || principal.player_id.replace(/^player\./, ""),
+      room_id: room && !isHiddenRoom(room) ? room.room_id : undefined,
+      room_name: room && !isHiddenRoom(room) ? room.name : undefined,
+      command: phrased.command,
+      line: phrased.line,
+      glyph: phrased.glyph,
+    });
+    await this.state.storage.put("operator_watch_lines", next);
   }
 
   private async tickDigests(now: number): Promise<OperatorDigest[]> {

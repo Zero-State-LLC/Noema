@@ -170,8 +170,10 @@ code{color:var(--color-text-machine);font-size:.88em}
   cursor:pointer;color:var(--color-text-secondary);
   font:500 .62rem/1.3 var(--font-interface);letter-spacing:.14em;text-transform:uppercase;
 }
-.key-body{display:grid;gap:.35rem;margin:.55rem 0 0}
+.key-body{display:grid;gap:.4rem .85rem;margin:.55rem 0 0}
+@media(min-width:720px){.key-body{grid-template-columns:1fr 1fr}}
 .key-row{display:flex;gap:.55rem;align-items:flex-start;font-size:.8rem;color:var(--color-text-primary)}
+.key-row .glyph{width:1.15rem;height:1.15rem}
 .key-row strong{font-weight:600}
 `;
 

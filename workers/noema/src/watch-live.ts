@@ -8,6 +8,13 @@ import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
+import {
+  glyphForEntity,
+  glyphForExit,
+  glyphForPlayer,
+  glyphForProjection,
+  glyphForRoom,
+} from "./presentation/glyphs";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
 
@@ -19,6 +26,7 @@ export type WatchEvent = {
   tier: WatchTier;
   projection_id: string;
   line: string;
+  glyph?: string;
   room_id?: string;
   occurred_at?: number;
   detail?: string;
@@ -173,6 +181,9 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
 }
 
 function labelOf(ev: WatchSourceEvent): string {
+  if (ev.player_id && inferActorKind(ev.player_id, ev.actor_kind) === "system") {
+    return "A player";
+  }
   return publicHandle(ev) || "A player";
 }
 
@@ -328,16 +339,19 @@ function isPublicEntity(e: { hidden?: boolean }): boolean {
 function livePublicPlayers(players: WatchPlayerIn[], now: number): WatchPlayerIn[] {
   return players.filter((p) => {
     if (!p.entered) return false;
-    if (inferActorKind(p.player_id, p.actor_kind) !== "live") return false;
     return isPresentNow(p, now);
   });
+}
+
+function publicPlayerLabel(p: WatchPlayerIn): string | null {
+  if (inferActorKind(p.player_id, p.actor_kind) === "system") return null;
+  return publicHandle(p);
 }
 
 function sourceToWatchEvent(
   ev: WatchSourceEvent,
   publicRooms: Record<string, WatchRoomIn>,
 ): WatchEvent | null {
-  if (ev.player_id && inferActorKind(ev.player_id, ev.actor_kind) === "system") return null;
   const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
   if (!projectionId) return null;
   const roomId = payloadRoomId(ev.payload);
@@ -353,6 +367,7 @@ function sourceToWatchEvent(
     tier: watchEventTier(projectionId, band),
     projection_id: projectionId,
     line: phraseWatchEvent(ev, publicRooms),
+    glyph: glyphForProjection(projectionId),
     room_id: publicRoomId,
     occurred_at: typeof ev.at === "number" ? ev.at : undefined,
   };
@@ -366,6 +381,7 @@ function pulseToWatchEvent(text: string, sequence: number, cycle: number): Watch
     tier: projectionId === "resource_change" ? "NORMAL" : "NOTABLE",
     projection_id: projectionId,
     line: text,
+    glyph: glyphForProjection(projectionId),
   };
 }
 
@@ -421,18 +437,20 @@ export function buildWatchLive(input: {
 
   const roomsOut = Object.values(publicRooms).map((r) => {
     const here = byRoom.get(r.room_id) || [];
-    const labels = here.map(publicHandle).filter((h): h is string => Boolean(h));
+    const labels = here.map(publicPlayerLabel).filter((h): h is string => Boolean(h));
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
     const entities = (r.entities || []).filter(isPublicEntity).map((e) => ({
       entity_id: e.entity_id,
       label: e.label,
       entity_type: e.entity_type,
+      glyph: glyphForEntity(e.entity_type, e.label),
     }));
     const recentHere = candidates.some((ev) => ev.room_id === r.room_id);
     const row: Record<string, unknown> = {
       room_id: r.room_id,
       name: r.name,
       description: r.description,
+      glyph: glyphForRoom(),
       entity_count: entities.length,
       entities,
       exit_count: exits.length,
@@ -440,17 +458,19 @@ export function buildWatchLive(input: {
         direction: x.direction,
         to_room_id: x.to_room_id,
         to_room_name: publicRooms[x.to_room_id]?.name,
+        glyph: glyphForExit(),
       })),
       players_present: here.length,
+      player_glyph: glyphForPlayer(),
       active: here.length > 0 || recentHere,
     };
     if (labels.length) row.public_player_labels = labels;
     const titles = here
-      .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
+      .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (titles.length) row.public_title_lines = titles;
     const focuses = here
-      .map((p) => publicFocusLine(publicHandle(p), p.focus, p.practice, input.cycle, p.player_id))
+      .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (focuses.length) row.public_focus_lines = focuses;
     return row;
@@ -459,11 +479,11 @@ export function buildWatchLive(input: {
   const playersPresent = live.filter((p) => p.room_id && publicRooms[p.room_id]).length;
   const public_title_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicTitleLine(publicHandle(p), p.practice, input.cycle, p.player_id))
+    .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const public_focus_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicFocusLine(publicHandle(p), p.focus, p.practice, input.cycle, p.player_id))
+    .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(

@@ -411,14 +411,17 @@ export function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: num
   ctx.lineCap = "square";
   switch (id) {
     case "room_empty":
-      ctx.strokeRect(cx + 1, cy + 1, 6, 6);
+      ctx.strokeRect(cx + 0.5, cy + 0.5, 7, 7);
       return;
     case "room_known":
-      ctx.fillRect(cx + 1, cy + 1, 6, 6);
+      ctx.strokeRect(cx + 0.5, cy + 0.5, 7, 7);
+      ctx.fillRect(cx + 2, cy + 2, 4, 4);
       return;
     case "room_active":
       ctx.fillStyle = PHOSPHOR_COLORS.amber;
-      ctx.fillRect(cx + 1, cy + 1, 6, 6);
+      ctx.fillRect(cx + 0.5, cy + 0.5, 7, 7);
+      ctx.fillStyle = PHOSPHOR_COLORS.ink;
+      ctx.fillRect(cx + 2.5, cy + 2.5, 3, 3);
       return;
     case "room_partial":
       ctx.beginPath();
@@ -432,13 +435,13 @@ export function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: num
       drawDiamond(ctx, cx + 4, cy + 4, 3);
       return;
     case "player_multi":
-      drawDiamond(ctx, cx + 4, cy + 2, 2);
-      drawDiamond(ctx, cx + 4, cy + 5, 2);
+      drawDiamond(ctx, cx + 3, cy + 2, 2);
+      drawDiamond(ctx, cx + 5, cy + 6, 2);
       return;
     case "player_cluster":
-      ctx.fillRect(cx + 2, cy + 2, 4, 4);
-      ctx.fillStyle = PHOSPHOR_COLORS.amber;
-      ctx.fillRect(cx + 3, cy + 3, 2, 2);
+      drawDiamond(ctx, cx + 2, cy + 5, 2);
+      drawDiamond(ctx, cx + 6, cy + 5, 2);
+      drawDiamond(ctx, cx + 4, cy + 2, 2);
       return;
     default:
       return;
@@ -453,6 +456,26 @@ export function drawExit(ctx: DrawCtx, x1: number, y1: number, x2: number, y2: n
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  ctx.beginPath();
+  ctx.moveTo(x2 - uy * 3, y2 + ux * 3);
+  ctx.lineTo(x2 + uy * 3, y2 - ux * 3);
+  ctx.stroke();
+}
+
+function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
+  if (!ctx.fillText) return;
+  const label = safePhosphorLabel(name).slice(0, 14);
+  if (!label) return;
+  ctx.fillStyle = PHOSPHOR_COLORS.dim;
+  ctx.font = "8px ui-monospace, monospace";
+  const tx = Math.max(4, Math.min(PHOSPHOR_WIDTH - 48, x - 10));
+  const ty = Math.max(12, Math.min(PHOSPHOR_HEIGHT - 4, y + 16));
+  ctx.fillText(label, tx, ty);
 }
 
 export function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void {
@@ -494,6 +517,9 @@ export function drawPhosphorFrame(
   ctx.fillStyle = PHOSPHOR_COLORS.ground;
   ctx.fillRect(0, 0, PHOSPHOR_WIDTH, PHOSPHOR_HEIGHT);
   if (ctx.imageSmoothingEnabled != null) ctx.imageSmoothingEnabled = false;
+  ctx.strokeStyle = PHOSPHOR_COLORS.dim;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(1, 1, PHOSPHOR_WIDTH - 2, PHOSPHOR_HEIGHT - 2);
 
   const byId = new Map(layout.nodes.map((n) => [n.room_id, n]));
   ctx.globalAlpha = 1;
@@ -514,7 +540,8 @@ export function drawPhosphorFrame(
   for (let i = 0; i < layout.nodes.length; i++) {
     const n = layout.nodes[i];
     const pg = playerGlyphId(n.players);
-    if (pg) drawGlyph(ctx, pg, n.x + 5, n.y + 2, 1);
+    if (pg) drawGlyph(ctx, pg, n.x + 6, n.y - 2, 1);
+    drawRoomLabel(ctx, n.x, n.y, n.name);
   }
 
   let majorSeen = false;
@@ -708,6 +735,7 @@ export function phosphorInlineScript(): string {
     const drawDiamond = ${drawDiamond.toString()};
     const drawGlyph = ${drawGlyph.toString()};
     const drawExit = ${drawExit.toString()};
+    const drawRoomLabel = ${drawRoomLabel.toString()};
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};

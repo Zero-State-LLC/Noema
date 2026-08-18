@@ -436,6 +436,16 @@ export default {
         return cors(await getBootstrapDocument(env, request, enrollmentId, { store: durableEnrollmentStore(env) }));
       }
 
+      if (request.method === "GET" && path === "/v1/admin/watch") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-watch");
+        const body = await res.json();
+        return cors(json(body, res.status));
+      }
+
       if (request.method === "GET" && path === "/v1/admin/overview") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
