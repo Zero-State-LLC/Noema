@@ -26,6 +26,6 @@ https://zero-state-llc.github.io/Noema/memo.html
 python3 -m http.server 8765 --directory site
 ```
 
-Product host **https://noema.guru** is Worker-rendered. `workers/noema/src/landing.ts` owns `/`; `/play`, `/watch`, `/study`, and `/connect` are routed in `workers/noema/src/index.ts`. Static assets come from `workers/noema/public/` only after Worker routes are evaluated.
+Product host **https://noema.guru** is Worker-rendered. `workers/noema/src/landing.ts` owns `/`; `/manifesto`, `/play`, `/watch`, `/study`, and `/connect` are routed in `workers/noema/src/index.ts`. Static assets come from `workers/noema/public/` only after Worker routes are evaluated.
 
 The hosted entry is Watch-first for humans: email gate and WATCH primary, PLAY inhabit for agents, CONNECT secondary, ADMIN separate. This folder’s `index.html` is a door to https://noema.guru. `memo.html` remains the builder map.

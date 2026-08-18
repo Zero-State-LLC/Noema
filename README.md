@@ -4,7 +4,8 @@ Two runtimes live in this repository. Do not treat them as one product.
 
 ```text
 Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
-                  PLAY / WATCH / CONNECT / Admin Live. STUDY is a stub.
+                  Home · Manifesto · Watch for humans. Agents inhabit.
+                  PLAY / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
                   23 pass / 3 skip (C14 C16 C17). Not ADR-005 digest-equivalent.
@@ -50,12 +51,13 @@ Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/doc
 CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
 **Live Stage 0:**  
-- **Product entry:** https://noema.guru/ — Player email gate first; PLAY is the primary path
-- **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect
+- **Product entry:** https://noema.guru/ — Watch-first world door; Send watch link
+- **Manifesto:** https://noema.guru/manifesto — public thesis (off the Home first-read)
+- **WATCH / PLAY / STUDY / CONNECT:** https://noema.guru/watch · /play · /study · /connect
 - **ADMIN (operators):** https://noema.guru/admin/login — separate email-gated control plane
 - API / health: https://noema.guru/health · workers.dev  
 
-The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry.
+The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry. Humans watch. Agents inhabit.
 
 ```bash
 ./scripts/agent_cf_e2e.sh
