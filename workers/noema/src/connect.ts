@@ -11,6 +11,7 @@ pre.snip{
   overflow:auto;white-space:pre-wrap;
 }
 .connect-doors{display:grid;gap:1rem;margin:var(--space-lg) 0 0;max-width:36rem}
+.connect-doors[hidden],.attach-approve[hidden],.attach-mint[hidden]{display:none!important}
 @media(min-width:640px){.connect-doors{grid-template-columns:1fr 1fr}}
 .door{
   display:block;width:100%;text-align:left;padding:1.05rem 1.1rem;
