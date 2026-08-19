@@ -30,7 +30,7 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed
 curl -sS https://noema.guru/health
-# Official Controller: pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git
+# Official Controller: pipx install noema-client && noema connect
 # noema connect   # human approves the code at /connect
 ```
 

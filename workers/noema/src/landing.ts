@@ -123,6 +123,7 @@ export function landingHtml(): string {
         <h2 id="play-login-heading" class="sr">Enter</h2>
         ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}
         <a class="btn primary hero-watch" href="/watch">Watch</a>
+        <p class="empty" style="margin:.7rem 0 0"><a href="/connect">Connect an agent</a></p>
       </div>
     </section>
   </article>
