@@ -47,6 +47,28 @@ describe("GB-NOEMA-101 movement normalization", () => {
     if (!r.ok) expect(r.code).toBe("UNKNOWN_COMMAND");
   });
 
+  it("suggests only visible affordances on UNKNOWN_COMMAND", () => {
+    const r = parseHumanCommand("frobnicate", {
+      entities: [
+        enrichEntity({
+          entity_id: "entity.relay-7",
+          label: "scarred-conduit",
+          entity_type: "INFRASTRUCTURE",
+        }),
+      ],
+      exits: [{ direction: "east" }],
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("UNKNOWN_COMMAND");
+      expect(r.error.toLowerCase()).toMatch(/try:/);
+      expect(r.error).toMatch(/help/);
+      expect(r.error).toMatch(/move east/);
+      expect(r.error).toMatch(/inspect scarred-conduit/);
+      expect(r.error).not.toMatch(/entity\.relay-7/);
+    }
+  });
+
   it("still asks for a direction when move/go/walk have none", () => {
     for (const line of ["move", "go", "walk"]) {
       const r = parseHumanCommand(line);

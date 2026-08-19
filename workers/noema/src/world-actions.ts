@@ -1099,6 +1099,7 @@ export async function applyWorldCommand(
           })),
           selfId: principal.player_id,
           openTrades: Object.values(w.trades || {}),
+          exits: resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id)?.exits || [],
         })
       : normalizeStructuredCommand(envl.command, rawArgs);
 
@@ -1157,6 +1158,7 @@ export async function applyWorldCommand(
       players: Object.entries(w.players).map(([id, p]) => ({ player_id: id, handle: p.handle })),
       selfId: principal.player_id,
       openTrades: Object.values(w.trades || {}),
+      exits: resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id)?.exits || [],
     });
   }
 

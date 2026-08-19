@@ -105,17 +105,7 @@ export interface RoomHint {
   }>;
 }
 
-function blob(room: RoomHint): string {
-  const ent = room.entities.map((e) => `${e.label} ${e.entity_type}`).join(" ");
-  return `${room.room_id} ${room.name} ${room.description} ${ent}`.toLowerCase();
-}
-
-function agreementHosted(): boolean {
-  return false;
-}
-
 export function servicesAtRoom(room: RoomHint): ServiceView[] {
-  const text = blob(room);
   const out: ServiceView[] = [];
   const add = (id: WorldServiceId, status: ServiceStatus, line: string, cmds: string[]) => {
     const def = WORLD_SERVICE_CATALOG.find((s) => s.service_id === id)!;
@@ -132,61 +122,39 @@ export function servicesAtRoom(room: RoomHint): ServiceView[] {
     });
   };
 
-  if (/relay|grid|anchor|infra|trunk|conduit|vault/.test(text)) {
-    const damaged = room.entities.find((e) => e.repairable || (e.condition != null && e.condition < 100));
-    const cond = damaged?.condition;
+  // Authorized fields only. Do not invent desks from room/name/description regex.
+  const damaged = room.entities.find(
+    (e) =>
+      (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE" &&
+      (e.repairable === true || (e.condition != null && e.condition < 100)),
+  );
+  if (damaged) {
+    const cond = damaged.condition;
     const status: ServiceStatus = cond != null && cond < 25 ? "DEGRADED" : "AVAILABLE";
     const line =
       cond != null
         ? `Relay office: observable condition ${cond}%. I can explain repair requirements. I will not repair it for you.`
         : "Relay office: I can report known routes and prepare a REPAIR. Confirm the action yourself.";
-    add("service.relay.01", status, line, damaged ? [`inspect ${damaged.label}`, `repair ${damaged.label}`] : ["look"]);
+    add("service.relay.01", status, line, [`inspect ${damaged.label}`, `repair ${damaged.label}`]);
   }
-  if (/exchange|market|bond|trade|board/.test(text)) {
-    add(
-      "service.exchange.01",
-      "AVAILABLE",
-      "Exchange desk: I can show your open trades and help you word a TRADE. I do not set prices or move goods without your confirm.",
-      ["help trade"],
-    );
-  }
-  if (/contract|registry|registrar|civic|clerk|town/.test(text)) {
-    add(
-      "service.registry.01",
-      "AVAILABLE",
-      "Registry: public organizations and membership only. Form / invite / leave remain your actions.",
-      ["help organizations"],
-    );
-    add(
-      "service.contracts.01",
-      agreementHosted() ? "AVAILABLE" : "UNAVAILABLE",
-      agreementHosted()
-        ? "Contract desk: machine-readable agreements only."
-        : "Contract desk: agreement operations are not hosted on this world pin. No free-form contracts.",
-      [],
-    );
-  }
-  if (/archive|record|ledger|artifact|document/.test(text)) {
+
+  const records = room.entities.filter((e) => (e.entity_type || "").toUpperCase() === "ARTIFACT");
+  if (records.length) {
     add(
       "service.archive.01",
       "AVAILABLE",
       "Archive terminal: known records only. Unknown remains unknown. I am not an oracle.",
-      room.entities
-        .filter((e) => /artifact|record|ledger|archive/i.test(`${e.label} ${e.entity_type}`))
-        .slice(0, 2)
-        .map((e) => `inspect ${e.label}`),
+      records.slice(0, 2).map((e) => `inspect ${e.label}`),
     );
   }
-  if (
-    /storage|salvage|cache|stock|quartermaster|yard/.test(text) ||
-    room.entities.some((e) => e.harvestable || (e.stock_amount != null && e.stock_amount > 0))
-  ) {
-    const node = room.entities.find((e) => e.harvestable || (e.stock_amount != null && e.stock_amount > 0));
+
+  const node = room.entities.find((e) => e.harvestable || (e.stock_amount != null && e.stock_amount > 0));
+  if (node) {
     add(
       "service.quartermaster.01",
       "AVAILABLE",
       "Stores: I can show observable stock and prepare HARVEST. No banking, no invented supply.",
-      node ? [`inspect ${node.label}`, `harvest ${node.label}`] : ["look"],
+      [`inspect ${node.label}`, `harvest ${node.label}`],
     );
   }
   return out;

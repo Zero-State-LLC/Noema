@@ -828,6 +828,7 @@ export function parseHumanCommand(
     players?: Array<{ player_id: string; handle?: string }>;
     selfId?: string;
     openTrades?: OpenTrade[];
+    exits?: Array<{ direction: string }>;
   } = {},
 ): ParseResult {
   const trimmed = line.trim();
@@ -1952,9 +1953,24 @@ export function parseHumanCommand(
 
   return {
     ok: false,
-    error: `Unknown command “${v}”. Try help.`,
+    error: unknownCommandHint(v, ctx),
     code: "UNKNOWN_COMMAND",
   };
+}
+
+function unknownCommandHint(
+  verb: string,
+  ctx: {
+    entities?: EntityRuntime[];
+    exits?: Array<{ direction: string }>;
+  },
+): string {
+  const hints: string[] = ["help"];
+  const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
+  if (dir) hints.push(`move ${dir.toLowerCase()}`);
+  const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
+  if (lab) hints.push(`inspect ${lab}`);
+  return `Unknown command “${verb}”. Try: ${hints.slice(0, 3).join(" · ")}.`;
 }
 
 function formatAmbiguous(r: ResolveResult & { ok: false }): string {
