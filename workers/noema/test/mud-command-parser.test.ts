@@ -165,6 +165,33 @@ describe("GB-NOEMA-102 safe local noun-resolution", () => {
   });
 });
 
+describe("GB-NOEMA-202 enrichEntity does not invent condition", () => {
+  it("leaves condition unset when the world did not provide one", () => {
+    const scarred = enrichEntity({
+      entity_id: "entity.relay-7",
+      label: "scarred-conduit",
+      entity_type: "INFRASTRUCTURE",
+    });
+    expect(scarred.condition).toBeUndefined();
+    const ruin = enrichEntity({
+      entity_id: "entity.ruin-1",
+      label: "dead-spindle",
+      entity_type: "RUIN",
+    });
+    expect(ruin.condition).toBeUndefined();
+  });
+
+  it("preserves an authorized condition", () => {
+    const e = enrichEntity({
+      entity_id: "entity.relay-7",
+      label: "scarred-conduit",
+      entity_type: "INFRASTRUCTURE",
+      condition: 35,
+    });
+    expect(e.condition).toBe(35);
+  });
+});
+
 describe("GB-NOEMA-103 look-at / article inspect phrases", () => {
   const visible = [
     enrichEntity({

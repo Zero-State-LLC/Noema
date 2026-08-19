@@ -543,20 +543,12 @@ export function enrichEntity(e: {
   last_steward_cycle?: number;
   in_progress?: boolean;
 }): EntityRuntime {
-  const s = `${e.label} ${e.entity_type}`.toLowerCase();
-  let condition = e.condition;
-  if (condition === undefined) {
-    if (/scar|damag|broken|fail/.test(s)) condition = 35;
-    else if (e.entity_type === "RUIN" || /ruin|dead|ghost/.test(s)) condition = 20;
-    else if (e.entity_type === "INFRASTRUCTURE") condition = 70;
-    else if (e.entity_type === "ARTIFACT") condition = 50;
-  }
   const node = classifyResourceNode(e);
   return {
     entity_id: e.entity_id,
     label: e.label,
     entity_type: e.entity_type,
-    condition,
+    condition: e.condition,
     stock_resource: node.is_node ? node.resource : undefined,
     stock_amount: node.is_node ? node.amount : undefined,
     archive_subject_entity_id: e.archive_subject_entity_id,
