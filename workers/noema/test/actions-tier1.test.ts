@@ -34,6 +34,7 @@ function fixtureWorld(): WorldRuntime {
     entity_id: "entity.relay-7",
     label: "scarred-conduit",
     entity_type: "INFRASTRUCTURE",
+    condition: 35,
   });
   const cache = enrichEntity({
     entity_id: "entity.storage-cell-cache",
@@ -330,6 +331,7 @@ describe("Tier 1 world mutations", () => {
         entity_id: "entity.relay-7",
         label: "scarred-conduit",
         entity_type: "INFRASTRUCTURE",
+        condition: 35,
       }),
       enrichEntity({
         entity_id: "entity.storage-cell-cache",

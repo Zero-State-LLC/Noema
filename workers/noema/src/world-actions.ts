@@ -459,13 +459,10 @@ function findEntity(room: RoomState, idOrLabel: string): EntityRuntime | null {
 
 function deriveRoomCondition(room: RoomState): string {
   const ents = roomEntities(room);
-  const blob = `${room.description} ${ents.map((e) => `${e.label} ${e.entity_type}`).join(" ")}`.toLowerCase();
   const bits: string[] = [];
-  if (/scar|damag|broken|fail/.test(blob) || ents.some((e) => (e.condition ?? 100) < 50)) {
+  if (ents.some((e) => e.condition != null && e.condition < 50)) {
     bits.push("Infrastructure shows damage.");
   }
-  if (/trade|market|exchange|bond|contract/.test(blob)) bits.push("Trade structures are nearby.");
-  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
   if (ents.some(isHarvestable)) bits.push("A resource node can be worked.");
   if (!bits.length) {
     bits.push(ents.length ? "Objects here can be examined." : "Open ground — routes lead outward.");
@@ -476,17 +473,12 @@ function deriveRoomCondition(room: RoomState): string {
 function inspectDetail(entity: EntityRuntime): string {
   const label = titleCaseLabel(entity.label);
   if (entity.condition != null && entity.condition < 100) {
-    return `${label} condition ${entity.condition}%. ${
-      entity.condition < 50 ? "Damaged — repair may restore it." : "Present and serviceable."
-    }`;
+    return `${label} condition ${entity.condition}%.`;
   }
   if (isHarvestable(entity)) {
     return `${label} holds ${entity.stock_amount} ${entity.stock_resource} available to harvest.`;
   }
-  const t = (entity.entity_type || "").toUpperCase();
-  if (t === "ARTIFACT") return `${label} is a surviving record. Incomplete, but readable up close.`;
-  if (t === "RUIN") return `${label} is a ruin. Entry may be legal; meaning is not free.`;
-  return `${label} (${entity.entity_type.toLowerCase()}) is present and can be examined.`;
+  return `${label} is here.`;
 }
 
 export function buildObservation(
