@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseHumanCommand, normalizeStructuredCommand, resolveVisibleEntity, enrichEntity } from "../src/actions";
+import {
+  parseHumanCommand,
+  normalizeStructuredCommand,
+  resolveVisibleEntity,
+  enrichEntity,
+  classifyResourceNode,
+} from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -162,6 +168,36 @@ describe("GB-NOEMA-102 safe local noun-resolution", () => {
     if (a.ok && a.action.verb === "INSPECT") {
       expect(a.action.arguments.entity_id).toBe("entity.relay-7");
     }
+  });
+});
+
+describe("GB-NOEMA-203 classifyResourceNode does not invent stock", () => {
+  it("does not treat cache/cell labels as harvest nodes", () => {
+    const n = classifyResourceNode({
+      entity_id: "entity.storage-cell-cache",
+      label: "bond-board",
+      entity_type: "INFRASTRUCTURE",
+    });
+    expect(n.is_node).toBe(false);
+  });
+
+  it("honors explicit stock and RESOURCE type without inventing amount 8", () => {
+    expect(
+      classifyResourceNode({
+        entity_id: "entity.ore",
+        label: "outcrop",
+        entity_type: "RESOURCE",
+      }),
+    ).toEqual({ is_node: true, resource: "energy", amount: 0 });
+    expect(
+      classifyResourceNode({
+        entity_id: "entity.cache",
+        label: "cache",
+        entity_type: "INFRASTRUCTURE",
+        stock_resource: "energy",
+        stock_amount: 8,
+      }),
+    ).toEqual({ is_node: true, resource: "energy", amount: 8 });
   });
 });
 

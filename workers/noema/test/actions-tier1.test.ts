@@ -40,6 +40,8 @@ function fixtureWorld(): WorldRuntime {
     entity_id: "entity.storage-cell-cache",
     label: "bond-board",
     entity_type: "INFRASTRUCTURE",
+    stock_resource: "energy",
+    stock_amount: 8,
   });
   return {
     world_id: "world.test",
@@ -89,14 +91,13 @@ async function run(
 }
 
 describe("harvest node ontology", () => {
-  it("classifies storage/cache infrastructure as resource nodes", () => {
+  it("does not invent a harvest node from storage/cache labels", () => {
     const n = classifyResourceNode({
       entity_id: "entity.storage-cell-cache",
       label: "bond-board",
       entity_type: "INFRASTRUCTURE",
     });
-    expect(n.is_node).toBe(true);
-    expect(n.resource).toBe("energy");
+    expect(n.is_node).toBe(false);
   });
 
   it("does not treat market/trade boards as harvest nodes by label alone", () => {
@@ -337,6 +338,8 @@ describe("Tier 1 world mutations", () => {
         entity_id: "entity.storage-cell-cache",
         label: "bond-board",
         entity_type: "INFRASTRUCTURE",
+        stock_resource: "energy",
+        stock_amount: 8,
       }),
     ];
     const aff = deriveAffordances({

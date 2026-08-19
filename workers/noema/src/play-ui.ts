@@ -157,54 +157,43 @@ export function entityKindPhrase(entity_type: string): string {
   return "object";
 }
 
-export function entityConditionGlyph(label: string, entity_type: string): string {
-  const s = `${label} ${entity_type}`.toLowerCase();
-  if (/scar|damag|fail|broken|ruin|ghost|dead/.test(s)) return "◐";
-  if (/unknown|fragment|partial|incomplete/.test(s)) return "?";
-  if (/market|board|compact|active|post/.test(s)) return "●";
+export function entityConditionGlyph(label: string, entity_type: string, condition?: number, scar?: boolean): string {
+  void label;
+  void entity_type;
+  if (scar === true || (condition != null && condition < 50)) return "◐";
   return "●";
 }
 
-export function entityConditionText(label: string, entity_type: string): string {
-  const s = `${label} ${entity_type}`.toLowerCase();
-  if (/scar|damag|broken/.test(s)) return "damaged";
-  if (/fail|ruin|dead/.test(s)) return "ruined";
-  if (/ghost|partial|fragment|incomplete/.test(s)) return "partial / incomplete";
-  if (/market|board|post/.test(s)) return "trade access present";
-  if (entity_type === "ARTIFACT") return "surviving record";
-  if (entity_type === "INFRASTRUCTURE") return "present";
+export function entityConditionText(label: string, entity_type: string, condition?: number, scar?: boolean): string {
+  void label;
+  void entity_type;
+  if (scar === true || (condition != null && condition < 50)) return "damaged";
   return "present";
 }
 
-/** Local condition line derived from room text + entities (no invented lore). */
+/** Local condition: observation.condition, or presence only. Never label regex. */
 export function deriveLocalCondition(loc: LocationObs): string {
   if (loc.condition) return String(loc.condition);
   const ents = loc.entities || [];
-  const blob = `${loc.description || ""} ${ents.map((e) => e.label || "").join(" ")}`.toLowerCase();
-  const bits: string[] = [];
-  if (/scar|damag|broken|fail/.test(blob)) bits.push("Local infrastructure shows damage.");
-  if (/trade|market|exchange|bond/.test(blob)) bits.push("Trade structures are nearby.");
-  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
-  if (/route|ghost|thin|spindle|link/.test(blob)) bits.push("Routes continue outward.");
-  if (!bits.length) {
-    if (ents.length) bits.push("Objects here can be inspected.");
-    else bits.push("Open ground — exits are your next information.");
+  if (ents.some((e) => e.condition != null && e.condition < 50)) {
+    return "Infrastructure shows damage.";
   }
-  return bits.slice(0, 2).join(" ");
+  return ents.length ? "Objects here can be inspected." : "Open ground — exits are your next information.";
 }
 
 export function deriveOpportunities(loc: LocationObs): Opportunity[] {
   const out: Opportunity[] = [];
   for (const e of loc.entities || []) {
     const name = titleCaseLabel(e.label);
-    const cond = entityConditionText(e.label, e.entity_type);
+    const cond = entityConditionText(e.label, e.entity_type, e.condition);
     const inspectCmd = `inspect ${e.label}`;
-    if (e.repairable || /scar|damag|broken|fail|ruin/i.test(`${e.label} ${e.entity_type}`)) {
+    const canRepair = e.repairable === true || (e.condition != null && e.condition < 100 && e.entity_type !== "ARTIFACT");
+    if (canRepair) {
       out.push({
         id: `opp-${e.entity_id}-dmg`,
         text: `${name} looks ${cond}${e.condition != null ? ` (${e.condition}%)` : ""}.`,
-        actionLabel: e.repairable !== false ? `Repair ${name}` : `Inspect ${name}`,
-        cmd: e.repairable !== false ? `repair ${e.label}` : inspectCmd,
+        actionLabel: `Repair ${name}`,
+        cmd: `repair ${e.label}`,
         priority: 10,
       });
     } else if (e.harvestable || (e.stock_amount != null && e.stock_amount > 0)) {
@@ -213,22 +202,6 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
         text: `${name} has ${e.stock_amount ?? "?"} ${e.stock_resource || "resource"} available.`,
         actionLabel: `Harvest ${name}`,
         cmd: `harvest ${e.label}`,
-        priority: 9,
-      });
-    } else if (/market|board|post|trade/i.test(e.label)) {
-      out.push({
-        id: `opp-${e.entity_id}-trade`,
-        text: `${name} — trade access may be reachable here.`,
-        actionLabel: `Inspect ${name}`,
-        cmd: inspectCmd,
-        priority: 8,
-      });
-    } else if (e.entity_type === "ARTIFACT" || /ledger|archive|record/i.test(e.label)) {
-      out.push({
-        id: `opp-${e.entity_id}-art`,
-        text: `${name} is a surviving record.`,
-        actionLabel: `Inspect ${name}`,
-        cmd: inspectCmd,
         priority: 9,
       });
     } else {
@@ -901,7 +874,7 @@ export function renderEntityListHtml(entities?: EntityObs[] | null): string {
   return entities
     .map((e) => {
       const name = titleCaseLabel(e.label);
-      let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+      let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
       if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
       if (e.harvestable && e.stock_amount != null) {
         sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
@@ -1174,7 +1147,7 @@ export function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void
   }
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
-    let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+    let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
     if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
     if (e.harvestable && e.stock_amount != null) {
       sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
@@ -1281,11 +1254,7 @@ export function firstSessionActs(
     seen.add(key);
     out.push({ label, cmd });
   };
-  const worn = (loc.entities || []).find((e) => {
-    const n = typeof e.condition === "number" ? e.condition : 100;
-    const blob = `${e.label || ""} ${loc.condition || ""} ${loc.description || ""}`;
-    return n < 70 || /seiz|worn|broken|thin|fail|snap|damage/i.test(blob);
-  });
+  const worn = (loc.entities || []).find((e) => typeof e.condition === "number" && e.condition < 70);
   if (worn && worn.label) add(`inspect the ${worn.label}`, `inspect ${worn.label}`);
   const exits = (loc.exits || []).filter((x) => String(x.direction || "").trim());
   if (exits.length) {

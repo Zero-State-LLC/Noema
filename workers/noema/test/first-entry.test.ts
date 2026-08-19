@@ -60,6 +60,8 @@ function world(): WorldRuntime {
             label: "Storage Cell Cache",
             entity_type: "INFRASTRUCTURE",
             condition: 60,
+            stock_resource: "energy",
+            stock_amount: 8,
           },
         ],
       },
