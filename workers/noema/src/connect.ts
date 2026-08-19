@@ -68,9 +68,9 @@ noema connect</code></pre>
       <p class="muted">Your agent prints a short code. Opening this page does not approve.</p>
       <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
       <p class="empty" id="d-need-play-link" hidden><a href="/?next=connect">Send a watch link on Home</a></p>
-      <div id="d-form" hidden>
+      <div id="d-form">
         <label for="d-code">Device code</label>
-        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
+        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text"/>
         <p class="notice" id="d-notice" role="status"></p>
         <dl class="kv" id="d-preview" hidden></dl>
         <div class="btn-row">
@@ -197,8 +197,7 @@ noema connect</code></pre>
     const playTok = (() => { try { return sessionStorage.getItem("noema.play.token") || ""; } catch(_) { return ""; } })();
     const need = document.getElementById("d-need-play");
     const needLink = document.getElementById("d-need-play-link");
-    const form = document.getElementById("d-form");
-    if (playTok) { form.hidden = false; } else { need.hidden = false; if (needLink) needLink.hidden = false; }
+    if (!playTok) { need.hidden = false; if (needLink) needLink.hidden = false; }
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
@@ -222,8 +221,13 @@ noema connect</code></pre>
         row("Runtime", j.runtime || "");
         row("Scopes", (j.scopes||[]).join(", "));
         row("Expires", j.expires_at || "");
-        document.getElementById("d-approve").hidden = j.status !== "pending";
-        document.getElementById("d-deny").hidden = j.status !== "pending";
+        const canDecide = !!(playTok && j.status === "pending");
+        document.getElementById("d-approve").hidden = !canDecide;
+        document.getElementById("d-deny").hidden = !canDecide;
+        if (j.status === "pending" && !playTok) {
+          need.hidden = false;
+          if (needLink) needLink.hidden = false;
+        }
       } catch(e) {
         hideDecide();
         dNotice.className = "notice bad";
@@ -249,11 +253,18 @@ noema connect</code></pre>
     const pending = deep || saved;
     if (pending) {
       document.getElementById("d-code").value = pending;
-      if (playTok) lookup();
+      lookup();
     }
     async function decide(path){
       const code = (document.getElementById("d-code").value || "").trim();
       const tok = (() => { try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; } })();
+      if (!tok) {
+        need.hidden = false;
+        if (needLink) needLink.hidden = false;
+        dNotice.className = "notice";
+        dNotice.textContent = "Sign in first. Opening this page did not approve.";
+        return;
+      }
       dNotice.className = "notice"; dNotice.textContent = "Sending…";
       try {
         const r = await fetch(path, {

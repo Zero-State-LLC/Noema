@@ -260,6 +260,9 @@ describe("planes", () => {
     expect(html).toContain("x-noema-seal");
     expect(html).toContain('new URLSearchParams(location.search).get("code")');
     expect(html).toContain("Agent approved. Return to the agent terminal.");
+    expect(html).toContain('id="d-code"');
+    expect(html).toContain('placeholder="AB12-CD34"');
+    expect(html).not.toMatch(/id="d-form" hidden/);
   });
   it("production CONNECT omits public mint from markup", async () => {
     const html = connectHtml(true);
