@@ -32,7 +32,9 @@ describe("CONNECT inhabit contract", () => {
     expect(html).toContain("controller_type: \"agent\"");
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
-    expect(html).toMatch(/\.connect-doors\[hidden\][^{]*\{[^}]*display:none/);
+    expect(html).toContain("connect-work");
+    expect(html).toContain('id="play-chamber"');
+    expect(html).toContain("Enter world");
     expect(enrollHtml()).toContain(LIVE_AGENT_SEAL);
     expect(enrollHtml()).toContain("ENTER_WORLD");
   });

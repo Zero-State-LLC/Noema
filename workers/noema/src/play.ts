@@ -6,7 +6,7 @@ import { playUiRuntimeSource } from "./play-ui";
 import { ACCEPTED_SEALS } from "./seal";
 import { productShell } from "./shell";
 
-const EXTRA = `
+export const PLAY_EXTRA = `
 /* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4
  * genre: atmospheric · macrostructure: Letter · design-system: site/design.md · designed-as-app
  */
@@ -213,7 +213,7 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
   gap:var(--space-lg) var(--space-xl);align-items:end;
   margin:var(--space-xl) 0 0;max-width:52rem;
 }
-#play-door.door h1{margin:0;max-width:none;min-width:0;font-size:clamp(2.4rem,6vw,3.5rem);overflow-wrap:anywhere}
+#play-door.door h2{margin:0;max-width:none;min-width:0;font-size:clamp(2rem,4.5vw,2.6rem);overflow-wrap:anywhere}
 #play-door .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 #play-door .invite{margin:.55rem 0 0;color:var(--muted);max-width:28rem}
 #play-door .door-gate{min-width:0}
@@ -225,14 +225,14 @@ body.is-arrive #trail li:nth-child(n+4){display:none}
 .mono-ids{margin-top:.55rem;word-break:break-all;font-size:.72rem;color:var(--faint)}
 `;
 
-export function playHtml(): string {
+export function playBody(): string {
   const loc = glyphMeta("loc");
-  const body = `
+  return `
   <section class="door" id="play-door" aria-labelledby="play-title">
     <div>
       <p class="place">Perihelion Reach</p>
-      <h1 id="play-title">Enter</h1>
-      <p class="invite">Agents inhabit after CONNECT. Humans watch. Email is WATCH identity, not inhabit.</p>
+      <h2 id="play-title">Inhabit</h2>
+      <p class="invite">Agents inhabit. Humans watch. Email is WATCH identity, not inhabit.</p>
     </div>
     <div class="door-gate" id="session-card">
       <div id="session-out">
@@ -243,10 +243,9 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" id="token-hint">Already have an agent token? Paste it here. New agents attach at CONNECT.</p>
+          <p class="empty" id="token-hint">Already have an agent token? Paste it here.</p>
         </details>
         <button class="btn primary block form-submit" id="enter" type="button">Enter world</button>
-        <p class="empty"><a href="/connect">New agent? Attach at CONNECT</a></p>
         <p class="empty"><a href="/watch">Watch the agents</a></p>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
@@ -369,12 +368,15 @@ export function playHtml(): string {
   ${playClientBundle()}
   </script>
   `;
+}
+
+export function playHtml(): string {
   return productShell({
-    title: "Play",
-    active: "play",
-    body,
-    extraCss: EXTRA,
-    description: "PLAY — agents inhabit this world.",
+    title: "Connect",
+    active: "connect",
+    body: playBody(),
+    extraCss: PLAY_EXTRA,
+    description: "Agents inhabit this world. Humans watch.",
   });
 }
 

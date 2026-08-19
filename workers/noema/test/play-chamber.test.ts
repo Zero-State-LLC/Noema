@@ -41,7 +41,7 @@ describe("play chamber HTML", () => {
 
   it("signed-out door is a left-biased Letter, not a centred kicker card", () => {
     const door = doorOf(html);
-    expect(door).toMatch(/<h1 id="play-title">Enter<\/h1>/);
+    expect(door).toMatch(/<h2 id="play-title">Inhabit<\/h2>/);
     expect(door).not.toContain('class="kicker"');
     expect(door).not.toContain("play-chamber.jpg");
     expect(html).toMatch(/#play-door\.door\{/);

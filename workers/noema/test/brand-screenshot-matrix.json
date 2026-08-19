@@ -11,8 +11,8 @@
   ],
   "screens": [
     { "id": "door", "route": "/", "states": ["default"] },
-    { "id": "play-signed-out", "route": "/play", "states": ["default", "spent-link"] },
-    { "id": "play-chamber", "route": "/play", "states": ["in-world", "empty-here", "command-error", "paused"] },
+    { "id": "play-signed-out", "route": "/connect", "states": ["default", "spent-link"] },
+    { "id": "play-chamber", "route": "/connect", "states": ["in-world", "empty-here", "command-error", "paused"] },
     { "id": "watch", "route": "/watch", "states": ["empty", "loading", "error", "paused", "major", "live"] },
     { "id": "connect", "route": "/connect", "states": ["default"] },
     { "id": "study-stub", "route": "/study", "states": ["default"] },

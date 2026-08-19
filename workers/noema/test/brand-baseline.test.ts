@@ -68,10 +68,9 @@ describe("brand slice 0 — hosted HTML routes", () => {
     const paths: Array<[string, number, string]> = [
       ["/", 200, "Perihelion Reach"],
       ["/manifesto", 200, "A World for Minds"],
-      ["/play", 200, 'id="play-chamber"'],
       ["/play/callback", 200, "/v1/play/login/consume"],
       ["/watch", 200, "/v1/watch/live"],
-      ["/connect", 200, "/v1/command"],
+      ["/connect", 200, 'id="play-chamber"'],
       ["/study", 200, "not open"],
       ["/admin/login", 200, "/v1/admin/login"],
     ];
@@ -81,6 +80,9 @@ describe("brand slice 0 — hosted HTML routes", () => {
       expect(res.status, path).toBe(status);
       expect(html.toLowerCase(), path).toContain(needle.toLowerCase());
     }
+    const play = await worker.fetch(new Request("https://noema.guru/play"), bareEnv);
+    expect(play.status).toBe(308);
+    expect(play.headers.get("location")).toBe("https://noema.guru/connect");
   });
 
   it("does not put STUDY in primary nav", () => {
@@ -91,8 +93,8 @@ describe("brand slice 0 — hosted HTML routes", () => {
     expect(nav).toMatch(/>Home</);
     expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
-    expect(nav).toMatch(/>Play</);
     expect(nav).toMatch(/>Connect</);
+    expect(nav).not.toMatch(/>Play</);
     expect(nav).not.toMatch(/>Study</);
   });
 
@@ -217,7 +219,7 @@ describe("brand slice 0 — performance ceilings", () => {
   });
 
   it("connect and study stubs stay small", () => {
-    expect(gzipBytes(connectHtml())).toBeLessThan(80 * 1024);
+    expect(gzipBytes(connectHtml())).toBeLessThan(PLAY_GZIP_CEILING);
     expect(gzipBytes(studyHtml())).toBeLessThan(40 * 1024);
   });
 });

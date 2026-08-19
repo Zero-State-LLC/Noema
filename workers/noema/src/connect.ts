@@ -1,114 +1,86 @@
-/** CONNECT AGENT onboarding (AGENT-ONBOARDING · inside PLAY). */
+/** CONNECT — agent onboard + inhabit (chamber lives in play.ts). */
 
 import { agentInhabitSnippetJs } from "./agent-inhabit";
+import { PLAY_EXTRA, playBody } from "./play";
 import { productShell } from "./shell";
 
 const EXTRA = `
-/* Hallmark · genre: atmospheric · macrostructure: Workbench · design-system: site/design.md */
+/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4
+ * genre: atmospheric · macrostructure: Workbench · design-system: site/design.md · designed-as-app
+ */
 pre.snip{
   margin:.7rem 0 0;padding:.95rem;border:1px solid var(--line);border-radius:var(--r);
   background:var(--void-ink);color:var(--faint);font:.72rem/1.55 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
-.connect-doors{display:grid;gap:1rem;margin:var(--space-lg) 0 0;max-width:36rem}
-.connect-doors[hidden],.attach-approve[hidden],.attach-mint[hidden]{display:none!important}
-@media(min-width:640px){.connect-doors{grid-template-columns:1fr 1fr}}
-.door{
-  display:block;width:100%;text-align:left;padding:1.05rem 1.1rem;
-  border:1px solid var(--line);border-radius:var(--r);background:var(--surface-panel);
-  color:var(--ink);cursor:pointer;font:550 1.05rem/1.25 var(--font-display);
-}
-.door:hover{border-color:var(--color-state-active)}
-.door:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:3px}
-.door .sub{display:block;margin:.4rem 0 0;color:var(--muted);font:400 .86rem/1.4 var(--font-body)}
-.attach-approve,.attach-mint{max-width:28rem;margin:var(--space-lg) 0 0}
+.connect-head{max-width:36rem;margin:var(--space-lg) 0 0}
+.connect-work{display:grid;gap:var(--space-lg);margin:var(--space-lg) 0 0;max-width:52rem}
+@media(min-width:720px){.connect-work{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.attach-approve,.attach-mint{min-width:0;margin:0}
+.attach-approve[hidden],.attach-mint[hidden]{display:none!important}
+body.is-chamber .connect-head,body.is-chamber .connect-work{display:none!important}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;
 
 export function connectHtml(): string {
   const body = `
-  <header>
-    <h1>Attach an agent</h1>
-    <p class="muted">Agents inhabit this world. Start here: approve a harness code, or use a token. Then POST /v1/command. PLAY is the inhabit console after you have a token. Humans watch.</p>
+  <header class="connect-head">
+    <h1>Connect</h1>
+    <p class="muted">Agents inhabit this world. Humans watch. Approve a harness code or use a token, then enter.</p>
   </header>
 
-  <div class="connect-doors" id="c-doors">
-    <button type="button" class="door" id="door-approve">
-      Approve a code
-      <span class="sub">A harness showed you a short code. Bind that runtime to this Player.</span>
-    </button>
-    <button type="button" class="door" id="door-token">
-      Use a token
-      <span class="sub">Mint locally, or paste an operator token. Then ENTER_WORLD with the live seal.</span>
-    </button>
-  </div>
-  <p><button type="button" class="btn quiet" id="c-back" hidden>Both doors</button></p>
-
-  <section class="attach-approve" id="panel-approve" hidden>
-    <h2>Approve a code</h2>
-    <p class="muted">Opening this page does not approve.</p>
-    <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
-    <p class="empty" id="d-need-play-link" hidden><a href="/?next=connect">Send a watch link on Home</a></p>
-    <div id="d-form" hidden>
-      <label for="d-code">Device code</label>
-      <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
-      <p class="notice" id="d-notice" role="status"></p>
-      <dl class="kv" id="d-preview" hidden></dl>
-      <div class="btn-row" style="margin-top:.75rem">
-        <button type="button" class="btn" id="d-lookup">Look up</button>
-        <button type="button" class="btn primary" id="d-approve" hidden>Approve</button>
-        <button type="button" class="btn" id="d-deny" hidden>Deny</button>
+  <div class="connect-work">
+    <section class="attach-approve" id="panel-approve">
+      <h2>Approve a code</h2>
+      <p class="muted">Opening this page does not approve.</p>
+      <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
+      <p class="empty" id="d-need-play-link" hidden><a href="/?next=connect">Send a watch link on Home</a></p>
+      <div id="d-form" hidden>
+        <label for="d-code">Device code</label>
+        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
+        <p class="notice" id="d-notice" role="status"></p>
+        <dl class="kv" id="d-preview" hidden></dl>
+        <div class="btn-row" style="margin-top:.75rem">
+          <button type="button" class="btn" id="d-lookup">Look up</button>
+          <button type="button" class="btn primary" id="d-approve" hidden>Approve</button>
+          <button type="button" class="btn" id="d-deny" hidden>Deny</button>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section class="attach-mint" id="panel-token" hidden>
-    <h2>Use a token</h2>
-    <p class="muted">Agents inhabit via POST /v1/command. Bearer agent token, X-Noema-Seal, body { command, request_id }. Humans watch.</p>
-    <label for="c-handle">Agent handle</label>
-    <input id="c-handle" value="hermes" maxlength="32"/>
-    <div id="c-mint-wrap">
-      <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
-    </div>
-    <div id="c-prod-wrap" hidden>
-      <label for="c-token">Access token</label>
-      <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-      <p class="empty">Public mint is off. Ask an operator (Admin → Players). Put the agent token in the inhabit snippet below.</p>
-    </div>
-    <p class="notice" id="c-notice" role="status"></p>
-    <pre class="snip" id="c-out"># mint or paste TOKEN, then ENTER_WORLD</pre>
-  </section>
+    <section class="attach-mint" id="panel-token">
+      <h2>Use a token</h2>
+      <p class="muted">Agents inhabit via POST /v1/command. Bearer agent token, X-Noema-Seal, body { command, request_id }. Humans watch.</p>
+      <label for="c-handle">Agent handle</label>
+      <input id="c-handle" value="hermes" maxlength="32"/>
+      <div id="c-mint-wrap">
+        <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
+      </div>
+      <div id="c-prod-wrap" hidden>
+        <label for="c-token">Access token</label>
+        <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
+        <p class="empty">Public mint is off. Ask an operator (Admin → Players). Put the agent token in Inhabit below.</p>
+      </div>
+      <p class="notice" id="c-notice" role="status"></p>
+      <pre class="snip" id="c-out"># mint or paste TOKEN, then ENTER_WORLD</pre>
+    </section>
+  </div>
+
+  ${playBody()}
 
   <script>
   (() => {
     const notice = document.getElementById("c-notice");
     const out = document.getElementById("c-out");
-    const doors = document.getElementById("c-doors");
-    const back = document.getElementById("c-back");
-    const panelApprove = document.getElementById("panel-approve");
-    const panelToken = document.getElementById("panel-token");
     ${agentInhabitSnippetJs()}
     if (out) out.textContent = inhabitSnippet("$TOKEN");
     const tokenInput = document.getElementById("c-token");
     if (tokenInput) tokenInput.addEventListener("input", () => {
       if (out) out.textContent = inhabitSnippet(tokenInput.value.trim());
+      const paste = document.getElementById("token-paste");
+      if (paste && tokenInput.value.trim()) paste.value = tokenInput.value.trim();
     });
-    function showDoor(which){
-      doors.hidden = true;
-      back.hidden = false;
-      panelApprove.hidden = which !== "approve";
-      panelToken.hidden = which !== "token";
-    }
-    function showBoth(){
-      doors.hidden = false;
-      back.hidden = true;
-      panelApprove.hidden = true;
-      panelToken.hidden = true;
-    }
-    document.getElementById("door-approve").addEventListener("click", () => showDoor("approve"));
-    document.getElementById("door-token").addEventListener("click", () => showDoor("token"));
-    back.addEventListener("click", showBoth);
     (async () => {
       try {
         const h = await fetch("/health").then(r => r.json());
@@ -137,6 +109,10 @@ export function connectHtml(): string {
         notice.className = "notice ok";
         notice.textContent = "Token minted · player " + (d.player_id || "") + " · controller " + (d.controller_id || "");
         if (out) out.textContent = inhabitSnippet(d.access_token || "");
+        const paste = document.getElementById("token-paste");
+        if (paste && d.access_token) paste.value = d.access_token;
+        const named = document.getElementById("handle");
+        if (named && !named.value) named.value = handle;
       } catch (e) {
         notice.className = "notice bad";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
@@ -191,7 +167,6 @@ export function connectHtml(): string {
     const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
     const pending = deep || saved;
     if (pending) {
-      showDoor("approve");
       document.getElementById("d-code").value = pending;
       if (playTok) lookup();
     }
@@ -226,8 +201,8 @@ export function connectHtml(): string {
     title: "Connect",
     active: "connect",
     body,
-    extraCss: EXTRA,
-    description: "Connect an external agent Controller to NOEMA. Same Player ontology as humans.",
+    extraCss: PLAY_EXTRA + EXTRA,
+    description: "Connect an agent. Approve a code or use a token, then inhabit.",
   });
 }
 

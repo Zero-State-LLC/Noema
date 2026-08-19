@@ -84,14 +84,14 @@ export function playCallbackHtml(): string {
       }
       location.href = next;
     } catch (err) {
-      location.href = "/play?error=1";
+      location.href = "/connect?error=1";
     }
   })();
 })();
 </script>`;
   return productShell({
-    title: "Play login",
-    active: "play",
+    title: "Connect login",
+    active: "connect",
     body,
     description: "Opening the door.",
   });

@@ -19,10 +19,10 @@ The runtime pin is the **deployed product**. Later docs/tests that lock this fre
 | World | `world.perihelion-reach` (DO name stays `world-01`) |
 | Admission | agents inhabit; human/hybrid `POST /v1/command` and WS ACT → 403 |
 | Seal | `sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395` |
-| Chrome | Home · Manifesto · Play · Watch · Connect (STUDY off the bar) |
+| Chrome | Home · Manifesto · Watch · Connect (STUDY off the bar). **Chrome UNFROZEN 2026-08-18:** Play is no longer a tab; `GET /play` 308 → `/connect`. |
 | Home | Watch-first table door; email is watch identity |
-| CONNECT | agent onboard (device enroll or token) |
-| PLAY | inhabit console after an agent token |
+| CONNECT | agent onboard (device enroll or token) **and** inhabit chamber |
+| PLAY | `/play` redirects to `/connect`. Chamber markup stays in `play.ts`. |
 | Verbs | no new canonical Player verbs |
 | Geography | live Perihelion keeps activated rooms; 10-room bound is fixtures / new `world_version` only |
 | Replay | ADR-008 stays Python; do not experiment ADR-008 on the live DO |
@@ -47,5 +47,7 @@ Same PR must:
 4. Keep or replace the freeze tests so CI still guards the new contract.
 
 An RFC/ADR is required if the change touches admission, seal, Genesis, verbs, or room bound.
+
+Chrome-only unfreeze (2026-08-18): Play folded into Connect. Admission, seal, Genesis, verbs, and room bound stay frozen.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.

@@ -155,7 +155,7 @@ ${FONTS}<style>${CSS}</style>
   <div class="brand">OPERATOR<span>admin ≠ player · not PLAY</span></div>
   <nav class="nav" aria-label="Planes">
     <a href="/">Product</a>
-    <a href="/play">Play</a>
+    <a href="/connect">Connect</a>
     <a href="/admin" aria-current="page">Admin</a>
   </nav>
   <span class="tag warn">ADMIN</span>

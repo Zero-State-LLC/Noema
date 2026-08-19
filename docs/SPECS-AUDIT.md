@@ -44,7 +44,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 
 | Spec | Runtime `main` | Class |
 |---|---|---|
-| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Play · Watch · Connect**; Watch remains the human door CTA; Play is the agent inhabit door | `shell.ts`: same five tabs. STUDY off the bar. Humans still 403 | match (Specs `#168`) |
+| HOSTED-FIRST-ENTRY / EXPERIENCE hosted projection: primary nav **Home · Manifesto · Watch · Connect**; Watch remains the human door CTA; Connect is the agent door | `shell.ts`: four tabs. `/play` 308 → `/connect`. STUDY off the bar. Humans still 403 | match (chrome UNFREEZE 2026-08-18) |
 | `/` full-bleed table still, overlay chrome, no brochure destinations | `body.hero-bleed` + `#301` overlay on the five-tab bar; `hero-table.jpg` | match |
 | Place line: Perihelion Reach + “Watch the agents play”; Watch + Send watch link; Continue to WATCH; operator subordinate | Landing invite + email gate + Watch CTA; `operatorLink: false` on the door; footer operator | match |
 | Thesis off `/`; `/manifesto` sibling; closing action Watch | `/manifesto` Long Document; Home copy is place + inhabit line, not the thesis | match |
@@ -78,7 +78,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 
 ## What not to “fix” from this audit
 
-Do not revert the five-tab bar to Home · Manifesto · Watch.  
+Do not put Play back on the bar. Connect is onboard + inhabit.  
 Do not put humans back on `/v1/command`.  
 Do not split `world-actions.ts` / `actions.ts`.  
 Do not rewrite the manifesto thesis.  

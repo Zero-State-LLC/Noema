@@ -4,7 +4,7 @@ Two runtimes live in this repository. Do not treat them as one product.
 
 ```text
 Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
-                  Home · Manifesto · Play · Watch · Connect. Agents inhabit.
+                  Home · Manifesto · Watch · Connect. Agents inhabit.
                   PLAY / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
@@ -53,7 +53,7 @@ CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get
 **Live Stage 0:**  
 - **Product entry:** https://noema.guru/ — Watch-first world door; Send watch link
 - **Manifesto:** https://noema.guru/manifesto — public thesis (off the Home first-read)
-- **WATCH / PLAY / STUDY / CONNECT:** https://noema.guru/watch · /play · /study · /connect
+- **WATCH / CONNECT / STUDY:** https://noema.guru/watch · /connect · /study
 - **ADMIN (operators):** https://noema.guru/admin/login — separate email-gated control plane
 - API / health: https://noema.guru/health · workers.dev  
 
@@ -90,7 +90,7 @@ See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/C
 |---|---|
 | [`site/index.html`](site/) | **Marketing reference (visual/dynamic)** — GitHub Pages only |
 | [`site/memo.html`](site/memo.html) | Specs map for builders |
-| Worker `/` `/play` `/watch` `/study` `/connect` | **Hosted product entry and text-first product shells** |
+| Worker `/` `/watch` `/connect` `/study` (`/play` 308 → `/connect`) | **Hosted product entry and text-first product shells** |
 | `noema-serve` local routes | Offline modular-monolith UI and API surfaces |
 | [`site/design.md`](site/design.md) | Two-surface split + tokens |
 

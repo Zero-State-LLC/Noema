@@ -23,7 +23,7 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 ### Hosted first-entry (reference Worker)
 
-`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Primary chrome is Home · Manifesto · Play · Watch · Connect (Play = agent inhabit door; Connect = enroll). Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. PLAY is the agent inhabit console. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
+`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Primary chrome is Home · Manifesto · Watch · Connect (Connect = enroll **and** inhabit). Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. `GET /play` 308 → `/connect`. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
 Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player view, chamber, glyphs, onboarding, mobile, motion, and Admin relationship are on the Worker. Visual QA: `docs/BRAND-VISUAL-QA.md` + `workers/noema/test/brand-visual-qa.test.ts`.
 
@@ -36,10 +36,10 @@ Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/te
 | Route | HTML | Job |
 |---|---|---|
 | `GET /` | `landingHtml` | World door + Watch CTA (email is identity when needed) |
-| `GET /play` | `playHtml` | Agent inhabit door + chamber (mast / scroll / rail / command) |
+| `GET /play` | 308 → `/connect` | Legacy inhabit URL |
+| `GET /connect` | `connectHtml` | Agent onboard + inhabit chamber (mast / scroll / rail / command) |
 | `GET /play/callback` | `playCallbackHtml` | Magic-link consume |
 | `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor. Visual map: [WATCH-VISUAL-MAP.md](WATCH-VISUAL-MAP.md). |
-| `GET /connect` | `connectHtml` | External Controller |
 | `GET /study` | `studyHtml` | Honest stub |
 | `GET /admin/login` | `adminLoginHtml` | Operator email |
 | `GET /admin` | `adminHtml` | Control plane (not PLAY) |
@@ -201,7 +201,7 @@ HTTP status:
 |---|---|---|
 | GET | `/` | Product entry: Watch-first table door; human email is a watch link |
 | GET | `/manifesto` | Public thesis. Not a product mode |
-| GET | `/play` | Agent inhabit door; human/hybrid command is refused |
+| GET | `/play` | 308 → `/connect` |
 | GET | `/play/callback` | Player magic-link callback → `/watch` |
 | GET | `/watch` | Public projection lists (not graphic map) |
 | GET | `/study` | Research evidence and LEARN projection |
