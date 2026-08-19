@@ -7,17 +7,18 @@
   "release_doc": "docs/ALPHA-RELEASE.md",
   "frozen_release": {
     "status": "frozen",
-    "name": "hosted-alpha-0.12.0",
-    "runtime_git": "3fd1d9e9af47b4ce6e654fa6c2f902ec6d87e3fe",
-    "specs_git": "2176135c94f8e2aae7dd4ef9bf9cf1f4ff768d6b",
-    "worker_version_id": "7a482c37-3c93-48b6-bc68-ed02819b510e",
+    "name": "hosted-alpha-0.12.1",
+    "runtime_git": "50886626ad954f3313c4ca38bf2d98405665f8e1",
+    "specs_git": "672b78086ecc71d79c9b9ecc4146c4f5a5454555",
+    "worker_version_id": "6c0a43ef-2993-4801-93ad-e507973f22f1",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
+    "official_client": "noema-client==0.1.2",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "chrome UNFREEZE 2026-08-18: Play folded into /connect. Admission, seal, Genesis, verbs remain frozen. Explicit UNFREEZE PR + ADR/RFC if those change"
+    "unfreeze": "chrome UNFREEZE 2026-08-19: CONNECT first-read is pipx install noema-client / noema connect. Pin refreshed to deployed 5088662 / Worker 6c0a43ef / Specs 672b780 (RFC-0116). Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
@@ -65,7 +66,7 @@
   "deployment": {
     "config_schema": "deployment-config/1.0",
     "config_fixture": "examples/deployment/local-deployment-config.json",
-    "ui_surfaces": ["/", "/play", "/watch", "/connect", "/study", "/admin"],
+    "ui_surfaces": ["/", "/watch", "/connect", "/study", "/admin"],
     "json_surfaces_hosted": ["/health", "/ready", "/v1/watch/live", "/v1/command"],
     "json_surfaces_offline": ["/health", "/ready", "/version", "/manifest", "/config"]
   },
