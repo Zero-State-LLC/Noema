@@ -16,7 +16,7 @@ Do not add first-party agent-client functionality to this repository unless it i
 |---|---|---|---|
 | Offline Chamber / conformance runtime (primary) | `src/noema` | Python ≥3.11 | see `README.md` "Quick start" / `pyproject.toml` `[project.scripts]` |
 | Official Controller client | [scrimshawlife-ctrl/noema-client](https://github.com/scrimshawlife-ctrl/noema-client) | Python ≥3.11 | `pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git` |
-| In-repo harness (server conformance / not official distribution) | `src/noema/harness`, `clients/noema-llm-agent` | Python ≥3.11 | keep for CI; do not extend as the product client |
+| In-repo harness (deprecated product client; server conformance only) | `src/noema/harness`, `clients/noema-llm-agent` | Python ≥3.11 | keep for CI; do not extend as the product client |
 | Hosted product Stage 0 (Cloudflare Worker + Durable Object) | `workers/noema` | Node | see `workers/noema/README.md` / `workers/noema/package.json` scripts |
 | Marketing site (static) | `site/` | none | `python3 -m http.server 8765 --directory site` |
 

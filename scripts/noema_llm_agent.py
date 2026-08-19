@@ -14,6 +14,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from noema.cli.agent import print_obs  # noqa: E402
+from noema.harness.deprecation import warn_internal_client  # noqa: E402
 from noema.harness.auth import StaticTokenProvider  # noqa: E402
 from noema.harness.loop import HeadlessHarness  # noqa: E402
 from noema.harness.policy import HarnessPolicy  # noqa: E402
@@ -26,7 +27,8 @@ from noema.llm.rest import protocol_auth, protocol_hello  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="NOEMA LLM Controller (v0.1)")
+    warn_internal_client()
+    p = argparse.ArgumentParser(description="NOEMA LLM Controller (deprecated in-repo; use noema-client)")
     p.add_argument("--base", default=os.environ.get("NOEMA_BASE", "https://noema.guru"))
     p.add_argument("--token", default=os.environ.get("NOEMA_TOKEN"))
     p.add_argument("--tenant", default=None)

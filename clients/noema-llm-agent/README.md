@@ -1,5 +1,7 @@
 # noema-llm-agent
 
+**Deprecated as a product client.** Official Controller: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client). This package stays for CI and legacy adapters.
+
 LLM Controller client for NOEMA. The model proposes. This package transports. NOEMA decides.
 
 Private prompts, keys, and chain-of-thought stay in `LocalMind`. The client walks nested objects and arrays and refuses private field names before anything is sent.
