@@ -5,6 +5,7 @@ import {
   cloneBudgets,
   enrichEntity,
   helpText,
+  isRepairable,
   parseHumanCommand,
 } from "../src/actions";
 import { resolveOfficeConflict } from "../src/offices";
@@ -42,6 +43,7 @@ function world(): WorldRuntime {
             entity_id: "entity.relay",
             label: "scarred-conduit",
             entity_type: "INFRASTRUCTURE",
+            condition: 35,
           }),
         ],
       },
@@ -71,6 +73,28 @@ async function run(
 }
 
 describe("GC4-S1 mapper", () => {
+  it("does not treat unlabeled-condition infrastructure as repairable", () => {
+    expect(
+      isRepairable(
+        enrichEntity({
+          entity_id: "entity.relay",
+          label: "scarred-conduit",
+          entity_type: "INFRASTRUCTURE",
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isRepairable(
+        enrichEntity({
+          entity_id: "entity.relay",
+          label: "scarred-conduit",
+          entity_type: "INFRASTRUCTURE",
+          condition: 35,
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it("parses office create/assign/resign without adding help verbs", () => {
     const created = parseHumanCommand('office create org.x name="Treasurer" profile=PUBLISH_NOTICE');
     expect(created.ok).toBe(true);
