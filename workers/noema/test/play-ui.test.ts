@@ -23,8 +23,12 @@ import {
   titleCaseLabel,
   trailFromResult,
   roomPresentationModel,
+  parseLowNoiseFlag,
+  lowNoiseRoomText,
+  lowNoiseWatchText,
 } from "../src/play-ui";
 import { playHtml } from "../src/play";
+import { watchHtml } from "../src/watch";
 import { studyHtml } from "../src/study";
 
 const GRID: Parameters<typeof deriveOpportunities>[0] = {
@@ -512,6 +516,61 @@ describe("S1 RoomPresentationModel", () => {
     expect(model.here).toEqual([]);
     expect(model.exits).toEqual([]);
     expect(model.name).toBe("");
+  });
+});
+
+describe("S5 low-noise", () => {
+  it("parses preference: stored wins, else query, else reduced motion", () => {
+    expect(parseLowNoiseFlag("1", "", false)).toBe(true);
+    expect(parseLowNoiseFlag("0", "?low_noise=1", true)).toBe(false);
+    expect(parseLowNoiseFlag(null, "?low_noise=1", false)).toBe(true);
+    expect(parseLowNoiseFlag(null, "", true)).toBe(true);
+    expect(parseLowNoiseFlag(null, "", false)).toBe(false);
+  });
+
+  it("renders authorized room text without glyphs", () => {
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          condition: "Infrastructure shows damage.",
+          entities: [{ entity_id: "a", label: "scarred-conduit", entity_type: "INFRASTRUCTURE", condition: 35 }],
+          exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+          traces: [{ kind: "scar", text: "A scar remains (scarred-conduit)." }],
+        },
+        consequence: "You look around.",
+      }),
+    );
+    expect(text).toMatch(/Grid Anchor/);
+    expect(text).toMatch(/HERE/);
+    expect(text).toMatch(/scarred-conduit condition 35%/);
+    expect(text).toMatch(/EXITS/);
+    expect(text).toMatch(/east — Coldline/);
+    expect(text).toMatch(/TRACES/);
+    expect(text).not.toMatch(/<svg|glyph|entity\.a|room\.hub/i);
+  });
+
+  it("exposes the preference on PLAY and WATCH, not a human inhabit door", () => {
+    const play = playHtml();
+    const watch = watchHtml();
+    expect(play).toContain('id="low-noise"');
+    expect(play).toContain('id="low-noise-room"');
+    expect(watch).toContain('id="watch-low-noise"');
+    expect(watch).toContain("Humans watch");
+    expect(play).toMatch(/Agents inhabit/);
+  });
+
+  it("watch low-noise is text-complete without requiring a canvas", () => {
+    const text = lowNoiseWatchText({
+      headline: "A player moves east.",
+      copy: "Coldline · just now",
+      recent: ["A player moves east.", "A scar is visible."],
+    });
+    expect(text).toMatch(/A player moves east/);
+    expect(text).toMatch(/Coldline/);
+    expect(text).not.toMatch(/canvas|pixel/i);
   });
 });
 

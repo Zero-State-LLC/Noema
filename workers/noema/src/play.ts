@@ -15,6 +15,12 @@ export const PLAY_EXTRA = `
 .role-here{color:var(--color-state-active)}
 .role-fail{color:var(--color-state-critical)}
 .role-ok{color:var(--color-state-active)}
+body.is-low-noise .glyph{display:none}
+body.is-low-noise #low-noise-room{display:block}
+#low-noise-room{
+  display:none;margin:.75rem 0 0;padding:.65rem .15rem;white-space:pre-wrap;
+  color:var(--color-text-primary);font:400 .92rem/1.45 var(--font-mono);
+}
 #play-chamber{display:none}
 body.is-chamber .top,body.is-chamber .foot{display:none}
 body.is-chamber #main.wrap{width:100%;max-width:none;padding:0;margin:0}
@@ -259,6 +265,7 @@ export function playBody(): string {
       <span id="ch-cycle"></span>
       <p class="play-health" id="play-health" hidden role="status"></p>
       <span id="handle-live">—</span>
+      <button class="btn quiet" id="low-noise" type="button" aria-pressed="false">Low noise</button>
       <button class="btn quiet" id="leave" type="button">Leave</button>
     </header>
     <div id="world-strip" class="ch-strip" hidden role="status" aria-label="World state"></div>
@@ -280,6 +287,7 @@ export function playBody(): string {
             <span id="loc-cond-text"></span>
           </div>
           <p id="look-exits" hidden></p>
+          <pre id="low-noise-room" hidden aria-live="polite"></pre>
         </article>
         <p id="just-happened" class="just-happened" hidden role="status"></p>
         <section class="signals" id="signals" hidden>
@@ -415,6 +423,24 @@ function playClientBundle(): string {
     const storeKey = "noema.play.v2";
 
     ${playUiRuntimeSource()}
+
+    function applyLowNoise(on) {
+      document.body.classList.toggle("is-low-noise", !!on);
+      const btn = $("low-noise");
+      if (btn) btn.setAttribute("aria-pressed", on ? "true" : "false");
+      const ln = $("low-noise-room");
+      if (ln) ln.hidden = !on;
+      try { localStorage.setItem(LOW_NOISE_KEY, on ? "1" : "0"); } catch (e) {}
+    }
+    (function bootLowNoise() {
+      let stored = null;
+      let reduce = false;
+      try { stored = localStorage.getItem(LOW_NOISE_KEY); } catch (e) {}
+      try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+      applyLowNoise(parseLowNoiseFlag(stored, location.search || "", reduce));
+      const btn = $("low-noise");
+      if (btn) btn.addEventListener("click", () => applyLowNoise(!document.body.classList.contains("is-low-noise")));
+    })();
 
     const notice = (msg, kind) => {
       const el = $("notice");
@@ -601,6 +627,15 @@ function playClientBundle(): string {
       const cond = deriveLocalCondition(loc);
       $("loc-cond").hidden = !cond;
       $("loc-cond-text").textContent = cond;
+      const lnRoom = $("low-noise-room");
+      if (lnRoom) {
+        const happened = $("just-happened");
+        lnRoom.textContent = lowNoiseRoomText(roomPresentationModel({
+          location: loc,
+          consequence: happened && !happened.hidden ? happened.textContent : (obs.consequence || ""),
+        }));
+        lnRoom.hidden = !document.body.classList.contains("is-low-noise");
+      }
       const strainEl = $("strain-line");
       if (strainEl) {
         const strain = firstStrainLine(loc);

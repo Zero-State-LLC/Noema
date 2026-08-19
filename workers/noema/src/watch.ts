@@ -104,6 +104,12 @@ const EXTRA = `
     transition:none!important;animation:none!important;
   }
 }
+body.is-low-noise .watch-atmos,body.is-low-noise .watch-phos,body.is-low-noise .glyph{display:none!important}
+body.is-low-noise #watch-low-noise{display:block}
+#watch-low-noise{
+  display:none;margin:.85rem 0 0;white-space:pre-wrap;
+  color:var(--ink);font:400 .92rem/1.45 var(--font-mono);
+}
 .watch-phos[hidden]{display:none}
 .watch-phos-bar{
   display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
@@ -131,6 +137,7 @@ export function watchHtml(): string {
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
       <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="true">TEXT</button>
       <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="false">PIXEL</button>
+      <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
     </div>
     <div class="watch-state-plate" aria-label="World state">
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>
@@ -145,6 +152,7 @@ export function watchHtml(): string {
     <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
+    <pre id="watch-low-noise" hidden aria-live="polite"></pre>
   </article>
 
   <section class="watch-stage">
@@ -183,6 +191,23 @@ export function watchHtml(): string {
     try {
       state.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     } catch (e) { state.reduce = false; }
+    const LOW_NOISE_KEY = "noema.low_noise";
+    function applyLowNoise(on) {
+      document.body.classList.toggle("is-low-noise", !!on);
+      const btn = $("watch-low-noise-btn");
+      if (btn) btn.setAttribute("aria-pressed", on ? "true" : "false");
+      const ln = $("watch-low-noise");
+      if (ln) ln.hidden = !on;
+      try { localStorage.setItem(LOW_NOISE_KEY, on ? "1" : "0"); } catch (e) {}
+    }
+    (function bootLowNoise() {
+      let stored = null;
+      try { stored = localStorage.getItem(LOW_NOISE_KEY); } catch (e) {}
+      const on = stored === "1" || stored === "true" || (!stored && state.reduce) || /(?:^|[?&])low_noise=1(?:&|$)/.test(location.search || "");
+      applyLowNoise(!!on);
+      const btn = $("watch-low-noise-btn");
+      if (btn) btn.addEventListener("click", () => applyLowNoise(!document.body.classList.contains("is-low-noise")));
+    })();
 
     function el(tag, className, text) {
       const n = document.createElement(tag);
@@ -300,6 +325,12 @@ export function watchHtml(): string {
       const when = ago(head.occurred_at);
       const bits = [site, when, head.detail].filter(Boolean);
       $("watch-copy").textContent = bits.join(" · ");
+      const ln = $("watch-low-noise");
+      if (ln) {
+        const recent = events.map((e) => e.line || e.text || "").filter(Boolean);
+        ln.textContent = [head.line, bits.join(" · "), ...recent.slice(0, 6)].filter(Boolean).join("\\n");
+        ln.hidden = !document.body.classList.contains("is-low-noise");
+      }
       const hero = $("watch-hero");
       hero.className = "watch-hero" + (head.tier === "MAJOR" ? " major" : "");
       const banner = $("watch-banner");
