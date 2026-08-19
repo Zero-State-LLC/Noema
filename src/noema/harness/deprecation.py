@@ -6,11 +6,11 @@ import sys
 import warnings
 
 OFFICIAL_CLIENT = "https://github.com/scrimshawlife-ctrl/noema-client"
-INSTALL = "pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git"
+INSTALL = "pipx install noema-client"
 MESSAGE = (
     "This in-repo Controller is deprecated for product use. "
-    f"Install the official client: {INSTALL} then run `noema connect`. "
-    "This path remains for server conformance."
+    f"Install the official client: {INSTALL} then run `noema connect` "
+    f"({OFFICIAL_CLIENT}). This path remains for server conformance."
 )
 
 _emitted = False

@@ -30,7 +30,7 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 Official Controller: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client).
 
 ```bash
-pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git
+pipx install noema-client
 noema connect
 # approve the short code at https://noema.guru/connect
 noema play

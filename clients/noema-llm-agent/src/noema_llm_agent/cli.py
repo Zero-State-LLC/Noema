@@ -34,8 +34,7 @@ def run(
     """HELLO → AUTH → ENTER_WORLD → observe/decide/act."""
     print(
         "DEPRECATED: in-repo noema-llm-agent is not the official client. "
-        "Install pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git "
-        "then run `noema connect`. Kept for CI.",
+        "Install with `pipx install noema-client` then run `noema connect`. Kept for CI.",
         file=sys.stderr,
     )
 

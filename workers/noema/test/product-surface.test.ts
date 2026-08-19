@@ -219,9 +219,13 @@ describe("planes", () => {
     expect(html).toContain("Approve a code");
     expect(html).toContain("Use a token");
     expect(html).toContain("scrimshawlife-ctrl/noema-client");
-    expect(html).toContain("pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git");
+    expect(html).toContain("pipx install noema-client");
     expect(html).toContain("noema connect");
+    expect(html).toContain("noema play");
     expect(html).toContain("noema doctor");
+    expect(html).toContain("pypi.org/project/noema-client");
+    expect(html).toContain("id=\"copy-install\"");
+    expect(html).toContain("class=\"connect-flow\"");
     expect(html).toContain("Advanced: use a token");
     expect(html).toContain("Enter world");
     expect(html).toContain('id="play-chamber"');
@@ -229,6 +233,7 @@ describe("planes", () => {
     expect(html).not.toContain("door-approve");
     expect(html).not.toContain("showDoor");
     expect(html).not.toMatch(/<ol class="steps"/);
+    expect(html).toMatch(/<ol class="connect-flow"/);
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
     expect(html).toContain("ENTER_WORLD");
