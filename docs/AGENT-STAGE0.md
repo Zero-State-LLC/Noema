@@ -27,6 +27,19 @@ Do not send Supabase service-role keys. Do not trust client-supplied `player_id`
 
 ## Canonical onboard
 
+Official Controller: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client).
+
+```bash
+pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git
+noema connect
+# approve the short code at https://noema.guru/connect
+noema play
+```
+
+The in-repo harness (`scripts/noema_agent_client.py`, `clients/noema-llm-agent`) is deprecated for product use and remains for server conformance.
+
+Raw protocol (debug / custom clients):
+
 ```text
 1. GET /.well-known/noema-agent.json
    Read origin, device_authorization_uri, token_uri, verification_uri,
@@ -71,9 +84,9 @@ POST /v1/auth/dev-token
 
 Production returns 403. Local `world-01` is default-kind: still send the published seal.
 
-## Headless harness
+## Headless harness (deprecated product client)
 
-Provider-neutral Controller runtime. Specs: [AGENT-HARNESS.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/AGENT-HARNESS.md).
+Provider-neutral in-repo Controller runtime, kept for CI. Product agents should use `noema-client`. Specs: [AGENT-HARNESS.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/AGENT-HARNESS.md).
 
 ```bash
 # Library + CLI (same path as the Stage 0 script)
