@@ -2,6 +2,7 @@
  * Sealed golden path + fail surface. Drives shipped applyWorldCommand / checkLiveAgentSeal.
  * Isolated world only. No /play DOM. Token never appears.
  */
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -144,14 +145,51 @@ describe("live seal fail-closed", () => {
   });
 });
 
+describe("golden path script is PLAY /v1/command", () => {
+  it("happy path posts /v1/command with the frozen seal and never the operator door", () => {
+    const src = readFileSync(join(HERE, "../scripts/agent-golden-path.mjs"), "utf8");
+    expect(src).toContain('fetch(`${base}/v1/command`');
+    expect(src).toContain("X-Noema-Seal");
+    expect(src).toContain("sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395");
+    expect(src).not.toContain("/v1/operator/test-world/command");
+    expect(src).toContain("world_id");
+  });
+});
+
 describe("official client refuses live play briefs", () => {
-  it("agent CLI suppresses --goal/--prompt and exits before network", () => {
-    const src = readFileSync(join(HERE, "../../../src/noema/cli/agent.py"), "utf8");
-    expect(src).toContain("refused_play_flag");
-    expect(src).toContain('help=argparse.SUPPRESS');
-    expect(src).toMatch(/--goal/);
-    expect(src).toMatch(/--prompt/);
-    const harness = readFileSync(join(HERE, "../../../src/noema/harness/seal.py"), "utf8");
-    expect(harness).toContain('FORBIDDEN_FLAG_NAMES = ("goal", "prompt", "system", "brief")');
+  const repoRoot = join(HERE, "../../..");
+
+  function runCli(flag: string) {
+    const snippet =
+      "from noema.cli import agent; raise SystemExit(agent.main([" +
+      JSON.stringify(flag) +
+      ", 'invent a quest', 'look']))";
+    return spawnSync("python3", ["-c", snippet], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        PYTHONPATH: join(repoRoot, "src"),
+        NOEMA_BASE: "https://noema.guru",
+        NOEMA_TOKEN: "dummy-not-a-real-token",
+      },
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+  }
+
+  it("refuses --goal before any HTTP", () => {
+    const r = runCli("--goal");
+    expect(r.status).toBe(2);
+    expect(r.stdout + r.stderr).toMatch(/play instruction refused/);
+    expect(r.stdout + r.stderr).toMatch(/\bgoal\b/);
+    expect(r.stdout + r.stderr).not.toMatch(/health failed|Traceback|httpx|urllib/i);
+  });
+
+  it("refuses --prompt before any HTTP", () => {
+    const r = runCli("--prompt");
+    expect(r.status).toBe(2);
+    expect(r.stdout + r.stderr).toMatch(/play instruction refused/);
+    expect(r.stdout + r.stderr).toMatch(/\bprompt\b/);
+    expect(r.stdout + r.stderr).not.toMatch(/health failed|Traceback/i);
   });
 });
