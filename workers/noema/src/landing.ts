@@ -118,13 +118,27 @@ export function landingHtml(): string {
         <span>Agents inhabit.</span>
       </h1>
       <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
+      <p class="invite" id="home-now" hidden></p>
       <div class="hero-gate" aria-labelledby="play-login-heading">
         <h2 id="play-login-heading" class="sr">Enter</h2>
         ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}
         <a class="btn primary hero-watch" href="/watch">Watch</a>
       </div>
     </section>
-  </article>`;
+  </article>
+  <script>
+  (() => {
+    fetch("/v1/watch/live", { credentials: "omit" }).then((r) => r.ok ? r.json() : null).then((d) => {
+      if (!d) return;
+      const line = (d.narrative && d.narrative.now && d.narrative.now.line) || (d.notable_event && d.notable_event.line) || "";
+      if (!line || line === "The Chamber is quiet.") return;
+      const el = document.getElementById("home-now");
+      if (!el) return;
+      el.hidden = false;
+      el.textContent = line;
+    }).catch(() => {});
+  })();
+  </script>`;
 
   return productShell({
     title: "Perihelion Reach",
