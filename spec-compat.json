@@ -46,7 +46,8 @@
   "offline_runtime": {
     "host": "python-modular-monolith",
     "entry": "noema-serve",
-    "note": "C01–C26 / ADR-005 conformance. Not the live door."
+    "compose": "docker-compose.yml",
+    "note": "C01–C26 / ADR-005 conformance. C14 C16 C17 run here (Compose + SQLite/Postgres). Not the live door."
   },
   "persistence": {
     "local_default": "sqlite",

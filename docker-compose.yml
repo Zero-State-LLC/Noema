@@ -1,10 +1,10 @@
-# Reference local deployment (Noema-Specs C14 / DEPLOYMENT.md shape).
+# Reference local deployment (Noema-Specs C14 / DEPLOYMENT.md).
 # Golden path:
 #   cp .env.example .env
-#   docker compose up
+#   docker-compose up
 #
-# Local PLAY without Postgres: noema-play (SQLite :memory: / file)
-# Production-shaped: compose brings PostgreSQL + modular monolith.
+# PostgreSQL is the only required external service.
+# Redis, Kafka, Kubernetes, service mesh, and provider keys are not required.
 
 services:
   postgres:
@@ -27,14 +27,18 @@ services:
     build: .
     ports:
       - "${NOEMA_PORT:-8080}:8080"
+    env_file:
+      - .env.example
     environment:
       NOEMA_DB: ${NOEMA_DB:-postgresql://noema:noema@postgres:5432/noema}
+      NOEMA_ENV: ${NOEMA_ENV:-local}
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - noema-data:/app/data
       - noema-objects:/app/var/objects
+      - noema-replays:/app/var/replays
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
       interval: 5s
@@ -45,6 +49,7 @@ volumes:
   noema-pg:
   noema-data:
   noema-objects:
+  noema-replays:
 
 # NOT required for v0.1 local golden path:
 # - redis, kafka, kubernetes, service mesh
