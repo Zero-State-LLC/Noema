@@ -100,6 +100,8 @@ export type PlayerRuntime = {
   operator_id?: string;
   /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
   wait_until_cycle?: number;
+  /** T0.6 session-local text clarification. Not world truth. */
+  pending_clarify?: ClarifyPending;
   /** GC7-S0 PRESENCE_PRESSURE disable. Never permanent. */
   disabled_until_cycle?: number;
   /** GC1 derived cache. Not WorldState. Rebuildable. */
@@ -1978,6 +1980,35 @@ function formatAmbiguous(r: ResolveResult & { ok: false }): string {
     return `Which one?\n${r.choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
   }
   return r.message;
+}
+
+export type ClarifyPending = {
+  fingerprint: string;
+  verb: string;
+  choices: string[];
+};
+
+export function observationFingerprint(roomId: string, entities: Array<{ entity_id: string }>): string {
+  return `${roomId}#${entities.map((e) => e.entity_id).sort().join("|")}`;
+}
+
+/** Numeric or unique visible label. Returns the chosen label, or null if this line is not a pick. */
+export function matchClarifyPick(line: string, pending?: ClarifyPending | null): string | null {
+  if (!pending?.choices.length) return null;
+  const t = String(line || "").trim();
+  if (!t) return null;
+  if (/^\d+$/.test(t)) {
+    const n = Number(t);
+    if (n >= 1 && n <= pending.choices.length) return pending.choices[n - 1];
+    return null;
+  }
+  const key = normalizeKey(t);
+  if (!key) return null;
+  const exact = pending.choices.filter((c) => normalizeKey(c) === key);
+  if (exact.length === 1) return exact[0];
+  const prefixed = pending.choices.filter((c) => normalizeKey(c).startsWith(key));
+  if (prefixed.length === 1) return prefixed[0];
+  return null;
 }
 
 /** Map agent/structured envelope to canonical action. */

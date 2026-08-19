@@ -18,6 +18,8 @@ import {
   isOrgOfficer,
   isRepairable,
   normalizeStructuredCommand,
+  matchClarifyPick,
+  observationFingerprint,
   parseHumanCommand,
   sanitizeTradeAmounts,
   titleCaseLabel,
@@ -1087,21 +1089,35 @@ export async function applyWorldCommand(
 
   // Client may send human line or structured command
   const rawArgs = (envl.arguments || {}) as Record<string, unknown>;
-  let parsed =
-    typeof rawArgs.line === "string"
-      ? parseHumanCommand(String(rawArgs.line), {
-          entities: roomEntities(
-            resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id),
-          ),
-          players: Object.entries(w.players).map(([id, p]) => ({
-            player_id: id,
-            handle: p.handle,
-          })),
-          selfId: principal.player_id,
-          openTrades: Object.values(w.trades || {}),
-          exits: resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id)?.exits || [],
-        })
-      : normalizeStructuredCommand(envl.command, rawArgs);
+  const playRoom = resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id);
+  const parseCtx = {
+    entities: roomEntities(playRoom),
+    players: Object.entries(w.players).map(([id, p]) => ({
+      player_id: id,
+      handle: p.handle,
+    })),
+    selfId: principal.player_id,
+    openTrades: Object.values(w.trades || {}),
+    exits: playRoom?.exits || [],
+  };
+  const fp = observationFingerprint(playRoom?.room_id || "", parseCtx.entities);
+  const plClarify = w.players[principal.player_id];
+  const pickLabel = matchClarifyPick(rawLine, plClarify?.pending_clarify);
+  let parsed: ReturnType<typeof parseHumanCommand>;
+  if (pickLabel && plClarify?.pending_clarify) {
+    if (plClarify.pending_clarify.fingerprint !== fp) {
+      delete plClarify.pending_clarify;
+      return fail(request_id, "STALE_CLARIFICATION", "That choice is no longer valid here.");
+    }
+    const verb = plClarify.pending_clarify.verb;
+    delete plClarify.pending_clarify;
+    parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
+  } else {
+    parsed =
+      typeof rawArgs.line === "string"
+        ? parseHumanCommand(String(rawArgs.line), parseCtx)
+        : normalizeStructuredCommand(envl.command, rawArgs);
+  }
 
   // Also accept command as human line if arguments empty and command looks lower-case multiword
   if (
@@ -1183,6 +1199,12 @@ export async function applyWorldCommand(
       result.observation = { ...buildObservation(w, principal, text), consequence: text };
       w.seen_idempotency[idem] = result;
       return result;
+    }
+    if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
+      const pl = ensurePlayer(w, principal, w.entry_room_id);
+      const verb = (rawLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
+      pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices };
+      return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }
     if (parsed.code === "HELP") {
       const topic = parsed.choices?.[0];
