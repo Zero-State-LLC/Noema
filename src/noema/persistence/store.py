@@ -387,6 +387,18 @@ class WorldStore:
     def ready(self) -> bool:
         return self._ready and self._state is not None
 
+    def has_started_world(self) -> bool:
+        """True once a seed has recorded world identity in meta."""
+        with self._lock:
+            return bool(self._get_meta("world_id"))
+
+    def committed_event_count(self) -> int:
+        with self._lock:
+            row = self._execute("SELECT COUNT(*) AS n FROM events").fetchone()
+            if row is None:
+                return 0
+            return int(row["n"])
+
     def load_from_seed(self, seed_path: Path | str, *, world_id: str | None = None) -> WorldState:
         with self._lock:
             state = load_seed(seed_path)
@@ -428,6 +440,14 @@ class WorldStore:
                 state = apply_event(state, json.loads(erow["envelope_json"]))
             self._state = state
             self._ready = True
+            # Keep meta revision in lockstep with the replayed ledger. A seed
+            # reload that left events in place used to reset sequence to 0 and
+            # make the next ENTER_WORLD collide on events.sequence.
+            head = state.last_event_digest or ""
+            self._set_meta("ledger_head", head)
+            self._set_meta("sequence", str(state.sequence))
+            self._set_meta("cycle", str(state.cycle))
+            self._set_meta("state_digest", sha256_digest(acceptance_projection(state)))
             self._set_meta("writer_token", self.writer_token)
             self._commit()
             return state.clone()
@@ -852,14 +872,27 @@ class WorldStore:
             if (self._state.last_event_digest or "") != (head or ""):
                 problems.append("ledger_head mismatch with in-memory state")
             prev = None
+            max_seq = None
             for row in self._execute(
                 "SELECT sequence, digest, previous_digest, envelope_json FROM events ORDER BY sequence"
             ):
                 env = json.loads(row["envelope_json"])
+                max_seq = int(row["sequence"])
                 if env.get("previous_digest") != prev:
                     problems.append(f"broken ledger chain at seq {row['sequence']}")
                     break
                 prev = row["digest"]
+            if max_seq is not None and max_seq != int(self._state.sequence):
+                problems.append(
+                    f"ledger sequence {max_seq} does not match in-memory sequence {self._state.sequence}"
+                )
+            meta_seq = self._get_meta("sequence")
+            if meta_seq is not None and int(meta_seq) != int(self._state.sequence):
+                problems.append(
+                    f"meta sequence {meta_seq} does not match in-memory sequence {self._state.sequence}"
+                )
+            if prev is not None and not head:
+                problems.append("ledger has events but ledger_head is empty")
             if prev is not None and prev != (head or None) and head:
                 if head and prev != head:
                     problems.append("ledger head does not match last event digest")

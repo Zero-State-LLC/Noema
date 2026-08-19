@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from noema.actions.errors import (
+    CONFLICT,
     NOT_AUTHORIZED,
     VERSION_MISMATCH,
     WORLD_NOT_READY,
@@ -130,6 +131,13 @@ class NoemaRuntime:
 
     def start_world(self, seed_path: Path | str) -> dict[str, Any]:
         with self._writer:
+            existing = self.store.committed_event_count()
+            if existing > 0:
+                raise ActionError(
+                    CONFLICT,
+                    "world already has a ledger; resume instead of reseeding",
+                    details={"event_count": existing},
+                )
             state = self.store.load_from_seed(seed_path)
             # version gate
             catalog = state.catalog_version
@@ -162,6 +170,12 @@ class NoemaRuntime:
                 "ledger_head": state.last_event_digest,
                 "resumed": True,
             }
+
+    def autoload_world(self, seed_path: Path | str) -> dict[str, Any]:
+        """Boot helper: resume an existing ledger, otherwise seed a new world."""
+        if self.store.has_started_world():
+            return self.resume_world(seed_path)
+        return self.start_world(seed_path)
 
     def ensure_ready(self) -> None:
         if not self.store.ready or self.router is None:
