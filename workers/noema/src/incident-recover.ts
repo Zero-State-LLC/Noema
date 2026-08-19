@@ -1,5 +1,6 @@
 import { isUsableLiveWorld, planIncidentRecover, type SettlementHealth, type WorldOpStatus } from "./ops";
 import { worldFromHead, type CanonicalCommit, type WorldHead } from "./settle";
+import { admitTestWorldId } from "./test-world";
 import type { WorldRuntime } from "./world-actions";
 
 export type AdoptLiveHeadInput = {
@@ -71,7 +72,10 @@ export async function runIncidentRecover(
   }
 
   const live = input.storedWorld;
-  if (!isUsableLiveWorld(live) || !live || (live.sequence as number) < 0) {
+  // Isolated mini-chamber seeds at -1 so the first ENTER is evt.tw.*.000000.
+  // Perihelion must not adopt a negative sequence.
+  const isolatedSeed = !!live && admitTestWorldId(live.world_id).ok && live.sequence === -1;
+  if (!isUsableLiveWorld(live) || !live || ((live.sequence as number) < 0 && !isolatedSeed)) {
     return { ok: false, code: "RECOVERY_REQUIRED", message: "no durable world head to restore", http: 409 };
   }
   const snapshot = structuredClone(input.currentWorld.rooms ? input.currentWorld : live);

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { runIncidentRecover, type AdoptLiveHeadInput } from "../src/incident-recover";
+import { miniChamberState } from "../src/mini-chamber";
 import type { WorldHead } from "../src/settle";
 import type { WorldRuntime } from "../src/world-actions";
 
@@ -166,5 +167,61 @@ describe("runIncidentRecover", () => {
       },
     );
     expect(result).toMatchObject({ ok: false, code: "SETTLEMENT_UNCERTAIN", http: 409 });
+  });
+
+  it("adopts an isolated mini-chamber seed at sequence -1 when the SQL head is missing", async () => {
+    const stored = miniChamberState("test.hosted-canonical.inspect-s0");
+    expect(stored.sequence).toBe(-1);
+    const adopted: WorldHead = {
+      world_id: stored.world_id,
+      sequence: -1,
+      cycle: 0,
+      status: "DEMO_SEED",
+      settlement_health: "HEALTHY",
+      state_json: stored,
+      revision: 1,
+      state_digest: "sha256:iso",
+    };
+    const adoptLiveHead = vi.fn(async (_input: AdoptLiveHeadInput) => ({
+      ok: true as const,
+      revision: 1,
+      sequence: -1,
+      idempotent: false,
+    }));
+    const getHead = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(adopted);
+    const result = await runIncidentRecover(
+      {
+        status: "INCIDENT",
+        settlement: "BLOCKING",
+        storedWorld: stored,
+        currentWorld: stored,
+        writerGeneration: "do.1",
+      },
+      { getHead, adoptLiveHead },
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.mode).toBe("adopt");
+    expect(result.world.world_id).toBe("test.hosted-canonical.inspect-s0");
+    expect(result.world.sequence).toBe(-1);
+    expect(adoptLiveHead).toHaveBeenCalledTimes(1);
+    expect(adoptLiveHead.mock.calls[0]?.[0].world.world_id).toBe("test.hosted-canonical.inspect-s0");
+  });
+
+  it("does not adopt a Perihelion snapshot at sequence -1", async () => {
+    const stored = liveWorld({ sequence: -1 });
+    const adoptLiveHead = vi.fn();
+    const result = await runIncidentRecover(
+      {
+        status: "INCIDENT",
+        settlement: "BLOCKING",
+        storedWorld: stored,
+        currentWorld: stored,
+        writerGeneration: "do.1",
+      },
+      { getHead: async () => null, adoptLiveHead },
+    );
+    expect(result).toMatchObject({ ok: false, code: "RECOVERY_REQUIRED", http: 409 });
+    expect(adoptLiveHead).not.toHaveBeenCalled();
   });
 });
