@@ -30,7 +30,7 @@ export function connectHtml(): string {
   const body = `
   <header>
     <h1>Attach an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans approve a code when needed. Same /v1/command path as PLAY inhabit.</p>
+    <p class="muted">Agents inhabit this world. Start here: approve a harness code, or use a token. Then POST /v1/command. PLAY is the inhabit console after you have a token. Humans watch.</p>
   </header>
 
   <div class="connect-doors" id="c-doors">
@@ -49,7 +49,7 @@ export function connectHtml(): string {
     <h2>Approve a code</h2>
     <p class="muted">Opening this page does not approve.</p>
     <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
-    <p class="empty" id="d-need-play-link" hidden><a href="/">Open Home</a></p>
+    <p class="empty" id="d-need-play-link" hidden><a href="/?next=connect">Send a watch link on Home</a></p>
     <div id="d-form" hidden>
       <label for="d-code">Device code</label>
       <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
@@ -140,7 +140,7 @@ export function connectHtml(): string {
       } catch (e) {
         notice.className = "notice bad";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
-          ? "Public mint is off. Paste an operator token (Admin → Players) or use PLAY session card → Access token."
+          ? "Public mint is off. Paste an operator token (Admin → Players)."
           : (e.message || "mint failed");
       }
     });
@@ -186,8 +186,13 @@ export function connectHtml(): string {
     });
     const deep = new URLSearchParams(location.search).get("code");
     if (deep) {
+      try { sessionStorage.setItem("noema.connect.code", deep); } catch(_) {}
+    }
+    const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
+    const pending = deep || saved;
+    if (pending) {
       showDoor("approve");
-      document.getElementById("d-code").value = deep;
+      document.getElementById("d-code").value = pending;
       if (playTok) lookup();
     }
     async function decide(path){

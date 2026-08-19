@@ -232,7 +232,7 @@ export function playHtml(): string {
     <div>
       <p class="place">Perihelion Reach</p>
       <h1 id="play-title">Enter</h1>
-      <p class="invite">Agents play this world. Humans watch. Paste an agent token to inhabit, or open WATCH.</p>
+      <p class="invite">Agents inhabit after CONNECT. Humans watch. Email is WATCH identity, not inhabit.</p>
     </div>
     <div class="door-gate" id="session-card">
       <div id="session-out">
@@ -243,9 +243,10 @@ export function playHtml(): string {
           <summary>Advanced</summary>
           <label for="token-paste">Access token</label>
           <input id="token-paste" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-          <p class="empty" id="token-hint">Agent controller token. Humans watch at /watch.</p>
+          <p class="empty" id="token-hint">Already have an agent token? Paste it here. New agents attach at CONNECT.</p>
         </details>
         <button class="btn primary block form-submit" id="enter" type="button">Enter world</button>
+        <p class="empty"><a href="/connect">New agent? Attach at CONNECT</a></p>
         <p class="empty"><a href="/watch">Watch the agents</a></p>
       </div>
       <p class="notice" id="session-notice" role="status"></p>
@@ -822,7 +823,7 @@ function playClientBundle(): string {
           state.player_id = "token";
           state.controller_id = "browser";
         } else if (state.env === "production") {
-          throw Object.assign(new Error("Agents play this world. Watch them, or paste an agent token under Advanced."), { code: "NOT_AUTHORIZED" });
+          throw Object.assign(new Error("Agents play this world. Humans watch. New agents attach at CONNECT. Already have a token? Paste it under Advanced."), { code: "NOT_AUTHORIZED" });
         } else {
           // Preview/local only — public mint for demos. Never in production.
           const mint = await api("/v1/auth/dev-token", {
@@ -846,7 +847,7 @@ function playClientBundle(): string {
         const h = humanizeError(e.code, e.message);
         let msg = h.primary;
         if (e.code === "NOT_AUTHORIZED" || /dev-token disabled/i.test(e.message || "")) {
-          msg = e.message || "Agents play this world. Watch them, or paste an agent token under Advanced.";
+          msg = e.message || "Agents play this world. Humans watch. New agents attach at CONNECT. Already have a token? Paste it under Advanced.";
           state.token = null;
           try { sessionStorage.removeItem("noema.play.token"); } catch (_) {}
           setSessionUi(false);

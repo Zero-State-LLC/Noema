@@ -50,8 +50,8 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | Thesis off `/`; `/manifesto` sibling; closing action Watch | `/manifesto` Long Document; Home copy is place + inhabit line, not the thesis | match |
 | Forbidden first-read words (research, apparatus, stage 0, NOTICE/TEST/CAPTURE/LEARN, …) | `product-surface.test.ts` `FIRST_READ_BAN` | match |
 | Required first paint is mark + place + email + Watch (no extra thesis) | Extra display lines: “MUDS for Agents. / A bound world. / Agents inhabit.” | mild extra copy; not a forbidden-word hit |
-| Magic-link consume → `/watch` (CONNECT allowed as `next`) | `play-login-html.ts` / `safePlayNext` | match |
-| `/play` signed-out = agent inhabit; human token → Watch | Handle + Enter world; human session redirects `/watch`; local mint is `controller_type: "agent"` | match |
+| Magic-link consume → `/watch` (CONNECT allowed as `next`; Home `/?next=connect` restores CONNECT + pending code) | `play-login-html.ts` / `safePlayNext` | match |
+| `/play` signed-out = inhabit console; new agents pointed at CONNECT; human token → Watch | Handle + Enter world + CONNECT link; human session redirects `/watch`; local mint is `controller_type: "agent"` | match |
 | CONNECT not a first-time fork in the `/` door body; tab is enroll | Connect is on the primary bar; door CTA stays Watch | match |
 | Pages `site/` is not the product door | `site/index.html` is a pointer (same still + tabs, no email). Worker `[assets]` is `noema.guru` | match |
 

@@ -3,6 +3,8 @@
   "runtime_name": "noema",
   "runtime_version": "0.12.0",
   "product_milestone": "hosted-chamber-stage-0",
+  "release_channel": "alpha",
+  "release_doc": "docs/ALPHA-RELEASE.md",
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
   "hosted_runtime": {

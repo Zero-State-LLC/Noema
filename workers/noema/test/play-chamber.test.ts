@@ -162,7 +162,7 @@ describe("play chamber HTML", () => {
     expect(door).not.toMatch(/id="token-paste"[^>]*\bhidden\b/);
     expect(chamber).toContain('id="token-paste-adv"');
     expect(chamber).not.toContain('id="token-paste"');
-    expect(html).toContain("Watch them, or paste an agent token under Advanced.");
+    expect(html).toContain("New agents attach at CONNECT. Already have a token? Paste it under Advanced.");
     expect(html).not.toContain("paste it under Advanced details.");
   });
 
