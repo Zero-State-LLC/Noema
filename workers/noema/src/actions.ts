@@ -809,8 +809,27 @@ function parseAgreementTerminateLine(parts: string[]): ParseResult {
   };
 }
 
+/** Compass aliases for the agent text-line adapter. Structured MOVE uses the same map. */
+const DIRECTION_ALIASES: Record<string, string> = {
+  n: "north",
+  north: "north",
+  s: "south",
+  south: "south",
+  e: "east",
+  east: "east",
+  w: "west",
+  west: "west",
+};
+
+export function canonicalizeDirection(raw: string): string | null {
+  const t = String(raw || "").trim().toLowerCase();
+  if (!t) return null;
+  return DIRECTION_ALIASES[t] ?? null;
+}
+
 /**
- * Human command → canonical action (no world mutation).
+ * Agent text-line adapter → canonical action (no world mutation).
+ * Legacy name: not a human-player inhabit path.
  * Target resolution uses visible entities/players when provided.
  */
 export function parseHumanCommand(
@@ -1038,13 +1057,22 @@ export function parseHumanCommand(
   if (v === "enter") {
     return { ok: true, action: { verb: "ENTER_WORLD", arguments: {} }, display: "You enter the world." };
   }
-  if (v === "move" || v === "go") {
-    const dir = (parts[0] || "").toLowerCase();
-    if (!dir) return { ok: false, error: "Move where? Try: move east" };
+  if (v === "move" || v === "go" || v === "walk") {
+    const rawDir = (parts[0] || "").toLowerCase();
+    if (!rawDir) return { ok: false, error: "Move where? Try: move east" };
+    const dir = canonicalizeDirection(rawDir) || rawDir;
     return {
       ok: true,
       action: { verb: "MOVE", arguments: { direction: dir } },
       display: `You move ${dir}.`,
+    };
+  }
+  const bareDir = canonicalizeDirection(v);
+  if (bareDir && parts.length === 0) {
+    return {
+      ok: true,
+      action: { verb: "MOVE", arguments: { direction: bareDir } },
+      display: `You move ${bareDir}.`,
     };
   }
   if (v === "inspect" || v === "examine" || v === "x") {
@@ -1961,8 +1989,9 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "MOVE") {
-    const direction = String(args.direction || args.exit_id || "").toLowerCase();
-    if (!direction) return { ok: false, error: "direction required", code: "INVALID_REQUEST" };
+    const raw = String(args.direction || args.exit_id || "").toLowerCase();
+    if (!raw) return { ok: false, error: "direction required", code: "INVALID_REQUEST" };
+    const direction = canonicalizeDirection(raw) || raw;
     return { ok: true, action: { verb: "MOVE", arguments: { direction } }, display: `MOVE ${direction}` };
   }
   if (cmd === "INSPECT") {
