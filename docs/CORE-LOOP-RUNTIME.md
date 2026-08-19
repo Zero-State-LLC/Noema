@@ -12,7 +12,7 @@ PLAY → NOTICE → TEST → CAPTURE → LEARN
 
 | User concept | Spec packages | Runtime modules |
 |---|---|---|
-| PLAY | Chamber C01–C26 | Offline: `world/`, `actions/`, `persistence/`. Hosted suite: isolated `test.hosted-canonical.*` only — 23 pass / 3 skip (C14 C16 C17); see `workers/noema/test/conformance/hosted-matrix.json`. Behavioral, not ADR-005 digest-equivalent. Perihelion is not a conformance target. |
+| PLAY | Chamber C01–C26 | Offline: `world/`, `actions/`, `persistence/`; C14–C17 in `tests/test_c14_c16_c17.py` (Compose + SQLite/Postgres). Hosted suite: isolated `test.hosted-canonical.*` only — 23 pass / 3 skip (C14 C16 C17 remain Worker-out-of-scope); see `workers/noema/test/conformance/hosted-matrix.json`. Behavioral, not ADR-005 digest-equivalent. Perihelion is not a conformance target. |
 | NOTICE (conditions) | Frontier F01–F15 | `research/frontier/`, post-persist capture |
 | NOTICE (detection) | Observatory O01–O16 | `research/observatory/` |
 | TEST | Lab L01–L34 | `research/lab/` (isolated forks only) |
