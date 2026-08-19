@@ -23,6 +23,7 @@ export type EntityObs = {
   harvestable?: boolean;
   stock_resource?: string;
   stock_amount?: number;
+  scar?: boolean;
 };
 
 export type LocationObs = {
@@ -32,6 +33,7 @@ export type LocationObs = {
   exits: ExitObs[];
   entities: EntityObs[];
   condition?: string;
+  traces?: Array<{ kind: string; text: string; visibility?: string }>;
   services?: Array<{
     service_id: string;
     display_name: string;
@@ -66,6 +68,7 @@ export type RoomPresentationModel = {
   pressure?: string;
   here: RoomHereItem[];
   exits: RoomExitItem[];
+  traces: string[];
   happened?: string;
 };
 
@@ -105,12 +108,17 @@ export function roomPresentationModel(input: {
   }));
   const pressure = String(loc?.condition || "").trim();
   const happened = String(input.consequence || "").trim();
+  const traces = (loc?.traces || [])
+    .map((t) => String(t.text || "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
   return {
     name: String(loc?.name || "").trim(),
     description: String(loc?.description || "").trim(),
     pressure: pressure || undefined,
     here,
     exits,
+    traces,
     happened: happened || undefined,
   };
 }

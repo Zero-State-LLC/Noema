@@ -320,6 +320,7 @@ export function playBody(): string {
         </div>
         <h3 class="role-here">HERE</h3>
         <ul class="tok-list" id="entity-list" aria-label="Nearby objects"></ul>
+        <ul class="tok-list" id="trace-list" aria-label="Traces" hidden></ul>
         <div id="players-here"></div>
         <div id="desk-list"></div>
         <div id="bonds-card"><div id="bonds-body"></div></div>
@@ -609,6 +610,18 @@ function playClientBundle(): string {
 
       const ents = loc.entities || [];
       fillEntityList($("entity-list"), state.arriving ? ents.slice(0, 4) : ents);
+      const tracesEl = $("trace-list");
+      if (tracesEl) {
+        const traces = loc.traces || [];
+        tracesEl.replaceChildren();
+        tracesEl.hidden = traces.length === 0;
+        for (const t of traces.slice(0, 3)) {
+          const li = document.createElement("li");
+          li.className = "muted";
+          li.textContent = String(t.text || "");
+          tracesEl.append(li);
+        }
+      }
       if (playersEl) fillPlayersHere(playersEl, obs.players_here, obs.organizations, obs.player_id);
       if (desksEl) fillServiceDesks(desksEl, loc.services);
       if (bondsCard && bondsBody) {
