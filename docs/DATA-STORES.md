@@ -6,6 +6,27 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
+### Live probe 2026-08-19 (SQL session)
+
+Read-only Supabase MCP against project `dezykkherxlaysxyvgbs` after re-auth. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover. Did **not** reseed. Did **not** POST to settlement RPCs.
+
+| Check | Result | Label |
+|---|---|---|
+| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `ACTIVE`/`HEALTHY`, cycle 105, sequence **307**, `genesis.ef578f4ffceeccd0` | OBSERVED |
+| Hosted `schema_migrations` | `20260812181043_noema_world_schema`, `20260812195616_noema_settled_events`, `20260816023118_noema_adopt_live_world_head` | OBSERVED |
+| Tables | `noema_world_heads` 5 rows · `noema_settled_events` 309 rows · `noema_canonical_settlements` 200 receipts | OBSERVED |
+| RPCs | both present, `SECURITY DEFINER`; `EXECUTE` `service_role` true; `anon` / `authenticated` false | OBSERVED |
+| Perihelion head | `world.perihelion-reach` · `ACTIVE`/`HEALTHY` · cycle 105 · seq **307** · revision **176** · writer `do.1` · genesis `genesis.ef578f4ffceeccd0` · digest prefix `sha256:18acf` · `evt.000307` | OBSERVED |
+| Perihelion receipts / events | 176 receipts (max revision 176); 280 settled events (seq 0..307) | OBSERVED |
+| Adopt receipt (revision 1) | sequence 92 · `settlement.adopt-live.world.perihelion-reach` | OBSERVED |
+| Holes 0..307 | **28** — same pre-adopt count as 2026-08-17; adopt does not backfill | OBSERVED |
+| Isolated `inspect-s0` | `DEMO_SEED`/`HEALTHY` · cycle 0 · seq 1 · rev 2 · digest `sha256:fe5cf` · events `evt.tw.inspect-s0.000000` + `.000001` both `AGENT_ENTERED_WORLD` (LOOK/INSPECT do not settle) | OBSERVED |
+| Isolated `ack-s3` | `DEMO_SEED`/`HEALTHY` · cycle 4 · seq 18 · rev 19 · digest `sha256:1189a` | OBSERVED |
+| Other isolated heads | `ack-s0` ACTIVE rev 2 seq 1; `ack-s2` ACTIVE rev 1 seq 0 (adopt-only) | OBSERVED |
+| `/ready` vs SQL | cycle / sequence / genesis / HEALTHY **match** Perihelion head | OBSERVED |
+
+SQL-head inspect residual is **closed** for this read path. Production head is not missing. Do not Recover. Do not reseed.
+
 ### Production deploy pin 2026-08-18 (#317)
 
 Addendum. Does not replace the `/ready`-only or SQL-session probes below. **Do not Recover. Do not reseed.**
@@ -16,7 +37,7 @@ Addendum. Does not replace the `/ready`-only or SQL-session probes below. **Do n
 | `/ready` wrap on production | DO `!ok`/throw → 200 `{ready:false, play_blocked:true, code:WORLD_NOT_READY}` not 500. Happy path this run still `ACTIVE`/`HEALTHY` seq 307. | OBSERVED |
 | `GET /play` | 308 → `/connect` | OBSERVED |
 | chrome | Home · Manifesto · Watch · Connect | OBSERVED |
-| Isolated SQL inspect | UNCONFIGURED without `SUPABASE_*`; MCP OAuth not authorized this session. Residual is isolated SQL-head inspect, not missing production head. | OBSERVED this session |
+| Isolated SQL inspect | Closed 2026-08-19 via read-only MCP (addendum above). Prior session was UNCONFIGURED without `SUPABASE_*`. | OBSERVED 2026-08-19 |
 | `inspect-settlement.mjs` | GET heads/events/receipts (redacted). RPC names via GET OpenAPI (`Accept: application/openapi+json`). Does not POST empty `{}` to settlement RPCs. Missing OpenAPI → `openapi_unavailable`. | OBSERVED on disk this pass |
 
 ### Live probe 2026-08-18 (`/ready` only)
