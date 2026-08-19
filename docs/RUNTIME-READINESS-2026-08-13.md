@@ -3,7 +3,7 @@
 **Addendum 2026-08-18 (`/ready` re-fetch).**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
 
-OBSERVED `GET https://noema.guru/ready` this run: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence **303**, `genesis_id:genesis.ef578f4ffceeccd0`. Production head is **not** missing. Residual is isolated `test.hosted-canonical.*` proof (Worker/DO/SQL), not Perihelion bootstrap.
+OBSERVED `GET https://noema.guru/ready` this run: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence **307**, `genesis_id:genesis.ef578f4ffceeccd0`. Same-day earlier probes were 303 then 305. Production head is **not** missing. Residual is isolated `test.hosted-canonical.*` proof (Worker/DO/SQL), not Perihelion bootstrap. Sequence drift is live play, not a missing head.
 
 **Addendum 2026-08-17 live probe.**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.

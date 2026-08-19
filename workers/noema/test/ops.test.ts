@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import worker from "../src/index";
+import type { Env } from "../src/types";
 import {
   actorKindFromPrincipal,
   applyControllingSession,
@@ -196,23 +198,38 @@ describe("playReady", () => {
     expect(r.code).toBeNull();
   });
 
+  it("stays ready inside the one-batch settlement bound", () => {
+    const r = playReady("ACTIVE", "DEGRADED");
+    expect(r.ready).toBe(true);
+    expect(r.play_blocked).toBe(false);
+    expect(r.code).toBeNull();
+  });
+
   it("blocks PAUSED", () => {
     const r = playReady("PAUSED", "HEALTHY");
     expect(r.ready).toBe(false);
+    expect(r.play_blocked).toBe(true);
     expect(r.code).toBe("WORLD_PAUSED");
   });
 
   it("blocks INCIDENT", () => {
-    expect(playReady("INCIDENT", "HEALTHY").code).toBe("WORLD_INCIDENT");
+    const r = playReady("INCIDENT", "HEALTHY");
+    expect(r.ready).toBe(false);
+    expect(r.play_blocked).toBe(true);
+    expect(r.code).toBe("WORLD_INCIDENT");
   });
 
-  it("blocks settlement BLOCKING", () => {
-    expect(playReady("ACTIVE", "BLOCKING").code).toBe("SETTLEMENT_BLOCKED");
+  it("fail-closes /ready when the settlement bound is exceeded", () => {
+    const r = playReady("ACTIVE", "BLOCKING");
+    expect(r.ready).toBe(false);
+    expect(r.play_blocked).toBe(true);
+    expect(r.code).toBe("SETTLEMENT_BLOCKED");
   });
 
   it("treats NOT_ACTIVE as not ready", () => {
     const r = playReady("NOT_ACTIVE", "HEALTHY");
     expect(r.ready).toBe(false);
+    expect(r.play_blocked).toBe(true);
     expect(r.code).toBe("WORLD_NOT_READY");
   });
 
@@ -225,6 +242,83 @@ describe("playReady", () => {
     expect(r.ready).toBe(false);
     expect(r.play_blocked).toBe(true);
     expect(r.code).toBe("WORLD_NOT_READY");
+  });
+});
+
+function readyEnv(
+  health: { status?: number; body?: Record<string, unknown> } | "throw",
+): Env {
+  return {
+    NOEMA_ENV: "production",
+    DEFAULT_WORLD_ID: "world-01",
+    WORLD_DO: {
+      idFromName: () => "id",
+      get: () => ({
+        fetch: async () => {
+          if (health === "throw") throw new Error("secret table xyz");
+          return new Response(JSON.stringify(health.body || {}), {
+            status: health.status ?? 200,
+          });
+        },
+      }),
+    },
+  } as unknown as Env;
+}
+
+describe("GET /ready play_blocked mapping", () => {
+  it("keeps PLAY open while settlement is still inside the one-batch bound", async () => {
+    const res = await worker.fetch(
+      new Request("https://noema.guru/ready"),
+      readyEnv({ body: { ok: true, status: "ACTIVE", settlement_health: "DEGRADED", playable: true } }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ready?: boolean; play_blocked?: boolean; code?: string | null };
+    expect(body.ready).toBe(true);
+    expect(body.play_blocked).toBe(false);
+    expect(body.code).toBeNull();
+  });
+
+  it("sets play_blocked when settlement BLOCKING", async () => {
+    const res = await worker.fetch(
+      new Request("https://noema.guru/ready"),
+      readyEnv({ body: { ok: true, status: "ACTIVE", settlement_health: "BLOCKING", playable: true } }),
+    );
+    const body = (await res.json()) as { ready?: boolean; play_blocked?: boolean; code?: string };
+    expect(res.status).toBe(200);
+    expect(body.ready).toBe(false);
+    expect(body.play_blocked).toBe(true);
+    expect(body.code).toBe("SETTLEMENT_BLOCKED");
+  });
+
+  it("sets play_blocked when the world is INCIDENT", async () => {
+    const res = await worker.fetch(
+      new Request("https://noema.guru/ready"),
+      readyEnv({ body: { ok: true, status: "INCIDENT", settlement_health: "HEALTHY", playable: true } }),
+    );
+    const body = (await res.json()) as { play_blocked?: boolean; code?: string };
+    expect(body.play_blocked).toBe(true);
+    expect(body.code).toBe("WORLD_INCIDENT");
+  });
+
+  it("fail-closes with typed play_blocked when the DO is unavailable", async () => {
+    const down = await worker.fetch(
+      new Request("https://noema.guru/ready"),
+      readyEnv({ status: 503, body: { ok: false } }),
+    );
+    const downBody = (await down.json()) as { ready?: boolean; play_blocked?: boolean; code?: string };
+    expect(down.status).toBe(200);
+    expect(downBody.ready).toBe(false);
+    expect(downBody.play_blocked).toBe(true);
+    expect(downBody.code).toBe("WORLD_NOT_READY");
+
+    const thrown = await worker.fetch(new Request("https://noema.guru/ready"), readyEnv("throw"));
+    const text = await thrown.text();
+    expect(thrown.status).toBe(200);
+    expect(text).not.toContain("secret table");
+    const thrownBody = JSON.parse(text) as { ready?: boolean; play_blocked?: boolean; code?: string };
+    expect(thrownBody.ready).toBe(false);
+    expect(thrownBody.play_blocked).toBe(true);
+    expect(thrownBody.code).toBe("WORLD_NOT_READY");
   });
 });
 

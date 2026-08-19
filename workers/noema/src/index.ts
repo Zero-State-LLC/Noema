@@ -257,16 +257,9 @@ export default {
       }
 
       if (request.method === "GET" && path === "/ready") {
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
-        const stub = env.WORLD_DO.get(id);
-        const h = await stub.fetch("https://do/health");
-        const body = (await h.json().catch(() => ({}))) as {
-          ok?: boolean;
-          status?: string;
-          settlement_health?: string;
-          playable?: boolean;
-        };
-        if (!h.ok) {
+        // Typed play_blocked even when the DO is unreachable. PLAY reads this
+        // field; a 500 INTERNAL would skip the fail-closed banner.
+        const blocked = (world: unknown = {}) => {
           const pr = playReady("NOT_ACTIVE", "HEALTHY");
           return cors(
             json({
@@ -275,21 +268,35 @@ export default {
               code: "WORLD_NOT_READY",
               status: pr.status,
               settlement_health: pr.settlement_health,
+              world,
+            }),
+          );
+        };
+        try {
+          const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+          const stub = env.WORLD_DO.get(id);
+          const h = await stub.fetch("https://do/health");
+          const body = (await h.json().catch(() => ({}))) as {
+            ok?: boolean;
+            status?: string;
+            settlement_health?: string;
+            playable?: boolean;
+          };
+          if (!h.ok) return blocked(body);
+          const pr = playReady(body.status, body.settlement_health, body.playable !== false);
+          return cors(
+            json({
+              ready: pr.ready,
+              play_blocked: pr.play_blocked,
+              code: pr.code,
+              status: pr.status,
+              settlement_health: pr.settlement_health,
               world: body,
             }),
           );
+        } catch {
+          return blocked({ ok: false });
         }
-        const pr = playReady(body.status, body.settlement_health, body.playable !== false);
-        return cors(
-          json({
-            ready: pr.ready,
-            play_blocked: pr.play_blocked,
-            code: pr.code,
-            status: pr.status,
-            settlement_health: pr.settlement_health,
-            world: body,
-          }),
-        );
       }
 
       // Public WATCH projection (no auth — spectator)
