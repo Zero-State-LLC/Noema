@@ -17,6 +17,7 @@ const matrix = JSON.parse(readFileSync(join(here, "hosted-matrix.json"), "utf8")
     phase: string;
     test: string | null;
     reason?: string;
+    owner?: string;
   }>;
 };
 

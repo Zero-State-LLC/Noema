@@ -103,15 +103,9 @@ describe("WATCH public Perihelion subgraph", () => {
     expect(isPublicWatchRoom(hidden)).toBe(false);
     const layout = layoutPublicTopology(
       [...LIVE_PUBLIC, hidden],
-      [{ sequence: 1, cycle: 105, tier: "NORMAL", projection_id: "agent_move", line: "moved", room_id: "room.relay-quarter" }],
+      [{ sequence: 1, tier: "NORMAL", line: "moved", room_id: "room.relay-quarter" }],
     );
-    const laid = Object.keys(layout.nodes || layout.rooms || {}).length
-      ? Object.keys((layout as { nodes?: Record<string, unknown> }).nodes || {})
-      : (layout as { rooms?: Array<{ room_id: string }> }).rooms?.map((r) => r.room_id);
-    // layout returns nodes array
-    const nodeIds = Array.isArray((layout as { nodes?: Array<{ room_id: string }> }).nodes)
-      ? (layout as { nodes: Array<{ room_id: string }> }).nodes.map((n) => n.room_id)
-      : laid;
+    const nodeIds = layout.nodes.map((n) => n.room_id);
     expect(nodeIds).not.toContain("room.secret");
     expect((nodeIds || []).length).toBeLessThanOrEqual(5);
   });
