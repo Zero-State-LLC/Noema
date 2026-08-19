@@ -30,10 +30,11 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
     notice.className = "notice";
     notice.textContent = "Requesting watch link…";
     try {
+      const next = new URLSearchParams(location.search).get("next");
       const res = await fetch("/v1/play/login/request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.value }),
+        body: JSON.stringify(next ? { email: email.value, next } : { email: email.value }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -74,7 +75,13 @@ export function playCallbackHtml(): string {
       if (data.handle) sessionStorage.setItem("noema.play.handle", String(data.handle).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32));
       if (data.player_id) sessionStorage.setItem("noema.play.player_id", String(data.player_id));
       const raw = search.get("next") || hash.get("next") || "";
-      const next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
+      let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
+      if (next === "/connect") {
+        try {
+          const pending = sessionStorage.getItem("noema.connect.code") || "";
+          if (pending) next = "/connect?code=" + encodeURIComponent(pending);
+        } catch (_) {}
+      }
       location.href = next;
     } catch (err) {
       location.href = "/play?error=1";

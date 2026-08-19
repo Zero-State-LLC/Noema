@@ -312,6 +312,8 @@ describe("play login HTML", () => {
     expect(html).toContain("/v1/play/login/request");
     expect(html).toContain("Send watch link");
     expect(html).toContain("A link signs you in so you can watch");
+    expect(html).toContain("URLSearchParams");
+    expect(html).toContain("next");
     const visible = html.replace(/<[^>]+>/g, " ").toLowerCase();
     expect(visible).not.toContain("admin");
     expect(visible).not.toContain("operator plane");
@@ -347,6 +349,6 @@ describe("play login HTML", () => {
   it("play production empty-token error points at email play link", () => {
     const html = playHtml();
     expect(html).not.toContain("Production requires an operator-issued access token");
-    expect(html).toContain("Agents play this world. Watch them, or paste an agent token under Advanced.");
+    expect(html).toContain("Agents play this world. Humans watch. New agents attach at CONNECT. Already have a token? Paste it under Advanced.");
   });
 });

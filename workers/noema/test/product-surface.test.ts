@@ -198,6 +198,7 @@ describe("planes", () => {
     expect(html).toContain("/v1/play/login/request");
     expect(html).not.toContain("/v1/admin/login/request");
     expect(html).toContain("Enter world");
+    expect(html).toContain("New agent? Attach at CONNECT");
   });
   it("study is an honest stub", () => {
     expect(studyHtml()).toMatch(/not open/i);
@@ -232,6 +233,8 @@ describe("planes", () => {
     expect(html).toContain("/v1/auth/device/approve");
     expect(html).toContain("noema.play.token");
     expect(html).toMatch(/Sign in first/i);
+    expect(html).toContain('href="/?next=connect"');
+    expect(html).toContain("Send a watch link on Home");
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).toMatch(/catch\(e\)[\s\S]{0,200}hideDecide\(\)/);
     expect(html).toMatch(/decide\(path\)[\s\S]{0,400}sessionStorage.getItem\("noema.play.token"\)/);
@@ -254,8 +257,9 @@ describe("callback", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening the door");
-    expect(html).toContain('raw === "/connect"');
-    expect(html).toContain('"/watch"');
+      expect(html).toContain('raw === "/connect"');
+      expect(html).toContain('noema.connect.code');
+      expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
     expect(html).toContain('location.href = "/play?error=1"');
     expect(html).not.toMatch(/location\.href = "\/play"/);

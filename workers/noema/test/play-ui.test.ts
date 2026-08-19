@@ -255,7 +255,7 @@ describe("play shell HTML", () => {
   it("keeps collapsed Advanced token paste for operator-issued tokens", () => {
     expect(html).toMatch(/id="token-primary"/);
     expect(html).toMatch(/id="token-paste"/);
-    expect(html).toMatch(/Agent controller token/);
+    expect(html).toMatch(/Already have an agent token/);
     expect(html).not.toMatch(/Admin → Players/);
     expect(html).toMatch(/id="play-health"/);
     expect(html).toMatch(/id="desk-list"/);
