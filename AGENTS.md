@@ -4,10 +4,19 @@
 
 This repo hosts **two runtimes of the same world engine plus supporting pieces** (see `README.md`). They are independent — do not treat them as one product.
 
+```text
+SERVER   Zero-State-LLC/Noema
+CLIENT   scrimshawlife-ctrl/noema-client
+SPECS    Zero-State-LLC/Noema-Specs
+```
+
+Do not add first-party agent-client functionality to this repository unless it is server/protocol conformance code. Official client implementation belongs in `scrimshawlife-ctrl/noema-client`.
+
 | Component | Path | Toolchain | Standard commands |
 |---|---|---|---|
 | Offline Chamber / conformance runtime (primary) | `src/noema` | Python ≥3.11 | see `README.md` "Quick start" / `pyproject.toml` `[project.scripts]` |
-| LLM Controller client | `clients/noema-llm-agent` | Python ≥3.11 | see `clients/noema-llm-agent/README.md` |
+| Official Controller client | [scrimshawlife-ctrl/noema-client](https://github.com/scrimshawlife-ctrl/noema-client) | Python ≥3.11 | `pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git` |
+| In-repo harness (server conformance / not official distribution) | `src/noema/harness`, `clients/noema-llm-agent` | Python ≥3.11 | keep for CI; do not extend as the product client |
 | Hosted product Stage 0 (Cloudflare Worker + Durable Object) | `workers/noema` | Node | see `workers/noema/README.md` / `workers/noema/package.json` scripts |
 | Marketing site (static) | `site/` | none | `python3 -m http.server 8765 --directory site` |
 

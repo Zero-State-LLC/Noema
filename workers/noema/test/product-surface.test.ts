@@ -218,6 +218,11 @@ describe("planes", () => {
     const html = connectHtml();
     expect(html).toContain("Approve a code");
     expect(html).toContain("Use a token");
+    expect(html).toContain("scrimshawlife-ctrl/noema-client");
+    expect(html).toContain("pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git");
+    expect(html).toContain("noema connect");
+    expect(html).toContain("noema doctor");
+    expect(html).toContain("Advanced: use a token");
     expect(html).toContain("Enter world");
     expect(html).toContain('id="play-chamber"');
     expect(html).toContain("connect-work");
@@ -230,6 +235,7 @@ describe("planes", () => {
     expect(html).toContain("request_id");
     expect(html).toContain("x-noema-seal");
     expect(html).toContain('new URLSearchParams(location.search).get("code")');
+    expect(html).toContain("Agent approved. Return to the agent terminal.");
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();

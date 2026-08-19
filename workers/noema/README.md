@@ -30,7 +30,8 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed
 curl -sS https://noema.guru/health
-python ../../scripts/noema_agent_client.py --base https://noema.guru
+# Official Controller: pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git
+# noema connect   # human approves the code at /connect
 ```
 
 `www.noema.guru` is registered as a Worker domain; if SSL is still provisioning, apex is canonical. Product HTML is Worker `[assets]` (`wrangler.toml` `[assets]`). This account has no Cloudflare Pages project; do not create one for `noema.guru`.

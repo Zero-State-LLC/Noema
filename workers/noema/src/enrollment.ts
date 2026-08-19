@@ -150,7 +150,9 @@ export function discoveryDocument(origin: string): Record<string, unknown> {
     device_authorization_uri: `${base}/v1/auth/device`,
     token_uri: `${base}/v1/auth/device/token`,
     seal_header: SEAL_HEADER,
+    seal_required: true,
     accepted_seals: [...ACCEPTED_SEALS],
+    transports: ["http", "websocket"],
     command_required: ["command", "request_id"],
   };
 }
