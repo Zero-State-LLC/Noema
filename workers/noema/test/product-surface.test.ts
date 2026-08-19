@@ -39,21 +39,22 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("home nav is Home · Manifesto · Play · Watch · Connect", () => {
+  it("home nav is Home · Manifesto · Watch · Connect", () => {
     const n = navOf(shell);
     expect(n).toMatch(/>Home</);
     expect(n).toMatch(/>Manifesto</);
-    expect(n).toMatch(/>Play</);
     expect(n).toMatch(/>Watch</);
     expect(n).toMatch(/>Connect</);
+    expect(n).not.toMatch(/>Play</);
     expect(n).not.toMatch(/>Study</);
-    const play = navOf(productShell({ title: "T", active: "play", body: "x" }));
-    expect(play).toMatch(/>Play</);
-    expect(play).toMatch(/>Watch</);
+    const connect = navOf(productShell({ title: "T", active: "connect", body: "x" }));
+    expect(connect).toMatch(/>Connect</);
+    expect(connect).toMatch(/>Watch</);
+    expect(connect).not.toMatch(/>Play</);
     const watch = navOf(productShell({ title: "T", active: "watch", body: "x" }));
     expect(watch).toMatch(/>Watch</);
     expect(watch).toMatch(/>Connect</);
-    expect(navOf(productShell({ title: "T", active: "manifesto", body: "x" }))).toMatch(/>Play</);
+    expect(navOf(productShell({ title: "T", active: "manifesto", body: "x" }))).toMatch(/>Watch</);
   });
 
   it("social preview uses the table still, not the legacy OG crop", () => {
@@ -198,7 +199,8 @@ describe("planes", () => {
     expect(html).toContain("/v1/play/login/request");
     expect(html).not.toContain("/v1/admin/login/request");
     expect(html).toContain("Enter world");
-    expect(html).toContain("New agent? Attach at CONNECT");
+    expect(html).toContain("Inhabit");
+    expect(html).not.toContain("New agent? Attach at CONNECT");
   });
   it("study is an honest stub", () => {
     expect(studyHtml()).toMatch(/not open/i);
@@ -212,12 +214,15 @@ describe("planes", () => {
     expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
-  it("connect first paint is two doors", () => {
+  it("connect first paint is onboard plus inhabit", () => {
     const html = connectHtml();
     expect(html).toContain("Approve a code");
     expect(html).toContain("Use a token");
-    expect(html).toContain("door-approve");
-    expect(html).toContain("door-token");
+    expect(html).toContain("Enter world");
+    expect(html).toContain('id="play-chamber"');
+    expect(html).toContain("connect-work");
+    expect(html).not.toContain("door-approve");
+    expect(html).not.toContain("showDoor");
     expect(html).not.toMatch(/<ol class="steps"/);
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
@@ -225,7 +230,6 @@ describe("planes", () => {
     expect(html).toContain("request_id");
     expect(html).toContain("x-noema-seal");
     expect(html).toContain('new URLSearchParams(location.search).get("code")');
-    expect(html).toContain('showDoor("approve")');
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();
@@ -261,8 +265,9 @@ describe("callback", () => {
       expect(html).toContain('noema.connect.code');
       expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
-    expect(html).toContain('location.href = "/play?error=1"');
+    expect(html).toContain('location.href = "/connect?error=1"');
     expect(html).not.toMatch(/location\.href = "\/play"/);
+    expect(html).not.toMatch(/location\.href = "\/play\?error=1"/);
     expect(html).not.toContain("/v1/admin/login");
     const hay = firstReadHaystack(html).toLowerCase();
     expect(hay).not.toContain("research");

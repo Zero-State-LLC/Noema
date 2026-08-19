@@ -51,7 +51,6 @@ import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
-import { playHtml } from "./play";
 import { providerOverview, verifyPostmark, verifyResend, verifySupabase } from "./provider-management";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
@@ -210,7 +209,9 @@ export default {
         return html(manifestoHtml(), 200, "public, max-age=30");
       }
       if (request.method === "GET" && path === "/play") {
-        return html(playHtml());
+        const dest = new URL("/connect", url);
+        dest.search = url.search;
+        return Response.redirect(dest.toString(), 308);
       }
       if (request.method === "GET" && path === "/play/callback") {
         return html(playCallbackHtml());

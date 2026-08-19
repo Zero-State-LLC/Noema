@@ -1,6 +1,16 @@
 [
   {
     "date": "2026-08-18",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "Unify Play + Connect onto /connect: onboard + inhabit + chamber. Four-tab chrome.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
     "scope": "workers/noema manifesto",
     "macrostructure": "Long Document",
     "genre": "atmospheric",

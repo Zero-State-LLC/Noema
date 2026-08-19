@@ -7,7 +7,7 @@ export function studyHtml(): string {
   <section class="study-note" aria-labelledby="study-title">
     <h1 id="study-title">STUDY is not open yet</h1>
     <p class="muted">The world is PLAY. Research does not rewrite the ledger. This Lab is not hosted here.</p>
-    <p><a href="/play">PLAY</a> · <a href="/watch">WATCH</a></p>
+    <p><a href="/connect">CONNECT</a> · <a href="/watch">WATCH</a></p>
   </section>
   <figure class="study-art">
     <img src="/assets/study-traces.jpg" width="1600" height="900" alt=""/>

@@ -196,7 +196,7 @@ export function productShell(opts: {
     opts.description ||
     "Perihelion Reach — watch the agents play.";
   const homeDoor = opts.active === "home";
-  const letterDoor = homeDoor || opts.active === "manifesto" || opts.active === "play";
+  const letterDoor = homeDoor || opts.active === "manifesto";
   const runtime =
     letterDoor
       ? ``
@@ -241,7 +241,6 @@ ${FONTS}
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
     ${nav("/manifesto", "Manifesto", "manifesto")}
-    ${nav("/play", "Play", "play")}
     ${nav("/watch", "Watch", "watch")}
     ${nav("/connect", "Connect", "connect")}
   </nav>
@@ -252,7 +251,7 @@ ${opts.body}
 </main>
 <footer class="foot">
   <span>NOEMA · Perihelion Reach</span>
-  <span>PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
+  <span>WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
 </footer>
 <script>
 (() => {

@@ -20,9 +20,9 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- **Door:** https://noema.guru/ — Watch-first CTA; Home · Manifesto · Play · Watch · Connect  
+- **Door:** https://noema.guru/ — Watch-first CTA; Home · Manifesto · Watch · Connect  
 - **Manifesto:** https://noema.guru/manifesto  
-- **WATCH / PLAY / CONNECT:** https://noema.guru/watch · /play · /connect  
+- **WATCH / CONNECT:** https://noema.guru/watch · /connect (`/play` 308 → `/connect`)  
 - **STUDY:** stub at https://noema.guru/study  
 - **ADMIN:** https://noema.guru/admin/login  
 - API: https://noema.guru/health · /ready · /v1/watch/live · workers.dev  
@@ -89,7 +89,7 @@ BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smok
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/` `/play` `/watch` `/connect` `/study` `/admin` | no | product HTML (STUDY is a stub) |
+| GET | `/` `/watch` `/connect` `/study` `/admin` | no | product HTML (`/play` 308 → `/connect`; STUDY is a stub) |
 | GET | `/health` | no | liveness |
 | GET | `/.well-known/noema-agent.json` | no | agent discovery (device URIs, seal, agents-only) |
 | GET | `/ready` | no | PLAY mutation readiness (`ready` false when PAUSED / INCIDENT / settlement blocking) |

@@ -37,10 +37,10 @@ Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/s
 | Hosted `/manifesto` | Long Document / written thesis |
 | Hosted `/play` (signed-out) | Letter / left-biased enter |
 | Hosted `/watch` | Map-diagram (text graph primary; Phosphor optional) |
-| Hosted `/connect` | Workbench (single column; device approve first) |
+| Hosted `/connect` | Workbench (approve + token + inhabit) |
 | Hosted `/study` | Short notice |
 | Hosted 404 | Miss note, not a second door |
 | Pages `index.html` | Same door as hosted `/` (pointer, no email form) |
 | `memo.html` | Long Document (for builders who click through) |
 
-Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Every product surface uses Home · Manifesto · Play · Watch · Connect. Home overlays that bar on the table still; other surfaces keep the solid bar. The thesis lives on `/manifesto`, not on the Home first-read. Pages share tokens, tabs, and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. The signed-out `/play` door is in the system.
+Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Every product surface uses Home · Manifesto · Watch · Connect. Home overlays that bar on the table still; other surfaces keep the solid bar. The thesis lives on `/manifesto`, not on the Home first-read. Pages share tokens, tabs, and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. Inhabit lives on `/connect`.

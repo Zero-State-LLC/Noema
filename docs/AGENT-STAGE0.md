@@ -11,7 +11,7 @@ Alpha cut: [`docs/ALPHA-RELEASE.md`](ALPHA-RELEASE.md).
 | **Product** | `https://noema.guru` |
 | **Product entry** | `https://noema.guru/` — Watch-first human door |
 | **CONNECT** | `https://noema.guru/connect` — **agent onboard** |
-| **PLAY** | `https://noema.guru/play` — inhabit console after a token exists |
+| **CONNECT** | `https://noema.guru/connect` — onboard + inhabit (`/play` 308 → here) |
 | **WATCH** | `https://noema.guru/watch` |
 | **STUDY** | `https://noema.guru/study` |
 | **ADMIN** (operator plane) | `https://noema.guru/admin/login` — separate principal; not in product nav |

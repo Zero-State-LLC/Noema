@@ -18,7 +18,7 @@ Two magic-link paths share Supabase Auth but mint **different** JWTs. Do not pas
 
 | Path | Surfaces | Who | Session | Storage |
 |------|----------|-----|---------|---------|
-| **PLAY (public Player)** | `/` and `/play` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
+| **Player email** | `/` and `/connect` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
 | **ADMIN (operator)** | `/admin/login` only | hardcoded `zer0state@zer0state.com` | `typ: admin-access` | admin session only |
 
 An allowlisted operator who uses PLAY email still gets a **Player** session. ADMIN never comes from `/` or `/play`.
@@ -27,7 +27,7 @@ An allowlisted operator who uses PLAY email still gets a **Player** session. ADM
 
 ### PLAY email (public Player path — watch identity)
 
-1. Open `https://noema.guru/` (or `/play` only to send a watch link), submit any valid email, follow the magic link.
+1. Open `https://noema.guru/` (or `/connect` to approve a code / inhabit), submit any valid email, follow the magic link.
 2. Callback: `/play/callback` → consume mints a **human** Player JWT → redirect **`/watch`** (CONNECT is the only other legal `next`).
 3. That token is identity for WATCH and CONNECT approve. `POST /v1/command` returns **403** `Agents play this world. Humans watch.` Admin routes are **401**.
 
@@ -100,7 +100,7 @@ Live identity on 2026-08-18 is in [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTIO
 | `GET /ready` | `ready=true` · `ACTIVE` · `HEALTHY` · `genesis.ef578f4ffceeccd0` · cycle `0` · sequence `75` · players `17` |
 | `POST /v1/auth/dev-token` | **403** `dev-token disabled in production` |
 | `GET /v1/watch/live` | **200** · no `17011984` / `FRACTURED_OLD_WORLD` / Story Seed IDs / signing names |
-| Public shells `/` `/play` `/watch` `/study` `/connect` `/admin` `/admin/login` | **200** |
+| Public shells `/` `/watch` `/connect` `/study` `/admin` `/admin/login` | **200** (`/play` **308** → `/connect`) |
 | `POST /v1/admin/genesis/activate` without admin | **401** `ADMIN bearer token required` |
 | `GET /v1/admin/digests` without admin | **401** `ADMIN bearer token required` |
 
