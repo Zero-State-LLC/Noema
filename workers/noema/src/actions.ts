@@ -102,6 +102,8 @@ export type PlayerRuntime = {
   wait_until_cycle?: number;
   /** T0.6 session-local text clarification. Not world truth. */
   pending_clarify?: ClarifyPending;
+  /** S4 player-preference aliases. Not world truth. Not settled. */
+  command_aliases?: Record<string, string>;
   /** GC7-S0 PRESENCE_PRESSURE disable. Never permanent. */
   disabled_until_cycle?: number;
   /** GC1 derived cache. Not WorldState. Rebuildable. */
@@ -3115,7 +3117,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  AGREEMENT           help agreement");
     lines.push("  ACCESS              help access");
     lines.push("  FOCUS               help focus");
-    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus]");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus|alias]");
   } else if (t === "focus") {
     lines.push("FOCUS");
     lines.push("  focus explorer|surveyor|broker|engineer");
@@ -3204,6 +3206,13 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  message <player> \"text\"");
     lines.push("  Costs: compute 1 · private (not on WATCH)");
     lines.push("  Same room delivers this cycle. Far rooms need a live relay. Mail, not a chat.");
+  } else if (t === "alias") {
+    lines.push("ALIAS");
+    lines.push("  alias list");
+    lines.push("  alias set <name> <command>");
+    lines.push("  alias rm <name>");
+    lines.push("  do <cmd>; <cmd>     at most 5 steps; each settles on its own");
+    lines.push("  Preference only. Not world truth. Cannot replace reserved commands.");
   } else {
     lines.push(`No help topic “${topic}”. Try help trade.`);
   }

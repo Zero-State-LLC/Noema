@@ -276,6 +276,12 @@ import {
 } from "./contest";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 import { projectRoomTraces } from "./play-traces";
+import {
+  applyAliasCommand,
+  expandAliases,
+  macroStepsFromLine,
+  parseAliasCommand,
+} from "./command-aliases";
 
 export type UnsettledEvent = {
   event_id: string;
@@ -1073,8 +1079,52 @@ export async function applyWorldCommand(
     typeof (envl.arguments || {}).line === "string"
       ? String((envl.arguments as { line?: string }).line)
       : envl.command;
-  const askM = rawLine.trim().match(/^(?:ask|talk|use|consult|service)\s+(.+)$/i);
-  if (askM && (isServiceConsultLine(rawLine) || /^ask\s+/i.test(rawLine))) {
+  let textLine = rawLine;
+  const aliasCmd = parseAliasCommand(textLine);
+  if (aliasCmd) {
+    const plA = ensurePlayer(w, principal, w.entry_room_id);
+    if (!plA.command_aliases) plA.command_aliases = {};
+    const applied = applyAliasCommand(plA.command_aliases, aliasCmd);
+    plA.command_aliases = applied.aliases;
+    const result = success(w, principal, request_id, [], applied.text, false);
+    result.observation = { ...buildObservation(w, principal, applied.text), consequence: applied.text };
+    w.seen_idempotency[idem] = result;
+    return result;
+  }
+  const expanded = expandAliases(textLine, w.players[principal.player_id]?.command_aliases || {});
+  if (expanded.error) {
+    return fail(request_id, "ALIAS_DEPTH", expanded.error);
+  }
+  textLine = expanded.line;
+  const macro = macroStepsFromLine(textLine);
+  if (macro.error) {
+    return fail(request_id, "MACRO_REJECTED", macro.error);
+  }
+  const macroFlag = Boolean((envl.arguments || {} as { _macro_step?: boolean })._macro_step);
+  if (macro.steps.length > 1) {
+    if (macroFlag) return fail(request_id, "MACRO_REJECTED", "Macros cannot nest.");
+    let last: CommandResult | undefined;
+    for (let i = 0; i < macro.steps.length; i++) {
+      last = await applyWorldCommand(
+        w,
+        principal,
+        {
+          request_id: `${request_id}.m${i}`,
+          idempotency_key: `${envl.idempotency_key || request_id}.m${i}`,
+          command: "LOOK",
+          arguments: { line: macro.steps[i], _macro_step: true },
+        },
+        settle,
+      );
+      if (!last.ok) return last;
+    }
+    const done = last || fail(request_id, "MACRO_REJECTED", "Empty macro.");
+    w.seen_idempotency[idem] = done;
+    return done;
+  }
+  if (macro.steps.length === 1) textLine = macro.steps[0];
+  const askM = textLine.trim().match(/^(?:ask|talk|use|consult|service)\s+(.+)$/i);
+  if (askM && (isServiceConsultLine(textLine) || /^ask\s+/i.test(textLine))) {
     const pl0 = w.players[principal.player_id];
     const room0 = w.rooms[pl0?.room_id || w.entry_room_id];
     const present0 = servicesAtRoom({
@@ -1122,11 +1172,10 @@ export async function applyWorldCommand(
     const verb = plClarify.pending_clarify.verb;
     delete plClarify.pending_clarify;
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
+  } else if (typeof rawArgs.line === "string" || textLine !== rawLine) {
+    parsed = parseHumanCommand(textLine, parseCtx);
   } else {
-    parsed =
-      typeof rawArgs.line === "string"
-        ? parseHumanCommand(String(rawArgs.line), parseCtx)
-        : normalizeStructuredCommand(envl.command, rawArgs);
+    parsed = normalizeStructuredCommand(envl.command, rawArgs);
   }
 
   // Also accept command as human line if arguments empty and command looks lower-case multiword
