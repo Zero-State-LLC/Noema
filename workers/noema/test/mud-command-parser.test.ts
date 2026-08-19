@@ -164,3 +164,47 @@ describe("GB-NOEMA-102 safe local noun-resolution", () => {
     }
   });
 });
+
+describe("GB-NOEMA-103 look-at / article inspect phrases", () => {
+  const visible = [
+    enrichEntity({
+      entity_id: "entity.relay-7",
+      label: "scarred-conduit",
+      entity_type: "INFRASTRUCTURE",
+    }),
+  ];
+
+  function inspectRelay(r: ReturnType<typeof parseHumanCommand>) {
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.action.verb).toBe("INSPECT");
+    if (r.action.verb === "INSPECT") expect(r.action.arguments.entity_id).toBe("entity.relay-7");
+  }
+
+  it("keeps bare look / l as LOOK", () => {
+    for (const line of ["look", "l", "LOOK"]) {
+      const r = parseHumanCommand(line);
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.action.verb).toBe("LOOK");
+    }
+  });
+
+  it("maps look X / look at X / inspect X / inspect the X to the same INSPECT", () => {
+    for (const line of [
+      "look scarred-conduit",
+      "look at scarred-conduit",
+      "look at the scarred-conduit",
+      "inspect scarred-conduit",
+      "inspect the scarred-conduit",
+      "examine the scarred-conduit",
+      "x scarred-conduit",
+    ]) {
+      inspectRelay(parseHumanCommand(line, { entities: visible }));
+    }
+  });
+
+  it("does not turn look at into a new verb", () => {
+    const r = parseHumanCommand("look at", { entities: visible });
+    expect(r.ok).toBe(false);
+  });
+});
