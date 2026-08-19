@@ -34,15 +34,7 @@ export interface Env {
   ADMIN_MAIL?: {
     send(message: unknown): Promise<void | { messageId?: string }>;
   };
-  /** Postmark server token — standby Worker-sent PLAY/ADMIN/agent letters. Secret. */
-  POSTMARK_SERVER_TOKEN?: string;
-  /** Optional Postmark account token. Break-glass operations only. */
-  POSTMARK_ACCOUNT_TOKEN?: string;
-  /** Optional verified sender override. */
-  POSTMARK_FROM_EMAIL?: string;
-  /** Postmark transactional stream; defaults to outbound. */
-  POSTMARK_MESSAGE_STREAM?: string;
-  /** Resend API key — production-primary transactional provider when configured. */
+  /** Resend API key — transactional provider for PLAY/ADMIN/agent letters. */
   RESEND_API_KEY?: string;
   /** Optional verified Resend sender override. */
   RESEND_FROM_EMAIL?: string;

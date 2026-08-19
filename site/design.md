@@ -37,7 +37,7 @@ Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/s
 | Hosted `/manifesto` | Long Document / written thesis |
 | Hosted `/play` (signed-out) | Letter / left-biased enter |
 | Hosted `/watch` | Map-diagram (text graph primary; Phosphor optional) |
-| Hosted `/connect` | Workbench (official client first; approve a code; inhabit after Advanced token) |
+| Hosted `/connect` | Workbench (sign up, install official client, enter code; inhabit after Advanced token) |
 | Hosted `/study` | Short notice |
 | Hosted 404 | Miss note, not a second door |
 | Pages `index.html` | Same door as hosted `/` (pointer, no email form) |

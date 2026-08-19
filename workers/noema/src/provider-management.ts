@@ -1,7 +1,5 @@
 import type { Env } from "./types";
 
-const POSTMARK_SERVER_URL = "https://api.postmarkapp.com/server";
-const POSTMARK_STREAMS_URL = "https://api.postmarkapp.com/message-streams";
 const RESEND_DOMAINS_URL = "https://api.resend.com/domains";
 
 export interface ProviderStatus {
@@ -37,12 +35,6 @@ export function providerConfiguration(env: Env) {
       management_token: Boolean(env.SUPABASE_ACCESS_TOKEN),
       project_ref: env.SUPABASE_PROJECT_REF || projectRef(env.SUPABASE_URL) || null,
     },
-    postmark: {
-      server_token: Boolean(env.POSTMARK_SERVER_TOKEN),
-      account_token: Boolean(env.POSTMARK_ACCOUNT_TOKEN),
-      from_email: env.POSTMARK_FROM_EMAIL || null,
-      message_stream: env.POSTMARK_MESSAGE_STREAM || "outbound",
-    },
     resend: {
       api_key: Boolean(env.RESEND_API_KEY),
       from_email: env.RESEND_FROM_EMAIL || null,
@@ -50,7 +42,7 @@ export function providerConfiguration(env: Env) {
     },
     capabilities: {
       inspect: true,
-      send_controlled_test: Boolean(env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN),
+      send_controlled_test: Boolean(env.RESEND_API_KEY),
       apply_fixed_supabase_checks: Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
       rotate_credentials: false,
     },
@@ -79,37 +71,6 @@ export async function verifyResend(env: Env, fetchImpl: typeof fetch = fetch): P
         domain_status: domain?.status ?? null,
         region: domain?.region ?? null,
         priority: "primary",
-      },
-    };
-  } catch (error) {
-    return { configured: true, healthy: false, message: safeMessage(error), details: {} };
-  }
-}
-
-export async function verifyPostmark(env: Env, fetchImpl: typeof fetch = fetch): Promise<ProviderStatus> {
-  if (!env.POSTMARK_SERVER_TOKEN) {
-    return { configured: false, healthy: false, message: "POSTMARK_SERVER_TOKEN not configured", details: {} };
-  }
-  try {
-    const headers = { "X-Postmark-Server-Token": env.POSTMARK_SERVER_TOKEN };
-    const [serverRes, streamRes] = await Promise.all([
-      fetchImpl(POSTMARK_SERVER_URL, { headers }),
-      fetchImpl(`${POSTMARK_STREAMS_URL}/${encodeURIComponent(env.POSTMARK_MESSAGE_STREAM || "outbound")}`, { headers }),
-    ]);
-    const server = await responseJson(serverRes);
-    const stream = await responseJson(streamRes);
-    const healthy = serverRes.ok && streamRes.ok;
-    return {
-      configured: true,
-      healthy,
-      message: healthy ? "Postmark server and message stream are reachable" : "Postmark verification failed",
-      details: {
-        server_status: serverRes.status,
-        server_name: typeof server.Name === "string" ? server.Name : null,
-        delivery_type: typeof server.DeliveryType === "string" ? server.DeliveryType : null,
-        stream_status: streamRes.status,
-        stream_id: typeof stream.ID === "string" ? stream.ID : env.POSTMARK_MESSAGE_STREAM || "outbound",
-        stream_server_id: typeof stream.ServerID === "number" ? stream.ServerID : null,
       },
     };
   } catch (error) {
@@ -158,15 +119,14 @@ export async function verifySupabase(env: Env, fetchImpl: typeof fetch = fetch):
 }
 
 export async function providerOverview(env: Env, fetchImpl: typeof fetch = fetch) {
-  const [supabase, resend, postmark] = await Promise.all([
+  const [supabase, resend] = await Promise.all([
     verifySupabase(env, fetchImpl),
     verifyResend(env, fetchImpl),
-    verifyPostmark(env, fetchImpl),
   ]);
   return {
     configuration: providerConfiguration(env),
-    providers: { supabase, resend, postmark },
-    ready_for_deploy: supabase.healthy === true && (resend.healthy === true || postmark.healthy === true),
+    providers: { supabase, resend },
+    ready_for_deploy: supabase.healthy === true && resend.healthy === true,
     secrets_exposed: false,
   };
 }

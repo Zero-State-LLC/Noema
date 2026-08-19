@@ -51,7 +51,7 @@ import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
-import { providerOverview, verifyPostmark, verifyResend, verifySupabase } from "./provider-management";
+import { providerOverview, verifyResend, verifySupabase } from "./provider-management";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
@@ -568,8 +568,7 @@ export default {
         const body = (await request.json().catch(() => ({}))) as { provider?: string };
         if (body.provider === "supabase") return cors(json(await verifySupabase(env)));
         if (body.provider === "resend") return cors(json(await verifyResend(env)));
-        if (body.provider === "postmark") return cors(json(await verifyPostmark(env)));
-        return cors(err("INVALID_REQUEST", "provider must be supabase, resend, or postmark", 400));
+        return cors(err("INVALID_REQUEST", "provider must be supabase or resend", 400));
       }
 
       if (request.method === "GET" && path === "/v1/admin/genesis/catalog") {
