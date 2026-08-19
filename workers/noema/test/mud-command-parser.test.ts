@@ -7,6 +7,8 @@ import {
   classifyResourceNode,
   matchClarifyPick,
   observationFingerprint,
+  helpText,
+  type Affordance,
 } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -524,5 +526,32 @@ describe("T0.5 message phrases", () => {
       expect(a.action.arguments.recipient_id).toBe("player.rhea");
       expect(a.action.arguments.text).toBe("hello");
     }
+  });
+});
+
+describe("S2 contextual help", () => {
+  const many: Affordance[] = [
+    { action: "LOOK", verb: "LOOK", label: "Look", cmd: "look", available: true, kind: "utility" },
+    { action: "MOVE", verb: "MOVE", label: "East", cmd: "move east", available: true, kind: "move" },
+    { action: "INSPECT", verb: "INSPECT", label: "Inspect", cmd: "inspect scarred-conduit", available: true, kind: "utility" },
+    { action: "REPAIR", verb: "REPAIR", label: "Repair", cmd: "repair scarred-conduit", available: true, kind: "primary" },
+  ];
+
+  it("default help with affordances lists at most 3 acts and no KNOWN COMMANDS dump", () => {
+    const text = helpText(undefined, many);
+    expect(text).toMatch(/^HERE/m);
+    expect(text).toMatch(/look/);
+    expect(text).toMatch(/move east/);
+    expect(text).toMatch(/inspect scarred-conduit/);
+    expect(text).not.toMatch(/repair scarred-conduit/);
+    expect(text).not.toMatch(/KNOWN COMMANDS/);
+    expect(text).toMatch(/help all/);
+  });
+
+  it("help all is explicit deep disclosure of existing authority", () => {
+    const text = helpText("all");
+    expect(text).toMatch(/KNOWN COMMANDS/);
+    expect(text).toMatch(/\bBUILD\b/);
+    expect(text).not.toMatch(/\bATTEST\b|\bWED\b/);
   });
 });
