@@ -44,6 +44,77 @@ export type LocationObs = {
   }>;
 };
 
+/** Read-only PLAY room grammar. Authorized observation fields only. No entity ids. */
+export type RoomHereItem = {
+  label: string;
+  entity_type: string;
+  condition?: number;
+  repairable?: boolean;
+  harvestable?: boolean;
+  stock_resource?: string;
+  stock_amount?: number;
+};
+
+export type RoomExitItem = {
+  direction: string;
+  to_room_name?: string;
+};
+
+export type RoomPresentationModel = {
+  name: string;
+  description: string;
+  pressure?: string;
+  here: RoomHereItem[];
+  exits: RoomExitItem[];
+  happened?: string;
+};
+
+function compareHere(a: EntityObs, b: EntityObs): number {
+  const la = titleCaseLabel(a.label).localeCompare(titleCaseLabel(b.label));
+  if (la !== 0) return la;
+  return String(a.entity_id || "").localeCompare(String(b.entity_id || ""));
+}
+
+export function stableHereEntities(entities?: EntityObs[] | null): EntityObs[] {
+  return [...(entities || [])].filter((e) => String(e.label || "").trim()).sort(compareHere);
+}
+
+export function stableExits(exits?: ExitObs[] | null): ExitObs[] {
+  return [...(exits || [])]
+    .filter((x) => String(x.direction || "").trim())
+    .sort((a, b) => String(a.direction).localeCompare(String(b.direction)));
+}
+
+export function roomPresentationModel(input: {
+  location?: LocationObs | null;
+  consequence?: string;
+}): RoomPresentationModel {
+  const loc = input.location;
+  const here = stableHereEntities(loc?.entities).map((e) => ({
+    label: e.label,
+    entity_type: e.entity_type,
+    condition: e.condition,
+    repairable: e.repairable,
+    harvestable: e.harvestable,
+    stock_resource: e.stock_resource,
+    stock_amount: e.stock_amount,
+  }));
+  const exits = stableExits(loc?.exits).map((x) => ({
+    direction: String(x.direction).trim(),
+    to_room_name: x.to_room_name,
+  }));
+  const pressure = String(loc?.condition || "").trim();
+  const happened = String(input.consequence || "").trim();
+  return {
+    name: String(loc?.name || "").trim(),
+    description: String(loc?.description || "").trim(),
+    pressure: pressure || undefined,
+    here,
+    exits,
+    happened: happened || undefined,
+  };
+}
+
 export type PlayerHere = {
   player_id: string;
   handle?: string;
@@ -429,8 +500,20 @@ export function lookCopyFromObservation(
   err?: { code?: string; message?: string },
 ): { worldLine: string; roomName: string; roomDesc: string } {
   const loc = obs?.location;
-  const roomName = String(loc?.name || "").trim();
-  const roomDesc = String(loc?.description || "").trim();
+  const model = roomPresentationModel({
+    location: loc
+      ? {
+          room_id: "",
+          name: String(loc.name || ""),
+          description: String(loc.description || ""),
+          exits: [],
+          entities: [],
+        }
+      : null,
+    consequence: obs?.consequence,
+  });
+  const roomName = model.name;
+  const roomDesc = model.description;
   if (roomName || roomDesc) {
     return {
       worldLine: String(obs?.world_name || "").trim() || "In world",
@@ -850,8 +933,9 @@ export function renderServiceDesksHtml(
 }
 
 export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
-  if (!exits || !exits.length) return "";
-  return exits
+  const ordered = stableExits(exits);
+  if (!ordered.length) return "";
+  return ordered
     .map((x) => {
       const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
       return (
@@ -868,10 +952,11 @@ export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
 }
 
 export function renderEntityListHtml(entities?: EntityObs[] | null): string {
-  if (!entities || !entities.length) {
+  const ordered = stableHereEntities(entities);
+  if (!ordered.length) {
     return '<li class="empty">Nothing notable right here.</li>';
   }
-  return entities
+  return ordered
     .map((e) => {
       const name = titleCaseLabel(e.label);
       let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
@@ -1129,8 +1214,9 @@ export function fillServiceDesks(el: DomRoot, services?: LocationObs["services"]
 
 export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
   el.replaceChildren();
-  if (!exits || !exits.length) return;
-  for (const x of exits) {
+  const ordered = stableExits(exits);
+  if (!ordered.length) return;
+  for (const x of ordered) {
     const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
     const li = h("li");
     const dir = String(x.direction || "").trim() || "ahead";
@@ -1141,11 +1227,12 @@ export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
 
 export function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void {
   el.replaceChildren();
-  if (!entities || !entities.length) {
+  const ordered = stableHereEntities(entities);
+  if (!ordered.length) {
     el.append(h("li", "empty", "Nothing notable right here."));
     return;
   }
-  for (const e of entities) {
+  for (const e of ordered) {
     const name = titleCaseLabel(e.label);
     let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
     if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
@@ -1376,6 +1463,9 @@ export function playUiRuntimeSource(): string {
     humanizeError,
     waitingCopy,
     lookCopyFromObservation,
+    roomPresentationModel,
+    stableHereEntities,
+    stableExits,
     trailFromResult,
     routeDiagram,
     statusFromObservation,
