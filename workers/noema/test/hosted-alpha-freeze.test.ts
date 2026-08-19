@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { HUMAN_WATCH_MESSAGE } from "../src/auth";
 import { discoveryDocument } from "../src/enrollment";
+import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
 import { ACCEPTED_SEALS } from "../src/seal";
 import { productShell } from "../src/shell";
@@ -22,13 +23,15 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
     worker_version_id?: string;
     genesis_id?: string;
     seal?: string;
+    official_client?: string;
+    name?: string;
   };
 };
 
 const FROZEN_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
-const FROZEN_RUNTIME = "3fd1d9e9af47b4ce6e654fa6c2f902ec6d87e3fe";
-const FROZEN_SPECS = "2176135c94f8e2aae7dd4ef9bf9cf1f4ff768d6b";
-const FROZEN_WORKER = "7a482c37-3c93-48b6-bc68-ed02819b510e";
+const FROZEN_RUNTIME = "50886626ad954f3313c4ca38bf2d98405665f8e1";
+const FROZEN_SPECS = "672b78086ecc71d79c9b9ecc4146c4f5a5454555";
+const FROZEN_WORKER = "6c0a43ef-2993-4801-93ad-e507973f22f1";
 
 describe("hosted alpha freeze", () => {
   it("pins the deployed product, not a moving main tip", () => {
@@ -39,6 +42,8 @@ describe("hosted alpha freeze", () => {
     expect(COMPAT.frozen_release?.worker_version_id).toBe(FROZEN_WORKER);
     expect(COMPAT.frozen_release?.genesis_id).toBe("genesis.ef578f4ffceeccd0");
     expect(COMPAT.frozen_release?.seal).toBe(FROZEN_SEAL);
+    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.2");
+    expect(COMPAT.frozen_release?.name).toBe("hosted-alpha-0.12.1");
   });
 
   it("keeps the published live seal", () => {
@@ -63,6 +68,16 @@ describe("hosted alpha freeze", () => {
     expect(door).toContain("Send watch link");
     expect(door).toContain("/assets/hero-table.jpg");
     expect(door).toContain("hero-bleed");
+  });
+
+  it("keeps CONNECT first-read on the official PyPI client", () => {
+    const html = connectHtml();
+    expect(html).toContain("pipx install noema-client");
+    expect(html).toContain("noema connect");
+    expect(html).toContain("noema play");
+    expect(html).toContain("pypi.org/project/noema-client");
+    expect(html).toContain("Recommended");
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Advanced: install from git"));
   });
 
   it("keeps discovery admission and seal advertisement", () => {
