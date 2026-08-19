@@ -3,14 +3,25 @@ import { mintAdminSession } from "../src/admin-auth";
 import { mintControllerToken } from "../src/auth";
 import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
-import { admitTestWorldId, isolatedLedgerEventId, resolveLoadWorldId } from "../src/test-world";
+import {
+  admitTestWorldId,
+  isolatedLedgerEventId,
+  lifecycleRequestedWorldId,
+  recoverBoundWorldId,
+  resolveLoadWorldId,
+} from "../src/test-world";
 import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
 import { ACCEPTED_SEALS } from "../src/seal";
 import type { Env } from "../src/types";
 
 const SIGNING = "test-signing-secret-isolated-world";
 
-type DoCall = { op: string; name?: string; body?: Record<string, unknown> | null };
+type DoCall = {
+  op: string;
+  name?: string;
+  body?: Record<string, unknown> | null;
+  headers?: Record<string, string>;
+};
 
 function mockWorldDo(calls: DoCall[]) {
   return {
@@ -21,9 +32,13 @@ function mockWorldDo(calls: DoCall[]) {
     get(id: { name: string }) {
       return {
         fetch: async (_url: string, init?: RequestInit) => {
+          const raw = init?.headers instanceof Headers
+            ? Object.fromEntries(init.headers.entries())
+            : ((init?.headers || {}) as Record<string, string>);
           calls.push({
             op: "fetch",
             name: id.name,
+            headers: raw,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
           return new Response(JSON.stringify({ ok: true, world_id: id.name }), {
@@ -113,6 +128,49 @@ describe("admitTestWorldId", () => {
   it("DO load uses requested id and does not fall back when set", () => {
     expect(resolveLoadWorldId("test.hosted-canonical.a", "world-01")).toBe("test.hosted-canonical.a");
     expect(resolveLoadWorldId(null, "world-01")).toBe("world-01");
+  });
+});
+
+describe("lifecycleRequestedWorldId", () => {
+  it("binds an admitted isolate from body or header and ignores Perihelion", () => {
+    expect(lifecycleRequestedWorldId("test.hosted-canonical.inspect-s0")).toBe(
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(lifecycleRequestedWorldId("world.perihelion-reach")).toBeNull();
+    expect(lifecycleRequestedWorldId("world-01")).toBeNull();
+    expect(lifecycleRequestedWorldId("")).toBeNull();
+  });
+});
+
+describe("recoverBoundWorldId", () => {
+  it("keeps production recover on the live id when no isolate is bound", () => {
+    const got = recoverBoundWorldId(null, undefined, "world.perihelion-reach");
+    expect(got).toEqual({ ok: true, world_id: "world.perihelion-reach" });
+  });
+
+  it("refuses recover when the loaded or stored world is not the admitted isolate", () => {
+    const leaked = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      undefined,
+      "world.perihelion-reach",
+    );
+    expect(leaked.ok).toBe(false);
+    if (!leaked.ok) expect(leaked.code).toBe("WORLD_FORBIDDEN");
+    const storedLeak = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      "world.perihelion-reach",
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(storedLeak.ok).toBe(false);
+  });
+
+  it("recovers only the admitted isolate when bind and loaded ids match", () => {
+    const got = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      "test.hosted-canonical.inspect-s0",
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(got).toEqual({ ok: true, world_id: "test.hosted-canonical.inspect-s0" });
   });
 });
 
@@ -320,6 +378,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
     expect(calls[0].name).not.toBe("world-01");
     expect(calls[1].body?.action).toBe("recover");
     expect(calls[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
+    expect(String(calls[1].headers?.["x-noema-world-id"] || "")).toBe("test.hosted-canonical.ack-s0");
   });
 });
 

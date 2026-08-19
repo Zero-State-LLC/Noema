@@ -65,3 +65,34 @@ export function resolveLoadWorldId(
   if (requested) return requested;
   return String(defaultWorldId || "").trim() || "world-01";
 }
+
+/** Isolated recover bind. Perihelion / DEFAULT_WORLD_ID stay unbound so production load uses the default DO. */
+export function lifecycleRequestedWorldId(raw: unknown): string | null {
+  const admitted = admitTestWorldId(raw);
+  return admitted.ok ? admitted.world_id : null;
+}
+
+export type RecoverBind =
+  | { ok: true; world_id: string }
+  | { ok: false; code: "WORLD_FORBIDDEN"; message: string };
+
+/** Isolated recover may only read/adopt the admitted isolate. Production recover leaves requested null. */
+export function recoverBoundWorldId(
+  requested: string | null | undefined,
+  storedWorldId: string | null | undefined,
+  currentWorldId: string | null | undefined,
+): RecoverBind {
+  const req = String(requested || "").trim();
+  const stored = String(storedWorldId || "").trim();
+  const current = String(currentWorldId || "").trim();
+  if (req) {
+    if (stored && stored !== req) {
+      return { ok: false, code: "WORLD_FORBIDDEN", message: "stored world is not the admitted isolate" };
+    }
+    if (current && current !== req) {
+      return { ok: false, code: "WORLD_FORBIDDEN", message: "loaded world is not the admitted isolate" };
+    }
+    return { ok: true, world_id: req };
+  }
+  return { ok: true, world_id: stored || current };
+}
