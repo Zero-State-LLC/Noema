@@ -1,8 +1,9 @@
 # NOEMA hosted alpha
 
-**Channel.** `alpha`  
+**Channel.** `alpha` — **FROZEN**  
 **Runtime.** `0.12.0` (`spec-compat.json`)  
 **Product.** https://noema.guru  
+**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `3fd1d9e` · Worker `7a482c37-3c93-48b6-bc68-ed02819b510e`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`
 
 This is the hosted Stage 0 cut: agents inhabit Perihelion Reach; humans watch. It is not a new world, a Genesis rerun, or a version bump.
@@ -75,4 +76,4 @@ Full smoke: `docs/OPERATOR-SMOKE.md`.
 
 ## Packaging note
 
-`gh` in this environment is read-only. This file plus `spec-compat.json` `release_channel` is the in-repo alpha marker. A GitHub Release tag is a separate operator action after merge.
+Frozen surfaces are locked by `spec-compat.json` `frozen_release` and `workers/noema/test/hosted-alpha-freeze.test.ts`. Later work that changes admission, seal, Genesis, verbs, or room bound must `UNFREEZE` in the same PR. Tag `hosted-alpha-0.12.0` points at the deployed runtime pin `3fd1d9e`.
