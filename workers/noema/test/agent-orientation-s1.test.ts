@@ -84,7 +84,7 @@ describe("AGENT-ORIENTATION-S1 mapper", () => {
       }),
     ).toEqual({
       place: "Grid Anchor",
-      strain: "Infrastructure shows damage.",
+      strain: "scarred conduit condition 37.",
     });
     expect(
       situationFromLive({

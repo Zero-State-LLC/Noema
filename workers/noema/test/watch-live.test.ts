@@ -170,7 +170,7 @@ describe("watch-live/1.0 projection contract", () => {
     expect(exits[0].glyph).toBe("threshold");
     const ents = market.entities as Array<{ label: string; glyph?: string }>;
     expect(ents.map((e) => e.label)).toEqual(["Trade stall"]);
-    expect(ents[0].glyph).toBe("trade");
+    expect(ents[0].glyph).toBe("event");
   });
 
   it("names public agents on the feed and keeps smoke anonymous", () => {

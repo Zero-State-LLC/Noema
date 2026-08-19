@@ -1437,13 +1437,12 @@ export function firstStrainLine(loc: {
   description?: string;
   entities?: EntityObs[];
 }): string {
-  const cond = String(loc.condition || "");
-  const condHit = cond.match(/[^.!?]*?(damage|scar|fail|broken|worn|thin|seiz)[^.!?]*[.!?]?/i);
-  if (condHit) return condHit[0].trim();
+  void loc.condition;
+  void loc.description;
   const worn = (loc.entities || []).find((e) => typeof e.condition === "number" && e.condition < 70);
-  if (worn && worn.label) return `${worn.label} is worn.`;
+  if (worn && worn.label) return `${worn.label} condition ${worn.condition}.`;
   const empty = (loc.entities || []).find((e) => e.harvestable && e.stock_amount === 0);
-  if (empty && empty.label) return `${empty.label} is empty.`;
+  if (empty && empty.label) return `${empty.label} stock 0.`;
   return "";
 }
 

@@ -8,6 +8,7 @@ import {
   matchClarifyPick,
   observationFingerprint,
   helpText,
+  parseShape,
   type Affordance,
 } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
@@ -553,5 +554,113 @@ describe("S2 contextual help", () => {
     expect(text).toMatch(/KNOWN COMMANDS/);
     expect(text).toMatch(/\bBUILD\b/);
     expect(text).not.toMatch(/\bATTEST\b|\bWED\b/);
+  });
+});
+
+describe("T0.2 parseShape (does not replace ParseResult.ok)", () => {
+  it("maps resolved / ambiguous / unsupported / invalid without changing ok", () => {
+    const east = parseHumanCommand("east");
+    expect(east.ok).toBe(true);
+    expect(parseShape(east)).toBe("resolved");
+
+    const amb = parseHumanCommand("inspect relay", {
+      entities: [
+        enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" }),
+        enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE" }),
+      ],
+    });
+    expect(amb.ok).toBe(false);
+    if (!amb.ok) expect(amb.code).toBe("AMBIGUOUS_TARGET");
+    expect(parseShape(amb)).toBe("ambiguous");
+
+    const unk = parseHumanCommand("blorble");
+    expect(unk.ok).toBe(false);
+    if (!unk.ok) expect(unk.code).toBe("UNKNOWN_COMMAND");
+    expect(parseShape(unk)).toBe("unsupported");
+
+    const help = parseHumanCommand("help");
+    expect(help.ok).toBe(false);
+    if (!help.ok) expect(help.code).toBe("HELP");
+    expect(parseShape(help)).toBe("unsupported");
+
+    const missing = parseHumanCommand("inspect", {
+      entities: [enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" })],
+    });
+    expect(missing.ok).toBe(false);
+    expect(parseShape(missing)).toBe("invalid");
+  });
+
+  it("keeps structured MOVE-without-direction as invalid, not a text-line parse", () => {
+    const r = normalizeStructuredCommand("MOVE", {});
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("INVALID_REQUEST");
+      expect(r.error).toMatch(/direction/i);
+    }
+    expect(parseShape(r)).toBe("invalid");
+  });
+});
+
+describe("T0.8 structured protocol does not fall into the text adapter", () => {
+  it("MOVE without direction stays INVALID_REQUEST", async () => {
+    const w: WorldRuntime = {
+      world_id: "world.test",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.east" }],
+          entities: [],
+        },
+        "room.east": {
+          room_id: "room.east",
+          name: "Coldline",
+          description: "A thin route.",
+          exits: [{ direction: "west", to_room_id: "room.hub" }],
+          entities: [],
+        },
+      },
+      players: {},
+      trades: {},
+      messages: [],
+      organizations: {},
+      seen_idempotency: {},
+      unsettled: [],
+    };
+    const agent: PlayerPrincipal = {
+      player_id: "player.agent",
+      agent_id: "agent.agent",
+      session_id: "sess.test",
+      controller_id: "ctrl.agent.agent",
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    expect(
+      (
+        await applyWorldCommand(
+          w,
+          agent,
+          { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
+          async () => true,
+        )
+      ).ok,
+    ).toBe(true);
+    const miss = await applyWorldCommand(
+      w,
+      agent,
+      { request_id: "m", idempotency_key: "m", command: "MOVE", arguments: {} },
+      async () => true,
+    );
+    expect(miss.ok).toBe(false);
+    expect(miss.error?.code).toBe("INVALID_REQUEST");
+    expect(miss.error?.message).toMatch(/direction/i);
+    expect(w.players[agent.player_id]?.room_id).toBe("room.hub");
   });
 });

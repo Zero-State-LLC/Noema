@@ -1038,6 +1038,50 @@ function success(
   };
 }
 
+const PROTOCOL_VERBS = new Set([
+  "LOOK",
+  "MOVE",
+  "INSPECT",
+  "WAIT",
+  "MESSAGE",
+  "TRADE",
+  "COMMIT",
+  "HARVEST",
+  "REPAIR",
+  "ORG_CREATE",
+  "ORG_MEMBER_ADD",
+  "ORG_MEMBER_REMOVE",
+  "ORG_OFFICE_CREATE",
+  "ORG_OFFICE_ASSIGN",
+  "ORG_OFFICE_VACATE",
+  "ORG_OFFICE_RETIRE",
+  "ORG_OFFICE_ACT",
+  "ORG_EMERGENCY_ACTIVATE",
+  "ORG_EMERGENCY_REVOKE",
+  "ORG_SUCCESSION_DESIGNATE",
+  "ORG_SUCCESSION_CONSENT",
+  "ORG_SUCCESSION_RULE",
+  "RECONSTRUCT",
+  "RECONSTRUCT_SUPERSEDE",
+  "RECONSTRUCT_PUBLISH",
+  "ENTER_WORLD",
+  "LEAVE_WORLD",
+  "JOIN",
+  "OBSERVE",
+  "TALK",
+  "USE",
+  "CONSULT",
+  "SERVICE",
+  "BUILD",
+  "CONTEST_DECLARE",
+  "CONTEST_DEFEND",
+  "CONTEST_WITHDRAW",
+  "ATTEST",
+  "AGREEMENT_FORM",
+  "AGREEMENT_TERMINATE",
+  "FOCUS",
+]);
+
 export async function applyWorldCommand(
   w: WorldRuntime,
   principal: PlayerPrincipal,
@@ -1178,63 +1222,11 @@ export async function applyWorldCommand(
     parsed = normalizeStructuredCommand(envl.command, rawArgs);
   }
 
-  // Also accept command as human line if arguments empty and command looks lower-case multiword
-  if (
-    !parsed.ok &&
-    envl.command &&
-    ![
-      "LOOK",
-      "MOVE",
-      "INSPECT",
-      "WAIT",
-      "MESSAGE",
-      "TRADE",
-      "COMMIT",
-      "HARVEST",
-      "REPAIR",
-      "ORG_CREATE",
-      "ORG_MEMBER_ADD",
-      "ORG_MEMBER_REMOVE",
-      "ORG_OFFICE_CREATE",
-      "ORG_OFFICE_ASSIGN",
-      "ORG_OFFICE_VACATE",
-      "ORG_OFFICE_RETIRE",
-      "ORG_OFFICE_ACT",
-      "ORG_EMERGENCY_ACTIVATE",
-      "ORG_EMERGENCY_REVOKE",
-      "ORG_SUCCESSION_DESIGNATE",
-      "ORG_SUCCESSION_CONSENT",
-      "ORG_SUCCESSION_RULE",
-      "RECONSTRUCT",
-      "RECONSTRUCT_SUPERSEDE",
-      "RECONSTRUCT_PUBLISH",
-      "ENTER_WORLD",
-      "LEAVE_WORLD",
-      "JOIN",
-      "OBSERVE",
-      "TALK",
-      "USE",
-      "CONSULT",
-      "SERVICE",
-      "BUILD",
-      "CONTEST_DECLARE",
-      "CONTEST_DEFEND",
-      "CONTEST_WITHDRAW",
-      "ATTEST",
-      "AGREEMENT_FORM",
-      "AGREEMENT_TERMINATE",
-      "FOCUS",
-    ].includes(envl.command.toUpperCase())
-  ) {
-    parsed = parseHumanCommand(envl.command, {
-      entities: roomEntities(
-        resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id),
-      ),
-      players: Object.entries(w.players).map(([id, p]) => ({ player_id: id, handle: p.handle })),
-      selfId: principal.player_id,
-      openTrades: Object.values(w.trades || {}),
-      exits: resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id)?.exits || [],
-    });
+  // Text-line fallback: never for protocol verbs (T0.8). Human lines have spaces or are not verbs.
+  const protocolCmd = String(envl.command || "").toUpperCase();
+  const looksLikeTextLine = /\s/.test(String(envl.command || "")) || !PROTOCOL_VERBS.has(protocolCmd);
+  if (!parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
+    parsed = parseHumanCommand(envl.command, parseCtx);
   }
 
   if (!parsed.ok) {

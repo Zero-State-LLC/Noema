@@ -720,9 +720,29 @@ function parseResourceMap(spec: string): Record<string, number> | null {
   return out;
 }
 
+export type ParseShape = "resolved" | "ambiguous" | "unsupported" | "invalid";
+
 export type ParseResult =
   | { ok: true; action: CanonicalAction; display: string }
   | { ok: false; error: string; code?: string; choices?: string[] };
+
+/** Spec T0.2 mapping. Does not replace ParseResult.ok. */
+export function parseShape(r: ParseResult): ParseShape {
+  if (r.ok) return "resolved";
+  const c = String(r.code || "");
+  if (c === "AMBIGUOUS_TARGET") return "ambiguous";
+  if (
+    c === "UNKNOWN_COMMAND" ||
+    c === "NOT_IMPLEMENTED" ||
+    c === "HELP" ||
+    c === "SERVICE" ||
+    c === "VERB_FORBIDDEN" ||
+    c === "CLASS_FORBIDDEN"
+  ) {
+    return "unsupported";
+  }
+  return "invalid";
+}
 
 function parseAgreementFormLine(
   parts: string[],

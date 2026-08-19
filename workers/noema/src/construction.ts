@@ -86,7 +86,11 @@ export type InfraLike = {
   in_progress?: boolean;
 };
 
-/** Live INFRASTRUCTURE only. Explicit infra_type wins; else id/label tokens. */
+/**
+ * Live INFRASTRUCTURE only. Explicit infra_type wins.
+ * Label/id fallback is FROZEN for Genesis-shaped entities (settlement-adjacent).
+ * Do not remove without UNFREEZE — costs and MOVE cargo waiver depend on it.
+ */
 export function infraClassOf(e: InfraLike): ConstructibleClass | null {
   if ((e.entity_type || "").toUpperCase() !== "INFRASTRUCTURE") return null;
   if (isConstructibleClass(e.infra_type)) return e.infra_type;

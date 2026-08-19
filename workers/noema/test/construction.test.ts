@@ -112,6 +112,24 @@ describe("GC2-S0 catalog mapper", () => {
     expect(parseConstructibleClass("route link")).toBe("route_link");
   });
 
+  it("pins Genesis-shaped label fallback (frozen, settlement-adjacent)", () => {
+    expect(
+      infraClassOf({
+        entity_id: "entity.relay-7",
+        label: "scarred-conduit",
+        entity_type: "INFRASTRUCTURE",
+      }),
+    ).toBe("relay");
+    expect(
+      infraClassOf({
+        entity_id: "x",
+        label: "relay",
+        entity_type: "INFRASTRUCTURE",
+        infra_type: "workshop",
+      }),
+    ).toBe("workshop");
+  });
+
   it("classifies live infrastructure from id/label and ignores ruins", () => {
     expect(
       infraClassOf({

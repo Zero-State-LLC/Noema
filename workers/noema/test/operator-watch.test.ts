@@ -101,7 +101,7 @@ describe("operator watch theater", () => {
     const exits = market.exits as Array<{ glyph: string }>;
     expect(exits[0].glyph).toBe("threshold");
     const ents = market.entities as Array<{ glyph: string; label: string }>;
-    expect(ents[0]).toEqual({ label: "Trade stall", entity_type: "PROP", glyph: "trade" });
+    expect(ents[0]).toEqual({ label: "Trade stall", entity_type: "PROP", glyph: "event" });
     const lines = snap.lines as Array<{ handle: string; line: string }>;
     expect(lines[0].handle).toBe("hermes");
     expect(lines[0].line).toMatch(/Open stalls/);
