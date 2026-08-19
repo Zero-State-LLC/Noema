@@ -598,12 +598,8 @@ export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): Re
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Choose something visible." };
 
-  const rawLower = String(raw || "").toLowerCase().trim();
-  const exactId = entities.filter(
-    (e) => e.entity_id.toLowerCase() === rawLower || e.entity_id.toLowerCase() === t,
-  );
-  if (exactId.length === 1) return { ok: true, entity: exactId[0] };
-
+  // Text-line adapter: labels only. Matching entity_id would let a guess
+  // confirm internal identifiers. Structured INSPECT still takes entity_id.
   const exactLabel = entities.filter((e) => normalizeKey(e.label) === t || normalizeKey(titleCaseLabel(e.label)) === t);
   if (exactLabel.length === 1) return { ok: true, entity: exactLabel[0] };
   if (exactLabel.length > 1) {
