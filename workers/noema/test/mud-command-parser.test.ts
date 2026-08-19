@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseHumanCommand, normalizeStructuredCommand } from "../src/actions";
+import { parseHumanCommand, normalizeStructuredCommand, resolveVisibleEntity, enrichEntity } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -118,5 +118,49 @@ describe("GB-NOEMA-101 text-line inhabit (agent)", () => {
     const moved = await applyWorldCommand(w, agent, walk, async () => true);
     expect(moved.ok).toBe(true);
     expect(w.players[agent.player_id]?.room_id).toBe("room.east");
+  });
+});
+
+describe("GB-NOEMA-102 safe local noun-resolution", () => {
+  const visible = [
+    enrichEntity({
+      entity_id: "entity.relay-7",
+      label: "scarred-conduit",
+      entity_type: "INFRASTRUCTURE",
+    }),
+  ];
+
+  it("resolves a visible label", () => {
+    const r = resolveVisibleEntity("scarred-conduit", visible);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.entity.entity_id).toBe("entity.relay-7");
+    const inspect = parseHumanCommand("inspect scarred-conduit", { entities: visible });
+    expect(inspect.ok).toBe(true);
+    if (inspect.ok && inspect.action.verb === "INSPECT") {
+      expect(inspect.action.arguments.entity_id).toBe("entity.relay-7");
+    }
+  });
+
+  it("does not confirm an internal entity_id on the text adapter", () => {
+    const byId = resolveVisibleEntity("entity.relay-7", visible);
+    expect(byId.ok).toBe(false);
+    if (!byId.ok) expect(byId.code).toBe("NOT_FOUND");
+    const inspect = parseHumanCommand("inspect entity.relay-7", { entities: visible });
+    expect(inspect.ok).toBe(false);
+    if (!inspect.ok) expect(inspect.code).toBe("NOT_FOUND");
+  });
+
+  it("does not treat a hidden entity_id as a discovery hit", () => {
+    const hidden = resolveVisibleEntity("entity.not-in-room", visible);
+    expect(hidden.ok).toBe(false);
+    if (!hidden.ok) expect(hidden.code).toBe("NOT_FOUND");
+  });
+
+  it("leaves structured INSPECT on entity_id (protocol bypass)", () => {
+    const a = normalizeStructuredCommand("INSPECT", { entity_id: "entity.relay-7" });
+    expect(a.ok).toBe(true);
+    if (a.ok && a.action.verb === "INSPECT") {
+      expect(a.action.arguments.entity_id).toBe("entity.relay-7");
+    }
   });
 });

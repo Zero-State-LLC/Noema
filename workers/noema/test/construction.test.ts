@@ -177,7 +177,7 @@ describe("GC2-S0 parse", () => {
         expect(alias.action.arguments.class).toBe("generator");
       }
     }
-    const dismantle = parseHumanCommand("dismantle entity.relay-7", {
+    const dismantle = parseHumanCommand("dismantle scarred-conduit", {
       entities: [
         enrichEntity({
           entity_id: "entity.relay-7",
