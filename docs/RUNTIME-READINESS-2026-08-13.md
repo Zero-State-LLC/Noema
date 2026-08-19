@@ -1,5 +1,10 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
+**Addendum 2026-08-19 (SQL-head inspect).**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`. Do not Recover.
+
+Read-only Supabase MCP (`dezykkherxlaysxyvgbs`) after re-auth. Perihelion SQL head **matches** `/ready`: `ACTIVE`/`HEALTHY` cycle 105 sequence **307** revision **176** genesis `genesis.ef578f4ffceeccd0` digest prefix `sha256:18acf`. Isolated `test.hosted-canonical.inspect-s0` is `DEMO_SEED`/`HEALTHY` rev 2 seq 1 (two `AGENT_ENTERED_WORLD`; LOOK/INSPECT do not settle). Both settlement RPCs present (`SECURITY DEFINER`, `service_role` EXECUTE only). SQL-head inspect residual is **closed**. Production head is not missing.
+
 **Addendum 2026-08-18 (#317 production deploy pin).**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`. Do not Recover.
 
