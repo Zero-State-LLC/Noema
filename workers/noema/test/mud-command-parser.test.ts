@@ -485,3 +485,44 @@ describe("T0.6 ambiguity lifecycle", () => {
     expect(stale.error?.code).toBe("STALE_CLARIFICATION");
   });
 });
+
+describe("T0.5 message phrases", () => {
+  const players = [
+    { player_id: "player.self", handle: "self" },
+    { player_id: "player.rhea", handle: "rhea" },
+  ];
+  const ctx = { players, selfId: "player.self" };
+
+  function toRhea(r: ReturnType<typeof parseHumanCommand>, text: string) {
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.action.verb).toBe("MESSAGE");
+    if (r.action.verb === "MESSAGE") {
+      expect(r.action.arguments.recipient_id).toBe("player.rhea");
+      expect(r.action.arguments.text).toBe(text);
+    }
+  }
+
+  it("maps tell / say to / message to the same MESSAGE", () => {
+    toRhea(parseHumanCommand("tell rhea hello", ctx), "hello");
+    toRhea(parseHumanCommand("say to rhea hello", ctx), "hello");
+    toRhea(parseHumanCommand('message rhea "hello"', ctx), "hello");
+    toRhea(parseHumanCommand("message rhea hello", ctx), "hello");
+    toRhea(parseHumanCommand("msg rhea hello", ctx), "hello");
+  });
+
+  it("does not resolve an unobservable recipient", () => {
+    const r = parseHumanCommand("tell ghost hi", ctx);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("NOT_FOUND");
+  });
+
+  it("keeps structured MESSAGE off the text adapter", () => {
+    const a = normalizeStructuredCommand("MESSAGE", { recipient_id: "player.rhea", text: "hello" });
+    expect(a.ok).toBe(true);
+    if (a.ok && a.action.verb === "MESSAGE") {
+      expect(a.action.arguments.recipient_id).toBe("player.rhea");
+      expect(a.action.arguments.text).toBe("hello");
+    }
+  });
+});
