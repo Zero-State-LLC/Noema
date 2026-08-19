@@ -823,6 +823,16 @@ export function canonicalizeDirection(raw: string): string | null {
   return DIRECTION_ALIASES[t] ?? null;
 }
 
+/** Strip leading at/the/a/an from inspect nouns. Does not invent a target. */
+export function stripInspectNoun(raw: string): string {
+  let t = String(raw || "").trim();
+  for (;;) {
+    const next = t.replace(/^(?:at|the|a|an)\s+/i, "").trim();
+    if (next === t) return t;
+    t = next;
+  }
+}
+
 /**
  * Agent text-line adapter → canonical action (no world mutation).
  * Legacy name: not a human-player inhabit path.
@@ -1036,13 +1046,17 @@ export function parseHumanCommand(
   }
 
   const parts = trimmed.split(/\s+/);
-  const v = (parts.shift() || "").toLowerCase();
+  let v = (parts.shift() || "").toLowerCase();
 
   if (v === "help") {
     return { ok: false, error: "__HELP__", code: "HELP", choices: parts };
   }
   if (v === "look" || v === "l") {
-    return { ok: true, action: { verb: "LOOK", arguments: {} }, display: "You look around." };
+    if (parts.length === 0) {
+      return { ok: true, action: { verb: "LOOK", arguments: {} }, display: "You look around." };
+    }
+    // look X / look at X → INSPECT (same as inspect the X)
+    v = "inspect";
   }
   if (v === "wait") {
     return { ok: true, action: { verb: "WAIT", arguments: {} }, display: "You wait a moment." };
@@ -1072,7 +1086,7 @@ export function parseHumanCommand(
     };
   }
   if (v === "inspect" || v === "examine" || v === "x") {
-    const raw = parts.join(" ");
+    const raw = stripInspectNoun(parts.join(" "));
     if (!raw) return { ok: false, error: "Inspect what? Click an object or type its name." };
     if (ctx.entities && ctx.entities.length) {
       const r = resolveVisibleEntity(raw, ctx.entities);
