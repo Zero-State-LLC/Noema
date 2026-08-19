@@ -6,6 +6,19 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
+### Production deploy pin 2026-08-18 (#317)
+
+Addendum. Does not replace the `/ready`-only or SQL-session probes below. **Do not Recover. Do not reseed.**
+
+| Check | Result | Label |
+|---|---|---|
+| Production Worker | version `90b31d30-ae40-4e8f-ba2f-4bac396b769b` from git `5755a25` (#317). Previous production was `e28650ff`. | OBSERVED |
+| `/ready` wrap on production | DO `!ok`/throw → 200 `{ready:false, play_blocked:true, code:WORLD_NOT_READY}` not 500. Happy path this run still `ACTIVE`/`HEALTHY` seq 307. | OBSERVED |
+| `GET /play` | 308 → `/connect` | OBSERVED |
+| chrome | Home · Manifesto · Watch · Connect | OBSERVED |
+| Isolated SQL inspect | UNCONFIGURED without `SUPABASE_*`; MCP OAuth not authorized this session. Residual is isolated SQL-head inspect, not missing production head. | OBSERVED this session |
+| `inspect-settlement.mjs` | GET heads/events/receipts (redacted). RPC names via GET OpenAPI (`Accept: application/openapi+json`). Does not POST empty `{}` to settlement RPCs. Missing OpenAPI → `openapi_unavailable`. | OBSERVED on disk this pass |
+
 ### Live probe 2026-08-18 (`/ready` only)
 
 | Check | Result | Label |

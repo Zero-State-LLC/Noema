@@ -1,5 +1,12 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
+**Addendum 2026-08-18 (#317 production deploy pin).**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`. Do not Recover.
+
+OBSERVED Worker version `90b31d30-ae40-4e8f-ba2f-4bac396b769b` from git `5755a25` (#317). Previous production was `e28650ff`. `/ready` wrap is on production: DO `!ok`/throw → 200 `{ready:false, play_blocked:true, code:WORLD_NOT_READY}` not 500. Happy path this run still `ACTIVE`/`HEALTHY` sequence 307. `GET /play` 308 → `/connect`; chrome Home · Manifesto · Watch · Connect.
+
+Isolated SQL inspect still UNCONFIGURED without `SUPABASE_*`; MCP OAuth not authorized this session. Residual is isolated SQL-head inspect, not missing production head. `inspect-settlement.mjs` now probes RPC names via GET OpenAPI and does not POST empty `{}` to settlement RPCs.
+
 **Addendum 2026-08-18 (`/ready` re-fetch).**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
 
