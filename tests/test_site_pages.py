@@ -24,9 +24,9 @@ def test_pages_index_is_world_door():
     assert 'id="fx"' not in INDEX
     assert "Choose PLAY, WATCH, or STUDY first" not in INDEX
     assert "site.js" not in INDEX
-    assert 'href="https://noema.guru/play"' in INDEX
+    assert 'href="https://noema.guru/play"' not in INDEX
     assert 'href="https://noema.guru/connect"' in INDEX
-    assert ">Play<" in INDEX
+    assert ">Play<" not in INDEX
     assert ">Connect<" in INDEX
     assert 'property="og:image" content="https://noema.guru/assets/hero-table.jpg"' in INDEX
     assert 'name="twitter:card" content="summary_large_image"' in INDEX
