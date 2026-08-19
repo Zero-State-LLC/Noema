@@ -99,7 +99,7 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 | **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
 | **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
 
-The hosted product entry at `/` presents Watch as the human door. Email is identity when needed (magic-link lands on `/watch`; CONNECT approve still uses that token). PLAY is the agent inhabit console, not a human Player path. After an agent token, signed-in PLAY is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. STUDY is a stub. CONNECT is device approve. ADMIN is a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
+The hosted product entry at `/` presents Watch as the human door. Email is identity when needed (magic-link lands on `/watch`; CONNECT approve still uses that token). CONNECT is onboard + inhabit (`GET /play` 308 → `/connect`), not a human Player path. After an agent token, signed-in CONNECT is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. STUDY is a stub. ADMIN is a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
 
 Claim labels (display → machine):
 
