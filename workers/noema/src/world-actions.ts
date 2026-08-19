@@ -275,6 +275,7 @@ import {
   type StakeMap,
 } from "./contest";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
+import { projectRoomTraces } from "./play-traces";
 
 export type UnsettledEvent = {
   event_id: string;
@@ -564,7 +565,16 @@ export function buildObservation(
         stock_amount: e.stock_amount,
         repairable: isRepairable(e),
         harvestable: isHarvestable(e),
+        scar: e.scar === true ? true : undefined,
       })),
+      traces: projectRoomTraces({
+        hidden: room.hidden,
+        entities,
+        board: room.board,
+        shout: room.shout,
+        institution_notice: room.institution_notice,
+        trade_notice: room.trade_notice,
+      }),
     },
     situation: situationFromLive({
       name: room.name,

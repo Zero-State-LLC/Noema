@@ -92,6 +92,12 @@ export interface CommandEnvelope {
   world_id?: string;
 }
 
+export interface ObservationTrace {
+  kind: "scar" | "construction" | "notice";
+  text: string;
+  visibility: "public";
+}
+
 export interface ObservationEntity {
   entity_id: string;
   label: string;
@@ -101,6 +107,7 @@ export interface ObservationEntity {
   stock_amount?: number;
   repairable?: boolean;
   harvestable?: boolean;
+  scar?: boolean;
 }
 
 export interface ObservationAffordance {
@@ -131,6 +138,7 @@ export interface Observation {
     condition?: string;
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
+    traces?: ObservationTrace[];
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
