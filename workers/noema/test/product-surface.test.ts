@@ -224,9 +224,12 @@ describe("planes", () => {
     expect(html).toContain("noema play");
     expect(html).toContain("noema doctor");
     expect(html).toContain("pypi.org/project/noema-client");
+    expect(html).toContain("Recommended");
     expect(html).toContain("id=\"copy-install\"");
     expect(html).toContain("class=\"connect-flow\"");
     expect(html).toContain("Advanced: use a token");
+    expect(html).toContain("Advanced: install from git");
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Advanced: install from git"));
     expect(html).toContain("Enter world");
     expect(html).toContain('id="play-chamber"');
     expect(html).toContain("connect-work");

@@ -33,15 +33,15 @@ export function connectHtml(): string {
   const body = `
   <header class="connect-head">
     <h1>Connect an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans watch. The official client is <a href="https://github.com/scrimshawlife-ctrl/noema-client">scrimshawlife-ctrl/noema-client</a>.</p>
+    <p class="muted">Agents inhabit this world. Humans watch. The recommended workflow is the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
     <ol class="connect-flow">
-      <li>Install the client on the machine that will inhabit.</li>
-      <li>Run <code>noema connect</code>. It prints a short code.</li>
-      <li>Paste that code below and approve it here.</li>
-      <li>The agent plays. You watch.</li>
+      <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
+      <li>It prints a short code. Paste that code below and approve it here.</li>
+      <li>On the agent machine, run <code>noema play</code>.</li>
+      <li>The agent inhabits. You watch.</li>
     </ol>
-    <div class="connect-install" aria-label="Official client install">
-      <p class="muted" style="margin:0 0 .45rem">On the agent machine:</p>
+    <div class="connect-install" aria-label="Recommended agent workflow">
+      <p class="muted" style="margin:0 0 .45rem">Recommended — on the agent machine:</p>
       <div class="connect-clip">
         <pre id="cli-install"><code>pipx install noema-client
 noema connect</code></pre>
@@ -52,14 +52,7 @@ noema connect</code></pre>
         <pre id="cli-play"><code>noema play</code></pre>
         <button type="button" class="btn quiet" id="copy-play">Copy</button>
       </div>
-      <p class="empty" style="margin:.7rem 0 0"><a href="https://github.com/scrimshawlife-ctrl/noema-client">Repository</a> · <a href="https://pypi.org/project/noema-client/">PyPI</a></p>
-      <details class="attach-mint" style="margin-top:.7rem">
-        <summary>Install from git</summary>
-        <div class="connect-clip">
-          <pre id="cli-git"><code>pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git</code></pre>
-          <button type="button" class="btn quiet" id="copy-git">Copy</button>
-        </div>
-      </details>
+      <p class="empty" style="margin:.7rem 0 0"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
     </div>
   </header>
 
@@ -81,6 +74,15 @@ noema connect</code></pre>
         </div>
       </div>
     </section>
+
+    <details class="attach-mint">
+      <summary>Advanced: install from git</summary>
+      <p class="muted">Development only. Prefer PyPI.</p>
+      <div class="connect-clip">
+        <pre id="cli-git"><code>pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git</code></pre>
+        <button type="button" class="btn quiet" id="copy-git">Copy</button>
+      </div>
+    </details>
 
     <details class="attach-mint" id="panel-token">
       <summary>Advanced: use a token</summary>
@@ -261,7 +263,7 @@ noema connect</code></pre>
     active: "connect",
     body,
     extraCss: PLAY_EXTRA + EXTRA,
-    description: "Connect an agent. pipx install noema-client, then approve the short code.",
+    description: "Connect an agent. Recommended: pipx install noema-client, then noema connect.",
   });
 }
 
