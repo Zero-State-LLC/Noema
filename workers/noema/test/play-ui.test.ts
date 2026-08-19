@@ -22,6 +22,7 @@ import {
   statusFromObservation,
   titleCaseLabel,
   trailFromResult,
+  roomPresentationModel,
 } from "../src/play-ui";
 import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
@@ -474,6 +475,43 @@ describe("play-ui HTML escaping", () => {
     const trail = renderTrailHtml([{ kind: "you", title: xss, detail: xss }]);
     expect(trail).not.toContain("<img");
     expect(trail).toContain("&lt;img");
+  });
+});
+
+describe("S1 RoomPresentationModel", () => {
+  it("orders HERE by label and EXITS by direction without exposing entity ids", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        condition: "Infrastructure shows damage.",
+        entities: [
+          { entity_id: "z", label: "zinc-post", entity_type: "INFRASTRUCTURE" },
+          { entity_id: "a", label: "amber-relay", entity_type: "INFRASTRUCTURE", condition: 35 },
+        ],
+        exits: [
+          { direction: "west", to_room_id: "room.w", to_room_name: "Yards" },
+          { direction: "east", to_room_id: "room.e", to_room_name: "Coldline" },
+        ],
+      },
+      consequence: "You look around.",
+    });
+    expect(model.name).toBe("Grid Anchor");
+    expect(model.description).toBe("A frontier anchor.");
+    expect(model.pressure).toBe("Infrastructure shows damage.");
+    expect(model.here.map((e) => e.label)).toEqual(["amber-relay", "zinc-post"]);
+    expect(model.exits.map((x) => x.direction)).toEqual(["east", "west"]);
+    expect(JSON.stringify(model)).not.toMatch(/entity_id|room\.hub/);
+    expect(model.here.every((e) => !("entity_id" in e))).toBe(true);
+    expect(model.happened).toBe("You look around.");
+  });
+
+  it("does not invent HERE items from empty observation", () => {
+    const model = roomPresentationModel({ location: null });
+    expect(model.here).toEqual([]);
+    expect(model.exits).toEqual([]);
+    expect(model.name).toBe("");
   });
 });
 
