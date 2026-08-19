@@ -946,11 +946,18 @@ export function parseHumanCommand(
       display: "You post a trade notice.",
     };
   }
-  // message / msg with quoted text
-  const msgM = trimmed.match(/^(?:message|msg)\s+(\S+)\s+["'](.+)["']\s*$/i);
+  // message / msg / tell / say to — quoted or remainder text
+  const msgM =
+    trimmed.match(/^(?:message|msg|tell)\s+(\S+)\s+["'](.+)["']\s*$/i) ||
+    trimmed.match(/^say\s+to\s+(\S+)\s+["'](.+)["']\s*$/i) ||
+    trimmed.match(/^(?:message|msg|tell)\s+(\S+)\s+(\S.*)$/i) ||
+    trimmed.match(/^say\s+to\s+(\S+)\s+(\S.*)$/i);
   if (msgM) {
     const who = msgM[1];
-    const text = msgM[2];
+    const text = msgM[2].trim();
+    if (!text) {
+      return { ok: false, error: "Message syntax: message <player> \"text\"", code: "INVALID_REQUEST" };
+    }
     if (!ctx.players || !ctx.selfId) {
       return {
         ok: true,
