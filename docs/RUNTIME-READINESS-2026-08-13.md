@@ -51,7 +51,7 @@ PRODUCTION_HEAD_PRESENT
 ISOLATED_SETTLEMENT_PROOF_SHIPPED
 ```
 
-First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Isolated Worker/DO/SQL proof shipped (unit settle/STALE_HEAD/recover, live ENTER/INSPECT, 2026-08-19 SQL heads). Production SQL head is present. Host STUDY stays stub. GC1-S2 remains DEFERRED.
+First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Isolated Worker/DO/SQL proof shipped (unit settle/STALE_HEAD/recover, live ENTER/INSPECT, 2026-08-19 SQL heads). Production SQL head is present. Host STUDY stays stub. GC1-S2 same-asset Engineer quality is hosted (RFC-0040). Later GC1 (parameter-access) stays later.
 
 ## Scorecard (post-S0)
 
@@ -106,7 +106,7 @@ Fixed since the morning audit (do not re-open as defects):
 - First-world Genesis; no activate / force-supersede / reseed
 - Chamber help still omits BUILD, CONTEST, WED, ATTEST
 - Crypto / wallets / x402
-- GC1-S2 mechanical benefits
+- GC1 parameter-access and later unshipped mastery slices (S2 Engineer quality is hosted)
 - `AGREEMENT_FORM` / `ACCESS_POLICY` as first-world required help
 
 ## Isolated harness deploy evidence (2026-08-14)
@@ -157,7 +157,7 @@ All four files are on disk. Hosted objects (tables + both RPCs + Perihelion head
 
 ## Next (not authorized here)
 
-1. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
+1. Do not implement unshipped GC1 slices (parameter-access), crypto, or Genesis reseed. GC1-S2 is already hosted.  
 2. Do not Recover Perihelion. Do not bootstrap from incomplete legacy events.  
 3. Host STUDY stays stub unless an explicit policy unstubs it.  
 4. Hosted C14/C16 stay Compose/Python skips; C17 stays Worker-pin skip (not the Compose upgrade fixture).

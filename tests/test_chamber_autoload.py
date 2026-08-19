@@ -66,6 +66,20 @@ def test_start_world_refuses_existing_ledger(tmp_path: Path):
     rt.store.close()
 
 
+def test_start_world_refuses_seeded_world_with_zero_events(tmp_path: Path):
+    db = tmp_path / "world.sqlite3"
+    rt = NoemaRuntime(db_path=db)
+    first = rt.start_world(SEED)
+    assert first.get("resumed") is not True
+    assert rt.store.has_started_world() is True
+    assert rt.store.committed_event_count() == 0
+    with pytest.raises(ActionError) as exc:
+        rt.start_world(SEED)
+    assert exc.value.code == CONFLICT
+    assert "resume" in exc.value.message
+    rt.store.close()
+
+
 def test_rehydrate_syncs_meta_after_stale_seed_reload(tmp_path: Path):
     """Old noema-serve called load_from_seed on every boot and left events behind."""
     db = tmp_path / "world.sqlite3"
