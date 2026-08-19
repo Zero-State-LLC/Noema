@@ -38,6 +38,7 @@ describe("hosted C01–C26 matrix", () => {
       if (c.mode === "skip") {
         expect(c.status).toBe("skip");
         expect(String(c.reason || "").length).toBeGreaterThan(8);
+        expect(String(c.owner || "").length).toBeGreaterThan(4);
         expect(["C14", "C16", "C17"]).toContain(c.id);
       } else {
         expect(c.mode).toBe("behavioral");

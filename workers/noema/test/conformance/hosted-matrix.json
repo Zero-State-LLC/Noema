@@ -30,7 +30,8 @@
       "status": "skip",
       "phase": "H0",
       "test": null,
-      "reason": "Specs reference is Compose + Postgres, not the Cloudflare Worker host."
+      "reason": "Specs reference is Compose + Postgres, not the Cloudflare Worker host.",
+      "owner": "offline-python-compose"
     },
     { "id": "C15", "title": "World persistence across restart", "mode": "behavioral", "status": "pass", "phase": "H5", "test": "c15-c26.test.ts" },
     {
@@ -40,7 +41,8 @@
       "status": "skip",
       "phase": "H0",
       "test": null,
-      "reason": "No hosted noema restore bundle on the Worker."
+      "reason": "No hosted noema restore bundle on the Worker.",
+      "owner": "offline-python-ops"
     },
     {
       "id": "C17",
@@ -49,7 +51,8 @@
       "status": "skip",
       "phase": "H0",
       "test": null,
-      "reason": "Worker pin is NOEMA_PROTOCOL_VERSION + deploy SHA, not the Compose upgrade fixture."
+      "reason": "Worker pin is NOEMA_PROTOCOL_VERSION + deploy SHA, not the Compose upgrade fixture.",
+      "owner": "hosted-deploy-pin"
     },
     { "id": "C18", "title": "Resource accounting", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
     { "id": "C19", "title": "Production / consumption", "mode": "behavioral", "status": "pass", "phase": "H6", "test": "c18-c24.test.ts" },
