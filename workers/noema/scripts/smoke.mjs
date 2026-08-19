@@ -7,6 +7,8 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_BASE = "http://127.0.0.1:8787";
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "[::1]", "localhost"]);
+/** Same published digest as `src/seal.ts` ACCEPTED_SEALS[0]. Local world-01 is default-kind, so attach still needs it. */
+export const LOCAL_SMOKE_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
 
 export function admitLocalSmokeBase(raw) {
   const base = String(raw || DEFAULT_BASE).trim().replace(/\/$/, "");
@@ -37,17 +39,47 @@ async function json(res) {
   }
 }
 
-async function mintLocalDevToken(base, controllerType) {
+/** First visible inspectable site from a LOOK observation. */
+export function pickInspectTarget(observation) {
+  const entities = observation?.location?.entities;
+  if (!Array.isArray(entities)) return null;
+  const hit = entities.find((e) => e && e.entity_id);
+  return hit ? String(hit.entity_id) : null;
+}
+
+/** First listed exit direction from a LOOK observation. */
+export function pickMoveDirection(observation) {
+  const exits = observation?.location?.exits;
+  if (!Array.isArray(exits)) return null;
+  const hit = exits.find((e) => e && e.direction);
+  return hit ? String(hit.direction) : null;
+}
+
+async function mintLocalDevToken(base, controllerType, handle) {
   const res = await fetch(`${base}/v1/auth/dev-token`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ handle: `smoke-${controllerType}`, controller_type: controllerType }),
+    body: JSON.stringify({ handle, controller_type: controllerType }),
   });
   const body = await json(res);
   if (res.status !== 200 || !body.access_token) {
     throw new Error(`local ${controllerType} token mint failed (${res.status}); is npm run dev running?`);
   }
   return body;
+}
+
+async function command(base, token, envelope) {
+  const res = await fetch(`${base}/v1/command`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Noema-Seal": LOCAL_SMOKE_SEAL,
+    },
+    body: JSON.stringify(envelope),
+  });
+  const body = await json(res);
+  return { status: res.status, body };
 }
 
 async function main() {
@@ -61,56 +93,82 @@ async function main() {
   const health = await fetch(`${base}/health`).then(json);
   console.log("health", health.status, health.stage);
 
-  const human = await mintLocalDevToken(base, "human");
+  const stamp = Date.now().toString(36);
+  const human = await mintLocalDevToken(base, "human", `smoke-human-${stamp}`);
   console.log("human_token", !!human.access_token, human.player_id);
 
-  const agent = await mintLocalDevToken(base, "agent");
+  const agent = await mintLocalDevToken(base, "agent", `smoke-agent-${stamp}`);
   console.log("agent_token", !!agent.access_token, agent.player_id);
 
-  const enter = await fetch(`${base}/v1/command`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
-    body: JSON.stringify({
-      request_id: "req-enter-1",
-      idempotency_key: "idem-enter-1",
-      command: "ENTER_WORLD",
-      arguments: {},
-      client: { type: "agent", runtime: "curl" },
-    }),
-  }).then(json);
-  console.log("enter", enter.ok, enter.observation?.location?.name);
+  const humanLook = await command(base, human.access_token, {
+    request_id: `req-human-look-${stamp}`,
+    command: "LOOK",
+    arguments: {},
+  });
+  console.log("human_command_status", humanLook.status, humanLook.body.error?.message || "");
 
-  const look = await fetch(`${base}/v1/command`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
-    body: JSON.stringify({
-      request_id: "req-look-1",
-      idempotency_key: "idem-look-1",
-      command: "LOOK",
-      arguments: {},
-    }),
-  }).then(json);
-  console.log("look", look.ok, look.events?.[0]?.event_type, look.provenance?.controller_id);
+  const enter = await command(base, agent.access_token, {
+    request_id: `req-enter-${stamp}`,
+    idempotency_key: `idem-enter-${stamp}`,
+    command: "ENTER_WORLD",
+    arguments: {},
+    client: { type: "agent", runtime: "curl" },
+  });
+  console.log("enter", enter.status, enter.body.ok, enter.body.observation?.location?.name, enter.body.error?.code || "");
 
-  const again = await fetch(`${base}/v1/command`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
-    body: JSON.stringify({
-      request_id: "req-look-1-dup",
-      idempotency_key: "idem-look-1",
-      command: "LOOK",
-    }),
-  }).then(json);
-  console.log("idempotent", again.events?.[0]?.sequence === look.events?.[0]?.sequence);
+  const look = await command(base, agent.access_token, {
+    request_id: `req-look-${stamp}`,
+    idempotency_key: `idem-look-${stamp}`,
+    command: "LOOK",
+    arguments: {},
+  });
+  console.log(
+    "look",
+    look.status,
+    look.body.ok,
+    look.body.events?.[0]?.event_type,
+    look.body.observation?.location?.room_id,
+  );
+
+  const again = await command(base, agent.access_token, {
+    request_id: `req-look-dup-${stamp}`,
+    idempotency_key: `idem-look-${stamp}`,
+    command: "LOOK",
+  });
+  console.log("idempotent", again.body.events?.[0]?.sequence === look.body.events?.[0]?.sequence);
+
+  const entityId = pickInspectTarget(look.body.observation) || pickInspectTarget(enter.body.observation);
+  if (!entityId) {
+    console.error("error: LOOK observation had no inspectable entity");
+    process.exit(1);
+  }
+  const inspect = await command(base, agent.access_token, {
+    request_id: `req-inspect-${stamp}`,
+    idempotency_key: `idem-inspect-${stamp}`,
+    command: "INSPECT",
+    arguments: { entity_id: entityId },
+  });
+  console.log("inspect", inspect.body.ok, entityId, inspect.body.events?.map((e) => e.event_type));
+
+  const direction = pickMoveDirection(look.body.observation) || pickMoveDirection(enter.body.observation);
+  if (!direction) {
+    console.error("error: LOOK observation had no exit to MOVE");
+    process.exit(1);
+  }
+  const move = await command(base, agent.access_token, {
+    request_id: `req-move-${stamp}`,
+    idempotency_key: `idem-move-${stamp}`,
+    command: "MOVE",
+    arguments: { direction },
+  });
+  console.log(
+    "move",
+    move.body.ok,
+    direction,
+    look.body.observation?.location?.room_id,
+    "->",
+    move.body.observation?.location?.room_id,
+  );
 
   const unauth = await fetch(`${base}/v1/command`, {
     method: "POST",
@@ -119,7 +177,14 @@ async function main() {
   });
   console.log("unauth_status", unauth.status);
 
-  if (!enter.ok || !look.ok || unauth.status === 200) {
+  if (
+    !enter.body.ok ||
+    !look.body.ok ||
+    !inspect.body.ok ||
+    !move.body.ok ||
+    humanLook.status !== 403 ||
+    unauth.status === 200
+  ) {
     process.exit(1);
   }
   console.log("SMOKE_OK");

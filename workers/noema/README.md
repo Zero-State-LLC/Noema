@@ -162,6 +162,18 @@ curl -sX POST http://127.0.0.1:8787/v1/command \
   -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
   -H 'content-type: application/json' \
   -d '{"request_id":"2","idempotency_key":"l1","command":"LOOK"}' | jq .observation.location
+
+curl -sX POST http://127.0.0.1:8787/v1/command \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
+  -H 'content-type: application/json' \
+  -d '{"request_id":"3","idempotency_key":"i1","command":"INSPECT","arguments":{"entity_id":"entity.relay-7"}}' | jq '{ok,events}'
+
+curl -sX POST http://127.0.0.1:8787/v1/command \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
+  -H 'content-type: application/json' \
+  -d '{"request_id":"4","idempotency_key":"m1","command":"MOVE","arguments":{"direction":"east"}}' | jq .observation.location.name
 ```
 
 ## Non-goals (Stage 0)
