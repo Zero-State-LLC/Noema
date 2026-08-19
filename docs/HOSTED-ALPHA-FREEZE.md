@@ -2,8 +2,8 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `50886626ad954f3313c4ca38bf2d98405665f8e1` (`#348`)  
-**Deployed Worker.** `6c0a43ef-2993-4801-93ad-e507973f22f1`  
+**Runtime pin.** `6efaed21a667d2f174e2a149135fac797ab30ccb` (`#350`)  
+**Deployed Worker.** `d4d4630b-bf14-4259-aa00-efef6da7abe0`  
 **Specs pin.** `672b78086ecc71d79c9b9ecc4146c4f5a5454555` (`#182` RFC-0116)  
 **Official client.** PyPI `noema-client==0.1.2`  
 **Product.** https://noema.guru  
@@ -51,6 +51,6 @@ Same PR must:
 An RFC/ADR is required if the change touches admission, seal, Genesis, verbs, or room bound.
 
 Chrome UNFREEZE 2026-08-18: Play folded into Connect.  
-Chrome UNFREEZE 2026-08-19: CONNECT first-read is PyPI `noema-client`. Admission, seal, Genesis, verbs, and room bound stay frozen.
+Chrome UNFREEZE 2026-08-19: CONNECT first-read is PyPI `noema-client`; inhabit off signed-out first-read. Admission, seal, Genesis, verbs, and room bound stay frozen. Pin refreshed to `6efaed2` / Worker `d4d4630b`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
