@@ -57,7 +57,7 @@ export async function requestPlayMagicLink(
     try {
       const origin = loginRedirectOrigin(env, req);
       const callback = next ? `${origin}/play/callback?next=${encodeURIComponent(next)}` : `${origin}/play/callback`;
-      const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN);
+      const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY);
       let sent = false;
       if (canProvider) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {

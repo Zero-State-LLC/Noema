@@ -47,20 +47,16 @@ describe("Resend adapter", () => {
 });
 
 describe("transactional provider order", () => {
-  it("uses Resend first and does not call Postmark when Resend succeeds", async () => {
+  it("uses Resend when configured", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "re_1" }), { status: 200 }));
-    const result = await sendTransactionalEmail(env({ RESEND_API_KEY: "re", POSTMARK_SERVER_TOKEN: "pm" }), mail, fetchImpl);
+    const result = await sendTransactionalEmail(env({ RESEND_API_KEY: "re" }), mail, fetchImpl);
     expect(result).toEqual({ provider: "resend", messageId: "re_1" });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back from Resend to dormant Postmark", async () => {
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ message: "down" }), { status: 503 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ErrorCode: 0, MessageID: "pm_1" }), { status: 200 }));
-    const result = await sendTransactionalEmail(env({ RESEND_API_KEY: "re", POSTMARK_SERVER_TOKEN: "pm" }), mail, fetchImpl);
-    expect(result).toEqual({ provider: "postmark", messageId: "pm_1" });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  it("fails closed when Resend delivery fails", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "down" }), { status: 503 }));
+    await expect(sendTransactionalEmail(env({ RESEND_API_KEY: "re" }), mail, fetchImpl)).rejects.toThrow(/resend delivery failed/);
   });
 
   it("fails closed when no provider is configured", async () => {

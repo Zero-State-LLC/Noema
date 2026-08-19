@@ -228,7 +228,8 @@ describe("planes", () => {
   });
   it("connect first paint is onboard plus inhabit", () => {
     const html = connectHtml();
-    expect(html).toContain("Approve a code");
+    expect(html).toContain("Enter the code");
+    expect(html).toContain("Sign up");
     expect(html).toContain("Use a token");
     expect(html).toContain("scrimshawlife-ctrl/noema-client");
     expect(html).toContain("pipx install noema-client");
@@ -263,6 +264,11 @@ describe("planes", () => {
     expect(html).toContain('id="d-code"');
     expect(html).toContain('placeholder="AB12-CD34"');
     expect(html).not.toMatch(/id="d-form" hidden/);
+    expect(html).toContain('id="c-email"');
+    expect(html).toContain("Send watch link");
+    expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Enter the code"));
+    expect(html).not.toMatch(/id="d-approve" hidden/);
   });
   it("production CONNECT omits public mint from markup", async () => {
     const html = connectHtml(true);
@@ -284,12 +290,13 @@ describe("planes", () => {
     expect(html).toContain("/v1/auth/device/preview");
     expect(html).toContain("/v1/auth/device/approve");
     expect(html).toContain("noema.play.token");
-    expect(html).toMatch(/Sign in first/i);
-    expect(html).toContain('href="/?next=connect"');
-    expect(html).toContain("Send a watch link on Home");
+    expect(html).toMatch(/Sign up above first/i);
+    expect(html).toContain('id="c-email"');
+    expect(html).toContain('next: "connect"');
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).toMatch(/catch\(e\)[\s\S]{0,200}hideDecide\(\)/);
-    expect(html).toMatch(/decide\(path\)[\s\S]{0,400}sessionStorage.getItem\("noema.play.token"\)/);
+    expect(html).toContain("function sessionToken()");
+    expect(html).toContain('sessionStorage.getItem("noema.play.token")');
   });
   it("enrollment review page does not auto-approve", () => {
     const html = enrollHtml();

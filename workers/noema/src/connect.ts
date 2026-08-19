@@ -25,7 +25,7 @@ pre.snip{
 .connect-clip{margin:var(--space-xs) 0 0}
 .connect-clip .btn{margin-top:var(--space-2xs)}
 .connect-work .btn-row{margin-top:var(--space-sm)}
-.attach-mint .btn.block{margin-top:var(--space-sm)}
+.attach-mint .btn.block,.attach-approve .btn.block{margin-top:var(--space-sm)}
 .attach-approve,.attach-mint{min-width:0;margin:0}
 .attach-mint summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
@@ -39,9 +39,26 @@ export function connectHtml(production = false): string {
   const body = `
   <header class="connect-head">
     <h1>Connect an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans watch. The recommended workflow is the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
+    <p class="muted">Agents inhabit this world. Humans watch. Sign up here first, then install the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
+    <section class="attach-approve" id="panel-signup">
+      <h2>Sign up</h2>
+      <p class="muted">A watch link is your account. That account can approve an agent. Opening this page does not approve.</p>
+      <form id="c-login">
+        <label for="c-email">Email</label>
+        <input id="c-email" type="email" autocomplete="username" required/>
+        <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
+      </form>
+      <p class="notice" id="c-login-notice" role="status"></p>
+      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Install the client, then enter the code.</p>
+    </section>
+    <ol class="connect-flow">
+      <li>Sign up here with a watch link. That's your account.</li>
+      <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
+      <li>It prints a short code. Enter that code below.</li>
+      <li>On the agent machine, run <code>noema play</code>.</li>
+    </ol>
     <div class="connect-install" aria-label="Recommended agent workflow">
-      <p class="muted connect-lede">Recommended — on the agent machine:</p>
+      <p class="muted connect-lede">Then — on the agent machine:</p>
       <div class="connect-clip">
         <pre id="cli-install"><code>pipx install noema-client
 noema connect</code></pre>
@@ -54,28 +71,21 @@ noema connect</code></pre>
       </div>
       <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
     </div>
-    <ol class="connect-flow">
-      <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
-      <li>It prints a short code. Paste that code below and approve it here.</li>
-      <li>On the agent machine, run <code>noema play</code>.</li>
-      <li>The agent inhabits. You watch.</li>
-    </ol>
   </header>
 
   <div class="connect-work">
     <section class="attach-approve" id="panel-approve">
-      <h2>Approve a code</h2>
-      <p class="muted">Your agent prints a short code. Opening this page does not approve.</p>
-      <p class="notice" id="d-need-play" hidden>Sign in first if you need to approve a code. Then come back.</p>
-      <p class="empty" id="d-need-play-link" hidden><a href="/?next=connect">Send a watch link on Home</a></p>
+      <h2>Enter the code</h2>
+      <p class="muted">Your agent prints a short code. Enter it here. Opening this page does not approve.</p>
+      <p class="notice" id="d-need-play" hidden>Sign up above first. That's the account that can approve.</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
         <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text"/>
         <p class="notice" id="d-notice" role="status"></p>
         <dl class="kv" id="d-preview" hidden></dl>
         <div class="btn-row">
+          <button type="button" class="btn primary" id="d-approve">Approve</button>
           <button type="button" class="btn" id="d-lookup">Look up</button>
-          <button type="button" class="btn primary" id="d-approve" hidden>Approve</button>
           <button type="button" class="btn" id="d-deny" hidden>Deny</button>
         </div>
       </div>
@@ -196,18 +206,60 @@ noema connect</code></pre>
     });
     const playTok = (() => { try { return sessionStorage.getItem("noema.play.token") || ""; } catch(_) { return ""; } })();
     const need = document.getElementById("d-need-play");
-    const needLink = document.getElementById("d-need-play-link");
-    if (!playTok) { need.hidden = false; if (needLink) needLink.hidden = false; }
+    const login = document.getElementById("c-login");
+    const loginNotice = document.getElementById("c-login-notice");
+    const signedIn = document.getElementById("c-signed-in");
+    const cEmail = document.getElementById("c-email");
+    if (playTok) {
+      if (login) login.hidden = true;
+      if (signedIn) signedIn.hidden = false;
+      if (need) need.hidden = true;
+    } else if (need) {
+      need.hidden = false;
+    }
+    if (login && cEmail && loginNotice) {
+      login.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        loginNotice.className = "notice";
+        loginNotice.textContent = "Sending watch link…";
+        try {
+          const res = await fetch("/v1/play/login/request", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email: cEmail.value, next: "connect" }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
+          loginNotice.className = "notice ok";
+          loginNotice.textContent = data.message || "If that mailbox can play, a link is on the way.";
+        } catch (err) {
+          loginNotice.className = "notice bad";
+          loginNotice.textContent = err.message || "Could not send watch link";
+        }
+      });
+    }
+    function sessionToken(){
+      try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; }
+    }
+    function saveCode(code){
+      const v = (code || "").trim();
+      if (!v) return;
+      try { sessionStorage.setItem("noema.connect.code", v); } catch(_) {}
+    }
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
     function hideDecide(){
-      document.getElementById("d-approve").hidden = true;
       document.getElementById("d-deny").hidden = true;
     }
     async function lookup(){
       const code = (document.getElementById("d-code").value || "").trim();
-      if (!code) return;
+      if (!code) {
+        dNotice.className = "notice";
+        dNotice.textContent = "Enter the short code from the agent terminal.";
+        return;
+      }
+      saveCode(code);
       dNotice.className = "notice"; dNotice.textContent = "Looking up…";
       preview.hidden = true; preview.textContent = "";
       hideDecide();
@@ -216,18 +268,18 @@ noema connect</code></pre>
         const j = await r.json();
         if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
         dNotice.className = "notice";
-        dNotice.textContent = "Status: "+j.status+". Looking this up did not approve.";
+        const tok = sessionToken();
+        dNotice.textContent = j.status === "pending"
+          ? (tok
+            ? "This code is waiting. Approve to bind the agent."
+            : "This code is waiting. Sign up above, then Approve.")
+          : ("Status: "+j.status+".");
         preview.hidden = false;
         row("Runtime", j.runtime || "");
         row("Scopes", (j.scopes||[]).join(", "));
         row("Expires", j.expires_at || "");
-        const canDecide = !!(playTok && j.status === "pending");
-        document.getElementById("d-approve").hidden = !canDecide;
-        document.getElementById("d-deny").hidden = !canDecide;
-        if (j.status === "pending" && !playTok) {
-          need.hidden = false;
-          if (needLink) needLink.hidden = false;
-        }
+        document.getElementById("d-deny").hidden = !(tok && j.status === "pending");
+        if (j.status === "pending" && !tok && need) need.hidden = false;
       } catch(e) {
         hideDecide();
         dNotice.className = "notice bad";
@@ -236,7 +288,7 @@ noema connect</code></pre>
           : /used|already/i.test(e.message || "")
             ? "Code already used."
             : /not authorized/i.test(e.message || "")
-              ? "Not authorized."
+              ? "Unknown code. Check the agent terminal."
               : (e.message || "unknown code");
       }
     }
@@ -247,7 +299,7 @@ noema connect</code></pre>
     });
     const deep = new URLSearchParams(location.search).get("code");
     if (deep) {
-      try { sessionStorage.setItem("noema.connect.code", deep); } catch(_) {}
+      saveCode(deep);
     }
     const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
     const pending = deep || saved;
@@ -257,12 +309,18 @@ noema connect</code></pre>
     }
     async function decide(path){
       const code = (document.getElementById("d-code").value || "").trim();
-      const tok = (() => { try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; } })();
-      if (!tok) {
-        need.hidden = false;
-        if (needLink) needLink.hidden = false;
+      if (!code) {
         dNotice.className = "notice";
-        dNotice.textContent = "Sign in first. Opening this page did not approve.";
+        dNotice.textContent = "Enter the short code from the agent terminal.";
+        return;
+      }
+      saveCode(code);
+      const tok = sessionToken();
+      if (!tok) {
+        if (need) need.hidden = false;
+        dNotice.className = "notice";
+        dNotice.textContent = "Sign up above first. That's the account that can approve.";
+        if (cEmail) cEmail.focus();
         return;
       }
       dNotice.className = "notice"; dNotice.textContent = "Sending…";
@@ -278,7 +336,6 @@ noema connect</code></pre>
         dNotice.textContent = j.status === "approved"
           ? "Agent approved. Return to the agent terminal."
           : "Denied. No token issued.";
-        document.getElementById("d-approve").hidden = true;
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";
@@ -294,7 +351,7 @@ noema connect</code></pre>
     active: "connect",
     body,
     extraCss: PLAY_EXTRA + EXTRA,
-    description: "Connect an agent. Recommended: pipx install noema-client, then noema connect.",
+    description: "Connect an agent. Sign up, install noema-client, enter the code.",
   });
 }
 

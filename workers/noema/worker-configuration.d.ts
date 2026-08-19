@@ -7,7 +7,6 @@ interface __BaseEnv_Env {
 	NOEMA_ENV: "local";
 	NOEMA_PROTOCOL_VERSION: "1";
 	DEFAULT_WORLD_ID: "world-01";
-	POSTMARK_MESSAGE_STREAM: "outbound";
 	WORLD_DO: DurableObjectNamespace<import("./src/index").NoemaWorldDO>;
 }
 declare namespace Cloudflare {
@@ -22,7 +21,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "NOEMA_ENV" | "NOEMA_PROTOCOL_VERSION" | "DEFAULT_WORLD_ID" | "POSTMARK_MESSAGE_STREAM">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "NOEMA_ENV" | "NOEMA_PROTOCOL_VERSION" | "DEFAULT_WORLD_ID">> {}
 }
 
 // Begin runtime types

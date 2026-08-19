@@ -82,6 +82,9 @@ describe("hosted alpha freeze", () => {
     expect(html).not.toContain('value="hermes"');
     expect(html).toContain('id="d-code"');
     expect(html).not.toMatch(/id="d-form" hidden/);
+    expect(html).toContain("Sign up");
+    expect(html).toContain('id="c-email"');
+    expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
   });
 
   it("keeps discovery admission and seal advertisement", () => {

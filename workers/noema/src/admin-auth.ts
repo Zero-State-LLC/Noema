@@ -222,7 +222,7 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canWorkerSend = Boolean(opts?.sendAdmin || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN || env.ADMIN_MAIL);
+      const canWorkerSend = Boolean(opts?.sendAdmin || env.RESEND_API_KEY || env.ADMIN_MAIL);
       let sent = false;
       if (canWorkerSend) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {

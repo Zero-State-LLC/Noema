@@ -87,7 +87,7 @@ describe("requestPlayMagicLink", () => {
     expect(parsed.options.email_redirect_to).toBe("https://noema.guru/play/callback");
   });
 
-  it("uses generate_link and Postmark when a play mailer is provided", async () => {
+  it("uses generate_link and Resend when a play mailer is provided", async () => {
     const calls: string[] = [];
     const sent: { to: string; href: string }[] = [];
     const fetchImpl = async (url: string) => {
@@ -98,7 +98,7 @@ describe("requestPlayMagicLink", () => {
       );
     };
     const res = await requestPlayMagicLink(
-      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", POSTMARK_SERVER_TOKEN: "pm_test" }),
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
       new Request("https://noema.guru/x"),
       { email: "anyone@x.io" },
       {
@@ -126,7 +126,7 @@ describe("requestPlayMagicLink", () => {
     const e = env({
       SUPABASE_URL: "https://example.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "srk",
-      POSTMARK_SERVER_TOKEN: "pm_test",
+      RESEND_API_KEY: "re_test",
     });
     await requestPlayMagicLink(
       e,
@@ -160,13 +160,13 @@ describe("requestPlayMagicLink", () => {
     expect(sent[0]).not.toMatch(/evil/);
   });
 
-  it("falls back to Supabase otp when Postmark delivery fails", async () => {
+  it("falls back to Supabase otp when Resend delivery fails", async () => {
     const calls: string[] = [];
     const res = await requestPlayMagicLink(
       env({
         SUPABASE_URL: "https://example.supabase.co",
         SUPABASE_SERVICE_ROLE_KEY: "srk",
-        POSTMARK_SERVER_TOKEN: "pm_test",
+        RESEND_API_KEY: "re_test",
       }),
       new Request("https://noema.guru/x"),
       { email: "anyone@x.io" },
