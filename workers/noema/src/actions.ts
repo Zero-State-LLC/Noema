@@ -499,20 +499,11 @@ export function classifyResourceNode(e: {
       amount: e.stock_amount ?? 0,
     };
   }
+  // Type RESOURCE is world data. Do not invent a stock amount or treat
+  // infrastructure labels (storage/cache/cell) as harvest nodes.
   const type = (e.entity_type || "").toUpperCase();
   if (type === "RESOURCE") {
-    return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
-  }
-  if (type === "INFRASTRUCTURE") {
-    const id = e.entity_id.toLowerCase();
-    const lab = e.label.toLowerCase();
-    // Storage/cache/salvage class only — not market/trade boards
-    if (
-      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(id) ||
-      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(lab)
-    ) {
-      return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
-    }
+    return { is_node: true, resource: "energy", amount: e.stock_amount ?? 0 };
   }
   return { is_node: false };
 }
