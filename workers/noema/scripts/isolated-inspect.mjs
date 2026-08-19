@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Isolated hosted ACK on test.hosted-canonical.*
+ * Isolated hosted INSPECT on test.hosted-canonical.inspect-s0
  * Loads ~/.config/noema/operator.env (never prints values).
  * Refuses noema.guru and Perihelion.
- * ack-s3 may lack way-lamp; use isolated-inspect.mjs + inspect-s0.
+ * ack-s3 may lack way-lamp; this script uses inspect-s0.
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -12,7 +12,8 @@ import { loadOperatorEnv, resolveAdminMaterial } from "./operator-env.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_BASE = "https://noema-gateway.zer0state-noema.workers.dev";
-const DEFAULT_WORLD = "test.hosted-canonical.ack-s3";
+const DEFAULT_WORLD = "test.hosted-canonical.inspect-s0";
+const FALLBACK_ENTITY = "entity.way-lamp";
 
 async function json(res) {
   const text = await res.text();
@@ -21,6 +22,12 @@ async function json(res) {
   } catch {
     return { parse_error: true, bytes: text.length };
   }
+}
+
+function colocatedEntityIds(body) {
+  const entities = body?.observation?.location?.entities;
+  if (!Array.isArray(entities)) return [];
+  return entities.map((e) => e && e.entity_id).filter((id) => typeof id === "string" && id);
 }
 
 async function main() {
@@ -78,7 +85,7 @@ async function main() {
       "content-type": "application/json",
       authorization: `Bearer ${adminJwt}`,
     },
-    body: JSON.stringify({ handle: "ack-s0", controller_type: "agent", expires_in: 1800 }),
+    body: JSON.stringify({ handle: "inspect-s0", controller_type: "agent", expires_in: 1800 }),
   });
   const mintedBody = await json(minted);
   if (minted.status !== 200 || !mintedBody.access_token) {
@@ -92,48 +99,81 @@ async function main() {
   }
   const playerJwt = mintedBody.access_token;
 
+  const dualAuth = {
+    "content-type": "application/json",
+    authorization: `Bearer ${playerJwt}`,
+    "X-Noema-Admin-Token": adminJwt,
+  };
+
   const enter = await fetch(`${base}/v1/operator/test-world/command`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${playerJwt}`,
-      "X-Noema-Admin-Token": adminJwt,
-    },
+    headers: dualAuth,
     body: JSON.stringify({
       world_id,
-      request_id: `ack-enter-${Date.now()}`,
-      idempotency_key: `idem-ack-enter-${world_id}`,
+      request_id: `inspect-enter-${Date.now()}`,
+      idempotency_key: `idem-inspect-enter-${world_id}-${Date.now()}`,
       command: "ENTER_WORLD",
       arguments: {},
     }),
   });
   const enterBody = await json(enter);
+
+  const look = await fetch(`${base}/v1/operator/test-world/command`, {
+    method: "POST",
+    headers: dualAuth,
+    body: JSON.stringify({
+      world_id,
+      request_id: `inspect-look-${Date.now()}`,
+      idempotency_key: `idem-inspect-look-${world_id}-${Date.now()}`,
+      command: "LOOK",
+      arguments: {},
+    }),
+  });
+  const lookBody = await json(look);
+  const lookEntities = colocatedEntityIds(lookBody);
+  const from_room = lookBody?.observation?.location?.room_id
+    || enterBody?.observation?.location?.room_id
+    || null;
+  const inspect_entity = lookEntities[0] || FALLBACK_ENTITY;
+
+  const inspect = await fetch(`${base}/v1/operator/test-world/command`, {
+    method: "POST",
+    headers: dualAuth,
+    body: JSON.stringify({
+      world_id,
+      request_id: `inspect-entity-${Date.now()}`,
+      idempotency_key: `idem-inspect-entity-${world_id}-${Date.now()}`,
+      command: "INSPECT",
+      arguments: { entity_id: inspect_entity },
+    }),
+  });
+  const inspectBody = await json(inspect);
+
   const perihelionDenied = await fetch(`${base}/v1/operator/test-world/command`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${playerJwt}`,
-      "X-Noema-Admin-Token": adminJwt,
-    },
+    headers: dualAuth,
     body: JSON.stringify({
       world_id: "world.perihelion-reach",
-      request_id: "ack-peri-deny",
+      request_id: "inspect-peri-deny",
       command: "LOOK",
       arguments: {},
     }),
   });
 
+  const ok = enter.status === 200 && enterBody.ok === true
+    && inspect.status === 200 && inspectBody.ok === true
+    && perihelionDenied.status === 403;
   console.log(JSON.stringify({
-    ok: enter.status === 200 && enterBody.ok === true && perihelionDenied.status === 403,
+    ok,
     world_id,
-    base,
     enter_http: enter.status,
-    enter_ok: enterBody.ok === true,
-    enter_error: enterBody.error || null,
+    look_http: look.status,
+    inspect_http: inspect.status,
+    inspect_entity,
     perihelion_test_world_http: perihelionDenied.status,
-    player_typ_note: "minted Player controller token; admin JWT used only on X-Noema-Admin-Token",
+    from_room,
   }));
-  process.exit(enter.status === 200 && enterBody.ok === true && perihelionDenied.status === 403 ? 0 : 1);
+  process.exit(ok ? 0 : 1);
 }
 
 const invoked = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
