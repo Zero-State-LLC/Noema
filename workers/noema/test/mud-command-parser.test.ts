@@ -5,6 +5,8 @@ import {
   resolveVisibleEntity,
   enrichEntity,
   classifyResourceNode,
+  matchClarifyPick,
+  observationFingerprint,
 } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -291,5 +293,195 @@ describe("GB-NOEMA-103 look-at / article inspect phrases", () => {
   it("does not turn look at into a new verb", () => {
     const r = parseHumanCommand("look at", { entities: visible });
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("T0.6 ambiguity lifecycle", () => {
+  const pending = {
+    fingerprint: "room.hub#a|b",
+    verb: "inspect",
+    choices: ["Relay East", "Relay West"],
+  };
+
+  it("matches numeric and unique-name picks", () => {
+    expect(matchClarifyPick("1", pending)).toBe("Relay East");
+    expect(matchClarifyPick("2", pending)).toBe("Relay West");
+    expect(matchClarifyPick("relay east", pending)).toBe("Relay East");
+    expect(matchClarifyPick("3", pending)).toBeNull();
+    expect(matchClarifyPick("relay", pending)).toBeNull();
+    expect(observationFingerprint("room.hub", [{ entity_id: "b" }, { entity_id: "a" }])).toBe(
+      "room.hub#a|b",
+    );
+  });
+
+  it("inspect 1 after AMBIGUOUS_TARGET inspects the first visible label", async () => {
+    const w: WorldRuntime = {
+      world_id: "world.test",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.east" }],
+          entities: [
+            enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" }),
+            enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE" }),
+          ],
+        },
+        "room.east": {
+          room_id: "room.east",
+          name: "Coldline",
+          description: "A thin route.",
+          exits: [{ direction: "west", to_room_id: "room.hub" }],
+          entities: [],
+        },
+      },
+      players: {},
+      trades: {},
+      messages: [],
+      organizations: {},
+      seen_idempotency: {},
+      unsettled: [],
+    };
+    const agent: PlayerPrincipal = {
+      player_id: "player.agent",
+      agent_id: "agent.agent",
+      session_id: "sess.test",
+      controller_id: "ctrl.agent.agent",
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    const enter: CommandEnvelope = {
+      request_id: "req.enter",
+      idempotency_key: "idem.enter",
+      command: "ENTER_WORLD",
+      arguments: {},
+    };
+    expect((await applyWorldCommand(w, agent, enter, async () => true)).ok).toBe(true);
+
+    const amb = await applyWorldCommand(
+      w,
+      agent,
+      {
+        request_id: "req.amb",
+        idempotency_key: "idem.amb",
+        command: "LOOK",
+        arguments: { line: "inspect relay" },
+      },
+      async () => true,
+    );
+    expect(amb.ok).toBe(false);
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(w.players[agent.player_id]?.pending_clarify?.choices?.length).toBe(2);
+
+    const picked = await applyWorldCommand(
+      w,
+      agent,
+      {
+        request_id: "req.pick",
+        idempotency_key: "idem.pick",
+        command: "LOOK",
+        arguments: { line: "1" },
+      },
+      async () => true,
+    );
+    expect(picked.ok).toBe(true);
+    expect(picked.events?.some((e) => e.event_type === "INSPECT")).toBe(true);
+    expect(w.players[agent.player_id]?.pending_clarify).toBeUndefined();
+  });
+
+  it("rejects a numeric pick after the room observation changes", async () => {
+    const w: WorldRuntime = {
+      world_id: "world.test",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.east" }],
+          entities: [
+            enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" }),
+            enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE" }),
+          ],
+        },
+        "room.east": {
+          room_id: "room.east",
+          name: "Coldline",
+          description: "A thin route.",
+          exits: [{ direction: "west", to_room_id: "room.hub" }],
+          entities: [],
+        },
+      },
+      players: {},
+      trades: {},
+      messages: [],
+      organizations: {},
+      seen_idempotency: {},
+      unsettled: [],
+    };
+    const agent: PlayerPrincipal = {
+      player_id: "player.agent",
+      agent_id: "agent.agent",
+      session_id: "sess.test",
+      controller_id: "ctrl.agent.agent",
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    expect(
+      (
+        await applyWorldCommand(
+          w,
+          agent,
+          { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
+          async () => true,
+        )
+      ).ok,
+    ).toBe(true);
+    await applyWorldCommand(
+      w,
+      agent,
+      {
+        request_id: "a",
+        idempotency_key: "a",
+        command: "LOOK",
+        arguments: { line: "inspect relay" },
+      },
+      async () => true,
+    );
+    expect(
+      (
+        await applyWorldCommand(
+          w,
+          agent,
+          {
+            request_id: "m",
+            idempotency_key: "m",
+            command: "LOOK",
+            arguments: { line: "walk east" },
+          },
+          async () => true,
+        )
+      ).ok,
+    ).toBe(true);
+    const stale = await applyWorldCommand(
+      w,
+      agent,
+      { request_id: "p", idempotency_key: "p", command: "LOOK", arguments: { line: "1" } },
+      async () => true,
+    );
+    expect(stale.ok).toBe(false);
+    expect(stale.error?.code).toBe("STALE_CLARIFICATION");
   });
 });
