@@ -123,6 +123,63 @@ export function roomPresentationModel(input: {
   };
 }
 
+export const LOW_NOISE_KEY = "noema.low_noise";
+
+/** Client preference only. Query and reduced-motion seed; stored 0/1 wins. */
+export function parseLowNoiseFlag(stored: string | null, query: string, reduceMotion: boolean): boolean {
+  const s = String(stored || "").trim().toLowerCase();
+  if (s === "1" || s === "true" || s === "on") return true;
+  if (s === "0" || s === "false" || s === "off") return false;
+  if (/(?:^|[?&])low_noise=1(?:&|$)/i.test(query || "")) return true;
+  return reduceMotion === true;
+}
+
+/** Agent-consumable room text. No glyphs. Authorized fields only. */
+export function lowNoiseRoomText(model: RoomPresentationModel): string {
+  const lines: string[] = [];
+  if (model.name) lines.push(model.name);
+  if (model.description) lines.push(model.description);
+  if (model.pressure) lines.push(model.pressure);
+  if (model.here.length) {
+    lines.push("HERE");
+    for (const e of model.here) {
+      let bit = e.label;
+      if (e.condition != null) bit += " condition " + e.condition + "%";
+      lines.push(bit);
+    }
+  }
+  if (model.exits.length) {
+    lines.push("EXITS");
+    for (const x of model.exits) {
+      lines.push(x.direction + (x.to_room_name ? " — " + x.to_room_name : ""));
+    }
+  }
+  if (model.traces.length) {
+    lines.push("TRACES");
+    for (const t of model.traces) lines.push(t);
+  }
+  if (model.happened) {
+    lines.push("HAPPENED");
+    lines.push(model.happened);
+  }
+  return lines.join("\n") || "No place is visible.";
+}
+
+/** Spectator text. Canvas is never required. */
+export function lowNoiseWatchText(input: { headline?: string; copy?: string; recent?: string[] }): string {
+  const lines: string[] = [];
+  const head = String(input.headline || "").trim();
+  const copy = String(input.copy || "").trim();
+  if (head) lines.push(head);
+  if (copy && copy !== head) lines.push(copy);
+  for (const r of input.recent || []) {
+    const t = String(r || "").trim();
+    if (t) lines.push(t);
+    if (lines.length >= 10) break;
+  }
+  return lines.join("\n") || "The Chamber is quiet.";
+}
+
 export type PlayerHere = {
   player_id: string;
   handle?: string;
@@ -1474,6 +1531,10 @@ export function playUiRuntimeSource(): string {
     roomPresentationModel,
     stableHereEntities,
     stableExits,
+    parseLowNoiseFlag,
+    lowNoiseRoomText,
+    lowNoiseWatchText,
+    LOW_NOISE_KEY,
     trailFromResult,
     routeDiagram,
     statusFromObservation,
