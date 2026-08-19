@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "6efaed21a667d2f174e2a149135fac797ab30ccb",
+    "runtime_git": "8a93770ee7658f2b1415c499f993cb1b68874770",
     "specs_git": "672b78086ecc71d79c9b9ecc4146c4f5a5454555",
-    "worker_version_id": "d4d4630b-bf14-4259-aa00-efef6da7abe0",
+    "worker_version_id": "77130fe1-9b9c-4733-9ce1-82ce758160be",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.2",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "chrome UNFREEZE 2026-08-19: CONNECT first-read is pipx install noema-client / noema connect; inhabit hidden until Advanced token. Pin refreshed to deployed 6efaed2 (#350) / Worker d4d4630b / Specs 672b780 (RFC-0116). Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "chrome UNFREEZE 2026-08-19: CONNECT is sign up, install, enter code. Resend-only mail. Pin refreshed to deployed 8a93770 (#353) / Worker 77130fe1 / Specs 672b780 (RFC-0116). Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
