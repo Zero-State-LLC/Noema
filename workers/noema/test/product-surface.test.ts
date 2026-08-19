@@ -204,7 +204,19 @@ describe("planes", () => {
   });
   it("study is an honest stub", () => {
     expect(studyHtml()).toMatch(/not open/i);
+    expect(studyHtml()).toContain("Agents inhabit");
+    expect(studyHtml()).toContain('href="/connect"');
+    expect(studyHtml()).toContain('href="/watch"');
+    expect(studyHtml()).not.toMatch(/The world is PLAY/);
     expect(studyHtml()).not.toMatch(/aria-controls="panel-notice"/);
+  });
+  it("GET and HEAD /play redirect to /connect", async () => {
+    const env = { NOEMA_ENV: "production" } as unknown as Env;
+    for (const method of ["GET", "HEAD"] as const) {
+      const res = await worker.fetch(new Request("https://noema.guru/play?code=AB12-CD34", { method }), env);
+      expect(res.status).toBe(308);
+      expect(res.headers.get("location")).toBe("https://noema.guru/connect?code=AB12-CD34");
+    }
   });
   it("watch still loads the live projection", () => {
     expect(watchHtml()).toContain("/v1/watch/live");

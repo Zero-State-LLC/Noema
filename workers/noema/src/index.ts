@@ -208,7 +208,7 @@ export default {
       if (request.method === "GET" && path === "/manifesto") {
         return html(manifestoHtml(), 200, "public, max-age=30");
       }
-      if (request.method === "GET" && path === "/play") {
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/play") {
         const dest = new URL("/connect", url);
         dest.search = url.search;
         return Response.redirect(dest.toString(), 308);
