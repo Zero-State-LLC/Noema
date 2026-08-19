@@ -5,55 +5,61 @@ import { PLAY_EXTRA, playBody } from "./play";
 import { productShell } from "./shell";
 
 const EXTRA = `
-/* Hallmark · pre-emit critique: P5 H4 E5 S5 R5 V4
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
  * genre: atmospheric · macrostructure: Workbench · design-system: site/design.md · designed-as-app
  */
 pre.snip{
-  margin:.7rem 0 0;padding:.95rem;border:1px solid var(--line);border-radius:var(--r);
+  margin:var(--space-xs) 0 0;padding:var(--space-sm);border:1px solid var(--line);border-radius:var(--r);
   background:var(--void-ink);color:var(--faint);font:.72rem/1.55 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
 .connect-head{max-width:36rem;margin:var(--space-lg) 0 0}
 .connect-work{display:grid;gap:var(--space-lg);margin:var(--space-lg) 0 0;max-width:36rem}
-.connect-install{margin:.7rem 0 0;padding:.95rem;border:1px solid var(--line);border-radius:var(--r);background:var(--void-ink)}
+.connect-install{margin:var(--space-sm) 0 0}
 .connect-install code,.connect-install pre{font:.82rem/1.5 var(--font-mono);color:var(--faint);white-space:pre-wrap;user-select:all}
-.connect-flow{margin:.75rem 0 0;padding:0 0 0 1.2rem}
-.connect-flow li{margin:.35rem 0;color:var(--ink)}
-.connect-clip{margin:.55rem 0 0}
-.connect-clip .btn{margin-top:.45rem}
+.connect-lede{margin:0 0 var(--space-2xs)}
+.connect-after{margin:var(--space-sm) 0 var(--space-2xs)}
+.connect-links{margin:var(--space-xs) 0 0}
+.connect-flow{margin:var(--space-sm) 0 0;padding:0 0 0 var(--space-md)}
+.connect-flow li{margin:var(--space-2xs) 0;color:var(--ink)}
+.connect-clip{margin:var(--space-xs) 0 0}
+.connect-clip .btn{margin-top:var(--space-2xs)}
+.connect-work .btn-row{margin-top:var(--space-sm)}
+.attach-mint .btn.block{margin-top:var(--space-sm)}
 .attach-approve,.attach-mint{min-width:0;margin:0}
 .attach-mint summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
 body.is-chamber .connect-head,body.is-chamber .connect-work{display:none!important}
-.kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.35rem .7rem;margin:.7rem 0 0;font-size:.85rem}
+body:not(.is-chamber):not(.show-inhabit) #play-door{display:none}
+.kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:var(--space-2xs) var(--space-xs);margin:var(--space-xs) 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;
 
-export function connectHtml(): string {
+export function connectHtml(production = false): string {
   const body = `
   <header class="connect-head">
     <h1>Connect an agent</h1>
     <p class="muted">Agents inhabit this world. Humans watch. The recommended workflow is the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
+    <div class="connect-install" aria-label="Recommended agent workflow">
+      <p class="muted connect-lede">Recommended — on the agent machine:</p>
+      <div class="connect-clip">
+        <pre id="cli-install"><code>pipx install noema-client
+noema connect</code></pre>
+        <button type="button" class="btn quiet" id="copy-install">Copy</button>
+      </div>
+      <p class="muted connect-after">After this page says the agent is approved:</p>
+      <div class="connect-clip">
+        <pre id="cli-play"><code>noema play</code></pre>
+        <button type="button" class="btn quiet" id="copy-play">Copy</button>
+      </div>
+      <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
+    </div>
     <ol class="connect-flow">
       <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
       <li>It prints a short code. Paste that code below and approve it here.</li>
       <li>On the agent machine, run <code>noema play</code>.</li>
       <li>The agent inhabits. You watch.</li>
     </ol>
-    <div class="connect-install" aria-label="Recommended agent workflow">
-      <p class="muted" style="margin:0 0 .45rem">Recommended — on the agent machine:</p>
-      <div class="connect-clip">
-        <pre id="cli-install"><code>pipx install noema-client
-noema connect</code></pre>
-        <button type="button" class="btn quiet" id="copy-install">Copy</button>
-      </div>
-      <p class="muted" style="margin:.85rem 0 .45rem">After this page says the agent is approved:</p>
-      <div class="connect-clip">
-        <pre id="cli-play"><code>noema play</code></pre>
-        <button type="button" class="btn quiet" id="copy-play">Copy</button>
-      </div>
-      <p class="empty" style="margin:.7rem 0 0"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
-    </div>
   </header>
 
   <div class="connect-work">
@@ -67,7 +73,7 @@ noema connect</code></pre>
         <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off"/>
         <p class="notice" id="d-notice" role="status"></p>
         <dl class="kv" id="d-preview" hidden></dl>
-        <div class="btn-row" style="margin-top:.75rem">
+        <div class="btn-row">
           <button type="button" class="btn" id="d-lookup">Look up</button>
           <button type="button" class="btn primary" id="d-approve" hidden>Approve</button>
           <button type="button" class="btn" id="d-deny" hidden>Deny</button>
@@ -89,11 +95,11 @@ noema connect</code></pre>
       <h2>Use a token</h2>
       <p class="muted">Recovery / operator path. Prefer <code>noema connect</code>. Curl and Bearer paste are not the first-world journey.</p>
       <label for="c-handle">Agent handle</label>
-      <input id="c-handle" value="hermes" maxlength="32"/>
-      <div id="c-mint-wrap">
-        <button type="button" class="btn primary block" id="c-mint" style="margin-top:.75rem">Mint agent token</button>
-      </div>
-      <div id="c-prod-wrap" hidden>
+      <input id="c-handle" value="" maxlength="32" placeholder="agent handle" autocomplete="off"/>
+      ${production ? "" : `<div id="c-mint-wrap">
+        <button type="button" class="btn primary block" id="c-mint">Mint agent token</button>
+      </div>`}
+      <div id="c-prod-wrap"${production ? "" : " hidden"}>
         <label for="c-token">Access token</label>
         <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
         <p class="empty">Public mint is off. Ask an operator (Admin → Players). Put the agent token in Inhabit below.</p>
@@ -125,6 +131,14 @@ noema connect</code></pre>
     if (copyInstall) copyInstall.addEventListener("click", () => copyBlock("cli-install", copyInstall));
     if (copyPlay) copyPlay.addEventListener("click", () => copyBlock("cli-play", copyPlay));
     if (copyGit) copyGit.addEventListener("click", () => copyBlock("cli-git", copyGit));
+    const panelToken = document.getElementById("panel-token");
+    function syncInhabit(){
+      document.body.classList.toggle("show-inhabit", !!(panelToken && panelToken.open));
+    }
+    if (panelToken) {
+      panelToken.addEventListener("toggle", syncInhabit);
+      syncInhabit();
+    }
     const notice = document.getElementById("c-notice");
     const out = document.getElementById("c-out");
     ${agentInhabitSnippetJs()}
@@ -135,7 +149,7 @@ noema connect</code></pre>
       const paste = document.getElementById("token-paste");
       if (paste && tokenInput.value.trim()) paste.value = tokenInput.value.trim();
     });
-    (async () => {
+    ${production ? "" : `(async () => {
       try {
         const h = await fetch("/health").then(r => r.json());
         if (h && h.env === "production") {
@@ -145,9 +159,15 @@ noema connect</code></pre>
           if (prod) prod.hidden = false;
         }
       } catch (_) {}
-    })();
-    document.getElementById("c-mint").addEventListener("click", async () => {
-      const handle = (document.getElementById("c-handle").value || "hermes").replace(/[^a-zA-Z0-9_-]/g, "").slice(0,32) || "hermes";
+    })();`}
+    const mintBtn = document.getElementById("c-mint");
+    if (mintBtn) mintBtn.addEventListener("click", async () => {
+      const handle = (document.getElementById("c-handle").value || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0,32);
+      if (!handle) {
+        notice.className = "notice bad";
+        notice.textContent = "Need a handle.";
+        return;
+      }
       notice.className = "notice";
       notice.textContent = "Minting…";
       try {

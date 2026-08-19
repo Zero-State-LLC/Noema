@@ -22,7 +22,7 @@ The runtime pin is the **deployed product** as of this re-pin. Later docs/tests 
 | Seal | `sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395` |
 | Chrome | Home · Manifesto · Watch · Connect (STUDY off the bar). `GET`/`HEAD` `/play` 308 → `/connect`. |
 | Home | Watch-first table door; email is watch identity |
-| CONNECT | official client from PyPI: `pipx install noema-client` then `noema connect`; human approves the short code. Token / git install are Advanced. Chamber markup stays in `play.ts`. |
+| CONNECT | official client from PyPI: `pipx install noema-client` then `noema connect`; human approves the short code. Token / git install are Advanced. Inhabit (`#play-door`) stays off signed-out first-read until Advanced token opens. Chamber markup stays in `play.ts`. |
 | PLAY | `/play` redirects to `/connect`. |
 | Verbs | no new canonical Player verbs |
 | Geography | live Perihelion keeps activated rooms; 10-room bound is fixtures / new `world_version` only |
