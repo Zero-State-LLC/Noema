@@ -55,7 +55,12 @@ import {
   worldFromHead,
 } from "./settle";
 import { checkExpectedHead } from "./settle-fence";
-import { admitTestWorldId, resolveLoadWorldId } from "./test-world";
+import {
+  admitTestWorldId,
+  lifecycleRequestedWorldId,
+  recoverBoundWorldId,
+  resolveLoadWorldId,
+} from "./test-world";
 import { MINI_ENTRY_ROOM_ID, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
@@ -441,11 +446,20 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "POST" && path.endsWith("/admin-lifecycle")) {
+      const body = (await request.json()) as { action?: string; reason?: string; world_id?: string };
+      const bound = lifecycleRequestedWorldId(body.world_id || request.headers.get("x-noema-world-id"));
+      this.requestedWorldId = bound;
       await this.load();
-      const body = (await request.json()) as { action?: string; reason?: string };
       const action = String(body.action || "").toLowerCase();
       if (action === "recover") {
         const stored = await this.state.storage.get<WorldState>("world");
+        const boundWorld = recoverBoundWorldId(bound, stored?.world_id, this.world?.world_id);
+        if (!boundWorld.ok) {
+          return Response.json(
+            { error: { code: boundWorld.code, message: boundWorld.message } },
+            { status: 403 },
+          );
+        }
         const recovered = await runIncidentRecover(
           {
             status: this.meta!.status,
@@ -456,8 +470,14 @@ export class NoemaWorldDO {
             writerGeneration: this.meta!.writer_generation || "do.1",
           },
           {
-            getHead: (worldId) => getWorldHead(this.env, worldId),
-            adoptLiveHead: (input) => commitAdoptedLiveHead(this.env, input),
+            getHead: (worldId) =>
+              worldId === boundWorld.world_id
+                ? getWorldHead(this.env, worldId)
+                : Promise.resolve(null),
+            adoptLiveHead: (input) =>
+              input.world.world_id === boundWorld.world_id
+                ? commitAdoptedLiveHead(this.env, input)
+                : Promise.resolve({ ok: false, code: "WORLD_FORBIDDEN" }),
           },
         );
         if (!recovered.ok) {
