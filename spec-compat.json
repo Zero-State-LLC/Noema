@@ -35,7 +35,12 @@
       "skip": 3,
       "pending": 0,
       "skip_ids": ["C14", "C16", "C17"],
-      "note": "Behavioral Worker tests on test.hosted-canonical.* only. Python remains ADR-005 digest authority. Perihelion is not a conformance target."
+      "skip_owners": {
+        "C14": "offline-python-compose",
+        "C16": "offline-python-ops",
+        "C17": "hosted-deploy-pin"
+      },
+      "note": "Behavioral Worker tests on test.hosted-canonical.* only. Python remains ADR-005 digest authority. Perihelion is not a conformance target. C14/C16 stay Compose/Python; C17 is Worker deploy SHA + NOEMA_PROTOCOL_VERSION."
     }
   },
   "offline_runtime": {
