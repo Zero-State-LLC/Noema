@@ -166,12 +166,18 @@ Used existing agent controller `player.tester` (`controller_type=agent`, typ `ac
 | WATCH after enter | `players_present` 1 · labels `tester` · line `tester entered Grid Anchor` · no seed/profile/genesis ids |
 | LEAVE_WORLD | 200 ok · sequence 302→303 · WATCH present 0 · line `tester left the Chamber` |
 
+### Isolated INSPECT + MOVE (OBSERVED, this continue)
+
+Loopback only: `wrangler dev` `:8787`, DEMO_SEED, agent `dev-token`. Not `noema.guru`. Not Perihelion. Human token 403.
+
+`npm run smoke` now ENTER → LOOK → INSPECT (first visible entity) → MOVE (first listed exit). Vitest `isolated-closeout-acts.test.ts` covers the same agent apply path on a fixture world.
+
 ---
 
 ## Residuals (not blockers)
 
 1. Operator-only census of persisted Players (read-only). Historical `players: 17` was a different metric than `/ready.players`. Requires an Admin session; this run does not consume Admin letters.
-2. Live Perihelion LOOK is done (Grid Anchor). Further live actions (INSPECT/MOVE/TRADE) are not authorized by this residual.
+2. Live Perihelion LOOK is done (Grid Anchor). Further live actions (INSPECT/MOVE/TRADE) are not authorized by this residual. Isolated loopback MOVE/INSPECT is OBSERVED this continue (`npm run smoke` on `wrangler dev` :8787, DEMO_SEED). Not a live world change.
 3. Cycle 0 digest / profile / story-seed not re-read from Admin this run.
 
 A new hosted world that is not `genesis.ef578f4ffceeccd0` MUST still ship the 10-room chamber-world seed.
