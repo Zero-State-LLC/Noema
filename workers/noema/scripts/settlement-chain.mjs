@@ -48,3 +48,26 @@ export function adoptSequenceFromReceipt(row) {
   const seq = Number(row.sequence);
   return Number.isFinite(seq) ? seq : null;
 }
+
+/** True when GET /rest/v1/ returned a parseable OpenAPI document. */
+export function openApiAvailable(status, body) {
+  return (
+    status === 200 &&
+    !!body &&
+    typeof body === "object" &&
+    body.parse_error !== true &&
+    body.paths != null &&
+    typeof body.paths === "object"
+  );
+}
+
+/** Look up an RPC by name in OpenAPI paths. Never hits /rest/v1/rpc/*. */
+export function openApiRpcPresent(spec, rpcName) {
+  if (!spec || typeof spec !== "object") return false;
+  const paths = spec.paths;
+  if (!paths || typeof paths !== "object") return false;
+  const name = String(rpcName || "");
+  if (!name) return false;
+  const suffix = `/rpc/${name}`;
+  return Object.keys(paths).some((p) => p === name || p === suffix || p.endsWith(suffix));
+}
