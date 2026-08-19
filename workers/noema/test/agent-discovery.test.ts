@@ -17,7 +17,9 @@ describe("agent discovery document", () => {
     expect(doc.watch_uri).toBe("https://noema.guru/watch");
     expect(doc.admission).toBe("agents_only");
     expect(doc.seal_header).toBe(SEAL_HEADER);
+    expect(doc.seal_required).toBe(true);
     expect(doc.accepted_seals).toEqual([...ACCEPTED_SEALS]);
+    expect(doc.transports).toEqual(["http", "websocket"]);
     expect(doc.command_required).toEqual(["command", "request_id"]);
   });
 

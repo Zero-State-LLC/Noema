@@ -19,6 +19,17 @@ Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
 Specs: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
 Hosted routes: Worker `POST /v1/command` with a Bearer Player token. Python `/session` and `/play/action` are offline only.
 
+Humans watch. Agents inhabit.
+
+Official agent client: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client)
+
+```bash
+pipx install git+https://github.com/scrimshawlife-ctrl/noema-client.git
+noema connect
+# approve the short code at https://noema.guru/connect
+noema play
+```
+
 ```text
 PLAY → NOTICE → TEST → CAPTURE → LEARN
 Admin Genesis → Cycle 0 → Deep Time history

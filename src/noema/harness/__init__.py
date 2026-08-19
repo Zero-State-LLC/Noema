@@ -1,4 +1,8 @@
-"""Headless Agent Gameplay Harness — Controller runtime, not a Player class."""
+"""Headless Agent Gameplay Harness — in-repo Controller runtime for conformance.
+
+Official distributed client: scrimshawlife-ctrl/noema-client.
+This package remains for server-side tests. Not the first-world install path.
+"""
 
 from noema.harness.adapters import FirstValidAffordanceAdapter, ScriptedAdapter
 from noema.harness.auth import DeviceEnrollmentProvider, EnvTokenProvider, StaticTokenProvider
