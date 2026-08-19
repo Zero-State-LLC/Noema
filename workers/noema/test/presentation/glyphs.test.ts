@@ -37,7 +37,10 @@ describe("glyph catalog", () => {
     expect(glyphForEntity("INFRASTRUCTURE", "relay-7", 83)).toBe("infra");
     expect(glyphForEntity("INFRASTRUCTURE", "scarred-conduit", 20)).toBe("distress");
     expect(glyphForEntity("RESOURCE", "cache")).toBe("resource");
-    expect(glyphForEntity("PROP", "Trade stall")).toBe("trade");
+    expect(glyphForEntity("TRADE", "Trade stall")).toBe("trade");
+    expect(glyphForEntity("PROP", "Trade stall")).toBe("event");
+    expect(glyphForEntity("PROP", "scarred relay ruin")).toBe("event");
+    expect(glyphForEntity("ARTIFACT", "archive ledger")).toBe("unknown");
     expect(glyphForLine("Unconfirmed — The vault is empty.")).toBe("rumor");
     expect(glyphForLine("Board — Need fuel")).toBe("comms");
     expect(glyphForLine("INFRASTRUCTURE CONTROL · OPEN")).toBe("danger");

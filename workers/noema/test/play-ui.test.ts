@@ -291,8 +291,8 @@ describe("play shell HTML", () => {
   });
 
   it("first strain line is one live sentence or empty", () => {
-    expect(firstStrainLine({ condition: "crane seized and worn." })).toMatch(/worn|seiz/i);
-    expect(firstStrainLine({ entities: [{ entity_id: "e", label: "relay", entity_type: "infra", condition: 20 }] })).toMatch(/relay/i);
+    expect(firstStrainLine({ condition: "crane seized and worn." })).toBe("");
+    expect(firstStrainLine({ entities: [{ entity_id: "e", label: "relay", entity_type: "infra", condition: 20 }] })).toMatch(/relay.*20/);
     expect(firstStrainLine({ description: "Quiet dust." })).toBe("");
   });
 

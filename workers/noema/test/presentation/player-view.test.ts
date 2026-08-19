@@ -115,4 +115,27 @@ describe("toPlayerView", () => {
     expect(view.relayIntegrity).toBeNull();
     expect(view.status.some((r) => r.label === "Relay")).toBe(false);
   });
+
+  it("does not take relay integrity from labels or report prose", () => {
+    const labeled = toPlayerView({
+      location: {
+        name: "Open",
+        description: "",
+        exits: [],
+        entities: [{ entity_id: "p", label: "relay stall", entity_type: "PROP", condition: 12 }],
+      },
+      report_lines: ["scarred conduit condition 99."],
+    });
+    expect(labeled.relayIntegrity).toBeNull();
+
+    const infra = toPlayerView({
+      location: {
+        name: "Open",
+        description: "",
+        exits: [],
+        entities: [{ entity_id: "i", label: "workshop-3", entity_type: "INFRASTRUCTURE", condition: 41 }],
+      },
+    });
+    expect(infra.relayIntegrity).toBe(41);
+  });
 });

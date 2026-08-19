@@ -237,14 +237,14 @@ export function glyphForCommandVerb(command?: string): GlyphId {
 }
 
 export function glyphForEntity(entity_type?: string, labelText?: string, condition?: number): GlyphId {
+  void labelText;
   const t = String(entity_type || "").toUpperCase();
-  const s = `${labelText || ""} ${t}`.toLowerCase();
-  if (t === "ARTIFACT" || /archive|record|ledger/.test(s)) return "unknown";
+  if (t === "ARTIFACT") return "unknown";
   if (t === "INSTITUTION" || t === "ORG") return "org";
-  if (t === "RESOURCE" || /harvest|stock|cache/.test(s)) return "resource";
-  if (/scar|fail|ruin|broken/.test(s) || (typeof condition === "number" && condition < 40)) return "distress";
-  if (t === "INFRASTRUCTURE" || /relay|generator|workshop/.test(s)) return "infra";
-  if (t === "TRADE" || /stall|market|offer/.test(s)) return "trade";
+  if (t === "RESOURCE") return "resource";
+  if (t === "RUIN" || (typeof condition === "number" && condition < 40)) return "distress";
+  if (t === "INFRASTRUCTURE") return "infra";
+  if (t === "TRADE") return "trade";
   return "event";
 }
 

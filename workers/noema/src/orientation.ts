@@ -33,15 +33,13 @@ export function liveStrainLine(
   entities?: LiveEntity[],
   reportLines?: string[],
 ): string | undefined {
-  const cond = String(condition || "");
-  const condHit = cond.match(/[^.!?]*?(damage|scar|fail|broken|worn|thin)[^.!?]*[.!?]?/i);
-  if (condHit) return condHit[0].trim();
-  const report = (reportLines || []).map((l) => String(l || "").trim()).find(Boolean);
-  if (report) return report;
   const worn = (entities || []).find((e) => typeof e.condition === "number" && e.condition < SITUATION_STRAIN_BELOW);
   if (worn) return `${entityLabel(worn)} condition ${worn.condition}.`;
   const empty = (entities || []).find((e) => e.harvestable && e.stock_amount === 0);
   if (empty) return `${entityLabel(empty)} stock 0.`;
+  const report = (reportLines || []).map((l) => String(l || "").trim()).find(Boolean);
+  if (report) return report;
+  void condition;
   return undefined;
 }
 
