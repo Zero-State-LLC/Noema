@@ -101,7 +101,7 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 | `/version` `/manifest` | spec-compat hosted JSON list | not hosted | 404 HTML OBSERVED | INTENTIONAL SPLIT |
 | Rate limits | AUTH | DO `__noema_rate_limits__` | not load-tested | HOSTED UNVERIFIED |
 | Player population | ops / this closeout | `/ready.players` = `countLivePlayers` (live humans present ≤30m) | OBSERVED 0 | MATCH for metric. Historical `17` not reclassified |
-| Live agent smoke | §29 | — | not run (no authorized live agent token; would mutate) | HOSTED UNVERIFIED |
+| Live agent smoke | §29 | official `noema-client` | OBSERVED 2026-08-19 ENTER/OBSERVE/WAIT on `/v1/command` with published seal; Perihelion 105/308 → 106/309 HEALTHY | MATCH |
 | Admin JWT as Player | AUTH | tests | not re-hit on production | HOSTED UNVERIFIED |
 
 ---
