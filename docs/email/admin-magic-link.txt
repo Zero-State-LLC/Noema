@@ -35,7 +35,7 @@ If you are Grok or another operator bot, spawn a dedicated Admin agent with this
 
 4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.
 
-5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.
+5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; thawing STUDY/Genesis/new verbs; sharing this link.
 
 6. The session lasts about one hour. Request another letter to this mailbox:
    POST https://noema.guru/v1/admin/login/request  {"email":"<this mailbox>"}

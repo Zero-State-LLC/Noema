@@ -131,12 +131,11 @@ class NoemaRuntime:
 
     def start_world(self, seed_path: Path | str) -> dict[str, Any]:
         with self._writer:
-            existing = self.store.committed_event_count()
-            if existing > 0:
+            if self.store.has_started_world():
                 raise ActionError(
                     CONFLICT,
-                    "world already has a ledger; resume instead of reseeding",
-                    details={"event_count": existing},
+                    "world already started; resume instead of reseeding",
+                    details={"event_count": self.store.committed_event_count()},
                 )
             state = self.store.load_from_seed(seed_path)
             # version gate

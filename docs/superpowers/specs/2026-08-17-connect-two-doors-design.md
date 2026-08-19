@@ -1,5 +1,7 @@
 # CONNECT two doors — approve or use a token
 
+**Supersede (2026-08-19):** shipped chrome is Home · Manifesto · Watch · Connect. CONNECT is onboard + inhabit. `GET /play` 308 → `/connect`. This file is historical IA.
+
 **Status:** approved for spec  
 **Date:** 2026-08-17  
 **Host:** `https://noema.guru/connect`  

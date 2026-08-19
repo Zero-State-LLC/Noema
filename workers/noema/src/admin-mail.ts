@@ -64,7 +64,7 @@ export function renderAdminMailText(href: string): string {
     "",
     "4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.",
     "",
-    "5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.",
+    "5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; thawing STUDY/Genesis/new verbs; sharing this link.",
     "",
     "6. The session lasts about one hour. Request another letter to this mailbox:",
     '   POST https://noema.guru/v1/admin/login/request  {"email":"<this mailbox>"}',
@@ -174,7 +174,7 @@ export function renderAdminMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
-              5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.
+              5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; thawing STUDY/Genesis/new verbs; sharing this link.
             </td>
           </tr>
           <tr>
