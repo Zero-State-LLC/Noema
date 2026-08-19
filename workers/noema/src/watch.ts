@@ -27,6 +27,10 @@ const EXTRA = `
   letter-spacing:.12em;text-transform:uppercase;
 }
 .watch-state-plate .v{display:block;margin-top:.15rem;color:var(--ink);font:550 .9rem/1.3 var(--font-mono)}
+.now-k{
+  margin:0 0 .35rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
 .watch-hero{
   min-height:5.5rem;padding:1.05rem 0 1.15rem;
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -139,7 +143,7 @@ export function watchHtml(): string {
       <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="false">PIXEL</button>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
     </div>
-    <div class="watch-state-plate" aria-label="World state">
+    <div class="watch-state-plate" aria-label="World">
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>
       <div><span class="k">Cycle</span><span class="v" id="watch-cycle">—</span></div>
       <div><span class="k">Sequence</span><span class="v" id="watch-seq">—</span></div>
@@ -149,6 +153,7 @@ export function watchHtml(): string {
   </header>
 
   <article class="watch-hero" id="watch-hero">
+    <p class="now-k">Now</p>
     <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
@@ -172,7 +177,7 @@ export function watchHtml(): string {
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
     </section>
     <section class="watch-col" aria-labelledby="watch-feed-label">
-      <h2 id="watch-feed-label">Recent</h2>
+      <h2 id="watch-feed-label">Recently</h2>
       <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
       <ol class="watch-feed" id="watch-feed"></ol>
     </section>
@@ -258,7 +263,7 @@ export function watchHtml(): string {
     }
     function pickHeadline(data) {
       const events = Array.isArray(data.recent_events) ? data.recent_events : [];
-      const notable = data.notable_event || null;
+      const notable = (data.narrative && data.narrative.now) || data.notable_event || null;
       if (data.freshness === "incident") {
         return notable && notable.projection_id === "world_status"
           ? notable
@@ -309,7 +314,9 @@ export function watchHtml(): string {
       const players = data.players_present ?? 0;
       const status = data.world_status || "";
       const fresh = data.freshness || "live";
-      const events = Array.isArray(data.recent_events) ? data.recent_events : [];
+      const events = Array.isArray(data.narrative?.recently)
+        ? data.narrative.recently
+        : Array.isArray(data.recent_events) ? data.recent_events : [];
       $("watch-cycle").textContent = String(data.cycle ?? "—");
       $("watch-seq").textContent = String(data.sequence ?? "—");
       $("watch-players").textContent = String(players) + (players === 1 ? " player" : " players");

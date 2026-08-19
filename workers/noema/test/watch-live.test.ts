@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   WATCH_LIVE_PIN,
   buildWatchLive,
+  buildWatchNarrative,
+  explicitWatchCause,
   capVisibleEvents,
   holdHeadline,
   phraseWatchEvent,
@@ -15,6 +17,7 @@ import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
 import { adminHtml } from "../src/admin";
 import { watchHtml } from "../src/watch";
+import { landingHtml } from "../src/landing";
 
 const NOW = 1_700_000_000_000;
 
@@ -487,6 +490,43 @@ describe("notable headline and visible feed", () => {
     expect((snap.recent_events as WatchEvent[]).every((e) => e.tier === "NOTABLE" || e.projection_id)).toBe(true);
     expect(JSON.stringify(snap.recent_events)).not.toMatch(/player\./);
   });
+
+  it("exposes NOW/RECENTLY/WORLD without inferring cause from sequence", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 9,
+      sequence: 12,
+      rooms: rooms(),
+      players: [],
+      events: [
+        src({ event_type: "MOVE", sequence: 12, payload: { to: "room.market" } }),
+        src({ event_type: "TRADE", sequence: 11, payload: {} }),
+      ],
+      world_status: "ACTIVE",
+      now: NOW,
+    });
+    const nar = snap.narrative as {
+      now: WatchEvent;
+      recently: WatchEvent[];
+      world: { cycle: number; status: string | null };
+    };
+    expect(nar.now.line).toBeTruthy();
+    expect(nar.recently.every((e) => e.sequence !== nar.now.sequence)).toBe(true);
+    expect(nar.world.cycle).toBe(9);
+    expect(nar.world.status).toBe("ACTIVE");
+    expect(explicitWatchCause({ to: "room.market" })).toBeNull();
+    expect(explicitWatchCause({ caused_by: "event.9" })).toBe("event.9");
+  });
+});
+
+describe("home live excerpt", () => {
+  it("reads WATCH-safe live projection with a quiet fallback", () => {
+    const html = landingHtml();
+    expect(html).toContain('id="home-now"');
+    expect(html).toContain("/v1/watch/live");
+    expect(html).toContain("Watch the agents play.");
+    expect(html).not.toContain("/v1/command");
+  });
 });
 
 describe("watch HTML surface", () => {
@@ -507,6 +547,8 @@ describe("watch HTML surface", () => {
   });
 
   it("is text-first theater: headline, semantic graph, details, bounded feed", () => {
+    expect(html).toContain(">Now</p>");
+    expect(html).toContain(">Recently</h2>");
     expect(html).toContain('id="watch-headline"');
     expect(html).toMatch(/aria-live="polite"/);
     expect(html).toContain("<nav");

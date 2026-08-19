@@ -512,6 +512,61 @@ export function buildWatchLive(input: {
     rooms: roomsOut,
     recent_events: recent,
     notable_event: notable,
+    narrative: buildWatchNarrative({
+      now: notable,
+      recent,
+      world_status: input.world_status || null,
+      cycle: input.cycle,
+      players_present: playersPresent,
+      public_pulses: pulses,
+      rooms_present: roomsOut.length,
+    }),
     note: "Spectator projection is never world truth and never mutates the ledger.",
   };
+}
+
+export type WatchNarrative = {
+  now: WatchEvent;
+  recently: WatchEvent[];
+  world: {
+    status: string | null;
+    cycle: number;
+    players_present: number;
+    rooms_present: number;
+    pulses: string[];
+  };
+};
+
+/** NOW / RECENTLY / WORLD from the existing public projection. No new feed. */
+export function buildWatchNarrative(opts: {
+  now: WatchEvent;
+  recent: WatchEvent[];
+  world_status: string | null;
+  cycle: number;
+  players_present: number;
+  public_pulses?: string[];
+  rooms_present: number;
+}): WatchNarrative {
+  const nowSeq = opts.now.sequence;
+  const recently = opts.recent.filter((e) => e.sequence !== nowSeq).slice(0, 6);
+  return {
+    now: opts.now,
+    recently,
+    world: {
+      status: opts.world_status,
+      cycle: opts.cycle,
+      players_present: opts.players_present,
+      rooms_present: opts.rooms_present,
+      pulses: (opts.public_pulses || []).slice(0, 4),
+    },
+  };
+}
+
+/** Causal edges require an explicit payload relation. Sequence adjacency is not a cause. */
+export function explicitWatchCause(payload?: Record<string, unknown> | null): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const rel = payload.caused_by ?? payload.parent_event_id ?? payload.relation;
+  if (typeof rel !== "string") return null;
+  const t = rel.trim();
+  return t || null;
 }
