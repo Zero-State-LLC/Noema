@@ -48,10 +48,10 @@ Python `src/noema/` remains the offline Chamber / conformance runtime. **Product
 HARNESS_DEPLOY_VERIFIED
 CANONICAL_HEAD_SCHEMA_VERIFIED
 PRODUCTION_HEAD_PRESENT
-ISOLATED_SETTLEMENT_PROOF_RESIDUAL
+ISOLATED_SETTLEMENT_PROOF_SHIPPED
 ```
 
-First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Residual is a re-runnable isolated Worker/DO/SQL proof — not missing production SQL.
+First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Isolated Worker/DO/SQL proof shipped (unit settle/STALE_HEAD/recover, live ENTER/INSPECT, 2026-08-19 SQL heads). Production SQL head is present. Host STUDY stays stub. GC1-S2 remains DEFERRED.
 
 ## Scorecard (post-S0)
 
@@ -157,6 +157,7 @@ All four files are on disk. Hosted objects (tables + both RPCs + Perihelion head
 
 ## Next (not authorized here)
 
-1. Supply a Player bearer + signed `X-Noema-Admin-Token` and a SQL session to finish hosted Worker/DO proof on `test.hosted-canonical.*`.  
-2. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
-3. Do not bootstrap Perihelion from sequence-75 events.
+1. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
+2. Do not Recover Perihelion. Do not bootstrap from incomplete legacy events.  
+3. Host STUDY stays stub unless an explicit policy unstubs it.  
+4. Hosted C14/C16 stay Compose/Python skips; C17 stays Worker-pin skip (not the Compose upgrade fixture).
