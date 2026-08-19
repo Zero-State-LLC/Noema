@@ -6,6 +6,14 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
+### Live probe 2026-08-18 (`/ready` only)
+
+| Check | Result | Label |
+|---|---|---|
+| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, world `world.perihelion-reach`, cycle 105, sequence **303**, `genesis_id:genesis.ef578f4ffceeccd0` | OBSERVED |
+| Production head missing? | **No.** Head + RPCs already OBSERVED 2026-08-17 (below). Sequence drift 288 → 303 is live play, not a missing head. | OBSERVED `/ready` + prior SQL |
+| Residual | Isolated `test.hosted-canonical.*` re-runnable Worker/DO/SQL proof. Not “apply SQL on Perihelion.” Do not Recover. Do not reseed. | INFERRED from prior SQL + this `/ready` |
+
 ### Live probe 2026-08-17 (SQL session)
 
 Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover. Did **not** reseed.
