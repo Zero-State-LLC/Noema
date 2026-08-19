@@ -100,26 +100,24 @@ async function main() {
     });
     const playerJwt = (await json(minted)).access_token;
     if (playerJwt) {
-      await fetch(`${base}/v1/operator/test-world/command`, {
+      const playHeaders = {
+        "content-type": "application/json",
+        authorization: `Bearer ${playerJwt}`,
+        "X-Noema-Admin-Token": adminJwt,
+        "X-Noema-Seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
+      };
+      await fetch(`${base}/v1/command`, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${playerJwt}`,
-          "X-Noema-Admin-Token": adminJwt,
-        },
+        headers: playHeaders,
         body: JSON.stringify({
           world_id: worldGate.world_id,
           request_id: "fail-enter",
           command: "ENTER_WORLD",
         }),
       });
-      const badMove = await fetch(`${base}/v1/operator/test-world/command`, {
+      const badMove = await fetch(`${base}/v1/command`, {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${playerJwt}`,
-          "X-Noema-Admin-Token": adminJwt,
-        },
+        headers: playHeaders,
         body: JSON.stringify({
           world_id: worldGate.world_id,
           request_id: "fail-move",
