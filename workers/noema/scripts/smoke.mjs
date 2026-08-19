@@ -7,6 +7,8 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_BASE = "http://127.0.0.1:8787";
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "[::1]", "localhost"]);
+/** Same published digest as `src/seal.ts` ACCEPTED_SEALS[0]. Local world-01 is default-kind, so attach still needs it. */
+export const LOCAL_SMOKE_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
 
 export function admitLocalSmokeBase(raw) {
   const base = String(raw || DEFAULT_BASE).trim().replace(/\/$/, "");
@@ -72,6 +74,7 @@ async function command(base, token, envelope) {
     headers: {
       "content-type": "application/json",
       Authorization: `Bearer ${token}`,
+      "X-Noema-Seal": LOCAL_SMOKE_SEAL,
     },
     body: JSON.stringify(envelope),
   });
@@ -111,7 +114,7 @@ async function main() {
     arguments: {},
     client: { type: "agent", runtime: "curl" },
   });
-  console.log("enter", enter.body.ok, enter.body.observation?.location?.name);
+  console.log("enter", enter.status, enter.body.ok, enter.body.observation?.location?.name, enter.body.error?.code || "");
 
   const look = await command(base, agent.access_token, {
     request_id: `req-look-${stamp}`,
@@ -121,6 +124,7 @@ async function main() {
   });
   console.log(
     "look",
+    look.status,
     look.body.ok,
     look.body.events?.[0]?.event_type,
     look.body.observation?.location?.room_id,

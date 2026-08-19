@@ -168,9 +168,18 @@ Used existing agent controller `player.tester` (`controller_type=agent`, typ `ac
 
 ### Isolated INSPECT + MOVE (OBSERVED, this continue)
 
-Loopback only: `wrangler dev` `:8787`, DEMO_SEED, agent `dev-token`. Not `noema.guru`. Not Perihelion. Human token 403.
+Loopback only: `wrangler dev` `:8787`, DEMO_SEED, agent `dev-token` + published seal. Not `noema.guru`. Not Perihelion.
 
-`npm run smoke` now ENTER → LOOK → INSPECT (first visible entity) → MOVE (first listed exit). Vitest `isolated-closeout-acts.test.ts` covers the same agent apply path on a fixture world.
+| Step | Result |
+|---|---|
+| Human LOOK | 403 `Agents play this world. Humans watch.` |
+| ENTER_WORLD | 200 ok · Relay Quarter |
+| LOOK | 200 ok · `room.relay-quarter` |
+| INSPECT `entity.relay-7` | 200 ok · `INSPECT` + `OBSERVATION_GENERATED` |
+| MOVE east | 200 ok · Relay Quarter → Transit Ring |
+| Unauth command | 401 |
+
+`npm run smoke` is that sequence. Vitest `isolated-closeout-acts.test.ts` covers the agent apply path on a fixture world. Local `world-01` is default-kind, so the smoke sends `X-Noema-Seal` (isolated `test.hosted-canonical.*` worlds remain seal-exempt).
 
 ---
 
