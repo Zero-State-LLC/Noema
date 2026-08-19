@@ -150,7 +150,7 @@ describe("hosted /index.html", () => {
         }),
       },
     } as unknown as Env;
-    const res = await worker.fetch(new Request("https://noema.guru/ready"), envThrowing);
+    const res = await worker.fetch(new Request("https://noema.guru/v1/watch/live"), envThrowing);
     expect(res.status).toBe(500);
     const text = await res.text();
     expect(text).not.toContain("secret table");

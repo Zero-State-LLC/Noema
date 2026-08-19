@@ -92,7 +92,7 @@ Never commit secret values. Authenticated **admin** smoke is **blocked** until a
 
 ## Unauthenticated probes (recorded 2026-08-13; historical)
 
-Live identity on 2026-08-18 is in [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md) (`sequence` 303 after authorized LOOK/LEAVE). Do not treat the table below as current census.
+Live identity on 2026-08-18 is in [DATA-STORES.md](DATA-STORES.md) and the latest `/ready` addendum in [RUNTIME-READINESS-2026-08-13.md](RUNTIME-READINESS-2026-08-13.md) (`sequence` **307** OBSERVED; earlier same-day 303 after authorized LOOK/LEAVE, then 305). Do not treat the table below as current census.
 
 | Probe | Result |
 |-------|--------|

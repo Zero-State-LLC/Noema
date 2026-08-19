@@ -10,9 +10,9 @@ Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFE
 
 | Check | Result | Label |
 |---|---|---|
-| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, world `world.perihelion-reach`, cycle 105, sequence **305**, `genesis_id:genesis.ef578f4ffceeccd0` | OBSERVED this run (was 303 earlier the same day) |
+| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, world `world.perihelion-reach`, cycle 105, sequence **307**, `genesis_id:genesis.ef578f4ffceeccd0` | OBSERVED this run (same-day 303 → 305 → 307) |
 | `GET https://noema.guru/health` | `status:ok` `service:noema-gateway` `stage:0` `env:production` `world_id:world-01` | OBSERVED |
-| Production head missing? | **No.** Head + RPCs already OBSERVED 2026-08-17 (below). Sequence drift 288 → 305 is live play, not a missing head. | OBSERVED `/ready` + prior SQL |
+| Production head missing? | **No.** Head + RPCs already OBSERVED 2026-08-17 (below). Sequence drift 288 → 307 is live play, not a missing head. | OBSERVED `/ready` + prior SQL |
 | Residual | Isolated SQL-head inspect needs `SUPABASE_*` (UNCONFIGURED in some shells). Worker unit settle/STALE_HEAD/recover + live isolated ENTER 200 already shipped. Not “apply SQL on Perihelion.” Do not Recover. Do not reseed. | OBSERVED tests + `/ready` |
 
 ### Live probe 2026-08-17 (SQL session)
