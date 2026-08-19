@@ -1,5 +1,10 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
+**Addendum 2026-08-18 (`/ready` re-fetch).**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
+
+OBSERVED `GET https://noema.guru/ready` this run: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence **303**, `genesis_id:genesis.ef578f4ffceeccd0`. Production head is **not** missing. Residual is isolated `test.hosted-canonical.*` proof (Worker/DO/SQL), not Perihelion bootstrap.
+
 **Addendum 2026-08-17 live probe.**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
 
@@ -21,7 +26,7 @@ Documented then: `GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
 **Not** a platform migration. Stack remains Cloudflare Workers + Worker `[assets]` + DO + Supabase Auth/Postgres/Storage.  
-**Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Hosted Worker/DO settlement proof is still unverified from this environment.
+**Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Production SQL head + RPCs are OBSERVED present. Isolated `test.hosted-canonical.*` re-runnable proof is the residual.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**
 
@@ -30,10 +35,11 @@ Python `src/noema/` remains the offline Chamber / conformance runtime. **Product
 ```text
 HARNESS_DEPLOY_VERIFIED
 CANONICAL_HEAD_SCHEMA_VERIFIED
-PERIHELION_CANONICAL_BOOTSTRAP_BLOCKED
+PRODUCTION_HEAD_PRESENT
+ISOLATED_SETTLEMENT_PROOF_RESIDUAL
 ```
 
-First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Isolated harness #99 is on production (`3229a75`) per prior deploy note. This inventory still could not execute the Worker/DO settlement proof and did not fetch live `/ready`. Schema status is the prior operator claim; hosted SQL was **not** re-read here.
+First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Residual is a re-runnable isolated Worker/DO/SQL proof — not missing production SQL.
 
 ## Scorecard (post-S0)
 
