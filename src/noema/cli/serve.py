@@ -86,8 +86,13 @@ def main(argv: list[str] | None = None) -> int:
         allow_dev_human=None if loopback else False,
     )
     if not args.no_autoload and args.seed.is_file():
-        runtime.start_world(args.seed)
-        print(f"loaded seed {args.seed}")
+        loaded = runtime.autoload_world(args.seed)
+        if loaded.get("resumed"):
+            print(
+                f"resumed ledger sequence={loaded.get('sequence')} from {args.db}"
+            )
+        else:
+            print(f"loaded seed {args.seed}")
     httpd = serve(runtime, host=args.host, port=args.port)
     print(f"noema listening on http://{args.host}:{args.port}")
     print(f"configuration_digest={runtime.configuration_digest}")
