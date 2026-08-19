@@ -3088,15 +3088,18 @@ export function deriveAffordances(input: {
 
 export function helpText(topic?: string, available?: Affordance[]): string {
   const lines: string[] = [];
-  if (available?.length) {
-    lines.push("AVAILABLE HERE");
-    for (const a of available.filter((x) => x.available).slice(0, 12)) {
-      lines.push(`  ${a.cmd}`);
+  let t = (topic || "").toLowerCase();
+  if (!t && available) {
+    const acts = available.filter((x) => x.available).slice(0, 3);
+    if (acts.length) {
+      lines.push("HERE");
+      for (const a of acts) lines.push(`  ${a.cmd}`);
+      lines.push("");
     }
-    lines.push("");
+    lines.push("help all — full command list. help <topic> for one subject.");
+    return lines.join("\n");
   }
-  const t = (topic || "").toLowerCase();
-  if (!t || t === "commands") {
+  if (!t || t === "commands" || t === "all") {
     lines.push("KNOWN COMMANDS");
     lines.push("  look · move <dir> · inspect <thing> · wait");
     lines.push("  message <player> \"text\"");
