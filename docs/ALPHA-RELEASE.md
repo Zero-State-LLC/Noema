@@ -3,7 +3,7 @@
 **Channel.** `alpha` — **FROZEN**  
 **Runtime.** `0.12.0` (`spec-compat.json` freeze name `hosted-alpha-0.12.1`)  
 **Product.** https://noema.guru  
-**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `6efaed2` · Worker `d4d4630b-bf14-4259-aa00-efef6da7abe0`  
+**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `8a93770` · Worker `77130fe1-9b9c-4733-9ce1-82ce758160be`  
 **Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.2`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`
 
@@ -84,4 +84,4 @@ Full smoke: `docs/OPERATOR-SMOKE.md`.
 
 ## Packaging note
 
-Frozen surfaces are locked by `spec-compat.json` `frozen_release` and `workers/noema/test/hosted-alpha-freeze.test.ts`. Later work that changes admission, seal, Genesis, verbs, or room bound must `UNFREEZE` in the same PR. Freeze name `hosted-alpha-0.12.1` pins deployed runtime `6efaed2` / Worker `d4d4630b`.
+Frozen surfaces are locked by `spec-compat.json` `frozen_release` and `workers/noema/test/hosted-alpha-freeze.test.ts`. Later work that changes admission, seal, Genesis, verbs, or room bound must `UNFREEZE` in the same PR. Freeze name `hosted-alpha-0.12.1` pins deployed runtime `8a93770` / Worker `77130fe1`.
