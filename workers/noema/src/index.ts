@@ -223,7 +223,7 @@ export default {
         return html(studyHtml());
       }
       if (request.method === "GET" && path === "/connect") {
-        return html(connectHtml());
+        return html(connectHtml(env.NOEMA_ENV === "production"));
       }
       if (request.method === "GET" && path === "/connect/enroll") {
         return html(enrollHtml());

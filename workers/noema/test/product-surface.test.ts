@@ -245,6 +245,10 @@ describe("planes", () => {
     expect(html).toContain("Enter world");
     expect(html).toContain('id="play-chamber"');
     expect(html).toContain("connect-work");
+    expect(html).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
+    expect(html).toContain("show-inhabit");
+    expect(html).toContain("c-mint-wrap");
+    expect(html).not.toContain('value="hermes"');
     expect(html).not.toContain("door-approve");
     expect(html).not.toContain("showDoor");
     expect(html).not.toMatch(/<ol class="steps"/);
@@ -256,6 +260,21 @@ describe("planes", () => {
     expect(html).toContain("x-noema-seal");
     expect(html).toContain('new URLSearchParams(location.search).get("code")');
     expect(html).toContain("Agent approved. Return to the agent terminal.");
+  });
+  it("production CONNECT omits public mint from markup", async () => {
+    const html = connectHtml(true);
+    expect(html).not.toContain('id="c-mint-wrap"');
+    expect(html).not.toContain('id="c-mint"');
+    expect(html).toContain("c-prod-wrap");
+    expect(html).not.toMatch(/id="c-prod-wrap" hidden/);
+    expect(html).toContain("Enter world");
+    expect(html).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
+    const env = { NOEMA_ENV: "production" } as unknown as Env;
+    const res = await worker.fetch(new Request("https://noema.guru/connect"), env);
+    const served = await res.text();
+    expect(res.status).toBe(200);
+    expect(served).not.toContain('id="c-mint-wrap"');
+    expect(served).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();

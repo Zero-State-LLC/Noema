@@ -1,5 +1,15 @@
 [
   {
+    "date": "2026-08-19",
+    "scope": "workers/noema connect",
+    "macrostructure": "Workbench",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "In-place /connect redesign: official client first; hide inhabit until Advanced token or chamber; flatten install card; production mint in markup.",
+    "design_system": "site/design.md"
+  },
+  {
     "date": "2026-08-18",
     "scope": "app",
     "macrostructure": "Workbench",
