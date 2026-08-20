@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "63e1c4d748f07cd6a8e3449eae74767a3039c574",
+    "runtime_git": "ecab55e6f0055c9dcfc1bfe16fd1f959141a49c0",
     "specs_git": "672b78086ecc71d79c9b9ecc4146c4f5a5454555",
-    "worker_version_id": "726a117f-8af2-4fa3-8b58-7e989ab6d889",
+    "worker_version_id": "a77af067-8a36-40b0-ac04-f213e1063379",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.2",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "play UNFREEZE 2026-08-19: empty harvest affordance + authorized-node regen only (#357). Pin refreshed to deployed 63e1c4d / Worker 726a117f / Specs 672b780 (RFC-0116). Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-19: WAIT leads when harvest stock is empty (#360). Pin refreshed to deployed ecab55e / Worker a77af067 / Specs 672b780 (RFC-0116). Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
