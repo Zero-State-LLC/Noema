@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ABANDON_AFTER_CYCLES, shouldAbandon } from "../src/construction";
+import { CONSTRUCT_COSTS, ABANDON_AFTER_CYCLES, shouldAbandon } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText } from "../src/actions";
 import { projectionIdForEvent } from "../src/watch-live";
@@ -96,6 +96,7 @@ describe("GC2-S7 world path", () => {
     const other = principal("player.vesper");
     await run(w, owner, "ENTER_WORLD");
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0) - 2;
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
@@ -122,6 +123,7 @@ describe("GC2-S7 world path", () => {
 
     await run(w, other, "ENTER_WORLD");
     w.players[other.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[other.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0) - 2;
     const stolen = await run(w, other, "BUILD", { operation: "DISMANTLE", entity_id: shop.entity_id });
     expect(stolen.ok).toBe(true);
     expect(w.rooms["room.hub"].entities.find((e) => e.entity_id === shop.entity_id)).toBeUndefined();
@@ -132,6 +134,7 @@ describe("GC2-S7 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     const opened = await run(w, p, "WAIT");
     expect(opened.ok).toBe(true);

@@ -102,7 +102,7 @@ async function recognize(w: WorldRuntime, p: PlayerPrincipal) {
   await run(w, p, "ENTER_WORLD");
   w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
   w.players[p.player_id].budgets.energy = 80;
-  w.players[p.player_id].budgets.storage = 40;
+  w.players[p.player_id].budgets.storage = 8;
   for (const id of ["entity.relay-a", "entity.relay-b", "entity.relay-c"]) {
     expect((await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: id })).ok).toBe(true);
   }

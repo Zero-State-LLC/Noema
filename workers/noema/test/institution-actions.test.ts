@@ -137,6 +137,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     await setupOrg(w, founder, treas, "OPERATE_RESOURCE_ACCOUNT");
     await run(w, buyer, "ENTER_WORLD");
     w.players[buyer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[buyer.player_id].budgets.storage = 15;
     const beforeTreasury = w.organizations["org.line"].treasury!.energy;
     const beforeBuyer = w.players[buyer.player_id].budgets.storage;
     const proposed = await run(w, treas, "TRADE", {
@@ -153,9 +154,9 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     const accepted = await run(w, buyer, "TRADE", { phase: "accept", trade_id: tradeId });
     expect(accepted.ok).toBe(true);
     expect(w.organizations["org.line"].treasury!.energy).toBe(beforeTreasury - 3);
-    expect(w.organizations["org.line"].treasury!.storage).toBe(10 + 1);
+    expect(w.organizations["org.line"].treasury!.storage).toBe(10 - 1);
     expect(w.players[buyer.player_id].budgets.energy).toBe(DEFAULT_BUDGETS.energy + 3);
-    expect(w.players[buyer.player_id].budgets.storage).toBe(beforeBuyer - 1 - 0);
+    expect(w.players[buyer.player_id].budgets.storage).toBe(beforeBuyer + 1);
     expect(w.institution_pulses).toContain("An institution traded from its treasury.");
   });
 

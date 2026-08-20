@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSTRUCT_COSTS,
   CONSTRUCTIBLE_CLASSES,
   MULTI_CYCLE_CLASS,
   isInProgress,
@@ -125,6 +126,7 @@ describe("GC2-S19 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.route_link.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
@@ -165,6 +167,7 @@ describe("GC2-S19 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 80, storage: 16 });
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.route_link.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(built.ok).toBe(true);
     const harvested = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.cell", amount: 1 });
@@ -197,6 +200,7 @@ describe("GC2-S19 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.route_link.storage || 0) - 2;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.hub"].entities.find((e) => e.infra_type === "route_link")!.entity_id;

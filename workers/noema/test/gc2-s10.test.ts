@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { VEST_COST } from "../src/construction";
+import { CONSTRUCT_COSTS, VEST_COST } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText, parseHumanCommand } from "../src/actions";
 import { projectionIdForEvent } from "../src/watch-live";
@@ -82,6 +82,7 @@ describe("GC2-S10 world path", () => {
     const b = principal("player.vesper");
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
 
     const built = await run(w, a, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);

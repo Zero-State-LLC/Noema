@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText, isRepairable } from "../src/actions";
-import { scarFromDismantle } from "../src/construction";
+import { CONSTRUCT_COSTS, scarFromDismantle } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -96,6 +96,7 @@ describe("GC10-S2 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.relay.storage || 0) - 2;
     await run(w, p, "MOVE", { direction: "east" });
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);

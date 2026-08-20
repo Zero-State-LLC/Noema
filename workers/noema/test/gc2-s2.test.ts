@@ -84,18 +84,21 @@ describe("GC2-S2 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const first = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(first.ok).toBe(true);
     expect(first.observation?.consequence).toMatch(/workshop is under construction/i);
-    expect(w.players[p.player_id].budgets.storage).toBe(DEFAULT_BUDGETS.storage - 5);
+    expect(w.players[p.player_id].budgets.storage).toBe(DEFAULT_BUDGETS.storage);
     const opened = await run(w, p, "WAIT");
     expect(opened.ok).toBe(true);
     expect(w.cycle).toBe(1);
 
+    const genNeed = (CONSTRUCT_COSTS.generator.storage || 0) - 1;
+    w.players[p.player_id].budgets.storage = 16 - genNeed;
     const storageBeforeGen = w.players[p.player_id].budgets.storage;
     const gen = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
     expect(gen.ok).toBe(true);
-    expect(w.players[p.player_id].budgets.storage).toBe(storageBeforeGen - ((CONSTRUCT_COSTS.generator.storage || 0) - 1));
+    expect(w.players[p.player_id].budgets.storage).toBe(storageBeforeGen + genNeed);
 
     const storageBeforeRepair = w.players[p.player_id].budgets.storage;
     const repaired = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-a" });
@@ -107,6 +110,7 @@ describe("GC2-S2 world path", () => {
     const q = principal("player.vesper");
     await run(hidden, q, "ENTER_WORLD");
     hidden.players[q.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    hidden.players[q.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     hidden.players[q.player_id].room_id = "room.vault";
     const blocked = await run(hidden, q, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(blocked.ok).toBe(false);

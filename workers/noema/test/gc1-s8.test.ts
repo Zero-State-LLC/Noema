@@ -115,6 +115,7 @@ describe("GC1-S8 world path", () => {
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[a.player_id].budgets.energy = 20;
+    w.players[a.player_id].budgets.storage = 15;
 
     const locked = await run(w, a, "COMMIT", {
       operation: "REPAIR",
@@ -136,6 +137,7 @@ describe("GC1-S8 world path", () => {
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[a.player_id].budgets.energy = 20;
+    w.players[a.player_id].budgets.storage = 15;
     w.players[a.player_id].practice = recognizedEngineer();
 
     const energyBefore = w.players[a.player_id].budgets.energy;

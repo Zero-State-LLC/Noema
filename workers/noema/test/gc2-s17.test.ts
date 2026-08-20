@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSTRUCT_COSTS,
   MULTI_CYCLE_CLASS,
   isInProgress,
   isMultiCycleClass,
@@ -122,6 +123,7 @@ describe("GC2-S17 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.defensive_work.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
@@ -151,6 +153,7 @@ describe("GC2-S17 world path", () => {
     const shellPlayer = principal("player.nacre");
     await run(shellWorld, shellPlayer, "ENTER_WORLD");
     shellWorld.players[shellPlayer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    shellWorld.players[shellPlayer.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.defensive_work.storage || 0);
     const shelled = await run(shellWorld, shellPlayer, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
     expect(shelled.ok).toBe(true);
     expect(isInProgress(shellWorld.rooms["room.yard"].entities.find((e) => e.infra_type === "defensive_work")!)).toBe(
@@ -162,6 +165,7 @@ describe("GC2-S17 world path", () => {
     const livePlayer = principal("player.nacre");
     await run(liveWorld, livePlayer, "ENTER_WORLD");
     liveWorld.players[livePlayer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    liveWorld.players[livePlayer.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.defensive_work.storage || 0);
     const built = await run(liveWorld, livePlayer, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
     expect(built.ok).toBe(true);
     const opened = await run(liveWorld, livePlayer, "WAIT");
@@ -180,6 +184,7 @@ describe("GC2-S17 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.defensive_work.storage || 0) - 2;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "defensive_work" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities.find((e) => e.infra_type === "defensive_work")!.entity_id;

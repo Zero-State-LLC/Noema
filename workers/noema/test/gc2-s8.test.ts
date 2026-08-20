@@ -89,6 +89,7 @@ describe("GC2-S8 world path", () => {
     const other = principal("player.vesper");
     await run(w, owner, "ENTER_WORLD");
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;

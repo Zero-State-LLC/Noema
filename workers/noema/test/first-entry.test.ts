@@ -112,6 +112,7 @@ describe("first-entry inhabit", () => {
 
     w.players[p.player_id].room_id = "room.relay-quarter";
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 15;
     const repaired = await run(w, p, "REPAIR", { entity_id: "entity.relay-7" });
     expect(repaired.ok).toBe(true);
 
