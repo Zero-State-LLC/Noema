@@ -145,6 +145,8 @@ export interface ObservationAffordance {
   cmd: string;
   target_id?: string;
   target_label?: string;
+  /** GC1-S8. Structured REPAIR overhaul. Omitted for standard repair. */
+  extent?: "overhaul";
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;

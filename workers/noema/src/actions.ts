@@ -37,6 +37,7 @@ import {
 import { parseVisibility } from "./reconstruction";
 import { moveEnergyCost } from "./transport";
 import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
+import { canOverhaul, OVERHAUL_ENERGY_EXTRA, type PracticeState } from "./practice";
 
 export type Budgets = {
   attention: number;
@@ -419,6 +420,7 @@ export type Affordance = {
   cmd: string;
   target_id?: string;
   target_label?: string;
+  extent?: "overhaul";
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2861,6 +2863,8 @@ export function deriveAffordances(input: {
   organizations?: Organization[];
   selfId: string;
   cautionToward?: Record<string, boolean>;
+  practice?: PracticeState | null;
+  cycle?: number;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -2903,6 +2907,32 @@ export function deriveAffordances(input: {
         reason: ok ? undefined : !hasCargo ? "You do not have materials in hold." : "You do not have enough energy or compute.",
         kind: "primary",
       });
+      if (canOverhaul(input.practice, input.cycle || 0)) {
+        const overhaulCost = {
+          ...repairCost,
+          energy: (repairCost.energy || 0) + OVERHAUL_ENERGY_EXTRA,
+        };
+        const overhaulFuel = { ...overhaulCost, storage: undefined };
+        const overhaulOk = canPay(budgets, overhaulFuel) && hasCargo;
+        out.push({
+          action: "REPAIR",
+          verb: "COMMIT",
+          operation: "REPAIR",
+          label: `Overhaul ${name}`,
+          cmd: `repair ${e.label} overhaul`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          extent: "overhaul",
+          requires: overhaulCost,
+          available: overhaulOk,
+          reason: overhaulOk
+            ? undefined
+            : !hasCargo
+              ? "You do not have materials in hold."
+              : "You do not have enough energy or compute.",
+          kind: "primary",
+        });
+      }
     }
     if (e.stock_resource) {
       const hasStock = (e.stock_amount ?? 0) > 0;
