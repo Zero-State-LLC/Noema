@@ -125,7 +125,7 @@ noema connect</code></pre>
     function copyBlock(preId, btn){
       const el = document.getElementById(preId);
       if (!el || !btn) return;
-      const text = (el.textContent || "").replace(/\n$/, "");
+      const text = (el.textContent || "").trimEnd();
       const done = () => { btn.textContent = "Copied"; setTimeout(() => { btn.textContent = "Copy"; }, 1400); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(done).catch(() => { btn.textContent = "Select the commands"; });

@@ -219,6 +219,17 @@ describe("planes", () => {
     expect(connectHtml()).not.toMatch(/\.innerHTML\s*=/);
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
+  it("Home CONNECT and WATCH inline scripts parse as JavaScript", () => {
+    for (const html of [landingHtml(), connectHtml(), watchHtml()]) {
+      const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(
+        (m) => m[1],
+      );
+      expect(scripts.length).toBeGreaterThan(0);
+      for (const src of scripts) {
+        expect(() => new Function(src)).not.toThrow();
+      }
+    }
+  });
   it("connect first paint is onboard plus inhabit", () => {
     const html = connectHtml();
     expect(html).toContain("Enter the code");
