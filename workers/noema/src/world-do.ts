@@ -72,7 +72,7 @@ import {
   recoverBoundWorldId,
   resolveLoadWorldId,
 } from "./test-world";
-import { MINI_ENTRY_ROOM_ID, miniChamberState } from "./mini-chamber";
+import { ATTEST_WORLD_ID, MINI_ENTRY_ROOM_ID, attestChamberState, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
@@ -155,6 +155,7 @@ function demoState(world_id: string): WorldState {
 
 /** Isolated test worlds get the mini chamber. Production / demo keep DEMO_ROOMS. */
 export function bootstrapWorldState(world_id: string): WorldState {
+  if (world_id === ATTEST_WORLD_ID) return attestChamberState(world_id);
   if (admitTestWorldId(world_id).ok) return miniChamberState(world_id);
   return demoState(world_id);
 }

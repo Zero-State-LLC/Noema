@@ -47,6 +47,28 @@ export const MINI_ROOMS: Record<string, RoomState> = {
   },
 };
 
+export const ATTEST_WORLD_ID = "test.hosted-canonical.attest-s0";
+
+/** Isolated ATTEST seed. Not Perihelion. Mini chamber plus a colocated archive pair. */
+export function attestChamberState(world_id: string = ATTEST_WORLD_ID): WorldRuntime {
+  const w = miniChamberState(world_id);
+  const entry = w.rooms[MINI_ENTRY_ROOM_ID];
+  entry.entities.push(
+    enrichEntity({
+      entity_id: "entity.archive-ledger",
+      label: "cold-ledger",
+      entity_type: "ARTIFACT",
+    }),
+    enrichEntity({
+      entity_id: "entity.relay-7",
+      label: "scarred-conduit",
+      entity_type: "INFRASTRUCTURE",
+      condition: 40,
+    }),
+  );
+  return w;
+}
+
 export function miniChamberState(world_id: string): WorldRuntime {
   const rooms = structuredClone(MINI_ROOMS) as Record<string, RoomState>;
   for (const room of Object.values(rooms)) {
