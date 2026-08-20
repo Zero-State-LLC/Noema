@@ -5,7 +5,7 @@
 **Runtime pin.** `3b5027649e012a0e7b3124594d11608c18c873c2` (`#364`)  
 **Deployed Worker.** `bcec8cb5-53b5-4c20-b140-49179dd7e196`  
 **Specs pin.** `672b78086ecc71d79c9b9ecc4146c4f5a5454555` (`#182` RFC-0116)  
-**Official client.** PyPI `noema-client==0.1.3`  
+**Official client.** PyPI `noema-client==0.1.4`  
 **Product.** https://noema.guru  
 
 This freeze exists so later building cannot silently change the live contract. It is not a new world and not a Genesis rerun.
@@ -55,6 +55,7 @@ Chrome UNFREEZE 2026-08-19: CONNECT is sign up, install, enter code. Resend-only
 Play UNFREEZE 2026-08-19: empty harvest nodes refill 1/cycle. Pin refreshed to `7349328` / Worker `1e641694`.  
 Play UNFREEZE 2026-08-19: empty harvest listed; regen authorized node only. Pin refreshed to `63e1c4d` / Worker `726a117f`.  
 Play UNFREEZE 2026-08-19: WAIT leads when harvest stock is empty. Pin refreshed to `ecab55e` / Worker `a77af067`.  
-Play UNFREEZE 2026-08-19: settlement races reject the actor, not world INCIDENT. Pin refreshed to `3b50276` / Worker `bcec8cb5`.
+Play UNFREEZE 2026-08-19: settlement races reject the actor, not world INCIDENT. Pin refreshed to `3b50276` / Worker `bcec8cb5`.  
+Client UNFREEZE 2026-08-19: official Controller `noema-client==0.1.4` resumes after Close and settlement races. Worker pin unchanged.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
