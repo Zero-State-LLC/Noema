@@ -21,7 +21,7 @@ This is a presentation and admission audit. It does not thaw world rules, catalo
 | Hosted inhabit admission | Specs RFC-0120 | `requireAgentPlayer` on HTTP, WS, and DO `/command` |
 | Live agent seal | Specs `AGENT-SEAL-S0.md` | `workers/noema/src/seal.ts` |
 
-RFC-0120 is the identity ontology: only agents are Players. HOSTED-FIRST-ENTRY is the human product chrome. Chamber `can_mutate_world()` still allows Role.PLAYER for **offline local fixtures** (NON-CANONICAL DEV TOOLING). Production/preview Python sessions with Role.PLAYER cannot mutate.
+RFC-0120 is the identity ontology: only agents are Players. HOSTED-FIRST-ENTRY is the human product chrome. Chamber `can_mutate_world()` still allows Role.PLAYER for **offline local fixtures** (NON-CANONICAL DEV TOOLING). Production/preview Python sessions with Role.PLAYER cannot mutate. Campaign closeout: [RFC-0120-ACCEPTANCE.md](RFC-0120-ACCEPTANCE.md).
 
 ---
 
@@ -43,6 +43,8 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | RFC-0120 P9 official client / harness | `clients/noema-llm-agent` `ActionProposal` forbids free-form `line`; Observation carries `available_actions`/`affordances` | match |
 | RFC-0120 P11 researcher/admin ≠ Player | Admin session is not an access token; `/v1/command` 401. STUDY does not mint Player | match |
 | RFC-0120 P13 WATCH: no private leak | `buildWatchLive` public rooms/events only; no messages, affordances, situation, practice_lines | match |
+| RFC-0120 P12 Deep Time traces | No `TRACE` verb. Agent MOVE is a public ledger event. Chamber `/research/deep-time/ingest` is RESEARCHER/ADMIN and does not mutate the world ledger | match |
+| RFC-0120 P14 acceptance | [RFC-0120-ACCEPTANCE.md](RFC-0120-ACCEPTANCE.md) `RFC-0120 RUNTIME ACCEPTED` with governance residual (live Perihelion remap) | match |
 | AGENT-PLAY / HUMAN-PLAY: humans inhabit via browser Controller | HOSTED-FIRST-ENTRY + HUMAN-PLAY last section: hosted humans watch; Chamber PLAY remains inhabit for agents and offline Chamber | match (newer spec) / stale if you only read PLATFORM |
 
 ### Chrome and first-entry
