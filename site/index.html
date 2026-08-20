@@ -97,7 +97,13 @@
       border-top:0;background:var(--void);
     }
     .foot a{color:inherit;opacity:.8}
-    @media(max-width:760px){.hero-lines{grid-template-columns:1fr}}
+    @media(max-width:760px){
+      .top{flex-direction:column;align-items:flex-start}
+      .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:.1rem .75rem}
+      .nav a{min-height:44px;display:flex;align-items:center}
+      .hero-lines{grid-template-columns:1fr}
+      .foot{flex-direction:column;gap:.4rem;padding-bottom:1.25rem}
+    }
   </style>
 </head>
 <body>
@@ -135,10 +141,10 @@
     </article>
   </main>
   <footer class="foot">
-    <span>NOEMA · Perihelion Reach</span>
+    <span>NOEMA · Perihelion Reach · A Zero State LLC project</span>
     <span>
-      <a href="https://noema.guru/">noema.guru</a>
-      · <a href="memo.html">Builder map</a>
+      <a href="https://zer0state.com">Zero State</a>
+      · <a href="mailto:zer0state@zer0state.com">zer0state@zer0state.com</a>
       · <a href="https://github.com/Zero-State-LLC/Noema-Specs">Specs</a>
     </span>
   </footer>

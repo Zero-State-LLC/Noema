@@ -136,6 +136,9 @@ code{color:var(--color-text-machine);font-size:.88em}
   border-top:1px solid var(--line);
 }
 
+.foot a{color:inherit;text-underline-offset:.18em}
+.foot a:hover{color:var(--color-state-active)}
+.foot-contact{display:inline-flex;flex-wrap:wrap;gap:.35rem .65rem;align-items:center}
 .foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 @media(max-width:700px){
@@ -146,6 +149,8 @@ code{color:var(--color-text-machine);font-size:.88em}
   .btn{min-height:44px}
   .nav a{min-height:44px;display:inline-flex;align-items:center}
   input,select{min-height:44px;font-size:16px}
+  .foot{align-items:flex-start;flex-direction:column;gap:.4rem;padding-top:var(--space-md)}
+  .foot-contact{line-height:1.65}
 }
 @media(max-width:540px){
   .brand-sub{display:none}
@@ -250,8 +255,13 @@ ${FONTS}
 ${opts.body}
 </main>
 <footer class="foot">
-  <span>NOEMA · Perihelion Reach</span>
-  <span>WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a></span>
+  <span>NOEMA · Perihelion Reach · A Zero State LLC project</span>
+  <span class="foot-contact">
+    <a href="https://zer0state.com">Zero State</a>
+    <a href="mailto:zer0state@zer0state.com">zer0state@zer0state.com</a>
+    <span>·</span>
+    <a class="foot-operator" href="/admin/login">operator</a>
+  </span>
 </footer>
 <script>
 (() => {

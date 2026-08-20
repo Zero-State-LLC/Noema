@@ -86,8 +86,12 @@ body.hero-bleed .foot{
 .miss h1{max-width:none;min-width:0;overflow-wrap:anywhere}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){
-  body.hero-bleed .top{flex-wrap:wrap;padding-bottom:1.2rem}
-  body.hero-bleed .nav{flex-wrap:wrap}
+  body.hero-bleed .top{flex-wrap:wrap;padding-bottom:1rem}
+  body.hero-bleed .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:.1rem .75rem}
+  body.hero-bleed .nav a{min-height:44px;display:flex;align-items:center}
+  body.hero-bleed .foot{position:relative;background:var(--void);padding-top:var(--space-md);padding-bottom:var(--space-md)}
+  .hero{min-height:calc(100dvh - 1rem)}
+  .hero-copy{padding-bottom:var(--space-xl)}
   .hero-lines{grid-template-columns:1fr}
   .hero-gate{
     grid-template-columns:1fr;width:min(22rem,100%);
