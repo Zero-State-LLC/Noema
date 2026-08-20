@@ -3,6 +3,7 @@ import {
   STALE_HEAD,
   STALE_FENCE,
   checkExpectedHead,
+  isContentionSettlementFail,
   restoreOrIncident,
   retrySettle,
   settleBatch,
@@ -90,6 +91,16 @@ describe("RFC-0017 fence crash/retry", () => {
     const durable = { world_id: "w", revision: 1, sequence: 1, cycle: 0, writer_generation: "do.2" };
     const gate = checkExpectedHead(1, durable, "do.1");
     expect(gate).toEqual({ ok: false, code: STALE_FENCE });
+  });
+
+  it("does not treat settlement races as world INCIDENT", () => {
+    expect(isContentionSettlementFail(STALE_HEAD)).toBe(true);
+    expect(isContentionSettlementFail(STALE_FENCE)).toBe(true);
+    expect(isContentionSettlementFail("DIGEST_LINEAGE_MISMATCH")).toBe(true);
+    expect(isContentionSettlementFail("NONCONTIGUOUS_SEQUENCE")).toBe(true);
+    expect(isContentionSettlementFail("DUPLICATE_EVENT_CONFLICT")).toBe(true);
+    expect(isContentionSettlementFail("STATE_DIGEST_MISMATCH")).toBe(false);
+    expect(isContentionSettlementFail("SETTLEMENT_UNCERTAIN")).toBe(false);
   });
 });
 

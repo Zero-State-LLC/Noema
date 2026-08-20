@@ -54,7 +54,7 @@ import {
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead } from "./settle-fence";
+import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
 import {
   admitTestWorldId,
   lifecycleRequestedWorldId,
@@ -922,6 +922,23 @@ export class NoemaWorldDO {
       });
       if (!committed.ok) {
         this.world = before;
+        if (isContentionSettlementFail(committed.code)) {
+          const head = await getWorldHead(this.env, w.world_id);
+          if (head && typeof head.revision === "number") {
+            this.world = worldFromHead(head, before);
+            migrateWorldRuntime(this.world);
+            this.meta!.revision = head.revision;
+          }
+          await this.save();
+          return {
+            ok: false,
+            request_id: envl.request_id || "unknown",
+            error: {
+              code: committed.code,
+              message: "That action lost the settlement race. Observe and try again.",
+            },
+          };
+        }
         this.meta!.settlement_ok = false;
         this.meta!.settlement_health = nextSettlementHealth(health, false);
         this.meta!.status = "INCIDENT";
