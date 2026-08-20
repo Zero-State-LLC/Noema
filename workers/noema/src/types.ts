@@ -189,6 +189,12 @@ export interface ObservationAffordance {
   direction?: string;
   acting_for?: string;
   office_id?: string;
+  /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
+  subject_ref?: string;
+  claim?: string;
+  visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+  reconstruction_id?: string;
+  evidence?: string[];
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
