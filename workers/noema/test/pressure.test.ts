@@ -217,6 +217,8 @@ function s1World(): WorldRuntime {
             entity_id: PREFERRED_NODE_ID,
             label: "storage-cell-cache",
             entity_type: "INFRASTRUCTURE",
+            stock_resource: "energy",
+            stock_amount: 8,
           }),
         ],
       },
