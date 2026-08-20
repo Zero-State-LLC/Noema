@@ -109,7 +109,7 @@ describe("GC1-S2 world path", () => {
     await run(w, b, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[a.player_id].budgets.energy = 40;
-    w.players[a.player_id].budgets.storage = 20;
+    w.players[a.player_id].budgets.storage = 11;
     for (const id of ["entity.relay-a", "entity.relay-b", "entity.relay-c"]) {
       const r = await run(w, a, "COMMIT", { operation: "REPAIR", entity_id: id });
       expect(r.ok).toBe(true);
@@ -144,7 +144,7 @@ describe("GC1-S2 world path", () => {
     w.players[founder.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[tech.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[tech.player_id].budgets.energy = 40;
-    w.players[tech.player_id].budgets.storage = 20;
+    w.players[tech.player_id].budgets.storage = 13;
     for (const id of ["entity.relay-a", "entity.relay-b", "entity.relay-c"]) {
       expect((await run(w, tech, "COMMIT", { operation: "REPAIR", entity_id: id })).ok).toBe(true);
     }

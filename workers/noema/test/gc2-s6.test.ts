@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSTRUCT_COSTS,
   REPURPOSE_COST,
   REPURPOSE_FROM_CLASS,
   REPURPOSE_TO_CLASS,
@@ -96,6 +97,7 @@ describe("GC2-S6 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
@@ -138,6 +140,7 @@ describe("GC2-S6 world path", () => {
     const q = principal("player.vesper");
     await run(hidden, q, "ENTER_WORLD");
     hidden.players[q.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    hidden.players[q.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     hidden.players[q.player_id].room_id = "room.vault";
     const blocked = await run(hidden, q, "BUILD", { operation: "REPURPOSE", entity_id: "entity.workshop.x" });
     expect(blocked.ok).toBe(false);
@@ -148,6 +151,7 @@ describe("GC2-S6 world path", () => {
     const other = principal("player.other");
     await run(w, owner, "ENTER_WORLD");
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const opened = await run(w, owner, "WAIT");

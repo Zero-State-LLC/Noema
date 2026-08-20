@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MULTI_CYCLE_CLASS, isInProgress } from "../src/construction";
+import { CONSTRUCT_COSTS, MULTI_CYCLE_CLASS, isInProgress } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText } from "../src/actions";
 import { collectLiveRelays, isRelayEntity } from "../src/communication";
@@ -78,6 +78,7 @@ describe("GC2-S9 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.relay.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
@@ -110,6 +111,7 @@ describe("GC2-S9 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.relay.storage || 0) - 2;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities[0].entity_id;

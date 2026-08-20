@@ -109,7 +109,7 @@ describe("P0 GC9 maintenance custom in PLAY", () => {
         ...DEFAULT_BUDGETS,
         energy: 80,
         compute: 64,
-        storage: 16,
+        storage: 15,
       });
       const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
       expect(r.ok).toBe(true);

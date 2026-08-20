@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSTRUCT_COSTS,
   MULTI_CYCLE_CLASS,
   isInProgress,
   isMultiCycleClass,
   workshopStorageDiscount,
 } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
-import { CONSTRUCT_COSTS } from "../src/construction";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText } from "../src/actions";
 import { projectionIdForEvent } from "../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -91,6 +91,8 @@ describe("GC2-S13 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage =
+      16 - (CONSTRUCT_COSTS.workshop.storage || 0) - (CONSTRUCT_COSTS.route_link.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
@@ -115,7 +117,7 @@ describe("GC2-S13 world path", () => {
     const storageBeforeLink = w.players[p.player_id].budgets.storage;
     const link = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(link.ok).toBe(true);
-    expect(storageBeforeLink - w.players[p.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.route_link.storage);
+    expect(w.players[p.player_id].budgets.storage - storageBeforeLink).toBe(CONSTRUCT_COSTS.route_link.storage);
     expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "route_link")!)).toBe(true);
 
     const waited = await run(w, p, "WAIT");
@@ -134,6 +136,7 @@ describe("GC2-S13 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0) - 2;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities[0].entity_id;

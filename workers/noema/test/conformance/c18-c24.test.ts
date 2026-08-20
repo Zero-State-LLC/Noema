@@ -85,6 +85,7 @@ describe("C19 production / consumption", () => {
     const w = strategicChamber("test.hosted-canonical.c19");
     const p = principal("player.a");
     await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.storage = 16 - (COSTS.REPAIR.storage || 0);
     const before = { ...w.players[p.player_id].budgets };
     const cond = w.rooms[MINI_ENTRY_ROOM_ID].entities.find((e) => e.entity_id === RELAY_ID)!.condition!;
 
@@ -93,7 +94,7 @@ describe("C19 production / consumption", () => {
     expect(r.observation?.consequence).toMatch(/repaired/i);
     expect(w.players[p.player_id].budgets.energy).toBe(before.energy - (COSTS.REPAIR.energy || 0));
     expect(w.players[p.player_id].budgets.compute).toBe(before.compute - (COSTS.REPAIR.compute || 0));
-    expect(w.players[p.player_id].budgets.storage).toBe(before.storage - (COSTS.REPAIR.storage || 0));
+    expect(w.players[p.player_id].budgets.storage).toBe(before.storage + (COSTS.REPAIR.storage || 0));
     expect(w.rooms[MINI_ENTRY_ROOM_ID].entities.find((e) => e.entity_id === RELAY_ID)!.condition).toBe(
       Math.min(100, cond + 15),
     );
@@ -181,6 +182,7 @@ describe("C22 infrastructure state", () => {
     const w = strategicChamber("test.hosted-canonical.c22");
     const p = principal("player.a");
     await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.storage = 15;
     await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: RELAY_ID });
     expect(w.rooms[MINI_ENTRY_ROOM_ID].entities.find((e) => e.entity_id === RELAY_ID)!.condition).toBe(85);
     const look = await run(w, p, "LOOK");

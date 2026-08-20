@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConstructibleClass, withAnnexAttention } from "../src/construction";
+import { CONSTRUCT_COSTS, parseConstructibleClass, withAnnexAttention } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { COSTS, DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText } from "../src/actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -87,6 +87,7 @@ describe("GC2-S4 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.archive_annex.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/archive annex is under construction/i);
@@ -110,6 +111,7 @@ describe("GC2-S4 world path", () => {
     const q = principal("player.vesper");
     await run(hidden, q, "ENTER_WORLD");
     hidden.players[q.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    hidden.players[q.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.archive_annex.storage || 0);
     hidden.players[q.player_id].room_id = "room.vault";
     const blocked = await run(hidden, q, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(blocked.ok).toBe(false);

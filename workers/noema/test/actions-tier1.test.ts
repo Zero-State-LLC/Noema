@@ -197,6 +197,7 @@ describe("Tier 1 world mutations", () => {
       expect.arrayContaining(["INSPECT", "OBSERVATION_GENERATED"]),
     );
 
+    w.players[human.player_id].budgets.storage = 15;
     const beforeCond = w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-7")!.condition!;
     r = await run(w, human, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
     expect(r.ok).toBe(true);
@@ -280,7 +281,9 @@ describe("Tier 1 world mutations", () => {
     await run(w2, a, "ENTER_WORLD");
     // equalize budgets
     w1.players[h.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w1.players[h.player_id].budgets.storage = 15;
     w2.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w2.players[a.player_id].budgets.storage = 15;
     const r1 = await run(w1, h, "repair scarred-conduit", { line: "repair scarred-conduit" });
     // structured agent
     const r2 = await run(w2, a, "COMMIT", {
@@ -345,7 +348,7 @@ describe("Tier 1 world mutations", () => {
     const aff = deriveAffordances({
       entities: ents,
       exits: [{ direction: "east", to_room_name: "Coldline" }],
-      budgets: cloneBudgets(DEFAULT_BUDGETS),
+      budgets: cloneBudgets({ ...DEFAULT_BUDGETS, storage: 15 }),
       otherPlayers: [{ player_id: "player.other", handle: "other" }],
       openTrades: [],
       selfId: "player.self",
@@ -384,6 +387,7 @@ describe("GC1-S0 derived practice", () => {
       ]),
     );
 
+    w.players[human.player_id].budgets.storage = 15;
     const energyBeforeRepair = w.players[human.player_id].budgets.energy;
     const repair = await run(w, human, "COMMIT", {
       operation: "REPAIR",

@@ -163,7 +163,7 @@ describe("GC9-S1 world integration", () => {
         ...DEFAULT_BUDGETS,
         energy: 80,
         compute: 64,
-        storage: 16,
+        storage: 15,
       });
     };
     refill();

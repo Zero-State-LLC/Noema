@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CONSTRUCT_COSTS } from "../src/construction";
 import {
   constructStorageCost,
   harvestGrade,
@@ -110,9 +111,12 @@ describe("GC8-S1 world path", () => {
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[p.player_id].lot_grades = { storage: "WORN" };
+    const wornNeed = constructStorageCost(CONSTRUCT_COSTS.relay.storage || 0, "WORN");
+    w.players[p.player_id].budgets.storage = 16 - wornNeed;
     const before = w.players[p.player_id].budgets.storage;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
-    expect(w.players[p.player_id].budgets.storage).toBe(before - 5);
+    expect(w.players[p.player_id].budgets.storage).toBe(before + wornNeed);
+    expect(w.players[p.player_id].lot_grades?.storage).toBeUndefined();
   });
 });

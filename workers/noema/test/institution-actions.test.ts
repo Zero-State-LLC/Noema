@@ -137,6 +137,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     await setupOrg(w, founder, treas, "OPERATE_RESOURCE_ACCOUNT");
     await run(w, buyer, "ENTER_WORLD");
     w.players[buyer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[buyer.player_id].budgets.storage = 15;
     const beforeTreasury = w.organizations["org.line"].treasury!.energy;
     const beforeBuyer = w.players[buyer.player_id].budgets.storage;
     const proposed = await run(w, treas, "TRADE", {
@@ -155,8 +156,55 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     expect(w.organizations["org.line"].treasury!.energy).toBe(beforeTreasury - 3);
     expect(w.organizations["org.line"].treasury!.storage).toBe(10 + 1);
     expect(w.players[buyer.player_id].budgets.energy).toBe(DEFAULT_BUDGETS.energy + 3);
-    expect(w.players[buyer.player_id].budgets.storage).toBe(beforeBuyer - 1 - 0);
+    expect(w.players[buyer.player_id].budgets.storage).toBe(beforeBuyer + 1);
     expect(w.institution_pulses).toContain("An institution traded from its treasury.");
+  });
+
+  it("empty treasury cannot offer storage it does not have", async () => {
+    const w = world();
+    const founder = principal("player.nacre");
+    const treas = principal("player.vesper");
+    const buyer = principal("player.oriel");
+    await setupOrg(w, founder, treas, "OPERATE_RESOURCE_ACCOUNT");
+    await run(w, buyer, "ENTER_WORLD");
+    w.organizations["org.line"].treasury!.storage = 0;
+    const proposed = await run(w, treas, "TRADE", {
+      phase: "propose",
+      counterparty_id: buyer.player_id,
+      offered: { storage: 1 },
+      requested: { energy: 1 },
+      acting_for: "org.line",
+    });
+    expect(proposed.ok).toBe(false);
+    expect(proposed.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(proposed.error?.message).toBe("Not enough storage in the treasury.");
+    expect(w.organizations["org.line"].treasury!.storage).toBe(0);
+    expect(Object.keys(w.trades)).toHaveLength(0);
+  });
+
+  it("empty treasury can receive storage", async () => {
+    const w = world();
+    const founder = principal("player.nacre");
+    const treas = principal("player.vesper");
+    const buyer = principal("player.oriel");
+    await setupOrg(w, founder, treas, "OPERATE_RESOURCE_ACCOUNT");
+    await run(w, buyer, "ENTER_WORLD");
+    w.organizations["org.line"].treasury!.storage = 0;
+    w.players[buyer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[buyer.player_id].budgets.storage = 15;
+    const proposed = await run(w, treas, "TRADE", {
+      phase: "propose",
+      counterparty_id: buyer.player_id,
+      offered: { energy: 1 },
+      requested: { storage: 1 },
+      acting_for: "org.line",
+    });
+    expect(proposed.ok).toBe(true);
+    const tradeId = Object.keys(w.trades)[0];
+    const accepted = await run(w, buyer, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(accepted.ok).toBe(true);
+    expect(w.organizations["org.line"].treasury!.storage).toBe(1);
+    expect(w.players[buyer.player_id].budgets.storage).toBe(16);
   });
 
   it("authorized custodian repairs from treasury", async () => {
