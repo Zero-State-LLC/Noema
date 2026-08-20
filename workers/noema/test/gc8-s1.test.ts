@@ -90,6 +90,10 @@ describe("GC8-S1 world path", () => {
     expect(worn.events?.some((e) => e.event_type === "RESOURCE_TRANSFER" && e.payload?.grade === "WORN")).toBe(
       true,
     );
+    // WATCH §5: only real harvests may be narrated "Harvest at <site>".
+    expect(
+      worn.events?.some((e) => e.event_type === "RESOURCE_TRANSFER" && e.payload?.kind === "harvest"),
+    ).toBe(true);
     expect(worn.observation?.lot_lines).toContain("Your energy is worn.");
 
     const q = principal("player.vesper");

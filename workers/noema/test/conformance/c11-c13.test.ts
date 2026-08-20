@@ -118,4 +118,24 @@ describe("C13 spectator onboarding", () => {
     expect(typeof j.sequence).toBe("number");
     expect(calls.every((c) => c.op !== "fetch" || String(c.url || "").includes("/watch"))).toBe(true);
   });
+
+  it("WATCH stays non-mutating: no storage-write or command ops reach the world DO", async () => {
+    // The static page never touches the DO at all.
+    const pageCalls: DoCall[] = [];
+    const page = await hit("/watch", { method: "GET" }, pageCalls);
+    expect(page.status).toBe(200);
+    expect(pageCalls.filter((c) => c.op === "fetch")).toEqual([]);
+
+    // The live snapshot is a bodiless read of the /watch projection only.
+    const calls: DoCall[] = [];
+    const live = await hitWatchLive(calls, { method: "GET" });
+    expect(live.status).toBe(200);
+    const fetches = calls.filter((c) => c.op === "fetch");
+    expect(fetches.length).toBeGreaterThan(0);
+    for (const c of fetches) {
+      expect(String(c.url || "")).toContain("/watch");
+      expect(String(c.url || "")).not.toMatch(/command|settle|genesis|admin|entity|append|put|write|mutate/i);
+      expect(c.body ?? null).toBeNull();
+    }
+  });
 });
