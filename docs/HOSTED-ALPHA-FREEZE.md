@@ -2,8 +2,8 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `7349328567084f5b68711aa2a2484fd7c4ed96ae` (`#355`)  
-**Deployed Worker.** `1e641694-1473-4f41-91be-f24f3bfc738c`  
+**Runtime pin.** `63e1c4d748f07cd6a8e3449eae74767a3039c574` (`#357`)  
+**Deployed Worker.** `726a117f-8af2-4fa3-8b58-7e989ab6d889`  
 **Specs pin.** `672b78086ecc71d79c9b9ecc4146c4f5a5454555` (`#182` RFC-0116)  
 **Official client.** PyPI `noema-client==0.1.2`  
 **Product.** https://noema.guru  
@@ -52,6 +52,7 @@ An RFC/ADR is required if the change touches admission, seal, Genesis, verbs, or
 
 Chrome UNFREEZE 2026-08-18: Play folded into Connect.  
 Chrome UNFREEZE 2026-08-19: CONNECT is sign up, install, enter code. Resend-only mail. Admission, seal, Genesis, verbs, and room bound stay frozen. Pin refreshed to `8a93770` / Worker `77130fe1`.  
-Play UNFREEZE 2026-08-19: empty harvest nodes refill 1/cycle. Pin refreshed to `7349328` / Worker `1e641694`.
+Play UNFREEZE 2026-08-19: empty harvest nodes refill 1/cycle. Pin refreshed to `7349328` / Worker `1e641694`.  
+Play UNFREEZE 2026-08-19: empty harvest listed; regen authorized node only. Pin refreshed to `63e1c4d` / Worker `726a117f`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
