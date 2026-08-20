@@ -8,7 +8,13 @@
  * ACCESS_POLICY S3 (RFC-0104): Chamber help names ACCESS. WED / ATTEST stay omitted.
  */
 
-import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
+import {
+  ACCESS_POLICY_COST,
+  ACCESS_PROFILE,
+  parseAccessMode,
+  parseAccessPolicyLine,
+  parseAccessScope,
+} from "./access-policy";
 import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
 import {
   CONSTRUCTIBLE_CLASSES,
@@ -472,6 +478,13 @@ export type Affordance = {
   agreement_id?: string;
   /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
   agreement_reason?: string;
+  /** RFC-0104. Structured ACCESS_POLICY. */
+  scope?: "EXIT" | "ROOM";
+  mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
+  applies_to?: string;
+  direction?: string;
+  acting_for?: string;
+  office_id?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2921,6 +2934,14 @@ export function deriveAffordances(input: {
   roomId?: string;
   openContests?: OpenContest[];
   agreements?: FormalAgreement[];
+  accessRestrictions?: Array<{
+    scope: "EXIT" | "ROOM";
+    mode: "DENY" | "ALLOW_ONLY";
+    applies_to: string;
+    room_id?: string;
+    exit_id?: string;
+    expires_cycle: number;
+  }>;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3508,6 +3529,72 @@ export function deriveAffordances(input: {
           kind: "social",
         });
         formN += 1;
+      }
+    }
+
+    const liveRestrictions = (input.accessRestrictions || []).filter(
+      (r) => r.room_id === roomId && nowCycle <= r.expires_cycle,
+    );
+    const herePeople = otherPlayers.filter((p) => p.player_id !== selfId && p.room_id === roomId);
+    let accessN = 0;
+    for (const org of organizations) {
+      if (accessN >= 8) break;
+      const seats = occupiedOfficesFor(org, selfId, ACCESS_PROFILE);
+      if (!seats.length) continue;
+      const office_id = seats.length > 1 ? seats[0].office_id : undefined;
+      const purse = org.treasury || { attention: 0, compute: 0, energy: 0, influence: 0, storage: 0 };
+      const ok = canPay(purse, ACCESS_POLICY_COST);
+      const pushAccess = (
+        scope: "EXIT" | "ROOM",
+        mode: "DENY" | "CLEAR" | "ALLOW_ONLY",
+        applies_to: string,
+        direction?: string,
+        label?: string,
+      ) => {
+        if (accessN >= 8) return;
+        const where = scope === "ROOM" ? "here" : direction || "";
+        const modeCmd = mode === "ALLOW_ONLY" ? "allow" : mode.toLowerCase();
+        const appliesCmd = mode === "ALLOW_ONLY" ? ` applies_to=${applies_to}` : "";
+        out.push({
+          action: "ACCESS_POLICY",
+          verb: "COMMIT",
+          operation: "ACCESS_POLICY",
+          label: label || `${mode === "ALLOW_ONLY" ? "Allow" : mode === "CLEAR" ? "Clear" : "Deny"} access ${where}`,
+          cmd: `access ${where} ${modeCmd} for ${org.org_id}${appliesCmd}`,
+          org_id: org.org_id,
+          acting_for: org.org_id,
+          office_id,
+          scope,
+          mode,
+          applies_to,
+          direction: scope === "EXIT" ? direction : undefined,
+          requires: ACCESS_POLICY_COST,
+          available: ok,
+          reason: ok ? undefined : "The institution cannot pay that access change.",
+          kind: "org",
+        });
+        accessN += 1;
+      };
+      for (const x of exits) {
+        pushAccess("EXIT", "DENY", "*", x.direction);
+      }
+      pushAccess("ROOM", "DENY", "*");
+      for (const r of liveRestrictions) {
+        const dir = r.scope === "EXIT" ? r.exit_id : undefined;
+        if (r.scope === "EXIT" && !dir) continue;
+        pushAccess(
+          r.scope,
+          "CLEAR",
+          r.applies_to,
+          dir,
+          r.scope === "ROOM" ? "Clear access here" : `Clear access ${dir}`,
+        );
+      }
+      for (const p of herePeople) {
+        const handle = p.handle || p.player_id.replace(/^player\./, "");
+        for (const x of exits) {
+          pushAccess("EXIT", "ALLOW_ONLY", p.player_id, x.direction, `Allow ${handle} ${x.direction}`);
+        }
       }
     }
   }

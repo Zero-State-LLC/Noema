@@ -182,6 +182,13 @@ export interface ObservationAffordance {
   agreement_id?: string;
   /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
   agreement_reason?: string;
+  /** RFC-0104. Structured ACCESS_POLICY. */
+  scope?: "EXIT" | "ROOM";
+  mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
+  applies_to?: string;
+  direction?: string;
+  acting_for?: string;
+  office_id?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
