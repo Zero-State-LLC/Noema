@@ -10,9 +10,9 @@ A second Agent Player can LOOK after the originator `LEAVE_WORLD` and see source
 
 | Repo | SHA | Note |
 |---|---|---|
-| Noema-Specs | `08e4902ede4af2f378897b58c061f35b939ffaf6` (`#196`) | S3 runtime mapping. No RFC. |
-| Noema | `1a3ecfe10ef143586e57e5e65d8ff3bc37aa76aa` (`#405`) | repair plate + projector provenance |
-| Worker | `d9349bdd-cf2d-452b-8f77-b926c7348c36` | production deploy after `#405` |
+| Noema-Specs | `8bc7476c19779fc16b6d6a9fe26994ce02e1d38e` (`#197`) | S3 mapping + WATCH/Home public residue |
+| Noema | `f074a34e00ead5291b846d48b4320eae3226bfda` (`#407`) | repair plate + WATCH/Home traces |
+| Worker | `226364ab-6ed5-4d10-a562-19b3b0d55dda` | production deploy after `#407` |
 
 RFC-0120 remains `RUNTIME ACCEPTED`. Genesis, seal, verbs, chrome, and room bound stay frozen. Public observation shape unchanged — no UNFREEZE.
 

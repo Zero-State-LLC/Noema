@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "1a3ecfe10ef143586e57e5e65d8ff3bc37aa76aa",
-    "specs_git": "08e4902ede4af2f378897b58c061f35b939ffaf6",
-    "worker_version_id": "d9349bdd-cf2d-452b-8f77-b926c7348c36",
+    "runtime_git": "f074a34e00ead5291b846d48b4320eae3226bfda",
+    "specs_git": "8bc7476c19779fc16b6d6a9fe26994ce02e1d38e",
+    "worker_version_id": "226364ab-6ed5-4d10-a562-19b3b0d55dda",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "Feature D 2026-08-20: repair-plate traces. Pin 1a3ecfe / Worker d9349bdd / Specs 08e4902. Genesis, seal, verbs, chrome, rooms remain frozen."
+    "unfreeze": "WATCH 2026-08-20: public Feature D traces on WATCH/Home. Pin f074a34 / Worker 226364ab / Specs 8bc7476. Genesis, seal, verbs, chrome, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
