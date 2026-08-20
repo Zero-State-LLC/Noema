@@ -289,11 +289,12 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(PHOSPHOR_ASSET_BUDGET).toBe(200 * 1024);
   });
 
-  it("WATCH visual map pins inventory, tokens, MAJOR-only phosphor, reduced-motion, viewports, budgets", () => {
+  it("WATCH visual map pins inventory, tokens, tiered phosphor, reduced-motion, viewports, budgets", () => {
     const map = readFileSync(join(HERE, "../../../docs/WATCH-VISUAL-MAP.md"), "utf8");
     expect(map).toMatch(/Inventory/);
     expect(map).toMatch(/Tokens/);
-    expect(map).toMatch(/MAJOR-only phosphor/);
+    expect(map).toMatch(/Tiered phosphor — one MAJOR, ≤3 non-MAJOR/);
+    expect(map).toMatch(/exit_active/);
     expect(map).toMatch(/Reduced-motion/);
     expect(map).toMatch(/360 \/ 390 \/ 768 \/ 1280 \/ 1440/);
     expect(map).toMatch(/180 \/ 100 \/ 200/);
@@ -302,7 +303,8 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(map).toMatch(/## Phosphor trigger rules/);
     expect(map).toMatch(/## States and viewports/);
     expect(map).toMatch(/## Budgets/);
-    expect(map).toMatch(/Motion is \*\*MAJOR only\*\*/);
+    expect(map).toMatch(/Motion is \*\*event-born, all tiers\*\*/);
+    expect(map).toMatch(/No ambient loop/);
     expect(map).toMatch(/≤ 180 KiB/);
     expect(map).toMatch(/≤ 100 KiB/);
     expect(map).toMatch(/≤ 200 KiB/);
@@ -338,7 +340,9 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
       1,
       false,
     );
-    expect(pulses.map((p) => p.tier)).toEqual(["MAJOR"]);
+    // Living Chamber (Specs §18.6): tiered event pulses, 1 MAJOR + ≤3 non-MAJOR, newest first.
+    expect(pulses.map((p) => p.tier)).toEqual(["MAJOR", "NOTABLE", "NORMAL"]);
+    expect(pulses.filter((p) => p.tier === "MAJOR")).toHaveLength(1);
     expect(collectPulses(0, { recent_events: [{ sequence: 1, tier: "MAJOR", room_id: "room.a" }] }, 1, true)).toEqual(
       [],
     );

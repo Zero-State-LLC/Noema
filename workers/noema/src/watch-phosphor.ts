@@ -58,6 +58,7 @@ export type PhosphorEvent = {
   room_id?: string;
   line?: string;
   glyph?: string;
+  projection_id?: string;
 };
 
 export type PhosphorSnapshot = {
@@ -161,6 +162,8 @@ export type PhosphorPulse = {
   tier: PhosphorTier;
   born: number;
   ttl: number;
+  /** Public agent_move — lights public edges touching the room (exit_active). */
+  move?: boolean;
 };
 
 export const PHOSPHOR_DIR: Record<string, [number, number]> = {
@@ -424,6 +427,7 @@ export function layoutPublicTopology(
   return { nodes, edges };
 }
 
+/** Living Chamber (§18.6): tiered event pulses. 1 MAJOR, ≤3 non-MAJOR, newest win. */
 export function collectPulses(
   prevSeq: number,
   snapshot: PhosphorSnapshot,
@@ -432,8 +436,7 @@ export function collectPulses(
 ): PhosphorPulse[] {
   if (reducedMotion) return [];
   const events = snapshot.recent_events || [];
-  const pulses: PhosphorPulse[] = [];
-  let major: PhosphorPulse | null = null;
+  const fresh: Array<{ seq: number; pulse: PhosphorPulse }> = [];
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
     const seq = Number(ev.sequence || 0);
@@ -442,11 +445,25 @@ export function collectPulses(
     if (!room) continue;
     const tier: PhosphorTier =
       ev.tier === "MAJOR" ? "MAJOR" : ev.tier === "NOTABLE" ? "NOTABLE" : "NORMAL";
-    if (tier !== "MAJOR") continue;
     const pulse: PhosphorPulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier] };
-    if (!major) major = pulse;
+    if (String(ev.projection_id || "") === "agent_move") pulse.move = true;
+    fresh.push({ seq, pulse });
   }
-  if (major) pulses.push(major);
+  fresh.sort((a, b) => b.seq - a.seq);
+  const pulses: PhosphorPulse[] = [];
+  let major = 0;
+  let minor = 0;
+  for (let i = 0; i < fresh.length; i++) {
+    const p = fresh[i].pulse;
+    if (p.tier === "MAJOR") {
+      if (major >= 1) continue;
+      major += 1;
+    } else {
+      if (minor >= 3) continue;
+      minor += 1;
+    }
+    pulses.push(p);
+  }
   return pulses;
 }
 
@@ -771,13 +788,19 @@ export function drawPhosphorFrame(
   ctx.strokeRect(1, 1, PHOSPHOR_WIDTH - 2, PHOSPHOR_HEIGHT - 2);
 
   const byId = new Map(layout.nodes.map((n) => [n.room_id, n]));
+  const lit: Record<string, true> = {};
+  for (let i = 0; i < pulses.length; i++) {
+    const p = pulses[i];
+    if (p.move === true && now - p.born < p.ttl) lit[p.room_id] = true;
+  }
   ctx.globalAlpha = 1;
   for (let i = 0; i < layout.edges.length; i++) {
     const e = layout.edges[i];
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
-    drawExit(ctx, a.x, a.y, b.x, b.y, e.active === true, e.dashed === true);
+    const active = e.active === true || lit[e.from] === true || lit[e.to] === true;
+    drawExit(ctx, a.x, a.y, b.x, b.y, active, e.dashed === true);
   }
 
   for (let i = 0; i < layout.nodes.length; i++) {
@@ -798,11 +821,15 @@ export function drawPhosphorFrame(
   }
 
   let majorSeen = false;
+  let minorSeen = 0;
   for (let i = 0; i < pulses.length; i++) {
     const p = pulses[i];
     if (p.tier === "MAJOR") {
       if (majorSeen) continue;
       majorSeen = true;
+    } else {
+      if (minorSeen >= 3) continue;
+      minorSeen += 1;
     }
     const n = byId.get(p.room_id);
     if (!n) continue;

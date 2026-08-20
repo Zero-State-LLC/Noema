@@ -460,35 +460,105 @@ describe("slice 2 — certainty and glyphs", () => {
 });
 
 describe("slice 3 — event-driven pulses", () => {
-  it("emits pulses only for new sequences with a public room", () => {
+  it("emits tiered pulses only for new sequences with a public room", () => {
     const born = collectPulses(
       10,
       {
-        sequence: 12,
+        sequence: 13,
         recent_events: [
-          { sequence: 10, tier: "NORMAL", room_id: "room.a" },
-          { sequence: 11, tier: "NOTABLE", room_id: "room.a" },
-          { sequence: 12, tier: "MAJOR", room_id: "room.hidden" },
+          { sequence: 9, tier: "NORMAL", room_id: "room.a" },
+          { sequence: 11, tier: "NORMAL", room_id: "room.a" },
+          { sequence: 12, tier: "NOTABLE", room_id: "room.b" },
+          { sequence: 13, tier: "MAJOR", room_id: "room.c" },
         ],
       },
       100,
       false,
     );
-    expect(born.map((p) => p.tier)).toEqual(["MAJOR"]);
-    expect(collectPulses(12, { sequence: 12, recent_events: born as never[] }, 100, false)).toEqual([]);
-    const twoMajor = collectPulses(
+    expect(born.map((p) => p.tier).sort()).toEqual(["MAJOR", "NORMAL", "NOTABLE"]);
+    expect(born.every((p) => p.born === 100 && p.ttl > 0)).toBe(true);
+    expect(collectPulses(13, { sequence: 13, recent_events: born as never[] }, 100, false)).toEqual([]);
+    const noRoom = collectPulses(
+      0,
+      { sequence: 2, recent_events: [{ sequence: 2, tier: "NOTABLE" }] },
+      1,
+      false,
+    );
+    expect(noRoom).toEqual([]);
+  });
+
+  it("caps concurrency at 1 MAJOR and 3 non-MAJOR, newest win", () => {
+    const born = collectPulses(
       0,
       {
-        sequence: 4,
+        sequence: 7,
         recent_events: [
-          { sequence: 3, tier: "MAJOR", room_id: "room.a" },
-          { sequence: 4, tier: "MAJOR", room_id: "room.b" },
+          { sequence: 1, tier: "NORMAL", room_id: "room.a" },
+          { sequence: 2, tier: "NORMAL", room_id: "room.b" },
+          { sequence: 3, tier: "NOTABLE", room_id: "room.c" },
+          { sequence: 4, tier: "NOTABLE", room_id: "room.d" },
+          { sequence: 5, tier: "MAJOR", room_id: "room.e" },
+          { sequence: 6, tier: "MAJOR", room_id: "room.f" },
+          { sequence: 7, tier: "NORMAL", room_id: "room.g" },
         ],
       },
       1,
       false,
     );
-    expect(twoMajor.filter((p) => p.tier === "MAJOR")).toHaveLength(1);
+    expect(born.filter((p) => p.tier === "MAJOR")).toHaveLength(1);
+    expect(born.filter((p) => p.tier !== "MAJOR")).toHaveLength(3);
+    expect(born.filter((p) => p.tier === "MAJOR")[0].room_id).toBe("room.f");
+    expect(born.filter((p) => p.tier !== "MAJOR").map((p) => p.room_id)).toEqual([
+      "room.g",
+      "room.d",
+      "room.c",
+    ]);
+  });
+
+  it("marks agent_move pulses so touched public edges light as exit_active", () => {
+    const born = collectPulses(
+      0,
+      {
+        sequence: 2,
+        recent_events: [
+          { sequence: 1, tier: "NORMAL", room_id: "room.a", projection_id: "agent_move" },
+          { sequence: 2, tier: "NOTABLE", room_id: "room.b", projection_id: "trade" },
+        ],
+      },
+      1,
+      false,
+    );
+    const move = born.find((p) => p.room_id === "room.a");
+    const trade = born.find((p) => p.room_id === "room.b");
+    expect(move?.move).toBe(true);
+    expect(trade?.move).toBeUndefined();
+  });
+
+  it("a live move pulse draws touched public edges amber; without it edges stay dim", () => {
+    const layout = layoutPublicTopology([
+      { room_id: "room.a", name: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
+      { room_id: "room.b", name: "B" },
+    ]);
+    const strokes = (pulses: never[]) => {
+      const ctx = mockCtx() as Record<string, unknown>;
+      const seen: string[] = [];
+      let style = "";
+      Object.defineProperty(ctx, "strokeStyle", {
+        get: () => style,
+        set: (v: string) => {
+          style = v;
+          seen.push(v);
+        },
+      });
+      drawPhosphorFrame(ctx as never, layout, pulses, 100);
+      return seen;
+    };
+    const lit = strokes([{ room_id: "room.b", tier: "NORMAL", born: 0, ttl: 280, move: true }] as never[]);
+    const unlit = strokes([{ room_id: "room.b", tier: "NORMAL", born: 0, ttl: 280 }] as never[]);
+    expect(lit).toContain("#FFB020");
+    expect(unlit).not.toContain("#FFB020");
+    const expired = strokes([{ room_id: "room.b", tier: "NORMAL", born: 0, ttl: 50, move: true }] as never[]);
+    expect(expired).not.toContain("#FFB020");
   });
 
   it("reduced-motion produces no pulses and no rAF", () => {
@@ -540,6 +610,20 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(html).toContain("clampPhosphorNode");
     expect(html).toContain(".watch-col{position:relative;z-index:1}");
     expect(html).toContain("const __name = function(fn) { return fn; }");
+  });
+
+  it("ships Living Chamber TEXT motion: banner renders, feed settle, mark flash, reduced-motion off", () => {
+    expect(html).toContain(".watch-banner.on{");
+    expect(html).toContain("@keyframes banner-in");
+    expect(html).toContain(".watch-feed li.fresh{animation:feed-settle");
+    expect(html).toContain("@keyframes feed-settle");
+    expect(html).toContain(".watch-line .mark.flash{animation:mark-flash");
+    expect(html).toContain("@keyframes mark-flash");
+    // reduced-motion kills every one-shot animation
+    expect(html).toMatch(/prefers-reduced-motion:reduce[\s\S]*\.watch-line \.mark\.flash,\.watch-banner\.on\{\s*transition:none!important;animation:none!important/);
+    // the banner is no longer gated off under reduced motion — CSS handles stillness
+    expect(html).toContain('if (head.tier === "MAJOR") {');
+    expect(html).not.toContain('head.tier === "MAJOR" && !state.reduce');
   });
 
   it("admin PIXEL click binds the operator follow hook", () => {
