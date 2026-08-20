@@ -77,6 +77,7 @@ import {
   selectScheduleNode,
   selectScheduleRelay,
 } from "./pressure";
+import { previewStockRegen, productionModifier } from "./resource-production";
 import {
   applyPracticeCredits,
   brokerWaivesCaution,
@@ -1465,6 +1466,7 @@ export async function applyWorldCommand(
       }
       await resolveDueContests(w, pushEvent, settleEv);
       await applyScheduledPressure(w, pushEvent, settleEv);
+      await applyResourceProduction(w, pushEvent, settleEv);
       await deliverDelayedMessages(w, pushEvent, settleEv);
       await expireInstitutionEmergencies(w, pushEvent, settleEv);
       for (const room of Object.values(w.rooms)) {
@@ -5533,6 +5535,37 @@ async function resolveDueContests(
     await settleEv(ev);
     if (outcome !== "SUCCESS" && outcome !== "PARTIAL_SUCCESS") continue;
     await applyContestSuccessFollowOns(w, contest, outcome, pushEvent, settleEv);
+  }
+}
+
+async function applyResourceProduction(
+  w: WorldRuntime,
+  pushEvent: PushEv,
+  settleEv: SettleEv,
+): Promise<void> {
+  for (const room of Object.values(w.rooms || {})) {
+    if (!room || isHiddenRoom(room)) continue;
+    const ents = roomEntities(room);
+    const mod = productionModifier(ents);
+    for (const entity of ents) {
+      if (!entity.stock_resource) continue;
+      const before = Math.floor(entity.stock_amount ?? 0);
+      if (before > 0) continue;
+      const after = previewStockRegen(before, mod);
+      if (after <= before) continue;
+      entity.stock_amount = after;
+      const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
+      if (idx >= 0) room.entities[idx] = entity;
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: entity.entity_id,
+        field: "stock_amount",
+        from: before,
+        to: after,
+        authorizer: "schedule",
+        operation: "PRODUCTION",
+      });
+      await settleEv(ev);
+    }
   }
 }
 
