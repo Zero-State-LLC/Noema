@@ -2875,10 +2875,18 @@ export async function applyWorldCommand(
         { ...base, storage: storageNeed || undefined },
         workshopStorageDiscount(roomEntities(target)),
       );
-      if (!canPay(pl.budgets, cost)) {
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to construct.");
       }
-      debit(pl.budgets, cost);
+      if (
+        !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
+      ) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
       if (storageNeed) {
         pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
         pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");

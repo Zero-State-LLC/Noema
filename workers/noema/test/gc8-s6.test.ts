@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { enrichEntity } from "../src/actions";
+import { CONSTRUCT_COSTS } from "../src/construction";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string): PlayerPrincipal {
@@ -131,5 +132,27 @@ describe("GC8-S6 world path", () => {
     );
     expect(repair?.available).toBe(false);
     expect(repair?.reason).toBe("You do not have enough energy or compute.");
+  });
+
+  it("empty hold CONSTRUCT fails materials in hold", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.storage = 16;
+    const r = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    expect(r.ok).toBe(false);
+    expect(r.error?.message).toBe("You do not have materials in hold.");
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
+  });
+
+  it("CONSTRUCT consumes cargo", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    const need = CONSTRUCT_COSTS.generator.storage || 0;
+    w.players[p.player_id].budgets.storage = 16 - need;
+    const r = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
   });
 });
