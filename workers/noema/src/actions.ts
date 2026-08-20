@@ -11,6 +11,8 @@
 import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
 import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
 import {
+  CONSTRUCTIBLE_CLASSES,
+  CONSTRUCT_COSTS,
   liveClassInRoom,
   parseConstructibleClass,
   readyClassInRoom,
@@ -369,6 +371,7 @@ export type CanonicalAction =
         party_ids?: string[];
         agreement_id?: string;
         subject_entity_id?: string;
+        subject_id?: string;
         archive_claim?: "DESTROYED" | "OPERATING";
         office_id?: string;
         display_name?: string;
@@ -423,6 +426,9 @@ export type Affordance = {
   extent?: "overhaul";
   track?: "explorer" | "surveyor" | "broker" | "engineer";
   clear?: boolean;
+  class?: ConstructibleClass;
+  subject_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2303,7 +2309,7 @@ export function normalizeStructuredCommand(
     }
     if (operation === "ATTEST") {
       const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
-      const subject_entity_id = String(args.subject_entity_id || args.subject || "").trim();
+      const subject_entity_id = String(args.subject_entity_id || args.subject_id || args.subject || "").trim();
       const claimRaw = String(args.archive_claim || args.claim || "").toUpperCase();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       if (!subject_entity_id || (claimRaw !== "DESTROYED" && claimRaw !== "OPERATING")) {
@@ -2868,6 +2874,7 @@ export function deriveAffordances(input: {
   practice?: PracticeState | null;
   cycle?: number;
   focus?: FocusState | null;
+  hiddenRoom?: boolean;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3207,6 +3214,71 @@ export function deriveAffordances(input: {
       available: true,
       kind: "utility",
     });
+  }
+
+  if (!input.hiddenRoom) {
+    for (const classId of CONSTRUCTIBLE_CLASSES) {
+      if (liveClassInRoom(entities, classId)) continue;
+      const base = CONSTRUCT_COSTS[classId];
+      const cost = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities));
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      const hasCargo = canConsumeCargo(
+        budgets.storage ?? 0,
+        cargoNeed,
+        reservedCargoFromTrades(openTrades, selfId),
+      );
+      const ok = canPay(budgets, fuel) && hasCargo;
+      const pretty = classId.replace(/_/g, " ");
+      out.push({
+        action: "BUILD",
+        verb: "BUILD",
+        operation: "CONSTRUCT",
+        label: `Construct ${pretty}`,
+        cmd: `construct ${pretty}`,
+        class: classId,
+        requires: cost,
+        available: ok,
+        reason: ok
+          ? undefined
+          : !hasCargo
+            ? "You do not have materials in hold."
+            : "You do not have enough resources to construct.",
+        kind: "utility",
+      });
+    }
+
+    const artifacts = entities.filter(
+      (e) => (e.entity_type || "").toUpperCase() === "ARTIFACT" && !e.archive_claim && !e.archive_subject_entity_id,
+    );
+    const subjects = entities.filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE");
+    let attestN = 0;
+    for (const art of artifacts) {
+      for (const sub of subjects) {
+        if (attestN >= 6) break;
+        for (const claim of ["OPERATING", "DESTROYED"] as const) {
+          if (attestN >= 6) break;
+          const attestCost = withAnnexAttention({ ...COSTS.ATTEST }, readyClassInRoom(entities, "archive_annex"));
+          const ok = canPay(budgets, attestCost);
+          out.push({
+            action: "ATTEST",
+            verb: "COMMIT",
+            operation: "ATTEST",
+            label: `Attest ${titleCaseLabel(art.label)} — ${titleCaseLabel(sub.label)} ${claim.toLowerCase()}`,
+            cmd: `attest ${art.label} subject=${sub.entity_id} claim=${claim}`,
+            target_id: art.entity_id,
+            target_label: art.label,
+            subject_id: sub.entity_id,
+            archive_claim: claim,
+            requires: attestCost,
+            available: ok,
+            reason: ok ? undefined : "You do not have enough attention.",
+            kind: "utility",
+          });
+          attestN += 1;
+        }
+      }
+    }
   }
 
   const emptyStock = (entities || []).some((e) => e.stock_resource && (e.stock_amount ?? 0) <= 0);
