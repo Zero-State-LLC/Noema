@@ -555,6 +555,7 @@ export function buildObservation(
     roomId: room.room_id,
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
     agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
+    accessRestrictions: w.access_restrictions || [],
   });
   const available_actions = [
     ...new Set(
@@ -722,6 +723,12 @@ export function buildObservation(
       party_ids: a.party_ids,
       agreement_id: a.agreement_id,
       agreement_reason: a.agreement_reason,
+      scope: a.scope,
+      mode: a.mode,
+      applies_to: a.applies_to,
+      direction: a.direction,
+      acting_for: a.acting_for,
+      office_id: a.office_id,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1391,6 +1398,7 @@ export async function applyWorldCommand(
         roomId: room?.room_id,
         openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
         agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
+        accessRestrictions: w.access_restrictions || [],
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
