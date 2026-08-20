@@ -13,6 +13,12 @@ import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
 import {
   CONSTRUCTIBLE_CLASSES,
   CONSTRUCT_COSTS,
+  DISMANTLE_COST,
+  REPURPOSE_COST,
+  REPURPOSE_FROM_CLASS,
+  UPGRADE_COST,
+  infraClassOf,
+  isInProgress,
   liveClassInRoom,
   parseConstructibleClass,
   readyClassInRoom,
@@ -3277,6 +3283,114 @@ export function deriveAffordances(input: {
           });
           attestN += 1;
         }
+      }
+    }
+
+    const stewardOf = (e: EntityRuntime) =>
+      e.owner_id === selfId ||
+      e.co_owner_id === selfId ||
+      e.co_owner_2_id === selfId ||
+      e.co_owner_3_id === selfId ||
+      e.co_owner_4_id === selfId ||
+      e.co_owner_5_id === selfId;
+    const cargoOk = (need: number) =>
+      canConsumeCargo(budgets.storage ?? 0, need, reservedCargoFromTrades(openTrades, selfId));
+    for (const e of entities) {
+      const classId = infraClassOf(e);
+      const name = titleCaseLabel(e.label);
+      if (classId && (e.unclaimed || stewardOf(e))) {
+        const ok = canPay(budgets, DISMANTLE_COST);
+        out.push({
+          action: "BUILD",
+          verb: "BUILD",
+          operation: "DISMANTLE",
+          label: `Dismantle ${name}`,
+          cmd: `dismantle ${e.label}`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          requires: DISMANTLE_COST,
+          available: ok,
+          reason: ok ? undefined : "You need energy 4 and compute 2 to dismantle.",
+          kind: "utility",
+        });
+      }
+      if (classId === "workshop" && stewardOf(e) && !isInProgress(e)) {
+        if (!e.unclaimed && (e.upgrade_tier || 0) < 1) {
+          const cost = withWorkshopStorage({ ...UPGRADE_COST }, workshopStorageDiscount(entities));
+          const need = cost.storage || 0;
+          const fuel = { ...cost, storage: undefined };
+          const ok = canPay(budgets, fuel) && cargoOk(need);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "UPGRADE",
+            label: `Upgrade ${name}`,
+            cmd: `upgrade ${e.label}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            requires: cost,
+            available: ok,
+            reason: ok
+              ? undefined
+              : !cargoOk(need)
+                ? "You do not have materials in hold."
+                : "You do not have enough resources to upgrade.",
+            kind: "utility",
+          });
+        }
+        if (classId === REPURPOSE_FROM_CLASS) {
+          const cost = withWorkshopStorage({ ...REPURPOSE_COST }, workshopStorageDiscount(entities));
+          const need = cost.storage || 0;
+          const fuel = { ...cost, storage: undefined };
+          const ok = canPay(budgets, fuel) && cargoOk(need);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "REPURPOSE",
+            label: `Repurpose ${name} as a storage bay`,
+            cmd: `repurpose ${e.label}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            requires: cost,
+            available: ok,
+            reason: ok
+              ? undefined
+              : !cargoOk(need)
+                ? "You do not have materials in hold."
+                : "You do not have enough resources to repurpose.",
+            kind: "utility",
+          });
+        }
+      }
+      if (
+        classId &&
+        e.unclaimed &&
+        stewardOf(e) &&
+        !e.scar &&
+        (e.entity_type || "").toUpperCase() !== "RUIN"
+      ) {
+        const base = CONSTRUCT_COSTS[classId];
+        const cost = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities));
+        const need = cost.storage || 0;
+        const fuel = { ...cost, storage: undefined };
+        const ok = canPay(budgets, fuel) && cargoOk(need);
+        out.push({
+          action: "BUILD",
+          verb: "BUILD",
+          operation: "RESTORE",
+          label: `Restore ${name}`,
+          cmd: `restore ${e.label}`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          requires: cost,
+          available: ok,
+          reason: ok
+            ? undefined
+            : !cargoOk(need)
+              ? "You do not have materials in hold."
+              : "You do not have enough resources to restore.",
+          kind: "utility",
+        });
       }
     }
   }

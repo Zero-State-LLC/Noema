@@ -149,5 +149,64 @@ describe("agent CONSTRUCT and ATTEST affordances", () => {
     expect(look.ok).toBe(true);
     const aff = look.observation?.affordances || [];
     expect(aff.some((x) => x.operation === "CONSTRUCT" || x.operation === "ATTEST")).toBe(false);
+    expect(aff.some((x) => ["DISMANTLE", "UPGRADE", "REPURPOSE", "RESTORE"].includes(x.operation || ""))).toBe(
+      false,
+    );
+  });
+
+  it("owned workshop advertises UPGRADE, REPURPOSE, and DISMANTLE; UPGRADE then drops", async () => {
+    const w = world();
+    const a = agent("nacre");
+    await run(w, a, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 8;
+    w.players[a.player_id].budgets.energy = 40;
+    const built = await run(w, a, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
+    expect(built.ok).toBe(true);
+    const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop");
+    expect(shop).toBeTruthy();
+    shop!.in_progress = undefined;
+    const look = await run(w, a, "LOOK");
+    const aff = look.observation?.affordances || [];
+    expect(aff.some((x) => x.operation === "UPGRADE" && x.target_id === shop?.entity_id)).toBe(true);
+    expect(aff.some((x) => x.operation === "REPURPOSE" && x.target_id === shop?.entity_id)).toBe(true);
+    expect(aff.some((x) => x.operation === "DISMANTLE" && x.target_id === shop?.entity_id)).toBe(true);
+    const upgraded = await run(w, a, "BUILD", { operation: "UPGRADE", entity_id: shop!.entity_id });
+    expect(upgraded.ok).toBe(true);
+    const after = await run(w, a, "LOOK");
+    expect((after.observation?.affordances || []).some((x) => x.operation === "UPGRADE")).toBe(false);
+    expect((after.observation?.affordances || []).some((x) => x.operation === "REPURPOSE")).toBe(true);
+  });
+
+  it("unclaimed owned infra advertises RESTORE; stranger does not see UPGRADE", async () => {
+    const w = world();
+    const a = agent("nacre");
+    const b = agent("sable");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 8;
+    w.rooms["room.hub"].entities.push(
+      enrichEntity({
+        entity_id: "entity.workshop-abandoned",
+        label: "abandoned-workshop",
+        entity_type: "INFRASTRUCTURE",
+        infra_type: "workshop",
+        owner_id: a.player_id,
+        unclaimed: true,
+        condition: 20,
+      }),
+    );
+    const lookA = await run(w, a, "LOOK");
+    expect(
+      (lookA.observation?.affordances || []).some(
+        (x) => x.operation === "RESTORE" && x.target_id === "entity.workshop-abandoned",
+      ),
+    ).toBe(true);
+    const lookB = await run(w, b, "LOOK");
+    expect((lookB.observation?.affordances || []).some((x) => x.operation === "UPGRADE")).toBe(false);
+    expect(
+      (lookB.observation?.affordances || []).some((x) => x.operation === "RESTORE"),
+    ).toBe(false);
   });
 });
