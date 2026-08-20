@@ -72,7 +72,7 @@ jobs:
               db.unlink()
           rt = NoemaRuntime(db_path=db)
           rt.start_world(root / "fixtures" / "v01-seed" / "world-seed.json")
-          sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+          sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
           rt.apply_player_action(
               sess["session_id"],
               {
