@@ -27,7 +27,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Atmosphere plate | `.watch-atmos` (`/assets/watch-spectator.jpg`) | functional chrome (≤200 KiB assets) |
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
-| ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; line-list fallback) | `#watch-pre` | required text (desktop) |
+| ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; TEXT/no-canvas fallback only, never beside the live canvas) | `#watch-pre` | required text (desktop, TEXT mode) |
 | Recent feed | `#watch-feed` | required text |
 | Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |
 | Key / legend | `#world-key` live SVG catalog (`legendHtml()`) | required text |
@@ -71,7 +71,7 @@ Motion is **event-born, all tiers** (Living Chamber, Specs §18.6). No ambient l
 | Empty / loading / error | none | Headline copy; feed empty state |
 | `PAUSED` | none | `#watch-state` text |
 
-At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win across polls — `capPulses` at merge time, so a newer event replaces the oldest live pulse instead of being dropped). Events outside the public layout never pulse and never consume a cap slot. Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology, and layout itself never lights an edge from recent events. The canvas paints ground fill, border, topology, occupancy, and pulses only — no decorative field wash. PIXEL is opt-in; TEXT is default authority.
+At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win across polls — `capPulses` at merge time, so a newer event replaces the oldest live pulse instead of being dropped). Events outside the public layout never pulse and never consume a cap slot. Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology, and layout itself never lights an edge from recent events. The canvas paints ground fill, border, topology, occupancy, and pulses only — no decorative field wash. PIXEL renders by default when Canvas 2D is available (client preference `noema.watch.mode`); TEXT stays the complete authority, one keystroke away, and is the only mode that shows the §4.B.1 ASCII cartogram — one map at a time.
 
 ---
 
