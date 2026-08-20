@@ -26,6 +26,7 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
     seal?: string;
     official_client?: string;
     name?: string;
+    unfreeze?: string;
   };
 };
 
