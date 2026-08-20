@@ -42,7 +42,7 @@ describe("hosted alpha freeze", () => {
     expect(COMPAT.frozen_release?.worker_version_id).toBe(FROZEN_WORKER);
     expect(COMPAT.frozen_release?.genesis_id).toBe("genesis.ef578f4ffceeccd0");
     expect(COMPAT.frozen_release?.seal).toBe(FROZEN_SEAL);
-    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.2");
+    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.3");
     expect(COMPAT.frozen_release?.name).toBe("hosted-alpha-0.12.1");
   });
 
