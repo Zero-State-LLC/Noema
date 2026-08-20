@@ -2066,13 +2066,13 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "MOVE") {
-    const raw = String(args.direction || args.exit_id || "").toLowerCase();
+    const raw = String(args.direction || args.exit_id || args.target_id || "").toLowerCase();
     if (!raw) return { ok: false, error: "direction required", code: "INVALID_REQUEST" };
     const direction = canonicalizeDirection(raw) || raw;
     return { ok: true, action: { verb: "MOVE", arguments: { direction } }, display: `MOVE ${direction}` };
   }
   if (cmd === "INSPECT") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     return { ok: true, action: { verb: "INSPECT", arguments: { entity_id } }, display: `INSPECT ${entity_id}` };
   }
@@ -2086,7 +2086,7 @@ export function normalizeStructuredCommand(
       rawSurface === "TRADE_NOTICE"
         ? rawSurface
         : undefined;
-    const recipient_id = String(args.recipient_id || args.target || "").trim();
+    const recipient_id = String(args.recipient_id || args.target_id || args.target || "").trim();
     const text = String(args.text || "").trim();
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
@@ -2163,7 +2163,7 @@ export function normalizeStructuredCommand(
   if (cmd === "COMMIT") {
     const operation = String(args.operation || "").toUpperCase();
     if (operation === "REPAIR" || operation === "HARVEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       const extent =
         operation === "REPAIR" && String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
@@ -2290,7 +2290,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "ATTEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const subject_entity_id = String(args.subject_entity_id || args.subject || "").trim();
       const claimRaw = String(args.archive_claim || args.claim || "").toUpperCase();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
@@ -2659,7 +2659,7 @@ export function normalizeStructuredCommand(
     }
   }
   if (cmd === "REPAIR") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     const extent = String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
     return {
@@ -2669,7 +2669,7 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "HARVEST") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     return {
       ok: true,
@@ -2701,7 +2701,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "DISMANTLE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2710,7 +2710,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "UPGRADE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2719,7 +2719,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "REPURPOSE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2728,7 +2728,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "RESTORE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2737,7 +2737,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "VEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const org_id = String(args.org_id || args.acting_for || "").trim();
       if (!entity_id || !org_id) return { ok: false, error: "entity_id and org_id required", code: "INVALID_REQUEST" };
       return {
@@ -2747,7 +2747,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "SHARE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const player_id = String(args.player_id || args.agent_id || args.partner_id || "").trim();
       if (!entity_id || !player_id) {
         return { ok: false, error: "entity_id and player_id required", code: "INVALID_REQUEST" };
@@ -2759,7 +2759,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "CONNECT") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const dest = String(args.dest || args.dest_room_id || args.direction || "").trim();
       if (!entity_id || !dest) {
         return { ok: false, error: "entity_id and dest required", code: "INVALID_REQUEST" };
@@ -2934,6 +2934,7 @@ export function deriveAffordances(input: {
       verb: "MOVE",
       label: `Move ${x.direction}${x.to_room_name ? " · " + x.to_room_name : ""}`,
       cmd: `move ${x.direction}`,
+      target_id: x.direction,
       requires: moveCost,
       available: ok,
       reason: ok ? undefined : "You do not have enough energy.",
