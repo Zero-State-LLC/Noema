@@ -287,7 +287,7 @@ import {
   type StakeMap,
 } from "./contest";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
-import { projectRoomTraces, publicTraces, safePlateHandle } from "./play-traces";
+import { laterTraceInputs, projectRoomTraces, publicTraces, safePlateHandle } from "./play-traces";
 import {
   applyAliasCommand,
   expandAliases,
@@ -608,6 +608,16 @@ export function buildObservation(
           shout: room.shout,
           institution_notice: room.institution_notice,
           trade_notice: room.trade_notice,
+          ...laterTraceInputs({
+            room_id: room.room_id,
+            entities,
+            rumor: w.rumor,
+            orgs: Object.values(w.organizations || {}).map((o) => ({
+              org_id: o.org_id,
+              name: o.name,
+              offices: o.offices,
+            })),
+          }),
         }),
       ),
     },

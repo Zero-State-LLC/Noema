@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectRoomTraces, publicTraces } from "../src/play-traces";
+import { laterTraceInputs, projectRoomTraces, publicTraces } from "../src/play-traces";
 import { roomPresentationModel } from "../src/play-ui";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { enrichEntity } from "../src/actions";
@@ -311,6 +311,66 @@ describe("S3 play traces", () => {
         ],
       }),
     ).toEqual([]);
+  });
+
+  it("projects public rumor, org insignia, and vacant-office memorials as notices", () => {
+    const traces = projectRoomTraces({
+      entities: [{ entity_id: "entity.relay-7", label: "scarred-conduit", owner_id: "org.line" }],
+      public_rumor: { contested: true },
+      org_marks: [{ name: "Line" }],
+      vacant_offices: [{ org_name: "Line", office_name: "Treasurer" }],
+    });
+    expect(publicTraces(traces).map((t) => t.text)).toEqual([
+      "A public report concerns this site.",
+      "Accounts of this differ.",
+      "Marks of Line remain here.",
+    ]);
+    expect(JSON.stringify(publicTraces(traces))).not.toMatch(/org\.|entity\.|player\.|claim\./);
+    expect(
+      projectRoomTraces({
+        hidden: true,
+        public_rumor: { contested: true },
+        org_marks: [{ name: "Line" }],
+      }),
+    ).toEqual([]);
+  });
+
+  it("laterTraceInputs keeps private rumor off traces and binds marks to org-owned works", () => {
+    const later = laterTraceInputs({
+      room_id: "room.hub",
+      entities: [{ entity_id: "entity.relay-7", owner_id: "org.line" }],
+      rumor: {
+        claims: {
+          "claim.priv": { visibility: "PRIVATE", subject_ref: "entity.relay-7", origin_claim_id: "claim.priv" },
+          "claim.pub": { visibility: "PUBLIC", subject_ref: "entity.relay-7", origin_claim_id: "claim.pub" },
+          "claim.alt": { visibility: "PUBLIC", subject_ref: "entity.relay-7", origin_claim_id: "claim.alt" },
+        },
+      },
+      orgs: [
+        {
+          org_id: "org.line",
+          name: "Line",
+          offices: { o1: { display_name: "Treasurer", status: "VACANT" } },
+        },
+        {
+          org_id: "org.other",
+          name: "Other",
+          offices: { o2: { display_name: "Steward", status: "VACANT" } },
+        },
+      ],
+    });
+    expect(later.public_rumor).toEqual({ contested: true });
+    expect(later.org_marks).toEqual([{ name: "Line" }]);
+    expect(later.vacant_offices).toEqual([{ org_name: "Line", office_name: "Treasurer" }]);
+    expect(
+      laterTraceInputs({
+        room_id: "room.hub",
+        entities: [{ entity_id: "entity.relay-7" }],
+        rumor: {
+          claims: { "claim.priv": { visibility: "PRIVATE", subject_ref: "room.hub", origin_claim_id: "claim.priv" } },
+        },
+      }).public_rumor,
+    ).toBeUndefined();
   });
 
   it("AC 15: second agent sees the plate after the originator leaves", async () => {
