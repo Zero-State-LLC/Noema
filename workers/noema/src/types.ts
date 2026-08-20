@@ -162,6 +162,20 @@ export interface ObservationAffordance {
   player_id?: string;
   /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
   dest?: string;
+  /** GC7. Structured CONTEST form / target / stake. */
+  contest_form?: string;
+  target?: {
+    kind: string;
+    entity_id?: string;
+    exit_id?: string;
+    room_id?: string;
+    agent_id?: string;
+    holder_id?: string;
+    resource?: string;
+    amount?: number;
+  };
+  contest_id?: string;
+  stake?: Record<string, number>;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;

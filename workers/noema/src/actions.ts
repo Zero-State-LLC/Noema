@@ -32,10 +32,16 @@ import {
   type ConstructibleClass,
 } from "./construction";
 import {
+  DECLARE_COST,
+  DEFEND_COST,
+  FORM_SPECS,
+  MAX_OPEN_PER_AGENT,
+  MAX_OPEN_PER_ROOM,
   isForbiddenContestVerb,
   parseContestForm,
   type ContestForm,
   type ContestTarget,
+  type OpenContest,
 } from "./contest";
 import { parseAgreementReason, parseAgreementType } from "./diplomacy";
 import {
@@ -447,6 +453,11 @@ export type Affordance = {
   player_id?: string;
   /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
   dest?: string;
+  /** GC7. Structured CONTEST form / target / stake. */
+  contest_form?: ContestForm;
+  target?: ContestTarget;
+  contest_id?: string;
+  stake?: Record<string, number>;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2884,7 +2895,7 @@ export function deriveAffordances(input: {
   entities: EntityRuntime[];
   exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>;
   budgets: Budgets;
-  otherPlayers: Array<{ player_id: string; handle?: string }>;
+  otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string }>;
   openTrades: OpenTrade[];
   organizations?: Organization[];
   selfId: string;
@@ -2893,6 +2904,8 @@ export function deriveAffordances(input: {
   cycle?: number;
   focus?: FocusState | null;
   hiddenRoom?: boolean;
+  roomId?: string;
+  openContests?: OpenContest[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3232,6 +3245,165 @@ export function deriveAffordances(input: {
       available: true,
       kind: "utility",
     });
+  }
+
+  const roomId = input.roomId;
+  const nowCycle = input.cycle || 0;
+  const stakeLine = (stake: Record<string, number>) =>
+    Object.entries(stake)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(",");
+  const mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets> => {
+    const merged: Partial<Budgets> = { ...cost };
+    for (const [k, amt] of Object.entries(stake)) {
+      merged[k as keyof Budgets] = (merged[k as keyof Budgets] || 0) + amt;
+    }
+    return merged;
+  };
+  const payStake = (cost: Partial<Budgets>, stake: Record<string, number>) => canPay(budgets, mergeCost(cost, stake));
+  const hereContests = (input.openContests || []).filter(
+    (c) => c.status === "OPEN" && (!roomId || c.room_id === roomId),
+  );
+  if (!input.hiddenRoom && roomId) {
+    for (const c of hereContests) {
+      const expired = nowCycle >= c.expires_cycle;
+      const participant = c.declarer_id === selfId || c.defender_id === selfId;
+      if (participant && !expired) {
+        out.push({
+          action: "CONTEST_WITHDRAW",
+          verb: "COMMIT",
+          operation: "CONTEST_WITHDRAW",
+          label: `Withdraw from ${c.contest_id}`,
+          cmd: `withdraw ${c.contest_id}`,
+          contest_id: c.contest_id,
+          contest_form: c.contest_form,
+          available: true,
+          kind: "social",
+        });
+      }
+      const canDefend =
+        !expired &&
+        c.declarer_id !== selfId &&
+        (!c.defender_id || c.defender_id === selfId) &&
+        Object.keys(c.defender_stake || {}).length === 0;
+      if (canDefend) {
+        const stake = { ...FORM_SPECS[c.contest_form].minimum_stake };
+        const ok = payStake(DEFEND_COST, stake);
+        out.push({
+          action: "CONTEST_DEFEND",
+          verb: "COMMIT",
+          operation: "CONTEST_DEFEND",
+          label: `Defend ${c.contest_id}`,
+          cmd: `defend ${c.contest_id} stake=${stakeLine(stake)}`,
+          contest_id: c.contest_id,
+          contest_form: c.contest_form,
+          stake,
+          requires: mergeCost(DEFEND_COST, stake),
+          available: ok,
+          reason: ok ? undefined : "You do not have enough resources to defend.",
+          kind: "social",
+        });
+      }
+    }
+    const ownOpen = (input.openContests || []).filter(
+      (c) => c.status === "OPEN" && c.declarer_id === selfId,
+    ).length;
+    const roomOpen = hereContests.length;
+    if (ownOpen < MAX_OPEN_PER_AGENT && roomOpen < MAX_OPEN_PER_ROOM) {
+      const declareRows: Affordance[] = [];
+      const pushDeclare = (
+        form: ContestForm,
+        target: ContestTarget,
+        label: string,
+        cmdTarget: string,
+        target_id?: string,
+      ) => {
+        if (declareRows.length >= 8) return;
+        const stake = { ...FORM_SPECS[form].minimum_stake };
+        const ok = payStake(DECLARE_COST, stake);
+        const pretty = form.replace(/_/g, " ").toLowerCase();
+        const formCmd =
+          form === "INFRASTRUCTURE_DISRUPTION"
+            ? "disruption"
+            : form === "RESOURCE_SEIZURE"
+              ? "seizure"
+              : form === "ACCESS_CONTEST"
+                ? "access"
+                : form === "PRESENCE_PRESSURE"
+                  ? "presence"
+                  : "information";
+        declareRows.push({
+          action: "CONTEST_DECLARE",
+          verb: "COMMIT",
+          operation: "CONTEST_DECLARE",
+          label: `Contest ${pretty} · ${label}`,
+          cmd: `contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}`,
+          target_id,
+          target_label: label,
+          contest_form: form,
+          target,
+          stake,
+          requires: mergeCost(DECLARE_COST, stake),
+          available: ok,
+          reason: ok ? undefined : "You do not have enough resources to declare.",
+          kind: "social",
+        });
+      };
+      for (const e of entities) {
+        const type = (e.entity_type || "").toUpperCase();
+        if (type === "INFRASTRUCTURE") {
+          pushDeclare(
+            "INFRASTRUCTURE_DISRUPTION",
+            { kind: "ENTITY", entity_id: e.entity_id },
+            titleCaseLabel(e.label),
+            e.label,
+            e.entity_id,
+          );
+        } else if (type === "ARTIFACT") {
+          pushDeclare(
+            "INFORMATION_CONTEST",
+            { kind: "ENTITY", entity_id: e.entity_id },
+            titleCaseLabel(e.label),
+            e.label,
+            e.entity_id,
+          );
+        }
+      }
+      pushDeclare("ACCESS_CONTEST", { kind: "ROOM", room_id: roomId }, "this room", "here", roomId);
+      for (const x of exits) {
+        pushDeclare(
+          "ACCESS_CONTEST",
+          { kind: "EXIT", exit_id: x.direction },
+          x.to_room_name || x.direction,
+          x.direction,
+          x.direction,
+        );
+      }
+      for (const p of otherPlayers) {
+        if (p.player_id === selfId) continue;
+        if (p.room_id && p.room_id !== roomId) continue;
+        if (!p.room_id) continue;
+        const handle = p.handle || p.player_id.replace(/^player\./, "");
+        pushDeclare(
+          "PRESENCE_PRESSURE",
+          { kind: "AGENT", agent_id: p.player_id },
+          handle,
+          handle,
+          p.player_id,
+        );
+      }
+      for (const e of entities) {
+        if ((e.entity_type || "").toUpperCase() !== "INFRASTRUCTURE") continue;
+        pushDeclare(
+          "RESOURCE_SEIZURE",
+          { kind: "ENTITY", entity_id: e.entity_id },
+          titleCaseLabel(e.label),
+          e.label,
+          e.entity_id,
+        );
+      }
+      out.push(...declareRows);
+    }
   }
 
   if (!input.hiddenRoom) {
