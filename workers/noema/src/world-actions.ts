@@ -1436,11 +1436,15 @@ export async function applyWorldCommand(
   if (action.verb === "WAIT") {
     const waitCycles = 1;
     pl.wait_until_cycle = w.cycle + waitCycles;
-    // Rest restores attention/compute/energy so agents cannot deadlock at energy 0.
-    // HARVEST remains net-negative (cost 2, credit 1) per GC8 distance interdependence.
+    // Rest restores attention/compute always. Energy rest is only an escape hatch
+    // when stranded near 0 — HARVEST stays net-negative (GC8), and WORN spoilage
+    // on cycle commit must still reduce energy by 1 for non-stranded stacks.
     pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
-    pl.budgets.energy = Math.min(DEFAULT_BUDGETS.energy, (pl.budgets.energy ?? 0) + 2);
+    const energyNow = pl.budgets.energy ?? 0;
+    if (energyNow <= 2) {
+      pl.budgets.energy = Math.min(DEFAULT_BUDGETS.energy, energyNow + 2);
+    }
     const committed = commitCycleIfReady(w);
     pushEvent(
       "WAIT",
