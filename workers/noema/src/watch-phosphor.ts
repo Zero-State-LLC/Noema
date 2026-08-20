@@ -1267,22 +1267,32 @@ export function phosphorInlineScript(bind?: {
     const pixelBtn = document.getElementById(${JSON.stringify(pixelBtnId)});
     let reduce = false;
     try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    // §18: default is PIXEL when Canvas 2D is available. TEXT persists client-locally.
+    const MODE_KEY = "noema.watch.mode";
+    let bootMode = "pixel";
+    try {
+      const m = localStorage.getItem(MODE_KEY);
+      if (m === "text" || m === "pixel") bootMode = m;
+    } catch (e) { /* preference only */ }
     const session = createPhosphorSession({
       canvas: canvas,
       reducedMotion: reduce,
-      mode: "text",
+      mode: bootMode,
       now: function() { return Date.now(); },
       raf: function(cb) { return window.requestAnimationFrame(cb); },
       caf: function(id) { window.cancelAnimationFrame(id); }
     });
+    function storeMode(m) {
+      try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* preference only */ }
+    }
     function syncMode() {
       const pixel = session.mode === "pixel";
       if (wrap) wrap.hidden = !pixel;
       if (textBtn) textBtn.setAttribute("aria-pressed", pixel ? "false" : "true");
       if (pixelBtn) pixelBtn.setAttribute("aria-pressed", pixel ? "true" : "false");
     }
-    if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); syncMode(); });
-    if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); syncMode(); });
+    if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); storeMode("text"); syncMode(); });
+    if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); storeMode("pixel"); syncMode(); });
     if (canvas && typeof canvas.addEventListener === "function") {
       try { if (canvas.style) canvas.style.cursor = "pointer"; } catch (e) {}
       canvas.addEventListener("click", function(ev) {

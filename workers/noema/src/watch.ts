@@ -179,8 +179,8 @@ export function watchHtml(): string {
       <span id="watch-updated" class="sr">waiting</span>
       <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
-      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="true">TEXT</button>
-      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="false">PIXEL</button>
+      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="false">TEXT</button>
+      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="true">PIXEL</button>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
     </div>
     <div class="watch-state-plate" aria-label="World">
@@ -213,16 +213,16 @@ export function watchHtml(): string {
     <section class="watch-col" aria-labelledby="watch-graph-label">
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
-      <nav aria-label="Public sites">
-        <ul class="watch-graph" id="watch-map"></ul>
-      </nav>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
+        <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch. Click a site to look closer."></canvas>
         <div class="watch-phos-bar">
           <span id="watch-phos-caption">Public sketch — not the world. Click a site to look closer.</span>
         </div>
-        <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch. Click a site to look closer."></canvas>
       </div>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
+      <nav aria-label="Public sites">
+        <ul class="watch-graph" id="watch-map"></ul>
+      </nav>
     </section>
     <section class="watch-col" aria-labelledby="watch-feed-label">
       <h2 id="watch-feed-label">Recently</h2>
@@ -692,14 +692,17 @@ export function watchHtml(): string {
       }
       // §4.B.1: cartogram from the shared layout; line list only as fallback.
       const pre = $("watch-pre");
+      // §18 / §4.B.1: one map at a time — the ASCII cartogram is the TEXT-mode /
+      // no-canvas fallback and never renders alongside the live PIXEL sketch.
+      const pixelOn = !!(window.NoemaPhosphor && window.NoemaPhosphor.mode === "pixel");
       let art = "";
-      if (window.NoemaPhosphor && window.NoemaPhosphor.ascii) {
+      if (!pixelOn && window.NoemaPhosphor && window.NoemaPhosphor.ascii) {
         art = window.NoemaPhosphor.ascii({
           majorRoomId: head.tier === "MAJOR" ? head.room_id || "" : "",
           pickedRoomId: state.focusRoomId || "",
         }) || "";
       }
-      if (!art && shouldPre(rooms)) art = drawPre(rooms);
+      if (!pixelOn && !art && shouldPre(rooms)) art = drawPre(rooms);
       if (art && window.matchMedia("(min-width: 861px)").matches) {
         pre.hidden = false;
         pre.textContent = art;
@@ -799,6 +802,13 @@ export function watchHtml(): string {
         if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
       }
     };
+    // Mode toggle swaps which map renders; re-render after the phosphor
+    // script's own handler has switched the session mode.
+    ["watch-mode-text", "watch-mode-pixel"].forEach((id) => {
+      $(id).addEventListener("click", () => {
+        setTimeout(() => { if (state.last) render(state.last); }, 0);
+      });
+    });
     $("watch-refresh").addEventListener("click", refresh);
     $("watch-pause").addEventListener("click", () => {
       state.paused = !state.paused;

@@ -837,8 +837,9 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     g.window = g;
     try {
       (0, eval)(src);
-      expect(g.NoemaPhosphor?.mode).toBe("text");
-      expect(wrap.hidden).toBe(true);
+      // §18: default is PIXEL when Canvas 2D is available.
+      expect(g.NoemaPhosphor?.mode).toBe("pixel");
+      expect(wrap.hidden).toBe(false);
       g.NoemaPhosphor?.update({
         sequence: 1,
         rooms: [{ room_id: "room.a", name: "Alpha", description: "A" }],
