@@ -3,7 +3,7 @@
 **Channel.** `alpha` — **FROZEN**  
 **Runtime.** `0.12.0` (`spec-compat.json` freeze name `hosted-alpha-0.12.1`)  
 **Product.** https://noema.guru  
-**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `1a3ecfe` · Worker `d9349bdd-cf2d-452b-8f77-b926c7348c36`  
+**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `f074a34` · Worker `226364ab-6ed5-4d10-a562-19b3b0d55dda`  
 **Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.8`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`  
 **Identity.** `docs/RFC-0120-ACCEPTANCE.md` — leftover CONNECT occupancy rebinds; Chamber Role.PLAYER cannot mutate.
