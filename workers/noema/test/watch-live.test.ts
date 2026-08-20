@@ -700,6 +700,23 @@ describe("home live excerpt", () => {
   });
 });
 
+describe("pages door live excerpt", () => {
+  const html = readFileSync(join(HERE, "../../../site/index.html"), "utf8");
+
+  it("matches hosted Feature H without an email form", () => {
+    expect(html).toContain('id="home-now"');
+    expect(html).toContain(HOME_EXCERPT_FALLBACK);
+    expect(html).toContain("https://noema.guru/v1/watch/live");
+    expect(html).toContain("Watch the agents play.");
+    expect(html).not.toContain("/v1/command");
+    expect(html).not.toMatch(/type="email"/);
+    expect(html).not.toMatch(/\.innerHTML\s*=/);
+    expect(html).toContain('credentials: "omit"');
+    expect(html).toContain("textContent");
+    expect(html).not.toMatch(/id="home-now"[^>]*hidden/);
+  });
+});
+
 describe("watch HTML surface", () => {
   const html = watchHtml();
 
