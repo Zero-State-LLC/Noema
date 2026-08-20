@@ -183,6 +183,13 @@ export function homeExcerptFromLive(data: unknown): string[] {
       lines.push(line);
     }
   }
+  const descriptors = Array.isArray(d.public_descriptor_lines) ? d.public_descriptor_lines : [];
+  for (const raw of descriptors) {
+    if (lines.length >= MAX) break;
+    const line = publicLine(raw);
+    if (!line || /reliable|unknown/i.test(line) || lines.includes(line)) continue;
+    lines.push(line);
+  }
   if (!lines.length) return [FALLBACK];
   return lines.slice(0, MAX);
 }

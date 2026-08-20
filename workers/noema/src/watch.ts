@@ -28,6 +28,11 @@ const EXTRA = `
   letter-spacing:.12em;text-transform:uppercase;
 }
 .watch-state-plate .v{display:block;margin-top:.15rem;color:var(--ink);font:550 .9rem/1.3 var(--font-mono)}
+.watch-standing{margin:.85rem 0 0;max-width:36rem}
+.watch-standing[hidden]{display:none}
+.watch-standing h2{margin:0 0 .35rem;color:var(--faint);font:550 .62rem/1.2 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}
+.watch-standing ul{margin:0;padding:0;list-style:none}
+.watch-standing li{margin:.15rem 0;color:var(--ink);font:.82rem/1.45 var(--font-mono)}
 .now-k{
   margin:0 0 .35rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
@@ -190,6 +195,10 @@ export function watchHtml(): string {
       <div><span class="k">Sequence</span><span class="v" id="watch-seq">—</span></div>
       <div><span class="k">Players</span><span class="v" id="watch-players">0</span></div>
     </div>
+    <section class="watch-standing" id="watch-standing" aria-labelledby="watch-standing-label" hidden>
+      <h2 id="watch-standing-label">Public</h2>
+      <ul id="watch-standing-list"></ul>
+    </section>
     ${legendHtml()}
   </header>
 
@@ -330,13 +339,35 @@ export function watchHtml(): string {
       return b;
     }
     function knownForLine(data, handle) {
-      const pools = [data.public_title_lines, data.public_focus_lines];
+      const pools = [data.public_title_lines, data.public_focus_lines, data.public_descriptor_lines];
       for (let i = 0; i < pools.length; i++) {
         const lines = Array.isArray(pools[i]) ? pools[i] : [];
         const hit = lines.find((l) => typeof l === "string" && l.indexOf(handle + " ") === 0);
         if (hit) return hit;
       }
       return "";
+    }
+    function publicStandingLines(data) {
+      const raw = Array.isArray(data.public_descriptor_lines) ? data.public_descriptor_lines : [];
+      const out = [];
+      for (let i = 0; i < raw.length && out.length < 6; i++) {
+        const t = String(raw[i] || "").replace(/\s+/g, " ").trim();
+        if (!t) continue;
+        if (/reliable|unknown/i.test(t)) continue;
+        if (/\b(?:player|room|entity|ctrl)\./i.test(t)) continue;
+        if (out.indexOf(t) >= 0) continue;
+        out.push(t);
+      }
+      return out;
+    }
+    function renderStanding(data) {
+      const standing = $("watch-standing");
+      const list = $("watch-standing-list");
+      if (!standing || !list) return;
+      const lines = publicStandingLines(data);
+      list.replaceChildren();
+      standing.hidden = !lines.length;
+      for (let i = 0; i < lines.length; i++) list.append(el("li", "", lines[i]));
     }
     function renderFollowChrome(data, rooms, events, head) {
       const actorBtn = $("watch-follow-actor");
@@ -522,10 +553,12 @@ export function watchHtml(): string {
         conseq.textContent = "";
       }
       renderFollowChrome(data, rooms, events, head);
+      renderStanding(data);
       const ln = $("watch-low-noise");
       if (ln) {
         const recent = events.map((e) => e.line || e.text || "").filter(Boolean);
-        ln.textContent = [head.line, bits.join(" · "), ...recent.slice(0, 6)].filter(Boolean).join("\\n");
+        const standing = publicStandingLines(data);
+        ln.textContent = [head.line, bits.join(" · "), ...standing, ...recent.slice(0, 6)].filter(Boolean).join("\\n");
         ln.hidden = !document.body.classList.contains("is-low-noise");
       }
       const hero = $("watch-hero");
