@@ -147,6 +147,10 @@ export interface ObservationAffordance {
   target_label?: string;
   /** GC1-S8. Structured REPAIR overhaul. Omitted for standard repair. */
   extent?: "overhaul";
+  /** GC1-S7. Structured FOCUS track. Omitted when `clear` is set. */
+  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  /** GC1-S7. Structured FOCUS clear. */
+  clear?: boolean;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;

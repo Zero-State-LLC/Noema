@@ -15,8 +15,8 @@ function principal(id: string): PlayerPrincipal {
     player_id: id,
     agent_id: `agent.${id}`,
     session_id: "sess.test",
-    controller_id: `ctrl.${id}`,
-    controller_type: "human",
+    controller_id: `ctrl.agent.${id}`,
+    controller_type: "agent",
     scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
     protocol_version: "1",
     authentication_context: "test",
@@ -149,5 +149,27 @@ describe("GC1-S7 world path", () => {
     const cleared = await run(w, a, "FOCUS", { clear: true });
     expect(cleared.ok).toBe(true);
     expect(cleared.observation?.focus_lines || []).toEqual([]);
+  });
+
+  it("LOOK exposes structured FOCUS affordances; clear only when focused", async () => {
+    const w = world();
+    const a = principal("player.sable");
+    await run(w, a, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const look = await run(w, a, "LOOK");
+    expect(look.ok).toBe(true);
+    const aff = look.observation?.affordances || [];
+    const tracks = aff.filter((x) => x.operation === "FOCUS" && x.track);
+    expect(tracks.map((x) => x.track).sort()).toEqual(["broker", "engineer", "explorer", "surveyor"]);
+    expect(aff.some((x) => x.operation === "FOCUS" && x.clear)).toBe(false);
+    expect(look.observation?.available_actions).toContain("FOCUS");
+
+    const set = await run(w, a, "COMMIT", { operation: "FOCUS", track: "engineer" });
+    expect(set.ok).toBe(true);
+    const after = await run(w, a, "LOOK");
+    const afterAff = after.observation?.affordances || [];
+    expect(afterAff.some((x) => x.operation === "FOCUS" && x.track === "engineer")).toBe(false);
+    expect(afterAff.some((x) => x.operation === "FOCUS" && x.clear === true)).toBe(true);
+    expect(JSON.stringify(afterAff.filter((x) => x.operation === "FOCUS"))).not.toMatch(/arguments\.line/);
   });
 });

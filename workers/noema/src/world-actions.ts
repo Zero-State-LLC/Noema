@@ -549,6 +549,7 @@ export function buildObservation(
     cautionToward,
     practice: pl.practice,
     cycle: w.cycle,
+    focus: pl.focus,
   });
   const available_actions = [
     ...new Set(
@@ -700,6 +701,8 @@ export function buildObservation(
       target_id: a.target_id,
       target_label: a.target_label,
       extent: a.extent,
+      track: a.track,
+      clear: a.clear,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1358,6 +1361,7 @@ export async function applyWorldCommand(
         selfId: principal.player_id,
         practice: pl.practice,
         cycle: w.cycle,
+        focus: pl.focus,
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);

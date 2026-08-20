@@ -9,7 +9,7 @@
  */
 
 import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
-import { parseFocusTrack } from "./focus";
+import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
 import {
   liveClassInRoom,
   parseConstructibleClass,
@@ -421,6 +421,8 @@ export type Affordance = {
   target_id?: string;
   target_label?: string;
   extent?: "overhaul";
+  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  clear?: boolean;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2865,6 +2867,7 @@ export function deriveAffordances(input: {
   cautionToward?: Record<string, boolean>;
   practice?: PracticeState | null;
   cycle?: number;
+  focus?: FocusState | null;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3178,6 +3181,33 @@ export function deriveAffordances(input: {
     available: true,
     kind: "utility",
   });
+
+  const current = input.focus?.track;
+  for (const spec of FOCUS_TRACKS) {
+    if (current === spec.id) continue;
+    out.push({
+      action: "FOCUS",
+      verb: "COMMIT",
+      operation: "FOCUS",
+      label: spec.self.replace(/^You are focusing/, "Focus"),
+      cmd: `focus ${spec.id}`,
+      track: spec.id,
+      available: true,
+      kind: "utility",
+    });
+  }
+  if (current) {
+    out.push({
+      action: "FOCUS",
+      verb: "COMMIT",
+      operation: "FOCUS",
+      label: "Clear focus",
+      cmd: "focus clear",
+      clear: true,
+      available: true,
+      kind: "utility",
+    });
+  }
 
   const emptyStock = (entities || []).some((e) => e.stock_resource && (e.stock_amount ?? 0) <= 0);
   if (emptyStock) {
