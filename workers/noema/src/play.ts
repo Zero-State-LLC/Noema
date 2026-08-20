@@ -633,6 +633,8 @@ function playClientBundle(): string {
         lnRoom.textContent = lowNoiseRoomText(roomPresentationModel({
           location: loc,
           consequence: happened && !happened.hidden ? happened.textContent : (obs.consequence || ""),
+          budgets: obs.budgets,
+          practice_lines: obs.practice_lines,
         }));
         lnRoom.hidden = !document.body.classList.contains("is-low-noise");
       }
@@ -809,10 +811,17 @@ function playClientBundle(): string {
           sessionNotice(primary, "bad");
         } else {
           if (e.choices && e.choices.length) primary = primary + "\\n" + e.choices.map((c, i) => (i + 1) + ". " + c).join("\\n");
-          const failLine = primary.split("\\n")[0];
+          const beat = fourBeatFromResult({
+            command: raw.split(/\\s+/)[0],
+            ok: false,
+            errorCode: e.code,
+            errorMessage: e.message,
+            affordances: (e.observation && e.observation.affordances) || [],
+          });
+          const failLine = [beat.tried, beat.outcome, beat.changed, beat.next].filter(Boolean).join(" ");
           paintHappened(failLine);
-          if (state.playerActs >= 1) pushTrailItems([{ kind: "fail", title: failLine }]);
-          $("err-advanced").textContent = h.advanced || "";
+          if (state.playerActs >= 1) pushTrailItems([{ kind: "fail", title: beat.changed || failLine }]);
+          $("err-advanced").textContent = beat.advanced || h.advanced || "";
           notice("");
           if (!silent) {
             state.playerActs += 1;

@@ -62,6 +62,16 @@ export type RoomExitItem = {
   to_room_name?: string;
 };
 
+export type StatusGlanceRow = { label: string; value: string };
+
+export type HappenedBeat = {
+  tried: string;
+  outcome: "ok" | "fail";
+  changed?: string;
+  next?: string;
+  advanced?: string;
+};
+
 export type RoomPresentationModel = {
   name: string;
   description: string;
@@ -69,7 +79,9 @@ export type RoomPresentationModel = {
   here: RoomHereItem[];
   exits: RoomExitItem[];
   traces: string[];
+  status: StatusGlanceRow[];
   happened?: string;
+  happenedBeats?: HappenedBeat;
 };
 
 function compareHere(a: EntityObs, b: EntityObs): number {
@@ -88,9 +100,89 @@ export function stableExits(exits?: ExitObs[] | null): ExitObs[] {
     .sort((a, b) => String(a.direction).localeCompare(String(b.direction)));
 }
 
+const STATUS_BUDGETS: Array<{ key: "energy" | "attention" | "compute" | "storage" | "influence"; label: string }> = [
+  { key: "energy", label: "Energy" },
+  { key: "attention", label: "Attention" },
+  { key: "compute", label: "Compute" },
+  { key: "storage", label: "Storage" },
+  { key: "influence", label: "Influence" },
+];
+
+export function compactStatusRows(input: {
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+  energy_floor_risk?: boolean;
+  play_blocked?: boolean;
+}): StatusGlanceRow[] {
+  const rows: StatusGlanceRow[] = [];
+  const b = input.budgets;
+  if (b) {
+    for (const { key, label } of STATUS_BUDGETS) {
+      if (b[key] !== undefined) rows.push({ label, value: String(b[key]) });
+    }
+  }
+  for (const line of (input.practice_lines || []).slice(0, 3)) {
+    const t = String(line || "").trim();
+    if (t) rows.push({ label: "Work", value: t });
+  }
+  if (input.energy_floor_risk) rows.push({ label: "Flag", value: "energy_floor_risk" });
+  if (input.play_blocked) rows.push({ label: "Flag", value: "play_blocked" });
+  return rows;
+}
+
+export function fourBeatFromResult(opts: {
+  command?: string;
+  ok: boolean;
+  consequence?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  affordances?: Array<{ cmd?: string; available?: boolean }>;
+}): HappenedBeat {
+  const verb = String(opts.command || "").trim().toLowerCase() || "act";
+  const tried = opts.ok ? `You ${verb}.` : `You try to ${verb}.`;
+  const next =
+    (opts.affordances || []).find((a) => a.available !== false && String(a.cmd || "").trim())?.cmd?.trim() ||
+    undefined;
+  if (opts.ok) {
+    return {
+      tried,
+      outcome: "ok",
+      changed: String(opts.consequence || "").trim() || undefined,
+      next,
+    };
+  }
+  const human = humanizeError(opts.errorCode, opts.errorMessage);
+  const named = String(opts.errorMessage || "").trim();
+  const changed = named && !/^[A-Z_]+$/.test(named) && !isRawExceptionMessage(named) ? named : human.primary;
+  return {
+    tried,
+    outcome: "fail",
+    changed,
+    next,
+    advanced: human.advanced,
+  };
+}
+
 export function roomPresentationModel(input: {
   location?: LocationObs | null;
   consequence?: string;
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+  energy_floor_risk?: boolean;
+  play_blocked?: boolean;
+  happenedBeats?: HappenedBeat;
 }): RoomPresentationModel {
   const loc = input.location;
   const here = stableHereEntities(loc?.entities).map((e) => ({
@@ -112,6 +204,7 @@ export function roomPresentationModel(input: {
     .map((t) => String(t.text || "").trim())
     .filter(Boolean)
     .slice(0, 3);
+  const status = compactStatusRows(input);
   return {
     name: String(loc?.name || "").trim(),
     description: String(loc?.description || "").trim(),
@@ -119,7 +212,9 @@ export function roomPresentationModel(input: {
     here,
     exits,
     traces,
+    status,
     happened: happened || undefined,
+    happenedBeats: input.happenedBeats,
   };
 }
 
@@ -154,11 +249,23 @@ export function lowNoiseRoomText(model: RoomPresentationModel): string {
       lines.push(x.direction + (x.to_room_name ? " — " + x.to_room_name : ""));
     }
   }
+  if (model.status.length) {
+    lines.push("STATUS");
+    for (const r of model.status) {
+      lines.push(r.label + " " + r.value);
+    }
+  }
   if (model.traces.length) {
     lines.push("TRACES");
     for (const t of model.traces) lines.push(t);
   }
-  if (model.happened) {
+  if (model.happenedBeats) {
+    lines.push("HAPPENED");
+    lines.push(model.happenedBeats.tried);
+    lines.push(model.happenedBeats.outcome);
+    if (model.happenedBeats.changed) lines.push(model.happenedBeats.changed);
+    if (model.happenedBeats.next) lines.push(model.happenedBeats.next);
+  } else if (model.happened) {
     lines.push("HAPPENED");
     lines.push(model.happened);
   }
@@ -1527,6 +1634,8 @@ export function playUiRuntimeSource(): string {
     humanizeError,
     waitingCopy,
     lookCopyFromObservation,
+    compactStatusRows,
+    fourBeatFromResult,
     roomPresentationModel,
     stableHereEntities,
     stableExits,

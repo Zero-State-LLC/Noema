@@ -26,8 +26,12 @@ import {
   parseLowNoiseFlag,
   lowNoiseRoomText,
   lowNoiseWatchText,
+  fourBeatFromResult,
 } from "../src/play-ui";
 import { playHtml } from "../src/play";
+import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
+import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 import { watchHtml } from "../src/watch";
 import { studyHtml } from "../src/study";
 
@@ -516,6 +520,157 @@ describe("S1 RoomPresentationModel", () => {
     expect(model.here).toEqual([]);
     expect(model.exits).toEqual([]);
     expect(model.name).toBe("");
+  });
+});
+
+describe("R0 STATUS + four-beat", () => {
+  it("puts compact budgets after EXITS without cycle or entity ids", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        condition: "Infrastructure shows damage.",
+        entities: [{ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }],
+        exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+      },
+      budgets: { energy: 10, attention: 8, compute: 64, storage: 16, influence: 40 },
+      practice_lines: ["You have been doing survey work."],
+      consequence: "You look around.",
+    });
+    expect(model.status.map((r) => r.label)).toEqual([
+      "Energy",
+      "Attention",
+      "Compute",
+      "Storage",
+      "Influence",
+      "Work",
+    ]);
+    expect(model.status.find((r) => r.label === "Energy")?.value).toBe("10");
+    expect(model.status.find((r) => r.label === "Work")?.value).toBe("You have been doing survey work.");
+    const text = lowNoiseRoomText(model);
+    const exitsAt = text.indexOf("EXITS");
+    const statusAt = text.indexOf("STATUS");
+    const happenedAt = text.indexOf("HAPPENED");
+    expect(exitsAt).toBeGreaterThan(-1);
+    expect(statusAt).toBeGreaterThan(exitsAt);
+    expect(happenedAt).toBeGreaterThan(statusAt);
+    expect(text).toMatch(/Energy 10/);
+    expect(text).toMatch(/Storage 16/);
+    expect(text).not.toMatch(/entity\.relay-7|room\.hub|Cycle /);
+  });
+
+  it("does not invent STATUS when budgets are absent", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        exits: [],
+        entities: [],
+      },
+    });
+    expect(model.status).toEqual([]);
+    expect(lowNoiseRoomText(model)).not.toMatch(/STATUS|Energy|Storage/);
+  });
+
+  it("four-beat fail keeps the machine code in Advanced and next from affordances", () => {
+    const beat = fourBeatFromResult({
+      command: "MOVE",
+      ok: false,
+      errorCode: "BUDGET_EXCEEDED",
+      errorMessage: "You do not have enough energy.",
+      affordances: [
+        { cmd: "wait", available: true },
+        { cmd: "look", available: true },
+      ],
+    });
+    expect(beat.tried).toMatch(/move/i);
+    expect(beat.outcome).toBe("fail");
+    expect(beat.changed).toMatch(/energy/i);
+    expect(beat.next).toBe("wait");
+    expect(beat.advanced).toMatch(/BUDGET_EXCEEDED/);
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+          entities: [],
+        },
+        budgets: { energy: 0, attention: 8, compute: 64, storage: 16, influence: 40 },
+        happenedBeats: beat,
+      }),
+    );
+    expect(text).toMatch(/HAPPENED/);
+    expect(text).toMatch(/fail/i);
+    expect(text).toMatch(/wait/);
+    expect(text).not.toMatch(/BUDGET_EXCEEDED/);
+  });
+});
+
+describe("R0 LOOK observation", () => {
+  it("LOOK observation feeds compact STATUS energy plus another budget", async () => {
+    const w: WorldRuntime = {
+      world_id: "test.hosted-canonical.r0-status",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.east", to_room_name: "Coldline" }],
+          entities: [],
+        },
+      },
+      players: {},
+      trades: {},
+      messages: [],
+      organizations: {},
+      seen_idempotency: {},
+      unsettled: [],
+    };
+    const p: PlayerPrincipal = {
+      player_id: "player.nacre",
+      agent_id: "agent.nacre",
+      session_id: "sess.test",
+      controller_id: "ctrl.nacre",
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    const run = (command: string) => {
+      const envl: CommandEnvelope = {
+        request_id: "r." + command,
+        idempotency_key: "i." + command,
+        command,
+        arguments: {},
+      };
+      return applyWorldCommand(w, p, envl, async () => true);
+    };
+    expect((await run("ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const look = await run("LOOK");
+    expect(look.ok).toBe(true);
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: look.observation?.location as never,
+        budgets: look.observation?.budgets,
+        practice_lines: look.observation?.practice_lines,
+        consequence: look.observation?.consequence,
+      }),
+    );
+    expect(look.observation?.budgets?.energy).toBe(80);
+    expect(text).toMatch(/STATUS/);
+    expect(text).toMatch(/Energy 80/);
+    expect(text).toMatch(/Attention /);
+    const exitsAt = text.indexOf("EXITS");
+    expect(text.indexOf("STATUS")).toBeGreaterThan(exitsAt);
   });
 });
 
