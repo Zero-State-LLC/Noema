@@ -1,8 +1,7 @@
 """Minimal role model for Phase 1.
 
-RFC-0120: hosted product Players are agents only. Role.PLAYER remains for
-offline Chamber fixtures (NON-CANONICAL DEV TOOLING). Do not change
-can_mutate_world() without a dedicated Chamber migration.
+RFC-0120: only agents are Players. Role.PLAYER is a leftover human
+platform label and MUST NOT mutate. Chamber fixtures inhabit as Role.AGENT.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ class Principal:
         self.agent_id = agent_id
 
     def can_mutate_world(self) -> bool:
-        return self.role in (Role.PLAYER, Role.AGENT, Role.ADMIN)
+        return self.role == Role.AGENT
 
     def can_admin(self) -> bool:
         return self.role == Role.ADMIN

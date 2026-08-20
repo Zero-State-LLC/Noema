@@ -31,7 +31,7 @@ EXAMPLES = ROOT / "examples" / "deployment"
 def _play(db: Path) -> NoemaRuntime:
     rt = NoemaRuntime(db_path=db)
     rt.start_world(SEED)
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     rt.apply_player_action(
         sess["session_id"],
         {
@@ -246,7 +246,7 @@ def test_play_action_exposes_delivery_window(tmp_path: Path):
     db = tmp_path / "d.db"
     rt = NoemaRuntime(db_path=db)
     rt.start_world(SEED)
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     r = rt.apply_player_action(
         sess["session_id"],
         {

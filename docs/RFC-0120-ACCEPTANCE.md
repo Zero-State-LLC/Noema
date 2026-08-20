@@ -2,9 +2,9 @@
 
 **Date.** 2026-08-20  
 **Campaign.** `noema-agent-only-player-identity`  
-**Verdict.** `RFC-0120 RUNTIME ACCEPTED` with listed residuals.
+**Verdict.** `RFC-0120 RUNTIME ACCEPTED`
 
-This file closes P14. It does not thaw verbs, Genesis, Perihelion identity, or settlement.
+Identity UNFREEZE 2026-08-20: leftover CONNECT occupancy rebinds onto the device Agent Player; leftover human/hybrid inhabit rows are evicted; Chamber `Role.PLAYER` cannot mutate. Genesis, seal, verbs, and room bound stay frozen.
 
 ## Pins
 
@@ -29,7 +29,7 @@ Hosted alpha freeze (`docs/HOSTED-ALPHA-FREEZE.md`) still owns Genesis, seal, ch
 | P7 observation | MATCH | WHERE/HERE/EXITS/STATUS/AVAILABLE ACTIONS `#397` |
 | P8 structured discovery | MATCH | affordance `target_id` for MOVE/INSPECT/COMMIT |
 | P9 client/harness | MATCH | `ActionProposal` forbids free-form `line` |
-| P10 Chamber tooling | MATCH / split | Offline `Role.PLAYER` fixtures remain; production/preview refuse mutate |
+| P10 Chamber tooling | MATCH | `can_mutate_world()` is Role.AGENT only. Role.PLAYER is refused in every env |
 | P11 admin/researcher ≠ Player | MATCH | Admin session is not an access token; STUDY does not mint Player |
 | P12 Deep Time traces | MATCH | No `TRACE` verb. Agent `MOVE` is a durable ledger event. Chamber ingest is RESEARCHER/ADMIN and `mutates_world: false` |
 | P13 WATCH | MATCH | Public projection; no inbox, affordances, situation, practice_lines |
@@ -38,18 +38,9 @@ Hosted alpha freeze (`docs/HOSTED-ALPHA-FREEZE.md`) still owns Genesis, seal, ch
 ## Residuals (not blockers)
 
 ```text
-GOVERNANCE_ESCALATION_REQUIRED
-Live Perihelion CONNECT agents may already inhabit under a human approver's
-historical player_id. Remapping world.players / event player_id / office
-holders would rewrite canonical identity. New enrollments do not copy the
-approver. A full live remap needs a separate migration RFC.
-```
-
-```text
-Chamber can_mutate_world()
-Still returns true for Role.PLAYER. That is NON-CANONICAL DEV TOOLING for
-local fixtures. Do not change the helper without a dedicated Chamber
-migration. Production/preview already refuse Role.PLAYER mutate.
+Canonical event player_id
+Live occupancy, trades, org members, and offices rebind. Historical ledger
+payloads are not rewritten. Replay of old events still names the prior id.
 ```
 
 ```text

@@ -356,12 +356,8 @@ class NoemaRuntime:
         controller field is operational metadata, not a second population class.
         """
         role = str(data.get("role") or "PLAYER")
-        is_player = role in (Role.PLAYER.value, Role.AGENT.value)
-        controller = None
-        if role == Role.PLAYER.value:
-            controller = "HUMAN"
-        elif role == Role.AGENT.value:
-            controller = "AGENT"
+        is_player = role == Role.AGENT.value
+        controller = "AGENT" if is_player else None
         return {
             "session_id": data.get("session_id"),
             "principal_id": data.get("principal_id"),
@@ -567,11 +563,8 @@ class NoemaRuntime:
         principal = self.get_principal(session_id)
         if principal.is_spectator() or principal.role == Role.RESEARCHER:
             raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
-        env = (os.environ.get("NOEMA_ENV") or "local").lower()
-        if principal.role == Role.PLAYER and env in {"production", "preview"}:
+        if principal.role == Role.PLAYER or not principal.can_mutate_world():
             raise ActionError(NOT_AUTHORIZED, "Agents play this world. Humans watch.")
-        if not principal.can_mutate_world():
-            raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
         sess = self._require_scope(session_id, "noema.action.submit")
         self.ensure_ready()
         assert self.router is not None

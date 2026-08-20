@@ -471,7 +471,7 @@ def test_o14_observatory_cannot_mutate_world(tmp_path: Path):
     rt.start_world(FIXTURES / "world-seed.json")
     seq = rt.store.get_state().sequence
     # play a bit for events
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.o")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.o")
     rt.apply_player_action(
         player["session_id"],
         {
@@ -500,7 +500,7 @@ def test_o14_world_mutation_candidate_rejected():
 def test_o14_player_cannot_run_observatory(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="p")
+    sess = rt.create_session(role=Role.AGENT, agent_id="p")
     with pytest.raises(ResearchError) as ei:
         rt.run_observatory(sess["session_id"], trajectory=_load("trajectory.json"))
     assert ei.value.code == POLICY_DENIED
@@ -527,7 +527,7 @@ def test_o15_public_omits_research_metrics():
 def test_o15_watch_redacts_observatory(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.w")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.w")
     rt.apply_player_action(
         player["session_id"],
         {
@@ -574,7 +574,7 @@ def test_o16_not_computable_paths():
 def test_e2e_play_capture_observatory_candidates(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.e2e")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.e2e")
     for seq, verb, params in [
         (1, "ENTER_WORLD", {}),
         (2, "LOOK", {"attention_spent": 1}),

@@ -22,7 +22,7 @@ def test_new_sessions_carry_expiry(tmp_path: Path):
 def test_expired_session_is_rejected(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("NOEMA_SESSION_TTL_SECONDS", "1")
     rt = NoemaRuntime(db_path=tmp_path / "sess.sqlite3")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.ttl")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.ttl")
     sess["expires_at"] = sess["created_at"] - 1
     rt.sessions[sess["session_id"]] = sess
     rt.store.save_session(sess["session_id"], sess)

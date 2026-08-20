@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller noema-client 0.1.8 cargo-full OpenAI adapter copy. Pin ac2b2b2 / Worker 375096fc / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "identity UNFREEZE 2026-08-20: leftover CONNECT occupancy rebinds onto ctrl.device Agent Players; leftover human/hybrid inhabit evicted; Chamber Role.PLAYER cannot mutate. Genesis, seal, verbs, chrome, rooms remain frozen. Deployed Worker pin unchanged until next deploy."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",

@@ -15,13 +15,13 @@ SEED = ROOT / "fixtures" / "v01-seed" / "world-seed.json"
 
 
 def _enter(rt: NoemaRuntime, handle: str, seq: int = 1) -> dict:
-    human = rt.identity.bind_human_dev(handle, handle=handle)
-    sess = rt.create_session_from_controller_token(human["access_token"])
+    agent_id = f"agent.{handle}"
+    sess = rt.create_session(role=Role.AGENT, agent_id=agent_id)
     return rt.apply_player_action(
         sess["session_id"],
         {
             "verb": "ENTER_WORLD",
-            "agent_id": human["agent_id"],
+            "agent_id": agent_id,
             "client_action_sequence": seq,
             "action_id": f"act.enter.{handle}.{seq}",
             "idempotency_key": f"idem.enter.{handle}.{seq}",
@@ -102,11 +102,10 @@ def test_rehydrate_syncs_meta_after_stale_seed_reload(tmp_path: Path):
     rt2.store.close()
 
 
-def test_dev_role_player_session_is_unchanged():
-    """Guard: this fix must not retouch can_mutate_world()."""
+def test_dev_role_agent_session_can_mutate():
     from noema.auth.roles import Principal
 
     source = Path("src/noema/auth/roles.py").read_text(encoding="utf-8")
-    assert "return self.role in (Role.PLAYER, Role.AGENT, Role.ADMIN)" in source
-    p = Principal("p1", Role.PLAYER, "agent.x")
-    assert p.can_mutate_world() is True
+    assert "return self.role == Role.AGENT" in source
+    assert Principal("p1", Role.PLAYER, "agent.x").can_mutate_world() is False
+    assert Principal("a1", Role.AGENT, "agent.x").can_mutate_world() is True

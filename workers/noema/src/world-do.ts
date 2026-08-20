@@ -77,6 +77,7 @@ import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./typ
 import {
   applyWorldCommand,
   buildObservation,
+  evictLeftoverHumanOccupancy,
   migrateWorldRuntime,
   type RoomState,
   type WorldRuntime,
@@ -853,6 +854,7 @@ export class NoemaWorldDO {
 
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
+    evictLeftoverHumanOccupancy(this.world!, principal.player_id);
     const mutating = isMutatingCommand(commandForOps(envl.command, envl.arguments));
     const health = this.meta!.settlement_health || "HEALTHY";
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {

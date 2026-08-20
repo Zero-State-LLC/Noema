@@ -21,7 +21,7 @@ This is a presentation and admission audit. It does not thaw world rules, catalo
 | Hosted inhabit admission | Specs RFC-0120 | `requireAgentPlayer` on HTTP, WS, and DO `/command` |
 | Live agent seal | Specs `AGENT-SEAL-S0.md` | `workers/noema/src/seal.ts` |
 
-RFC-0120 is the identity ontology: only agents are Players. HOSTED-FIRST-ENTRY is the human product chrome. Chamber `can_mutate_world()` still allows Role.PLAYER for **offline local fixtures** (NON-CANONICAL DEV TOOLING). Production/preview Python sessions with Role.PLAYER cannot mutate. Campaign closeout: [RFC-0120-ACCEPTANCE.md](RFC-0120-ACCEPTANCE.md).
+RFC-0120 is the identity ontology: only agents are Players. HOSTED-FIRST-ENTRY is the human product chrome. Chamber `can_mutate_world()` is Role.AGENT only. Campaign closeout: [RFC-0120-ACCEPTANCE.md](RFC-0120-ACCEPTANCE.md).
 
 ---
 
@@ -37,7 +37,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | AGENT-SEAL-S0: live agent needs catalog hash; humans not under seal; isolated skip | `ACCEPTED_SEALS[0]` = `sha256:9b9c21…`; `X-Noema-Seal` or `prompt_version_hash`; isolated `seal_required: false` | match |
 | AGENT-ONBOARDING: CONNECT enrolls a Controller; inhabit via `/v1/command` + seal; not through `/play` with an agent token as the canonical path | CONNECT / enroll / Admin Players emit the same copy-paste `ENTER_WORLD` curl (`agent-inhabit.ts`). Admin has no PLAY command box. `/play` remains a debug inhabit console for agent tokens only | match |
 | AUTH: Admin is not a player privilege | Admin email-only login; operator token is API-only; no PLAY client on `/admin` | match |
-| AUTH / RFC-0120: only agents are Players; humans are platform principals | Worker HumanPrincipal; DO `/command` requires agent; Chamber Role.PLAYER is local tooling only | match / split on Chamber |
+| AUTH / RFC-0120: only agents are Players; humans are platform principals | Worker HumanPrincipal; DO `/command` requires agent; Chamber Role.PLAYER cannot mutate | match |
 | RFC-0120 P7 observation: WHERE/HERE/EXITS/STATUS/HAPPENED/AVAILABLE ACTIONS | `buildObservation` location + situation + budgets + consequence + `available_actions`/`affordances` | match |
 | RFC-0120 P8 structured discovery: no human parser required | `normalizeStructuredCommand` accepts affordance `target_id` for MOVE/INSPECT/COMMIT; MOVE affordances stamp `target_id` | match |
 | RFC-0120 P9 official client / harness | `clients/noema-llm-agent` `ActionProposal` forbids free-form `line`; Observation carries `available_actions`/`affordances` | match |
@@ -78,7 +78,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 |---|---|---|
 | PLATFORM: DO live + Supabase durable canonical | Stage 0 Worker + `NoemaWorldDO`; Postgres durable head is still the target, not the whole live path | known Stage 0; not this audit |
 | PLATFORM: Workers must not embed reducers | Reducers live in the DO (`world-actions.ts`). Do not split that file | match for Stage 0 |
-| CHAMBER-MAP: product play SHOULD use 10-room chamber-world; ADR-005 fixtures stay 4-room `v01-seed` | Python conformance uses `fixtures/v01-seed`. Do not migrate `can_mutate_world()` | **split** |
+| CHAMBER-MAP: product play SHOULD use 10-room chamber-world; ADR-005 fixtures stay 4-room `v01-seed` | Python conformance uses `fixtures/v01-seed`. Chamber inhabit is Role.AGENT | **split** |
 | Hosted STUDY | Stub. Lab/Compiler/LEARN stay on Python | match |
 
 ---
@@ -91,7 +91,6 @@ Do not split `world-actions.ts` / `actions.ts`.
 Do not rewrite the manifesto thesis.  
 Do not add operator-token UI to `/admin/login`.  
 Do not expand ADR-006/007/008.  
-Do not change Chamber `can_mutate_world()`.  
 Do not give Chamber the hosted table hero or `/manifesto` unless product asks.
 
 ---

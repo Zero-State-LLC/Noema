@@ -84,7 +84,7 @@ def test_verify_uses_deployment_config(tmp_path: Path):
     db = tmp_path / "v.db"
     rt = NoemaRuntime(db_path=db, deployment_config=EXAMPLES / "local-deployment-config.json")
     rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     rt.apply_player_action(
         sess["session_id"],
         {
@@ -287,7 +287,7 @@ def test_research_notice_role_boundary(tmp_path: Path):
 
     rt = NoemaRuntime(db_path=tmp_path / "study-boundary.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     with pytest.raises(ResearchError, match="Observatory requires RESEARCHER or ADMIN"):
         rt.run_observatory(player["session_id"])
     researcher = rt.create_session(role=Role.RESEARCHER)
