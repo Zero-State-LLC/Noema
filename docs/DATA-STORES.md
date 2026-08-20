@@ -197,7 +197,7 @@ OBSERVED in `supabase/migrations/20260816013000_noema_adopt_live_world_head.sql`
 |---|---|---|
 | **DO** (`NoemaWorldDO`) | Live world JSON (`world`), `world_meta` (status, revision, writer_generation, genesis_id, settlement_health), operator digest config/history. Named DO `__noema_enrollments__` holds enrollment + device bags. Live ordering. | Canonical ACK. Invented ledger `0..n` when SQL head is missing. |
 | **Postgres** | Reconstructable head (`noema_world_heads`), canonical events, settlement receipts. RPC is the single semantic write transaction. | Research truth. Player/Admin session minting. Product HTML. |
-| **Auth** (Supabase Auth) | Magic-link generate/verify for PLAY and ADMIN. Human JWT `sub` mapped to an ephemeral Player principal. | World state, ledger, Genesis, research. Admin privilege is never inherited from a Player session. |
+| **Auth** (Supabase Auth) | Magic-link generate/verify for WATCH/CONNECT and ADMIN. Human JWT `sub` maps to a `HumanPrincipal` (RFC-0120). Never `player_id`. | World state, ledger, Genesis, research. Admin privilege is never inherited from a Player session. |
 | **Storage** | Worker `[assets]` (`wrangler.toml` binding `ASSETS`) serves product HTML/media. No Worker writes to Supabase Storage or R2 for world truth. | World ledger, receipts, enrollments. |
 | **Offline-only** | Python `WorldStore` (`meta`/`events`/`snapshots`/`sessions`), all `research_*`, offline `id_*`, evidence-receipt files/keyring. | Hosted PLAY ACK. Must not be treated as the product writer. |
 
@@ -212,7 +212,7 @@ Enrollment-audit, revocation, and evidence-receipt tables are **not required** f
 | Proposed table | Required now? | Rationale |
 |---|---|---|
 | Enrollment-audit | **No** | Hosted enrollment and device codes persist in DO storage (`enrollments`, `devices` on `__noema_enrollments__`). Offline `id_device_codes` is Chamber-only. No SQL audit table is referenced by settle/recover. Adding one would not unblock ACK or Recover. |
-| Revocation | **No** | Offline `id_controllers.revoked_at` / `id_credentials.revoked_at` are Chamber identity. Hosted access is JWT expiry + operator mint/deny. Emergency `revoked_cycle` is world state inside the DO, not a SQL table. A hosted revocation ledger is not on the settlement path. |
+| Revocation | **No SQL table** | Offline `id_controllers.revoked_at` / `id_credentials.revoked_at` are Chamber identity. Hosted inhabit revocation is a DO bag on `__noema_enrollments__` (`revocations`, not Postgres). JWT expiry still applies. Historical `controller_type` human/hybrid on access tokens is HumanPrincipal compatibility — not rewritten on the ledger. Emergency `revoked_cycle` is world state inside the world DO. |
 | Evidence-receipt | **No** | Phase 11 receipts are HMAC files + keyring (`src/noema/evidence/receipts.py`). Mandatory only for offline `research-isolated` / `reproducibility` / `public-evidence-export`. Not a hosted PLAY table. |
 
 Do not create these on hosted Postgres until a later identity/evidence slice explicitly requires them.

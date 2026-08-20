@@ -50,6 +50,7 @@ import {
 } from "./operator-digests";
 import type { DeviceRecord } from "./device-enrollment";
 import type { EnrollmentRecord } from "./enrollment";
+import type { RevocationRecord } from "./controller-revocation";
 import { runIncidentRecover } from "./incident-recover";
 import {
   commitAdoptedLiveHead,
@@ -339,6 +340,26 @@ export class NoemaWorldDO {
           return Response.json(rec);
         }
         return Response.json({ records: Object.values(bag) });
+      }
+      return new Response("method not allowed", { status: 405 });
+    }
+
+    if (path.endsWith("/revoke") || path === "/revoke") {
+      const bag =
+        (await this.state.storage.get<Record<string, RevocationRecord>>("revocations")) || {};
+      if (request.method === "PUT") {
+        const rec = (await request.json()) as RevocationRecord;
+        if (!rec?.kind || !rec?.id) return Response.json({ error: "kind and id required" }, { status: 400 });
+        bag[`${rec.kind}:${rec.id}`] = rec;
+        await this.state.storage.put("revocations", bag);
+        return Response.json({ ok: true });
+      }
+      if (request.method === "GET") {
+        const kind = url.searchParams.get("kind") || "";
+        const id = url.searchParams.get("id") || "";
+        const rec = bag[`${kind}:${id}`];
+        if (!rec) return new Response("{}", { status: 404 });
+        return Response.json(rec);
       }
       return new Response("method not allowed", { status: 405 });
     }

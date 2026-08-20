@@ -97,6 +97,9 @@ function liveDo(world: WorldRuntime) {
     get: () => ({
       fetch: async (url: string, init?: RequestInit) => {
         const path = String(url);
+        if (path.includes("/revoke")) {
+          return new Response("{}", { status: 404 });
+        }
         if (path.includes("/health")) {
           return Response.json({
             ok: true,

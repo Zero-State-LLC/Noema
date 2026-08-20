@@ -10,6 +10,7 @@ import {
   recoverBoundWorldId,
   resolveLoadWorldId,
 } from "../src/test-world";
+import { ENROLLMENT_DO_NAME } from "../src/enrollment";
 import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
 import { ACCEPTED_SEALS } from "../src/seal";
 import type { Env } from "../src/types";
@@ -23,6 +24,10 @@ type DoCall = {
   headers?: Record<string, string>;
 };
 
+function worldCalls(calls: DoCall[]) {
+  return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME && c.name !== ENROLLMENT_DO_NAME);
+}
+
 function mockWorldDo(calls: DoCall[]) {
   return {
     idFromName(name: string) {
@@ -31,16 +36,20 @@ function mockWorldDo(calls: DoCall[]) {
     },
     get(id: { name: string }) {
       return {
-        fetch: async (_url: string, init?: RequestInit) => {
+        fetch: async (url: string, init?: RequestInit) => {
           const raw = init?.headers instanceof Headers
             ? Object.fromEntries(init.headers.entries())
             : ((init?.headers || {}) as Record<string, string>);
+          const path = String(url);
           calls.push({
             op: "fetch",
             name: id.name,
             headers: raw,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/revoke")) {
+            return new Response("{}", { status: 404 });
+          }
           return new Response(JSON.stringify({ ok: true, world_id: id.name }), {
             status: 200,
             headers: { "content-type": "application/json" },
@@ -193,7 +202,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(worldCalls(calls).some((c) => c.op === "idFromName")).toBe(false);
   });
 
   it("denies default world id before DO lookup", async () => {
@@ -205,7 +214,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("denies arbitrary world ids before DO lookup", async () => {
@@ -217,7 +226,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a missing Player bearer", async () => {
@@ -229,7 +238,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a missing signed admin header", async () => {
@@ -241,7 +250,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects Player-only dual-auth", async () => {
@@ -254,7 +263,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects admin-only dual-auth", async () => {
@@ -267,7 +276,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects an unsigned raw operator token in X-Noema-Admin-Token", async () => {
@@ -282,7 +291,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a Player access token placed in the admin header", async () => {
@@ -295,7 +304,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("routes dual-auth admitted commands to the test world id", async () => {
@@ -307,11 +316,12 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    expect(calls.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
-    expect(calls[0].name).toBe("test.hosted-canonical.verify-1");
-    expect(calls[0].name).not.toBe("world-01");
-    expect(calls[1].body?.world_id).toBe("test.hosted-canonical.verify-1");
-    expect(calls[1].body?.allow_bootstrap).toBe(true);
+    const routed = worldCalls(calls);
+    expect(routed.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
+    expect(routed[0].name).toBe("test.hosted-canonical.verify-1");
+    expect(routed[0].name).not.toBe("world-01");
+    expect(routed[1].body?.world_id).toBe("test.hosted-canonical.verify-1");
+    expect(routed[1].body?.allow_bootstrap).toBe(true);
   });
 });
 
@@ -325,7 +335,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("denies default world recover before DO lookup", async () => {
@@ -337,7 +347,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects missing dual-auth", async () => {
@@ -349,7 +359,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects non-recover actions", async () => {
@@ -361,7 +371,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(400);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("routes recover to the admitted test world only", async () => {
@@ -373,12 +383,13 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    expect(calls.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
-    expect(calls[0].name).toBe("test.hosted-canonical.ack-s0");
-    expect(calls[0].name).not.toBe("world-01");
-    expect(calls[1].body?.action).toBe("recover");
-    expect(calls[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
-    expect(String(calls[1].headers?.["x-noema-world-id"] || "")).toBe("test.hosted-canonical.ack-s0");
+    const routed = worldCalls(calls);
+    expect(routed.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
+    expect(routed[0].name).toBe("test.hosted-canonical.ack-s0");
+    expect(routed[0].name).not.toBe("world-01");
+    expect(routed[1].body?.action).toBe("recover");
+    expect(routed[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
+    expect(String(routed[1].headers?.["x-noema-world-id"] || "")).toBe("test.hosted-canonical.ack-s0");
   });
 });
 
@@ -393,7 +404,7 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME)).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap when world_id is omitted", async () => {
@@ -406,10 +417,10 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    const worldCalls = calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME);
-    expect(worldCalls[0].name).toBe("world-01");
-    expect(worldCalls[1].body?.allow_bootstrap).toBe(false);
-    expect(worldCalls[1].body?.world_id).toBe("world-01");
+    const routed = worldCalls(calls);
+    expect(routed[0].name).toBe("world-01");
+    expect(routed[1].body?.allow_bootstrap).toBe(false);
+    expect(routed[1].body?.world_id).toBe("world-01");
   });
 
   it("does not accept a forged signed header as PLAY authority", async () => {
@@ -431,6 +442,6 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 });
