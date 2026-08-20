@@ -43,7 +43,15 @@ import {
   type ContestTarget,
   type OpenContest,
 } from "./contest";
-import { parseAgreementReason, parseAgreementType } from "./diplomacy";
+import {
+  AGREEMENT_FORM_COST,
+  AGREEMENT_TERMINATE_COST,
+  AGREEMENT_TYPES,
+  parseAgreementReason,
+  parseAgreementType,
+  samePair,
+  type FormalAgreement,
+} from "./diplomacy";
 import {
   occupiedOfficesFor,
   parseOfficeProfile,
@@ -458,6 +466,12 @@ export type Affordance = {
   target?: ContestTarget;
   contest_id?: string;
   stake?: Record<string, number>;
+  /** RFC-0100. Structured AGREEMENT type / parties / id. */
+  agreement_type?: string;
+  party_ids?: string[];
+  agreement_id?: string;
+  /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
+  agreement_reason?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2906,6 +2920,7 @@ export function deriveAffordances(input: {
   hiddenRoom?: boolean;
   roomId?: string;
   openContests?: OpenContest[];
+  agreements?: FormalAgreement[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3247,6 +3262,36 @@ export function deriveAffordances(input: {
     });
   }
 
+  const agreements = input.agreements || [];
+  const agrFormOk = canPay(budgets, AGREEMENT_FORM_COST);
+  const agrTermOk = canPay(budgets, AGREEMENT_TERMINATE_COST);
+  for (const agr of agreements) {
+    if (!agr.party_ids.includes(selfId)) continue;
+    if (agr.status === "BROKEN") continue;
+    if (agr.status === "OFFERED" && agr.offered_by !== selfId) continue;
+    const otherId = agr.party_ids.find((id) => id !== selfId) || agr.party_ids[0];
+    const other = otherPlayers.find((p) => p.player_id === otherId);
+    const handle = other?.handle || String(otherId || "").replace(/^player\./, "") || agr.agreement_id;
+    const pretty = agr.agreement_type.replace(/_/g, " ").toLowerCase();
+    const withdrawing = agr.status === "OFFERED";
+    out.push({
+      action: "AGREEMENT_TERMINATE",
+      verb: "COMMIT",
+      operation: "AGREEMENT_TERMINATE",
+      label: withdrawing ? `Withdraw ${pretty} offer with ${handle}` : `End ${pretty} with ${handle}`,
+      cmd: `terminate agreement ${agr.agreement_id} reason=mutual`,
+      target_id: agr.agreement_id,
+      agreement_id: agr.agreement_id,
+      agreement_type: agr.agreement_type,
+      party_ids: agr.party_ids,
+      agreement_reason: "MUTUAL",
+      requires: AGREEMENT_TERMINATE_COST,
+      available: agrTermOk,
+      reason: agrTermOk ? undefined : "You need compute 1 to end that agreement.",
+      kind: "social",
+    });
+  }
+
   const roomId = input.roomId;
   const nowCycle = input.cycle || 0;
   const stakeLine = (stake: Record<string, number>) =>
@@ -3403,6 +3448,67 @@ export function deriveAffordances(input: {
         );
       }
       out.push(...declareRows);
+    }
+
+    let formN = 0;
+    const hereOthers = otherPlayers.filter((p) => p.player_id !== selfId && p.room_id === roomId);
+    for (const p of hereOthers) {
+      if (formN >= 10) break;
+      const handle = p.handle || p.player_id.replace(/^player\./, "");
+      for (const typ of AGREEMENT_TYPES) {
+        if (formN >= 10) break;
+        if (
+          agreements.some(
+            (a) => a.status === "ACTIVE" && a.agreement_type === typ && samePair(a.party_ids, selfId, p.player_id),
+          )
+        ) {
+          continue;
+        }
+        if (
+          agreements.some(
+            (a) =>
+              a.status === "OFFERED" &&
+              a.agreement_type === typ &&
+              a.offered_by === selfId &&
+              samePair(a.party_ids, selfId, p.player_id),
+          )
+        ) {
+          continue;
+        }
+        const incoming = agreements.some(
+          (a) =>
+            a.status === "OFFERED" &&
+            a.agreement_type === typ &&
+            a.offered_by === p.player_id &&
+            samePair(a.party_ids, selfId, p.player_id),
+        );
+        const pretty = typ.replace(/_/g, " ").toLowerCase();
+        const typeCmd =
+          typ === "NON_AGGRESSION"
+            ? "non_aggression"
+            : typ === "RESOURCE_COMMITMENT"
+              ? "commitment"
+              : typ === "MUTUAL_DEFENSE"
+                ? "defense"
+                : typ.toLowerCase();
+        out.push({
+          action: "AGREEMENT_FORM",
+          verb: "COMMIT",
+          operation: "AGREEMENT_FORM",
+          label: incoming ? `Accept ${pretty} with ${handle}` : `Offer ${pretty} to ${handle}`,
+          cmd: `form agreement ${typeCmd} with ${handle}`,
+          target_id: p.player_id,
+          target_label: handle,
+          player_id: p.player_id,
+          agreement_type: typ,
+          party_ids: [p.player_id],
+          requires: AGREEMENT_FORM_COST,
+          available: agrFormOk,
+          reason: agrFormOk ? undefined : "You do not have enough resources to form an agreement.",
+          kind: "social",
+        });
+        formN += 1;
+      }
     }
   }
 
