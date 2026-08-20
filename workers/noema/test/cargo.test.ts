@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { STORAGE_CAPACITY } from "../src/construction";
 import {
+  applyCargoFuel,
   applyTradeStorage,
   canConsumeCargo,
   consumeCargo,
@@ -68,5 +69,29 @@ describe("GC8-S6 cargo helpers", () => {
         "player.self",
       ),
     ).toBe(3);
+  });
+});
+
+describe("RFC-0119 applyCargoFuel", () => {
+  it("converts 1 cargo to +2 energy below grant", () => {
+    const b = { energy: 10, storage: 14 };
+    expect(applyCargoFuel(b)).toBe(true);
+    expect(b).toEqual({ energy: 12, storage: 15 });
+  });
+
+  it("clamps energy at grant 80", () => {
+    const b = { energy: 79, storage: 0 };
+    expect(applyCargoFuel(b)).toBe(true);
+    expect(b.energy).toBe(80);
+    expect(b.storage).toBe(1);
+  });
+
+  it("skips at grant and empty hold", () => {
+    const full = { energy: 80, storage: 14 };
+    expect(applyCargoFuel(full)).toBe(false);
+    expect(full).toEqual({ energy: 80, storage: 14 });
+    const empty = { energy: 10, storage: 16 };
+    expect(applyCargoFuel(empty)).toBe(false);
+    expect(empty).toEqual({ energy: 10, storage: 16 });
   });
 });

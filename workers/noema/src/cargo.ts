@@ -1,5 +1,10 @@
 import { STORAGE_CAPACITY } from "./construction";
 
+/** RESOURCE-ECONOMY energy grant. Cargo fuel clamps here; not AUTH-INFRA-CLASS. */
+export const ENERGY_GRANT = 80;
+export const CARGO_FUEL_CARGO = 1;
+export const CARGO_FUEL_ENERGY = 2;
+
 export function occupiedHold(storage: number, cap = STORAGE_CAPACITY): number {
   return Math.max(0, cap - Math.max(0, Math.floor(storage)));
 }
@@ -38,6 +43,21 @@ export function consumeCargo(budgets: { storage?: number }, cargo: number, cap =
   const need = Math.max(0, Math.floor(cargo));
   if (need <= 0) return;
   budgets.storage = Math.min(cap, Math.max(0, Math.floor(budgets.storage ?? 0)) + need);
+}
+
+/** RFC-0119: WAIT burns cargo for energy when lockout rest did not apply. */
+export function applyCargoFuel<T extends { energy?: number; storage?: number }>(
+  budgets: T,
+  cap = STORAGE_CAPACITY,
+  grant = ENERGY_GRANT,
+): boolean {
+  const energy = Math.max(0, Math.floor(budgets.energy ?? 0));
+  const storage = Math.max(0, Math.floor(budgets.storage ?? 0));
+  if (energy >= grant) return false;
+  if (!canConsumeCargo(storage, CARGO_FUEL_CARGO, 0, cap)) return false;
+  consumeCargo(budgets, CARGO_FUEL_CARGO, cap);
+  budgets.energy = Math.min(grant, energy + CARGO_FUEL_ENERGY);
+  return true;
 }
 
 export function applyTradeStorage(

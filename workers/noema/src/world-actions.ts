@@ -221,6 +221,7 @@ import {
 } from "./lots";
 import { cargoLine, moveEnergyCost } from "./transport";
 import {
+  applyCargoFuel,
   applyTradeStorage,
   canConsumeCargo,
   consumeCargo,
@@ -1627,7 +1628,8 @@ export async function applyWorldCommand(
         };
       }
     }
-    applyLockoutRest(pl.budgets);
+    const locked = applyLockoutRest(pl.budgets);
+    if (!locked) applyCargoFuel(pl.budgets);
     const spoilNote = (pl.spoil_lines || []).join(" ");
     const result = success(
       w,
