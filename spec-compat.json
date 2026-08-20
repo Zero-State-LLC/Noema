@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "34e342cf94889133077a3c2ec761f2efd790f6b6",
+    "runtime_git": "9ab481f0182d187cf4f8cf0882ef9056f8a9bf65",
     "specs_git": "ae2e56afb5bfed0335e2760c856a3723ffc4ed27",
-    "worker_version_id": "3f859ae2-91bc-448b-837d-14e5a4d78f8a",
+    "worker_version_id": "1345b8f6-7b83-4ddb-86bc-20916fdac458",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "chrome UNFREEZE 2026-08-20: CONNECT drops browser inhabit chamber; hosted HTTP/WS strips arguments.line; rebound event player_id rewrite. Pin 34e342c / Worker 3f859ae2 / Specs ae2e56a. Genesis, seal, verbs, rooms remain frozen."
+    "unfreeze": "chrome UNFREEZE 2026-08-20: delete unused play.ts. Pin 9ab481f / Worker 1345b8f6 / Specs ae2e56a. Genesis, seal, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
