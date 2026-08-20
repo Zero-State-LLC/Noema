@@ -258,6 +258,61 @@ describe("S3 play traces", () => {
     expect(traces[2].text).toMatch(/maintenance plate/);
   });
 
+  it("projects genesis RUIN as a scar without requiring scar:true", () => {
+    const traces = projectRoomTraces({
+      entities: [
+        {
+          entity_id: "entity.failed-claim",
+          label: "collapsed-gantry",
+          entity_type: "RUIN",
+        },
+      ],
+    });
+    expect(publicTraces(traces)).toEqual([
+      { kind: "scar", text: "A scar remains (collapsed-gantry).", visibility: "public" },
+    ]);
+    expect(traces[0].source_state_ref).toEqual({
+      kind: "entity",
+      entity_id: "entity.failed-claim",
+      field: "scar",
+    });
+    expect(JSON.stringify(publicTraces(traces))).not.toMatch(/entity\./);
+  });
+
+  it("projects unclaimed construction so later Players can see inherited work", () => {
+    const traces = projectRoomTraces({
+      entities: [
+        {
+          entity_id: "entity.relay-a",
+          label: "north-relay",
+          entity_type: "INFRASTRUCTURE",
+          unclaimed: true,
+        },
+      ],
+    });
+    expect(publicTraces(traces)).toEqual([
+      { kind: "construction", text: "The north relay is unclaimed.", visibility: "public" },
+    ]);
+    expect(traces[0].source_state_ref).toEqual({
+      kind: "entity",
+      entity_id: "entity.relay-a",
+      field: "unclaimed",
+    });
+    expect(
+      projectRoomTraces({
+        hidden: true,
+        entities: [
+          {
+            entity_id: "entity.relay-a",
+            label: "north-relay",
+            entity_type: "INFRASTRUCTURE",
+            unclaimed: true,
+          },
+        ],
+      }),
+    ).toEqual([]);
+  });
+
   it("AC 15: second agent sees the plate after the originator leaves", async () => {
     const w = repairWorld();
     const sable = agent("sable");

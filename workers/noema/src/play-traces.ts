@@ -11,7 +11,7 @@ export type PlayTrace = {
 };
 
 export type TraceSourceRef =
-  | { kind: "entity"; entity_id: string; field: "scar" | "in_progress" | "last_repair" }
+  | { kind: "entity"; entity_id: string; field: "scar" | "in_progress" | "last_repair" | "unclaimed" }
   | { kind: "room"; room_id?: string; field: "board" | "shout" | "institution_notice" | "trade_notice" };
 
 export type ProjectedTrace = PlayTrace & {
@@ -23,9 +23,11 @@ export type TraceRoom = {
   entities?: Array<{
     entity_id?: string;
     label?: string;
+    entity_type?: string;
     scar?: boolean;
     hidden?: boolean;
     in_progress?: boolean;
+    unclaimed?: boolean;
     last_repair_cycle?: number;
     last_repair_handle?: string;
   }>;
@@ -69,8 +71,10 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
   };
 
   const ents = (room.entities || []).filter((e) => !e.hidden && String(e.label || "").trim());
+  const isScar = (e: (typeof ents)[number]) =>
+    e.scar === true || String(e.entity_type || "").toUpperCase() === "RUIN";
   const scars = ents
-    .filter((e) => e.scar === true)
+    .filter(isScar)
     .sort((a, b) => String(a.label).localeCompare(String(b.label)));
   for (const e of scars) {
     add("scar", `A scar remains (${e.label}).`, {
@@ -101,6 +105,17 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
       kind: "entity",
       entity_id: String(e.entity_id || ""),
       field: "in_progress",
+    });
+  }
+
+  const abandoned = ents
+    .filter((e) => e.unclaimed === true && !isScar(e))
+    .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  for (const e of abandoned) {
+    add("construction", `The ${String(e.label).replace(/-/g, " ")} is unclaimed.`, {
+      kind: "entity",
+      entity_id: String(e.entity_id || ""),
+      field: "unclaimed",
     });
   }
 
