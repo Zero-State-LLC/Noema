@@ -220,7 +220,7 @@ import {
   spoilWornLots,
 } from "./lots";
 import { cargoLine, moveEnergyCost } from "./transport";
-import { canConsumeCargo, consumeCargo } from "./cargo";
+import { applyTradeStorage, canConsumeCargo, consumeCargo } from "./cargo";
 import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
@@ -813,6 +813,19 @@ function reservedCargoFor(w: WorldRuntime, playerId: string): number {
     reserved += Math.max(0, Math.floor(Number(trade.reserved?.storage) || 0));
   }
   return reserved;
+}
+
+function tradeStorageFail(
+  request_id: string,
+  result: { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" },
+): CommandResult {
+  return fail(
+    request_id,
+    "BUDGET_EXCEEDED",
+    result.code === "GIVER_NOT_CARRYING"
+      ? "You are not carrying that."
+      : "They do not have enough free storage.",
+  );
 }
 
 function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean {
@@ -2089,7 +2102,14 @@ export async function applyWorldCommand(
           emergencyScope = em.scope;
         }
       }
+      const alreadyReserved = reservedCargoFor(w, principal.player_id);
       for (const [res, amt] of Object.entries(offered)) {
+        if (res === "storage") {
+          if (!canConsumeCargo(source.storage ?? 0, amt, alreadyReserved)) {
+            return fail(request_id, "BUDGET_EXCEEDED", "You are not carrying that.");
+          }
+          continue;
+        }
         if ((source[res as keyof Budgets] ?? 0) < amt) {
           return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} in the ${acting_for ? "treasury" : "offer"}.`);
         }
@@ -2103,6 +2123,13 @@ export async function applyWorldCommand(
         offered_grades[key] = !acting_for ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
         if (!acting_for && pl.lot_origins?.[key]) {
           offered_origins[key] = { ...pl.lot_origins[key] };
+        }
+        if (key === "storage") {
+          if (!canConsumeCargo(source.storage ?? 0, amt, alreadyReserved)) {
+            return fail(request_id, "BUDGET_EXCEEDED", "You are not carrying that.");
+          }
+          reserved[res] = amt;
+          continue;
         }
         source[key] = (source[key] ?? 0) - amt;
         reserved[res] = amt;
@@ -2202,13 +2229,29 @@ export async function applyWorldCommand(
         : w.players[trade.proposer_id]?.budgets;
       if (!proposerDest) return fail(request_id, "TRADE_FAILED", "Proposer missing.");
       for (const [res, amt] of Object.entries(trade.requested)) {
+        if (res === "storage") continue;
         if ((payFrom[res as keyof Budgets] ?? 0) < amt) {
           return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} to accept.`);
         }
       }
+      const previewPay = { storage: payFrom.storage };
+      const previewProp = { storage: proposerDest.storage };
+      if (trade.requested.storage) {
+        const preview = applyTradeStorage(previewPay, previewProp, trade.requested.storage);
+        if (!preview.ok) return tradeStorageFail(request_id, preview);
+      }
+      if (trade.offered.storage) {
+        const preview = applyTradeStorage(previewProp, previewPay, trade.offered.storage);
+        if (!preview.ok) return tradeStorageFail(request_id, preview);
+      }
       debit(pl.budgets, COSTS.TRADE);
       for (const [res, amt] of Object.entries(trade.requested)) {
         const key = res as keyof Budgets;
+        if (key === "storage") {
+          const moved = applyTradeStorage(payFrom, proposerDest, amt);
+          if (!moved.ok) return tradeStorageFail(request_id, moved);
+          continue;
+        }
         const incoming = !acceptActingFor ? pl.lot_grades?.[key] || "SOUND" : "SOUND";
         const incomingOrigin = !acceptActingFor ? pl.lot_origins?.[key] : undefined;
         payFrom[key] = (payFrom[key] ?? 0) - amt;
@@ -2225,6 +2268,11 @@ export async function applyWorldCommand(
       }
       for (const [res, amt] of Object.entries(trade.offered)) {
         const key = res as keyof Budgets;
+        if (key === "storage") {
+          const moved = applyTradeStorage(proposerDest, receiveInto, amt);
+          if (!moved.ok) return tradeStorageFail(request_id, moved);
+          continue;
+        }
         receiveInto[key] = (receiveInto[key] ?? 0) + amt;
         if (receiveInto === pl.budgets) {
           pl.lot_grades = creditLot(
@@ -3804,6 +3852,7 @@ function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {
     : w.players[trade.proposer_id]?.budgets;
   if (dest) {
     for (const [res, amt] of Object.entries(trade.reserved || {})) {
+      if (res === "storage") continue;
       dest[res as keyof Budgets] = (dest[res as keyof Budgets] ?? 0) + amt;
     }
   }

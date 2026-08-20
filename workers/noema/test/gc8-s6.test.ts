@@ -155,4 +155,96 @@ describe("GC8-S6 world path", () => {
     expect(r.ok).toBe(true);
     expect(w.players[p.player_id].budgets.storage).toBe(16);
   });
+
+  it("TRADE storage is cargo 15→16 / 16→15", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets.storage = 15;
+    w.players[b.player_id].budgets.storage = 16;
+    const energyA = w.players[a.player_id].budgets.energy;
+    const energyB = w.players[b.player_id].budgets.energy;
+    const proposed = await run(w, a, "TRADE", {
+      phase: "propose",
+      counterparty_id: b.player_id,
+      offered: { storage: 1 },
+      requested: { energy: 1 },
+    });
+    expect(proposed.ok).toBe(true);
+    expect(w.players[a.player_id].budgets.storage).toBe(15);
+    const tradeId = Object.keys(w.trades)[0];
+    const accepted = await run(w, b, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(accepted.ok).toBe(true);
+    expect(w.players[a.player_id].budgets.storage).toBe(16);
+    expect(w.players[b.player_id].budgets.storage).toBe(15);
+    expect(w.players[a.player_id].budgets.energy).toBe(energyA + 1);
+    expect(w.players[b.player_id].budgets.energy).toBe(energyB - 1);
+  });
+
+  it("TRADE rejects giver not carrying", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets.storage = 16;
+    const proposed = await run(w, a, "TRADE", {
+      phase: "propose",
+      counterparty_id: b.player_id,
+      offered: { storage: 1 },
+      requested: { energy: 1 },
+    });
+    expect(proposed.ok).toBe(false);
+    expect(proposed.error?.message).toBe("You are not carrying that.");
+    expect(Object.keys(w.trades)).toHaveLength(0);
+    expect(w.players[a.player_id].budgets.storage).toBe(16);
+  });
+
+  it("TRADE rejects receiver pack full", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets.storage = 15;
+    w.players[b.player_id].budgets.storage = 0;
+    const proposed = await run(w, a, "TRADE", {
+      phase: "propose",
+      counterparty_id: b.player_id,
+      offered: { storage: 1 },
+      requested: { energy: 1 },
+    });
+    expect(proposed.ok).toBe(true);
+    expect(w.players[a.player_id].budgets.storage).toBe(15);
+    const tradeId = Object.keys(w.trades)[0];
+    const accepted = await run(w, b, "TRADE", { phase: "accept", trade_id: tradeId });
+    expect(accepted.ok).toBe(false);
+    expect(accepted.error?.message).toBe("They do not have enough free storage.");
+    expect(w.trades[tradeId].status).toBe("OPEN");
+    expect(w.players[a.player_id].budgets.storage).toBe(15);
+    expect(w.players[b.player_id].budgets.storage).toBe(0);
+  });
+
+  it("reserved cargo cannot REPAIR", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    const b = principal("player.vesper");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets.storage = 15;
+    const proposed = await run(w, a, "TRADE", {
+      phase: "propose",
+      counterparty_id: b.player_id,
+      offered: { storage: 1 },
+      requested: { energy: 1 },
+    });
+    expect(proposed.ok).toBe(true);
+    expect(w.players[a.player_id].budgets.storage).toBe(15);
+    const r = await run(w, a, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay" });
+    expect(r.ok).toBe(false);
+    expect(r.error?.message).toBe("You do not have materials in hold.");
+    expect(w.players[a.player_id].budgets.storage).toBe(15);
+  });
 });
