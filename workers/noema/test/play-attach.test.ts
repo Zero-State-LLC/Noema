@@ -5,7 +5,7 @@ import worker from "../src/index";
 import { countEnteredPlayers, countLivePlayers, playReady } from "../src/ops";
 import { humanizeError, waitingCopy } from "../src/play-ui";
 import { playCallbackHtml } from "../src/play-login-html";
-import { playHtml } from "../src/play";
+
 import { ACCEPTED_SEALS } from "../src/seal";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "../src/types";
 import { applyWorldCommand, buildObservation, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
@@ -410,8 +410,5 @@ describe("play attach presentation", () => {
     const html = playCallbackHtml();
     expect(html).toContain("noema.play.handle");
     expect(html).toContain("data.handle");
-    const play = playHtml();
-    expect(play).toContain("waitingCopy");
-    expect(play).toMatch(/handle\.length < 2[\s\S]*preToken|preToken[\s\S]*handle\.length < 2/);
   });
 });

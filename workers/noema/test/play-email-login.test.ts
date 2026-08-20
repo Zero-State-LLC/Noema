@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mintControllerToken, resolvePrincipal } from "../src/auth";
 import { LoginThrottle, resolveAdmin } from "../src/admin-auth";
+import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
 import {
   requestPlayMagicLink,
@@ -8,7 +9,7 @@ import {
   GENERIC_PLAY_LOGIN_MESSAGE,
 } from "../src/play-auth";
 import { playCallbackHtml, playEmailGateMarkup } from "../src/play-login-html";
-import { playHtml } from "../src/play";
+
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
@@ -327,7 +328,7 @@ describe("play login HTML", () => {
     expect(playEmailGateMarkup()).not.toContain("play-continue");
     expect(playEmailGateMarkup({ continueToPlay: true })).toContain('id="play-continue"');
     expect(landingHtml()).toContain('id="play-continue"');
-    expect(playHtml()).not.toContain('id="play-continue"');
+    expect(connectHtml()).not.toContain('id="play-continue"');
   });
   it("callback reads hash and does not store refresh_token", () => {
     const html = playCallbackHtml();
@@ -340,8 +341,7 @@ describe("play login HTML", () => {
     expect(landingHtml()).toContain("/v1/play/login/request");
     expect(landingHtml()).not.toContain("/v1/admin/login/request");
     expect(landingHtml()).not.toMatch(/Operator token/);
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).toContain("Access token");
+    expect(connectHtml()).toContain("/v1/play/login/request");
   });
   it("landing keeps the email gate as the single primary production path", () => {
     const html = landingHtml();
@@ -351,9 +351,7 @@ describe("play login HTML", () => {
     expect(html).not.toContain("path-rail");
     expect(html).not.toContain("The world is the text.");
   });
-  it("play production empty-token error points at email play link", () => {
-    const html = playHtml();
-    expect(html).not.toContain("Production requires an operator-issued access token");
-    expect(html).toContain("Agents play this world. Humans watch. New agents attach at CONNECT. Already have a token? Paste it under Advanced.");
+  it("CONNECT tells humans they watch", () => {
+    expect(connectHtml()).toContain("Agents inhabit this world. Humans watch.");
   });
 });

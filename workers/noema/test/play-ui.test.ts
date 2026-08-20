@@ -28,7 +28,6 @@ import {
   lowNoiseWatchText,
   fourBeatFromResult,
 } from "../src/play-ui";
-import { playHtml } from "../src/play";
 import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -226,53 +225,7 @@ describe("play-ui helpers", () => {
   });
 });
 
-describe("play shell HTML", () => {
-  const html = playHtml();
-
-  it("removes controller selector from normal PLAY", () => {
-    expect(html).not.toMatch(/id="ctype"/);
-    expect(html).not.toMatch(/<option value="agent"/);
-    expect(html).toMatch(/Enter world/);
-    expect(html).not.toMatch(/Connect an agent/);
-  });
-
-  it("uses chamber workspace hierarchy", () => {
-    expect(html).toMatch(/id="play-chamber"/);
-    expect(html).toMatch(/WHERE/);
-    expect(html).toMatch(/>HERE</);
-    expect(html).toMatch(/>EXITS</);
-    expect(html).toMatch(/id="cmd"/);
-  });
-
-  it("keeps command line and advanced details", () => {
-    expect(html).toMatch(/id="cmd"/);
-    expect(html).toMatch(/Advanced details/i);
-    expect(html).toMatch(/id="token-paste"/);
-  });
-
-  it("avoids player-facing system jargon in primary chrome", () => {
-    expect(html).not.toMatch(/PlayerPrincipal/);
-    expect(html).not.toMatch(/Genesis/);
-    expect(html).not.toMatch(/settlement internals/i);
-    expect(html).toMatch(/WHERE/);
-  });
-
-  it("does not embed story seed ids in the shell", () => {
-    expect(containsHiddenHistory(html)).toBe(false);
-  });
-
-  it("keeps collapsed Advanced token paste for operator-issued tokens", () => {
-    expect(html).toMatch(/id="token-primary"/);
-    expect(html).toMatch(/id="token-paste"/);
-    expect(html).toMatch(/Already have an agent token/);
-    expect(html).not.toMatch(/Admin → Players/);
-    expect(html).toMatch(/id="play-health"/);
-    expect(html).toMatch(/id="desk-list"/);
-    expect(html).toMatch(/id="players-here"/);
-    expect(html).toMatch(/id="bonds-card"/);
-    expect(html).toMatch(/>Leave</);
-  });
-
+describe("play shell helpers", () => {
   it("first session offers at most three local acts", () => {
     const worn = firstSessionActs({
       name: "Exchange",
@@ -306,15 +259,13 @@ describe("play shell HTML", () => {
   });
 
   it("embeds play-ui helpers instead of a forked copy", () => {
-    expect(html).toContain("function deriveOpportunities");
-    expect(html).toContain("function renderServiceDesksHtml");
     expect(playUiRuntimeSource()).toContain("function deriveOpportunities");
+    expect(playUiRuntimeSource()).toContain("function renderServiceDesksHtml");
   });
 
   it("shims esbuild keepNames __name so inlined toPlayerView can run", () => {
     const src = playUiRuntimeSource();
     expect(src).toContain('const __name = function(fn) { return fn; }');
-    expect(html).toContain('const __name = function(fn) { return fn; }');
     const shim = 'const __name = function(fn) { return fn; };';
     expect(src.startsWith(shim)).toBe(true);
     const keepNames = new Function(`${shim}\nreturn __name(function probe() { return "ok"; }, "probe")();`)();
@@ -707,14 +658,10 @@ describe("S5 low-noise", () => {
     expect(text).not.toMatch(/<svg|glyph|entity\.a|room\.hub/i);
   });
 
-  it("exposes the preference on PLAY and WATCH, not a human inhabit door", () => {
-    const play = playHtml();
+  it("exposes the preference on WATCH, not a human inhabit door", () => {
     const watch = watchHtml();
-    expect(play).toContain('id="low-noise"');
-    expect(play).toContain('id="low-noise-room"');
     expect(watch).toContain('id="watch-low-noise"');
     expect(watch).toContain("Humans watch");
-    expect(play).toMatch(/Agents inhabit/);
   });
 
   it("watch low-noise is text-complete without requiring a canvas", () => {

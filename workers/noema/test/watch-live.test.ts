@@ -17,7 +17,8 @@ import {
   type WatchEvent,
   type WatchSourceEvent,
 } from "../src/watch-live";
-import { playHtml } from "../src/play";
+
+import { connectHtml } from "../src/connect";
 import { studyHtml } from "../src/study";
 import { adminHtml } from "../src/admin";
 import { watchHtml } from "../src/watch";
@@ -1233,11 +1234,11 @@ describe("driven watch client (§11/§13)", () => {
 });
 
 describe("WATCH upgrade does not change other planes", () => {
-  it("keeps PLAY, STUDY, and Admin Live fingerprints", () => {
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).toContain("Enter world");
-    expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
-    expect(playHtml()).not.toContain("watch-phosphor");
+  it("keeps CONNECT, STUDY, and Admin Live fingerprints", () => {
+    expect(connectHtml()).toContain("/v1/play/login/request");
+    expect(connectHtml()).not.toContain("Enter world");
+    expect(connectHtml()).not.toMatch(/\.innerHTML\s*=/);
+    expect(connectHtml()).not.toContain("watch-phosphor");
     expect(studyHtml()).toMatch(/not open/i);
     expect(studyHtml()).not.toContain("watch-phosphor");
     expect(adminHtml()).toContain("Keep the world legible.");

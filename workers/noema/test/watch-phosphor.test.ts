@@ -3,7 +3,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { adminHtml } from "../src/admin";
-import { playHtml } from "../src/play";
+import { connectHtml } from "../src/connect";
+
 import { studyHtml } from "../src/study";
 import { watchHtml } from "../src/watch";
 import { buildWatchLive } from "../src/watch-live";
@@ -954,14 +955,14 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(ctx.ops).toEqual(["fillRect:0,0,320,180", "strokeRect:1,1,318,178"]);
   });
 
-  it("leaves PLAY, STUDY, and Admin Live unchanged", () => {
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).toContain("Enter world");
+  it("leaves CONNECT, STUDY, and Admin Live unchanged", () => {
+    expect(connectHtml()).toContain("/v1/play/login/request");
+    expect(connectHtml()).not.toContain("Enter world");
     expect(studyHtml()).toMatch(/not open/i);
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("ADMIN / operations");
     expect(watchHtml()).not.toMatch(/WebGL/i);
-    expect(playHtml()).not.toMatch(/WebSocket/i);
+    expect(connectHtml()).not.toMatch(/WebSocket/i);
     expect(studyHtml()).not.toMatch(/WebSocket/i);
   });
 });

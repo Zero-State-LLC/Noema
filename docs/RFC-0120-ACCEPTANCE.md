@@ -38,9 +38,10 @@ Hosted alpha freeze (`docs/HOSTED-ALPHA-FREEZE.md`) still owns Genesis, seal, ch
 ## Residuals (not blockers)
 
 ```text
-Hosted GET /play 308 → /connect. Chamber PLAY HTML remains in play.ts for
-offline tests. Hosted CONNECT does not embed the inhabit chamber.
-Hosted HTTP/WS strips arguments.line; structured commands only.
+Hosted GET /play 308 → /connect. Browser inhabit HTML is gone.
+Hosted HTTP/WS strips arguments.line. Postgres settled-event rows keep
+historical player_id as provenance (digest chain). Live DO occupancy
+rebinds on inhabit.
 ```
 
 ## Non-goals honored
