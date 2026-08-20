@@ -68,7 +68,12 @@ import {
   type OfficeProfile,
   type OfficeRecord,
 } from "./offices";
-import { parseVisibility } from "./reconstruction";
+import {
+  evidenceAccessible,
+  parseVisibility,
+  type ReconstructionRecord,
+} from "./reconstruction";
+import type { DiscoveryState } from "./discovery";
 import { moveEnergyCost } from "./transport";
 import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
 import { canOverhaul, OVERHAUL_ENERGY_EXTRA, type PracticeState } from "./practice";
@@ -485,6 +490,12 @@ export type Affordance = {
   direction?: string;
   acting_for?: string;
   office_id?: string;
+  /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
+  subject_ref?: string;
+  claim?: string;
+  visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+  reconstruction_id?: string;
+  evidence?: string[];
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2942,6 +2953,8 @@ export function deriveAffordances(input: {
     exit_id?: string;
     expires_cycle: number;
   }>;
+  discovery?: DiscoveryState;
+  reconstructions?: ReconstructionRecord[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3855,6 +3868,86 @@ export function deriveAffordances(input: {
           });
         }
       }
+    }
+  }
+
+  const reconOk = canPay(budgets, COSTS.RECONSTRUCT);
+  const reconSubjects = new Set<string>();
+  for (const e of entities) reconSubjects.add(e.entity_id);
+  const snapArchives = input.discovery?.archives || {};
+  const snapInspects = input.discovery?.inspects || {};
+  for (const id of Object.keys(snapArchives)) reconSubjects.add(id);
+  for (const id of Object.keys(snapInspects)) reconSubjects.add(id);
+  let reconN = 0;
+  for (const subject of reconSubjects) {
+    if (reconN >= 6) break;
+    const kinds: string[] = [];
+    if (evidenceAccessible(input.discovery, "LIVE_INSPECT", subject)) kinds.push("LIVE_INSPECT");
+    if (evidenceAccessible(input.discovery, "ARCHIVE_CLAIM", subject)) kinds.push("ARCHIVE_CLAIM");
+    if (!kinds.length) continue;
+    const ent = entities.find((e) => e.entity_id === subject);
+    const label = ent ? titleCaseLabel(ent.label) : subject.replace(/^entity\./, "");
+    const claim = "Recorded from accessible evidence.";
+    const evCmd = kinds
+      .map((k) => (k === "ARCHIVE_CLAIM" ? "archive" : "inspect"))
+      .join(",");
+    out.push({
+      action: "RECONSTRUCT",
+      verb: "COMMIT",
+      operation: "RECONSTRUCT",
+      label: `Reconstruct ${label}`,
+      cmd: `reconstruct ${ent?.label || subject} "${claim}" evidence=${evCmd} private`,
+      target_id: subject,
+      target_label: label,
+      subject_ref: subject,
+      claim,
+      evidence: kinds,
+      visibility: "PRIVATE",
+      requires: COSTS.RECONSTRUCT,
+      available: reconOk,
+      reason: reconOk ? undefined : "You do not have enough attention.",
+      kind: "utility",
+    });
+    reconN += 1;
+  }
+  for (const rec of input.reconstructions || []) {
+    if (rec.author_player_id !== selfId || rec.status !== "RECORDED") continue;
+    if (rec.visibility !== "PUBLIC") {
+      out.push({
+        action: "RECONSTRUCT_PUBLISH",
+        verb: "COMMIT",
+        operation: "RECONSTRUCT_PUBLISH",
+        label: `Publish reconstruction of ${rec.subject_ref.replace(/^entity\./, "")}`,
+        cmd: `reconstruct ${rec.subject_ref} "${rec.claim}" public`,
+        reconstruction_id: rec.reconstruction_id,
+        subject_ref: rec.subject_ref,
+        visibility: "PUBLIC",
+        requires: COSTS.RECONSTRUCT,
+        available: reconOk,
+        reason: reconOk ? undefined : "You do not have enough attention.",
+        kind: "utility",
+      });
+    }
+    const kinds = rec.evidence_refs
+      .map((r) => r.kind)
+      .filter((kind) => evidenceAccessible(input.discovery, kind, rec.subject_ref));
+    if (kinds.length) {
+      const claim = "Revised from accessible evidence.";
+      out.push({
+        action: "RECONSTRUCT_SUPERSEDE",
+        verb: "COMMIT",
+        operation: "RECONSTRUCT_SUPERSEDE",
+        label: `Revise reconstruction of ${rec.subject_ref.replace(/^entity\./, "")}`,
+        cmd: `revise ${rec.reconstruction_id} "${claim}"`,
+        reconstruction_id: rec.reconstruction_id,
+        subject_ref: rec.subject_ref,
+        claim,
+        evidence: kinds,
+        requires: COSTS.RECONSTRUCT,
+        available: reconOk,
+        reason: reconOk ? undefined : "You do not have enough attention.",
+        kind: "utility",
+      });
     }
   }
 

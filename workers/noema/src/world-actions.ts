@@ -556,6 +556,8 @@ export function buildObservation(
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
     agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
     accessRestrictions: w.access_restrictions || [],
+    discovery: pl.discovery,
+    reconstructions: Object.values(w.reconstructions || {}).filter((r) => r.status === "RECORDED"),
   });
   const available_actions = [
     ...new Set(
@@ -729,6 +731,11 @@ export function buildObservation(
       direction: a.direction,
       acting_for: a.acting_for,
       office_id: a.office_id,
+      subject_ref: a.subject_ref,
+      claim: a.claim,
+      visibility: a.visibility,
+      reconstruction_id: a.reconstruction_id,
+      evidence: a.evidence,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1399,6 +1406,8 @@ export async function applyWorldCommand(
         openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
         agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
         accessRestrictions: w.access_restrictions || [],
+        discovery: pl.discovery,
+        reconstructions: Object.values(w.reconstructions || {}).filter((r) => r.status === "RECORDED"),
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
