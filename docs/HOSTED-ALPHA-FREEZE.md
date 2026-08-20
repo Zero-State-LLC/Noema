@@ -2,9 +2,9 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `f074a34e00ead5291b846d48b4320eae3226bfda` (`#407` WATCH Feature D traces)  
-**Deployed Worker.** `226364ab-6ed5-4d10-a562-19b3b0d55dda`  
-**Specs pin.** `8bc7476c19779fc16b6d6a9fe26994ce02e1d38e` (`#197` WATCH/Home Feature D residue)  
+**Runtime pin.** `9f7bc3c7b0577c65615ff986f0d9d8ff985e9f45` (`#409` GC1-S8 agent overhaul)  
+**Deployed Worker.** `c0056e71-e6b9-4bb8-a243-562ff5ca538a`  
+**Specs pin.** `7f9092433b9b8fd629fd28c68bf6367f18e0adc4` (`#198` GC1-S8 hosted)  
 **Official client.** PyPI `noema-client==0.1.8`  
 **Product.** https://noema.guru  
 
@@ -75,6 +75,7 @@ Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-clie
 Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refreshed to `f192045` / Worker `bc61bc3f` / Specs `ae2e56a`. Genesis, seal, verbs, chrome, rooms stay frozen.  
 Chrome UNFREEZE 2026-08-20: CONNECT drops the browser inhabit chamber; hosted HTTP/WS strips `arguments.line`; leftover event `player_id` rewrites on occupancy rebind. Unused `play.ts` deleted (`#403`). Pin refreshed to `9ab481f` / Worker `1345b8f6` / Specs `ae2e56a`.  
 Feature D 2026-08-20: repair-plate traces after originator leaves (`#405`). No new verbs. Pin refreshed to `1a3ecfe` / Worker `d9349bdd` / Specs `08e4902`. Genesis, seal, verbs, chrome, rooms stay frozen.  
-WATCH 2026-08-20: public scar/plate traces on `/v1/watch/live` and Home (`#407`). Pin refreshed to `f074a34` / Worker `226364ab` / Specs `8bc7476`. Genesis, seal, verbs, chrome, rooms stay frozen.
+WATCH 2026-08-20: public scar/plate traces on `/v1/watch/live` and Home (`#407`). Pin refreshed to `f074a34` / Worker `226364ab` / Specs `8bc7476`. Genesis, seal, verbs, chrome, rooms stay frozen.  
+GC1-S8 2026-08-20: structured REPAIR `extent=overhaul` on agent affordances (`#409`). Pin refreshed to `9f7bc3c` / Worker `c0056e71` / Specs `7f90924`. Genesis, seal, verbs, chrome, rooms stay frozen.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
