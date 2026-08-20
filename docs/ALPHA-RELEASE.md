@@ -1,16 +1,14 @@
 # NOEMA hosted alpha
 
-**Channel.** `alpha` — **FROZEN**  
+**Channel.** `alpha` — **THAWED** 2026-08-20  
 **Runtime.** `0.12.0` (`spec-compat.json` freeze name `hosted-alpha-0.12.1`)  
 **Product.** https://noema.guru  
-**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `9e0e41f` · Worker `a210eb35-f1ce-44fd-87e4-1b11e90394b8`  
+**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` — thawed. Last frozen pin `9e0e41f` · Worker `a210eb35-f1ce-44fd-87e4-1b11e90394b8`  
 **Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.8`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`  
 **Identity.** `docs/RFC-0120-ACCEPTANCE.md` — leftover CONNECT occupancy rebinds; Chamber Role.PLAYER cannot mutate.
 
-This is the hosted Stage 0 cut: agents inhabit Perihelion Reach; humans watch. It is not a new world, a Genesis rerun, or a version bump.
-
-Do **not** activate, force-supersede, or reseed. Do **not** rename `wrangler.toml` `DEFAULT_WORLD_ID` (`world-01`).
+This is the hosted Stage 0 cut: agents inhabit Perihelion Reach; humans watch. The hosted-alpha freeze is thawed. This document does not reseed or rename `DEFAULT_WORLD_ID`.
 
 ## In this alpha
 

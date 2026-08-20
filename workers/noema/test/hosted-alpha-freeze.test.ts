@@ -1,6 +1,7 @@
 /**
- * Hosted alpha freeze. Fail this file = you moved a frozen surface.
- * Unfreeze: see docs/HOSTED-ALPHA-FREEZE.md.
+ * Hosted alpha is THAWED. These tests lock RFC-0120 admission/chrome
+ * and record thawed status. They do not pin Worker SHAs.
+ * See docs/HOSTED-ALPHA-FREEZE.md.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -29,21 +30,13 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
 };
 
 const FROZEN_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
-const FROZEN_RUNTIME = "9e0e41fdd589df46064b06f48b524f35d9613f16";
-const FROZEN_SPECS = "5768b011bab7bfc946152495eb80c2e1e2ad1c3e";
-const FROZEN_WORKER = "a210eb35-f1ce-44fd-87e4-1b11e90394b8";
 
 describe("hosted alpha freeze", () => {
-  it("pins the deployed product, not a moving main tip", () => {
+  it("records thawed status; last frozen pins are historical", () => {
     expect(COMPAT.release_channel).toBe("alpha");
-    expect(COMPAT.frozen_release?.status).toBe("frozen");
-    expect(COMPAT.frozen_release?.runtime_git).toBe(FROZEN_RUNTIME);
-    expect(COMPAT.frozen_release?.specs_git).toBe(FROZEN_SPECS);
-    expect(COMPAT.frozen_release?.worker_version_id).toBe(FROZEN_WORKER);
-    expect(COMPAT.frozen_release?.genesis_id).toBe("genesis.ef578f4ffceeccd0");
-    expect(COMPAT.frozen_release?.seal).toBe(FROZEN_SEAL);
-    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.8");
+    expect(COMPAT.frozen_release?.status).toBe("thawed");
     expect(COMPAT.frozen_release?.name).toBe("hosted-alpha-0.12.1");
+    expect(String(COMPAT.frozen_release?.unfreeze || "")).toMatch(/FULL THAW/i);
   });
 
   it("keeps the published live seal", () => {
