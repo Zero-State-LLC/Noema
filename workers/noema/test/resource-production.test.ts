@@ -122,4 +122,49 @@ describe("RESOURCE-ECONOMY production tick", () => {
     expect(board?.stock_resource).toBeUndefined();
     expect(board?.stock_amount).toBeUndefined();
   });
+
+  it("does not refill leftover market-post stock on cycle commit", async () => {
+    const w = world(1);
+    w.rooms["room.civic-exchange"].entities.push(
+      enrichEntity({
+        entity_id: "entity.old-market-post",
+        label: "market-post",
+        entity_type: "INFRASTRUCTURE",
+        stock_resource: "energy",
+        stock_amount: 0,
+      }),
+    );
+    const p = principal("player.harvester");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    await run(w, p, "WAIT");
+    const board = w.rooms["room.civic-exchange"].entities.find((e) => e.entity_id === "entity.old-market-post");
+    expect(board?.stock_amount).toBe(0);
+  });
+
+  it("lists empty authorized harvest as unavailable and names stock, not storage", async () => {
+    const w = world(0);
+    const p = principal("player.harvester");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const looked = await run(w, p, "LOOK");
+    const harvest = looked.observation?.affordances?.find(
+      (a) => a.operation === "HARVEST" && a.target_id === "entity.storage-cell-cache",
+    );
+    expect(harvest?.available).toBe(false);
+    expect(harvest?.reason).toBe("Not enough stock available.");
+    expect(looked.observation?.affordances?.some((a) => a.action === "WAIT" && a.available)).toBe(true);
+  });
+
+  it("names free storage when the node has stock and the Player does not", async () => {
+    const w = world(4);
+    const p = principal("player.harvester");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, storage: 0 });
+    const looked = await run(w, p, "LOOK");
+    const harvest = looked.observation?.affordances?.find(
+      (a) => a.operation === "HARVEST" && a.target_id === "entity.storage-cell-cache",
+    );
+    expect(harvest?.available).toBe(false);
+    expect(harvest?.reason).toBe("You do not have enough free storage.");
+  });
 });
