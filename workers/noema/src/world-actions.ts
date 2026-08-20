@@ -220,7 +220,13 @@ import {
   spoilWornLots,
 } from "./lots";
 import { cargoLine, moveEnergyCost } from "./transport";
-import { applyTradeStorage, canConsumeCargo, consumeCargo } from "./cargo";
+import {
+  applyTradeStorage,
+  canConsumeCargo,
+  consumeCargo,
+  occupiedHold,
+  reservedCargoFromTrades,
+} from "./cargo";
 import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
@@ -807,12 +813,7 @@ function fail(
 }
 
 function reservedCargoFor(w: WorldRuntime, playerId: string): number {
-  let reserved = 0;
-  for (const trade of Object.values(w.trades || {})) {
-    if (trade.status !== "OPEN" || trade.proposer_id !== playerId) continue;
-    reserved += Math.max(0, Math.floor(Number(trade.reserved?.storage) || 0));
-  }
-  return reserved;
+  return reservedCargoFromTrades(Object.values(w.trades || {}), playerId);
 }
 
 function tradeStorageFail(
@@ -826,6 +827,54 @@ function tradeStorageFail(
       ? "You are not carrying that."
       : "They do not have enough free storage.",
   );
+}
+
+/** Player packs use cargo occupancy; institution treasuries are vault integers. */
+function moveTradeStorage(
+  giver: { storage?: number },
+  receiver: { storage?: number },
+  n: number,
+  giverIsPack: boolean,
+  receiverIsPack: boolean,
+): { ok: true } | { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" } {
+  const amt = Math.max(0, Math.floor(n));
+  if (amt <= 0) return { ok: true };
+  if (giverIsPack && receiverIsPack) return applyTradeStorage(giver, receiver, amt);
+  if (giverIsPack) {
+    if (!canConsumeCargo(giver.storage ?? 0, amt)) return { ok: false, code: "GIVER_NOT_CARRYING" };
+    consumeCargo(giver, amt);
+    receiver.storage = Math.max(0, Math.floor(receiver.storage ?? 0)) + amt;
+    return { ok: true };
+  }
+  const gs = Math.max(0, Math.floor(giver.storage ?? 0));
+  if (gs < amt) return { ok: false, code: "GIVER_NOT_CARRYING" };
+  if (receiverIsPack) {
+    const rs = Math.max(0, Math.floor(receiver.storage ?? 0));
+    if (rs < amt) return { ok: false, code: "RECEIVER_FULL" };
+    giver.storage = gs - amt;
+    receiver.storage = rs - amt;
+    return { ok: true };
+  }
+  giver.storage = gs - amt;
+  receiver.storage = Math.max(0, Math.floor(receiver.storage ?? 0)) + amt;
+  return { ok: true };
+}
+
+function creditTradeStorage(
+  receiver: { storage?: number },
+  n: number,
+  receiverIsPack: boolean,
+): { ok: true } | { ok: false; code: "RECEIVER_FULL" } {
+  const amt = Math.max(0, Math.floor(n));
+  if (amt <= 0) return { ok: true };
+  if (receiverIsPack) {
+    const rs = Math.max(0, Math.floor(receiver.storage ?? 0));
+    if (rs < amt) return { ok: false, code: "RECEIVER_FULL" };
+    receiver.storage = rs - amt;
+    return { ok: true };
+  }
+  receiver.storage = Math.max(0, Math.floor(receiver.storage ?? 0)) + amt;
+  return { ok: true };
 }
 
 function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean {
@@ -2105,6 +2154,12 @@ export async function applyWorldCommand(
       const alreadyReserved = reservedCargoFor(w, principal.player_id);
       for (const [res, amt] of Object.entries(offered)) {
         if (res === "storage") {
+          if (acting_for) {
+            if ((source.storage ?? 0) < amt) {
+              return fail(request_id, "BUDGET_EXCEEDED", "Not enough storage in the treasury.");
+            }
+            continue;
+          }
           if (!canConsumeCargo(source.storage ?? 0, amt, alreadyReserved)) {
             return fail(request_id, "BUDGET_EXCEEDED", "You are not carrying that.");
           }
@@ -2125,7 +2180,9 @@ export async function applyWorldCommand(
           offered_origins[key] = { ...pl.lot_origins[key] };
         }
         if (key === "storage") {
-          if (!canConsumeCargo(source.storage ?? 0, amt, alreadyReserved)) {
+          if (acting_for) {
+            source.storage = (source.storage ?? 0) - amt;
+          } else if (!canConsumeCargo(source.storage ?? 0, amt, alreadyReserved)) {
             return fail(request_id, "BUDGET_EXCEEDED", "You are not carrying that.");
           }
           reserved[res] = amt;
@@ -2234,21 +2291,31 @@ export async function applyWorldCommand(
           return fail(request_id, "BUDGET_EXCEEDED", `Not enough ${res} to accept.`);
         }
       }
+      const payIsPack = !acceptActingFor;
+      const propIsPack = !trade.acting_for;
       const previewPay = { storage: payFrom.storage };
       const previewProp = { storage: proposerDest.storage };
       if (trade.requested.storage) {
-        const preview = applyTradeStorage(previewPay, previewProp, trade.requested.storage);
+        const preview = moveTradeStorage(
+          previewPay,
+          previewProp,
+          trade.requested.storage,
+          payIsPack,
+          propIsPack,
+        );
         if (!preview.ok) return tradeStorageFail(request_id, preview);
       }
       if (trade.offered.storage) {
-        const preview = applyTradeStorage(previewProp, previewPay, trade.offered.storage);
+        const preview = propIsPack
+          ? moveTradeStorage(previewProp, previewPay, trade.offered.storage, true, payIsPack)
+          : creditTradeStorage(previewPay, trade.offered.storage, payIsPack);
         if (!preview.ok) return tradeStorageFail(request_id, preview);
       }
       debit(pl.budgets, COSTS.TRADE);
       for (const [res, amt] of Object.entries(trade.requested)) {
         const key = res as keyof Budgets;
         if (key === "storage") {
-          const moved = applyTradeStorage(payFrom, proposerDest, amt);
+          const moved = moveTradeStorage(payFrom, proposerDest, amt, payIsPack, propIsPack);
           if (!moved.ok) return tradeStorageFail(request_id, moved);
           continue;
         }
@@ -2269,7 +2336,9 @@ export async function applyWorldCommand(
       for (const [res, amt] of Object.entries(trade.offered)) {
         const key = res as keyof Budgets;
         if (key === "storage") {
-          const moved = applyTradeStorage(proposerDest, receiveInto, amt);
+          const moved = propIsPack
+            ? moveTradeStorage(proposerDest, receiveInto, amt, true, payIsPack)
+            : creditTradeStorage(receiveInto, amt, payIsPack);
           if (!moved.ok) return tradeStorageFail(request_id, moved);
           continue;
         }
@@ -2774,8 +2843,14 @@ export async function applyWorldCommand(
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
       debit(payFrom, fuel);
-      if (payFrom === pl.budgets) consumeCargo(pl.budgets, cargoNeed);
-      else debit(payFrom, { storage: cargoNeed });
+      if (payFrom === pl.budgets) {
+        consumeCargo(pl.budgets, cargoNeed);
+        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
+      } else {
+        debit(payFrom, { storage: cargoNeed });
+      }
       entity.condition = Math.min(100, before + quality.delta + (overhaul ? OVERHAUL_CONDITION_EXTRA : 0));
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
@@ -2936,8 +3011,9 @@ export async function applyWorldCommand(
       debit(pl.budgets, fuel);
       consumeCargo(pl.budgets, cargoNeed);
       if (storageNeed) {
-        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
-        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       }
       const entity_id = allocateInfraId(classId);
       const label = constructLabel(classId);
@@ -3852,7 +3928,7 @@ function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void {
     : w.players[trade.proposer_id]?.budgets;
   if (dest) {
     for (const [res, amt] of Object.entries(trade.reserved || {})) {
-      if (res === "storage") continue;
+      if (res === "storage" && !trade.acting_for) continue;
       dest[res as keyof Budgets] = (dest[res as keyof Budgets] ?? 0) + amt;
     }
   }

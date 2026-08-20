@@ -36,7 +36,7 @@ import {
 } from "./offices";
 import { parseVisibility } from "./reconstruction";
 import { moveEnergyCost } from "./transport";
-import { canConsumeCargo } from "./cargo";
+import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
 
 export type Budgets = {
   attention: number;
@@ -2859,7 +2859,11 @@ export function deriveAffordances(input: {
       const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
       const fuel = { ...repairCost, storage: undefined };
       const cargoNeed = repairCost.storage || 0;
-      const hasCargo = canConsumeCargo(budgets.storage ?? 0, cargoNeed);
+      const hasCargo = canConsumeCargo(
+        budgets.storage ?? 0,
+        cargoNeed,
+        reservedCargoFromTrades(openTrades, selfId),
+      );
       const ok = canPay(budgets, fuel) && hasCargo;
       out.push({
         action: "REPAIR",

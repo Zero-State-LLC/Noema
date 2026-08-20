@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { STORAGE_CAPACITY } from "../src/construction";
-import { applyTradeStorage, canConsumeCargo, consumeCargo, occupiedHold } from "../src/cargo";
+import {
+  applyTradeStorage,
+  canConsumeCargo,
+  consumeCargo,
+  occupiedHold,
+  reservedCargoFromTrades,
+} from "../src/cargo";
 
 describe("GC8-S6 cargo helpers", () => {
   it("occupied hold is capacity minus free storage", () => {
@@ -42,5 +48,25 @@ describe("GC8-S6 cargo helpers", () => {
       ok: false,
       code: "RECEIVER_FULL",
     });
+  });
+
+  it("reserved cargo sums OPEN proposer storage and skips treasury offers", () => {
+    expect(
+      reservedCargoFromTrades(
+        [
+          { status: "OPEN", proposer_id: "player.self", reserved: { storage: 1 } },
+          { status: "OPEN", proposer_id: "player.self", reserved: { storage: 2 } },
+          { status: "SETTLED", proposer_id: "player.self", reserved: { storage: 9 } },
+          { status: "OPEN", proposer_id: "player.other", reserved: { storage: 4 } },
+          {
+            status: "OPEN",
+            proposer_id: "player.self",
+            acting_for: "org.line",
+            reserved: { storage: 8 },
+          },
+        ],
+        "player.self",
+      ),
+    ).toBe(3);
   });
 });

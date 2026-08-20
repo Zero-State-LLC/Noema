@@ -113,5 +113,6 @@ describe("GC8-S1 world path", () => {
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
     expect(w.players[p.player_id].budgets.storage).toBe(before + wornNeed);
+    expect(w.players[p.player_id].lot_grades?.storage).toBeUndefined();
   });
 });

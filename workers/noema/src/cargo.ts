@@ -15,6 +15,25 @@ export function canConsumeCargo(
   return occupiedHold(storage, cap) - Math.max(0, reserved) >= need;
 }
 
+/** Pack occupancy reserved on OPEN personal offers. Treasury vault reservations are not cargo. */
+export function reservedCargoFromTrades(
+  trades: Iterable<{
+    status?: string;
+    proposer_id?: string;
+    acting_for?: string;
+    reserved?: Record<string, number>;
+  }>,
+  selfId: string,
+): number {
+  let reserved = 0;
+  for (const trade of trades) {
+    if (trade.status && trade.status !== "OPEN") continue;
+    if (trade.proposer_id !== selfId || trade.acting_for) continue;
+    reserved += Math.max(0, Math.floor(Number(trade.reserved?.storage) || 0));
+  }
+  return reserved;
+}
+
 export function consumeCargo(budgets: { storage?: number }, cargo: number, cap = STORAGE_CAPACITY): void {
   const need = Math.max(0, Math.floor(cargo));
   if (need <= 0) return;

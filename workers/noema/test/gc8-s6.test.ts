@@ -242,10 +242,32 @@ describe("GC8-S6 world path", () => {
     });
     expect(proposed.ok).toBe(true);
     expect(w.players[a.player_id].budgets.storage).toBe(15);
+    const looked = await run(w, a, "LOOK");
+    const repair = looked.observation?.affordances?.find(
+      (a) => a.action === "REPAIR" && a.target_id === "entity.relay",
+    );
+    expect(repair?.available).toBe(false);
+    expect(repair?.reason).toBe("You do not have materials in hold.");
     const r = await run(w, a, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay" });
     expect(r.ok).toBe(false);
     expect(r.error?.message).toBe("You do not have materials in hold.");
     expect(w.players[a.player_id].budgets.storage).toBe(15);
+  });
+
+  it("REPAIR that empties hold clears WORN storage", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.storage = 15;
+    w.players[p.player_id].lot_grades = { storage: "WORN" };
+    w.players[p.player_id].lot_origins = {
+      storage: { room_id: "room.hub", room_name: "Hub", producer_id: p.player_id },
+    };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay" });
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
+    expect(w.players[p.player_id].lot_grades?.storage).toBeUndefined();
+    expect(w.players[p.player_id].lot_origins?.storage).toBeUndefined();
   });
 
   it("help names cargo hold for work and TRADE", () => {
