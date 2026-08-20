@@ -144,6 +144,7 @@ describe("GC2-S23 world path", () => {
     expect(sixth.ok).toBe(false);
     expect(sixth.error?.code).toBe("FORBIDDEN");
 
+    w.players[f.player_id].budgets.storage = 14;
     const upgrade = await run(w, f, "BUILD", { operation: "UPGRADE", entity_id: entityId });
     expect(upgrade.ok).toBe(true);
 

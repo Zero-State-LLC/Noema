@@ -131,6 +131,7 @@ describe("GC2-S10 world path", () => {
     expect(vested.observation?.consequence).toMatch(/held by Nacre Compact/);
 
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 14;
     const upgrade = await run(w, a, "BUILD", { operation: "UPGRADE", entity_id: entityId });
     expect(upgrade.ok).toBe(true);
 

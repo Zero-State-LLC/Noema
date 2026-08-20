@@ -103,6 +103,7 @@ describe("GC2-S6 world path", () => {
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
     const opened = await run(w, p, "WAIT");
     expect(opened.ok).toBe(true);
+    w.players[p.player_id].budgets.storage = 16 - (REPURPOSE_COST.storage || 0);
     const before = { ...w.players[p.player_id].budgets };
 
     const first = await run(w, p, "BUILD", { operation: "REPURPOSE", entity_id: shop.entity_id });
@@ -119,7 +120,7 @@ describe("GC2-S6 world path", () => {
 
     expect(before.energy - w.players[p.player_id].budgets.energy).toBe(4);
     expect(before.compute - w.players[p.player_id].budgets.compute).toBe(2);
-    expect(before.storage - w.players[p.player_id].budgets.storage).toBe(2);
+    expect(w.players[p.player_id].budgets.storage - before.storage).toBe(2);
     expect(before.influence - w.players[p.player_id].budgets.influence).toBe(1);
 
     const again = await run(w, p, "BUILD", { operation: "REPURPOSE", entity_id: shop.entity_id });

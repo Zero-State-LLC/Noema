@@ -270,10 +270,54 @@ describe("GC8-S6 world path", () => {
     expect(w.players[p.player_id].lot_origins?.storage).toBeUndefined();
   });
 
+  it("empty hold UPGRADE fails materials in hold", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.rooms["room.hub"].entities.push(
+      enrichEntity({
+        entity_id: "entity.workshop",
+        label: "workshop",
+        entity_type: "INFRASTRUCTURE",
+        infra_type: "workshop",
+        condition: 80,
+        owner_id: p.player_id,
+        last_steward_cycle: 0,
+      }),
+    );
+    w.players[p.player_id].budgets.storage = 16;
+    const r = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: "entity.workshop" });
+    expect(r.ok).toBe(false);
+    expect(r.error?.message).toBe("You do not have materials in hold.");
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
+  });
+
+  it("UPGRADE consumes cargo and frees storage", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.rooms["room.hub"].entities.push(
+      enrichEntity({
+        entity_id: "entity.workshop",
+        label: "workshop",
+        entity_type: "INFRASTRUCTURE",
+        infra_type: "workshop",
+        condition: 80,
+        owner_id: p.player_id,
+        last_steward_cycle: 0,
+      }),
+    );
+    w.players[p.player_id].budgets.storage = 14;
+    const r = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: "entity.workshop" });
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
+  });
+
   it("help names cargo hold for work and TRADE", () => {
     expect(helpText("harvest")).toMatch(/fills hold/);
     expect(helpText("repair")).toMatch(/cargo 1 \(frees storage\)/);
     expect(helpText("trade")).toMatch(/storage:.*cargo/i);
+    expect(helpText("build")).toMatch(/consume cargo/);
     expect(helpText()).not.toMatch(/storage capped/i);
     expect(helpText()).not.toMatch(/\bcrypto\b/i);
   });

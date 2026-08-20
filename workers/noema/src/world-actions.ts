@@ -3174,13 +3174,20 @@ export async function applyWorldCommand(
       }
       const storageNeed = constructStorageCost(UPGRADE_COST.storage || 0, pl.lot_grades?.storage);
       const cost = { ...UPGRADE_COST, storage: storageNeed || undefined };
-      if (!canPay(pl.budgets, cost)) {
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to upgrade.");
       }
-      debit(pl.budgets, cost);
+      if (!canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
       if (storageNeed) {
-        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
-        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       }
       here.upgrade_tier = 1;
       here.last_steward_cycle = w.cycle;
@@ -3222,13 +3229,20 @@ export async function applyWorldCommand(
       }
       const storageNeed = constructStorageCost(REPURPOSE_COST.storage || 0, pl.lot_grades?.storage);
       const cost = { ...REPURPOSE_COST, storage: storageNeed || undefined };
-      if (!canPay(pl.budgets, cost)) {
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to repurpose.");
       }
-      debit(pl.budgets, cost);
+      if (!canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
       if (storageNeed) {
-        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
-        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       }
       const entity_id = here.entity_id;
       here.infra_type = REPURPOSE_TO_CLASS;
@@ -3285,13 +3299,20 @@ export async function applyWorldCommand(
       const base = CONSTRUCT_COSTS[classId];
       const storageNeed = constructStorageCost(base.storage || 0, pl.lot_grades?.storage);
       const cost = { ...base, storage: storageNeed || undefined };
-      if (!canPay(pl.budgets, cost)) {
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      if (!canPay(pl.budgets, fuel)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough resources to restore.");
       }
-      debit(pl.budgets, cost);
+      if (!canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+      }
+      debit(pl.budgets, fuel);
+      consumeCargo(pl.budgets, cargoNeed);
       if (storageNeed) {
-        pl.lot_grades = spendLot(pl.lot_grades, pl.budgets.storage ?? 0, "storage");
-        pl.lot_origins = spendOrigin(pl.lot_origins, pl.budgets.storage ?? 0, "storage");
+        const remaining = occupiedHold(pl.budgets.storage ?? 0);
+        pl.lot_grades = spendLot(pl.lot_grades, remaining, "storage");
+        pl.lot_origins = spendOrigin(pl.lot_origins, remaining, "storage");
       }
       here.unclaimed = undefined;
       here.last_steward_cycle = w.cycle;
