@@ -547,6 +547,8 @@ export function buildObservation(
     organizations: orgs,
     selfId: principal.player_id,
     cautionToward,
+    practice: pl.practice,
+    cycle: w.cycle,
   });
   const available_actions = [
     ...new Set(
@@ -697,6 +699,7 @@ export function buildObservation(
       cmd: a.cmd,
       target_id: a.target_id,
       target_label: a.target_label,
+      extent: a.extent,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1353,6 +1356,8 @@ export async function applyWorldCommand(
         openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
         organizations: Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE"),
         selfId: principal.player_id,
+        practice: pl.practice,
+        cycle: w.cycle,
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
