@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "81f7e0499ff7f8f8ccd8f4b159efb071017ae704",
-    "specs_git": "4331070e59b2d6e540b35368afe0870f60e2ea5a",
-    "worker_version_id": "6b9b310b-d20c-4820-9c7a-92afd5f63da6",
+    "runtime_git": "35e7e33399b2c5616f1fd072bff5b039248cb327",
+    "specs_git": "978e199e0b78a4333ea7bc057b4cde1b2d9612b8",
+    "worker_version_id": "b69cde3e-42f4-4c6e-a218-613320f370f9",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.5",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "client UNFREEZE 2026-08-20: official Controller noema-client 0.1.5 spends cargo when harvest is blocked by a full hold. Worker pin stays 81f7e04 / 6b9b310b. Specs 4331070. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-20: WAIT burns cargo for energy (RFC-0119). Pin 35e7e33 / Worker b69cde3e / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
