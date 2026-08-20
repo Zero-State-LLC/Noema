@@ -28,7 +28,7 @@ function env(partial: Partial<Env> = {}): Env {
 }
 
 describe("mintControllerToken identity overrides", () => {
-  it("uses playerId, identityId, amr and does not set issued_by", async () => {
+  it("human mint is a platform token without player_id", async () => {
     const m = await mintControllerToken(env(), {
       handle: "alice",
       controllerType: "human",
@@ -37,12 +37,13 @@ describe("mintControllerToken identity overrides", () => {
       identityId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
       amr: "email_magic_link",
     });
-    expect(m.player_id).toBe("player.abc123def456");
+    expect(m.player_id).toBe("");
     expect(m.controller_type).toBe("human");
+    expect(m.identity_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     expect(m.expires_in).toBe(86400);
     const claims = await verifyHs256(m.access_token, "test-signing-secret");
-    expect(claims.typ).toBe("access");
-    expect(claims.player_id).toBe("player.abc123def456");
+    expect(claims.typ).toBe("platform");
+    expect(claims.player_id).toBeUndefined();
     expect(claims.identity_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     expect(claims.amr).toBe("email_magic_link");
     expect(claims.issued_by).toBeUndefined();
@@ -270,21 +271,23 @@ describe("consumePlayMagicLink", () => {
       { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
     );
     expect(minted).not.toBeInstanceOf(Response);
-    const ok = minted as { access_token: string; player_id: string; handle: string; controller_type: string };
-    expect(ok.player_id).toBe("player.111111112222");
+    const ok = minted as { access_token: string; identity_id: string; handle: string; controller_type: string };
+    expect(ok.identity_id).toBe(USER.id);
     expect(ok.handle).toBe("adalovelace");
     expect(ok.controller_type).toBe("human");
     expect("refresh_token" in ok).toBe(false);
+    expect("player_id" in ok).toBe(false);
     const claims = await verifyHs256(ok.access_token, "test-signing-secret");
-    expect(claims.typ).toBe("access");
+    expect(claims.typ).toBe("platform");
     expect(claims.amr).toBe("email_magic_link");
     expect(claims.issued_by).toBeUndefined();
     expect(claims.identity_id).toBe(USER.id);
+    expect(claims.player_id).toBeUndefined();
   });
 });
 
 describe("play vs admin isolation", () => {
-  it("play token resolves as Player and fails resolveAdmin", async () => {
+  it("play token resolves as HumanPrincipal and fails resolveAdmin", async () => {
     const minted = (await consumePlayMagicLink(
       env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk" }),
       { token_hash: "h", type: "magiclink" },
@@ -295,7 +298,9 @@ describe("play vs admin isolation", () => {
       env(),
     );
     expect(p).not.toBeInstanceOf(Response);
-    expect((p as { player_id: string }).player_id).toBe("player.111111112222");
+    expect((p as { kind: string; identity_id: string }).kind).toBe("human");
+    expect((p as { identity_id: string }).identity_id).toBe(USER.id);
+    expect((p as { player_id?: string }).player_id).toBeUndefined();
     const a = await resolveAdmin(
       new Request("https://noema.guru/v1/admin/overview", { headers: { Authorization: `Bearer ${minted.access_token}` } }),
       env({ TOKEN_SIGNING_SECRET: "test-signing-secret" }),

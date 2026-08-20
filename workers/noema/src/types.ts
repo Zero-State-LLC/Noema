@@ -50,11 +50,33 @@ export interface AdminPrincipal {
   operator_id: string;
 }
 
-/** human = identity (watch / approve). agent = inhabit. hybrid is refused at command admission. */
-export type ControllerType = "human" | "agent" | "hybrid";
+/** Live inhabit issuance is agent-only. human/hybrid remain historical compatibility. */
+export type LiveControllerType = "agent";
+export type LegacyControllerType = "human" | "hybrid" | "agent";
+export type ControllerType = LegacyControllerType;
 
-/** Authenticated principal. Only `controller_type: "agent"` may inhabit via applyPlayerCommand. */
+/** Human platform principal. MUST NOT carry player_id or world-mutation scopes. RFC-0120. */
+export interface HumanPrincipal {
+  kind: "human";
+  identity_id: string;
+  account_id?: string;
+  session_id: string;
+  roles: Array<"spectator" | "authorizer" | "researcher" | "admin">;
+  permissions: string[];
+  scopes: string[];
+  amr?: string;
+  protocol_version: string;
+  authentication_context: string;
+  /** Display-only leftover; never inhabit authority. */
+  controller_type?: "human" | "hybrid";
+}
+
+/**
+ * Agent Player principal consumed by the World Engine.
+ * Only `controller_type: "agent"` may inhabit via applyPlayerCommand.
+ */
 export interface PlayerPrincipal {
+  kind?: "agent_player";
   player_id: string;
   agent_id: string;
   identity_id?: string;
@@ -68,6 +90,17 @@ export interface PlayerPrincipal {
   scopes: string[];
   protocol_version: string;
   authentication_context: string;
+}
+
+export type Principal = HumanPrincipal | PlayerPrincipal;
+
+export function isHumanPrincipal(p: Principal): p is HumanPrincipal {
+  return p.kind === "human";
+}
+
+export function isAgentPlayerPrincipal(p: Principal): p is PlayerPrincipal {
+  if (p.kind === "human") return false;
+  return typeof (p as PlayerPrincipal).player_id === "string" && (p as PlayerPrincipal).player_id.length > 0;
 }
 
 export interface CommandEnvelope {
