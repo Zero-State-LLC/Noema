@@ -36,6 +36,7 @@ import {
 } from "./offices";
 import { parseVisibility } from "./reconstruction";
 import { moveEnergyCost } from "./transport";
+import { canConsumeCargo } from "./cargo";
 
 export type Budgets = {
   attention: number;
@@ -2856,7 +2857,10 @@ export function deriveAffordances(input: {
     });
     if (isRepairable(e)) {
       const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
-      const ok = canPay(budgets, repairCost);
+      const fuel = { ...repairCost, storage: undefined };
+      const cargoNeed = repairCost.storage || 0;
+      const hasCargo = canConsumeCargo(budgets.storage ?? 0, cargoNeed);
+      const ok = canPay(budgets, fuel) && hasCargo;
       out.push({
         action: "REPAIR",
         verb: "COMMIT",
@@ -2867,7 +2871,7 @@ export function deriveAffordances(input: {
         target_label: e.label,
         requires: repairCost,
         available: ok,
-        reason: ok ? undefined : "You do not have enough energy, compute, or storage.",
+        reason: ok ? undefined : !hasCargo ? "You do not have materials in hold." : "You do not have enough energy or compute.",
         kind: "primary",
       });
     }

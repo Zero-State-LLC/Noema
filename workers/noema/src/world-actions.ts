@@ -220,6 +220,7 @@ import {
   spoilWornLots,
 } from "./lots";
 import { cargoLine, moveEnergyCost } from "./transport";
+import { canConsumeCargo, consumeCargo } from "./cargo";
 import {
   CONSTRUCT_COSTS,
   DISMANTLE_COST,
@@ -803,6 +804,15 @@ function fail(
   choices?: string[],
 ): CommandResult {
   return { ok: false, request_id, error: { code, message, choices } };
+}
+
+function reservedCargoFor(w: WorldRuntime, playerId: string): number {
+  let reserved = 0;
+  for (const trade of Object.values(w.trades || {})) {
+    if (trade.status !== "OPEN" || trade.proposer_id !== playerId) continue;
+    reserved += Math.max(0, Math.floor(Number(trade.reserved?.storage) || 0));
+  }
+  return reserved;
 }
 
 function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean {
@@ -2691,7 +2701,9 @@ export async function applyWorldCommand(
       const baseRepair = { ...COSTS.REPAIR };
       if (overhaul) baseRepair.energy = (baseRepair.energy || 0) + OVERHAUL_ENERGY_EXTRA;
       const repairCost = withWorkshopStorage(baseRepair, workshopStorageDiscount(roomEntities(room)));
-      if (!canPay(payFrom, repairCost)) {
+      const cargoNeed = repairCost.storage || 0;
+      const fuel = { ...repairCost, storage: undefined };
+      if (!canPay(payFrom, fuel)) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
@@ -2702,9 +2714,20 @@ export async function applyWorldCommand(
               : "You need energy 3, compute 2, and storage 1 to repair.",
         );
       }
+      if (
+        payFrom === pl.budgets &&
+        !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
+      ) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+      }
+      if (payFrom !== pl.budgets && !canPay(payFrom, { storage: cargoNeed })) {
+        return fail(request_id, "BUDGET_EXCEEDED", "The institution treasury cannot pay this repair.");
+      }
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
-      debit(payFrom, repairCost);
+      debit(payFrom, fuel);
+      if (payFrom === pl.budgets) consumeCargo(pl.budgets, cargoNeed);
+      else debit(payFrom, { storage: cargoNeed });
       entity.condition = Math.min(100, before + quality.delta + (overhaul ? OVERHAUL_CONDITION_EXTRA : 0));
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
       if (idx >= 0) room.entities[idx] = entity;
