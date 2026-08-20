@@ -1,5 +1,6 @@
 /** Public WATCH — Lightweight Spectator Upgrade (watch-live/1.0). */
 
+import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
 import { phosphorInlineScript } from "./watch-phosphor";
@@ -244,7 +245,8 @@ export function watchHtml(): string {
     try {
       state.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     } catch (e) { state.reduce = false; }
-    const LOW_NOISE_KEY = "noema.low_noise";
+    const LOW_NOISE_KEY = ${JSON.stringify(LOW_NOISE_KEY)};
+    const parseLowNoiseFlag = ${parseLowNoiseFlag.toString()};
     function applyLowNoise(on) {
       document.body.classList.toggle("is-low-noise", !!on);
       const btn = $("watch-low-noise-btn");
@@ -256,8 +258,7 @@ export function watchHtml(): string {
     (function bootLowNoise() {
       let stored = null;
       try { stored = localStorage.getItem(LOW_NOISE_KEY); } catch (e) {}
-      const on = stored === "1" || stored === "true" || (!stored && state.reduce) || /(?:^|[?&])low_noise=1(?:&|$)/.test(location.search || "");
-      applyLowNoise(!!on);
+      applyLowNoise(parseLowNoiseFlag(stored, location.search || "", state.reduce));
       const btn = $("watch-low-noise-btn");
       if (btn) btn.addEventListener("click", () => applyLowNoise(!document.body.classList.contains("is-low-noise")));
     })();

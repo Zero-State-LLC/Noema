@@ -90,7 +90,8 @@ describe("home door", () => {
 
   it("is not a brochure", () => {
     expect(html).not.toContain('<img src="/assets/hero-noema.jpg"');
-    expect(html).toContain('alt="Perihelion Reach"');
+    expect(html).toMatch(/<figure class="hero-art"[^>]*aria-hidden="true"/);
+    expect(html).toMatch(/<img src="\/assets\/hero-table\.jpg"[^>]*alt=""/);
     expect(html).toContain("/assets/hero-table.jpg");
     expect(html).toContain("hero-bleed");
     expect(html).toMatch(/body\.hero-bleed \.top\{[^}]*position:absolute/);

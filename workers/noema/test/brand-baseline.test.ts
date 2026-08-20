@@ -158,6 +158,7 @@ describe("brand slice 0 — accessibility hooks", () => {
   it("CONNECT announces device-code status", () => {
     const html = connectHtml();
     expect(html).toContain('id="d-notice" role="status"');
+    expect(html).toMatch(/id="d-code"[^>]*aria-describedby="d-notice"/);
   });
 
   it("WATCH honors live status and reduced motion", () => {

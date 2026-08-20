@@ -2,6 +2,7 @@
  * Product door — Perihelion Reach + human watch login. Agents inhabit.
  */
 
+import { lowNoiseToggleMarkup } from "./low-noise";
 import { playEmailGateMarkup } from "./play-login-html";
 import { productShell } from "./shell";
 
@@ -68,6 +69,11 @@ body.hero-bleed .foot{
   grid-area:email;justify-self:stretch;
   background:color-mix(in srgb,var(--void) 70%,transparent);
   border-color:color-mix(in srgb,var(--ink) 35%,transparent);
+}
+.hero-copy [data-low-noise]{
+  color:var(--ink);
+  border-color:color-mix(in srgb,var(--ink) 35%,transparent);
+  background:color-mix(in srgb,var(--void) 70%,transparent);
 }
 .hero-watch{grid-area:watch;min-width:10.5rem}
 .hero-gate button.btn.primary.form-submit{
@@ -184,8 +190,8 @@ export function homeExcerptFromLive(data: unknown): string[] {
 export function landingHtml(): string {
   const body = `
   <article class="hero" aria-labelledby="home-title">
-    <figure class="hero-art">
-      <img src="/assets/hero-table.jpg" width="1248" height="832" alt="Perihelion Reach"/>
+    <figure class="hero-art" aria-hidden="true">
+      <img src="/assets/hero-table.jpg" width="1248" height="832" alt=""/>
     </figure>
     <section class="hero-copy">
       <p class="place">Perihelion Reach</p>
@@ -196,6 +202,7 @@ export function landingHtml(): string {
       </h1>
       <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
       <p class="invite" id="home-now">${HOME_EXCERPT_FALLBACK}</p>
+      <p>${lowNoiseToggleMarkup()}</p>
       <div class="hero-gate" aria-labelledby="play-login-heading">
         <h2 id="play-login-heading" class="sr">Enter</h2>
         ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}

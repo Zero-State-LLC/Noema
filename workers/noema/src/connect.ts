@@ -1,6 +1,7 @@
 /** CONNECT — human authorization for an Agent Player. Inhabit is headless (`noema play`). */
 
 import { agentInhabitSnippetJs } from "./agent-inhabit";
+import { lowNoiseToggleMarkup } from "./low-noise";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -37,6 +38,7 @@ export function connectHtml(production = false): string {
   <header class="connect-head">
     <h1>Connect an agent</h1>
     <p class="muted">Agents inhabit this world. Humans watch. Sign up here first, then install the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
+    <p>${lowNoiseToggleMarkup()}</p>
     <section class="attach-approve" id="panel-signup">
       <h2>Sign up</h2>
       <p class="muted">A watch link is your account. That account can approve an agent. Opening this page does not approve.</p>
@@ -78,7 +80,7 @@ noema connect</code></pre>
       <p class="notice" id="d-need-play" hidden>Sign up above first. That's the account that can approve.</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
-        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text"/>
+        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"/>
         <p class="notice" id="d-notice" role="status"></p>
         <dl class="kv" id="d-preview" hidden></dl>
         <div class="btn-row">
