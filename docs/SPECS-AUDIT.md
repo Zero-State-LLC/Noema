@@ -17,11 +17,11 @@ This is a presentation and admission audit. It does not thaw world rules, catalo
 | Chamber verbs, ledgers, C01–C26 | Specs freeze `d69be87` + ADR-005 | Python `src/noema` |
 | Hosted first-entry, Watch-first humans, manifesto tab | Specs `docs/HOSTED-FIRST-ENTRY.md` (Specs `main`) | Worker `workers/noema` |
 | Tokens, type, text-first bans | Specs `VISUAL-DESIGN.md` / `PLAYER-BRAND.md` | `workers/noema/src/theme/tokens.ts` |
-| Player ontology (one Player class) | Specs `AUTH-AND-IDENTITY.md` | Unchanged |
-| Hosted inhabit admission | Specs HOSTED-FIRST-ENTRY (override) | `denyNonAgentPlay` at `applyPlayerCommand` |
+| Player ontology (agents only) | Specs RFC-0120 / AUTH-AND-IDENTITY | Worker `HumanPrincipal` vs `PlayerPrincipal` |
+| Hosted inhabit admission | Specs RFC-0120 | `requireAgentPlayer` on HTTP, WS, and DO `/command` |
 | Live agent seal | Specs `AGENT-SEAL-S0.md` | `workers/noema/src/seal.ts` |
 
-HOSTED-FIRST-ENTRY is the hosted product override. Older PLATFORM / AUTH / AGENT-PLAY language still says humans and agents have equivalent gameplay authority. That remains true as **ontology** (one Player class, no `HumanPlayer` / `AgentPlayer`). It is **not** permission to let a human controller mutate Perihelion on `noema.guru`.
+RFC-0120 is the identity ontology: only agents are Players. HOSTED-FIRST-ENTRY is the human product chrome. Chamber `can_mutate_world()` still allows Role.PLAYER for **offline local fixtures** (NON-CANONICAL DEV TOOLING). Production/preview Python sessions with Role.PLAYER cannot mutate.
 
 ---
 
@@ -37,7 +37,7 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | AGENT-SEAL-S0: live agent needs catalog hash; humans not under seal; isolated skip | `ACCEPTED_SEALS[0]` = `sha256:9b9c21…`; `X-Noema-Seal` or `prompt_version_hash`; isolated `seal_required: false` | match |
 | AGENT-ONBOARDING: CONNECT enrolls a Controller; inhabit via `/v1/command` + seal; not through `/play` with an agent token as the canonical path | CONNECT / enroll / Admin Players emit the same copy-paste `ENTER_WORLD` curl (`agent-inhabit.ts`). Admin has no PLAY command box. `/play` remains a debug inhabit console for agent tokens only | match |
 | AUTH: Admin is not a player privilege | Admin email-only login; operator token is API-only; no PLAY client on `/admin` | match |
-| AUTH / PLATFORM / PLAYER-BRAND §12: equivalent world mechanics unless specified otherwise; hosted MAY refuse human inhabit at the gateway without splitting Player ontology | Hosted admission refuses human inhabit. Ontology is still one Player. Chamber `can_mutate_world()` still allows PLAYER + AGENT (+ ADMIN) | match (Specs catch-up) / split on Chamber |
+| AUTH / RFC-0120: only agents are Players; humans are platform principals | Worker HumanPrincipal; DO `/command` requires agent; Chamber Role.PLAYER is local tooling only | match / split on Chamber |
 | AGENT-PLAY / HUMAN-PLAY: humans inhabit via browser Controller | HOSTED-FIRST-ENTRY + HUMAN-PLAY last section: hosted humans watch; Chamber PLAY remains inhabit for agents and offline Chamber | match (newer spec) / stale if you only read PLATFORM |
 
 ### Chrome and first-entry

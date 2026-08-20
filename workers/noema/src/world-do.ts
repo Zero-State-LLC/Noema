@@ -19,6 +19,7 @@ import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
 import { publicEmergencyPulses } from "./emergency";
+import { requireAgentPlayer } from "./auth";
 import {
   applyControllingSession,
   applyWorldLifecycle,
@@ -761,13 +762,16 @@ export class NoemaWorldDO {
       );
     }
 
+    const agent = requireAgentPlayer(body.principal);
+    if (agent instanceof Response) return agent;
+
     const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
     const requested = String(body.world_id || headerWorld || "").trim();
     const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
     this.requestedWorldId = admitted.ok ? admitted.world_id : null;
     this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
 
-    const result = await this.applyCommand(body.principal, body.envelope);
+    const result = await this.applyCommand(agent, body.envelope);
     // Action failures are structured envelopes (ok:false), not transport errors.
     return Response.json(result, { status: commandResultHttpStatus(result) });
   }

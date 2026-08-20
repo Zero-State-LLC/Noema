@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HUMAN_WATCH_MESSAGE, resolvePrincipal } from "../src/auth";
+import { HUMAN_WATCH_MESSAGE, requireAgentPlayer, resolvePrincipal } from "../src/auth";
 import { mintAdminSession } from "../src/admin-auth";
 import { mintHs256 as sign } from "../src/jwt";
 import worker from "../src/index";
@@ -87,6 +87,25 @@ describe("RFC-0120 principal split", () => {
     expect(cmd.status).toBe(403);
     const errBody = (await cmd.json()) as { error?: { message?: string } };
     expect(errBody.error?.message).toBe(HUMAN_WATCH_MESSAGE);
+  });
+
+  it("PlayerPrincipal with human or hybrid controller_type cannot inhabit (DO bypass payload)", async () => {
+    for (const controller_type of ["human", "hybrid"] as const) {
+      const denied = requireAgentPlayer({
+        player_id: `player.do-${controller_type}`,
+        agent_id: `agent.do-${controller_type}`,
+        controller_id: `ctrl.${controller_type}.do`,
+        controller_type,
+        session_id: "sess.do",
+        scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+        protocol_version: "1",
+        authentication_context: "test",
+      });
+      expect(denied).toBeInstanceOf(Response);
+      expect((denied as Response).status).toBe(403);
+      const body = (await (denied as Response).json()) as { error?: { message?: string } };
+      expect(body.error?.message).toBe(HUMAN_WATCH_MESSAGE);
+    }
   });
 
   it("admin mint refuses human and hybrid", async () => {

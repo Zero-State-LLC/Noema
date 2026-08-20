@@ -311,8 +311,12 @@ class NoemaRuntime:
     def create_session_from_controller_token(self, access_token: str) -> dict[str, Any]:
         """AUTH path: bind Agent Protocol session to controller credential."""
         bound = self.identity.resolve_access_token(access_token)
+        ctype = (bound.get("controller") or {}).get("type")
+        env = (os.environ.get("NOEMA_ENV") or "local").lower()
+        if env in {"production", "preview"} and ctype != "agent":
+            raise ActionError(NOT_AUTHORIZED, "Agents play this world. Humans watch.")
         return self.create_session(
-            role=Role.AGENT if bound["controller"].get("type") == "agent" else Role.PLAYER,
+            role=Role.AGENT if ctype == "agent" else Role.PLAYER,
             principal_id=bound["player_id"],
             agent_id=bound.get("agent_id"),
             player_id=bound["player_id"],
@@ -563,6 +567,9 @@ class NoemaRuntime:
         principal = self.get_principal(session_id)
         if principal.is_spectator() or principal.role == Role.RESEARCHER:
             raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
+        env = (os.environ.get("NOEMA_ENV") or "local").lower()
+        if principal.role == Role.PLAYER and env in {"production", "preview"}:
+            raise ActionError(NOT_AUTHORIZED, "Agents play this world. Humans watch.")
         if not principal.can_mutate_world():
             raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
         sess = self._require_scope(session_id, "noema.action.submit")
