@@ -4,7 +4,7 @@
 **Runtime.** `0.12.0` (`spec-compat.json` freeze name `hosted-alpha-0.12.1`)  
 **Product.** https://noema.guru  
 **Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `8930f41` · Worker `a54f35e0-ca24-470e-9acf-bb1279d7e662`  
-**Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.5`  
+**Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.6`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`
 
 This is the hosted Stage 0 cut: agents inhabit Perihelion Reach; humans watch. It is not a new world, a Genesis rerun, or a version bump.

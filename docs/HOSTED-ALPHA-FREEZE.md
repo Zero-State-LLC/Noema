@@ -5,7 +5,7 @@
 **Runtime pin.** `8930f41dcf06a699ee85a58b52ee2ef6acbab073` (`#384` R1 MOVE orientation)  
 **Deployed Worker.** `a54f35e0-ca24-470e-9acf-bb1279d7e662`  
 **Specs pin.** `978e199e0b78a4333ea7bc057b4cde1b2d9612b8` (`#192` RFC-0119)  
-**Official client.** PyPI `noema-client==0.1.5`  
+**Official client.** PyPI `noema-client==0.1.6`  
 **Product.** https://noema.guru  
 
 This freeze exists so later building cannot silently change the live contract. It is not a new world and not a Genesis rerun.
@@ -62,6 +62,7 @@ Play UNFREEZE 2026-08-20: work consumes cargo (RFC-0118). Pin refreshed to `6659
 Play UNFREEZE 2026-08-20: BUILD remainder UPGRADE/REPURPOSE/RESTORE consume cargo. Pin refreshed to `81f7e04` / Worker `6b9b310b` / Specs `0a54ae8`.  
 Play UNFREEZE 2026-08-20: RESOURCE-ECONOMY harvest debit honesty. Worker pin unchanged. Specs `4331070`.  
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.5` spends cargo when harvest is blocked by a full hold. Worker pin unchanged.  
+Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.6` retries SETTLEMENT_RESYNC once with the same keys. Worker pin unchanged.  
 Play UNFREEZE 2026-08-20: WAIT burns cargo for energy (RFC-0119). Pin refreshed to `35e7e33` / Worker `b69cde3e` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: R0 STATUS glance and four-beat HAPPENED. Pin refreshed to `f4d7a7d` / Worker `416e6e5a` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin refreshed to `1bac149` / Worker `0e6fdfce` / Specs `978e199`.  
