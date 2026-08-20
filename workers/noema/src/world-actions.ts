@@ -1509,18 +1509,8 @@ export async function applyWorldCommand(
   if (action.verb === "WAIT") {
     const waitCycles = 1;
     pl.wait_until_cycle = w.cycle + waitCycles;
-    // Rest restores attention/compute always.
-    // RFC-0117 lockout rest: only when energy AND free storage are both 0,
-    // grant energy+2 and storage+1 so harvest can restart. If storage remains,
-    // agent should harvest (or trade) — avoids breaking GC8 WORN spoilage paths.
     pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
-    const energyNow = pl.budgets.energy ?? 0;
-    const storageNow = pl.budgets.storage ?? 0;
-    if (energyNow === 0 && storageNow === 0) {
-      pl.budgets.energy = Math.min(DEFAULT_BUDGETS.energy, energyNow + 2);
-      pl.budgets.storage = Math.min(DEFAULT_BUDGETS.storage, storageNow + 1);
-    }
     const committed = commitCycleIfReady(w);
     pushEvent(
       "WAIT",
