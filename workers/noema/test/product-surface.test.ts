@@ -245,11 +245,11 @@ describe("planes", () => {
     expect(html).toContain("Advanced: use a token");
     expect(html).toContain("Advanced: install from git");
     expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Advanced: install from git"));
-    expect(html).toContain("Enter world");
-    expect(html).toContain('id="play-chamber"');
+    expect(html).not.toContain("Enter world");
+    expect(html).not.toContain('id="play-chamber"');
     expect(html).toContain("connect-work");
-    expect(html).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
-    expect(html).toContain("show-inhabit");
+    expect(html).not.toContain('id="play-door"');
+    expect(html).not.toContain("show-inhabit");
     expect(html).toContain("c-mint-wrap");
     expect(html).not.toContain('value="hermes"');
     expect(html).not.toContain("door-approve");
@@ -278,14 +278,14 @@ describe("planes", () => {
     expect(html).not.toContain('id="c-mint"');
     expect(html).toContain("c-prod-wrap");
     expect(html).not.toMatch(/id="c-prod-wrap" hidden/);
-    expect(html).toContain("Enter world");
-    expect(html).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
+    expect(html).not.toContain("Enter world");
+    expect(html).not.toContain('id="play-chamber"');
     const env = { NOEMA_ENV: "production" } as unknown as Env;
     const res = await worker.fetch(new Request("https://noema.guru/connect"), env);
     const served = await res.text();
     expect(res.status).toBe(200);
     expect(served).not.toContain('id="c-mint-wrap"');
-    expect(served).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
+    expect(served).not.toContain('id="play-chamber"');
   });
   it("connect can approve a device code with the PLAY token", () => {
     const html = connectHtml();

@@ -18,7 +18,7 @@ Do **not** activate, force-supersede, or reseed. Do **not** rename `wrangler.tom
 |---|---|
 | Home `/` | Watch-first door. Email is WATCH identity. |
 | Manifesto `/manifesto` | Public thesis (off the Home first-read). |
-| PLAY `/play` | 308 → `/connect`. Chamber markup stays in `play.ts`. |
+| PLAY `/play` | 308 → `/connect`. Browser chamber is not a hosted inhabit path. |
 | WATCH `/watch` | Public live rooms. Humans only. |
 | CONNECT `/connect` | Official client from PyPI: `pipx install noema-client` then `noema connect`. Human approves the short code. Token / git are Advanced. Chamber markup stays on the page. |
 | Admin `/admin/login` | Platform master. Never a Player. Email-only login HTML. |

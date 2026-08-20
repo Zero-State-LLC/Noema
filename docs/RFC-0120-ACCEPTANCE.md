@@ -38,15 +38,9 @@ Hosted alpha freeze (`docs/HOSTED-ALPHA-FREEZE.md`) still owns Genesis, seal, ch
 ## Residuals (not blockers)
 
 ```text
-Canonical event player_id
-Live occupancy, trades, org members, and offices rebind. Historical ledger
-payloads are not rewritten. Replay of old events still names the prior id.
-```
-
-```text
-Human parser / HELP / aliases / /play debug chrome
-NON-CANONICAL DEV TOOLING. GET /play 308 → /connect. Do not rebuild hosted
-human PLAY UX.
+Hosted GET /play 308 → /connect. Chamber PLAY HTML remains in play.ts for
+offline tests. Hosted CONNECT does not embed the inhabit chamber.
+Hosted HTTP/WS strips arguments.line; structured commands only.
 ```
 
 ## Non-goals honored

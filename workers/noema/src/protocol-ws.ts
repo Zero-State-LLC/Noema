@@ -25,6 +25,16 @@ type Frame = {
   arguments?: Record<string, unknown>;
 };
 
+/** Hosted inhabit is structured commands only. Parser `arguments.line` is Chamber/test tooling. */
+export function stripHumanPlayLine(envelope: CommandEnvelope): CommandEnvelope {
+  const args = envelope.arguments;
+  if (!args || typeof args.line !== "string") return envelope;
+  const next = { ...args };
+  delete next.line;
+  delete next._macro_step;
+  return { ...envelope, arguments: next };
+}
+
 function protoErr(requestId: string | undefined, code: string, message: string, statusHint = 400) {
   return {
     protocol: "agent-protocol/v1",
@@ -144,6 +154,7 @@ export async function applyPlayerCommand(
   if (hasPrivateCognition(envelope)) {
     return err("INVALID_REQUEST", "private cognition fields are not accepted", 400);
   }
+  envelope = stripHumanPlayLine(envelope);
   const cmd = String(envelope.command).toUpperCase();
   if (cmd === "OBSERVE" || cmd === "LOOK") {
     const denied = requireScope(agent, "noema.world.observe");

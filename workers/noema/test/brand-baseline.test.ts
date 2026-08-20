@@ -70,7 +70,7 @@ describe("brand slice 0 — hosted HTML routes", () => {
       ["/manifesto", 200, "A World for Minds"],
       ["/play/callback", 200, "/v1/play/login/consume"],
       ["/watch", 200, "/v1/watch/live"],
-      ["/connect", 200, 'id="play-chamber"'],
+      ["/connect", 200, 'id="d-code"'],
       ["/study", 200, "not open"],
       ["/admin/login", 200, "/v1/admin/login"],
     ];

@@ -3593,6 +3593,36 @@ export function rekeyLivePlayerId(w: WorldRuntime, from: string, to: string): vo
   const dest = w.players[to];
   if (dest) dest.controller_type = "agent";
 
+  const idKeys = [
+    "player_id",
+    "from",
+    "to",
+    "proposer_id",
+    "counterparty_id",
+    "sender_id",
+    "recipient_id",
+    "holder_player_id",
+    "agent_id",
+    "acting_for",
+    "broken_by",
+  ];
+  const rewriteRecord = (obj: Record<string, unknown> | undefined) => {
+    if (!obj) return;
+    for (const key of idKeys) {
+      if (obj[key] === from) obj[key] = to;
+    }
+  };
+  for (const ev of w.unsettled || []) {
+    if (ev.player_id === from) ev.player_id = to;
+    rewriteRecord(ev.payload);
+  }
+  for (const msg of w.pending_messages || []) {
+    rewriteRecord(msg as unknown as Record<string, unknown>);
+  }
+  for (const ev of w.public_social_events || []) {
+    rewriteRecord(ev as unknown as Record<string, unknown>);
+  }
+
   if (w.seen_idempotency) {
     for (const key of Object.keys(w.seen_idempotency)) {
       if (!key.startsWith(`${from}::`)) continue;
