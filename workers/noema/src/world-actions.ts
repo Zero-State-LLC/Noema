@@ -558,6 +558,10 @@ export function buildObservation(
     accessRestrictions: w.access_restrictions || [],
     discovery: pl.discovery,
     reconstructions: Object.values(w.reconstructions || {}).filter((r) => r.status === "RECORDED"),
+    attestSubjects: Object.values(w.rooms || {})
+      .filter((r) => !isHiddenRoom(r))
+      .flatMap((r) => roomEntities(r))
+      .filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE"),
   });
   const available_actions = [
     ...new Set(
@@ -1413,6 +1417,10 @@ export async function applyWorldCommand(
         accessRestrictions: w.access_restrictions || [],
         discovery: pl.discovery,
         reconstructions: Object.values(w.reconstructions || {}).filter((r) => r.status === "RECORDED"),
+        attestSubjects: Object.values(w.rooms || {})
+          .filter((r) => !isHiddenRoom(r))
+          .flatMap((r) => roomEntities(r))
+          .filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE"),
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);

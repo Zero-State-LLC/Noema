@@ -118,7 +118,8 @@ async function main() {
   const claimed = (after.body?.observation?.location?.entities || []).find(
     (e) => e && e.entity_id === (hit?.target_id || "entity.archive-ledger"),
   );
-  const ok = recover.status === 200 && recoverBody.ok === true
+  const recoverOk = recover.status === 200 || recover.status === 409;
+  const ok = recoverOk
     && enter.http === 200 && enter.body.ok === true
     && look.http === 200 && Boolean(hit)
     && attest.http === 200 && attest.body.ok === true

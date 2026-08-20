@@ -2973,6 +2973,8 @@ export function deriveAffordances(input: {
   }>;
   discovery?: DiscoveryState;
   reconstructions?: ReconstructionRecord[];
+  /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */
+  attestSubjects?: EntityRuntime[];
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3812,7 +3814,14 @@ export function deriveAffordances(input: {
     const artifacts = entities.filter(
       (e) => (e.entity_type || "").toUpperCase() === "ARTIFACT" && !e.archive_claim && !e.archive_subject_entity_id,
     );
-    const subjects = entities.filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE");
+    const localInfra = entities.filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE");
+    const extraInfra = (input.attestSubjects || []).filter(
+      (e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE",
+    );
+    const subjects = [...localInfra];
+    for (const sub of extraInfra) {
+      if (!subjects.some((s) => s.entity_id === sub.entity_id)) subjects.push(sub);
+    }
     let attestN = 0;
     for (const art of artifacts) {
       for (const sub of subjects) {

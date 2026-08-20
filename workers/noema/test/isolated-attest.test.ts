@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ATTEST_WORLD_ID, attestChamberState, miniChamberState } from "../src/mini-chamber";
 import { bootstrapWorldState } from "../src/world-do";
+import { enrichEntity } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -69,5 +70,24 @@ describe("isolated attest-s0", () => {
     expect(art?.archive_subject_entity_id).toBe("entity.relay-7");
     const after = await run(w, a, "LOOK");
     expect((after.observation?.affordances || []).some((x) => x.operation === "ATTEST")).toBe(false);
+  });
+
+  it("LOOK in an archive-only room still names public infrastructure as ATTEST subject", async () => {
+    const w = attestChamberState();
+    const a = agent("sable");
+    await run(w, a, "ENTER_WORLD");
+    w.rooms["room.hall"].entities.push(
+      enrichEntity({
+        entity_id: "entity.far-ledger",
+        label: "far-ledger",
+        entity_type: "ARTIFACT",
+      }),
+    );
+    w.players[a.player_id].room_id = "room.hall";
+    const look = await run(w, a, "LOOK");
+    const hit = (look.observation?.affordances || []).find(
+      (x) => x.operation === "ATTEST" && x.target_id === "entity.far-ledger",
+    );
+    expect(hit?.subject_id).toBe("entity.relay-7");
   });
 });
