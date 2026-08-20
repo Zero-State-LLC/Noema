@@ -1,6 +1,7 @@
 import { mintAdminSession } from "../../src/admin-auth";
 import { mintControllerToken } from "../../src/auth";
 import worker from "../../src/index";
+import { ENROLLMENT_DO_NAME } from "../../src/enrollment";
 import { RATE_LIMIT_DO_NAME } from "../../src/rate-limit";
 import { ACCEPTED_SEALS } from "../../src/seal";
 import type { Env } from "../../src/types";
@@ -11,11 +12,12 @@ export const OPERATOR = "operator-token-value-ok";
 export type DoCall = { op: string; name?: string; url?: string; body?: Record<string, unknown> | null };
 
 export function worldDoCalls(calls: DoCall[]): DoCall[] {
-  return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME);
+  return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME && c.name !== ENROLLMENT_DO_NAME);
 }
 
 export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>) {
   const devices = new Map<string, Record<string, unknown>>();
+  const revocations = new Map<string, Record<string, unknown>>();
   return {
     idFromName(name: string) {
       calls.push({ op: "idFromName", name });
@@ -32,6 +34,23 @@ export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>
             url: path,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/revoke")) {
+            const parsed = new URL(path, "https://do.local");
+            if (method === "PUT" && init?.body) {
+              const rec = JSON.parse(String(init.body)) as { kind?: string; id?: string };
+              if (rec.kind && rec.id) revocations.set(`${rec.kind}:${rec.id}`, rec as Record<string, unknown>);
+              return new Response(JSON.stringify({ ok: true }), {
+                status: 200,
+                headers: { "content-type": "application/json" },
+              });
+            }
+            const rec = revocations.get(`${parsed.searchParams.get("kind")}:${parsed.searchParams.get("id")}`);
+            if (!rec) return new Response("{}", { status: 404 });
+            return new Response(JSON.stringify(rec), {
+              status: 200,
+              headers: { "content-type": "application/json" },
+            });
+          }
           if (path.includes("/device")) {
             const parsed = new URL(path, "https://do.local");
             if (method === "PUT" && init?.body) {

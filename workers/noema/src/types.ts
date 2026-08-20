@@ -87,6 +87,8 @@ export interface PlayerPrincipal {
   /** Set when an ADMIN minted or enrolled this Controller. Opaque — not an email. */
   operator_id?: string;
   amr?: string;
+  /** JWT id; used for credential rotation. */
+  jti?: string;
   scopes: string[];
   protocol_version: string;
   authentication_context: string;

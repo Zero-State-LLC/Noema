@@ -29,6 +29,7 @@ import {
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
 import { applyCors } from "./cors";
+import { durableRevocationStore, isControllerRevoked } from "./controller-revocation";
 import {
   approveDevice,
   denyDevice,
@@ -387,6 +388,64 @@ export default {
       if (request.method === "POST" && path === "/v1/auth/device/token") {
         const body = (await request.json().catch(() => ({}))) as { device_code?: string };
         return cors(await pollDeviceToken(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/controller/revoke") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const body = (await request.json().catch(() => ({}))) as { controller_id?: string };
+        const controller_id = String(body.controller_id || agent.controller_id);
+        if (controller_id !== agent.controller_id) {
+          return cors(err("NOT_AUTHORIZED", "cannot revoke another Controller", 403));
+        }
+        const store = durableRevocationStore(env);
+        const now = new Date().toISOString();
+        await store.put({
+          kind: "controller",
+          id: controller_id,
+          controller_id,
+          revoked_at: now,
+          revoked_by: agent.controller_id,
+        });
+        if (agent.jti) {
+          await store.put({
+            kind: "jti",
+            id: agent.jti,
+            controller_id,
+            revoked_at: now,
+            revoked_by: agent.controller_id,
+          });
+        }
+        return cors(json({ revoked: true, controller_id }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/controller/rotate") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const store = durableRevocationStore(env);
+        if (await isControllerRevoked(store, agent.controller_id, agent.jti)) {
+          return cors(err("NOT_AUTHORIZED", "controller revoked", 401));
+        }
+        if (agent.jti) {
+          await store.put({
+            kind: "jti",
+            id: agent.jti,
+            controller_id: agent.controller_id,
+            revoked_at: new Date().toISOString(),
+            revoked_by: agent.controller_id,
+          });
+        }
+        const handle = agent.player_id.replace(/^player\./, "").slice(0, 32) || "player";
+        const minted = await mintControllerToken(env, {
+          handle,
+          controllerType: "agent",
+          playerId: agent.player_id,
+          controllerId: agent.controller_id,
+          amr: "rotate",
+        });
+        return cors(json({ ...minted, rotated: true }));
       }
 
       /**

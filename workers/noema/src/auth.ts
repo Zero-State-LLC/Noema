@@ -2,6 +2,7 @@ import { JwtError, mintHs256, supabaseIssuer, supabaseJwksUrl, verifyHs256, veri
 import { parseOperatorId } from "./ops";
 import type { ControllerType, Env, HumanPrincipal, PlayerPrincipal, Principal } from "./types";
 import { isAgentPlayerPrincipal, isHumanPrincipal } from "./types";
+import { durableRevocationStore, isControllerRevoked } from "./controller-revocation";
 
 const DEFAULT_SCOPES = [
   "noema.player.read",
@@ -94,10 +95,11 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<Principa
       if (ctype !== "agent" || !claims.player_id) {
         return err("NOT_AUTHORIZED", "agent Controller token required for Player resolution");
       }
-      const scopes = Array.isArray(claims.scopes)
-        ? (claims.scopes as string[])
-        : DEFAULT_SCOPES;
-      return {
+      const allowed = new Set(DEFAULT_SCOPES);
+      const scopes = (Array.isArray(claims.scopes) ? (claims.scopes as string[]) : DEFAULT_SCOPES).filter((s) =>
+        allowed.has(s),
+      );
+      const principal: PlayerPrincipal = {
         kind: "agent_player",
         player_id: String(claims.player_id),
         agent_id: String(claims.agent_id || `agent.${claims.player_id}`),
@@ -108,10 +110,21 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<Principa
         issued_by: claims.issued_by === "admin" ? "admin" : undefined,
         operator_id: parseOperatorId(claims.operator_id),
         amr: claims.amr ? String(claims.amr) : undefined,
-        scopes,
+        jti: claims.jti ? String(claims.jti) : undefined,
+        scopes: scopes.length ? scopes : [...DEFAULT_SCOPES],
         protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
         authentication_context: "controller_token",
       };
+      if (env.WORLD_DO) {
+        try {
+          if (await isControllerRevoked(durableRevocationStore(env), principal.controller_id, principal.jti)) {
+            return err("NOT_AUTHORIZED", "controller revoked", 401);
+          }
+        } catch {
+          return err("UNAVAILABLE", "revocation store unavailable", 503);
+        }
+      }
+      return principal;
     }
   } catch (e) {
     if (!(e instanceof JwtError)) throw e;

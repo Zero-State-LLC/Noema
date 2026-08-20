@@ -79,7 +79,7 @@ describe("C02 identity authz denial", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldDoCalls(calls)).toEqual([]);
   });
 
   it("isolated perihelion world_id is 403 before DO lookup", async () => {
@@ -101,7 +101,7 @@ describe("C02 identity authz denial", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(worldDoCalls(calls).some((c) => c.op === "idFromName")).toBe(false);
   });
 
   it("PLAY /v1/command isolated world_id without admin is denied before DO lookup", async () => {

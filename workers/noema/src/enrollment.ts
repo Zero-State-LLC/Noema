@@ -12,6 +12,7 @@ export const DEFAULT_AGENT_SCOPES = [
 ] as const;
 
 export const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
+export const ENROLLMENT_DO_NAME = "__noema_enrollments__";
 
 export type EnrollmentStatus = "pending" | "approved" | "denied" | "replaced" | "expired";
 
@@ -36,7 +37,7 @@ export interface EnrollmentStore {
 }
 
 export function durableEnrollmentStore(env: Env): EnrollmentStore {
-  const id = env.WORLD_DO.idFromName("__noema_enrollments__");
+  const id = env.WORLD_DO.idFromName(ENROLLMENT_DO_NAME);
   const stub = env.WORLD_DO.get(id);
   return {
     async put(rec) {
