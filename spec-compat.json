@@ -6,7 +6,7 @@
   "release_channel": "alpha",
   "release_doc": "docs/ALPHA-RELEASE.md",
   "frozen_release": {
-    "status": "frozen",
+    "status": "thawed",
     "name": "hosted-alpha-0.12.1",
     "runtime_git": "9e0e41fdd589df46064b06f48b524f35d9613f16",
     "specs_git": "5768b011bab7bfc946152495eb80c2e1e2ad1c3e",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "GC1-S7 2026-08-20: agent FOCUS affordances. Pin 9e0e41f / Worker a210eb35 / Specs 5768b01. Genesis, seal, verbs, chrome, rooms remain frozen."
+    "unfreeze": "FULL THAW 2026-08-20: hosted-alpha freeze lifted on the test build. RFC-0120 identity stays law. Last frozen pin 9e0e41f / Worker a210eb35 / Specs 5768b01."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
