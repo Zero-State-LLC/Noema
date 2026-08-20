@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   WATCH_LIVE_PIN,
@@ -5,6 +8,7 @@ import {
   buildWatchNarrative,
   explicitWatchCause,
   capVisibleEvents,
+  heldFromSnapshot,
   holdHeadline,
   phraseWatchEvent,
   projectionIdForEvent,
@@ -20,6 +24,7 @@ import { watchHtml } from "../src/watch";
 import { landingHtml } from "../src/landing";
 
 const NOW = 1_700_000_000_000;
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 function rooms() {
   return {
@@ -322,6 +327,79 @@ describe("watch event tiers and phrasing", () => {
     expect(projectionIdForEvent("MESSAGE")).toBeNull();
   });
 
+  it("gates CRIME_DETECTED behind PUBLIC visibility or PUBLIC_HISTORY (§7, §4E)", () => {
+    expect(projectionIdForEvent("CRIME_DETECTED")).toBeNull();
+    expect(projectionIdForEvent("CRIME_DETECTED", {})).toBeNull();
+    expect(projectionIdForEvent("CRIME_DETECTED", { visibility: "WITNESSED" })).toBeNull();
+    expect(projectionIdForEvent("CRIME_DETECTED", { flags: ["SEALED"] })).toBeNull();
+    expect(projectionIdForEvent("CRIME_DETECTED", { visibility: "PUBLIC" })).toBe("crime_detected");
+    expect(projectionIdForEvent("CRIME_DETECTED", { flags: ["PUBLIC_HISTORY"] })).toBe("crime_detected");
+  });
+
+  it("never surfaces a non-public CRIME_DETECTED in recent_events or notable_event", () => {
+    const base = { world_id: "w", cycle: 1, rooms: rooms(), players: [], now: NOW };
+    const hiddenCrime = buildWatchLive({
+      ...base,
+      sequence: 30,
+      events: [
+        src({
+          event_type: "CRIME_DETECTED",
+          sequence: 30,
+          payload: { category: "THEFT", room_id: "room.market", visibility: "WITNESSED", detection_id: "det.1" },
+        }),
+      ],
+    });
+    expect(JSON.stringify(hiddenCrime.recent_events)).not.toMatch(/crime/i);
+    expect((hiddenCrime.notable_event as WatchEvent).projection_id).not.toBe("crime_detected");
+    const publicCrime = buildWatchLive({
+      ...base,
+      sequence: 31,
+      events: [
+        src({
+          event_type: "CRIME_DETECTED",
+          sequence: 31,
+          payload: { category: "THEFT", room_id: "room.market", visibility: "PUBLIC", detection_id: "det.2" },
+        }),
+      ],
+    });
+    const evs = publicCrime.recent_events as WatchEvent[];
+    expect(evs.some((e) => e.projection_id === "crime_detected" && e.tier === "MAJOR")).toBe(true);
+    const notable = publicCrime.notable_event as WatchEvent;
+    expect(notable.projection_id).toBe("crime_detected");
+    expect(notable.tier).toBe("MAJOR");
+  });
+
+  it("narrates only real harvests as harvests (§5); trade legs and seizures stay neutral", () => {
+    expect(
+      projectionIdForEvent("RESOURCE_TRANSFER", { from_id: "entity.node-3", to_id: "player.x", resource: "materials" }),
+    ).toBe("harvest");
+    expect(
+      projectionIdForEvent("RESOURCE_TRANSFER", { trade_id: "trade.1", from_id: "player.a", to_id: "player.b", leg: "offered" }),
+    ).toBe("resource_change");
+    expect(
+      projectionIdForEvent("RESOURCE_TRANSFER", { from_id: "player.a", to_id: "player.b", contest_id: "contest.1" }),
+    ).toBe("resource_change");
+    const tradeLeg = phraseWatchEvent(
+      src({ event_type: "RESOURCE_TRANSFER", sequence: 8, payload: { trade_id: "trade.1", from_id: "player.a", to_id: "player.b", leg: "offered" } }),
+      {},
+    );
+    expect(tradeLeg).not.toMatch(/harvest/i);
+    const seizure = phraseWatchEvent(
+      src({ event_type: "RESOURCE_TRANSFER", sequence: 9, payload: { from_id: "player.a", to_id: "player.b", contest_id: "contest.1" } }),
+      {},
+    );
+    expect(seizure).not.toMatch(/harvest/i);
+    expect(
+      phraseWatchEvent(
+        src({ event_type: "RESOURCE_TRANSFER", sequence: 10, payload: { kind: "harvest", from_id: "entity.node-3", room_id: "room.market" } }),
+        { "room.market": { name: "Chamber Market" } },
+      ),
+    ).toBe("Harvest at Chamber Market");
+    expect(
+      phraseWatchEvent(src({ event_type: "RESOURCE_TRANSFER", sequence: 11, payload: { from_id: "entity.node-3" } }), {}),
+    ).toBe("A harvest was recorded");
+  });
+
   it("phrases public lines without intent, ids, or amounts", () => {
     expect(
       phraseWatchEvent(
@@ -412,14 +490,32 @@ describe("notable headline and visible feed", () => {
     expect(picked?.line).toBe("discovery");
   });
 
-  it("holds a NOTABLE headline against newer NORMAL events until 8 newer sequences", () => {
+  it("holds a NOTABLE headline until more than 8 newer PUBLIC candidates accumulate", () => {
     const held = ev({ sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "trade" });
-    const window = [
+    const few = [
       ev({ sequence: 17, tier: "NORMAL", projection_id: "agent_move", line: "m7" }),
       ev({ sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "trade" }),
     ];
-    expect(holdHeadline(held, window, 17)?.line).toBe("trade");
-    expect(holdHeadline(held, window, 19)?.line).toBe("m7");
+    expect(holdHeadline(held, few)?.line).toBe("trade");
+    const many = [ev({ sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "trade" })];
+    for (let i = 11; i <= 19; i++) {
+      many.push(ev({ sequence: i, tier: "NORMAL", projection_id: "agent_move", line: `m${i}` }));
+    }
+    expect(many.filter((e) => e.sequence > 10)).toHaveLength(9);
+    expect(holdHeadline(held, many)?.line).toBe("m19");
+  });
+
+  it("ages the hold by public candidates, never by raw ledger-sequence gaps", () => {
+    // The ledger head can leap on private LOOK/MESSAGE/INSPECT traffic; the
+    // hold must survive a huge sequence gap with only one newer public event.
+    const held = ev({ sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "trade" });
+    const window = [
+      ev({ sequence: 900, tier: "NORMAL", projection_id: "agent_move", line: "far" }),
+      ev({ sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "trade" }),
+    ];
+    expect(holdHeadline(held, window)?.line).toBe("trade");
+    const picked = selectNotableEvent({ freshness: "live", players_present: 1, candidates: window, held });
+    expect(picked?.line).toBe("trade");
   });
 
   it("releases the hold when a higher tier arrives or the item leaves the window", () => {
@@ -428,10 +524,49 @@ describe("notable headline and visible feed", () => {
       ev({ sequence: 12, tier: "MAJOR", projection_id: "discovery", line: "found" }),
       held,
     ];
-    expect(holdHeadline(held, withMajor, 12)?.line).toBe("found");
-    expect(holdHeadline(held, [ev({ sequence: 20, tier: "NORMAL", projection_id: "agent_move", line: "gone" })], 20)?.line).toBe(
+    expect(holdHeadline(held, withMajor)?.line).toBe("found");
+    expect(holdHeadline(held, [ev({ sequence: 20, tier: "NORMAL", projection_id: "agent_move", line: "gone" })])?.line).toBe(
       "gone",
     );
+  });
+
+  it("wires the server hold: heldFromSnapshot carries the headline between polls", () => {
+    const base = {
+      world_id: "w",
+      cycle: 3,
+      sequence: 12,
+      rooms: rooms(),
+      players: [],
+      now: NOW,
+    };
+    const first = buildWatchLive({
+      ...base,
+      events: [
+        src({ event_type: "TRADE_PROPOSED", sequence: 10 }),
+        src({ event_type: "TRADE_REJECTED", sequence: 12 }),
+      ],
+    });
+    const held = heldFromSnapshot(first);
+    expect(held?.projection_id).toBe("trade");
+    expect(held?.sequence).toBe(12);
+    const nextEvents = [
+      src({ event_type: "TRADE_PROPOSED", sequence: 10 }),
+      src({ event_type: "TRADE_REJECTED", sequence: 12 }),
+      src({ event_type: "TRADE_PROPOSED", sequence: 13 }),
+    ];
+    const heldSecond = buildWatchLive({ ...base, sequence: 13, events: nextEvents, held });
+    expect((heldSecond.notable_event as WatchEvent).sequence).toBe(12);
+    const unheldSecond = buildWatchLive({ ...base, sequence: 13, events: nextEvents });
+    expect((unheldSecond.notable_event as WatchEvent).sequence).toBe(13);
+    // Synthetic world-status and quiet fallbacks are never held.
+    expect(heldFromSnapshot(buildWatchLive({ ...base, events: [] }))).toBeNull();
+    expect(heldFromSnapshot(buildWatchLive({ ...base, events: [], freshness: "incident" }))).toBeNull();
+  });
+
+  it("world-do passes the previous headline into buildWatchLive on every snapshot", () => {
+    const src2 = readFileSync(join(HERE, "../src/world-do.ts"), "utf8");
+    expect(src2).toMatch(/held:\s*this\.watchHeld/);
+    expect(src2).toMatch(/this\.watchHeld\s*=\s*heldFromSnapshot\(/);
   });
 
   it("falls back to The Chamber is quiet and may mention a public count", () => {
@@ -566,6 +701,45 @@ describe("watch HTML surface", () => {
     expect(html).toContain("var(--font-mono)");
   });
 
+  it("marks feed tiers with a text prefix, never color-only (§9)", () => {
+    expect(html).toContain('el("span", "mark", markFor(ev.tier))');
+    expect(html).toMatch(/\.watch-feed li\{[^}]*grid-template-columns:\.9rem 1\.1rem 1fr/);
+    expect(html).toContain(".watch-feed li.major .mark{color:var(--color-state-warning)");
+    expect(html).toContain(".watch-feed li.major .line{color:var(--ink);font-weight:650}");
+    // NOTABLE/MAJOR rows never fade into the i>=2 quiet treatment
+    expect(html).toContain('i >= 2 && !tierClass ? " quiet" : ""');
+  });
+
+  it("keeps periodic updates off assistive tech: no live low-noise block, no transient refreshing", () => {
+    expect(html).not.toMatch(/id="watch-low-noise"[^>]*aria-live/);
+    expect(html).not.toContain('"refreshing"');
+    // status tag writes only on change
+    expect(html).toContain("if (tag.textContent !== text) tag.textContent = text;");
+    expect(html).toMatch(/id="watch-headline" aria-live="polite"/);
+  });
+
+  it("reserves graph and feed heights and wraps long feed lines on mobile (§8, §10)", () => {
+    expect(html).toMatch(/\.watch-graph\{[^}]*min-height/);
+    expect(html).toMatch(/\.watch-feed\{[^}]*min-height/);
+    expect(html).toMatch(/@media\(max-width:860px\)\{\.watch-stage\{grid-template-columns:1fr/);
+    expect(html).toContain(".watch-feed .line{overflow-wrap:anywhere}");
+  });
+
+  it("feed settle stays inside one poll interval and is gated on reduced motion (§13)", () => {
+    const m = html.match(/feed-settle (\d+)ms/);
+    expect(m).toBeTruthy();
+    expect(Number(m![1])).toBeLessThan(8000);
+    expect(html).toContain("const fresh = !state.reduce");
+  });
+
+  it("ages the client hold by public candidates and closes details on Escape", () => {
+    expect(html).not.toContain("Math.max(data.sequence");
+    expect(html).toContain("window.filter(e => (e.sequence || 0) > state.held.sequence).length > 8");
+    expect(html).toContain('ev.key !== "Escape"');
+    expect(html).toContain("openRooms[r.room_id]");
+    expect(html).toMatch(/const t = Number\(ms\);\s*\n\s*if \(!Number\.isFinite\(t\) \|\| t <= 0\) return ""/);
+  });
+
   it("never assigns innerHTML and does not grow a KPI dashboard", () => {
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).not.toContain("Watch the world move");
@@ -579,6 +753,429 @@ describe("watch HTML surface", () => {
     expect(html).toContain("none visible");
     expect(html).not.toContain("/assets/legend-mini.png");
     expect(html).not.toContain("/assets/legend.png");
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Driven client: a minimal DOM double boots the inlined watch script  *
+ * so §11/§13 behavior (stale, offline, banner clear, marks, details)  *
+ * is exercised against the real render path, not string regexes.      *
+ * ------------------------------------------------------------------ */
+
+type FakeNode = {
+  tagName: string;
+  children: FakeNode[];
+  attrs: Record<string, string>;
+  handlers: Record<string, Array<(ev: unknown) => void>>;
+  className: string;
+  textContent: string;
+  hidden: boolean;
+  open: boolean;
+  style: Record<string, string>;
+  classList: {
+    add(c: string): void;
+    remove(c: string): void;
+    toggle(c: string, on?: boolean): boolean;
+    contains(c: string): boolean;
+  };
+  setAttribute(k: string, v: string): void;
+  getAttribute(k: string): string | null;
+  addEventListener(type: string, fn: (ev: unknown) => void): void;
+  append(...kids: Array<FakeNode | string>): void;
+  replaceChildren(...kids: FakeNode[]): void;
+  querySelector(sel: string): FakeNode | null;
+  querySelectorAll(sel: string): FakeNode[];
+  focus(): void;
+  scrollIntoView(): void;
+  fire(type: string, ev?: unknown): void;
+};
+
+function makeWatchDom() {
+  let focused: FakeNode | null = null;
+  function findAll(root: FakeNode, sel: string): FakeNode[] {
+    const out: FakeNode[] = [];
+    const walk = (m: FakeNode) => {
+      for (const c of m.children || []) {
+        if (c.tagName === sel) out.push(c);
+        walk(c);
+      }
+    };
+    walk(root);
+    return out;
+  }
+  function node(tag: string): FakeNode {
+    const n: FakeNode = {
+      tagName: String(tag).toLowerCase(),
+      children: [],
+      attrs: {},
+      handlers: {},
+      className: "",
+      textContent: "",
+      hidden: false,
+      open: false,
+      style: {},
+      classList: {
+        add(c) {
+          const s = new Set(String(n.className).split(/\s+/).filter(Boolean));
+          s.add(c);
+          n.className = [...s].join(" ");
+        },
+        remove(c) {
+          const s = new Set(String(n.className).split(/\s+/).filter(Boolean));
+          s.delete(c);
+          n.className = [...s].join(" ");
+        },
+        toggle(c, on) {
+          const has = n.classList.contains(c);
+          const want = on === undefined ? !has : Boolean(on);
+          if (want) n.classList.add(c);
+          else n.classList.remove(c);
+          return want;
+        },
+        contains(c) {
+          return String(n.className).split(/\s+/).includes(c);
+        },
+      },
+      setAttribute(k, v) {
+        n.attrs[k] = String(v);
+      },
+      getAttribute(k) {
+        return k in n.attrs ? n.attrs[k] : null;
+      },
+      addEventListener(type, fn) {
+        (n.handlers[type] = n.handlers[type] || []).push(fn);
+      },
+      append(...kids) {
+        for (const k of kids) n.children.push(typeof k === "string" ? text(k) : k);
+      },
+      replaceChildren(...kids) {
+        n.children = kids.slice();
+      },
+      querySelector(sel) {
+        return findAll(n, sel)[0] || null;
+      },
+      querySelectorAll(sel) {
+        return findAll(n, sel);
+      },
+      focus() {
+        focused = n;
+      },
+      scrollIntoView() {},
+      fire(type, ev) {
+        for (const fn of n.handlers[type] || []) fn(ev);
+      },
+    };
+    return n;
+  }
+  function text(s: string): FakeNode {
+    const t = node("#text");
+    t.textContent = s;
+    return t;
+  }
+  const byId = new Map<string, FakeNode>();
+  const body = node("body");
+  const doc = {
+    hidden: false,
+    body,
+    get activeElement() {
+      return focused;
+    },
+    getElementById(id: string) {
+      if (!byId.has(id)) {
+        const n = node("div");
+        n.attrs.id = id;
+        byId.set(id, n);
+      }
+      return byId.get(id);
+    },
+    createElement(tag: string) {
+      return node(tag);
+    },
+    createElementNS(_ns: string, tag: string) {
+      return node(tag);
+    },
+    createTextNode(s: string) {
+      return text(String(s));
+    },
+    querySelector() {
+      return null;
+    },
+    addEventListener() {},
+  };
+  return {
+    doc,
+    byId,
+    get focused() {
+      return focused;
+    },
+  };
+}
+
+function textOf(n: FakeNode | null | undefined): string {
+  if (!n) return "";
+  let s = n.textContent || "";
+  for (const c of n.children || []) s += textOf(c);
+  return s;
+}
+
+async function bootWatchClient(initial: () => unknown) {
+  const dom = makeWatchDom();
+  const chunks = watchHtml().split("<script>").map((s) => s.split("</script>")[0]);
+  const main = chunks.find((s) => s.includes("POLL_MS"));
+  expect(main).toBeTruthy();
+  const g = globalThis as Record<string, unknown>;
+  const saved = {
+    document: g.document,
+    window: g.window,
+    location: g.location,
+    localStorage: g.localStorage,
+    fetch: g.fetch,
+    setInterval: g.setInterval,
+    CSS: g.CSS,
+  };
+  let fetcher = initial;
+  const store = new Map<string, string>();
+  g.document = dom.doc;
+  g.localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, String(v)),
+  };
+  g.location = { search: "", protocol: "https:", host: "noema.test" };
+  g.window = { matchMedia: () => ({ matches: false }) }; // no WebSocket → HTTP path
+  g.fetch = async () => fetcher();
+  g.setInterval = () => 0;
+  g.CSS = { escape: (s: string) => s };
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+  const restore = () => {
+    g.document = saved.document;
+    g.window = saved.window;
+    g.location = saved.location;
+    g.localStorage = saved.localStorage;
+    g.fetch = saved.fetch;
+    g.setInterval = saved.setInterval;
+    g.CSS = saved.CSS;
+  };
+  try {
+    (0, eval)(main as string);
+    await flush();
+  } catch (e) {
+    restore();
+    throw e;
+  }
+  return {
+    dom,
+    $: (id: string) => dom.byId.get(id)!,
+    setFetch(fn: () => unknown) {
+      fetcher = fn;
+    },
+    async refresh() {
+      dom.byId.get("watch-refresh")!.fire("click");
+      await flush();
+    },
+    restore,
+  };
+}
+
+function okResponse(data: unknown) {
+  return { ok: true, statusText: "", json: async () => data };
+}
+
+function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    watch_live: WATCH_LIVE_PIN,
+    projection: "public",
+    world_id: "world.test",
+    cycle: 4,
+    sequence: 20,
+    players_present: 1,
+    world_status: "ACTIVE",
+    freshness: "live",
+    rooms: [
+      {
+        room_id: "room.market",
+        name: "Chamber Market",
+        description: "Open stalls.",
+        players_present: 1,
+        active: true,
+        exits: [],
+        entities: [],
+      },
+    ],
+    recent_events: [
+      { sequence: 20, cycle: 4, tier: "NORMAL", projection_id: "agent_move", line: "A player entered Chamber Market", room_id: "room.market" },
+    ],
+    notable_event: { sequence: 20, cycle: 4, tier: "NORMAL", projection_id: "agent_move", line: "A player entered Chamber Market", room_id: "room.market" },
+    ...over,
+  };
+}
+
+describe("driven watch client (§11/§13)", () => {
+  it("keeps the last snapshot under freshness=stale, then fails closed offline", async () => {
+    const client = await bootWatchClient(() => okResponse(snapshot({ freshness: "stale" })));
+    try {
+      expect(client.$("watch-state").textContent).toBe("stale");
+      expect(client.$("watch-state").className).toBe("tag warn");
+      const siteRows = client.$("watch-map").children;
+      expect(siteRows.length).toBe(1);
+      expect(textOf(siteRows[0])).toContain("Chamber Market");
+      expect(client.$("watch-feed").children.length).toBe(1);
+      expect(textOf(client.$("watch-feed").children[0])).toContain("entered Chamber Market");
+
+      client.setFetch(() => {
+        throw new Error("net down");
+      });
+      await client.refresh();
+      expect(client.$("watch-headline").textContent).toBe("Projection unavailable.");
+      expect(client.$("watch-state").textContent).toBe("unavailable");
+      const map = client.$("watch-map").children;
+      expect(map.length).toBe(1);
+      expect(textOf(map[0])).toBe("Projection unavailable.");
+      const feed = client.$("watch-feed").children;
+      expect(feed.length).toBe(1);
+      expect(textOf(feed[0])).toBe("Projection unavailable.");
+      expect(JSON.stringify(client.$("watch-map").children.map((c) => textOf(c)))).not.toMatch(/Chamber Market/);
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("clears the MAJOR banner within 2 intervals and resets on a newer MAJOR", async () => {
+    const major = snapshot({
+      sequence: 30,
+      recent_events: [{ sequence: 30, tier: "MAJOR", projection_id: "discovery", line: "RELAY SIGNAL DETECTED", room_id: "room.market" }],
+      notable_event: { sequence: 30, tier: "MAJOR", projection_id: "discovery", line: "RELAY SIGNAL DETECTED", room_id: "room.market" },
+    });
+    const calm = (seq: number) =>
+      snapshot({
+        sequence: seq,
+        recent_events: [{ sequence: seq, tier: "NOTABLE", projection_id: "trade", line: "A player offered a trade", room_id: "room.market" }],
+        notable_event: { sequence: seq, tier: "NOTABLE", projection_id: "trade", line: "A player offered a trade", room_id: "room.market" },
+      });
+    const client = await bootWatchClient(() => okResponse(major));
+    try {
+      const banner = client.$("watch-banner");
+      expect(banner.hidden).toBe(false);
+      expect(banner.textContent).toBe("RELAY SIGNAL DETECTED");
+      client.setFetch(() => okResponse(calm(31)));
+      await client.refresh();
+      expect(banner.hidden).toBe(false);
+      client.setFetch(() => okResponse(calm(32)));
+      await client.refresh();
+      expect(banner.hidden).toBe(true);
+      expect(banner.textContent).toBe("");
+      // a newer MAJOR restarts the countdown
+      client.setFetch(() =>
+        okResponse(
+          snapshot({
+            sequence: 40,
+            recent_events: [{ sequence: 40, tier: "MAJOR", projection_id: "shortage", line: "SHORTAGE DECLARED", room_id: "room.market" }],
+            notable_event: { sequence: 40, tier: "MAJOR", projection_id: "shortage", line: "SHORTAGE DECLARED", room_id: "room.market" },
+          }),
+        ),
+      );
+      await client.refresh();
+      expect(banner.hidden).toBe(false);
+      expect(banner.textContent).toBe("SHORTAGE DECLARED");
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("renders tier marks on every feed row and never fades MAJOR rows quiet", async () => {
+    const events = [
+      { sequence: 24, tier: "NORMAL", projection_id: "agent_move", line: "move a", room_id: "room.market" },
+      { sequence: 23, tier: "NORMAL", projection_id: "harvest", line: "Harvest at Chamber Market", room_id: "room.market" },
+      { sequence: 22, tier: "MAJOR", projection_id: "discovery", line: "found", room_id: "room.market" },
+      { sequence: 21, tier: "NOTABLE", projection_id: "trade", line: "trade", room_id: "room.market" },
+      { sequence: 20, tier: "NORMAL", projection_id: "production", line: "made", room_id: "room.market" },
+    ];
+    const client = await bootWatchClient(() =>
+      okResponse(snapshot({ sequence: 24, recent_events: events, notable_event: events[2] })),
+    );
+    try {
+      const rows = client.$("watch-feed").children;
+      expect(rows.length).toBe(5);
+      for (const row of rows) {
+        expect(row.children[0].className).toBe("mark");
+      }
+      expect(rows[0].children[0].textContent).toBe("·");
+      expect(rows[2].children[0].textContent).toBe("!");
+      expect(rows[2].classList.contains("major")).toBe(true);
+      expect(rows[2].classList.contains("quiet")).toBe(false);
+      expect(rows[3].children[0].textContent).toBe(">");
+      expect(rows[3].classList.contains("quiet")).toBe(false);
+      expect(rows[4].classList.contains("quiet")).toBe(true);
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("keeps an open room detail open, refocuses its summary, and closes on Escape", async () => {
+    let seq = 20;
+    const client = await bootWatchClient(() => okResponse(snapshot()));
+    try {
+      const firstLi = client.$("watch-map").children[0];
+      expect(firstLi.getAttribute("data-room")).toBe("room.market");
+      const det = firstLi.querySelector("details")!;
+      const sum = det.querySelector("summary")!;
+      det.open = true;
+      sum.focus();
+      seq += 1;
+      client.setFetch(() => okResponse(snapshot({ sequence: seq })));
+      await client.refresh();
+      const rebuiltLi = client.$("watch-map").children[0];
+      const rebuiltDet = rebuiltLi.querySelector("details")!;
+      expect(rebuiltDet).not.toBe(det);
+      expect(rebuiltDet.open).toBe(true);
+      const rebuiltSum = rebuiltDet.querySelector("summary")!;
+      expect(client.dom.focused).toBe(rebuiltSum);
+      expect(rebuiltSum.getAttribute("data-room")).toBe("room.market");
+      // Esc closes the detail and returns focus to its summary (§4F)
+      client.$("watch-map").fire("keydown", {
+        key: "Escape",
+        target: { closest: () => rebuiltDet },
+        preventDefault() {},
+      });
+      expect(rebuiltDet.open).toBe(false);
+      expect(client.dom.focused).toBe(rebuiltSum);
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("holds the headline when only the ledger head advances", async () => {
+    const trade = { sequence: 10, tier: "NOTABLE", projection_id: "trade", line: "A player offered a trade", room_id: "room.market" };
+    const client = await bootWatchClient(() =>
+      okResponse(snapshot({ sequence: 10, recent_events: [trade], notable_event: trade })),
+    );
+    try {
+      expect(client.$("watch-headline").textContent).toBe("A player offered a trade");
+      // ledger head leaps to 999 on private traffic; only one newer public event
+      const move = { sequence: 12, tier: "NORMAL", projection_id: "agent_move", line: "A player entered Chamber Market", room_id: "room.market" };
+      client.setFetch(() =>
+        okResponse(snapshot({ sequence: 999, recent_events: [move, trade], notable_event: move })),
+      );
+      await client.refresh();
+      expect(client.$("watch-headline").textContent).toBe("A player offered a trade");
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("keeps the server-side stale envelope intact (rooms and feed still present)", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 2,
+      sequence: 9,
+      rooms: rooms(),
+      players: [livePlayer("player.aaaaaaaaaaaa", "Vesper-7", "room.market")],
+      events: [src({ event_type: "MOVE", sequence: 9, payload: { to: "room.market" } })],
+      freshness: "stale",
+      now: NOW,
+    });
+    expect(snap.freshness).toBe("stale");
+    expect((snap.rooms as unknown[]).length).toBeGreaterThan(0);
+    expect((snap.recent_events as unknown[]).length).toBeGreaterThan(0);
   });
 });
 

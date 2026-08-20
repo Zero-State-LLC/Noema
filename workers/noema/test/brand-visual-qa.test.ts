@@ -294,6 +294,10 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(map).toMatch(/Inventory/);
     expect(map).toMatch(/Tokens/);
     expect(map).toMatch(/Tiered phosphor — one MAJOR, ≤3 non-MAJOR/);
+    expect(map).toMatch(/newest win across polls/);
+    expect(map).toMatch(/no decorative field wash/);
+    expect(map).toMatch(/layout itself never lights an edge/);
+    expect(map).toMatch(/Feed tier marks/);
     expect(map).toMatch(/exit_active/);
     expect(map).toMatch(/Reduced-motion/);
     expect(map).toMatch(/360 \/ 390 \/ 768 \/ 1280 \/ 1440/);
@@ -317,6 +321,7 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     const watch = watchHtml();
     expect(watch).toContain('id="watch-map"');
     expect(watch).toContain('id="watch-feed"');
+    expect(watch).toContain('el("span", "mark", markFor(ev.tier))');
     expect(watch).toContain('id="watch-phosphor"');
     expect(watch).toContain("prefers-reduced-motion");
     expect(watch).toContain("--color-state-warning");

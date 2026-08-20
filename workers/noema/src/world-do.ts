@@ -1,7 +1,14 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
 import type { Cycle0World, GenesisResult } from "./genesis";
-import { buildWatchLive, type WatchPlayerIn, type WatchRoomIn, type WatchSourceEvent } from "./watch-live";
+import {
+  buildWatchLive,
+  heldFromSnapshot,
+  type HeldHeadline,
+  type WatchPlayerIn,
+  type WatchRoomIn,
+  type WatchSourceEvent,
+} from "./watch-live";
 import {
   appendOperatorWatchLine,
   buildOperatorWatch,
@@ -183,6 +190,8 @@ export class NoemaWorldDO {
   private previews: Record<string, GenesisResult> = {};
   private requestedWorldId: string | null = null;
   private allowCanonicalBootstrap = false;
+  /** §4A hold: last served headline, presentation-only. WATCH stays non-mutating (no storage write). */
+  private watchHeld: HeldHeadline | null = null;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -220,13 +229,14 @@ export class NoemaWorldDO {
       at: ev.at,
       payload: ev.payload,
     }));
-    return buildWatchLive({
+    const snap = buildWatchLive({
       world_id: this.world!.world_id,
       cycle: this.world!.cycle,
       sequence: this.world!.sequence,
       rooms: this.world!.rooms as Record<string, WatchRoomIn>,
       players,
       events,
+      held: this.watchHeld,
       handles: Object.fromEntries(
         Object.entries(this.world!.players || {}).map(([id, p]) => [id, p.handle]),
       ),
@@ -249,6 +259,8 @@ export class NoemaWorldDO {
         ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
       ],
     });
+    this.watchHeld = heldFromSnapshot(snap);
+    return snap;
   }
 
   private async operatorWatchSnapshot(operatorId?: string) {

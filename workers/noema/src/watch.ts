@@ -68,7 +68,7 @@ const EXTRA = `
 .watch-phos{
   margin:.85rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);background:transparent;
 }
-.watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.35rem}
+.watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;min-height:11rem}
 .watch-site{padding:.45rem 0 .55rem;border-bottom:1px solid var(--line);font:500 .86rem/1.45 var(--font-mono)}
 .watch-site.active{color:var(--ink)}
 .watch-site.picked{border-color:var(--color-state-active);color:var(--color-state-active)}
@@ -92,24 +92,25 @@ const EXTRA = `
   color:var(--faint);font:.72rem/1.45 var(--font-mono);white-space:pre;overflow:auto;
 }
 @media(max-width:860px){.watch-pre{display:none}}
-.watch-feed{display:grid;gap:.15rem;margin:0;padding:0;list-style:none}
+.watch-feed{display:grid;gap:.15rem;margin:0;padding:0;list-style:none;min-height:13rem}
 .watch-feed li{
-  display:grid;grid-template-columns:1.1rem 1fr;gap:.1rem .45rem;align-items:baseline;
+  display:grid;grid-template-columns:.9rem 1.1rem 1fr;gap:.1rem .45rem;align-items:baseline;
   padding:.28rem 0;border-bottom:1px solid rgba(42,51,66,.35);
   color:var(--ink);font:.86rem/1.4 var(--font-mono);
 }
 .watch-feed li .glyph{width:.9rem;height:.9rem;margin-right:0}
 .watch-feed li.quiet{opacity:.58}
-.watch-feed .mark{color:var(--faint)}
+.watch-feed .mark{color:var(--faint);text-align:center}
 .watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
 .watch-feed li.major .mark{color:var(--color-state-warning);font-weight:700}
+.watch-feed li.major .line{color:var(--ink);font-weight:650}
 .watch-feed li.fresh{animation:feed-settle 900ms var(--ease) 1 both}
 @keyframes feed-settle{
   from{background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
   to{background:transparent}
 }
 .watch-feed .line{overflow-wrap:anywhere}
-.watch-feed .meta{grid-column:2;color:var(--faint);font:.7rem}
+.watch-feed .meta{grid-column:3;color:var(--faint);font:.7rem}
 .watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
@@ -172,7 +173,7 @@ export function watchHtml(): string {
     <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
-    <pre id="watch-low-noise" hidden aria-live="polite"></pre>
+    <pre id="watch-low-noise" hidden></pre>
   </article>
 
   <section class="watch-stage">
@@ -264,11 +265,17 @@ export function watchHtml(): string {
       return r ? (r.name || r.room_id) : "";
     }
     function ago(ms) {
-      if (!ms) return "";
-      const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+      const t = Number(ms);
+      if (!Number.isFinite(t) || t <= 0) return "";
+      const s = Math.max(0, Math.round((Date.now() - t) / 1000));
       if (s < 60) return s + " sec ago";
       if (s < 3600) return Math.round(s / 60) + " min ago";
       return Math.round(s / 3600) + " hr ago";
+    }
+    function setTag(text, cls) {
+      const tag = $("watch-state");
+      if (tag.textContent !== text) tag.textContent = text;
+      if (tag.className !== cls) tag.className = cls;
     }
     function rankPick(events) {
       return [...events].sort((a, b) => {
@@ -286,11 +293,12 @@ export function watchHtml(): string {
               line: "World incident — projection is stale." };
       }
       const window = notable ? [notable, ...events.filter(e => e.sequence !== notable.sequence)] : events;
-      const newest = Math.max(data.sequence || 0, ...window.map(e => e.sequence || 0));
       if (state.held) {
         const inWin = window.some(e => e.sequence === state.held.sequence && e.projection_id === state.held.projection_id);
         const higher = window.some(e => (TIER_RANK[e.tier] || 0) > (TIER_RANK[state.held.tier] || 0));
-        const aged = newest - state.held.sequence > 8;
+        // Age by newer PUBLIC candidates only — the world head (data.sequence)
+        // also advances on private traffic and must not rotate the headline.
+        const aged = window.filter(e => (e.sequence || 0) > state.held.sequence).length > 8;
         if (inWin && !higher && !aged) return state.held;
         if (aged && inWin) {
           const next = rankPick(window.filter(e => e.sequence !== state.held.sequence));
@@ -369,7 +377,8 @@ export function watchHtml(): string {
         banner.hidden = false;
         banner.className = "watch-banner on";
         banner.textContent = head.line;
-      } else if (state.majorLeft > 0) {
+      } else if (state.majorLeft > 1) {
+        // §4E / §8: temporary banner ≤ 2 poll intervals — hidden by the third render.
         state.majorLeft -= 1;
         banner.hidden = false;
         banner.className = "watch-banner on";
@@ -388,7 +397,11 @@ export function watchHtml(): string {
       } else {
         events.forEach((ev, i) => {
           const fresh = !state.reduce && state.prevTopSeq > 0 && (ev.sequence || 0) > state.prevTopSeq;
-          const li = el("li", (ev.tier === "MAJOR" ? "major" : ev.tier === "NOTABLE" ? "notable" : "") + (i >= 2 ? " quiet" : "") + (fresh ? " fresh" : ""));
+          const tierClass = ev.tier === "MAJOR" ? "major" : ev.tier === "NOTABLE" ? "notable" : "";
+          // §9: tiers are never color-only — every row carries a text mark, and
+          // NOTABLE/MAJOR rows never fade into the i>=2 quiet treatment.
+          const li = el("li", tierClass + (i >= 2 && !tierClass ? " quiet" : "") + (fresh ? " fresh" : ""));
+          li.append(el("span", "mark", markFor(ev.tier)));
           li.append(glyphNode(ev.glyph || "event"));
           const wrap = el("div", "");
           wrap.append(el("span", "line", ev.line || ""));
@@ -401,6 +414,20 @@ export function watchHtml(): string {
       state.prevTopSeq = Math.max(state.prevTopSeq, topSeq);
 
       const map = $("watch-map");
+      // §8 replace-in-place: a poll must not snap open room details shut or
+      // destroy keyboard focus. Record both before the rebuild, restore after.
+      const openRooms = {};
+      const prevSites = map.children || [];
+      for (let i = 0; i < prevSites.length; i++) {
+        const site = prevSites[i];
+        if (!site || !site.getAttribute) continue;
+        const rid = site.getAttribute("data-room") || "";
+        const det = site.querySelector ? site.querySelector("details") : null;
+        if (rid && det && det.open) openRooms[rid] = true;
+      }
+      const focusEl = document.activeElement;
+      const focusRoom = focusEl && focusEl.getAttribute ? (focusEl.getAttribute("data-room") || "") : "";
+      let refocus = null;
       map.replaceChildren();
       if (!rooms.length) {
         map.append(el("li", "watch-empty", "No public sites exposed yet."));
@@ -434,8 +461,10 @@ export function watchHtml(): string {
           }
           li.append(exitRow);
           const det = document.createElement("details");
+          det.setAttribute("data-room", r.room_id || "");
           const sum = document.createElement("summary");
           sum.textContent = "Look closer";
+          sum.setAttribute("data-room", r.room_id || "");
           det.append(sum);
           const box = el("div", "watch-inspect");
           const labels = Array.isArray(r.public_player_labels) ? r.public_player_labels : [];
@@ -463,11 +492,13 @@ export function watchHtml(): string {
           const rec = siteRecent(events, r.room_id);
           box.append(el("p", "", "Recent:    " + (rec.length ? rec.map(e => e.line).join(" · ") : "nothing public yet")));
           det.append(box);
-          if (picked) det.open = true;
+          if (picked || openRooms[r.room_id]) det.open = true;
           li.append(det);
+          if (focusRoom && r.room_id === focusRoom) refocus = sum;
           map.append(li);
         });
       }
+      if (refocus && refocus.focus) refocus.focus();
 
       const pre = $("watch-pre");
       if (shouldPre(rooms) && window.matchMedia("(min-width: 861px)").matches) {
@@ -487,8 +518,7 @@ export function watchHtml(): string {
     function showUnavailable(msg) {
       $("watch-headline").textContent = "Projection unavailable.";
       $("watch-copy").textContent = msg || "";
-      $("watch-state").textContent = "unavailable";
-      $("watch-state").className = "tag";
+      setTag("unavailable", "tag");
       $("watch-map").replaceChildren(el("li", "watch-empty", "Projection unavailable."));
       $("watch-feed").replaceChildren(el("li", "watch-empty", "Projection unavailable."));
       $("watch-pre").hidden = true;
@@ -498,23 +528,19 @@ export function watchHtml(): string {
 
     function applyLive(data) {
       render(data);
-      const tag = $("watch-state");
       if (state.paused) {
-        tag.textContent = "paused";
-        tag.className = "tag warn";
+        setTag("paused", "tag warn");
         return;
       }
+      // §8/§9: the status tag is polite — write only sanctioned states, and
+      // only when the displayed state actually changes. No transient churn.
       const fresh = data.freshness || "live";
-      tag.textContent = fresh === "live" ? "live" : fresh;
-      tag.className = "tag " + (fresh === "incident" ? "bad" : fresh === "live" ? "ok" : "warn");
+      setTag(fresh === "live" ? "live" : fresh, "tag " + (fresh === "incident" ? "bad" : fresh === "live" ? "ok" : "warn"));
     }
 
     async function refreshHttp() {
       if (state.busy || document.hidden) return;
       state.busy = true;
-      const tag = $("watch-state");
-      tag.textContent = "refreshing";
-      tag.className = "tag warn";
       try {
         const data = await fetch("/v1/watch/live").then(async r => {
           const d = await r.json();
@@ -583,13 +609,22 @@ export function watchHtml(): string {
       state.paused = !state.paused;
       $("watch-pause").textContent = state.paused ? "Resume updates" : "Pause updates";
       $("watch-pause").setAttribute("aria-pressed", state.paused ? "true" : "false");
-      const tag = $("watch-state");
       if (state.paused) {
-        tag.textContent = "paused";
-        tag.className = "tag warn";
+        setTag("paused", "tag warn");
       } else {
         refresh();
       }
+    });
+    // §4F: Esc closes an open room detail and returns focus to its summary.
+    $("watch-map").addEventListener("keydown", (ev) => {
+      if (!ev || ev.key !== "Escape") return;
+      const t = ev.target;
+      const det = t && typeof t.closest === "function" ? t.closest("details") : null;
+      if (!det || !det.open) return;
+      det.open = false;
+      const sum = typeof det.querySelector === "function" ? det.querySelector("summary") : null;
+      if (sum && sum.focus) sum.focus();
+      if (typeof ev.preventDefault === "function") ev.preventDefault();
     });
     openStream();
     refresh();

@@ -29,6 +29,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
 | ASCII pre fallback | `#watch-pre` | required text (desktop) |
 | Recent feed | `#watch-feed` | required text |
+| Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |
 | Key / legend | `#world-key` live SVG catalog (`legendHtml()`) | required text |
 | Projection disclaimer | `.watch-note` | required text |
 
@@ -70,7 +71,7 @@ Motion is **event-born, all tiers** (Living Chamber, Specs §18.6). No ambient l
 | Empty / loading / error | none | Headline copy; feed empty state |
 | `PAUSED` | none | `#watch-state` text |
 
-At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win). Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology. PIXEL is opt-in; TEXT is default authority.
+At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win across polls — `capPulses` at merge time, so a newer event replaces the oldest live pulse instead of being dropped). Events outside the public layout never pulse and never consume a cap slot. Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology, and layout itself never lights an edge from recent events. The canvas paints ground fill, border, topology, occupancy, and pulses only — no decorative field wash. PIXEL is opt-in; TEXT is default authority.
 
 ---
 
@@ -99,7 +100,7 @@ Phosphor is optional and load-gated. It never replaces the feed.
 ## Acceptance
 
 - 14 PLAYER-BRAND statements still pass.
-- `collectPulses` emits tiered pulses: 1 MAJOR, ≤3 non-MAJOR, newest win; `agent_move` pulses light touched public edges only.
+- `collectPulses` emits tiered pulses: 1 MAJOR, ≤3 non-MAJOR, newest win across polls (`capPulses`); events outside the public layout are dropped before cap accounting; `agent_move` pulses light touched public edges only.
 - Reduced-motion path still idle / no rAF.
 - Agents appear as Players on WATCH occupancy. Humans watch. Public labels and feed lines show named agent handles and omit operator/smoke handles. Unlabeled occupancy still reads as "an agent" / "N agents". Smoke/operator motion still reads as "A player".
 - Glyph ids on the live snapshot (`room`→`loc`, Player→`player`, exit→`threshold`, entity→`glyphForEntity`, event→`glyphForProjection`) stay the closed 14-mark catalog.

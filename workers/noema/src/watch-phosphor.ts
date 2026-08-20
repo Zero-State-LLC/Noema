@@ -84,7 +84,6 @@ export type PhosphorEdge = {
   from: string;
   to: string;
   direction: string;
-  active?: boolean;
   dashed?: boolean;
 };
 
@@ -162,6 +161,8 @@ export type PhosphorPulse = {
   tier: PhosphorTier;
   born: number;
   ttl: number;
+  /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */
+  sequence?: number;
   /** Public agent_move — lights public edges touching the room (exit_active). */
   move?: boolean;
 };
@@ -345,10 +346,9 @@ export function layoutPublicTopology(
         const pair = id < to ? id + ">" + to : to + ">" + id;
         if (!edgeSeen.has(pair)) {
           edgeSeen.add(pair);
-          const hit = (recent || []).some(
-            (ev) => ev.room_id === id || ev.room_id === to,
-          );
-          edges.push({ from: id, to, direction: String(exits[i].direction || ""), active: hit });
+          // §18.6: exit lighting comes only from live agent_move pulses at draw
+          // time. Layout itself never lights an edge from recent_events.
+          edges.push({ from: id, to, direction: String(exits[i].direction || "") });
         }
         if (seen.has(to)) continue;
         const vec = dirVec(exits[i].direction, i + id.length);
@@ -433,6 +433,7 @@ export function collectPulses(
   snapshot: PhosphorSnapshot,
   now: number,
   reducedMotion: boolean,
+  publicRoomIds?: { has(id: string): boolean } | null,
 ): PhosphorPulse[] {
   if (reducedMotion) return [];
   const events = snapshot.recent_events || [];
@@ -443,9 +444,12 @@ export function collectPulses(
     if (seq <= prevSeq) continue;
     const room = String(ev.room_id || "");
     if (!room) continue;
+    // §18.6 rule 1: only events in the public layout may pulse. Hidden or
+    // unknown rooms never consume cap slots or schedule frames.
+    if (publicRoomIds && !publicRoomIds.has(room)) continue;
     const tier: PhosphorTier =
       ev.tier === "MAJOR" ? "MAJOR" : ev.tier === "NOTABLE" ? "NOTABLE" : "NORMAL";
-    const pulse: PhosphorPulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier] };
+    const pulse: PhosphorPulse = { room_id: room, tier, born: now, ttl: PULSE_TTL[tier], sequence: seq };
     if (String(ev.projection_id || "") === "agent_move") pulse.move = true;
     fresh.push({ seq, pulse });
   }
@@ -465,6 +469,28 @@ export function collectPulses(
     pulses.push(p);
   }
   return pulses;
+}
+
+/** §18.6 rule 3 across polls: 1 MAJOR + ≤3 non-MAJOR, NEWEST win. Output stays newest-first. */
+export function capPulses(pulses: PhosphorPulse[]): PhosphorPulse[] {
+  const sorted = pulses
+    .slice()
+    .sort((a, b) => (Number(b.sequence) || 0) - (Number(a.sequence) || 0) || b.born - a.born);
+  const out: PhosphorPulse[] = [];
+  let major = 0;
+  let minor = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    if (p.tier === "MAJOR") {
+      if (major >= 1) continue;
+      major += 1;
+    } else {
+      if (minor >= 3) continue;
+      minor += 1;
+    }
+    out.push(p);
+  }
+  return out;
 }
 
 export function expirePulses(pulses: PhosphorPulse[], now: number): PhosphorPulse[] {
@@ -723,26 +749,6 @@ const MARK_RING: Array<[number, number]> = [
   [10, 9],
 ];
 
-function drawFieldWash(ctx: DrawCtx): void {
-  ctx.strokeStyle = PHOSPHOR_COLORS.dim;
-  ctx.globalAlpha = 0.12;
-  ctx.lineWidth = 1;
-  const rings: Array<[number, number, number, number, number, number]> = [
-    [28, 36, 140, 22, 292, 48],
-    [16, 92, 168, 118, 304, 86],
-    [36, 154, 170, 138, 288, 166],
-  ];
-  for (let i = 0; i < rings.length; i++) {
-    const r = rings[i];
-    ctx.beginPath();
-    ctx.moveTo(r[0], r[1]);
-    if (ctx.quadraticCurveTo) ctx.quadraticCurveTo(r[2], r[3], r[4], r[5]);
-    else ctx.lineTo(r[4], r[5]);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-}
-
 export function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void {
   const t = Math.max(0, Math.min(1, age));
   const span = tier === "MAJOR" ? 14 : tier === "NOTABLE" ? 10 : 6;
@@ -782,7 +788,7 @@ export function drawPhosphorFrame(
   ctx.fillStyle = PHOSPHOR_COLORS.ground;
   ctx.fillRect(0, 0, PHOSPHOR_WIDTH, PHOSPHOR_HEIGHT);
   if (ctx.imageSmoothingEnabled != null) ctx.imageSmoothingEnabled = false;
-  drawFieldWash(ctx);
+  // §18 topology-before-scenery: ground fill + border only. No decorative wash.
   ctx.strokeStyle = PHOSPHOR_COLORS.dim;
   ctx.lineWidth = 1;
   ctx.strokeRect(1, 1, PHOSPHOR_WIDTH - 2, PHOSPHOR_HEIGHT - 2);
@@ -799,7 +805,7 @@ export function drawPhosphorFrame(
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
-    const active = e.active === true || lit[e.from] === true || lit[e.to] === true;
+    const active = lit[e.from] === true || lit[e.to] === true;
     drawExit(ctx, a.x, a.y, b.x, b.y, active, e.dashed === true);
   }
 
@@ -851,6 +857,7 @@ export type PhosphorSession = {
   idle: boolean;
   rafStarts: number;
   lastLayout: PhosphorLayout;
+  pulses: PhosphorPulse[];
   setMode(mode: PhosphorMode): void;
   setReducedMotion(on: boolean): void;
   update(snapshot: PhosphorSnapshot): void;
@@ -1011,6 +1018,9 @@ export function createPhosphorSession(opts: {
     get lastLayout() {
       return lastLayout;
     },
+    get pulses() {
+      return pulses.slice();
+    },
     setMode(next: PhosphorMode) {
       if (!ctx) {
         mode = "text";
@@ -1037,8 +1047,11 @@ export function createPhosphorSession(opts: {
       );
       const t = nowFn();
       if (!reduced && ctx && mode === "pixel") {
-        const born = collectPulses(lastSeq, snapshot, t, reduced);
-        pulses = expirePulses(pulses.concat(born), t);
+        const roomSet = new Set(lastLayout.nodes.map(function (n) { return n.room_id; }));
+        const born = collectPulses(lastSeq, snapshot, t, reduced, roomSet);
+        // Caps enforced at merge time, newest-first — a newer event replaces
+        // the oldest live pulse instead of being silently dropped (§18.6).
+        pulses = capPulses(expirePulses(pulses.concat(born), t));
       } else {
         pulses = [];
       }
@@ -1099,6 +1112,7 @@ export function phosphorInlineScript(bind?: {
     const clampPhosphorNode = ${clampPhosphorNode.toString()};
     const layoutPublicTopology = ${layoutPublicTopology.toString()};
     const collectPulses = ${collectPulses.toString()};
+    const capPulses = ${capPulses.toString()};
     const expirePulses = ${expirePulses.toString()};
     const inkFor = ${inkFor.toString()};
     const PHOSPHOR_CATALOG_PATHS = ${JSON.stringify(PHOSPHOR_CATALOG_PATHS)};
@@ -1113,7 +1127,6 @@ export function phosphorInlineScript(bind?: {
     const drawGlyph = ${drawGlyph.toString()};
     const drawExit = ${drawExit.toString()};
     const MARK_RING = ${JSON.stringify(MARK_RING)};
-    const drawFieldWash = ${drawFieldWash.toString()};
     const drawRoomLabel = ${drawRoomLabel.toString()};
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};

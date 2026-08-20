@@ -2797,6 +2797,7 @@ export async function applyWorldCommand(
         reason: "HARVEST",
       });
       pushEvent("RESOURCE_TRANSFER", {
+        kind: "harvest",
         from_id: entity.entity_id,
         to_id: principal.player_id,
         resource: credited,

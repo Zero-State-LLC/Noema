@@ -147,8 +147,15 @@ export function watchEventTier(projectionId: string, band?: string): WatchTier {
 export function projectionIdForEvent(eventType: string, payload?: Record<string, unknown>): string | null {
   const t = String(eventType || "").toUpperCase();
   if (PRIVATE_EVENT_TYPES.has(t)) return null;
+  if (t === "CRIME_DETECTED") {
+    // §7 redaction / §4E: only crimes already public may reach the public window.
+    const flags = Array.isArray(payload?.flags) ? (payload!.flags as unknown[]).map(String) : [];
+    if (payload?.visibility === "PUBLIC" || flags.includes("PUBLIC_HISTORY")) return "crime_detected";
+    return null;
+  }
   if (t === "RESOURCE_TRANSFER") {
-    if (payload?.kind === "harvest" || payload?.from === "node") return "harvest";
+    const fromId = typeof payload?.from_id === "string" ? payload.from_id : "";
+    if (payload?.kind === "harvest" || payload?.from === "node" || fromId.startsWith("entity.")) return "harvest";
     return "resource_change";
   }
   if (t === "ENTITY_UPDATE") {
@@ -244,7 +251,12 @@ export function phraseWatchEvent(
     case "CONTEST_RESOLVED":
       return site ? `A contest resolved at ${site}` : "A contest resolved";
     case "RESOURCE_TRANSFER":
-      return site ? `Harvest at ${site}` : "A harvest was recorded";
+      // §5: "Harvest at <site>" only for harvests. Trade legs and contest
+      // seizures also emit RESOURCE_TRANSFER and must not be narrated as harvests.
+      if (projectionIdForEvent("RESOURCE_TRANSFER", payload) === "harvest") {
+        return site ? `Harvest at ${site}` : "A harvest was recorded";
+      }
+      return site ? `Resources moved at ${site}` : "Resources changed hands";
     case "ORG_CREATE":
     case "ORG_MEMBER_ADD":
     case "ORG_MEMBER_REMOVE":
@@ -281,27 +293,48 @@ export function selectNotableEvent(opts: {
   }
   const ranked = rankEvents(candidates);
   if (opts.held) {
-    const newest = Math.max(0, ...candidates.map((c) => c.sequence));
-    const heldPick = holdHeadline(opts.held, candidates, newest);
+    const heldPick = holdHeadline(opts.held, candidates);
     if (heldPick) return heldPick;
   }
   if (ranked[0]) return ranked[0];
   return quietHeadline(opts.players_present);
 }
 
-export function holdHeadline(
-  held: HeldHeadline,
-  window: WatchEvent[],
-  newestSequence: number,
-): WatchEvent | null {
+export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null {
   const inWindow = window.find((e) => e.sequence === held.sequence && e.projection_id === held.projection_id);
   const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier]);
-  const aged = newestSequence - held.sequence > 8;
+  // §4A step 5: age by newer PUBLIC candidates, never by raw ledger-sequence
+  // arithmetic — private LOOK/MESSAGE traffic must not rotate the headline.
+  const aged = window.filter((e) => e.sequence > held.sequence).length > 8;
   if (inWindow && !higher && !aged) {
     return { ...held, ...inWindow };
   }
   const pool = aged && inWindow ? window.filter((e) => e.sequence !== held.sequence) : window;
   return rankEvents(pool)[0] || rankEvents(window)[0] || null;
+}
+
+/**
+ * Carry the served headline between polls so the §4A hold is wired for every
+ * non-page consumer (HTTP poll and WS stream). Synthetic world-status and the
+ * quiet fallback are never held.
+ */
+export function heldFromSnapshot(snapshot: Record<string, unknown> | null | undefined): HeldHeadline | null {
+  const n = snapshot?.notable_event as Partial<WatchEvent> | null | undefined;
+  if (!n || typeof n.sequence !== "number" || n.sequence <= 0) return null;
+  if (typeof n.projection_id !== "string" || n.projection_id === "world_status") return null;
+  if (typeof n.line !== "string" || !n.line) return null;
+  if (n.tier !== "NORMAL" && n.tier !== "NOTABLE" && n.tier !== "MAJOR") return null;
+  const held: HeldHeadline = {
+    sequence: n.sequence,
+    tier: n.tier,
+    projection_id: n.projection_id,
+    line: n.line,
+  };
+  if (typeof n.cycle === "number") held.cycle = n.cycle;
+  if (typeof n.room_id === "string") held.room_id = n.room_id;
+  if (typeof n.occurred_at === "number") held.occurred_at = n.occurred_at;
+  if (typeof n.detail === "string") held.detail = n.detail;
+  return held;
 }
 
 function rankEvents(events: WatchEvent[]): WatchEvent[] {

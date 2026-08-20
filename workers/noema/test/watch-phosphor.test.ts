@@ -15,6 +15,7 @@ import {
   PHOSPHOR_HEIGHT,
   PHOSPHOR_JS_BUDGET,
   PHOSPHOR_WIDTH,
+  capPulses,
   collectPulses,
   collectSiteMarks,
   createPhosphorSession,
@@ -269,7 +270,8 @@ describe("slice 1 — deterministic public topology", () => {
     expect(playerGlyphId(layout.nodes.find((n) => n.room_id === "room.a")!.players)).toBe("player_multi");
     expect(playerGlyphId(layout.nodes.find((n) => n.room_id === "room.c")!.players)).toBe("player_single");
     expect(roomGlyphId(layout.nodes.find((n) => n.room_id === "room.d")!.certainty)).toBe("room_empty");
-    expect(layout.edges.some((e) => e.active)).toBe(true);
+    // §18.6: layout never lights edges from recent_events — only live move pulses do.
+    expect(JSON.stringify(layout.edges)).not.toContain('"active"');
     expect(JSON.stringify(layout)).not.toMatch(/vault|Hidden/i);
   });
 
@@ -417,18 +419,66 @@ describe("slice 2 — certainty and glyphs", () => {
     expect(painted.ops.join(" ")).not.toMatch(/\[X1\]|\[Y1\]/i);
   });
 
-  it("marks a public exit active only from a public recent event", () => {
-    const layout = layoutPublicTopology(
-      [
-        { room_id: "room.a", name: "A", description: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
-        { room_id: "room.b", name: "B", description: "B", exits: [{ direction: "west", to_room_id: "room.a" }] },
-        { room_id: "room.vault", name: "Vault", hidden: true, exits: [{ direction: "up", to_room_id: "room.a" }] },
-      ],
-      [{ sequence: 4, room_id: "room.b", tier: "NORMAL" }],
-    );
+  it("lights a public exit only from a live agent_move pulse, never from layout (§18.6)", () => {
+    // Rooms carry no players and no descriptions/entities so nothing else draws amber.
+    const rooms: PhosphorRoom[] = [
+      { room_id: "room.a", name: "A", exits: [{ direction: "east", to_room_id: "room.b" }] },
+      { room_id: "room.b", name: "B", exits: [{ direction: "west", to_room_id: "room.a" }] },
+      { room_id: "room.vault", name: "Vault", hidden: true, exits: [{ direction: "up", to_room_id: "room.a" }] },
+    ];
+    // A non-move recent event no longer marks any edge in the layout …
+    const layout = layoutPublicTopology(rooms, [{ sequence: 4, room_id: "room.b", tier: "NORMAL" }]);
     expect(layout.nodes.map((n) => n.room_id).sort()).toEqual(["room.a", "room.b"]);
-    expect(layout.edges.some((e) => e.active)).toBe(true);
+    expect(JSON.stringify(layout.edges)).not.toContain('"active"');
     expect(JSON.stringify(layout)).not.toMatch(/vault/i);
+    // … and edge strokes stay dim without a live move pulse, light with one,
+    // and return to dim once it expires.
+    const still = layoutPublicTopology(rooms);
+    const edgeStyles = (pulses: never[], now: number) => {
+      const ctx = mockCtx() as Record<string, unknown>;
+      let style = "";
+      const styles: string[] = [];
+      Object.defineProperty(ctx, "strokeStyle", {
+        get: () => style,
+        set: (v: string) => {
+          style = v;
+        },
+      });
+      const dash = ctx.setLineDash as (s: number[]) => void;
+      ctx.setLineDash = (segments: number[]) => {
+        styles.push(style);
+        dash(segments);
+      };
+      drawPhosphorFrame(ctx as never, still, pulses, now);
+      return styles;
+    };
+    expect(edgeStyles([{ room_id: "room.b", tier: "NORMAL", sequence: 4, born: 0, ttl: 280 }] as never[], 100)).not.toContain(
+      "#FFB020",
+    );
+    expect(edgeStyles([{ room_id: "room.b", tier: "NORMAL", sequence: 4, born: 0, ttl: 280, move: true }] as never[], 100)).toContain(
+      "#FFB020",
+    );
+    expect(edgeStyles([{ room_id: "room.b", tier: "NORMAL", sequence: 4, born: 0, ttl: 50, move: true }] as never[], 100)).not.toContain(
+      "#FFB020",
+    );
+    // Reduced motion: the session paints with zero pulses — no edge ever draws amber.
+    const ctx = mockCtx();
+    const session = createPhosphorSession({
+      canvas: { width: 0, height: 0, getContext: () => ctx },
+      reducedMotion: true,
+      mode: "pixel",
+      now: () => 100,
+      raf: () => 1,
+      caf: () => undefined,
+    });
+    session.update({
+      sequence: 5,
+      rooms,
+      recent_events: [{ sequence: 5, tier: "NORMAL", room_id: "room.b", projection_id: "agent_move" }],
+    });
+    expect(session.pulses).toEqual([]);
+    expect(session.rafStarts).toBe(0);
+    expect(edgeStyles([] as never[], 100)).not.toContain("#FFB020");
   });
 
   it("maps unknown / partial / known / active from public fields only", () => {
@@ -513,6 +563,91 @@ describe("slice 3 — event-driven pulses", () => {
       "room.d",
       "room.c",
     ]);
+  });
+
+  it("drops events outside the public layout before cap accounting (§18.6 rule 1)", () => {
+    const roomSet = new Set(["room.a", "room.b"]);
+    const born = collectPulses(
+      0,
+      {
+        sequence: 5,
+        recent_events: [
+          { sequence: 2, tier: "MAJOR", room_id: "room.vault" },
+          { sequence: 3, tier: "NOTABLE", room_id: "room.hidden" },
+          { sequence: 4, tier: "NORMAL", room_id: "room.a", projection_id: "agent_move" },
+          { sequence: 5, tier: "NOTABLE", room_id: "room.b" },
+        ],
+      },
+      1,
+      false,
+      roomSet,
+    );
+    expect(born.map((p) => p.room_id).sort()).toEqual(["room.a", "room.b"]);
+    expect(born.every((p) => typeof p.sequence === "number")).toBe(true);
+    // hidden rooms never consume the MAJOR slot
+    expect(born.some((p) => p.tier === "MAJOR")).toBe(false);
+    // and a session fed a hidden-room-only event stays idle with no rAF
+    const ctx = mockCtx();
+    let rafCalls = 0;
+    const session = createPhosphorSession({
+      canvas: { width: 0, height: 0, getContext: () => ctx },
+      mode: "pixel",
+      now: () => 1,
+      raf: () => {
+        rafCalls += 1;
+        return rafCalls;
+      },
+      caf: () => undefined,
+    });
+    session.update({
+      sequence: 9,
+      rooms: [{ room_id: "room.a", name: "A" }],
+      recent_events: [{ sequence: 9, tier: "MAJOR", room_id: "room.vault", projection_id: "agent_move" }],
+    });
+    expect(session.pulses).toEqual([]);
+    expect(session.idle).toBe(true);
+    expect(session.rafStarts).toBe(0);
+  });
+
+  it("enforces caps at merge time: a newer MAJOR replaces a still-live MAJOR (§18.6 rule 3)", () => {
+    const mk = (seq: number, tier: "NORMAL" | "NOTABLE" | "MAJOR", room: string, born = 0) => ({
+      room_id: room,
+      tier,
+      sequence: seq,
+      born,
+      ttl: 920,
+    });
+    const capped = capPulses([mk(5, "MAJOR", "room.a"), mk(6, "MAJOR", "room.b")]);
+    expect(capped.filter((p) => p.tier === "MAJOR").map((p) => p.room_id)).toEqual(["room.b"]);
+    const minors = capPulses([
+      mk(1, "NORMAL", "room.a"),
+      mk(2, "NORMAL", "room.b"),
+      mk(3, "NOTABLE", "room.c"),
+      mk(4, "NOTABLE", "room.d"),
+    ]);
+    expect(minors.map((p) => p.room_id)).toEqual(["room.d", "room.c", "room.b"]);
+
+    // Across polls: an old live MAJOR must not block a newer one.
+    const ctx = mockCtx();
+    let now = 0;
+    const rooms = [
+      { room_id: "room.a", name: "A" },
+      { room_id: "room.b", name: "B" },
+    ];
+    const session = createPhosphorSession({
+      canvas: { width: 0, height: 0, getContext: () => ctx },
+      mode: "pixel",
+      now: () => now,
+      raf: () => 1,
+      caf: () => undefined,
+    });
+    session.update({ sequence: 5, rooms, recent_events: [{ sequence: 5, tier: "MAJOR", room_id: "room.a" }] });
+    expect(session.pulses.map((p) => p.room_id)).toEqual(["room.a"]);
+    now = 100; // first MAJOR still live (ttl 920)
+    session.update({ sequence: 6, rooms, recent_events: [{ sequence: 6, tier: "MAJOR", room_id: "room.b" }] });
+    const majors = session.pulses.filter((p) => p.tier === "MAJOR");
+    expect(majors).toHaveLength(1);
+    expect(majors[0].room_id).toBe("room.b");
   });
 
   it("marks agent_move pulses so touched public edges light as exit_active", () => {
@@ -782,12 +917,14 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(pending).toBeNull();
   });
 
-  it("does not invent scenery or score interest", () => {
+  it("does not invent scenery or score interest: an empty layout is ground fill + border only", () => {
     const src = readFileSync(join(here, "../src/watch-phosphor.ts"), "utf8");
     expect(src).not.toMatch(/interest|score|WebGL|spritesheet|cinema/i);
+    expect(src).not.toMatch(/drawFieldWash|field.?wash/i);
     const ctx = mockCtx();
     drawPhosphorFrame(ctx, { nodes: [], edges: [] }, [], 0);
-    expect(ctx.ops[0]).toBe("fillRect:0,0,320,180");
+    // §18 topology-before-scenery: no decorative ground strokes of any kind.
+    expect(ctx.ops).toEqual(["fillRect:0,0,320,180", "strokeRect:1,1,318,178"]);
   });
 
   it("leaves PLAY, STUDY, and Admin Live unchanged", () => {
