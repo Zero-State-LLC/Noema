@@ -77,7 +77,7 @@ import {
   selectScheduleNode,
   selectScheduleRelay,
 } from "./pressure";
-import { isAuthorizedHarvestNode, previewStockRegen, productionModifier } from "./resource-production";
+import { applyLockoutRest, isAuthorizedHarvestNode, previewStockRegen, productionModifier } from "./resource-production";
 import {
   applyPracticeCredits,
   brokerWaivesCaution,
@@ -1555,6 +1555,7 @@ export async function applyWorldCommand(
         };
       }
     }
+    applyLockoutRest(pl.budgets);
     const spoilNote = (pl.spoil_lines || []).join(" ");
     const result = success(
       w,
