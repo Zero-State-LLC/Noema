@@ -283,7 +283,7 @@ def test_spectator_cannot_observe_another_agent(tmp_path: Path):
     seed = Path("fixtures/v01-seed/world-seed.json")
     if seed.is_file():
         rt.start_world(seed)
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.alice")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.alice")
     rt.apply_player_action(
         player["session_id"],
         {

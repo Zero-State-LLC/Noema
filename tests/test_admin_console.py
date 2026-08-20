@@ -145,9 +145,9 @@ def test_admin_overview_counts_agents_inside_total_players(running_runtime):
         headers={"X-Session-Id": admin["session_id"]},
     )
     assert status == 200
-    assert overview["players"] == {"total": 2, "human_controlled": 1, "agent_controlled": 1}
+    assert overview["players"] == {"total": 1, "human_controlled": 0, "agent_controlled": 1}
     assert {item["world_ontology"] for item in overview["sessions"] if item["is_player"]} == {"PLAYER"}
-    assert {item["controller"] for item in overview["sessions"] if item["is_player"]} == {"HUMAN", "AGENT"}
+    assert {item["controller"] for item in overview["sessions"] if item["is_player"]} == {"AGENT"}
     assert "agents" not in overview["players"]
 
 
@@ -155,7 +155,7 @@ def test_genesis_and_verification_are_admin_gated(running_runtime):
     runtime, base = running_runtime
     from noema.auth.roles import Role
 
-    player = runtime.create_session(role=Role.PLAYER, agent_id="player.one")
+    player = runtime.create_session(role=Role.AGENT, agent_id="player.one")
     admin = runtime.create_admin_session("operator-test-token")
     profile = profile_ids()[0]
     opener = urllib.request.build_opener()

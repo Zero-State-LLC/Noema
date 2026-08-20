@@ -297,12 +297,12 @@ def test_runtime_learn_no_world_mutation(tmp_path: Path):
     view = rt.learn_view(researcher["session_id"])
     assert view["simple_views"]
     # player cannot learn
-    player = rt.create_session(role=Role.PLAYER, agent_id="p")
+    player = rt.create_session(role=Role.AGENT, agent_id="p")
     with pytest.raises(ResearchError) as ei:
         rt.learn_view(player["session_id"])
     assert ei.value.code == POLICY_DENIED
     # PLAY still works and does not need LEARN
-    player2 = rt.create_session(role=Role.PLAYER, agent_id="agent.p2")
+    player2 = rt.create_session(role=Role.AGENT, agent_id="agent.p2")
     r = rt.apply_player_action(
         player2["session_id"],
         {

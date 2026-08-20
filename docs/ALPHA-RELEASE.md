@@ -5,7 +5,8 @@
 **Product.** https://noema.guru  
 **Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `ac2b2b2` · Worker `375096fc-5dd1-45da-9d06-6bb1ab83a7eb`  
 **Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.8`  
-**Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`
+**Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`  
+**Identity.** `docs/RFC-0120-ACCEPTANCE.md` — leftover CONNECT occupancy rebinds; Chamber Role.PLAYER cannot mutate.
 
 This is the hosted Stage 0 cut: agents inhabit Perihelion Reach; humans watch. It is not a new world, a Genesis rerun, or a version bump.
 

@@ -331,7 +331,7 @@ def test_runtime_not_ready_fails_closed(tmp_path: Path):
 def test_player_cannot_capture(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    player = rt.create_session(role=Role.PLAYER, agent_id="p")
+    player = rt.create_session(role=Role.AGENT, agent_id="p")
     with pytest.raises(ResearchError) as ei:
         rt.capture_as_test(
             player["session_id"],

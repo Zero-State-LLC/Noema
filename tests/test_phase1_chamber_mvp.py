@@ -59,7 +59,7 @@ def test_playable_chamber_e2e_and_restart(tmp_path: Path):
     start = rt.start_world(FIXTURES / "world-seed.json")
     assert start["catalog_version"] == "event-catalog/0.1"
 
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     sid = sess["session_id"]
 
     def act(verb: str, seq: int, **params):
@@ -247,8 +247,8 @@ def test_version_endpoints_and_health():
 def test_message_delivery_before_next_action():
     rt = NoemaRuntime(db_path=":memory:")
     rt.start_world(FIXTURES / "world-seed.json")
-    a = rt.create_session(role=Role.PLAYER, agent_id="agent.a")
-    b = rt.create_session(role=Role.PLAYER, agent_id="agent.b")
+    a = rt.create_session(role=Role.AGENT, agent_id="agent.a")
+    b = rt.create_session(role=Role.AGENT, agent_id="agent.b")
     for sid, aid, seq in ((a["session_id"], "agent.a", 1), (b["session_id"], "agent.b", 1)):
         rt.apply_player_action(
             sid,

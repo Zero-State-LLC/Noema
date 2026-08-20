@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
 
     rt = NoemaRuntime(db_path=args.db)
     start = rt.start_world(args.seed)
-    sess = rt.create_session(role=Role.PLAYER, agent_id=args.agent_id)
+    sess = rt.create_session(role=Role.AGENT, agent_id=args.agent_id)
     print(f"NOEMA // {start['world_id']}  cycle={start['cycle']}")
     print("Type commands: enter | look | move <exit_id> | inspect <entity_id> | message <agent> <text> | wait | quit")
     seq = 1

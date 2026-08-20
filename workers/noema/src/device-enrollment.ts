@@ -128,6 +128,13 @@ export function allocateDeviceControllerId(): string {
   return `ctrl.device.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
+/** Canonical Agent Player id for a CONNECT device Controller. */
+export function playerIdFromDeviceController(controllerId: string): string | null {
+  if (!/^ctrl\.device\./i.test(controllerId)) return null;
+  const slug = controllerId.replace(/^ctrl\./i, "").replace(/[^a-z0-9]/gi, "").slice(0, 24);
+  return slug ? `player.${slug}` : null;
+}
+
 export async function startDeviceEnrollment(
   env: Env,
   req: Request,
@@ -219,8 +226,7 @@ export async function approveDevice(
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
   const controller_id = rec.controller_id || allocateDeviceControllerId();
   const player_id =
-    rec.player_id ||
-    `player.${controller_id.replace(/^ctrl\./, "").replace(/[^a-z0-9]/gi, "").slice(0, 24) || "agent"}`;
+    rec.player_id || playerIdFromDeviceController(controller_id) || `player.agent`;
   const next: DeviceRecord = {
     ...rec,
     status: "approved",

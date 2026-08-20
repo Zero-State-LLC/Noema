@@ -61,7 +61,7 @@ def test_sqlite_serializable_cycle_and_restart(tmp_path: Path):
     rt = NoemaRuntime(db_path=db)
     assert rt.store.backend == "sqlite"
     start = rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     r = rt.apply_player_action(
         sess["session_id"],
         {
@@ -120,7 +120,7 @@ def test_postgres_backend_play_restart_and_serializable():
         start = rt.start_world(FIXTURES / "world-seed.json")
         assert start["catalog_version"] == "event-catalog/0.1"
 
-        sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+        sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
         sid = sess["session_id"]
 
         def act(verb: str, seq: int, **params):

@@ -39,7 +39,7 @@ def main() -> None:
         act = rt.genesis_activate(admin["session_id"], prev["result"]["genesis_id"])
         steps.append(f"GENESIS world={act['result']['world_id']}")
 
-        player = rt.create_session(role=Role.PLAYER, agent_id="agent.demo")
+        player = rt.create_session(role=Role.AGENT, agent_id="agent.demo")
         for seq, verb, params in [
             (1, "ENTER_WORLD", {}),
             (2, "LOOK", {"attention_spent": 1}),

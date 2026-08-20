@@ -351,7 +351,7 @@ def test_g09_admin_only_activate_and_freeze(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     # need session before world for genesis preview; admin can preview without world
     admin = rt.create_session(role=Role.ADMIN)
-    player = rt.create_session(role=Role.PLAYER, agent_id="p")
+    player = rt.create_session(role=Role.AGENT, agent_id="p")
     researcher = rt.create_session(role=Role.RESEARCHER)
     with pytest.raises(GenesisError) as ei:
         rt.genesis_preview(player["session_id"], world_name="X", world_seed="s", profile_id="YOUNG_FRONTIER")
@@ -378,7 +378,7 @@ def test_g09_admin_only_activate_and_freeze(tmp_path: Path):
         rt.genesis_activate(admin["session_id"], gid)
     assert e2.value.code == ALREADY_ACTIVATED
     # PLAY works after activation
-    p2 = rt.create_session(role=Role.PLAYER, agent_id="agent.g")
+    p2 = rt.create_session(role=Role.AGENT, agent_id="agent.g")
     r = rt.apply_player_action(
         p2["session_id"],
         {

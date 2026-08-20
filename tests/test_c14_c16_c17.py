@@ -46,7 +46,7 @@ C17_FIELDS = (
 def _play_once(db: Path | str) -> dict:
     rt = NoemaRuntime(db_path=db)
     start = rt.start_world(SEED)
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     r = rt.apply_player_action(
         sess["session_id"],
         {

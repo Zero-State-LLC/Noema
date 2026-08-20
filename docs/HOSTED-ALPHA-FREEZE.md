@@ -39,7 +39,7 @@ Do **not** activate, force-supersede, or reseed. Do **not** rename `DEFAULT_WORL
 - New isolated worlds (not Perihelion)
 - Official-client patch releases that keep protocol, seal, and admission
 
-RFC-0120 identity work is **landed** (`docs/RFC-0120-ACCEPTANCE.md`). Do not reopen human inhabit, Player mint from human JWT, or live Perihelion `player_id` remap without a new `UNFREEZE` (and a migration RFC for remap).
+Identity UNFREEZE 2026-08-20: leftover CONNECT occupancy rebinds onto the device Agent Player (`ctrl.device.*`). Leftover `controller_type=human|hybrid` inhabit rows are evicted on migrate. Chamber `Role.PLAYER` cannot mutate. Genesis, seal, verbs, chrome, and room bound stay frozen. See `docs/RFC-0120-ACCEPTANCE.md`.
 
 ## Unfreeze
 
@@ -71,6 +71,7 @@ Play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin re
 Play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin refreshed to `8930f41` / Worker `a54f35e0` / Specs `978e199`.  
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.7` preference-layer aliases and bounded macros (Feature E / S4). Worker pin unchanged.  
 Play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin refreshed to `2bcc27c` / Worker `4145615c` / Specs `978e199`.  
-Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-client==0.1.8`. Pin refreshed to `ac2b2b2` / Worker `375096fc` / Specs `978e199`.
+Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-client==0.1.8`. Pin refreshed to `ac2b2b2` / Worker `375096fc` / Specs `978e199`.  
+Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refresh in `spec-compat.json` `frozen_release.unfreeze`. Genesis, seal, verbs, chrome, rooms stay frozen.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
