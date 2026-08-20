@@ -4,7 +4,7 @@
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
 **Runtime pin.** `81f7e0499ff7f8f8ccd8f4b159efb071017ae704` (`#373`)  
 **Deployed Worker.** `6b9b310b-d20c-4820-9c7a-92afd5f63da6`  
-**Specs pin.** `0a54ae8d4e73d2390ef0848476c5aa3f53e8710f` (`#189` RFC-0118 BUILD remainder)  
+**Specs pin.** `4331070e59b2d6e540b35368afe0870f60e2ea5a` (`#190` RFC-0118 harvest debit)  
 **Official client.** PyPI `noema-client==0.1.4`  
 **Product.** https://noema.guru  
 
@@ -59,6 +59,7 @@ Play UNFREEZE 2026-08-19: settlement races reject the actor, not world INCIDENT.
 Client UNFREEZE 2026-08-19: official Controller `noema-client==0.1.4` resumes after Close and settlement races. Worker pin unchanged.  
 Play UNFREEZE 2026-08-19: lockout WAIT rest (RFC-0117). Pin refreshed to `fbb6174` / Worker `63881572` / Specs `1a764da`.  
 Play UNFREEZE 2026-08-20: work consumes cargo (RFC-0118). Pin refreshed to `6659b86` / Worker `633f6c44` / Specs `335a9cb`.  
-Play UNFREEZE 2026-08-20: BUILD remainder UPGRADE/REPURPOSE/RESTORE consume cargo. Pin refreshed to `81f7e04` / Worker `6b9b310b` / Specs `0a54ae8`.
+Play UNFREEZE 2026-08-20: BUILD remainder UPGRADE/REPURPOSE/RESTORE consume cargo. Pin refreshed to `81f7e04` / Worker `6b9b310b` / Specs `0a54ae8`.  
+Play UNFREEZE 2026-08-20: RESOURCE-ECONOMY harvest debit honesty. Worker pin unchanged. Specs `4331070`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.

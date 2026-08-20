@@ -30,7 +30,7 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
 
 const FROZEN_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
 const FROZEN_RUNTIME = "81f7e0499ff7f8f8ccd8f4b159efb071017ae704";
-const FROZEN_SPECS = "0a54ae8d4e73d2390ef0848476c5aa3f53e8710f";
+const FROZEN_SPECS = "4331070e59b2d6e540b35368afe0870f60e2ea5a";
 const FROZEN_WORKER = "6b9b310b-d20c-4820-9c7a-92afd5f63da6";
 
 describe("hosted alpha freeze", () => {

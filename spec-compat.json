@@ -9,7 +9,7 @@
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
     "runtime_git": "81f7e0499ff7f8f8ccd8f4b159efb071017ae704",
-    "specs_git": "0a54ae8d4e73d2390ef0848476c5aa3f53e8710f",
+    "specs_git": "4331070e59b2d6e540b35368afe0870f60e2ea5a",
     "worker_version_id": "6b9b310b-d20c-4820-9c7a-92afd5f63da6",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.4",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "play UNFREEZE 2026-08-20: BUILD remainder consumes cargo RFC-0118 (#373). Pin refreshed to deployed 81f7e04 / Worker 6b9b310b / Specs 0a54ae8. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-20: RESOURCE-ECONOMY harvest debit honesty RFC-0118 (#190). Worker pin stays 81f7e04 / 6b9b310b. Specs 4331070. Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
