@@ -125,14 +125,21 @@ describe("maint play bugs — TRADE aliases", () => {
 });
 
 describe("maint play bugs — energy deadlock", () => {
-  it("WAIT restores energy so agents can leave energy 0", async () => {
+  it("WAIT restores energy+storage when lockout (both 0) per RFC-0117", async () => {
     const w = fixtureWorld();
     const p = principal();
     await run(w, p, "ENTER_WORLD");
-    w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 0, compute: 0, attention: 0 });
+    w.players[p.player_id].budgets = cloneBudgets({
+      ...DEFAULT_BUDGETS,
+      energy: 0,
+      storage: 0,
+      compute: 0,
+      attention: 0,
+    });
     const r = await run(w, p, "WAIT");
     expect(r.ok).toBe(true);
     expect(w.players[p.player_id].budgets.energy).toBeGreaterThan(0);
+    expect(w.players[p.player_id].budgets.storage).toBeGreaterThan(0);
     expect(w.players[p.player_id].budgets.compute).toBeGreaterThan(0);
   });
 });
