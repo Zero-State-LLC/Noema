@@ -838,9 +838,13 @@ function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
   if (!ctx.fillText) return;
   const label = safePhosphorLabel(name).toUpperCase().slice(0, 14);
   if (!label) return;
-  ctx.fillStyle = PHOSPHOR_COLORS.dim;
-  ctx.font = "8px ui-monospace, monospace";
   const a = phosphorLabelAnchor(x, y);
+  // §18: names stay readable — ground plate under the text so no glyph,
+  // mark, route stroke, or pulse can overdraw it.
+  ctx.fillStyle = PHOSPHOR_COLORS.ground;
+  ctx.fillRect(a.x - 1, a.y - 7, label.length * 5 + 3, 9);
+  ctx.fillStyle = PHOSPHOR_COLORS.copper;
+  ctx.font = "8px ui-monospace, monospace";
   ctx.fillText(label, a.x, a.y);
 }
 
@@ -925,7 +929,6 @@ export function drawPhosphorFrame(
     const n = layout.nodes[i];
     const pg = playerGlyphId(n.players);
     if (pg) drawGlyph(ctx, pg, n.x + 6, n.y - 2, 1);
-    drawRoomLabel(ctx, n.x, n.y, n.name);
   }
 
   let majorSeen = false;
@@ -942,6 +945,11 @@ export function drawPhosphorFrame(
     const n = byId.get(p.room_id);
     if (!n) continue;
     drawPulse(ctx, n.x, n.y, p.tier, (now - p.born) / p.ttl);
+  }
+  // §18: labels last — text reads over every glyph, stroke, and pulse.
+  for (let i = 0; i < layout.nodes.length; i++) {
+    const n = layout.nodes[i];
+    drawRoomLabel(ctx, n.x, n.y, n.name);
   }
   ctx.globalAlpha = 1;
 }
@@ -970,10 +978,11 @@ export type PhosphorSession = {
   ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null;
 };
 
+/** Below the node, clear of the mark ring (±9), occupancy diamond, and route curves. Clamp fits a full 14-char label. */
 export function phosphorLabelAnchor(x: number, y: number): { x: number; y: number } {
   return {
-    x: Math.max(4, Math.min(PHOSPHOR_WIDTH - 56, Number(x) + 10)),
-    y: Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, Number(y) + 3)),
+    x: Math.max(4, Math.min(PHOSPHOR_WIDTH - 74, Number(x) - 20)),
+    y: Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, Number(y) + 18)),
   };
 }
 
