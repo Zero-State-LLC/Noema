@@ -568,7 +568,14 @@ export function enrichEntity(e: {
 
 export function isRepairable(e: EntityRuntime): boolean {
   if (e.scar === true) return false;
-  if (e.entity_type !== "INFRASTRUCTURE" && e.entity_type !== "RUIN") return false;
+  // ARTIFACT ledgers/archives with condition wear (e.g. Cold Ledger) are conservable.
+  if (
+    e.entity_type !== "INFRASTRUCTURE" &&
+    e.entity_type !== "RUIN" &&
+    e.entity_type !== "ARTIFACT"
+  ) {
+    return false;
+  }
   const c = e.condition ?? 100;
   return c < 100;
 }
@@ -2122,15 +2129,25 @@ export function normalizeStructuredCommand(
   }
   if (cmd === "TRADE") {
     const phase = String(args.phase || "propose").toLowerCase() as "propose" | "accept" | "reject" | "cancel";
+    const counterparty_id = String(
+      args.counterparty_id || args.counterparty || args.target || "",
+    ).trim();
+    const offeredRaw =
+      (args.offered as Record<string, number> | undefined) ||
+      (args.offer as Record<string, number> | undefined);
+    const requestedRaw =
+      (args.requested as Record<string, number> | undefined) ||
+      (args.want as Record<string, number> | undefined) ||
+      (args.wants as Record<string, number> | undefined);
     return {
       ok: true,
       action: {
         verb: "TRADE",
         arguments: {
           phase,
-          counterparty_id: args.counterparty_id ? String(args.counterparty_id) : undefined,
-          offered: (args.offered as Record<string, number>) || undefined,
-          requested: (args.requested as Record<string, number>) || undefined,
+          counterparty_id: counterparty_id || undefined,
+          offered: offeredRaw || undefined,
+          requested: requestedRaw || undefined,
           trade_id: args.trade_id ? String(args.trade_id) : undefined,
           expires_cycle: args.expires_cycle != null ? Number(args.expires_cycle) : undefined,
           reason: args.reason ? String(args.reason) : undefined,

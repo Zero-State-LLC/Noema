@@ -46,9 +46,11 @@ import { runIncidentRecover } from "./incident-recover";
 import {
   commitAdoptedLiveHead,
   canonicalEventsForCommit,
+  commandResultHttpStatus,
   commitCanonicalSettlement,
   getWorldHead,
   replayUnsettled,
+  resolveSoftSettlementFailure,
   settleEvent,
   settleGenesisActivation,
   shouldRestoreFromHead,
@@ -754,7 +756,8 @@ export class NoemaWorldDO {
     this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
 
     const result = await this.applyCommand(body.principal, body.envelope);
-    return Response.json(result, { status: result.ok ? 200 : 400 });
+    // Action failures are structured envelopes (ok:false), not transport errors.
+    return Response.json(result, { status: commandResultHttpStatus(result) });
   }
 
   private publicMeta(): Record<string, unknown> {
@@ -921,17 +924,25 @@ export class NoemaWorldDO {
         allow_bootstrap: this.allowCanonicalBootstrap,
       });
       if (!committed.ok) {
-        this.world = before;
-        this.meta!.settlement_ok = false;
-        this.meta!.settlement_health = nextSettlementHealth(health, false);
-        this.meta!.status = "INCIDENT";
+        const soft = await resolveSoftSettlementFailure({
+          code: committed.code,
+          before,
+          request_id: envl.request_id || "unknown",
+          getHead: (worldId) => getWorldHead(this.env, worldId),
+          writer_generation: this.meta!.writer_generation || "do.1",
+        });
+        this.world = soft.world || before;
+        this.meta!.settlement_ok = soft.metaPatch.settlement_ok;
+        this.meta!.settlement_health = soft.metaPatch.settlement_health;
+        this.meta!.status = soft.metaPatch.status;
+        if (typeof soft.metaPatch.revision === "number") {
+          this.meta!.revision = soft.metaPatch.revision;
+        } else if (soft.mode === "incident") {
+          this.meta!.settlement_health = nextSettlementHealth(health, false);
+        }
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
-        return {
-          ok: false,
-          request_id: envl.request_id || "unknown",
-          error: { code: committed.code, message: "canonical settlement was not committed; world entered INCIDENT" },
-        };
+        return soft.result;
       }
       this.meta!.revision = committed.revision;
       this.meta!.settlement_ok = true;
