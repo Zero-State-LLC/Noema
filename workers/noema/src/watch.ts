@@ -52,7 +52,17 @@ const EXTRA = `
 .watch-line .mark{flex:0 0 auto;color:var(--color-state-active);font:550 1.05em var(--font-mono);line-height:1.2}
 .watch-hero.major .watch-line .mark{color:var(--color-state-warning)}
 .watch-hero .sub{margin:.4rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
+.watch-line .mark.flash{animation:mark-flash 400ms var(--ease) 1 both}
+@keyframes mark-flash{from{filter:brightness(2.4)}to{filter:none}}
 .watch-banner{display:none}
+.watch-banner.on{
+  display:block;margin:.65rem 0 0 1.7rem;padding:.4rem .65rem;
+  border:1px solid color-mix(in srgb,var(--color-state-warning) 55%,var(--line));
+  color:var(--color-state-warning);font:550 .74rem/1.4 var(--font-mono);
+  letter-spacing:.1em;text-transform:uppercase;
+  animation:banner-in 240ms var(--ease) 1 both;
+}
+@keyframes banner-in{from{opacity:0}to{opacity:1}}
 .watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
 @media(max-width:860px){.watch-stage{grid-template-columns:1fr;gap:1.25rem}}
 .watch-phos{
@@ -93,6 +103,11 @@ const EXTRA = `
 .watch-feed .mark{color:var(--faint)}
 .watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
 .watch-feed li.major .mark{color:var(--color-state-warning);font-weight:700}
+.watch-feed li.fresh{animation:feed-settle 900ms var(--ease) 1 both}
+@keyframes feed-settle{
+  from{background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
+  to{background:transparent}
+}
 .watch-feed .line{overflow-wrap:anywhere}
 .watch-feed .meta{grid-column:2;color:var(--faint);font:.7rem}
 .watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
@@ -104,7 +119,7 @@ const EXTRA = `
 }
 .watch-col{position:relative;z-index:1}
 @media(prefers-reduced-motion:reduce){
-  .watch-feed li,.watch-hero,.watch-hero.major{
+  .watch-feed li,.watch-hero,.watch-hero.major,.watch-line .mark.flash,.watch-banner.on{
     transition:none!important;animation:none!important;
   }
 }
@@ -190,7 +205,7 @@ export function watchHtml(): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "" };
     const $ = id => document.getElementById(id);
 
     try {
@@ -326,7 +341,15 @@ export function watchHtml(): string {
 
       const head = pickHeadline(data);
       state.held = head;
-      $("watch-mark").textContent = markFor(head.tier || "NORMAL");
+      const mark = $("watch-mark");
+      mark.textContent = markFor(head.tier || "NORMAL");
+      const headKey = (head.sequence || 0) + ":" + (head.projection_id || "") + ":" + (head.line || "");
+      if (state.headKey && headKey !== state.headKey && head.tier !== "NORMAL" && !state.reduce) {
+        mark.classList.remove("flash");
+        void mark.offsetWidth;
+        mark.classList.add("flash");
+      }
+      state.headKey = headKey;
       $("watch-headline").textContent = head.line || "The Chamber is quiet.";
       const site = roomName(rooms, head.room_id);
       const when = ago(head.occurred_at);
@@ -341,12 +364,12 @@ export function watchHtml(): string {
       const hero = $("watch-hero");
       hero.className = "watch-hero" + (head.tier === "MAJOR" ? " major" : "");
       const banner = $("watch-banner");
-      if (head.tier === "MAJOR" && !state.reduce) {
+      if (head.tier === "MAJOR") {
         state.majorLeft = 2;
         banner.hidden = false;
         banner.className = "watch-banner on";
         banner.textContent = head.line;
-      } else if (state.majorLeft > 0 && !state.reduce) {
+      } else if (state.majorLeft > 0) {
         state.majorLeft -= 1;
         banner.hidden = false;
         banner.className = "watch-banner on";
@@ -359,11 +382,13 @@ export function watchHtml(): string {
 
       const feed = $("watch-feed");
       feed.replaceChildren();
+      const topSeq = Math.max(0, ...events.map(e => e.sequence || 0));
       if (!events.length) {
         feed.append(el("li", "watch-empty", "Nothing public yet."));
       } else {
         events.forEach((ev, i) => {
-          const li = el("li", (ev.tier === "MAJOR" ? "major" : ev.tier === "NOTABLE" ? "notable" : "") + (i >= 2 ? " quiet" : ""));
+          const fresh = !state.reduce && state.prevTopSeq > 0 && (ev.sequence || 0) > state.prevTopSeq;
+          const li = el("li", (ev.tier === "MAJOR" ? "major" : ev.tier === "NOTABLE" ? "notable" : "") + (i >= 2 ? " quiet" : "") + (fresh ? " fresh" : ""));
           li.append(glyphNode(ev.glyph || "event"));
           const wrap = el("div", "");
           wrap.append(el("span", "line", ev.line || ""));
@@ -373,6 +398,7 @@ export function watchHtml(): string {
           feed.append(li);
         });
       }
+      state.prevTopSeq = Math.max(state.prevTopSeq, topSeq);
 
       const map = $("watch-map");
       map.replaceChildren();
