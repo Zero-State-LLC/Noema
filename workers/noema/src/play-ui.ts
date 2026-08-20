@@ -272,6 +272,30 @@ export function lowNoiseRoomText(model: RoomPresentationModel): string {
   return lines.join("\n") || "No place is visible.";
 }
 
+/** Feature B room text from a Player observation. No second LOOK. */
+export function playTextFromObservation(obs: {
+  location?: LocationObs | null;
+  consequence?: string;
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+} | null | undefined): string {
+  if (!obs?.location) return "";
+  return lowNoiseRoomText(
+    roomPresentationModel({
+      location: obs.location,
+      consequence: obs.consequence,
+      budgets: obs.budgets,
+      practice_lines: obs.practice_lines,
+    }),
+  );
+}
+
 /** Spectator text. Canvas is never required. */
 export function lowNoiseWatchText(input: { headline?: string; copy?: string; recent?: string[] }): string {
   const lines: string[] = [];
@@ -1641,6 +1665,7 @@ export function playUiRuntimeSource(): string {
     stableExits,
     parseLowNoiseFlag,
     lowNoiseRoomText,
+    playTextFromObservation,
     lowNoiseWatchText,
     LOW_NOISE_KEY,
     trailFromResult,

@@ -202,6 +202,8 @@ export interface Observation {
   affordances?: ObservationAffordance[];
   /** Last action consequence for UI */
   consequence?: string;
+  /** Feature B room text (name → HERE → EXITS → STATUS → HAPPENED). Derived. */
+  play_text?: string;
   /** GC1 self-only practice lines. Never put first-person lines on WATCH. */
   practice_lines?: string[];
   /** GC8-S1 self-only worn holdings. Never put on WATCH. */
