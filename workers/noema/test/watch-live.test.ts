@@ -753,6 +753,15 @@ describe("Feature D WATCH traces", () => {
     expect(html).not.toMatch(/\.innerHTML\s*=/);
   });
 
+  it("WATCH paints public descriptor bands and stays silent when empty", () => {
+    const html = watchHtml();
+    expect(html).toContain('id="watch-standing"');
+    expect(html).toContain("public_descriptor_lines");
+    expect(html).toContain("watch-standing-list");
+    expect(html).not.toMatch(/id="watch-standing"[^>]*aria-live/);
+    expect(html).toMatch(/box\.hidden = !lines\.length|standing\.hidden = !lines\.length|list\.hidden/);
+  });
+
   it("projects genesis RUIN and unclaimed works onto public rooms", () => {
     const snap = buildWatchLive({
       world_id: "w",
@@ -850,6 +859,18 @@ describe("home live excerpt", () => {
     expect(plated).toContain("A maintenance plate names Sable as the last repairer.");
     expect(plated.join("\n")).not.toMatch(/entity\.|player\./);
     expect(lines.length).toBeLessThanOrEqual(5);
+
+    const standing = homeExcerptFromLive({
+      players_present: 0,
+      public_descriptor_lines: [
+        "Nacre is publicly dangerous.",
+        "You have found Nacre reliable in trade.",
+        "player.secret is publicly deceptive.",
+      ],
+      narrative: { now: { line: "The Chamber is quiet." }, recently: [], world: { players_present: 0 } },
+    });
+    expect(standing).toContain("Nacre is publicly dangerous.");
+    expect(standing.join("\n")).not.toMatch(/reliable|unknown|player\./i);
   });
 });
 
