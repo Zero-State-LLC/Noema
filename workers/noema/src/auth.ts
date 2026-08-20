@@ -1,12 +1,15 @@
 import { JwtError, mintHs256, supabaseIssuer, supabaseJwksUrl, verifyHs256, verifyJwt } from "./jwt";
 import { parseOperatorId } from "./ops";
-import type { ControllerType, Env, PlayerPrincipal } from "./types";
+import type { ControllerType, Env, HumanPrincipal, PlayerPrincipal, Principal } from "./types";
+import { isAgentPlayerPrincipal, isHumanPrincipal } from "./types";
 
 const DEFAULT_SCOPES = [
   "noema.player.read",
   "noema.world.observe",
   "noema.action.submit",
 ];
+
+const HUMAN_PLATFORM_SCOPES = ["noema.watch.read", "noema.controller.manage"];
 
 function newId(prefix: string): string {
   return `${prefix}.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
@@ -46,28 +49,62 @@ export function isExplicitLocalDev(env: { NOEMA_ENV?: string }): boolean {
   return name === "local" || name === "test" || name === "dev";
 }
 
-/** Resolve PlayerPrincipal from controller access token or Supabase human JWT. */
-export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPrincipal | Response> {
+function humanPrincipalFromClaims(
+  env: Env,
+  claims: Record<string, unknown>,
+  authentication_context: string,
+): HumanPrincipal {
+  const identity =
+    String(claims.identity_id || claims.sub || claims.player_id || "").trim() || newId("id");
+  return {
+    kind: "human",
+    identity_id: identity,
+    account_id: claims.account_id ? String(claims.account_id) : undefined,
+    session_id: sessionIdFromClaims(claims.sid),
+    roles: ["spectator", "authorizer"],
+    permissions: [...HUMAN_PLATFORM_SCOPES],
+    scopes: Array.isArray(claims.scopes)
+      ? (claims.scopes as string[]).filter((s) => s !== "noema.action.submit")
+      : [...HUMAN_PLATFORM_SCOPES],
+    amr: claims.amr ? String(claims.amr) : undefined,
+    protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
+    authentication_context,
+    controller_type: String(claims.controller_type) === "hybrid" ? "hybrid" : "human",
+  };
+}
+
+/** Resolve a platform or Agent Player principal. Human JWT MUST NOT yield a Player. RFC-0120. */
+export async function resolvePrincipal(req: Request, env: Env): Promise<Principal | Response> {
   const token = bearer(req);
   if (!token) return err("NOT_AUTHORIZED", "Bearer token required");
 
   const signing = env.TOKEN_SIGNING_SECRET;
   if (!signing) return err("NOT_AUTHORIZED", "TOKEN_SIGNING_SECRET is not configured", 503);
-  // Prefer Noema controller tokens
+  // Prefer Noema controller / platform tokens
   try {
     const claims = await verifyHs256(token, signing);
-    if (claims.typ === "access" && claims.player_id && claims.controller_id) {
+    if (claims.typ === "platform") {
+      return humanPrincipalFromClaims(env, claims, "platform_token");
+    }
+    if (claims.typ === "access" && claims.controller_id) {
+      const ctype = String(claims.controller_type || "");
+      if (ctype === "human" || ctype === "hybrid") {
+        return humanPrincipalFromClaims(env, claims, "controller_token");
+      }
+      if (ctype !== "agent" || !claims.player_id) {
+        return err("NOT_AUTHORIZED", "agent Controller token required for Player resolution");
+      }
       const scopes = Array.isArray(claims.scopes)
         ? (claims.scopes as string[])
         : DEFAULT_SCOPES;
-      const ctype = String(claims.controller_type || "agent") as ControllerType;
       return {
+        kind: "agent_player",
         player_id: String(claims.player_id),
         agent_id: String(claims.agent_id || `agent.${claims.player_id}`),
         identity_id: claims.sub ? String(claims.sub) : undefined,
         session_id: sessionIdFromClaims(claims.sid),
         controller_id: String(claims.controller_id),
-        controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
+        controller_type: "agent",
         issued_by: claims.issued_by === "admin" ? "admin" : undefined,
         operator_id: parseOperatorId(claims.operator_id),
         amr: claims.amr ? String(claims.amr) : undefined,
@@ -80,7 +117,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
     if (!(e instanceof JwtError)) throw e;
   }
 
-  // Human Supabase JWT → ephemeral Player principal (never ADMIN).
+  // Human Supabase JWT → HumanPrincipal (never a Player).
   // HS256: legacy JWT secret. ES256: JWKS at {SUPABASE_URL}/auth/v1/.well-known/jwks.json
   const jwtSecret = env.SUPABASE_JWT_SECRET;
   const supabaseUrl = (env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -94,18 +131,11 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
       });
       const sub = claims.sub ? String(claims.sub) : "";
       if (!sub) return err("NOT_AUTHORIZED", "Supabase token missing sub");
-      const handle = String(claims.email || sub).split("@")[0].replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 32) || "player";
-      return {
-        player_id: `player.${sub.replace(/-/g, "").slice(0, 12)}`,
-        agent_id: `agent.${handle}`,
-        identity_id: sub,
-        session_id: newId("sess"),
-        controller_id: `ctrl.browser.${sub.slice(0, 8)}`,
-        controller_type: "human",
-        scopes: [...DEFAULT_SCOPES],
-        protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
-        authentication_context: "supabase_jwt",
-      };
+      return humanPrincipalFromClaims(
+        env,
+        { ...claims, identity_id: sub, sid: claims.sid, amr: claims.amr, controller_type: "human" },
+        "supabase_jwt",
+      );
     } catch (e) {
       if (!(e instanceof JwtError)) throw e;
       return err("NOT_AUTHORIZED", `invalid token: ${e.message}`);
@@ -137,6 +167,7 @@ export async function resolvePrincipal(req: Request, env: Env): Promise<PlayerPr
       // If they sent "dev", still resolve principal; mint is for clients that want a real token later
       void access;
       return {
+        kind: "agent_player",
         player_id,
         agent_id: `agent.${handle}`,
         session_id: newId("sess"),
@@ -174,6 +205,51 @@ export type MintControllerOptions = {
  * Production inhabit mint: ADMIN operator mint — not open dev-token.
  * Local/preview: also used by /v1/auth/dev-token.
  */
+export async function mintHumanPlatformToken(
+  env: Env,
+  opts: {
+    identityId: string;
+    handle?: string;
+    expiresIn?: number;
+    amr?: string;
+  },
+): Promise<{
+  access_token: string;
+  identity_id: string;
+  controller_type: "human";
+  scopes: string[];
+  expires_in: number;
+  token_type: "bearer";
+}> {
+  const signing = env.TOKEN_SIGNING_SECRET;
+  if (!signing) throw new Error("TOKEN_SIGNING_SECRET is not configured");
+  const expires_in = Math.min(7 * 24 * 3600, Math.max(60, Math.floor(opts.expiresIn ?? 86400)));
+  const now = Math.floor(Date.now() / 1000);
+  const identity_id = opts.identityId;
+  const claims: Record<string, unknown> = {
+    typ: "platform",
+    identity_id,
+    sub: identity_id,
+    controller_type: "human",
+    scopes: HUMAN_PLATFORM_SCOPES,
+    sid: newId("sess"),
+    iat: now,
+    exp: now + expires_in,
+    jti: crypto.randomUUID().slice(0, 8),
+  };
+  if (opts.amr) claims.amr = opts.amr;
+  if (opts.handle) claims.handle = opts.handle;
+  const access_token = await mintHs256(claims, signing);
+  return {
+    access_token,
+    identity_id,
+    controller_type: "human",
+    scopes: [...HUMAN_PLATFORM_SCOPES],
+    expires_in,
+    token_type: "bearer",
+  };
+}
+
 export async function mintControllerToken(
   env: Env,
   opts: MintControllerOptions,
@@ -183,16 +259,32 @@ export async function mintControllerToken(
   controller_id: string;
   agent_id: string;
   controller_type: ControllerType;
+  identity_id?: string;
   scopes: string[];
   expires_in: number;
   token_type: "bearer";
 }> {
   const handle =
     (opts.handle || "player").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player";
-  const controllerType: ControllerType =
-    opts.controllerType === "human" || opts.controllerType === "hybrid"
-      ? opts.controllerType
-      : "agent";
+  if (opts.controllerType === "human" || opts.controllerType === "hybrid") {
+    const platform = await mintHumanPlatformToken(env, {
+      identityId: opts.identityId || `id.${handle}`,
+      handle,
+      expiresIn: opts.expiresIn,
+      amr: opts.amr,
+    });
+    return {
+      access_token: platform.access_token,
+      player_id: "",
+      controller_id: "",
+      agent_id: "",
+      controller_type: "human",
+      identity_id: platform.identity_id,
+      scopes: platform.scopes,
+      expires_in: platform.expires_in,
+      token_type: "bearer",
+    };
+  }
   const maxAge = opts.issuedByAdmin ? 30 * 24 * 3600 : 7 * 24 * 3600;
   const expires_in = Math.min(maxAge, Math.max(60, Math.floor(opts.expiresIn ?? 3600)));
   const signing = env.TOKEN_SIGNING_SECRET;
@@ -205,7 +297,7 @@ export async function mintControllerToken(
   const controller_id =
     opts.controllerId && /^ctrl\.[a-z0-9._-]{3,64}$/i.test(opts.controllerId)
       ? opts.controllerId
-      : `ctrl.${controllerType}.${handle}`;
+      : `ctrl.agent.${handle}`;
   const agent_id = `agent.${handle}`;
   const now = Math.floor(Date.now() / 1000);
   const sid = newId("sess");
@@ -214,7 +306,7 @@ export async function mintControllerToken(
     player_id,
     agent_id,
     controller_id,
-    controller_type: controllerType,
+    controller_type: "agent",
     scopes: DEFAULT_SCOPES,
     sid,
     iat: now,
@@ -235,7 +327,7 @@ export async function mintControllerToken(
     player_id,
     controller_id,
     agent_id,
-    controller_type: controllerType,
+    controller_type: "agent",
     scopes: [...DEFAULT_SCOPES],
     expires_in,
     token_type: "bearer",
@@ -268,7 +360,16 @@ export function requireScope(principal: PlayerPrincipal, scope: string): Respons
 /** Humans watch. Only agent Controllers inhabit / command the world. */
 export const HUMAN_WATCH_MESSAGE = "Agents play this world. Humans watch.";
 
-export function denyNonAgentPlay(principal: PlayerPrincipal): Response | null {
-  if (principal.controller_type === "agent") return null;
+export function denyNonAgentPlay(principal: Principal): Response | null {
+  if (isHumanPrincipal(principal)) return err("NOT_AUTHORIZED", HUMAN_WATCH_MESSAGE, 403);
+  if (isAgentPlayerPrincipal(principal) && principal.controller_type === "agent") return null;
   return err("NOT_AUTHORIZED", HUMAN_WATCH_MESSAGE, 403);
+}
+
+/** Narrow to an Agent Player or return the inhabit refusal. */
+export function requireAgentPlayer(principal: Principal): PlayerPrincipal | Response {
+  const denied = denyNonAgentPlay(principal);
+  if (denied) return denied;
+  if (!isAgentPlayerPrincipal(principal)) return err("NOT_AUTHORIZED", HUMAN_WATCH_MESSAGE, 403);
+  return principal;
 }

@@ -623,7 +623,7 @@ describe("R0 LOOK observation", () => {
           room_id: "room.hub",
           name: "Grid Anchor",
           description: "A frontier anchor.",
-          exits: [{ direction: "east", to_room_id: "room.east", to_room_name: "Coldline" }],
+          exits: [{ direction: "east", to_room_id: "room.east" }],
           entities: [],
         },
       },

@@ -10,7 +10,7 @@ import {
   loginRedirectOrigin,
   normalizeEmail,
 } from "./admin-auth";
-import { err, json, mintControllerToken } from "./auth";
+import { err, json, mintHumanPlatformToken } from "./auth";
 import { allowLoginThrottled } from "./rate-limit";
 import {
   composePlayMail,
@@ -131,7 +131,7 @@ export async function consumePlayMagicLink(
   body: { token_hash?: string; type?: string; code?: string },
   opts?: { fetch?: AdminFetch },
 ): Promise<
-  | { access_token: string; player_id: string; handle: string; controller_type: "human"; expires_in: number }
+  | { access_token: string; identity_id: string; handle: string; controller_type: "human"; expires_in: number }
   | Response
 > {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -185,20 +185,17 @@ export async function consumePlayMagicLink(
 
   const email = normalizeEmail(String(payload.user?.email || payload.email || ""));
   const handle = playHandleFromEmail(email);
-  const compact = id.replace(/-/g, "").slice(0, 12);
 
-  const minted = await mintControllerToken(env, {
-    handle,
-    controllerType: "human",
-    expiresIn: 86400,
-    playerId: `player.${compact}`,
+  const minted = await mintHumanPlatformToken(env, {
     identityId: id,
+    handle,
+    expiresIn: 86400,
     amr: "email_magic_link",
   });
 
   return {
     access_token: minted.access_token,
-    player_id: minted.player_id,
+    identity_id: minted.identity_id,
     handle,
     controller_type: "human",
     expires_in: minted.expires_in,

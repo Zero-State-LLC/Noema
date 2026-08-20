@@ -40,11 +40,12 @@ describe("C11 human onboarding", () => {
       { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
     );
     expect(minted).not.toBeInstanceOf(Response);
-    const ok = minted as { access_token: string; player_id: string; controller_type: string };
+    const ok = minted as { access_token: string; identity_id: string; controller_type: string };
     expect(ok.controller_type).toBe("human");
+    expect(ok.identity_id).toBeTruthy();
     expect("refresh_token" in ok).toBe(false);
     const claims = await verifyHs256(ok.access_token, SIGNING);
-    expect(claims.typ).toBe("access");
+    expect(claims.typ).toBe("platform");
     expect(claims.amr).toBe("email_magic_link");
     expect(claims.issued_by).toBeUndefined();
   });

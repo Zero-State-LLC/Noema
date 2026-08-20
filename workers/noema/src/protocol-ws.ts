@@ -1,12 +1,12 @@
 /** Agent Protocol v1 WebSocket. Same Player principal as HTTP. */
 
 import { mintHs256, verifyHs256 } from "./jwt";
-import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, denyNonAgentPlay } from "./auth";
+import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, requireAgentPlayer } from "./auth";
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
 import { SEAL_HEADER, checkLiveAgentSeal, parseSeal, sealHelloFields } from "./seal";
-import type { CommandEnvelope, Env, PlayerPrincipal } from "./types";
+import type { CommandEnvelope, Env, PlayerPrincipal, Principal } from "./types";
 
 export type ProtocolState = {
   principal: PlayerPrincipal | null;
@@ -103,17 +103,19 @@ export async function principalFromResume(
   try {
     const claims = await verifyHs256(token, env.TOKEN_SIGNING_SECRET!);
     if (claims.typ !== "resume" || !claims.player_id || !claims.controller_id) return null;
-    const ctype = String(claims.controller_type || "agent");
+    const ctype = String(claims.controller_type || "");
+    if (ctype !== "agent") return null;
     const principal = {
+      kind: "agent_player" as const,
       player_id: String(claims.player_id),
       agent_id: `agent.${String(claims.player_id).replace(/^player\./, "")}`,
       controller_id: String(claims.controller_id),
-      controller_type: ctype === "human" || ctype === "hybrid" ? ctype : "agent",
+      controller_type: "agent" as const,
       session_id: String(claims.sid || "sess.resume"),
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
       protocol_version: "1",
       authentication_context: "resume",
-    } as PlayerPrincipal;
+    };
     return { principal, seal: parseSeal(claims.seal) };
   } catch {
     return null;
@@ -123,7 +125,7 @@ export async function principalFromResume(
 export async function applyPlayerCommand(
   env: Env,
   request: Request,
-  principal: PlayerPrincipal,
+  principal: Principal,
   envelope: CommandEnvelope & { world_id?: string },
   route: (
     env: Env,
@@ -133,8 +135,9 @@ export async function applyPlayerCommand(
     opts?: { allow_bootstrap?: boolean },
   ) => Promise<Response>,
 ): Promise<Response> {
-  const watched = denyNonAgentPlay(principal);
-  if (watched) return watched;
+  const agentOrDenied = requireAgentPlayer(principal);
+  if (agentOrDenied instanceof Response) return agentOrDenied;
+  const agent = agentOrDenied;
   if (!envelope.command || !envelope.request_id) {
     return err("INVALID_REQUEST", "command and request_id required", 400);
   }
@@ -143,16 +146,16 @@ export async function applyPlayerCommand(
   }
   const cmd = String(envelope.command).toUpperCase();
   if (cmd === "OBSERVE" || cmd === "LOOK") {
-    const denied = requireScope(principal, "noema.world.observe");
+    const denied = requireScope(agent, "noema.world.observe");
     if (denied) return denied;
   } else {
-    const denied = requireScope(principal, "noema.action.submit");
+    const denied = requireScope(agent, "noema.action.submit");
     if (denied) return denied;
   }
   const target = resolvePlayWorld(envelope.world_id, env.DEFAULT_WORLD_ID);
   if (target.kind === "deny") return err(target.code, target.message, 403);
   const sealed = checkLiveAgentSeal({
-    controllerType: principal.controller_type,
+    controllerType: agent.controller_type,
     worldKind: target.kind,
     presented: parseSeal(request.headers.get(SEAL_HEADER)),
   });
@@ -160,9 +163,9 @@ export async function applyPlayerCommand(
   if (target.kind === "isolated") {
     const admin = await resolveSignedAdminHeader(request, env);
     if (admin instanceof Response) return admin;
-    return route(env, target.world_id, principal, envelope, { allow_bootstrap: true });
+    return route(env, target.world_id, agent, envelope, { allow_bootstrap: true });
   }
-  return route(env, target.world_id, principal, envelope);
+  return route(env, target.world_id, agent, envelope);
 }
 
 function commandFromFrame(msg: Frame): CommandEnvelope & { world_id?: string } {
@@ -219,9 +222,9 @@ export async function handleProtocolFrame(
         state,
       };
     }
-    const watched = denyNonAgentPlay(principal);
-    if (watched) {
-      const body = (await watched.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    const agent = requireAgentPlayer(principal);
+    if (agent instanceof Response) {
+      const body = (await agent.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
       return {
         reply: protoErr(msg.request_id, body.error?.code || "NOT_AUTHORIZED", body.error?.message || "Agents play this world. Humans watch.", 403),
         state,
@@ -229,29 +232,29 @@ export async function handleProtocolFrame(
     }
     const worldKind = resolvePlayWorld(msg.world_id || msg.body?.world_id, env.DEFAULT_WORLD_ID).kind;
     const sealed = checkLiveAgentSeal({
-      controllerType: principal.controller_type,
+      controllerType: agent.controller_type,
       worldKind,
       presented: parseSeal(msg.body?.prompt_version_hash || msg.body?.prompt_version),
     });
     if (!sealed.ok) return { reply: protoErr(msg.request_id, sealed.code, sealed.message, 401), state };
     state = {
-      principal,
+      principal: agent,
       adminToken: String(msg.body?.admin_token || state.adminToken || ""),
       seal: sealed.seal,
     };
-    const resume_token = await mintResumeToken(env, principal, sealed.seal);
+    const resume_token = await mintResumeToken(env, agent, sealed.seal);
     return {
       reply: {
         protocol: "agent-protocol/v1",
         type: "AUTH_ACK",
         request_id: msg.request_id,
-        agent_id: principal.agent_id,
+        agent_id: agent.agent_id,
         body: {
-          session_id: principal.session_id,
-          player_id: principal.player_id,
-          controller_id: principal.controller_id,
-          agent_id: principal.agent_id,
-          scopes: principal.scopes,
+          session_id: agent.session_id,
+          player_id: agent.player_id,
+          controller_id: agent.controller_id,
+          agent_id: agent.agent_id,
+          scopes: agent.scopes,
           resume_token,
         },
       },

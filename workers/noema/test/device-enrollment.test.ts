@@ -153,7 +153,8 @@ describe("approveDevice", () => {
       controller_id: string;
     };
     expect(body.status).toBe("approved");
-    expect(body.player_id).toBe("player.prabu");
+    expect(body.player_id).toMatch(/^player\./);
+    expect(body.player_id).not.toBe("player.prabu");
     expect(body.access_token).toBeUndefined();
     expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
     const stored = await store.getByUserCode(user_code);
@@ -293,7 +294,8 @@ describe("pollDeviceToken", () => {
       scopes: string[];
     };
     expect(minted.status).toBe("approved");
-    expect(minted.player_id).toBe("player.prabu");
+    expect(minted.player_id).toMatch(/^player\./);
+    expect(minted.player_id).not.toBe("player.prabu");
     expect(minted.controller_id).toBe(controller_id);
     expect(minted.access_token.length).toBeGreaterThan(20);
     expect(minted.scopes).toEqual([...GAME_SCOPES]);

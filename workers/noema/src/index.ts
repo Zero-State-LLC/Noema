@@ -25,7 +25,7 @@ import {
   mintDevControllerToken,
   requireScope,
   resolvePrincipal,
-  denyNonAgentPlay,
+  requireAgentPlayer,
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
 import { applyCors } from "./cors";
@@ -405,12 +405,12 @@ export default {
         if (!handle || handle.length < 2) {
           return cors(err("INVALID_REQUEST", "handle required (2–32 chars [A-Za-z0-9_-])", 400));
         }
-        const ctype = body.controller_type === "human" || body.controller_type === "hybrid"
-          ? body.controller_type
-          : "agent";
+        if (body.controller_type === "human" || body.controller_type === "hybrid") {
+          return cors(err("NOT_AUTHORIZED", "live Controller issuance is agent-only", 403));
+        }
         const minted = await mintControllerToken(env, {
           handle,
-          controllerType: ctype,
+          controllerType: "agent",
           expiresIn: body.expires_in,
           issuedByAdmin: true,
           operatorId: admin.operator_id,
@@ -740,7 +740,10 @@ export default {
           controller_type?: "human" | "agent";
         };
         const handle = (body.handle || "demo").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "demo";
-        const minted = await mintDevControllerToken(env, handle, body.controller_type || "agent");
+        if (body.controller_type === "human") {
+          return cors(err("NOT_AUTHORIZED", "dev-token inhabit mint is agent-only", 403));
+        }
+        const minted = await mintDevControllerToken(env, handle, "agent");
         return cors(json({ ...minted, token_type: "bearer" }));
       }
 
@@ -755,7 +758,10 @@ export default {
       if (request.method === "POST" && (path === "/v1/command" || path === "/protocol/v1/command")) {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
-        if (!(await allowThrottled(commandThrottle, env, `player:${principal.player_id}`, 120, 60_000))) {
+        const throttleKey = "player_id" in principal && principal.player_id
+          ? `player:${principal.player_id}`
+          : `human:${"identity_id" in principal ? principal.identity_id : "anon"}`;
+        if (!(await allowThrottled(commandThrottle, env, throttleKey, 120, 60_000))) {
           return cors(err("RATE_LIMITED", "too many commands", 429, true));
         }
 
@@ -769,11 +775,11 @@ export default {
       if (request.method === "POST" && path === "/v1/operator/test-world/command") {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
-        const watched = denyNonAgentPlay(principal);
-        if (watched) return cors(watched);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
         const admin = await resolveSignedAdminHeader(request, env);
         if (admin instanceof Response) return cors(admin);
-        const denied = requireScope(principal, "noema.action.submit");
+        const denied = requireScope(agent, "noema.action.submit");
         if (denied) return cors(denied);
 
         const body = (await request.json().catch(() => ({}))) as CommandEnvelope & { world_id?: string };
@@ -793,7 +799,7 @@ export default {
           idempotency_key: body.idempotency_key,
           player_id: body.player_id,
         };
-        const doRes = await routeToWorld(env, admitted.world_id, principal, envelope, { allow_bootstrap: true });
+        const doRes = await routeToWorld(env, admitted.world_id, agent, envelope, { allow_bootstrap: true });
         const data = await doRes.json();
         return cors(json(data, doRes.status));
       }
@@ -803,9 +809,11 @@ export default {
       if (request.method === "POST" && path === "/v1/operator/test-world/lifecycle") {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
         const admin = await resolveSignedAdminHeader(request, env);
         if (admin instanceof Response) return cors(admin);
-        const denied = requireScope(principal, "noema.action.submit");
+        const denied = requireScope(agent, "noema.action.submit");
         if (denied) return cors(denied);
 
         const body = (await request.json().catch(() => ({}))) as { world_id?: string; action?: string; reason?: string };
@@ -851,10 +859,10 @@ export default {
           });
           const principal = await resolvePrincipal(fake, env);
           if (principal instanceof Response) return cors(principal);
-          const watched = denyNonAgentPlay(principal);
-          if (watched) return cors(watched);
+          const agent = requireAgentPlayer(principal);
+          if (agent instanceof Response) return cors(agent);
           const sealed = checkLiveAgentSeal({
-            controllerType: principal.controller_type,
+            controllerType: agent.controller_type,
             worldKind: "default",
             presented: parseSeal((body.body as { prompt_version_hash?: string } | undefined)?.prompt_version_hash),
           });
@@ -864,13 +872,13 @@ export default {
               protocol: "agent-protocol/v1",
               type: "AUTH_ACK",
               request_id: body.request_id,
-              agent_id: principal.agent_id,
+              agent_id: agent.agent_id,
               body: {
-                session_id: principal.session_id,
-                player_id: principal.player_id,
-                controller_id: principal.controller_id,
-                agent_id: principal.agent_id,
-                scopes: principal.scopes,
+                session_id: agent.session_id,
+                player_id: agent.player_id,
+                controller_id: agent.controller_id,
+                agent_id: agent.agent_id,
+                scopes: agent.scopes,
               },
             }),
           );
