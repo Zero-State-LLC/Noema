@@ -6,6 +6,19 @@
 export const STALE_HEAD = "STALE_HEAD";
 export const STALE_FENCE = "STALE_FENCE";
 
+const CONTENTION_SETTLEMENT_FAIL = new Set([
+  STALE_HEAD,
+  STALE_FENCE,
+  "DIGEST_LINEAGE_MISMATCH",
+  "NONCONTIGUOUS_SEQUENCE",
+  "DUPLICATE_EVENT_CONFLICT",
+]);
+
+/** Lost settlement race — reject the actor, do not flip World.status to INCIDENT. */
+export function isContentionSettlementFail(code: string): boolean {
+  return CONTENTION_SETTLEMENT_FAIL.has(code);
+}
+
 export type FenceHead = {
   world_id: string;
   revision: number;
