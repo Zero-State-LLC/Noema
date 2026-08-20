@@ -85,6 +85,10 @@ export type EntityRuntime = {
   /** GC2-S7. Public constructible with no steward work for 12 cycles. */
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */
+  last_repair_cycle?: number;
+  /** Feature D. Public handle of last successful REPAIR. Never an id. */
+  last_repair_handle?: string;
   /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */
   in_progress?: boolean;
 };
@@ -537,6 +541,8 @@ export function enrichEntity(e: {
   upgrade_tier?: number;
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  last_repair_cycle?: number;
+  last_repair_handle?: string;
   in_progress?: boolean;
 }): EntityRuntime {
   const node = classifyResourceNode(e);
@@ -563,6 +569,8 @@ export function enrichEntity(e: {
     upgrade_tier: e.upgrade_tier,
     unclaimed: e.unclaimed === true ? true : undefined,
     last_steward_cycle: e.last_steward_cycle,
+    last_repair_cycle: e.last_repair_cycle,
+    last_repair_handle: e.last_repair_handle,
     in_progress: e.in_progress === true ? true : undefined,
   };
 }

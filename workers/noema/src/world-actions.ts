@@ -287,7 +287,7 @@ import {
   type StakeMap,
 } from "./contest";
 import type { CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
-import { projectRoomTraces } from "./play-traces";
+import { projectRoomTraces, publicTraces, safePlateHandle } from "./play-traces";
 import {
   applyAliasCommand,
   expandAliases,
@@ -585,14 +585,16 @@ export function buildObservation(
         harvestable: isHarvestable(e),
         scar: e.scar === true ? true : undefined,
       })),
-      traces: projectRoomTraces({
-        hidden: room.hidden,
-        entities,
-        board: room.board,
-        shout: room.shout,
-        institution_notice: room.institution_notice,
-        trade_notice: room.trade_notice,
-      }),
+      traces: publicTraces(
+        projectRoomTraces({
+          hidden: room.hidden,
+          entities,
+          board: room.board,
+          shout: room.shout,
+          institution_notice: room.institution_notice,
+          trade_notice: room.trade_notice,
+        }),
+      ),
     },
     situation: situationFromLive({
       name: room.name,
@@ -2890,6 +2892,11 @@ export async function applyWorldCommand(
       ) {
         entity.last_steward_cycle = w.cycle;
       }
+      const plateHandle = safePlateHandle(pl.handle);
+      if (plateHandle) {
+        entity.last_repair_cycle = w.cycle;
+        entity.last_repair_handle = plateHandle;
+      }
       if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
@@ -2908,6 +2915,8 @@ export async function applyWorldCommand(
         quality_bonus: quality.bonus || undefined,
         acting_for: acting_for || null,
         office_id: grantOfficeId || null,
+        last_repair_cycle: entity.last_repair_cycle ?? null,
+        last_repair_handle: entity.last_repair_handle ?? null,
       });
       await settleEv(ev);
       const practiced =
