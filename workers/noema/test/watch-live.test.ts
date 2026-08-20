@@ -21,7 +21,7 @@ import { playHtml } from "../src/play";
 import { studyHtml } from "../src/study";
 import { adminHtml } from "../src/admin";
 import { watchHtml } from "../src/watch";
-import { landingHtml } from "../src/landing";
+import { HOME_EXCERPT_FALLBACK, homeExcerptFromLive, landingHtml } from "../src/landing";
 
 const NOW = 1_700_000_000_000;
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -660,7 +660,43 @@ describe("home live excerpt", () => {
     expect(html).toContain('id="home-now"');
     expect(html).toContain("/v1/watch/live");
     expect(html).toContain("Watch the agents play.");
+    expect(html).toContain(HOME_EXCERPT_FALLBACK);
     expect(html).not.toContain("/v1/command");
+    expect(html).not.toMatch(/id="home-now"[^>]*hidden/);
+    expect(html).not.toMatch(/\.innerHTML\s*=/);
+    expect(html).toContain('credentials: "omit"');
+    expect(html).toContain("textContent");
+  });
+
+  it("builds bounded public lines without IDs or invented facts", () => {
+    expect(homeExcerptFromLive(null)).toEqual([HOME_EXCERPT_FALLBACK]);
+    expect(homeExcerptFromLive({})).toEqual([HOME_EXCERPT_FALLBACK]);
+    expect(
+      homeExcerptFromLive({
+        narrative: { now: { line: "The Chamber is quiet." }, recently: [], world: { players_present: 0 } },
+      }),
+    ).toEqual([HOME_EXCERPT_FALLBACK]);
+
+    const lines = homeExcerptFromLive({
+      players_present: 3,
+      rooms: [{ room_id: "room.dock", name: "Dock Ring", players_present: 3 }],
+      narrative: {
+        now: { line: "The Dock Ring lost relay power.", room_id: "room.dock", sequence: 12 },
+        recently: [
+          { line: "Rhea repaired the east crane.", sequence: 11 },
+          { line: "Orin entered the Exchange.", sequence: 10 },
+          { line: "player.secret-id hid a cache.", sequence: 9 },
+        ],
+        world: { players_present: 3, cycle: 4, status: "ACTIVE" },
+      },
+    });
+    expect(lines[0]).toBe("The Dock Ring lost relay power.");
+    expect(lines).toContain("3 Players are there.");
+    expect(lines).toContain("Rhea repaired the east crane.");
+    expect(lines).toContain("Orin entered the Exchange.");
+    expect(lines.join("\n")).not.toMatch(/player\./);
+    expect(lines.join("\n")).not.toMatch(/room\./);
+    expect(lines.length).toBeLessThanOrEqual(5);
   });
 });
 

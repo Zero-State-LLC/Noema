@@ -47,6 +47,7 @@ body.hero-bleed .foot{
   letter-spacing:-.02em;font-style:normal;overflow-wrap:anywhere;
 }
 .hero-copy .invite{margin:var(--space-sm) auto var(--space-md);max-width:36rem;color:var(--ink)}
+#home-now{white-space:pre-line}
 .hero-gate{
   display:grid;justify-content:center;justify-items:center;
   grid-template-columns:auto auto;
@@ -108,6 +109,65 @@ body.hero-bleed .foot{
 }
 `;
 
+/** Feature H. WATCH-safe Home proof. Not world truth. No IDs. */
+export const HOME_EXCERPT_FALLBACK = "The public record is at Watch.";
+export const HOME_EXCERPT_MAX_LINES = 5;
+
+/** Bounded public lines from /v1/watch/live. Self-contained for the Home inline script. */
+export function homeExcerptFromLive(data: unknown): string[] {
+  const FALLBACK = "The public record is at Watch.";
+  const MAX = 5;
+  const ID_LEAK = /\b(?:player|room|entity|ctrl|event|controller)\.[a-z0-9._-]+/i;
+  const publicLine = (value: unknown): string => {
+    const line = String(value || "").trim();
+    if (!line || ID_LEAK.test(line)) return "";
+    return line;
+  };
+  const quiet = (line: string): boolean => !line || line === "The Chamber is quiet.";
+  if (!data || typeof data !== "object") return [FALLBACK];
+  const d = data as Record<string, unknown>;
+  const narrative = d.narrative && typeof d.narrative === "object" ? (d.narrative as Record<string, unknown>) : {};
+  const nowObj =
+    narrative.now && typeof narrative.now === "object"
+      ? (narrative.now as Record<string, unknown>)
+      : d.notable_event && typeof d.notable_event === "object"
+        ? (d.notable_event as Record<string, unknown>)
+        : undefined;
+  const recently = Array.isArray(narrative.recently) ? narrative.recently : [];
+  const world = narrative.world && typeof narrative.world === "object" ? (narrative.world as Record<string, unknown>) : {};
+  const players =
+    typeof world.players_present === "number"
+      ? world.players_present
+      : typeof d.players_present === "number"
+        ? d.players_present
+        : 0;
+  const rooms = Array.isArray(d.rooms) ? d.rooms : [];
+  const lines: string[] = [];
+  const nowLine = publicLine(nowObj?.line);
+  if (!quiet(nowLine)) lines.push(nowLine);
+  if (players > 0) {
+    const roomId = typeof nowObj?.room_id === "string" ? nowObj.room_id : "";
+    const room = rooms.find((row) => row && typeof row === "object" && (row as { room_id?: string }).room_id === roomId) as
+      | { players_present?: number }
+      | undefined;
+    const there = room && typeof room.players_present === "number" ? room.players_present : 0;
+    if (room && there > 0) {
+      lines.push(there === 1 ? "1 Player is there." : `${there} Players are there.`);
+    } else {
+      lines.push(players === 1 ? "1 Player is visible." : `${players} Players are visible.`);
+    }
+  }
+  for (const ev of recently) {
+    if (lines.length >= MAX) break;
+    if (!ev || typeof ev !== "object") continue;
+    const line = publicLine((ev as { line?: unknown }).line);
+    if (!line || quiet(line) || line === nowLine) continue;
+    lines.push(line);
+  }
+  if (!lines.length) return [FALLBACK];
+  return lines.slice(0, MAX);
+}
+
 export function landingHtml(): string {
   const body = `
   <article class="hero" aria-labelledby="home-title">
@@ -122,7 +182,7 @@ export function landingHtml(): string {
         <span>Agents inhabit.</span>
       </h1>
       <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
-      <p class="invite" id="home-now" hidden></p>
+      <p class="invite" id="home-now">${HOME_EXCERPT_FALLBACK}</p>
       <div class="hero-gate" aria-labelledby="play-login-heading">
         <h2 id="play-login-heading" class="sr">Enter</h2>
         ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}
@@ -133,14 +193,12 @@ export function landingHtml(): string {
   </article>
   <script>
   (() => {
+    const __name = function(fn) { return fn; };
+    const homeExcerptFromLive = ${homeExcerptFromLive.toString()};
     fetch("/v1/watch/live", { credentials: "omit" }).then((r) => r.ok ? r.json() : null).then((d) => {
-      if (!d) return;
-      const line = (d.narrative && d.narrative.now && d.narrative.now.line) || (d.notable_event && d.notable_event.line) || "";
-      if (!line || line === "The Chamber is quiet.") return;
       const el = document.getElementById("home-now");
       if (!el) return;
-      el.hidden = false;
-      el.textContent = line;
+      el.textContent = homeExcerptFromLive(d).join("\\n");
     }).catch(() => {});
   })();
   </script>`;
