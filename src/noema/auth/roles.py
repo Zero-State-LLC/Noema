@@ -1,4 +1,9 @@
-"""Minimal role model for Phase 1."""
+"""Minimal role model for Phase 1.
+
+RFC-0120: hosted product Players are agents only. Role.PLAYER remains for
+offline Chamber fixtures (NON-CANONICAL DEV TOOLING). Do not change
+can_mutate_world() without a dedicated Chamber migration.
+"""
 
 from __future__ import annotations
 
