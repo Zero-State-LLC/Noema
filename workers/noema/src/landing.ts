@@ -86,12 +86,32 @@ body.hero-bleed .foot{
 .miss h1{max-width:none;min-width:0;overflow-wrap:anywhere}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){
-  body.hero-bleed .top{flex-wrap:wrap;padding-bottom:1rem}
-  body.hero-bleed .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:.1rem .75rem}
-  body.hero-bleed .nav a{min-height:44px;display:flex;align-items:center}
-  body.hero-bleed .foot{position:relative;background:var(--void);padding-top:var(--space-md);padding-bottom:var(--space-md)}
-  .hero{min-height:calc(100dvh - 1rem)}
-  .hero-copy{padding-bottom:var(--space-xl)}
+  /* Keep the product door a door on a phone: one compact chrome row, not a
+     two-row navigation block competing with the hero. */
+  body.hero-bleed .top{
+    display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;
+    gap:.45rem;padding:.85rem var(--pad) 1.15rem;
+  }
+  body.hero-bleed .nav{
+    display:flex;flex-wrap:nowrap;width:auto;margin-left:auto;justify-content:flex-end;
+    gap:.15rem .55rem;
+  }
+  body.hero-bleed .nav a{
+    min-height:2.25rem;display:inline-flex;align-items:center;
+    font-size:.59rem;letter-spacing:.1em;
+  }
+  body.hero-bleed .foot{
+    position:absolute;inset:auto 0 0 0;
+    display:flex;flex-direction:column;align-items:center;gap:.15rem;
+    padding:.55rem var(--pad) .7rem;
+    background:linear-gradient(to top,color-mix(in srgb,var(--void) 88%,transparent) 0%,transparent 100%);
+    color:color-mix(in srgb,var(--ink) 76%,var(--faint));font-size:.58rem;line-height:1.45;text-align:center;
+  }
+  body.hero-bleed .foot-contact{justify-content:center;gap:.2rem .5rem;line-height:1.45}
+  body.hero-bleed .foot-contact > span{display:none}
+  .hero{min-height:100svh;min-height:100dvh}
+  .hero-copy{padding:5.35rem var(--pad) 5.7rem}
+  .hero-copy .invite{margin-top:.65rem;margin-bottom:.75rem}
   .hero-lines{grid-template-columns:1fr}
   .hero-gate{
     grid-template-columns:1fr;width:min(22rem,100%);
