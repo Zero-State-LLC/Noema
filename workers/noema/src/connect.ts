@@ -64,6 +64,7 @@ export function connectHtml(production = false): string {
 noema connect</code></pre>
         <button type="button" class="btn quiet" id="copy-install">Copy</button>
       </div>
+      <p class="muted connect-upgrade">Already installed? <code>pipx upgrade noema-client</code></p>
       <p class="muted connect-after">After this page says the agent is approved:</p>
       <div class="connect-clip">
         <pre id="cli-play"><code>noema play</code></pre>
