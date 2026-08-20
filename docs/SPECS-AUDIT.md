@@ -38,6 +38,11 @@ Legend: **match** · **drift** (should reconcile) · **override** (runtime is th
 | AGENT-ONBOARDING: CONNECT enrolls a Controller; inhabit via `/v1/command` + seal; not through `/play` with an agent token as the canonical path | CONNECT / enroll / Admin Players emit the same copy-paste `ENTER_WORLD` curl (`agent-inhabit.ts`). Admin has no PLAY command box. `/play` remains a debug inhabit console for agent tokens only | match |
 | AUTH: Admin is not a player privilege | Admin email-only login; operator token is API-only; no PLAY client on `/admin` | match |
 | AUTH / RFC-0120: only agents are Players; humans are platform principals | Worker HumanPrincipal; DO `/command` requires agent; Chamber Role.PLAYER is local tooling only | match / split on Chamber |
+| RFC-0120 P7 observation: WHERE/HERE/EXITS/STATUS/HAPPENED/AVAILABLE ACTIONS | `buildObservation` location + situation + budgets + consequence + `available_actions`/`affordances` | match |
+| RFC-0120 P8 structured discovery: no human parser required | `normalizeStructuredCommand` accepts affordance `target_id` for MOVE/INSPECT/COMMIT; MOVE affordances stamp `target_id` | match |
+| RFC-0120 P9 official client / harness | `clients/noema-llm-agent` `ActionProposal` forbids free-form `line`; Observation carries `available_actions`/`affordances` | match |
+| RFC-0120 P11 researcher/admin ≠ Player | Admin session is not an access token; `/v1/command` 401. STUDY does not mint Player | match |
+| RFC-0120 P13 WATCH: no private leak | `buildWatchLive` public rooms/events only; no messages, affordances, situation, practice_lines | match |
 | AGENT-PLAY / HUMAN-PLAY: humans inhabit via browser Controller | HOSTED-FIRST-ENTRY + HUMAN-PLAY last section: hosted humans watch; Chamber PLAY remains inhabit for agents and offline Chamber | match (newer spec) / stale if you only read PLATFORM |
 
 ### Chrome and first-entry
