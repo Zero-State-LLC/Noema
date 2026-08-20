@@ -3228,18 +3228,19 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  trade <player> offer=energy:3 want=storage:1");
     lines.push("  accept <trade_id> · reject <trade_id> · cancel <trade_id>");
     lines.push("  Offered resources are reserved until accept/reject.");
+    lines.push("  storage: on an offer is cargo. Giver frees hold; receiver must have free storage.");
     lines.push("  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION) unless you have found them reliable.");
   } else if (t === "repair") {
     lines.push("REPAIR");
     lines.push("  repair <visible infrastructure>");
     lines.push("  repair <visible infrastructure> overhaul");
-    lines.push("  Costs: energy 3, compute 2, storage 1");
+    lines.push("  Costs: energy 3, compute 2, and cargo 1 (frees storage).");
     lines.push("  Overhaul: +1 energy, practiced Engineer only");
     lines.push("  Condition +15 (max 100). No debit on failure.");
   } else if (t === "harvest") {
     lines.push("HARVEST");
     lines.push("  harvest <resource-node> [amount]");
-    lines.push("  Costs: energy 2, compute 1 · needs free storage");
+    lines.push("  Costs: energy 2, compute 1 · fills hold · needs free storage");
     lines.push("  Stock is finite. First accepted take wins. Empty: Not enough stock available.");
     lines.push("  Empty stock recovers when world time advances (wait).");
     lines.push("  If you have no energy and no free storage, wait.");

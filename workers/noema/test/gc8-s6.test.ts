@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
-import { enrichEntity } from "../src/actions";
+import { enrichEntity, helpText } from "../src/actions";
 import { CONSTRUCT_COSTS } from "../src/construction";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -246,5 +246,13 @@ describe("GC8-S6 world path", () => {
     expect(r.ok).toBe(false);
     expect(r.error?.message).toBe("You do not have materials in hold.");
     expect(w.players[a.player_id].budgets.storage).toBe(15);
+  });
+
+  it("help names cargo hold for work and TRADE", () => {
+    expect(helpText("harvest")).toMatch(/fills hold/);
+    expect(helpText("repair")).toMatch(/cargo 1 \(frees storage\)/);
+    expect(helpText("trade")).toMatch(/storage:.*cargo/i);
+    expect(helpText()).not.toMatch(/storage capped/i);
+    expect(helpText()).not.toMatch(/\bcrypto\b/i);
   });
 });
