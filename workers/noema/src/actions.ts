@@ -3204,6 +3204,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  share <thing> <player>  up to five co-owners");
     lines.push("  connect <link> <dest> public two-way neighbor only");
     lines.push("  Public rooms only. Hidden rooms cannot be built.");
+    lines.push("  Construct, upgrade, repurpose, and restore consume cargo (free storage).");
   } else if (t === "org" || t === "organization" || t === "organizations") {
     lines.push("ORGANIZATIONS");
     lines.push('  form <name> charter="purpose"');

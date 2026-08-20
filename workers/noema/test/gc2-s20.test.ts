@@ -134,6 +134,7 @@ describe("GC2-S20 world path", () => {
     expect(again.ok).toBe(false);
     expect(again.error?.code).toBe("NOT_ADDRESSABLE");
 
+    w.players[c.player_id].budgets.storage = 14;
     const upgrade = await run(w, c, "BUILD", { operation: "UPGRADE", entity_id: entityId });
     expect(upgrade.ok).toBe(true);
 
