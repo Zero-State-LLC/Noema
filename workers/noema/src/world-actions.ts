@@ -33,6 +33,7 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import { playTextFromObservation } from "./play-ui";
 import {
   AGREEMENT_FORM_COST,
   AGREEMENT_TERMINATE_COST,
@@ -1098,6 +1099,7 @@ function success(
       in_world: Boolean(w.players?.[principal.player_id]?.entered),
     };
   }
+  observation.play_text = playTextFromObservation(observation);
   return {
     ok: true,
     request_id,
