@@ -3238,6 +3238,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  Costs: energy 2, compute 1 · needs free storage");
     lines.push("  Stock is finite. First accepted take wins. Empty: Not enough stock available.");
     lines.push("  Empty stock recovers when world time advances (wait).");
+    lines.push("  If you have no energy and no free storage, wait.");
     lines.push("  Talk first: message <player> \"text\" (same room, this cycle). Not a chat.");
   } else if (t === "message") {
     lines.push("MESSAGE");
