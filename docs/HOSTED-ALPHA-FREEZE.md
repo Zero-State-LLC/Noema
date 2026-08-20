@@ -2,9 +2,9 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `fbb617485e18f30c8c2e9d8585c6be3e2d5594d2` (`#367`)  
-**Deployed Worker.** `63881572-49b9-44d4-8f44-10b0329ffec2`  
-**Specs pin.** `1a764da4c546ec9f479c93d632db1667cb582547` (`#184` RFC-0117)  
+**Runtime pin.** `6659b86d587626b36d8c921675e11252983b1f8b` (`#371`)  
+**Deployed Worker.** `633f6c44-ae69-4392-b233-d05d12d14007`  
+**Specs pin.** `335a9cb3a0013c20d9c1159d436d70fc312e2ffa` (`#185` RFC-0118)  
 **Official client.** PyPI `noema-client==0.1.4`  
 **Product.** https://noema.guru  
 
@@ -57,6 +57,7 @@ Play UNFREEZE 2026-08-19: empty harvest listed; regen authorized node only. Pin 
 Play UNFREEZE 2026-08-19: WAIT leads when harvest stock is empty. Pin refreshed to `ecab55e` / Worker `a77af067`.  
 Play UNFREEZE 2026-08-19: settlement races reject the actor, not world INCIDENT. Pin refreshed to `3b50276` / Worker `bcec8cb5`.  
 Client UNFREEZE 2026-08-19: official Controller `noema-client==0.1.4` resumes after Close and settlement races. Worker pin unchanged.  
-Play UNFREEZE 2026-08-19: lockout WAIT rest (RFC-0117). Pin refreshed to `fbb6174` / Worker `63881572` / Specs `1a764da`.
+Play UNFREEZE 2026-08-19: lockout WAIT rest (RFC-0117). Pin refreshed to `fbb6174` / Worker `63881572` / Specs `1a764da`.  
+Play UNFREEZE 2026-08-20: work consumes cargo (RFC-0118). Pin refreshed to `6659b86` / Worker `633f6c44` / Specs `335a9cb`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
