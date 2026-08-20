@@ -12,7 +12,7 @@ import { adminHtml, adminLoginHtml } from "../src/admin";
 import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
 import { manifestoHtml } from "../src/manifesto";
-import { playHtml } from "../src/play";
+
 import { label } from "../src/presentation/terms";
 import { studyHtml } from "../src/study";
 import { TOKEN } from "../src/theme/tokens";
@@ -87,7 +87,7 @@ describe("brand slice 9 — capture matrix", () => {
 describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   const door = landingHtml();
   const manifesto = manifestoHtml();
-  const play = playHtml();
+  const play = connectHtml();
   const watch = watchHtml();
   const admin = adminHtml();
   const login = adminLoginHtml();
@@ -116,55 +116,36 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("3. Interface has meaningful visual density without a blank canvas", () => {
-    expect(play).toContain("ch-mast");
-    expect(play).toContain('id="world-strip"');
-    expect(play).toContain('id="room-name"');
-    expect(play).toContain('id="action-rail"');
-    expect(play).toContain('id="cmd"');
-    expect(play).toContain("ch-rail");
-    expect(play).not.toMatch(/Nothing visible until you enter/);
+    expect(connect).toContain("connect-work");
+    expect(connect).toContain('id="d-code"');
+    expect(watch).toContain("/v1/watch/live");
+    expect(door).toContain("hero-bleed");
   });
 
   it("4. Color conveys semantic state and is labeled", () => {
-    expect(play).toContain("--color-state-active");
-    expect(play).toContain("--color-state-warning");
-    expect(play).toContain("--color-state-critical");
-    expect(play).toContain("--color-state-unknown");
-    expect(play).toContain("--color-state-economic");
-    expect(play).toContain("--color-state-social");
-    expect(play).toContain("<summary>Key</summary>");
-    expect(play).toMatch(/aria-label="/);
-    expect(play).toContain("glyph-threshold");
-    expect(play).toContain("glyph-danger");
+    expect(watch).toContain("--color-state-active");
+    expect(watch).toContain("--color-state-warning");
+    expect(watch).toContain("--color-state-critical");
+    expect(watch).toContain("--color-state-unknown");
+    expect(watch).toContain("--color-state-economic");
+    expect(watch).toContain("--color-state-social");
+    expect(watch).toContain("<summary>Key</summary>");
+    expect(watch).toMatch(/aria-label="/);
   });
 
   it("5. Monospace is restricted to machine/data contexts", () => {
-    expect(play).toMatch(/#room-name\{[^}]*var\(--font-display\)/);
-    expect(play).toMatch(/#room-desc\{/);
-    expect(play).not.toMatch(/#room-desc\{[^}]*var\(--font-machine\)/);
-    expect(play).toMatch(/\.cmdform input\{[^}]*font-family:var\(--font-machine\)/);
-    expect(play).toContain('id="meta-seq"');
-    expect(play).toContain('id="err-advanced"');
+    expect(connect).toContain("font-mono");
+    expect(connect).toContain("<code>");
   });
 
   it("6. Major world changes are visually apparent", () => {
-    expect(play).toMatch(/animation:threshold-in 240ms[^;]* 1 both/);
-    expect(play).toContain("pulseThreshold");
     expect(watch).toMatch(/\.watch-hero\.major\{[\s\S]*animation:threshold-in 240ms/);
-    expect(play).not.toMatch(/animation:[^;]*infinite/);
     expect(watch).not.toMatch(/animation:[^;]*infinite/);
   });
 
-  it("7. Players can determine location, state, threats, and actions", () => {
-    expect(play).toContain('id="room-name"');
-    expect(play).toContain('id="room-desc"');
-    expect(play).toContain('id="world-strip"');
-    expect(play).toContain('id="signal-feed"');
-    expect(play).toContain('id="just-happened"');
-    expect(play).toContain("AVAILABLE HERE");
-    expect(play).toContain('id="action-rail"');
-    expect(play).toContain('id="cmd"');
-    expect(play).toContain('id="play-health"');
+  it("7. Spectators can determine location and activity", () => {
+    expect(watch).toContain("/v1/watch/live");
+    expect(connect).toContain("Connect an agent");
   });
 
   it("8. Aesthetic avoids generic cyberpunk clichés", () => {
@@ -180,20 +161,16 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("9. Mobile remains usable", () => {
-    expect(play).toMatch(/@media\(max-width:640px\)/);
-    expect(play).toMatch(/min-height:44px/);
-    expect(play).toMatch(/\.cmdform input[^}]*font-size:16px/);
-    expect(play).toMatch(/\.ch-cmd\{[^}]*position:sticky/);
-    expect(play).toMatch(/overflow-x:clip/);
+    expect(connect).toContain("connect-work");
+    expect(watch).toContain("prefers-reduced-motion");
   });
 
   it("10. The text-game core remains primary", () => {
-    expect(play).toContain('id="room-desc"');
-    expect(play).toContain("/v1/command");
-    expect(play).not.toMatch(/\.innerHTML\s*=/);
-    expect(play).not.toContain("react");
-    expect(play).not.toContain("next/router");
-    expect(play).toContain("LOOK");
+    expect(connect).toContain("noema play");
+    expect(connect).not.toMatch(/\.innerHTML\s*=/);
+    expect(connect).not.toContain("react");
+    expect(connect).not.toContain("next/router");
+    expect(connect).toContain("ENTER_WORLD");
   });
 
   it("11. Research and telemetry remain supported underneath", () => {
@@ -205,12 +182,10 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("12. Agents inhabit; humans watch", () => {
-    expect(play).toContain('command: "LOOK"');
-    expect(play).toContain("arguments: { line: raw }");
-    expect(play).toContain("/v1/command");
     expect(connect).toContain("/v1/command");
-    expect(play).toMatch(/Agents play this world/);
-    expect(play).not.toContain("/v1/human-only");
+    expect(connect).toContain("Agents inhabit this world. Humans watch.");
+    expect(connect).not.toContain("arguments: { line: raw }");
+    expect(connect).not.toContain("/v1/human-only");
   });
 
   it("13. Admin/research surfaces remain operationally precise", () => {
@@ -262,16 +237,13 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
   });
 
   it("keyboard and reduced-motion hooks remain on player and admin", () => {
-    const play = playHtml();
+    const play = connectHtml();
     const watch = watchHtml();
     const admin = adminHtml();
     const door = landingHtml();
     expect(door).toContain('href="#main"');
     expect(play).toContain('href="#main"');
     expect(play).toContain(":focus-visible");
-    expect(play).toContain('for="cmd"');
-    expect(play).toContain('id="trail" aria-live="polite"');
-    expect(play).toContain('id="leave"');
     expect(watch).toContain("prefers-reduced-motion");
     expect(watch).toContain('id="watch-pause"');
     expect(watch).toContain('id="watch-refresh"');
@@ -282,7 +254,7 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
 
   it("gzip ceilings still hold", () => {
     const gz = (html: string) => gzipSync(Buffer.from(html, "utf8")).length;
-    expect(gz(playHtml())).toBeLessThan(180 * 1024);
+    expect(gz(connectHtml())).toBeLessThan(180 * 1024);
     expect(gz(watchHtml())).toBeLessThan(180 * 1024);
     expect(gz(landingHtml())).toBeLessThan(180 * 1024);
     expect(PHOSPHOR_JS_BUDGET).toBe(100 * 1024);

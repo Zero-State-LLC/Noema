@@ -12,7 +12,7 @@ import { adminHtml, adminLoginHtml } from "../src/admin";
 import { connectHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
-import { playHtml } from "../src/play";
+
 import { PRODUCT_CSS, productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
 import type { Env } from "../src/types";
@@ -113,9 +113,9 @@ describe("brand slice 0 — player / admin boundary", () => {
     expect(html).toContain("/admin/login");
   });
 
-  it("PLAY does not request admin login", () => {
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).not.toContain("/v1/admin/login/request");
+  it("CONNECT does not request admin login", () => {
+    expect(connectHtml()).toContain("/v1/play/login/request");
+    expect(connectHtml()).not.toContain("/v1/admin/login/request");
   });
 
   it("admin login does not use the PLAY consume path", () => {
@@ -137,30 +137,11 @@ describe("brand slice 0 — player / admin boundary", () => {
 });
 
 describe("brand slice 0 — gameplay command surface", () => {
-  it("PLAY posts inhabit lines to /v1/command", () => {
-    const html = playHtml();
-    expect(html).toContain("/v1/command");
-    expect(html).toContain('id="cmd"');
-    expect(html).toContain('id="send"');
-    expect(html).toMatch(/arguments:\s*\{\s*line:/);
-  });
-
-  it("chamber keeps location, here, actions, trail, command", () => {
-    const html = playHtml();
-    expect(html).toContain('id="room-name"');
-    expect(html).toContain('id="trail"');
-    expect(html).toContain('id="action-rail"');
-    expect(html).toContain("AVAILABLE HERE");
-    expect(html).toContain('id="world-key"');
-    expect(html).toMatch(/@media\(max-width:640px\)/);
-    expect(html).toMatch(/min-height:44px/);
-    expect(html).toContain('id="world-strip"');
-    expect(html).toContain('id="signal-feed"');
-    expect(html).toContain('id="entity-list"');
-    expect(html).toContain('id="exit-list"');
-    expect(html).toContain('id="cmd-form"');
-    expect(html).toContain("ch-mast");
-    expect(html).toContain("ch-rail");
+  it("CONNECT does not post inhabit lines from the browser", () => {
+    const html = connectHtml();
+    expect(html).not.toContain('id="cmd"');
+    expect(html).not.toContain('id="send"');
+    expect(html).not.toMatch(/arguments:\s*\{\s*line:/);
   });
 });
 
@@ -174,12 +155,9 @@ describe("brand slice 0 — accessibility hooks", () => {
     expect(shell).toContain('<main id="main"');
   });
 
-  it("PLAY announces status and trail", () => {
-    const html = playHtml();
-    expect(html).toContain('id="trail" aria-live="polite"');
-    expect(html).toContain('id="notice" role="status"');
-    expect(html).toContain('for="cmd"');
-    expect(html).toContain('aria-label="Command line"');
+  it("CONNECT announces device-code status", () => {
+    const html = connectHtml();
+    expect(html).toContain('id="d-notice" role="status"');
   });
 
   it("WATCH honors live status and reduced motion", () => {
@@ -191,7 +169,7 @@ describe("brand slice 0 — accessibility hooks", () => {
 
 describe("brand slice 1 — player tokens", () => {
   it("player HTML has semantic tokens and no copper/Fraunces", () => {
-    for (const html of [landingHtml(), playHtml(), watchHtml(), connectHtml(), studyHtml()]) {
+    for (const html of [landingHtml(), watchHtml(), connectHtml(), studyHtml()]) {
       expect(html).toContain("--color-surface-world");
       expect(html).toContain("IBM+Plex+Sans");
       expect(html).toContain("family=Syne");
@@ -201,17 +179,14 @@ describe("brand slice 1 — player tokens", () => {
     }
   });
 
-  it("command input stays machine voice", () => {
-    expect(playHtml()).toMatch(/\.cmdform input\{[^}]*font-family:var\(--font-machine\)/);
-  });
 });
 
 describe("brand slice 0 — performance ceilings", () => {
   it("PLAY and WATCH stay under the gzip budget", () => {
-    const play = gzipBytes(playHtml());
+    const connect = gzipBytes(connectHtml());
     const watch = gzipBytes(watchHtml());
     const door = gzipBytes(landingHtml());
-    expect(play).toBeLessThan(PLAY_GZIP_CEILING);
+    expect(connect).toBeLessThan(PLAY_GZIP_CEILING);
     expect(watch).toBeLessThan(WATCH_GZIP_CEILING);
     expect(door).toBeLessThan(PLAY_GZIP_CEILING);
     expect(PHOSPHOR_JS_BUDGET).toBe(100 * 1024);

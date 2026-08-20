@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { connectHtml, enrollHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
-import { playHtml } from "../src/play";
 import { playCallbackHtml } from "../src/play-login-html";
 import { productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
@@ -189,18 +188,11 @@ describe("shared chrome first-read", () => {
 });
 
 describe("planes", () => {
-  it("play has play email and no admin login request", () => {
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).not.toContain("/v1/admin/login/request");
-    expect(playHtml()).not.toMatch(/class="play-head"/);
-  });
-  it("play signed-out has no admin login request", () => {
-    const html = playHtml();
-    expect(html).toContain("/v1/play/login/request");
-    expect(html).not.toContain("/v1/admin/login/request");
-    expect(html).toContain("Enter world");
-    expect(html).toContain("Inhabit");
-    expect(html).not.toContain("New agent? Attach at CONNECT");
+  it("home and connect request play email, not admin login", () => {
+    expect(landingHtml()).toContain("/v1/play/login/request");
+    expect(landingHtml()).not.toContain("/v1/admin/login/request");
+    expect(connectHtml()).toContain("/v1/play/login/request");
+    expect(connectHtml()).not.toContain("/v1/admin/login/request");
   });
   it("study is an honest stub", () => {
     expect(studyHtml()).toMatch(/not open/i);
@@ -222,8 +214,8 @@ describe("planes", () => {
     expect(watchHtml()).toContain("/v1/watch/live");
     expect(watchHtml()).not.toMatch(/Watch the world move/);
   });
-  it("play and watch do not assign via innerHTML", () => {
-    expect(playHtml()).not.toMatch(/\.innerHTML\s*=/);
+  it("connect and watch do not assign via innerHTML", () => {
+    expect(connectHtml()).not.toMatch(/\.innerHTML\s*=/);
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
   it("connect first paint is onboard plus inhabit", () => {
@@ -307,9 +299,6 @@ describe("planes", () => {
     expect(html).toContain("/v1/admin/agent/enroll/decide");
     expect(html).toContain("/admin#agent-watch");
     expect(html).not.toMatch(/\.innerHTML\s*=/);
-  });
-  it("play spent-link copy is on the door", () => {
-    expect(playHtml()).toMatch(/expired or invalid/i);
   });
 });
 
