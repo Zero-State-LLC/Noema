@@ -520,7 +520,7 @@ export function buildObservation(
   }));
   const otherPlayers = Object.entries(w.players)
     .filter(([, p]) => p.entered)
-    .map(([id, p]) => ({ player_id: id, handle: p.handle }));
+    .map(([id, p]) => ({ player_id: id, handle: p.handle, room_id: p.room_id }));
   const openTrades = Object.values(w.trades || {}).filter(
     (t) =>
       t.status === "OPEN" &&
@@ -552,6 +552,8 @@ export function buildObservation(
     cycle: w.cycle,
     focus: pl.focus,
     hiddenRoom: isHiddenRoom(room),
+    roomId: room.room_id,
+    openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
   });
   const available_actions = [
     ...new Set(
@@ -711,6 +713,10 @@ export function buildObservation(
       org_id: a.org_id,
       player_id: a.player_id,
       dest: a.dest,
+      contest_form: a.contest_form,
+      target: a.target,
+      contest_id: a.contest_id,
+      stake: a.stake,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1368,6 +1374,7 @@ export async function applyWorldCommand(
         otherPlayers: Object.entries(w.players).map(([id, p]) => ({
           player_id: id,
           handle: p.handle,
+          room_id: p.room_id,
         })),
         openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
         organizations: Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE"),
@@ -1376,6 +1383,8 @@ export async function applyWorldCommand(
         cycle: w.cycle,
         focus: pl.focus,
         hiddenRoom: room ? isHiddenRoom(room) : false,
+        roomId: room?.room_id,
+        openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
