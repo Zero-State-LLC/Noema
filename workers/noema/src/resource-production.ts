@@ -37,3 +37,14 @@ export function previewStockRegen(
   if (mod <= 0) return stock;
   return Math.min(cap, stock + regen * mod);
 }
+
+/** RFC-0117: cargo-full + zero-energy is not a permanent lock. */
+export const LOCKOUT_REST_ENERGY = 2;
+export const LOCKOUT_REST_STORAGE = 1;
+
+export function applyLockoutRest<T extends { energy?: number; storage?: number }>(budgets: T): boolean {
+  if ((budgets.energy ?? 0) !== 0 || (budgets.storage ?? 0) !== 0) return false;
+  budgets.energy = LOCKOUT_REST_ENERGY;
+  budgets.storage = LOCKOUT_REST_STORAGE;
+  return true;
+}

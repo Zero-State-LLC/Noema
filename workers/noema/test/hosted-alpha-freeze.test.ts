@@ -29,9 +29,9 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
 };
 
 const FROZEN_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
-const FROZEN_RUNTIME = "ecab55e6f0055c9dcfc1bfe16fd1f959141a49c0";
-const FROZEN_SPECS = "672b78086ecc71d79c9b9ecc4146c4f5a5454555";
-const FROZEN_WORKER = "a77af067-8a36-40b0-ac04-f213e1063379";
+const FROZEN_RUNTIME = "fbb617485e18f30c8c2e9d8585c6be3e2d5594d2";
+const FROZEN_SPECS = "1a764da4c546ec9f479c93d632db1667cb582547";
+const FROZEN_WORKER = "63881572-49b9-44d4-8f44-10b0329ffec2";
 
 describe("hosted alpha freeze", () => {
   it("pins the deployed product, not a moving main tip", () => {
@@ -42,7 +42,7 @@ describe("hosted alpha freeze", () => {
     expect(COMPAT.frozen_release?.worker_version_id).toBe(FROZEN_WORKER);
     expect(COMPAT.frozen_release?.genesis_id).toBe("genesis.ef578f4ffceeccd0");
     expect(COMPAT.frozen_release?.seal).toBe(FROZEN_SEAL);
-    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.3");
+    expect(COMPAT.frozen_release?.official_client).toBe("noema-client==0.1.4");
     expect(COMPAT.frozen_release?.name).toBe("hosted-alpha-0.12.1");
   });
 

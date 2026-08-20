@@ -127,3 +127,29 @@ describe("RFC-0019 WAIT quorum", () => {
     expect(helpText()).not.toMatch(/cycle commit/i);
   });
 });
+
+describe("RFC-0117 lockout WAIT rest", () => {
+  it("restores energy 2 and storage 1 when both are 0", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 0;
+    w.players[p.player_id].budgets.storage = 0;
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.energy).toBe(2);
+    expect(w.players[p.player_id].budgets.storage).toBe(1);
+    expect(helpText("harvest")).toMatch(/no energy and no free storage/i);
+  });
+
+  it("does not grant energy when free storage remains", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 0;
+    w.players[p.player_id].budgets.storage = 5;
+    await run(w, p, "WAIT");
+    expect(w.players[p.player_id].budgets.energy).toBe(0);
+    expect(w.players[p.player_id].budgets.storage).toBe(5);
+  });
+});

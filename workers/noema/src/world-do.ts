@@ -56,7 +56,7 @@ import {
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead } from "./settle-fence";
+import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
 import {
   admitTestWorldId,
   lifecycleRequestedWorldId,
@@ -924,6 +924,52 @@ export class NoemaWorldDO {
         allow_bootstrap: this.allowCanonicalBootstrap,
       });
       if (!committed.ok) {
+        // Soft-restore sequence drift (PR #363). Contention races stay ACTIVE with resync.
+        // Other durable failures still INCIDENT via resolveSoftSettlementFailure.
+        if (isContentionSettlementFail(committed.code)) {
+          const head = await getWorldHead(this.env, w.world_id);
+          if (head && typeof head.revision === "number") {
+            this.world = worldFromHead(head, before);
+            migrateWorldRuntime(this.world);
+            this.meta!.revision = head.revision;
+          } else {
+            this.world = before;
+          }
+          // Prefer SETTLEMENT_RESYNC for sequence-class soft codes; else race message.
+          const soft = await resolveSoftSettlementFailure({
+            code: committed.code,
+            before: this.world,
+            request_id: envl.request_id || "unknown",
+            getHead: (worldId) => getWorldHead(this.env, worldId),
+            writer_generation: this.meta!.writer_generation || "do.1",
+          });
+          if (soft.mode === "soft_restore") {
+            this.world = soft.world || this.world;
+            this.meta!.settlement_ok = soft.metaPatch.settlement_ok;
+            this.meta!.settlement_health = soft.metaPatch.settlement_health;
+            this.meta!.status = soft.metaPatch.status;
+            if (typeof soft.metaPatch.revision === "number") {
+              this.meta!.revision = soft.metaPatch.revision;
+            }
+            await this.state.storage.put("world_meta", this.meta);
+            await this.save();
+            return soft.result;
+          }
+          // Contention without soft code: no INCIDENT, ask retry
+          this.meta!.settlement_ok = true;
+          this.meta!.settlement_health = "HEALTHY";
+          this.meta!.status = "ACTIVE";
+          await this.state.storage.put("world_meta", this.meta);
+          await this.save();
+          return {
+            ok: false,
+            request_id: envl.request_id || "unknown",
+            error: {
+              code: committed.code,
+              message: "That action lost the settlement race. Observe and try again.",
+            },
+          };
+        }
         const soft = await resolveSoftSettlementFailure({
           code: committed.code,
           before,

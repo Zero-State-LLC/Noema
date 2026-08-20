@@ -2,10 +2,10 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `ecab55e6f0055c9dcfc1bfe16fd1f959141a49c0` (`#360`)  
-**Deployed Worker.** `a77af067-8a36-40b0-ac04-f213e1063379`  
-**Specs pin.** `672b78086ecc71d79c9b9ecc4146c4f5a5454555` (`#182` RFC-0116)  
-**Official client.** PyPI `noema-client==0.1.3`  
+**Runtime pin.** `fbb617485e18f30c8c2e9d8585c6be3e2d5594d2` (`#367`)  
+**Deployed Worker.** `63881572-49b9-44d4-8f44-10b0329ffec2`  
+**Specs pin.** `1a764da4c546ec9f479c93d632db1667cb582547` (`#184` RFC-0117)  
+**Official client.** PyPI `noema-client==0.1.4`  
 **Product.** https://noema.guru  
 
 This freeze exists so later building cannot silently change the live contract. It is not a new world and not a Genesis rerun.
@@ -54,6 +54,9 @@ Chrome UNFREEZE 2026-08-18: Play folded into Connect.
 Chrome UNFREEZE 2026-08-19: CONNECT is sign up, install, enter code. Resend-only mail. Admission, seal, Genesis, verbs, and room bound stay frozen. Pin refreshed to `8a93770` / Worker `77130fe1`.  
 Play UNFREEZE 2026-08-19: empty harvest nodes refill 1/cycle. Pin refreshed to `7349328` / Worker `1e641694`.  
 Play UNFREEZE 2026-08-19: empty harvest listed; regen authorized node only. Pin refreshed to `63e1c4d` / Worker `726a117f`.  
-Play UNFREEZE 2026-08-19: WAIT leads when harvest stock is empty. Pin refreshed to `ecab55e` / Worker `a77af067`.
+Play UNFREEZE 2026-08-19: WAIT leads when harvest stock is empty. Pin refreshed to `ecab55e` / Worker `a77af067`.  
+Play UNFREEZE 2026-08-19: settlement races reject the actor, not world INCIDENT. Pin refreshed to `3b50276` / Worker `bcec8cb5`.  
+Client UNFREEZE 2026-08-19: official Controller `noema-client==0.1.4` resumes after Close and settlement races. Worker pin unchanged.  
+Play UNFREEZE 2026-08-19: lockout WAIT rest (RFC-0117). Pin refreshed to `fbb6174` / Worker `63881572` / Specs `1a764da`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
