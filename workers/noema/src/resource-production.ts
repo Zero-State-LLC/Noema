@@ -1,11 +1,17 @@
 /**
  * RESOURCE-ECONOMY cycle production tick.
  * Authority: Noema-Specs docs/RESOURCE-ECONOMY.md.
- * Does not invent stock_resource. Empty authorized nodes recover; live stock is unchanged.
+ * Does not invent stock_resource. Empty authorized nodes recover; leftover trade-board stock is unchanged.
  */
+
+import { PREFERRED_NODE_ID } from "./pressure";
 
 export const NODE_STOCK_CAPACITY = 24;
 export const NODE_REGEN_PER_CYCLE = 1;
+
+export function isAuthorizedHarvestNode(entityId: string | undefined): boolean {
+  return entityId === PREFERRED_NODE_ID;
+}
 
 export function productionModifier(
   entities: Array<{ infra_type?: string; condition?: number }>,

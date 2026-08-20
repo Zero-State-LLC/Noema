@@ -77,7 +77,7 @@ import {
   selectScheduleNode,
   selectScheduleRelay,
 } from "./pressure";
-import { previewStockRegen, productionModifier } from "./resource-production";
+import { isAuthorizedHarvestNode, previewStockRegen, productionModifier } from "./resource-production";
 import {
   applyPracticeCredits,
   brokerWaivesCaution,
@@ -5548,7 +5548,7 @@ async function applyResourceProduction(
     const ents = roomEntities(room);
     const mod = productionModifier(ents);
     for (const entity of ents) {
-      if (!entity.stock_resource) continue;
+      if (!isAuthorizedHarvestNode(entity.entity_id) || !entity.stock_resource) continue;
       const before = Math.floor(entity.stock_amount ?? 0);
       if (before > 0) continue;
       const after = previewStockRegen(before, mod);

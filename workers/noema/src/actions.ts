@@ -2871,8 +2871,18 @@ export function deriveAffordances(input: {
         kind: "primary",
       });
     }
-    if (isHarvestable(e)) {
-      const ok = canPay(budgets, COSTS.HARVEST) && (budgets.storage ?? 0) >= 1;
+    if (e.stock_resource) {
+      const hasStock = (e.stock_amount ?? 0) > 0;
+      const hasStorage = (budgets.storage ?? 0) >= 1;
+      const canFuel = canPay(budgets, COSTS.HARVEST);
+      const ok = hasStock && hasStorage && canFuel;
+      const reason = ok
+        ? undefined
+        : !hasStock
+          ? "Not enough stock available."
+          : !hasStorage
+            ? "You do not have enough free storage."
+            : "You need energy 2 and compute 1 to harvest.";
       out.push({
         action: "HARVEST",
         verb: "COMMIT",
@@ -2883,7 +2893,7 @@ export function deriveAffordances(input: {
         target_label: e.label,
         requires: COSTS.HARVEST,
         available: ok,
-        reason: ok ? undefined : "You need energy, compute, and free storage.",
+        reason,
         kind: "resource",
       });
     }
@@ -3220,6 +3230,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  harvest <resource-node> [amount]");
     lines.push("  Costs: energy 2, compute 1 · needs free storage");
     lines.push("  Stock is finite. First accepted take wins. Empty: Not enough stock available.");
+    lines.push("  Empty stock recovers when world time advances (wait).");
     lines.push("  Talk first: message <player> \"text\" (same room, this cycle). Not a chat.");
   } else if (t === "message") {
     lines.push("MESSAGE");
