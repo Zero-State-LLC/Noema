@@ -1,6 +1,6 @@
 /**
- * Player email magic-link auth — separate from ADMIN sessions.
- * No admin allowlist; public play path.
+ * Human platform magic-link — WATCH/CONNECT identity, not inhabit.
+ * No admin allowlist. Separate from ADMIN sessions.
  */
 
 import {

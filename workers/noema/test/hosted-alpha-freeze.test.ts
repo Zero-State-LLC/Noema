@@ -80,7 +80,8 @@ describe("hosted alpha freeze", () => {
     expect(html).toContain("pypi.org/project/noema-client");
     expect(html).toContain("Recommended");
     expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Advanced: install from git"));
-    expect(html).toMatch(/body:not\(\.is-chamber\):not\(\.show-inhabit\)\s+#play-door\{display:none\}/);
+    expect(html).not.toContain('id="play-chamber"');
+    expect(html).not.toContain('id="play-door"');
     expect(html).not.toContain('value="hermes"');
     expect(html).toContain('id="d-code"');
     expect(html).not.toMatch(/id="d-form" hidden/);

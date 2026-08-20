@@ -33,8 +33,8 @@ describe("CONNECT inhabit contract", () => {
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
     expect(html).toContain("connect-work");
-    expect(html).toContain('id="play-chamber"');
-    expect(html).toContain("Enter world");
+    expect(html).not.toContain('id="play-chamber"');
+    expect(html).not.toContain("Enter world");
     expect(enrollHtml()).toContain(LIVE_AGENT_SEAL);
     expect(enrollHtml()).toContain("ENTER_WORLD");
   });

@@ -59,6 +59,31 @@ describe("RFC-0120 live CONNECT rebind", () => {
     expect(w.players[canonical]?.controller_type).toBe("agent");
   });
 
+  it("rewrites leftover player_id on unsettled events", async () => {
+    const w = miniChamberState("test.hosted-canonical.rfc0120-events");
+    const oldId = "player.ada";
+    const controller_id = "ctrl.device.ffeeddccbbaa";
+    const canonical = playerIdFromDeviceController(controller_id)!;
+    w.players[oldId] = {
+      room_id: MINI_ENTRY_ROOM_ID,
+      entered: true,
+      budgets: { attention: 8, compute: 8, energy: 8, influence: 8, storage: 8 },
+      handle: "ada",
+      controller_type: "agent",
+    };
+    w.unsettled = [
+      {
+        event_id: "evt.1",
+        event_type: "MOVE",
+        player_id: oldId,
+        payload: { player_id: oldId, from: MINI_ENTRY_ROOM_ID, to: MINI_ENTRY_ROOM_ID },
+      },
+    ];
+    await run(w, agent({ player_id: oldId, controller_id }), "LOOK");
+    expect(w.unsettled[0].player_id).toBe(canonical);
+    expect(w.unsettled[0].payload.player_id).toBe(canonical);
+  });
+
   it("evicts leftover human/hybrid inhabit rows on migrate", () => {
     const w = miniChamberState("test.hosted-canonical.rfc0120-evict");
     w.players["player.human"] = {

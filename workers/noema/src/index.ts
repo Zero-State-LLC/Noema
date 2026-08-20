@@ -58,7 +58,7 @@ import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
-import { applyPlayerCommand } from "./protocol-ws";
+import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
 import { acceptProtocolWebSocket, protocolHello } from "./protocol-ws";
 import { checkLiveAgentSeal, parseSeal } from "./seal";
 import {
@@ -348,7 +348,7 @@ export default {
         return cors(json({ ...minted, token_type: "bearer" }));
       }
 
-      // Public PLAY email login (any mailbox → Player JWT; never admin-access)
+      // Public WATCH/CONNECT email login (HumanPrincipal; never inhabit)
       if (request.method === "POST" && path === "/v1/play/login/request") {
         const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string };
         return cors(await requestPlayMagicLink(env, request, body));
@@ -851,13 +851,13 @@ export default {
           return cors(err("INVALID_REQUEST", "private cognition fields are not accepted", 400));
         }
 
-        const envelope: CommandEnvelope = {
+        const envelope: CommandEnvelope = stripHumanPlayLine({
           request_id: body.request_id,
           command: body.command,
           arguments: body.arguments,
           idempotency_key: body.idempotency_key,
           player_id: body.player_id,
-        };
+        });
         const doRes = await routeToWorld(env, admitted.world_id, agent, envelope, { allow_bootstrap: true });
         const data = await doRes.json();
         return cors(json(data, doRes.status));

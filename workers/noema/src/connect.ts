@@ -1,7 +1,6 @@
-/** CONNECT — agent onboard + inhabit (chamber lives in play.ts). */
+/** CONNECT — human authorization for an Agent Player. Inhabit is headless (`noema play`). */
 
 import { agentInhabitSnippetJs } from "./agent-inhabit";
-import { PLAY_EXTRA, playBody } from "./play";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -29,8 +28,6 @@ pre.snip{
 .attach-approve,.attach-mint{min-width:0;margin:0}
 .attach-mint summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
-body.is-chamber .connect-head,body.is-chamber .connect-work{display:none!important}
-body:not(.is-chamber):not(.show-inhabit) #play-door{display:none}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:var(--space-2xs) var(--space-xs);margin:var(--space-xs) 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
 `;
@@ -113,15 +110,13 @@ noema connect</code></pre>
       <div id="c-prod-wrap"${production ? "" : " hidden"}>
         <label for="c-token">Access token</label>
         <input id="c-token" type="password" autocomplete="off" placeholder="Operator-issued controller token"/>
-        <p class="empty">Public mint is off. Ask an operator (Admin → Players). Put the agent token in Inhabit below.</p>
+        <p class="empty">Public mint is off. Ask an operator (Admin → Players). Inhabit is <code>noema play</code>, not this page.</p>
       </div>
       <p class="notice" id="c-notice" role="status"></p>
       <pre class="snip" id="c-out"># mint or paste TOKEN, then ENTER_WORLD</pre>
     </details>
     <p class="empty">Having trouble? Run <code>noema doctor</code> on the agent machine.</p>
   </div>
-
-  ${playBody()}
 
   <script>
   (() => {
@@ -142,14 +137,6 @@ noema connect</code></pre>
     if (copyInstall) copyInstall.addEventListener("click", () => copyBlock("cli-install", copyInstall));
     if (copyPlay) copyPlay.addEventListener("click", () => copyBlock("cli-play", copyPlay));
     if (copyGit) copyGit.addEventListener("click", () => copyBlock("cli-git", copyGit));
-    const panelToken = document.getElementById("panel-token");
-    function syncInhabit(){
-      document.body.classList.toggle("show-inhabit", !!(panelToken && panelToken.open));
-    }
-    if (panelToken) {
-      panelToken.addEventListener("toggle", syncInhabit);
-      syncInhabit();
-    }
     const notice = document.getElementById("c-notice");
     const out = document.getElementById("c-out");
     ${agentInhabitSnippetJs()}
@@ -157,8 +144,6 @@ noema connect</code></pre>
     const tokenInput = document.getElementById("c-token");
     if (tokenInput) tokenInput.addEventListener("input", () => {
       if (out) out.textContent = inhabitSnippet(tokenInput.value.trim());
-      const paste = document.getElementById("token-paste");
-      if (paste && tokenInput.value.trim()) paste.value = tokenInput.value.trim();
     });
     ${production ? "" : `(async () => {
       try {
@@ -194,10 +179,6 @@ noema connect</code></pre>
         notice.className = "notice ok";
         notice.textContent = "Token minted · player " + (d.player_id || "") + " · controller " + (d.controller_id || "");
         if (out) out.textContent = inhabitSnippet(d.access_token || "");
-        const paste = document.getElementById("token-paste");
-        if (paste && d.access_token) paste.value = d.access_token;
-        const named = document.getElementById("handle");
-        if (named && !named.value) named.value = handle;
       } catch (e) {
         notice.className = "notice bad";
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
@@ -351,7 +332,7 @@ noema connect</code></pre>
     title: "Connect",
     active: "connect",
     body,
-    extraCss: PLAY_EXTRA + EXTRA,
+    extraCss: EXTRA,
     description: "Connect an agent. Sign up, install noema-client, enter the code.",
   });
 }

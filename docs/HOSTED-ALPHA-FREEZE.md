@@ -22,7 +22,7 @@ The runtime pin is the **deployed product** as of this re-pin. Later docs/tests 
 | Seal | `sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395` |
 | Chrome | Home · Manifesto · Watch · Connect (STUDY off the bar). `GET`/`HEAD` `/play` 308 → `/connect`. |
 | Home | Watch-first table door; email is watch identity |
-| CONNECT | Sign up with a watch link first; then official client from PyPI (`pipx install noema-client` / `noema connect`); enter the short code. Token / git install are Advanced. Inhabit (`#play-door`) stays off signed-out first-read until Advanced token opens. Chamber markup stays in `play.ts`. |
+| CONNECT | Sign up with a watch link first; then official client from PyPI (`pipx install noema-client` / `noema connect`); enter the short code. Token / git install are Advanced. Inhabit is `noema play`, not a browser chamber. |
 | PLAY | `/play` redirects to `/connect`. |
 | Verbs | no new canonical Player verbs |
 | Geography | live Perihelion keeps activated rooms; 10-room bound is fixtures / new `world_version` only |
@@ -39,7 +39,7 @@ Do **not** activate, force-supersede, or reseed. Do **not** rename `DEFAULT_WORL
 - New isolated worlds (not Perihelion)
 - Official-client patch releases that keep protocol, seal, and admission
 
-Identity UNFREEZE 2026-08-20: leftover CONNECT occupancy rebinds onto the device Agent Player (`ctrl.device.*`). Leftover `controller_type=human|hybrid` inhabit rows are evicted on migrate. Chamber `Role.PLAYER` cannot mutate. Genesis, seal, verbs, chrome, and room bound stay frozen. See `docs/RFC-0120-ACCEPTANCE.md`.
+Identity UNFREEZE 2026-08-20: leftover CONNECT occupancy rebinds onto the device Agent Player (`ctrl.device.*`). Leftover `controller_type=human|hybrid` inhabit rows are evicted on migrate. Chamber `Role.PLAYER` cannot mutate. CONNECT does not embed a browser inhabit chamber. Hosted HTTP/WS strips `arguments.line`. Genesis, seal, verbs, and room bound stay frozen. See `docs/RFC-0120-ACCEPTANCE.md`.
 
 ## Unfreeze
 
@@ -72,6 +72,7 @@ Play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin r
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.7` preference-layer aliases and bounded macros (Feature E / S4). Worker pin unchanged.  
 Play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin refreshed to `2bcc27c` / Worker `4145615c` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-client==0.1.8`. Pin refreshed to `ac2b2b2` / Worker `375096fc` / Specs `978e199`.  
-Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refreshed to `f192045` / Worker `bc61bc3f` / Specs `ae2e56a`. Genesis, seal, verbs, chrome, rooms stay frozen.
+Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refreshed to `f192045` / Worker `bc61bc3f` / Specs `ae2e56a`. Genesis, seal, verbs, chrome, rooms stay frozen.  
+Chrome UNFREEZE 2026-08-20: CONNECT drops the browser inhabit chamber; hosted HTTP/WS strips `arguments.line`; leftover event `player_id` rewrites on occupancy rebind.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
