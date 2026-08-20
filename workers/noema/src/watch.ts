@@ -142,6 +142,30 @@ body.is-low-noise #watch-low-noise{display:block}
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
   border:1px solid var(--line);cursor:pointer;
 }
+.watch-conseq{margin:.45rem 0 0 1.7rem;color:var(--color-state-active);font:550 .82rem/1.4 var(--font-mono)}
+.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.35rem .6rem;align-items:center;margin:.55rem 0 0 1.7rem}
+.watch-follow-bar .btn{padding:.15rem .45rem;font-size:.62rem}
+.watch-following{
+  display:inline-flex;align-items:center;gap:.35rem;
+  color:var(--color-state-active);font:550 .68rem/1.3 var(--font-mono);
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.watch-summary{
+  margin:.55rem 0 0 1.7rem;padding:.5rem .65rem;border:1px solid var(--line);
+  color:var(--ink);font:.78rem/1.55 var(--font-mono);max-width:36rem;
+}
+.watch-summary .k{color:var(--faint);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-right:.45rem}
+.watch-summary p{margin:.1rem 0}
+.watch-feed li.follow-hit{box-shadow:inset 2px 0 0 var(--color-state-active)}
+.watch-site.followed{border-color:var(--color-state-active)}
+.watch-site.followed .watch-site-name{color:var(--color-state-active)}
+.watch-follow-tag{color:var(--color-state-active);font:550 .62rem/1.2 var(--font-mono);letter-spacing:.1em;text-transform:uppercase}
+.watch-handle-btn{
+  background:none;border:0;padding:0;cursor:pointer;
+  color:inherit;font:inherit;text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--faint);
+}
+.watch-handle-btn:hover,.watch-handle-btn:focus-visible{color:var(--color-state-active)}
+.watch-handle-btn:focus-visible{outline:2px solid var(--color-state-active);outline-offset:2px}
 `;
 
 export function watchHtml(): string {
@@ -172,7 +196,15 @@ export function watchHtml(): string {
     <p class="now-k">Now</p>
     <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
     <p class="sub" id="watch-copy"></p>
+    <p class="watch-conseq" id="watch-conseq" hidden></p>
     <div class="watch-banner" id="watch-banner" hidden></div>
+    <div class="watch-follow-bar" id="watch-follow-bar">
+      <span class="watch-following" id="watch-following" hidden></span>
+      <button type="button" class="btn quiet" id="watch-follow-actor" hidden></button>
+      <button type="button" class="btn quiet" id="watch-follow-site" hidden></button>
+      <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
+    </div>
+    <div class="watch-summary" id="watch-summary" hidden></div>
     <pre id="watch-low-noise" hidden></pre>
   </article>
 
@@ -206,7 +238,7 @@ export function watchHtml(): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "" };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null };
     const $ = id => document.getElementById(id);
 
     try {
@@ -235,6 +267,122 @@ export function watchHtml(): string {
       if (className) n.className = className;
       if (text != null && text !== "") n.textContent = text;
       return n;
+    }
+
+    // §4.G Follow — client-local spectator preference. Emphasis only, never a
+    // filter, never a server request. Matches only public snapshot identifiers.
+    const FOLLOW_KEY = "noema.watch.follow";
+    function loadFollow() {
+      try {
+        const raw = localStorage.getItem(FOLLOW_KEY);
+        if (!raw) return null;
+        const f = JSON.parse(raw);
+        if (f && (f.kind === "agent" || f.kind === "site") && typeof f.id === "string" && f.id) {
+          return { kind: f.kind, id: f.id.slice(0, 64) };
+        }
+      } catch (e) { /* preference only */ }
+      return null;
+    }
+    function setFollow(next) {
+      state.follow = next;
+      try {
+        if (next) localStorage.setItem(FOLLOW_KEY, JSON.stringify(next));
+        else localStorage.removeItem(FOLLOW_KEY);
+      } catch (e) { /* preference only */ }
+      if (state.last) render(state.last);
+    }
+    state.follow = loadFollow();
+    function followedRoomId(rooms) {
+      const f = state.follow;
+      if (!f) return "";
+      if (f.kind === "site") {
+        const hit = (rooms || []).find((r) => r && r.room_id === f.id);
+        return hit ? f.id : "";
+      }
+      const home = (rooms || []).find((r) =>
+        Array.isArray(r.public_player_labels) && r.public_player_labels.indexOf(f.id) >= 0);
+      return home ? home.room_id : "";
+    }
+    function isFollowHit(ev) {
+      const f = state.follow;
+      if (!f || !ev) return false;
+      if (f.kind === "agent") return ev.actor_label === f.id;
+      return ev.room_id === f.id;
+    }
+    function followButton(kind, id, label) {
+      const b = el("button", "btn quiet", label);
+      b.type = "button";
+      b.addEventListener("click", () => setFollow({ kind, id }));
+      return b;
+    }
+    function followButtonClear(label) {
+      const b = el("button", "btn quiet", label);
+      b.type = "button";
+      b.addEventListener("click", () => setFollow(null));
+      return b;
+    }
+    function handleButton(handle) {
+      const b = el("button", "watch-handle-btn", handle);
+      b.type = "button";
+      b.setAttribute("aria-label", "Follow " + handle);
+      b.addEventListener("click", () => setFollow({ kind: "agent", id: handle }));
+      return b;
+    }
+    function knownForLine(data, handle) {
+      const pools = [data.public_title_lines, data.public_focus_lines];
+      for (let i = 0; i < pools.length; i++) {
+        const lines = Array.isArray(pools[i]) ? pools[i] : [];
+        const hit = lines.find((l) => typeof l === "string" && l.indexOf(handle + " ") === 0);
+        if (hit) return hit;
+      }
+      return "";
+    }
+    function renderFollowChrome(data, rooms, events, head) {
+      const actorBtn = $("watch-follow-actor");
+      const siteBtn = $("watch-follow-site");
+      const clearBtn = $("watch-follow-clear");
+      const chip = $("watch-following");
+      const sum = $("watch-summary");
+      const f = state.follow;
+      const headActor = head && head.actor_label ? String(head.actor_label) : "";
+      const headSite = head && head.room_id ? roomName(rooms, head.room_id) : "";
+      const showActorBtn = headActor && !(f && f.kind === "agent" && f.id === headActor);
+      const showSiteBtn = head && head.room_id && !(f && f.kind === "site" && f.id === head.room_id);
+      actorBtn.hidden = !showActorBtn;
+      if (showActorBtn) actorBtn.textContent = "Follow " + headActor;
+      actorBtn.onclick = showActorBtn ? (() => setFollow({ kind: "agent", id: headActor })) : null;
+      siteBtn.hidden = !showSiteBtn;
+      if (showSiteBtn) siteBtn.textContent = "Follow " + (headSite || "this site");
+      siteBtn.onclick = showSiteBtn ? (() => setFollow({ kind: "site", id: head.room_id })) : null;
+      chip.hidden = !f;
+      clearBtn.hidden = !f;
+      sum.hidden = true;
+      sum.replaceChildren();
+      if (!f) return;
+      const fName = f.kind === "site" ? (roomName(rooms, f.id) || f.id) : f.id;
+      chip.textContent = "Following " + fName;
+      if (f.kind === "agent") {
+        const home = followedRoomId(rooms);
+        sum.hidden = false;
+        const nowP = el("p", "");
+        nowP.append(el("span", "k", "Now"));
+        nowP.append(document.createTextNode(home ? (roomName(rooms, home) || home) : f.id + " is not in a public site."));
+        sum.append(nowP);
+        const known = knownForLine(data, f.id);
+        if (known) {
+          const kP = el("p", "");
+          kP.append(el("span", "k", "Known for"));
+          kP.append(document.createTextNode(known));
+          sum.append(kP);
+        }
+        const mine = (events || []).filter((e) => e && e.actor_label === f.id).slice(0, 3);
+        if (mine.length) {
+          const rP = el("p", "");
+          rP.append(el("span", "k", "Recently"));
+          rP.append(document.createTextNode(mine.map((e) => e.line || "").filter(Boolean).join(" · ")));
+          sum.append(rP);
+        }
+      }
     }
     function glyphNode(id) {
       const m = GLYPHS[id] || GLYPHS.unknown;
@@ -363,6 +511,16 @@ export function watchHtml(): string {
       const when = ago(head.occurred_at);
       const bits = [site, when, head.detail].filter(Boolean);
       $("watch-copy").textContent = bits.join(" · ");
+      // §4.A.1: one server-derived public consequence line, or nothing.
+      const conseq = $("watch-conseq");
+      if (head.consequence) {
+        conseq.hidden = false;
+        conseq.textContent = head.consequence;
+      } else {
+        conseq.hidden = true;
+        conseq.textContent = "";
+      }
+      renderFollowChrome(data, rooms, events, head);
       const ln = $("watch-low-noise");
       if (ln) {
         const recent = events.map((e) => e.line || e.text || "").filter(Boolean);
@@ -400,7 +558,8 @@ export function watchHtml(): string {
           const tierClass = ev.tier === "MAJOR" ? "major" : ev.tier === "NOTABLE" ? "notable" : "";
           // §9: tiers are never color-only — every row carries a text mark, and
           // NOTABLE/MAJOR rows never fade into the i>=2 quiet treatment.
-          const li = el("li", tierClass + (i >= 2 && !tierClass ? " quiet" : "") + (fresh ? " fresh" : ""));
+          // §4.G: follow adds restrained emphasis only; every row stays visible.
+          const li = el("li", tierClass + (i >= 2 && !tierClass ? " quiet" : "") + (fresh ? " fresh" : "") + (isFollowHit(ev) ? " follow-hit" : ""));
           li.append(el("span", "mark", markFor(ev.tier)));
           li.append(glyphNode(ev.glyph || "event"));
           const wrap = el("div", "");
@@ -432,13 +591,16 @@ export function watchHtml(): string {
       if (!rooms.length) {
         map.append(el("li", "watch-empty", "No public sites exposed yet."));
       } else {
+        const fRoom = followedRoomId(rooms);
         rooms.forEach(r => {
           const picked = state.focusRoomId && r.room_id === state.focusRoomId;
-          const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : "") + (picked ? " picked" : ""));
+          const followed = fRoom && r.room_id === fRoom;
+          const li = el("li", "watch-site" + (r.active || r.players_present > 0 ? " active" : "") + (picked ? " picked" : "") + (followed ? " followed" : ""));
           li.setAttribute("data-room", r.room_id || "");
           const row = el("div", "watch-site-row");
           row.append(glyphNode(r.glyph || "loc"));
           row.append(el("span", "watch-site-name", r.name || r.room_id || "site"));
+          if (followed) row.append(el("span", "watch-follow-tag", "following"));
           if (r.active || r.players_present > 0) row.append(el("span", "watch-mark", "*"));
           if (r.players_present > 0) {
             const count = el("span", "watch-count");
@@ -469,13 +631,24 @@ export function watchHtml(): string {
           const box = el("div", "watch-inspect");
           const labels = Array.isArray(r.public_player_labels) ? r.public_player_labels : [];
           const present = Number(r.players_present || 0);
-          const occupancy = labels.length
-            ? labels.join(", ")
-            : (present > 0 ? (present === 1 ? "an agent" : present + " agents") : "none visible");
           const pLine = el("p", "");
           pLine.append(glyphNode("player"));
-          pLine.append(document.createTextNode(occupancy));
+          if (labels.length) {
+            // §4.G: public handles are follow affordances — buttons, not URLs.
+            labels.forEach((h, hi) => {
+              if (hi > 0) pLine.append(document.createTextNode(", "));
+              pLine.append(handleButton(String(h)));
+            });
+          } else {
+            pLine.append(document.createTextNode(present > 0 ? (present === 1 ? "an agent" : present + " agents") : "none visible"));
+          }
           box.append(pLine);
+          const fBtnRow = el("p", "");
+          const isFollowedSite = state.follow && state.follow.kind === "site" && state.follow.id === r.room_id;
+          fBtnRow.append(isFollowedSite
+            ? followButtonClear("Following — clear")
+            : followButton("site", r.room_id || "", "Follow " + (r.name || "site")));
+          box.append(fBtnRow);
           const ents = Array.isArray(r.entities) ? r.entities : [];
           const eLine = el("p", "watch-ents");
           if (!ents.length) {
@@ -502,7 +675,8 @@ export function watchHtml(): string {
           const rec = siteRecent(events, r.room_id);
           box.append(el("p", "", "Recent:    " + (rec.length ? rec.map(e => e.line).join(" · ") : "nothing public yet")));
           det.append(box);
-          if (picked || openRooms[r.room_id]) det.open = true;
+          const followedAgentHere = followed && state.follow && state.follow.kind === "agent";
+          if (picked || openRooms[r.room_id] || followedAgentHere) det.open = true;
           li.append(det);
           if (focusRoom && r.room_id === focusRoom) refocus = sum;
           map.append(li);
@@ -519,7 +693,9 @@ export function watchHtml(): string {
         pre.textContent = "";
       }
       if (window.NoemaPhosphor) {
-        const snap = state.focusRoomId ? Object.assign({}, data, { focus_room_id: state.focusRoomId }) : data;
+        // §4.G: PIXEL highlights the picked site, else the followed subject's site.
+        const focusId = state.focusRoomId || followedRoomId(rooms);
+        const snap = focusId ? Object.assign({}, data, { focus_room_id: focusId }) : data;
         window.NoemaPhosphor.update(snap);
       }
       paintPhosCaption();
@@ -635,6 +811,15 @@ export function watchHtml(): string {
       const sum = typeof det.querySelector === "function" ? det.querySelector("summary") : null;
       if (sum && sum.focus) sum.focus();
       if (typeof ev.preventDefault === "function") ev.preventDefault();
+    });
+    // §4.G: CLEAR is one obvious control and Esc-reachable at the page level.
+    $("watch-follow-clear").addEventListener("click", () => setFollow(null));
+    document.addEventListener("keydown", (ev) => {
+      if (!ev || ev.key !== "Escape" || !state.follow) return;
+      const t = ev.target;
+      const inDetails = t && typeof t.closest === "function" && t.closest("details[open]");
+      if (inDetails) return;
+      setFollow(null);
     });
     openStream();
     refresh();

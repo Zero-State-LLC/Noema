@@ -31,6 +31,10 @@ export type WatchEvent = {
   room_id?: string;
   occurred_at?: number;
   detail?: string;
+  /** §6: public handle of the acting Player; omitted (never "A player") when not public. */
+  actor_label?: string;
+  /** §4.A.1: server-derived public consequence; bands only, omitted when unprovable. */
+  consequence?: string;
 };
 
 export type WatchSourceEvent = {
@@ -168,6 +172,12 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
     if (payload?.kind === "harvest" || payload?.from === "node" || fromId.startsWith("entity.")) return "harvest";
     return "resource_change";
   }
+  if (t === "INFRASTRUCTURE_DISRUPTED") {
+    // §4.E: band failed → MAJOR infrastructure_disrupted; else NOTABLE infrastructure.
+    const after = typeof payload?.condition_after === "number" ? payload.condition_after : undefined;
+    if (after !== undefined && conditionBand(after) === "failed") return "infrastructure_disrupted";
+    return "infrastructure";
+  }
   if (t === "ENTITY_UPDATE") {
     if (payload?.operation === "REPURPOSE") return null;
     if (payload?.operation === "ABANDON" || payload?.unclaimed === true) return null;
@@ -213,6 +223,65 @@ function labelOf(ev: WatchSourceEvent): string {
 function roomName(id: string | undefined, rooms: Record<string, { name?: string }>): string | undefined {
   if (!id) return undefined;
   return rooms[id]?.name;
+}
+
+/** SPECTATOR.md public bands: >=75 ok, 25..74 degraded, <25 failed. Integers never leave the Worker. */
+export function conditionBand(n: number): "ok" | "degraded" | "failed" {
+  if (n >= 75) return "ok";
+  if (n >= 25) return "degraded";
+  return "failed";
+}
+
+/** Public room containing a public entity, or undefined. Hidden rooms/entities never match, even on unfiltered input. */
+function entityHome(
+  entityId: string | undefined,
+  publicRooms: Record<string, WatchRoomIn>,
+): { room: WatchRoomIn; label: string } | undefined {
+  if (!entityId) return undefined;
+  for (const room of Object.values(publicRooms)) {
+    if (!room || isHiddenRoom(room)) continue;
+    const hit = (room.entities || []).find((e) => e.entity_id === entityId && e.hidden !== true);
+    if (hit) return { room, label: hit.label || "infrastructure" };
+  }
+  return undefined;
+}
+
+function isRepairUpdate(ev: WatchSourceEvent): boolean {
+  if (String(ev.event_type || "").toUpperCase() !== "ENTITY_UPDATE") return false;
+  return ev.payload?.operation === "REPAIR" || ev.payload?.kind === "repair";
+}
+
+/**
+ * §4.A.1: deterministic public consequence. Bands only; omitted when unprovable.
+ * Derives solely from public event payload numbers that never reach the wire.
+ */
+export function consequenceForEvent(
+  ev: WatchSourceEvent,
+  publicRooms: Record<string, WatchRoomIn>,
+): string | undefined {
+  const t = String(ev.event_type || "").toUpperCase();
+  const payload = ev.payload || {};
+  let before: unknown;
+  let after: unknown;
+  let entityId: string | undefined;
+  if (t === "INFRASTRUCTURE_DISRUPTED") {
+    before = payload.condition_before;
+    after = payload.condition_after;
+    entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
+  } else if (t === "ENTITY_UPDATE" && payload.field === "condition" && (isRepairUpdate(ev) || payload.authorizer === "schedule")) {
+    before = payload.from;
+    after = payload.to;
+    entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
+  } else {
+    return undefined;
+  }
+  if (typeof before !== "number" || typeof after !== "number") return undefined;
+  const home = entityHome(entityId, publicRooms);
+  if (!home) return undefined;
+  const from = conditionBand(before);
+  const to = conditionBand(after);
+  if (from === to) return undefined;
+  return `${home.label}: ${from} → ${to}`;
 }
 
 function payloadRoomId(payload: Record<string, unknown> | undefined): string | undefined {
@@ -271,6 +340,21 @@ export function phraseWatchEvent(
     case "ORG_MEMBER_ADD":
     case "ORG_MEMBER_REMOVE":
       return site ? `An organization acted at ${site}` : "An organization acted";
+    case "ENTITY_UPDATE": {
+      if (isRepairUpdate(ev)) {
+        const home = entityHome(typeof payload.entity_id === "string" ? payload.entity_id : undefined, publicRooms as Record<string, WatchRoomIn>);
+        const target = home?.label || "infrastructure";
+        const repairer = publicHandle({ handle: typeof payload.last_repair_handle === "string" ? payload.last_repair_handle : ev.handle }) || labelOf(ev);
+        return `${repairer} repaired ${target}`;
+      }
+      return site ? `Public activity at ${site}` : "Public activity";
+    }
+    case "INFRASTRUCTURE_DISRUPTED": {
+      const home = entityHome(typeof payload.entity_id === "string" ? payload.entity_id : undefined, publicRooms as Record<string, WatchRoomIn>);
+      const target = home?.label || "Infrastructure";
+      const at = site || home?.room.name;
+      return at ? `${target} was disrupted at ${at}` : `${target} was disrupted`;
+    }
     default:
       return site ? `Public activity at ${site}` : "Public activity";
   }
@@ -407,8 +491,24 @@ function sourceToWatchEvent(
     // Hidden or unknown room — still allow leave; drop other room-bound leaks.
     if (roomId.startsWith("room.")) return null;
   }
-  const publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
+  let publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
+  const infraShaped = isRepairUpdate(ev) || ev.event_type.toUpperCase() === "INFRASTRUCTURE_DISRUPTED";
+  if (!publicRoomId && infraShaped) {
+    // §5: a public repair/disruption resolves its public site via the entity's
+    // public room; if none, the event is omitted, not anonymized into filler.
+    const home = entityHome(
+      typeof ev.payload?.entity_id === "string" ? ev.payload.entity_id : undefined,
+      publicRooms,
+    );
+    if (!home) return null;
+    publicRoomId = home.room.room_id;
+  }
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
+  const actor = publicHandle(ev) ||
+    (isRepairUpdate(ev)
+      ? publicHandle({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" })
+      : null);
+  const consequence = consequenceForEvent(ev, publicRooms);
   return {
     sequence: ev.sequence,
     cycle: ev.cycle ?? 0,
@@ -418,6 +518,8 @@ function sourceToWatchEvent(
     glyph: glyphForProjection(projectionId),
     room_id: publicRoomId,
     occurred_at: typeof ev.at === "number" ? ev.at : undefined,
+    ...(actor ? { actor_label: actor } : {}),
+    ...(consequence ? { consequence } : {}),
   };
 }
 
