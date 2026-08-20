@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "8930f41dcf06a699ee85a58b52ee2ef6acbab073",
+    "runtime_git": "2bcc27c15d0bee013ee9d096da4eb3e3c31212a6",
     "specs_git": "978e199e0b78a4333ea7bc057b4cde1b2d9612b8",
-    "worker_version_id": "a54f35e0-ca24-470e-9acf-bb1279d7e662",
+    "worker_version_id": "4145615c-fb5d-49e9-becc-1565b9169185",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.7",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "client UNFREEZE 2026-08-20: official Controller noema-client 0.1.7 preference-layer aliases and bounded macros. Worker pin stays 8930f41 / a54f35e0. Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin 2bcc27c / Worker 4145615c / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
