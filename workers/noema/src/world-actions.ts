@@ -550,6 +550,7 @@ export function buildObservation(
     practice: pl.practice,
     cycle: w.cycle,
     focus: pl.focus,
+    hiddenRoom: isHiddenRoom(room),
   });
   const available_actions = [
     ...new Set(
@@ -703,6 +704,9 @@ export function buildObservation(
       extent: a.extent,
       track: a.track,
       clear: a.clear,
+      class: a.class,
+      subject_id: a.subject_id,
+      archive_claim: a.archive_claim,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1362,6 +1366,7 @@ export async function applyWorldCommand(
         practice: pl.practice,
         cycle: w.cycle,
         focus: pl.focus,
+        hiddenRoom: room ? isHiddenRoom(room) : false,
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
@@ -5578,7 +5583,7 @@ async function applyAttest(
     return fail(request_id, "NOT_OBSERVABLE", "That place cannot be attested.");
   }
   const entity_id = String(args.entity_id || "").trim();
-  const subject = String(args.subject_entity_id || "").trim();
+  const subject = String(args.subject_entity_id || args.subject_id || "").trim();
   const claim = args.archive_claim;
   if (!entity_id) return fail(request_id, "NOT_FOUND", "Name a visible artifact.");
   if (!subject || (claim !== "DESTROYED" && claim !== "OPERATING")) {

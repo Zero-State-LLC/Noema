@@ -151,6 +151,11 @@ export interface ObservationAffordance {
   track?: "explorer" | "surveyor" | "broker" | "engineer";
   /** GC1-S7. Structured FOCUS clear. */
   clear?: boolean;
+  /** GC2. Structured BUILD.CONSTRUCT class. */
+  class?: string;
+  /** RFC-0020. Structured ATTEST subject entity. */
+  subject_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
