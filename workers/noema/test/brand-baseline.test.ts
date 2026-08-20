@@ -71,7 +71,7 @@ describe("brand slice 0 — hosted HTML routes", () => {
       ["/play/callback", 200, "/v1/play/login/consume"],
       ["/watch", 200, "/v1/watch/live"],
       ["/connect", 200, 'id="d-code"'],
-      ["/study", 200, "not open"],
+      ["/study", 200, "does not rewrite the ledger"],
       ["/admin/login", 200, "/v1/admin/login"],
     ];
     for (const [path, status, needle] of paths) {
@@ -85,7 +85,7 @@ describe("brand slice 0 — hosted HTML routes", () => {
     expect(play.headers.get("location")).toBe("https://noema.guru/connect");
   });
 
-  it("does not put STUDY in primary nav", () => {
+  it("puts STUDY on primary nav without PLAY", () => {
     const nav = productShell({ title: "T", active: "home", body: "x" }).match(
       /<nav class="nav"[\s\S]*?<\/nav>/,
     )?.[0];
@@ -94,8 +94,8 @@ describe("brand slice 0 — hosted HTML routes", () => {
     expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
     expect(nav).toMatch(/>Connect</);
+    expect(nav).toMatch(/>Study</);
     expect(nav).not.toMatch(/>Play</);
-    expect(nav).not.toMatch(/>Study</);
   });
 
   it("product tabs use the hero type treatment", () => {

@@ -266,6 +266,7 @@ ${FONTS}
     ${nav("/manifesto", "Manifesto", "manifesto")}
     ${nav("/watch", "Watch", "watch")}
     ${nav("/connect", "Connect", "connect")}
+    ${nav("/study", "Study", "study")}
   </nav>
   ${runtime}
 </header>

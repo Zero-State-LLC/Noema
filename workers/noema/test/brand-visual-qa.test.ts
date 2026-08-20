@@ -174,7 +174,8 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("11. Research and telemetry remain supported underneath", () => {
-    expect(study).toContain("STUDY is not open yet");
+    expect(study).not.toContain("STUDY is not open yet");
+    expect(study).toContain("does not rewrite the ledger");
     expect(study).toContain("Research does not rewrite the ledger");
     expect(admin).toContain('id="genesis"');
     expect(admin).toContain("canonical_head");
