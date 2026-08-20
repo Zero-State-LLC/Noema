@@ -153,6 +153,9 @@ describe("RESOURCE-ECONOMY production tick", () => {
     expect(harvest?.available).toBe(false);
     expect(harvest?.reason).toBe("Not enough stock available.");
     expect(looked.observation?.affordances?.some((a) => a.action === "WAIT" && a.available)).toBe(true);
+    const firstAvailable = looked.observation?.affordances?.find((a) => a.available);
+    expect(firstAvailable?.action).toBe("WAIT");
+    expect(looked.observation?.available_actions?.[0]).toBe("WAIT");
   });
 
   it("names free storage when the node has stock and the Player does not", async () => {
