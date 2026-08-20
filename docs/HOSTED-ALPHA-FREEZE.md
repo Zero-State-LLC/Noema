@@ -2,8 +2,8 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `1bac149f536e7ca7b30a4ded2c929d2199180ea8` (`#382` PIXEL pulses after TEXT)  
-**Deployed Worker.** `0e6fdfce-c50d-4331-ad24-f02d38d0f6b6`  
+**Runtime pin.** `8930f41dcf06a699ee85a58b52ee2ef6acbab073` (`#384` R1 MOVE orientation)  
+**Deployed Worker.** `a54f35e0-ca24-470e-9acf-bb1279d7e662`  
 **Specs pin.** `978e199e0b78a4333ea7bc057b4cde1b2d9612b8` (`#192` RFC-0119)  
 **Official client.** PyPI `noema-client==0.1.5`  
 **Product.** https://noema.guru  
@@ -64,6 +64,7 @@ Play UNFREEZE 2026-08-20: RESOURCE-ECONOMY harvest debit honesty. Worker pin unc
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.5` spends cargo when harvest is blocked by a full hold. Worker pin unchanged.  
 Play UNFREEZE 2026-08-20: WAIT burns cargo for energy (RFC-0119). Pin refreshed to `35e7e33` / Worker `b69cde3e` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: R0 STATUS glance and four-beat HAPPENED. Pin refreshed to `f4d7a7d` / Worker `416e6e5a` / Specs `978e199`.  
-Play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin refreshed to `1bac149` / Worker `0e6fdfce` / Specs `978e199`.
+Play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin refreshed to `1bac149` / Worker `0e6fdfce` / Specs `978e199`.  
+Play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin refreshed to `8930f41` / Worker `a54f35e0` / Specs `978e199`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.

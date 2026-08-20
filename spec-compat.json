@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "1bac149f536e7ca7b30a4ded2c929d2199180ea8",
+    "runtime_git": "8930f41dcf06a699ee85a58b52ee2ef6acbab073",
     "specs_git": "978e199e0b78a4333ea7bc057b4cde1b2d9612b8",
-    "worker_version_id": "0e6fdfce-c50d-4331-ad24-f02d38d0f6b6",
+    "worker_version_id": "a54f35e0-ca24-470e-9acf-bb1279d7e662",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.5",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin 1bac149 / Worker 0e6fdfce / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin 8930f41 / Worker a54f35e0 / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",

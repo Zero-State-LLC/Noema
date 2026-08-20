@@ -3,7 +3,7 @@
 **Channel.** `alpha` — **FROZEN**  
 **Runtime.** `0.12.0` (`spec-compat.json` freeze name `hosted-alpha-0.12.1`)  
 **Product.** https://noema.guru  
-**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `1bac149` · Worker `0e6fdfce-c50d-4331-ad24-f02d38d0f6b6`  
+**Freeze.** `docs/HOSTED-ALPHA-FREEZE.md` · pin `8930f41` · Worker `a54f35e0-ca24-470e-9acf-bb1279d7e662`  
 **Official client.** PyPI [`noema-client`](https://pypi.org/project/noema-client/) `0.1.5`  
 **Closeout.** `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md` — verdict `NOEMA PRODUCTION CONFORMANT`
 
