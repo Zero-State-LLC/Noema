@@ -878,6 +878,33 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     expect(session.mode).toBe("text");
     expect(session.idle).toBe(true);
   });
+
+  it("PIXEL after TEXT still pulses the current public snapshot", () => {
+    let now = 1_000;
+    const session = createPhosphorSession({
+      canvas: { width: 0, height: 0, getContext: () => mockCtx() },
+      now: () => now,
+      raf: () => 1,
+      caf: () => {},
+    });
+    session.setMode("text");
+    session.update({
+      sequence: 716,
+      rooms: [{ room_id: "room.relay-quarter", name: "Grid Anchor" }],
+      recent_events: [
+        {
+          sequence: 716,
+          tier: "NORMAL",
+          room_id: "room.relay-quarter",
+          projection_id: "agent_move",
+        },
+      ],
+    });
+    expect(session.pulses).toEqual([]);
+    session.setMode("pixel");
+    expect(session.pulses.length).toBeGreaterThan(0);
+    expect(session.pulses[0]?.room_id).toBe("room.relay-quarter");
+  });
 });
 
 describe("slice 5 — budgets, idle, regressions", () => {

@@ -963,6 +963,7 @@ export function createPhosphorSession(opts: {
   let pulses: PhosphorPulse[] = [];
   let lastSeq = -1;
   let lastLayout: PhosphorLayout = { nodes: [], edges: [] };
+  let lastSnapshot: PhosphorSnapshot | null = null;
   let rafId = 0;
   let rafStarts = 0;
   let lastFrame = 0;
@@ -1002,6 +1003,27 @@ export function createPhosphorSession(opts: {
     rafId = opts.raf(loop);
   }
 
+  function ingest(snapshot: PhosphorSnapshot) {
+    lastLayout = layoutPublicTopology(
+      snapshot.rooms || [],
+      snapshot.recent_events,
+      snapshot.focus_room_id,
+    );
+    const t = nowFn();
+    if (!reduced && ctx && mode === "pixel") {
+      const roomSet = new Set(lastLayout.nodes.map(function (n) { return n.room_id; }));
+      const born = collectPulses(lastSeq, snapshot, t, reduced, roomSet);
+      // Caps enforced at merge time, newest-first — a newer event replaces
+      // the oldest live pulse instead of being silently dropped (§18.6).
+      pulses = capPulses(expirePulses(pulses.concat(born), t));
+      lastSeq = Number(snapshot.sequence || 0);
+    } else {
+      pulses = [];
+    }
+    paint(t);
+    kick();
+  }
+
   const session: PhosphorSession = {
     get mode() {
       return mode;
@@ -1027,9 +1049,18 @@ export function createPhosphorSession(opts: {
         stopRaf();
         return;
       }
+      const prev = mode;
       mode = next;
-      if (mode === "text") stopRaf();
-      else paint(nowFn());
+      if (mode === "text") {
+        pulses = [];
+        stopRaf();
+        return;
+      }
+      if (prev !== "pixel" && lastSnapshot) ingest(lastSnapshot);
+      else {
+        paint(nowFn());
+        kick();
+      }
     },
     setReducedMotion(on: boolean) {
       reduced = Boolean(on);
@@ -1040,24 +1071,8 @@ export function createPhosphorSession(opts: {
       paint(nowFn());
     },
     update(snapshot: PhosphorSnapshot) {
-      lastLayout = layoutPublicTopology(
-        snapshot.rooms || [],
-        snapshot.recent_events,
-        snapshot.focus_room_id,
-      );
-      const t = nowFn();
-      if (!reduced && ctx && mode === "pixel") {
-        const roomSet = new Set(lastLayout.nodes.map(function (n) { return n.room_id; }));
-        const born = collectPulses(lastSeq, snapshot, t, reduced, roomSet);
-        // Caps enforced at merge time, newest-first — a newer event replaces
-        // the oldest live pulse instead of being silently dropped (§18.6).
-        pulses = capPulses(expirePulses(pulses.concat(born), t));
-      } else {
-        pulses = [];
-      }
-      lastSeq = Number(snapshot.sequence || 0);
-      paint(t);
-      kick();
+      lastSnapshot = snapshot;
+      ingest(snapshot);
     },
     fail() {
       mode = "text";
