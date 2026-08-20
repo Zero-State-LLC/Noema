@@ -684,19 +684,28 @@ export function watchHtml(): string {
       }
       if (refocus && refocus.focus) refocus.focus();
 
-      const pre = $("watch-pre");
-      if (shouldPre(rooms) && window.matchMedia("(min-width: 861px)").matches) {
-        pre.hidden = false;
-        pre.textContent = drawPre(rooms);
-      } else {
-        pre.hidden = true;
-        pre.textContent = "";
-      }
       if (window.NoemaPhosphor) {
         // §4.G: PIXEL highlights the picked site, else the followed subject's site.
         const focusId = state.focusRoomId || followedRoomId(rooms);
         const snap = focusId ? Object.assign({}, data, { focus_room_id: focusId }) : data;
         window.NoemaPhosphor.update(snap);
+      }
+      // §4.B.1: cartogram from the shared layout; line list only as fallback.
+      const pre = $("watch-pre");
+      let art = "";
+      if (window.NoemaPhosphor && window.NoemaPhosphor.ascii) {
+        art = window.NoemaPhosphor.ascii({
+          majorRoomId: head.tier === "MAJOR" ? head.room_id || "" : "",
+          pickedRoomId: state.focusRoomId || "",
+        }) || "";
+      }
+      if (!art && shouldPre(rooms)) art = drawPre(rooms);
+      if (art && window.matchMedia("(min-width: 861px)").matches) {
+        pre.hidden = false;
+        pre.textContent = art;
+      } else {
+        pre.hidden = true;
+        pre.textContent = "";
       }
       paintPhosCaption();
     }

@@ -27,7 +27,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Atmosphere plate | `.watch-atmos` (`/assets/watch-spectator.jpg`) | functional chrome (≤200 KiB assets) |
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
-| ASCII pre fallback | `#watch-pre` | required text (desktop) |
+| ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; line-list fallback) | `#watch-pre` | required text (desktop) |
 | Recent feed | `#watch-feed` | required text |
 | Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |
 | Key / legend | `#world-key` live SVG catalog (`legendHtml()`) | required text |
@@ -80,6 +80,8 @@ At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win acro
 States: empty, loading/error, PAUSED, MAJOR, live feed.
 
 Viewports: 360 / 390 / 768 / 1280 / 1440. Below 860px the stage stacks; ASCII pre hides.
+
+The ASCII cartogram (`asciiCartogram`) rasterizes the same deterministic public layout as PIXEL — TEXT and PIXEL agree on arrangement. `[NAME]` sites, `*` activity, occupancy counts, `!` MAJOR-headline site, `+` picked site, `- | \ /` route connectors (`.` dashed). Budget 78×24; over-budget graphs fall back to the per-site line list. `aria-hidden` atmosphere; the semantic list stays authoritative.
 
 Reduced-motion kills `.watch-hero.major` animation and phosphor pulses.
 

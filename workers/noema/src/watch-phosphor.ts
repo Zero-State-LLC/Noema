@@ -497,6 +497,108 @@ export function expirePulses(pulses: PhosphorPulse[], now: number): PhosphorPuls
   return pulses.filter((p) => now - p.born < p.ttl);
 }
 
+export const CARTOGRAM_COLS = 78;
+export const CARTOGRAM_ROWS = 24;
+export const CARTOGRAM_MAX_SITES = 24;
+
+/**
+ * §4.B.1 ASCII cartogram — TEXT-mode sibling of the PIXEL sketch.
+ * Rasterizes the SAME deterministic public layout (single spatial truth).
+ * Pure and deterministic; returns null when the graph will not fit the budget.
+ */
+export function asciiCartogram(
+  layout: PhosphorLayout | null | undefined,
+  opts?: { majorRoomId?: string; pickedRoomId?: string },
+): string | null {
+  const nodes = layout && Array.isArray(layout.nodes) ? layout.nodes : [];
+  const edges = layout && Array.isArray(layout.edges) ? layout.edges : [];
+  if (!nodes.length || nodes.length > CARTOGRAM_MAX_SITES) return null;
+  const cols = CARTOGRAM_COLS;
+  const rows = CARTOGRAM_ROWS;
+  const majorId = String((opts && opts.majorRoomId) || "");
+  const pickedId = String((opts && opts.pickedRoomId) || "");
+
+  const grid: string[][] = [];
+  for (let r = 0; r < rows; r++) grid.push(new Array(cols).fill(" "));
+
+  const gx = (x: number) => Math.max(1, Math.min(cols - 2, Math.round((x / PHOSPHOR_WIDTH) * (cols - 2)) + 1));
+  const gy = (y: number) => Math.max(0, Math.min(rows - 1, Math.round((y / PHOSPHOR_HEIGHT) * (rows - 1))));
+  const anchors = new Map<string, { cx: number; cy: number }>();
+  for (let i = 0; i < nodes.length; i++) {
+    anchors.set(nodes[i].room_id, { cx: gx(nodes[i].x), cy: gy(nodes[i].y) });
+  }
+
+  // Edges first; labels stroke over them. Empty cells only — never overwrite.
+  const put = (r: number, c: number, ch: string) => {
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+    if (grid[r][c] === " ") grid[r][c] = ch;
+  };
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    const a = anchors.get(e.from);
+    const b = anchors.get(e.to);
+    if (!a || !b) continue;
+    const dc = b.cx - a.cx;
+    const dr = b.cy - a.cy;
+    const steps = Math.max(Math.abs(dc), Math.abs(dr));
+    if (steps < 2) continue;
+    const solid = Math.abs(dc) >= 2 * Math.abs(dr) ? "-" : Math.abs(dr) >= 2 * Math.abs(dc) ? "|" : dc * dr > 0 ? "\\" : "/";
+    const ch = e.dashed === true ? "." : solid;
+    for (let s = 1; s < steps; s++) {
+      put(Math.round(a.cy + (dr * s) / steps), Math.round(a.cx + (dc * s) / steps), ch);
+    }
+  }
+
+  // Labels: [NAME] + * activity, count, ! MAJOR, + picked. Sorted for determinism.
+  const ordered = [...nodes].sort((a, b) => a.room_id.localeCompare(b.room_id));
+  const taken: Array<{ r: number; c0: number; c1: number }> = [];
+  let crowded = false;
+  for (let i = 0; i < ordered.length; i++) {
+    const n = ordered[i];
+    const a = anchors.get(n.room_id);
+    if (!a) continue;
+    const active = n.certainty === "active" || n.players > 0;
+    let label = "[" + safePhosphorLabel(n.name).toUpperCase().slice(0, 14) + "]";
+    if (active) label += "*";
+    if (n.players > 0) label += String(Math.min(n.players, 99));
+    if (majorId && n.room_id === majorId) label += "!";
+    if (pickedId && n.room_id === pickedId) label += "+";
+    let c0 = Math.max(0, Math.min(cols - label.length, a.cx - (label.length >> 1)));
+    let placedRow = -1;
+    for (let d = 0; d < 5 && placedRow < 0; d++) {
+      const r = a.cy + (d % 2 === 0 ? d / 2 : -((d + 1) / 2));
+      if (r < 0 || r >= rows) continue;
+      const clash = taken.some((t) => t.r === r && c0 <= t.c1 + 1 && c0 + label.length >= t.c0);
+      if (!clash) placedRow = r;
+    }
+    if (placedRow < 0) {
+      crowded = true;
+      break;
+    }
+    for (let k = 0; k < label.length; k++) grid[placedRow][c0 + k] = label[k];
+    taken.push({ r: placedRow, c0, c1: c0 + label.length - 1 });
+  }
+  if (crowded) return null;
+
+  const lines = grid.map((r) => r.join("").replace(/\s+$/, ""));
+  while (lines.length && !lines[0]) lines.shift();
+  while (lines.length && !lines[lines.length - 1]) lines.pop();
+  // Sparse worlds: collapse runs of identical connector-only rows to two.
+  const connectorOnly = (l: string) => l.length > 0 && !/[^\s|/\\.-]/.test(l);
+  const out: string[] = [];
+  let run = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0 && lines[i] === lines[i - 1] && connectorOnly(lines[i])) {
+      run += 1;
+      if (run >= 2) continue;
+    } else {
+      run = 0;
+    }
+    out.push(lines[i]);
+  }
+  return out.length ? out.join("\n") : null;
+}
+
 type DrawCtx = {
   fillStyle: string;
   strokeStyle: string;
@@ -864,6 +966,8 @@ export type PhosphorSession = {
   fail(): void;
   tick(now?: number): void;
   hit(x: number, y: number): PhosphorNode | null;
+  /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */
+  ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null;
 };
 
 export function phosphorLabelAnchor(x: number, y: number): { x: number; y: number } {
@@ -1088,6 +1192,9 @@ export function createPhosphorSession(opts: {
     hit(x: number, y: number) {
       return hitPhosphorNode(lastLayout, x, y);
     },
+    ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }) {
+      return asciiCartogram(lastLayout, opts);
+    },
   };
   return session;
 }
@@ -1148,6 +1255,10 @@ export function phosphorInlineScript(bind?: {
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};
     const canvasPointFromEvent = ${canvasPointFromEvent.toString()};
     const hitPhosphorNode = ${hitPhosphorNode.toString()};
+    const CARTOGRAM_COLS = ${CARTOGRAM_COLS};
+    const CARTOGRAM_ROWS = ${CARTOGRAM_ROWS};
+    const CARTOGRAM_MAX_SITES = ${CARTOGRAM_MAX_SITES};
+    const asciiCartogram = ${asciiCartogram.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
 
     const canvas = document.getElementById(${JSON.stringify(canvasId)});
