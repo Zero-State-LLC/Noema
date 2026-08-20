@@ -176,6 +176,12 @@ export interface ObservationAffordance {
   };
   contest_id?: string;
   stake?: Record<string, number>;
+  /** RFC-0100. Structured AGREEMENT type / parties / id. */
+  agreement_type?: string;
+  party_ids?: string[];
+  agreement_id?: string;
+  /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
+  agreement_reason?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;

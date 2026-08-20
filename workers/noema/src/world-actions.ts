@@ -554,6 +554,7 @@ export function buildObservation(
     hiddenRoom: isHiddenRoom(room),
     roomId: room.room_id,
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
+    agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
   });
   const available_actions = [
     ...new Set(
@@ -717,6 +718,10 @@ export function buildObservation(
       target: a.target,
       contest_id: a.contest_id,
       stake: a.stake,
+      agreement_type: a.agreement_type,
+      party_ids: a.party_ids,
+      agreement_id: a.agreement_id,
+      agreement_reason: a.agreement_reason,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1385,6 +1390,7 @@ export async function applyWorldCommand(
         hiddenRoom: room ? isHiddenRoom(room) : false,
         roomId: room?.room_id,
         openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
+        agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
       });
       const text = helpText(topic, aff);
       const result = success(w, principal, request_id, [], text, false);
