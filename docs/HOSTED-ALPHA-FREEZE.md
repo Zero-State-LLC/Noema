@@ -2,9 +2,9 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `ac2b2b20b4130e784f82a47732e9f7f31ac841b4` (`#391` CONNECT pipx upgrade)  
-**Deployed Worker.** `375096fc-5dd1-45da-9d06-6bb1ab83a7eb`  
-**Specs pin.** `978e199e0b78a4333ea7bc057b4cde1b2d9612b8` (`#192` RFC-0119)  
+**Runtime pin.** `f192045f24a5b7234196abe548a116e0a7ad08d8` (`#399` identity UNFREEZE)  
+**Deployed Worker.** `bc61bc3f-05db-4288-950c-2c04d309d1b6`  
+**Specs pin.** `ae2e56afb5bfed0335e2760c856a3723ffc4ed27` (`#195` remap governance close)  
 **Official client.** PyPI `noema-client==0.1.8`  
 **Product.** https://noema.guru  
 
@@ -72,6 +72,6 @@ Play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin r
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.7` preference-layer aliases and bounded macros (Feature E / S4). Worker pin unchanged.  
 Play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin refreshed to `2bcc27c` / Worker `4145615c` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-client==0.1.8`. Pin refreshed to `ac2b2b2` / Worker `375096fc` / Specs `978e199`.  
-Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refresh in `spec-compat.json` `frozen_release.unfreeze`. Genesis, seal, verbs, chrome, rooms stay frozen.
+Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent Players; Chamber Role.PLAYER cannot mutate. Pin refreshed to `f192045` / Worker `bc61bc3f` / Specs `ae2e56a`. Genesis, seal, verbs, chrome, rooms stay frozen.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.
