@@ -39,6 +39,8 @@ Do **not** activate, force-supersede, or reseed. Do **not** rename `DEFAULT_WORL
 - New isolated worlds (not Perihelion)
 - Official-client patch releases that keep protocol, seal, and admission
 
+RFC-0120 identity work is **landed** (`docs/RFC-0120-ACCEPTANCE.md`). Do not reopen human inhabit, Player mint from human JWT, or live Perihelion `player_id` remap without a new `UNFREEZE` (and a migration RFC for remap).
+
 ## Unfreeze
 
 Same PR must:
