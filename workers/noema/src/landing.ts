@@ -164,6 +164,19 @@ export function homeExcerptFromLive(data: unknown): string[] {
     if (!line || quiet(line) || line === nowLine) continue;
     lines.push(line);
   }
+  for (const row of rooms) {
+    if (lines.length >= MAX) break;
+    if (!row || typeof row !== "object") continue;
+    const traces = Array.isArray((row as { traces?: unknown }).traces)
+      ? ((row as { traces: Array<{ text?: unknown }> }).traces)
+      : [];
+    for (const t of traces) {
+      if (lines.length >= MAX) break;
+      const line = publicLine(t?.text);
+      if (!line || lines.includes(line)) continue;
+      lines.push(line);
+    }
+  }
   if (!lines.length) return [FALLBACK];
   return lines.slice(0, MAX);
 }

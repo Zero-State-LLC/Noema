@@ -26,6 +26,7 @@ RFC-0120 remains `RUNTIME ACCEPTED`. Genesis, seal, verbs, chrome, and room boun
 | T3.5 redaction | MATCH | hidden room/entity; public JSON has no `entity.` / `player.` |
 | T3.6 cap | MATCH | max 3; scar → plate → unfinished work |
 | C8 S-MARK-10 | MATCH | ≤10 acts; later agent sees the plate |
+| WATCH/Home public traces | MATCH | scar/plate on `/v1/watch/live` rooms + Home excerpt; no board/inbox |
 | P12 no TRACE verb | still MATCH | `workers/noema/test/rfc0120-traces.test.ts` |
 
 ## Non-goals honored

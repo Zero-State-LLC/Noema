@@ -489,6 +489,16 @@ export function watchHtml(): string {
             });
           }
           box.append(eLine);
+          const traces = Array.isArray(r.traces) ? r.traces : [];
+          if (traces.length) {
+            const tLine = el("p", "watch-traces");
+            traces.forEach((t) => {
+              const item = el("span", "watch-exit");
+              item.append(document.createTextNode(t && t.text ? String(t.text) : ""));
+              tLine.append(item);
+            });
+            box.append(tLine);
+          }
           const rec = siteRecent(events, r.room_id);
           box.append(el("p", "", "Recent:    " + (rec.length ? rec.map(e => e.line).join(" · ") : "nothing public yet")));
           det.append(box);

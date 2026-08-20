@@ -655,6 +655,105 @@ describe("notable headline and visible feed", () => {
   });
 });
 
+describe("Feature D WATCH traces", () => {
+  it("projects public scar and repair plates onto rooms after the originator is gone", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 4,
+      sequence: 20,
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [],
+          entities: [
+            {
+              entity_id: "entity.relay-7",
+              label: "scarred-conduit",
+              entity_type: "INFRASTRUCTURE",
+              last_repair_cycle: 4,
+              last_repair_handle: "Sable",
+            },
+            {
+              entity_id: "entity.scar.1",
+              label: "old-weld",
+              entity_type: "INFRASTRUCTURE",
+              scar: true,
+            },
+          ],
+        },
+      },
+      players: [],
+      events: [],
+      now: NOW,
+    });
+    const hub = (snap.rooms as Array<{ name?: string; traces?: Array<{ kind: string; text: string }> }>).find(
+      (r) => r.name === "Grid Anchor",
+    );
+    expect(hub?.traces?.map((t) => t.text)).toEqual([
+      "A scar remains (old-weld).",
+      "A maintenance plate names Sable as the last repairer.",
+    ]);
+    expect(JSON.stringify(hub?.traces)).not.toMatch(/entity\.|player\.|source_state_ref/);
+  });
+
+  it("omits hidden rooms, hidden entities, and board notices from WATCH traces", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 1,
+      sequence: 3,
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "Public.",
+          exits: [],
+          entities: [
+            {
+              entity_id: "entity.secret-scar",
+              label: "hidden-scar",
+              entity_type: "INFRASTRUCTURE",
+              scar: true,
+              hidden: true,
+            },
+          ],
+        },
+        "room.vault": {
+          room_id: "room.vault",
+          name: "Sealed Vault",
+          description: "Not for spectators.",
+          hidden: true,
+          exits: [],
+          entities: [
+            {
+              entity_id: "entity.core",
+              label: "Core",
+              entity_type: "INFRASTRUCTURE",
+              last_repair_cycle: 1,
+              last_repair_handle: "Sable",
+            },
+          ],
+        },
+      },
+      players: [],
+      events: [],
+      now: NOW,
+    });
+    const roomsOut = snap.rooms as Array<{ name?: string; traces?: unknown }>;
+    expect(roomsOut.map((r) => r.name)).toEqual(["Grid Anchor"]);
+    expect(roomsOut[0].traces).toBeUndefined();
+    expect(JSON.stringify(snap)).not.toMatch(/Sealed Vault|hidden-scar|A notice on the board/);
+  });
+
+  it("WATCH inspect markup reads room traces without innerHTML", () => {
+    const html = watchHtml();
+    expect(html).toContain("r.traces");
+    expect(html).toContain("watch-traces");
+    expect(html).not.toMatch(/\.innerHTML\s*=/);
+  });
+});
+
 describe("home live excerpt", () => {
   it("reads WATCH-safe live projection with a quiet fallback", () => {
     const html = landingHtml();
@@ -697,6 +796,19 @@ describe("home live excerpt", () => {
     expect(lines).toContain("Orin entered the Exchange.");
     expect(lines.join("\n")).not.toMatch(/player\./);
     expect(lines.join("\n")).not.toMatch(/room\./);
+    const plated = homeExcerptFromLive({
+      players_present: 0,
+      rooms: [
+        {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          traces: [{ kind: "construction", text: "A maintenance plate names Sable as the last repairer." }],
+        },
+      ],
+      narrative: { now: { line: "The Chamber is quiet." }, recently: [], world: { players_present: 0 } },
+    });
+    expect(plated).toContain("A maintenance plate names Sable as the last repairer.");
+    expect(plated.join("\n")).not.toMatch(/entity\.|player\./);
     expect(lines.length).toBeLessThanOrEqual(5);
   });
 });
