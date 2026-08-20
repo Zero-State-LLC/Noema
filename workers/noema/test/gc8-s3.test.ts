@@ -94,6 +94,8 @@ describe("GC8-S3 world path", () => {
     const harvested = await run(wornWorld, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.cell", amount: 1 });
     expect(harvested.ok).toBe(true);
     expect(wornWorld.players[p.player_id].lot_grades?.energy).toBe("WORN");
+    // Empty hold so RFC-0119 cargo fuel does not restock spoiled energy.
+    wornWorld.players[p.player_id].budgets.storage = 16;
     const before = wornWorld.players[p.player_id].budgets.energy;
     const waited = await run(wornWorld, p, "WAIT");
     expect(waited.ok).toBe(true);
@@ -110,6 +112,7 @@ describe("GC8-S3 world path", () => {
     const soundHarvest = await run(soundWorld, q, "COMMIT", { operation: "HARVEST", entity_id: "entity.cell", amount: 1 });
     expect(soundHarvest.ok).toBe(true);
     expect(soundWorld.players[q.player_id].lot_grades?.energy).toBe("SOUND");
+    soundWorld.players[q.player_id].budgets.storage = 16;
     const soundBefore = soundWorld.players[q.player_id].budgets.energy;
     const soundWait = await run(soundWorld, q, "WAIT");
     expect(soundWait.ok).toBe(true);
