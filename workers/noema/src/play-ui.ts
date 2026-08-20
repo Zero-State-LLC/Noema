@@ -4,9 +4,12 @@
  */
 
 import { helpText, parseHumanCommand } from "./actions";
+import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphEl, glyphForEntity, glyphForLine, glyphMeta } from "./presentation/glyphs";
 import { toPlayerView } from "./presentation/player-view";
 import { label } from "./presentation/terms";
+
+export { LOW_NOISE_KEY, parseLowNoiseFlag };
 
 export type ExitObs = {
   direction: string;
@@ -216,17 +219,6 @@ export function roomPresentationModel(input: {
     happened: happened || undefined,
     happenedBeats: input.happenedBeats,
   };
-}
-
-export const LOW_NOISE_KEY = "noema.low_noise";
-
-/** Client preference only. Query and reduced-motion seed; stored 0/1 wins. */
-export function parseLowNoiseFlag(stored: string | null, query: string, reduceMotion: boolean): boolean {
-  const s = String(stored || "").trim().toLowerCase();
-  if (s === "1" || s === "true" || s === "on") return true;
-  if (s === "0" || s === "false" || s === "off") return false;
-  if (/(?:^|[?&])low_noise=1(?:&|$)/i.test(query || "")) return true;
-  return reduceMotion === true;
 }
 
 /** Agent-consumable room text. No glyphs. Authorized fields only. */

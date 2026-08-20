@@ -31,8 +31,11 @@ import {
 import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
+import { connectHtml } from "../src/connect";
+import { landingHtml } from "../src/landing";
 import { watchHtml } from "../src/watch";
 import { studyHtml } from "../src/study";
+import { productShell } from "../src/shell";
 
 const GRID: Parameters<typeof deriveOpportunities>[0] = {
   room_id: "room.relay-quarter",
@@ -673,6 +676,27 @@ describe("S5 low-noise", () => {
     expect(text).toMatch(/A player moves east/);
     expect(text).toMatch(/Coldline/);
     expect(text).not.toMatch(/canvas|pixel/i);
+  });
+
+  it("Home and CONNECT share the WATCH client preference and stay text-complete", () => {
+    const home = landingHtml();
+    const connect = connectHtml();
+    const watch = watchHtml();
+    const shell = productShell({ title: "T", active: "connect", body: "<p>x</p>" });
+    for (const html of [home, connect, watch, shell]) {
+      expect(html).toContain("noema.low_noise");
+      expect(html).toContain("parseLowNoiseFlag");
+      expect(html).toContain("is-low-noise");
+    }
+    expect(home).toContain("data-low-noise");
+    expect(connect).toContain("data-low-noise");
+    expect(home).toMatch(/body\.is-low-noise[\s\S]*\.hero-art/);
+    expect(home).not.toMatch(/id="home-now"[^>]*aria-live/);
+    expect(home).toMatch(/<figure class="hero-art"[^>]*aria-hidden="true"/);
+    expect(home).toMatch(/<img src="\/assets\/hero-table\.jpg"[^>]*alt=""/);
+    expect(connect).toMatch(/id="d-code"[^>]*aria-describedby="d-notice"/);
+    expect(connect).not.toContain("watch-phosphor");
+    expect(watch).toContain('id="watch-low-noise"');
   });
 });
 

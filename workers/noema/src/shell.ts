@@ -3,6 +3,7 @@
  * Visual tokens: Noema-Specs VISUAL-DESIGN.md via theme/tokens.ts.
  */
 
+import { lowNoiseBootScript } from "./low-noise";
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 
 export const PRODUCT_CSS = `
@@ -161,6 +162,23 @@ code{color:var(--color-text-machine);font-size:.88em}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+body.is-low-noise .hero-art,body.is-low-noise .glyph{display:none!important}
+body.is-low-noise.hero-bleed .hero::after{display:none}
+body.is-low-noise.hero-bleed .top{
+  position:relative;background:var(--void);border-bottom:1px solid var(--line);
+}
+body.is-low-noise.hero-bleed .foot{
+  position:relative;background:var(--void);border-top:1px solid var(--line);
+}
+body.is-low-noise.hero-bleed .wrap{
+  width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:var(--space-lg) 0 var(--space-xl);
+}
+body.is-low-noise.hero-bleed .hero{min-height:0;justify-content:flex-start}
+body.is-low-noise.hero-bleed .hero-copy{
+  text-align:left;padding:0;width:auto;max-width:none;margin:0;
+}
+body.is-low-noise.hero-bleed .hero-copy .invite{margin-left:0;margin-right:auto}
+body.is-low-noise.hero-bleed .hero-gate{justify-content:start;justify-items:stretch}
 .glyph{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em;flex:0 0 auto}
 .glyph svg{display:block;width:100%;height:100%}
 .glyph-player{color:var(--color-state-social)}
@@ -302,6 +320,7 @@ ${opts.body}
   }
 })();
 </script>
+${lowNoiseBootScript()}
 </body>
 </html>`;
 }
