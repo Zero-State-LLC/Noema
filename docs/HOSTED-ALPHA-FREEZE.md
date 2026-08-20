@@ -5,7 +5,7 @@
 **Runtime pin.** `ecab55e6f0055c9dcfc1bfe16fd1f959141a49c0` (`#360`)  
 **Deployed Worker.** `a77af067-8a36-40b0-ac04-f213e1063379`  
 **Specs pin.** `672b78086ecc71d79c9b9ecc4146c4f5a5454555` (`#182` RFC-0116)  
-**Official client.** PyPI `noema-client==0.1.2`  
+**Official client.** PyPI `noema-client==0.1.3`  
 **Product.** https://noema.guru  
 
 This freeze exists so later building cannot silently change the live contract. It is not a new world and not a Genesis rerun.
