@@ -3189,7 +3189,7 @@ export function deriveAffordances(input: {
       action: "FOCUS",
       verb: "COMMIT",
       operation: "FOCUS",
-      label: `Focus ${spec.id}`,
+      label: spec.self.replace(/^You are focusing/, "Focus"),
       cmd: `focus ${spec.id}`,
       track: spec.id,
       available: true,

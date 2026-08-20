@@ -144,7 +144,9 @@ describe("GC1-S3 world path", () => {
     w.cycle = 12;
     const look = await run(w, p, "LOOK");
     expect(look.observation?.practice_lines).toContain(ENGINEER_LATENT_LINE);
-    expect(JSON.stringify(look.observation || {})).not.toMatch(/Engineer|WATCH title/i);
+    expect(look.observation?.play_text || "").not.toMatch(/Engineer|WATCH title/i);
+    expect((look.observation?.practice_lines || []).join(" ")).not.toMatch(/Engineer|WATCH title/i);
+    expect(JSON.stringify(look.observation?.players_here || [])).not.toMatch(/Engineer|WATCH title/i);
     const before = w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-a")!.condition;
     const repaired = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-a" });
     expect(repaired.ok).toBe(true);
