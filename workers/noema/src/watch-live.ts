@@ -60,6 +60,7 @@ export type WatchRoomIn = {
     hidden?: boolean;
     scar?: boolean;
     in_progress?: boolean;
+    unclaimed?: boolean;
     last_repair_cycle?: number;
     last_repair_handle?: string;
   }>;

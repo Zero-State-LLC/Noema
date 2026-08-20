@@ -79,7 +79,7 @@ export interface GenesisRoom {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string }>;
+  entities: Array<{ entity_id: string; label: string; entity_type: string; scar?: boolean }>;
   tags?: string[];
 }
 
@@ -330,6 +330,7 @@ function buildCycle0(
       entity_id: "entity.scar-conduit",
       label: pick(r, [...n.entities.ruin]),
       entity_type: "RUIN",
+      scar: true,
     });
   }
 
@@ -373,6 +374,7 @@ function buildCycle0(
           entity_id: "entity.failed-claim",
           label: pick(r, [...n.entities.ruin]),
           entity_type: "RUIN",
+          scar: true,
         });
       }
     }

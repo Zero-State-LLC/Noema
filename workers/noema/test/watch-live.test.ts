@@ -752,6 +752,46 @@ describe("Feature D WATCH traces", () => {
     expect(html).toContain("watch-traces");
     expect(html).not.toMatch(/\.innerHTML\s*=/);
   });
+
+  it("projects genesis RUIN and unclaimed works onto public rooms", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 12,
+      sequence: 40,
+      rooms: {
+        "room.spur": {
+          room_id: "room.spur",
+          name: "Dead Spur",
+          description: "A worn yard.",
+          exits: [],
+          entities: [
+            {
+              entity_id: "entity.failed-claim",
+              label: "collapsed-gantry",
+              entity_type: "RUIN",
+            },
+            {
+              entity_id: "entity.relay-a",
+              label: "north-relay",
+              entity_type: "INFRASTRUCTURE",
+              unclaimed: true,
+            },
+          ],
+        },
+      },
+      players: [],
+      events: [],
+      now: NOW,
+    });
+    const spur = (snap.rooms as Array<{ name?: string; traces?: Array<{ kind: string; text: string }> }>).find(
+      (r) => r.name === "Dead Spur",
+    );
+    expect(spur?.traces?.map((t) => t.text)).toEqual([
+      "A scar remains (collapsed-gantry).",
+      "The north relay is unclaimed.",
+    ]);
+    expect(JSON.stringify(spur?.traces)).not.toMatch(/entity\.|player\.|source_state_ref/);
+  });
 });
 
 describe("home live excerpt", () => {
