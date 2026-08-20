@@ -516,6 +516,7 @@ export function buildObservation(
     direction: e.direction,
     to_room_id: e.to_room_id,
     to_room_name: w.rooms[e.to_room_id]?.name,
+    two_way: hasPublicReverse(w.rooms[e.to_room_id], room.room_id),
   }));
   const otherPlayers = Object.entries(w.players)
     .filter(([, p]) => p.entered)
@@ -707,6 +708,9 @@ export function buildObservation(
       class: a.class,
       subject_id: a.subject_id,
       archive_claim: a.archive_claim,
+      org_id: a.org_id,
+      player_id: a.player_id,
+      dest: a.dest,
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
@@ -1354,7 +1358,12 @@ export async function applyWorldCommand(
       const room = w.rooms[pl.room_id || w.entry_room_id];
       const aff = deriveAffordances({
         entities: room ? roomEntities(room) : [],
-        exits: room?.exits || [],
+        exits: publicExits(w, room).map((e) => ({
+          direction: e.direction,
+          to_room_id: e.to_room_id,
+          to_room_name: w.rooms[e.to_room_id]?.name,
+          two_way: hasPublicReverse(w.rooms[e.to_room_id], room?.room_id || ""),
+        })),
         budgets: pl.budgets,
         otherPlayers: Object.entries(w.players).map(([id, p]) => ({
           player_id: id,

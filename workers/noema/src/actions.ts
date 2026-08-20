@@ -13,10 +13,14 @@ import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
 import {
   CONSTRUCTIBLE_CLASSES,
   CONSTRUCT_COSTS,
+  CONNECT_COST,
   DISMANTLE_COST,
   REPURPOSE_COST,
   REPURPOSE_FROM_CLASS,
+  SHARE_COST,
+  SHARE_MAX_CO_OWNERS,
   UPGRADE_COST,
+  VEST_COST,
   infraClassOf,
   isInProgress,
   liveClassInRoom,
@@ -35,8 +39,10 @@ import {
 } from "./contest";
 import { parseAgreementReason, parseAgreementType } from "./diplomacy";
 import {
+  occupiedOfficesFor,
   parseOfficeProfile,
   parseRequiresTrack,
+  REPAIR_PROFILE,
   sanitizeIdList,
   sanitizePrecedence,
   type OfficeProfile,
@@ -435,6 +441,12 @@ export type Affordance = {
   class?: ConstructibleClass;
   subject_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
+  /** GC2-S10. Structured BUILD.VEST institution. */
+  org_id?: string;
+  /** GC2-S11. Structured BUILD.SHARE partner. */
+  player_id?: string;
+  /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
+  dest?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2870,7 +2882,7 @@ export function normalizeStructuredCommand(
 
 export function deriveAffordances(input: {
   entities: EntityRuntime[];
-  exits: Array<{ direction: string; to_room_name?: string }>;
+  exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>;
   budgets: Budgets;
   otherPlayers: Array<{ player_id: string; handle?: string }>;
   openTrades: OpenTrade[];
@@ -3286,13 +3298,25 @@ export function deriveAffordances(input: {
       }
     }
 
+    const holdsNamed = (orgId?: string) =>
+      Boolean(
+        orgId &&
+          organizations.some(
+            (o) => o.org_id === orgId && occupiedOfficesFor(o, selfId, REPAIR_PROFILE).length > 0,
+          ),
+      );
     const stewardOf = (e: EntityRuntime) =>
       e.owner_id === selfId ||
       e.co_owner_id === selfId ||
       e.co_owner_2_id === selfId ||
       e.co_owner_3_id === selfId ||
       e.co_owner_4_id === selfId ||
-      e.co_owner_5_id === selfId;
+      e.co_owner_5_id === selfId ||
+      holdsNamed(e.owner_id);
+    const coOwnersOf = (e: EntityRuntime) =>
+      [e.co_owner_id, e.co_owner_2_id, e.co_owner_3_id, e.co_owner_4_id, e.co_owner_5_id].filter(
+        (id): id is string => Boolean(id),
+      );
     const cargoOk = (need: number) =>
       canConsumeCargo(budgets.storage ?? 0, need, reservedCargoFromTrades(openTrades, selfId));
     for (const e of entities) {
@@ -3391,6 +3415,80 @@ export function deriveAffordances(input: {
               : "You do not have enough resources to restore.",
           kind: "utility",
         });
+      }
+      const ruin = Boolean(e.scar) || (e.entity_type || "").toUpperCase() === "RUIN";
+      const frozen = ruin || Boolean(e.unclaimed) || isInProgress(e);
+      const orgOwned = Boolean(e.owner_id && organizations.some((o) => o.org_id === e.owner_id));
+      const partners = coOwnersOf(e);
+      if (classId && !frozen && e.owner_id === selfId && !orgOwned && partners.length === 0) {
+        for (const org of organizations) {
+          if (org.status !== "ACTIVE") continue;
+          if (!occupiedOfficesFor(org, selfId, REPAIR_PROFILE).length) continue;
+          const ok = canPay(budgets, VEST_COST);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "VEST",
+            label: `Vest ${name} to ${org.name}`,
+            cmd: `vest ${e.label} to ${org.org_id}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            org_id: org.org_id,
+            requires: VEST_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to vest.",
+            kind: "utility",
+          });
+        }
+      }
+      if (
+        classId &&
+        !frozen &&
+        e.owner_id === selfId &&
+        !orgOwned &&
+        partners.length < SHARE_MAX_CO_OWNERS
+      ) {
+        for (const p of otherPlayers) {
+          if (p.player_id === selfId || p.player_id === e.owner_id || partners.includes(p.player_id)) continue;
+          const handle = p.handle || p.player_id.replace(/^player\./, "");
+          const ok = canPay(budgets, SHARE_COST);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "SHARE",
+            label: `Share ${name} with ${handle}`,
+            cmd: `share ${e.label} with ${handle}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            player_id: p.player_id,
+            requires: SHARE_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to share.",
+            kind: "utility",
+          });
+        }
+      }
+      if (classId === "route_link" && !frozen && stewardOf(e)) {
+        for (const x of exits) {
+          if (!x.two_way) continue;
+          const dest = x.direction;
+          const ok = canPay(budgets, CONNECT_COST);
+          const toward = x.to_room_name || dest;
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "CONNECT",
+            label: `Connect ${name} toward ${toward}`,
+            cmd: `connect ${e.label} to ${dest}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            dest,
+            requires: CONNECT_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to connect.",
+            kind: "utility",
+          });
+        }
       }
     }
   }
