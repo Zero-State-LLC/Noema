@@ -32,6 +32,7 @@ describe("RFC-0120 P12 Deep Time traces", () => {
   it("there is no TRACE verb", () => {
     const parsed = normalizeStructuredCommand("TRACE", {});
     expect(parsed.ok).toBe(false);
+    if (parsed.ok) throw new Error("expected TRACE to be unknown");
     expect(parsed.code).toBe("UNKNOWN_COMMAND");
   });
 
