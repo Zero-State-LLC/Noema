@@ -59,6 +59,7 @@ import {
   type FormalAgreement,
 } from "./diplomacy";
 import {
+  assetInInstitutionScope,
   occupiedOfficesFor,
   parseOfficeProfile,
   parseRequiresTrack,
@@ -68,6 +69,8 @@ import {
   type OfficeProfile,
   type OfficeRecord,
 } from "./offices";
+import { canActivate, conditionHolds, defaultEmergencyTemplates } from "./emergency";
+import { RULE_MEMBER_ORDER } from "./succession";
 import {
   evidenceAccessible,
   parseVisibility,
@@ -496,6 +499,12 @@ export type Affordance = {
   visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
   reconstruction_id?: string;
   evidence?: string[];
+  /** GC4. Structured emergency / succession. */
+  template_id?: string;
+  target_ref?: string;
+  emergency_scope_id?: string;
+  successors?: string[];
+  rule_id?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
@@ -2905,6 +2914,15 @@ export function normalizeStructuredCommand(
   if (cmd === "ORG_OFFICE_RETIRE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_RETIRE" });
   }
+  if (cmd === "ORG_EMERGENCY_ACTIVATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_ACTIVATE" });
+  }
+  if (cmd === "ORG_EMERGENCY_REVOKE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_REVOKE" });
+  }
+  if (cmd === "ORG_EMERGENCY_DEFINE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_DEFINE" });
+  }
   if (cmd === "ORG_OFFICE_ACT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ACT" });
   }
@@ -3248,6 +3266,153 @@ export function deriveAffordances(input: {
           });
         }
       }
+      if (officer) {
+        const retireOk = canPay(budgets, COSTS.ORG_OFFICE_RETIRE);
+        out.push({
+          action: "ORG_OFFICE_RETIRE",
+          verb: "COMMIT",
+          operation: "ORG_OFFICE_RETIRE",
+          label: `Retire ${office.display_name}`,
+          cmd: `office retire ${office.office_id}`,
+          target_id: office.office_id,
+          office_id: office.office_id,
+          org_id: org.org_id,
+          requires: COSTS.ORG_OFFICE_RETIRE,
+          available: retireOk,
+          reason: retireOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        const ruleOk = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+        out.push({
+          action: "ORG_SUCCESSION_RULE",
+          verb: "COMMIT",
+          operation: "ORG_SUCCESSION_RULE",
+          label: `Publish member-order succession for ${office.display_name}`,
+          cmd: `succession rule ${office.office_id} member_order`,
+          target_id: office.office_id,
+          office_id: office.office_id,
+          rule_id: RULE_MEMBER_ORDER,
+          requires: COSTS.ORG_OFFICE_ACT,
+          available: ruleOk,
+          reason: ruleOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        const heir = otherPlayers.find((p) => p.player_id !== selfId && isOrgMember(org, p.player_id));
+        if (heir) {
+          const handle = heir.handle || heir.player_id.replace(/^player\./, "");
+          out.push({
+            action: "ORG_SUCCESSION_DESIGNATE",
+            verb: "COMMIT",
+            operation: "ORG_SUCCESSION_DESIGNATE",
+            label: `Designate ${handle} for ${office.display_name}`,
+            cmd: `succession designate ${office.office_id} ${handle}`,
+            target_id: office.office_id,
+            office_id: office.office_id,
+            player_id: heir.player_id,
+            successors: [heir.player_id],
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: ruleOk,
+            reason: ruleOk ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+        }
+      }
+      if (office.status === "VACANT" && mine) {
+        const candidate = otherPlayers.find((p) => p.player_id !== selfId && isOrgMember(org, p.player_id));
+        if (candidate) {
+          const handle = candidate.handle || candidate.player_id.replace(/^player\./, "");
+          const ok = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+          out.push({
+            action: "ORG_SUCCESSION_CONSENT",
+            verb: "COMMIT",
+            operation: "ORG_SUCCESSION_CONSENT",
+            label: `Consent ${handle} for ${office.display_name}`,
+            cmd: `consent ${office.office_id} ${handle}`,
+            target_id: office.office_id,
+            office_id: office.office_id,
+            player_id: candidate.player_id,
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+        }
+      }
+    }
+    const role = org.members.find((m) => m.agent_id === selfId)?.role || null;
+    const templates = org.emergency_templates?.length ? org.emergency_templates : defaultEmergencyTemplates();
+    let emN = 0;
+    const actOk = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+    for (const template of templates) {
+      if (emN >= 4) break;
+      const source = canActivate(org, selfId, role, template);
+      if (!source.ok) continue;
+      if (template.capability === "REPAIR") {
+        for (const e of entities) {
+          if (emN >= 4) break;
+          if (!assetInInstitutionScope(e, org.org_id, selfId)) continue;
+          if (!conditionHolds(template, { entityCondition: e.condition ?? 0 })) continue;
+          out.push({
+            action: "ORG_EMERGENCY_ACTIVATE",
+            verb: "COMMIT",
+            operation: "ORG_EMERGENCY_ACTIVATE",
+            label: `Declare repair emergency on ${titleCaseLabel(e.label)}`,
+            cmd: `emergency activate ${org.org_id} ${template.template_id} ${e.entity_id}`,
+            org_id: org.org_id,
+            office_id: source.office_id,
+            template_id: template.template_id,
+            target_ref: e.entity_id,
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: actOk,
+            reason: actOk ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+          emN += 1;
+        }
+      } else if (conditionHolds(template, { treasury: org.treasury })) {
+        out.push({
+          action: "ORG_EMERGENCY_ACTIVATE",
+          verb: "COMMIT",
+          operation: "ORG_EMERGENCY_ACTIVATE",
+          label: `Declare trade emergency for ${org.name}`,
+          cmd: `emergency activate ${org.org_id} ${template.template_id} treasury`,
+          org_id: org.org_id,
+          office_id: source.office_id,
+          template_id: template.template_id,
+          target_ref: "treasury",
+          requires: COSTS.ORG_OFFICE_ACT,
+          available: actOk,
+          reason: actOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        emN += 1;
+      }
+    }
+    for (const scope of org.emergency_scopes || []) {
+      if (scope.status !== "ACTIVE") continue;
+      const may =
+        role === "founder" ||
+        role === "officer" ||
+        Boolean(
+          scope.source_office_id &&
+            org.offices?.[scope.source_office_id]?.status === "OCCUPIED" &&
+            org.offices[scope.source_office_id]?.holder_player_id === selfId,
+        );
+      if (!may) continue;
+      out.push({
+        action: "ORG_EMERGENCY_REVOKE",
+        verb: "COMMIT",
+        operation: "ORG_EMERGENCY_REVOKE",
+        label: `Revoke emergency ${scope.scope_id}`,
+        cmd: `emergency revoke ${scope.scope_id}`,
+        org_id: org.org_id,
+        emergency_scope_id: scope.scope_id,
+        template_id: scope.template_id,
+        requires: COSTS.ORG_OFFICE_ACT,
+        available: actOk,
+        reason: actOk ? undefined : "You need compute 1.",
+        kind: "org",
+      });
     }
   }
 

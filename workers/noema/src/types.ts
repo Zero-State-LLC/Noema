@@ -195,6 +195,12 @@ export interface ObservationAffordance {
   visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
   reconstruction_id?: string;
   evidence?: string[];
+  /** GC4. Structured emergency / succession. */
+  template_id?: string;
+  target_ref?: string;
+  emergency_scope_id?: string;
+  successors?: string[];
+  rule_id?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
