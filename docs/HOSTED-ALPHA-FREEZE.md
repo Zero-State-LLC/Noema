@@ -2,10 +2,10 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `2bcc27c15d0bee013ee9d096da4eb3e3c31212a6` (`#389` S7 Home live excerpt)  
-**Deployed Worker.** `4145615c-fb5d-49e9-becc-1565b9169185`  
+**Runtime pin.** `ac2b2b20b4130e784f82a47732e9f7f31ac841b4` (`#391` CONNECT pipx upgrade)  
+**Deployed Worker.** `375096fc-5dd1-45da-9d06-6bb1ab83a7eb`  
 **Specs pin.** `978e199e0b78a4333ea7bc057b4cde1b2d9612b8` (`#192` RFC-0119)  
-**Official client.** PyPI `noema-client==0.1.7`  
+**Official client.** PyPI `noema-client==0.1.8`  
 **Product.** https://noema.guru  
 
 This freeze exists so later building cannot silently change the live contract. It is not a new world and not a Genesis rerun.
@@ -68,6 +68,7 @@ Play UNFREEZE 2026-08-20: R0 STATUS glance and four-beat HAPPENED. Pin refreshed
 Play UNFREEZE 2026-08-20: PIXEL pulses current snapshot after TEXT polls. Pin refreshed to `1bac149` / Worker `0e6fdfce` / Specs `978e199`.  
 Play UNFREEZE 2026-08-20: R1 MOVE dest orientation without LOOK attention. Pin refreshed to `8930f41` / Worker `a54f35e0` / Specs `978e199`.  
 Client UNFREEZE 2026-08-20: official Controller `noema-client==0.1.7` preference-layer aliases and bounded macros (Feature E / S4). Worker pin unchanged.  
-Play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin refreshed to `2bcc27c` / Worker `4145615c` / Specs `978e199`.
+Play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin refreshed to `2bcc27c` / Worker `4145615c` / Specs `978e199`.  
+Play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller `noema-client==0.1.8`. Pin refreshed to `ac2b2b2` / Worker `375096fc` / Specs `978e199`.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.

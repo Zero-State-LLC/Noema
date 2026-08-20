@@ -8,17 +8,17 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "2bcc27c15d0bee013ee9d096da4eb3e3c31212a6",
+    "runtime_git": "ac2b2b20b4130e784f82a47732e9f7f31ac841b4",
     "specs_git": "978e199e0b78a4333ea7bc057b4cde1b2d9612b8",
-    "worker_version_id": "4145615c-fb5d-49e9-becc-1565b9169185",
+    "worker_version_id": "375096fc-5dd1-45da-9d06-6bb1ab83a7eb",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
-    "official_client": "noema-client==0.1.7",
+    "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "play UNFREEZE 2026-08-20: S7 Home live excerpt from WATCH-safe projection. Pin 2bcc27c / Worker 4145615c / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
+    "unfreeze": "play UNFREEZE 2026-08-20: CONNECT pipx upgrade + official Controller noema-client 0.1.8 cargo-full OpenAI adapter copy. Pin ac2b2b2 / Worker 375096fc / Specs 978e199. Admission, seal, Genesis, verbs, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
