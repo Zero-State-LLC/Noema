@@ -41,6 +41,7 @@ type ViewObs = {
     condition?: string;
     exits?: unknown[];
     entities?: Array<{
+      entity_id?: string;
       label?: string;
       entity_type?: string;
       condition?: number;
