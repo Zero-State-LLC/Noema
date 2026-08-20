@@ -156,6 +156,12 @@ export interface ObservationAffordance {
   /** RFC-0020. Structured ATTEST subject entity. */
   subject_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
+  /** GC2-S10. Structured BUILD.VEST institution. */
+  org_id?: string;
+  /** GC2-S11. Structured BUILD.SHARE partner. */
+  player_id?: string;
+  /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
+  dest?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
