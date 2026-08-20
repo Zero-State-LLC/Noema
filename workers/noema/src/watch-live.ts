@@ -15,6 +15,7 @@ import {
   glyphForProjection,
   glyphForRoom,
 } from "./presentation/glyphs";
+import { projectRoomTraces, publicTraces } from "./play-traces";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
 
@@ -48,7 +49,16 @@ export type WatchRoomIn = {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string; hidden?: boolean }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string; hidden?: boolean }>;
+  entities: Array<{
+    entity_id: string;
+    label: string;
+    entity_type: string;
+    hidden?: boolean;
+    scar?: boolean;
+    in_progress?: boolean;
+    last_repair_cycle?: number;
+    last_repair_handle?: string;
+  }>;
   hidden?: boolean;
   tags?: string[];
 };
@@ -477,12 +487,19 @@ export function buildWatchLive(input: {
     const here = byRoom.get(r.room_id) || [];
     const labels = here.map(publicPlayerLabel).filter((h): h is string => Boolean(h));
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
-    const entities = (r.entities || []).filter(isPublicEntity).map((e) => ({
+    const publicEntities = (r.entities || []).filter(isPublicEntity);
+    const entities = publicEntities.map((e) => ({
       entity_id: e.entity_id,
       label: e.label,
       entity_type: e.entity_type,
       glyph: glyphForEntity(e.entity_type, e.label),
     }));
+    const traces = publicTraces(
+      projectRoomTraces({
+        hidden: r.hidden,
+        entities: publicEntities,
+      }),
+    );
     const recentHere = candidates.some((ev) => ev.room_id === r.room_id);
     const row: Record<string, unknown> = {
       room_id: r.room_id,
@@ -502,6 +519,7 @@ export function buildWatchLive(input: {
       player_glyph: glyphForPlayer(),
       active: here.length > 0 || recentHere,
     };
+    if (traces.length) row.traces = traces;
     if (labels.length) row.public_player_labels = labels;
     const titles = here
       .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
