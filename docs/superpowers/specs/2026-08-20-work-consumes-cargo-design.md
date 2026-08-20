@@ -1,6 +1,6 @@
 # Work consumes cargo
 
-**Status:** draft — waiting review  
+**Status:** approved — planning  
 **Date:** 2026-08-20  
 **Host:** `https://noema.guru` (Worker `NoemaWorldDO`, isolated `test.hosted-canonical.*`)  
 **Does not reseed or Recover Perihelion.**  
