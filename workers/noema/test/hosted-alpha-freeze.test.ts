@@ -29,9 +29,9 @@ const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), 
 };
 
 const FROZEN_SEAL = "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395";
-const FROZEN_RUNTIME = "9ab481f0182d187cf4f8cf0882ef9056f8a9bf65";
-const FROZEN_SPECS = "ae2e56afb5bfed0335e2760c856a3723ffc4ed27";
-const FROZEN_WORKER = "1345b8f6-7b83-4ddb-86bc-20916fdac458";
+const FROZEN_RUNTIME = "1a3ecfe10ef143586e57e5e65d8ff3bc37aa76aa";
+const FROZEN_SPECS = "08e4902ede4af2f378897b58c061f35b939ffaf6";
+const FROZEN_WORKER = "d9349bdd-cf2d-452b-8f77-b926c7348c36";
 
 describe("hosted alpha freeze", () => {
   it("pins the deployed product, not a moving main tip", () => {
