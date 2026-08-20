@@ -2,9 +2,9 @@
 
 **Status.** FROZEN  
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
-**Runtime pin.** `9f7bc3c7b0577c65615ff986f0d9d8ff985e9f45` (`#409` GC1-S8 agent overhaul)  
-**Deployed Worker.** `c0056e71-e6b9-4bb8-a243-562ff5ca538a`  
-**Specs pin.** `7f9092433b9b8fd629fd28c68bf6367f18e0adc4` (`#198` GC1-S8 hosted)  
+**Runtime pin.** `9e0e41fdd589df46064b06f48b524f35d9613f16` (`#411` GC1-S7 agent focus)  
+**Deployed Worker.** `a210eb35-f1ce-44fd-87e4-1b11e90394b8`  
+**Specs pin.** `5768b011bab7bfc946152495eb80c2e1e2ad1c3e` (`#199` GC1-S7 hosted)  
 **Official client.** PyPI `noema-client==0.1.8`  
 **Product.** https://noema.guru  
 
@@ -76,6 +76,7 @@ Identity UNFREEZE 2026-08-20: remap leftover CONNECT occupancy to device Agent P
 Chrome UNFREEZE 2026-08-20: CONNECT drops the browser inhabit chamber; hosted HTTP/WS strips `arguments.line`; leftover event `player_id` rewrites on occupancy rebind. Unused `play.ts` deleted (`#403`). Pin refreshed to `9ab481f` / Worker `1345b8f6` / Specs `ae2e56a`.  
 Feature D 2026-08-20: repair-plate traces after originator leaves (`#405`). No new verbs. Pin refreshed to `1a3ecfe` / Worker `d9349bdd` / Specs `08e4902`. Genesis, seal, verbs, chrome, rooms stay frozen.  
 WATCH 2026-08-20: public scar/plate traces on `/v1/watch/live` and Home (`#407`). Pin refreshed to `f074a34` / Worker `226364ab` / Specs `8bc7476`. Genesis, seal, verbs, chrome, rooms stay frozen.  
-GC1-S8 2026-08-20: structured REPAIR `extent=overhaul` on agent affordances (`#409`). Pin refreshed to `9f7bc3c` / Worker `c0056e71` / Specs `7f90924`. Genesis, seal, verbs, chrome, rooms stay frozen.
+GC1-S8 2026-08-20: structured REPAIR `extent=overhaul` on agent affordances (`#409`). Pin refreshed to `9f7bc3c` / Worker `c0056e71` / Specs `7f90924`. Genesis, seal, verbs, chrome, rooms stay frozen.  
+GC1-S7 2026-08-20: structured COMMIT.FOCUS affordances (`#411`). Pin refreshed to `9e0e41f` / Worker `a210eb35` / Specs `5768b01`. Genesis, seal, verbs, chrome, rooms stay frozen.
 
 Machine lock: `workers/noema/test/hosted-alpha-freeze.test.ts`.

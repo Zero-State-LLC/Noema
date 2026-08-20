@@ -8,9 +8,9 @@
   "frozen_release": {
     "status": "frozen",
     "name": "hosted-alpha-0.12.1",
-    "runtime_git": "9f7bc3c7b0577c65615ff986f0d9d8ff985e9f45",
-    "specs_git": "7f9092433b9b8fd629fd28c68bf6367f18e0adc4",
-    "worker_version_id": "c0056e71-e6b9-4bb8-a243-562ff5ca538a",
+    "runtime_git": "9e0e41fdd589df46064b06f48b524f35d9613f16",
+    "specs_git": "5768b011bab7bfc946152495eb80c2e1e2ad1c3e",
+    "worker_version_id": "a210eb35-f1ce-44fd-87e4-1b11e90394b8",
     "genesis_id": "genesis.ef578f4ffceeccd0",
     "world_id": "world.perihelion-reach",
     "do_name": "world-01",
@@ -18,7 +18,7 @@
     "official_client": "noema-client==0.1.8",
     "doc": "docs/HOSTED-ALPHA-FREEZE.md",
     "chrome": "home-manifesto-watch-connect",
-    "unfreeze": "GC1-S8 2026-08-20: agent overhaul affordance. Pin 9f7bc3c / Worker c0056e71 / Specs 7f90924. Genesis, seal, verbs, chrome, rooms remain frozen."
+    "unfreeze": "GC1-S7 2026-08-20: agent FOCUS affordances. Pin 9e0e41f / Worker a210eb35 / Specs 5768b01. Genesis, seal, verbs, chrome, rooms remain frozen."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
