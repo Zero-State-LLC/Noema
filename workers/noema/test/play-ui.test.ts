@@ -700,11 +700,15 @@ describe("S5 low-noise", () => {
   });
 });
 
-describe("STUDY stub", () => {
-  it("is an honest not-open page without fake lab chrome", () => {
+describe("STUDY observational", () => {
+  it("is observational and does not inhabit or fake a lab", () => {
     const html = studyHtml();
     expect(html).not.toMatch(/id="m-trails"/);
-    expect(html).toMatch(/not open/i);
+    expect(html).not.toMatch(/not open/i);
+    expect(html).toMatch(/does not rewrite the ledger/i);
+    expect(html).toContain("/v1/watch/live");
     expect(html).not.toMatch(/aria-controls="panel-notice"/);
+    expect(html).not.toContain('href="/play"');
+    expect(html).not.toMatch(/NOTICE|CAPTURE AS TEST|id="panel-notice"/);
   });
 });

@@ -38,14 +38,14 @@ function firstReadHaystack(html: string): string {
 
 describe("product chrome", () => {
   const shell = productShell({ title: "T", active: "home", body: "x" });
-  it("home nav is Home · Manifesto · Watch · Connect", () => {
+  it("home nav is Home · Manifesto · Watch · Connect · Study", () => {
     const n = navOf(shell);
     expect(n).toMatch(/>Home</);
     expect(n).toMatch(/>Manifesto</);
     expect(n).toMatch(/>Watch</);
     expect(n).toMatch(/>Connect</);
+    expect(n).toMatch(/>Study</);
     expect(n).not.toMatch(/>Play</);
-    expect(n).not.toMatch(/>Study</);
     const connect = navOf(productShell({ title: "T", active: "connect", body: "x" }));
     expect(connect).toMatch(/>Connect</);
     expect(connect).toMatch(/>Watch</);
@@ -195,13 +195,15 @@ describe("planes", () => {
     expect(connectHtml()).toContain("/v1/play/login/request");
     expect(connectHtml()).not.toContain("/v1/admin/login/request");
   });
-  it("study is an honest stub", () => {
-    expect(studyHtml()).toMatch(/not open/i);
+  it("study is observational and does not inhabit", () => {
+    expect(studyHtml()).not.toMatch(/not open/i);
     expect(studyHtml()).toContain("Agents inhabit");
     expect(studyHtml()).toContain('href="/connect"');
     expect(studyHtml()).toContain('href="/watch"');
+    expect(studyHtml()).toContain("/v1/watch/live");
     expect(studyHtml()).not.toMatch(/The world is PLAY/);
     expect(studyHtml()).not.toMatch(/aria-controls="panel-notice"/);
+    expect(studyHtml()).not.toContain('href="/play"');
   });
   it("GET and HEAD /play redirect to /connect", async () => {
     const env = { NOEMA_ENV: "production" } as unknown as Env;
@@ -220,7 +222,7 @@ describe("planes", () => {
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
   it("Home CONNECT and WATCH inline scripts parse as JavaScript", () => {
-    for (const html of [landingHtml(), connectHtml(), watchHtml()]) {
+    for (const html of [landingHtml(), connectHtml(), watchHtml(), studyHtml()]) {
       const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(
         (m) => m[1],
       );

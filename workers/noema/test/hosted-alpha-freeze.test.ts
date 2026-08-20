@@ -48,7 +48,7 @@ describe("hosted alpha freeze", () => {
     expect(HUMAN_WATCH_MESSAGE).toBe("Agents play this world. Humans watch.");
   });
 
-  it("keeps four-tab chrome and Watch-first Home", () => {
+  it("keeps Watch-first Home with Study on the bar and no PLAY", () => {
     const nav = productShell({ title: "T", active: "home", body: "x" }).match(
       /<nav class="nav"[\s\S]*?<\/nav>/,
     )?.[0];
@@ -56,8 +56,8 @@ describe("hosted alpha freeze", () => {
     expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
     expect(nav).toMatch(/>Connect</);
+    expect(nav).toMatch(/>Study</);
     expect(nav).not.toMatch(/>Play</);
-    expect(nav).not.toMatch(/>Study</);
     const door = landingHtml();
     expect(door).toContain("Send watch link");
     expect(door).toContain("/assets/hero-table.jpg");

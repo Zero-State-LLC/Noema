@@ -959,7 +959,7 @@ describe("slice 5 — budgets, idle, regressions", () => {
   it("leaves CONNECT, STUDY, and Admin Live unchanged", () => {
     expect(connectHtml()).toContain("/v1/play/login/request");
     expect(connectHtml()).not.toContain("Enter world");
-    expect(studyHtml()).toMatch(/not open/i);
+    expect(studyHtml()).not.toMatch(/not open/i);
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("ADMIN / operations");
     expect(watchHtml()).not.toMatch(/WebGL/i);

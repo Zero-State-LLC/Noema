@@ -1412,7 +1412,8 @@ describe("WATCH upgrade does not change other planes", () => {
     expect(connectHtml()).not.toContain("Enter world");
     expect(connectHtml()).not.toMatch(/\.innerHTML\s*=/);
     expect(connectHtml()).not.toContain("watch-phosphor");
-    expect(studyHtml()).toMatch(/not open/i);
+    expect(studyHtml()).not.toMatch(/not open/i);
+    expect(studyHtml()).toContain("/v1/watch/live");
     expect(studyHtml()).not.toContain("watch-phosphor");
     expect(adminHtml()).toContain("Keep the world legible.");
     expect(adminHtml()).toContain("ADMIN / operations");
