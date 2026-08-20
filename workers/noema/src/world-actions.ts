@@ -5,6 +5,7 @@
 
 import {
   COSTS,
+  DEFAULT_BUDGETS,
   allocateOrgId,
   assignedOrgRole,
   canPay,
@@ -1508,8 +1509,18 @@ export async function applyWorldCommand(
   if (action.verb === "WAIT") {
     const waitCycles = 1;
     pl.wait_until_cycle = w.cycle + waitCycles;
-    pl.budgets.attention = Math.min(8, pl.budgets.attention + 2);
-    pl.budgets.compute = Math.min(64, pl.budgets.compute + 4);
+    // Rest restores attention/compute always.
+    // RFC-0117 lockout rest: only when energy AND free storage are both 0,
+    // grant energy+2 and storage+1 so harvest can restart. If storage remains,
+    // agent should harvest (or trade) — avoids breaking GC8 WORN spoilage paths.
+    pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
+    pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
+    const energyNow = pl.budgets.energy ?? 0;
+    const storageNow = pl.budgets.storage ?? 0;
+    if (energyNow === 0 && storageNow === 0) {
+      pl.budgets.energy = Math.min(DEFAULT_BUDGETS.energy, energyNow + 2);
+      pl.budgets.storage = Math.min(DEFAULT_BUDGETS.storage, storageNow + 1);
+    }
     const committed = commitCycleIfReady(w);
     pushEvent(
       "WAIT",
@@ -2087,11 +2098,27 @@ export async function applyWorldCommand(
     const phase = action.arguments.phase;
 
     if (phase === "propose") {
-      const counterparty_id = action.arguments.counterparty_id || "";
-      const offered = sanitizeTradeAmounts(action.arguments.offered);
-      const requested = sanitizeTradeAmounts(action.arguments.requested);
+      const args = action.arguments as {
+        counterparty_id?: string;
+        counterparty?: string;
+        target?: string;
+        offered?: Record<string, number>;
+        offer?: Record<string, number>;
+        requested?: Record<string, number>;
+        want?: Record<string, number>;
+        wants?: Record<string, number>;
+        acting_for?: string;
+        office_id?: string;
+      };
+      const counterparty_id = String(args.counterparty_id || args.counterparty || args.target || "").trim();
+      const offered = sanitizeTradeAmounts(args.offered || args.offer);
+      const requested = sanitizeTradeAmounts(args.requested || args.want || args.wants);
       if (!counterparty_id || !offered || !requested) {
-        return fail(request_id, "INVALID_REQUEST", "counterparty, offer, and want are required.");
+        return fail(
+          request_id,
+          "INVALID_REQUEST",
+          "counterparty_id, offered, and requested are required (aliases: counterparty/offer/want).",
+        );
       }
       const acting_for = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
       const office_id = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
