@@ -264,6 +264,12 @@ export class NoemaWorldDO {
         ...(this.world!.institution_pulses || []),
         ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
       ],
+      rumor: this.world!.rumor,
+      organizations: Object.values(this.world!.organizations || {}).map((o) => ({
+        org_id: o.org_id,
+        name: o.name,
+        offices: o.offices,
+      })),
     });
     this.watchHeld = heldFromSnapshot(snap);
     return snap;

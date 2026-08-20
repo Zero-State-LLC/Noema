@@ -801,6 +801,48 @@ describe("Feature D WATCH traces", () => {
     ]);
     expect(JSON.stringify(spur?.traces)).not.toMatch(/entity\.|player\.|source_state_ref/);
   });
+
+  it("projects public rumor and org insignia onto WATCH room traces", () => {
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 4,
+      sequence: 12,
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [],
+          entities: [
+            {
+              entity_id: "entity.relay-7",
+              label: "scarred-conduit",
+              entity_type: "INFRASTRUCTURE",
+              owner_id: "org.line",
+            },
+          ],
+        },
+      },
+      players: [],
+      events: [],
+      rumor: {
+        claims: {
+          "claim.pub": { visibility: "PUBLIC", subject_ref: "entity.relay-7", origin_claim_id: "claim.pub" },
+        },
+      },
+      organizations: [{ org_id: "org.line", name: "Line", offices: { o1: { display_name: "Treasurer", status: "VACANT" } } }],
+      now: NOW,
+    });
+    const hub = (snap.rooms as Array<{ name?: string; traces?: Array<{ text: string }> }>).find(
+      (r) => r.name === "Grid Anchor",
+    );
+    expect(hub?.traces?.map((t) => t.text)).toEqual([
+      "A public report concerns this site.",
+      "Marks of Line remain here.",
+      "Treasurer of Line stands vacant.",
+    ]);
+    expect(JSON.stringify(hub?.traces)).not.toMatch(/org\.|entity\.|claim\./);
+  });
 });
 
 describe("home live excerpt", () => {

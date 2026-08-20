@@ -15,7 +15,13 @@ import {
   glyphForProjection,
   glyphForRoom,
 } from "./presentation/glyphs";
-import { projectRoomTraces, publicTraces } from "./play-traces";
+import {
+  laterTraceInputs,
+  projectRoomTraces,
+  publicTraces,
+  type LaterTraceOrg,
+  type LaterTraceRumor,
+} from "./play-traces";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
 
@@ -61,6 +67,7 @@ export type WatchRoomIn = {
     scar?: boolean;
     in_progress?: boolean;
     unclaimed?: boolean;
+    owner_id?: string;
     last_repair_cycle?: number;
     last_repair_handle?: string;
   }>;
@@ -549,6 +556,8 @@ export function buildWatchLive(input: {
   freshness?: string;
   held?: HeldHeadline | null;
   now?: number;
+  rumor?: LaterTraceRumor;
+  organizations?: LaterTraceOrg[];
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -601,6 +610,12 @@ export function buildWatchLive(input: {
       projectRoomTraces({
         hidden: r.hidden,
         entities: publicEntities,
+        ...laterTraceInputs({
+          room_id: r.room_id,
+          entities: publicEntities,
+          rumor: input.rumor,
+          orgs: input.organizations,
+        }),
       }),
     );
     const recentHere = candidates.some((ev) => ev.room_id === r.room_id);

@@ -12,7 +12,31 @@ export type PlayTrace = {
 
 export type TraceSourceRef =
   | { kind: "entity"; entity_id: string; field: "scar" | "in_progress" | "last_repair" | "unclaimed" }
-  | { kind: "room"; room_id?: string; field: "board" | "shout" | "institution_notice" | "trade_notice" };
+  | { kind: "room"; room_id?: string; field: "board" | "shout" | "institution_notice" | "trade_notice" | "rumor" }
+  | { kind: "org"; org_id: string; field: "insignia" | "memorial" };
+
+export type LaterTraceRumorClaim = {
+  visibility?: string;
+  subject_ref?: string;
+  origin_claim_id?: string;
+};
+
+export type LaterTraceRumor = {
+  claims?: Record<string, LaterTraceRumorClaim>;
+};
+
+export type LaterTraceOrg = {
+  org_id: string;
+  name: string;
+  offices?: Record<string, { status?: string; display_name?: string }>;
+};
+
+export type LaterTraceInput = {
+  room_id: string;
+  entities?: Array<{ entity_id?: string; owner_id?: string; hidden?: boolean }>;
+  rumor?: LaterTraceRumor | null;
+  orgs?: LaterTraceOrg[];
+};
 
 export type ProjectedTrace = PlayTrace & {
   source_state_ref: TraceSourceRef;
@@ -30,14 +54,67 @@ export type TraceRoom = {
     unclaimed?: boolean;
     last_repair_cycle?: number;
     last_repair_handle?: string;
+    owner_id?: string;
   }>;
   board?: Array<{ text: string; cycle: number }>;
   shout?: { text: string; cycle: number };
   institution_notice?: { text: string; cycle: number; org_name?: string };
   trade_notice?: { text: string; cycle: number };
+  public_rumor?: { contested?: boolean };
+  org_marks?: Array<{ name: string }>;
+  vacant_offices?: Array<{ org_name: string; office_name: string }>;
 };
 
 const MAX_TRACES = 3;
+
+function publicOrgName(raw: string): string {
+  return String(raw || "")
+    .replace(/^org\./i, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 48);
+}
+
+/** Bind later Feature D families (rumor / insignia / memorial) to a room from canonical state. */
+export function laterTraceInputs(input: LaterTraceInput): Pick<
+  TraceRoom,
+  "public_rumor" | "org_marks" | "vacant_offices"
+> {
+  const roomId = String(input.room_id || "");
+  const ents = (input.entities || []).filter((e) => !e.hidden);
+  const subjects = new Set(
+    [roomId, ...ents.map((e) => String(e.entity_id || "")).filter(Boolean)].filter(Boolean),
+  );
+  const claims = Object.values(input.rumor?.claims || {}).filter(
+    (c) => String(c.visibility || "").toUpperCase() === "PUBLIC" && c.subject_ref && subjects.has(c.subject_ref),
+  );
+  let public_rumor: { contested?: boolean } | undefined;
+  if (claims.length) {
+    const roots = new Set(claims.map((c) => c.origin_claim_id || "").filter(Boolean));
+    public_rumor = { contested: roots.size >= 2 };
+  }
+  const orgIds = new Set(ents.map((e) => e.owner_id).filter((id): id is string => Boolean(id)));
+  const org_marks: Array<{ name: string }> = [];
+  const vacant_offices: Array<{ org_name: string; office_name: string }> = [];
+  for (const org of input.orgs || []) {
+    if (!orgIds.has(org.org_id)) continue;
+    const name = publicOrgName(org.name || org.org_id);
+    if (!name) continue;
+    if (!org_marks.some((m) => m.name === name)) org_marks.push({ name });
+    for (const office of Object.values(org.offices || {})) {
+      if (String(office.status || "").toUpperCase() !== "VACANT") continue;
+      const office_name = String(office.display_name || "").trim().slice(0, 48);
+      if (!office_name) continue;
+      vacant_offices.push({ org_name: name, office_name });
+    }
+  }
+  return {
+    ...(public_rumor ? { public_rumor } : {}),
+    ...(org_marks.length ? { org_marks } : {}),
+    ...(vacant_offices.length ? { vacant_offices } : {}),
+  };
+}
 
 function publicText(raw: string): string {
   return String(raw || "").replace(/\s+/g, " ").trim().slice(0, 160);
@@ -126,6 +203,28 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
     add("notice", room.institution_notice.text, { kind: "room", field: "institution_notice" });
   }
   if (room.trade_notice?.text) add("notice", room.trade_notice.text, { kind: "room", field: "trade_notice" });
+
+  if (room.public_rumor) {
+    add("notice", "A public report concerns this site.", { kind: "room", field: "rumor" });
+    if (room.public_rumor.contested) {
+      add("notice", "Accounts of this differ.", { kind: "room", field: "rumor" });
+    }
+  }
+  for (const mark of room.org_marks || []) {
+    const name = publicOrgName(mark.name);
+    if (!name) continue;
+    add("notice", `Marks of ${name} remain here.`, { kind: "org", org_id: name, field: "insignia" });
+  }
+  for (const seat of room.vacant_offices || []) {
+    const org_name = publicOrgName(seat.org_name);
+    const office_name = String(seat.office_name || "").trim().slice(0, 48);
+    if (!org_name || !office_name) continue;
+    add("notice", `${office_name} of ${org_name} stands vacant.`, {
+      kind: "org",
+      org_id: org_name,
+      field: "memorial",
+    });
+  }
 
   return out;
 }
