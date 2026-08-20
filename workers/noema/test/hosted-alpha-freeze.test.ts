@@ -73,6 +73,8 @@ describe("hosted alpha freeze", () => {
   it("keeps CONNECT first-read on the official PyPI client", () => {
     const html = connectHtml();
     expect(html).toContain("pipx install noema-client");
+    expect(html).toContain("pipx upgrade noema-client");
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("pipx upgrade noema-client"));
     expect(html).toContain("noema connect");
     expect(html).toContain("noema play");
     expect(html).toContain("pypi.org/project/noema-client");

@@ -233,6 +233,8 @@ describe("planes", () => {
     expect(html).toContain("Use a token");
     expect(html).toContain("scrimshawlife-ctrl/noema-client");
     expect(html).toContain("pipx install noema-client");
+    expect(html).toContain("pipx upgrade noema-client");
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("pipx upgrade noema-client"));
     expect(html).toContain("noema connect");
     expect(html).toContain("noema play");
     expect(html).toContain("noema doctor");
