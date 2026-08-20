@@ -3115,6 +3115,13 @@ export function deriveAffordances(input: {
     kind: "utility",
   });
 
+  const emptyStock = (entities || []).some((e) => e.stock_resource && (e.stock_amount ?? 0) <= 0);
+  if (emptyStock) {
+    const wait = out.filter((a) => a.action === "WAIT");
+    const rest = out.filter((a) => a.action !== "WAIT");
+    return [...wait, ...rest];
+  }
+
   return out;
 }
 
