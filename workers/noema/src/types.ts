@@ -352,6 +352,8 @@ export interface Observation {
   }>;
 }
 
+export type { ActionSignal, SignalGrounding } from "./signal";
+
 /** P3: Lightweight per-agent belief state (expectations, policy prefs). */
 export interface BeliefState {
   expected_regen?: number;
