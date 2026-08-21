@@ -40,7 +40,7 @@ def validate_pack(data: object) -> dict:
 
 def load_pack(path: Path | None) -> dict:
     if path is None or not path.is_file():
-        return dict(DEFAULT_PACK)
+        return validate_pack({})
     return validate_pack(json.loads(path.read_text(encoding="utf-8")))
 
 

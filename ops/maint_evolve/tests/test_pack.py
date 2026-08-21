@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 import pytest
 from maint_evolve.pack import PackError, atomic_replace, derive_candidate, load_pack, validate_pack
@@ -9,6 +8,15 @@ def test_load_missing_uses_defaults(tmp_path: Path):
     assert p["schema_version"] == 1
     assert p["energy_floor"] == 12
     assert "TRADE" not in (p.get("legalize_blocks") or [])  # TRADE is a code veto, not a pack default that packs can delete
+
+
+def test_load_missing_does_not_share_default_lists(tmp_path: Path):
+    missing = tmp_path / "missing.json"
+    first = load_pack(missing)
+    first["inspect_skip"].append("mutated")
+    second = load_pack(missing)
+    assert second["inspect_skip"] == []
+    assert "mutated" not in second["inspect_skip"]
 
 
 def test_validate_rejects_unknown_major():
