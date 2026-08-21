@@ -16,12 +16,21 @@ describe("resolveAdminGenesisWorldId", () => {
     expect(r).toEqual({ ok: true, world_id: "world.perihelion-reach-2" });
   });
 
-  it("production denies any override", () => {
+  it("production allows successor override", () => {
     const r = resolveAdminGenesisWorldId("world.perihelion-reach-2", {
       NOEMA_ENV: "production",
-      DEFAULT_WORLD_ID: "world.perihelion-reach",
+      DEFAULT_WORLD_ID: "world-01",
     });
-    expect(r).toEqual({ ok: false, code: "POLICY_DENIED", message: "world_id override forbidden in production" });
+    expect(r).toEqual({ ok: true, world_id: "world.perihelion-reach-2" });
+  });
+
+  it("production still rejects other explicit ids", () => {
+    const r = resolveAdminGenesisWorldId("world.other", {
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world-01",
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.code).toBe("INVALID_REQUEST");
   });
 
   it("rejects other explicit ids", () => {
@@ -151,14 +160,15 @@ describe("POST /v1/admin/genesis/preview world_id routing", () => {
     expect(fetches.every((c) => c.headers?.["x-noema-world-id"] === SUCCESSOR_WORLD_ID)).toBe(true);
   });
 
-  it("production denies any override before DO lookup", async () => {
+  it("production routes successor preview to successor DO", async () => {
     const calls: DoCall[] = [];
     const res = await adminPost("/v1/admin/genesis/preview", SUCCESSOR_PREVIEW, calls, "production");
-    expect(res.status).toBe(403);
-    const data = (await res.json()) as { error: { code: string; message: string } };
-    expect(data.error.code).toBe("POLICY_DENIED");
-    expect(data.error.message).toBe("world_id override forbidden in production");
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { result: { world_id: string; genesis_id: string } };
+    expect(data.result.world_id).toBe(SUCCESSOR_WORLD_ID);
+    expect(data.result.genesis_id).not.toBe(FROZEN_GENESIS_ID);
+    expect(calls.filter((c) => c.op === "idFromName").map((c) => c.name)).toEqual([SUCCESSOR_WORLD_ID]);
+    expect(calls.filter((c) => c.op === "fetch").every((c) => c.headers?.["x-noema-world-id"] === SUCCESSOR_WORLD_ID)).toBe(true);
   });
 
   it("rejects other explicit ids", async () => {
@@ -190,7 +200,7 @@ describe("POST /v1/admin/genesis/activate world_id routing", () => {
     expect(act?.body?.world_id).toBe(SUCCESSOR_WORLD_ID);
   });
 
-  it("production denies activate override", async () => {
+  it("production routes successor activate to successor DO", async () => {
     const calls: DoCall[] = [];
     const res = await adminPost(
       "/v1/admin/genesis/activate",
@@ -198,10 +208,11 @@ describe("POST /v1/admin/genesis/activate world_id routing", () => {
       calls,
       "production",
     );
-    expect(res.status).toBe(403);
-    const data = (await res.json()) as { error: { code: string } };
-    expect(data.error.code).toBe("POLICY_DENIED");
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(res.status).toBe(200);
+    expect(calls.filter((c) => c.op === "idFromName").map((c) => c.name)).toEqual([SUCCESSOR_WORLD_ID]);
+    const act = calls.find((c) => String(c.url).includes("/genesis-activate"));
+    expect(act?.headers?.["x-noema-world-id"]).toBe(SUCCESSOR_WORLD_ID);
+    expect(act?.body?.world_id).toBe(SUCCESSOR_WORLD_ID);
   });
 
   it("omitted activate uses DEFAULT_WORLD_ID and does not send DO world_id", async () => {
