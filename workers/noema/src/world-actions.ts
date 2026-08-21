@@ -4103,7 +4103,14 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     const raw = Array.isArray(room.entities) ? room.entities : [];
     room.entities = raw
       .filter((e): e is NonNullable<typeof e> => Boolean(e && typeof e === "object"))
-      .map((e) => enrichEntity(e));
+      .map((e) => {
+        const next = enrichEntity(e);
+        if (next.stock_resource) {
+          if (typeof next.max_stock !== "number") next.max_stock = 18;
+          if (typeof next.regen_rate !== "number") next.regen_rate = 1;
+        }
+        return next;
+      });
     if (!Array.isArray(room.exits)) room.exits = [];
   }
   for (const p of Object.values(w.players)) {
