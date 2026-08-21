@@ -4,7 +4,11 @@
  * Theme packs supply vocabulary/pressures only — not authored plot (docs/GENESIS-THEME.md).
  */
 
+import { chamberMapRooms, CHAMBER_MAP_ENTRY_ROOM_ID, CHAMBER_MAP_ROOM_IDS } from "./chamber-map-graph";
 import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
+
+export const FROZEN_GENESIS_ID = "genesis.ef578f4ffceeccd0";
+export const SUCCESSOR_WORLD_ID = "world.perihelion-reach-2";
 
 export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK";
 
@@ -141,6 +145,22 @@ export interface GenesisInput {
   world_seed: string;
   profile_id: string;
   story_seed_ids?: string[];
+  world_id?: string;
+}
+
+export function isFrozenFirstWorldClaim(input: {
+  world_name: string;
+  world_seed: string;
+  profile_id: string;
+  story_seed_ids?: string[];
+}): boolean {
+  const seeds = [...(input.story_seed_ids || [])].sort().join(",");
+  return (
+    input.world_name.trim() === "Perihelion Reach" &&
+    input.world_seed.trim() === "17011984" &&
+    input.profile_id === "FRACTURED_OLD_WORLD" &&
+    seeds === "LOST_ARCHIVE,OLD_TRADE_NETWORK"
+  );
 }
 
 /** Stable JSON for digests (sorted keys, no whitespace variance). */
@@ -414,6 +434,150 @@ function buildCycle0(
   };
 }
 
+function addEntity(room: GenesisRoom, ent: GenesisRoom["entities"][number]): void {
+  if (room.entities.some((e) => e.entity_id === ent.entity_id)) return;
+  room.entities.push(ent);
+}
+
+function buildProductCycle0(
+  world_id: string,
+  world_name: string,
+  world_seed: string,
+  profile: (typeof GENESIS_PROFILES)[0],
+  seeds: StorySeedId[],
+  r: () => number,
+): Cycle0World {
+  const theme = themeForProfile(profile.profile_id) || FIRST_WORLD_THEME;
+  const n = theme.naming;
+  const rooms = chamberMapRooms();
+  const hub = "room.relay-quarter";
+  const archiveRoom = "room.archive";
+
+  addEntity(rooms[hub], {
+    entity_id: "entity.relay-7",
+    label: pick(r, [...n.entities.relay]),
+    entity_type: "INFRASTRUCTURE",
+  });
+
+  const institutions: Cycle0World["institutions"] = [];
+  const artifacts: Cycle0World["artifacts"] = [];
+  const tensions: string[] = [];
+  const scars: string[] = [];
+  const resources: Cycle0World["resources"] = [
+    {
+      kind: "energy",
+      level:
+        profile.resource_abundance === "SCARCE"
+          ? "low"
+          : profile.resource_abundance === "ABUNDANT"
+            ? "high"
+            : "mixed",
+    },
+    { kind: "storage", level: pick(r, ["low", "mixed", "high"]) },
+    { kind: "transport", level: "low" },
+  ];
+
+  if (profile.institution_presence !== "NONE_OR_EMERGING") {
+    institutions.push({
+      id: "org.exchange-charter",
+      name: pick(r, [...n.institutions.active]),
+      status: profile.conflict_pressure === "HIGH" ? "active" : "active",
+    });
+  }
+  if (profile.historical_age_band === "OLD" || profile.profile_id === "RECOVERING_NETWORK") {
+    institutions.push({
+      id: "org.relay-lineage",
+      name: pick(r, [...n.institutions.dormant]),
+      status: "dormant",
+    });
+  }
+  if (profile.infrastructure_condition !== "ABUNDANT") {
+    scars.push("Damaged relay corridor under the hub — too valuable to abandon.");
+    addEntity(rooms[hub], {
+      entity_id: "entity.scar-conduit",
+      label: pick(r, [...n.entities.ruin]),
+      entity_type: "RUIN",
+      scar: true,
+    });
+  }
+
+  const seedTensions = theme.tensions_by_seed as Record<string, readonly string[]>;
+  for (const sid of seeds) {
+    const themed = seedTensions[sid];
+    if (themed?.length) tensions.push(pick(r, [...themed]));
+
+    if (sid === "OLD_TRADE_NETWORK") {
+      addEntity(rooms["room.civic-exchange"], {
+        entity_id: "entity.old-market-post",
+        label: pick(r, [...n.entities.trade]),
+        entity_type: "INFRASTRUCTURE",
+      });
+      resources.push({ kind: "trade-access", level: "mixed" });
+      scars.push("Ghost route continues beyond the eastern yards.");
+    }
+    if (sid === "LOST_ARCHIVE") {
+      const archLabel = pick(r, [...n.entities.archive]);
+      addEntity(rooms[archiveRoom], {
+        entity_id: "entity.archive-ledger",
+        label: archLabel,
+        entity_type: "ARTIFACT",
+      });
+      artifacts.push({
+        id: "artifact.archive-ledger",
+        label: "Fragmentary archive",
+        room_id: archiveRoom,
+      });
+      scars.push("Maker marks and incomplete ownership ledgers survive in cold storage.");
+    }
+    if (sid === "FOUNDING_SPLIT") {
+      /* tension from theme pack */
+    }
+    if (sid === "FAILED_SETTLEMENT") {
+      scars.push("An abandoned claim marks a failed settlement attempt.");
+      if (rooms[archiveRoom]) {
+        addEntity(rooms[archiveRoom], {
+          entity_id: "entity.failed-claim",
+          label: pick(r, [...n.entities.ruin]),
+          entity_type: "RUIN",
+          scar: true,
+        });
+      }
+    }
+    if (sid === "RESOURCE_CRISIS") {
+      resources[0] = { kind: "energy", level: "low" };
+    }
+    if (sid === "DISPUTED_SUCCESSION") {
+      if (institutions.length) institutions[0].status = "active";
+    }
+  }
+
+  const traces = theme.historical_traces;
+  if (traces.length) scars.push(pick(r, [...traces]));
+
+  if (!tensions.length) {
+    tensions.push("The frontier is commercially alive and incompletely governed.");
+  }
+
+  const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions, theme);
+
+  return {
+    world_id,
+    world_name,
+    world_seed,
+    cycle: 0,
+    sequence: 0,
+    entry_room_id: CHAMBER_MAP_ENTRY_ROOM_ID,
+    rooms,
+    institutions: institutions.slice(0, 2),
+    artifacts,
+    tensions: tensions.slice(0, 3),
+    scars: scars.slice(0, 4),
+    resources,
+    opportunities,
+    theme_id: theme.theme_id,
+  };
+}
+
 function startingOpportunities(
   profile_id: string,
   seeds: StorySeedId[],
@@ -464,7 +628,17 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
   if (!world.world_seed) errors.push("world_seed missing");
   if (world.cycle !== 0) errors.push("cycle must be 0");
   const rooms = Object.values(world.rooms);
-  if (rooms.length < 3 || rooms.length > 8) errors.push(`room_count ${rooms.length} outside 3–8 budget`);
+  const roomIds = Object.keys(world.rooms);
+  const chamberMapPresent =
+    roomIds.length === 10 && CHAMBER_MAP_ROOM_IDS.every((id) => Boolean(world.rooms[id]));
+  if (chamberMapPresent) {
+    const allowed = new Set<string>(CHAMBER_MAP_ROOM_IDS);
+    for (const id of roomIds) {
+      if (!allowed.has(id)) errors.push(`unexpected room ${id}`);
+    }
+  } else if (rooms.length < 3 || rooms.length > 8) {
+    errors.push(`room_count ${rooms.length} outside 3–8 budget`);
+  }
   if (!world.rooms[world.entry_room_id]) errors.push("entry_room_id invalid");
 
   for (const room of rooms) {
@@ -519,7 +693,9 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
     throw new GenesisError("INVALID_SEED", "first-run budget: at most 2 story seeds");
   }
 
-  const world_id = `world.${world_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "01"}`;
+  const slug = `world.${world_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "01"}`;
+  const explicit = (input.world_id || "").trim();
+  const world_id = explicit || slug;
 
   const claimBearing = {
     world_name,
@@ -537,7 +713,30 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
   const genesis_id = `genesis.${(await sha256Hex(stableStringify(claimBearing))).slice(0, 16)}`;
 
   const r = rng(`${world_seed}|${profile_id}|${story_seed_ids.join(",")}|${theme.theme_id}`);
-  const cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  const frozenClaim = isFrozenFirstWorldClaim({
+    world_name,
+    world_seed,
+    profile_id,
+    story_seed_ids,
+  });
+  const frozenWorldIds = explicit === "world.perihelion-reach" || explicit === "world-01" || !explicit;
+
+  let cycle0: Cycle0World;
+  if (frozenClaim) {
+    if (!frozenWorldIds) {
+      throw new GenesisError("INVALID_SEED", "frozen genesis_id cannot target another world");
+    }
+    cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else if (!explicit || explicit === "world.perihelion-reach" || explicit === "world-01") {
+    cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else if (explicit === SUCCESSOR_WORLD_ID) {
+    if (genesis_id === FROZEN_GENESIS_ID) {
+      throw new GenesisError("INVALID_SEED", "frozen genesis_id cannot target another world");
+    }
+    cycle0 = buildProductCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else {
+    throw new GenesisError("INVALID_REQUEST", "world_id override this campaign must be world.perihelion-reach-2");
+  }
   const validation = validateCycle0(cycle0);
   const cycle0_digest = `sha256:${await sha256Hex(stableStringify(cycle0))}`;
 
