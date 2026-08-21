@@ -51,3 +51,42 @@ Do not add first-party agent-client functionality to this repository unless it i
 - **Specs vs runtime:** Core-loop freeze is `spec-compat.json` → Noema-Specs `d69be87` (C01–C26 / ADR-005). Product identity follows RFC-0120: only agents are Players. Chrome follows `HOSTED-FIRST-ENTRY.md`: Watch-first door; primary nav **Home · Manifesto · Watch · Connect**. Do not put Play back on the bar. Do not put humans on `POST /v1/command` or DO `/command`. Full table: `docs/SPECS-AUDIT.md`. Production verdict: `docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md`. Alpha packaging: `docs/ALPHA-RELEASE.md`. **Hosted alpha is FROZEN** (`docs/HOSTED-ALPHA-FREEZE.md`). RFC-0120 identity unfreeze is landed (`docs/RFC-0120-ACCEPTANCE.md`). Do not change seal, Genesis, verbs, or `DEFAULT_WORLD_ID` without an `UNFREEZE` PR. Isolated tests and Chamber (dev tooling) may still move.
 - **`/health` `world_id` is the Durable Object name** (`wrangler.toml` `DEFAULT_WORLD_ID=world.perihelion-reach-2`, RFC-0121 cutover). `/ready` reports that DO's genesis. The frozen 5-room world stays on the old `world-01` DO (operator-only). Do not point PLAY back at `world-01`.
 
+<!-- graft:start -->
+## Graft — repo context graph
+
+This repo is indexed in `graft/`: small linked markdown nodes that explain each
+system and carry exact `file:line` spans, kept in sync with the code through git.
+
+For ANY task here — understanding how something works, finding where code lives,
+or scoping a change — get context from the graph before grepping or opening
+source files. Re-ask freely (it's cheap) and reuse literal identifiers you
+already have (symbol, error string, file name) as the query. New to this repo?
+Run `graft map` first — a token-budgeted orientation (dir clusters, hubs,
+hotspots), no LLM, no key.
+
+- Run `graft ask "<your question>" --source` → ranked nodes with the relevant
+  code spans inlined (each hit's ≤8-line crux by default; `--full` for whole
+  definitions when the crux isn't enough). Match the tool to the task shape:
+  for understanding or editing, the top node IS the answer — cite its
+  `covers:` file:line spans and edit straight from `--source`. For
+  exhaustive tasks ("every occurrence / every caller of this pattern"), ranked
+  results are top-N, not complete — run `graft grep "<literal>"` instead
+  (exhaustive over indexed files, grouped by enclosing symbol), falling back
+  to raw `grep -rn` only for unindexed files.
+- `graft skeleton <file>` → every definition's signature + span, ~10× cheaper
+  than reading the file; use it to skim an API surface.
+- `graft callers <symbol>` gives precomputed, exact edges — who calls this.
+  Add `--direction out` for what it calls, or `--depth N` to walk
+  transitively for the full blast radius. For structural questions, skip
+  ranking and use this directly.
+- Or browse: `graft/INDEX.md` lists every node; follow the links.
+
+If a returned span is truncated ("+N more lines"), open the file at that exact
+range before finalizing. Only open source files when a node genuinely lacks a
+needed detail, and then at the exact file:line the node points to — never
+re-read whole files.
+
+After big code changes, refresh the graph with `graft build` (deterministic,
+no API key, $0).
+<!-- graft:end -->
+

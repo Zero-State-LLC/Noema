@@ -33,6 +33,7 @@ import {
   type OrgRole,
   type PlayerRuntime,
 } from "./actions";
+import { SUCCESSOR_WORLD_ID } from "./genesis";
 import { playTextFromObservation } from "./play-ui";
 import {
   AGREEMENT_FORM_COST,
@@ -3796,6 +3797,26 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     if (!org.emergency_templates?.length) org.emergency_templates = defaultEmergencyTemplates();
     org.emergency_scopes = org.emergency_scopes || [];
   }
+}
+
+/** Live successor Civic Exchange harvest node from #445. Frozen first world unchanged. */
+export function ensureSuccessorMaterialsCache(w: WorldRuntime): boolean {
+  if (w.world_id !== SUCCESSOR_WORLD_ID) return false;
+  const room = w.rooms?.["room.civic-exchange"];
+  if (!room) return false;
+  if (!Array.isArray(room.entities)) room.entities = [];
+  if (room.entities.some((e) => e.entity_id === "entity.salvage-cache")) return false;
+  if (room.entities.some((e) => e.stock_resource === "materials" && (e.stock_amount ?? 0) > 0)) return false;
+  room.entities.push(
+    enrichEntity({
+      entity_id: "entity.salvage-cache",
+      label: "salvage-cache",
+      entity_type: "NODE",
+      stock_resource: "materials",
+      stock_amount: 4,
+    }),
+  );
+  return true;
 }
 
 type PushEv = (
