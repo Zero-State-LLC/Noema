@@ -10,7 +10,7 @@ export const NODE_STOCK_CAPACITY = 24;
 export const NODE_REGEN_PER_CYCLE = 1;
 
 export function isAuthorizedHarvestNode(entityId: string | undefined): boolean {
-  return entityId === PREFERRED_NODE_ID;
+  return entityId === PREFERRED_NODE_ID || entityId === "entity.salvage-cache";
 }
 
 export function productionModifier(

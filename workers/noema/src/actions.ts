@@ -3092,10 +3092,6 @@ export function deriveAffordances(input: {
       }
     }
     if (e.stock_resource) {
-      if (typeof e.regen_rate === "number" && e.regen_rate > 0) {
-        const m = e.max_stock ?? 999;
-        e.stock_amount = Math.min(m, (e.stock_amount ?? 0) + e.regen_rate * 0.15);
-      }
       const hasStock = (e.stock_amount ?? 0) > 0;
       const hasStorage = (budgets.storage ?? 0) >= 1;
       const canFuel = canPay(budgets, COSTS.HARVEST);

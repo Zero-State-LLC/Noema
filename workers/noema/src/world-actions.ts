@@ -83,7 +83,6 @@ import {
 import {
   applyLockoutRest,
   isAuthorizedHarvestNode,
-  NODE_REGEN_PER_CYCLE,
   NODE_STOCK_CAPACITY,
   previewStockRegen,
   productionModifier,
@@ -3344,15 +3343,6 @@ export async function applyWorldCommand(
       debit(pl.budgets, COSTS.HARVEST);
       entity.stock_amount = (entity.stock_amount ?? 0) - amount;
 
-      // P0 basic co-evolution: room-wide stock regeneration (activity proxy)
-      for (const e of room.entities || []) {
-        if (e.stock_resource && typeof e.regen_rate === "number" && e.regen_rate > 0) {
-          const m = e.max_stock ?? 999;
-          const tick = (e === entity) ? e.regen_rate * 0.25 : e.regen_rate;
-          e.stock_amount = Math.min(m, (e.stock_amount ?? 0) + tick);
-        }
-      }
-
       pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
       const credited = (
         fillsHoldOnly ? "storage" : stockKind in pl.budgets ? stockKind : "energy"
@@ -4114,7 +4104,16 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
         const next = enrichEntity(e);
         if (next.stock_resource) {
           if (typeof next.max_stock !== "number") next.max_stock = 18;
-          if (typeof next.regen_rate !== "number") next.regen_rate = 1;
+          // Empty Civic Exchange harvest nodes recover on cycle commit (#482).
+          // Do not invent regen on already-stocked fixtures (GC10-S1 scarcity)
+          // or leftover trade boards / ordinary harvest cells.
+          if (
+            typeof next.regen_rate !== "number" &&
+            (next.stock_amount ?? 0) === 0 &&
+            isAuthorizedHarvestNode(next.entity_id)
+          ) {
+            next.regen_rate = 1;
+          }
         }
         return next;
       });
@@ -6337,8 +6336,9 @@ async function applyResourceProduction(
     const mod = productionModifier(ents);
     for (const entity of ents) {
       if (!entity.stock_resource) continue;
+      if (typeof entity.regen_rate !== "number" || entity.regen_rate <= 0) continue;
       const cap = typeof entity.max_stock === "number" && entity.max_stock > 0 ? entity.max_stock : NODE_STOCK_CAPACITY;
-      const regen = typeof entity.regen_rate === "number" && entity.regen_rate > 0 ? entity.regen_rate : NODE_REGEN_PER_CYCLE;
+      const regen = entity.regen_rate;
       const before = Math.floor(entity.stock_amount ?? 0);
       const after = previewStockRegen(before, mod, regen, cap);
       if (after <= before) continue;
