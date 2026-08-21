@@ -103,6 +103,15 @@ import {
 } from "./practice";
 
 import { situationFromLive } from "./orientation";
+import { mutationGroundingOk } from "./signal";
+import {
+  bumpImage,
+  justifiedPunish,
+  noteConduct,
+  secondOrderReputation,
+  semanticAttach,
+  signalQuarantineMessage,
+} from "./reputation";
 import { focusSelfLine, publicFocusLine, parseFocusTrack, type FocusId } from "./focus";
 import {
   creditAcceptedTrade,
@@ -846,6 +855,7 @@ export function buildObservation(
         if (am !== bm) return am - bm;
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
+    ...semanticAttach(w),
     in_world: pl.entered,
     players_here: otherPlayers
       .filter(
@@ -2523,6 +2533,10 @@ export async function applyWorldCommand(
     }
 
     if (phase === "accept") {
+      const quarantined = signalQuarantineMessage(action.arguments.signal);
+      if (quarantined) {
+        return fail(request_id, "FORBIDDEN", quarantined);
+      }
       if (!canPay(pl.budgets, COSTS.TRADE)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
       }
@@ -2646,6 +2660,13 @@ export async function applyWorldCommand(
       }
       trade.reserved = {};
       trade.status = "SETTLED";
+      bumpImage(pl, 1);
+      noteConduct(pl, trade.proposer_id, 1);
+      const proposerPl = w.players[trade.proposer_id];
+      if (proposerPl) {
+        bumpImage(proposerPl, 1);
+        noteConduct(proposerPl, principal.player_id, 1);
+      }
       if (trade.acting_for || acceptActingFor) {
         noteInstitutionPulse(w, "An institution traded from its treasury.");
       }
@@ -2698,6 +2719,9 @@ export async function applyWorldCommand(
       }
       releaseTradeReserve(w, trade);
       trade.status = phase === "cancel" ? "CANCELLED" : "REJECTED";
+      if (phase === "reject" && mutationGroundingOk(action.arguments.signal) && action.arguments.signal?.grounding === "observed") {
+        justifiedPunish(w, principal.player_id, trade.proposer_id, pl.room_id);
+      }
       const reason = action.arguments.reason || (phase === "cancel" ? "CANCELLED" : "DECLINED");
       const ev = pushEvent(phase === "cancel" ? "TRADE_CANCELLED" : "TRADE_REJECTED", {
         trade_id: trade.trade_id,
@@ -2850,7 +2874,12 @@ export async function applyWorldCommand(
         org_id = allocateOrgId(name);
         while (w.organizations[org_id]) org_id = allocateOrgId(name);
       }
+      const orgQ = signalQuarantineMessage(action.arguments.signal);
+      if (orgQ) {
+        return fail(request_id, "FORBIDDEN", orgQ);
+      }
       debit(pl.budgets, COSTS.ORG_CREATE);
+      bumpImage(pl, 1);
       const members =
         action.arguments.initial_members && action.arguments.initial_members.length
           ? action.arguments.initial_members.map((m) => ({
@@ -5901,11 +5930,16 @@ async function applyAttest(
   if (!canPay(pl.budgets, attestCost)) {
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
+  const quarantined = signalQuarantineMessage(args.signal);
+  if (quarantined) {
+    return fail(request_id, "FORBIDDEN", quarantined);
+  }
   debit(pl.budgets, attestCost);
   entity.archive_subject_entity_id = subject;
   entity.archive_claim = claim;
   // P0 explicit influence production on successful attest
   pl.budgets.influence = (pl.budgets.influence ?? 0) + 1;
+  bumpImage(pl, 1);
 
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;

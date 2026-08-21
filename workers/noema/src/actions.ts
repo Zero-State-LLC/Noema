@@ -187,6 +187,10 @@ export type PlayerRuntime = {
   lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
   /** GC8-S2 public origin of current holdings. Hidden rooms never stored. */
   lot_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
+  /** Privileged image score. Not WATCH-public. */
+  image_score?: number;
+  /** How this agent treated others. Privileged. */
+  conduct_toward?: Record<string, number>;
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
@@ -360,6 +364,7 @@ export type CanonicalAction =
         acting_for?: string;
         office_id?: string;
         emergency_scope_id?: string;
+        signal?: ActionSignal;
       };
     }
   | {
@@ -2251,6 +2256,8 @@ export function normalizeStructuredCommand(
       (args.requested as Record<string, number> | undefined) ||
       (args.want as Record<string, number> | undefined) ||
       (args.wants as Record<string, number> | undefined);
+    const sig = signalFromArgs(args);
+    if (!sig.ok) return sig;
     return {
       ok: true,
       action: {
@@ -2266,6 +2273,7 @@ export function normalizeStructuredCommand(
           acting_for: args.acting_for ? String(args.acting_for) : undefined,
           office_id: args.office_id ? String(args.office_id) : undefined,
           emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
+          ...(sig.signal ? { signal: sig.signal } : {}),
         },
       },
       display: `TRADE ${phase}`,
@@ -2301,6 +2309,8 @@ export function normalizeStructuredCommand(
       if (!name || !charter) {
         return { ok: false, error: "name and charter required", code: "INVALID_REQUEST" };
       }
+      const sig = signalFromArgs(args);
+      if (!sig.ok) return sig;
       return {
         ok: true,
         action: {
@@ -2313,6 +2323,7 @@ export function normalizeStructuredCommand(
             initial_members: Array.isArray(args.initial_members)
               ? (args.initial_members as OrgMember[])
               : undefined,
+            ...(sig.signal ? { signal: sig.signal } : {}),
           },
         },
         display: "COMMIT.ORG_CREATE",

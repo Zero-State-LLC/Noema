@@ -234,6 +234,9 @@ export interface Observation {
   /** GC1-S7 self focus line. */
   focus_lines?: string[];
   player_id: string;
+  signaling_quality?: number;
+  drift_alerts?: string[];
+  cascading_risk?: number;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
   /** Self budgets (Player-visible). */

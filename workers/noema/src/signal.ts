@@ -59,6 +59,14 @@ export function parseActionSignal(raw: unknown): { ok: true; signal?: ActionSign
   return { ok: true, signal };
 }
 
+/** ATTEST / TRADE accept / ORG mutation: missing signal is legal; hearsay and inferred-from-belief are not. */
+export const MUTATION_GROUNDING = new Set<SignalGrounding>(["observed", "inferred-from-stock", "genesis"]);
+
+export function mutationGroundingOk(signal?: ActionSignal): boolean {
+  if (!signal || !signal.grounding) return true;
+  return MUTATION_GROUNDING.has(signal.grounding);
+}
+
 export function signalFromArgs(args: Record<string, unknown>): { ok: true; signal?: ActionSignal } | { ok: false; error: string; code: "INVALID_REQUEST" } {
   if (args.signal != null) return parseActionSignal(args.signal);
   if (args["@C"] != null || args["@G"] != null || args["@S"] != null) {

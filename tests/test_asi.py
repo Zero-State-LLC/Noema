@@ -45,6 +45,27 @@ def test_hearsay_signals_raise_semantic_drift_and_sar_goal():
     assert sar["semantic_goal"] == "Reduce semantic drift while maintaining stock velocity"
 
 
+def test_dense_low_grounding_graph_raises_cascading_risk():
+    snap = {
+        "materials": 11.0,
+        "cycle": 2,
+        "max_materials": 18,
+        "signals": [{"grounding": "hearsay"}] * 2,
+        "interaction_edges": [{"from": "a", "to": "b", "grounding": "hearsay"} for _ in range(8)],
+        "image_scores": [0, 8, 0, 9],
+    }
+    h = compute_economic_health(snap, [{"influence": 4, "attention": 10, "conversion_rate": 0.5}] * 2)
+    assert h.cascading_risk > 0.5
+    assert h.reputation_stability < 1.0
+    attach = __import__("economic_health", fromlist=["enrich_observation_with_ewm"]).enrich_observation_with_ewm(
+        {"cycle": 2, "budgets": {"energy": 1}}, h
+    )
+    assert "signaling_quality" in attach["ewm_health"]
+    assert "cascading_risk" in attach["ewm_health"]
+    assert "drift_alerts" in attach["ewm_health"]
+    assert "velocity" in attach["ewm_health"]
+
+
 def test_observed_signals_pass_grounding():
     snap = {
         "materials": 11.0,

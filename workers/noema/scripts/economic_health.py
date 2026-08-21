@@ -30,6 +30,8 @@ class EconomicHealth:
     coordination_drift: float = 0.0
     behavioral_drift: float = 0.0
     asi_composite: float = 1.0
+    reputation_stability: float = 1.0
+    cascading_risk: float = 0.0
     alerts: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
 
@@ -116,6 +118,27 @@ def apply_asi(h: EconomicHealth, snapshot: Dict[str, Any], agents: List[Dict[str
         var = sum((x - mean) ** 2 for x in rates) / len(rates)
         h.behavioral_drift = max(0.0, min(1.0, sqrt(var) * 2.0))
     h.asi_composite = max(0.0, min(1.0, 1.0 - (h.semantic_drift + h.coordination_drift + h.behavioral_drift) / 3.0))
+    scores = snapshot.get("image_scores") or []
+    nums = [float(x) for x in scores if isinstance(x, (int, float))]
+    if len(nums) < 2:
+        h.reputation_stability = 1.0
+    else:
+        mean = sum(nums) / len(nums)
+        var = sum((x - mean) ** 2 for x in nums) / len(nums)
+        h.reputation_stability = max(0.0, min(1.0, 1.0 - min(1.0, sqrt(var) / 4.0)))
+    edges = snapshot.get("interaction_edges") or snapshot.get("edges") or []
+    if isinstance(edges, list) and edges:
+        low_g = 0
+        for e in edges:
+            if not isinstance(e, dict):
+                continue
+            g = str(e.get("grounding") or "")
+            if g and g not in GROUNDED:
+                low_g += 1
+        density = min(1.0, len(edges) / 8.0)
+        h.cascading_risk = max(0.0, min(1.0, density * (0.4 + 0.6 * (low_g / max(1, len(edges))))))
+    else:
+        h.cascading_risk = max(0.0, min(1.0, float(snapshot.get("cascading_risk") or 0)))
 
 
 def sar_for_ops(health: EconomicHealth) -> Dict[str, Any]:
@@ -142,6 +165,10 @@ def enrich_observation_with_ewm(obs: dict, health: EconomicHealth) -> dict:
         "org_threshold": round(health.org_threshold, 2),
         "asi": round(health.asi_composite, 2),
         "semantic_drift": round(health.semantic_drift, 2),
+        "reputation_stability": round(health.reputation_stability, 2),
+        "cascading_risk": round(health.cascading_risk, 2),
+        "signaling_quality": round(health.grounding_pass_rate, 2),
+        "drift_alerts": list(health.alerts),
         "alerts": health.alerts,
     }
     return obs
