@@ -148,6 +148,7 @@ Production cutover (human-gated, two deploys):
 2. Admin preview successor on production. Require `genesis_id ≠ genesis.ef578f4ffceeccd0` and `room_count: 10`.
 3. Admin `confirm: true` activate on `world.perihelion-reach-2`. No `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
 4. Set production `DEFAULT_WORLD_ID=world.perihelion-reach-2` and deploy. PLAY then uses the successor DO. Do not add PLAY to the old DO.
+   Successor production genesis (2026-08-21): `genesis.dbeb43d198ce81b1`, seed `perihelion-successor-rehearsal-01`, 10 rooms. Frozen first world remains `genesis.ef578f4ffceeccd0` on the `world-01` DO.
 
 ## Recovery
 
