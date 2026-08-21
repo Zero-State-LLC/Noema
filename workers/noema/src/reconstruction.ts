@@ -33,6 +33,8 @@ export type ReconstructionRecord = {
   visibility: ReconstructionVisibility;
   epistemic: ReconstructionEpistemic;
   org_id?: string;
+  /** Deep Time: fidelity vs evidence fragments. Not ledger rewrite. */
+  fidelity?: number;
 };
 
 export function allocateReconstructionId(): string {

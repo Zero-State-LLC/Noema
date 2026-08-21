@@ -189,6 +189,17 @@ export interface Cycle0World {
   signaling_styles?: Partial<
     Record<"salvager" | "trader" | "archivist" | "maintainer" | "generalist", "grounded-first" | "compact" | "verbose">
   >;
+  /** Typed Deep Time scar seeds. Not the lore `scars: string[]` list. */
+  scar_seeds?: Array<{
+    scar_id: string;
+    domain: "economic" | "social" | "territorial";
+    strength: number;
+    decay_rate: number;
+    room_id?: string;
+    cycle_born: number;
+    visibility: "public" | "institutional" | "hidden";
+    reconstruction_confidence: number;
+  }>;
 }
 
 export interface GenesisResult {
@@ -677,7 +688,7 @@ function seedEwmEnhanced(
   profile: (typeof GENESIS_PROFILES)[0],
   rooms: Record<string, GenesisRoom>,
   institutions: Cycle0World["institutions"],
-): Pick<Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles"> {
+): Pick<Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles" | "scar_seeds"> {
   if (!profile.ewm_features) return {};
   const archetypes = [
     { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" as const },
@@ -723,8 +734,32 @@ function seedEwmEnhanced(
       salvager: "compact",
       trader: "verbose",
     },
+    scar_seeds: [
+      {
+        scar_id: "scar.econ.seed.civic-exchange",
+        domain: "economic",
+        strength: 0.15,
+        decay_rate: 0.08,
+        room_id: "room.civic-exchange",
+        cycle_born: 0,
+        visibility: "public",
+        reconstruction_confidence: 0.3,
+      },
+    ],
   };
 }
+
+/** Isolated Cycle 0 may seed a public economic scar prototype. Not a live reseed. */
+export const EWM_SCAR_SEED = {
+  scar_id: "scar.econ.seed.civic-exchange",
+  domain: "economic" as const,
+  strength: 0.15,
+  decay_rate: 0.08,
+  room_id: "room.civic-exchange",
+  cycle_born: 0,
+  visibility: "public" as const,
+  reconstruction_confidence: 0.3,
+};
 
 function startingOpportunities(
   profile_id: string,
