@@ -46,6 +46,14 @@ describe("resolveAdminGenesisWorldId", () => {
     expect(r).toEqual({ ok: true, world_id: EWM_ISOLATED_WORLD_ID });
   });
 
+  it("admits EWM product world in production", () => {
+    const r = resolveAdminGenesisWorldId("world.perihelion-reach-3", {
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world.perihelion-reach-2",
+    });
+    expect(r).toEqual({ ok: true, world_id: "world.perihelion-reach-3" });
+  });
+
   it("rejects other explicit ids", () => {
     const r = resolveAdminGenesisWorldId("world.other", { NOEMA_ENV: "local", DEFAULT_WORLD_ID: "world-01" });
     expect(r.ok).toBe(false);

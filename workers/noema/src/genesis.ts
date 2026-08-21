@@ -12,6 +12,11 @@ export const SUCCESSOR_WORLD_ID = "world.perihelion-reach-2";
 export const FROZEN_PUBLIC_WORLD_ID = "world.perihelion-reach";
 export const FROZEN_WORLD_DO_NAME = "world-01";
 export const EWM_ISOLATED_WORLD_ID = "test.hosted-canonical.ewm-cutover";
+export const EWM_PRODUCT_WORLD_ID = "world.perihelion-reach-3";
+
+function isProductChamberWorld(worldId: string): boolean {
+  return worldId === SUCCESSOR_WORLD_ID || worldId === EWM_ISOLATED_WORLD_ID || worldId === EWM_PRODUCT_WORLD_ID;
+}
 
 /** Admin overview / lifecycle / Recover only. Never used by PLAY. */
 export function resolveAdminOperatorWorldId(
@@ -29,10 +34,13 @@ export function resolveAdminOperatorWorldId(
   if (value === SUCCESSOR_WORLD_ID) {
     return { ok: true, do_name: SUCCESSOR_WORLD_ID, world_id: SUCCESSOR_WORLD_ID };
   }
+  if (value === EWM_PRODUCT_WORLD_ID) {
+    return { ok: true, do_name: EWM_PRODUCT_WORLD_ID, world_id: EWM_PRODUCT_WORLD_ID };
+  }
   return {
     ok: false,
     code: "INVALID_REQUEST",
-    message: "admin world_id must be omitted, world.perihelion-reach-2, or frozen world.perihelion-reach",
+    message: "admin world_id must be omitted, world.perihelion-reach-2, world.perihelion-reach-3, or frozen world.perihelion-reach",
   };
 }
 
@@ -43,13 +51,14 @@ export function resolveAdminGenesisWorldId(
   const fallback = String(env.DEFAULT_WORLD_ID || "world-01").trim() || "world-01";
   const value = String(requested || "").trim();
   if (!value) return { ok: true, world_id: fallback };
-  if (value === SUCCESSOR_WORLD_ID || value === EWM_ISOLATED_WORLD_ID) {
+  if (isProductChamberWorld(value)) {
     return { ok: true, world_id: value };
   }
   return {
     ok: false,
     code: "INVALID_REQUEST",
-    message: "world_id override this campaign must be world.perihelion-reach-2 or test.hosted-canonical.ewm-cutover",
+    message:
+      "world_id override this campaign must be world.perihelion-reach-2, world.perihelion-reach-3, or test.hosted-canonical.ewm-cutover",
   };
 }
 
@@ -756,8 +765,7 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
   if (world.cycle !== 0) errors.push("cycle must be 0");
   const rooms = Object.values(world.rooms);
   const roomIds = Object.keys(world.rooms);
-  const requireChamberMap =
-    world.world_id === SUCCESSOR_WORLD_ID || world.world_id === EWM_ISOLATED_WORLD_ID || roomIds.length === 10;
+  const requireChamberMap = isProductChamberWorld(world.world_id) || roomIds.length === 10;
   if (requireChamberMap) {
     const have = new Set(roomIds);
     const allowed = new Set<string>(CHAMBER_MAP_ROOM_IDS);
@@ -860,7 +868,7 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
     cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
   } else if (!explicit || explicit === "world.perihelion-reach" || explicit === "world-01") {
     cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
-  } else if (explicit === SUCCESSOR_WORLD_ID || explicit === EWM_ISOLATED_WORLD_ID) {
+  } else if (isProductChamberWorld(explicit)) {
     if (genesis_id === FROZEN_GENESIS_ID) {
       throw new GenesisError("INVALID_SEED", "frozen genesis_id cannot target another world");
     }
@@ -868,7 +876,7 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
   } else {
     throw new GenesisError(
       "INVALID_REQUEST",
-      "world_id override this campaign must be world.perihelion-reach-2 or test.hosted-canonical.ewm-cutover",
+      "world_id override this campaign must be world.perihelion-reach-2, world.perihelion-reach-3, or test.hosted-canonical.ewm-cutover",
     );
   }
   const validation = validateCycle0(cycle0);

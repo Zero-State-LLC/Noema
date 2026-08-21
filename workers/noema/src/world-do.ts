@@ -1035,10 +1035,11 @@ export class NoemaWorldDO {
     const ledgerEvents = canonicalEventsForCommit(result.events);
     if (mutating && result.ok && ledgerEvents.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
-      const toCommit =
-        this.allowCanonicalBootstrap && !durable
-          ? withIsolatedBootstrapEvent(ledgerEvents, w.world_id, this.meta!.genesis_id)
-          : ledgerEvents;
+      const bootstrapEmpty =
+        !durable && (this.allowCanonicalBootstrap || w.world_id === "world.perihelion-reach-3");
+      const toCommit = bootstrapEmpty
+        ? withIsolatedBootstrapEvent(ledgerEvents, w.world_id, this.meta!.genesis_id)
+        : ledgerEvents;
       const committed = await commitCanonicalSettlement(this.env, {
         settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
         expected_revision: this.meta!.revision ?? 0,
@@ -1050,7 +1051,7 @@ export class NoemaWorldDO {
         principal,
         events: toCommit,
         previous_digest: durable?.ledger_head_digest ?? null,
-        allow_bootstrap: this.allowCanonicalBootstrap,
+        allow_bootstrap: bootstrapEmpty,
       });
       if (!committed.ok) {
         // Soft-restore sequence drift (PR #363). Contention races stay ACTIVE with resync.
