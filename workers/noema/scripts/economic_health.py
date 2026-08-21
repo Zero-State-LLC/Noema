@@ -68,6 +68,10 @@ class EconomicHealth:
     asi_composite: float = 1.0
     reputation_stability: float = 1.0
     cascading_risk: float = 0.0
+    scar_persistence: float = 0.0
+    reconstruction_fidelity: float = 0.0
+    path_dependence_index: float = 0.0
+    historical_alignment: float = 1.0
     alerts: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
 
@@ -167,6 +171,15 @@ def apply_asi(h: EconomicHealth, snapshot: Dict[str, Any], agents: List[Dict[str
         h.cascading_risk = _forman_cascading_risk(edges)
     else:
         h.cascading_risk = max(0.0, min(1.0, float(snapshot.get("cascading_risk") or 0)))
+    scars = snapshot.get("scars") or []
+    if isinstance(scars, list) and scars:
+        strengths = [float(s.get("strength", 0)) for s in scars if isinstance(s, dict)]
+        h.path_dependence_index = max(0.0, min(1.0, sum(strengths) / max(1, len(strengths))))
+        cycle = max(1, int(snapshot.get("cycle", 1)))
+        ages = [max(0.0, cycle - float(s.get("cycle_born", cycle))) for s in scars if isinstance(s, dict)]
+        h.scar_persistence = sum(ages) / max(1, len(ages))
+    h.reconstruction_fidelity = max(0.0, min(1.0, float(snapshot.get("reconstruction_fidelity") or 0)))
+    h.historical_alignment = max(0.0, min(1.0, 1.0 - h.semantic_drift * 0.5 - h.path_dependence_index * 0.3))
 
 
 def sar_for_ops(health: EconomicHealth) -> Dict[str, Any]:
@@ -196,6 +209,10 @@ def enrich_observation_with_ewm(obs: dict, health: EconomicHealth) -> dict:
         "reputation_stability": round(health.reputation_stability, 2),
         "cascading_risk": round(health.cascading_risk, 2),
         "signaling_quality": round(health.grounding_pass_rate, 2),
+        "scar_persistence": round(health.scar_persistence, 2),
+        "reconstruction_fidelity": round(health.reconstruction_fidelity, 2),
+        "path_dependence_index": round(health.path_dependence_index, 2),
+        "historical_alignment": round(health.historical_alignment, 2),
         "drift_alerts": list(health.alerts),
         "alerts": health.alerts,
     }

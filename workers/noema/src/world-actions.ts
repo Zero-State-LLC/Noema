@@ -116,6 +116,18 @@ import {
   semanticAttach,
   signalQuarantineMessage,
 } from "./reputation";
+import {
+  deepTimeCoEvolve,
+  noteHarvestTrajectory,
+  pathDependenceIndex,
+  publicScarsForRoom,
+  pushEvidenceFragment,
+  reconstructionFidelity,
+  weakenScarsForReconstruction,
+  type EvidenceFragment,
+  type ScarRecord,
+  type TrajectoryDigest,
+} from "./deep-time";
 import { focusSelfLine, publicFocusLine, parseFocusTrack, type FocusId } from "./focus";
 import {
   creditAcceptedTrade,
@@ -388,6 +400,10 @@ async function coevolveAfterAction(w: WorldRuntime, principal: PlayerPrincipal, 
     }
   }
 
+  if ((w.cycle || 0) % 5 === 0) {
+    deepTimeCoEvolve(w);
+  }
+
   if (process.env.NOEMA_DEBUG_COEVO) {
     console.log("[COEVO]", verb, "room=", roomId, "pressure=", co.harvest_pressure[roomId], "cycle=", w.cycle);
   }
@@ -421,6 +437,8 @@ export function createCheckpoint(w: WorldRuntime, note?: string): Checkpoint {
       player_budgets,
       co_evolution: w.co_evolution ? JSON.parse(JSON.stringify(w.co_evolution)) : undefined,
       genesis_evolutions: w.genesis_evolutions ? [...(w.genesis_evolutions)] : undefined,
+      scars: w.scars ? JSON.parse(JSON.stringify(w.scars)) : undefined,
+      trajectory_digest: w.trajectory_digest ? JSON.parse(JSON.stringify(w.trajectory_digest)) : undefined,
     },
     created_at: Date.now(),
     note,
@@ -558,6 +576,10 @@ export type WorldRuntime = {
     lineage_id?: string;
     parent_kind?: string;
   }>;
+  /** Deep Time compressed scars. Derived from harvest/attest trajectories. Not a second ledger. */
+  scars?: ScarRecord[];
+  evidence_fragments?: EvidenceFragment[];
+  trajectory_digest?: Record<string, TrajectoryDigest>;
 };
 
 function handleFromPrincipal(principal: PlayerPrincipal): string {
@@ -880,6 +902,20 @@ export function buildObservation(
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
     ...semanticAttach(w, principal.player_id, room.room_id),
+    scars: publicScarsForRoom(w.scars, room.room_id).map((s) => ({
+      scar_id: s.scar_id,
+      domain: s.domain,
+      strength: s.strength,
+      reconstruction_confidence: s.reconstruction_confidence,
+      visibility: s.visibility,
+    })),
+    historical_context: {
+      fragments: (w.evidence_fragments || []).length,
+      reconstruction_confidence:
+        publicScarsForRoom(w.scars, room.room_id)[0]?.reconstruction_confidence ||
+        ((w.evidence_fragments || []).length ? 0.3 : 0),
+    },
+    path_dependence_index: pathDependenceIndex(w.scars),
     in_world: pl.entered,
     players_here: otherPlayers
       .filter(
@@ -3329,6 +3365,15 @@ export async function applyWorldCommand(
 
       // P0: small influence from productive harvest activity
       pl.budgets.influence = (pl.budgets.influence ?? 0) + 0.5;
+      noteHarvestTrajectory(w, room.room_id, entity.entity_id, w.cycle);
+      pushEvidenceFragment(w, {
+        subject_ref: entity.entity_id,
+        kind: "HARVEST",
+        cycle: w.cycle,
+        player_id: principal.player_id,
+        grounding: "observed",
+        claim: `harvest ${amount}`,
+      });
 
       const result = success(
         w,
@@ -5367,6 +5412,10 @@ async function applyReconstructCommand(
   };
   w.reconstructions[reconstruction_id] = rec;
   if (prior) prior.status = "SUPERSEDED";
+  const fidelity = reconstructionFidelity(claim, w.evidence_fragments || [], subject);
+  rec.fidelity = fidelity;
+  rec.epistemic = fidelity < 0.35 ? "CONTESTED" : rec.epistemic;
+  const weakened = weakenScarsForReconstruction(w, subject, fidelity);
   debit(pl.budgets, COSTS.RECONSTRUCT);
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
@@ -5404,7 +5453,9 @@ async function applyReconstructCommand(
     events,
     rec.epistemic === "CONTESTED"
       ? `Reconstruction recorded (contested) of ${subject}.`
-      : `Reconstruction recorded of ${subject}.`,
+      : weakened
+        ? `Reconstruction recorded of ${subject} (scar eased).`
+        : `Reconstruction recorded of ${subject}.`,
     false,
   );
   w.seen_idempotency[idem] = result;
@@ -5987,6 +6038,14 @@ async function applyAttest(
   bumpImage(pl, 1);
   refreshSecondOrder(w.players, principal.player_id);
   noteGroundedProtocol(w, pl.room_id, args.signal);
+  pushEvidenceFragment(w, {
+    subject_ref: subject,
+    kind: "ATTEST",
+    cycle: w.cycle,
+    player_id: principal.player_id,
+    grounding: args.signal?.grounding,
+    claim,
+  });
 
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;

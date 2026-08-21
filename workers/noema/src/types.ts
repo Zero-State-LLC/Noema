@@ -248,6 +248,15 @@ export interface Observation {
   compositionality?: number;
   reputation_summary?: { self_image: number; self_second_order: number };
   active_norms?: { org_create_influence: number; harvest_pressure: number; last_ratchet?: string };
+  scars?: Array<{
+    scar_id: string;
+    domain: string;
+    strength: number;
+    reconstruction_confidence: number;
+    visibility: string;
+  }>;
+  historical_context?: { fragments: number; reconstruction_confidence: number };
+  path_dependence_index?: number;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
   /** Self budgets (Player-visible). */
@@ -406,6 +415,8 @@ export interface Checkpoint {
     player_budgets: Record<string, Record<string, number>>;
     co_evolution?: any;
     genesis_evolutions?: any;
+    scars?: unknown;
+    trajectory_digest?: unknown;
   };
   created_at: number;
   note?: string;

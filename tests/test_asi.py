@@ -66,6 +66,26 @@ def test_dense_low_grounding_graph_raises_cascading_risk():
     assert "velocity" in attach["ewm_health"]
 
 
+def test_scar_snapshot_sets_path_dependence_and_alignment():
+    snap = {
+        "materials": 11.0,
+        "cycle": 10,
+        "max_materials": 18,
+        "scars": [{"strength": 0.8, "cycle_born": 2}],
+        "reconstruction_fidelity": 0.6,
+    }
+    h = compute_economic_health(snap, [{"influence": 4, "attention": 10, "conversion_rate": 0.5}] * 2)
+    assert h.path_dependence_index == 0.8
+    assert h.scar_persistence == 8.0
+    assert h.reconstruction_fidelity == 0.6
+    assert h.historical_alignment < 1.0
+    attach = __import__("economic_health", fromlist=["enrich_observation_with_ewm"]).enrich_observation_with_ewm(
+        {"cycle": 10}, h
+    )
+    assert "scar_persistence" in attach["ewm_health"]
+    assert "historical_alignment" in attach["ewm_health"]
+
+
 def test_forman_star_graph_raises_cascading_risk():
     snap = {
         "materials": 11.0,
