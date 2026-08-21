@@ -132,12 +132,15 @@ describe("p5-dt-02 evidence + reconstruct fidelity", () => {
 
     const inspected = await run(w, p, "INSPECT", { entity_id: "entity.salvage-cache" });
     expect(inspected.ok).toBe(true);
+    expect(w.players[p.player_id].discovery?.inspects?.["entity.salvage-cache"]).toBe("OPERATING");
 
     const rec = await run(w, p, "RECONSTRUCT", {
       subject_ref: "entity.salvage-cache",
       claim: "over-harvest scarred this salvage cache",
-      evidence: ["LIVE_INSPECT"],
     });
+    if (!rec.ok) {
+      throw new Error(`RECONSTRUCT failed ${JSON.stringify(rec.error)}`);
+    }
     expect(rec.ok).toBe(true);
     const recorded = Object.values(w.reconstructions || {})[0];
     expect(recorded.fidelity).toBeGreaterThan(0.4);
