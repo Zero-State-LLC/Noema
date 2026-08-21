@@ -28,6 +28,7 @@ export function isolatedLedgerEventId(worldId: string, sequence: number): string
   }
   // Hosted successor shares the settlement table with frozen Perihelion.
   if (worldId === "world.perihelion-reach-2") return `evt.w.perihelion-reach-2.${seq}`;
+  if (worldId === "world.perihelion-reach-3") return `evt.w.perihelion-reach-3.${seq}`;
   return `evt.${seq}`;
 }
 
@@ -39,7 +40,8 @@ export function isolatedLedgerEventId(worldId: string, sequence: number): string
 export function withIsolatedBootstrapEvent<
   T extends { event_id: string; event_type: string; sequence: number; payload?: Record<string, unknown> },
 >(events: T[], worldId: string, genesisId?: string | null): T[] {
-  if (!admitTestWorldId(worldId).ok) return events;
+  const product = worldId === "world.perihelion-reach-3";
+  if (!admitTestWorldId(worldId).ok && !product) return events;
   if (!events.length || events[0].sequence !== 1) return events;
   const bootstrap = {
     event_id: isolatedLedgerEventId(worldId, 0),

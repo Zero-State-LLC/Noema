@@ -78,6 +78,22 @@ describe("genesis successor product path", () => {
     ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
 
+  it("previews EWM_ENHANCED on product world.perihelion-reach-3", async () => {
+    const a = await previewGenesis({
+      world_name: "Perihelion Reach",
+      world_seed: "ewm-product-20260821",
+      profile_id: "EWM_ENHANCED",
+      story_seed_ids: ["OLD_TRADE_NETWORK", "RESOURCE_CRISIS"],
+      world_id: "world.perihelion-reach-3",
+    });
+    expect(a.world_id).toBe("world.perihelion-reach-3");
+    expect(a.genesis_profile_id).toBe("EWM_ENHANCED");
+    expect(a.validation.ok).toBe(true);
+    expect(a.cycle0.ewm_features).toBe(true);
+    expect(a.genesis_id).not.toBe("genesis.ef578f4ffceeccd0");
+    expect(a.cycle0.rooms["room.civic-exchange"].entities.some((e) => e.entity_id === "entity.salvage-cache")).toBe(true);
+  });
+
   it("previews EWM_ENHANCED on isolated test.hosted-canonical.ewm-cutover", async () => {
     const a = await previewGenesis({
       world_name: "Perihelion Reach",

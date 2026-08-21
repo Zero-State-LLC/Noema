@@ -109,6 +109,7 @@ describe("isolatedLedgerEventId", () => {
     expect(isolatedLedgerEventId("world.perihelion-reach", 0)).toBe("evt.000000");
     expect(isolatedLedgerEventId("world-01", 1)).toBe("evt.000001");
     expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).toBe("evt.w.perihelion-reach-2.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-3", 1)).toBe("evt.w.perihelion-reach-3.000001");
     expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).not.toBe(
       isolatedLedgerEventId("world.perihelion-reach", 1),
     );
@@ -129,6 +130,16 @@ describe("withIsolatedBootstrapEvent", () => {
     ]);
     expect(out[0].event_id).toBe("evt.tw.ewm-cutover.000000");
     expect(out[0].payload).toEqual({ genesis_id: "genesis.c683369b09acad07", world_id: worldId });
+  });
+
+  it("bootstraps empty EWM product world at sequence 0", () => {
+    const worldId = "world.perihelion-reach-3";
+    const out = withIsolatedBootstrapEvent(
+      [{ event_id: isolatedLedgerEventId(worldId, 1), event_type: "ENTER_WORLD", sequence: 1, payload: {} }],
+      worldId,
+      "genesis.test",
+    );
+    expect(out[0]).toMatchObject({ sequence: 0, event_type: "WORLD_BOOTSTRAP", event_id: "evt.w.perihelion-reach-3.000000" });
   });
 
   it("does not rewrite successor or already-zero batches", () => {
