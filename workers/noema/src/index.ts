@@ -47,7 +47,7 @@ import {
   previewAgentEnrollment,
   requestAgentEnrollment,
 } from "./enrollment";
-import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId } from "./genesis";
+import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId, resolveAdminOperatorWorldId } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
@@ -534,6 +534,9 @@ export default {
       if (request.method === "GET" && path === "/v1/admin/overview") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
+        const requested = new URL(request.url).searchParams.get("world_id") || undefined;
+        const target = resolveAdminOperatorWorldId(requested, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
 
         const health = {
           status: "ok",
@@ -541,9 +544,9 @@ export default {
           stage: "0",
           env: env.NOEMA_ENV || "local",
           protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
-          world_id: env.DEFAULT_WORLD_ID || "world-01",
+          world_id: target.do_name,
         };
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const id = env.WORLD_DO.idFromName(target.do_name);
         const stub = env.WORLD_DO.get(id);
         const worldRes = await stub.fetch("https://do/admin-status");
         const world = (await worldRes.json()) as Record<string, unknown>;
@@ -775,8 +778,10 @@ export default {
       if (request.method === "POST" && path === "/v1/admin/lifecycle") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
-        const body = (await request.json().catch(() => ({}))) as { action?: string; reason?: string };
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const body = (await request.json().catch(() => ({}))) as { action?: string; reason?: string; world_id?: string };
+        const target = resolveAdminOperatorWorldId(body.world_id, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
+        const id = env.WORLD_DO.idFromName(target.do_name);
         const stub = env.WORLD_DO.get(id);
         const res = await stub.fetch("https://do/admin-lifecycle", {
           method: "POST",
