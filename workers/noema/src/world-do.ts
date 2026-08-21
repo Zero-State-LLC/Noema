@@ -965,7 +965,8 @@ export class NoemaWorldDO {
         void ev;
         return true;
       });
-    } catch {
+    } catch (e) {
+      console.error("applyWorldCommand", e instanceof Error ? e.stack || e.message : e);
       this.world = before;
       const code = isUsableLiveWorld(w) ? "COMMAND_FAILED" : "WORLD_NOT_READY";
       const message =
