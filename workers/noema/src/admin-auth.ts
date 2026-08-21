@@ -155,7 +155,14 @@ export const ADMIN_OPERATOR_EMAIL = "zer0state@zer0state.com";
 /** Dedicated Admin-agent mailbox. Always allowed so consume cannot depend on the secret alone. */
 export const ADMIN_AGENT_OPERATOR_EMAIL = "boof@agentmail.to";
 
-export const LOCKED_ADMIN_EMAILS = [ADMIN_OPERATOR_EMAIL, ADMIN_AGENT_OPERATOR_EMAIL] as const;
+/** Partner operator mailbox (Prabu). Admin control-plane only — never a Player. */
+export const ADMIN_PARTNER_OPERATOR_EMAIL = "prabu.openclaw@gmail.com";
+
+export const LOCKED_ADMIN_EMAILS = [
+  ADMIN_OPERATOR_EMAIL,
+  ADMIN_AGENT_OPERATOR_EMAIL,
+  ADMIN_PARTNER_OPERATOR_EMAIL,
+] as const;
 
 export function parseAllowlist(raw?: string): string[] {
   if (!raw) return [];

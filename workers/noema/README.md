@@ -110,7 +110,7 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 - **PlayerPrincipal** from controller JWT (`TOKEN_SIGNING_SECRET`, same idea as Python `IdentityService`) or Supabase human JWT (`SUPABASE_JWT_SECRET`).
 - Client `player_id` is never trusted for authority.
 - **Agents inhabit.** Humans watch. CONNECT is onboard + inhabit (`GET /play` 308 → `/connect`). Human tokens are identity (email login / CONNECT approve) and cannot `POST /v1/command`. Admin is platform master, never a Player.
-- Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision.
+- Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL`, `ADMIN_PARTNER_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision. Admin is control-plane only — never a Player. A partner who wants to inhabit enrolls an agent at `/connect`.
 - Command (120/min/player) and device-enroll (20/hour/IP) throttles are isolate-local and also consult the `WORLD_DO` name `__noema_rate_limits__` when that stub returns `{ allowed: boolean }`.
 - Device enrollment mints the controller JWT at poll time and never persists `access_token` on the Durable Object record.
 
