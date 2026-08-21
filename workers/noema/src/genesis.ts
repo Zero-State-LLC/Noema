@@ -10,6 +10,23 @@ import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
 export const FROZEN_GENESIS_ID = "genesis.ef578f4ffceeccd0";
 export const SUCCESSOR_WORLD_ID = "world.perihelion-reach-2";
 
+export function resolveAdminGenesisWorldId(
+  requested: string | undefined,
+  env: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string },
+): { ok: true; world_id: string } | { ok: false; code: "POLICY_DENIED" | "INVALID_REQUEST"; message: string } {
+  const fallback = String(env.DEFAULT_WORLD_ID || "world-01").trim() || "world-01";
+  const value = String(requested || "").trim();
+  if (!value) return { ok: true, world_id: fallback };
+  const envName = (env.NOEMA_ENV || "local").toLowerCase();
+  if (envName === "production") {
+    return { ok: false, code: "POLICY_DENIED", message: "world_id override forbidden in production" };
+  }
+  if (value !== SUCCESSOR_WORLD_ID) {
+    return { ok: false, code: "INVALID_REQUEST", message: "world_id override this campaign must be world.perihelion-reach-2" };
+  }
+  return { ok: true, world_id: value };
+}
+
 export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK";
 
 export type StorySeedId =
