@@ -107,6 +107,10 @@ describe("isolatedLedgerEventId", () => {
     expect(isolatedLedgerEventId("test.hosted-canonical.ack-s0", 0)).toBe("evt.tw.ack-s0.000000");
     expect(isolatedLedgerEventId("world.perihelion-reach", 0)).toBe("evt.000000");
     expect(isolatedLedgerEventId("world-01", 1)).toBe("evt.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).toBe("evt.w.perihelion-reach-2.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).not.toBe(
+      isolatedLedgerEventId("world.perihelion-reach", 1),
+    );
   });
 });
 
