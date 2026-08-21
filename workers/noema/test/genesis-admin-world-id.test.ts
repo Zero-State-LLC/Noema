@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { mintAdminSession } from "../src/admin-auth";
-import { FROZEN_GENESIS_ID, resolveAdminGenesisWorldId, SUCCESSOR_WORLD_ID } from "../src/genesis";
+import {
+  EWM_ISOLATED_WORLD_ID,
+  FROZEN_GENESIS_ID,
+  resolveAdminGenesisWorldId,
+  SUCCESSOR_WORLD_ID,
+} from "../src/genesis";
 import worker from "../src/index";
 import type { Env } from "../src/types";
 import { NoemaWorldDO } from "../src/world-do";
