@@ -79,7 +79,15 @@ export interface GenesisRoom {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string }>;
+  entities: Array<{ 
+    entity_id: string; 
+    label: string; 
+    entity_type: string;
+    stock_resource?: string;
+    stock_amount?: number;
+    repairable?: boolean;
+    harvestable?: boolean;
+}>;
   tags?: string[];
 }
 
