@@ -112,7 +112,7 @@ describe("genesis successor product path", () => {
     expect(world.players).toEqual({});
 
     const principal = agentPrincipal("player.tester");
-    const envelope: CommandEnvelope = { command: "ENTER_WORLD", arguments: {} };
+    const envelope: CommandEnvelope = { request_id: "req.enter-successor", command: "ENTER_WORLD", arguments: {} };
     const result = await applyWorldCommand(world, principal, envelope, async () => true);
     expect(result.ok).toBe(true);
     expect(world.players["player.tester"].room_id).toBe("room.civic-exchange");

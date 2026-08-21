@@ -84,6 +84,8 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
       controller_id: minted.controller_id,
       controller_type: "agent",
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
     };
     const enter = await doInst.fetch(
       new Request("https://do/command", {
@@ -139,6 +141,8 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
       controller_id: minted.controller_id,
       controller_type: "agent",
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
     };
     const enter = await doInst.fetch(
       new Request("https://do/command", {
@@ -214,6 +218,8 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
       controller_id: minted.controller_id,
       controller_type: "agent",
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
     };
     const enter = await doInst.fetch(
       new Request("https://do/command", {
@@ -252,7 +258,7 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
       "player.fuel1": { handle: "fuel1", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
       "player.reach-maint3": { handle: "reach-maint3", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
     };
-    stored.messages = Array.from({ length: 60 }, (_, i) => ({ id: `m${i}`, body: fat }));
+    Object.assign(stored, { messages: Array.from({ length: 60 }, (_, i) => ({ id: `m${i}`, body: fat })) });
     stored.seen_idempotency = Object.fromEntries(
       Array.from({ length: 40 }, (_, i) => [
         `player.fuel1::k${i}`,
@@ -295,6 +301,8 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
       controller_id: minted.controller_id,
       controller_type: "agent",
       scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
     };
     const enter = await doInst.fetch(
       new Request("https://do/command", {
