@@ -2371,6 +2371,7 @@ export async function applyWorldCommand(
     }
     await settleEv(ev1);
     await settleEv(ev2);
+    noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
     const result = success(
       w,
       principal,
@@ -2379,7 +2380,6 @@ export async function applyWorldCommand(
       `Message delivered to ${recipient.handle || recipient_id}.`,
       settled,
     );
-    noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
     w.seen_idempotency[idem] = result;
     return result;
   }
