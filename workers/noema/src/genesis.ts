@@ -186,6 +186,9 @@ export interface Cycle0World {
   ewm_features?: boolean;
   initial_beliefs?: Record<string, number>;
   initial_co_evolution?: Record<string, unknown>;
+  signaling_styles?: Partial<
+    Record<"salvager" | "trader" | "archivist" | "maintainer" | "generalist", "grounded-first" | "compact" | "verbose">
+  >;
 }
 
 export interface GenesisResult {
@@ -674,7 +677,7 @@ function seedEwmEnhanced(
   profile: (typeof GENESIS_PROFILES)[0],
   rooms: Record<string, GenesisRoom>,
   institutions: Cycle0World["institutions"],
-): Pick<Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution"> {
+): Pick<Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles"> {
   if (!profile.ewm_features) return {};
   const archetypes = [
     { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" as const },
@@ -710,7 +713,16 @@ function seedEwmEnhanced(
   return {
     ewm_features: true,
     initial_beliefs: { expected_regen: 0.82, conversion_rate: 0.55, org_threshold: 5.0 },
-    initial_co_evolution: { harvest_pressure: 0, regen_mod: { default: 1.15 } },
+    initial_co_evolution: {
+      harvest_pressure: 0,
+      regen_mod: { default: 1.15 },
+      protocol_strength: { "room.civic-exchange": 1 },
+    },
+    signaling_styles: {
+      archivist: "grounded-first",
+      salvager: "compact",
+      trader: "verbose",
+    },
   };
 }
 

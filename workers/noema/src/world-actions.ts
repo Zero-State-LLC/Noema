@@ -105,9 +105,13 @@ import {
 import { situationFromLive } from "./orientation";
 import { mutationGroundingOk } from "./signal";
 import {
+  attestOntologyError,
   bumpImage,
+  ensureCoevo,
   justifiedPunish,
+  markQuarantine,
   noteConduct,
+  noteGroundedProtocol,
   refreshSecondOrder,
   semanticAttach,
   signalQuarantineMessage,
@@ -311,13 +315,10 @@ import {
 // Agents (player beliefs) and environment (stock regen, opportunities) adapt based on play.
 // This implements the co-evolving environment layer from EWM/Eco3S research.
 async function coevolveAfterAction(w: WorldRuntime, principal: PlayerPrincipal, verb: string, result: CommandResult) {
-  if (!w.co_evolution) {
-    w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
-  }
+  const co = ensureCoevo(w);
   if (!w.genesis_evolutions) {
     w.genesis_evolutions = [];
   }
-  const co = w.co_evolution;
   const room = w.rooms[ (w.players[principal.player_id] || {} as any).room_id ];
   const roomId = room?.room_id || "unknown";
 
@@ -355,11 +356,16 @@ async function coevolveAfterAction(w: WorldRuntime, principal: PlayerPrincipal, 
         if (typeof e.regen_rate === "number") {
           e.regen_rate = e.regen_rate * 1.05;
         }
+        const lineage_id = `lineage.${e.entity_id}`;
+        const parent_kind =
+          [...w.genesis_evolutions].reverse().find((ev) => ev.lineage_id === lineage_id)?.kind || "genesis";
         w.genesis_evolutions.push({
           cycle: w.cycle || 0,
           kind: "MICRO_GENESIS_CAPACITY",
           details: `max_stock ${before} -> ${e.max_stock} on ${e.label} (pressure adaptation)`,
           room_id: roomId,
+          lineage_id,
+          parent_kind,
         });
         evolved = true;
         break; // one per trigger
@@ -538,10 +544,20 @@ export type WorldRuntime = {
   co_evolution?: {
     harvest_pressure: Record<string, number>;  // room_id -> cumulative harvests
     regen_mod: Record<string, number>;         // entity_id -> multiplier on regen (default 1.0)
+    protocol_strength?: Record<string, number>;
+    protocol_tokens?: Record<string, string[]>;
     last_evo_cycle?: number;
+    last_quarantine_cycle?: number;
   };
   /** P1 Living Genesis: micro-evolution events applied at runtime (would feed future genesis reseed). */
-  genesis_evolutions?: Array<{ cycle: number; kind: string; details: string; room_id?: string }>;
+  genesis_evolutions?: Array<{
+    cycle: number;
+    kind: string;
+    details: string;
+    room_id?: string;
+    lineage_id?: string;
+    parent_kind?: string;
+  }>;
 };
 
 function handleFromPrincipal(principal: PlayerPrincipal): string {
@@ -740,6 +756,11 @@ export function buildObservation(
       .filter((r) => !isHiddenRoom(r))
       .flatMap((r) => roomEntities(r))
       .filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE"),
+    proposerImage: Object.fromEntries(
+      Object.entries(w.players).map(([id, p]) => [id, p.image_score || 0]),
+    ),
+    harvestPressure: w.co_evolution?.harvest_pressure?.[room.room_id] || 0,
+    hearsayBlockedThisCycle: (w.co_evolution?.last_quarantine_cycle || -1) === w.cycle,
   });
   const available_actions = [
     ...new Set(
@@ -802,12 +823,15 @@ export function buildObservation(
         ? {
             harvest_pressure: w.co_evolution.harvest_pressure?.[room.room_id] || 0,
             regen_mod: Object.keys(w.co_evolution.regen_mod || {}).length,
+            protocol_strength: w.co_evolution.protocol_strength?.[room.room_id] || 0,
           }
         : undefined,
       genesis_evolutions: (w.genesis_evolutions || []).slice(-3).map((ev) => ({
         cycle: ev.cycle,
         kind: ev.kind,
         details: ev.details,
+        lineage_id: ev.lineage_id,
+        parent_kind: ev.parent_kind,
       })),
     },
     situation: situationFromLive({
@@ -855,7 +879,7 @@ export function buildObservation(
         if (am !== bm) return am - bm;
         return (b.created_cycle || 0) - (a.created_cycle || 0);
       }),
-    ...semanticAttach(w),
+    ...semanticAttach(w, principal.player_id, room.room_id),
     in_world: pl.entered,
     players_here: otherPlayers
       .filter(
@@ -949,6 +973,7 @@ export function buildObservation(
       requires: a.requires as Record<string, number> | undefined,
       available: a.available,
       reason: a.reason,
+      hint: a.hint,
       kind: a.kind,
     })),
     consequence,
@@ -2354,6 +2379,7 @@ export async function applyWorldCommand(
       `Message delivered to ${recipient.handle || recipient_id}.`,
       settled,
     );
+    noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
     w.seen_idempotency[idem] = result;
     return result;
   }
@@ -2535,6 +2561,7 @@ export async function applyWorldCommand(
     if (phase === "accept") {
       const quarantined = signalQuarantineMessage(action.arguments.signal);
       if (quarantined) {
+        markQuarantine(w);
         return fail(request_id, "FORBIDDEN", quarantined);
       }
       if (!canPay(pl.budgets, COSTS.TRADE)) {
@@ -2669,6 +2696,7 @@ export async function applyWorldCommand(
         refreshSecondOrder(w.players, trade.proposer_id);
       }
       refreshSecondOrder(w.players, principal.player_id);
+      noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
       if (trade.acting_for || acceptActingFor) {
         noteInstitutionPulse(w, "An institution traded from its treasury.");
       }
@@ -2878,11 +2906,13 @@ export async function applyWorldCommand(
       }
       const orgQ = signalQuarantineMessage(action.arguments.signal);
       if (orgQ) {
+        markQuarantine(w);
         return fail(request_id, "FORBIDDEN", orgQ);
       }
       debit(pl.budgets, COSTS.ORG_CREATE);
       bumpImage(pl, 1);
       refreshSecondOrder(w.players, principal.player_id);
+      noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
       const members =
         action.arguments.initial_members && action.arguments.initial_members.length
           ? action.arguments.initial_members.map((m) => ({
@@ -5935,7 +5965,19 @@ async function applyAttest(
   }
   const quarantined = signalQuarantineMessage(args.signal);
   if (quarantined) {
+    markQuarantine(w);
     return fail(request_id, "FORBIDDEN", quarantined);
+  }
+  const subjectEnt = findEntity(room, subject);
+  if (!subjectEnt) {
+    return fail(request_id, "NOT_COLOCATED", "You must be in the same room to attest.");
+  }
+  const onto = attestOntologyError(roomEntities(room), subject, claim as "DESTROYED" | "OPERATING", args.signal?.assumptions);
+  if (onto === "NOT_COLOCATED") {
+    return fail(request_id, "NOT_COLOCATED", "You must be in the same room to attest.");
+  }
+  if (onto) {
+    return fail(request_id, "FORBIDDEN", onto);
   }
   debit(pl.budgets, attestCost);
   entity.archive_subject_entity_id = subject;
@@ -5944,6 +5986,7 @@ async function applyAttest(
   pl.budgets.influence = (pl.budgets.influence ?? 0) + 1;
   bumpImage(pl, 1);
   refreshSecondOrder(w.players, principal.player_id);
+  noteGroundedProtocol(w, pl.room_id, args.signal);
 
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;

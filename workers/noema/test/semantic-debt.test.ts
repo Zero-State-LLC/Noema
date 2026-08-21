@@ -32,8 +32,19 @@ function fixture(): WorldRuntime {
         description: "Hub.",
         exits: [],
         entities: [
-          enrichEntity({ entity_id: "entity.relay-7", label: "relay", entity_type: "INFRASTRUCTURE" }),
+          enrichEntity({ entity_id: "entity.relay-7", label: "relay", entity_type: "INFRASTRUCTURE", condition: 90 }),
           enrichEntity({ entity_id: "entity.archive-ledger", label: "ledger", entity_type: "ARTIFACT" }),
+          {
+            ...enrichEntity({
+              entity_id: "entity.salvage-cache",
+              label: "salvage cache",
+              entity_type: "RESOURCE",
+              stock_resource: "materials",
+              stock_amount: 8,
+            }),
+            max_stock: 18,
+            regen_rate: 1,
+          },
         ],
       },
     },
@@ -93,14 +104,17 @@ describe("application-time grounding gate", () => {
     const ok = await run(w, p, "ATTEST", {
       entity_id: "entity.archive-ledger",
       subject_entity_id: "entity.relay-7",
-      archive_claim: "DESTROYED",
+      archive_claim: "OPERATING",
       signal: { grounding: "observed" },
     });
     expect(ok.ok).toBe(true);
-    expect(w.rooms["room.hub"].entities[1].archive_claim).toBe("DESTROYED");
+    expect(w.rooms["room.hub"].entities[1].archive_claim).toBe("OPERATING");
     expect(w.players[p.player_id].image_score).toBe(1);
+    expect((w.co_evolution?.protocol_strength || {})["room.hub"]).toBeGreaterThanOrEqual(1);
     expect(ok.observation?.signaling_quality).toBeDefined();
     expect(ok.observation?.cascading_risk).toBeDefined();
+    expect(ok.observation?.reputation_summary?.self_image).toBe(1);
+    expect(ok.observation?.active_norms?.org_create_influence).toBe(5);
     expect(JSON.stringify(ok.observation)).not.toMatch(/image_score/);
   });
 
@@ -210,7 +224,8 @@ describe("reputation privileged + second-order + justified punish", () => {
     expect(w.players[kind.player_id].second_order).toBe(1);
     expect(w.players[mean.player_id].second_order).toBe(0);
     expect(w.players[kind.player_id].second_order).not.toBe(w.players[mean.player_id].second_order);
-    expect(JSON.stringify(kindAccept.observation)).not.toMatch(/second_order/);
+    expect(kindAccept.observation?.reputation_summary?.self_second_order).toBeDefined();
+    expect(JSON.stringify(kindAccept.observation?.players_here || [])).not.toMatch(/second_order/);
   });
 
   it("justified TRADE reject with observed signal costs punisher influence and eases harvest_pressure", async () => {
@@ -256,7 +271,136 @@ describe("WATCH leak-closed", () => {
     const text = JSON.stringify(snap);
     expect(text).not.toMatch(/image_score/);
     expect(text).not.toMatch(/second_order/);
+    expect(text).not.toMatch(/reputation_summary/);
+    expect(text).not.toMatch(/active_norms/);
+    expect(text).not.toMatch(/protocol_strength/);
     expect(text).not.toMatch(/"reputation"/);
+  });
+
+  it("DESTROYED ATTEST on a sound relay is ontologically FORBIDDEN", async () => {
+    const w = fixture();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const blocked = await run(w, p, "ATTEST", {
+      entity_id: "entity.archive-ledger",
+      subject_entity_id: "entity.relay-7",
+      archive_claim: "DESTROYED",
+      signal: { grounding: "observed" },
+    });
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error?.code).toBe("FORBIDDEN");
+    expect(w.rooms["room.hub"].entities[1].archive_claim).toBeUndefined();
+  });
+
+  it("ATTEST assumption entity.* must be in the room", async () => {
+    const w = fixture();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const blocked = await run(w, p, "ATTEST", {
+      entity_id: "entity.archive-ledger",
+      subject_entity_id: "entity.relay-7",
+      archive_claim: "OPERATING",
+      signal: { grounding: "observed", assumptions: ["entity.nope"] },
+    });
+    expect(blocked.ok).toBe(false);
+    expect(blocked.error?.message).toMatch(/assumption/i);
+  });
+
+  it("grounded compact MESSAGE under harvest pressure raises protocol_strength by 2", async () => {
+    const w = fixture();
+    w.co_evolution!.harvest_pressure["room.hub"] = 5;
+    const a = principal("player.a");
+    const b = principal("player.b");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, compute: 8 });
+    const before = w.co_evolution!.protocol_strength?.["room.hub"] || 0;
+    const r1 = await run(w, a, "MESSAGE", {
+      recipient_id: b.player_id,
+      text: "stock is thin",
+      signal: { grounding: "observed" },
+    });
+    expect(r1.ok).toBe(true);
+    const r2 = await run(w, a, "MESSAGE", {
+      recipient_id: b.player_id,
+      text: "still thin",
+      signal: { grounding: "observed" },
+    });
+    expect(r2.ok).toBe(true);
+    expect((w.co_evolution!.protocol_strength || {})["room.hub"]).toBe(before + 4);
+  });
+
+  it("TRADE accept affordance hints standing vs trustworthy", async () => {
+    const w = fixture();
+    const weak = principal("player.weak");
+    const strong = principal("player.strong");
+    const acc = principal("player.acc");
+    await run(w, weak, "ENTER_WORLD");
+    await run(w, strong, "ENTER_WORLD");
+    await run(w, acc, "ENTER_WORLD");
+    for (const id of [weak.player_id, strong.player_id, acc.player_id]) {
+      w.players[id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 10, compute: 10, storage: 8 });
+    }
+    w.players[weak.player_id].image_score = -2;
+    w.players[strong.player_id].image_score = 4;
+    await run(w, weak, "TRADE", {
+      phase: "propose",
+      counterparty_id: acc.player_id,
+      offered: { energy: 1 },
+      requested: { compute: 1 },
+    });
+    await run(w, strong, "TRADE", {
+      phase: "propose",
+      counterparty_id: acc.player_id,
+      offered: { energy: 1 },
+      requested: { compute: 1 },
+    });
+    const look = await run(w, acc, "LOOK");
+    expect(look.ok).toBe(true);
+    const accepts = (look.observation?.affordances || []).filter((a) => a.action === "TRADE_ACCEPT");
+    expect(accepts.length).toBe(2);
+    const hints = accepts.map((a) => a.hint).sort();
+    expect(hints).toEqual(["standing is weak", "trustworthy"]);
+  });
+
+  it("HARVEST hint under harvest_pressure > 4", async () => {
+    const w = fixture();
+    w.co_evolution!.harvest_pressure["room.hub"] = 5;
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 8, compute: 8, storage: 8 });
+    const look = await run(w, p, "LOOK");
+    const harvest = (look.observation?.affordances || []).find((a) => a.action === "HARVEST");
+    expect(harvest?.hint).toBe("compact grounded signal preferred");
+  });
+
+  it("protocol-strength ratchets share lineage_id under harvest pressure", async () => {
+    const w = fixture();
+    w.co_evolution!.harvest_pressure["room.hub"] = 5;
+    const a = principal("player.a");
+    const b = principal("player.b");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, compute: 8 });
+    const r1 = await run(w, a, "MESSAGE", {
+      recipient_id: b.player_id,
+      text: "thin",
+      signal: { grounding: "observed" },
+    });
+    expect(r1.ok).toBe(true);
+    const r2 = await run(w, a, "MESSAGE", {
+      recipient_id: b.player_id,
+      text: "still thin",
+      signal: { grounding: "observed" },
+    });
+    expect(r2.ok).toBe(true);
+    const evo = (w.genesis_evolutions || []).filter((e) => e.kind === "PROTOCOL_STRENGTH");
+    expect(evo.length).toBeGreaterThanOrEqual(2);
+    expect(evo[0].lineage_id).toBe(evo[1].lineage_id);
+    expect(evo[1].parent_kind).toBe(evo[0].kind);
+    expect(JSON.stringify(r2.observation?.location?.genesis_evolutions || [])).toMatch(/lineage_id/);
   });
 
   it("mutationGroundingOk treats missing as legal and hearsay as blocked", () => {

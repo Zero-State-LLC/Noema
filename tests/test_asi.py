@@ -66,6 +66,17 @@ def test_dense_low_grounding_graph_raises_cascading_risk():
     assert "velocity" in attach["ewm_health"]
 
 
+def test_forman_star_graph_raises_cascading_risk():
+    snap = {
+        "materials": 11.0,
+        "cycle": 2,
+        "max_materials": 18,
+        "interaction_edges": [{"from": "hub", "to": f"leaf.{i}", "grounding": "observed"} for i in range(8)],
+    }
+    h = compute_economic_health(snap, [{"influence": 4, "attention": 10, "conversion_rate": 0.5}] * 2)
+    assert h.cascading_risk > 0.5
+
+
 def test_observed_signals_pass_grounding():
     snap = {
         "materials": 11.0,
