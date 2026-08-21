@@ -52,4 +52,6 @@ Do not treat session transcripts as the team store.
 
 ## Merge path
 
-`main` requires one Partner Agents review. Each partner's agent reviews the other. Do not disable branch protection for routine work.
+`main` still requires one Partner Agents review for anyone who is not on the bypass list.
+
+Org admins (`scrimshawlife-ctrl`, `prabu-openclaw`) and the Partner Agents team may **bypass** that review (`gh pr merge --admin` or the GitHub UI admin merge). Use it for solo agent shipping. Prefer a partner review when both are around. Do not turn required reviews off.
