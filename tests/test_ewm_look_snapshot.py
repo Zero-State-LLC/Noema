@@ -9,7 +9,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "workers" / "noema" / "scripts"))
-from ewm_look_snapshot import is_canned_snapshot, look_observation_to_snapshot  # noqa: E402
+from ewm_look_snapshot import (  # noqa: E402
+    isolated_threshold_ok,
+    is_canned_snapshot,
+    look_observation_to_snapshot,
+)
 
 
 def _look(*, salvage_amount: float = 7, extra_ents=None, budgets=None, **obs_extra):
@@ -76,3 +80,19 @@ def test_live_look_is_not_canned_and_sums_materials():
 def test_is_canned_snapshot_detects_old_hardcoded_triple():
     assert is_canned_snapshot({"materials": 12.0, "cycle": 15, "org_threshold": 3.8})
     assert not is_canned_snapshot({"materials": 10.0, "cycle": 0, "org_threshold": 5.0})
+
+
+def test_hidden_purses_use_occupancy_weights():
+    payload = _look()
+    payload["observation"]["players_here"] = [{"player_id": "player.reach-maint3", "handle": "reach-maint3"}]
+    snap = look_observation_to_snapshot(payload)
+    assert snap is not None
+    assert snap["occupancy_weighted"] is True
+    assert [a["influence"] for a in snap["agents"]] == [1.0, 1.0]
+
+
+def test_threshold_ok_skips_drift_before_cycle_9():
+    assert isolated_threshold_ok(0, 5.0) is True
+    assert isolated_threshold_ok(8, 5.0) is True
+    assert isolated_threshold_ok(9, 5.0) is False
+    assert isolated_threshold_ok(9, 3.8) is True
