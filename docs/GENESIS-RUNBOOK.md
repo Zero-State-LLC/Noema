@@ -133,6 +133,18 @@ Confirm `GET /health` reports `"env":"production"`. Bare `wrangler deploy` witho
 
 Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
+## Successor world (RFC-0121) — not production this landing
+
+Rehearse locally:
+
+```bash
+ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor
+# explicit local activate only; never against https://noema.guru
+ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
+```
+
+Later production cutover (human gate, separate campaign): preview successor on production (override deny lifted then), compare genesis_id ≠ `genesis.ef578f4ffceeccd0` and room_count 10, `confirm: true` activate on `world.perihelion-reach-2`, set `DEFAULT_WORLD_ID=world.perihelion-reach-2`, deploy. Do not `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
+
 ## Recovery
 
 - **Failure before activation commit:** world remains NOT ACTIVE / DEMO_SEED; re-preview.  

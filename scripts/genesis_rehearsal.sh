@@ -3,19 +3,30 @@
 # Usage:
 #   ADMIN_TOKEN=… BASE=https://noema.guru ./scripts/genesis_rehearsal.sh
 #   ADMIN_TOKEN=… ./scripts/genesis_rehearsal.sh --activate
+#   ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor
+#   ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
 set -euo pipefail
 BASE="${BASE:-https://noema-gateway.zer0state-noema.workers.dev}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
 ACTIVATE=0
+SUCCESSOR=0
 for a in "$@"; do
   case "$a" in
     --activate) ACTIVATE=1 ;;
+    --successor) SUCCESSOR=1 ;;
   esac
 done
 
 if [ -z "$ADMIN_TOKEN" ]; then
   echo "ADMIN_TOKEN required (operator token for ADMIN_OPERATOR_TOKEN secret)"
   exit 1
+fi
+
+if [ "$SUCCESSOR" = "1" ]; then
+  if echo "$BASE" | grep -q 'noema.guru'; then
+    echo "successor rehearsal refuses production host"
+    exit 1
+  fi
 fi
 
 UA=(-A "NoemaGenesisRehearsal/1.0")
@@ -41,19 +52,27 @@ CODE=$(curl -4 -sS --max-time 20 "${UA[@]}" -o /tmp/g-deny.json -w '%{http_code}
   -d '{"world_name":"X","world_seed":"1","profile_id":"YOUNG_FRONTIER"}')
 test "$CODE" = "401" -o "$CODE" = "403" && echo "player isolation ok ($CODE)" || { echo "player isolation FAIL $CODE"; cat /tmp/g-deny.json; exit 1; }
 
-REH='{"world_name":"Perihelion Reach","world_seed":"perihelion-rehearsal-01","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}'
+if [ "$SUCCESSOR" = "1" ]; then
+  REH='{"world_name":"Perihelion Reach","world_seed":"perihelion-successor-rehearsal-01","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"],"world_id":"world.perihelion-reach-2"}'
+else
+  REH='{"world_name":"Perihelion Reach","world_seed":"perihelion-rehearsal-01","profile_id":"FRACTURED_OLD_WORLD","story_seed_ids":["OLD_TRADE_NETWORK","LOST_ARCHIVE"]}'
+fi
 
 echo "==> preview #1"
 P1=$(curl -4 -sS --max-time 30 "${UA[@]}" "${AUTH[@]}" -X POST "$BASE/v1/admin/genesis/preview" \
   -H 'content-type: application/json' -d "$REH")
-echo "$P1" | python3 -c "
-import sys,json
+echo "$P1" | SUCCESSOR="$SUCCESSOR" python3 -c "
+import sys,json,os
 d=json.load(sys.stdin)
 r=d['result']
 assert d['determinism']['ok'], d['determinism']
 assert d['live_world_unchanged']['ok'], d['live_world_unchanged']
 assert r['validation']['ok'], r['validation']
 assert r['ordinary_world_valid']
+if os.environ.get('SUCCESSOR') == '1':
+  assert r['world_id']=='world.perihelion-reach-2', r.get('world_id')
+  assert r['preview_summary']['room_count']==10, r['preview_summary']
+  assert r['genesis_id']!='genesis.ef578f4ffceeccd0', r['genesis_id']
 print('genesis_id', r['genesis_id'])
 print('cycle0_digest', r['cycle0_digest'])
 print('rooms', r['preview_summary']['room_count'], 'entities', r['preview_summary']['entity_count'])
@@ -96,9 +115,14 @@ if [ "$ACTIVATE" != "1" ]; then
 fi
 
 echo "==> ACTIVATE (explicit)"
+if [ "$SUCCESSOR" = "1" ]; then
+  ACT_BODY="{\"genesis_id\":\"$GID\",\"confirm\":true,\"world_id\":\"world.perihelion-reach-2\"}"
+else
+  ACT_BODY="{\"genesis_id\":\"$GID\",\"confirm\":true}"
+fi
 ACT=$(curl -4 -sS --max-time 30 "${UA[@]}" "${AUTH[@]}" -X POST "$BASE/v1/admin/genesis/activate" \
   -H 'content-type: application/json' \
-  -d "{\"genesis_id\":\"$GID\",\"confirm\":true}")
+  -d "$ACT_BODY")
 echo "$ACT" | python3 -c "
 import sys,json
 d=json.load(sys.stdin)
