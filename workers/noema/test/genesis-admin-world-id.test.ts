@@ -38,6 +38,14 @@ describe("resolveAdminGenesisWorldId", () => {
     if (!r.ok) expect(r.code).toBe("INVALID_REQUEST");
   });
 
+  it("admits isolated EWM test world", () => {
+    const r = resolveAdminGenesisWorldId(EWM_ISOLATED_WORLD_ID, {
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world.perihelion-reach-2",
+    });
+    expect(r).toEqual({ ok: true, world_id: EWM_ISOLATED_WORLD_ID });
+  });
+
   it("rejects other explicit ids", () => {
     const r = resolveAdminGenesisWorldId("world.other", { NOEMA_ENV: "local", DEFAULT_WORLD_ID: "world-01" });
     expect(r.ok).toBe(false);
