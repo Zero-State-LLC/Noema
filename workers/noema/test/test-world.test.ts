@@ -6,6 +6,7 @@ import { mintHs256 } from "../src/jwt";
 import {
   admitTestWorldId,
   isolatedLedgerEventId,
+  withIsolatedBootstrapEvent,
   lifecycleRequestedWorldId,
   recoverBoundWorldId,
   resolveLoadWorldId,
@@ -111,6 +112,32 @@ describe("isolatedLedgerEventId", () => {
     expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).not.toBe(
       isolatedLedgerEventId("world.perihelion-reach", 1),
     );
+  });
+});
+
+describe("withIsolatedBootstrapEvent", () => {
+  it("prepends sequence 0 WORLD_BOOTSTRAP when first PLAY event is 1", () => {
+    const worldId = "test.hosted-canonical.ewm-cutover";
+    const out = withIsolatedBootstrapEvent(
+      [{ event_id: isolatedLedgerEventId(worldId, 1), event_type: "ENTER_WORLD", sequence: 1, payload: {} }],
+      worldId,
+      "genesis.c683369b09acad07",
+    );
+    expect(out.map((e) => [e.sequence, e.event_type])).toEqual([
+      [0, "WORLD_BOOTSTRAP"],
+      [1, "ENTER_WORLD"],
+    ]);
+    expect(out[0].event_id).toBe("evt.tw.ewm-cutover.000000");
+    expect(out[0].payload).toEqual({ genesis_id: "genesis.c683369b09acad07", world_id: worldId });
+  });
+
+  it("does not rewrite successor or already-zero batches", () => {
+    const live = [{ event_id: "evt.w.perihelion-reach-2.000456", event_type: "LOOK", sequence: 456, payload: {} }];
+    expect(withIsolatedBootstrapEvent(live, "world.perihelion-reach-2")).toEqual(live);
+    const zero = [
+      { event_id: isolatedLedgerEventId("test.hosted-canonical.ewm-cutover", 0), event_type: "ENTER_WORLD", sequence: 0 },
+    ];
+    expect(withIsolatedBootstrapEvent(zero, "test.hosted-canonical.ewm-cutover")).toEqual(zero);
   });
 });
 

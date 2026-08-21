@@ -32,6 +32,25 @@ export function isolatedLedgerEventId(worldId: string, sequence: number): string
 }
 
 /**
+ * Canonical RPC bootstrap uses last_sequence = -1, so the first event must be
+ * sequence 0. PLAY increments before emit, so the first ENTER is sequence 1.
+ * Prepend a WORLD_BOOTSTRAP event at 0 only for isolated worlds with no head.
+ */
+export function withIsolatedBootstrapEvent<
+  T extends { event_id: string; event_type: string; sequence: number; payload?: Record<string, unknown> },
+>(events: T[], worldId: string, genesisId?: string | null): T[] {
+  if (!admitTestWorldId(worldId).ok) return events;
+  if (!events.length || events[0].sequence !== 1) return events;
+  const bootstrap = {
+    event_id: isolatedLedgerEventId(worldId, 0),
+    event_type: "WORLD_BOOTSTRAP",
+    sequence: 0,
+    payload: { genesis_id: genesisId || null, world_id: worldId },
+  } as unknown as T;
+  return [bootstrap, ...events];
+}
+
+/**
  * Admit only `test.hosted-canonical.<suffix>`.
  * Deny Perihelion, DEFAULT_WORLD_ID, and arbitrary ids before any DO lookup.
  */
