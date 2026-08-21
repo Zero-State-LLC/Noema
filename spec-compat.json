@@ -26,7 +26,7 @@
     "do_name": "world.perihelion-reach-3",
     "entry_room_id": "room.civic-exchange",
     "profile_id": "EWM_ENHANCED",
-    "worker_version_id": "31e7c436-a3fa-42a1-8031-e1e14c9cdf19",
+    "worker_version_id": "5c796d6e-34f7-45f7-81fb-eb760804f5e1",
     "official_client": "noema-client==0.1.12",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
     "rfc": "RFC-0122",
