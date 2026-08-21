@@ -118,10 +118,12 @@ import {
 } from "./reputation";
 import {
   deepTimeCoEvolve,
+  ensureDeepTime,
   inheritAtSuccession,
   noteHarvestTrajectory,
   orgCreateExtraInfluence,
   pathDependenceIndex,
+  persistDeepTime,
   publicScarsForRoom,
   pushEvidenceFragment,
   ratchetOnAttest,
@@ -572,6 +574,8 @@ export type WorldRuntime = {
     protocol_tokens?: Record<string, string[]>;
     last_evo_cycle?: number;
     last_quarantine_cycle?: number;
+    /** Compressed Deep Time blob. Survives settlement with harvest_pressure. */
+    deep_time?: import("./deep-time").DeepTimeBlob;
   };
   /** P1 Living Genesis: micro-evolution events applied at runtime (would feed future genesis reseed). */
   genesis_evolutions?: Array<{
@@ -4118,6 +4122,8 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   w.institution_pulses = w.institution_pulses || [];
   w.public_social_events = w.public_social_events || [];
   w.pending_messages = w.pending_messages || [];
+  if (!w.co_evolution) w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
+  ensureDeepTime(w);
   for (const org of Object.values(w.organizations || {})) {
     ensureTreasury(org);
     if (!org.emergency_templates?.length) org.emergency_templates = defaultEmergencyTemplates();
