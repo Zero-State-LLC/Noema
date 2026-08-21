@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cloneBudgets } from "../src/actions";
+import { canConsumeCargo } from "../src/cargo";
 import { CHAMBER_MAP_ROOM_IDS } from "../src/chamber-map-graph";
 import { previewGenesis, validateCycle0 } from "../src/genesis";
 import { ensureSuccessorMaterialsCache } from "../src/world-actions";
@@ -158,5 +159,37 @@ describe("genesis successor product path", () => {
       { entity_id: "entity.old-market-post", label: "market-post", entity_type: "INFRASTRUCTURE" },
     ];
     expect(ensureSuccessorMaterialsCache(world)).toBe(false);
+  });
+
+  it("HARVEST of salvage-cache fills hold as materials, not energy", async () => {
+    const preview = await previewGenesis(SUCCESSOR);
+    const world = cycle0ToWorld(preview.cycle0);
+    const principal = agentPrincipal("player.harvester");
+    expect((await applyWorldCommand(world, principal, { request_id: "e", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    const pl = world.players[principal.player_id];
+    const energy0 = pl.budgets.energy;
+    const storage0 = pl.budgets.storage;
+    const node = world.rooms["room.civic-exchange"].entities.find((e) => e.entity_id === "entity.salvage-cache");
+    expect(node?.stock_resource).toBe("materials");
+    expect(node?.stock_amount).toBe(4);
+
+    const harvested = await applyWorldCommand(
+      world,
+      principal,
+      {
+        request_id: "h",
+        command: "COMMIT",
+        arguments: { operation: "HARVEST", entity_id: "entity.salvage-cache", amount: 1 },
+      },
+      async () => true,
+    );
+    expect(harvested.ok).toBe(true);
+    expect(harvested.observation?.consequence).toMatch(/Harvested 1 materials/i);
+    expect(harvested.observation?.consequence).not.toMatch(/energy/i);
+    expect(pl.budgets.energy).toBe(energy0 - 2);
+    expect(pl.budgets.storage).toBe(storage0 - 1);
+    expect(canConsumeCargo(pl.budgets.storage ?? 0, 1)).toBe(true);
+    expect(world.rooms["room.civic-exchange"].entities.find((e) => e.entity_id === "entity.salvage-cache")?.stock_amount).toBe(3);
+    expect(harvested.events?.some((e) => e.event_type === "RESOURCE_TRANSFER" && e.payload?.resource === "materials")).toBe(true);
   });
 });

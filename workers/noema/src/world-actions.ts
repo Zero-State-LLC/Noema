@@ -3032,13 +3032,18 @@ export async function applyWorldCommand(
       if (!canPay(pl.budgets, COSTS.HARVEST)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
       }
-      const resource = (entity.stock_resource || "energy") as keyof Budgets;
+      const stockKind = (entity.stock_resource || "energy").toLowerCase();
+      const fillsHoldOnly = stockKind === "materials" || stockKind === "cargo" || stockKind === "storage";
       debit(pl.budgets, COSTS.HARVEST);
       entity.stock_amount = (entity.stock_amount ?? 0) - amount;
       pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
-      const credited = resource in pl.budgets ? resource : "energy";
+      const credited = (
+        fillsHoldOnly ? "storage" : stockKind in pl.budgets ? stockKind : "energy"
+      ) as keyof Budgets;
       const incoming = harvestGrade(entity.condition);
-      pl.budgets[credited] = (pl.budgets[credited] ?? 0) + amount;
+      if (!fillsHoldOnly) {
+        pl.budgets[credited] = (pl.budgets[credited] ?? 0) + amount;
+      }
       pl.lot_grades = creditLot(pl.lot_grades, pl.budgets, credited, amount, incoming);
       pl.lot_origins = creditOrigin(
         pl.lot_origins,
@@ -3054,11 +3059,12 @@ export async function applyWorldCommand(
         cost_paid: COSTS.HARVEST,
         reason: "HARVEST",
       });
+      const transferResource = fillsHoldOnly ? stockKind : credited;
       pushEvent("RESOURCE_TRANSFER", {
         kind: "harvest",
         from_id: entity.entity_id,
         to_id: principal.player_id,
-        resource: credited,
+        resource: transferResource,
         amount,
         grade: incoming,
       });
@@ -3074,7 +3080,7 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        `Harvested ${amount} ${credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`,
+        `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`,
         settled,
       );
       w.seen_idempotency[idem] = result;
