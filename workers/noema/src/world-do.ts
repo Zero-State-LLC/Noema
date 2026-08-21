@@ -71,6 +71,7 @@ import {
   lifecycleRequestedWorldId,
   recoverBoundWorldId,
   resolveLoadWorldId,
+  withIsolatedBootstrapEvent,
 } from "./test-world";
 import { ATTEST_WORLD_ID, MINI_ENTRY_ROOM_ID, attestChamberState, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
@@ -1034,8 +1035,12 @@ export class NoemaWorldDO {
     const ledgerEvents = canonicalEventsForCommit(result.events);
     if (mutating && result.ok && ledgerEvents.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
+      const toCommit =
+        this.allowCanonicalBootstrap && !durable
+          ? withIsolatedBootstrapEvent(ledgerEvents, w.world_id, this.meta!.genesis_id)
+          : ledgerEvents;
       const committed = await commitCanonicalSettlement(this.env, {
-        settlement_id: `settlement.${ledgerEvents.map((event) => event.event_id).join(".")}`,
+        settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
         expected_revision: this.meta!.revision ?? 0,
         writer_generation: this.meta!.writer_generation || "do.1",
         genesis_id: this.meta!.genesis_id || null,
@@ -1043,7 +1048,7 @@ export class NoemaWorldDO {
         settlement_health: "HEALTHY",
         world: w,
         principal,
-        events: ledgerEvents,
+        events: toCommit,
         previous_digest: durable?.ledger_head_digest ?? null,
         allow_bootstrap: this.allowCanonicalBootstrap,
       });
