@@ -52,6 +52,22 @@ Enabled plugins emit **hints only**. They must not send HTTP, hold tokens, or ch
 
 No new Player verbs. No reseed / force / same-id activate. No auto-import of proposed plugins. No Admin-as-Player. No live surgical pause of PLAY from this supervisor.
 
+## CLI
+
+Pulse PLAY identity (public `/ready`, no Admin JWT, no inhabit):
+
+```bash
+cd ops && PYTHONPATH=. python -m maint_evolve.supervisor --root "$PWD/maint_evolve"
+```
+
+Isolated probe (Player token injected by ops; **refuses PLAY**):
+
+```bash
+PYTHONPATH=ops python -m maint_evolve.probe --world-id test.hosted-canonical.ewm-cutover --root ~/.config/noema/maint_evolve
+```
+
+`--spawn-patrol` is opt-in and still blocked if `/ready` identity drifted. Do not run the probe at `world.perihelion-reach-3`.
+
 ## Tests
 
 ```bash
