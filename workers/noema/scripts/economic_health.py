@@ -14,6 +14,42 @@ from typing import List, Dict, Any
 
 GROUNDED = frozenset({"observed", "genesis", "inferred-from-stock"})
 
+
+def _forman_cascading_risk(edges: List[Any]) -> float:
+    """Forman F(e)=4-deg(u)-deg(v); risk = max(forman, density*low_g). Same as curvature.ts."""
+    raw = [e for e in edges if isinstance(e, dict) and e.get("from") and e.get("to") and e.get("from") != e.get("to")]
+    if not raw:
+        raw = [e for e in edges if isinstance(e, dict)]
+        if not raw:
+            return 0.0
+    low_g = 0
+    for e in raw:
+        g = str(e.get("grounding") or "")
+        if g and g not in GROUNDED:
+            low_g += 1
+    n = max(1, len(raw))
+    density = min(1.0, len(raw) / 8.0)
+    density_risk = density * (0.4 + 0.6 * (low_g / n))
+    seen = set()
+    uniq = []
+    deg = {}
+    for e in raw:
+        a, b = str(e.get("from")), str(e.get("to"))
+        if not a or not b or a == b:
+            continue
+        key = (a, b) if a < b else (b, a)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append((a, b))
+        deg[a] = deg.get(a, 0) + 1
+        deg[b] = deg.get(b, 0) + 1
+    forman_risk = 0.0
+    if len(uniq) >= 2:
+        mean = sum(4 - deg[u] - deg[v] for u, v in uniq) / len(uniq)
+        forman_risk = max(0.0, min(1.0, -mean / 8.0))
+    return max(0.0, min(1.0, max(forman_risk, density_risk)))
+
 @dataclass
 class EconomicHealth:
     stock_velocity: float = 0.0
@@ -128,15 +164,7 @@ def apply_asi(h: EconomicHealth, snapshot: Dict[str, Any], agents: List[Dict[str
         h.reputation_stability = max(0.0, min(1.0, 1.0 - min(1.0, sqrt(var) / 4.0)))
     edges = snapshot.get("interaction_edges") or snapshot.get("edges") or []
     if isinstance(edges, list) and edges:
-        low_g = 0
-        for e in edges:
-            if not isinstance(e, dict):
-                continue
-            g = str(e.get("grounding") or "")
-            if g and g not in GROUNDED:
-                low_g += 1
-        density = min(1.0, len(edges) / 8.0)
-        h.cascading_risk = max(0.0, min(1.0, density * (0.4 + 0.6 * (low_g / max(1, len(edges))))))
+        h.cascading_risk = _forman_cascading_risk(edges)
     else:
         h.cascading_risk = max(0.0, min(1.0, float(snapshot.get("cascading_risk") or 0)))
 

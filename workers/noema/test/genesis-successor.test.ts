@@ -113,6 +113,8 @@ describe("genesis successor product path", () => {
       true,
     );
     expect(a.cycle0.institutions.filter((i) => i.id.startsWith("archetype.")).length).toBeGreaterThanOrEqual(3);
+    expect((a.cycle0.initial_co_evolution as { protocol_strength?: Record<string, number> })?.protocol_strength?.["room.civic-exchange"]).toBe(1);
+    expect(a.cycle0.signaling_styles?.archivist).toBe("grounded-first");
   });
 
   it("lands overlays on chamber rooms", async () => {

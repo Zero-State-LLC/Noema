@@ -193,6 +193,8 @@ export type PlayerRuntime = {
   conduct_toward?: Record<string, number>;
   /** Privileged second-order: conduct toward counterparties with positive image. */
   second_order?: number;
+  /** Genesis-seeded signaling preference. Privileged. */
+  signaling_style?: "grounded-first" | "compact" | "verbose";
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
@@ -520,6 +522,8 @@ export type Affordance = {
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
+  /** Semantic hint. Not a new verb. */
+  hint?: string;
   kind: "primary" | "secondary" | "move" | "utility" | "social" | "resource" | "org";
 };
 
@@ -3008,6 +3012,9 @@ export function deriveAffordances(input: {
   reconstructions?: ReconstructionRecord[];
   /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */
   attestSubjects?: EntityRuntime[];
+  proposerImage?: Record<string, number>;
+  harvestPressure?: number;
+  hearsayBlockedThisCycle?: boolean;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3104,6 +3111,7 @@ export function deriveAffordances(input: {
         requires: COSTS.HARVEST,
         available: ok,
         reason,
+        hint: (input.harvestPressure || 0) > 4 ? "compact grounded signal preferred" : undefined,
         kind: "resource",
       });
     }
@@ -3163,6 +3171,7 @@ export function deriveAffordances(input: {
   for (const t of openTrades) {
     if (t.status !== "OPEN") continue;
     if (t.counterparty_id === selfId) {
+      const img = input.proposerImage?.[t.proposer_id] ?? 0;
       out.push({
         action: "TRADE_ACCEPT",
         verb: "TRADE",
@@ -3171,6 +3180,7 @@ export function deriveAffordances(input: {
         target_id: t.trade_id,
         requires: COSTS.TRADE,
         available: canPay(budgets, COSTS.TRADE),
+        hint: img <= 0 ? "standing is weak" : "trustworthy",
         kind: "social",
       });
       out.push({
@@ -3844,6 +3854,7 @@ export function deriveAffordances(input: {
           : !hasCargo
             ? "You do not have materials in hold."
             : "You do not have enough resources to construct.",
+        hint: (input.harvestPressure || 0) > 4 ? "compact grounded signal preferred" : undefined,
         kind: "utility",
       });
     }
@@ -3880,6 +3891,7 @@ export function deriveAffordances(input: {
             requires: attestCost,
             available: ok,
             reason: ok ? undefined : "You do not have enough attention.",
+            hint: input.hearsayBlockedThisCycle ? "ungrounded claims will not land" : undefined,
             kind: "utility",
           });
           attestN += 1;

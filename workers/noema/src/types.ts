@@ -206,6 +206,7 @@ export interface ObservationAffordance {
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
+  hint?: string;
   kind: string;
 }
 
@@ -224,8 +225,14 @@ export interface Observation {
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
     traces?: ObservationTrace[];
-    co_evolution?: { harvest_pressure?: number; regen_mod?: number };
-    genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
+    co_evolution?: { harvest_pressure?: number; regen_mod?: number; protocol_strength?: number };
+    genesis_evolutions?: Array<{
+      cycle: number;
+      kind: string;
+      details: string;
+      lineage_id?: string;
+      parent_kind?: string;
+    }>;
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
@@ -237,6 +244,10 @@ export interface Observation {
   signaling_quality?: number;
   drift_alerts?: string[];
   cascading_risk?: number;
+  protocol_strength?: number;
+  compositionality?: number;
+  reputation_summary?: { self_image: number; self_second_order: number };
+  active_norms?: { org_create_influence: number; harvest_pressure: number; last_ratchet?: string };
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
   /** Self budgets (Player-visible). */
@@ -363,6 +374,7 @@ export interface BeliefState {
   org_threshold?: number;
   preferred_actions?: string[];
   counterparty_reliability?: Record<string, number>;
+  signaling_style?: "grounded-first" | "compact" | "verbose";
 }
 
 /** P3: Heterogeneous agent role profiles (production bias, risk). */

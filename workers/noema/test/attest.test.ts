@@ -47,6 +47,8 @@ function fixtureWorld(): WorldRuntime {
             entity_id: "entity.relay-7",
             label: "scarred-conduit",
             entity_type: "INFRASTRUCTURE",
+            condition: 40,
+            scar: true,
           }),
           enrichEntity({
             entity_id: "entity.archive-ledger",
