@@ -59,12 +59,26 @@ export type InheritedHistory = {
   lore_seeds: string[];
 };
 
+export type DeepTimeBlob = {
+  scars: ScarRecord[];
+  evidence_fragments: EvidenceFragment[];
+  trajectory_digest: Record<string, TrajectoryDigest>;
+  norm_ratchets: Record<string, NormRatchet>;
+  lore_attractors: LoreAttractor[];
+};
+
 export type DeepTimeSlice = {
   scars?: ScarRecord[];
   evidence_fragments?: EvidenceFragment[];
   trajectory_digest?: Record<string, TrajectoryDigest>;
   norm_ratchets?: Record<string, NormRatchet>;
   lore_attractors?: LoreAttractor[];
+  co_evolution?: {
+    harvest_pressure?: Record<string, number>;
+    regen_mod?: Record<string, number>;
+    deep_time?: DeepTimeBlob;
+    [key: string]: unknown;
+  };
   rooms?: Record<string, { entities?: Array<{ entity_id: string; regen_rate?: number; stock_resource?: string }> }>;
   cycle?: number;
   players?: Record<string, { inherited?: InheritedHistory | undefined }>;
@@ -75,11 +89,38 @@ function clamp01(n: number): number {
 }
 
 export function ensureDeepTime(w: DeepTimeSlice): void {
+  const blob = w.co_evolution?.deep_time;
+  if ((!w.scars || !w.scars.length) && blob?.scars?.length) w.scars = blob.scars;
+  if ((!w.evidence_fragments || !w.evidence_fragments.length) && blob?.evidence_fragments?.length) {
+    w.evidence_fragments = blob.evidence_fragments;
+  }
+  if ((!w.trajectory_digest || !Object.keys(w.trajectory_digest).length) && blob?.trajectory_digest) {
+    w.trajectory_digest = blob.trajectory_digest;
+  }
+  if ((!w.norm_ratchets || !Object.keys(w.norm_ratchets).length) && blob?.norm_ratchets) {
+    w.norm_ratchets = blob.norm_ratchets;
+  }
+  if ((!w.lore_attractors || !w.lore_attractors.length) && blob?.lore_attractors?.length) {
+    w.lore_attractors = blob.lore_attractors;
+  }
   if (!w.scars) w.scars = [];
   if (!w.evidence_fragments) w.evidence_fragments = [];
   if (!w.trajectory_digest) w.trajectory_digest = {};
   if (!w.norm_ratchets) w.norm_ratchets = {};
   if (!w.lore_attractors) w.lore_attractors = [];
+  persistDeepTime(w);
+}
+
+/** Ride co_evolution so Deep Time survives the same settlement path as harvest_pressure. */
+export function persistDeepTime(w: DeepTimeSlice): void {
+  if (!w.co_evolution) w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
+  w.co_evolution.deep_time = {
+    scars: w.scars || [],
+    evidence_fragments: w.evidence_fragments || [],
+    trajectory_digest: w.trajectory_digest || {},
+    norm_ratchets: w.norm_ratchets || {},
+    lore_attractors: w.lore_attractors || [],
+  };
 }
 
 export function noteHarvestTrajectory(w: DeepTimeSlice, roomId: string, entityId: string, cycle: number): TrajectoryDigest {
@@ -109,6 +150,7 @@ export function noteHarvestTrajectory(w: DeepTimeSlice, roomId: string, entityId
     }
     applyScarToRegen(w, roomId);
   }
+  persistDeepTime(w);
   return next;
 }
 
@@ -135,6 +177,7 @@ export function pushEvidenceFragment(
     ...frag,
   };
   w.evidence_fragments = [...(w.evidence_fragments || []), full].slice(-64);
+  persistDeepTime(w);
   return full;
 }
 
@@ -152,6 +195,7 @@ export function deepTimeCoEvolve(w: DeepTimeSlice): void {
     if (s.domain === "economic" && s.room_id) applyScarToRegen(w, s.room_id);
   }
   tickLoreAttractors(w);
+  persistDeepTime(w);
 }
 
 export function reconstructionFidelity(
@@ -184,6 +228,7 @@ export function weakenScarsForReconstruction(
       n += 1;
     }
   }
+  persistDeepTime(w);
   return n;
 }
 
@@ -222,6 +267,7 @@ export function ratchetOnOrgCreate(w: DeepTimeSlice, cycle: number): NormRatchet
     hits,
   };
   w.norm_ratchets!.org_create = next;
+  persistDeepTime(w);
   return next;
 }
 
@@ -237,6 +283,7 @@ export function ratchetOnAttest(w: DeepTimeSlice, cycle: number): NormRatchet {
     hits,
   };
   w.norm_ratchets!.attest = next;
+  persistDeepTime(w);
   return next;
 }
 

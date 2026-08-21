@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import { applyWorldCommand, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
 import { buildWatchLive } from "../src/watch-live";
 import { previewGenesis } from "../src/genesis";
@@ -94,6 +94,14 @@ describe("p5-dt-01 scars", () => {
     expect(look.observation?.path_dependence_index).toBeGreaterThan(0);
     const regen1 = salvage().regen_rate ?? 0;
     expect(regen1).toBeLessThan(regen0);
+    expect(w.co_evolution?.deep_time?.scars?.length).toBeGreaterThanOrEqual(1);
+    const revived = JSON.parse(JSON.stringify(w)) as WorldRuntime;
+    revived.scars = [];
+    revived.evidence_fragments = [];
+    revived.trajectory_digest = {};
+    migrateWorldRuntime(revived);
+    expect((revived.scars || []).length).toBeGreaterThanOrEqual(1);
+    expect((revived.evidence_fragments || []).length).toBeGreaterThanOrEqual(3);
   });
 });
 
