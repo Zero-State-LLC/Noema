@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cloneBudgets } from "../src/actions";
 import { CHAMBER_MAP_ROOM_IDS } from "../src/chamber-map-graph";
 import { previewGenesis, validateCycle0 } from "../src/genesis";
+import { ensureSuccessorMaterialsCache } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 import { applyWorldCommand } from "../src/world-actions";
 import { cycle0ToWorld } from "../src/world-do";
@@ -121,5 +122,41 @@ describe("genesis successor product path", () => {
     expect(world.players["player.tester"]).not.toHaveProperty("works");
     expect(world.players["player.tester"].budgets).toEqual(cloneBudgets(null));
     expect(Object.keys(world.players)).toEqual(["player.tester"]);
+  });
+
+  it("fills salvage-cache on a live successor Civic Exchange without touching frozen worlds", () => {
+    const world = cycle0ToWorld({
+      world_id: "world.perihelion-reach-2",
+      world_name: "Perihelion Reach",
+      world_seed: "x",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.civic-exchange",
+      rooms: {
+        "room.civic-exchange": {
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          description: "hub",
+          exits: [],
+          entities: [{ entity_id: "entity.old-market-post", label: "market-post", entity_type: "INFRASTRUCTURE" }],
+        },
+      },
+      institutions: [],
+      artifacts: [],
+      tensions: [],
+      scars: [],
+      resources: [],
+      opportunities: [],
+    });
+    expect(ensureSuccessorMaterialsCache(world)).toBe(true);
+    const salvage = world.rooms["room.civic-exchange"].entities.find((e) => e.entity_id === "entity.salvage-cache");
+    expect(salvage).toMatchObject({ stock_resource: "materials", stock_amount: 4, entity_type: "NODE" });
+    expect(ensureSuccessorMaterialsCache(world)).toBe(false);
+
+    world.world_id = "world-01";
+    world.rooms["room.civic-exchange"].entities = [
+      { entity_id: "entity.old-market-post", label: "market-post", entity_type: "INFRASTRUCTURE" },
+    ];
+    expect(ensureSuccessorMaterialsCache(world)).toBe(false);
   });
 });

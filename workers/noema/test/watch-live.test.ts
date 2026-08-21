@@ -990,8 +990,14 @@ describe("watch HTML surface", () => {
   it("reserves graph and feed heights and wraps long feed lines on mobile (§8, §10)", () => {
     expect(html).toMatch(/\.watch-graph\{[^}]*min-height/);
     expect(html).toMatch(/\.watch-feed\{[^}]*min-height/);
-    expect(html).toMatch(/@media\(max-width:860px\)\{\.watch-stage\{grid-template-columns:1fr/);
+    expect(html).toMatch(/@media\(max-width:860px\)\{[\s\S]*\.watch-stage\{grid-template-columns:1fr/);
     expect(html).toContain(".watch-feed .line{overflow-wrap:anywhere}");
+    expect(html).toContain('id="watch-here-open"');
+    expect(html).toContain('id="watch-here-close"');
+    expect(html).toContain('id="watch-here-sheet"');
+    expect(html).toMatch(/aria-controls="watch-here-sheet"/);
+    expect(html).toContain("setHereOpen");
+    expect(html).toMatch(/@media\(min-width:861px\)[\s\S]*#watch-here-open/);
   });
 
   it("feed settle stays inside one poll interval and is gated on reduced motion (§13)", () => {

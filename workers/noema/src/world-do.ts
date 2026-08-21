@@ -77,6 +77,7 @@ import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./typ
 import {
   applyWorldCommand,
   buildObservation,
+  ensureSuccessorMaterialsCache,
   evictLeftoverHumanOccupancy,
   migrateWorldRuntime,
   type RoomState,
@@ -887,7 +888,8 @@ export class NoemaWorldDO {
       }
       migrateWorldRuntime(this.world);
     }
-    if (expireStalePresence(this.world.players)) {
+    const filledHarvest = ensureSuccessorMaterialsCache(this.world);
+    if (expireStalePresence(this.world.players) || filledHarvest) {
       await this.save();
     }
   }

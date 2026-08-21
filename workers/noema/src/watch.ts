@@ -70,7 +70,32 @@ const EXTRA = `
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
 .watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
-@media(max-width:860px){.watch-stage{grid-template-columns:1fr;gap:1.25rem}}
+@media(max-width:860px){
+  .watch-stage{grid-template-columns:1fr;gap:1.25rem}
+  #watch-here-open{display:block;width:100%;min-height:44px;margin:.65rem 0 0}
+  .watch-here-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .65rem}
+  .watch-here-head strong{font:500 .78rem/1.3 var(--font-interface,var(--font-mono));letter-spacing:.06em;text-transform:uppercase}
+  #watch-here-close{min-height:44px;min-width:44px}
+  .watch-here-backdrop{display:none;position:fixed;inset:0;z-index:5;background:rgba(8,10,12,.5)}
+  .watch-here-backdrop.is-open{display:block}
+  #watch-here-sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:6;margin:0;
+    height:min(78dvh,36rem);max-height:78dvh;overflow:auto;
+    padding:.85rem 1rem 1.25rem;border-top:1px solid var(--line);
+    background:var(--color-surface-raised,#161B20);
+    transform:translateY(110%);visibility:hidden;pointer-events:none;
+    transition:transform 180ms var(--ease),visibility 0s linear 180ms;
+  }
+  #watch-here-sheet.is-open{transform:none;visibility:visible;pointer-events:auto;transition:transform 180ms var(--ease)}
+}
+@media(min-width:861px){
+  #watch-here-open,.watch-here-head,.watch-here-backdrop{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  #watch-here-sheet{transition:opacity 150ms var(--ease);transform:none}
+  #watch-here-sheet:not(.is-open){opacity:0}
+  #watch-here-sheet.is-open{opacity:1}
+}
 .watch-phos{
   margin:.85rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);background:transparent;
 }
@@ -241,12 +266,18 @@ export function watchHtml(): string {
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
     </section>
-    <section class="watch-col" aria-labelledby="watch-feed-label">
+    <section class="watch-col" id="watch-here-sheet" aria-labelledby="watch-feed-label">
+      <div class="watch-here-head">
+        <strong>Recently</strong>
+        <button class="btn quiet" id="watch-here-close" type="button" aria-label="Close">×</button>
+      </div>
       <h2 id="watch-feed-label">Recently</h2>
       <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
       <ol class="watch-feed" id="watch-feed"></ol>
     </section>
   </section>
+  <button class="btn quiet" id="watch-here-open" type="button" aria-expanded="false" aria-controls="watch-here-sheet">Here</button>
+  <div class="watch-here-backdrop" id="watch-here-backdrop" hidden></div>
 
   <p class="watch-note">This window is a projection, not the world.</p>
 
@@ -861,6 +892,28 @@ export function watchHtml(): string {
         refresh();
       }
     });
+    function setHereOpen(on) {
+      const sheet = $("watch-here-sheet");
+      const btn = $("watch-here-open");
+      const back = $("watch-here-backdrop");
+      if (!sheet || !btn) return;
+      sheet.classList.toggle("is-open", !!on);
+      if (back) {
+        back.classList.toggle("is-open", !!on);
+        back.hidden = !on;
+      }
+      btn.setAttribute("aria-expanded", on ? "true" : "false");
+      if (on) {
+        const close = $("watch-here-close");
+        if (close) close.focus();
+      }
+    }
+    const hereOpen = $("watch-here-open");
+    const hereClose = $("watch-here-close");
+    const hereBack = $("watch-here-backdrop");
+    if (hereOpen) hereOpen.addEventListener("click", () => setHereOpen(true));
+    if (hereClose) hereClose.addEventListener("click", () => setHereOpen(false));
+    if (hereBack) hereBack.addEventListener("click", () => setHereOpen(false));
     // §4F: Esc closes an open room detail and returns focus to its summary.
     $("watch-map").addEventListener("keydown", (ev) => {
       if (!ev || ev.key !== "Escape") return;
@@ -875,7 +928,14 @@ export function watchHtml(): string {
     // §4.G: CLEAR is one obvious control and Esc-reachable at the page level.
     $("watch-follow-clear").addEventListener("click", () => setFollow(null));
     document.addEventListener("keydown", (ev) => {
-      if (!ev || ev.key !== "Escape" || !state.follow) return;
+      if (!ev || ev.key !== "Escape") return;
+      const sheet = $("watch-here-sheet");
+      if (sheet && sheet.classList.contains("is-open")) {
+        if (typeof ev.preventDefault === "function") ev.preventDefault();
+        setHereOpen(false);
+        return;
+      }
+      if (!state.follow) return;
       const t = ev.target;
       const inDetails = t && typeof t.closest === "function" && t.closest("details[open]");
       if (inDetails) return;
