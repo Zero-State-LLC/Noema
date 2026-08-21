@@ -1,6 +1,6 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
-import type { Cycle0World, GenesisResult } from "./genesis";
+import { FROZEN_GENESIS_ID, type Cycle0World, type GenesisResult } from "./genesis";
 import {
   buildWatchLive,
   heldFromSnapshot,
@@ -160,7 +160,7 @@ export function bootstrapWorldState(world_id: string): WorldState {
   return demoState(world_id);
 }
 
-function cycle0ToWorld(c0: Cycle0World): WorldState {
+export function cycle0ToWorld(c0: Cycle0World): WorldState {
   const rooms: Record<string, Room> = {};
   for (const [id, r] of Object.entries(c0.rooms)) {
     rooms[id] = {
@@ -202,6 +202,12 @@ export class NoemaWorldDO {
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
+  }
+
+  /** Admin genesis routes may target perihelion-reach-2; do not require admitTestWorldId. */
+  private bindAdminGenesisWorld(request: Request): void {
+    const headerWorld = (request.headers.get("x-noema-world-id") || "").trim();
+    if (headerWorld) this.requestedWorldId = headerWorld;
   }
 
   private async watchSnapshot() {
@@ -401,6 +407,7 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/health")) {
+      this.bindAdminGenesisWorld(request);
       await this.load();
       return Response.json({
         ok: true,
@@ -597,6 +604,7 @@ export class NoemaWorldDO {
 
     // Store preview (does not mutate live world authority)
     if (request.method === "POST" && path.endsWith("/genesis-preview-store")) {
+      this.bindAdminGenesisWorld(request);
       await this.loadMeta();
       const body = (await request.json()) as { result: GenesisResult };
       if (!body?.result?.genesis_id) {
@@ -624,6 +632,7 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/genesis-preview-get")) {
+      this.bindAdminGenesisWorld(request);
       const gid = url.searchParams.get("genesis_id") || "";
       this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
       const p = this.previews[gid];
@@ -633,11 +642,13 @@ export class NoemaWorldDO {
 
     // Atomic activation
     if (request.method === "POST" && path.endsWith("/genesis-activate")) {
+      this.bindAdminGenesisWorld(request);
       await this.loadMeta();
       const body = (await request.json()) as {
         genesis_id: string;
         admin_session_id: string;
         force?: boolean;
+        world_id?: string;
       };
       if (!body?.genesis_id) {
         return Response.json({ error: { code: "INVALID_REQUEST", message: "genesis_id required" } }, { status: 400 });
@@ -674,6 +685,18 @@ export class NoemaWorldDO {
               details: preview.validation?.errors || [],
             },
           },
+          { status: 400 },
+        );
+      }
+      if (preview.genesis_id === FROZEN_GENESIS_ID && preview.world_id !== "world.perihelion-reach") {
+        return Response.json(
+          { error: { code: "INVALID_SEED", message: "frozen genesis cannot activate on another world" } },
+          { status: 400 },
+        );
+      }
+      if (body.world_id && preview.world_id !== body.world_id) {
+        return Response.json(
+          { error: { code: "INVALID_REQUEST", message: "world_id does not match preview" } },
           { status: 400 },
         );
       }

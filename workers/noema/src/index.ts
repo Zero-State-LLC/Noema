@@ -47,7 +47,7 @@ import {
   previewAgentEnrollment,
   requestAgentEnrollment,
 } from "./enrollment";
-import { catalog, GenesisError, previewGenesis } from "./genesis";
+import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
@@ -646,30 +646,37 @@ export default {
             world_seed?: string;
             profile_id?: string;
             story_seed_ids?: string[];
+            world_id?: string;
           };
-          const result = await previewGenesis({
+          const target = resolveAdminGenesisWorldId(body.world_id, env);
+          if (!target.ok) {
+            return cors(err(target.code, target.message, target.code === "POLICY_DENIED" ? 403 : 400));
+          }
+          const genesisInput = {
             world_name: body.world_name || "Perihelion Reach",
             world_seed: body.world_seed || "",
             profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
             story_seed_ids: body.story_seed_ids,
-          });
-          const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+            ...(String(body.world_id || "").trim() ? { world_id: target.world_id } : {}),
+          };
+          const result = await previewGenesis(genesisInput);
+          const id = env.WORLD_DO.idFromName(target.world_id);
           const stub = env.WORLD_DO.get(id);
+          const worldHeaders = { "content-type": "application/json", "x-noema-world-id": target.world_id };
           // Capture live sequence before store
-          const before = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          const before = (await (await stub.fetch("https://do/health", { headers: worldHeaders })).json()) as {
+            sequence?: number;
+          };
           await stub.fetch("https://do/genesis-preview-store", {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: worldHeaders,
             body: JSON.stringify({ result }),
           });
-          const after = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          const after = (await (await stub.fetch("https://do/health", { headers: worldHeaders })).json()) as {
+            sequence?: number;
+          };
           // Determinism self-check: re-preview same inputs
-          const again = await previewGenesis({
-            world_name: body.world_name || "Perihelion Reach",
-            world_seed: body.world_seed || "",
-            profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
-            story_seed_ids: body.story_seed_ids,
-          });
+          const again = await previewGenesis(genesisInput);
           const deterministic =
             again.genesis_id === result.genesis_id && again.cycle0_digest === result.cycle0_digest;
 
@@ -702,6 +709,7 @@ export default {
           genesis_id?: string;
           confirm?: boolean;
           force?: boolean;
+          world_id?: string;
         };
         if (!body.genesis_id) return cors(err("INVALID_REQUEST", "genesis_id required", 400));
         if (!body.confirm) {
@@ -711,15 +719,21 @@ export default {
         if (body.force && envName === "production") {
           return cors(err("POLICY_DENIED", "force supersede forbidden in production", 403));
         }
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const target = resolveAdminGenesisWorldId(body.world_id, env);
+        if (!target.ok) {
+          return cors(err(target.code, target.message, target.code === "POLICY_DENIED" ? 403 : 400));
+        }
+        const id = env.WORLD_DO.idFromName(target.world_id);
         const stub = env.WORLD_DO.get(id);
+        const worldHeaders = { "content-type": "application/json", "x-noema-world-id": target.world_id };
         const res = await stub.fetch("https://do/genesis-activate", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: worldHeaders,
           body: JSON.stringify({
             genesis_id: body.genesis_id,
             admin_session_id: admin.session_id,
             force: Boolean(body.force),
+            ...(String(body.world_id || "").trim() ? { world_id: target.world_id } : {}),
           }),
         });
         const data = await res.json();

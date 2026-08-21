@@ -122,6 +122,12 @@ describe("admitTestWorldId", () => {
     if (!denied.ok) expect(denied.code).toBe("WORLD_FORBIDDEN");
   });
 
+  it("denies world.perihelion-reach-2", () => {
+    const denied = admitTestWorldId("world.perihelion-reach-2");
+    expect(denied.ok).toBe(false);
+    if (!denied.ok) expect(denied.code).toBe("WORLD_FORBIDDEN");
+  });
+
   it("denies DEFAULT_WORLD_ID and world-01", () => {
     expect(admitTestWorldId("world-01").ok).toBe(false);
     expect(admitTestWorldId("world.custom-default", "world.custom-default").ok).toBe(false);
