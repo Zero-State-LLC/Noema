@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -303,3 +304,52 @@ def test_adapter_failure_does_not_invent_action():
     turn = harness.run_turn()
     assert not turn.ok
     assert http.posts == []
+
+
+def test_policy_blocked_tags_gated_affordances_with_responsible_flag():
+    policy = HarnessPolicy()  # org/contest/access default False
+    affordances = [
+        {"action": "ORG_CREATE"},
+        {"action": "CONTEST_DECLARE"},
+        {"action": "AGREEMENT_FORM"},
+        {"operation": "ACCESS_GRANT"},
+        {"action": "TRADE"},  # allowed by default — must not appear
+        {"action": "MOVE"},  # always allowed — must not appear
+        {"action": "SETTLE_UNKNOWN"},  # unknown family — default deny
+        {"action": "ORG_CREATE"},  # duplicate — deduped
+        "not-a-dict",
+    ]
+    blocked = policy.blocked(affordances)
+    by_action = {b["action"]: b["policy_flag"] for b in blocked}
+    assert by_action == {
+        "ORG_CREATE": "allow_org_create",
+        "CONTEST_DECLARE": "allow_contest",
+        "AGREEMENT_FORM": "allow_contest",
+        "ACCESS_GRANT": "allow_access",
+        "SETTLE_UNKNOWN": "default_deny",
+    }
+    # visibility only: permits() unchanged
+    assert not policy.permits("ORG_CREATE")
+    assert policy.permits("TRADE")
+    # flags flipped on -> those actions drop out of blocked()
+    open_policy = HarnessPolicy(allow_org_create=True, allow_contest=True, allow_access=True)
+    assert open_policy.blocked(affordances) == [
+        {"action": "SETTLE_UNKNOWN", "policy_flag": "default_deny"}
+    ]
+
+
+def test_policy_blocked_surfaces_in_context_and_report():
+    obs = _obs()
+    obs["affordances"] = list(obs.get("affordances") or []) + [{"action": "ORG_CREATE"}]
+    state = to_state(obs)
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    assert {"action": "ORG_CREATE", "policy_flag": "allow_org_create"} in ctx["system"]["policy_blocked"]
+
+    from noema.harness.report import write_report
+
+    path = write_report(
+        Path(tempfile.mkdtemp()) / "report.json",
+        {"classification": "ok", "policy_blocked": [{"action": "ORG_CREATE", "policy_flag": "allow_org_create"}]},
+    )
+    body = json.loads(path.read_text())
+    assert body["policy_blocked"] == [{"action": "ORG_CREATE", "policy_flag": "allow_org_create"}]

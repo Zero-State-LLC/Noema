@@ -245,6 +245,9 @@ class HeadlessHarness:
             "probes": list(self.debug_probes),
             "classification": kind if self.last_smell else "ok",
             "summary": summary,
+            "policy_blocked": self.policy.blocked(
+                [a for a in (obs.get("affordances") or []) if isinstance(a, dict)]
+            ),
         }
 
 

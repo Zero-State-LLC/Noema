@@ -64,6 +64,7 @@ def write_report(path: Path, payload: dict[str, Any]) -> Path:
         "probes",
         "classification",
         "summary",
+        "policy_blocked",
     }
     body = {k: payload.get(k) for k in allowed}
     path = Path(path)
