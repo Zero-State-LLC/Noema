@@ -627,6 +627,7 @@ export function buildObservation(
       entities,
       report_lines: w.last_report?.lines,
     }),
+    pressure: roomCondition,
     player_id: principal.player_id,
     budgets: { ...pl.budgets },
     messages: inbox,

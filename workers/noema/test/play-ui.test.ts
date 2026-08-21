@@ -625,6 +625,9 @@ describe("R0 LOOK observation", () => {
     expect(text).toMatch(/Attention /);
     const exitsAt = text.indexOf("EXITS");
     expect(text.indexOf("STATUS")).toBeGreaterThan(exitsAt);
+    expect(look.observation?.pressure).toBe(look.observation?.location?.condition);
+    expect(look.observation?.pressure).toBeTruthy();
+    expect(look.observation?.play_text).toMatch(/PRESSURE/);
   });
 });
 
@@ -659,6 +662,12 @@ describe("S5 low-noise", () => {
     expect(text).toMatch(/east — Coldline/);
     expect(text).toMatch(/TRACES/);
     expect(text).not.toMatch(/<svg|glyph|entity\.a|room\.hub/i);
+    const descAt = text.indexOf("A frontier anchor.");
+    const pressureAt = text.indexOf("PRESSURE");
+    const hereAt = text.indexOf("HERE");
+    expect(pressureAt).toBeGreaterThan(descAt);
+    expect(hereAt).toBeGreaterThan(pressureAt);
+    expect(text).toMatch(/PRESSURE\nInfrastructure shows damage\./);
   });
 
   it("exposes the preference on WATCH, not a human inhabit door", () => {

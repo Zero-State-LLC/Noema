@@ -225,6 +225,8 @@ export interface Observation {
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
+  /** Feature B PRESSURE. Same local band as location.condition. Derived, not WorldState. */
+  pressure?: string;
   /** GC1-S7 self focus line. */
   focus_lines?: string[];
   player_id: string;

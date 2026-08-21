@@ -226,7 +226,10 @@ export function lowNoiseRoomText(model: RoomPresentationModel): string {
   const lines: string[] = [];
   if (model.name) lines.push(model.name);
   if (model.description) lines.push(model.description);
-  if (model.pressure) lines.push(model.pressure);
+  if (model.pressure) {
+    lines.push("PRESSURE");
+    lines.push(model.pressure);
+  }
   if (model.here.length) {
     lines.push("HERE");
     for (const e of model.here) {
