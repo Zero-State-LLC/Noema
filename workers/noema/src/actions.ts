@@ -1626,7 +1626,7 @@ export function parseHumanCommand(
     };
   }
 
-  // RFC-0020: attest <artifact> subject=<id> claim=DESTROYED|OPERATING
+  // RFC-0020: attest <entity> subject=<entity_id> claim=OPERATING|DESTROYED (archive_claim)
   // Not listed in Chamber help. Do not infer subject/claim from labels.
   if (v === "attest") {
     const rest = parts.join(" ");
@@ -2756,6 +2756,25 @@ export function deriveAffordances(input: {
       reason: canPay(budgets, inspectCost) ? undefined : "You do not have enough attention.",
       kind: "primary",
     });
+    // ATTEST for artifacts (archive claims) - emit correct structured cmd with archive_claim
+    if (e.entity_type === "ARTIFACT" || e.archive_claim) {
+      const attestCost = COSTS.ATTEST;
+      const ok = canPay(budgets, attestCost);
+      out.push({
+        action: "ATTEST",
+        verb: "COMMIT",
+        operation: "ATTEST",
+        label: `Attest ${name}`,
+        cmd: `attest ${e.label} subject=${e.entity_id} claim=OPERATING`,
+        target_id: e.entity_id,
+        target_label: e.label,
+        requires: attestCost,
+        available: ok,
+        reason: ok ? undefined : "You do not have enough attention.",
+        kind: "primary",
+      });
+    }
+
     if (isRepairable(e)) {
       const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
       const ok = canPay(budgets, repairCost);

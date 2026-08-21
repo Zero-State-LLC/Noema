@@ -253,6 +253,13 @@ function buildCycle0(
         label: pick(r, [...n.entities.trade]),
         entity_type: "INFRASTRUCTURE",
       },
+      {
+        entity_id: "entity.salvage-cache",
+        label: "salvage-cache",
+        entity_type: "NODE",
+        stock_resource: "materials",
+        stock_amount: 4,
+      },
     ],
     tags: ["trade", "public", "exchange"],
   };
