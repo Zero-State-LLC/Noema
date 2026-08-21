@@ -63,6 +63,7 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
             "conversion_rate": 0.5,
         }
     ]
+    occupancy_weighted = False
     for p in obs.get("players_here") or []:
         if not isinstance(p, dict):
             continue
@@ -74,6 +75,11 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
                 "conversion_rate": 0.5,
             }
         )
+    # LOOK does not publish other purses. Count occupants equally for concentration.
+    if any(a["influence"] <= 0 for a in agents[1:]):
+        occupancy_weighted = True
+        for a in agents:
+            a["influence"] = 1.0
 
     unlocked = obs.get("unlocked_affordances") or obs.get("unlocked") or []
     if not isinstance(unlocked, list) or not unlocked:
@@ -99,7 +105,15 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
         "agents": agents,
         "source": "look",
         "salvage_stock": float(salvage[0].get("stock_amount") or 0),
+        "occupancy_weighted": occupancy_weighted,
     }
+
+
+def isolated_threshold_ok(cycle: int, org_threshold: float) -> bool:
+    """Match economic_health HIGH_ORG_BARRIER: only expect drift after cycle 8."""
+    if cycle <= 8:
+        return True
+    return org_threshold < 4.5
 
 
 def is_canned_snapshot(snap: dict[str, Any] | None) -> bool:
