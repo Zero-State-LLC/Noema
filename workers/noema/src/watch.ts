@@ -141,6 +141,12 @@ body.is-low-noise #watch-low-noise{display:block}
   display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:center;
   margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body);
 }
+.watch-phos-key{
+  margin:.3rem 0 .15rem;color:var(--faint);font:.68rem/1.6 var(--font-mono);
+  max-width:36rem;
+}
+.watch-phos-key .km{color:var(--color-state-active)}
+.watch-phos-key .km.major{color:var(--color-state-warning)}
 .watch-phos-bar .btn{padding:.15rem .45rem;font-size:.62rem}
 .watch-phos-bar .btn[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
 .watch-phosphor{
@@ -225,6 +231,7 @@ export function watchHtml(): string {
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
         <canvas class="watch-phosphor" id="watch-phosphor" width="320" height="180" role="img" aria-label="Public topology sketch. Click a site to look closer."></canvas>
+        <p class="watch-phos-key" id="watch-phos-key" aria-label="Map key"><span class="km">□</span> site&ensp;<span class="km">■</span> active site&ensp;<span class="km">◆</span> Player&ensp;<span class="km">─</span> route&ensp;<span class="km">┄</span> uncertain route&ensp;<span class="km">○</span> pulse = new public event&ensp;<span class="km major">■</span> MAJOR</p>
         <div class="watch-phos-bar">
           <span id="watch-phos-caption">Public sketch — not the world. Click a site to look closer.</span>
         </div>

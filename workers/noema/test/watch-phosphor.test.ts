@@ -967,3 +967,35 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(studyHtml()).not.toMatch(/WebSocket/i);
   });
 });
+
+describe("§18 legibility — labels never overdrawn; adjacent map key", () => {
+  it("anchors labels below the node, clear of the mark ring", () => {
+    const a = phosphorLabelAnchor(160, 90);
+    expect(a.y).toBe(108);
+    expect(a.x).toBe(140);
+    expect(phosphorLabelAnchor(310, 90).x).toBe(246); // right-edge label fits fully
+  });
+
+  it("draws each label last on a ground plate", () => {
+    const ctx = mockCtx();
+    drawPhosphorFrame(
+      ctx,
+      layoutPublicTopology([{ room_id: "room.a", name: "Site A", players_present: 2, active: true }]),
+      [],
+      0,
+    );
+    const fills = ctx.ops.filter((o) => o.startsWith("fillRect:"));
+    expect(fills.length).toBeGreaterThanOrEqual(2); // canvas ground + label plate
+    const lastText = ctx.ops.lastIndexOf(ctx.ops.filter((o) => o.startsWith("fillText:SITE A@"))[0]);
+    const lastStroke = Math.max(...ctx.ops.map((o, i) => (o === "stroke" ? i : -1)));
+    expect(lastText).toBeGreaterThan(lastStroke);
+  });
+
+  it("ships the adjacent HTML map key inside the phosphor wrap", () => {
+    const html = watchHtml();
+    expect(html).toContain('id="watch-phos-key"');
+    expect(html).toContain('aria-label="Map key"');
+    expect(html).toContain("pulse = new public event");
+    expect(html).toContain('<span class="km major">');
+  });
+});
