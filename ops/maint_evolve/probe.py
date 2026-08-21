@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+
 from maint_evolve.legalize import assert_player_command, veto_action
 
 PLAY = "world.perihelion-reach-3"
@@ -71,3 +77,37 @@ def run_probe(*, world_id, token_kind, pack, client) -> dict:
         "scar_count": scar_count,
         "calls": list(calls),
     }
+
+
+def parse_probe_args(argv: list[str] | None = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(prog="maint_evolve.probe")
+    p.add_argument("--world-id", default=os.environ.get("NOEMA_PROBE_WORLD_ID"))
+    p.add_argument("--root", type=Path, default=Path(__file__).resolve().parent)
+    p.add_argument("--token-kind", default="player", choices=("player",))
+    return p.parse_args(argv)
+
+
+def main(
+    argv: list[str] | None = None,
+    *,
+    client=None,
+    token_kind: str | None = None,
+    pack: dict | None = None,
+) -> int:
+    ns = parse_probe_args(argv)
+    root = Path(ns.root)
+    root.mkdir(parents=True, exist_ok=True)
+    try:
+        wid = guard_world_id(ns.world_id)
+    except ProbeRefuse:
+        return 2
+    kind = token_kind or ns.token_kind
+    if client is None:
+        return 2
+    result = run_probe(world_id=wid, token_kind=kind, pack=pack or {}, client=client)
+    (root / "last-probe.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    return 0 if result.get("pass") else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
