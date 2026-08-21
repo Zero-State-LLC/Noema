@@ -95,6 +95,171 @@ import {
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
+
+// === P1 Co-evolution (2026-08-21) ===
+// Explicit hook after successful actions.
+// Agents (player beliefs) and environment (stock regen, opportunities) adapt based on play.
+// This implements the co-evolving environment layer from EWM/Eco3S research.
+async function coevolveAfterAction(w: WorldRuntime, principal: PlayerPrincipal, verb: string, result: CommandResult) {
+  if (!w.co_evolution) {
+    w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
+  }
+  if (!w.genesis_evolutions) {
+    w.genesis_evolutions = [];
+  }
+  const co = w.co_evolution;
+  const room = w.rooms[ (w.players[principal.player_id] || {} as any).room_id ];
+  const roomId = room?.room_id || "unknown";
+
+  // Track harvest pressure (activity drives env change)
+  if (verb === "HARVEST") {
+    co.harvest_pressure[roomId] = (co.harvest_pressure[roomId] || 0) + 1;
+  }
+
+  // Co-evolve regen rates: heavy harvesting in a room slows recovery (resource depletion feedback)
+  if (verb === "HARVEST" && room) {
+    const pressure = co.harvest_pressure[roomId] || 0;
+    const mod = Math.max(0.3, 1.0 - (pressure * 0.05));  // down to 30% regen under heavy use
+    for (const e of room.entities || []) {
+      if (e.stock_resource && typeof e.regen_rate === "number" && e.regen_rate > 0) {
+        const key = e.entity_id;
+        if (!co.regen_mod[key]) co.regen_mod[key] = 1.0;
+        co.regen_mod[key] = Math.max(0.3, co.regen_mod[key] * 0.95);  // ratchet down
+        // Apply to entity for immediate effect on next regen tick
+        e.regen_rate = (e.regen_rate || 0) * (co.regen_mod[key] || 1.0);
+      }
+    }
+  }
+
+  // P1 Living Genesis: micro-genesis events triggered by sustained pressure
+  const pressure = co.harvest_pressure[roomId] || 0;
+  if (pressure > 4 && room && (w.cycle || 0) % 3 === 0) {
+    // Adaptation: increase max_stock on harvestables (living world responds)
+    let evolved = false;
+    for (const e of room.entities || []) {
+      if (e.stock_resource && e.max_stock) {
+        const before = e.max_stock;
+        e.max_stock = Math.floor(e.max_stock * 1.15);  // micro-evolution: capacity grows with demand/pressure
+        if (!co.regen_mod[e.entity_id]) co.regen_mod[e.entity_id] = 1.0;
+        // Slight regen boost as "learned" recovery
+        if (typeof e.regen_rate === "number") {
+          e.regen_rate = e.regen_rate * 1.05;
+        }
+        w.genesis_evolutions.push({
+          cycle: w.cycle || 0,
+          kind: "MICRO_GENESIS_CAPACITY",
+          details: `max_stock ${before} -> ${e.max_stock} on ${e.label} (pressure adaptation)`,
+          room_id: roomId,
+        });
+        evolved = true;
+        break; // one per trigger
+      }
+    }
+    if (evolved) {
+      // Also record as co-evo signal
+      co.last_evo_cycle = w.cycle || 0;
+    }
+  }
+
+  // Slow natural recovery of pressure over cycles (co-evolution can rebound)
+  if ((w.cycle || 0) % 5 === 0) {
+    for (const rid of Object.keys(co.harvest_pressure)) {
+      co.harvest_pressure[rid] = Math.max(0, (co.harvest_pressure[rid] || 0) * 0.8);
+    }
+    // Gradual regen mod recovery
+    for (const k of Object.keys(co.regen_mod)) {
+      co.regen_mod[k] = Math.min(1.0, (co.regen_mod[k] || 1.0) + 0.02);
+    }
+  }
+
+  if (process.env.NOEMA_DEBUG_COEVO) {
+    console.log("[COEVO]", verb, "room=", roomId, "pressure=", co.harvest_pressure[roomId], "cycle=", w.cycle);
+  }
+
+  
+
+
+/** P2: Checkpoint API - lightweight snapshot for causal experiments / SAR.
+ *  Captures sufficient state to resume with interventions (modified params, injected events).
+ */
+export function createCheckpoint(w: WorldRuntime, note?: string): Checkpoint {
+  const room_stocks: Record<string, Record<string, number>> = {};
+  for (const [roomId, room] of Object.entries(w.rooms || {})) {
+    room_stocks[roomId] = {};
+    for (const e of room.entities || []) {
+      if (e.stock_resource && typeof e.stock_amount === "number") {
+        room_stocks[roomId][e.entity_id] = e.stock_amount;
+      }
+    }
+  }
+  const player_budgets: Record<string, Record<string, number>> = {};
+  for (const [pid, p] of Object.entries(w.players || {})) {
+    if (p.budgets) player_budgets[pid] = { ...p.budgets };
+  }
+  return {
+    checkpoint_id: `cp.${w.world_id || "world"}.${w.cycle || 0}.${Date.now()}`,
+    cycle: w.cycle || 0,
+    sequence: w.sequence || 0,
+    world_name: w.world_name || "unknown",
+    world_seed: w.world_seed,
+    snapshot: {
+      room_stocks,
+      player_budgets,
+      co_evolution: w.co_evolution ? JSON.parse(JSON.stringify(w.co_evolution)) : undefined,
+      genesis_evolutions: w.genesis_evolutions ? [...(w.genesis_evolutions)] : undefined,
+    },
+    created_at: Date.now(),
+    note,
+  };
+}
+
+/** Apply checkpoint snapshot back into world (for resume-with-modification experiments).
+ *  Supports param overrides via intervention patch object.
+ */
+export function resumeFromCheckpoint(w: WorldRuntime, cp: Checkpoint, intervention?: { regen_multiplier?: number; influence_threshold_patch?: number }) {
+  if (!cp.snapshot) return;
+  // Restore stocks
+  for (const [roomId, stocks] of Object.entries(cp.snapshot.room_stocks || {})) {
+    const room = w.rooms?.[roomId];
+    if (!room) continue;
+    for (const e of room.entities || []) {
+      if (e.entity_id in stocks) {
+        e.stock_amount = stocks[e.entity_id];
+      }
+    }
+  }
+  // Restore budgets
+  for (const [pid, budgets] of Object.entries(cp.snapshot.player_budgets || {})) {
+    if (w.players?.[pid]) {
+      w.players[pid].budgets = { ...budgets };
+    }
+  }
+  // Restore co-evo state
+  if (cp.snapshot.co_evolution) w.co_evolution = JSON.parse(JSON.stringify(cp.snapshot.co_evolution));
+  if (cp.snapshot.genesis_evolutions) w.genesis_evolutions = [...cp.snapshot.genesis_evolutions];
+
+  // Apply intervention patch for counterfactuals
+  if (intervention) {
+    if (typeof intervention.regen_multiplier === "number") {
+      for (const room of Object.values(w.rooms || {})) {
+        for (const e of room.entities || []) {
+          if (typeof e.regen_rate === "number") {
+            e.regen_rate = e.regen_rate * intervention.regen_multiplier;
+          }
+        }
+      }
+    }
+    // Example: could patch global thresholds here
+  }
+  w.cycle = cp.cycle;
+  w.sequence = cp.sequence;
+  console.log(`[CHECKPOINT] Resumed from ${cp.checkpoint_id} at cycle ${cp.cycle}${intervention ? " with intervention" : ""}`);
+}
+
+// Future P1: player beliefs, new opportunities, operator-initiated evolution.
+}
+
+
 import { situationFromLive } from "./orientation";
 import { focusSelfLine, publicFocusLine, parseFocusTrack, type FocusId } from "./focus";
 import {
@@ -343,6 +508,14 @@ export type WorldRuntime = {
   institution_pulses?: string[];
   /** GC3-S2 public social events for WATCH/PLAY bands. Derived cache. */
   public_social_events?: import("./social-memory").SocialEvent[];
+  /** P1 Co-evolution state: tracks activity pressure for env/agent adaptation. */
+  co_evolution?: {
+    harvest_pressure: Record<string, number>;  // room_id -> cumulative harvests
+    regen_mod: Record<string, number>;         // entity_id -> multiplier on regen (default 1.0)
+    last_evo_cycle?: number;
+  };
+  /** P1 Living Genesis: micro-evolution events applied at runtime (would feed future genesis reseed). */
+  genesis_evolutions?: Array<{ cycle: number; kind: string; details: string; room_id?: string }>;
 };
 
 function handleFromPrincipal(principal: PlayerPrincipal): string {
@@ -570,6 +743,17 @@ export function buildObservation(
         stock_amount: e.stock_amount,
         repairable: isRepairable(e),
         harvestable: isHarvestable(e),
+      })),
+      // P1 co-evolution exposure
+      co_evolution: w.co_evolution ? {
+        harvest_pressure: w.co_evolution.harvest_pressure?.[room.room_id] || 0,
+        regen_mod: Object.keys(w.co_evolution.regen_mod || {}).length,
+      } : undefined,
+      // P1 living genesis: recent micro-evolutions
+      genesis_evolutions: (w.genesis_evolutions || []).slice(-3).map(ev => ({
+        cycle: ev.cycle,
+        kind: ev.kind,
+        details: ev.details,
       })),
     },
     situation: situationFromLive({
@@ -2707,6 +2891,16 @@ export async function applyWorldCommand(
       const resource = (entity.stock_resource || "energy") as keyof Budgets;
       debit(pl.budgets, COSTS.HARVEST);
       entity.stock_amount = (entity.stock_amount ?? 0) - amount;
+
+      // P0 basic co-evolution: room-wide stock regeneration (activity proxy)
+      for (const e of room.entities || []) {
+        if (e.stock_resource && typeof e.regen_rate === "number" && e.regen_rate > 0) {
+          const m = e.max_stock ?? 999;
+          const tick = (e === entity) ? e.regen_rate * 0.25 : e.regen_rate;
+          e.stock_amount = Math.min(m, (e.stock_amount ?? 0) + tick);
+        }
+      }
+
       pl.budgets.storage = (pl.budgets.storage ?? 0) - amount;
       const credited = resource in pl.budgets ? resource : "energy";
       const incoming = harvestGrade(entity.condition);
@@ -2740,6 +2934,10 @@ export async function applyWorldCommand(
         operation: "HARVEST",
       });
       await settleEv(ev);
+
+      // P0: small influence from productive harvest activity
+      pl.budgets.influence = (pl.budgets.influence ?? 0) + 0.5;
+
       const result = success(
         w,
         principal,
@@ -2749,6 +2947,7 @@ export async function applyWorldCommand(
         settled,
       );
       w.seen_idempotency[idem] = result;
+      await coevolveAfterAction(w, principal, "HARVEST", result);
       return result;
     }
   }
@@ -5239,6 +5438,9 @@ async function applyAttest(
   debit(pl.budgets, attestCost);
   entity.archive_subject_entity_id = subject;
   entity.archive_claim = claim;
+  // P0 explicit influence production on successful attest
+  pl.budgets.influence = (pl.budgets.influence ?? 0) + 1;
+
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;
   pushEvent("BUDGET_CONSUMED", {
@@ -5261,6 +5463,7 @@ async function applyAttest(
   await settleEv(ev);
   const result = success(w, principal, request_id, events, `You attest ${titleCaseLabel(entity.label)}.`, false);
   w.seen_idempotency[idem] = result;
+  await coevolveAfterAction(w, principal, "ATTEST", result);
   return result;
 }
 

@@ -99,6 +99,8 @@ export interface ObservationEntity {
   condition?: number;
   stock_resource?: string;
   stock_amount?: number;
+  max_stock?: number;
+  regen_rate?: number;
   repairable?: boolean;
   harvestable?: boolean;
 }
@@ -131,6 +133,15 @@ export interface Observation {
     condition?: string;
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
+    /** P1 co-evolution signals (eco strain, regen pressure). */
+    co_evolution?: { harvest_pressure?: number; regen_mod?: number };
+      /** P1 living genesis: recent micro-evolution events. */
+      genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
+    };
+
+
+    /** P1 living genesis: recent micro-evolution events. */
+    genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
@@ -190,68 +201,29 @@ export interface Observation {
       storage: number;
     };
   }>;
-  /** Other active players (addressable handles, no secrets). GC1-S6 may add public_practice_lines. */
-  players_here?: Array<{
-    player_id: string;
-    handle?: string;
-    public_practice_lines?: string[];
-    public_focus_lines?: string[];
-  }>;
-  /** Legacy string list + structured affordances */
-  available_actions: string[];
-  affordances?: ObservationAffordance[];
-  /** Last action consequence for UI */
-  consequence?: string;
-  /** GC1 self-only practice lines. Never put first-person lines on WATCH. */
-  practice_lines?: string[];
-  /** GC8-S1 self-only worn holdings. Never put on WATCH. */
-  lot_lines?: string[];
-  /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
-  social_memory_lines?: string[];
-  /** GC9-S0 site custom lines for the current room. Never put on WATCH. */
-  culture_lines?: string[];
-  /** GC6-S0 self-only archive/inspect contradiction. Never put on WATCH. */
-  discovery_lines?: string[];
-  /** GC4-S1 institution office summary. Public names/holders only. */
-  office_lines?: string[];
-  /** GC6-S1 reconstruction accounts the viewer may see. Not canonical truth. */
-  reconstruction_lines?: string[];
-  /** GC5-S2 held-claim lines. Never put on WATCH. Not truth. */
-  rumor_lines?: string[];
-  /** GC5-S5 room board notices. Last 5. Public room only. Never put on WATCH. */
-  board_lines?: string[];
-  /** GC5-S4 last room shout. Public room only. Never put on WATCH. */
-  shout_lines?: string[];
-  /** GC5-S6 last institution notice. Public room only. Never put on WATCH. */
-  notice_lines?: string[];
-  /** GC5-S7 last org channel notes. Current members only. Never put on WATCH. */
-  channel_lines?: string[];
-  /** GC5-S8 last trade notice. Public room only. Never put on WATCH. */
-  trade_notice_lines?: string[];
-  /** WR-S0 last public world report. Never put on WATCH. */
-  report_lines?: string[];
-  /** GC2-S7 UNCLAIMED public constructibles. Never put on WATCH. */
-  unclaimed_lines?: string[];
-  /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
-  contests?: Array<{
-    contest_id: string;
-    contest_form: string;
-    room_id: string;
-    status: string;
-    expires_cycle: number;
-  }>;
-  /** Location-bound World Services (adapters, not Players). */
-  services?: Array<{
-    service_id: string;
-    display_name: string;
-    role: string;
-    status: string;
-    operations: string[];
-    cannot: string[];
-    suggested_cmds: string[];
-    line: string;
-  }>;
+  checkpoint_id: string;
+  cycle: number;
+  sequence: number;
+  world_name: string;
+  world_seed?: string;
+  snapshot: {
+    room_stocks: Record<string, Record<string, number>>;
+    player_budgets: Record<string, Record<string, number>>;
+    co_evolution?: any;
+    genesis_evolutions?: any;
+  };
+
+
+/** P3: Lightweight per-agent belief state (expectations, policy prefs). */
+export interface BeliefState {
+  expected_regen?: number;
+  org_threshold?: number;
+  preferred_actions?: string[];
+  counterparty_reliability?: Record<string, number>;  // simple trust
 }
+
+/** P3: Heterogeneous agent role profiles (production bias, risk). */
+export type AgentRole = "salvager" | "trader" | "archivist" | "maintainer" | "generalist";
 
 export interface CommandResult {
   ok: boolean;
@@ -266,4 +238,43 @@ export interface CommandResult {
   };
   settled?: boolean;
   error?: { code: string; message: string; choices?: string[] };
+}
+
+export interface Checkpoint {
+  checkpoint_id: string;
+  cycle: number;
+  sequence: number;
+  world_name: string;
+  world_seed?: string;
+  snapshot: {
+    room_stocks: Record<string, Record<string, number>>;
+    player_budgets: Record<string, Record<string, number>>;
+    co_evolution?: any;
+    genesis_evolutions?: any;
+  };
+  created_at: number;
+  note?: string;
+}
+
+
+/** P3-04: Full resource economy model (production, conversion, decay). */
+export interface ProductionFunction {
+  role: string;
+  action: string;
+  outputs: Record<string, number>;  // e.g. { materials: 1.8, influence: 0.3 }
+  costs: Record<string, number>;
+}
+
+export interface ConversionRule {
+  input: string;
+  output: string;
+  rate: number;
+  unlocked_by_org?: boolean;
+}
+
+export interface ResourceEconomyState {
+  conversion_table: Record<string, ConversionRule>;
+  decay_rate: number;
+  production_functions: ProductionFunction[];
+  unlocked_affordances: string[];
 }
