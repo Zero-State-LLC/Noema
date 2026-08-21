@@ -235,6 +235,95 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
     expect(saved.players["player.reach-maint3"]).toBeTruthy();
   });
 
+  it("ENTER survives SQLITE_TOOBIG by compacting messages, idempotency, and trades", async () => {
+    const env = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret-enter-do",
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world-01",
+    } as Env;
+    const fat = "x".repeat(400);
+    const stored = perihelionStored() as ReturnType<typeof perihelionStored> & {
+      players: Record<string, { handle: string; entered: boolean; actor_kind: string; room_id: string }>;
+      messages: Array<{ id: string; body: string }>;
+      seen_idempotency: Record<string, { ok: boolean; observation: { available_here: string[] } }>;
+      trades: Record<string, { status: string; note: string }>;
+    };
+    stored.players = {
+      "player.fuel1": { handle: "fuel1", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
+      "player.reach-maint3": { handle: "reach-maint3", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
+    };
+    stored.messages = Array.from({ length: 60 }, (_, i) => ({ id: `m${i}`, body: fat }));
+    stored.seen_idempotency = Object.fromEntries(
+      Array.from({ length: 40 }, (_, i) => [
+        `player.fuel1::k${i}`,
+        { ok: true, observation: { available_here: Array.from({ length: 40 }, () => fat) } },
+      ]),
+    );
+    stored.trades = Object.fromEntries(
+      Array.from({ length: 20 }, (_, i) => [`trade.${i}`, { status: "OPEN", note: fat }]),
+    );
+    const MAX = 20_000;
+    const bag = new Map<string, unknown>([
+      ["world", stored],
+      ["world_meta", { status: "ACTIVE", genesis_id: "genesis.ef578f4ffceeccd0", config_frozen: true, settlement_health: "HEALTHY" }],
+    ]);
+    const state = {
+      storage: {
+        async get(key: string) {
+          return bag.get(key);
+        },
+        async put(keyOrEntries: string | Record<string, unknown>, value?: unknown) {
+          const write = (k: string, v: unknown) => {
+            if (k === "world") {
+              const n = JSON.stringify(v).length;
+              if (n > MAX) throw new Error("string or blob too big: SQLITE_TOOBIG");
+            }
+            bag.set(k, v);
+          };
+          if (typeof keyOrEntries === "string") write(keyOrEntries, value);
+          else for (const [k, v] of Object.entries(keyOrEntries)) write(k, v);
+        },
+      },
+    } as unknown as DurableObjectState;
+    expect(JSON.stringify(stored).length).toBeGreaterThan(MAX);
+    const doInst = new NoemaWorldDO(state, env);
+    const minted = await mintControllerToken(env, { handle: "reach-maint3", controllerType: "agent", playerId: "player.reach-maint3" });
+    const principal: PlayerPrincipal = {
+      player_id: minted.player_id,
+      agent_id: "agent.reach-maint3",
+      session_id: "sess.toobig-fat",
+      controller_id: minted.controller_id,
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+    };
+    const enter = await doInst.fetch(
+      new Request("https://do/command", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-noema-world-id": "world-01" },
+        body: JSON.stringify({
+          principal,
+          envelope: { request_id: "tb-fat", command: "ENTER_WORLD", arguments: {} },
+          world_id: "world-01",
+        }),
+      }),
+    );
+    const body = (await enter.json()) as { ok?: boolean; error?: { code?: string; message?: string } };
+    expect(enter.status, JSON.stringify(body)).toBe(200);
+    expect(body.error?.code).not.toBe("COMMAND_FAILED");
+    expect(body.ok).toBe(true);
+    const saved = bag.get("world") as {
+      players: Record<string, { handle: string }>;
+      messages: unknown[];
+      seen_idempotency: Record<string, unknown>;
+      trades: Record<string, unknown>;
+    };
+    expect(saved.players["player.fuel1"]).toBeUndefined();
+    expect(saved.players["player.reach-maint3"]).toBeTruthy();
+    expect(saved.messages.length).toBeLessThanOrEqual(20);
+    expect(Object.keys(saved.seen_idempotency).length).toBeLessThanOrEqual(2);
+    expect(Object.keys(saved.trades).length).toBe(0);
+  });
+
   it("worker /v1/command ENTER through real DO does not 500", async () => {
     const envBase = {
       TOKEN_SIGNING_SECRET: "test-signing-secret-enter-do",
