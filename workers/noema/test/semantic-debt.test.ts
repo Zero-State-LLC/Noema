@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, normalizeStructuredCommand } from "../src/actions";
-import { secondOrderReputation } from "../src/reputation";
 import { buildWatchLive } from "../src/watch-live";
 import { mutationGroundingOk } from "../src/signal";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -168,16 +167,50 @@ describe("application-time grounding gate", () => {
 describe("reputation privileged + second-order + justified punish", () => {
   it("second-order differs for well-behaved vs poorly-behaved counterparties", async () => {
     const w = fixture();
-    const a = principal("player.a");
+    const kind = principal("player.kind");
+    const mean = principal("player.mean");
     const good = principal("player.good");
     const bad = principal("player.bad");
-    await run(w, a, "ENTER_WORLD");
+    await run(w, kind, "ENTER_WORLD");
+    await run(w, mean, "ENTER_WORLD");
     await run(w, good, "ENTER_WORLD");
     await run(w, bad, "ENTER_WORLD");
+    for (const id of [kind.player_id, mean.player_id, good.player_id, bad.player_id]) {
+      w.players[id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 10, compute: 10, storage: 8 });
+    }
     w.players[good.player_id].image_score = 4;
     w.players[bad.player_id].image_score = -2;
-    w.players[a.player_id].conduct_toward = { [good.player_id]: 3, [bad.player_id]: 9 };
-    expect(secondOrderReputation(w.players, a.player_id)).toBe(3);
+
+    const withGood = await run(w, good, "TRADE", {
+      phase: "propose",
+      counterparty_id: kind.player_id,
+      offered: { energy: 1 },
+      requested: { compute: 1 },
+    });
+    expect(withGood.ok).toBe(true);
+    const goodTrade = Object.keys(w.trades).find((id) => w.trades[id].status === "OPEN");
+    expect(goodTrade).toBeTruthy();
+    const kindAccept = await run(w, kind, "TRADE", { phase: "accept", trade_id: goodTrade });
+    expect(kindAccept.ok).toBe(true);
+    expect(w.trades[goodTrade!].status).toBe("SETTLED");
+
+    const withBad = await run(w, bad, "TRADE", {
+      phase: "propose",
+      counterparty_id: mean.player_id,
+      offered: { energy: 1 },
+      requested: { compute: 1 },
+    });
+    expect(withBad.ok).toBe(true);
+    const badTrade = Object.keys(w.trades).find((id) => w.trades[id].status === "OPEN");
+    expect(badTrade).toBeTruthy();
+    const meanAccept = await run(w, mean, "TRADE", { phase: "accept", trade_id: badTrade });
+    expect(meanAccept.ok).toBe(true);
+    expect(w.trades[badTrade!].status).toBe("SETTLED");
+
+    expect(w.players[kind.player_id].second_order).toBe(1);
+    expect(w.players[mean.player_id].second_order).toBe(0);
+    expect(w.players[kind.player_id].second_order).not.toBe(w.players[mean.player_id].second_order);
+    expect(JSON.stringify(kindAccept.observation)).not.toMatch(/second_order/);
   });
 
   it("justified TRADE reject with observed signal costs punisher influence and eases harvest_pressure", async () => {
@@ -222,6 +255,7 @@ describe("WATCH leak-closed", () => {
     });
     const text = JSON.stringify(snap);
     expect(text).not.toMatch(/image_score/);
+    expect(text).not.toMatch(/second_order/);
     expect(text).not.toMatch(/"reputation"/);
   });
 

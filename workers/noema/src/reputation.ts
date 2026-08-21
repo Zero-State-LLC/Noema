@@ -41,6 +41,18 @@ export function secondOrderReputation(
   return n ? acc / n : 0;
 }
 
+/** Write privileged second_order onto the player. Call from ATTEST/TRADE/ORG outcomes. */
+export function refreshSecondOrder(
+  players: Record<string, PlayerRuntime>,
+  playerId: string,
+): number {
+  const pl = players[playerId];
+  if (!pl) return 0;
+  ensureImage(pl);
+  pl.second_order = secondOrderReputation(players, playerId);
+  return pl.second_order;
+}
+
 export type WorldImageSlice = {
   players: Record<string, PlayerRuntime>;
   co_evolution?: { harvest_pressure: Record<string, number>; regen_mod: Record<string, number> };
@@ -72,6 +84,7 @@ export function justifiedPunish(
   punisher.budgets.influence = inf - 1;
   bumpImage(target, -2);
   noteConduct(punisher, targetId, -1);
+  refreshSecondOrder(w.players, punisherId);
   if (!w.co_evolution) w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
   const prev = w.co_evolution.harvest_pressure[roomId] || 0;
   w.co_evolution.harvest_pressure[roomId] = Math.max(0, prev - 1);

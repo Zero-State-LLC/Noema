@@ -191,6 +191,8 @@ export type PlayerRuntime = {
   image_score?: number;
   /** How this agent treated others. Privileged. */
   conduct_toward?: Record<string, number>;
+  /** Privileged second-order: conduct toward counterparties with positive image. */
+  second_order?: number;
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */

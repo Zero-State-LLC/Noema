@@ -108,7 +108,7 @@ import {
   bumpImage,
   justifiedPunish,
   noteConduct,
-  secondOrderReputation,
+  refreshSecondOrder,
   semanticAttach,
   signalQuarantineMessage,
 } from "./reputation";
@@ -2666,7 +2666,9 @@ export async function applyWorldCommand(
       if (proposerPl) {
         bumpImage(proposerPl, 1);
         noteConduct(proposerPl, principal.player_id, 1);
+        refreshSecondOrder(w.players, trade.proposer_id);
       }
+      refreshSecondOrder(w.players, principal.player_id);
       if (trade.acting_for || acceptActingFor) {
         noteInstitutionPulse(w, "An institution traded from its treasury.");
       }
@@ -2880,6 +2882,7 @@ export async function applyWorldCommand(
       }
       debit(pl.budgets, COSTS.ORG_CREATE);
       bumpImage(pl, 1);
+      refreshSecondOrder(w.players, principal.player_id);
       const members =
         action.arguments.initial_members && action.arguments.initial_members.length
           ? action.arguments.initial_members.map((m) => ({
@@ -5940,6 +5943,7 @@ async function applyAttest(
   // P0 explicit influence production on successful attest
   pl.budgets.influence = (pl.budgets.influence ?? 0) + 1;
   bumpImage(pl, 1);
+  refreshSecondOrder(w.players, principal.player_id);
 
   const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);
   if (idx >= 0) room.entities[idx] = entity;
