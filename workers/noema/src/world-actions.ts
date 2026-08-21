@@ -80,7 +80,14 @@ import {
   selectScheduleNode,
   selectScheduleRelay,
 } from "./pressure";
-import { applyLockoutRest, isAuthorizedHarvestNode, previewStockRegen, productionModifier } from "./resource-production";
+import {
+  applyLockoutRest,
+  isAuthorizedHarvestNode,
+  NODE_REGEN_PER_CYCLE,
+  NODE_STOCK_CAPACITY,
+  previewStockRegen,
+  productionModifier,
+} from "./resource-production";
 import {
   applyPracticeCredits,
   brokerWaivesCaution,
@@ -6329,10 +6336,11 @@ async function applyResourceProduction(
     const ents = roomEntities(room);
     const mod = productionModifier(ents);
     for (const entity of ents) {
-      if (!isAuthorizedHarvestNode(entity.entity_id) || !entity.stock_resource) continue;
+      if (!entity.stock_resource) continue;
+      const cap = typeof entity.max_stock === "number" && entity.max_stock > 0 ? entity.max_stock : NODE_STOCK_CAPACITY;
+      const regen = typeof entity.regen_rate === "number" && entity.regen_rate > 0 ? entity.regen_rate : NODE_REGEN_PER_CYCLE;
       const before = Math.floor(entity.stock_amount ?? 0);
-      if (before > 0) continue;
-      const after = previewStockRegen(before, mod);
+      const after = previewStockRegen(before, mod, regen, cap);
       if (after <= before) continue;
       entity.stock_amount = after;
       const idx = room.entities.findIndex((e) => e.entity_id === entity.entity_id);

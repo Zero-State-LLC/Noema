@@ -206,3 +206,23 @@ describe("WATCH leak-closed + genesis seed", () => {
     expect(a.cycle0.scar_seeds?.[0]?.domain).toBe("economic");
   });
 });
+
+describe("EWM cycle regen + living genesis", () => {
+  it("WAIT production refills a zero stock node; HARVEST at cycle%3 with pressure evolves genesis", async () => {
+    const w = fixture();
+    w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.salvage-cache")!.stock_amount = 0;
+    w.co_evolution = { harvest_pressure: { "room.hub": 5 }, regen_mod: {} };
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 40, compute: 40, storage: 16 });
+    w.cycle = 2;
+    const wait = await run(w, p, "WAIT");
+    expect(wait.ok).toBe(true);
+    const salvage = w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.salvage-cache")!;
+    expect(salvage.stock_amount ?? 0).toBeGreaterThanOrEqual(1);
+    w.cycle = 3;
+    const h = await run(w, p, "HARVEST", { entity_id: "entity.salvage-cache", amount: 1 });
+    expect(h.ok).toBe(true);
+    expect((w.genesis_evolutions || []).some((e) => e.kind === "MICRO_GENESIS_CAPACITY")).toBe(true);
+  });
+});
