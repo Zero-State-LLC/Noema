@@ -76,6 +76,10 @@ class RequestEntityTooLarge(Exception):
     """HTTP request body exceeded the gateway cap."""
 
 
+class InvalidRequest(Exception):
+    """HTTP request body was not a JSON object."""
+
+
 def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
     protocol = AgentProtocolV1(runtime)
 
@@ -94,6 +98,7 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             self.send_response(code)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
             for key, value in _security_headers().items():
                 self.send_header(key, value)
             for key, value in (headers or {}).items():
@@ -112,13 +117,22 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
             self.wfile.write(raw)
 
         def _read_json(self) -> dict[str, Any]:
-            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError as exc:
+                raise InvalidRequest("invalid Content-Length") from exc
             if length <= 0:
                 return {}
             if length > MAX_REQUEST_BODY:
                 raise RequestEntityTooLarge()
             data = self.rfile.read(length)
-            return json.loads(data.decode("utf-8") or "{}")
+            try:
+                body = json.loads(data.decode("utf-8") or "{}")
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise InvalidRequest("request body must be valid JSON") from exc
+            if not isinstance(body, dict):
+                raise InvalidRequest("request body must be a JSON object")
+            return body
 
         def _require_admin(self, candidate: str | None = None) -> str | None:
             """Enforce the ADMIN role at the HTTP boundary, not in navigation."""
@@ -506,6 +520,18 @@ def make_handler(runtime: NoemaRuntime) -> type[BaseHTTPRequestHandler]:
                         "error": {
                             "code": "PAYLOAD_TOO_LARGE",
                             "message": f"request body exceeds {MAX_REQUEST_BODY} bytes",
+                            "retryable": False,
+                            "details": {},
+                        }
+                    },
+                )
+            except InvalidRequest as exc:
+                return self._json(
+                    400,
+                    {
+                        "error": {
+                            "code": "INVALID_REQUEST",
+                            "message": str(exc),
                             "retryable": False,
                             "details": {},
                         }

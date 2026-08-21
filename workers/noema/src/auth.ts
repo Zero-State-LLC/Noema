@@ -33,6 +33,7 @@ export function json(data: unknown, status = 200): Response {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
       "x-content-type-options": "nosniff",
       "referrer-policy": "no-referrer",
       "strict-transport-security": "max-age=31536000; includeSubDomains",
