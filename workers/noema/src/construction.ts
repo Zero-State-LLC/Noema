@@ -233,3 +233,31 @@ export function clampSalvage(
   const added = Math.max(0, Math.min(salvage, room));
   return { added, overflow: Math.max(0, salvage - added), next: currentStorage + added };
 }
+
+
+/** P3-04 stub: Resource economy production + conversion skeleton.
+ *  Roles will drive these via future agent profiles.
+ */
+export const P3_RESOURCE_PRODUCTION: Record<string, any> = {
+  salvager: { HARVEST: { materials: 1.8, influence: 0.3 } },
+  trader: { TRADE: { compute: 0.6, influence: 0.5 } },
+  archivist: { ATTEST: { influence: 1.5 } },
+};
+
+export const P3_CONVERSIONS: Record<string, any> = {
+  "materials->compute": { rate: 0.6, unlocked_by_org: true },
+};
+
+/** P4-04 Production cutover note
+ * Enhanced genesis (EWM_ENHANCED profile) seeds:
+ * - Heterogeneous archetypes (salvager/trader/archivist)
+ * - Full economy params + conversions on nodes
+ * - Initial co-evo / belief state
+ * - Evolvable charters for endogenous institutions
+ *
+ * Safe activation:
+ * 1. previewGenesis({profile_id: "EWM_ENHANCED", world_seed: "new-seed-here", ...})
+ * 2. validateCycle0
+ * 3. Admin: activate on fresh world_id or settlement
+ * 4. Rollback: lifecycle close + recover to previous genesis
+ */

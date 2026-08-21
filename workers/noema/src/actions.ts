@@ -98,6 +98,8 @@ export type EntityRuntime = {
   /** Harvest node stock */
   stock_resource?: string;
   stock_amount?: number;
+  max_stock?: number;
+  regen_rate?: number;
   /** RFC-0015 explicit archive claim. Never inferred. */
   archive_subject_entity_id?: string;
   archive_claim?: "DESTROYED" | "OPERATING";
@@ -676,7 +678,10 @@ export function isRepairable(e: EntityRuntime): boolean {
 }
 
 export function isHarvestable(e: EntityRuntime): boolean {
-  return Boolean(e.stock_resource && (e.stock_amount ?? 0) > 0);
+  // P0 improvement: advertise if current stock or regen potential (co-evolution)
+  const hasStock = (e.stock_amount ?? 0) > 0;
+  const canRegen = typeof e.regen_rate === "number" && e.regen_rate > 0;
+  return Boolean(e.stock_resource && (hasStock || canRegen));
 }
 
 export type ResolveResult =
@@ -3045,6 +3050,10 @@ export function deriveAffordances(input: {
       }
     }
     if (e.stock_resource) {
+      if (typeof e.regen_rate === "number" && e.regen_rate > 0) {
+        const m = e.max_stock ?? 999;
+        e.stock_amount = Math.min(m, (e.stock_amount ?? 0) + e.regen_rate * 0.15);
+      }
       const hasStock = (e.stock_amount ?? 0) > 0;
       const hasStorage = (budgets.storage ?? 0) >= 1;
       const canFuel = canPay(budgets, COSTS.HARVEST);
@@ -3117,7 +3126,7 @@ export function deriveAffordances(input: {
       target_id: p.player_id,
       target_label: handle,
       requires: tradeCost,
-      available: tradeOk,
+      available: true,  // P0: advertise even if tight budget
       reason: tradeOk ? undefined : caution ? "TRADE_CAUTION: You do not have enough compute." : "You do not have enough compute.",
       kind: "social",
     });
@@ -3168,7 +3177,7 @@ export function deriveAffordances(input: {
     label: "Form organization",
     cmd: 'form My Compact charter="local coordination"',
     requires: COSTS.ORG_CREATE,
-    available: formOk,
+    available: true,  // P0: always advertise; budget in reason only
     reason: formOk ? undefined : "You need influence 5 and compute 2 to form an organization.",
     kind: "org",
   });

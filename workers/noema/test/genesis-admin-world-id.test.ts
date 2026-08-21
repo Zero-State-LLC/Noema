@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { mintAdminSession } from "../src/admin-auth";
-import { FROZEN_GENESIS_ID, resolveAdminGenesisWorldId, SUCCESSOR_WORLD_ID } from "../src/genesis";
+import {
+  EWM_ISOLATED_WORLD_ID,
+  FROZEN_GENESIS_ID,
+  resolveAdminGenesisWorldId,
+  SUCCESSOR_WORLD_ID,
+} from "../src/genesis";
 import worker from "../src/index";
 import type { Env } from "../src/types";
 import { NoemaWorldDO } from "../src/world-do";
@@ -31,6 +36,14 @@ describe("resolveAdminGenesisWorldId", () => {
     });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.code).toBe("INVALID_REQUEST");
+  });
+
+  it("admits isolated EWM test world", () => {
+    const r = resolveAdminGenesisWorldId(EWM_ISOLATED_WORLD_ID, {
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world.perihelion-reach-2",
+    });
+    expect(r).toEqual({ ok: true, world_id: EWM_ISOLATED_WORLD_ID });
   });
 
   it("rejects other explicit ids", () => {

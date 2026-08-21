@@ -78,6 +78,27 @@ describe("genesis successor product path", () => {
     ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
   });
 
+  it("previews EWM_ENHANCED on isolated test.hosted-canonical.ewm-cutover", async () => {
+    const a = await previewGenesis({
+      world_name: "Perihelion Reach",
+      world_seed: "ewm-cutover-test-fixture",
+      profile_id: "EWM_ENHANCED",
+      story_seed_ids: ["OLD_TRADE_NETWORK", "RESOURCE_CRISIS"],
+      world_id: "test.hosted-canonical.ewm-cutover",
+    });
+    expect(a.world_id).toBe("test.hosted-canonical.ewm-cutover");
+    expect(a.genesis_profile_id).toBe("EWM_ENHANCED");
+    expect(a.validation.ok).toBe(true);
+    expect(a.cycle0.ewm_features).toBe(true);
+    const salvage = a.cycle0.rooms["room.civic-exchange"].entities.find((e) => e.entity_id === "entity.salvage-cache");
+    expect(salvage?.regen_rate).toBeGreaterThanOrEqual(1.15);
+    expect(salvage?.max_stock).toBeGreaterThanOrEqual(18);
+    expect(a.cycle0.rooms["room.civic-exchange"].entities.some((e) => e.entity_id === "entity.production-node-ewm")).toBe(
+      true,
+    );
+    expect(a.cycle0.institutions.filter((i) => i.id.startsWith("archetype.")).length).toBeGreaterThanOrEqual(3);
+  });
+
   it("lands overlays on chamber rooms", async () => {
     const a = await previewGenesis(SUCCESSOR);
     const ids = (room: string) => a.cycle0.rooms[room].entities.map((e) => e.entity_id);

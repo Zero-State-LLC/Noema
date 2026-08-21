@@ -132,6 +132,8 @@ export interface ObservationEntity {
   condition?: number;
   stock_resource?: string;
   stock_amount?: number;
+  max_stock?: number;
+  regen_rate?: number;
   repairable?: boolean;
   harvestable?: boolean;
   scar?: boolean;
@@ -222,6 +224,8 @@ export interface Observation {
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
     traces?: ObservationTrace[];
+    co_evolution?: { harvest_pressure?: number; regen_mod?: number };
+    genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
@@ -348,6 +352,17 @@ export interface Observation {
   }>;
 }
 
+/** P3: Lightweight per-agent belief state (expectations, policy prefs). */
+export interface BeliefState {
+  expected_regen?: number;
+  org_threshold?: number;
+  preferred_actions?: string[];
+  counterparty_reliability?: Record<string, number>;
+}
+
+/** P3: Heterogeneous agent role profiles (production bias, risk). */
+export type AgentRole = "salvager" | "trader" | "archivist" | "maintainer" | "generalist";
+
 export interface CommandResult {
   ok: boolean;
   request_id: string;
@@ -361,4 +376,43 @@ export interface CommandResult {
   };
   settled?: boolean;
   error?: { code: string; message: string; choices?: string[] };
+}
+
+export interface Checkpoint {
+  checkpoint_id: string;
+  cycle: number;
+  sequence: number;
+  world_name: string;
+  world_seed?: string;
+  snapshot: {
+    room_stocks: Record<string, Record<string, number>>;
+    player_budgets: Record<string, Record<string, number>>;
+    co_evolution?: any;
+    genesis_evolutions?: any;
+  };
+  created_at: number;
+  note?: string;
+}
+
+
+/** P3-04: Full resource economy model (production, conversion, decay). */
+export interface ProductionFunction {
+  role: string;
+  action: string;
+  outputs: Record<string, number>;  // e.g. { materials: 1.8, influence: 0.3 }
+  costs: Record<string, number>;
+}
+
+export interface ConversionRule {
+  input: string;
+  output: string;
+  rate: number;
+  unlocked_by_org?: boolean;
+}
+
+export interface ResourceEconomyState {
+  conversion_table: Record<string, ConversionRule>;
+  decay_rate: number;
+  production_functions: ProductionFunction[];
+  unlocked_affordances: string[];
 }
