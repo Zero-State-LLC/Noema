@@ -1,6 +1,6 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
-import { FROZEN_GENESIS_ID, type Cycle0World, type GenesisResult } from "./genesis";
+import type { Cycle0World, GenesisResult } from "./genesis";
 import {
   buildWatchLive,
   heldFromSnapshot,
@@ -688,7 +688,7 @@ export class NoemaWorldDO {
           { status: 400 },
         );
       }
-      if (preview.genesis_id === FROZEN_GENESIS_ID && preview.world_id !== "world.perihelion-reach") {
+      if (preview.genesis_id === "genesis.ef578f4ffceeccd0" && preview.world_id !== "world.perihelion-reach") {
         return Response.json(
           { error: { code: "INVALID_SEED", message: "frozen genesis cannot activate on another world" } },
           { status: 400 },
@@ -822,10 +822,24 @@ export class NoemaWorldDO {
     const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
     this.requestedWorldId = admitted.ok ? admitted.world_id : null;
     this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
+    // Preview health/store may bind a successor id on this isolate. PLAY must
+    // not keep that in-memory world; reload from storage / DEFAULT_WORLD_ID.
+    if (!admitted.ok) {
+      this.world = null;
+      this.meta = null;
+    }
 
-    const result = await this.applyCommand(agent, body.envelope);
-    // Action failures are structured envelopes (ok:false), not transport errors.
-    return Response.json(result, { status: commandResultHttpStatus(result) });
+    try {
+      const result = await this.applyCommand(agent, body.envelope);
+      return Response.json(result, { status: commandResultHttpStatus(result) });
+    } catch (e) {
+      console.error("do/command", e instanceof Error ? e.stack || e.message : e);
+      return Response.json({
+        ok: false,
+        request_id: body.envelope?.request_id || "unknown",
+        error: { code: "COMMAND_FAILED", message: "The world could not apply that action." },
+      });
+    }
   }
 
   private publicMeta(): Record<string, unknown> {

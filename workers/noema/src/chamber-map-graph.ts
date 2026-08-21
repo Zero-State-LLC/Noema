@@ -41,8 +41,10 @@ const LINKS: Array<[string, string, string, string]> = [
   ["room.outer-works", "room.frontier-gate", "south", "north"],
 ];
 
-export function chamberMapRooms(): Record<string, import("./genesis").GenesisRoom> {
-  const rooms: Record<string, import("./genesis").GenesisRoom> = {};
+import type { GenesisRoom } from "./genesis";
+
+export function chamberMapRooms(): Record<string, GenesisRoom> {
+  const rooms: Record<string, GenesisRoom> = {};
   for (const id of CHAMBER_MAP_ROOM_IDS) {
     const n = NAMES[id];
     rooms[id] = { room_id: id, name: n.name, description: n.description, exits: [], entities: [] };
