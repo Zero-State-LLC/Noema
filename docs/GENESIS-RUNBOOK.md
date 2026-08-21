@@ -133,18 +133,21 @@ Confirm `GET /health` reports `"env":"production"`. Bare `wrangler deploy` witho
 
 Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
-## Successor world (RFC-0121) — not production this landing
+## Successor world (RFC-0121)
 
-Rehearse locally (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. Agent ENTER is covered by unit tests. Flipping local `DEFAULT_WORLD_ID` is a later step.
+Local rehearsal (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. The rehearsal script still refuses `https://noema.guru`.
 
 ```bash
 ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor
-# explicit local activate only; never against https://noema.guru
-# does not ENTER / LOOK — successor PLAY is not this script
 ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
 ```
 
-Later production cutover (human gate, separate campaign): preview successor on production (override deny lifted then), compare genesis_id ≠ `genesis.ef578f4ffceeccd0` and room_count 10, `confirm: true` activate on `world.perihelion-reach-2`, set `DEFAULT_WORLD_ID=world.perihelion-reach-2`, deploy. Do not `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
+Production cutover (human-gated, two deploys):
+
+1. Deploy Worker that allows Admin `world_id: world.perihelion-reach-2` on preview/activate. Keep `DEFAULT_WORLD_ID=world-01`. `force` and reseed stay `POLICY_DENIED`. Omitted `world_id` still targets the live 5-room DO.
+2. Admin preview successor on production. Require `genesis_id ≠ genesis.ef578f4ffceeccd0` and `room_count: 10`.
+3. Admin `confirm: true` activate on `world.perihelion-reach-2`. No `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
+4. Set production `DEFAULT_WORLD_ID=world.perihelion-reach-2` and deploy. PLAY then uses the successor DO. Do not add PLAY to the old DO.
 
 ## Recovery
 

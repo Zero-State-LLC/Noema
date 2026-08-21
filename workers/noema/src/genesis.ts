@@ -17,10 +17,6 @@ export function resolveAdminGenesisWorldId(
   const fallback = String(env.DEFAULT_WORLD_ID || "world-01").trim() || "world-01";
   const value = String(requested || "").trim();
   if (!value) return { ok: true, world_id: fallback };
-  const envName = (env.NOEMA_ENV || "local").toLowerCase();
-  if (envName === "production") {
-    return { ok: false, code: "POLICY_DENIED", message: "world_id override forbidden in production" };
-  }
   if (value !== SUCCESSOR_WORLD_ID) {
     return { ok: false, code: "INVALID_REQUEST", message: "world_id override this campaign must be world.perihelion-reach-2" };
   }
