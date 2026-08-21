@@ -902,9 +902,11 @@ export class NoemaWorldDO {
       delete this.world.players[id];
       n += 1;
     }
-    if (Array.isArray(this.world.messages) && this.world.messages.length > 80) {
-      this.world.messages = this.world.messages.slice(-80);
+    if (Array.isArray(this.world.messages) && this.world.messages.length > 20) {
+      this.world.messages = this.world.messages.slice(-20);
     }
+    this.world.seen_idempotency = {};
+    this.world.trades = {};
     return n;
   }
 
@@ -918,14 +920,15 @@ export class NoemaWorldDO {
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.includes("TOOBIG")) throw e;
       const dropped = this.dropDisposableSystemActors();
-      console.error("save TOOBIG; dropped disposable system actors", dropped);
+      const bytes = JSON.stringify(this.world).length;
+      console.error("save TOOBIG; dropped disposable system actors", dropped, "bytes", bytes);
       try {
         await put();
         return true;
       } catch (e2) {
         const msg2 = e2 instanceof Error ? e2.message : String(e2);
         if (!msg2.includes("TOOBIG")) throw e2;
-        console.error("save still TOOBIG after compact");
+        console.error("save still TOOBIG after compact", "bytes", bytes);
         return false;
       }
     }
