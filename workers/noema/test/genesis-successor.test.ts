@@ -42,6 +42,18 @@ describe("genesis successor product path", () => {
     expect(a.validation.ok).toBe(true);
   });
 
+  it("rejects a 10-room graph that is not exactly CHAMBER-MAP", async () => {
+    const a = await previewGenesis(SUCCESSOR);
+    const mutated = structuredClone(a.cycle0);
+    const archive = mutated.rooms["room.archive"];
+    delete mutated.rooms["room.archive"];
+    mutated.rooms["room.foo"] = { ...archive, room_id: "room.foo" };
+    const v = validateCycle0(mutated);
+    expect(v.ok).toBe(false);
+    expect(v.errors.some((e) => e.includes("room.archive"))).toBe(true);
+    expect(v.errors.some((e) => e.includes("room.foo"))).toBe(true);
+  });
+
   it("same successor inputs are deterministic", async () => {
     const a = await previewGenesis(SUCCESSOR);
     const b = await previewGenesis(SUCCESSOR);

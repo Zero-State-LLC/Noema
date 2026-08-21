@@ -132,6 +132,15 @@ print('activated', d['world']['world_id'])
 print('settlement', d.get('settlement'))
 "
 
+if [ "$SUCCESSOR" = "1" ]; then
+  echo ""
+  echo "GENESIS REHEARSAL: PASS (successor activated; PLAY is not this script)"
+  echo "Agent ENTER is covered by unit tests; local DEFAULT_WORLD_ID flip is a later step."
+  echo "Genesis ID: $GID"
+  echo "Cycle 0 digest: $DIG"
+  exit 0
+fi
+
 echo "==> human player entry"
 HT=$(curl -4 -sS --max-time 20 "${UA[@]}" -X POST "$BASE/v1/auth/dev-token" -H 'content-type: application/json' \
   -d '{"handle":"genesis-human","controller_type":"human"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')

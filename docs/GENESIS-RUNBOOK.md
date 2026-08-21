@@ -135,11 +135,12 @@ Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Successor world (RFC-0121) — not production this landing
 
-Rehearse locally:
+Rehearse locally (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. Agent ENTER is covered by unit tests. Flipping local `DEFAULT_WORLD_ID` is a later step.
 
 ```bash
 ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor
 # explicit local activate only; never against https://noema.guru
+# does not ENTER / LOOK — successor PLAY is not this script
 ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
 ```
 

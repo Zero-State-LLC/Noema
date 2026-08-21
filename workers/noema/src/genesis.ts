@@ -646,10 +646,13 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
   if (world.cycle !== 0) errors.push("cycle must be 0");
   const rooms = Object.values(world.rooms);
   const roomIds = Object.keys(world.rooms);
-  const chamberMapPresent =
-    roomIds.length === 10 && CHAMBER_MAP_ROOM_IDS.every((id) => Boolean(world.rooms[id]));
-  if (chamberMapPresent) {
+  const requireChamberMap = world.world_id === SUCCESSOR_WORLD_ID || roomIds.length === 10;
+  if (requireChamberMap) {
+    const have = new Set(roomIds);
     const allowed = new Set<string>(CHAMBER_MAP_ROOM_IDS);
+    for (const id of CHAMBER_MAP_ROOM_IDS) {
+      if (!have.has(id)) errors.push(`missing chamber-map room ${id}`);
+    }
     for (const id of roomIds) {
       if (!allowed.has(id)) errors.push(`unexpected room ${id}`);
     }
