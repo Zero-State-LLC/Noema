@@ -3,6 +3,7 @@ import { adminCallbackHtml, adminHtml, adminLoginHtml } from "../src/admin";
 import {
   ADMIN_AGENT_OPERATOR_EMAIL,
   ADMIN_OPERATOR_EMAIL,
+  ADMIN_PARTNER_OPERATOR_EMAIL,
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
   adminAllowlist,
@@ -52,13 +53,16 @@ describe("allowlist + throttle", () => {
   it("always allows the hardcoded operator mailboxes", () => {
     expect(ADMIN_OPERATOR_EMAIL).toBe("zer0state@zer0state.com");
     expect(ADMIN_AGENT_OPERATOR_EMAIL).toBe("boof@agentmail.to");
+    expect(ADMIN_PARTNER_OPERATOR_EMAIL).toBe("prabu.openclaw@gmail.com");
     expect(adminAllowlist(env({ ADMIN_ALLOWLIST_EMAILS: "" }))).toEqual([
       "zer0state@zer0state.com",
       "boof@agentmail.to",
+      "prabu.openclaw@gmail.com",
     ]);
     expect(adminAllowlist(env())).toEqual([
       "zer0state@zer0state.com",
       "boof@agentmail.to",
+      "prabu.openclaw@gmail.com",
       "ops@example.com",
     ]);
   });
