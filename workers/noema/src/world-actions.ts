@@ -158,7 +158,7 @@ import {
   type SocialEvent,
 } from "./social-memory";
 import { applyCultureEvents, cultureLines, emptyCulture, type CultureEvent } from "./culture";
-import { applyInspectEvidence, discoveryLines } from "./discovery";
+import { applyInspectEvidence, discoveryLines, ensureDiscovery } from "./discovery";
 import {
   HOSTED_ACT_PROFILES,
   ACCESS_PROFILE,
@@ -4113,6 +4113,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
     if (!p.trade_memory) p.trade_memory = { catalog_id: "social-memory-catalog/gc3-s0", edges: {} };
     if (!p.danger_memory) p.danger_memory = { catalog_id: "social-memory-catalog/gc3-s1", edges: {} };
     if (!p.deceptive_memory) p.deceptive_memory = { catalog_id: "social-memory-catalog/gc3-s6", edges: {} };
+    p.discovery = ensureDiscovery(p.discovery);
   }
   w.contests = w.contests || {};
   w.agreements = w.agreements || {};
@@ -5302,7 +5303,13 @@ function collectReconstructionEvidence(
   cycle: number,
   sourceEntityId: string,
 ): { ok: true; refs: ReconstructionEvidence[] } | { ok: false; code: string; message: string } {
-  const requested = kinds.length ? kinds : ["ARCHIVE_CLAIM", "LIVE_INSPECT"];
+  const requested = kinds.length
+    ? kinds
+    : evidenceAccessible(pl.discovery, "LIVE_INSPECT", subject)
+      ? ["LIVE_INSPECT"]
+      : evidenceAccessible(pl.discovery, "ARCHIVE_CLAIM", subject)
+        ? ["ARCHIVE_CLAIM"]
+        : ["LIVE_INSPECT"];
   const refs: ReconstructionEvidence[] = [];
   for (const raw of requested) {
     const kind = parseEvidenceKind(raw);
@@ -5408,7 +5415,7 @@ async function applyReconstructCommand(
     ? args.evidence
     : prior
       ? prior.evidence_refs.map((r) => r.kind)
-      : ["ARCHIVE_CLAIM", "LIVE_INSPECT"]
+      : []
   );
   const collected = collectReconstructionEvidence(
     pl,

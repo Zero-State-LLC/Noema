@@ -649,6 +649,8 @@ export function enrichEntity(e: {
   last_repair_cycle?: number;
   last_repair_handle?: string;
   in_progress?: boolean;
+  regen_rate?: number;
+  max_stock?: number;
 }): EntityRuntime {
   const node = classifyResourceNode(e);
   return {
@@ -656,6 +658,8 @@ export function enrichEntity(e: {
     label: e.label,
     entity_type: e.entity_type,
     condition: e.condition,
+    regen_rate: e.regen_rate,
+    max_stock: e.max_stock,
     stock_resource: node.is_node ? node.resource : undefined,
     stock_amount: node.is_node ? node.amount : undefined,
     archive_subject_entity_id: e.archive_subject_entity_id,
