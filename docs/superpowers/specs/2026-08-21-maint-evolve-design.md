@@ -1,6 +1,6 @@
 # Maint evolve supervisor
 
-**Status:** approved — awaiting implementation plan  
+**Status:** implementing  
 **Date:** 2026-08-21  
 **Host:** PLAY `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`; probes on isolated `test.hosted-canonical.*` only  
 **Does not reseed, force-activate, or treat Admin as a Player (RFC-0120).**  
