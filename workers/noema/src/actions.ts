@@ -16,6 +16,7 @@ import {
   parseAccessScope,
 } from "./access-policy";
 import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
+import { signalFromArgs, type ActionSignal } from "./signal";
 import {
   CONSTRUCTIBLE_CLASSES,
   CONSTRUCT_COSTS,
@@ -343,6 +344,7 @@ export type CanonicalAction =
         subject_ref?: string;
         parent_claim_id?: string;
         as_claim?: boolean;
+        signal?: ActionSignal;
       };
     }
   | {
@@ -391,6 +393,7 @@ export type CanonicalAction =
           | "AGREEMENT_TERMINATE"
           | "ACCESS_POLICY"
           | "FOCUS";
+        signal?: ActionSignal;
         entity_id?: string;
         extent?: "standard" | "overhaul";
         amount?: number;
@@ -2218,11 +2221,20 @@ export function normalizeStructuredCommand(
     if (!recipient_id || (!text && !parent_claim_id)) {
       return { ok: false, error: "recipient_id and text required", code: "INVALID_REQUEST" };
     }
+    const sig = signalFromArgs(args);
+    if (!sig.ok) return sig;
     return {
       ok: true,
       action: {
         verb: "MESSAGE",
-        arguments: { recipient_id, text: text || parent_claim_id || "", as_claim, parent_claim_id, subject_ref },
+        arguments: {
+          recipient_id,
+          text: text || parent_claim_id || "",
+          as_claim,
+          parent_claim_id,
+          subject_ref,
+          ...(sig.signal ? { signal: sig.signal } : {}),
+        },
       },
       display: `MESSAGE ${recipient_id}`,
     };
@@ -2396,6 +2408,8 @@ export function normalizeStructuredCommand(
       if (!subject_entity_id || (claimRaw !== "DESTROYED" && claimRaw !== "OPERATING")) {
         return { ok: false, error: "subject_entity_id and claim must be set together", code: "FORBIDDEN" };
       }
+      const sig = signalFromArgs(args);
+      if (!sig.ok) return sig;
       return {
         ok: true,
         action: {
@@ -2405,6 +2419,7 @@ export function normalizeStructuredCommand(
             entity_id,
             subject_entity_id,
             archive_claim: claimRaw as "DESTROYED" | "OPERATING",
+            ...(sig.signal ? { signal: sig.signal } : {}),
           },
         },
         display: `COMMIT.ATTEST ${entity_id}`,
