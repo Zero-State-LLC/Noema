@@ -22,9 +22,13 @@ export function isAdmittedTestWorldId(worldId: string): boolean {
 export function isolatedLedgerEventId(worldId: string, sequence: number): string {
   const admitted = admitTestWorldId(worldId);
   const seq = sequence.toString().padStart(6, "0");
-  if (!admitted.ok) return `evt.${seq}`;
-  const suffix = admitted.world_id.slice(TEST_WORLD_PREFIX.length).replace(/[^a-zA-Z0-9.-]+/g, ".");
-  return `evt.tw.${suffix}.${seq}`;
+  if (admitted.ok) {
+    const suffix = admitted.world_id.slice(TEST_WORLD_PREFIX.length).replace(/[^a-zA-Z0-9.-]+/g, ".");
+    return `evt.tw.${suffix}.${seq}`;
+  }
+  // Hosted successor shares the settlement table with frozen Perihelion.
+  if (worldId === "world.perihelion-reach-2") return `evt.w.perihelion-reach-2.${seq}`;
+  return `evt.${seq}`;
 }
 
 /**
