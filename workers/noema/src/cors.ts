@@ -22,10 +22,12 @@ export function isPublicReadPath(path: string): boolean {
   const p = normalizePath(path);
   return (
     p === "/v1/watch/live" ||
+    p === "/v1/watch/map" ||
     p === "/v1/watch/stream" ||
     p === "/health" ||
     p === "/ready" ||
     p === "/watch" ||
+    p === "/watch/map" ||
     p === "/protocol/v1"
   );
 }
