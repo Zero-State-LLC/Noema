@@ -21,15 +21,16 @@
     "unfreeze": "FULL THAW 2026-08-20: hosted-alpha freeze lifted on the test build. RFC-0120 identity stays law. Last frozen pin 9e0e41f / Worker a210eb35 / Specs 5768b01. PLAY later cut over to hosted_live (RFC-0121); this block stays the frozen first-world snapshot."
   },
   "hosted_live": {
-    "world_id": "world.perihelion-reach-2",
-    "genesis_id": "genesis.dbeb43d198ce81b1",
-    "do_name": "world.perihelion-reach-2",
+    "world_id": "world.perihelion-reach-3",
+    "genesis_id": "genesis.94d0961984b2b4f8",
+    "do_name": "world.perihelion-reach-3",
     "entry_room_id": "room.civic-exchange",
-    "worker_version_id": "01893b15-3638-4b65-a5e0-6b599b69649d",
+    "profile_id": "EWM_ENHANCED",
+    "worker_version_id": "edcd7e93-7712-4174-b56a-bfb5e57f816a",
     "official_client": "noema-client==0.1.12",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
-    "rfc": "RFC-0121",
-    "note": "Production PLAY default. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only). Do not reseed."
+    "rfc": "RFC-0122",
+    "note": "Production PLAY default. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
