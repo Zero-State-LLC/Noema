@@ -121,7 +121,14 @@ export interface GenesisRoom {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string; scar?: boolean }>;
+  entities: Array<{
+    entity_id: string;
+    label: string;
+    entity_type: string;
+    scar?: boolean;
+    stock_resource?: string;
+    stock_amount?: number;
+  }>;
   tags?: string[];
 }
 
@@ -495,6 +502,13 @@ function buildProductCycle0(
     entity_id: "entity.relay-7",
     label: pick(r, [...n.entities.relay]),
     entity_type: "INFRASTRUCTURE",
+  });
+  addEntity(rooms["room.civic-exchange"], {
+    entity_id: "entity.salvage-cache",
+    label: "salvage-cache",
+    entity_type: "NODE",
+    stock_resource: "materials",
+    stock_amount: 4,
   });
 
   const institutions: Cycle0World["institutions"] = [];

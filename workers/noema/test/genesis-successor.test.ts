@@ -81,6 +81,15 @@ describe("genesis successor product path", () => {
     const ids = (room: string) => a.cycle0.rooms[room].entities.map((e) => e.entity_id);
     expect(ids("room.relay-quarter")).toContain("entity.relay-7");
     expect(ids("room.civic-exchange")).toContain("entity.old-market-post");
+    expect(ids("room.civic-exchange")).toContain("entity.salvage-cache");
+    const salvage = a.cycle0.rooms["room.civic-exchange"].entities.find(
+      (e) => e.entity_id === "entity.salvage-cache",
+    );
+    expect(salvage).toMatchObject({
+      entity_type: "NODE",
+      stock_resource: "materials",
+      stock_amount: 4,
+    });
     expect(ids("room.archive")).toContain("entity.archive-ledger");
     expect(a.cycle0.rooms["room.archive"].entities.find((e) => e.entity_id === "entity.archive-ledger")?.entity_type).toBe(
       "ARTIFACT",
@@ -103,7 +112,7 @@ describe("genesis successor product path", () => {
     expect(world.players).toEqual({});
 
     const principal = agentPrincipal("player.tester");
-    const envelope: CommandEnvelope = { command: "ENTER_WORLD", arguments: {} };
+    const envelope: CommandEnvelope = { request_id: "req.enter-successor", command: "ENTER_WORLD", arguments: {} };
     const result = await applyWorldCommand(world, principal, envelope, async () => true);
     expect(result.ok).toBe(true);
     expect(world.players["player.tester"].room_id).toBe("room.civic-exchange");

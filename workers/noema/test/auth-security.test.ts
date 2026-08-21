@@ -130,6 +130,7 @@ describe("development token deployment boundary", () => {
     async (noemaEnv) => {
       const res = await requestDevToken(noemaEnv);
       expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe("no-store");
       const body = (await res.json()) as { access_token?: string };
       expect(body.access_token).toBeTruthy();
     },
