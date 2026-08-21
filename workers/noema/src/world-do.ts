@@ -897,26 +897,37 @@ export class NoemaWorldDO {
     let n = 0;
     for (const [id, p] of Object.entries(this.world.players)) {
       const handle = String(p.handle || "");
-      const disposable =
-        p.actor_kind === "system" &&
-        (/^fuel/i.test(handle) || /^energy-courier/i.test(handle) || /^maint-fuel/i.test(handle) || /^smoke/i.test(handle));
-      if (!disposable) continue;
+      if (/^(reach-maint|tester)/i.test(handle)) continue;
+      if (p.actor_kind !== "system") continue;
       delete this.world.players[id];
       n += 1;
+    }
+    if (Array.isArray(this.world.messages) && this.world.messages.length > 80) {
+      this.world.messages = this.world.messages.slice(-80);
     }
     return n;
   }
 
-  private async save(): Promise<void> {
-    if (!this.world) return;
+  private async save(): Promise<boolean> {
+    if (!this.world) return true;
+    const put = () => this.state.storage.put("world", this.world);
     try {
-      await this.state.storage.put("world", this.world);
+      await put();
+      return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.includes("TOOBIG")) throw e;
       const dropped = this.dropDisposableSystemActors();
       console.error("save TOOBIG; dropped disposable system actors", dropped);
-      await this.state.storage.put("world", this.world);
+      try {
+        await put();
+        return true;
+      } catch (e2) {
+        const msg2 = e2 instanceof Error ? e2.message : String(e2);
+        if (!msg2.includes("TOOBIG")) throw e2;
+        console.error("save still TOOBIG after compact");
+        return false;
+      }
     }
   }
 
@@ -1121,7 +1132,14 @@ export class NoemaWorldDO {
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
     }
-    await this.save();
+    const persisted = await this.save();
+    if (mutating && !persisted) {
+      return {
+        ok: false,
+        request_id: envl.request_id || "unknown",
+        error: { code: "COMMAND_FAILED", message: "The world could not persist that action." },
+      };
+    }
     return result;
   }
 
