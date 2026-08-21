@@ -31,7 +31,7 @@ not_found_handling = "none"
 [vars]
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
-DEFAULT_WORLD_ID = "world.perihelion-reach-2"
+DEFAULT_WORLD_ID = "world.perihelion-reach-3"
 
 [[durable_objects.bindings]]
 name = "WORLD_DO"
