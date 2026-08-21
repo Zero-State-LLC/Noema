@@ -330,6 +330,7 @@ describe("WATCH leak-closed", () => {
     });
     expect(r2.ok).toBe(true);
     expect((w.co_evolution!.protocol_strength || {})["room.hub"]).toBe(before + 4);
+    expect(r2.observation?.protocol_strength).toBe(before + 4);
   });
 
   it("TRADE accept affordance hints standing vs trustworthy", async () => {
