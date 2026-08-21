@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { previewGenesis, validateCycle0 } from "../src/genesis";
+import { cloneBudgets } from "../src/actions";
 import { CHAMBER_MAP_ROOM_IDS } from "../src/chamber-map-graph";
+import { previewGenesis, validateCycle0 } from "../src/genesis";
+import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
+import { applyWorldCommand } from "../src/world-actions";
+import { cycle0ToWorld } from "../src/world-do";
 
 const SUCCESSOR = {
   world_name: "Perihelion Reach",
@@ -9,6 +13,19 @@ const SUCCESSOR = {
   story_seed_ids: ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
   world_id: "world.perihelion-reach-2",
 };
+
+function agentPrincipal(id: string): PlayerPrincipal {
+  return {
+    player_id: id,
+    agent_id: `agent.${id}`,
+    session_id: "sess.test",
+    controller_id: `ctrl.${id}`,
+    controller_type: "agent",
+    scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+    protocol_version: "1",
+    authentication_context: "test",
+  };
+}
 
 describe("genesis successor product path", () => {
   it("emits 10 CHAMBER-MAP rooms on world.perihelion-reach-2", async () => {
@@ -62,5 +79,26 @@ describe("genesis successor product path", () => {
     const a = await previewGenesis(SUCCESSOR);
     const n = a.cycle0.rooms["room.archive"].entities.filter((e) => e.entity_id === "entity.archive-ledger").length;
     expect(n).toBe(1);
+  });
+
+  // Human command 403 is agent-play-scope.test.ts; successor preview does not change that contract.
+  it("agent ENTER on successor Cycle 0 body lands in civic-exchange", async () => {
+    const preview = await previewGenesis(SUCCESSOR);
+    const world = cycle0ToWorld(preview.cycle0);
+    expect(world.world_id).toBe("world.perihelion-reach-2");
+    expect(world.entry_room_id).toBe("room.civic-exchange");
+    expect(Object.keys(world.rooms).sort()).toEqual([...CHAMBER_MAP_ROOM_IDS].sort());
+    expect(world.players).toEqual({});
+
+    const principal = agentPrincipal("player.tester");
+    const envelope: CommandEnvelope = { command: "ENTER_WORLD", arguments: {} };
+    const result = await applyWorldCommand(world, principal, envelope, async () => true);
+    expect(result.ok).toBe(true);
+    expect(world.players["player.tester"].room_id).toBe("room.civic-exchange");
+    expect(world.players["player.tester"].entered).toBe(true);
+    expect(world.players["player.tester"]).not.toHaveProperty("cargo");
+    expect(world.players["player.tester"]).not.toHaveProperty("works");
+    expect(world.players["player.tester"].budgets).toEqual(cloneBudgets(null));
+    expect(Object.keys(world.players)).toEqual(["player.tester"]);
   });
 });

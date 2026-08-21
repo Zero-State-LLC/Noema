@@ -160,7 +160,7 @@ export function bootstrapWorldState(world_id: string): WorldState {
   return demoState(world_id);
 }
 
-function cycle0ToWorld(c0: Cycle0World): WorldState {
+export function cycle0ToWorld(c0: Cycle0World): WorldState {
   const rooms: Record<string, Room> = {};
   for (const [id, r] of Object.entries(c0.rooms)) {
     rooms[id] = {
