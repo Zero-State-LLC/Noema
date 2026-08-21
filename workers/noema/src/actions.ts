@@ -71,6 +71,7 @@ import {
   type OfficeRecord,
 } from "./offices";
 import { canActivate, conditionHolds, defaultEmergencyTemplates } from "./emergency";
+import type { InheritedHistory } from "./deep-time";
 import { RULE_MEMBER_ORDER } from "./succession";
 import {
   evidenceAccessible,
@@ -195,6 +196,8 @@ export type PlayerRuntime = {
   second_order?: number;
   /** Genesis-seeded signaling preference. Privileged. */
   signaling_style?: "grounded-first" | "compact" | "verbose";
+  /** Deep Time succession inheritance. Privileged. */
+  inherited?: InheritedHistory;
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */

@@ -200,6 +200,13 @@ export interface Cycle0World {
     visibility: "public" | "institutional" | "hidden";
     reconstruction_confidence: number;
   }>;
+  lore_prototypes?: Array<{
+    attractor_id: string;
+    label: string;
+    weight: number;
+    room_id?: string;
+    basin: "forming" | "crystallized";
+  }>;
 }
 
 export interface GenesisResult {
@@ -688,7 +695,10 @@ function seedEwmEnhanced(
   profile: (typeof GENESIS_PROFILES)[0],
   rooms: Record<string, GenesisRoom>,
   institutions: Cycle0World["institutions"],
-): Pick<Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles" | "scar_seeds"> {
+): Pick<
+  Cycle0World,
+  "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles" | "scar_seeds" | "lore_prototypes"
+> {
   if (!profile.ewm_features) return {};
   const archetypes = [
     { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" as const },
@@ -746,6 +756,7 @@ function seedEwmEnhanced(
         reconstruction_confidence: 0.3,
       },
     ],
+    lore_prototypes: [{ attractor_id: "lore.room.civic-exchange", label: "exchange memory", weight: 0.1, room_id: "room.civic-exchange", basin: "forming" }],
   };
 }
 

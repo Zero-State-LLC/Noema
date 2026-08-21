@@ -37,12 +37,37 @@ export type TrajectoryDigest = {
   last_cycle: number;
 };
 
+export type NormRatchet = {
+  key: string;
+  reversal_cost: number;
+  path_dependence_strength: number;
+  established_cycle: number;
+  hits: number;
+};
+
+export type LoreAttractor = {
+  attractor_id: string;
+  label: string;
+  weight: number;
+  room_id?: string;
+  basin: "forming" | "crystallized";
+};
+
+export type InheritedHistory = {
+  scar_vector: ScarRecord[];
+  trajectory_digest: TrajectoryDigest[];
+  lore_seeds: string[];
+};
+
 export type DeepTimeSlice = {
   scars?: ScarRecord[];
   evidence_fragments?: EvidenceFragment[];
   trajectory_digest?: Record<string, TrajectoryDigest>;
+  norm_ratchets?: Record<string, NormRatchet>;
+  lore_attractors?: LoreAttractor[];
   rooms?: Record<string, { entities?: Array<{ entity_id: string; regen_rate?: number; stock_resource?: string }> }>;
   cycle?: number;
+  players?: Record<string, { inherited?: InheritedHistory | undefined }>;
 };
 
 function clamp01(n: number): number {
@@ -53,6 +78,8 @@ export function ensureDeepTime(w: DeepTimeSlice): void {
   if (!w.scars) w.scars = [];
   if (!w.evidence_fragments) w.evidence_fragments = [];
   if (!w.trajectory_digest) w.trajectory_digest = {};
+  if (!w.norm_ratchets) w.norm_ratchets = {};
+  if (!w.lore_attractors) w.lore_attractors = [];
 }
 
 export function noteHarvestTrajectory(w: DeepTimeSlice, roomId: string, entityId: string, cycle: number): TrajectoryDigest {
@@ -124,6 +151,7 @@ export function deepTimeCoEvolve(w: DeepTimeSlice): void {
   for (const s of w.scars) {
     if (s.domain === "economic" && s.room_id) applyScarToRegen(w, s.room_id);
   }
+  tickLoreAttractors(w);
 }
 
 export function reconstructionFidelity(
@@ -163,10 +191,90 @@ export function publicScarsForRoom(scars: ScarRecord[] | undefined, roomId: stri
   return (scars || []).filter((s) => s.room_id === roomId && s.visibility === "public" && s.strength >= 0.05);
 }
 
-export function pathDependenceIndex(scars: ScarRecord[] | undefined): number {
+export function pathDependenceIndex(
+  scars: ScarRecord[] | undefined,
+  ratchets?: Record<string, NormRatchet>,
+): number {
   const list = scars || [];
-  if (!list.length) return 0;
-  return clamp01(list.reduce((a, s) => a + s.strength, 0) / list.length);
+  const rvals = Object.values(ratchets || {});
+  const scarMean = list.length ? list.reduce((a, s) => a + s.strength, 0) / list.length : 0;
+  const ratchetMean = rvals.length
+    ? rvals.reduce((a, r) => a + r.path_dependence_strength, 0) / rvals.length
+    : 0;
+  if (!list.length && !rvals.length) return 0;
+  return clamp01(Math.max(scarMean, ratchetMean));
+}
+
+export function orgCreateExtraInfluence(w: DeepTimeSlice): number {
+  ensureDeepTime(w);
+  return w.norm_ratchets!.org_create?.reversal_cost || 0;
+}
+
+export function ratchetOnOrgCreate(w: DeepTimeSlice, cycle: number): NormRatchet {
+  ensureDeepTime(w);
+  const prev = w.norm_ratchets!.org_create;
+  const hits = (prev?.hits || 0) + 1;
+  const next: NormRatchet = {
+    key: "org_create",
+    reversal_cost: (prev?.reversal_cost || 0) + 1,
+    path_dependence_strength: clamp01(hits / 5),
+    established_cycle: prev?.established_cycle ?? cycle,
+    hits,
+  };
+  w.norm_ratchets!.org_create = next;
+  return next;
+}
+
+export function ratchetOnAttest(w: DeepTimeSlice, cycle: number): NormRatchet {
+  ensureDeepTime(w);
+  const prev = w.norm_ratchets!.attest;
+  const hits = (prev?.hits || 0) + 1;
+  const next: NormRatchet = {
+    key: "attest",
+    reversal_cost: prev?.reversal_cost || 0,
+    path_dependence_strength: clamp01(hits / 8),
+    established_cycle: prev?.established_cycle ?? cycle,
+    hits,
+  };
+  w.norm_ratchets!.attest = next;
+  return next;
+}
+
+export function inheritAtSuccession(
+  w: DeepTimeSlice,
+  successorId: string,
+  roomId?: string,
+): InheritedHistory {
+  ensureDeepTime(w);
+  const scar_vector = (w.scars || [])
+    .filter((s) => !roomId || s.room_id === roomId)
+    .map((s) => ({ ...s }));
+  const trajectory_digest = Object.values(w.trajectory_digest || {}).map((d) => ({ ...d }));
+  const lore_seeds = (w.lore_attractors || []).map((a) => a.label);
+  const inherited: InheritedHistory = { scar_vector, trajectory_digest, lore_seeds };
+  if (w.players?.[successorId]) w.players[successorId].inherited = inherited;
+  return inherited;
+}
+
+export function tickLoreAttractors(w: DeepTimeSlice): void {
+  ensureDeepTime(w);
+  const roomsWithScars = new Set((w.scars || []).filter((s) => s.strength >= 0.05).map((s) => s.room_id).filter(Boolean) as string[]);
+  for (const roomId of roomsWithScars) {
+    let attr = (w.lore_attractors || []).find((a) => a.room_id === roomId);
+    if (!attr) {
+      attr = {
+        attractor_id: `lore.${roomId}`,
+        label: "scarred ground",
+        weight: 0.2,
+        room_id: roomId,
+        basin: "forming",
+      };
+      w.lore_attractors!.push(attr);
+    } else {
+      attr.weight = clamp01(attr.weight + 0.15);
+    }
+    if (attr.weight >= 0.8) attr.basin = "crystallized";
+  }
 }
 
 export function scarPersistence(scars: ScarRecord[] | undefined, cycle: number): number {

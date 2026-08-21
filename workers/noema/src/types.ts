@@ -257,6 +257,7 @@ export interface Observation {
   }>;
   historical_context?: { fragments: number; reconstruction_confidence: number };
   path_dependence_index?: number;
+  lore_attractors?: Array<{ attractor_id: string; label: string; weight: number; basin: string }>;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
   /** Self budgets (Player-visible). */

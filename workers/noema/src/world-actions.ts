@@ -118,13 +118,19 @@ import {
 } from "./reputation";
 import {
   deepTimeCoEvolve,
+  inheritAtSuccession,
   noteHarvestTrajectory,
+  orgCreateExtraInfluence,
   pathDependenceIndex,
   publicScarsForRoom,
   pushEvidenceFragment,
+  ratchetOnAttest,
+  ratchetOnOrgCreate,
   reconstructionFidelity,
   weakenScarsForReconstruction,
   type EvidenceFragment,
+  type LoreAttractor,
+  type NormRatchet,
   type ScarRecord,
   type TrajectoryDigest,
 } from "./deep-time";
@@ -580,6 +586,8 @@ export type WorldRuntime = {
   scars?: ScarRecord[];
   evidence_fragments?: EvidenceFragment[];
   trajectory_digest?: Record<string, TrajectoryDigest>;
+  norm_ratchets?: Record<string, NormRatchet>;
+  lore_attractors?: LoreAttractor[];
 };
 
 function handleFromPrincipal(principal: PlayerPrincipal): string {
@@ -915,7 +923,10 @@ export function buildObservation(
         publicScarsForRoom(w.scars, room.room_id)[0]?.reconstruction_confidence ||
         ((w.evidence_fragments || []).length ? 0.3 : 0),
     },
-    path_dependence_index: pathDependenceIndex(w.scars),
+    path_dependence_index: pathDependenceIndex(w.scars, w.norm_ratchets),
+    lore_attractors: (w.lore_attractors || [])
+      .filter((a) => !a.room_id || a.room_id === room.room_id)
+      .map((a) => ({ attractor_id: a.attractor_id, label: a.label, weight: a.weight, basin: a.basin })),
     in_world: pl.entered,
     players_here: otherPlayers
       .filter(
@@ -2918,11 +2929,18 @@ export async function applyWorldCommand(
     }
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
-      if (!canPay(pl.budgets, COSTS.ORG_CREATE)) {
+      const extra = orgCreateExtraInfluence(w);
+      const orgCost = {
+        ...COSTS.ORG_CREATE,
+        influence: (COSTS.ORG_CREATE.influence || 5) + extra,
+      };
+      if (!canPay(pl.budgets, orgCost)) {
         return fail(
           request_id,
           "BUDGET_EXCEEDED",
-          "You need influence 5 and compute 2 to form an organization.",
+          extra
+            ? `Path dependence: you need influence ${orgCost.influence} and compute 2 to form another organization.`
+            : "You need influence 5 and compute 2 to form an organization.",
         );
       }
       const name = String(action.arguments.name || "").trim();
@@ -2945,7 +2963,8 @@ export async function applyWorldCommand(
         markQuarantine(w);
         return fail(request_id, "FORBIDDEN", orgQ);
       }
-      debit(pl.budgets, COSTS.ORG_CREATE);
+      debit(pl.budgets, orgCost);
+      ratchetOnOrgCreate(w, w.cycle);
       bumpImage(pl, 1);
       refreshSecondOrder(w.players, principal.player_id);
       noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
@@ -2979,7 +2998,7 @@ export async function applyWorldCommand(
       };
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
-        cost_paid: COSTS.ORG_CREATE,
+        cost_paid: orgCost,
         reason: "ORG_CREATE",
       });
       const ev = pushEvent("ORG_CREATE", {
@@ -4422,6 +4441,7 @@ async function applySuccessionConsent(
     office.status = "OCCUPIED";
     office.history.push({ cycle: w.cycle, holder_player_id: winner, kind: "ASSIGNED" });
     office.consents = [];
+    inheritAtSuccession(w, winner, pl.room_id);
     noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
     const ev = pushEvent("ENTITY_UPDATE", {
       entity_id: office.office_id,
@@ -6038,6 +6058,7 @@ async function applyAttest(
   bumpImage(pl, 1);
   refreshSecondOrder(w.players, principal.player_id);
   noteGroundedProtocol(w, pl.room_id, args.signal);
+  ratchetOnAttest(w, w.cycle);
   pushEvidenceFragment(w, {
     subject_ref: subject,
     kind: "ATTEST",
