@@ -905,6 +905,8 @@ export class NoemaWorldDO {
           : "room.relay-quarter";
       }
       migrateWorldRuntime(this.world);
+    } else {
+      migrateWorldRuntime(this.world);
     }
     const filledHarvest = ensureSuccessorMaterialsCache(this.world);
     if (expireStalePresence(this.world.players) || filledHarvest) {
