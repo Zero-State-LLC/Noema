@@ -3,7 +3,9 @@
 **Date.** 2026-08-18  
 **Verdict.** `NOEMA PRODUCTION CONFORMANT`
 
-**Amendment.** ADR-006 landing: live Perihelion `genesis.ef578f4ffceeccd0` keeps its activated room set. The 10-room bound applies to chamber-world / isolated fixtures / new hosted `world_version`. The previous BLOCKER (WATCH 5 rooms vs ADR-006 “exactly 10”) is resolved as accepted identity, not a runtime spawn bug.
+**Amendment 2026-08-21 (RFC-0121 cutover).** Live PLAY is **`world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1`** (10-room CHAMBER-MAP, entry Civic Exchange). OBSERVED `GET /ready` ACTIVE / HEALTHY / cycle 1. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed it. Do not PLAY it. The 2026-08-18 identity block below is the **pre-cutover** evidence record.
+
+**Amendment.** ADR-006 landing: frozen Perihelion `genesis.ef578f4ffceeccd0` keeps its activated 5-room set on `world-01`. The 10-room bound applies to chamber-world / isolated fixtures / the successor `world_version`. The previous BLOCKER (WATCH 5 rooms vs ADR-006 “exactly 10”) is resolved as accepted frozen identity, not a runtime spawn bug.
 
 **Repos.**
 
@@ -22,7 +24,23 @@ This file is evidence, not a world-rule change. No Genesis, no reseed, no Player
 
 ## Production identity (OBSERVED)
 
-`GET /ready`:
+**2026-08-21 PLAY (current).** `GET /ready`:
+
+```text
+status ACTIVE
+settlement_health HEALTHY
+world_id world.perihelion-reach-2
+world_name Perihelion Reach
+genesis_id genesis.dbeb43d198ce81b1
+cycle 1
+sequence 437
+players 0
+playable true
+```
+
+`players` counts live **humans**, not agents. Two agent Controllers ENTER'd Civic Exchange this day (`player.reach-maint3`, `player.tester`). See [LIVE-SUCCESSOR-PLAY-2026-08-21.md](LIVE-SUCCESSOR-PLAY-2026-08-21.md).
+
+**2026-08-18 frozen first world (historical).** `GET /ready` then:
 
 ```text
 status ACTIVE
@@ -36,7 +54,7 @@ players 0
 playable true
 ```
 
-Matches the frozen Genesis ID. Profile / story-seed / world-seed / Cycle 0 digest were **not** re-read from Admin in this run (NOT_COMPUTABLE without operator session). They remain the approved identity; this run did not alter them.
+That genesis remains on the `world-01` DO for Admin Recover/overview. It is not the PLAY default.
 
 ---
 
@@ -68,14 +86,14 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 
 | Contract | Spec authority | Runtime | Hosted evidence | Status |
 |---|---|---|---|---|
-| Genesis identity | FIRST-WORLD / this closeout | DO `genesis_id` | `/ready` `genesis.ef578f4ffceeccd0` | MATCH |
+| Genesis identity | RFC-0121 + this closeout | DO `genesis_id` | `/ready` `genesis.dbeb43d198ce81b1` (PLAY). Frozen `genesis.ef578f4ffceeccd0` on `world-01` | MATCH |
 | World lifecycle ACTIVE | WORLD-OPERATIONS | DO status | `/ready` ACTIVE HEALTHY | MATCH |
 | Player ontology one class | AUTH-AND-IDENTITY | `controller_type` on one Player | no AGENT_PLAYER type in Worker | MATCH |
 | Hosted admission | HOSTED-FIRST-ENTRY | `denyNonAgentPlay` on HTTP `/v1/command` and WS `applyPlayerCommand` | no-auth 401; malformed JWT 401; `test/agent-play-scope.test.ts` 403 humans | MATCH (runtime tests). Live human 403 not re-hit without minting a human token |
 | Agent auth | AUTH | Bearer controller JWT | discovery `/.well-known/noema-agent.json` OBSERVED | MATCH |
 | Sealed attach RFC-0115 | AGENT-SEAL-S0 | `seal.ts` `sha256:9b9c211c…`; isolated exempt | official client `noema_llm_agent/seal.py` same hash; no `--goal/--prompt/--system/--brief` on CLI | MATCH |
 | Agent Protocol | agent-protocol/v1 | WS + `/v1/command` | discovery URIs OBSERVED | MATCH |
-| Headless harness | AGENT-HARNESS | `src/noema/harness/*` + `clients/noema-llm-agent` | CONNECT inhabit snippet live. Isolated: LOOK validates non-mutating; ScriptedAdapter LOOK; FirstValidAffordanceAdapter picks live-room work; 31 Worker inhabit/ADR/seal tests pass | MATCH (isolated). Live ENTER not executed |
+| Headless harness | AGENT-HARNESS | `src/noema/harness/*` + official client | Live ENTER Civic Exchange 2026-08-21 (`reach-maint3`, `tester`). Isolated harness tests remain | MATCH |
 | LLM adapter | RFC-0114 | model proposes; `validate.py` + NOEMA | `cognition.py` strips private keys off the wire | MATCH (code) |
 | Action taxonomy | EVENT-CATALOG / PLAY | Worker `world-actions.ts` / Python actions | no new verbs in this campaign | MATCH (no new verbs added here) |
 | Dynamic affordances | COMMAND-DISCOVERY | observation affordances | isolated tests | MATCH (tests) |
@@ -95,7 +113,7 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 | Magic-link → WATCH | HOSTED-FIRST-ENTRY | `play-login-html` next `/watch` | callback HTML OBSERVED | MATCH |
 | Chrome five tabs | HOSTED-FIRST-ENTRY | `shell.ts` | Home nav OBSERVED | MATCH |
 | First-entry Watch-first | HOSTED-FIRST-ENTRY | landing table + Send watch link | OBSERVED | MATCH |
-| STUDY off nav | HOSTED-FIRST-ENTRY | stub `/study` | OBSERVED | MATCH |
+| STUDY observational on nav | HOSTED-FIRST-ENTRY | `/study` WATCH projection; lab capture not hosted | OBSERVED | MATCH |
 | Security headers HTML | HOSTED / SECURITY | Worker `html()` | CSP, HSTS, X-Frame DENY, nosniff OBSERVED on `GET /` | MATCH |
 | Security headers JSON | same | CORS `*` on `/v1/watch/live`; HSTS + nosniff; no CSP/X-Frame | INTENTIONAL SPLIT (API vs HTML) |
 | `/version` `/manifest` | spec-compat hosted JSON list | not hosted | 404 HTML OBSERVED | INTENTIONAL SPLIT |
