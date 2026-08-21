@@ -892,8 +892,32 @@ export class NoemaWorldDO {
     }
   }
 
+  private dropDisposableSystemActors(): number {
+    if (!this.world?.players) return 0;
+    let n = 0;
+    for (const [id, p] of Object.entries(this.world.players)) {
+      const handle = String(p.handle || "");
+      const disposable =
+        p.actor_kind === "system" &&
+        (/^fuel/i.test(handle) || /^energy-courier/i.test(handle) || /^maint-fuel/i.test(handle) || /^smoke/i.test(handle));
+      if (!disposable) continue;
+      delete this.world.players[id];
+      n += 1;
+    }
+    return n;
+  }
+
   private async save(): Promise<void> {
-    if (this.world) await this.state.storage.put("world", this.world);
+    if (!this.world) return;
+    try {
+      await this.state.storage.put("world", this.world);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("TOOBIG")) throw e;
+      const dropped = this.dropDisposableSystemActors();
+      console.error("save TOOBIG; dropped disposable system actors", dropped);
+      await this.state.storage.put("world", this.world);
+    }
   }
 
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {

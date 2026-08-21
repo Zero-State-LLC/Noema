@@ -161,6 +161,80 @@ describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
     expect(afterBody.world_id).toBe("world-01");
   });
 
+  it("ENTER survives SQLITE_TOOBIG by dropping disposable fuel actors", async () => {
+    const env = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret-enter-do",
+      NOEMA_ENV: "production",
+      DEFAULT_WORLD_ID: "world-01",
+    } as Env;
+    const stored = perihelionStored() as ReturnType<typeof perihelionStored> & {
+      players: Record<string, { handle: string; entered: boolean; actor_kind: string; room_id: string }>;
+    };
+    stored.players = {
+      "player.fuel1": { handle: "fuel1", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
+      "player.fuel2": { handle: "fuel2", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
+      "player.reach-maint3": { handle: "reach-maint3", entered: true, actor_kind: "system", room_id: "room.relay-quarter" },
+    };
+    let puts = 0;
+    const bag = new Map<string, unknown>([
+      ["world", stored],
+      ["world_meta", { status: "ACTIVE", genesis_id: "genesis.ef578f4ffceeccd0", config_frozen: true, settlement_health: "HEALTHY" }],
+    ]);
+    const state = {
+      storage: {
+        async get(key: string) {
+          return bag.get(key);
+        },
+        async put(keyOrEntries: string | Record<string, unknown>, value?: unknown) {
+          const write = (k: string, v: unknown) => bag.set(k, v);
+          if (typeof keyOrEntries === "string") {
+            if (keyOrEntries === "world") {
+              puts += 1;
+              if (puts === 1) throw new Error("string or blob too big: SQLITE_TOOBIG");
+            }
+            write(keyOrEntries, value);
+            return;
+          }
+          for (const [k, v] of Object.entries(keyOrEntries)) {
+            if (k === "world") {
+              puts += 1;
+              if (puts === 1) throw new Error("string or blob too big: SQLITE_TOOBIG");
+            }
+            write(k, v);
+          }
+        },
+      },
+    } as unknown as DurableObjectState;
+    const doInst = new NoemaWorldDO(state, env);
+    const minted = await mintControllerToken(env, { handle: "reach-maint3", controllerType: "agent", playerId: "player.reach-maint3" });
+    const principal: PlayerPrincipal = {
+      player_id: minted.player_id,
+      agent_id: "agent.reach-maint3",
+      session_id: "sess.toobig",
+      controller_id: minted.controller_id,
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+    };
+    const enter = await doInst.fetch(
+      new Request("https://do/command", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-noema-world-id": "world-01" },
+        body: JSON.stringify({
+          principal,
+          envelope: { request_id: "tb1", command: "ENTER_WORLD", arguments: {} },
+          world_id: "world-01",
+        }),
+      }),
+    );
+    const body = (await enter.json()) as { ok?: boolean; error?: { code?: string } };
+    expect(enter.status, JSON.stringify(body)).toBe(200);
+    expect(body.error?.code).not.toBe("COMMAND_FAILED");
+    expect(body.ok).toBe(true);
+    const saved = bag.get("world") as { players: Record<string, { handle: string }> };
+    expect(saved.players["player.fuel1"]).toBeUndefined();
+    expect(saved.players["player.reach-maint3"]).toBeTruthy();
+  });
+
   it("worker /v1/command ENTER through real DO does not 500", async () => {
     const envBase = {
       TOKEN_SIGNING_SECRET: "test-signing-secret-enter-do",
