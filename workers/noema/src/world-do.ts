@@ -9,6 +9,7 @@ import {
   type WatchRoomIn,
   type WatchSourceEvent,
 } from "./watch-live";
+import { buildWatchMap } from "./watch-map";
 import {
   appendOperatorWatchLine,
   buildOperatorWatch,
@@ -427,6 +428,22 @@ export class NoemaWorldDO {
 
     if (request.method === "GET" && path.endsWith("/watch")) {
       return Response.json(await this.watchSnapshot());
+    }
+    if (request.method === "GET" && path.endsWith("/watch-map")) {
+      const live = await this.watchSnapshot();
+      const w = this.world;
+      return Response.json(
+        buildWatchMap({
+          live,
+          scars: (w as { scars?: Array<{ room_id?: string; strength: number; visibility: string; domain: string }> } | null)?.scars,
+          harvest_pressure: w?.co_evolution?.harvest_pressure,
+          protocol_strength: w?.co_evolution?.protocol_strength,
+          reconstructions: Object.values(w?.reconstructions || {}).map((r) => ({
+            fidelity: (r as { fidelity?: number }).fidelity,
+            visibility: r.visibility,
+          })),
+        }),
+      );
     }
 
     if (request.method === "GET" && path.endsWith("/admin-watch")) {

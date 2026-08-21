@@ -56,6 +56,7 @@ import { providerOverview, verifyResend, verifySupabase } from "./provider-manag
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
+import { watchMapHtml } from "./watch-map-page";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
@@ -220,6 +221,9 @@ export default {
       if (request.method === "GET" && path === "/watch") {
         return html(watchHtml());
       }
+      if (request.method === "GET" && path === "/watch/map") {
+        return html(watchMapHtml());
+      }
       if (request.method === "GET" && path === "/study") {
         return html(studyHtml());
       }
@@ -305,6 +309,13 @@ export default {
         const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
         const stub = env.WORLD_DO.get(id);
         const res = await stub.fetch("https://do/watch");
+        const body = await res.json();
+        return cors(json(body, res.status));
+      }
+      if (request.method === "GET" && (path === "/v1/watch/map" || path === "/watch/map.json")) {
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/watch-map");
         const body = await res.json();
         return cors(json(body, res.status));
       }
