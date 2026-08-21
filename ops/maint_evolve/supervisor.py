@@ -8,6 +8,12 @@ from maint_evolve.prompt import build_prompt_packet
 from maint_evolve.pulse import identity_ok, parse_ready
 
 
+def _write_proposed_reason(root: Path, exc: BaseException) -> None:
+    proposed = root / "packs" / "proposed"
+    proposed.mkdir(parents=True, exist_ok=True)
+    (proposed / "reason.txt").write_text(str(exc) + "\n", encoding="utf-8")
+
+
 def apply_candidate(root: Path, candidate) -> bool:
     """Validate then atomically replace current.json. PackError → packs/proposed/, current untouched."""
     root = Path(root)
@@ -28,25 +34,37 @@ def apply_candidate(root: Path, candidate) -> bool:
     return True
 
 
-def run_shift(*, root: Path, ready: dict, look: dict, spawn_patrol: bool) -> dict:
+def run_shift(
+    *,
+    root: Path,
+    ready: dict,
+    look: dict,
+    spawn_patrol: bool,
+    digest: dict | None = None,
+    sar: dict | None = None,
+) -> dict:
     """Pulse identity, load pack, derive/apply candidate, return flags. Never spawns patrol."""
     root = Path(root)
     halt = not identity_ok(parse_ready(ready or {}))
     spawn = False if halt else bool(spawn_patrol)
 
     pack_path = root / "packs" / "current.json"
-    pack = load_pack(pack_path)
     look = look if isinstance(look, dict) else {}
+    pack = validate_pack({})
 
-    if not halt:
-        candidate = derive_candidate(look, None, None, pack)
-        if candidate != pack:
-            if apply_candidate(root, candidate):
-                pack = load_pack(pack_path)
+    try:
+        pack = load_pack(pack_path)
+        if not halt:
+            candidate = derive_candidate(look, sar, digest, pack)
+            if candidate != pack:
+                if apply_candidate(root, candidate):
+                    pack = load_pack(pack_path)
+    except PackError as exc:
+        _write_proposed_reason(root, exc)
 
     return {
         "halt_inhabit": halt,
         "pack": pack,
-        "prompt_packet": build_prompt_packet(look, None, pack),
+        "prompt_packet": build_prompt_packet(look, digest, pack),
         "spawn_patrol": spawn,
     }

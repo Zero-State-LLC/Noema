@@ -24,6 +24,18 @@ def test_validate_rejects_unknown_major():
         validate_pack({"schema_version": 99})
 
 
+def test_validate_type_error_is_pack_error():
+    with pytest.raises(PackError):
+        validate_pack({"schema_version": 1, "energy_floor": []})
+
+
+def test_load_corrupt_json_is_pack_error(tmp_path: Path):
+    p = tmp_path / "current.json"
+    p.write_text("{not-json", encoding="utf-8")
+    with pytest.raises(PackError):
+        load_pack(p)
+
+
 def test_failed_candidate_leaves_current_bytes(tmp_path: Path):
     cur = tmp_path / "current.json"
     cur.write_text('{"schema_version": 1, "energy_floor": 12}', encoding="utf-8")

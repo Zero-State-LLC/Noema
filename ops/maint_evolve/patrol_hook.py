@@ -37,6 +37,29 @@ import os
 from pathlib import Path
 from typing import Any
 
+from maint_evolve.legalize import veto_action
+
+
+def _budget_exceeded(look: dict) -> bool:
+    """True if LOOK last_error / error is BUDGET_EXCEEDED (attention)."""
+    if not isinstance(look, dict):
+        return False
+    last = look.get("last_error")
+    if last == "BUDGET_EXCEEDED":
+        return True
+    if isinstance(last, dict) and (
+        last.get("code") == "BUDGET_EXCEEDED"
+        or last.get("attention") == "BUDGET_EXCEEDED"
+        or last.get("type") == "BUDGET_EXCEEDED"
+    ):
+        return True
+    err = look.get("error")
+    if err == "BUDGET_EXCEEDED":
+        return True
+    if isinstance(err, dict) and err.get("code") == "BUDGET_EXCEEDED":
+        return True
+    return False
+
 
 def apply_pack_to_decision(
     action: str,
@@ -48,7 +71,16 @@ def apply_pack_to_decision(
     """Return (action, args, reason). Identity when pack missing/empty."""
     if not pack:
         return action, args, "no_pack"
-    if energy < int(pack.get("energy_floor") or 0) and action == "HARVEST":
+    veto = veto_action(action, pack, admin_token=False)
+    if veto:
+        return "WAIT", {}, veto
+    hook_action = action
+    if action == "COMMIT" and isinstance(args, dict) and args.get("operation") == "HARVEST":
+        hook_action = "HARVEST"
+    look = look if isinstance(look, dict) else {}
+    if pack.get("wait_before_look") and hook_action == "LOOK" and _budget_exceeded(look):
+        return "WAIT", {}, "wait_before_look"
+    if energy < int(pack.get("energy_floor") or 0) and hook_action == "HARVEST":
         return "WAIT", {}, "energy_floor"
     caution = float(pack.get("harvest_caution") or 0)
     loc = look.get("location") or {}
@@ -61,7 +93,7 @@ def apply_pack_to_decision(
         ]
         or [0]
     )
-    if action == "HARVEST" and (pressure > 4 or scar >= caution > 0):
+    if hook_action == "HARVEST" and (pressure > 4 or scar >= caution > 0):
         return "WAIT", {}, "harvest_caution"
     return action, args, "ok"
 

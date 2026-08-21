@@ -51,6 +51,34 @@ def test_ok_passthrough():
     assert out == ("HARVEST", {"entity_id": "e1"}, "ok")
 
 
+def test_trade_becomes_wait():
+    pack = {"energy_floor": 0, "harvest_caution": 0.0}
+    out = apply_pack_to_decision("TRADE", {"entity_id": "e1"}, {}, pack, 50)
+    assert out == ("WAIT", {}, "hard_block")
+
+
+def test_commit_harvest_respects_energy_floor():
+    pack = {"energy_floor": 12, "harvest_caution": 0.0}
+    out = apply_pack_to_decision(
+        "COMMIT", {"operation": "HARVEST", "entity_id": "e1"}, {}, pack, 10
+    )
+    assert out == ("WAIT", {}, "energy_floor")
+    out2 = apply_pack_to_decision(
+        "COMMIT", {"operation": "HARVEST", "entity_id": "e1"}, {}, pack, 20
+    )
+    assert out2 == ("COMMIT", {"operation": "HARVEST", "entity_id": "e1"}, "ok")
+
+
+def test_wait_before_look_budget_exceeded():
+    pack = {"energy_floor": 0, "harvest_caution": 0.0, "wait_before_look": True}
+    look = {"error": {"code": "BUDGET_EXCEEDED"}, "last_error": "BUDGET_EXCEEDED"}
+    out = apply_pack_to_decision("LOOK", {}, look, pack, 20)
+    assert out == ("WAIT", {}, "wait_before_look")
+    pack_off = {"energy_floor": 0, "harvest_caution": 0.0, "wait_before_look": False}
+    out2 = apply_pack_to_decision("LOOK", {}, look, pack_off, 20)
+    assert out2 == ("LOOK", {}, "ok")
+
+
 def test_load_policy_pack_missing_env(monkeypatch):
     monkeypatch.delenv("NOEMA_POLICY_PACK", raising=False)
     assert load_policy_pack() is None

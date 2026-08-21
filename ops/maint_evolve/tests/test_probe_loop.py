@@ -51,6 +51,15 @@ def test_isolated_player_harvest_scars_persist():
     assert result["calls"] == fake.calls
 
 
+def test_probe_ok_false_raises():
+    class Bad:
+        def command(self, verb, args=None):
+            return {"ok": False, "error": {"code": "INTERNAL"}}
+
+    with pytest.raises(ProbeRefuse):
+        run_probe(world_id=ISOLATED, token_kind="player", pack=dict(DEFAULT_PACK), client=Bad())
+
+
 def test_harvest_caution_skips_harvest():
     fake = Fake()
     pack = dict(DEFAULT_PACK)

@@ -43,6 +43,8 @@ def run_probe(*, world_id, token_kind, pack, client) -> dict:
         if reason:
             raise ProbeRefuse(reason)
         resp = client.command(verb, args)
+        if not isinstance(resp, dict) or resp.get("ok") is not True:
+            raise ProbeRefuse("probe command not ok")
         calls.append(verb)
         return resp
 

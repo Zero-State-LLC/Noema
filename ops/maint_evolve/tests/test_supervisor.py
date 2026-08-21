@@ -55,6 +55,34 @@ def test_shift_bad_derive_keeps_current(tmp_path: Path, monkeypatch):
     assert any(proposed.iterdir())
 
 
+def test_shift_corrupt_current_does_not_crash(tmp_path: Path):
+    cur = tmp_path / "packs" / "current.json"
+    cur.parent.mkdir(parents=True, exist_ok=True)
+    cur.write_text("{not-json", encoding="utf-8")
+    before = cur.read_bytes()
+    out = run_shift(root=tmp_path, ready=PINNED_READY, look={}, spawn_patrol=True)
+    assert cur.read_bytes() == before
+    assert out["halt_inhabit"] is False
+    assert out["spawn_patrol"] is True
+    reason = tmp_path / "packs" / "proposed" / "reason.txt"
+    assert reason.is_file()
+    assert reason.read_text(encoding="utf-8").strip()
+    assert "pack" in out
+    assert "prompt_packet" in out
+
+
+def test_shift_passes_digest_into_prompt(tmp_path: Path):
+    out = run_shift(
+        root=tmp_path,
+        ready=PINNED_READY,
+        look={},
+        spawn_patrol=False,
+        digest={"alerts": ["HIGH_PRESSURE"]},
+        sar={"economic_health": "low"},
+    )
+    assert out["prompt_packet"]["alerts"] == ["HIGH_PRESSURE"]
+
+
 def test_shift_good_look_applies_pack(tmp_path: Path):
     cur = tmp_path / "packs" / "current.json"
     atomic_replace(cur, {"schema_version": 1, "energy_floor": 12, "harvest_caution": 0.0})
