@@ -149,6 +149,7 @@ Production cutover (human-gated, two deploys):
 3. Admin `confirm: true` activate on `world.perihelion-reach-2`. No `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
 4. Set production `DEFAULT_WORLD_ID=world.perihelion-reach-2` and deploy. PLAY then uses the successor DO. Do not add PLAY to the old DO.
    Successor production genesis (2026-08-21): `genesis.dbeb43d198ce81b1`, seed `perihelion-successor-rehearsal-01`, 10 rooms. Frozen first world remains `genesis.ef578f4ffceeccd0` on the `world-01` DO.
+5. Admin overview / Recover of the frozen world: `GET /v1/admin/overview?world_id=world.perihelion-reach` and `POST /v1/admin/lifecycle { "action":"recover", "world_id":"world.perihelion-reach" }` target the `world-01` DO. PLAY never follows that allowlist.
 
 ## Recovery
 

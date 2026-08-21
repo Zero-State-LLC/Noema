@@ -9,6 +9,31 @@ import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
 
 export const FROZEN_GENESIS_ID = "genesis.ef578f4ffceeccd0";
 export const SUCCESSOR_WORLD_ID = "world.perihelion-reach-2";
+export const FROZEN_PUBLIC_WORLD_ID = "world.perihelion-reach";
+export const FROZEN_WORLD_DO_NAME = "world-01";
+
+/** Admin overview / lifecycle / Recover only. Never used by PLAY. */
+export function resolveAdminOperatorWorldId(
+  requested: string | undefined,
+  env: { DEFAULT_WORLD_ID?: string },
+):
+  | { ok: true; do_name: string; world_id: string }
+  | { ok: false; code: "INVALID_REQUEST"; message: string } {
+  const fallback = String(env.DEFAULT_WORLD_ID || FROZEN_WORLD_DO_NAME).trim() || FROZEN_WORLD_DO_NAME;
+  const value = String(requested || "").trim();
+  if (!value) return { ok: true, do_name: fallback, world_id: fallback };
+  if (value === FROZEN_PUBLIC_WORLD_ID || value === FROZEN_WORLD_DO_NAME) {
+    return { ok: true, do_name: FROZEN_WORLD_DO_NAME, world_id: FROZEN_PUBLIC_WORLD_ID };
+  }
+  if (value === SUCCESSOR_WORLD_ID) {
+    return { ok: true, do_name: SUCCESSOR_WORLD_ID, world_id: SUCCESSOR_WORLD_ID };
+  }
+  return {
+    ok: false,
+    code: "INVALID_REQUEST",
+    message: "admin world_id must be omitted, world.perihelion-reach-2, or frozen world.perihelion-reach",
+  };
+}
 
 export function resolveAdminGenesisWorldId(
   requested: string | undefined,
