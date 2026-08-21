@@ -15,9 +15,10 @@ const REHEARSAL = {
 };
 
 describe("hosted genesis", () => {
-  it("catalog has three canonical profiles", () => {
+  it("catalog has canonical profiles plus EWM_ENHANCED", () => {
     const c = catalog();
     expect(c.profiles.map((p) => p.profile_id).sort()).toEqual([
+      "EWM_ENHANCED",
       "FRACTURED_OLD_WORLD",
       "RECOVERING_NETWORK",
       "YOUNG_FRONTIER",
