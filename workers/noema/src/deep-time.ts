@@ -317,6 +317,34 @@ export function inheritAtSuccession(
   return inherited;
 }
 
+/**
+ * Successor-facing projection of inherited history (DEEP-TIME §3.4).
+ * Bounded, id-free, and visibility-respecting: only public scars are counted
+ * and only lore labels are named. Without this the inheritance was written to
+ * player state and never observable by the Player who inherited it.
+ */
+export function inheritedLines(inherited: InheritedHistory | undefined): string[] {
+  if (!inherited) return [];
+  const out: string[] = [];
+  const publicScars = (inherited.scar_vector || []).filter(
+    (s) => s.visibility === "public" && s.strength >= 0.05,
+  );
+  if (publicScars.length) {
+    out.push(
+      publicScars.length === 1
+        ? "You inherit a record of one marked site."
+        : `You inherit a record of ${publicScars.length} marked sites.`,
+    );
+  }
+  const seeds = [...new Set((inherited.lore_seeds || []).map((l) => String(l || "").trim()).filter(Boolean))];
+  if (seeds.length) out.push(`Inherited accounts name: ${seeds.slice(0, 3).join(", ")}.`);
+  const digests = (inherited.trajectory_digest || []).filter((d) => (d?.harvest_count || 0) > 0);
+  if (digests.length) {
+    out.push("The record of earlier working of these sites came with the office.");
+  }
+  return out.slice(0, 3);
+}
+
 export function tickLoreAttractors(w: DeepTimeSlice): void {
   ensureDeepTime(w);
   const roomsWithScars = new Set((w.scars || []).filter((s) => s.strength >= 0.05).map((s) => s.room_id).filter(Boolean) as string[]);

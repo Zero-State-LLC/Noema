@@ -169,6 +169,24 @@ export function officeLines(offices: OfficePublic[]): string[] {
   return [`Offices: ${rows.join("; ")}`];
 }
 
+/**
+ * INSTITUTIONAL-AUTHORITY "Evidence" dimension: the published decision rule
+ * that resolves overlapping-office conflicts must itself be observable.
+ * HELP already tells Players precedence decides these cases; without this the
+ * order governing AUTHORITY_CONFLICT was never shown to anyone.
+ */
+export function precedenceLines(
+  offices: OfficePublic[],
+  precedence: string[] | undefined,
+): string[] {
+  const order = (precedence || []).filter(Boolean);
+  if (!order.length) return [];
+  const byId = new Map(offices.map((o) => [o.office_id, o.display_name]));
+  const named = order.map((id) => byId.get(id)).filter((n): n is string => Boolean(n));
+  if (!named.length) return [];
+  return [`Published office precedence: ${named.join(" before ")}.`];
+}
+
 export function findOffice(
   orgs: Record<string, { offices?: Record<string, OfficeRecord> }> | undefined,
   officeId: string,

@@ -126,6 +126,7 @@ import {
   deepTimeCoEvolve,
   ensureDeepTime,
   inheritAtSuccession,
+  inheritedLines,
   noteHarvestTrajectory,
   orgCreateExtraInfluence,
   pathDependenceIndex,
@@ -179,6 +180,7 @@ import {
   officeLines,
   parseOfficeProfile,
   parseRequiresTrack,
+  precedenceLines,
   publicOffices,
   applyPublishedPrecedence,
   resolveInstitutionGrant,
@@ -1048,6 +1050,9 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
+    // DEEP-TIME §3.4: succession inheritance was written to player state and
+    // never read. The successor can now observe what came with the office.
+    inherited_lines: inheritedLines(pl.inherited),
     focus_lines: (() => {
       const line = focusSelfLine(pl.focus);
       return line ? [line] : [];
@@ -1099,7 +1104,11 @@ export function buildObservation(
     discovery_lines: discoveryLines(pl.discovery),
     office_lines: orgs.flatMap((o) => {
       const names = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
-      const base = officeLines(publicOffices(o.offices, names)).map((line) => `${o.name}: ${line}`);
+      const pub = publicOffices(o.offices, names);
+      const base = officeLines(pub).map((line) => `${o.name}: ${line}`);
+      // INSTITUTIONAL-AUTHORITY "Evidence": the published order that decides
+      // AUTHORITY_CONFLICT shows on the same PLAY surface as the offices.
+      base.push(...precedenceLines(pub, o.office_precedence).map((line) => `${o.name}: ${line}`));
       if (occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length) {
         base.push(`You may trade from ${o.name} treasury.`);
       }
