@@ -28,6 +28,7 @@ import {
   hitPhosphorNode,
   layoutPublicTopology,
   phosphorInlineScript,
+  occupantLabelsForPhosphor,
   phosphorLabelAnchor,
   phosphorCatalogMark,
   playerGlyphId,
@@ -507,6 +508,30 @@ describe("slice 2 — certainty and glyphs", () => {
     ]);
     expect(layout.nodes[0].name).not.toMatch(/[<>]/);
     expect(layout.nodes[0].labels.join("")).not.toMatch(/[<>]/);
+  });
+
+  it("keeps Civic Exchange as the room title and occupant labels as actor handles", () => {
+    expect(occupantLabelsForPhosphor(
+      ["tester", "reach-maint3", "Civic Exchange"],
+      "Civic Exchange",
+      "room.civic-exchange",
+    )).toEqual(["tester", "reach-maint3"]);
+    const layout = layoutPublicTopology([
+      {
+        room_id: "room.civic-exchange",
+        name: "Civic Exchange",
+        players_present: 2,
+        public_player_labels: ["tester", "reach-maint3", "Civic Exchange"],
+      },
+    ]);
+    expect(layout.nodes[0].name).toBe("Civic Exchange");
+    expect(layout.nodes[0].labels).toEqual(["tester", "reach-maint3"]);
+    const ctx = mockCtx();
+    drawPhosphorFrame(ctx, layout, [], 0);
+    const texts = ctx.ops.filter((o) => o.startsWith("fillText:"));
+    expect(texts.some((o) => o.includes("CIVIC EXCHANGE"))).toBe(true);
+    expect(texts.some((o) => o.includes("tester"))).toBe(true);
+    expect(texts.filter((o) => o.includes("CIVIC EXCHANGE")).length).toBe(1);
   });
 });
 

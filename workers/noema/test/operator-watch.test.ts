@@ -108,6 +108,56 @@ describe("operator watch theater", () => {
     expect(JSON.stringify(lines[0])).not.toMatch(/operator_id|op\./);
   });
 
+  it("labels Civic Exchange occupants as system actor handles, never the room name", () => {
+    const snap = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 4,
+      sequence: 8,
+      now: NOW,
+      rooms: {
+        "room.civic-exchange": {
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          exits: [],
+          entities: [],
+        },
+      },
+      players: {
+        "player.tester": {
+          handle: "tester",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+        },
+        "player.reach-maint3": {
+          handle: "reach-maint3",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+          operator_id: "op.token",
+        },
+        "player.ghost-room": {
+          handle: "Civic Exchange",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+      },
+      lines: [],
+    });
+    const civic = (snap.sites as Array<Record<string, unknown>>).find((s) => s.room_id === "room.civic-exchange")!;
+    expect(civic.players_present).toBe(3);
+    expect(civic.player_labels).toEqual(["tester", "reach-maint3"]);
+    expect(civic.player_labels).not.toContain("Civic Exchange");
+    const agents = snap.agents as Array<{ handle: string }>;
+    expect(agents.map((a) => a.handle)).toEqual(["tester", "reach-maint3", "Civic Exchange"]);
+  });
+
   it("hides other operators' owned agents and keeps unowned legacy visible", () => {
     const snap = buildOperatorWatch({
       world_id: "world.test",

@@ -10,8 +10,10 @@ import {
   capVisibleEvents,
   heldFromSnapshot,
   holdHeadline,
+  isRoomNameOccupantLabel,
   phraseWatchEvent,
   projectionIdForEvent,
+  publicOccupantLabel,
   selectNotableEvent,
   watchEventTier,
   type WatchEvent,
@@ -228,6 +230,107 @@ describe("watch-live/1.0 projection contract", () => {
     expect(lines).toContain("A player entered Relay Quarter");
     expect(JSON.stringify(snap)).not.toContain("smoke-agent");
     expect(snap.players_present).toBe(2);
+  });
+
+  it("labels Civic Exchange occupants as system actor handles, never the room name", () => {
+    const civic = {
+      room_id: "room.civic-exchange",
+      name: "Civic Exchange",
+      description: "Central meeting and trade hub.",
+      exits: [],
+      entities: [],
+    };
+    const roomsIn = { "room.civic-exchange": civic };
+    const snap = buildWatchLive({
+      world_id: "world.perihelion-reach-3",
+      cycle: 1,
+      sequence: 8,
+      rooms: roomsIn,
+      players: [
+        {
+          player_id: "player.tester",
+          handle: "tester",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+        },
+        {
+          player_id: "player.reach-maint3",
+          handle: "reach-maint3",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+        },
+      ],
+      events: [
+        src({
+          handle: "tester",
+          player_id: "player.tester",
+          actor_kind: "system",
+          event_type: "MOVE",
+          sequence: 8,
+          payload: { to: "room.civic-exchange", to_room_name: "Civic Exchange" },
+        }),
+      ],
+      now: NOW,
+    });
+    const site = (snap.rooms as Array<Record<string, unknown>>).find((r) => r.room_id === "room.civic-exchange")!;
+    expect(site.name).toBe("Civic Exchange");
+    expect(site.players_present).toBe(2);
+    expect(site.public_player_labels).toEqual(["tester", "reach-maint3"]);
+    expect(site.public_player_labels).not.toContain("Civic Exchange");
+    expect(site.public_player_labels).not.toContain("civic-exchange");
+    const lines = (snap.recent_events as Array<{ line: string; actor_label?: string }>).map((e) => e.line);
+    expect(lines).toContain("tester entered Civic Exchange");
+    expect(lines.join("\n")).not.toMatch(/^Civic Exchange entered/m);
+    expect((snap.recent_events as Array<{ actor_label?: string }>)[0]?.actor_label).toBe("tester");
+    expect(JSON.stringify(site.public_player_labels)).not.toMatch(/Civic Exchange/i);
+  });
+
+  it("keeps occupancy when a handle collides with the room title", () => {
+    const roomsIn = {
+      "room.civic-exchange": {
+        room_id: "room.civic-exchange",
+        name: "Civic Exchange",
+        description: "Hub.",
+        exits: [],
+        entities: [],
+      },
+    };
+    const snap = buildWatchLive({
+      world_id: "w",
+      cycle: 1,
+      sequence: 2,
+      rooms: roomsIn,
+      players: [
+        {
+          player_id: "player.ghost-room",
+          handle: "Civic Exchange",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+        {
+          player_id: "player.tester",
+          handle: "tester",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+      ],
+      events: [],
+      now: NOW,
+    });
+    const site = (snap.rooms as Array<Record<string, unknown>>).find((r) => r.room_id === "room.civic-exchange")!;
+    expect(site.players_present).toBe(2);
+    expect(site.public_player_labels).toEqual(["tester"]);
+    expect(site.public_player_labels).not.toContain("Civic Exchange");
   });
 
   it("does not invent edges to missing rooms", () => {
@@ -902,6 +1005,24 @@ describe("home live excerpt", () => {
     expect(plated.join("\n")).not.toMatch(/entity\.|player\./);
     expect(lines.length).toBeLessThanOrEqual(5);
 
+    const named = homeExcerptFromLive({
+      players_present: 2,
+      rooms: [{
+        room_id: "room.civic-exchange",
+        name: "Civic Exchange",
+        players_present: 2,
+        public_player_labels: ["tester", "reach-maint3", "Civic Exchange"],
+      }],
+      narrative: {
+        now: { line: "tester entered Civic Exchange", room_id: "room.civic-exchange", sequence: 8 },
+        recently: [],
+        world: { players_present: 2 },
+      },
+    });
+    expect(named).toContain("tester, reach-maint3 are there.");
+    expect(named.join("\n")).not.toMatch(/Civic Exchange is there/);
+    expect(named.join("\n")).not.toMatch(/2 Players are there/);
+
     const standing = homeExcerptFromLive({
       players_present: 0,
       public_descriptor_lines: [
@@ -1437,6 +1558,58 @@ describe("driven watch client (§11/§13)", () => {
     }
   });
 
+  it("names Civic Exchange occupants by handle, never the room title", async () => {
+    const client = await bootWatchClient(() =>
+      okResponse(snapshot({
+        players_present: 2,
+        rooms: [{
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          description: "Central meeting and trade hub.",
+          players_present: 2,
+          active: true,
+          public_player_labels: ["tester", "reach-maint3", "Civic Exchange"],
+          player_glyph: "player",
+          glyph: "loc",
+          exits: [],
+          entities: [],
+        }],
+        recent_events: [{
+          sequence: 20,
+          cycle: 4,
+          tier: "NORMAL",
+          projection_id: "agent_move",
+          line: "tester entered Civic Exchange",
+          room_id: "room.civic-exchange",
+          actor_label: "tester",
+        }],
+        notable_event: {
+          sequence: 20,
+          cycle: 4,
+          tier: "NORMAL",
+          projection_id: "agent_move",
+          line: "tester entered Civic Exchange",
+          room_id: "room.civic-exchange",
+          actor_label: "tester",
+        },
+      })),
+    );
+    try {
+      const site = client.$("watch-map").children[0];
+      const body = textOf(site);
+      expect(body).toContain("Civic Exchange");
+      expect(body).toContain("tester");
+      expect(body).toContain("reach-maint3");
+      const inspect = site.children.find((c) => c.tagName === "details")?.children.find((c) => c.className === "watch-inspect");
+      const occupantLine = inspect ? textOf(inspect.children[0]) : "";
+      expect(occupantLine).toContain("tester");
+      expect(occupantLine).toContain("reach-maint3");
+      expect(occupantLine).not.toMatch(/Civic Exchange/);
+    } finally {
+      client.restore();
+    }
+  });
+
   it("keeps the server-side stale envelope intact (rooms and feed still present)", () => {
     const snap = buildWatchLive({
       world_id: "w",
@@ -1467,5 +1640,19 @@ describe("WATCH upgrade does not change other planes", () => {
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("system_actors");
     expect(watchHtml()).not.toContain("ADMIN / operations");
+    expect(watchHtml()).toContain("occupantLabelsForRoom");
+  });
+});
+
+describe("occupant labels are actor handles, never room titles", () => {
+  const civic = [{ name: "Civic Exchange", room_id: "room.civic-exchange" }];
+
+  it("accepts system actor handles and rejects the room name", () => {
+    expect(publicOccupantLabel({ handle: "tester", player_id: "player.tester" }, civic)).toBe("tester");
+    expect(publicOccupantLabel({ handle: "reach-maint3", player_id: "player.reach-maint3" }, civic)).toBe("reach-maint3");
+    expect(publicOccupantLabel({ handle: "Civic Exchange", player_id: "player.ghost" }, civic)).toBeNull();
+    expect(publicOccupantLabel({ handle: "civic-exchange", player_id: "player.ghost" }, civic)).toBeNull();
+    expect(isRoomNameOccupantLabel("Civic Exchange", civic)).toBe(true);
+    expect(isRoomNameOccupantLabel("tester", civic)).toBe(false);
   });
 });

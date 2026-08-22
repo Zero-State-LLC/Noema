@@ -206,22 +206,33 @@ export function buildOperatorWatch(input: {
     };
   });
   const byRoom = new Map<string, string[]>();
+  const presentByRoom = new Map<string, number>();
   for (const a of actors) {
     if (!a.room_id || !a.present || !a.entered) continue;
+    presentByRoom.set(a.room_id, (presentByRoom.get(a.room_id) || 0) + 1);
+    const room = publicRooms[a.room_id];
+    const handle = String(a.handle || "").trim();
+    const n = handle.toLowerCase();
+    const roomName = String(room?.name || "").trim().toLowerCase();
+    const slug = String(a.room_id || "").replace(/^room\./, "").toLowerCase();
+    if (!handle || n.startsWith("room.") || (roomName && n === roomName) || n === String(a.room_id || "").toLowerCase() || n === slug) {
+      continue;
+    }
     const list = byRoom.get(a.room_id) || [];
-    list.push(a.handle);
+    list.push(handle);
     byRoom.set(a.room_id, list);
   }
   const sites: OperatorWatchSite[] = Object.values(publicRooms).map((r) => {
     const labels = byRoom.get(r.room_id) || [];
+    const present = presentByRoom.get(r.room_id) || 0;
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
     const entities = (r.entities || []).filter((e) => e && e.hidden !== true);
     return {
       room_id: r.room_id,
       name: r.name,
       glyph: glyphForRoom(),
-      players_present: labels.length,
-      active: labels.length > 0,
+      players_present: present,
+      active: present > 0,
       player_labels: labels,
       exits: exits.map((x) => ({
         direction: x.direction,

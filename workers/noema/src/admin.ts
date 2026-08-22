@@ -931,7 +931,15 @@ export function adminHtml(): string {
           meta.textContent = exits.map((x) => (x.direction || "") + " → " + (x.to_room_name || "")).join(" · ");
           btn.append(meta);
         }
-        const labels = Array.isArray(r.player_labels) ? r.player_labels : [];
+        const roomName = String(r.name || "").trim().toLowerCase();
+        const roomId = String(r.room_id || "").trim().toLowerCase();
+        const slug = roomId.replace(/^room\./, "");
+        const labels = (Array.isArray(r.player_labels) ? r.player_labels : [])
+          .map((h) => String(h || "").trim())
+          .filter((h) => {
+            const n = h.toLowerCase();
+            return h && !n.startsWith("room.") && n !== roomName && n !== roomId && n !== slug;
+          });
         if (labels.length) {
           const meta = document.createElement("div");
           meta.className = "meta";

@@ -103,6 +103,49 @@ describe("watch-map/1.0", () => {
     expect(text).not.toMatch(/path_dependence_index|cascading_risk|stock_velocity|scar_persistence/);
   });
 
+  it("passes occupant handles through the map and never names the room as a player", () => {
+    const live = buildWatchLive({
+      world_id: "world.test",
+      cycle: 4,
+      sequence: 9,
+      rooms: {
+        "room.civic-exchange": {
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          description: "Hub.",
+          exits: [],
+          entities: [],
+        },
+      },
+      players: [
+        {
+          player_id: "player.tester",
+          handle: "tester",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: Date.now(),
+          actor_kind: "system",
+        },
+        {
+          player_id: "player.reach-maint3",
+          handle: "reach-maint3",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: Date.now(),
+          actor_kind: "system",
+        },
+      ],
+      events: [],
+    });
+    const map = buildWatchMap({ live });
+    const nodes = (map.base as { rooms: Array<{ name?: string; public_player_labels?: string[]; players_present?: number }> }).rooms;
+    const civic = nodes.find((n) => n.name === "Civic Exchange");
+    expect(civic?.players_present).toBe(2);
+    expect(civic?.public_player_labels).toEqual(["tester", "reach-maint3"]);
+    expect(civic?.public_player_labels).not.toContain("Civic Exchange");
+    expect(watchMapHtml()).toContain("public_player_labels");
+  });
+
   it("page builds DOM safely and the JSON alias is public-read", () => {
     const html = watchMapHtml();
     expect(html).not.toContain(".innerHTML");
