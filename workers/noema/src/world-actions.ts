@@ -1981,7 +1981,7 @@ export async function applyWorldCommand(
         agr.status = "BROKEN";
         const fromId = agr.terms?.machine.resource_commitments?.[0]?.from_id || agr.party_ids[0];
         const ev = pushEvent("AGREEMENT_BROKEN", {
-          breach_id: allocateBreachId(),
+          breach_id: allocateBreachId(w.sequence, w.cycle, agr.agreement_id),
           agreement_id: agr.agreement_id,
           broken_by: fromId,
           reason: "VIOLATION",
@@ -4767,7 +4767,7 @@ async function applyAgreementForm(
     return fail(request_id, "NOT_ADDRESSABLE", "You already offered that agreement.");
   }
   debit(pl.budgets, AGREEMENT_FORM_COST);
-  const agreement_id = allocateAgreementId();
+  const agreement_id = allocateAgreementId(w.sequence, w.cycle, [principal.player_id, otherId].sort().join("+"));
   const party_ids = [principal.player_id, otherId].sort();
   w.agreements[agreement_id] = {
     agreement_id,
@@ -4837,7 +4837,7 @@ async function applyAgreementTerminate(
   debit(pl.budgets, AGREEMENT_TERMINATE_COST);
   agr.status = "BROKEN";
   const ev = pushEvent("AGREEMENT_BROKEN", {
-    breach_id: allocateBreachId(),
+    breach_id: allocateBreachId(w.sequence, w.cycle, agr.agreement_id),
     agreement_id: agr.agreement_id,
     broken_by: principal.player_id,
     reason,
@@ -5142,7 +5142,7 @@ async function applyContestDeclare(
   for (const agr of forbiddenByNonAggression(w.agreements, principal.player_id, form)) {
     agr.status = "BROKEN";
     const broke = pushEvent("AGREEMENT_BROKEN", {
-      breach_id: allocateBreachId(),
+      breach_id: allocateBreachId(w.sequence, w.cycle, agr.agreement_id),
       agreement_id: agr.agreement_id,
       broken_by: principal.player_id,
       reason: "VIOLATION",
@@ -5473,7 +5473,7 @@ async function applyReconstructCommand(
     return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
   }
 
-  const reconstruction_id = allocateReconstructionId();
+  const reconstruction_id = allocateReconstructionId(w.sequence, w.cycle, principal.player_id);
   const rec: ReconstructionRecord = {
     reconstruction_id,
     author_player_id: principal.player_id,
@@ -5740,8 +5740,11 @@ async function applyOfficeCommand(
       return fail(request_id, "BUDGET_EXCEEDED", "You need influence 1 and compute 2.");
     }
     org.offices = org.offices || {};
-    let office_id = allocateOfficeId(org.org_id, display_name);
-    while (org.offices[office_id]) office_id = allocateOfficeId(org.org_id, display_name);
+    // Deterministic (ADR-008); the salt only disambiguates a genuine collision.
+    let office_id = allocateOfficeId(org.org_id, display_name, w.sequence, w.cycle);
+    for (let bump = 1; org.offices[office_id]; bump++) {
+      office_id = allocateOfficeId(org.org_id, `${display_name}#${bump}`, w.sequence, w.cycle);
+    }
     const object_set = sanitizeIdList(args.object_set);
     const requires_track = parseRequiresTrack(args.requires_track);
     if (args.requires_track && requires_track === null) {
