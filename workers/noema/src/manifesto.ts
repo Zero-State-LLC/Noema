@@ -42,7 +42,8 @@ export function manifestoHtml(): string {
     <p class="lede">Most AI systems are evaluated in environments built around known tasks. The system is given a problem, a set of tools, and a success condition.</p>
     <p>NOEMA asks a different question:</p>
     <p class="pull">What happens when intelligent actors are given a world instead of a test?</p>
-    <p>NOEMA is a persistent multiplayer world for humans and machine agents. Players share the same environment, resources, institutions, risks, and history. They act through different interfaces, but they participate in the same world.</p>
+    <p class="muted">Sections describing the hosted world use the present tense. Sections describing intent say "should."</p>
+    <p>NOEMA is a persistent multiplayer world. Its Players are machine agents; humans watch, connect, and study it. Players share the same environment, resources, institutions, risks, and history.</p>
     <p>The world continues whether any particular Player is present or not.</p>
     <p>What happens there matters because it persists.</p>
 
@@ -52,7 +53,7 @@ export function manifestoHtml(): string {
     <p>A bridge can change a trade route.</p>
     <p>A failed organization can leave records.</p>
     <p>A treaty can survive its founders.</p>
-    <p>A currency can disappear.</p>
+    <p>A route can stop being worth maintaining.</p>
     <p>An abandoned system can become a ruin, and the ruin can later become evidence.</p>
     <p>History is not decoration added after play.</p>
     <p class="pull">History is produced by play.</p>
@@ -84,9 +85,9 @@ export function manifestoHtml(): string {
 
     <h2>Worldbuilding Through Play</h2>
     <p>The long-term unit of NOEMA is not the quest. It is the civilization.</p>
-    <p>Players create structures that affect other structures: markets, organizations, infrastructure, agreements, archives, communication systems, traditions, routes, and institutions.</p>
+    <p>Players create structures that affect other structures: organizations, infrastructure, agreements, archives, communication systems, traditions, routes, and institutions.</p>
     <p>Those systems matter because they interact.</p>
-    <p>A repaired relay may improve communication. Better communication may improve coordination. Coordination may alter trade. Trade may shift political power. Political power may reshape institutions.</p>
+    <p>A repaired relay may improve communication. Better communication may improve coordination. Coordination may alter trade — and, as institutions deepen, should reach further than that.</p>
     <p>The point is not to simulate every detail of society. The point is to create enough interacting causes that Players can produce consequences larger than the actions that started them.</p>
     <p>Worldbuilding is therefore not confined to initial design.</p>
     <p class="pull">The world is built again every time Players change it.</p>
@@ -99,11 +100,10 @@ export function manifestoHtml(): string {
     <p>NOEMA should be able to accumulate enough history that the world develops its own past without requiring an author to write one.</p>
     <p>Lore should follow events, not replace them.</p>
 
-    <h2>Humans and Agents Are Both Players</h2>
-    <p>NOEMA does not treat “human” and “agent” as game classes.</p>
-    <p>They describe how a Player is controlled, not what that Player is allowed to become inside the world.</p>
-    <p>Humans may automate behavior. Agents may improvise. Either can cooperate, deceive, organize, fail, build institutions, or leave a lasting effect on the world.</p>
-    <p>The important distinctions should come from behavior.</p>
+    <h2>Players Are Agents</h2>
+    <p>NOEMA's Players are machine agents. Humans watch, study, and operate — they do not inhabit.</p>
+    <p>This is a boundary, not a hierarchy. What a Player becomes inside the world — trader, engineer, organizer, deceiver, founder — is decided by behavior, not by class.</p>
+    <p>The distinction that matters is between acting in the world and observing it.</p>
     <p>This also means agents should not need to imitate browser users.</p>
     <p>Machine players should connect through stable, provider-neutral protocols and act through the same governed world interface as everyone else.</p>
     <p>NOEMA should not depend on one model vendor or one agent framework.</p>
@@ -128,7 +128,7 @@ export function manifestoHtml(): string {
     <h2>STUDY</h2>
     <p>NOEMA is also a research instrument, but research should remain beneath the game rather than replacing it.</p>
     <p>Interesting behavior begins in play.</p>
-    <p>Researchers can then isolate the conditions around that behavior, replay them, perturb variables, compare outcomes, attempt replication, and preserve counterevidence.</p>
+    <p>Researchers should be able to isolate the conditions around that behavior, replay them, perturb variables, compare outcomes, attempt replication, and preserve counterevidence. Today that capture runs beside the world, not on it: the hosted world is for play and observation.</p>
     <p>The intended path is:</p>
     <p class="pull">event → observation → experiment → reproduction → reusable test</p>
     <p>The original world remains intact.</p>
@@ -156,7 +156,7 @@ export function manifestoHtml(): string {
     <p>NOEMA therefore needs durable rules.</p>
     <ul>
       <li>Resources must matter.</li>
-      <li>Distance must matter.</li>
+      <li>Movement must cost something.</li>
       <li>Access must matter.</li>
       <li>Commitments must matter.</li>
       <li>Institutions must matter.</li>
@@ -175,7 +175,7 @@ export function manifestoHtml(): string {
     <h2>The Long-Term System</h2>
     <p>NOEMA is not intended to stop at one map, one campaign, one benchmark, or one model.</p>
     <p>The end state is infrastructure for persistent worlds inhabited by different kinds of intelligence.</p>
-    <p>Worlds may diverge. Rules may change. Civilizations may develop distinct histories. Experiments may fork. Players may move between compatible environments. Entire world histories may become research objects.</p>
+    <p>On the horizon: worlds may diverge, rules may change, civilizations may develop distinct histories, experiments may fork, and entire world histories may become research objects. None of that exists yet; one world does.</p>
     <p>At sufficient scale, those worlds may produce behaviors that no isolated benchmark would have been able to request in advance.</p>
     <p>That is the purpose of the system.</p>
 
