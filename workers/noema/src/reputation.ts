@@ -4,6 +4,7 @@ import type { PlayerRuntime } from "./actions";
 import type { ActionSignal } from "./signal";
 import { MUTATION_GROUNDING, mutationGroundingOk } from "./signal";
 import { formanCascadingRisk, type InteractionEdge } from "./curvature";
+import { orgCreateExtraInfluence, type DeepTimeSlice } from "./deep-time";
 
 export type SignalingStyle = "grounded-first" | "compact" | "verbose";
 
@@ -266,7 +267,10 @@ export function semanticAttach(
       ? { self_image: pl.image_score || 0, self_second_order: pl.second_order || 0 }
       : undefined,
     active_norms: {
-      org_create_influence: 5,
+      // The live cost, ratchet included — must match the ORG_CREATE debit in
+      // world-actions (COSTS.ORG_CREATE.influence + orgCreateExtraInfluence).
+      // A hardcoded 5 misreported the economy once any org existed.
+      org_create_influence: 5 + orgCreateExtraInfluence(w as unknown as DeepTimeSlice),
       harvest_pressure: co?.harvest_pressure?.[rid] || 0,
       last_ratchet: (w.genesis_evolutions || []).slice(-1)[0]?.kind,
     },
