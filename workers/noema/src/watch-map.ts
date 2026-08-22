@@ -55,12 +55,26 @@ export type WatchMapScarIn = {
 };
 
 export type WatchMapHealthIn = {
-  scar_persistence?: number;
   reconstruction_fidelity?: number;
-  path_dependence_index?: number;
-  stock_velocity?: number;
-  cascading_risk?: number;
 };
+
+/** Public scars below this floor are not public elsewhere (deep-time publicScarsForRoom). */
+const SCAR_PUBLIC_FLOOR = 0.05;
+
+/** WATCH-LIGHTWEIGHT-SPECTATOR §7: bands, never raw counters/amounts, on the public door. */
+export function scarBand(total: number): "faint" | "marked" | "deep" | null {
+  if (!(total >= SCAR_PUBLIC_FLOOR)) return null;
+  if (total < 0.2) return "faint";
+  if (total < 0.6) return "marked";
+  return "deep";
+}
+
+export function pressureBand(value: number): "low" | "moderate" | "high" | null {
+  if (!(value > 0)) return null;
+  if (value <= 5) return "low";
+  if (value <= 15) return "moderate";
+  return "high";
+}
 
 export function buildWatchMap(opts: {
   live: Record<string, unknown>;
@@ -74,7 +88,9 @@ export function buildWatchMap(opts: {
   const rooms = Array.isArray(live.rooms) ? (live.rooms as Array<Record<string, unknown>>) : [];
   const events = Array.isArray(live.recent_events) ? (live.recent_events as Array<Record<string, unknown>>) : [];
   const narrative = live.narrative && typeof live.narrative === "object" ? (live.narrative as Record<string, unknown>) : {};
-  const publicScars = (opts.scars || []).filter((s) => s.visibility === "public");
+  const publicScars = (opts.scars || []).filter(
+    (s) => s.visibility === "public" && s.strength >= SCAR_PUBLIC_FLOOR,
+  );
   const scarByRoom: Record<string, number> = {};
   for (const s of publicScars) {
     if (!s.room_id) continue;
@@ -94,13 +110,24 @@ export function buildWatchMap(opts: {
       x: col,
       y: row,
       players_present: present,
-      scar_residue: Math.round((scarByRoom[room_id] || 0) * 100) / 100,
-      harvest_pressure: pressure[room_id] || 0,
-      protocol_strength: protocol[room_id] || 0,
+      // §7: bands only. Raw strengths/counters never reach the public wire.
+      scar_band: scarBand(scarByRoom[room_id] || 0),
+      pressure_band: pressureBand(pressure[room_id] || 0),
+      protocol_band: pressureBand(protocol[room_id] || 0),
       entity_count: r.entity_count || 0,
       active: Boolean(r.active),
     };
   });
+  // §7 "No secret rooms": derived overlays are scoped to the rooms the public
+  // snapshot already exposes — never to the raw source maps, which may carry
+  // hidden-room keys (harvest_pressure covers every room ever harvested).
+  const stateByPublicRoom: Record<string, { scar_band: string | null; pressure_band: string | null }> = {};
+  for (const n of nodes) {
+    if (!n.room_id) continue;
+    if (n.scar_band || n.pressure_band) {
+      stateByPublicRoom[n.room_id] = { scar_band: n.scar_band, pressure_band: n.pressure_band };
+    }
+  }
 
   const publicFid = (opts.reconstructions || [])
     .filter((r) => r.visibility === "PUBLIC" || r.visibility === "public")
@@ -110,15 +137,14 @@ export function buildWatchMap(opts: {
     (publicFid.length ? publicFid.reduce((a, b) => a + b, 0) / publicFid.length : 0);
   const scar_activity = publicScars.reduce((a, s) => a + s.strength, 0);
 
+  // §7 "No research metrics": path-dependence, cascading-risk, and velocity
+  // scalars are EWM/research telemetry and stay off the public door. Bands and
+  // public ratios only.
   const health = {
     players_present: live.players_present || 0,
     cycle: live.cycle || 0,
-    scar_activity: Math.round(scar_activity * 100) / 100,
+    scar_band: scarBand(scar_activity),
     reconstruction_fidelity: Math.round(reconstruction_fidelity * 100) / 100,
-    path_dependence_index: opts.health?.path_dependence_index || 0,
-    cascading_risk: opts.health?.cascading_risk || 0,
-    stock_velocity: opts.health?.stock_velocity || 0,
-    scar_persistence: opts.health?.scar_persistence || 0,
   };
 
   const river = events.slice(0, 12).map((e) => ({
@@ -146,14 +172,12 @@ export function buildWatchMap(opts: {
     layers: watchMapLayerCatalog(),
     base: { rooms: nodes },
     activity: { occupied: nodes.filter((n) => n.players_present > 0).map((n) => n.room_id) },
-    state: { scar_residue: scarByRoom, harvest_pressure: pressure },
-    entity: { nodes: nodes.map((n) => ({ room_id: n.room_id, entity_count: n.entity_count, scar_residue: n.scar_residue })) },
+    state: { rooms: stateByPublicRoom },
+    entity: { nodes: nodes.map((n) => ({ room_id: n.room_id, entity_count: n.entity_count, scar_band: n.scar_band })) },
     event: { river },
     narrative: { highlight },
     health,
     delight: { moments: highlight ? [highlight] : [] },
-    density: "medium",
-    reduced_motion: true,
     note: "Mapping projection is never world truth. Lightweight /watch remains the default theater.",
   };
 }
