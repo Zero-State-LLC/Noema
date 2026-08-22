@@ -82,7 +82,9 @@ jobs:
                   diagnosis = nodes.length
                     ? 'The token CAN read ProjectsV2, so PROJECT_NUMBER is simply wrong. Available: ' +
                       nodes.map(n => `#${n.number} "${n.title}"${n.closed ? ' (closed)' : ''}`).join(', ')
-                    : `The token can read ProjectsV2 but ${process.env.ORG_NAME} has none. Remove this workflow or create a board.`;
+                    : `The query returned no boards for ${process.env.ORG_NAME}. That means none are VISIBLE to this token, ` +
+                      'which is not proof none exist — an org board can read as empty to a token without `project` scope ' +
+                      'rather than erroring. Confirm with a PROJECT_TOKEN before concluding the board is gone.';
                 } catch (error) {
                   const msg = String(error.message || error);
                   diagnosis = /scope/i.test(msg)
