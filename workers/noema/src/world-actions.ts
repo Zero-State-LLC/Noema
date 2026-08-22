@@ -190,6 +190,12 @@ import {
   type OfficeRecord,
 } from "./offices";
 import {
+  evaluateGovernanceDecision,
+  governanceLines,
+  parseGovernanceRule,
+  type GovernanceDecisionRecord,
+} from "./governance";
+import {
   allocateScopeId,
   canActivate,
   conditionHolds,
@@ -1109,6 +1115,10 @@ export function buildObservation(
       // INSTITUTIONAL-AUTHORITY "Evidence": the published order that decides
       // AUTHORITY_CONFLICT shows on the same PLAY surface as the offices.
       base.push(...precedenceLines(pub, o.office_precedence).map((line) => `${o.name}: ${line}`));
+      // GC4-S8: members see that a rule exists, who decides, and how much it
+      // covers — never rule text, votes, or quorum counts. Nothing to WATCH.
+      const isMember = (o.members || []).some((m) => m.agent_id === principal.player_id);
+      base.push(...governanceLines(o.governance_rule, pub, isMember).map((line) => `${o.name}: ${line}`));
       if (occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length) {
         base.push(`You may trade from ${o.name} treasury.`);
       }
@@ -5975,6 +5985,120 @@ async function applyOfficeCommand(
     const org_id = String(args.org_id || "").trim();
     const office_id = String(args.office_id || "").trim();
     const notice = String(args.notice || "").trim();
+
+    // ——— GC4-S8: publish a governance rule (RFC-0124). Configuration on an
+    // existing organization; no new verb, no new event.
+    if (args.governance_rule) {
+      const org = w.organizations[org_id];
+      if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+      if (!isOrgOfficer(org, principal.player_id)) {
+        return fail(request_id, "FORBIDDEN", "Only a founder or officer may publish a rule.");
+      }
+      const parsed = parseGovernanceRule(args.governance_rule, org.org_id, org.offices);
+      if (!parsed.ok) return fail(request_id, "INVALID_REQUEST", parsed.message);
+      if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+      org.governance_rule = { ...parsed.rule, published_by: principal.player_id, published_cycle: w.cycle };
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_OFFICE_ACT,
+        reason: "ORG_OFFICE_ACT",
+      });
+      const evPub = pushEvent("ENTITY_UPDATE", {
+        entity_id: org.org_id,
+        set: {
+          governance_rule_id: org.governance_rule.rule_id,
+          institution_id: org.org_id,
+          office_kind: "INSTITUTION_RULE",
+        },
+        unset: [],
+      });
+      await settleEv(evPub);
+      const okPub = success(w, principal, request_id, events, `A governance rule is published for ${org.name}.`, false);
+      w.seen_idempotency[idem] = okPub;
+      return okPub;
+    }
+
+    // ——— GC4-S8: decide under the published rule. The rule constrains and
+    // records who decides; it never carries the operation out (RFC-0124 §6).
+    if (args.rule_decision) {
+      const org = w.organizations[org_id];
+      if (!org || org.status !== "ACTIVE") return fail(request_id, "NOT_FOUND", "Organization not found.");
+      const req = args.rule_decision as {
+        target?: { object_id?: string; room_id?: string; member_id?: string };
+        concurring?: number;
+      };
+      // Every office this player occupies here; the rule's decision.offices
+      // decides which of them count.
+      const acting = Object.values(org.offices || {})
+        .filter((o) => o.status === "OCCUPIED" && o.holder_player_id === principal.player_id)
+        .map((o) => o.office_id);
+      const vacant = Object.values(org.offices || {})
+        .filter((o) => o.status === "VACANT")
+        .map((o) => o.office_id);
+      const verdict = evaluateGovernanceDecision({
+        rule: org.governance_rule,
+        org,
+        actingOffices: acting,
+        vacantOffices: vacant,
+        concurring: Number(req?.concurring ?? 1),
+        target: req?.target || {},
+        // The runtime's own list of what it can carry out: a rule naming
+        // anything else is unknown_enforcement, per RFC-0124.
+        knownOperations: [...PROTOCOL_VERBS],
+      });
+      if (!verdict.ok) {
+        const code = verdict.reason === "authority_conflict" ? "AUTHORITY_CONFLICT" : "FORBIDDEN";
+        return fail(request_id, code, verdict.message);
+      }
+      if (!canPay(pl.budgets, COSTS.ORG_OFFICE_ACT)) {
+        return fail(request_id, "BUDGET_EXCEEDED", "You need compute 1.");
+      }
+      debit(pl.budgets, COSTS.ORG_OFFICE_ACT);
+      const target =
+        req?.target?.object_id || req?.target?.room_id || req?.target?.member_id || "";
+      const record: GovernanceDecisionRecord = {
+        rule_id: org.governance_rule!.rule_id,
+        decided_by: principal.player_id,
+        decided_cycle: w.cycle,
+        operation: verdict.operation,
+        target,
+        concurring: Number(req?.concurring ?? 1),
+      };
+      org.governance_decisions = [...(org.governance_decisions || []), record].slice(-8);
+      if (org.governance_rule!.evidence.record === "PUBLIC_NOTICE") {
+        org.public_notice = `${org.name} decided ${verdict.operation} for ${target}.`.slice(0, 280);
+      }
+      pushEvent("BUDGET_CONSUMED", {
+        player_id: principal.player_id,
+        cost_paid: COSTS.ORG_OFFICE_ACT,
+        reason: "ORG_OFFICE_ACT",
+      });
+      const evDec = pushEvent("ENTITY_UPDATE", {
+        entity_id: org.org_id,
+        set: {
+          governance_decision: verdict.operation,
+          governance_target: target,
+          institution_id: org.org_id,
+          office_kind: "INSTITUTION_RULE",
+        },
+        unset: [],
+      });
+      await settleEv(evDec);
+      const okDec = success(
+        w,
+        principal,
+        request_id,
+        events,
+        `The rule authorizes ${verdict.operation} for ${target}. The office still carries it out.`,
+        false,
+      );
+      w.seen_idempotency[idem] = okDec;
+      return okDec;
+    }
+
     let org = org_id ? w.organizations[org_id] : undefined;
     let office: OfficeRecord | undefined;
     if (office_id) {

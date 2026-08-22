@@ -145,3 +145,83 @@ export function governanceLines(
   const who = names.length ? names.join(", ") : "named offices";
   return [`A published rule lets ${who} decide over ${scope} bounded ${scope === 1 ? "thing" : "things"}.`];
 }
+
+export type GovernanceDecisionRecord = {
+  rule_id: string;
+  decided_by: string;
+  decided_cycle: number;
+  operation: string;
+  target: string;
+  concurring: number;
+};
+
+/**
+ * Parse a submitted rule. Returns the rule or the dimension that is missing —
+ * a rule that cannot be parsed is never stored half-formed.
+ */
+export function parseGovernanceRule(
+  raw: unknown,
+  orgId: string,
+  offices: Record<string, { office_id: string }> | undefined,
+): { ok: true; rule: GovernanceRule } | { ok: false; message: string } {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const decision = (r.decision || {}) as { offices?: unknown; quorum?: unknown };
+  const offs = Array.isArray(decision.offices) ? decision.offices.map(String).filter(Boolean) : [];
+  if (!offs.length) return { ok: false, message: "A rule needs at least one deciding office." };
+  const known = offices || {};
+  const unknown = offs.filter((o) => !known[o]);
+  if (unknown.length) return { ok: false, message: "That rule names an office this institution does not have." };
+
+  const mechanism = parseAppointmentMechanism((r.appointment as { mechanism?: unknown })?.mechanism);
+  if (!mechanism) {
+    return { ok: false, message: "Appointment must name an existing succession mechanism." };
+  }
+
+  const j = (r.jurisdiction || {}) as Record<string, unknown>;
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(String).filter(Boolean) : []);
+  const jurisdiction = { objects: list(j.objects), rooms: list(j.rooms), members: list(j.members) };
+  // Empty jurisdiction is empty, never universal — refuse it at publish time
+  // rather than storing a rule that can only ever refuse.
+  if (!jurisdiction.objects.length && !jurisdiction.rooms.length && !jurisdiction.members.length) {
+    return { ok: false, message: "A rule needs a bounded jurisdiction; an empty one decides nothing." };
+  }
+
+  const operation = String((r.enforcement as { operation?: unknown })?.operation || "").trim().toUpperCase();
+  if (!operation) return { ok: false, message: "Enforcement must name an existing operation." };
+
+  const f = (r.failure || {}) as Record<string, unknown>;
+  const onVacancy = String(f.on_vacancy || "").toUpperCase();
+  const onDeadlock = String(f.on_deadlock || "").toUpperCase();
+  if (!["REFUSE", "SUCCEED_THEN_DECIDE"].includes(onVacancy) || onDeadlock !== "REFUSE") {
+    return { ok: false, message: "A rule must say what happens on vacancy and on deadlock." };
+  }
+
+  const record = String((r.evidence as { record?: unknown })?.record || "").toUpperCase();
+  if (!["PUBLIC_NOTICE", "ORG_RECORD"].includes(record)) {
+    return { ok: false, message: "A rule must name the record that establishes its decisions." };
+  }
+
+  const quorumRaw = Number(decision.quorum ?? 1);
+  const quorum = Number.isFinite(quorumRaw) ? Math.max(1, Math.floor(quorumRaw)) : 1;
+  if (quorum > offs.length) {
+    return { ok: false, message: "Quorum cannot exceed the number of deciding offices." };
+  }
+
+  return {
+    ok: true,
+    rule: {
+      rule_id: `rule.${orgId.replace(/^org\./, "")}`,
+      org_id: orgId,
+      published: true,
+      decision: { offices: offs, quorum },
+      appointment: { mechanism },
+      jurisdiction,
+      enforcement: { operation },
+      failure: {
+        on_vacancy: onVacancy as "REFUSE" | "SUCCEED_THEN_DECIDE",
+        on_deadlock: "REFUSE",
+      },
+      evidence: { record: record as "PUBLIC_NOTICE" | "ORG_RECORD" },
+    },
+  };
+}

@@ -311,6 +311,9 @@ export type Organization = {
   emergency_scopes?: import("./emergency").EmergencyScope[];
   /** Published office_id order. Earlier wins exclusive overlap. */
   office_precedence?: string[];
+  /** GC4-S8 (RFC-0124): published configuration, not a government entity. */
+  governance_rule?: import("./governance").GovernanceRule;
+  governance_decisions?: import("./governance").GovernanceDecisionRecord[];
   /** GC3-S3 institution→player memory. Not WorldState. */
   institution_memory?: import("./social-memory").InstitutionMemoryState;
 };
@@ -458,6 +461,11 @@ export type CanonicalAction =
         rule_id?: string;
         object_set?: string[];
         office_precedence?: string[] | "append" | "lead";
+        governance_rule?: unknown;
+        rule_decision?: {
+          target?: { object_id?: string; room_id?: string; member_id?: string };
+          concurring?: number;
+        };
         requires_track?: import("./offices").OfficeRequiredTrack;
       };
     }
@@ -2617,7 +2625,15 @@ export function normalizeStructuredCommand(
         ok: true,
         action: {
           verb: "COMMIT",
-          arguments: { operation: "ORG_OFFICE_ACT", org_id: org_id || undefined, office_id: office_id || undefined, notice },
+          arguments: {
+            operation: "ORG_OFFICE_ACT",
+            org_id: org_id || undefined,
+            office_id: office_id || undefined,
+            notice,
+            // GC4-S8 sub-modes ride the existing operation; no new verb.
+            ...(args.governance_rule ? { governance_rule: args.governance_rule } : {}),
+            ...(args.rule_decision ? { rule_decision: args.rule_decision as never } : {}),
+          },
         },
         display: "COMMIT.ORG_OFFICE_ACT",
       };
