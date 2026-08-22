@@ -126,6 +126,7 @@ import {
   deepTimeCoEvolve,
   ensureDeepTime,
   inheritAtSuccession,
+  inheritedLines,
   noteHarvestTrajectory,
   orgCreateExtraInfluence,
   pathDependenceIndex,
@@ -179,6 +180,7 @@ import {
   officeLines,
   parseOfficeProfile,
   parseRequiresTrack,
+  precedenceLines,
   publicOffices,
   applyPublishedPrecedence,
   resolveInstitutionGrant,
@@ -920,6 +922,16 @@ export function buildObservation(
           o.offices,
           Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
         ),
+        // INSTITUTIONAL-AUTHORITY: the published decision rule that resolves
+        // AUTHORITY_CONFLICT must be observable, not just enforced.
+        office_precedence: (o.office_precedence || []).filter(Boolean),
+        precedence_lines: precedenceLines(
+          publicOffices(
+            o.offices,
+            Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
+          ),
+          o.office_precedence,
+        ),
         public_notice: o.public_notice,
         treasury: occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length
           ? { ...ensureTreasury(o) }
@@ -1048,6 +1060,9 @@ export function buildObservation(
     })),
     consequence,
     practice_lines: practiceLines(pl.practice, w.cycle),
+    // DEEP-TIME §3.4: succession inheritance was written to player state and
+    // never read. The successor can now observe what came with the office.
+    inherited_lines: inheritedLines(pl.inherited),
     focus_lines: (() => {
       const line = focusSelfLine(pl.focus);
       return line ? [line] : [];

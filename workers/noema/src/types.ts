@@ -327,6 +327,8 @@ export interface Observation {
   play_text?: string;
   /** GC1 self-only practice lines. Never put first-person lines on WATCH. */
   practice_lines?: string[];
+  /** DEEP-TIME §3.4 succession inheritance, self-scoped and id-free. */
+  inherited_lines?: string[];
   /** GC8-S1 self-only worn holdings. Never put on WATCH. */
   lot_lines?: string[];
   /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
