@@ -66,9 +66,32 @@ jobs:
                 core.warning(`Could not read project #${projectNumber}: ${error.message || error}`);
               }
               if (!project) {
+                // Two very different causes look identical from the outside: the
+                // number is stale, or the token cannot see ProjectsV2 at all.
+                // Probe once so the annotation says which, instead of leaving a
+                // human to guess.
+                let diagnosis = '';
+                try {
+                  const list = await github.graphql(`
+                    query($org:String!) {
+                      organization(login:$org) {
+                        projectsV2(first:20) { nodes { number title closed } }
+                      }
+                    }`, { org: process.env.ORG_NAME });
+                  const nodes = list?.organization?.projectsV2?.nodes || [];
+                  diagnosis = nodes.length
+                    ? 'The token CAN read ProjectsV2, so PROJECT_NUMBER is simply wrong. Available: ' +
+                      nodes.map(n => `#${n.number} "${n.title}"${n.closed ? ' (closed)' : ''}`).join(', ')
+                    : `The token can read ProjectsV2 but ${process.env.ORG_NAME} has none. Remove this workflow or create a board.`;
+                } catch (error) {
+                  const msg = String(error.message || error);
+                  diagnosis = /scope/i.test(msg)
+                    ? 'The token CANNOT read ProjectsV2 — this is a permissions problem, not a wrong number. ' +
+                      'The default GITHUB_TOKEN never can; set a PROJECT_TOKEN secret with `project` scope.'
+                    : `Could not enumerate projects either: ${msg}`;
+                }
                 core.warning(
-                  `Project #${projectNumber} in ${process.env.ORG_NAME} was not found or is not visible to this token. ` +
-                  'Check PROJECT_NUMBER, or set a PROJECT_TOKEN secret with `project` scope.'
+                  `Project #${projectNumber} in ${process.env.ORG_NAME} was not found or is not visible. ${diagnosis}`
                 );
               }
             }
