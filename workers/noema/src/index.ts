@@ -53,6 +53,7 @@ import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
 import { providerOverview, verifyResend, verifySupabase } from "./provider-management";
+import { robotsTxt, sitemapXml } from "./seo";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
@@ -88,6 +89,19 @@ function html(body: string, status = 200, cache = "no-store"): Response {
       "x-frame-options": "DENY",
       "referrer-policy": "no-referrer",
       "content-security-policy": HTML_CSP,
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+    },
+  });
+}
+
+function publicText(body: string, contentType: string, cache = "public, max-age=300"): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": contentType,
+      "cache-control": cache,
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
       "strict-transport-security": "max-age=31536000; includeSubDomains",
     },
   });
@@ -209,6 +223,12 @@ export default {
       }
       if (request.method === "GET" && path === "/manifesto") {
         return html(manifestoHtml(), 200, "public, max-age=30");
+      }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/robots.txt") {
+        return publicText(robotsTxt(), "text/plain; charset=utf-8");
+      }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/sitemap.xml") {
+        return publicText(sitemapXml(), "application/xml; charset=utf-8");
       }
       if ((request.method === "GET" || request.method === "HEAD") && path === "/play") {
         const dest = new URL("/connect", url);

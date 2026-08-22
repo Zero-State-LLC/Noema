@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { connectHtml, enrollHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
+import { manifestoHtml } from "../src/manifesto";
 import { playCallbackHtml } from "../src/play-login-html";
+import { PUBLIC_SITEMAP_PATHS, publicCanonicalUrl, robotsTxt, sitemapXml } from "../src/seo";
 import { productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
 import type { Env } from "../src/types";
@@ -333,5 +335,75 @@ describe("callback", () => {
     expect(hay).not.toContain("research");
     expect(hay).not.toContain("admin");
     expect(hay).not.toContain("operator plane");
+  });
+});
+
+describe("public SEO surfaces", () => {
+  const env = { NOEMA_ENV: "production" } as unknown as Env;
+
+  it("lists only official unique public HTML doors on the apex host", () => {
+    expect([...PUBLIC_SITEMAP_PATHS]).toEqual(["/", "/manifesto", "/watch", "/connect"]);
+    const xml = sitemapXml();
+    expect(xml).toContain('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"');
+    for (const path of PUBLIC_SITEMAP_PATHS) {
+      expect(xml).toContain(`<loc>${publicCanonicalUrl(path)}</loc>`);
+    }
+    expect(xml).not.toContain("www.noema.guru");
+    expect(xml).not.toContain("workers.dev");
+    expect(xml).not.toContain("/play");
+    expect(xml).not.toContain("/study");
+    expect(xml).not.toContain("/watch/map");
+    expect(xml).not.toContain("/admin");
+    expect(xml).not.toContain("/connect/enroll");
+    expect(xml).not.toContain("/v1/");
+    expect(xml).not.toContain("index.html");
+    expect(xml).not.toContain("/memo");
+  });
+
+  it("robots allows crawlers, points at the apex sitemap, and hides operator/auth paths", () => {
+    const txt = robotsTxt();
+    expect(txt).toMatch(/^User-agent: \*\nAllow: \//);
+    expect(txt).toContain("Sitemap: https://noema.guru/sitemap.xml");
+    expect(txt).toContain("Disallow: /admin");
+    expect(txt).toContain("Disallow: /play/callback");
+    expect(txt).toContain("Disallow: /connect/enroll");
+    expect(txt).toContain("Disallow: /v1/command");
+    expect(txt).toContain("Disallow: /v1/auth/");
+    expect(txt).toContain("Disallow: /v1/admin/");
+    expect(txt).toContain("Disallow: /v1/play/");
+    expect(txt).toContain("Disallow: /v1/agent/");
+    expect(txt).not.toContain("www.noema.guru");
+    expect(txt).not.toContain("Disallow: /watch");
+    expect(txt).not.toContain("Disallow: /connect\n");
+  });
+
+  it("GET and HEAD serve robots.txt and sitemap.xml from the Worker", async () => {
+    for (const method of ["GET", "HEAD"] as const) {
+      const robots = await worker.fetch(new Request("https://noema.guru/robots.txt", { method }), env);
+      expect(robots.status).toBe(200);
+      expect(robots.headers.get("content-type")).toMatch(/text\/plain/);
+      if (method === "GET") expect(await robots.text()).toBe(robotsTxt());
+      else await robots.text();
+
+      const sitemap = await worker.fetch(new Request("https://noema.guru/sitemap.xml", { method }), env);
+      expect(sitemap.status).toBe(200);
+      expect(sitemap.headers.get("content-type")).toMatch(/application\/xml|text\/xml/);
+      if (method === "GET") expect(await sitemap.text()).toBe(sitemapXml());
+      else await sitemap.text();
+    }
+  });
+
+  it("official public HTML pages canonical to the matching apex loc", () => {
+    const pages: Array<[(typeof PUBLIC_SITEMAP_PATHS)[number], string]> = [
+      ["/", landingHtml()],
+      ["/manifesto", manifestoHtml()],
+      ["/watch", watchHtml()],
+      ["/connect", connectHtml(true)],
+    ];
+    for (const [path, html] of pages) {
+      const loc = publicCanonicalUrl(path);
+      expect(html).toContain(`<link rel="canonical" href="${loc}"/>`);
+      expect(html).toContain(`property="og:url" content="${loc}"`);
+    }
   });
 });
