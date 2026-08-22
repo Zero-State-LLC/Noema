@@ -483,6 +483,18 @@ export function resumeFromCheckpoint(w: WorldRuntime, cp: Checkpoint, interventi
   // Restore co-evo state
   if (cp.snapshot.co_evolution) w.co_evolution = JSON.parse(JSON.stringify(cp.snapshot.co_evolution));
   if (cp.snapshot.genesis_evolutions) w.genesis_evolutions = [...cp.snapshot.genesis_evolutions];
+  // Restore Deep Time trajectory state alongside co_evolution. ensureDeepTime
+  // only rehydrates empty caches, so without this reset, post-checkpoint scars
+  // and digests survived the resume and then overwrote the restored blob via
+  // persistDeepTime — counterfactual runs silently kept the wrong history.
+  w.scars = cp.snapshot.scars ? JSON.parse(JSON.stringify(cp.snapshot.scars)) : undefined;
+  w.trajectory_digest = cp.snapshot.trajectory_digest
+    ? JSON.parse(JSON.stringify(cp.snapshot.trajectory_digest))
+    : undefined;
+  // Derived caches not snapshotted directly follow the restored blob.
+  w.evidence_fragments = undefined;
+  w.norm_ratchets = undefined;
+  w.lore_attractors = undefined;
 
   // Apply intervention patch for counterfactuals
   if (intervention) {

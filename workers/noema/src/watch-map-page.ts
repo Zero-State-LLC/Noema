@@ -13,8 +13,10 @@ const CSS = `
 .map-node.is-active{outline:2px solid var(--ink)}
 .map-node .n{font:550 .78rem/1.2 var(--font-mono)}
 .map-node .m{color:var(--faint);font:.62rem/1.3 var(--font-mono)}
-.map-node .scar{position:absolute;inset:auto .3rem .3rem auto;width:.55rem;height:.55rem;border-radius:50%;background:#7a4}
-.map-node[data-scar="0"] .scar{display:none}
+.map-node .scar{position:absolute;inset:auto .3rem .3rem auto;width:.55rem;height:.55rem;border-radius:50%;background:var(--color-state-warning)}
+.map-node[data-scar=""] .scar{display:none}
+.map-node[data-scar="faint"] .scar{opacity:.4}
+.map-node[data-scar="marked"] .scar{opacity:.7}
 .layer-toggles{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0}
 .layer-toggles button{font:.62rem/1.2 var(--font-mono)}
 .health dl{display:grid;grid-template-columns:1fr auto;gap:.2rem .8rem;margin:0}
@@ -52,13 +54,28 @@ export function watchMapHtml(): string {
   <script>
   (function(){
     const $ = (id) => document.getElementById(id);
+    // §7 (WATCH-LIGHTWEIGHT-SPECTATOR): world text is untrusted — build DOM
+    // via textContent only; interpolated-markup assignment is a defect.
+    function el(tag, className, text){
+      const n = document.createElement(tag);
+      if (className) n.className = className;
+      if (text != null && text !== "") n.textContent = text;
+      return n;
+    }
     function paint(d){
       $("map-state").textContent = d.freshness || "live";
       $("map-cycle").textContent = "cycle " + (d.cycle || "—");
       const layers = d.layers || [];
       const tog = $("toggles");
       if (!tog.dataset.ready) {
-        tog.innerHTML = layers.map(l => '<button type="button" class="btn quiet" data-layer="'+l.id+'" aria-pressed="true">'+l.label+'</button>').join("");
+        tog.replaceChildren();
+        layers.forEach(l => {
+          const b = el("button", "btn quiet", String(l.label || l.id));
+          b.type = "button";
+          b.setAttribute("data-layer", String(l.id || ""));
+          b.setAttribute("aria-pressed", "true");
+          tog.append(b);
+        });
         tog.dataset.ready = "1";
         tog.addEventListener("click", (ev) => {
           const b = ev.target.closest("button[data-layer]");
@@ -69,14 +86,42 @@ export function watchMapHtml(): string {
         });
       }
       const nodes = (d.base && d.base.rooms) || [];
-      $("board").innerHTML = nodes.map(n => {
-        const scar = Number(n.scar_residue||0);
-        return '<article class="map-node'+(n.active?' is-active':'')+'" data-scar="'+scar+'" style="grid-column:'+(n.x+1)+';grid-row:'+(n.y+1)+'"><div class="n">'+String(n.name||n.room_id)+'</div><div class="m act">'+(n.players_present||0)+' here</div><span class="scar" title="scar residue"></span></article>';
-      }).join("");
+      const board = $("board");
+      board.replaceChildren();
+      nodes.forEach(n => {
+        const art = el("article", "map-node" + (n.active ? " is-active" : ""));
+        art.setAttribute("data-scar", String(n.scar_band || ""));
+        art.style.gridColumn = String((Number(n.x) || 0) + 1);
+        art.style.gridRow = String((Number(n.y) || 0) + 1);
+        art.append(el("div", "n", String(n.name || n.room_id || "")));
+        art.append(el("div", "m act", String(n.players_present || 0) + " here"));
+        const meta = [n.scar_band ? "scar: " + n.scar_band : "", n.pressure_band ? "pressure: " + n.pressure_band : ""].filter(Boolean).join(" · ");
+        if (meta) art.append(el("div", "m", meta));
+        const dot = el("span", "scar");
+        dot.title = n.scar_band ? "scar residue: " + n.scar_band : "scar residue";
+        art.append(dot);
+        board.append(art);
+      });
       const h = d.health || {};
-      $("health").innerHTML = [["Scar activity", h.scar_activity],["Reconstruction", h.reconstruction_fidelity],["Path dependence", h.path_dependence_index],["Players", h.players_present]].map(([k,v]) => '<dt>'+k+'</dt><dd>'+(v==null?'—':v)+'</dd>').join("");
+      const dl = $("health");
+      dl.replaceChildren();
+      [["Scars", h.scar_band || "none"],["Reconstruction", h.reconstruction_fidelity],["Players", h.players_present]].forEach(([k, v]) => {
+        dl.append(el("dt", "", String(k)));
+        dl.append(el("dd", "", v == null ? "—" : String(v)));
+      });
       const river = (d.event && d.event.river) || [];
-      $("river").innerHTML = river.map(e => '<li><strong>'+String(e.icon||"")+'</strong> '+String(e.line||"")+(e.consequence?' — '+e.consequence:'')+'</li>').join("") || "<li>Quiet.</li>";
+      const list = $("river");
+      list.replaceChildren();
+      if (!river.length) {
+        list.append(el("li", "", "Quiet."));
+      } else {
+        river.forEach(e => {
+          const li = el("li", "");
+          li.append(el("strong", "", String(e.icon || "")));
+          li.append(document.createTextNode(" " + String(e.line || "") + (e.consequence ? " — " + String(e.consequence) : "")));
+          list.append(li);
+        });
+      }
       const hi = d.narrative && d.narrative.highlight;
       const box = $("highlight");
       if (hi && hi.line) { box.hidden = false; box.textContent = String(hi.line); }

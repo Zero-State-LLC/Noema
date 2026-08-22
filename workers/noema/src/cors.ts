@@ -23,6 +23,7 @@ export function isPublicReadPath(path: string): boolean {
   return (
     p === "/v1/watch/live" ||
     p === "/v1/watch/map" ||
+    p === "/watch/map.json" ||
     p === "/v1/watch/stream" ||
     p === "/health" ||
     p === "/ready" ||
