@@ -153,3 +153,16 @@ def test_look_snapshot_gates_on_materials_node_not_a_hardcoded_id():
     snap = look_observation_to_snapshot(obs)
     assert snap is not None, "a materials node in any room must produce health"
     assert snap["conversion_observed"] is False
+
+
+def test_drift_alerts_is_the_drift_subset_not_every_alert():
+    from economic_health import compute_economic_health, enrich_observation_with_ewm
+
+    # LOW_ATTENTION is world-economy health, not agent drift.
+    agents = [{"influence": 1.0, "attention": 0.5, "conversion_rate": 0.5}]
+    h = compute_economic_health({"conversion_observed": False}, agents)
+    assert "LOW_ATTENTION" in h.alerts
+    ewm = enrich_observation_with_ewm({}, h)["ewm_health"]
+    assert "LOW_ATTENTION" in ewm["alerts"]
+    assert "LOW_ATTENTION" not in ewm["drift_alerts"]
+    assert "BEHAVIORAL_DRIFT_UNOBSERVED" in ewm["drift_alerts"]

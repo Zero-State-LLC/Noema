@@ -14,6 +14,9 @@ from typing import List, Dict, Any
 
 GROUNDED = frozenset({"observed", "genesis", "inferred-from-stock"})
 
+# Alerts that describe agent/semantic drift, as opposed to world-economy health.
+DRIFT_ALERTS = frozenset({"CASCADING_RISK", "BEHAVIORAL_DRIFT_UNOBSERVED", "SEMANTIC_DRIFT", "COORDINATION_DRIFT"})
+
 
 def _forman_cascading_risk(edges: List[Any]) -> float:
     """Forman F(e)=4-deg(u)-deg(v); risk = max(forman, density*low_g). Same as curvature.ts."""
@@ -228,8 +231,10 @@ def enrich_observation_with_ewm(obs: dict, health: EconomicHealth) -> dict:
         "reconstruction_fidelity": round(health.reconstruction_fidelity, 2),
         "path_dependence_index": round(health.path_dependence_index, 2),
         "historical_alignment": round(health.historical_alignment, 2),
-        "drift_alerts": list(health.alerts),
-        "alerts": health.alerts,
+        # drift_alerts is the drift subset (matching semanticAttach), not a
+        # duplicate of every alert — operators read the two as different things.
+        "drift_alerts": [a for a in health.alerts if a in DRIFT_ALERTS],
+        "alerts": list(health.alerts),
     }
     return obs
 

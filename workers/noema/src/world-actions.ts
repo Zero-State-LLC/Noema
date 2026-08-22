@@ -2426,6 +2426,9 @@ export async function applyWorldCommand(
         claim: claimPayload,
       });
       await settleEv(ev1);
+      // The grounded act is the sending, not the arrival: a relay delay must
+      // not silently cost the sender their protocol strength.
+      noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
       const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled);
       w.seen_idempotency[idem] = result;
       return result;

@@ -101,3 +101,16 @@ describe("genesis seeds reach live state (audit G6/D5)", () => {
     expect(w.lore_attractors).toBeUndefined();
   });
 });
+
+describe("EWM debt tranche", () => {
+  it("attest ratchet never carries a reversal surcharge (RFC-0123 bounds org_create only)", async () => {
+    const { ratchetOnAttest } = await import("../src/deep-time");
+    const w = { world_id: "w", cycle: 4, rooms: {}, players: {} } as never;
+    for (let i = 0; i < 5; i++) ratchetOnAttest(w, 4 + i);
+    const attest = (w as { norm_ratchets: Record<string, { reversal_cost: number; hits: number; path_dependence_strength: number }> }).norm_ratchets.attest;
+    expect(attest.reversal_cost).toBe(0);
+    // path dependence still accrues — the field is zero by contract, not inert
+    expect(attest.hits).toBe(5);
+    expect(attest.path_dependence_strength).toBeGreaterThan(0);
+  });
+});
