@@ -291,7 +291,9 @@ export function ratchetOnAttest(w: DeepTimeSlice, cycle: number): NormRatchet {
   const hits = (prev?.hits || 0) + 1;
   const next: NormRatchet = {
     key: "attest",
-    reversal_cost: prev?.reversal_cost || 0,
+    // ATTEST establishes path dependence but carries no reversal surcharge
+    // (RFC-0123 bounds org_create only). Kept at 0 by contract, not by accident.
+    reversal_cost: 0,
     path_dependence_strength: clamp01(hits / 8),
     established_cycle: prev?.established_cycle ?? cycle,
     hits,
