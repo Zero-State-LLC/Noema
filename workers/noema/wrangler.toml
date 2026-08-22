@@ -32,6 +32,10 @@ not_found_handling = "none"
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
 DEFAULT_WORLD_ID = "world.perihelion-reach-3"
+# NOEMA_ALLOW_PROD_BOOTSTRAP: unset by default (fail-closed). Set to "1" only
+# for a genesis activation window where the canonical head is legitimately
+# empty; a missing head otherwise refuses bootstrap instead of re-emitting a
+# sequence-0 WORLD_BOOTSTRAP over live history.
 
 [[durable_objects.bindings]]
 name = "WORLD_DO"

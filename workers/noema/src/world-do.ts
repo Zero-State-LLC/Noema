@@ -1054,8 +1054,14 @@ export class NoemaWorldDO {
     const ledgerEvents = canonicalEventsForCommit(result.events);
     if (mutating && result.ok && ledgerEvents.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
-      const bootstrapEmpty =
-        !durable && (this.allowCanonicalBootstrap || w.world_id === "world.perihelion-reach-3");
+      // Fail closed: a missing durable head must never auto-bootstrap the
+      // production world (a Postgres outage/restore window would otherwise
+      // re-emit a sequence-0 WORLD_BOOTSTRAP over live history). Bootstrapping
+      // requires the explicit per-request admit (isolated worlds) or the
+      // operator env latch set only for a genesis activation window.
+      const operatorLatch =
+        (this.env as { NOEMA_ALLOW_PROD_BOOTSTRAP?: string }).NOEMA_ALLOW_PROD_BOOTSTRAP === "1";
+      const bootstrapEmpty = !durable && (this.allowCanonicalBootstrap || operatorLatch);
       const toCommit = bootstrapEmpty
         ? withIsolatedBootstrapEvent(ledgerEvents, w.world_id, this.meta!.genesis_id)
         : ledgerEvents;
