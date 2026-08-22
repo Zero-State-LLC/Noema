@@ -4,7 +4,7 @@
 
 **Does not.** Reseed. Point PLAY at `world-01`. Treat Admin JWT as a Player token. Invent harvest from INFRASTRUCTURE labels.
 
-**Live.** `GET https://noema.guru/ready` ACTIVE / HEALTHY / `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` / cycle 1 / sequence 437→439. `/ready.players` stayed **0** (that metric is live **humans**, not agents).
+**Historical (2026-08-21).** `GET https://noema.guru/ready` that day was ACTIVE / HEALTHY / `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` / cycle 1 / sequence 437→439. `/ready.players` stayed **0** (that metric is live **humans**, not agents). Current PLAY default is `spec-compat.json` `hosted_live` (`world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`). Prior PLAY `world.perihelion-reach-2` is not reseeding.
 
 **Agents this run.** `player.reach-maint3` (maint.env) and `player.tester` (tester.env). Both ENTER Civic Exchange over `/v1/command` with published seal `sha256:9b9c211c…`. Prabu's Controller was **not** in this session.
 

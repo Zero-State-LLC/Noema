@@ -99,6 +99,6 @@ Do not give Chamber the hosted table hero or `/manifesto` unless product asks.
 
 Production verdict and residuals live in [PRODUCTION-CONFORMANCE-CLOSEOUT.md](PRODUCTION-CONFORMANCE-CLOSEOUT.md). Specs `#168` is merged.
 
-Do not change `wrangler.toml` `DEFAULT_WORLD_ID` (`world-01`). That string is the Durable Object name. `/ready` reports the genesis id `world.perihelion-reach`; `/health` reports the DO key. They are aliases (`command-world.ts` `PERIHELION` set).
+Do not change `wrangler.toml` `DEFAULT_WORLD_ID` (`world.perihelion-reach-3`). That string is the live Durable Object name. `/ready` reports that DO's genesis (`spec-compat.json` `hosted_live`: `genesis.94d0961984b2b4f8`). Prior PLAY `world.perihelion-reach-2` is not reseeding. Frozen first world `genesis.ef578f4ffceeccd0` stays on `world-01` (operator-only). Historical 2026-08-18 note: `/health` then reported DO key `world-01` as an alias of `world.perihelion-reach`.
 
 Ops-only: OG recrawl if crawlers still hold the old social crop. HTML already uses `hero-table.jpg`.

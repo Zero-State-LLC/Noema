@@ -1,16 +1,17 @@
 # Operator smoke — Perihelion Reach (no activate)
 
-**Authority:** first world is already activated. This is a read-and-enter check, not a Genesis run.  
+**Authority:** live PLAY is already activated (`spec-compat.json` `hosted_live`). This is a read-and-enter check, not a Genesis run.  
 **Do not** activate, force-supersede, or reseed.
 
 If `GET /ready` shows `INCIDENT` and `settlement_health: BLOCKING`, PLAY is blocked. **Recover** from Admin Live (`POST /v1/admin/lifecycle {action:recover}`). Do not Close while BLOCKING. Confirm `/ready` is `ACTIVE`/`HEALTHY` before enter smoke.
 
 ```text
 World:        Perihelion Reach
-Identity:     genesis.ef578f4ffceeccd0
-Cycle 0:      sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6
+Identity:     world.perihelion-reach-3 / genesis.94d0961984b2b4f8
 Host:         https://noema.guru
 ```
+
+Historical first-world identity (operator-only Recover, not PLAY): `genesis.ef578f4ffceeccd0` on `world-01`. Cycle 0 `sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6` was that world's. Prior PLAY `world.perihelion-reach-2` is not reseeding.
 
 ## Email login: Player vs Admin (do not mix)
 
