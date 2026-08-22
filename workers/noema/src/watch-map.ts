@@ -39,8 +39,21 @@ export const WATCH_MAP_LAYERS: WatchMapLayerDef[] = [
 
 const extraLayers: WatchMapLayerDef[] = [];
 
+/** §5.1: id-validated, dedup-by-id (re-register replaces). Worker isolates are
+ *  reused across requests — an append-only global grew per registration. */
 export function registerWatchMapLayer(def: WatchMapLayerDef): void {
-  extraLayers.push(def);
+  const id = String(def?.id || "").trim();
+  if (!id) return;
+  const core = WATCH_MAP_LAYERS.some((l) => l.id === id);
+  if (core) return; // core set is fixed; extensions cannot shadow it
+  const at = extraLayers.findIndex((l) => l.id === id);
+  if (at >= 0) extraLayers[at] = { ...def, id };
+  else extraLayers.push({ ...def, id });
+}
+
+export function unregisterWatchMapLayer(id: string): void {
+  const at = extraLayers.findIndex((l) => l.id === id);
+  if (at >= 0) extraLayers.splice(at, 1);
 }
 
 export function watchMapLayerCatalog(): WatchMapLayerDef[] {

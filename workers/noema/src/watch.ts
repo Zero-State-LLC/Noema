@@ -219,6 +219,7 @@ export function watchHtml(): string {
       <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="false">TEXT</button>
       <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="true">PIXEL</button>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
+      <a class="btn quiet" id="watch-map-link" href="/watch/map">Live map</a>
     </div>
     <div class="watch-state-plate" aria-label="World">
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>

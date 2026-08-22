@@ -113,3 +113,33 @@ describe("watch-map/1.0", () => {
     expect(isPublicReadPath("/v1/watch/map")).toBe(true);
   });
 });
+
+describe("mapping v0.1.1 integration (spec §5.1/§6.1 + de-orphan)", () => {
+  it("registry validates, dedups by id, never shadows core, and unregisters", async () => {
+    const { registerWatchMapLayer, unregisterWatchMapLayer, watchMapLayerCatalog } = await import("../src/watch-map");
+    const count = () => watchMapLayerCatalog().length;
+    const base = count();
+    registerWatchMapLayer({ id: "", z: 20, label: "bad", toggle: true, glanceable: "" });
+    registerWatchMapLayer({ id: "state", z: 21, label: "shadow", toggle: true, glanceable: "" });
+    expect(count()).toBe(base);
+    registerWatchMapLayer({ id: "ext-a", z: 22, label: "A", toggle: true, glanceable: "a" });
+    registerWatchMapLayer({ id: "ext-a", z: 23, label: "A2", toggle: true, glanceable: "a2" });
+    expect(count()).toBe(base + 1);
+    expect(watchMapLayerCatalog().find((l) => l.id === "ext-a")?.label).toBe("A2");
+    unregisterWatchMapLayer("ext-a");
+    expect(count()).toBe(base);
+  });
+
+  it("page ships a pause control and only working layer toggles", () => {
+    const html = watchMapHtml();
+    expect(html).toContain('id="map-pause"');
+    expect(html).toContain("!paused && !document.hidden");
+    expect(html).toContain("HIDEABLE = { activity: 1, state: 1, event: 1, health: 1, narrative: 1 }");
+    expect(html).toContain("min-height:8rem");
+  });
+
+  it("/watch links to the map (route is no longer an orphan)", async () => {
+    const { watchHtml } = await import("../src/watch");
+    expect(watchHtml()).toContain('href="/watch/map"');
+  });
+});
