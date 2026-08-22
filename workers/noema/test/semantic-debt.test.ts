@@ -228,7 +228,7 @@ describe("reputation privileged + second-order + justified punish", () => {
     expect(JSON.stringify(kindAccept.observation?.players_here || [])).not.toMatch(/second_order/);
   });
 
-  it("justified TRADE reject with observed signal costs punisher influence and eases harvest_pressure", async () => {
+  it("justified TRADE reject with observed signal costs punisher influence; pressure untouched (RFC-0123)", async () => {
     const w = fixture();
     const a = principal("player.a");
     const b = principal("player.b");
@@ -254,7 +254,10 @@ describe("reputation privileged + second-order + justified punish", () => {
     expect(rejected.ok).toBe(true);
     expect(w.players[b.player_id].budgets.influence).toBe(infBefore - 1);
     expect(w.players[a.player_id].image_score).toBe(-2);
-    expect(w.co_evolution!.harvest_pressure["room.hub"]).toBe(pressureBefore - 1);
+    // RFC-0123: a social sanction never mutates EWM extraction pressure.
+    expect(w.co_evolution!.harvest_pressure["room.hub"]).toBe(pressureBefore);
+    // RFC-0123: the sanction is visible to the punisher, not silent.
+    expect(rejected.observation?.consequence || "").toContain("cost 1 influence");
   });
 });
 

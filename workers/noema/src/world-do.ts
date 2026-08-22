@@ -1,5 +1,6 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
+import { persistDeepTime } from "./deep-time";
 import type { Cycle0World, GenesisResult } from "./genesis";
 import {
   buildWatchLive,
@@ -174,7 +175,7 @@ export function cycle0ToWorld(c0: Cycle0World): WorldState {
       entities: r.entities.map((e) => enrichEntity(e)),
     };
   }
-  return {
+  const w: WorldState = {
     world_id: c0.world_id,
     world_name: c0.world_name,
     world_seed: c0.world_seed,
@@ -189,6 +190,33 @@ export function cycle0ToWorld(c0: Cycle0World): WorldState {
     seen_idempotency: {},
     unsettled: [],
   };
+  // SEMANTIC-EVOLUTION §7 / DEEP-TIME §2.4 / ECONOMY-EWM §7: genesis seeds
+  // become live world state. Before this, the Cycle 0 document carried
+  // initial_co_evolution / scar_seeds / lore_prototypes / signaling_styles
+  // that never left the genesis digest (audit G6/D5).
+  if (c0.initial_co_evolution || c0.initial_beliefs || c0.signaling_styles) {
+    const seed = (c0.initial_co_evolution || {}) as Record<string, unknown>;
+    const rec = (v: unknown): Record<string, number> =>
+      v && typeof v === "object" ? (v as Record<string, number>) : {};
+    w.co_evolution = {
+      // genesis emits harvest_pressure as a scalar 0 — live state is per-room
+      harvest_pressure: rec(seed.harvest_pressure),
+      regen_mod: rec(seed.regen_mod),
+      protocol_strength: rec(seed.protocol_strength),
+      genesis_seeds: {
+        ...(c0.initial_beliefs ? { initial_beliefs: c0.initial_beliefs } : {}),
+        ...(c0.signaling_styles ? { signaling_styles: c0.signaling_styles as Record<string, string> } : {}),
+      },
+    };
+  }
+  if (c0.scar_seeds?.length) {
+    w.scars = c0.scar_seeds.map((s) => ({ ...s }));
+  }
+  if (c0.lore_prototypes?.length) {
+    w.lore_attractors = c0.lore_prototypes.map((l) => ({ ...l }));
+  }
+  if (w.scars || w.lore_attractors) persistDeepTime(w as never);
+  return w;
 }
 
 export class NoemaWorldDO {
