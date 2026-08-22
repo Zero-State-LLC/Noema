@@ -18,10 +18,11 @@ GROUNDED = frozenset({"observed", "genesis", "inferred-from-stock"})
 def _forman_cascading_risk(edges: List[Any]) -> float:
     """Forman F(e)=4-deg(u)-deg(v); risk = max(forman, density*low_g). Same as curvature.ts."""
     raw = [e for e in edges if isinstance(e, dict) and e.get("from") and e.get("to") and e.get("from") != e.get("to")]
+    # Parity with curvature.ts: malformed edges are not evidence of risk. The old
+    # fallback counted them, so garbage input inflated density_risk here while
+    # the TS twin returned 0 for the same input.
     if not raw:
-        raw = [e for e in edges if isinstance(e, dict)]
-        if not raw:
-            return 0.0
+        return 0.0
     low_g = 0
     for e in raw:
         g = str(e.get("grounding") or "")
@@ -104,14 +105,20 @@ def compute_economic_health(snapshot: Dict[str, Any], agents: List[Dict[str, Any
     h.harvest_pressure = max(0.0, float((snapshot.get("co_evolution") or {}).get("harvest_pressure", 0)))
     apply_asi(h, snapshot, agents)
 
-    # Uncertainty (simple heuristic)
-    h.uncertainty = min(0.4, abs(h.stock_velocity - 0.8) * 0.3 + (h.concentration - 0.3) * 0.2)
+    # LOOK cannot see other purses; the snapshot says so. Under occupancy
+    # weighting concentration is 1/n by construction, not a measurement.
+    concentration_observed = not bool(snapshot.get("occupancy_weighted"))
+
+    # Uncertainty (simple heuristic). Clamped at 0 — a low-concentration world
+    # previously produced negative uncertainty.
+    conc_term = (h.concentration - 0.3) * 0.2 if concentration_observed else 0.0
+    h.uncertainty = max(0.0, min(0.4, abs(h.stock_velocity - 0.8) * 0.3 + conc_term))
 
     # Alert rules (tuned for EWM)
     if h.attention < 3.0:
         h.alerts.append("LOW_ATTENTION")
         h.recommendations.append("increase WAIT or co-evo attention regen")
-    if h.concentration > 0.55:
+    if concentration_observed and h.concentration > 0.55:
         h.alerts.append("HIGH_CONCENTRATION")
         h.recommendations.append("rebalance roles or seed more agents")
     if h.org_threshold > 4.5 and cycle > 8:
@@ -151,7 +158,15 @@ def apply_asi(h: EconomicHealth, snapshot: Dict[str, Any], agents: List[Dict[str
     h.semantic_drift = 0.0 if n == 0 else max(0.0, min(1.0, 1.0 - h.grounding_pass_rate))
     h.coordination_drift = max(0.0, min(1.0, h.harvest_pressure / 8.0))
     rates = [max(0.0, float(a.get("conversion_rate", 0.5))) for a in agents]
-    if len(rates) < 2:
+    # The producer declares whether conversion behaviour was observable at all;
+    # do not infer it from value equality (identical real rates are a valid
+    # measurement of no drift). LOOK cannot publish conversion, so its snapshot
+    # sets conversion_observed=False and the term reads "not measured", not 0.
+    if snapshot.get("conversion_observed") is False:
+        h.behavioral_drift = 0.0
+        if "BEHAVIORAL_DRIFT_UNOBSERVED" not in h.alerts:
+            h.alerts.append("BEHAVIORAL_DRIFT_UNOBSERVED")
+    elif len(rates) < 2:
         h.behavioral_drift = 0.0
     else:
         mean = sum(rates) / len(rates)

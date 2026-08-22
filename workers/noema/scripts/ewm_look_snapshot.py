@@ -24,10 +24,12 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
     ents = loc.get("entities") or obs.get("entities") or []
     if not isinstance(ents, list):
         ents = []
+    # Fail-closed on "no observable materials node", not on one hardcoded id:
+    # gating on entity.salvage-cache yielded no health at all in every other room.
     salvage = [
         e
         for e in ents
-        if isinstance(e, dict) and e.get("entity_id") == "entity.salvage-cache"
+        if isinstance(e, dict) and e.get("stock_resource") == "materials"
     ]
     if not salvage:
         return None
@@ -75,7 +77,9 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
                 "conversion_rate": 0.5,
             }
         )
-    # LOOK does not publish other purses. Count occupants equally for concentration.
+    # LOOK does not publish other purses. Count occupants equally for concentration,
+    # and mark the result unobservable so consumers do not read 1/n as a real
+    # concentration measurement (it can never cross the HIGH_CONCENTRATION line).
     if any(a["influence"] <= 0 for a in agents[1:]):
         occupancy_weighted = True
         for a in agents:
@@ -106,6 +110,9 @@ def look_observation_to_snapshot(payload: dict[str, Any] | None) -> dict[str, An
         "source": "look",
         "salvage_stock": float(salvage[0].get("stock_amount") or 0),
         "occupancy_weighted": occupancy_weighted,
+        # LOOK never publishes conversion behaviour; the 0.5 above is a
+        # placeholder, so behavioral_drift must read as unmeasured, not zero.
+        "conversion_observed": False,
     }
 
 

@@ -230,6 +230,8 @@ export type InboxMessage = {
   text: string;
   status: "DELIVERED";
   delivered_cycle: number;
+  /** SEMANTIC §3.4 input for cascading risk. Internal: never projected to a Player. */
+  grounding?: string;
 };
 
 /** Specs seed defaults (RESOURCE-ECONOMY / ENVIRONMENT). */
