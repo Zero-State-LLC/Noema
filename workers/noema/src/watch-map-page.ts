@@ -19,10 +19,10 @@ const CSS = `
 .map-node[data-scar="marked"] .scar{opacity:.7}
 .layer-toggles{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0}
 .layer-toggles button{font:.62rem/1.2 var(--font-mono)}
-.health dl{display:grid;grid-template-columns:1fr auto;gap:.2rem .8rem;margin:0}
+.health dl{display:grid;grid-template-columns:1fr auto;gap:.2rem .8rem;margin:0;min-height:4.5rem}
 .health dt{color:var(--faint);font:.62rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
 .health dd{margin:0;font:550 .82rem/1.2 var(--font-mono)}
-.river{list-style:none;margin:0;padding:0;max-height:18rem;overflow:auto}
+.river{list-style:none;margin:0;padding:0;min-height:8rem;max-height:18rem;overflow:auto}
 .river li{margin:0 0 .45rem;padding:.35rem 0;border-bottom:1px solid var(--line);font:.78rem/1.35 var(--font-mono)}
 .highlight{margin:0 0 .8rem;padding:.5rem .6rem;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){.map-node{transition:none}}
@@ -38,7 +38,7 @@ export function watchMapHtml(): string {
   <header class="map-head">
     <h1>Live map</h1>
     <p class="muted">Richer spectator projection. Theater stays at <a href="/watch">/watch</a>. Derived, not world truth.</p>
-    <div class="map-meta"><span class="tag" id="map-state">connecting</span><span id="map-cycle">cycle —</span></div>
+    <div class="map-meta"><span class="tag" id="map-state">connecting</span><span id="map-cycle">cycle —</span><button type="button" class="btn quiet" id="map-pause" aria-pressed="false">Pause</button></div>
     <div class="layer-toggles" id="toggles" role="group" aria-label="Layers"></div>
   </header>
   <div class="map-grid">
@@ -69,7 +69,10 @@ export function watchMapHtml(): string {
       const tog = $("toggles");
       if (!tog.dataset.ready) {
         tog.replaceChildren();
-        layers.forEach(l => {
+        // §5.1: a toggle must toggle something. Only layers with a working
+        // hide hook get a button — a dead aria-pressed control misinforms AT.
+        const HIDEABLE = { activity: 1, state: 1, event: 1, health: 1, narrative: 1 };
+        layers.filter(l => HIDEABLE[l.id]).forEach(l => {
           const b = el("button", "btn quiet", String(l.label || l.id));
           b.type = "button";
           b.setAttribute("data-layer", String(l.id || ""));
@@ -127,6 +130,7 @@ export function watchMapHtml(): string {
       if (hi && hi.line) { box.hidden = false; box.textContent = String(hi.line); }
       else box.hidden = true;
     }
+    let paused = false;
     async function refresh(){
       try {
         const r = await fetch("/v1/watch/map");
@@ -134,8 +138,17 @@ export function watchMapHtml(): string {
         paint(d);
       } catch (e) { $("map-state").textContent = "offline"; }
     }
+    // §6.1 (WATCH-REAL-TIME-MAPPING): pause stops the poll; hidden tabs skip.
+    $("map-pause").addEventListener("click", () => {
+      paused = !paused;
+      const b = $("map-pause");
+      b.setAttribute("aria-pressed", paused ? "true" : "false");
+      b.textContent = paused ? "Resume" : "Pause";
+      if (paused) $("map-state").textContent = "paused";
+      else refresh();
+    });
     refresh();
-    setInterval(() => { if (!document.hidden) refresh(); }, 8000);
+    setInterval(() => { if (!paused && !document.hidden) refresh(); }, 8000);
   })();
   </script>
   `;
