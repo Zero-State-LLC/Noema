@@ -1105,6 +1105,7 @@ export function buildObservation(
         visibility: r.visibility,
         claim: r.claim,
         epistemic: r.epistemic,
+        author_id: r.author_player_id,
       })),
     ),
     discovery_lines: discoveryLines(pl.discovery),
