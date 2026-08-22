@@ -14,6 +14,10 @@ export type CoEvolutionState = {
   protocol_tokens?: Record<string, string[]>;
   last_evo_cycle?: number;
   last_quarantine_cycle?: number;
+  /** Deep Time persistence blob (persistDeepTime). Must survive rebuilds. */
+  deep_time?: unknown;
+  /** Genesis EWM seeds carried into live state (beliefs/styles await G3). */
+  genesis_seeds?: { initial_beliefs?: Record<string, number>; signaling_styles?: Record<string, string> };
 };
 
 export function ensureCoevo(w: { co_evolution?: Partial<CoEvolutionState> | CoEvolutionState }): CoEvolutionState {
@@ -25,6 +29,11 @@ export function ensureCoevo(w: { co_evolution?: Partial<CoEvolutionState> | CoEv
     protocol_tokens: cur.protocol_tokens || {},
     last_evo_cycle: cur.last_evo_cycle,
     last_quarantine_cycle: cur.last_quarantine_cycle,
+    // Rebuilds must not drop persisted state: losing deep_time here wiped
+    // scars/ratchets across DO reloads whenever a coevo touch followed a
+    // deep-time persist in the same lifetime.
+    deep_time: cur.deep_time,
+    genesis_seeds: cur.genesis_seeds,
   };
   w.co_evolution = next;
   return next;
@@ -84,7 +93,8 @@ export type WorldImageSlice = {
   co_evolution?: Partial<CoEvolutionState> | CoEvolutionState;
 };
 
-/** Punisher pays influence; target image drops; room harvest_pressure eases (collective). */
+/** RFC-0123: costly punishment — punisher pays influence, target image drops.
+ *  A social sanction MUST NOT mutate EWM extraction pressure (coupling struck). */
 export function justifiedPunish(
   w: WorldImageSlice,
   punisherId: string,
@@ -93,8 +103,9 @@ export function justifiedPunish(
 ): { ok: boolean; punisher_influence: number; target_image: number; harvest_pressure: number } {
   const punisher = w.players[punisherId];
   const target = w.players[targetId];
+  const pressureNow = () => w.co_evolution?.harvest_pressure?.[roomId] || 0;
   if (!punisher || !target) {
-    return { ok: false, punisher_influence: 0, target_image: 0, harvest_pressure: 0 };
+    return { ok: false, punisher_influence: 0, target_image: 0, harvest_pressure: pressureNow() };
   }
   ensureImage(punisher);
   ensureImage(target);
@@ -104,21 +115,18 @@ export function justifiedPunish(
       ok: false,
       punisher_influence: inf,
       target_image: target.image_score || 0,
-      harvest_pressure: w.co_evolution?.harvest_pressure?.[roomId] || 0,
+      harvest_pressure: pressureNow(),
     };
   }
   punisher.budgets.influence = inf - 1;
   bumpImage(target, -2);
   noteConduct(punisher, targetId, -1);
   refreshSecondOrder(w.players, punisherId);
-  const co = ensureCoevo(w);
-  const prev = co.harvest_pressure[roomId] || 0;
-  co.harvest_pressure[roomId] = Math.max(0, prev - 1);
   return {
     ok: true,
     punisher_influence: punisher.budgets.influence,
     target_image: target.image_score || 0,
-    harvest_pressure: co.harvest_pressure[roomId],
+    harvest_pressure: pressureNow(),
   };
 }
 

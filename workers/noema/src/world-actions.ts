@@ -582,6 +582,7 @@ export type WorldRuntime = {
     last_quarantine_cycle?: number;
     /** Compressed Deep Time blob. Survives settlement with harvest_pressure. */
     deep_time?: import("./deep-time").DeepTimeBlob;
+    genesis_seeds?: { initial_beliefs?: Record<string, number>; signaling_styles?: Record<string, string> };
   };
   /** P1 Living Genesis: micro-evolution events applied at runtime (would feed future genesis reseed). */
   genesis_evolutions?: Array<{
@@ -2806,8 +2807,11 @@ export async function applyWorldCommand(
       }
       releaseTradeReserve(w, trade);
       trade.status = phase === "cancel" ? "CANCELLED" : "REJECTED";
+      let punishedLine = "";
       if (phase === "reject" && mutationGroundingOk(action.arguments.signal) && action.arguments.signal?.grounding === "observed") {
-        justifiedPunish(w, principal.player_id, trade.proposer_id, pl.room_id);
+        const punished = justifiedPunish(w, principal.player_id, trade.proposer_id, pl.room_id);
+        // RFC-0123: the sanction must be visible to the punisher, not silent.
+        if (punished.ok) punishedLine = " Your grounded refusal cost 1 influence and marked the proposer.";
       }
       const reason = action.arguments.reason || (phase === "cancel" ? "CANCELLED" : "DECLINED");
       const ev = pushEvent(phase === "cancel" ? "TRADE_CANCELLED" : "TRADE_REJECTED", {
@@ -2821,7 +2825,7 @@ export async function applyWorldCommand(
         principal,
         request_id,
         events,
-        `Trade ${trade.trade_id} closed (${reason}).`,
+        `Trade ${trade.trade_id} closed (${reason}).${punishedLine}`,
         settled,
       );
       w.seen_idempotency[idem] = result;

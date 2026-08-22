@@ -43,7 +43,13 @@ export type NormRatchet = {
   path_dependence_strength: number;
   established_cycle: number;
   hits: number;
+  /** RFC-0123: last reinforcement cycle; drives quiet-decay. */
+  last_hit_cycle?: number;
 };
+
+/** RFC-0123 bounds: surcharge never exceeds the base cost; quiet norms relax. */
+export const ORG_RATCHET_CAP = 5;
+export const ORG_RATCHET_QUIET_CYCLES = 10;
 
 export type LoreAttractor = {
   attractor_id: string;
@@ -194,6 +200,12 @@ export function deepTimeCoEvolve(w: DeepTimeSlice): void {
   for (const s of w.scars) {
     if (s.domain === "economic" && s.room_id) applyScarToRegen(w, s.room_id);
   }
+  // RFC-0123: quiet norms relax — one step per slow pass after ≥10 cycles
+  // without reinforcement. Floor 0; established_cycle and hits preserved.
+  const org = w.norm_ratchets?.org_create;
+  if (org && org.reversal_cost > 0 && cycle - (org.last_hit_cycle ?? org.established_cycle) >= ORG_RATCHET_QUIET_CYCLES) {
+    org.reversal_cost -= 1;
+  }
   tickLoreAttractors(w);
   persistDeepTime(w);
 }
@@ -261,10 +273,12 @@ export function ratchetOnOrgCreate(w: DeepTimeSlice, cycle: number): NormRatchet
   const hits = (prev?.hits || 0) + 1;
   const next: NormRatchet = {
     key: "org_create",
-    reversal_cost: (prev?.reversal_cost || 0) + 1,
+    // RFC-0123: bounded — total ORG_CREATE cost never exceeds double the base.
+    reversal_cost: Math.min(ORG_RATCHET_CAP, (prev?.reversal_cost || 0) + 1),
     path_dependence_strength: clamp01(hits / 5),
     established_cycle: prev?.established_cycle ?? cycle,
     hits,
+    last_hit_cycle: cycle,
   };
   w.norm_ratchets!.org_create = next;
   persistDeepTime(w);
