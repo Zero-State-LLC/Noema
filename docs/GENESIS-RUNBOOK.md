@@ -135,6 +135,8 @@ Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Successor world (RFC-0121)
 
+**Current PLAY (2026-08-22).** `spec-compat.json` `hosted_live`: `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`. Prior PLAY `world.perihelion-reach-2` is not reseeding. Frozen first world remains on `world-01` (operator-only). Do not reseed. Do not force reach-2.
+
 Local rehearsal (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. The rehearsal script still refuses `https://noema.guru`.
 
 ```bash
@@ -142,7 +144,7 @@ ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --succ
 ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
 ```
 
-Production cutover (human-gated, two deploys):
+**Historical production cutover (2026-08-21, RFC-0121).** Completed. Do not repeat. PLAY later moved to reach-3 (RFC-0122). The steps below are the evidence record:
 
 1. Deploy Worker that allows Admin `world_id: world.perihelion-reach-2` on preview/activate. Keep `DEFAULT_WORLD_ID=world-01`. `force` and reseed stay `POLICY_DENIED`. Omitted `world_id` still targets the live 5-room DO.
 2. Admin preview successor on production. Require `genesis_id ≠ genesis.ef578f4ffceeccd0` and `room_count: 10`.

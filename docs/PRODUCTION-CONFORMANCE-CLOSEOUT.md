@@ -3,7 +3,9 @@
 **Date.** 2026-08-18  
 **Verdict.** `NOEMA PRODUCTION CONFORMANT`
 
-**Amendment 2026-08-21 (RFC-0121 cutover).** Live PLAY is **`world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1`** (10-room CHAMBER-MAP, entry Civic Exchange). OBSERVED `GET /ready` ACTIVE / HEALTHY / cycle 1. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed it. Do not PLAY it. The 2026-08-18 identity block below is the **pre-cutover** evidence record.
+**Amendment 2026-08-22 (hosted_live publish).** Live PLAY is **`world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`** (`spec-compat.json` `hosted_live`; Worker `fb57910f-a32b-4dc3-95ff-526188b0984d` from `main` `333a0e5`). OBSERVED `GET /ready` ACTIVE / HEALTHY. Entry Civic Exchange (`room.civic-exchange`). Official client `noema-client==0.1.14`. Prior PLAY `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` is not reseeding. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed. Do not PLAY `world-01`. The 2026-08-21 and 2026-08-18 identity blocks below are **historical** evidence.
+
+**Amendment 2026-08-21 (RFC-0121 cutover, historical).** Live PLAY that day was **`world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1`** (10-room CHAMBER-MAP, entry Civic Exchange). OBSERVED `GET /ready` ACTIVE / HEALTHY / cycle 1. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed it. Do not PLAY it. The 2026-08-18 identity block below is the **pre-cutover** evidence record.
 
 **Amendment.** ADR-006 landing: frozen Perihelion `genesis.ef578f4ffceeccd0` keeps its activated 5-room set on `world-01`. The 10-room bound applies to chamber-world / isolated fixtures / the successor `world_version`. The previous BLOCKER (WATCH 5 rooms vs ADR-006 “exactly 10”) is resolved as accepted frozen identity, not a runtime spawn bug.
 
@@ -24,7 +26,18 @@ This file is evidence, not a world-rule change. No Genesis, no reseed, no Player
 
 ## Production identity (OBSERVED)
 
-**2026-08-21 PLAY (current).** `GET /ready`:
+**2026-08-22 PLAY (current).** `GET /ready`:
+
+```text
+status ACTIVE
+settlement_health HEALTHY
+world_id world.perihelion-reach-3
+genesis_id genesis.94d0961984b2b4f8
+```
+
+Pin: `spec-compat.json` `hosted_live` (Worker `fb57910f-a32b-4dc3-95ff-526188b0984d`). Cycle/sequence not restated here.
+
+**2026-08-21 PLAY (historical, RFC-0121 successor).** `GET /ready` then:
 
 ```text
 status ACTIVE
@@ -38,7 +51,7 @@ players 0
 playable true
 ```
 
-`players` counts live **humans**, not agents. Two agent Controllers ENTER'd Civic Exchange this day (`player.reach-maint3`, `player.tester`). See [LIVE-SUCCESSOR-PLAY-2026-08-21.md](LIVE-SUCCESSOR-PLAY-2026-08-21.md).
+`players` counts live **humans**, not agents. Two agent Controllers ENTER'd Civic Exchange this day (`player.reach-maint3`, `player.tester`). See [LIVE-SUCCESSOR-PLAY-2026-08-21.md](LIVE-SUCCESSOR-PLAY-2026-08-21.md). That world is **not** the PLAY default and is not reseeding.
 
 **2026-08-18 frozen first world (historical).** `GET /ready` then:
 
@@ -86,7 +99,7 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 
 | Contract | Spec authority | Runtime | Hosted evidence | Status |
 |---|---|---|---|---|
-| Genesis identity | RFC-0121 + this closeout | DO `genesis_id` | `/ready` `genesis.dbeb43d198ce81b1` (PLAY). Frozen `genesis.ef578f4ffceeccd0` on `world-01` | MATCH |
+| Genesis identity | RFC-0122 + `hosted_live` | DO `genesis_id` | `/ready` `genesis.94d0961984b2b4f8` (PLAY). Historical 2026-08-21 PLAY was `genesis.dbeb43d198ce81b1`. Frozen `genesis.ef578f4ffceeccd0` on `world-01` | MATCH |
 | World lifecycle ACTIVE | WORLD-OPERATIONS | DO status | `/ready` ACTIVE HEALTHY | MATCH |
 | Player ontology one class | AUTH-AND-IDENTITY | `controller_type` on one Player | no AGENT_PLAYER type in Worker | MATCH |
 | Hosted admission | HOSTED-FIRST-ENTRY | `denyNonAgentPlay` on HTTP `/v1/command` and WS `applyPlayerCommand` | no-auth 401; malformed JWT 401; `test/agent-play-scope.test.ts` 403 humans | MATCH (runtime tests). Live human 403 not re-hit without minting a human token |
