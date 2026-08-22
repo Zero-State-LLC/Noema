@@ -3,6 +3,8 @@
  * Authority: Noema-Specs docs/DIPLOMACY-S2.md / RFC-0100.
  */
 
+import { deterministicId } from "./ids";
+
 export const DIPLOMACY_CATALOG_ID = "diplomacy-catalog/s2";
 export const AGREEMENT_FORM_COST = { compute: 2, influence: 1 } as const;
 export const AGREEMENT_TERMINATE_COST = { compute: 1 } as const;
@@ -79,12 +81,13 @@ export function samePair(partyIds: string[] | undefined, a: string, b: string): 
   return ids.length === 2 && ids[0] === want[0] && ids[1] === want[1];
 }
 
-export function allocateAgreementId(): string {
-  return `agreement.${Math.random().toString(16).slice(2, 10)}`;
+export function allocateAgreementId(seq?: number, cycle?: number, subject?: string): string {
+  // ADR-008: derived from committed world facts, not an implicit random stream.
+  return deterministicId("agreement", seq, cycle, subject);
 }
 
-export function allocateBreachId(): string {
-  return `breach.${Math.random().toString(16).slice(2, 10)}`;
+export function allocateBreachId(seq?: number, cycle?: number, subject?: string): string {
+  return deterministicId("breach", seq, cycle, subject);
 }
 
 export function parseAgreementReason(raw: string): AgreementReason | null {

@@ -4,6 +4,8 @@
  * Canonical events are never rewritten.
  */
 
+import { deterministicId } from "./ids";
+
 export type ScarDomain = "economic" | "social" | "territorial";
 export type ScarVisibility = "public" | "institutional" | "hidden";
 
@@ -179,7 +181,9 @@ export function pushEvidenceFragment(
 ): EvidenceFragment {
   ensureDeepTime(w);
   const full: EvidenceFragment = {
-    fragment_id: `ev.${frag.cycle}.${Math.random().toString(16).slice(2, 8)}`,
+    // ADR-008: fragment ids persist in co_evolution.deep_time, so a replay of
+    // identical inputs must reproduce them exactly.
+    fragment_id: deterministicId(`ev.${frag.cycle}`, frag.subject_ref, frag.kind, frag.player_id, frag.cycle, frag.grounding, frag.claim),
     ...frag,
   };
   w.evidence_fragments = [...(w.evidence_fragments || []), full].slice(-64);

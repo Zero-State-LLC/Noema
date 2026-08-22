@@ -3,6 +3,8 @@
  * Authority: Noema-Specs RFC-0024 / docs/GC6-S1-RECONSTRUCTION.md.
  */
 
+import { deterministicId } from "./ids";
+
 import type { ArchiveClaim, DiscoveryState } from "./discovery";
 import { ensureDiscovery, isArchiveClaim } from "./discovery";
 
@@ -37,8 +39,9 @@ export type ReconstructionRecord = {
   fidelity?: number;
 };
 
-export function allocateReconstructionId(): string {
-  return `recon.${Math.random().toString(16).slice(2, 10)}`;
+export function allocateReconstructionId(seq?: number, cycle?: number, subject?: string): string {
+  // ADR-008: derived from committed world facts, not an implicit random stream.
+  return deterministicId("recon", seq, cycle, subject);
 }
 
 export function parseVisibility(raw: string | undefined | null): ReconstructionVisibility {
