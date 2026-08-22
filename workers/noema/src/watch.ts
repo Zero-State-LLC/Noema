@@ -377,6 +377,24 @@ export function watchHtml(): string {
       b.addEventListener("click", () => setFollow({ kind: "agent", id: handle }));
       return b;
     }
+    function occupantLabelsForRoom(r) {
+      const roomName = String((r && r.name) || "").trim().toLowerCase();
+      const roomId = String((r && r.room_id) || "").trim().toLowerCase();
+      const roomSlug = roomId.replace(/^room\./, "");
+      const raw = Array.isArray(r && r.public_player_labels) ? r.public_player_labels : [];
+      const out = [];
+      for (let i = 0; i < raw.length; i++) {
+        const h = String(raw[i] || "").trim();
+        if (!h) continue;
+        const n = h.toLowerCase();
+        if (n.startsWith("room.")) continue;
+        if (roomName && n === roomName) continue;
+        if (roomId && (n === roomId || n === roomSlug)) continue;
+        if (out.indexOf(h) >= 0) continue;
+        out.push(h);
+      }
+      return out;
+    }
     function knownForLine(data, handle) {
       const pools = [data.public_title_lines, data.public_focus_lines, data.public_descriptor_lines];
       for (let i = 0; i < pools.length; i++) {
@@ -678,7 +696,8 @@ export function watchHtml(): string {
           if (r.players_present > 0) {
             const count = el("span", "watch-count");
             count.append(glyphNode(r.player_glyph || "player"));
-            count.append(document.createTextNode(String(r.players_present)));
+            const occ = occupantLabelsForRoom(r);
+            count.append(document.createTextNode(" " + (occ.length ? occ.join(", ") : String(r.players_present))));
             row.append(count);
           }
           li.append(row);
@@ -702,7 +721,7 @@ export function watchHtml(): string {
           sum.setAttribute("data-room", r.room_id || "");
           det.append(sum);
           const box = el("div", "watch-inspect");
-          const labels = Array.isArray(r.public_player_labels) ? r.public_player_labels : [];
+          const labels = occupantLabelsForRoom(r);
           const present = Number(r.players_present || 0);
           const pLine = el("p", "");
           pLine.append(glyphNode("player"));

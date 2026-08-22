@@ -154,10 +154,18 @@ export function homeExcerptFromLive(data: unknown): string[] {
   if (players > 0) {
     const roomId = typeof nowObj?.room_id === "string" ? nowObj.room_id : "";
     const room = rooms.find((row) => row && typeof row === "object" && (row as { room_id?: string }).room_id === roomId) as
-      | { players_present?: number }
+      | { players_present?: number; name?: string; public_player_labels?: unknown }
       | undefined;
     const there = room && typeof room.players_present === "number" ? room.players_present : 0;
-    if (room && there > 0) {
+    const roomName = String(room?.name || "").trim().toLowerCase();
+    const occ = Array.isArray(room?.public_player_labels)
+      ? room.public_player_labels
+          .map((h) => String(h || "").trim())
+          .filter((h) => h && h.toLowerCase() !== roomName && !/^room\./i.test(h))
+      : [];
+    if (occ.length) {
+      lines.push(occ.length === 1 ? `${occ[0]} is there.` : `${occ.join(", ")} are there.`);
+    } else if (room && there > 0) {
       lines.push(there === 1 ? "1 Player is there." : `${there} Players are there.`);
     } else {
       lines.push(players === 1 ? "1 Player is visible." : `${players} Players are visible.`);

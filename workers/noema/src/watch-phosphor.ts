@@ -208,6 +208,30 @@ export function safePhosphorLabel(raw: unknown): string {
     .slice(0, 24);
 }
 
+/** Occupant handles only. Room title / room id are sites, never Players. */
+export function occupantLabelsForPhosphor(
+  raw: unknown,
+  roomName?: string,
+  roomId?: string,
+): string[] {
+  if (!Array.isArray(raw)) return [];
+  const name = String(roomName || "").trim().toLowerCase();
+  const id = String(roomId || "").trim().toLowerCase();
+  const slug = id.replace(/^room\./, "");
+  const out: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const label = safePhosphorLabel(raw[i]);
+    if (!label) continue;
+    const n = label.toLowerCase();
+    if (n.startsWith("room.")) continue;
+    if (name && n === name) continue;
+    if (id && (n === id || n === slug)) continue;
+    if (out.indexOf(label) >= 0) continue;
+    out.push(label);
+  }
+  return out;
+}
+
 export function roomCertainty(
   room: PhosphorRoom,
   recent?: PhosphorEvent[],
@@ -403,10 +427,11 @@ export function layoutPublicTopology(
     const rawX = padX + ((p[0] - minX) / spanX) * innerW;
     const rawY = padY + ((p[1] - minY) / spanY) * innerH;
     const clamped = clampPhosphorNode(rawX, rawY);
-    const labels = (room.public_player_labels || []).map(safePhosphorLabel).filter(Boolean);
+    const name = safePhosphorLabel(room.name || id);
+    const labels = occupantLabelsForPhosphor(room.public_player_labels, name, id);
     return {
       room_id: id,
-      name: safePhosphorLabel(room.name || id),
+      name,
       x: clamped.x,
       y: clamped.y,
       certainty: roomCertainty(room, recent, focusRoomId),
@@ -848,6 +873,22 @@ function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void {
   ctx.fillText(label, a.x, a.y);
 }
 
+/** Occupant handles sit by the player mark. Never reuse the room title. */
+function drawOccupantLabel(ctx: DrawCtx, x: number, y: number, labels: string[]): void {
+  if (!ctx.fillText || !labels || !labels.length) return;
+  const text = safePhosphorLabel(labels.slice(0, 2).join(", ")).slice(0, 14);
+  if (!text) return;
+  const a = {
+    x: Math.max(4, Math.min(PHOSPHOR_WIDTH - 74, Number(x) + 10)),
+    y: Math.max(10, Math.min(PHOSPHOR_HEIGHT - 4, Number(y) - 8)),
+  };
+  ctx.fillStyle = PHOSPHOR_COLORS.ground;
+  ctx.fillRect(a.x - 1, a.y - 7, text.length * 5 + 3, 9);
+  ctx.fillStyle = PHOSPHOR_COLORS.copper;
+  ctx.font = "8px ui-monospace, monospace";
+  ctx.fillText(text, a.x, a.y);
+}
+
 const MARK_RING: Array<[number, number]> = [
   [-11, -9],
   [10, -9],
@@ -945,6 +986,11 @@ export function drawPhosphorFrame(
     const n = byId.get(p.room_id);
     if (!n) continue;
     drawPulse(ctx, n.x, n.y, p.tier, (now - p.born) / p.ttl);
+  }
+  // Occupant handles by the player mark, then §18 room titles last.
+  for (let i = 0; i < layout.nodes.length; i++) {
+    const n = layout.nodes[i];
+    drawOccupantLabel(ctx, n.x, n.y, n.labels);
   }
   // §18: labels last — text reads over every glyph, stroke, and pulse.
   for (let i = 0; i < layout.nodes.length; i++) {
@@ -1231,6 +1277,7 @@ export function phosphorInlineScript(bind?: {
     const PULSE_TTL = ${JSON.stringify(PULSE_TTL)};
     const isPublicWatchRoom = ${isPublicWatchRoom.toString()};
     const safePhosphorLabel = ${safePhosphorLabel.toString()};
+    const occupantLabelsForPhosphor = ${occupantLabelsForPhosphor.toString()};
     const roomCertainty = ${roomCertainty.toString()};
     const roomGlyphId = ${roomGlyphId.toString()};
     const playerGlyphId = ${playerGlyphId.toString()};
@@ -1259,6 +1306,7 @@ export function phosphorInlineScript(bind?: {
     const drawExit = ${drawExit.toString()};
     const MARK_RING = ${JSON.stringify(MARK_RING)};
     const drawRoomLabel = ${drawRoomLabel.toString()};
+    const drawOccupantLabel = ${drawOccupantLabel.toString()};
     const drawPulse = ${drawPulse.toString()};
     const pageIsHidden = ${pageIsHidden.toString()};
     const drawPhosphorFrame = ${drawPhosphorFrame.toString()};

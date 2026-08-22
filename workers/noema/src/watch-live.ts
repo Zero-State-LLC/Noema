@@ -224,8 +224,52 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
   return h.slice(0, 32);
 }
 
-function labelOf(ev: WatchSourceEvent): string {
-  return publicHandle(ev) || "A player";
+export type OccupantRoomRef = { name?: string; room_id?: string };
+
+/** True when a candidate occupant label is actually a room title or room id. */
+export function isRoomNameOccupantLabel(label: string, rooms?: Iterable<OccupantRoomRef>): boolean {
+  const n = String(label || "").trim().toLowerCase();
+  if (!n) return true;
+  if (n.startsWith("room.")) return true;
+  if (!rooms) return false;
+  for (const room of rooms) {
+    if (String(room?.name || "").trim().toLowerCase() === n) return true;
+    const id = String(room?.room_id || "").trim().toLowerCase();
+    if (id && (id === n || id.replace(/^room\./, "") === n)) return true;
+  }
+  return false;
+}
+
+/**
+ * Occupant label is the actor handle (tester, reach-maint3, hermes).
+ * Never a room name / room id — Civic Exchange is a site, not a Player.
+ */
+export function publicOccupantLabel(
+  p: { handle?: string; player_id?: string },
+  rooms?: Iterable<OccupantRoomRef>,
+): string | null {
+  const label = publicHandle(p);
+  if (!label || isRoomNameOccupantLabel(label, rooms)) return null;
+  return label;
+}
+
+export function occupantLabelsFrom(
+  labels: unknown,
+  rooms?: Iterable<OccupantRoomRef>,
+): string[] {
+  if (!Array.isArray(labels)) return [];
+  const out: string[] = [];
+  for (const raw of labels) {
+    const label = String(raw || "").trim();
+    if (!label || isRoomNameOccupantLabel(label, rooms)) continue;
+    if (out.includes(label)) continue;
+    out.push(label.slice(0, 32));
+  }
+  return out;
+}
+
+function labelOf(ev: WatchSourceEvent, rooms?: Iterable<OccupantRoomRef>): string {
+  return publicOccupantLabel(ev, rooms) || "A player";
 }
 
 function roomName(id: string | undefined, rooms: Record<string, { name?: string }>): string | undefined {
@@ -303,9 +347,9 @@ function payloadRoomId(payload: Record<string, unknown> | undefined): string | u
 
 export function phraseWatchEvent(
   ev: WatchSourceEvent,
-  publicRooms: Record<string, { name?: string }>,
+  publicRooms: Record<string, { name?: string; room_id?: string }>,
 ): string {
-  const who = labelOf(ev);
+  const who = labelOf(ev, Object.values(publicRooms));
   const payload = ev.payload || {};
   const destId = typeof payload.to === "string" ? payload.to : typeof payload.to_room_id === "string" ? payload.to_room_id : undefined;
   const destPublic = destId ? publicRooms[destId] : undefined;
@@ -352,7 +396,7 @@ export function phraseWatchEvent(
       if (isRepairUpdate(ev)) {
         const home = entityHome(typeof payload.entity_id === "string" ? payload.entity_id : undefined, publicRooms as Record<string, WatchRoomIn>);
         const target = home?.label || "infrastructure";
-        const repairer = publicHandle({ handle: typeof payload.last_repair_handle === "string" ? payload.last_repair_handle : ev.handle }) || labelOf(ev);
+        const repairer = publicOccupantLabel({ handle: typeof payload.last_repair_handle === "string" ? payload.last_repair_handle : ev.handle }, Object.values(publicRooms)) || labelOf(ev, Object.values(publicRooms));
         return `${repairer} repaired ${target}`;
       }
       return site ? `Public activity at ${site}` : "Public activity";
@@ -484,8 +528,8 @@ function livePublicPlayers(players: WatchPlayerIn[], now: number): WatchPlayerIn
   });
 }
 
-function publicPlayerLabel(p: WatchPlayerIn): string | null {
-  return publicHandle(p);
+function publicPlayerLabel(p: WatchPlayerIn, rooms?: Iterable<OccupantRoomRef>): string | null {
+  return publicOccupantLabel(p, rooms);
 }
 
 function sourceToWatchEvent(
@@ -512,9 +556,10 @@ function sourceToWatchEvent(
     publicRoomId = home.room.room_id;
   }
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
-  const actor = publicHandle(ev) ||
+  const roomRefs = Object.values(publicRooms);
+  const actor = publicOccupantLabel(ev, roomRefs) ||
     (isRepairUpdate(ev)
-      ? publicHandle({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" })
+      ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
       : null);
   const consequence = consequenceForEvent(ev, publicRooms);
   return {
@@ -595,9 +640,10 @@ export function buildWatchLive(input: {
     held: input.held,
   });
 
+  const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {
     const here = byRoom.get(r.room_id) || [];
-    const labels = here.map(publicPlayerLabel).filter((h): h is string => Boolean(h));
+    const labels = here.map((p) => publicPlayerLabel(p, roomRefs)).filter((h): h is string => Boolean(h));
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
     const publicEntities = (r.entities || []).filter(isPublicEntity);
     const entities = publicEntities.map((e) => ({
@@ -640,11 +686,11 @@ export function buildWatchLive(input: {
     if (traces.length) row.traces = traces;
     if (labels.length) row.public_player_labels = labels;
     const titles = here
-      .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
+      .map((p) => publicTitleLine(publicPlayerLabel(p, roomRefs), p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (titles.length) row.public_title_lines = titles;
     const focuses = here
-      .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
+      .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (focuses.length) row.public_focus_lines = focuses;
     return row;
@@ -653,11 +699,11 @@ export function buildWatchLive(input: {
   const playersPresent = live.filter((p) => p.room_id && publicRooms[p.room_id]).length;
   const public_title_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
+    .map((p) => publicTitleLine(publicPlayerLabel(p, roomRefs), p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const public_focus_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
+    .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(

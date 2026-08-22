@@ -97,7 +97,12 @@ export function watchMapHtml(): string {
         art.style.gridColumn = String((Number(n.x) || 0) + 1);
         art.style.gridRow = String((Number(n.y) || 0) + 1);
         art.append(el("div", "n", String(n.name || n.room_id || "")));
-        art.append(el("div", "m act", String(n.players_present || 0) + " here"));
+        const occ = Array.isArray(n.public_player_labels)
+          ? n.public_player_labels.map((h) => String(h || "").trim()).filter(Boolean)
+          : [];
+        const roomName = String(n.name || "").trim().toLowerCase();
+        const occupants = occ.filter((h) => h.toLowerCase() !== roomName && !/^room\./i.test(h));
+        art.append(el("div", "m act", occupants.length ? occupants.join(", ") : String(n.players_present || 0) + " here"));
         const meta = [n.scar_band ? "scar: " + n.scar_band : "", n.pressure_band ? "pressure: " + n.pressure_band : ""].filter(Boolean).join(" · ");
         if (meta) art.append(el("div", "m", meta));
         const dot = el("span", "scar");

@@ -117,12 +117,27 @@ export function buildWatchMap(opts: {
     const present = Number(r.players_present || 0);
     const col = i % 4;
     const row = Math.floor(i / 4);
+    const occupant_labels = Array.isArray(r.public_player_labels)
+      ? (r.public_player_labels as unknown[])
+          .map((h) => String(h || "").trim())
+          .filter((h) => {
+            if (!h) return false;
+            const n = h.toLowerCase();
+            const roomName = String(r.name || "").trim().toLowerCase();
+            const slug = room_id.replace(/^room\./, "").toLowerCase();
+            if (n.startsWith("room.")) return false;
+            if (roomName && n === roomName) return false;
+            if (n === room_id.toLowerCase() || n === slug) return false;
+            return true;
+          })
+      : [];
     return {
       room_id,
       name: r.name,
       x: col,
       y: row,
       players_present: present,
+      public_player_labels: occupant_labels,
       // §7: bands only. Raw strengths/counters never reach the public wire.
       scar_band: scarBand(scarByRoom[room_id] || 0),
       pressure_band: pressureBand(pressure[room_id] || 0),
