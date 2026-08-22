@@ -83,3 +83,47 @@ describe("Slice B — published office precedence is observable", () => {
     expect(precedenceLines(pub, ["office.ghost"])).toEqual([]);
   });
 });
+
+describe("PLAY surface actually shows both (review follow-up)", () => {
+  it("player-view renders inherited_lines like lot_lines", async () => {
+    const { toPlayerView } = await import("../src/presentation/player-view");
+    const view = toPlayerView({
+      world_name: "W",
+      cycle: 12,
+      location: { name: "Hub", description: "", exits: [], entities: [] },
+      inherited_lines: ["You inherit a record of 2 marked sites."],
+    } as never);
+    const row = view.status.find((r) => r.value.includes("2 marked sites"));
+    expect(row).toBeDefined();
+    expect(row?.label).toBe("Inherited");
+  });
+
+  it("precedence reaches PLAY through office_lines, not a machine-readable field", async () => {
+    const { precedenceLines, publicOffices } = await import("../src/offices");
+    const pub = publicOffices(
+      {
+        "office.a": { office_id: "office.a", display_name: "Warden", status: "OCCUPIED", authority_profile: "OPERATE_NAMED_ASSET" },
+        "office.b": { office_id: "office.b", display_name: "Steward", status: "OCCUPIED", authority_profile: "OPERATE_NAMED_ASSET" },
+      } as never,
+      {},
+    );
+    const officeLinesOut = [
+      ...precedenceLines(pub, ["office.a", "office.b"]).map((l) => `Compact: ${l}`),
+    ];
+    const { toPlayerView } = await import("../src/presentation/player-view");
+    const view = toPlayerView({
+      world_name: "W",
+      location: { name: "Hub", description: "", exits: [], entities: [] },
+      office_lines: officeLinesOut,
+    } as never);
+    expect(view.systems.offices.join(" ")).toContain("Warden before Steward");
+  });
+
+  it("§245 gate: no raw machine-readable governance field on the org projection", async () => {
+    const src = await import("node:fs").then((fs) =>
+      fs.readFileSync(new URL("../src/world-actions.ts", import.meta.url).pathname, "utf8"),
+    );
+    expect(src).not.toContain("office_precedence: (o.office_precedence");
+    expect(src).not.toContain("precedence_lines:");
+  });
+});

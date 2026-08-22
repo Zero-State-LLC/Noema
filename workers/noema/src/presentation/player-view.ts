@@ -60,6 +60,7 @@ type ViewObs = {
   players_here?: Array<{ player_id?: string; handle?: string; public_practice_lines?: string[] } | unknown>;
   practice_lines?: string[];
   lot_lines?: string[];
+  inherited_lines?: string[];
   social_memory_lines?: string[];
   culture_lines?: string[];
   discovery_lines?: string[];
@@ -126,6 +127,9 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
   }
   for (const line of (obs.lot_lines || []).slice(0, 4)) {
     if (line) status.push({ label: label("lot"), value: line });
+  }
+  for (const line of (obs.inherited_lines || []).slice(0, 3)) {
+    if (line) status.push({ label: label("inherited"), value: line });
   }
   for (const line of (obs.social_memory_lines || []).slice(0, 3)) {
     if (line) status.push({ label: label("tie"), value: line });

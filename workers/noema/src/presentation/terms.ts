@@ -29,6 +29,7 @@ export type ConceptId =
   | "tie"
   | "record"
   | "lot"
+  | "inherited"
   | "here";
 
 export function label(concept: ConceptId, register: Register = "player"): string {
@@ -56,6 +57,7 @@ export function label(concept: ConceptId, register: Register = "player"): string
     tie: "Tie",
     record: "Record",
     lot: "Lot",
+    inherited: "Inherited",
     here: "Here",
   };
   const operator: Record<string, string> = {
@@ -100,6 +102,7 @@ export function label(concept: ConceptId, register: Register = "player"): string
     tie: "social_memory_lines",
     record: "discovery_lines",
     lot: "lot_lines",
+    inherited: "inherited_lines",
     here: "players_here",
   };
   const tables: Record<string, Record<string, string>> = { player, operator, research, schema };
