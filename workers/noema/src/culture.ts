@@ -17,11 +17,25 @@ export const COMPETING_LINE = "Accounts of this site differ.";
 export const WATCH_TRADITION_PULSE = "A maintenance custom has become widely observed.";
 export const WATCH_CONTESTED_PULSE = "A public account is contested.";
 
+/** GC9-S2 (RFC-0125). Derived marks on a live tradition. No new verbs or events. */
+export const ORIGINATOR_REPAIRS = 3;
+export const SCHISM_MIN_PUBLIC_CLAIMS = 2;
+export const SCHISM_MIN_PRACTITIONER_AUTHORS = 2;
+export const INHERITED_LINE = "This site's maintenance tradition has outlived its founders.";
+export const SCHISM_LINE = "Practitioners of this site keep rival accounts.";
+export const WATCH_INHERITED_PULSE = "A practice has outlived its founders.";
+export const WATCH_SCHISM_PULSE = "Practice at a site has divided.";
+
+/** GC9-S2: per-repair attribution, in ledger order. */
+export type CultureRepair = { event_id: string; actor_id: string; cycle: number };
+
 export type CultureSite = {
   repair_ids: string[];
   accessors: string[];
   repair_cycles?: number[];
   last_observed_cycle?: number;
+  /** Absent on sites persisted before GC9-S2; inheritance is then underivable. */
+  repairs?: CultureRepair[];
 };
 
 export type CultureState = {
@@ -36,6 +50,8 @@ export type PublicCultureRecon = {
   visibility: string;
   claim?: string;
   epistemic?: string;
+  /** GC9-S2: who authored the account. Derives schism; never surfaced. */
+  author_id?: string;
 };
 
 export type CultureEvent = {
@@ -57,6 +73,9 @@ export function ensureCulture(raw: CultureState | undefined | null): CultureStat
       accessors: [...(site?.accessors || [])],
       repair_cycles: [...(site?.repair_cycles || [])],
       last_observed_cycle: site?.last_observed_cycle,
+      // Dropping this on rebuild would silently un-inherit every tradition,
+      // the same way losing deep_time once wiped scars across DO reloads.
+      repairs: [...(site?.repairs || [])],
     };
   }
   return { catalog_id: CULTURE_CATALOG_ID, sites };
@@ -85,7 +104,7 @@ export function applyCultureEvents(
     const entityId = payloadEntityId(ev.payload);
     if (!entityId) continue;
     if (!next.sites[entityId]) {
-      next.sites[entityId] = { repair_ids: [], accessors: [], repair_cycles: [] };
+      next.sites[entityId] = { repair_ids: [], accessors: [], repair_cycles: [], repairs: [] };
     }
     const site = next.sites[entityId];
     if (ev.event_type === "INSPECT" || ev.event_type === "ENTITY_UPDATE") {
@@ -97,6 +116,8 @@ export function applyCultureEvents(
     site.repair_ids.push(ev.event_id);
     site.repair_cycles = site.repair_cycles || [];
     if (!site.repair_cycles.includes(cycle)) site.repair_cycles.push(cycle);
+    site.repairs = site.repairs || [];
+    site.repairs.push({ event_id: ev.event_id, actor_id: actingPlayerId, cycle });
   }
   return next;
 }
@@ -130,6 +151,34 @@ function playLineFor(status: TraditionStatus): string | null {
   return null;
 }
 
+/** RFC-0125 §Decision. Marks only ever attach to a live tradition. */
+export function siteMarks(
+  site: CultureSite,
+  status: TraditionStatus,
+  publicForSite: PublicCultureRecon[],
+): { inherited: boolean; schism: boolean } {
+  if (status !== "TRADITION" && status !== "REVIVED") return { inherited: false, schism: false };
+  const repairs = site.repairs || [];
+  const originators = new Set(repairs.slice(0, ORIGINATOR_REPAIRS).map((r) => r.actor_id));
+  const originatorCycles = repairs.filter((r) => originators.has(r.actor_id)).map((r) => r.cycle);
+  const lastOriginator = originatorCycles.length ? Math.max(...originatorCycles) : -1;
+  // A co-practitioner is not an heir: the successor repair must land strictly
+  // after the founders stopped.
+  const inherited = repairs.some((r) => !originators.has(r.actor_id) && r.cycle > lastOriginator);
+
+  const practitioners = new Set(repairs.map((r) => r.actor_id));
+  const held = publicForSite
+    .filter((r) => r.author_id && r.claim && practitioners.has(r.author_id))
+    .map((r) => ({ author: String(r.author_id), claim: String(r.claim) }));
+  const claims = new Set(publicForSite.map((r) => r.claim).filter(Boolean));
+  let schism = held.some((a, i) =>
+    held.slice(i + 1).some((b) => a.author !== b.author && a.claim !== b.claim),
+  );
+  if (claims.size < SCHISM_MIN_PUBLIC_CLAIMS) schism = false;
+  if (new Set(held.map((h) => h.author)).size < SCHISM_MIN_PRACTITIONER_AUTHORS) schism = false;
+  return { inherited, schism };
+}
+
 export function cultureLines(
   state: CultureState | undefined | null,
   roomEntityIds: string[],
@@ -153,6 +202,10 @@ export function cultureLines(
     if (claims.size >= 2 && (status === "TRADITION" || status === "REVIVED" || status === "CUSTOM")) {
       out.push(COMPETING_LINE);
     }
+    // Fixed order: GC9-S1 lines, then the GC9-S2 marks. Replay compares arrays.
+    const marks = siteMarks(site, status, publicForSite);
+    if (marks.inherited) out.push(INHERITED_LINE);
+    if (marks.schism) out.push(SCHISM_LINE);
     return out;
   }
   return [];
@@ -166,16 +219,24 @@ export function publicCulturePulses(
   const snap = ensureCulture(state);
   const pulses: string[] = [];
   let tradition = false;
+  let inherited = false;
+  let schism = false;
   for (const [entityId, site] of Object.entries(snap.sites)) {
     const publicForSite = reconstructions.filter(
       (r) => r.subject_ref === entityId && r.visibility === "PUBLIC",
     );
     const status = traditionStatus(site, worldCycle, publicForSite);
     if (status === "TRADITION" || status === "REVIVED") tradition = true;
+    const marks = siteMarks(site, status, publicForSite);
+    if (marks.inherited) inherited = true;
+    if (marks.schism) schism = true;
   }
   if (tradition) pulses.push(WATCH_TRADITION_PULSE);
   if (reconstructions.some((r) => r.visibility === "PUBLIC" && r.epistemic === "CONTESTED")) {
     pulses.push(WATCH_CONTESTED_PULSE);
   }
+  // Aggregate only: names no site and no agent (RFC-0125 §Visibility).
+  if (inherited) pulses.push(WATCH_INHERITED_PULSE);
+  if (schism) pulses.push(WATCH_SCHISM_PULSE);
   return pulses;
 }
