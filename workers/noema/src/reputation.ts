@@ -215,18 +215,23 @@ export function attestOntologyError(
 }
 
 function liveEdges(w: {
-  trades?: Record<string, { proposer_id: string; counterparty_id: string; status: string }>;
+  trades?: Record<string, { proposer_id: string; counterparty_id: string; status: string; grounding?: string }>;
   organizations?: Record<string, { members?: Array<{ agent_id: string }> }>;
-  messages?: Array<{ sender_id?: string; recipient_id?: string }>;
+  messages?: Array<{ sender_id?: string; recipient_id?: string; grounding?: string }>;
 }): InteractionEdge[] {
+  // SEMANTIC §3.4 weights cascading risk by *degrading grounding* as well as
+  // curvature. Edges never carried grounding, so the low_g term was dead and
+  // the metric degenerated to pure topology.
   const edges: InteractionEdge[] = [];
   for (const t of Object.values(w.trades || {})) {
     if (t.proposer_id && t.counterparty_id) {
-      edges.push({ from: t.proposer_id, to: t.counterparty_id });
+      edges.push({ from: t.proposer_id, to: t.counterparty_id, ...(t.grounding ? { grounding: t.grounding } : {}) });
     }
   }
   for (const m of w.messages || []) {
-    if (m.sender_id && m.recipient_id) edges.push({ from: m.sender_id, to: m.recipient_id });
+    if (m.sender_id && m.recipient_id) {
+      edges.push({ from: m.sender_id, to: m.recipient_id, ...(m.grounding ? { grounding: m.grounding } : {}) });
+    }
   }
   for (const org of Object.values(w.organizations || {})) {
     const ids = (org.members || []).map((x) => x.agent_id).filter(Boolean);

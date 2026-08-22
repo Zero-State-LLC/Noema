@@ -2444,6 +2444,9 @@ export async function applyWorldCommand(
       text: deliverText,
       status: "DELIVERED",
       delivered_cycle: w.cycle,
+      ...(action.arguments.signal?.grounding
+        ? { grounding: String(action.arguments.signal.grounding) }
+        : {}),
     });
     if (claimPayload) {
       applyDeliveredClaim(w, message_id, principal.player_id, recipient_id, claimPayload, w.cycle);

@@ -414,3 +414,25 @@ describe("WATCH leak-closed", () => {
     expect(mutationGroundingOk({ grounding: "inferred-from-belief" })).toBe(false);
   });
 });
+
+describe("message grounding feeds cascading risk without reaching the Player", () => {
+  it("persists grounding on the record but never in the inbox projection", async () => {
+    const w = fixture();
+    const a = principal("player.a");
+    const b = principal("player.b");
+    await run(w, a, "ENTER_WORLD");
+    await run(w, b, "ENTER_WORLD");
+    const sent = await run(w, a, "MESSAGE", {
+      recipient_id: b.player_id,
+      text: "the cache is empty",
+      signal: { grounding: "hearsay" },
+    });
+    expect(sent.ok).toBe(true);
+    const rec = (w.messages || []).find((m) => m.recipient_id === b.player_id);
+    expect(rec?.grounding).toBe("hearsay");
+    // recipient's observation must not carry the internal metrology field
+    const look = await run(w, b, "LOOK");
+    expect(JSON.stringify(look.observation?.messages || [])).not.toContain("hearsay");
+    expect(JSON.stringify(look.observation?.messages || [])).not.toContain("grounding");
+  });
+});

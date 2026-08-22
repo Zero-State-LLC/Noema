@@ -108,3 +108,48 @@ def test_observed_signals_pass_grounding():
     assert h.semantic_drift == 0.0
     assert h.grounding_pass_rate == 1.0
     assert "HIGH_SEMANTIC_DRIFT" not in h.alerts
+
+
+def test_unobservable_inputs_are_marked_not_reported_as_zero():
+    """LOOK cannot see other purses or conversion behaviour; the metrics must say
+    so instead of publishing 1/n concentration and 0.0 drift as measurements."""
+    from economic_health import compute_economic_health, _forman_cascading_risk
+
+    flat = [
+        {"influence": 1.0, "attention": 8, "conversion_rate": 0.5},
+        {"influence": 1.0, "attention": 8, "conversion_rate": 0.5},
+    ]
+    h = compute_economic_health({"occupancy_weighted": True, "conversion_observed": False}, flat)
+    assert "HIGH_CONCENTRATION" not in h.alerts
+    assert "BEHAVIORAL_DRIFT_UNOBSERVED" in h.alerts
+    assert h.uncertainty >= 0.0
+
+    # Real purses and real spread still measure normally.
+    real = [
+        {"influence": 9.0, "attention": 8, "conversion_rate": 0.2},
+        {"influence": 1.0, "attention": 8, "conversion_rate": 0.9},
+    ]
+    h2 = compute_economic_health({}, real)
+    assert "HIGH_CONCENTRATION" in h2.alerts
+    assert "BEHAVIORAL_DRIFT_UNOBSERVED" not in h2.alerts
+    assert h2.behavioral_drift > 0.0
+
+    # Parity with curvature.ts: malformed edges are not evidence of risk.
+    assert _forman_cascading_risk([{"x": 1}, {"from": "a", "to": "a"}]) == 0.0
+
+
+def test_look_snapshot_gates_on_materials_node_not_a_hardcoded_id():
+    from ewm_look_snapshot import look_observation_to_snapshot
+
+    obs = {
+        "cycle": 3,
+        "budgets": {"influence": 4, "attention": 9},
+        "location": {
+            "entities": [
+                {"entity_id": "entity.other-cache", "stock_resource": "materials", "stock_amount": 5, "max_stock": 9}
+            ]
+        },
+    }
+    snap = look_observation_to_snapshot(obs)
+    assert snap is not None, "a materials node in any room must produce health"
+    assert snap["conversion_observed"] is False
