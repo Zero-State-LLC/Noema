@@ -28,6 +28,13 @@ run_worker_first = true
 html_handling = "none"
 not_found_handling = "none"
 
+# Cloudflare stamps the running Worker Version here. /health echoes it so the
+# live build is self-reporting: spec-compat.json's hand-maintained pin has
+# silently lagged a real deploy three times, and inferring the live build from
+# public surfaces is guesswork.
+[version_metadata]
+binding = "CF_VERSION"
+
 [vars]
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"

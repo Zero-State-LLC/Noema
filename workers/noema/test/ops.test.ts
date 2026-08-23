@@ -342,3 +342,30 @@ describe("session takeover", () => {
     expect(r.session_id).toBe("sess.1");
   });
 });
+
+describe("/health reports the running Worker version", () => {
+  it("echoes the Cloudflare version_metadata binding", async () => {
+    const env = {
+      NOEMA_ENV: "production",
+      NOEMA_PROTOCOL_VERSION: "1",
+      DEFAULT_WORLD_ID: "world.perihelion-reach-3",
+      CF_VERSION: { id: "abc123", tag: "v9", timestamp: "2026-08-23T01:00:00Z" },
+    } as unknown as Parameters<typeof worker.fetch>[1];
+    const res = await worker.fetch(new Request("https://noema.guru/health"), env);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.worker_version_id).toBe("abc123");
+    expect(body.deployed_at).toBe("2026-08-23T01:00:00Z");
+  });
+
+  it("omits the fields rather than guessing when the binding is absent", async () => {
+    const env = {
+      NOEMA_ENV: "local",
+      NOEMA_PROTOCOL_VERSION: "1",
+      DEFAULT_WORLD_ID: "world-01",
+    } as unknown as Parameters<typeof worker.fetch>[1];
+    const res = await worker.fetch(new Request("https://noema.guru/health"), env);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.worker_version_id).toBeUndefined();
+    expect(body.status).toBe("ok");
+  });
+});
