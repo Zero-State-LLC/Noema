@@ -411,7 +411,11 @@ export function phraseWatchEvent(
       }
       if (String(payload.operation || "").toUpperCase() === "PRODUCTION") {
         // Recovery happened, never how much: quantities are counters (§7).
-        return site ? `Stocks recovered at ${site}` : "Stocks recovered";
+        // The unlocated arm is unreachable — sourceToWatchEvent drops any
+        // entity-scoped event that resolves no public room — and returns empty
+        // rather than an unlocated "Stocks recovered", which would be the very
+        // filler §4 bans if anything ever bypassed that gate.
+        return site ? `Stocks recovered at ${site}` : "";
       }
       return site ? `Public activity at ${site}` : "Public activity";
     }

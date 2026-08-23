@@ -282,3 +282,18 @@ describe("§4 entity-scoped events resolve their public site", () => {
     if (got) expect(got.line).not.toContain("Ghost");
   });
 });
+
+describe("§4 the unlocated production arm is unreachable", () => {
+  it("emits no unlocated 'Stocks recovered' — the gate drops it first", () => {
+    const out = snap([
+      ev({
+        event_type: "ENTITY_UPDATE",
+        sequence: 69,
+        payload: { entity_id: "entity.nowhere", operation: "PRODUCTION" },
+      }),
+    ]);
+    const lines = (out.recent_events as Array<{ line: string }>).map((e) => e.line);
+    expect(lines).not.toContain("Stocks recovered");
+    expect(lines).not.toContain("");
+  });
+});
