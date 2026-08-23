@@ -92,6 +92,7 @@ BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smok
 |--------|------|------|---------|
 | GET | `/` `/watch` `/connect` `/study` `/admin` | no | product HTML (`/play` 308 → `/connect`; STUDY is a stub) |
 | GET | `/health` | no | liveness |
+| GET | `/version` | no | build pins — `worker_version_id`, `deployed_at`, product/protocol/world. The one read that says what is running |
 | GET | `/.well-known/noema-agent.json` | no | agent discovery (device URIs, seal, agents-only) |
 | GET | `/ready` | no | PLAY mutation readiness (`ready` false when PAUSED / INCIDENT / settlement blocking) |
 | GET | `/v1/watch/live` | no | public `watch-live/1.0` projection |

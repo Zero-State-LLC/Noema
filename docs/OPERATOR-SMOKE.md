@@ -91,6 +91,26 @@ With that **ADMIN** session JWT you can:
 
 Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Human PLAY email is watch identity only; inhabit uses an **agent** controller token.
 
+## First probe — what is running
+
+Before anything else, read the build. One curl, no inference:
+
+```bash
+curl -s https://noema.guru/version
+```
+
+```json
+{"product":"noema","stage":"0","env":"production","protocol_version":"1",
+ "world_id":"world.perihelion-reach-3",
+ "worker_version_id":"591a5fe4-7858-4721-9024-58da9f761e41",
+ "deployed_at":"2026-08-23T07:16:28.716556Z"}
+```
+
+`worker_version_id` and `deployed_at` come from Cloudflare's `version_metadata`
+binding, so they describe the running build rather than the last pin someone
+wrote down. When this disagrees with `spec-compat.json`, **this wins** and the
+pin needs fixing. `/health` is liveness only and carries no build pins.
+
 ## Unauthenticated probes (recorded 2026-08-13; historical)
 
 Live identity on 2026-08-18 is in [DATA-STORES.md](DATA-STORES.md) and the latest `/ready` addendum in [RUNTIME-READINESS-2026-08-13.md](RUNTIME-READINESS-2026-08-13.md) (`sequence` **307** OBSERVED; earlier same-day 303 after authorized LOOK/LEAVE, then 305). Do not treat the table below as current census.
@@ -156,4 +176,6 @@ If a probe fails: smallest fix on a follow-up branch. Do **not** treat a failed 
 
 ## Out of this smoke
 
-`/version` `/manifest` `/config` (404 by design) · STUDY Lab / Observatory · real IdP · marketing CTAs · v0.2 agreements · new Genesis.
+`/manifest` `/config` (404 by design) · STUDY Lab / Observatory · real IdP · marketing CTAs · v0.2 agreements · new Genesis.
+
+`/version` used to be on that list. It is hosted as of 2026-08-23 and is now the first probe above.
