@@ -3,6 +3,8 @@ export interface Env {
   WORLD_DO: DurableObjectNamespace;
   NOEMA_ENV: string;
   NOEMA_PROTOCOL_VERSION: string;
+  /** Cloudflare version_metadata: the running Worker Version. Read-only. */
+  CF_VERSION?: { id: string; tag: string; timestamp: string };
   DEFAULT_WORLD_ID: string;
   /** Static marketing splash + assets (wrangler [assets]). */
   ASSETS: Fetcher;

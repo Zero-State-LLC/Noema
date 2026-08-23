@@ -277,6 +277,11 @@ export default {
             env: env.NOEMA_ENV || "local",
             protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
             world_id: env.DEFAULT_WORLD_ID || "world-01",
+            // The running build, straight from Cloudflare. spec-compat.json's
+            // pin is hand-maintained and has lagged a real deploy three times;
+            // this is the authoritative answer to "what is actually live?".
+            worker_version_id: env.CF_VERSION?.id,
+            deployed_at: env.CF_VERSION?.timestamp,
           }),
         );
       }
