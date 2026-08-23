@@ -20,7 +20,7 @@ import {
   safePlayNext,
   type PlayMailer,
 } from "./play-mail";
-import { sendTransactionalEmail } from "./email-provider";
+import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const GENERIC_PLAY_LOGIN_MESSAGE =
@@ -57,7 +57,7 @@ export async function requestPlayMagicLink(
     try {
       const origin = loginRedirectOrigin(env, req);
       const callback = next ? `${origin}/play/callback?next=${encodeURIComponent(next)}` : `${origin}/play/callback`;
-      const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY);
+      const canProvider = Boolean(opts?.sendPlay || hasTransactionalProvider(env));
       let sent = false;
       if (canProvider) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
