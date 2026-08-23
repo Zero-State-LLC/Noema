@@ -105,7 +105,8 @@
     "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
-    "runtime_map": "docs/CORE-LOOP-RUNTIME.md"
+    "runtime_map": "docs/CORE-LOOP-RUNTIME.md",
+    "hosted_rfc_map": "docs/RFC-RUNTIME-AUDIT-2026-08-23.md"
   },
   "fixture_identity": {
     "chamber_seed_package": "fixtures/v01-seed",

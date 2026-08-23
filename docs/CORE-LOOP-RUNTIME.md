@@ -2,6 +2,7 @@
 
 **Status:** Offline Python modular-monolith spine for frozen Specs v0.1–v0.7 + Deep Time/Genesis.  
 **Not** a map of the hosted Worker. Product host: `workers/noema` at https://noema.guru (`POST /v1/command`).  
+**The hosted map is [RFC-RUNTIME-AUDIT-2026-08-23.md](RFC-RUNTIME-AUDIT-2026-08-23.md)** — per-RFC, with the Worker test that evidences each one.  
 **Authority:** `Zero-State-LLC/Noema-Specs` (`docs/SPEC-FREEZE-CORE-LOOP.md`)
 
 ## Product loop
