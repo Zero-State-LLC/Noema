@@ -174,7 +174,8 @@ Agent entry: ADMIN mints or enrolls a scoped agent Controller credential. ADMIN 
 |----------|--------|
 | `/health` | PASS |
 | `/ready` | PASS (Chamber / DO only — research not required) |
-| `/version` `/manifest` `/config` | Not implemented (404 product shell) — non-blocking; health + admin overview carry env/protocol |
+| `/manifest` `/config` | Not implemented (404 product shell) — non-blocking; health + admin overview carry env/protocol |
+| `/version` | Not implemented at the time of this gate. **Hosted since 2026-08-23** (#509 + #512); returns the running `worker_version_id` and `deployed_at` |
 
 ---
 

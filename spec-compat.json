@@ -80,7 +80,7 @@
     "config_schema": "deployment-config/1.0",
     "config_fixture": "examples/deployment/local-deployment-config.json",
     "ui_surfaces": ["/", "/watch", "/connect", "/study", "/admin"],
-    "json_surfaces_hosted": ["/health", "/ready", "/v1/watch/live", "/v1/command"],
+    "json_surfaces_hosted": ["/health", "/ready", "/version", "/v1/watch/live", "/v1/command"],
     "json_surfaces_offline": ["/health", "/ready", "/version", "/manifest", "/config"]
   },
   "evidence": {

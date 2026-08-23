@@ -129,7 +129,8 @@ Status: MATCH · INTENTIONAL SPLIT · SPEC DRIFT · RUNTIME GAP · HOSTED UNVERI
 | STUDY observational on nav | HOSTED-FIRST-ENTRY | `/study` WATCH projection; lab capture not hosted | OBSERVED | MATCH |
 | Security headers HTML | HOSTED / SECURITY | Worker `html()` | CSP, HSTS, X-Frame DENY, nosniff OBSERVED on `GET /` | MATCH |
 | Security headers JSON | same | CORS `*` on `/v1/watch/live`; HSTS + nosniff; no CSP/X-Frame | INTENTIONAL SPLIT (API vs HTML) |
-| `/version` `/manifest` | spec-compat hosted JSON list | not hosted | 404 HTML OBSERVED | INTENTIONAL SPLIT |
+| `/manifest` | spec-compat hosted JSON list | not hosted | 404 HTML OBSERVED | INTENTIONAL SPLIT |
+| `/version` | spec-compat hosted JSON list | not hosted **at closeout** | 404 HTML OBSERVED 2026-08-18; **200 with build pins OBSERVED 2026-08-23** after #509 + #512 | RESOLVED — the split closed |
 | Rate limits | AUTH | DO `__noema_rate_limits__` | not load-tested | HOSTED UNVERIFIED |
 | Player population | ops / this closeout | `/ready.players` = `countLivePlayers` (live humans present ≤30m) | OBSERVED 0 | MATCH for metric. Historical `17` not reclassified |
 | Live agent smoke | §29 | official `noema-client` | OBSERVED 2026-08-19 ENTER/OBSERVE/WAIT on `/v1/command` with published seal; Perihelion 105/308 → 106/309 HEALTHY | MATCH |
