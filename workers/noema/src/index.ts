@@ -277,9 +277,23 @@ export default {
             env: env.NOEMA_ENV || "local",
             protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
             world_id: env.DEFAULT_WORLD_ID || "world-01",
-            // The running build, straight from Cloudflare. spec-compat.json's
-            // pin is hand-maintained and has lagged a real deploy three times;
-            // this is the authoritative answer to "what is actually live?".
+          }),
+        );
+      }
+
+      // OPERATIONS.md "Health surfaces": /health is process up, /ready is
+      // world loadable, /version is product/spec/protocol/world pins. The
+      // running build id belongs here, not on /health.
+      if (request.method === "GET" && path === "/version") {
+        return cors(
+          json({
+            product: "noema",
+            stage: "0",
+            env: env.NOEMA_ENV || "local",
+            protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
+            world_id: env.DEFAULT_WORLD_ID || "world-01",
+            // Cloudflare stamps these; absent locally, and omitted rather
+            // than guessed so a missing binding never reads as a real pin.
             worker_version_id: env.CF_VERSION?.id,
             deployed_at: env.CF_VERSION?.timestamp,
           }),

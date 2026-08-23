@@ -343,29 +343,42 @@ describe("session takeover", () => {
   });
 });
 
-describe("/health reports the running Worker version", () => {
-  it("echoes the Cloudflare version_metadata binding", async () => {
-    const env = {
+describe("OPERATIONS.md health surfaces: /health, /ready, /version", () => {
+  const envWith = (extra: Record<string, unknown> = {}) =>
+    ({
       NOEMA_ENV: "production",
       NOEMA_PROTOCOL_VERSION: "1",
       DEFAULT_WORLD_ID: "world.perihelion-reach-3",
-      CF_VERSION: { id: "abc123", tag: "v9", timestamp: "2026-08-23T01:00:00Z" },
-    } as unknown as Parameters<typeof worker.fetch>[1];
-    const res = await worker.fetch(new Request("https://noema.guru/health"), env);
+      ...extra,
+    }) as unknown as Parameters<typeof worker.fetch>[1];
+
+  it("/version carries the product, protocol, world and build pins", async () => {
+    const env = envWith({ CF_VERSION: { id: "abc123", tag: "v9", timestamp: "2026-08-23T01:00:00Z" } });
+    const res = await worker.fetch(new Request("https://noema.guru/version"), env);
     const body = (await res.json()) as Record<string, unknown>;
+    expect(body.product).toBe("noema");
+    expect(body.protocol_version).toBe("1");
+    expect(body.world_id).toBe("world.perihelion-reach-3");
     expect(body.worker_version_id).toBe("abc123");
     expect(body.deployed_at).toBe("2026-08-23T01:00:00Z");
   });
 
-  it("omits the fields rather than guessing when the binding is absent", async () => {
-    const env = {
-      NOEMA_ENV: "local",
-      NOEMA_PROTOCOL_VERSION: "1",
-      DEFAULT_WORLD_ID: "world-01",
-    } as unknown as Parameters<typeof worker.fetch>[1];
-    const res = await worker.fetch(new Request("https://noema.guru/health"), env);
+  it("/version omits the build pins rather than guessing when the binding is absent", async () => {
+    const res = await worker.fetch(new Request("https://noema.guru/version"), envWith());
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.worker_version_id).toBeUndefined();
+    expect(body.deployed_at).toBeUndefined();
+    expect(body.product).toBe("noema");
+  });
+
+  it("/health stays a liveness check and carries no build pin", async () => {
+    // OPERATIONS.md: "/health | Process is up". #509 put the build id here;
+    // the spec puts it on /version.
+    const env = envWith({ CF_VERSION: { id: "abc123", tag: "v9", timestamp: "2026-08-23T01:00:00Z" } });
+    const res = await worker.fetch(new Request("https://noema.guru/health"), env);
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.status).toBe("ok");
+    expect(body.worker_version_id).toBeUndefined();
+    expect(body.deployed_at).toBeUndefined();
   });
 });
