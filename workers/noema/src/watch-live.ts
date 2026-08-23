@@ -359,7 +359,17 @@ export function phraseWatchEvent(
     (typeof payload.room_name === "string" && publicRooms[String(payload.room_id || "")]
       ? payload.room_name
       : undefined);
-  const site = destName || roomName(typeof payload.room_id === "string" ? payload.room_id : destId, publicRooms);
+  // §4: any entity-scoped event MUST resolve its public site. An entity
+  // mutation carries entity_id and normally no room_id, so payload room ids
+  // alone leave it unlocated and it degrades to the filler the spec bans.
+  const entitySite = entityHome(
+    typeof payload.entity_id === "string" ? payload.entity_id : undefined,
+    publicRooms as Record<string, WatchRoomIn>,
+  )?.room.name;
+  const site =
+    destName ||
+    roomName(typeof payload.room_id === "string" ? payload.room_id : destId, publicRooms) ||
+    entitySite;
 
   switch (String(ev.event_type || "").toUpperCase()) {
     case "MOVE":
@@ -398,6 +408,14 @@ export function phraseWatchEvent(
         const target = home?.label || "infrastructure";
         const repairer = publicOccupantLabel({ handle: typeof payload.last_repair_handle === "string" ? payload.last_repair_handle : ev.handle }, Object.values(publicRooms)) || labelOf(ev, Object.values(publicRooms));
         return `${repairer} repaired ${target}`;
+      }
+      if (String(payload.operation || "").toUpperCase() === "PRODUCTION") {
+        // Recovery happened, never how much: quantities are counters (§7).
+        // The unlocated arm is unreachable — sourceToWatchEvent drops any
+        // entity-scoped event that resolves no public room — and returns empty
+        // rather than an unlocated "Stocks recovered", which would be the very
+        // filler §4 bans if anything ever bypassed that gate.
+        return site ? `Stocks recovered at ${site}` : "";
       }
       return site ? `Public activity at ${site}` : "Public activity";
     }
@@ -544,10 +562,15 @@ function sourceToWatchEvent(
     if (roomId.startsWith("room.")) return null;
   }
   let publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
-  const infraShaped = isRepairUpdate(ev) || ev.event_type.toUpperCase() === "INFRASTRUCTURE_DISRUPTED";
-  if (!publicRoomId && infraShaped) {
-    // §5: a public repair/disruption resolves its public site via the entity's
-    // public room; if none, the event is omitted, not anonymized into filler.
+  // RFC-0057 grants REPURPOSE a PLAY line only; WATCH stays silent.
+  if (String(ev.payload?.operation || "").toUpperCase() === "REPURPOSE") return null;
+  // §4: ANY entity-scoped event resolves its public site this way, not just
+  // repair and disruption. Narrowing it here is what left the live feed
+  // rendering every maintenance event as unlocated "Public activity".
+  const entityScoped = typeof ev.payload?.entity_id === "string" && ev.payload.entity_id.length > 0;
+  if (!publicRoomId && entityScoped) {
+    // §5: resolve via the entity's public room; if none, the event is
+    // omitted, not anonymized into filler.
     const home = entityHome(
       typeof ev.payload?.entity_id === "string" ? ev.payload.entity_id : undefined,
       publicRooms,
