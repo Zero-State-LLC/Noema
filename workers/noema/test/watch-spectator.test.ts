@@ -207,3 +207,78 @@ describe("§4.G follow chrome (client wiring)", () => {
     expect(html).not.toMatch(/controller|provider|model[_ ]?name/i);
   });
 });
+
+/**
+ * §4 entity-scoped site resolution (Specs #259).
+ * Regression: the live feed on world.perihelion-reach-3 rendered every
+ * maintenance event as unlocated "Public activity" — the exact filler §4 bans —
+ * because site resolved only from payload room ids and only the REPAIR branch
+ * looked the entity up. Fourteen operations ride ENTITY_UPDATE; one worked.
+ */
+describe("§4 entity-scoped events resolve their public site", () => {
+  type Ev = { sequence: number; line: string };
+  const evs = (o: Record<string, unknown>) => (o.recent_events as Ev[]) || [];
+  const production = (entity_id: string) => ({
+    entity_id,
+    operation: "PRODUCTION",
+    field: "stock",
+  });
+
+  it("locates a production event from entity_id alone, with no room_id in the payload", () => {
+    const line = phraseWatchEvent(
+      ev({ event_type: "ENTITY_UPDATE", sequence: 61, payload: production("entity.relay-trunk") }),
+      rooms() as never,
+    );
+    expect(line).toBe("Stocks recovered at Grid Anchor");
+  });
+
+  it("never states how much recovered — quantities are counters (§7)", () => {
+    const line = phraseWatchEvent(
+      ev({
+        event_type: "ENTITY_UPDATE",
+        sequence: 62,
+        payload: { ...production("entity.relay-trunk"), from: 12, to: 40, amount: 28 },
+      }),
+      rooms() as never,
+    );
+    expect(line).toBe("Stocks recovered at Grid Anchor");
+    for (const n of ["12", "40", "28"]) expect(line).not.toContain(n);
+  });
+
+  it("omits a production event in a hidden room rather than anonymizing it", () => {
+    const out = snap([ev({ event_type: "ENTITY_UPDATE", sequence: 63, payload: production("entity.core") })]);
+    expect(evs(out).find((e) => e.sequence === 63)).toBeUndefined();
+  });
+
+  it("omits an entity event whose entity is in no public room", () => {
+    const out = snap([ev({ event_type: "ENTITY_UPDATE", sequence: 64, payload: production("entity.nowhere") })]);
+    expect(evs(out).find((e) => e.sequence === 64)).toBeUndefined();
+  });
+
+  it("keeps REPURPOSE off WATCH entirely (RFC-0057 grants it a PLAY line only)", () => {
+    const out = snap([
+      ev({
+        event_type: "ENTITY_UPDATE",
+        sequence: 65,
+        payload: { entity_id: "entity.relay-trunk", operation: "REPURPOSE" },
+      }),
+    ]);
+    expect(evs(out).find((e) => e.sequence === 65)).toBeUndefined();
+  });
+
+  it("no public line is the bare unlocated filler the spec bans", () => {
+    const out = snap([
+      ev({ event_type: "ENTITY_UPDATE", sequence: 66, payload: production("entity.relay-trunk") }),
+      ev({ event_type: "ENTITY_UPDATE", sequence: 67, payload: { ...repairPayload } }),
+    ]);
+    expect(evs(out).length).toBeGreaterThan(0);
+    for (const e of evs(out)) expect(e.line).not.toBe("Public activity");
+  });
+
+  it("still locates a hidden entity's event nowhere, so §7 redaction is unchanged", () => {
+    const out = snap([ev({ event_type: "ENTITY_UPDATE", sequence: 68, payload: production("entity.ghost") })]);
+    const got = evs(out).find((e) => e.sequence === 68);
+    // entity.ghost is hidden inside a public room: it must not be narrated.
+    if (got) expect(got.line).not.toContain("Ghost");
+  });
+});
