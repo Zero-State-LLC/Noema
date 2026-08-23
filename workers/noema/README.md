@@ -119,12 +119,14 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 
 **Already on deployed Worker (names only):** `TOKEN_SIGNING_SECRET`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`.  
 **Still needed for settlement and magic-link generation:** `SUPABASE_SERVICE_ROLE_KEY`.
-**Auth mail:** `RESEND_API_KEY`; verify `play@noema.guru` and `admin@noema.guru` (or set one verified `RESEND_FROM_EMAIL`).
+**Auth mail:** `RESEND_API_KEY`; verify `play@noema.guru` and `admin@noema.guru` (or set one verified `RESEND_FROM_EMAIL`).  
+**Auth mail standby (optional, RFC-0032):** `POSTMARK_SERVER_TOKEN` — tried only when Resend is absent or fails. `POSTMARK_FROM_EMAIL` overrides the sender; `POSTMARK_MESSAGE_STREAM` defaults to `outbound`. Unset, delivery behaves exactly as before.
 
 ```bash
 # Interactive (recommended)
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put POSTMARK_SERVER_TOKEN   # optional standby
 
 # Or from a local gitignored file
 cp .env.example .env   # fill values

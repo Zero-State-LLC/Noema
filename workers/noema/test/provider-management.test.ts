@@ -28,9 +28,27 @@ describe("admin provider management", () => {
       project_ref: "project-ref",
     });
     expect(config.resend.api_key).toBe(true);
-    expect(config).not.toHaveProperty("postmark");
     expect(JSON.stringify(config)).not.toContain("secret-service-role");
     expect(JSON.stringify(config)).not.toContain("secret-resend");
+  });
+
+  it("reports the Postmark standby by presence only, never its token", () => {
+    const bare = providerConfiguration(env());
+    expect(bare.postmark).toEqual({
+      server_token: false,
+      from_email: null,
+      message_stream: "outbound",
+      priority: "standby",
+    });
+    const config = providerConfiguration(env({
+      POSTMARK_SERVER_TOKEN: "secret-postmark",
+      POSTMARK_FROM_EMAIL: "access@noema.guru",
+      POSTMARK_MESSAGE_STREAM: "transactional",
+    }));
+    expect(config.postmark.server_token).toBe(true);
+    expect(config.postmark.message_stream).toBe("transactional");
+    expect(config.resend.priority).toBe("primary");
+    expect(JSON.stringify(config)).not.toContain("secret-postmark");
   });
 
   it("verifies the exact canonical Perihelion head boundary", async () => {

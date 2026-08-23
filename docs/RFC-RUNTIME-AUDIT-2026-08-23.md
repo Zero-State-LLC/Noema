@@ -31,6 +31,11 @@ specific reason, and only today:
 So `workers/noema/src` at `93449fb` **is** the source of the running build. When the next
 Worker publish lands, that identity breaks and this document needs re-running, not trusting.
 
+**One row already breaks it.** The RFC-0032 fix in this same change touches `workers/`, so
+from the moment it merges, `main` carries Worker code that `591a5fe4` does not. That row is
+marked **PENDING PUBLISH** rather than LIVE, and stays that way until a publish and a fresh
+`GET /version`. Every other row still describes the running build.
+
 ## Method
 
 Three joined facts, no inference chain longer than that:
@@ -73,9 +78,9 @@ Nothing below rests on it.
 | Verdict | Count | Meaning |
 |---|---|---|
 | **LIVE** | 120 | In the Worker source that built `591a5fe4`, with passing hosted tests |
+| **PENDING PUBLISH** | 1 | Fixed on `main`, not yet in the running Worker |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
-| **DIVERGENT** | 1 | Runtime contradicts the accepted text |
 | **NONE** | 1 | Not implemented anywhere — and not expected to be |
 
 Note what this replaces. `SPEC-FREEZE-CORE-LOOP.md` §4 slices D–G and I are the
@@ -83,29 +88,23 @@ Note what this replaces. `SPEC-FREEZE-CORE-LOOP.md` §4 slices D–G and I are t
 (Specs #267). The RFC set audited here is the **game contract** set, and it is almost
 entirely hosted. Both statements are true; they are about different bodies of work.
 
-## The four rows that are not LIVE
+## The three rows that are not LIVE
 
-### RFC-0032 — Postmark standby does not exist · DIVERGENT
+### RFC-0032 — the standby was missing, and now exists · was DIVERGENT
 
-The Status section was already amended once: Resend is the preferred adapter, and the
-Worker agrees (`email-provider.ts` → `sendResendEmail`). The sentence that has not aged is
-this one: *"Postmark remains a configured standby."*
+This audit originally recorded RFC-0032 as the one contract the runtime contradicted. The
+Status section had already been amended so that Resend is preferred and *"Postmark remains
+a configured standby"* — but `EmailProvider` was the one-member union `"resend"`, there was
+no fallback path, `provider-management.test.ts` asserted `config` had no `postmark`
+property, and `.env.example` advertised four `POSTMARK_*` variables that no code read.
 
-It is not configured anywhere. `EmailProvider` is a one-member union:
+That gap is closed: `postmark.ts` implements decision items 1–9 and the provider contract,
+and `email-provider.ts` tries Resend first and Postmark second. The divergence count is zero.
 
-```ts
-export type EmailProvider = "resend";
-…
-if (!env.RESEND_API_KEY) throw new Error("no transactional email provider configured");
-```
-
-There is no fallback path — if Resend is unreachable, magic-link delivery throws. The
-Worker does not merely lack Postmark, it **asserts** the absence:
-`provider-management.test.ts` requires `expect(config).not.toHaveProperty("postmark")`.
-Meanwhile `.env.example` still advertises four `POSTMARK_*` variables that no code reads.
-
-Either the standby should exist or the RFC should stop saying it does. This audit does not
-pick; it records that they disagree. No behavior changes here.
+The row is **PENDING PUBLISH**, not LIVE, and that distinction is the point. The fix is on
+`main`; the running Worker is still `591a5fe4`, which has no Postmark adapter. Writing LIVE
+here would be the same mistake as a `hosted_live` pin that ran ahead of a publish. It
+becomes LIVE when `GET /version` reports a build that contains it.
 
 ### RFC-0111 · RFC-0116 — agent-side contracts · CLIENT
 
@@ -163,7 +162,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0029](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0029-institution-trade-repair.md) | Institutional TRADE and REPAIR Authority | GC4-S2 | **LIVE** | `institution-actions.test.ts` |
 | [RFC-0030](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0030-emergency-scopes.md) | Institutional Emergency Authority Scopes | GC4-S3 | **LIVE** | `emergency.test.ts` |
 | [RFC-0031](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0031-designated-succession.md) | Designated Institutional Succession | GC4-S4 | **LIVE** | `succession.test.ts` |
-| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **DIVERGENT** | Preferred adapter matches (`email-provider.ts` → Resend). The Accepted text also says Postmark "remains a configured standby"; no Postmark adapter exists, and `provider-management.test.ts` asserts `config` has no `postmark` property |
+| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **PENDING PUBLISH** | `postmark-standby.test.ts`, `provider-management.test.ts` — on `main`, not in `591a5fe4` |
 | [RFC-0033](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0033-agent-bootstrap-and-game-profile.md) | Agent Bootstrap and Game-Only Controller Profile | AGENT-ORIENTATION-S2 | **LIVE** | `agent-orientation-s2.test.ts` |
 | [RFC-0034](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0034-watch-public-descriptors.md) | GC3-S2 WATCH Public Descriptor Bands | GC3-S2 | **LIVE** | `gc3-s2-s6.test.ts` |
 | [RFC-0035](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0035-institution-edges.md) | GC3-S3 Institution→Player Edges | GC3-S3 | **LIVE** | world-actions.ts, offices.ts (org edges) |

@@ -12,6 +12,7 @@ import {
   extractHashedToken,
 } from "./admin-mail";
 import { err, json } from "./auth";
+import { hasTransactionalProvider } from "./email-provider";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
 import { parseOperatorId, SHARED_TOKEN_OPERATOR_ID } from "./ops";
 import { SlidingWindowThrottle, allowLoginThrottled } from "./rate-limit";
@@ -229,7 +230,7 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canWorkerSend = Boolean(opts?.sendAdmin || env.RESEND_API_KEY || env.ADMIN_MAIL);
+      const canWorkerSend = Boolean(opts?.sendAdmin || hasTransactionalProvider(env) || env.ADMIN_MAIL);
       let sent = false;
       if (canWorkerSend) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {

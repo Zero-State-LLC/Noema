@@ -1,9 +1,10 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY and ADMIN send through Resend when RESEND_API_KEY is set.
+ * PLAY and ADMIN send through Resend when RESEND_API_KEY is set, falling back
+ * to the Postmark standby when POSTMARK_SERVER_TOKEN is set (RFC-0032).
  */
 
-import { sendTransactionalEmail } from "./email-provider";
+import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const ADMIN_MAIL_SUBJECT = "NOEMA Admin Access";
@@ -249,7 +250,7 @@ export async function deliverAdminMail(env: Env, mail: {
   html: string;
   text: string;
 }, fetchImpl: typeof fetch = fetch): Promise<void> {
-  if (env.RESEND_API_KEY) {
+  if (hasTransactionalProvider(env)) {
     try {
       const sent = await sendTransactionalEmail(env, {
         from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,
