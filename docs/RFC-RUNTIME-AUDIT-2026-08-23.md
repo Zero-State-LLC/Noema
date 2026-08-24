@@ -24,28 +24,42 @@ specific reason, and only today:
 
 | Fact | Evidence |
 |---|---|
-| Live Worker is `591a5fe4-7858-4721-9024-58da9f761e41` | `GET /version`, OBSERVED 2026-08-23 |
-| It was published at 2026-08-23T07:16:28Z | same |
-| No Worker **code** has changed since | `git log 5796cbe..main -- workers/noema/src workers/noema/test` — see the state line below |
+| Live Worker is `cbb1b87e-8341-45a1-a94d-40e10ac6a343` | `GET /version`, OBSERVED 2026-08-24 |
+| It was published at 2026-08-24T01:08:29Z | same |
+| One Worker **code** commit has landed since | `git log 63c63d9..main -- workers/noema/src workers/noema/test` — see the state line below |
 
-So `workers/noema/src` at `5796cbe` **is** the source of the running build. Name the build
+So `workers/noema/src` at `63c63d9` **is** the source of the running build. Name the build
 commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything the
 moment it does. When the next Worker publish lands, this identity has to be re-derived rather
 than trusted.
 
-### State as of 2026-08-23, after #515 #516 #517 merged
+### State as of 2026-08-24, after the `cbb1b87e` publish
 
-`GET /version` still reports `591a5fe4`, and exactly **one** Worker code commit sits on `main`
-ahead of it:
+The publish happened. `GET /version` reports `cbb1b87e-8341-45a1-a94d-40e10ac6a343`,
+`deployed_at` 2026-08-24T01:08:29Z. The RFC-0032 row is **LIVE**; nothing is pending.
 
-```
-$ git log 5796cbe..main --oneline -- workers/noema/src workers/noema/test
-d088177 fix(auth): give RFC-0032's Postmark standby an implementation (#517)
-```
+Which commits that build carries is **derived, not read**. `/version` reports the Worker
+version id and the deploy time; it does not report the source commit. The derivation:
 
-So one row is **PENDING PUBLISH** — RFC-0032 — and the other 124 still describe the running
-build. **A publish is owed.** Until it happens and `/version` reports a build containing
-`d088177`, that row must not be read as LIVE.
+| Commit | Merged | In the build? |
+|---|---|---|
+| `d088177` #517 RFC-0032 standby | 2026-08-23T22:46:25Z | yes — 2h22m before the publish |
+| `63c63d9` #520 harvest redaction | 2026-08-24T01:05:47Z | yes — 2m42s before the publish |
+| `1374b69` #521 redaction sweep | 2026-08-24T01:14:54Z | **no** — 6m25s after it |
+
+`63c63d9` was `main` at the publish, so it is the build's source.
+
+**Not determined:** neither #517 nor #520 has a public probe. The Postmark standby is inert
+until `POSTMARK_SERVER_TOKEN` is set and its only surface is admin-authenticated. The harvest
+fix needs a harvest, and `players_present` is `0` — the live feed at cycle 834 carries only
+`Stocks recovered at Civic Exchange`. So the two rows rest on the timestamp derivation above
+and on the publisher, who knows what they built. Recorded as derived rather than written up
+as observed.
+
+One ordering note the derivation surfaces: Specs #273, the §5 clause that describes what #520
+implements, merged at 2026-08-24T01:11:27Z — **after** this build was cut. `specs_git` is
+therefore `5e48ae9` (#272), and the runtime shipped the fix before the clause describing it
+landed. Correct, but worth seeing.
 
 Scope the re-run command to `src` and `test`. Widening it to `workers/` also catches
 documentation commits — #515 edited `workers/noema/README.md` and changes nothing about what
@@ -93,8 +107,7 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 120 | In the Worker source that built `591a5fe4`, with passing hosted tests |
-| **PENDING PUBLISH** | 1 | Fixed on `main`, not yet in the running Worker |
+| **LIVE** | 121 | In the Worker source that built `cbb1b87e`, with passing hosted tests |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
 | **NONE** | 1 | Not implemented anywhere — and not expected to be |
@@ -104,9 +117,9 @@ Note what this replaces. `SPEC-FREEZE-CORE-LOOP.md` §4 slices D–G and I are t
 (Specs #267). The RFC set audited here is the **game contract** set, and it is almost
 entirely hosted. Both statements are true; they are about different bodies of work.
 
-## The three rows that are not LIVE
+## The four rows that are not LIVE, and one that was
 
-### RFC-0032 — the standby was missing, and now exists · was DIVERGENT
+### RFC-0032 — the standby was missing, and now exists · was DIVERGENT, now LIVE
 
 This audit originally recorded RFC-0032 as the one contract the runtime contradicted. The
 Status section had already been amended so that Resend is preferred and *"Postmark remains
@@ -117,17 +130,18 @@ property, and `.env.example` advertised four `POSTMARK_*` variables that no code
 That gap is closed: `postmark.ts` implements decision items 1–9 and the provider contract,
 and `email-provider.ts` tries Resend first and Postmark second. The divergence count is zero.
 
-The row is **PENDING PUBLISH**, not LIVE, and that distinction is the point. The fix is on
-`main`; the running Worker is still `591a5fe4`, which has no Postmark adapter. Writing LIVE
-here would be the same mistake as a `hosted_live` pin that ran ahead of a publish. It
-becomes LIVE when `GET /version` reports a build that contains it.
+The row was **PENDING PUBLISH** for one day, which was the point: writing LIVE while the fix
+sat on `main` would have been the same mistake as a `hosted_live` pin running ahead of a
+publish. It is LIVE as of the `cbb1b87e` publish on 2026-08-24 — derived from merge order
+rather than probed, for the reason given in the boundary section.
 
 ### RFC-0111 · RFC-0116 — agent-side contracts · CLIENT
 
 Both are implemented, neither by the Worker, and that is correct rather than a gap.
 RFC-0111's harness is `src/noema/harness/` (policy, loop, seal, transport); RFC-0116's
-client is `scrimshawlife-ctrl/noema-client`, pinned as `noema-client==0.1.14` in
-`hosted_live`. The Worker's obligations under both — `POST /v1/command`, `/connect`, and
+client is `scrimshawlife-ctrl/noema-client`, pinned as `noema-client==0.1.15` in
+`hosted_live` since 2026-08-24 (0.1.15 is on PyPI; #20 added the LOOK chrome for
+`reputation_summary` and `active_norms`). The Worker's obligations under both — `POST /v1/command`, `/connect`, and
 `GET /.well-known/noema-agent.json` (`index.ts:256`) — are live.
 
 ### RFC-0114 — LLM Controller adapter · OFFLINE
@@ -178,7 +192,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0029](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0029-institution-trade-repair.md) | Institutional TRADE and REPAIR Authority | GC4-S2 | **LIVE** | `institution-actions.test.ts` |
 | [RFC-0030](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0030-emergency-scopes.md) | Institutional Emergency Authority Scopes | GC4-S3 | **LIVE** | `emergency.test.ts` |
 | [RFC-0031](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0031-designated-succession.md) | Designated Institutional Succession | GC4-S4 | **LIVE** | `succession.test.ts` |
-| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **PENDING PUBLISH** | `postmark-standby.test.ts`, `provider-management.test.ts` — on `main`, not in `591a5fe4` |
+| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **LIVE** | `postmark-standby.test.ts`, `provider-management.test.ts` — in `cbb1b87e` |
 | [RFC-0033](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0033-agent-bootstrap-and-game-profile.md) | Agent Bootstrap and Game-Only Controller Profile | AGENT-ORIENTATION-S2 | **LIVE** | `agent-orientation-s2.test.ts` |
 | [RFC-0034](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0034-watch-public-descriptors.md) | GC3-S2 WATCH Public Descriptor Bands | GC3-S2 | **LIVE** | `gc3-s2-s6.test.ts` |
 | [RFC-0035](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0035-institution-edges.md) | GC3-S3 Institution→Player Edges | GC3-S3 | **LIVE** | world-actions.ts, offices.ts (org edges) |
@@ -277,6 +291,7 @@ or the Worker source carrying the contract's identifier.
 ```bash
 curl -s https://noema.guru/version                  # is the live Worker still 591a5fe4?
 git log <that build>..main -- workers/noema/src workers/noema/test   # empty means code equals live
+#   <that build> is the commit that was main at deployed_at — /version does not report it
 cd workers/noema && npm ci && npm test              # 198 files
 python validation/validate_all.py                   # in Noema-Specs: prints the slice → RFC pairs
 ```
