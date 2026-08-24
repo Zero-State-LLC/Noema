@@ -32,9 +32,11 @@ function scar(strength: number): ScarRecord {
     domain: "economic",
     room_id: "room.hub",
     strength,
-    established_cycle: 1,
+    decay_rate: 0.01,
+    cycle_born: 1,
+    reconstruction_confidence: 0.5,
     visibility: "public",
-  } as ScarRecord;
+  };
 }
 
 describe("Deep Time tails — Specs #285 Slice A concordance", () => {
