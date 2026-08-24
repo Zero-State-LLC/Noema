@@ -54,6 +54,11 @@ class NoemaState:
     last_consequence: Any = None
     focus: Any = None
     situation: dict[str, Any] | None = None
+    # AGENT-HARNESS.md §ASP: "LOOK fields hint, reputation_summary, and
+    # active_norms are forwarded as received." hint rides inside affordances;
+    # these two are top-level and were being dropped here.
+    reputation_summary: dict[str, Any] | None = None
+    active_norms: dict[str, Any] | None = None
     world_status: str | None = None
     world_text: list[str] = field(default_factory=list)
 
