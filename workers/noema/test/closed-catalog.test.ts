@@ -52,6 +52,31 @@ function catalog(file: string): Set<string> {
  */
 const KNOWN_UNCATALOGUED = ["TRADE_CANCELLED"];
 
+/**
+ * Catalogued types the Worker never emits. Four are explicable:
+ * BUDGET_EXCEEDED and MOVE_REJECTED are refusal codes passed to fail(), not
+ * ledger events; SITUATION_INJECTED and NOISE_APPLIED belong to the offline
+ * research spine.
+ *
+ * CRIME_DETECTED is not. The hosted world carries every consumer of it — a
+ * MAJOR WATCH tier, a redacted public projection, a glyph, danger-evidence
+ * credit in social-memory, a world-report section — and no producer. RFC-0002
+ * §Detection requires witness, sensor, investigation, or self-report, and the
+ * Worker implements none, so the event cannot occur. Crime is specified,
+ * consumed, and unproduced.
+ *
+ * Pinned so that wiring it fails here, which is the signal to revisit the
+ * RFC-0002 row in docs/RFC-RUNTIME-AUDIT-2026-08-23.md rather than leaving it
+ * stale.
+ */
+const NEVER_EMITTED = [
+  "BUDGET_EXCEEDED",
+  "CRIME_DETECTED",
+  "MOVE_REJECTED",
+  "NOISE_APPLIED",
+  "SITUATION_INJECTED",
+];
+
 describe("closed event catalog conformance", () => {
   const have = existsSync(join(SPECS, "event-types.json"));
 
@@ -79,6 +104,23 @@ describe("closed event catalog conformance", () => {
     // Fails if the Specs side closes the gap, which is the point — the
     // exception should not outlive the decision that justifies it.
     expect(gaps).toEqual([...KNOWN_UNCATALOGUED].sort());
+  });
+
+  it.skipIf(!have)("still emits none of the catalogued types it has never emitted", () => {
+    const emitted = emittedEventTypes();
+    const allowed = new Set([...catalog("event-types.json"), ...catalog("event-types.0.2.json")]);
+    const unemitted = [...allowed].filter((t) => !emitted.has(t)).sort();
+    expect(unemitted).toEqual([...NEVER_EMITTED].sort());
+  });
+
+  it("consumes CRIME_DETECTED without producing it", () => {
+    const consumers = readdirSync(SRC)
+      .filter((f) => f.endsWith(".ts"))
+      .filter((f) => readFileSync(join(SRC, f), "utf8").includes("CRIME_DETECTED"));
+    // Several files read it — WATCH projection, social memory, world reports.
+    expect(consumers.length).toBeGreaterThanOrEqual(3);
+    // None emits it.
+    expect(emittedEventTypes().has("CRIME_DETECTED")).toBe(false);
   });
 
   it.skipIf(!have)("pins the catalog sizes the Specs validator asserts", () => {

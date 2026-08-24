@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildWatchLive, phraseWatchEvent, projectionIdForEvent } from "../src/watch-live";
 import type { WatchSourceEvent } from "../src/watch-live";
@@ -27,6 +29,18 @@ const SILENT = [
 const SPECIFIC = ["REPAIR", "PRODUCTION"] as const;
 
 const RFC_0126_SILENT = ["HARVEST", "ATTEST", "INFORMATION_CONTEST", "PRESENCE_PRESSURE"] as const;
+
+/**
+ * RFC-0126 ships a machine contract. Until now nothing read it, so the list
+ * above was a copy — and a copy of a contract drifts from it silently, which is
+ * the failure this whole audit trail exists to catch. Checked when the Specs
+ * repo is checked out beside this one, skipped when it is not, same as the
+ * GC4-S8 fixtures.
+ */
+const RFC_0126_CONTRACT = join(
+  new URL(".", import.meta.url).pathname,
+  "../../../../Noema-Specs/specs/watch-entity-update-exposure.rfc-0126.json",
+);
 
 const NOW = 1_700_000_000_000;
 const PLAYER = "player.aaaaaaaaaaaa";
@@ -136,6 +150,25 @@ describe("ENTITY_UPDATE census — what WATCH does with each operation", () => {
       expect(feedLines(operation)).toEqual([]);
     }
     expect(RFC_0126_SILENT).toHaveLength(4);
+  });
+
+  it.skipIf(!existsSync(RFC_0126_CONTRACT))("matches the RFC-0126 machine contract, not a copy of it", () => {
+    const contract = JSON.parse(readFileSync(RFC_0126_CONTRACT, "utf8")) as {
+      silent_operations: string[];
+      explicit_operation_projections: Record<string, string>;
+      default_watch_projection: string | null;
+      unknown_operation_watch_projection: string | null;
+    };
+    expect([...RFC_0126_SILENT].sort()).toEqual([...contract.silent_operations].sort());
+    expect([...SPECIFIC].sort()).toEqual(Object.keys(contract.explicit_operation_projections).sort());
+    for (const [operation, projectionId] of Object.entries(contract.explicit_operation_projections)) {
+      expect(projectionIdForEvent("ENTITY_UPDATE", { operation })).toBe(projectionId);
+    }
+    // Fail-closed: the contract pins both defaults to null, and so must the runtime.
+    expect(contract.default_watch_projection).toBeNull();
+    expect(contract.unknown_operation_watch_projection).toBeNull();
+    expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "NOT_A_REAL_OPERATION" })).toBeNull();
+    expect(projectionIdForEvent("ENTITY_UPDATE", {})).toBeNull();
   });
 
   it("renders one canonical line for one HARVEST act", () => {

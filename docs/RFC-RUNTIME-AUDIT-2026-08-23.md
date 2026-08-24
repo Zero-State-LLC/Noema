@@ -24,47 +24,47 @@ specific reason, and only today:
 
 | Fact | Evidence |
 |---|---|
-| Live Worker is `cbb1b87e-8341-45a1-a94d-40e10ac6a343` | `GET /version`, OBSERVED 2026-08-24 |
-| It was published at 2026-08-24T01:08:29Z | same |
-| One Worker **code** commit has landed since | `git log 63c63d9..main -- workers/noema/src workers/noema/test` — see the state line below |
+| Which Worker is live | `hosted_live.worker_version_id` in [`spec-compat.json`](../spec-compat.json) |
+| When it was published | the same block's `note` |
+| That the pin is not stale | `GET https://noema.guru/version`, and the `pin-currency` workflow |
+| That no Worker code has landed since | `git log <build commit>..main -- workers/noema/src workers/noema/test` is empty |
 
-So `workers/noema/src` at `63c63d9` **is** the source of the running build. Name the build
-commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything the
-moment it does. When the next Worker publish lands, this identity has to be re-derived rather
-than trusted.
+**This document names no version ids.** It used to name eleven, and a publish meant editing
+all eleven — which is why one of them was still `591a5fe4` two publishes later, sitting in the
+instructions for checking whether the pin is current. A restated fact is a fact that goes
+stale somewhere you are not looking.
 
-### State as of 2026-08-24, after the `cbb1b87e` publish
+The pin lives in `spec-compat.json`, once. Rows below say **LIVE**, not *live in this build*,
+because "which build" is a question with exactly one answer and it is not stored here.
 
-The publish happened. `GET /version` reports `cbb1b87e-8341-45a1-a94d-40e10ac6a343`,
-`deployed_at` 2026-08-24T01:08:29Z. The RFC-0032 row is **LIVE**; nothing is pending.
+So `workers/noema/src` at the build commit **is** the source of the running build. Name the
+build commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything
+the moment it does. When the next Worker publish lands, this identity has to be re-derived
+rather than trusted.
 
-Which commits that build carries is **derived, not read**. `/version` reports the Worker
-version id and the deploy time; it does not report the source commit. The derivation:
+### Keeping this current
 
-| Commit | Merged | In the build? |
-|---|---|---|
-| `d088177` #517 RFC-0032 standby | 2026-08-23T22:46:25Z | yes — 2h22m before the publish |
-| `63c63d9` #520 harvest redaction | 2026-08-24T01:05:47Z | yes — 2m42s before the publish |
-| `1374b69` #521 redaction sweep | 2026-08-24T01:14:54Z | **no** — 6m25s after it |
+Two facts go stale, and only two. They are now checked rather than restated.
 
-`63c63d9` was `main` at the publish, so it is the build's source.
+**Is the pin still the live build?** `.github/workflows/pin-currency.yml` reads
+`GET /version` and compares it to `hosted_live.worker_version_id`, on a schedule and on
+demand. It does not gate pull requests — a publish legitimately lands before the pin PR
+merges, and a check that goes red for a correct state gets ignored. It exists so a lag
+announces itself instead of being discovered days later.
 
-**Not determined:** neither #517 nor #520 has a public probe. The Postmark standby is inert
-until `POSTMARK_SERVER_TOKEN` is set and its only surface is admin-authenticated. The harvest
-fix needs a harvest, and `players_present` is `0` — the live feed at cycle 834 carries only
-`Stocks recovered at Civic Exchange`. So the two rows rest on the timestamp derivation above
-and on the publisher, who knows what they built. Recorded as derived rather than written up
-as observed.
+**Has Worker code landed since that build?** One command, in the recipe at the end.
 
-One ordering note the derivation surfaces: Specs #273, the §5 clause that describes what #520
-implements, merged at 2026-08-24T01:11:27Z — **after** this build was cut. `specs_git` is
-therefore `5e48ae9` (#272), and the runtime shipped the fix before the clause describing it
-landed. Correct, but worth seeing.
+The pin lagged twice on 2026-08-24 alone, so this is not hypothetical. What `/version`
+bought is that a lag is a one-read correction rather than a source diff. What the workflow
+adds is that nobody has to remember to run the read.
 
-Scope the re-run command to `src` and `test`. Widening it to `workers/` also catches
-documentation commits — #515 edited `workers/noema/README.md` and changes nothing about what
-is deployed — and a reader who cannot tell those apart will either re-derive the boundary for
-no reason or, worse, decide the check is noisy and stop running it.
+Which commits a build carries is still **derived, not read** — `/version` reports the version
+id and the deploy time, not a source commit. That derivation belongs in the pin's `note`,
+where it is written once.
+
+One note on `specs_git`. It is `26d840b` — Specs #276, the RFC this build implements. Every
+prior build's specs pin trailed its own authority; #520 shipped before Specs #273 described
+it. This is the first where the pin contains the RFC the runtime is executing.
 
 ## Method
 
@@ -107,7 +107,8 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 121 | In the Worker source that built `cbb1b87e`, with passing hosted tests |
+| **LIVE** | 121 | In the Worker source that built the pinned build, with passing hosted tests |
+| **PARTIAL** | 1 | One half of the contract is live, the other is not |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
 | **NONE** | 1 | Not implemented anywhere — and not expected to be |
@@ -116,6 +117,37 @@ Note what this replaces. `SPEC-FREEZE-CORE-LOOP.md` §4 slices D–G and I are t
 **research spine** — Frontier, Observatory, Lab, Compiler, LEARN — and those are offline
 (Specs #267). The RFC set audited here is the **game contract** set, and it is almost
 entirely hosted. Both statements are true; they are about different bodies of work.
+
+## RFC-0002 — contestation is live, crime is not · PARTIAL
+
+Recorded as LIVE on 2026-08-23. That was wrong, and how it was wrong matters more than the row.
+
+The evidence was `CRIME_DETECTED` appearing in `world-actions.ts` and `social-memory.ts` —
+this document's weakest tier, an identifier found in Worker source. Every occurrence **reads**
+the event. None writes it:
+
+| File | What it does with `CRIME_DETECTED` |
+|---|---|
+| `watch-live.ts` | MAJOR tier, public projection, §7 redaction gate |
+| `social-memory.ts` | danger-evidence credit, public-history branch |
+| `world-reports.ts` | crime section filter |
+| `world-actions.ts` | public-visibility check |
+| `presentation/glyphs.ts` | glyph |
+
+Five consumers, no producer. RFC-0002 requires detection by witness, sensor (condition ≥ 50),
+investigation, or self-report; the Worker implements none, so the event cannot occur. **The
+hosted world can interpret a crime it has no way to commit.**
+
+Contestation, the other half of the same RFC, is fully live — `CONTEST_DECLARED` and
+`CONTEST_RESOLVED` are emitted and covered by `gc7-s2` and `gc7-s3`. Hence PARTIAL, not NONE.
+
+**The lesson is about method.** Identifier-presence cannot tell a producer from a consumer,
+and tier three of this audit is identifier-presence. The first method tried here was thrown
+out for scoring vocabulary instead of behavior; tier three is a milder form of the same error,
+and it produced one false LIVE. The other tier-three rows were re-checked by hand — RFC-0103's
+`ALLOW_ONLY` is parsed, validated and enforced; RFC-0021's delay band is computed and applied;
+RFC-0018 writes `archive_claim` — and they stand. `closed-catalog.test.ts` now pins crime as
+consumed-and-unproduced, so wiring it fails a test rather than quietly aging this row.
 
 ## The four rows that are not LIVE, and one that was
 
@@ -132,8 +164,8 @@ and `email-provider.ts` tries Resend first and Postmark second. The divergence c
 
 The row was **PENDING PUBLISH** for one day, which was the point: writing LIVE while the fix
 sat on `main` would have been the same mistake as a `hosted_live` pin running ahead of a
-publish. It is LIVE as of the `cbb1b87e` publish on 2026-08-24 — derived from merge order
-rather than probed, for the reason given in the boundary section.
+publish. It went LIVE with the 2026-08-24T01:08:29Z publish and has stayed so — derived from
+merge order rather than probed, for the reason given in the boundary section.
 
 ### RFC-0111 · RFC-0116 — agent-side contracts · CLIENT
 
@@ -162,7 +194,7 @@ or the Worker source carrying the contract's identifier.
 | RFC | Title | Slice | Verdict | Hosted evidence |
 |---|---|---|---|---|
 | [RFC-0001](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0001-phenomena-self-reference-integration.md) | Phenomena Constructs for Self-Reference and Integration | — | **NONE** | Draft, v0.8-blocked. No implementation in either runtime — expected; `SPEC-FREEZE-CORE-LOOP` §7 puts it out of scope |
-| [RFC-0002](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0002-strategic-contestation-and-crime-events.md) | Strategic Contestation and Crime Events | — | **LIVE** | world-actions.ts, social-memory.ts (`CRIME_DETECTED`) |
+| [RFC-0002](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0002-strategic-contestation-and-crime-events.md) | Strategic Contestation and Crime Events | — | **PARTIAL** | Contestation live (`contest.ts`, `gc7-s2`/`gc7-s3` tests). Crime consumed but never emitted — see below |
 | [RFC-0003](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0003-deterministic-contract-hardening.md) | Deterministic Contract Hardening | — | **LIVE** | canonical-state.ts, settle.ts (`noema-jcs`) |
 | [RFC-0004](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0004-derived-mastery-projection.md) | Derived Mastery Projection (GC1-S0) | GC1-S0 | **LIVE** | `actions-tier1.test.ts`, `practice.test.ts` |
 | [RFC-0005](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0005-mastery-recognition.md) | Mastery Recognition Projection (GC1-S1) | GC1-S1 | **LIVE** | cites RFC-0005: `practice.ts` |
@@ -192,7 +224,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0029](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0029-institution-trade-repair.md) | Institutional TRADE and REPAIR Authority | GC4-S2 | **LIVE** | `institution-actions.test.ts` |
 | [RFC-0030](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0030-emergency-scopes.md) | Institutional Emergency Authority Scopes | GC4-S3 | **LIVE** | `emergency.test.ts` |
 | [RFC-0031](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0031-designated-succession.md) | Designated Institutional Succession | GC4-S4 | **LIVE** | `succession.test.ts` |
-| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **LIVE** | `postmark-standby.test.ts`, `provider-management.test.ts` — in `cbb1b87e` |
+| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **LIVE** | `postmark-standby.test.ts`, `provider-management.test.ts` |
 | [RFC-0033](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0033-agent-bootstrap-and-game-profile.md) | Agent Bootstrap and Game-Only Controller Profile | AGENT-ORIENTATION-S2 | **LIVE** | `agent-orientation-s2.test.ts` |
 | [RFC-0034](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0034-watch-public-descriptors.md) | GC3-S2 WATCH Public Descriptor Bands | GC3-S2 | **LIVE** | `gc3-s2-s6.test.ts` |
 | [RFC-0035](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0035-institution-edges.md) | GC3-S3 Institution→Player Edges | GC3-S3 | **LIVE** | world-actions.ts, offices.ts (org edges) |
@@ -286,11 +318,11 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0123](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0123-norm-ratchet-bounds-and-costly-trade-reject.md) | Bounded upward norm ratchet; costly TRADE-reject punishment pinned | — | **LIVE** | cites RFC-0123: `rfc0123-genesis-seeds.test.ts` |
 | [RFC-0124](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0124-governance-rule-contract.md) | Governance rule contract (GC4-S8) | GC4-S8 | **LIVE** | `gc4-s8-governance.test.ts` |
 | [RFC-0125](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0125-practice-inheritance-and-schism.md) | Practice inheritance and schism (GC9-S2) | GC9-S2 | **LIVE** | `gc9-s2-inheritance-schism.test.ts` |
-| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **PENDING PUBLISH** | `watch-entity-update-census.test.ts` — implementation is on main only after this PR lands; the running Worker still predates it |
+| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **LIVE** | `watch-entity-update-census.test.ts` |
 ## Re-running this
 
 ```bash
-curl -s https://noema.guru/version                  # is the live Worker still 591a5fe4?
+curl -s https://noema.guru/version                  # compare to hosted_live.worker_version_id
 git log <that build>..main -- workers/noema/src workers/noema/test   # empty means code equals live
 #   <that build> is the commit that was main at deployed_at — /version does not report it
 cd workers/noema && npm ci && npm test              # 198 files
