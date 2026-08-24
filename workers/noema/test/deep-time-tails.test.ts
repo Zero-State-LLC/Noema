@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { enrichEntity } from "../src/actions";
 import {
   ORG_RATCHET_CAP,
   orgCreateExtraInfluence,
@@ -10,6 +11,9 @@ import {
   type DeepTimeSlice,
   type ScarRecord,
 } from "../src/deep-time";
+import { buildWatchLive } from "../src/watch-live";
+import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const SRC = join(HERE, "../src");
@@ -39,6 +43,54 @@ function scar(strength: number): ScarRecord {
   };
 }
 
+function principal(id: string): PlayerPrincipal {
+  return {
+    player_id: id,
+    agent_id: `agent.${id}`,
+    session_id: "sess.test",
+    controller_id: `ctrl.${id}`,
+    controller_type: "agent",
+    scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+    protocol_version: "1",
+    authentication_context: "test",
+  };
+}
+
+function world(): WorldRuntime {
+  return {
+    world_id: "world.deep-time-tails",
+    world_name: "Deep Time Tails",
+    cycle: 0,
+    sequence: 0,
+    entry_room_id: "room.hub",
+    rooms: {
+      "room.hub": {
+        room_id: "room.hub",
+        name: "Hub",
+        description: "Hub.",
+        exits: [],
+        entities: [enrichEntity({ entity_id: "entity.relay-7", label: "relay", entity_type: "INFRASTRUCTURE" })],
+      },
+      "room.remote": { room_id: "room.remote", name: "Remote", description: "Remote.", exits: [], entities: [] },
+    },
+    players: {},
+    trades: {},
+    messages: [],
+    organizations: {},
+    seen_idempotency: {},
+    unsettled: [],
+  };
+}
+
+async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}) {
+  const envl: CommandEnvelope = {
+    request_id: `r.${Math.random().toString(16).slice(2)}`,
+    command,
+    arguments: args,
+  };
+  return applyWorldCommand(w, p, envl, async () => true);
+}
+
 describe("Deep Time tails — Specs #285 Slice A concordance", () => {
   it("path_dependence_index is the clamped MAX of scar mean and ratchet mean", () => {
     // Claim: "folded into LOOK path_dependence_index (max of scar-strength
@@ -55,6 +107,80 @@ describe("Deep Time tails — Specs #285 Slice A concordance", () => {
     expect(pathDependenceIndex([scar(0.2), scar(0.6)], ratchets)).toBeCloseTo(0.6);
     // and it is clamped, never above 1 even with a corrupt strength.
     expect(pathDependenceIndex([scar(5)], ratchets)).toBe(1);
+  });
+
+  it("LOOK pins the exact path_dependence_index projection", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.scars = [scar(0.2), scar(0.6)];
+    w.norm_ratchets = {
+      org_create: {
+        key: "org_create",
+        reversal_cost: 3,
+        path_dependence_strength: 0.75,
+        established_cycle: 1,
+        hits: 4,
+      },
+      attest: {
+        key: "attest",
+        reversal_cost: 0,
+        path_dependence_strength: 0.4,
+        established_cycle: 2,
+        hits: 2,
+      },
+    };
+
+    const look = await run(w, p, "LOOK");
+
+    expect(look.ok).toBe(true);
+    expect(look.observation?.path_dependence_index).toBe(0.575);
+  });
+
+  it("LOOK pins exact lore-attractor labels for local and global tails", async () => {
+    const w = world();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.lore_attractors = [
+      { attractor_id: "lore.burnt-relay", label: "Burnt Relay", weight: 0.7, room_id: "room.hub", basin: "forming" },
+      { attractor_id: "lore.shared-nacre", label: "Shared Nacre", weight: 0.4, basin: "crystallized" },
+      { attractor_id: "lore.remote-echo", label: "Remote Echo", weight: 0.9, room_id: "room.remote", basin: "forming" },
+    ];
+
+    const look = await run(w, p, "LOOK");
+
+    expect(look.ok).toBe(true);
+    expect((look.observation?.lore_attractors || []).map((a) => a.label)).toEqual(["Burnt Relay", "Shared Nacre"]);
+  });
+
+  it("WATCH projection omits path_dependence_index even when Deep Time tails exist", () => {
+    const watch = buildWatchLive({
+      world_id: "world.deep-time-tails",
+      cycle: 12,
+      sequence: 2,
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Hub",
+          description: "Hub.",
+          exits: [],
+          entities: [
+            { entity_id: "entity.relay-7", label: "relay", entity_type: "INFRASTRUCTURE", scar: true },
+          ],
+        },
+      },
+      players: [{ player_id: "player.nacre", handle: "nacre", room_id: "room.hub", entered: true, last_seen_ms: 123 }],
+      events: [
+        {
+          event_type: "SCAR_FORMED",
+          sequence: 2,
+          cycle: 12,
+          payload: { room_id: "room.hub", summary: "relay scar formed" },
+        },
+      ],
+    });
+
+    expect(JSON.stringify(watch)).not.toContain("path_dependence_index");
   });
 
   it("reversal_cost is the cost driver; path_dependence_strength drives nothing", () => {
