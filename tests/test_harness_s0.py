@@ -391,3 +391,42 @@ def test_semantic_look_fields_forwarded_as_received():
     bare = to_state({"world_name": "Perihelion Reach"})
     assert bare.reputation_summary is None
     assert bare.active_norms is None
+
+
+def test_settlement_resync_retries_once_with_same_key_then_surfaces():
+    """AGENT-HARNESS §8: SETTLEMENT_RESYNC gets ONE automatic retry with the
+    SAME idempotency_key, then surfaces. Never WORLD_INCIDENT. Never a loop.
+
+    The Worker emits this on soft head restore after sequence drift
+    (settle.ts: "retry the command"); the official client already complies.
+    The harness classified it as ACTION_REJECTED and never retried, so a
+    routine contention event read as a canonical rejection."""
+    calls: list[dict] = []
+
+    def resync_once(method, url, body, token, headers=None):
+        calls.append(dict(body))
+        if len(calls) == 1:
+            return {"ok": False, "error": {"code": "SETTLEMENT_RESYNC", "message": "retry the command"}, "_http_status": 409}
+        return {"ok": True, "observation": {"cycle": 5}, "_http_status": 200}
+
+    client = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=resync_once)
+    result = client.send_command("WAIT", {})
+    assert result.ok is True
+    assert len(calls) == 2
+    assert calls[0]["idempotency_key"] == calls[1]["idempotency_key"]
+    assert calls[0]["request_id"] == calls[1]["request_id"]
+
+    # A resync that persists retries exactly once, then surfaces as its own
+    # class — not WORLD_INCIDENT, not ACTION_REJECTED, and never a loop.
+    always: list[dict] = []
+
+    def resync_forever(method, url, body, token, headers=None):
+        always.append(dict(body))
+        return {"ok": False, "error": {"code": "SETTLEMENT_RESYNC", "message": "retry the command"}, "_http_status": 409}
+
+    client2 = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=resync_forever)
+    result2 = client2.send_command("WAIT", {})
+    assert result2.ok is False
+    assert len(always) == 2
+    assert result2.failure == FailureClass.SETTLEMENT_RESYNC
+    assert result2.failure != FailureClass.WORLD_INCIDENT

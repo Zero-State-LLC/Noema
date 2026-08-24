@@ -16,6 +16,9 @@ class FailureClass(str, Enum):
     ACTION_REJECTED = "ACTION_REJECTED"
     INVALID_PROPOSAL = "INVALID_PROPOSAL"
     SETTLEMENT_FAILURE = "SETTLEMENT_FAILURE"
+    # AGENT-HARNESS §8: soft head restore after sequence drift. One automatic
+    # retry with the same idempotency_key, then surface. Never WORLD_INCIDENT.
+    SETTLEMENT_RESYNC = "SETTLEMENT_RESYNC"
 
 
 @dataclass

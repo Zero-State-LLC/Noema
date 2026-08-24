@@ -107,7 +107,7 @@ class HeadlessHarness:
         result = self.client.send_command(validated.command, validated.arguments)
         if result.failure == FailureClass.AUTH_REQUIRED and self.policy.stop_on_auth_failure:
             self.breaker.trip("auth_failure")
-        if result.failure in {FailureClass.WORLD_INCIDENT, FailureClass.ACTION_REJECTED, FailureClass.SETTLEMENT_FAILURE}:
+        if result.failure in {FailureClass.WORLD_INCIDENT, FailureClass.ACTION_REJECTED, FailureClass.SETTLEMENT_FAILURE, FailureClass.SETTLEMENT_RESYNC}:
             if result.failure == FailureClass.WORLD_INCIDENT:
                 self.breaker.trip("WORLD_INCIDENT")
             else:
