@@ -4,7 +4,7 @@
 **Channel.** `alpha` (`spec-compat.json` `release_channel`)  
 **Thawed.** 2026-08-20 — operator authorized full product thaw on the test build.  
 **Last frozen deploy.** runtime `9e0e41fdd589df46064b06f48b524f35d9613f16` · Worker `a210eb35-f1ce-44fd-87e4-1b11e90394b8` · Specs `5768b011bab7bfc946152495eb80c2e1e2ad1c3e`  
-**Official client.** PyPI `noema-client==0.1.8`  
+**Official client.** `frozen_release.official_client` in `spec-compat.json`  
 **Product.** https://noema.guru  
 
 This file is historical. It no longer locks Genesis, seal, verbs, chrome, geography, or replay. Later PRs MAY change those surfaces without an `UNFREEZE` title.
