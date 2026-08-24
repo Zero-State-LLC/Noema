@@ -104,7 +104,7 @@
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
     "pin_note": "Hosted Stage 0 is the Worker at noema.guru. Python src/noema is offline conformance for the v0.1–v0.7 freeze. This pin tracks Noema-Specs main and is hand-updated; it is the commit THIS REPOSITORY is aligned to. It is not hosted_live.specs_git, which is the commit the LIVE WORKER BUILD implements and moves per publish. They differ whenever Specs moves without a publish, and this one must never be older than that one.",
-    "commit": "0f37151144c324a2777ae857e17069f0392224b8",
+    "commit": "179215cabdc5d3de9a0e29a8febe7961b585ba0d",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
     "runtime_map": "docs/CORE-LOOP-RUNTIME.md",
