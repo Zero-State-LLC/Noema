@@ -94,7 +94,8 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 122 | In the Worker source that built `c9e6c8b9`, with passing hosted tests |
+| **LIVE** | 121 | In the Worker source that built `c9e6c8b9`, with passing hosted tests |
+| **PARTIAL** | 1 | One half of the contract is live, the other is not |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
 | **NONE** | 1 | Not implemented anywhere — and not expected to be |
@@ -103,6 +104,37 @@ Note what this replaces. `SPEC-FREEZE-CORE-LOOP.md` §4 slices D–G and I are t
 **research spine** — Frontier, Observatory, Lab, Compiler, LEARN — and those are offline
 (Specs #267). The RFC set audited here is the **game contract** set, and it is almost
 entirely hosted. Both statements are true; they are about different bodies of work.
+
+## RFC-0002 — contestation is live, crime is not · PARTIAL
+
+Recorded as LIVE on 2026-08-23. That was wrong, and how it was wrong matters more than the row.
+
+The evidence was `CRIME_DETECTED` appearing in `world-actions.ts` and `social-memory.ts` —
+this document's weakest tier, an identifier found in Worker source. Every occurrence **reads**
+the event. None writes it:
+
+| File | What it does with `CRIME_DETECTED` |
+|---|---|
+| `watch-live.ts` | MAJOR tier, public projection, §7 redaction gate |
+| `social-memory.ts` | danger-evidence credit, public-history branch |
+| `world-reports.ts` | crime section filter |
+| `world-actions.ts` | public-visibility check |
+| `presentation/glyphs.ts` | glyph |
+
+Five consumers, no producer. RFC-0002 requires detection by witness, sensor (condition ≥ 50),
+investigation, or self-report; the Worker implements none, so the event cannot occur. **The
+hosted world can interpret a crime it has no way to commit.**
+
+Contestation, the other half of the same RFC, is fully live — `CONTEST_DECLARED` and
+`CONTEST_RESOLVED` are emitted and covered by `gc7-s2` and `gc7-s3`. Hence PARTIAL, not NONE.
+
+**The lesson is about method.** Identifier-presence cannot tell a producer from a consumer,
+and tier three of this audit is identifier-presence. The first method tried here was thrown
+out for scoring vocabulary instead of behavior; tier three is a milder form of the same error,
+and it produced one false LIVE. The other tier-three rows were re-checked by hand — RFC-0103's
+`ALLOW_ONLY` is parsed, validated and enforced; RFC-0021's delay band is computed and applied;
+RFC-0018 writes `archive_claim` — and they stand. `closed-catalog.test.ts` now pins crime as
+consumed-and-unproduced, so wiring it fails a test rather than quietly aging this row.
 
 ## The four rows that are not LIVE, and one that was
 
@@ -149,7 +181,7 @@ or the Worker source carrying the contract's identifier.
 | RFC | Title | Slice | Verdict | Hosted evidence |
 |---|---|---|---|---|
 | [RFC-0001](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0001-phenomena-self-reference-integration.md) | Phenomena Constructs for Self-Reference and Integration | — | **NONE** | Draft, v0.8-blocked. No implementation in either runtime — expected; `SPEC-FREEZE-CORE-LOOP` §7 puts it out of scope |
-| [RFC-0002](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0002-strategic-contestation-and-crime-events.md) | Strategic Contestation and Crime Events | — | **LIVE** | world-actions.ts, social-memory.ts (`CRIME_DETECTED`) |
+| [RFC-0002](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0002-strategic-contestation-and-crime-events.md) | Strategic Contestation and Crime Events | — | **PARTIAL** | Contestation live (`contest.ts`, `gc7-s2`/`gc7-s3` tests). Crime consumed but never emitted — see below |
 | [RFC-0003](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0003-deterministic-contract-hardening.md) | Deterministic Contract Hardening | — | **LIVE** | canonical-state.ts, settle.ts (`noema-jcs`) |
 | [RFC-0004](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0004-derived-mastery-projection.md) | Derived Mastery Projection (GC1-S0) | GC1-S0 | **LIVE** | `actions-tier1.test.ts`, `practice.test.ts` |
 | [RFC-0005](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0005-mastery-recognition.md) | Mastery Recognition Projection (GC1-S1) | GC1-S1 | **LIVE** | cites RFC-0005: `practice.ts` |
