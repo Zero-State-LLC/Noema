@@ -160,6 +160,19 @@ const PULSE_PROJECTION: Record<string, string> = {
 
 const PRIVATE_EVENT_TYPES = new Set(Object.keys(EVENT_TO_PROJECTION).filter((k) => EVENT_TO_PROJECTION[k] === null));
 
+/**
+ * Every event type that can reach the public feed, including the three the
+ * projection handles by rule rather than by table. Exported so the redaction
+ * sweep enumerates the real set: hidden-room coverage used to be written case
+ * by case, which is how the harvest path (#520) went years without any.
+ */
+export const PUBLIC_EVENT_TYPES: string[] = [
+  ...Object.keys(EVENT_TO_PROJECTION).filter((k) => EVENT_TO_PROJECTION[k] !== null),
+  "ENTITY_UPDATE",
+  "RESOURCE_TRANSFER",
+  "INFRASTRUCTURE_DISRUPTED",
+];
+
 export function watchEventTier(projectionId: string, band?: string): WatchTier {
   if (projectionId === "infrastructure" && band === "failed") return "MAJOR";
   if (projectionId === "infrastructure_disrupted") return "MAJOR";
