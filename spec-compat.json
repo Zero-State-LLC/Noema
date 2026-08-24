@@ -42,6 +42,8 @@
     "product_url": "https://noema.guru",
     "command_path": "/v1/command",
     "study": "observational",
+    "event_catalog": "event-catalog/0.2",
+    "event_catalog_note": "The hosted Worker implements 0.2. It emits the six contestation and access types RFC-0002 and RFC-0101 added over 0.1 -- ACCESS_RESTRICTED, AGREEMENT_BROKEN, AGREEMENT_FORMED, CONTEST_DECLARED, CONTEST_RESOLVED, INFRASTRUCTURE_DISRUPTED -- and does not emit CRIME_DETECTED, which is catalogued in 0.2 and has consumers but no producer. versions.event_catalog stays 0.1 because it describes the offline Python runtime, whose REDUCERS registry is exactly the 24 types of 0.1. One pin cannot describe both runtimes; this is the hosted half. TRADE_CANCELLED is emitted and is in neither catalog -- see Noema-Specs docs/EVENT-CATALOG-AUDIT.md.",
     "chamber_suite": {
       "matrix": "workers/noema/test/conformance/hosted-matrix.json",
       "target": "isolated",
