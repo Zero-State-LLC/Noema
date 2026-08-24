@@ -1,6 +1,6 @@
 # RFC runtime audit — 2026-08-23
 
-**What this is.** A per-RFC statement of where each of the 125 accepted contracts is
+**What this is.** A per-RFC statement of where each of the 126 accepted contracts is
 implemented: the hosted Cloudflare Worker, the offline Python runtime, an agent-side
 client, or nowhere.
 
@@ -286,6 +286,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0123](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0123-norm-ratchet-bounds-and-costly-trade-reject.md) | Bounded upward norm ratchet; costly TRADE-reject punishment pinned | — | **LIVE** | cites RFC-0123: `rfc0123-genesis-seeds.test.ts` |
 | [RFC-0124](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0124-governance-rule-contract.md) | Governance rule contract (GC4-S8) | GC4-S8 | **LIVE** | `gc4-s8-governance.test.ts` |
 | [RFC-0125](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0125-practice-inheritance-and-schism.md) | Practice inheritance and schism (GC9-S2) | GC9-S2 | **LIVE** | `gc9-s2-inheritance-schism.test.ts` |
+| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **PENDING PUBLISH** | `watch-entity-update-census.test.ts` — implementation is on main only after this PR lands; the running Worker still predates it |
 ## Re-running this
 
 ```bash

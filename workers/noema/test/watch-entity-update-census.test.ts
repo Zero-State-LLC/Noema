@@ -26,16 +26,7 @@ const SILENT = [
 
 const SPECIFIC = ["REPAIR", "PRODUCTION"] as const;
 
-const GENERIC = ["HARVEST", "ATTEST", "INFORMATION_CONTEST"] as const;
-
-/**
- * Reaches no feed line, but not by a rule that says so. Its `entity_id` is the
- * target *agent*, and an agent id is not a room entity, so §5's resolve-or-omit
- * gate drops it on the way out. Silence by accident of the id space, not by
- * decision — if a Player ever gained a room-entity representation this would
- * start publishing "Public activity at <site>" for someone being disabled.
- */
-const DROPPED_INCIDENTALLY = ["PRESENCE_PRESSURE"] as const;
+const RFC_0126_SILENT = ["HARVEST", "ATTEST", "INFORMATION_CONTEST", "PRESENCE_PRESSURE"] as const;
 
 const NOW = 1_700_000_000_000;
 const PLAYER = "player.aaaaaaaaaaaa";
@@ -76,7 +67,7 @@ const PAYLOADS: Record<string, Record<string, unknown>> = {
   PRESENCE_PRESSURE: { entity_id: PLAYER, field: "disabled_until_cycle", to: 7, contest_id: "contest.2" },
 };
 
-function feedLines(operation: string): string[] {
+function linesFor(events: WatchSourceEvent[]): string[] {
   const snap = buildWatchLive({
     world_id: "w",
     cycle: 4,
@@ -86,14 +77,20 @@ function feedLines(operation: string): string[] {
       player_id: PLAYER, handle: "agent.tester", room_id: "room.civic-exchange",
       entered: true, last_seen_ms: NOW, actor_kind: "live",
     }] as never,
-    events: [{
-      event_type: "ENTITY_UPDATE", sequence: 39, cycle: 4, handle: "agent.tester",
-      player_id: PLAYER, actor_kind: "live", at: NOW,
-      payload: { operation, ...(PAYLOADS[operation] || {}) },
-    }] as never,
+    events: events as never,
     now: NOW,
   }) as Record<string, unknown>;
   return ((snap.recent_events as { line: string }[]) || []).map((e) => e.line);
+}
+
+function feedLines(operation?: string): string[] {
+  return linesFor([{
+    event_type: "ENTITY_UPDATE", sequence: 39, cycle: 4, handle: "agent.tester",
+    player_id: PLAYER, actor_kind: "live", at: NOW,
+    payload: operation
+      ? { operation, ...(PAYLOADS[operation] || {}) }
+      : { entity_id: "entity.relay-1" },
+  } as WatchSourceEvent]);
 }
 
 function ev(operation: string, extra: Record<string, unknown> = {}): WatchSourceEvent {
@@ -115,41 +112,56 @@ describe("ENTITY_UPDATE census — what WATCH does with each operation", () => {
   });
 
   it("narrates two specifically", () => {
+    expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "REPAIR" })).toBe("production");
     expect(phraseWatchEvent(ev("REPAIR", { field: "condition" }), ROOMS)).toBe(
       "agent.tester repaired relay",
     );
+    expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "PRODUCTION" })).toBe("production");
     expect(phraseWatchEvent(ev("PRODUCTION", { field: "stock_amount" }), ROOMS)).toBe(
       "Stocks recovered at Civic Exchange",
     );
     expect(SPECIFIC).toHaveLength(2);
   });
 
-  it("leaves three on the generic line, end to end", () => {
-    for (const operation of GENERIC) {
-      expect(feedLines(operation)).toEqual(["Public activity at Civic Exchange"]);
-    }
-    expect(GENERIC).toHaveLength(3);
+  it("preserves the explicit infrastructure payload projections", () => {
+    expect(projectionIdForEvent("ENTITY_UPDATE", { band: "failed" })).toBe("infrastructure_disrupted");
+    expect(projectionIdForEvent("ENTITY_UPDATE", { status: "failed" })).toBe("infrastructure_disrupted");
+    expect(projectionIdForEvent("ENTITY_UPDATE", { kind: "infra" })).toBe("infrastructure");
+    expect(projectionIdForEvent("ENTITY_UPDATE", { entity_type: "INFRASTRUCTURE" })).toBe("infrastructure");
   });
 
-  it("drops PRESENCE_PRESSURE incidentally, because its target is an agent", () => {
-    for (const operation of DROPPED_INCIDENTALLY) {
-      // Not on the silent list: the projection is willing to narrate it.
-      expect(projectionIdForEvent("ENTITY_UPDATE", { operation })).not.toBeNull();
-      // §5 drops it anyway — an agent id resolves to no public room.
+  it("keeps RFC-0126's four exposure decisions off the feed explicitly", () => {
+    for (const operation of RFC_0126_SILENT) {
+      expect(projectionIdForEvent("ENTITY_UPDATE", { operation })).toBeNull();
       expect(feedLines(operation)).toEqual([]);
-      // And it would narrate if the target ever were a room entity.
-      expect(phraseWatchEvent(ev(operation), ROOMS)).toBe("Public activity at Civic Exchange");
     }
+    expect(RFC_0126_SILENT).toHaveLength(4);
   });
 
-  it("an unnamed operation also falls to the generic line", () => {
-    const bare = { event_type: "ENTITY_UPDATE", sequence: 1, cycle: 1, handle: "agent.tester",
-      payload: { entity_id: "entity.relay-1" } } as WatchSourceEvent;
-    expect(phraseWatchEvent(bare, ROOMS)).toBe("Public activity at Civic Exchange");
+  it("renders one canonical line for one HARVEST act", () => {
+    expect(linesFor([
+      {
+        event_type: "RESOURCE_TRANSFER", sequence: 38, cycle: 4, handle: "agent.tester",
+        player_id: PLAYER, actor_kind: "live", at: NOW,
+        payload: { kind: "harvest", from_id: "entity.relay-1", to_id: PLAYER, amount: 1 },
+      } as WatchSourceEvent,
+      {
+        event_type: "ENTITY_UPDATE", sequence: 39, cycle: 4, handle: "agent.tester",
+        player_id: PLAYER, actor_kind: "live", at: NOW,
+        payload: { operation: "HARVEST", ...PAYLOADS.HARVEST },
+      } as WatchSourceEvent,
+    ])).toEqual(["Harvest at Civic Exchange"]);
+  });
+
+  it("fails closed for unnamed and future operations", () => {
+    expect(projectionIdForEvent("ENTITY_UPDATE", { entity_id: "entity.relay-1" })).toBeNull();
+    expect(feedLines()).toEqual([]);
+    expect(projectionIdForEvent("ENTITY_UPDATE", { operation: "FUTURE_OPERATION" })).toBeNull();
+    expect(feedLines("FUTURE_OPERATION")).toEqual([]);
   });
 
   it("the sets are disjoint and cover sixteen named operations", () => {
-    const all = [...SILENT, ...SPECIFIC, ...GENERIC, ...DROPPED_INCIDENTALLY];
+    const all = [...SILENT, ...SPECIFIC, ...RFC_0126_SILENT];
     expect(new Set(all).size).toBe(all.length);
     expect(all).toHaveLength(16);
   });
