@@ -298,6 +298,21 @@ function entityHome(
   return undefined;
 }
 
+/**
+ * §5: the id an entity-scoped event is scoped *by*. Entity mutations carry
+ * `entity_id`; a harvest carries the node as `RESOURCE_TRANSFER.from_id` and no
+ * `entity_id` at all, which is how it slipped past the #508 site resolution and
+ * kept rendering unlocated. Only an `entity.` ref counts — a trade leg's
+ * `from_id` is a player.
+ */
+export function entityScopeId(payload: Record<string, unknown> | undefined): string | undefined {
+  const direct = payload?.entity_id;
+  if (typeof direct === "string" && direct) return direct;
+  const from = payload?.from_id;
+  if (typeof from === "string" && from.startsWith("entity.")) return from;
+  return undefined;
+}
+
 function isRepairUpdate(ev: WatchSourceEvent): boolean {
   if (String(ev.event_type || "").toUpperCase() !== "ENTITY_UPDATE") return false;
   return ev.payload?.operation === "REPAIR" || ev.payload?.kind === "repair";
@@ -363,7 +378,7 @@ export function phraseWatchEvent(
   // mutation carries entity_id and normally no room_id, so payload room ids
   // alone leave it unlocated and it degrades to the filler the spec bans.
   const entitySite = entityHome(
-    typeof payload.entity_id === "string" ? payload.entity_id : undefined,
+    entityScopeId(payload),
     publicRooms as Record<string, WatchRoomIn>,
   )?.room.name;
   const site =
@@ -567,14 +582,11 @@ function sourceToWatchEvent(
   // §4: ANY entity-scoped event resolves its public site this way, not just
   // repair and disruption. Narrowing it here is what left the live feed
   // rendering every maintenance event as unlocated "Public activity".
-  const entityScoped = typeof ev.payload?.entity_id === "string" && ev.payload.entity_id.length > 0;
-  if (!publicRoomId && entityScoped) {
+  const scopeId = entityScopeId(ev.payload);
+  if (!publicRoomId && scopeId) {
     // §5: resolve via the entity's public room; if none, the event is
     // omitted, not anonymized into filler.
-    const home = entityHome(
-      typeof ev.payload?.entity_id === "string" ? ev.payload.entity_id : undefined,
-      publicRooms,
-    );
+    const home = entityHome(scopeId, publicRooms);
     if (!home) return null;
     publicRoomId = home.room.room_id;
   }
