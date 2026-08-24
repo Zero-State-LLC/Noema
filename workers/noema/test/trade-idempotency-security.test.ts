@@ -163,3 +163,88 @@ describe("settlement backlog", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe("accepted replay invariant — agent-protocol-v1 §idempotency", () => {
+  /**
+   * "Duplicate accepted replays MUST NOT consume budgets twice or append a
+   * second world event." The replay path returns the cached result before any
+   * budget or event code runs — correct by construction, pinned nowhere. The
+   * existing tests cover the TRADE-specific double-accept; this pins the
+   * general clause on an ordinary budget-consuming mutation.
+   */
+  it("replaying an accepted MOVE consumes no budget and appends no event", async () => {
+    const w = world();
+    w.rooms["room.hub"].exits = [{ direction: "north", to_room_id: "room.north" }];
+    w.rooms["room.north"] = {
+      room_id: "room.north",
+      name: "North",
+      description: "North room.",
+      exits: [{ direction: "south", to_room_id: "room.hub" }],
+      entities: [],
+    };
+    const a = principal("player.a");
+    await run(w, a, "ENTER_WORLD");
+
+    const first = await run(w, a, "MOVE", { direction: "north" }, "idem.move-1");
+    expect(first.ok).toBe(true);
+    const budgetsAfter = JSON.stringify(w.players[a.player_id].budgets);
+    // Ledger appends are exactly sequence increments (pushEvent), so an
+    // unchanged sequence IS "no second world event".
+    const sequenceAfter = w.sequence;
+    const roomAfter = w.players[a.player_id].room_id;
+
+    const replay = await run(w, a, "MOVE", { direction: "north" }, "idem.move-1");
+    // The cached result, not a re-execution: same request_id, same payload.
+    expect(replay).toBe(first);
+    // No budget consumed twice, no second world event, no sequence advance,
+    // and the player did not move again.
+    expect(JSON.stringify(w.players[a.player_id].budgets)).toBe(budgetsAfter);
+    expect(w.sequence).toBe(sequenceAfter);
+    expect(w.players[a.player_id].room_id).toBe(roomAfter);
+  });
+
+  it("a different key is a new action, not a replay", async () => {
+    const w = world();
+    w.rooms["room.hub"].exits = [{ direction: "north", to_room_id: "room.north" }];
+    w.rooms["room.north"] = {
+      room_id: "room.north",
+      name: "North",
+      description: "North room.",
+      exits: [{ direction: "south", to_room_id: "room.hub" }],
+      entities: [],
+    };
+    const a = principal("player.a");
+    await run(w, a, "ENTER_WORLD");
+    const first = await run(w, a, "MOVE", { direction: "north" }, "idem.k1");
+    expect(first.ok).toBe(true);
+    const south = await run(w, a, "MOVE", { direction: "south" }, "idem.k2");
+    expect(south.ok).toBe(true);
+    expect(south).not.toBe(first);
+    expect(w.players[a.player_id].room_id).toBe("room.hub");
+  });
+
+  it("a FAILED command is not cached — a same-key retry re-evaluates", async () => {
+    // Deliberate, and load-bearing: only accepted results are cached (all 63
+    // write sites store success() results). The spec clause covers "duplicate
+    // ACCEPTED replays", and the SETTLEMENT_RESYNC contract (§8, #544) retries
+    // with the SAME idempotency_key expecting re-execution after the head
+    // resyncs — caching failures would replay the failure forever and the
+    // mandated retry could never succeed. A failed evaluation consumes no
+    // budget, so re-evaluating is free.
+    const w = world();
+    const a = principal("player.a");
+    await run(w, a, "ENTER_WORLD");
+    const bad = await run(w, a, "MOVE", { direction: "nowhere" }, "idem.bad");
+    expect(bad.ok).toBe(false);
+    const budgets = JSON.stringify(w.players[a.player_id].budgets);
+    const retry = await run(w, a, "MOVE", { direction: "nowhere" }, "idem.bad");
+    expect(retry.ok).toBe(false);
+    expect(retry).not.toBe(bad); // re-evaluated, not replayed
+    expect(JSON.stringify(w.players[a.player_id].budgets)).toBe(budgets);
+    // And the same key SUCCEEDS once the world state allows it — the resync
+    // retry story end to end.
+    w.rooms["room.hub"].exits = [{ direction: "nowhere", to_room_id: "room.hub" }];
+    const healed = await run(w, a, "MOVE", { direction: "nowhere" }, "idem.bad");
+    expect(healed.ok).toBe(true);
+  });
+});
