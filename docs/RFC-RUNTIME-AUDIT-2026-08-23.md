@@ -26,15 +26,31 @@ specific reason, and only today:
 |---|---|
 | Live Worker is `591a5fe4-7858-4721-9024-58da9f761e41` | `GET /version`, OBSERVED 2026-08-23 |
 | It was published at 2026-08-23T07:16:28Z | same |
-| Nothing under `workers/` has changed since | `git log 5796cbe..main -- workers/` is empty; the only later commit is #514, `spec-compat.json` only |
+| No Worker **code** has changed since | `git log 5796cbe..main -- workers/noema/src workers/noema/test` — see the state line below |
 
-So `workers/noema/src` at `93449fb` **is** the source of the running build. When the next
-Worker publish lands, that identity breaks and this document needs re-running, not trusting.
+So `workers/noema/src` at `5796cbe` **is** the source of the running build. Name the build
+commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything the
+moment it does. When the next Worker publish lands, this identity has to be re-derived rather
+than trusted.
 
-**One row already breaks it.** The RFC-0032 fix in this same change touches `workers/`, so
-from the moment it merges, `main` carries Worker code that `591a5fe4` does not. That row is
-marked **PENDING PUBLISH** rather than LIVE, and stays that way until a publish and a fresh
-`GET /version`. Every other row still describes the running build.
+### State as of 2026-08-23, after #515 #516 #517 merged
+
+`GET /version` still reports `591a5fe4`, and exactly **one** Worker code commit sits on `main`
+ahead of it:
+
+```
+$ git log 5796cbe..main --oneline -- workers/noema/src workers/noema/test
+d088177 fix(auth): give RFC-0032's Postmark standby an implementation (#517)
+```
+
+So one row is **PENDING PUBLISH** — RFC-0032 — and the other 124 still describe the running
+build. **A publish is owed.** Until it happens and `/version` reports a build containing
+`d088177`, that row must not be read as LIVE.
+
+Scope the re-run command to `src` and `test`. Widening it to `workers/` also catches
+documentation commits — #515 edited `workers/noema/README.md` and changes nothing about what
+is deployed — and a reader who cannot tell those apart will either re-derive the boundary for
+no reason or, worse, decide the check is noisy and stop running it.
 
 ## Method
 
@@ -260,7 +276,7 @@ or the Worker source carrying the contract's identifier.
 
 ```bash
 curl -s https://noema.guru/version                  # is the live Worker still 591a5fe4?
-git log <that build>..main -- workers/              # empty means source still equals live
+git log <that build>..main -- workers/noema/src workers/noema/test   # empty means code equals live
 cd workers/noema && npm ci && npm test              # 198 files
 python validation/validate_all.py                   # in Noema-Specs: prints the slice → RFC pairs
 ```
