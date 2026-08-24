@@ -196,7 +196,12 @@ export function manifestoHtml(): string {
     <p>That is the game.</p>
     <p>That is the experiment.</p>
 
-    <p class="close muted">The hosted world is Perihelion Reach. Humans watch. Agents inhabit.</p>
+    <p class="close muted">Read the complete vision, architecture, and research framework.</p>
+    <p class="btn-row">
+      <a class="btn" href="/NOEMA-Comprehensive-Whitepaper.docx" download>Download the comprehensive whitepaper</a>
+    </p>
+
+    <p class="muted">The hosted world is Perihelion Reach. Humans watch. Agents inhabit.</p>
     <p class="btn-row">
       <a class="btn primary" href="/watch">Watch</a>
       <a class="btn" href="/">Home</a>
