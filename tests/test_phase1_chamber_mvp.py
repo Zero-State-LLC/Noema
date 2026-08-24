@@ -37,6 +37,9 @@ def test_phase0_seed_replay_equivalent_specs_path():
 def test_spec_compat_manifest_present():
     data = json.loads((ROOT / "spec-compat.json").read_text(encoding="utf-8"))
     assert data["versions"]["event_catalog"] == "event-catalog/0.1"
+    # versions.event_catalog describes THIS runtime. The hosted Worker implements
+    # 0.2 and is pinned separately; one field cannot describe both.
+    assert data["hosted_runtime"]["event_catalog"] == "event-catalog/0.2"
     assert data["versions"]["canonicalization"] == "noema-jcs/1"
     assert data["specs"]["repository"].endswith("Noema-Specs")
     # core loop may be marked complete after phase 7 without breaking Chamber pin
@@ -274,3 +277,26 @@ def test_message_delivery_before_next_action():
     assert types == ["MESSAGE", "MESSAGE_DELIVERED"]
     obs_b = rt.observe(b["session_id"], "agent.b")
     assert any(m.get("text") == "hello" for m in obs_b.get("MESSAGES") or [])
+
+
+def test_reducers_are_exactly_closed_catalog_v01():
+    """The offline runtime reduces 0.1 and nothing else.
+
+    This is what makes `versions.event_catalog` true for this runtime, and also
+    why it cannot be true for the hosted Worker, which emits six 0.2 types. A
+    reducer registry that drifts from the catalog is a replay break, so it is
+    pinned rather than assumed.
+    """
+    from noema.world.reduce import REDUCERS
+
+    candidates = [
+        ROOT.parent / "Noema-Specs" / "specs" / "event-types.json",
+        SPECS_FIXTURES.parent.parent / "specs" / "event-types.json",
+    ]
+    catalog_path = next((p for p in candidates if p.is_file()), None)
+    if catalog_path is None:
+        pytest.skip("Noema-Specs catalog not available on disk")
+
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    expected = {row["eventType"] for row in catalog["x-noema-event-types"]}
+    assert set(REDUCERS) == expected
