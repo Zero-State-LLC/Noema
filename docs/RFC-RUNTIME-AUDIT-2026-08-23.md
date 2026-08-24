@@ -24,47 +24,34 @@ specific reason, and only today:
 
 | Fact | Evidence |
 |---|---|
-| Live Worker is `cbb1b87e-8341-45a1-a94d-40e10ac6a343` | `GET /version`, OBSERVED 2026-08-24 |
-| It was published at 2026-08-24T01:08:29Z | same |
-| One Worker **code** commit has landed since | `git log 63c63d9..main -- workers/noema/src workers/noema/test` — see the state line below |
+| Live Worker is `c9e6c8b9-75c8-46be-b200-76884f40efc7` | `GET /version`, OBSERVED 2026-08-24 |
+| It was published at 2026-08-24T02:06:47Z | same |
+| No Worker **code** has landed since | `git log 06b818f..main -- workers/noema/src workers/noema/test` is empty |
 
-So `workers/noema/src` at `63c63d9` **is** the source of the running build. Name the build
+So `workers/noema/src` at `06b818f` **is** the source of the running build. Name the build
 commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything the
 moment it does. When the next Worker publish lands, this identity has to be re-derived rather
 than trusted.
 
-### State as of 2026-08-24, after the `cbb1b87e` publish
+### State as of 2026-08-24, after the `c9e6c8b9` publish
 
-The publish happened. `GET /version` reports `cbb1b87e-8341-45a1-a94d-40e10ac6a343`,
-`deployed_at` 2026-08-24T01:08:29Z. The RFC-0032 row is **LIVE**; nothing is pending.
+`GET /version` reports `c9e6c8b9-75c8-46be-b200-76884f40efc7`, `deployed_at` 2026-08-24T02:06:47Z,
+and `git log 06b818f..main -- workers/noema/src workers/noema/test` is empty. Every row below
+describes the running build. Nothing is pending.
 
-Which commits that build carries is **derived, not read**. `/version` reports the Worker
-version id and the deploy time; it does not report the source commit. The derivation:
+Which commits that build carries is **derived, not read** — `/version` reports the version id
+and the deploy time, not a source commit. `06b818f` (#524, RFC-0126) was `main` when the
+publish went out 17 minutes later, and nothing has touched Worker code since.
 
-| Commit | Merged | In the build? |
-|---|---|---|
-| `d088177` #517 RFC-0032 standby | 2026-08-23T22:46:25Z | yes — 2h22m before the publish |
-| `63c63d9` #520 harvest redaction | 2026-08-24T01:05:47Z | yes — 2m42s before the publish |
-| `1374b69` #521 redaction sweep | 2026-08-24T01:14:54Z | **no** — 6m25s after it |
+This is the second publish in one day, and the pin lagged it. `spec-compat.json` was still
+pinned to the previous `cbb1b87e` while `c9e6c8b9` was live — the same lag this document was
+written to end, on a shorter clock. `/version` closed it in one read rather than a source
+diff, which is the difference that matters, but the lag is worth recording rather than
+quietly correcting: **the pin does not update itself.**
 
-`63c63d9` was `main` at the publish, so it is the build's source.
-
-**Not determined:** neither #517 nor #520 has a public probe. The Postmark standby is inert
-until `POSTMARK_SERVER_TOKEN` is set and its only surface is admin-authenticated. The harvest
-fix needs a harvest, and `players_present` is `0` — the live feed at cycle 834 carries only
-`Stocks recovered at Civic Exchange`. So the two rows rest on the timestamp derivation above
-and on the publisher, who knows what they built. Recorded as derived rather than written up
-as observed.
-
-One ordering note the derivation surfaces: Specs #273, the §5 clause that describes what #520
-implements, merged at 2026-08-24T01:11:27Z — **after** this build was cut. `specs_git` is
-therefore `5e48ae9` (#272), and the runtime shipped the fix before the clause describing it
-landed. Correct, but worth seeing.
-
-Scope the re-run command to `src` and `test`. Widening it to `workers/` also catches
-documentation commits — #515 edited `workers/noema/README.md` and changes nothing about what
-is deployed — and a reader who cannot tell those apart will either re-derive the boundary for
-no reason or, worse, decide the check is noisy and stop running it.
+One note on `specs_git`. It is `26d840b` — Specs #276, the RFC this build implements. Every
+prior build's specs pin trailed its own authority; #520 shipped before Specs #273 described
+it. This is the first where the pin contains the RFC the runtime is executing.
 
 ## Method
 
@@ -107,7 +94,7 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 121 | In the Worker source that built `cbb1b87e`, with passing hosted tests |
+| **LIVE** | 122 | In the Worker source that built `c9e6c8b9`, with passing hosted tests |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
 | **NONE** | 1 | Not implemented anywhere — and not expected to be |
@@ -132,8 +119,8 @@ and `email-provider.ts` tries Resend first and Postmark second. The divergence c
 
 The row was **PENDING PUBLISH** for one day, which was the point: writing LIVE while the fix
 sat on `main` would have been the same mistake as a `hosted_live` pin running ahead of a
-publish. It is LIVE as of the `cbb1b87e` publish on 2026-08-24 — derived from merge order
-rather than probed, for the reason given in the boundary section.
+publish. It went LIVE with the `cbb1b87e` publish and remains so in `c9e6c8b9` — derived from
+merge order rather than probed, for the reason given in the boundary section.
 
 ### RFC-0111 · RFC-0116 — agent-side contracts · CLIENT
 
@@ -286,7 +273,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0123](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0123-norm-ratchet-bounds-and-costly-trade-reject.md) | Bounded upward norm ratchet; costly TRADE-reject punishment pinned | — | **LIVE** | cites RFC-0123: `rfc0123-genesis-seeds.test.ts` |
 | [RFC-0124](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0124-governance-rule-contract.md) | Governance rule contract (GC4-S8) | GC4-S8 | **LIVE** | `gc4-s8-governance.test.ts` |
 | [RFC-0125](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0125-practice-inheritance-and-schism.md) | Practice inheritance and schism (GC9-S2) | GC9-S2 | **LIVE** | `gc9-s2-inheritance-schism.test.ts` |
-| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **PENDING PUBLISH** | `watch-entity-update-census.test.ts` — implementation is on main only after this PR lands; the running Worker still predates it |
+| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **LIVE** | `watch-entity-update-census.test.ts` — in `c9e6c8b9` |
 ## Re-running this
 
 ```bash

@@ -26,12 +26,12 @@
     "do_name": "world.perihelion-reach-3",
     "entry_room_id": "room.civic-exchange",
     "profile_id": "EWM_ENHANCED",
-    "worker_version_id": "cbb1b87e-8341-45a1-a94d-40e10ac6a343",
-    "specs_git": "5e48ae99dc66f3580c83827b8f77d2d57d535370",
+    "worker_version_id": "c9e6c8b9-75c8-46be-b200-76884f40efc7",
+    "specs_git": "26d840b13f789f2264c056bc6a97534e1977650d",
     "official_client": "noema-client==0.1.15",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
     "rfc": "RFC-0122",
-    "note": "Production PLAY default. Worker cbb1b87e-8341-45a1-a94d-40e10ac6a343 published 2026-08-24T01:08:29Z, READ from GET /version, carrying #517 (RFC-0032 Postmark standby) and #520 (hidden-room harvest redaction). #521 merged 01:14:54Z, after the publish, and is not in this build. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."
+    "note": "Production PLAY default. Worker c9e6c8b9-75c8-46be-b200-76884f40efc7 published 2026-08-24T02:06:47Z, READ from GET /version, built from main 06b818f (#524, RFC-0126 ENTITY_UPDATE fail-closed). specs_git 26d840b is Specs #276, the RFC this build implements — the first build whose specs pin contains its own authority rather than trailing it. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
