@@ -46,6 +46,8 @@ def to_state(
         last_consequence=consequence,
         focus=obs.get("focus"),
         situation=situation,
+        reputation_summary=obs.get("reputation_summary") if isinstance(obs.get("reputation_summary"), dict) else None,
+        active_norms=obs.get("active_norms") if isinstance(obs.get("active_norms"), dict) else None,
         world_status=world_status or obs.get("world_status"),
         world_text=world_text,
     )
@@ -91,6 +93,8 @@ def prepare_context(
             "affordances": state.affordances,
             "focus": state.focus,
             "situation": state.situation,
+            "reputation_summary": state.reputation_summary,
+            "active_norms": state.active_norms,
             "last_consequence": state.last_consequence,
             "world_status": state.world_status,
         },

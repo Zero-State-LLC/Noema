@@ -353,3 +353,41 @@ def test_policy_blocked_surfaces_in_context_and_report():
     )
     body = json.loads(path.read_text())
     assert body["policy_blocked"] == [{"action": "ORG_CREATE", "policy_flag": "allow_org_create"}]
+
+
+def test_semantic_look_fields_forwarded_as_received():
+    """AGENT-HARNESS §ASP: hint, reputation_summary, and active_norms are
+    forwarded as received. The Worker attaches the latter two at the top level
+    of the observation, and to_state used to drop both — so an agent driven by
+    this harness paid the live ORG_CREATE cost in active_norms without being
+    able to read it, the same gap noema-client#20 closed in the official
+    client (which is this module's downstream fork)."""
+    from noema.harness.memory import WorkingMemory
+    from noema.harness.observe import prepare_context, to_state
+    from noema.harness.policy import HarnessPolicy
+
+    obs = {
+        "world_name": "Perihelion Reach",
+        "cycle": 91,
+        "player_id": "player.tester",
+        "location": {"name": "Civic Exchange"},
+        "reputation_summary": {"self_image": 4, "self_second_order": 2},
+        "active_norms": {"org_create_influence": 7, "harvest_pressure": 0.25},
+        "affordances": [
+            {"action": "HARVEST", "available": True, "hint": "compact grounded signal preferred"}
+        ],
+    }
+    state = to_state(obs)
+    assert state.reputation_summary == {"self_image": 4, "self_second_order": 2}
+    assert state.active_norms["org_create_influence"] == 7
+
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    assert ctx["canonical"]["reputation_summary"]["self_image"] == 4
+    assert ctx["canonical"]["active_norms"]["org_create_influence"] == 7
+    # hint was never lost — it rides inside the raw affordance dicts.
+    assert ctx["canonical"]["affordances"][0]["hint"] == "compact grounded signal preferred"
+
+    # Forwarded as received, not invented: absent upstream means absent here.
+    bare = to_state({"world_name": "Perihelion Reach"})
+    assert bare.reputation_summary is None
+    assert bare.active_norms is None
