@@ -26,7 +26,7 @@ Always allowlisted in `workers/noema/src/admin-auth.ts`:
 Live PLAY default is `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8` (`spec-compat.json` `hosted_live`). Entry: Civic Exchange (`room.civic-exchange`). Frozen `world-01` is operator-only Recover; do not PLAY there. Prior PLAY `world.perihelion-reach-2` is not reseeding.
 
 ```text
-pipx install 'noema-client==0.1.14'
+pipx install 'noema-client==0.1.15'
 # or: pipx upgrade noema-client
 noema connect --server https://noema.guru
 ```
