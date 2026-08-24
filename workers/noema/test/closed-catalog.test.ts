@@ -123,6 +123,34 @@ describe("closed event catalog conformance", () => {
     expect(emittedEventTypes().has("CRIME_DETECTED")).toBe(false);
   });
 
+  it.skipIf(!have)("implements 0.2, and spec-compat says so for the hosted half", () => {
+    const compat = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), "utf8")) as {
+      versions: { event_catalog: string };
+      hosted_runtime: { event_catalog?: string };
+    };
+    // One field cannot describe two runtimes. versions.event_catalog is the
+    // offline Python pin, whose REDUCERS registry is exactly the 24 types of
+    // 0.1; hosted_runtime.event_catalog is this Worker.
+    expect(compat.versions.event_catalog).toBe("event-catalog/0.1");
+    expect(compat.hosted_runtime.event_catalog).toBe("event-catalog/0.2");
+
+    const c01 = catalog("event-types.json");
+    const emitted = [...emittedEventTypes().keys()];
+    const beyond01 = emitted.filter((t) => !c01.has(t)).sort();
+    // Authorized by RFC-0002 and RFC-0101, which is why this is a wrong pin
+    // rather than a closure violation. TRADE_CANCELLED is the exception, and is
+    // beyond 0.2 as well — tracked as the known gap above.
+    expect(beyond01).toEqual([
+      "ACCESS_RESTRICTED",
+      "AGREEMENT_BROKEN",
+      "AGREEMENT_FORMED",
+      "CONTEST_DECLARED",
+      "CONTEST_RESOLVED",
+      "INFRASTRUCTURE_DISRUPTED",
+      "TRADE_CANCELLED",
+    ]);
+  });
+
   it.skipIf(!have)("pins the catalog sizes the Specs validator asserts", () => {
     expect(catalog("event-types.json").size).toBe(24);
     expect(catalog("event-types.0.2.json").size).toBe(31);
