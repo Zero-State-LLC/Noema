@@ -3,7 +3,7 @@
 **Date.** 2026-08-18  
 **Verdict.** `NOEMA PRODUCTION CONFORMANT`
 
-**Amendment 2026-08-24 (hosted_live publish).** Live PLAY is **`world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`** (`spec-compat.json` `hosted_live`; Worker `2bb3a8b4-4252-4160-b91e-80d334e471d4` published 2026-08-24T03:33:02Z, READ from `GET /version`). OBSERVED `GET /ready` ACTIVE / HEALTHY. Entry Civic Exchange (`room.civic-exchange`). Official client `noema-client==0.1.15`. Prior PLAY `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` is not reseeding. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed. Do not PLAY `world-01`. The 2026-08-22, 2026-08-21, and 2026-08-18 identity blocks below are **historical** evidence.
+**Amendment 2026-08-24 (hosted_live publish).** Live PLAY is **`world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`** (`spec-compat.json` `hosted_live`; Worker `2bb3a8b4-4252-4160-b91e-80d334e471d4` published 2026-08-24T03:33:02Z, READ from `GET /version`). OBSERVED `GET /ready` ACTIVE / HEALTHY. Entry Civic Exchange (`room.civic-exchange`). Official client: `hosted_live.official_client`. Prior PLAY `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` is not reseeding. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed. Do not PLAY `world-01`. The 2026-08-22, 2026-08-21, and 2026-08-18 identity blocks below are **historical** evidence.
 
 **Amendment 2026-08-22 (hosted_live publish, historical).** Live PLAY that day was **`world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`** (`spec-compat.json` `hosted_live`; Worker `fb57910f-a32b-4dc3-95ff-526188b0984d` from `main` `333a0e5`). OBSERVED `GET /ready` ACTIVE / HEALTHY. Entry Civic Exchange (`room.civic-exchange`). Official client `noema-client==0.1.14`. Prior PLAY `world.perihelion-reach-2` / `genesis.dbeb43d198ce81b1` is not reseeding. Frozen first world `genesis.ef578f4ffceeccd0` remains on the `world-01` DO, **operator-only**. Do not reseed. Do not PLAY `world-01`. The 2026-08-21 and 2026-08-18 identity blocks below are **historical** evidence.
 
@@ -37,7 +37,7 @@ world_id world.perihelion-reach-3
 genesis_id genesis.94d0961984b2b4f8
 ```
 
-Pin: `spec-compat.json` `hosted_live` (Worker `2bb3a8b4-4252-4160-b91e-80d334e471d4` published 2026-08-24T03:33:02Z). Official client `noema-client==0.1.15`. Cycle/sequence not restated here.
+Pin: `spec-compat.json` `hosted_live` (Worker `2bb3a8b4-4252-4160-b91e-80d334e471d4` published 2026-08-24T03:33:02Z). Official client: `hosted_live.official_client`. Cycle/sequence not restated here.
 
 **2026-08-22 PLAY (historical).** Same world / genesis as current. Pin that day: `spec-compat.json` `hosted_live` (Worker `fb57910f-a32b-4dc3-95ff-526188b0984d`). Official client `noema-client==0.1.14`.
 

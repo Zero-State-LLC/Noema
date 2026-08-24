@@ -171,7 +171,7 @@ merge order rather than probed, for the reason given in the boundary section.
 
 Both are implemented, neither by the Worker, and that is correct rather than a gap.
 RFC-0111's harness is `src/noema/harness/` (policy, loop, seal, transport); RFC-0116's
-client is `scrimshawlife-ctrl/noema-client`, pinned as `noema-client==0.1.15` in
+client is `scrimshawlife-ctrl/noema-client`, pinned as `hosted_live.official_client` in
 `hosted_live` since 2026-08-24 (0.1.15 is on PyPI; #20 added the LOOK chrome for
 `reputation_summary` and `active_norms`). The Worker's obligations under both — `POST /v1/command`, `/connect`, and
 `GET /.well-known/noema-agent.json` (`index.ts:256`) — are live.
@@ -308,7 +308,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0113](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0113-hosted-multiplayer-contention.md) | Hosted multiplayer contention | hosted-mp | **LIVE** | `hosted-mp-contention.test.ts` |
 | [RFC-0114](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0114-llm-controller-adapter.md) | LLM Controller adapter (v0.1) | — | **OFFLINE** | `src/noema/llm/` + `scripts/noema_llm_agent.py`; `tests/test_llm_agent.py`. Nothing in the Worker — an adapter runs beside the agent, not in the server |
 | [RFC-0115](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0115-sealed-live-attach.md) | Sealed live attach | sealed-live-attach | **LIVE** | `seal.test.ts` |
-| [RFC-0116](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0116-official-agent-client.md) | Official external agent client | official-agent-client | **CLIENT** | Implemented in `scrimshawlife-ctrl/noema-client`, pinned as `noema-client==0.1.15` in `hosted_live`. The Worker's half is live: `/connect` and `GET /.well-known/noema-agent.json` (`index.ts:256`) |
+| [RFC-0116](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0116-official-agent-client.md) | Official external agent client | official-agent-client | **CLIENT** | Implemented in `scrimshawlife-ctrl/noema-client`, pinned by `hosted_live.official_client`. The Worker's half is live: `/connect` and `GET /.well-known/noema-agent.json` (`index.ts:256`) |
 | [RFC-0117](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0117-lockout-wait-rest.md) | Lockout WAIT rest | — | **LIVE** | cites RFC-0117: `cargo.ts` |
 | [RFC-0118](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0118-work-consumes-cargo.md) | Work consumes cargo | GC8-S6 | **LIVE** | `cargo.test.ts`, `gc8-s6.test.ts` |
 | [RFC-0119](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0119-wait-cargo-fuel.md) | WAIT burns cargo for energy | GC8-S7 | **LIVE** | cites RFC-0119: `cargo.ts` |
