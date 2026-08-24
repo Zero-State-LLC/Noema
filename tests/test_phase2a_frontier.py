@@ -35,7 +35,19 @@ from noema.world.state import load_seed
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures" / "v01-seed"
 V02 = ROOT / "fixtures" / "v02-frontier"
-SPECS_V02 = Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier")
+# Sibling checkout first; the bare absolute literal only ever resolved on one
+# machine. Local fixtures win either way — this is the fallback.
+SPECS_V02 = next(
+    (
+        p
+        for p in (
+            ROOT.parent / "Noema-Specs" / "examples" / "v02-frontier",
+            Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier"),
+        )
+        if p.is_dir()
+    ),
+    Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier"),
+)
 
 
 def _load(name: str) -> dict | list:
