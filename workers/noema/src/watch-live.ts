@@ -209,10 +209,20 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
     if (payload?.operation === "VEST") return null;
     if (payload?.operation === "SHARE") return null;
     if (payload?.operation === "CONNECT") return null;
+    if (
+      payload?.operation === "HARVEST" ||
+      payload?.operation === "ATTEST" ||
+      payload?.operation === "INFORMATION_CONTEST" ||
+      payload?.operation === "PRESENCE_PRESSURE"
+    ) return null;
     if (payload?.kind === "repair" || payload?.operation === "REPAIR") return "production";
+    if (payload?.operation === "PRODUCTION") return "production";
     if (payload?.band === "failed" || payload?.status === "failed") return "infrastructure_disrupted";
     if (payload?.kind === "infra" || payload?.entity_type === "INFRASTRUCTURE") return "infrastructure";
-    return "production";
+    // RFC-0126: ENTITY_UPDATE exposure is allowlisted. A future or unnamed
+    // operation stays off the public door until a separate exposure decision
+    // grants it an explicit projection.
+    return null;
   }
   if (t in EVENT_TO_PROJECTION) return EVENT_TO_PROJECTION[t] ?? null;
   return null;
