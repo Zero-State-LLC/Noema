@@ -26,12 +26,12 @@
     "do_name": "world.perihelion-reach-3",
     "entry_room_id": "room.civic-exchange",
     "profile_id": "EWM_ENHANCED",
-    "worker_version_id": "c9e6c8b9-75c8-46be-b200-76884f40efc7",
+    "worker_version_id": "2bb3a8b4-4252-4160-b91e-80d334e471d4",
     "specs_git": "26d840b13f789f2264c056bc6a97534e1977650d",
     "official_client": "noema-client==0.1.15",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
     "rfc": "RFC-0122",
-    "note": "Production PLAY default. Worker c9e6c8b9-75c8-46be-b200-76884f40efc7 published 2026-08-24T02:06:47Z, READ from GET /version, built from main 06b818f (#524, RFC-0126 ENTITY_UPDATE fail-closed). specs_git 26d840b is Specs #276, the RFC this build implements — the first build whose specs pin contains its own authority rather than trailing it. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."
+    "note": "Production PLAY default. Worker 2bb3a8b4-4252-4160-b91e-80d334e471d4 published 2026-08-24T03:33:02Z, READ from GET /version. Source is unchanged: main was still 06b818f (#524, RFC-0126) at that moment — #526 merged 03:40:00Z and #527 at 04:16:53Z, both after — so this is a republish of the same tree that produced c9e6c8b9, with a new Cloudflare version id and no code difference. A new worker_version_id does not imply new source. specs_git stays 26d840b (Specs #276). Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."
   },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",

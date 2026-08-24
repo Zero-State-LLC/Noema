@@ -24,30 +24,43 @@ specific reason, and only today:
 
 | Fact | Evidence |
 |---|---|
-| Live Worker is `c9e6c8b9-75c8-46be-b200-76884f40efc7` | `GET /version`, OBSERVED 2026-08-24 |
-| It was published at 2026-08-24T02:06:47Z | same |
-| No Worker **code** has landed since | `git log 06b818f..main -- workers/noema/src workers/noema/test` is empty |
+| Which Worker is live | `hosted_live.worker_version_id` in [`spec-compat.json`](../spec-compat.json) |
+| When it was published | the same block's `note` |
+| That the pin is not stale | `GET https://noema.guru/version`, and the `pin-currency` workflow |
+| That no Worker code has landed since | `git log <build commit>..main -- workers/noema/src workers/noema/test` is empty |
 
-So `workers/noema/src` at `06b818f` **is** the source of the running build. Name the build
-commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything the
-moment it does. When the next Worker publish lands, this identity has to be re-derived rather
-than trusted.
+**This document names no version ids.** It used to name eleven, and a publish meant editing
+all eleven — which is why one of them was still `591a5fe4` two publishes later, sitting in the
+instructions for checking whether the pin is current. A restated fact is a fact that goes
+stale somewhere you are not looking.
 
-### State as of 2026-08-24, after the `c9e6c8b9` publish
+The pin lives in `spec-compat.json`, once. Rows below say **LIVE**, not *live in this build*,
+because "which build" is a question with exactly one answer and it is not stored here.
 
-`GET /version` reports `c9e6c8b9-75c8-46be-b200-76884f40efc7`, `deployed_at` 2026-08-24T02:06:47Z,
-and `git log 06b818f..main -- workers/noema/src workers/noema/test` is empty. Every row below
-describes the running build. Nothing is pending.
+So `workers/noema/src` at the build commit **is** the source of the running build. Name the
+build commit, not `main` — `main` moves, and a row that says "on main" stops meaning anything
+the moment it does. When the next Worker publish lands, this identity has to be re-derived
+rather than trusted.
 
-Which commits that build carries is **derived, not read** — `/version` reports the version id
-and the deploy time, not a source commit. `06b818f` (#524, RFC-0126) was `main` when the
-publish went out 17 minutes later, and nothing has touched Worker code since.
+### Keeping this current
 
-This is the second publish in one day, and the pin lagged it. `spec-compat.json` was still
-pinned to the previous `cbb1b87e` while `c9e6c8b9` was live — the same lag this document was
-written to end, on a shorter clock. `/version` closed it in one read rather than a source
-diff, which is the difference that matters, but the lag is worth recording rather than
-quietly correcting: **the pin does not update itself.**
+Two facts go stale, and only two. They are now checked rather than restated.
+
+**Is the pin still the live build?** `.github/workflows/pin-currency.yml` reads
+`GET /version` and compares it to `hosted_live.worker_version_id`, on a schedule and on
+demand. It does not gate pull requests — a publish legitimately lands before the pin PR
+merges, and a check that goes red for a correct state gets ignored. It exists so a lag
+announces itself instead of being discovered days later.
+
+**Has Worker code landed since that build?** One command, in the recipe at the end.
+
+The pin lagged twice on 2026-08-24 alone, so this is not hypothetical. What `/version`
+bought is that a lag is a one-read correction rather than a source diff. What the workflow
+adds is that nobody has to remember to run the read.
+
+Which commits a build carries is still **derived, not read** — `/version` reports the version
+id and the deploy time, not a source commit. That derivation belongs in the pin's `note`,
+where it is written once.
 
 One note on `specs_git`. It is `26d840b` — Specs #276, the RFC this build implements. Every
 prior build's specs pin trailed its own authority; #520 shipped before Specs #273 described
@@ -94,7 +107,7 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 121 | In the Worker source that built `c9e6c8b9`, with passing hosted tests |
+| **LIVE** | 121 | In the Worker source that built the pinned build, with passing hosted tests |
 | **PARTIAL** | 1 | One half of the contract is live, the other is not |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
@@ -151,7 +164,7 @@ and `email-provider.ts` tries Resend first and Postmark second. The divergence c
 
 The row was **PENDING PUBLISH** for one day, which was the point: writing LIVE while the fix
 sat on `main` would have been the same mistake as a `hosted_live` pin running ahead of a
-publish. It went LIVE with the `cbb1b87e` publish and remains so in `c9e6c8b9` — derived from
+publish. It went LIVE with the 2026-08-24T01:08:29Z publish and has stayed so — derived from
 merge order rather than probed, for the reason given in the boundary section.
 
 ### RFC-0111 · RFC-0116 — agent-side contracts · CLIENT
@@ -211,7 +224,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0029](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0029-institution-trade-repair.md) | Institutional TRADE and REPAIR Authority | GC4-S2 | **LIVE** | `institution-actions.test.ts` |
 | [RFC-0030](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0030-emergency-scopes.md) | Institutional Emergency Authority Scopes | GC4-S3 | **LIVE** | `emergency.test.ts` |
 | [RFC-0031](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0031-designated-succession.md) | Designated Institutional Succession | GC4-S4 | **LIVE** | `succession.test.ts` |
-| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **LIVE** | `postmark-standby.test.ts`, `provider-management.test.ts` — in `cbb1b87e` |
+| [RFC-0032](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0032-postmark-admin-email-delivery.md) | Postmark Auth Email Delivery | — | **LIVE** | `postmark-standby.test.ts`, `provider-management.test.ts` |
 | [RFC-0033](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0033-agent-bootstrap-and-game-profile.md) | Agent Bootstrap and Game-Only Controller Profile | AGENT-ORIENTATION-S2 | **LIVE** | `agent-orientation-s2.test.ts` |
 | [RFC-0034](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0034-watch-public-descriptors.md) | GC3-S2 WATCH Public Descriptor Bands | GC3-S2 | **LIVE** | `gc3-s2-s6.test.ts` |
 | [RFC-0035](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0035-institution-edges.md) | GC3-S3 Institution→Player Edges | GC3-S3 | **LIVE** | world-actions.ts, offices.ts (org edges) |
@@ -305,11 +318,11 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0123](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0123-norm-ratchet-bounds-and-costly-trade-reject.md) | Bounded upward norm ratchet; costly TRADE-reject punishment pinned | — | **LIVE** | cites RFC-0123: `rfc0123-genesis-seeds.test.ts` |
 | [RFC-0124](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0124-governance-rule-contract.md) | Governance rule contract (GC4-S8) | GC4-S8 | **LIVE** | `gc4-s8-governance.test.ts` |
 | [RFC-0125](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0125-practice-inheritance-and-schism.md) | Practice inheritance and schism (GC9-S2) | GC9-S2 | **LIVE** | `gc9-s2-inheritance-schism.test.ts` |
-| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **LIVE** | `watch-entity-update-census.test.ts` — in `c9e6c8b9` |
+| [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **LIVE** | `watch-entity-update-census.test.ts` |
 ## Re-running this
 
 ```bash
-curl -s https://noema.guru/version                  # is the live Worker still 591a5fe4?
+curl -s https://noema.guru/version                  # compare to hosted_live.worker_version_id
 git log <that build>..main -- workers/noema/src workers/noema/test   # empty means code equals live
 #   <that build> is the commit that was main at deployed_at — /version does not report it
 cd workers/noema && npm ci && npm test              # 198 files
