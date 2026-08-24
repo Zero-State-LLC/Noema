@@ -24,6 +24,8 @@ describe("manifesto surface", () => {
     expect(html).toContain("History is produced by play.");
     expect(html).toContain("watch the world change.");
     expect(html).toContain('href="/watch"');
+    expect(html).toContain('href="/NOEMA-Comprehensive-Whitepaper.docx" download');
+    expect(html).toContain("Download the comprehensive whitepaper");
     expect(html).toContain('aria-current="page">Manifesto</a>');
     expect(html).toContain("family=Syne");
     expect(html).not.toContain("var(--copper)");
