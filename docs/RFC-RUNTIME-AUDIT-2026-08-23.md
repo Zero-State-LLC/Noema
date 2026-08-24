@@ -1,6 +1,6 @@
 # RFC runtime audit — 2026-08-23
 
-**What this is.** A per-RFC statement of where each of the 126 accepted contracts is
+**What this is.** A per-RFC statement of where each of the 127 accepted contracts is
 implemented: the hosted Cloudflare Worker, the offline Python runtime, an agent-side
 client, or nowhere.
 
@@ -107,7 +107,7 @@ Nothing below rests on it.
 
 | Verdict | Count | Meaning |
 |---|---|---|
-| **LIVE** | 121 | In the Worker source that built the pinned build, with passing hosted tests |
+| **LIVE** | 122 | In the Worker source that built the pinned build, with passing hosted tests |
 | **PARTIAL** | 1 | One half of the contract is live, the other is not |
 | **CLIENT** | 2 | Contract belongs to the agent side; the Worker's half is live |
 | **OFFLINE** | 1 | Implemented in `src/noema/` only; not hosted |
@@ -319,6 +319,7 @@ or the Worker source carrying the contract's identifier.
 | [RFC-0124](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0124-governance-rule-contract.md) | Governance rule contract (GC4-S8) | GC4-S8 | **LIVE** | `gc4-s8-governance.test.ts` |
 | [RFC-0125](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0125-practice-inheritance-and-schism.md) | Practice inheritance and schism (GC9-S2) | GC9-S2 | **LIVE** | `gc9-s2-inheritance-schism.test.ts` |
 | [RFC-0126](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0126-watch-entity-update-exposure.md) | WATCH `ENTITY_UPDATE` exposure closure | — | **LIVE** | `watch-entity-update-census.test.ts` |
+| [RFC-0127](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/rfcs/RFC-0127-trade-cancelled-catalog.md) | Catalog `TRADE_CANCELLED` on `event-catalog/0.2` | — | **LIVE** | Produced (`world-actions.ts`), catalogued (Specs `bc30fae7`), consumed (WATCH / operator digests). `closed-catalog.test.ts`. Crime stays PARTIAL / `NEVER_EMITTED` |
 ## Re-running this
 
 ```bash
