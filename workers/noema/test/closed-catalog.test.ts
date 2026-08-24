@@ -40,17 +40,12 @@ function catalog(file: string): Set<string> {
 }
 
 /**
- * Emitted, publicly projected as "…withdrew a trade", and in neither catalog.
- * Present in the Worker since 2026-08-12 and never in the offline Python
- * runtime. `docs/GC4-S2-INSTITUTION-ACTIONS.md` calls it "existing" alongside
- * the three catalogued TRADE_* types, so the likeliest reading is a catalog
- * omission rather than a rogue addition — but the catalog is the closure
- * authority, and adding a type to it is an RFC decision, not a test's.
+ * RFC-0127 (Specs `bc30fae7`) catalogued TRADE_CANCELLED on event-catalog/0.2.
+ * The Worker has emitted it since 2026-08-12; WATCH already projects
+ * "…withdrew a trade". Chamber 0.1 stays 24 types and does not include it.
  *
- * Raised on the Specs side. Listed here so a NEW uncatalogued type fails
- * instead of hiding behind this one.
+ * There is no exception list. A new uncatalogued emit fails the scan.
  */
-const KNOWN_UNCATALOGUED = ["TRADE_CANCELLED"];
 
 /**
  * Catalogued types the Worker never emits. Four are explicable:
@@ -91,19 +86,18 @@ describe("closed event catalog conformance", () => {
 
   it.skipIf(!have)("emits no event type outside the closed catalog", () => {
     const allowed = new Set([...catalog("event-types.json"), ...catalog("event-types.0.2.json")]);
-    const offenders = [...emittedEventTypes().keys()]
-      .filter((t) => !allowed.has(t))
-      .filter((t) => !KNOWN_UNCATALOGUED.includes(t))
-      .sort();
+    const offenders = [...emittedEventTypes().keys()].filter((t) => !allowed.has(t)).sort();
     expect(offenders).toEqual([]);
   });
 
-  it.skipIf(!have)("still has exactly one known gap, and it is the documented one", () => {
-    const allowed = new Set([...catalog("event-types.json"), ...catalog("event-types.0.2.json")]);
+  it.skipIf(!have)("catalogues the TRADE_CANCELLED emit on 0.2", () => {
+    const c01 = catalog("event-types.json");
+    const c02 = catalog("event-types.0.2.json");
+    expect(c01.has("TRADE_CANCELLED")).toBe(false);
+    expect(c02.has("TRADE_CANCELLED")).toBe(true);
+    const allowed = new Set([...c01, ...c02]);
     const gaps = [...emittedEventTypes().keys()].filter((t) => !allowed.has(t)).sort();
-    // Fails if the Specs side closes the gap, which is the point — the
-    // exception should not outlive the decision that justifies it.
-    expect(gaps).toEqual([...KNOWN_UNCATALOGUED].sort());
+    expect(gaps).toEqual([]);
   });
 
   it.skipIf(!have)("still emits none of the catalogued types it has never emitted", () => {
@@ -137,9 +131,8 @@ describe("closed event catalog conformance", () => {
     const c01 = catalog("event-types.json");
     const emitted = [...emittedEventTypes().keys()];
     const beyond01 = emitted.filter((t) => !c01.has(t)).sort();
-    // Authorized by RFC-0002 and RFC-0101, which is why this is a wrong pin
-    // rather than a closure violation. TRADE_CANCELLED is the exception, and is
-    // beyond 0.2 as well — tracked as the known gap above.
+    // Authorized by RFC-0002, RFC-0101, and RFC-0127. TRADE_CANCELLED is on
+    // 0.2 and still absent from Chamber 0.1.
     expect(beyond01).toEqual([
       "ACCESS_RESTRICTED",
       "AGREEMENT_BROKEN",
@@ -153,6 +146,6 @@ describe("closed event catalog conformance", () => {
 
   it.skipIf(!have)("pins the catalog sizes the Specs validator asserts", () => {
     expect(catalog("event-types.json").size).toBe(24);
-    expect(catalog("event-types.0.2.json").size).toBe(31);
+    expect(catalog("event-types.0.2.json").size).toBe(32);
   });
 });

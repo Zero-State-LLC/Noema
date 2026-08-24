@@ -283,7 +283,8 @@ def test_reducers_are_exactly_closed_catalog_v01():
     """The offline runtime reduces 0.1 and nothing else.
 
     This is what makes `versions.event_catalog` true for this runtime, and also
-    why it cannot be true for the hosted Worker, which emits six 0.2 types. A
+    why it cannot be true for the hosted Worker, which emits seven types beyond
+    0.1 (six RFC-0002 / RFC-0101 types plus TRADE_CANCELLED / RFC-0127). A
     reducer registry that drifts from the catalog is a replay break, so it is
     pinned rather than assumed.
     """
