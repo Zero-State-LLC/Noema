@@ -40,17 +40,9 @@ export function providerConfiguration(env: Env) {
       from_email: env.RESEND_FROM_EMAIL || null,
       priority: "primary",
     },
-    // Presence only. The server token is a secret and never appears here, in the
-    // admin overview, or in a delivery error (RFC-0032 provider contract).
-    postmark: {
-      server_token: Boolean(env.POSTMARK_SERVER_TOKEN),
-      from_email: env.POSTMARK_FROM_EMAIL || null,
-      message_stream: env.POSTMARK_MESSAGE_STREAM || "outbound",
-      priority: "standby",
-    },
     capabilities: {
       inspect: true,
-      send_controlled_test: Boolean(env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN),
+      send_controlled_test: Boolean(env.RESEND_API_KEY),
       apply_fixed_supabase_checks: Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY),
       rotate_credentials: false,
     },
