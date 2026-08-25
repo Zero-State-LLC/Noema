@@ -16,6 +16,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const ROUTE_SOURCE = "workers/noema/src/index.ts";
 
@@ -106,7 +107,8 @@ async function main() {
     process.exit(2);
   }
   const liveSource = execFileSync("git", ["show", `${liveRef}:${ROUTE_SOURCE}`], { encoding: "utf8" });
-  const mainSource = readFileSync(ROUTE_SOURCE, "utf8");
+  const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+  const mainSource = readFileSync(join(repoRoot, ROUTE_SOURCE), "utf8");
   const { added, removed } = diffRoutes(liveSource, mainSource);
 
   console.log(`live-ref ${liveRef}`);
