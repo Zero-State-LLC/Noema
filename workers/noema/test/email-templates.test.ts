@@ -2,13 +2,14 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { AGENT_BOOTSTRAP_HTML, AGENT_BOOTSTRAP_TEXT, composeAgentBootstrapMail } from "../src/agent-mail";
-import { renderAdminMailHtml, renderAdminMailText } from "../src/admin-mail";
+import { AGENT_BOOTSTRAP_HTML, AGENT_BOOTSTRAP_SUBJECT, AGENT_BOOTSTRAP_TEXT, composeAgentBootstrapMail } from "../src/agent-mail";
+import { ADMIN_MAIL_SUBJECT, renderAdminMailHtml, renderAdminMailText } from "../src/admin-mail";
 import { applyEnrollmentHref, applyMagicLinkHref, stripSubjectHeader } from "../src/mail-template";
-import { renderPlayMailHtml, renderPlayMailText } from "../src/play-mail";
+import { PLAY_MAIL_SUBJECT, renderPlayMailHtml, renderPlayMailText } from "../src/play-mail";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const email = (name: string) => readFileSync(join(root, "docs/email", name), "utf8");
+const subjectHeader = (name: string) => email(name).match(/^Subject: (.+)$/m)?.[1];
 
 const href =
   "{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type={{ .Type }}";
@@ -57,6 +58,20 @@ describe("auth email templates", () => {
     expect(admin).toContain("#FFB020");
     expect(admin).toContain("IBM Plex Sans");
     expect(play).not.toContain("OPEN ADMIN");
+  });
+
+
+  it("documents the canonical Worker-rendered subjects", () => {
+    const readme = email("README.md");
+    expect(subjectHeader("play-magic-link.txt")).toBe(PLAY_MAIL_SUBJECT);
+    expect(subjectHeader("admin-magic-link.txt")).toBe(ADMIN_MAIL_SUBJECT);
+    expect(subjectHeader("agent-bootstrap.txt")).toBe(AGENT_BOOTSTRAP_SUBJECT);
+    expect(readme).toContain(`| ` + "`play-magic-link.html`" + ` | ${PLAY_MAIL_SUBJECT} |`);
+    expect(readme).toContain(`| ` + "`play-magic-link.txt`" + ` | ${PLAY_MAIL_SUBJECT} |`);
+    expect(readme).toContain(`| ` + "`admin-magic-link.html`" + ` | ${ADMIN_MAIL_SUBJECT} |`);
+    expect(readme).toContain(`| ` + "`admin-magic-link.txt`" + ` | ${ADMIN_MAIL_SUBJECT} |`);
+    expect(readme).toContain(`| ` + "`agent-bootstrap.html`" + ` | ${AGENT_BOOTSTRAP_SUBJECT} |`);
+    expect(readme).toContain(`| ` + "`agent-bootstrap.txt`" + ` | ${AGENT_BOOTSTRAP_SUBJECT} |`);
   });
 
   it("Worker-composed PLAY/ADMIN letters match docs/email after href fill", () => {

@@ -4,10 +4,15 @@ Dark graphite, semantic accent, one CTA. PLAY uses world tokens; ADMIN uses the 
 
 | File | Subject | After auth |
 |------|---------|------------|
-| `play-magic-link.html` | Enter NOEMA | `/play` Chamber |
+| `play-magic-link.html` | Watch NOEMA | `/play` Chamber |
+| `play-magic-link.txt` | Watch NOEMA | plaintext twin of `play-magic-link.html` |
 | `admin-magic-link.html` | NOEMA Admin Access | `/admin` |
+| `admin-magic-link.txt` | NOEMA Admin Access | plaintext twin of `admin-magic-link.html` |
 | `agent-bootstrap.html` | Review agent enrollment | `/connect/enroll` preview (does not approve) |
-| `supabase-magic-link.html` | Enter NOEMA | same href contract; **dashboard slot** |
+| `agent-bootstrap.txt` | Review agent enrollment | plaintext twin of `agent-bootstrap.html` |
+| `supabase-magic-link.html` | Enter NOEMA | same href contract; **dashboard slot fallback only** |
+
+These files are the canonical Worker-rendered templates for PLAY, ADMIN, and Agent bootstrap mail. Worker renderers in `workers/noema/src/play-mail.ts`, `workers/noema/src/admin-mail.ts`, and `workers/noema/src/agent-mail.ts` must render byte-for-byte equivalent bodies after placeholder substitution. `workers/noema/test/email-templates.test.ts` enforces source-renderer parity and subject parity.
 
 CTA href (PLAY / ADMIN / Supabase HTML bodies):
 
