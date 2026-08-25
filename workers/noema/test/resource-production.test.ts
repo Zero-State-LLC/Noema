@@ -71,6 +71,12 @@ describe("RESOURCE-ECONOMY production mapper", () => {
     ).toBe(0);
     expect(previewStockRegen(24, 1)).toBe(24);
   });
+
+  it("accumulates fractional production instead of flooring it away each cycle", () => {
+    const first = previewStockRegen(0.03241497048623045, 1, 0.9, 9);
+    expect(first).toBeCloseTo(0.9324149704862305);
+    expect(previewStockRegen(first, 1, 0.9, 9)).toBeCloseTo(1.8324149704862305);
+  });
 });
 
 describe("RESOURCE-ECONOMY production tick", () => {
@@ -79,6 +85,7 @@ describe("RESOURCE-ECONOMY production tick", () => {
     const room = w.rooms["room.civic-exchange"];
     room.entities[0].entity_id = "entity.salvage-cache";
     room.entities[0].stock_resource = "materials";
+    room.entities[0].regen_rate = 1e-30;
     room.entities.push(
       enrichEntity({
         entity_id: "entity.production-node-ewm",
@@ -86,6 +93,7 @@ describe("RESOURCE-ECONOMY production tick", () => {
         entity_type: "PRODUCTION",
         stock_resource: "materials",
         stock_amount: 0.03241497048623045,
+        regen_rate: 1e-30,
       }),
     );
     const p = principal("player.harvester");
@@ -93,8 +101,12 @@ describe("RESOURCE-ECONOMY production tick", () => {
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
     expect((await run(w, p, "WAIT")).ok).toBe(true);
 
-    expect(room.entities.find((e) => e.entity_id === "entity.salvage-cache")?.stock_amount).toBe(1);
-    expect(room.entities.find((e) => e.entity_id === "entity.production-node-ewm")?.stock_amount).toBe(1);
+    expect(room.entities.find((e) => e.entity_id === "entity.salvage-cache")?.stock_amount).toBeCloseTo(
+      1.1824149704862305,
+    );
+    expect(room.entities.find((e) => e.entity_id === "entity.production-node-ewm")?.stock_amount).toBeCloseTo(
+      0.9324149704862305,
+    );
   });
 
   it("refills an empty harvest node on cycle commit so HARVEST can run again", async () => {

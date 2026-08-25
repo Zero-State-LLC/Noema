@@ -37,7 +37,7 @@ export function previewStockRegen(
   regen = NODE_REGEN_PER_CYCLE,
   cap = NODE_STOCK_CAPACITY,
 ): number {
-  const stock = Math.max(0, Math.floor(before));
+  const stock = Math.max(0, Number.isFinite(before) ? before : 0);
   if (mod <= 0) return stock;
   return Math.min(cap, stock + regen * mod);
 }
