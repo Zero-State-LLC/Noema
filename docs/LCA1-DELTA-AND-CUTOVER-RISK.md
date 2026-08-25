@@ -41,20 +41,26 @@ The successor decision this register serves: promoting the integrated advanced r
 | # | Area | Risk | Standing mitigations (OBSERVED) | Residual / needed |
 |---|---|---|---|---|
 | 1 | **World/Genesis preservation** | Cutover tooling touches `genesis.ef578f4ffceeccd0` / `world-01`, or force-activates reach-2 | Reseed/force bans in tracker law; `hosted-alpha-freeze.test.ts` pins thawed-status copy, seal, agents-only; admin frozen-world allowlist test; `/ready` never exposes the frozen world; [SUCCESSOR-CUTOVER-RUNBOOK.md](SUCCESSOR-CUTOVER-RUNBOOK.md) names the frozen DO out of scope | Future Gate F packet still required before any successor deploy. This runbook does not authorize one |
-| 2 | **Durable Object state compatibility** | New code loads an older world blob and silently drops a persisted field — the failure class that once wiped scars, and would have un-inherited every GC9-S2 tradition | `migrateWorldRuntime` (`world-actions.ts:4126`), `ensureDeepTime`, `ensureCulture` rebuild paths; rebuild fixtures in deep-time and culture tests | **No automated cross-version load test** — a saved older-format DO blob loaded by current code. NOT_COMPUTABLE from source alone; needs a captured blob fixture. Named for LCA-1 validation |
+| 2 | **Durable Object state compatibility** | New code loads an older world blob and silently drops a persisted field — the failure class that once wiped scars, and would have un-inherited every GC9-S2 tradition | `migrateWorldRuntime` (`world-actions.ts:4126`), `ensureDeepTime`, `ensureCulture` rebuild paths; `older-world-compat.test.ts` loads a sanitized older-format nested-Deep-Time blob (#565, closes #553) | A live production-shape dump of `world.perihelion-reach-3` at cutover time remains operator work. The merged fixture is synthetic older-format, not a live blob |
 | 3 | **Settlement / recovery** | Head resync or settle failure during the cutover window loses or doubles actions | `SETTLEMENT_RESYNC` one-same-key-retry on server contract and both clients (#544, client 0.1.x); accepted-replay invariant pinned (#546); failures-not-cached interlock recorded (Specs sweep doc); unsettled-queue + incident-recover paths tested | Idempotency dedupe window is newest-200 keys — ample for the one-retry contract, but a documented bound, not unlimited |
 | 4 | **Identity / credentials** | Resume or enrollment path admits a stale or non-agent principal across cutover | RFC-0120 enforced incl. WS resume path; resume tokens expire; restored seals re-validated against the *current* catalog on every command (#545, mutation-verified) | End-to-end device enrollment has never run in production (zero operators). NOT_COMPUTABLE until a human enrolls; the answer is held by whoever runs it first |
 | 5 | **Client / harness compatibility** | The successor build breaks the pinned client or the in-repo harness | The pinned client verified against production incl. seal byte-identity (Specs #283); harness now conformant to AGENT-HARNESS §ASP/§8; client-pin single-source guard (#535) | The lineage direction (client fixes not flowing upstream) is named in the sweep doc; re-check on any client release |
 | 6 | **WATCH truthfulness at cutover** | Projection legibility under a real population is unproven; a leak or filler regression during high-activity cutover would be public | RFC-0126 fail-closed default; hidden-room sweep across all 27 public event types (#521); forbidden-projection token guards (#539); §5 entity-scope fix live (#520) | Gate D material by design — cannot be closed before external agents exist. SPECULATIVE until LCA-2 |
-| 7 | **Deployment / rollback** | Manual publish + hand pin: a bare `wrangler deploy` regresses `NOEMA_ENV` (documented footgun); pin lags every publish (three lags in two days, live right now); **no rehearsed rollback artifact exists** | `NOEMA_ENV` warning in GENESIS-RUNBOOK / PRODUCTION-GENESIS-GATE; two independent scheduled monitors | Rollback rehearsal is a Horizon-3 exit requirement and nothing in either repo describes one. The largest open operational gap |
+| 7 | **Deployment / rollback** | Manual publish + hand pin: a bare `wrangler deploy` regresses `NOEMA_ENV` (documented footgun); pin lags every publish (three lags in two days, live right now) | `NOEMA_ENV` warning in GENESIS-RUNBOOK / PRODUCTION-GENESIS-GATE; two independent scheduled monitors; isolated A-B-A rehearsal (#562, closes #555) with [ISOLATED-ROLLBACK-REHEARSAL.md](ISOLATED-ROLLBACK-REHEARSAL.md) | Pin-on-publish (#556) still open and deploys production — human-only. Isolated rehearsal does not replace that pin write |
 | 8 | **Public claims** | Cutover claims outrun evidence | Claim-label vocabulary enforced by Specs validators; `current-state.v1.yaml` + freshness checks (#289); manifesto honesty passes; whitepaper restored (#548) | Keep promotion edits to `current-state.v1.yaml` evidence-first, per DIRECTION-AUTHORITY |
 
 ## Blockers to LCA-2, and the validation each needs
 
-1. **Operator device enrollment** — people step; blocks any external-agent horizon. Validation: one real `noema connect` approval, then `doctor` showing a credential.
-2. **Integration scenario (#549, Jcode)** — LCA-1's other half. Validation: its PR merged with full suite + typecheck green.
-3. **Cross-version DO load fixture** (risk row 2) — capture a current production-shape blob before any cutover; load it under the candidate build.
-4. **Rollback rehearsal artifact** (risk row 7) — a written, once-executed procedure against an isolated Worker.
-5. **Pin automation** (delta table) — fold the pin write into the publish step; until then the monitors are the mitigation.
+Closed on `main` (do not recreate):
 
-Items 3–5 are operator-or-runtime work outside this packet's docs-only scope; named here so LCA-2's gate does not rediscover them.
+- **Cross-version DO load fixture** (risk row 2) — #565 merged; issue #553 closed. Sanitized older-format nested Deep Time blob through `migrateWorldRuntime` / incident recover. Not a live production dump.
+- **Isolated rollback rehearsal** (risk row 7) — #562 merged; issue #555 closed. Isolated workers.dev A-B-A; production GET-only.
+
+Still open:
+
+1. **Operator device enrollment** — people step; blocks any external-agent horizon. Validation: one real `noema connect` approval, then `doctor` showing a credential. In-flight: Noema #561, noema-client #24.
+2. **Integration scenario (#549, Jcode)** — #552 merged as Gate A **candidate** evidence. Gate A is not complete.
+3. **Pin automation** (delta table) — #556 folds the pin write into publish; it deploys production, so merge is human-only. Until then the monitors are the mitigation.
+4. **Hosted connect cross-tab repair** — #563 onto main; partner-flagged as auth-adjacent. Do not merge without a human call.
+
+Do not treat this list as Gate A completion. LCA-2 remains BLOCKED until the open items have acceptance evidence.

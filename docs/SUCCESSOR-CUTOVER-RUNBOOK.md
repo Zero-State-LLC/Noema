@@ -55,9 +55,9 @@ A later Gate F packet may authorize a successor only when it names **all** of:
 
 Passing LCA-4 permits the decision. It does not force deployment.
 
-## Related evidence (in-flight, not merged by this document)
+## Related evidence
 
-- Isolated rollback rehearsal: Noema #562
-- Older-world DO fixture: Noema #557
+- Isolated rollback rehearsal: Noema #562 merged (closes #555)
+- Older-world DO fixture: Noema #565 merged (closes #553); #557 closed as superseded
 - Pin-on-publish: Noema #556 (deploys production; human-only)
-- Connect repair on `main`: Noema #563
+- Connect repair on `main`: Noema #563 (auth-adjacent; human call)
