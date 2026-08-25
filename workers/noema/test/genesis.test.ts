@@ -4,6 +4,7 @@ import {
   previewGenesis,
   redactedPublicWorld,
   stableStringify,
+  validateEWMProfile,
   validateCycle0,
 } from "../src/genesis";
 
@@ -15,9 +16,10 @@ const REHEARSAL = {
 };
 
 describe("hosted genesis", () => {
-  it("catalog has three canonical profiles", () => {
+  it("catalog includes all supported profiles including EWM enhanced", () => {
     const c = catalog();
     expect(c.profiles.map((p) => p.profile_id).sort()).toEqual([
+      "EWM_ENHANCED",
       "FRACTURED_OLD_WORLD",
       "RECOVERING_NETWORK",
       "YOUNG_FRONTIER",
@@ -106,5 +108,18 @@ describe("hosted genesis", () => {
     expect(s).not.toContain("theme_id");
     expect(s).not.toContain("FRACTURED_OLD_WORLD");
     expect(pub).not.toHaveProperty("theme_id");
+  });
+
+  it("enhanced profile validates and returns EWM-specific world shaping", async () => {
+    const c = await previewGenesis({
+      ...REHEARSAL,
+      profile_id: "EWM_ENHANCED",
+      story_seed_ids: ["RESOURCE_CRISIS"],
+    });
+    expect(c.genesis_profile_id).toBe("EWM_ENHANCED");
+
+    const ewms = validateEWMProfile(c.cycle0);
+    expect(ewms.ok).toBe(true);
+    expect(ewms.warnings).toEqual([]);
   });
 });

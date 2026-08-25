@@ -438,7 +438,7 @@ function buildCycle0(
     sequence: 0,
     entry_room_id: hub,
     rooms,
-    institutions: institutions.slice(0, 2),
+    institutions,
     artifacts,
     tensions: tensions.slice(0, 3),
     scars: scars.slice(0, 4),
