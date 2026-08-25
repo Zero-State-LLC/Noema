@@ -14,6 +14,7 @@ import { err, json, mintHumanPlatformToken } from "./auth";
 import { allowLoginThrottled } from "./rate-limit";
 import {
   composePlayMail,
+  canonicalAuthFlow,
   canonicalConnectCode,
   extractHashedToken,
   PLAY_MAIL_FROM,
@@ -40,13 +41,14 @@ export const playLoginThrottle = new LoginThrottle();
 export async function requestPlayMagicLink(
   env: Env,
   req: Request,
-  body: { email?: string; next?: string; code?: string; connect_code?: string },
+  body: { email?: string; next?: string; code?: string; connect_code?: string; auth_flow?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
   const next = safePlayNext(body.next);
   const code = canonicalConnectCode(body.connect_code ?? body.code);
+  const authFlow = canonicalAuthFlow(body.auth_flow);
 
   const throttle = opts?.throttle || playLoginThrottle;
   const ip = clientIp(req);
@@ -61,6 +63,7 @@ export async function requestPlayMagicLink(
       const callbackParams = new URLSearchParams();
       if (next) callbackParams.set("next", next);
       if (code) callbackParams.set("connect_code", code);
+      if (authFlow) callbackParams.set("auth_flow", authFlow);
       const callbackQuery = callbackParams.toString();
       const callback = callbackQuery ? `${origin}/play/callback?${callbackQuery}` : `${origin}/play/callback`;
       const canProvider = Boolean(opts?.sendPlay || hasTransactionalProvider(env));
@@ -82,7 +85,7 @@ export async function requestPlayMagicLink(
         const payload = await res.json().catch(() => ({}));
         const extracted = extractHashedToken(payload);
         if (res.ok && extracted) {
-          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next, code);
+          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next, code, authFlow);
           const mail = composePlayMail(email, href);
           const send =
             opts?.sendPlay ||

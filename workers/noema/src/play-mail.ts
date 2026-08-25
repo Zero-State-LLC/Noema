@@ -17,12 +17,18 @@ export function canonicalConnectCode(raw?: string | null): string | null {
   return /^[0-9a-f]{8}$/.test(compact) ? compact : null;
 }
 
+export function canonicalAuthFlow(raw?: string | null): string | null {
+  const compact = String(raw || "").trim().toLowerCase();
+  return /^[0-9a-f]{32}$/.test(compact) ? compact : null;
+}
+
 export function playMagicLinkHref(
   origin: string,
   tokenHash: string,
   type = "magiclink",
   next?: string | null,
   connectCode?: string | null,
+  authFlow?: string | null,
 ): string {
   const base = origin.replace(/\/$/, "");
   let href = `${base}/play/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
@@ -30,6 +36,8 @@ export function playMagicLinkHref(
   if (safe) href += `&next=${encodeURIComponent(safe)}`;
   const canonicalCode = canonicalConnectCode(connectCode);
   if (canonicalCode) href += `&connect_code=${encodeURIComponent(canonicalCode)}`;
+  const canonicalFlow = canonicalAuthFlow(authFlow);
+  if (canonicalFlow) href += `&auth_flow=${encodeURIComponent(canonicalFlow)}`;
   return href;
 }
 
