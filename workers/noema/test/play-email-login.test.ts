@@ -118,13 +118,16 @@ describe("requestPlayMagicLink", () => {
     ]);
   });
 
-  it("puts next=/connect on the letter href and ignores other next values", async () => {
+  it("puts next=/connect and valid connect_code on generated Supabase callbacks and custom mail links", async () => {
     const sent: string[] = [];
-    const fetchImpl = async () =>
-      new Response(
+    let generateBody = "";
+    const fetchImpl = async (_url: string, init?: RequestInit) => {
+      generateBody = String(init?.body || "");
+      return new Response(
         JSON.stringify({ properties: { hashed_token: "playhash", verification_type: "magiclink" } }),
         { status: 200 },
       );
+    };
     const e = env({
       SUPABASE_URL: "https://example.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "srk",
@@ -133,7 +136,7 @@ describe("requestPlayMagicLink", () => {
     await requestPlayMagicLink(
       e,
       new Request("https://noema.guru/x"),
-      { email: "prabu.openclaw@gmail.com", next: "/connect" },
+      { email: "prabu.openclaw@gmail.com", next: "/connect", connect_code: "AB12-CD34" },
       {
         fetch: fetchImpl,
         throttle: new LoginThrottle(),
@@ -142,12 +145,48 @@ describe("requestPlayMagicLink", () => {
         },
       },
     );
+    const parsed = JSON.parse(generateBody);
+    expect(parsed.options.redirect_to).toBe("https://noema.guru/play/callback?next=%2Fconnect&connect_code=ab12cd34");
     expect(sent[0]).toBe(
-      "https://noema.guru/play/callback?token_hash=playhash&type=magiclink&next=%2Fconnect",
+      "https://noema.guru/play/callback?token_hash=playhash&type=magiclink&next=%2Fconnect&connect_code=ab12cd34",
     );
-    sent.length = 0;
+  });
+
+  it("omits malformed user code from callbacks and custom mail links", async () => {
+    const sent: string[] = [];
+    let generateBody = "";
+    const fetchImpl = async (_url: string, init?: RequestInit) => {
+      generateBody = String(init?.body || "");
+      return new Response(JSON.stringify({ hashed_token: "playhash" }), { status: 200 });
+    };
     await requestPlayMagicLink(
-      e,
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
+      new Request("https://noema.guru/x"),
+      { email: "prabu.openclaw@gmail.com", next: "/connect", connect_code: "not-a-code" },
+      {
+        fetch: fetchImpl,
+        throttle: new LoginThrottle(),
+        sendPlay: async (mail) => {
+          sent.push(mail.href);
+        },
+      },
+    );
+    expect(JSON.parse(generateBody).options.redirect_to).toBe("https://noema.guru/play/callback?next=%2Fconnect");
+    expect(sent[0]).toBe("https://noema.guru/play/callback?token_hash=playhash&type=magiclink&next=%2Fconnect");
+  });
+
+  it("ignores open-redirect next values on generated mail links", async () => {
+    const sent: string[] = [];
+    let generateBody = "";
+    const fetchImpl = async (_url: string, init?: RequestInit) => {
+      generateBody = String(init?.body || "");
+      return new Response(
+        JSON.stringify({ properties: { hashed_token: "playhash", verification_type: "magiclink" } }),
+        { status: 200 },
+      );
+    };
+    await requestPlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
       new Request("https://noema.guru/x"),
       { email: "prabu.openclaw@gmail.com", next: "https://evil.example/phish" },
       {
@@ -158,6 +197,7 @@ describe("requestPlayMagicLink", () => {
         },
       },
     );
+    expect(JSON.parse(generateBody).options.redirect_to).toBe("https://noema.guru/play/callback");
     expect(sent[0]).toBe("https://noema.guru/play/callback?token_hash=playhash&type=magiclink");
     expect(sent[0]).not.toMatch(/evil/);
   });
@@ -330,6 +370,26 @@ describe("play login HTML", () => {
     expect(landingHtml()).toContain('id="play-continue"');
     expect(connectHtml()).not.toContain('id="play-continue"');
   });
+  it("callback redirects to connect with validated connect_code and keeps the token tab-scoped", () => {
+    const callback = playCallbackHtml();
+    expect(callback).toContain('sessionStorage.setItem("noema.play.token"');
+    expect(callback).not.toContain('localStorage.setItem("noema.play.token"');
+    expect(callback).toContain('return /^[0-9a-f]{8}$/.test(raw) ? raw : ""');
+    expect(callback).toContain('const authCode = search.get("code") || hash.get("code") || ""');
+    expect(callback).toContain('const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || ""');
+    expect(callback).toContain('body: JSON.stringify({ token_hash, type, code: authCode })');
+    expect(callback).toContain('if (connectCode) next = "/connect?connect_code=" + encodeURIComponent(connectCode)');
+    expect(callback).not.toContain('authCode || "").trim().replace');
+    expect(callback).not.toContain('search.get("device_code")');
+    expect(callback).not.toContain('localStorage.getItem("noema.connect.code"');
+
+    const connect = connectHtml();
+    expect(connect).toContain('body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode() })');
+    expect(connect).toContain('canonicalCode(params.get("connect_code") || params.get("code"))');
+    expect(connect).toContain('localStorage.setItem("noema.connect.code"');
+    expect(connect).toContain('localStorage.removeItem("noema.connect.code"');
+    expect(connect).toContain('sessionStorage.setItem("noema.connect.code"');
+  });
   it("callback reads hash and does not store refresh_token", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
@@ -351,7 +411,10 @@ describe("play login HTML", () => {
     expect(html).not.toContain("path-rail");
     expect(html).not.toContain("The world is the text.");
   });
-  it("CONNECT tells humans they watch", () => {
-    expect(connectHtml()).toContain("Agents inhabit this world. Humans watch.");
+  it("CONNECT is task-first: sign up, get a code, then play", () => {
+    const html = connectHtml();
+    expect(html).toContain("Sign up here with a watch link. That's your account.");
+    expect(html).toContain("It prints a short code. Enter that code below.");
+    expect(html).toContain("On the agent machine, run <code>noema play</code>.");
   });
 });

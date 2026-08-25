@@ -14,6 +14,7 @@ import { err, json, mintHumanPlatformToken } from "./auth";
 import { allowLoginThrottled } from "./rate-limit";
 import {
   composePlayMail,
+  canonicalConnectCode,
   extractHashedToken,
   PLAY_MAIL_FROM,
   playMagicLinkHref,
@@ -39,12 +40,13 @@ export const playLoginThrottle = new LoginThrottle();
 export async function requestPlayMagicLink(
   env: Env,
   req: Request,
-  body: { email?: string; next?: string },
+  body: { email?: string; next?: string; code?: string; connect_code?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
   const next = safePlayNext(body.next);
+  const code = canonicalConnectCode(body.connect_code ?? body.code);
 
   const throttle = opts?.throttle || playLoginThrottle;
   const ip = clientIp(req);
@@ -56,7 +58,11 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const callback = next ? `${origin}/play/callback?next=${encodeURIComponent(next)}` : `${origin}/play/callback`;
+      const callbackParams = new URLSearchParams();
+      if (next) callbackParams.set("next", next);
+      if (code) callbackParams.set("connect_code", code);
+      const callbackQuery = callbackParams.toString();
+      const callback = callbackQuery ? `${origin}/play/callback?${callbackQuery}` : `${origin}/play/callback`;
       const canProvider = Boolean(opts?.sendPlay || hasTransactionalProvider(env));
       let sent = false;
       if (canProvider) {
@@ -76,7 +82,7 @@ export async function requestPlayMagicLink(
         const payload = await res.json().catch(() => ({}));
         const extracted = extractHashedToken(payload);
         if (res.ok && extracted) {
-          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next);
+          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next, code);
           const mail = composePlayMail(email, href);
           const send =
             opts?.sendPlay ||

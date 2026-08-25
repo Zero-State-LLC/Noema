@@ -61,13 +61,18 @@ export function playCallbackHtml(): string {
   const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
   const token_hash = search.get("token_hash") || hash.get("token_hash") || "";
   const type = search.get("type") || hash.get("type") || "";
-  const code = search.get("code") || hash.get("code") || "";
+  const authCode = search.get("code") || hash.get("code") || "";
+  const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || "";
+  const connectCode = (() => {
+    const raw = rawConnectCode.trim().replace(/-/g, "").toLowerCase();
+    return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
+  })();
   (async () => {
     try {
       const res = await fetch("/v1/play/login/consume", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token_hash, type, code }),
+        body: JSON.stringify({ token_hash, type, code: authCode }),
       });
       const data = await res.json();
       if (!res.ok || !data.access_token) throw new Error("not authorized");
@@ -77,10 +82,7 @@ export function playCallbackHtml(): string {
       const raw = search.get("next") || hash.get("next") || "";
       let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       if (next === "/connect") {
-        try {
-          const pending = sessionStorage.getItem("noema.connect.code") || "";
-          if (pending) next = "/connect?code=" + encodeURIComponent(pending);
-        } catch (_) {}
+        if (connectCode) next = "/connect?connect_code=" + encodeURIComponent(connectCode);
       }
       location.href = next;
     } catch (err) {

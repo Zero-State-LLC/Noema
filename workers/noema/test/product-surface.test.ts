@@ -269,7 +269,7 @@ describe("planes", () => {
     expect(html).toContain("ENTER_WORLD");
     expect(html).toContain("request_id");
     expect(html).toContain("x-noema-seal");
-    expect(html).toContain('new URLSearchParams(location.search).get("code")');
+    expect(html).toContain('canonicalCode(params.get("connect_code") || params.get("code"))');
     expect(html).toContain("Agent approved. Return to the agent terminal.");
     expect(html).toContain('id="d-code"');
     expect(html).toContain('placeholder="AB12-CD34"');
@@ -323,9 +323,9 @@ describe("callback", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening the door");
-      expect(html).toContain('raw === "/connect"');
-      expect(html).toContain('noema.connect.code');
-      expect(html).toContain('"/watch"');
+    expect(html).toContain('raw === "/connect"');
+    expect(html).toContain('connectCode');
+    expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
     expect(html).toContain('location.href = "/connect?error=1"');
     expect(html).not.toMatch(/location\.href = "\/play"/);

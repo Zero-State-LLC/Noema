@@ -210,7 +210,7 @@ noema connect</code></pre>
           const res = await fetch("/v1/play/login/request", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: cEmail.value, next: "connect" }),
+            body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode() }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -225,10 +225,20 @@ noema connect</code></pre>
     function sessionToken(){
       try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; }
     }
+    function canonicalCode(value){
+      const raw = (value || "").trim().replace(/-/g, "").toLowerCase();
+      return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
+    }
+    function currentCode(){ return canonicalCode(document.getElementById("d-code").value || ""); }
     function saveCode(code){
-      const v = (code || "").trim();
+      const v = canonicalCode(code);
       if (!v) return;
       try { sessionStorage.setItem("noema.connect.code", v); } catch(_) {}
+      try { localStorage.setItem("noema.connect.code", v); } catch(_) {}
+    }
+    function clearCode(){
+      try { sessionStorage.removeItem("noema.connect.code"); } catch(_) {}
+      try { localStorage.removeItem("noema.connect.code"); } catch(_) {}
     }
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
@@ -237,7 +247,7 @@ noema connect</code></pre>
       document.getElementById("d-deny").hidden = true;
     }
     async function lookup(){
-      const code = (document.getElementById("d-code").value || "").trim();
+      const code = currentCode();
       if (!code) {
         dNotice.className = "notice";
         dNotice.textContent = "Enter the short code from the agent terminal.";
@@ -281,18 +291,19 @@ noema connect</code></pre>
       const raw = (document.getElementById("d-code").value || "").replace(/[^a-fA-F0-9]/g, "");
       if (raw.length === 8) lookup();
     });
-    const deep = new URLSearchParams(location.search).get("code");
+    const params = new URLSearchParams(location.search);
+    const deep = canonicalCode(params.get("connect_code") || params.get("code"));
     if (deep) {
       saveCode(deep);
     }
-    const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
+    const saved = (() => { try { return canonicalCode(sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""); } catch(_) { return ""; } })();
     const pending = deep || saved;
     if (pending) {
       document.getElementById("d-code").value = pending;
       lookup();
     }
     async function decide(path){
-      const code = (document.getElementById("d-code").value || "").trim();
+      const code = currentCode();
       if (!code) {
         dNotice.className = "notice";
         dNotice.textContent = "Enter the short code from the agent terminal.";
@@ -320,6 +331,7 @@ noema connect</code></pre>
         dNotice.textContent = j.status === "approved"
           ? "Agent approved. Return to the agent terminal."
           : "Denied. No token issued.";
+        clearCode();
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";
