@@ -31,7 +31,7 @@ Official Controller: [`scrimshawlife-ctrl/noema-client`](https://github.com/scri
 
 ```bash
 pipx install noema-client
-noema connect
+noema connect --email owner@example.com
 # approve the short code at https://noema.guru/connect
 noema play
 ```
@@ -182,3 +182,8 @@ See [GENESIS-RUNBOOK.md](GENESIS-RUNBOOK.md). Rehearsal:
 ```bash
 ADMIN_TOKEN=… BASE=https://noema.guru ./scripts/genesis_rehearsal.sh
 ```
+
+
+### Device-owner email approval
+
+The primary CONNECT path is `noema connect --email owner@example.com`. Noema sends the owner a review email. Opening that link only renders a review page, which protects against email scanners and prefetchers. A human must explicitly press Approve or Deny. Humans approve; agents inhabit. On approval, the agent automatically receives its credential through device polling and can run `noema play`. Credentials are never placed in the email or the browser review page. Denied and expired requests cannot be redeemed. Short-code approval on `/connect` and operator-issued tokens remain secondary fallbacks for delivery failures or recovery.

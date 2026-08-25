@@ -224,15 +224,14 @@ export async function startDeviceEnrollment(
   let review_delivery: "not_requested" | "sent" | "failed" | "unconfigured" = owner_email ? "unconfigured" : "not_requested";
   if (owner_email && review_token && rec.review_token_hash) {
     const base = verificationUri(env, req).replace(/\/connect$/, "");
-    const approve = `${base}/v1/auth/device/review/approve?token=${encodeURIComponent(review_token)}`;
-    const deny = `${base}/v1/auth/device/review/deny?token=${encodeURIComponent(review_token)}`;
+    const review = `${base}/v1/auth/device/review?token=${encodeURIComponent(review_token)}`;
     try {
       const sent = await sendTransactionalEmail(env, {
         from: "Noema <no-reply@noema.guru>",
         to: owner_email,
         subject: `Review Noema Controller connection for ${runtime}`,
-        text: `Approve: ${approve}\nDeny: ${deny}\nWorld: ${world}\nRuntime: ${runtime}\nScopes: ${scopes.join(", ")}`,
-        html: `<p>A Controller is requesting access to <strong>${world}</strong>.</p><p>Runtime: ${runtime}</p><p><a href="${approve}">Approve</a> or <a href="${deny}">Deny</a>.</p>`,
+        text: `Review: ${review}\n\nOne human click opens a review page. It does not approve until you press Approve on that page. Deny is available there too.\nWorld: ${world}\nRuntime: ${runtime}\nScopes: ${scopes.join(", ")}`,
+        html: `<p>A Controller is requesting access to <strong>${world}</strong>.</p><p>Runtime: ${runtime}</p><p><a href="${review}">Review request</a></p><p>Opening the link only renders a review page; explicit Approve or Deny is required.</p>`,
         tag: "device-enrollment-review",
       }, opts?.fetchImpl || fetch);
       review_delivery = "sent";
@@ -266,10 +265,58 @@ async function reviewRecord(env: Env, store: DeviceStore, token?: string): Promi
   return rec;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[c] || c);
+}
+
+export async function reviewDevicePage(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const token = new URL(req.url).searchParams.get("token") || "";
+  const rec = await reviewRecord(env, store, token || undefined);
+  if (rec instanceof Response) return rec;
+  const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
+  const disabled = status === "pending" ? "" : " disabled";
+  const body = `<!doctype html><html><head><meta charset="utf-8"><title>Review Noema agent connection</title></head><body>
+    <main>
+      <h1>Review agent connection</h1>
+      <p>Opening this link does not approve or deny anything. Email scanners and previews only see this page.</p>
+      <p>Humans approve; agents inhabit after approval. If approved, the agent automatically receives credentials through device polling. Credentials never appear in this email or browser page.</p>
+      <dl>
+        <dt>World</dt><dd>${escapeHtml(rec.review_world_id || "world-01")}</dd>
+        <dt>Runtime</dt><dd>${escapeHtml(rec.runtime)}</dd>
+        <dt>Status</dt><dd>${escapeHtml(status)}</dd>
+        <dt>Expires</dt><dd>${escapeHtml(rec.expires_at)}</dd>
+      </dl>
+      <form method="post" action="/v1/auth/device/review/approve"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit"${disabled}>Approve</button></form>
+      <form method="post" action="/v1/auth/device/review/deny"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit"${disabled}>Deny</button></form>
+      <p>Denied or expired requests cannot be redeemed. Use the short-code approval or operator token fallback only if email approval is unavailable.</p>
+    </main>
+  </body></html>`;
+  return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+async function reviewTokenFromRequest(req: Request): Promise<string | undefined> {
+  const urlToken = new URL(req.url).searchParams.get("token");
+  if (urlToken) return urlToken;
+  if (req.method !== "POST") return undefined;
+  const ctype = req.headers.get("content-type") || "";
+  if (ctype.includes("application/json")) {
+    const body = (await req.clone().json().catch(() => ({}))) as { token?: unknown };
+    return typeof body.token === "string" ? body.token : undefined;
+  }
+  if (ctype.includes("application/x-www-form-urlencoded") || ctype.includes("multipart/form-data")) {
+    const form = await req.clone().formData().catch(() => null);
+    const token = form?.get("token");
+    return typeof token === "string" ? token : undefined;
+  }
+  return undefined;
+}
+
 export async function approveDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
   const store = opts?.store;
   if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
-  const rec = await reviewRecord(env, store, new URL(req.url).searchParams.get("token") || undefined);
+  const rec = await reviewRecord(env, store, await reviewTokenFromRequest(req));
   if (rec instanceof Response) return rec;
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
@@ -283,7 +330,7 @@ export async function approveDeviceReview(env: Env, req: Request, opts?: { store
 export async function denyDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
   const store = opts?.store;
   if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
-  const rec = await reviewRecord(env, store, new URL(req.url).searchParams.get("token") || undefined);
+  const rec = await reviewRecord(env, store, await reviewTokenFromRequest(req));
   if (rec instanceof Response) return rec;
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);

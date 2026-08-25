@@ -33,6 +33,7 @@ import { durableRevocationStore, isControllerRevoked } from "./controller-revoca
 import {
   approveDevice,
   approveDeviceReview,
+  reviewDevicePage,
   denyDevice,
   denyDeviceReview,
   durableDeviceStore,
@@ -427,10 +428,13 @@ export default {
         };
         return cors(await startDeviceEnrollment(env, request, body, { store: durableDeviceStore(env) }));
       }
-      if (request.method === "GET" && path === "/v1/auth/device/review/approve") {
+      if (request.method === "GET" && path === "/v1/auth/device/review") {
+        return cors(await reviewDevicePage(env, request, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/review/approve") {
         return cors(await approveDeviceReview(env, request, { store: durableDeviceStore(env) }));
       }
-      if (request.method === "GET" && path === "/v1/auth/device/review/deny") {
+      if (request.method === "POST" && path === "/v1/auth/device/review/deny") {
         return cors(await denyDeviceReview(env, request, { store: durableDeviceStore(env) }));
       }
       if (request.method === "GET" && path === "/v1/auth/device/preview") {

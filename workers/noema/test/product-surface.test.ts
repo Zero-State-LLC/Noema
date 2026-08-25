@@ -236,7 +236,8 @@ describe("planes", () => {
   });
   it("connect first paint is onboard plus inhabit", () => {
     const html = connectHtml();
-    expect(html).toContain("Enter the code");
+    expect(html).toContain("noema connect --email owner@example.com");
+    expect(html).toContain("Fallback: enter the short code");
     expect(html).toContain("Sign up");
     expect(html).toContain("Use a token");
     expect(html).toContain("scrimshawlife-ctrl/noema-client");
@@ -277,7 +278,7 @@ describe("planes", () => {
     expect(html).toContain('id="c-email"');
     expect(html).toContain("Send watch link");
     expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
-    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Enter the code"));
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Fallback: enter the short code"));
     expect(html).not.toMatch(/id="d-approve" hidden/);
   });
   it("production CONNECT omits public mint from markup", async () => {
