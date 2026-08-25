@@ -63,6 +63,15 @@ export function parseWorkersDevUrl(output) {
   return [...new Set(urls)].at(-1) || null;
 }
 
+export function parseCurrentVersionId(output) {
+  const matches = [...String(output || "").matchAll(/Current Version ID:\s*([0-9a-f-]{36})/gi)].map((m) =>
+    m[1].toLowerCase(),
+  );
+  const unique = [...new Set(matches)];
+  if (unique.length !== 1) fail(`Wrangler output must contain exactly one Current Version ID, found ${unique.length}`);
+  return unique[0];
+}
+
 export function immutableProductionIdentity(snapshot) {
   return {
     worker_version_id: snapshot?.version?.worker_version_id ?? null,
@@ -196,11 +205,12 @@ async function deployPhase(worker, phase, secretsFile, commands, knownBase) {
   commands.push(deployed.display);
   const base = parseWorkersDevUrl(deployed.output) || knownBase;
   if (!base) fail("Wrangler output did not contain a workers.dev URL");
-  const version = await waitJson(`${base}/version`, (body) => Boolean(body.worker_version_id));
+  const deployedVersionId = parseCurrentVersionId(deployed.output);
+  const version = await waitJson(`${base}/version`, (body) => body.worker_version_id === deployedVersionId);
   if (version.env !== "test" || version.world_id !== REHEARSAL_WORLD) {
     fail(`deployed Worker self-reported unsafe identity: ${JSON.stringify(version)}`);
   }
-  return { base, version, deploy_output_sha256: sha256(deployed.output) };
+  return { base, version, deploy_output_sha256: sha256(deployed.output), deployed_version_id: deployedVersionId };
 }
 
 async function mintSessions(base, adminOperatorToken) {

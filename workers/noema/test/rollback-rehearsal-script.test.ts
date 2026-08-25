@@ -4,6 +4,7 @@ import {
   admitWorldId,
   assertProductionUnchanged,
   compareDurableSnapshot,
+  parseCurrentVersionId,
   parseWorkersDevUrl,
   REHEARSAL_WORLD,
 } from "../scripts/rollback-rehearsal.mjs";
@@ -58,6 +59,12 @@ describe("rollback rehearsal safety gates", () => {
     expect(parseWorkersDevUrl("Deployed https://noema-rollback-rehearsal-555.example.workers.dev"))
       .toBe("https://noema-rollback-rehearsal-555.example.workers.dev");
     expect(parseWorkersDevUrl("https://noema.guru")).toBeNull();
+  });
+
+  it("binds evidence to exactly one Wrangler deployment version", () => {
+    expect(parseCurrentVersionId("Current Version ID: ae475fb3-45c9-4cd9-a3b6-fc135c4183eb"))
+      .toBe("ae475fb3-45c9-4cd9-a3b6-fc135c4183eb");
+    expect(() => parseCurrentVersionId("no version here")).toThrow(/exactly one/);
   });
 
   it("fails if production identity changes", () => {
