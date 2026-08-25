@@ -79,6 +79,19 @@ export function playCallbackHtml(): string {
       sessionStorage.setItem("noema.play.token", data.access_token);
       if (data.handle) sessionStorage.setItem("noema.play.handle", String(data.handle).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32));
       if (data.player_id) sessionStorage.setItem("noema.play.player_id", String(data.player_id));
+      // Keep the bearer token tab-scoped, but hand it to an already-open
+      // same-origin CONNECT tab so approving after a mail-link click works.
+      try {
+        const channel = new BroadcastChannel("noema-play-auth");
+        channel.postMessage({
+          type: "noema.play.authenticated",
+          token: data.access_token,
+          handle: data.handle,
+          player_id: data.player_id,
+          connect_code: connectCode,
+        });
+        channel.close();
+      } catch (_) {}
       const raw = search.get("next") || hash.get("next") || "";
       let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       if (next === "/connect") {
