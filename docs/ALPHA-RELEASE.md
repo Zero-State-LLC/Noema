@@ -77,9 +77,10 @@ Full smoke: `docs/OPERATOR-SMOKE.md`.
 
 ## Residuals (not alpha blockers)
 
-1. Operator-only census of persisted Players (historical `players: 17` ≠ `/ready.players`). Needs a production Admin session.
-2. Cycle 0 digest / profile / story-seed not re-read from Admin on the closeout pass.
-3. Live compose C14–C17: Docker daemon was not running on the operator host.
+1. Operator-only persisted-player census is not exposed by the deployed Admin overview. `persisted_player_count` is the non-identifying field required on the next Worker publish; `/ready.players` remains live humans only.
+2. Cycle 0 evidence was re-read through production Admin on 2026-08-25: profile `EWM_ENHANCED`, two story seeds, digest `sha256:4d708f71dd0bd0a995dad8884425713792460d5b048d08cd7909d2ff286052da`, configuration frozen, settlement healthy, canonical head aligned at sequence 5405 / cycle 1452 / revision 2694.
+3. Canonical production device enrollment still needs one designated human mailbox and explicit approval. Do not substitute an Admin-minted token for this acceptance.
+4. Live compose C14–C17 remains outside the hosted Worker target; the hosted matrix records the intentional skips and owners.
 
 ## Packaging note
 

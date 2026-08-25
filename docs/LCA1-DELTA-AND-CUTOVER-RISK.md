@@ -8,11 +8,11 @@
 
 | Fact | Value | Label |
 |---|---|---|
-| Live Worker | `d9aab067-e3ca-447c-bb8b-fccc59729bbf`, `deployed_at 2026-08-24T23:21:53Z` | OBSERVED, `GET /version` |
+| Live Worker | `d86352b2-8bf0-4e02-94ea-ee070f3fa038`, `deployed_at 2026-08-25T06:31:04.101517Z` | OBSERVED, `GET /version` |
 | Live world | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`, ACTIVE HEALTHY, cycle 1327, players 0 | OBSERVED, `GET /ready` |
-| Live build source | `e1d44d5` (#548 merge) or `f566044` (its sole commit — identical Worker content) | INFERRED: publish trails the #548 merge (23:21:26Z) by 27 seconds, and #548 is the only Worker-content change on `main` since the previously pinned build |
+| Live build source | `28cb0cd76ffab63b5032c8aa10fe4fe7f6e496b3` | OBSERVED, generated post-deploy pin evidence in `spec-compat.json`; includes #562, #563, #561, #567, #570, and #573 |
 | Previously pinned build source | `06b818f` (#524) | OBSERVED, `spec-compat.json` note, derivation recorded in #522/#525 |
-| Repo pin | `d9aab067`, matching live | OBSERVED. Was `2bb3a8b4` (two publishes stale) when this report was first written |
+| Repo pin | `d86352b2`, matching live | OBSERVED, generated post-deploy pin PR #574. Was `2bb3a8b4` when this report was first written |
 | Specs baseline | `Noema-Specs` `d73bdec` (#289 direction package) | OBSERVED |
 
 ## Production-alpha delta report
@@ -26,14 +26,14 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 | Conformance/guard test layer (#527, #534–#539, #542/#547, #545, #546): closed-catalog, slice-catalog copy, forbidden-projection, client-pin guard, Deep Time tails, WS resume boundary, accepted-replay invariant | **implemented** | Test-only; no deploy semantics. OBSERVED |
 | Harness spec-conformance fixes (#543 field forwarding, #544 `SETTLEMENT_RESYNC` one-retry) | **implemented** | Python controller-side; runs beside agents, never deployed to the Worker. OBSERVED |
 | `spec-compat.json` metadata: per-runtime event-catalog pins (#533), `specs.commit` currency (#526/#540/#541), client pin | **configuration-only** | OBSERVED |
-| `hosted_live.worker_version_id` pin | **configuration-only — now current** | Was three lags deep and a live cross-repo contradiction: Specs direction recorded `d9aab067` while this repo pinned `2bb3a8b4`. Moved by hand with the derivation shown, and `specs_git` re-derived to `81ca8c1` with it. The cure — the publish writing the pin — is #556 |
+| `hosted_live.worker_version_id` pin | **configuration-only — current and generated** | Production deploy source `28cb0cd` produced Worker `d86352b2`; post-deploy pin PR #574 captured `/version` and `/ready` evidence and merged the exact pin. `specs_git` remains `81ca8c1` because the deploy did not change Specs alignment |
 | Monitors and CI: `pin-currency.yml`, Specs-sibling checkout (#537), Specs `direction-freshness` | **deployed** (repo automation) | OBSERVED in workflow runs |
 | Official client (`hosted_live.official_client`; the literal lives there and in PARTNER-OPERATOR only, by guard) | **deployed** (PyPI) | OBSERVED on PyPI; verified against production incl. seal identity (Specs #283) |
 | `CRIME_DETECTED` producer | **intentionally excluded** | Five consumers, no producer; RFC-0002 detection preconditions unimplemented. Wiring it is an RFC-gated decision (audit: PARTIAL; `closed-catalog.test.ts` pins the absence) |
 | Hosted STUDY / research spine (Frontier, Observatory, Lab, Compiler, LEARN) | **blocked** | Campaign doctrine 6: blocked until natural multi-agent play produces evidence worth testing. Offline implementations complete (Specs #267) |
-| Operator device enrollment | **blocked — on a publish first, then a people step** | `players 0` OBSERVED; `doctor` reports `credential: missing` as designed. **The correction:** the repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are merged and **not live** — OBSERVED by the 404/401 probe above. Attempting enrollment today exercises the un-repaired path, i.e. the very defects #558 and #560 describe. The people step is real but second |
-| Enrollment / CONNECT repairs (#563, #561, #570): `connect.ts`, `device-enrollment.ts` +178, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **implemented, not deployed** | Merged after the 23:21Z publish. **OBSERVED not inferred:** `GET /v1/auth/device/review` — a route #561 adds — returns **404** on live, while the deployed-route control `GET /v1/auth/device/preview` returns **401** without a token. A deployed handler rejects; a missing route falls through. See the enrollment row below |
-| Rollback rehearsal harness (#562): `rollback-evidence.ts`, `world-do.ts` | **implemented, not deployed** | Merged 2026-08-25T03:36Z, after the publish. OBSERVED via `git log e1d44d5..HEAD -- workers/noema/src` |
+| Operator device enrollment | **deployed; human acceptance still required** | The repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are in deployed source `28cb0cd`. Route drift from that source to `main` is empty. One canonical `noema connect` approval remains a people step; no mailbox or device secret belongs in repository evidence |
+| Enrollment / CONNECT repairs (#563, #561, #570): `connect.ts`, `device-enrollment.ts`, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **deployed** | OBSERVED from generated source pin `28cb0cd` and its Worker ancestry; no Worker-source changes follow it on `main`. The earlier 404 evidence is historical pre-publish evidence, not current status |
+| Rollback rehearsal support (#562): `rollback-evidence.ts`, `world-do.ts` | **deployed** | #562 is in source `28cb0cd`; isolated A-B-A evidence remains the acceptance packet. Production was not used as the rehearsal target |
 | Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta — now covered by #565's older-blob load test |
 
 ## Successor-cutover risk register
@@ -48,7 +48,7 @@ The successor decision this register serves: promoting the integrated advanced r
 | 4 | **Identity / credentials** | Resume or enrollment path admits a stale or non-agent principal across cutover | RFC-0120 enforced incl. WS resume path; resume tokens expire; restored seals re-validated against the *current* catalog on every command (#545, mutation-verified) | End-to-end device enrollment has never run in production (zero operators). NOT_COMPUTABLE until a human enrolls; the answer is held by whoever runs it first |
 | 5 | **Client / harness compatibility** | The successor build breaks the pinned client or the in-repo harness | The pinned client verified against production incl. seal byte-identity (Specs #283); harness now conformant to AGENT-HARNESS §ASP/§8; client-pin single-source guard (#535) | The lineage direction (client fixes not flowing upstream) is named in the sweep doc; re-check on any client release |
 | 6 | **WATCH truthfulness at cutover** | Projection legibility under a real population is unproven; a leak or filler regression during high-activity cutover would be public | RFC-0126 fail-closed default; hidden-room sweep across all 27 public event types (#521); forbidden-projection token guards (#539); §5 entity-scope fix live (#520) | Gate D material by design — cannot be closed before external agents exist. SPECULATIVE until LCA-2 |
-| 7 | **Deployment / rollback** | Manual publish + hand pin: a bare `wrangler deploy` regresses `NOEMA_ENV` (documented footgun); pin lags every publish (three lags in two days, live right now) | `NOEMA_ENV` warning in GENESIS-RUNBOOK / PRODUCTION-GENESIS-GATE; two independent scheduled monitors; isolated A-B-A rehearsal (#562, closes #555) with [ISOLATED-ROLLBACK-REHEARSAL.md](ISOLATED-ROLLBACK-REHEARSAL.md) | Pin-on-publish (#556) still open and deploys production — human-only. Isolated rehearsal does not replace that pin write |
+| 7 | **Deployment / rollback** | A bare `wrangler deploy` can regress `NOEMA_ENV`; every production publish must bind its pin to the exact deployed version | `NOEMA_ENV` warnings; scheduled monitors; isolated A-B-A rehearsal (#562); fail-closed dispatch + explicit deploy ACK (#567); generated post-deploy pin PR #574 | Keep production deploy human-dispatched and require the generated pin PR. Isolated rehearsal does not replace post-deploy evidence |
 | 8 | **Public claims** | Cutover claims outrun evidence | Claim-label vocabulary enforced by Specs validators; `current-state.v1.yaml` + freshness checks (#289); manifesto honesty passes; whitepaper restored (#548) | Keep promotion edits to `current-state.v1.yaml` evidence-first, per DIRECTION-AUTHORITY |
 
 ## Blockers to LCA-2, and the validation each needs
@@ -60,9 +60,8 @@ Closed on `main` (do not recreate):
 
 Still open:
 
-1. **Operator device enrollment** — **publish first, then the people step.** #563, #561 and #570 are merged and unpublished; `GET /v1/auth/device/review` 404s on live today. Validation: publish, re-probe that route for a non-404, then one real `noema connect` approval and `doctor` showing a credential. Enrolling before the publish tests the path the repairs replaced.
+1. **Operator device enrollment** — the repaired flow is deployed in source `28cb0cd`; the remaining validation is one real `noema connect` approval and `doctor` showing a credential. This step requires a designated human mailbox and must not record email, device code, or token material.
 2. **Integration scenario (#549, Jcode)** — #552 merged as Gate A **candidate** evidence. Gate A is not complete.
-3. **Pin automation** (delta table) — #556 folds the pin write into publish; it deploys production, so merge is human-only. The pin itself is current as of the `d9aab067` move; until #556 lands, every publish still needs a hand-written pin.
-4. **Hosted connect cross-tab repair** — #563 onto main; partner-flagged as auth-adjacent. Do not merge without a human call.
+3. **Production-shape compatibility evidence** — the merged older-world fixture is representative but synthetic. A sanitized aggregate from the live stored blob still needs to pass the real migration/load boundary without exposing player identities or message content.
 
 Do not treat this list as Gate A completion. LCA-2 remains BLOCKED until the open items have acceptance evidence.
