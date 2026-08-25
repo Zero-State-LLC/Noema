@@ -29,6 +29,33 @@ export type AgreementType = (typeof AGREEMENT_TYPES)[number];
 export type AgreementReason = (typeof AGREEMENT_REASONS)[number];
 export type AgreementStatus = "OFFERED" | "ACTIVE" | "BROKEN";
 
+/** Reader-facing noun for each catalog agreement type. */
+const AGREEMENT_NOUNS: Record<AgreementType, string> = {
+  TRADE: "trade",
+  NON_AGGRESSION: "non-aggression",
+  ACCESS: "access",
+  RESOURCE_COMMITMENT: "resource commitment",
+  MUTUAL_DEFENSE: "mutual defense",
+};
+
+export function agreementNoun(type: AgreementType | string | undefined): string {
+  return AGREEMENT_NOUNS[String(type || "TRADE").toUpperCase() as AgreementType] || "agreement";
+}
+
+/** "You withdraw the non-aggression offer." */
+export function agreementWithdrawLine(type: AgreementType | string | undefined): string {
+  return `You withdraw the ${agreementNoun(type)} offer.`;
+}
+
+/** "Non-aggression agreement <id> is broken." */
+export function agreementBrokenLine(
+  type: AgreementType | string | undefined,
+  agreementId: string,
+): string {
+  const noun = agreementNoun(type);
+  return `${noun.charAt(0).toUpperCase()}${noun.slice(1)} agreement ${agreementId} is broken.`;
+}
+
 export type AgreementTerms = {
   machine: {
     preferential_trade?: boolean;

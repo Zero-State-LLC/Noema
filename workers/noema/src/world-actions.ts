@@ -39,6 +39,8 @@ import {
   AGREEMENT_FORM_COST,
   AGREEMENT_TERMINATE_COST,
   accessException,
+  agreementBrokenLine,
+  agreementWithdrawLine,
   allocateAgreementId,
   allocateBreachId,
   defaultTerms,
@@ -775,7 +777,12 @@ export function buildObservation(
   }));
   const otherPlayers = Object.entries(w.players)
     .filter(([, p]) => p.entered)
-    .map(([id, p]) => ({ player_id: id, handle: p.handle, room_id: p.room_id }));
+    .map(([id, p]) => ({
+      player_id: id,
+      handle: p.handle,
+      room_id: p.room_id,
+      practice: p.practice,
+    }));
   const openTrades = Object.values(w.trades || {}).filter(
     (t) =>
       t.status === "OPEN" &&
@@ -1719,6 +1726,7 @@ export async function applyWorldCommand(
           player_id: id,
           handle: p.handle,
           room_id: p.room_id,
+          practice: p.practice,
         })),
         openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
         organizations: Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE"),
@@ -4838,7 +4846,14 @@ async function applyAgreementTerminate(
     }
     debit(pl.budgets, AGREEMENT_TERMINATE_COST);
     delete w.agreements[agreement_id];
-    const result = success(w, principal, request_id, events, `You withdraw the trade offer.`, true);
+    const result = success(
+      w,
+      principal,
+      request_id,
+      events,
+      agreementWithdrawLine(agr.agreement_type),
+      true,
+    );
     w.seen_idempotency[idem] = result;
     return result;
   }
@@ -4863,7 +4878,7 @@ async function applyAgreementTerminate(
     principal,
     request_id,
     events,
-    `Trade agreement ${agr.agreement_id} is broken.`,
+    agreementBrokenLine(agr.agreement_type, agr.agreement_id),
     true,
   );
   w.seen_idempotency[idem] = result;

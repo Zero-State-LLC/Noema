@@ -81,7 +81,14 @@ import {
 import type { DiscoveryState } from "./discovery";
 import { moveEnergyCost } from "./transport";
 import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
-import { canOverhaul, OVERHAUL_ENERGY_EXTRA, type PracticeState } from "./practice";
+import {
+  BROKER_TRACK,
+  ENGINEER_TRACK,
+  canOverhaul,
+  isTrackRecognized,
+  OVERHAUL_ENERGY_EXTRA,
+  type PracticeState,
+} from "./practice";
 
 export type Budgets = {
   attention: number;
@@ -706,6 +713,10 @@ export function isRepairable(e: EntityRuntime): boolean {
   }
   const c = e.condition ?? 100;
   return c < 100;
+}
+
+function officeTrackFor(req: NonNullable<OfficeRecord["requires_track"]>) {
+  return req === "engineer" ? ENGINEER_TRACK : BROKER_TRACK;
 }
 
 export function isHarvestable(e: EntityRuntime): boolean {
@@ -3013,7 +3024,13 @@ export function deriveAffordances(input: {
   entities: EntityRuntime[];
   exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>;
   budgets: Budgets;
-  otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string }>;
+  otherPlayers: Array<{
+    player_id: string;
+    handle?: string;
+    room_id?: string;
+    /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */
+    practice?: PracticeState | null;
+  }>;
   openTrades: OpenTrade[];
   organizations?: Organization[];
   selfId: string;
@@ -3388,15 +3405,25 @@ export function deriveAffordances(input: {
         }
       }
       if (office.status === "VACANT" && mine) {
-        const candidate = otherPlayers.find((p) => p.player_id !== selfId && isOrgMember(org, p.player_id));
-        if (candidate) {
+        // RFC-0060: any member may consent any member onto a vacant office, and
+        // the named player is the candidate, not the consenting actor. Advertise
+        // every eligible candidate — offering only the first made the rest
+        // unreachable — and honour requires_track so `available` stays truthful.
+        const trackId = office.requires_track ? officeTrackFor(office.requires_track) : null;
+        const candidates = otherPlayers.filter(
+          (p) =>
+            p.player_id !== selfId &&
+            isOrgMember(org, p.player_id) &&
+            (!trackId || isTrackRecognized(p.practice, trackId)),
+        );
+        const ok = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+        for (const candidate of candidates) {
           const handle = candidate.handle || candidate.player_id.replace(/^player\./, "");
-          const ok = canPay(budgets, COSTS.ORG_OFFICE_ACT);
           out.push({
             action: "ORG_SUCCESSION_CONSENT",
             verb: "COMMIT",
             operation: "ORG_SUCCESSION_CONSENT",
-            label: `Consent ${handle} for ${office.display_name}`,
+            label: `Consent to ${handle} for ${office.display_name}`,
             cmd: `consent ${office.office_id} ${handle}`,
             target_id: office.office_id,
             office_id: office.office_id,
