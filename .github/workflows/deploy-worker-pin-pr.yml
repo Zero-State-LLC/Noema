@@ -65,15 +65,33 @@ jobs:
         env:
           NOEMA_ENV: production
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npm run deploy
-
-      - name: Read live /version evidence after deploy
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/noema-pin"
-          curl -fsS --retry 6 --retry-delay 5 --connect-timeout 5 --max-time 20 \
-            https://noema.guru/version > "$RUNNER_TEMP/noema-pin/live-version.json"
+          npm run deploy 2>&1 | tee "$RUNNER_TEMP/noema-pin/wrangler-deploy.txt"
+          node scripts/worker-pin-pr.mjs extract-wrangler-version \
+            --deploy-output "$RUNNER_TEMP/noema-pin/wrangler-deploy.txt" \
+            > "$RUNNER_TEMP/noema-pin/wrangler-worker-version-id.txt"
+          echo "Wrangler Worker version id: $(cat "$RUNNER_TEMP/noema-pin/wrangler-worker-version-id.txt")"
+
+      - name: Read live /version and /ready evidence after deploy
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/noema-pin"
+          EXPECTED="$(cat "$RUNNER_TEMP/noema-pin/wrangler-worker-version-id.txt")"
+          for attempt in $(seq 1 24); do
+            curl -fsS --connect-timeout 5 --max-time 20 https://noema.guru/version > "$RUNNER_TEMP/noema-pin/live-version.json"
+            LIVE="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('worker_version_id',''))" "$RUNNER_TEMP/noema-pin/live-version.json")"
+            if [ "$LIVE" = "$EXPECTED" ]; then break; fi
+            if [ "$attempt" = "24" ]; then
+              echo "::error::live /version worker_version_id ${LIVE:-missing} did not converge to Wrangler deployment ${EXPECTED}."
+              exit 1
+            fi
+            sleep 5
+          done
+          curl -fsS --connect-timeout 5 --max-time 20 https://noema.guru/ready > "$RUNNER_TEMP/noema-pin/ready.json"
           cat "$RUNNER_TEMP/noema-pin/live-version.json"
+          cat "$RUNNER_TEMP/noema-pin/ready.json"
 
       - name: Generate pin update and PR body from live evidence
         run: |
@@ -81,12 +99,16 @@ jobs:
           node workers/noema/scripts/worker-pin-pr.mjs generate \
             --compat spec-compat.json \
             --live "$RUNNER_TEMP/noema-pin/live-version.json" \
+            --ready "$RUNNER_TEMP/noema-pin/ready.json" \
+            --expected-worker-version-id "$(cat "$RUNNER_TEMP/noema-pin/wrangler-worker-version-id.txt")" \
             --source-commit "$GITHUB_SHA" \
             --evidence-url https://noema.guru/version \
             --body-output "$RUNNER_TEMP/noema-pin/pr-body.md"
           node workers/noema/scripts/worker-pin-pr.mjs validate \
             --compat spec-compat.json \
-            --live "$RUNNER_TEMP/noema-pin/live-version.json"
+            --live "$RUNNER_TEMP/noema-pin/live-version.json" \
+            --ready "$RUNNER_TEMP/noema-pin/ready.json" \
+            --expected-worker-version-id "$(cat "$RUNNER_TEMP/noema-pin/wrangler-worker-version-id.txt")"
 
       - name: Open or update generated pin PR
         env:
