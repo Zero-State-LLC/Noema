@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mintControllerToken } from "../src/auth";
 import {
   approveDevice,
+  approveDeviceReview,
   denyDevice,
+  denyDeviceReview,
   DEVICE_TTL_MS,
   durableDeviceStore,
   GAME_SCOPES,
@@ -23,6 +25,24 @@ function env(partial: Partial<Env> = {}): Env {
     DEFAULT_WORLD_ID: "world-01",
     ...partial,
   } as Env;
+}
+
+function reviewEnv(partial: Partial<Env> = {}): Env {
+  return env({ DEVICE_REVIEW_TOKEN_SECRET: "review-secret", RESEND_API_KEY: "resend-key", ...partial } as Partial<Env>);
+}
+
+function okResend(calls: unknown[] = []): typeof fetch {
+  return (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    calls.push(JSON.parse(String(init?.body || "{}")));
+    return Response.json({ id: "email_123" });
+  }) as typeof fetch;
+}
+
+function reviewTokenFromMail(calls: unknown[], action: "approve" | "deny" = "approve"): string {
+  const text = String((calls.at(-1) as { text?: string })?.text || "");
+  const match = text.match(new RegExp(`/review/${action}\\?token=([^\\s]+)`));
+  expect(match?.[1]).toBeTruthy();
+  return decodeURIComponent(match![1]);
 }
 
 async function humanBearer(e = env()) {
@@ -98,6 +118,102 @@ describe("startDeviceEnrollment", () => {
         "noema.action.submit",
       ]);
     }
+  });
+
+  it("normalizes owner_email and sends focused approve/deny URLs without changing device response shape", async () => {
+    const store = memoryDeviceStore();
+    const calls: unknown[] = [];
+    const res = await startDeviceEnrollment(
+      reviewEnv(),
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "openclaw" }, owner_email: " Owner@Example.COM " },
+      { store, fetchImpl: okResend(calls) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { device_code: string; review_delivery: string; access_token?: string };
+    expect(body.review_delivery).toBe("sent");
+    expect(body.access_token).toBeUndefined();
+    expect(calls).toHaveLength(1);
+    const mail = calls[0] as { to: string | string[]; text: string; html: string };
+    expect(mail.to).toEqual(["owner@example.com"]);
+    expect(mail.text).toContain("/v1/auth/device/review/approve?token=");
+    expect(mail.text).toContain("/v1/auth/device/review/deny?token=");
+    expect(mail.text).not.toContain(body.device_code);
+    expect(await store.getByDeviceCode(body.device_code)).not.toHaveProperty("access_token");
+  });
+
+  it("keeps fallback short-code approval when owner_email delivery fails or secret is absent", async () => {
+    const store = memoryDeviceStore();
+    const failed = await startDeviceEnrollment(
+      reviewEnv(),
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { owner_email: "owner@example.com" },
+      { store, fetchImpl: (async () => { throw new Error("mail down"); }) as typeof fetch },
+    );
+    expect(((await failed.json()) as { review_delivery: string }).review_delivery).toBe("failed");
+    const unconfigured = await startDeviceEnrollment(
+      env(),
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { owner_email: "owner@example.com" },
+      { store },
+    );
+    const body = (await unconfigured.json()) as { user_code: string; review_delivery: string };
+    expect(body.review_delivery).toBe("unconfigured");
+    const token = await humanBearer(env());
+    const approved = await approveDevice(
+      env(),
+      new Request("https://noema.guru/v1/auth/device/approve", { method: "POST", headers: { authorization: `Bearer ${token}` } }),
+      { user_code: body.user_code },
+      { store },
+    );
+    expect(approved.status).toBe(200);
+  });
+});
+
+describe("device review token URLs", () => {
+  it("approves by opaque token, delivers credentials only to polling, and rejects replay", async () => {
+    const store = memoryDeviceStore();
+    const e = reviewEnv();
+    const calls: unknown[] = [];
+    const started = await startDeviceEnrollment(e, new Request("https://noema.guru/v1/auth/device", { method: "POST" }), { metadata: { runtime: "openclaw" }, owner_email: "owner@example.com" }, { store, fetchImpl: okResend(calls) });
+    const { device_code } = (await started.json()) as { device_code: string };
+    const token = reviewTokenFromMail(calls);
+    const approved = await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${token}`), { store });
+    expect(approved.status).toBe(200);
+    expect((await approved.json()) as { access_token?: string }).not.toHaveProperty("access_token");
+    expect((await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${token}`), { store })).status).toBe(401);
+    const polled = await pollDeviceToken(e, new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }), { device_code }, { store });
+    expect(polled.status).toBe(200);
+    expect(((await polled.json()) as { access_token?: string }).access_token).toBeTruthy();
+  });
+
+  it("denies by token and prevents polling receipt", async () => {
+    const store = memoryDeviceStore();
+    const e = reviewEnv();
+    const calls: unknown[] = [];
+    const started = await startDeviceEnrollment(e, new Request("https://noema.guru/v1/auth/device", { method: "POST" }), { owner_email: "owner@example.com" }, { store, fetchImpl: okResend(calls) });
+    const { device_code } = (await started.json()) as { device_code: string };
+    const denied = await denyDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/deny?token=${reviewTokenFromMail(calls, "deny")}`), { store });
+    expect(denied.status).toBe(200);
+    const polled = await pollDeviceToken(e, new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }), { device_code }, { store });
+    expect(polled.status).toBe(401);
+  });
+
+  it("rejects expired, malformed, and mismatched world/runtime/scope tokens", async () => {
+    const store = memoryDeviceStore();
+    const e = reviewEnv();
+    const now = Date.parse("2026-08-15T12:00:00Z");
+    const calls: unknown[] = [];
+    await startDeviceEnrollment(e, new Request("https://noema.guru/v1/auth/device", { method: "POST" }), { metadata: { runtime: "openclaw" }, owner_email: "owner@example.com" }, { store, now, fetchImpl: okResend(calls) });
+    const token = reviewTokenFromMail(calls);
+    expect((await approveDeviceReview(e, new Request("https://noema.guru/v1/auth/device/review/approve?token=not-a-token"), { store })).status).toBe(401);
+    expect((await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${token}`), { store, now: now + DEVICE_TTL_MS + 1 })).status).toBe(409);
+
+    const started2 = await startDeviceEnrollment(e, new Request("https://noema.guru/v1/auth/device", { method: "POST" }), { metadata: { runtime: "openclaw" }, owner_email: "owner@example.com" }, { store, now, fetchImpl: okResend(calls) });
+    const { device_code } = (await started2.json()) as { device_code: string };
+    const rec = await store.getByDeviceCode(device_code);
+    await store.put({ ...rec!, review_world_id: "world.other" });
+    expect((await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${reviewTokenFromMail(calls)}`), { store })).status).toBe(401);
   });
 });
 

@@ -32,7 +32,9 @@ import { applyCors } from "./cors";
 import { durableRevocationStore, isControllerRevoked } from "./controller-revocation";
 import {
   approveDevice,
+  approveDeviceReview,
   denyDevice,
+  denyDeviceReview,
   durableDeviceStore,
   pollDeviceToken,
   previewDevice,
@@ -421,8 +423,15 @@ export default {
         const body = (await request.json().catch(() => ({}))) as {
           metadata?: { runtime?: string };
           scopes?: string[];
+          owner_email?: string;
         };
         return cors(await startDeviceEnrollment(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "GET" && path === "/v1/auth/device/review/approve") {
+        return cors(await approveDeviceReview(env, request, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "GET" && path === "/v1/auth/device/review/deny") {
+        return cors(await denyDeviceReview(env, request, { store: durableDeviceStore(env) }));
       }
       if (request.method === "GET" && path === "/v1/auth/device/preview") {
         return cors(await previewDevice(env, request, { store: durableDeviceStore(env) }));
