@@ -249,7 +249,7 @@ describe("planes", () => {
     expect(html).toContain("pypi.org/project/noema-client");
     expect(html).toContain("Recommended");
     expect(html).toContain("id=\"copy-install\"");
-    expect(html).not.toContain("class=\"connect-flow\"");
+    expect(html).toContain("class=\"connect-flow\"");
     expect(html).toContain("Advanced: use a token");
     expect(html).toContain("Advanced: install from git");
     expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Advanced: install from git"));
@@ -263,7 +263,7 @@ describe("planes", () => {
     expect(html).not.toContain("door-approve");
     expect(html).not.toContain("showDoor");
     expect(html).not.toMatch(/<ol class="steps"/);
-    expect(html).not.toMatch(/<ol class="connect-flow"/);
+    expect(html).toMatch(/<ol class="connect-flow"/);
     expect(html).not.toMatch(/export NOEMA_BASE=https:\/\/noema\.guru/);
     expect(html).not.toContain("POST /v1/auth/device/token");
     expect(html).toContain("ENTER_WORLD");
@@ -276,9 +276,8 @@ describe("planes", () => {
     expect(html).not.toMatch(/id="d-form" hidden/);
     expect(html).toContain('id="c-email"');
     expect(html).toContain("Send watch link");
-    expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("Sign in to approve"));
-    expect(html.indexOf("Sign in to approve")).toBeLessThan(html.indexOf("pipx install noema-client"));
-    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf('<pre id="cli-play"><code>noema play'));
+    expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
+    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Enter the code"));
     expect(html).not.toMatch(/id="d-approve" hidden/);
   });
   it("production CONNECT omits public mint from markup", async () => {
@@ -301,7 +300,7 @@ describe("planes", () => {
     expect(html).toContain("/v1/auth/device/preview");
     expect(html).toContain("/v1/auth/device/approve");
     expect(html).toContain("noema.play.token");
-    expect(html).toMatch(/Sign in below first/i);
+    expect(html).toMatch(/Sign up above first/i);
     expect(html).toContain('id="c-email"');
     expect(html).toContain('next: "connect"');
     expect(html).not.toMatch(/\.innerHTML\s*=/);
@@ -324,9 +323,9 @@ describe("callback", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");
     expect(html).toContain("Opening the door");
-      expect(html).toContain('raw === "/connect"');
-      expect(html).toContain('noema.connect.code');
-      expect(html).toContain('"/watch"');
+    expect(html).toContain('raw === "/connect"');
+    expect(html).toContain('connectCode');
+    expect(html).toContain('"/watch"');
     expect(html).toContain("location.href = next");
     expect(html).toContain('location.href = "/connect?error=1"');
     expect(html).not.toMatch(/location\.href = "\/play"/);

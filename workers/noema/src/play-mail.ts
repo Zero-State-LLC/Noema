@@ -12,16 +12,24 @@ export function safePlayNext(raw?: string | null): "/connect" | "/watch" | null 
   return null;
 }
 
+export function canonicalConnectCode(raw?: string | null): string | null {
+  const compact = String(raw || "").trim().replace(/-/g, "").toLowerCase();
+  return /^[0-9a-f]{8}$/.test(compact) ? compact : null;
+}
+
 export function playMagicLinkHref(
   origin: string,
   tokenHash: string,
   type = "magiclink",
   next?: string | null,
+  code?: string | null,
 ): string {
   const base = origin.replace(/\/$/, "");
   let href = `${base}/play/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
   const safe = safePlayNext(next);
   if (safe) href += `&next=${encodeURIComponent(safe)}`;
+  const canonicalCode = canonicalConnectCode(code);
+  if (canonicalCode) href += `&code=${encodeURIComponent(canonicalCode)}`;
   return href;
 }
 
