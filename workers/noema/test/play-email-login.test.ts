@@ -379,6 +379,8 @@ describe("play login HTML", () => {
     expect(callback).toContain('const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || ""');
     expect(callback).toContain('body: JSON.stringify({ token_hash, type, code: authCode })');
     expect(callback).toContain('if (connectCode) next = "/connect?connect_code=" + encodeURIComponent(connectCode)');
+    expect(callback).toContain('new BroadcastChannel("noema-play-auth")');
+    expect(callback).toContain('type: "noema.play.authenticated"');
     expect(callback).not.toContain('authCode || "").trim().replace');
     expect(callback).not.toContain('search.get("device_code")');
     expect(callback).not.toContain('localStorage.getItem("noema.connect.code"');
@@ -390,6 +392,8 @@ describe("play login HTML", () => {
     expect(connect).toContain('localStorage.removeItem("noema.connect.code"');
     expect(connect).toContain('sessionStorage.setItem("noema.connect.code"');
     expect(connect).toContain('sessionStorage.getItem("noema.play.token")');
+    expect(connect).toContain('new BroadcastChannel("noema-play-auth")');
+    expect(connect).toContain('Signed in on another tab. You can now approve this agent.');
     expect(connect).not.toContain('localStorage.setItem("noema.play.token"');
   });
   it("CONNECT restores a saved short code into the approval task", () => {

@@ -230,13 +230,19 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     const loginNotice = document.getElementById("c-login-notice");
     const signedIn = document.getElementById("c-signed-in");
     const cEmail = document.getElementById("c-email");
-    if (playTok) {
-      if (login) login.hidden = true;
-      if (signedIn) signedIn.hidden = false;
-      if (need) need.hidden = true;
-    } else if (need) {
-      need.hidden = false;
+    function syncPlaySession(){
+      const tok = sessionToken();
+      if (tok) {
+        if (login) login.hidden = true;
+        if (signedIn) signedIn.hidden = false;
+        if (need) need.hidden = true;
+      } else {
+        if (login) login.hidden = false;
+        if (signedIn) signedIn.hidden = true;
+        if (need) need.hidden = false;
+      }
     }
+    syncPlaySession();
     if (login && cEmail && loginNotice) {
       login.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -279,6 +285,31 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
+    try {
+      const authChannel = new BroadcastChannel("noema-play-auth");
+      authChannel.addEventListener("message", (event) => {
+        const data = event.data || {};
+        if (data.type !== "noema.play.authenticated" || typeof data.token !== "string" || !data.token) return;
+        try { sessionStorage.setItem("noema.play.token", data.token); } catch (_) { return; }
+        if (data.handle) {
+          try { sessionStorage.setItem("noema.play.handle", String(data.handle).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32)); } catch (_) {}
+        }
+        if (data.player_id) {
+          try { sessionStorage.setItem("noema.play.player_id", String(data.player_id)); } catch (_) {}
+        }
+        syncPlaySession();
+        const incomingCode = canonicalCode(data.connect_code);
+        const codeInput = document.getElementById("d-code");
+        if (incomingCode && codeInput && !currentCode()) {
+          codeInput.value = incomingCode;
+          lookup();
+        } else if (dNotice) {
+          dNotice.className = "notice ok";
+          dNotice.textContent = "Signed in on another tab. You can now approve this agent.";
+        }
+      });
+      window.addEventListener("pagehide", () => authChannel.close(), { once: true });
+    } catch (_) {}
     function hideDecide(){
       document.getElementById("d-deny").hidden = true;
     }
