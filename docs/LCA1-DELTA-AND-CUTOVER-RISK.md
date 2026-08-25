@@ -31,8 +31,9 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 | Official client (`hosted_live.official_client`; the literal lives there and in PARTNER-OPERATOR only, by guard) | **deployed** (PyPI) | OBSERVED on PyPI; verified against production incl. seal identity (Specs #283) |
 | `CRIME_DETECTED` producer | **intentionally excluded** | Five consumers, no producer; RFC-0002 detection preconditions unimplemented. Wiring it is an RFC-gated decision (audit: PARTIAL; `closed-catalog.test.ts` pins the absence) |
 | Hosted STUDY / research spine (Frontier, Observatory, Lab, Compiler, LEARN) | **blocked** | Campaign doctrine 6: blocked until natural multi-agent play produces evidence worth testing. Offline implementations complete (Specs #267) |
-| Operator device enrollment | **blocked (people step)** | `players 0` OBSERVED; `noema doctor` reports `credential: missing` as designed. Nothing in either repo can close this |
-| Rollback rehearsal harness (#562): `rollback-evidence.ts`, `world-do.ts` +16/−2, rehearsal script | **implemented, not deployed** | Merged 2026-08-25T03:36Z, after the 23:21Z publish. **The only unpublished Worker-source delta on `main`.** OBSERVED via `git log e1d44d5..HEAD -- workers/noema/src` |
+| Operator device enrollment | **blocked — on a publish first, then a people step** | `players 0` OBSERVED; `doctor` reports `credential: missing` as designed. **The correction:** the repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are merged and **not live** — OBSERVED by the 404/401 probe above. Attempting enrollment today exercises the un-repaired path, i.e. the very defects #558 and #560 describe. The people step is real but second |
+| Enrollment / CONNECT repairs (#563, #561, #570): `connect.ts`, `device-enrollment.ts` +178, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **implemented, not deployed** | Merged after the 23:21Z publish. **OBSERVED not inferred:** `GET /v1/auth/device/review` — a route #561 adds — returns **404** on live, while the deployed-route control `GET /v1/auth/device/preview` returns **401** without a token. A deployed handler rejects; a missing route falls through. See the enrollment row below |
+| Rollback rehearsal harness (#562): `rollback-evidence.ts`, `world-do.ts` | **implemented, not deployed** | Merged 2026-08-25T03:36Z, after the publish. OBSERVED via `git log e1d44d5..HEAD -- workers/noema/src` |
 | Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta — now covered by #565's older-blob load test |
 
 ## Successor-cutover risk register
@@ -59,7 +60,7 @@ Closed on `main` (do not recreate):
 
 Still open:
 
-1. **Operator device enrollment** — people step; blocks any external-agent horizon. Validation: one real `noema connect` approval, then `doctor` showing a credential. In-flight: Noema #561, noema-client #24.
+1. **Operator device enrollment** — **publish first, then the people step.** #563, #561 and #570 are merged and unpublished; `GET /v1/auth/device/review` 404s on live today. Validation: publish, re-probe that route for a non-404, then one real `noema connect` approval and `doctor` showing a credential. Enrolling before the publish tests the path the repairs replaced.
 2. **Integration scenario (#549, Jcode)** — #552 merged as Gate A **candidate** evidence. Gate A is not complete.
 3. **Pin automation** (delta table) — #556 folds the pin write into publish; it deploys production, so merge is human-only. The pin itself is current as of the `d9aab067` move; until #556 lands, every publish still needs a hand-written pin.
 4. **Hosted connect cross-tab repair** — #563 onto main; partner-flagged as auth-adjacent. Do not merge without a human call.
