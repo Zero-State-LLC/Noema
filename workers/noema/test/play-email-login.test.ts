@@ -330,6 +330,18 @@ describe("play login HTML", () => {
     expect(landingHtml()).toContain('id="play-continue"');
     expect(connectHtml()).not.toContain('id="play-continue"');
   });
+  it("callback restores pending connect code across a new magic-link tab without moving the token", () => {
+    const callback = playCallbackHtml();
+    expect(callback).toContain('sessionStorage.setItem("noema.play.token"');
+    expect(callback).not.toContain('localStorage.setItem("noema.play.token"');
+    expect(callback).toContain('localStorage.getItem("noema.connect.code"');
+    expect(callback).toContain('"/connect?code=" + encodeURIComponent(pending)');
+
+    const connect = connectHtml();
+    expect(connect).toContain('localStorage.setItem("noema.connect.code"');
+    expect(connect).toContain('localStorage.removeItem("noema.connect.code"');
+    expect(connect).toContain('sessionStorage.setItem("noema.connect.code"');
+  });
   it("callback reads hash and does not store refresh_token", () => {
     const html = playCallbackHtml();
     expect(html).toContain("/v1/play/login/consume");

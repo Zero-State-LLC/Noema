@@ -78,7 +78,7 @@ export function playCallbackHtml(): string {
       let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       if (next === "/connect") {
         try {
-          const pending = sessionStorage.getItem("noema.connect.code") || "";
+          const pending = sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || "";
           if (pending) next = "/connect?code=" + encodeURIComponent(pending);
         } catch (_) {}
       }
