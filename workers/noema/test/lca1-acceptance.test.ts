@@ -213,6 +213,40 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       })).body.ok,
     ).toBe(true);
 
+    const accessOffice = await act(env, nacre, "lca1.org.office.access", "ORG_OFFICE_CREATE", {
+      org_id: orgId,
+      display_name: "Gate",
+      authority_profile: "GRANT_ACCESS",
+    });
+    expect(accessOffice.body.ok, JSON.stringify(accessOffice.body)).toBe(true);
+    persisted = store.bag.get("world") as WorldRuntime;
+    const offices = persisted.organizations[orgId].offices || {};
+    const accessOfficeId = Object.keys(offices).find((id) => offices[id].authority_profile === "GRANT_ACCESS");
+    expect(accessOfficeId).toBeTruthy();
+    expect(
+      (await act(env, nacre, "lca1.org.office.access.assign", "ORG_OFFICE_ASSIGN", {
+        office_id: accessOfficeId,
+        agent_id: nacre.player_id,
+      })).body.ok,
+    ).toBe(true);
+    // Credited directly, as access-policy-s0.test.ts does. This scenario proves access
+    // state survives restart; how a treasury is funded is covered elsewhere.
+    const compactTreasury = persisted.organizations[orgId].treasury!;
+    compactTreasury.compute += 2;
+    compactTreasury.influence += 3;
+    const accessDenied = await act(env, nacre, "lca1.access.deny", "COMMIT", {
+      operation: "ACCESS_POLICY",
+      mode: "DENY",
+      scope: "EXIT",
+      direction: "west",
+      acting_for: orgId,
+      office_id: accessOfficeId,
+      applies_to: vesper.player_id,
+    });
+    expect(accessDenied.body.ok, JSON.stringify(accessDenied.body)).toBe(true);
+    expect(accessDenied.body.events?.map((e) => e.event_type)).toContain("ACCESS_RESTRICTED");
+    expect((store.bag.get("world") as WorldRuntime).access_restrictions?.length).toBe(1);
+
     persisted = store.bag.get("world") as WorldRuntime;
     expect(persisted.players[nacre.player_id].budgets.storage).toBeGreaterThanOrEqual(4);
 
@@ -241,7 +275,10 @@ describe("LCA-1 integrated existing-system acceptance", () => {
     expect(JSON.stringify(live)).not.toContain("player.nacre");
 
     const beforeRestart = store.bag.get("world") as WorldRuntime;
-    const durableSpine = {
+    // Frozen at capture: the store hands back the same live object after restart, so a
+    // snapshot holding live references would compare the world to itself and pass on any
+    // state the restart dropped.
+    const durableSpine = structuredClone({
       cycle: beforeRestart.cycle,
       sequence: beforeRestart.sequence,
       relayCondition: beforeRestart.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-7")?.condition,
@@ -254,7 +291,8 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       nacreRoomId: beforeRestart.players[nacre.player_id].room_id,
       nacreTradeMemory: beforeRestart.players[nacre.player_id].trade_memory,
       organization: beforeRestart.organizations[orgId],
-    };
+      accessRestrictions: beforeRestart.access_restrictions,
+    });
 
     doInst = new NoemaWorldDO(store.state, {} as Env);
     env = envWith(doInst);
@@ -290,6 +328,7 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       nacreRoomId: afterRestart.players[nacre.player_id].room_id,
       nacreTradeMemory: afterRestart.players[nacre.player_id].trade_memory,
       organization: afterRestart.organizations[orgId],
+      accessRestrictions: afterRestart.access_restrictions,
     }).toEqual(durableSpine);
     const recoveredWatch = await watch(env);
     expect(recoveredWatch.sequence).toBe(durableSpine.sequence);
