@@ -1015,6 +1015,10 @@ export class NoemaWorldDO {
       }
     }
     const w = this.world!;
+    const replayKey = envl.idempotency_key || envl.request_id;
+    const idempotentReplay = Boolean(
+      replayKey && w.seen_idempotency?.[`${principal.player_id}::${replayKey}`],
+    );
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
       if (gate) {
@@ -1183,7 +1187,7 @@ export class NoemaWorldDO {
       this.meta!.settlement_health = "HEALTHY";
       await this.state.storage.put("world_meta", this.meta);
     }
-    if (result.ok && result.events?.length) {
+    if (result.ok && result.events?.length && !idempotentReplay) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
     if (result.ok) {
@@ -1194,7 +1198,11 @@ export class NoemaWorldDO {
         if (oid) actor.operator_id = oid;
       }
     }
-    if (result.ok && inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system") {
+    if (
+      result.ok &&
+      !idempotentReplay &&
+      inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system"
+    ) {
       await this.recordOperatorWatch(principal, envl, result);
     }
     const keys = Object.keys(w.seen_idempotency || {});

@@ -53,6 +53,63 @@ function perihelionStored() {
 }
 
 describe("NoemaWorldDO command ENTER/LOOK after successor wiring", () => {
+  it("does not append digest history when an idempotency key is replayed", async () => {
+    const bag = new Map<string, unknown>([
+      ["world", perihelionStored()],
+      ["world_meta", { status: "ACTIVE", genesis_id: "genesis.test", config_frozen: true, settlement_health: "HEALTHY" }],
+    ]);
+    const state = {
+      storage: {
+        async get(key: string) {
+          return bag.get(key);
+        },
+        async put(keyOrEntries: string | Record<string, unknown>, value?: unknown) {
+          if (typeof keyOrEntries === "string") bag.set(keyOrEntries, value);
+          else for (const [key, entry] of Object.entries(keyOrEntries)) bag.set(key, entry);
+        },
+      },
+    } as unknown as DurableObjectState;
+    const env = {
+      TOKEN_SIGNING_SECRET: "test-signing-secret-idempotent-history",
+      NOEMA_ENV: "test",
+      DEFAULT_WORLD_ID: "world-01",
+    } as Env;
+    const doInst = new NoemaWorldDO(state, env);
+    const minted = await mintControllerToken(env, {
+      handle: "idem-history",
+      controllerType: "agent",
+      playerId: "player.idem-history",
+    });
+    const principal: PlayerPrincipal = {
+      player_id: minted.player_id,
+      agent_id: "agent.idem-history",
+      session_id: "sess.idem-history",
+      controller_id: minted.controller_id,
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    const body = JSON.stringify({
+      principal,
+      envelope: {
+        request_id: "idem-history-enter",
+        idempotency_key: "idem-history-enter",
+        command: "ENTER_WORLD",
+        arguments: {},
+      },
+      world_id: "world-01",
+    });
+
+    const first = await doInst.fetch(new Request("https://do/command", { method: "POST", body }));
+    const replay = await doInst.fetch(new Request("https://do/command", { method: "POST", body }));
+    expect(first.status).toBe(200);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual(await first.json());
+    const events = bag.get("digest_events") as unknown[];
+    expect(events).toHaveLength(1);
+  });
+
   it("ENTER then LOOK on stored Perihelion does not 500", async () => {
     const env = {
       TOKEN_SIGNING_SECRET: "test-signing-secret-enter-do",
