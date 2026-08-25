@@ -119,6 +119,8 @@ export interface CommandEnvelope {
   player_id?: string;
   /** Isolated test tenant only when dual-auth is present. Omitted = DEFAULT_WORLD_ID. */
   world_id?: string;
+  /** Client monotonic sequence scoped to this Player. Required on accepted tempo mutations. */
+  client_action_sequence?: number;
 }
 
 export interface ObservationTrace {
@@ -406,7 +408,14 @@ export interface CommandResult {
     agent_id: string;
   };
   settled?: boolean;
-  error?: { code: string; message: string; choices?: string[] };
+  error?: {
+    code: string;
+    message: string;
+    choices?: string[];
+    cycle?: number;
+    phase?: string;
+    retry_after_ms?: number;
+  };
 }
 
 export interface Checkpoint {
