@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyProbe, diffRoutes, extractRoutes, summarize } from "../scripts/deployed-route-drift.mjs";
+import { classifyProbe, diffRoutes, extractRoutes, isProbeable, summarize } from "../scripts/deployed-route-drift.mjs";
 
 /**
  * #571 showed the enrollment repairs were merged and not live using one hand-run
@@ -7,13 +7,32 @@ import { classifyProbe, diffRoutes, extractRoutes, summarize } from "../scripts/
  * lived in a PR body. This is the same reasoning as code.
  */
 describe("deployed-route drift", () => {
-  it("extracts route literals, deduplicated and sorted", () => {
+  it("extracts routes with their method, and marks path-only routes ANY", () => {
     const src = `
       if (request.method === "GET" && path === "/health") return ok();
-      if (path === "/v1/auth/device/review") return review();
-      if (path === "/health") return ok();
+      if (request.method === "POST" && path === "/v1/auth/device/review/approve") return a();
+      if (path === "/memo") return memo();
     `;
-    expect(extractRoutes(src)).toEqual(["/health", "/v1/auth/device/review"]);
+    expect(extractRoutes(src)).toEqual([
+      "ANY /memo",
+      "GET /health",
+      "POST /v1/auth/device/review/approve",
+    ]);
+  });
+
+  it("only probes GET, because the real method would mutate production", () => {
+    // The bug this fixes: the first real run reported two live POST routes as
+    // ABSENT, because a POST-only route probed with GET falls through the
+    // router to 404 — indistinguishable from missing. 27 of 50 routes are POST.
+    //
+    // The naive repair is worse than the bug. Sending the real method would
+    // POST to /v1/auth/device/review/approve against production, which could
+    // approve a live device enrollment. A drift detector must never mutate the
+    // thing it measures.
+    expect(isProbeable("GET /health")).toBe(true);
+    expect(isProbeable("ANY /memo")).toBe(true);
+    expect(isProbeable("POST /v1/auth/device/review/approve")).toBe(false);
+    expect(isProbeable("DELETE /x")).toBe(false);
   });
 
   it("known limitation: a route-shaped string inside a literal is matched too", () => {
@@ -26,15 +45,15 @@ describe("deployed-route drift", () => {
     // all-clear. If index.ts ever contains such a string the report says so out
     // loud, which is the moment to reach for a parser.
     const src = `const notARoute = 'path === "/decoy"';`;
-    expect(extractRoutes(src)).toEqual(["/decoy"]);
+    expect(extractRoutes(src)).toEqual(["ANY /decoy"]);
   });
 
   it("reports routes added since the live build, and any removed", () => {
     const live = `path === "/health"\npath === "/ready"`;
-    const main = `path === "/health"\npath === "/v1/auth/device/review"`;
+    const main = `path === "/health"\nrequest.method === "POST" && path === "/v1/auth/device/review/approve"`;
     expect(diffRoutes(live, main)).toEqual({
-      added: ["/v1/auth/device/review"],
-      removed: ["/ready"],
+      added: ["POST /v1/auth/device/review/approve"],
+      removed: ["ANY /ready"],
     });
   });
 
@@ -57,10 +76,21 @@ describe("deployed-route drift", () => {
     expect(summarize([{ route: "/x", verdict: "UNDETERMINED" }]).published).toBe(false);
   });
 
-  it("calls a publish complete only when every added route answers", () => {
-    expect(summarize([{ route: "/a", verdict: "PRESENT" }, { route: "/b", verdict: "PRESENT" }]).published).toBe(true);
-    expect(summarize([{ route: "/a", verdict: "PRESENT" }, { route: "/b", verdict: "ABSENT" }]).published).toBe(false);
+  it("calls a publish complete only when every PROBED route answers", () => {
+    expect(summarize([{ route: "GET /a", verdict: "PRESENT" }, { route: "GET /b", verdict: "PRESENT" }]).published).toBe(true);
+    expect(summarize([{ route: "GET /a", verdict: "PRESENT" }, { route: "GET /b", verdict: "ABSENT" }]).published).toBe(false);
     // No added routes is not evidence of a publish.
     expect(summarize([]).published).toBe(false);
+    // Unprobeable routes do not block the verdict, but they are reported so
+    // partial coverage is visible instead of implied...
+    const mixed = summarize([
+      { route: "GET /a", verdict: "PRESENT" },
+      { route: "POST /b", verdict: "UNPROBEABLE" },
+    ]);
+    expect(mixed.published).toBe(true);
+    expect(mixed.unprobeable).toEqual(["POST /b"]);
+    // ...and a run that probed nothing is never "published", however many
+    // unprobeable routes it saw.
+    expect(summarize([{ route: "POST /b", verdict: "UNPROBEABLE" }]).published).toBe(false);
   });
 });
