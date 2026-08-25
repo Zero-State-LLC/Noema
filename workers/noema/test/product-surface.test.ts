@@ -283,7 +283,7 @@ describe("planes", () => {
   });
   it("GET /connect with a valid short code serves the approval task", async () => {
     const env = { NOEMA_ENV: "production" } as unknown as Env;
-    for (const path of ["/connect?code=AB12-CD34", "/connect?connect_code=ab12cd34"]) {
+    for (const path of ["/connect?code=AB12-CD34", "/connect?connect_code=ab12cd34", "/connect?connect_code=&code=ab12cd34"]) {
       const res = await worker.fetch(new Request(`https://noema.guru${path}`), env);
       expect(res.status).toBe(200);
       const html = await res.text();

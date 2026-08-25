@@ -289,7 +289,6 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         dNotice.textContent = "Enter the short code from the agent terminal.";
         return;
       }
-      saveCode(code);
       dNotice.className = "notice"; dNotice.textContent = "Looking up…";
       preview.hidden = true; preview.textContent = "";
       hideDecide();
@@ -299,10 +298,12 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
         dNotice.className = "notice";
         const tok = sessionToken();
+        if (j.status === "pending") saveCode(code);
+        else clearCode();
         dNotice.textContent = j.status === "pending"
           ? (tok
             ? "This code is waiting. Approve to bind the agent."
-            : "This code is waiting. Sign up above, then Approve.")
+            : "This code is waiting. Sign in, then Approve.")
           : ("Status: "+j.status+".");
         preview.hidden = false;
         row("Runtime", j.runtime || "");
@@ -312,6 +313,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         if (j.status === "pending" && !tok && need) need.hidden = false;
       } catch(e) {
         hideDecide();
+        clearCode();
         dNotice.className = "notice bad";
         dNotice.textContent = /expir/i.test(e.message || "")
           ? "Code expired. Request a new code from the agent."
@@ -329,9 +331,6 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     });
     const params = new URLSearchParams(location.search);
     const deep = canonicalCode(params.get("connect_code") || params.get("code"));
-    if (deep) {
-      saveCode(deep);
-    }
     const saved = (() => { try { return canonicalCode(sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""); } catch(_) { return ""; } })();
     if (saved && !deep) {
       location.replace("/connect?connect_code=" + encodeURIComponent(saved));
@@ -354,7 +353,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
       if (!tok) {
         if (need) need.hidden = false;
         dNotice.className = "notice";
-        dNotice.textContent = "Sign up above first. That's the account that can approve.";
+        dNotice.textContent = "Sign in first. That's the account that can approve.";
         if (cEmail) cEmail.focus();
         return;
       }
@@ -372,6 +371,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
           ? "Agent approved. Return to the agent terminal."
           : "Denied. No token issued.";
         clearCode();
+        if (location.search) history.replaceState(null, "", "/connect");
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";

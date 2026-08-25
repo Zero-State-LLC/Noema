@@ -397,12 +397,17 @@ describe("play login HTML", () => {
     expect(connect).toContain('sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code")');
     expect(connect).toContain('location.replace("/connect?connect_code=" + encodeURIComponent(saved))');
     expect(connect).toContain("function clearCode()");
-    expect(connect).toMatch(/clearCode\(\);\s*document\.getElementById\("d-deny"\)/);
+    expect(connect).toMatch(/clearCode\(\);[\s\S]{0,160}document\.getElementById\("d-deny"\)/);
+    expect(connect).toContain('history.replaceState(null, "", "/connect")');
+    expect(connect).toMatch(/catch\(e\)[\s\S]{0,500}clearCode\(\)/);
+    expect(connect).toContain("This code is waiting. Sign in, then Approve.");
+    expect(connect).not.toContain("Sign up above, then Approve.");
     const task = connectHtml(false, "AB12-CD34");
     expect(task).toContain("Approve this agent");
     expect(task).toContain('value="ab12cd34"');
     expect(task).toContain('id="panel-approve"');
     expect(task).not.toContain('value="AB12-CD34"');
+    expect(task).not.toContain("Sign up above");
   });
   it("rejects a non-hex pending code instead of painting it", () => {
     const html = connectHtml(false, '"><img src=x onerror=alert(1)>');
