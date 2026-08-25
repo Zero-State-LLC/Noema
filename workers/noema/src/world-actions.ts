@@ -4155,9 +4155,15 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
           // for the closed canonical node catalog, never for trade boards or
           // ordinary scarcity fixtures.
           if (
+            canonicalFractionalMaterials &&
+            (next.stock_amount ?? 0) < 1 &&
+            (!(typeof next.regen_rate === "number") || next.regen_rate < 0.3)
+          ) {
+            next.regen_rate = next.entity_id === "entity.production-node-ewm" ? 0.9 : 1.15;
+          } else if (
             typeof next.regen_rate !== "number" &&
             isAuthorizedHarvestNode(next.entity_id) &&
-            ((next.stock_amount ?? 0) === 0 || canonicalFractionalMaterials)
+            (next.stock_amount ?? 0) === 0
           ) {
             next.regen_rate = 1;
           }
@@ -6503,7 +6509,7 @@ async function applyResourceProduction(
       if (typeof entity.regen_rate !== "number" || entity.regen_rate <= 0) continue;
       const cap = typeof entity.max_stock === "number" && entity.max_stock > 0 ? entity.max_stock : NODE_STOCK_CAPACITY;
       const regen = entity.regen_rate;
-      const before = Math.floor(entity.stock_amount ?? 0);
+      const before = Math.max(0, Number.isFinite(entity.stock_amount) ? (entity.stock_amount as number) : 0);
       const after = previewStockRegen(before, mod, regen, cap);
       if (after <= before) continue;
       entity.stock_amount = after;
