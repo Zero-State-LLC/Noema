@@ -4146,13 +4146,18 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
         const next = enrichEntity(e);
         if (next.stock_resource) {
           if (typeof next.max_stock !== "number") next.max_stock = 18;
-          // Empty Civic Exchange harvest nodes recover on cycle commit (#482).
-          // Do not invent regen on already-stocked fixtures (GC10-S1 scarcity)
-          // or leftover trade boards / ordinary harvest cells.
+          const canonicalFractionalMaterials =
+            room.room_id === "room.civic-exchange" &&
+            (next.entity_id === "entity.salvage-cache" || next.entity_id === "entity.production-node-ewm");
+          // Canonical Civic Exchange harvest nodes recover on cycle commit (#482).
+          // Persisted worlds may retain fractional stock after older co-evolution
+          // logic while lacking the Genesis regeneration metadata. Restore it only
+          // for the closed canonical node catalog, never for trade boards or
+          // ordinary scarcity fixtures.
           if (
             typeof next.regen_rate !== "number" &&
-            (next.stock_amount ?? 0) === 0 &&
-            isAuthorizedHarvestNode(next.entity_id)
+            isAuthorizedHarvestNode(next.entity_id) &&
+            ((next.stock_amount ?? 0) === 0 || canonicalFractionalMaterials)
           ) {
             next.regen_rate = 1;
           }
