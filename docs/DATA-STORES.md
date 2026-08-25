@@ -6,6 +6,18 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
+### Live probe 2026-08-19 (`/ready` + M0 scripts)
+
+| Check | Result | Label |
+|---|---|---|
+| `GET https://noema.guru/ready` 03:47:14Z | HTTP 200 · `ready:true` · `play_blocked:false` · `code:null` · `status:ACTIVE` · `settlement_health:HEALTHY` · world `world.perihelion-reach` · cycle 105 · sequence **305** · `genesis_id:genesis.ef578f4ffceeccd0` · `playable:true` | OBSERVED |
+| `GET https://noema.guru/ready` 03:48:19Z | HTTP 200 · same genesis · sequence **307** · `play_blocked:false` · `players:0` | OBSERVED after golden-path ENTER+LEAVE |
+| `GET https://noema.guru/health` | HTTP 200 · `status:ok` · `service:noema-gateway` · `stage:0` · `env:production` · `protocol_version:1` · `world_id:world-01` | OBSERVED |
+| Production bootstrap-blocked? | **No.** `play_blocked:false`. Sequence 288 → 305 → 307 is live play, not a missing head. | OBSERVED `/ready` |
+| Residual | Live isolated SQL inspect (`inspect-settlement.mjs`) needs `SUPABASE_*`. Isolated ACK ENTER 200 / Perihelion 403 already OBSERVED this run. Not “apply SQL / bootstrap Perihelion.” Do not Recover. Do not reseed. | OBSERVED scripts + `/ready` |
+
+Baseline pin table: [RUNTIME-READINESS-2026-08-13.md](RUNTIME-READINESS-2026-08-13.md).
+
 ### Live probe 2026-08-17 (SQL session)
 
 Read-only Supabase MCP against project `dezykkherxlaysxyvgbs`. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover. Did **not** reseed.
@@ -186,7 +198,7 @@ Still **not** independently verified:
 ["new isolated test.hosted-canonical.* ACK this pass (needs PLAYER_TOKEN + X-Noema-Admin-Token)"]
 ```
 
-Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
+Prior-doc sequences 92 vs 94 vs 288 are historical; current OBSERVED `/ready` sequence is 305 (2026-08-19).
 
 ---
 
@@ -201,7 +213,7 @@ Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
 | Recover adopts via `noema_adopt_live_world_head` or REST snapshot; never invents events | OBSERVED |
 | RPCs grant execute to `service_role` only (in SQL files) | OBSERVED |
 | Research tables are rebuildable and offline-only | OBSERVED in code; hosted copies if any are unused by the Worker |
-| Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 288 | OBSERVED 2026-08-17 |
+| Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 305 | OBSERVED 2026-08-19 (`play_blocked:false`; was seq 288 on 2026-08-17) |
 | Hosted tables + both RPCs + Perihelion head (rev 160, digest prefix `sha256:f163f`) | OBSERVED 2026-08-17 via read-only SQL |
 | Adopt at rev 1 seq 92; post-adopt 93..288 contiguous; receipts 2..160 | OBSERVED |
 | New isolated test-world ACK this pass | blocked (no Player + admin tokens in this shell) |
