@@ -453,7 +453,9 @@ describe("PT15 WATCH / Admin projection redaction", () => {
     const a = principal("player.nacre");
     const b = principal("player.vesper");
     await enterThenPin(w, [a, b]);
-    await run(w, a, "MOVE", { direction: "east", secret: "do-not-leak" });
+    const pending = await run(w, a, "MOVE", { direction: "east" });
+    expect(pending.ok).toBe(true);
+    expect(w.player_tempo?.accepted[0]?.envelope.arguments?.direction).toBe("east");
     const admin = publicTempoProjection(w, CLOCK);
     const redacted = JSON.stringify(redactedTempoState(w.player_tempo));
     expect(admin.accepted_slot_count).toBe(1);
