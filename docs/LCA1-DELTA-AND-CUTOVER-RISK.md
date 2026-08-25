@@ -21,8 +21,8 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 
 | Delta | Class | Evidence and label |
 |---|---|---|
-| Game-contract runtime (GC1–GC10 minus crime producer, diplomacy, access policy, WATCH, RFC-0126 fail-closed, RFC-0127 catalog) | **deployed** | In `06b818f`'s ancestry, which the live build supersedes by one docs+site commit. OBSERVED in source, INFERRED live via the source derivation above; per-slice liveness is `RFC-RUNTIME-AUDIT-2026-08-23.md` |
-| Whitepaper restore + manifesto link (#548) | **deployed** | The only `workers/noema/src` + `public` change between the two builds: `manifesto.ts` (+7/−1) and one `.docx` asset. OBSERVED diff, INFERRED live |
+| Game-contract runtime (GC1–GC10 minus crime producer, diplomacy, access policy, WATCH, RFC-0126 fail-closed, RFC-0127 catalog) | **deployed** | Present in exact deployed source `61234cc`; the integrated LCA scenario, compatibility, recovery, settlement, replay, and hosted WATCH/ready observations exercise the coupled spine. Per-slice liveness remains catalogued in `RFC-RUNTIME-AUDIT-2026-08-23.md` |
+| Whitepaper restore + manifesto link (#548) | **deployed** | Present in exact deployed source `61234cc`; the retained deployment transcript binds that source to Worker `01ebc196`, and the route-drift check found no candidate route absent from the live deployment. OBSERVED source and deployment provenance |
 | Conformance/guard test layer (#527, #534–#539, #542/#547, #545, #546): closed-catalog, slice-catalog copy, forbidden-projection, client-pin guard, Deep Time tails, WS resume boundary, accepted-replay invariant | **implemented** | Test-only; no deploy semantics. OBSERVED |
 | Harness spec-conformance fixes (#543 field forwarding, #544 `SETTLEMENT_RESYNC` one-retry) | **implemented** | Python controller-side; runs beside agents, never deployed to the Worker. OBSERVED |
 | `spec-compat.json` metadata: per-runtime event-catalog pins (#533), `specs.commit` currency (#526/#540/#541), client pin | **configuration-only** | OBSERVED |
@@ -34,7 +34,7 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 | Operator device enrollment | **deployed; human acceptance still required** | The repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are in deployed source `61234cc`. Route drift reported no candidate routes absent from the live build. One canonical `noema connect` approval remains a people step; no mailbox or device secret belongs in repository evidence |
 | Enrollment / CONNECT repairs (#563, #561, #570, #583–#585): `connect.ts`, `device-enrollment.ts`, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **deployed** | OBSERVED in source `61234cc` and the deployment executed immediately after #586 merged. The earlier 404 and cross-tab leakage evidence is historical pre-repair evidence, not current status |
 | Rollback rehearsal support (#562): `rollback-evidence.ts`, `world-do.ts` | **deployed** | #562 is in source `61234cc`; isolated A-B-A evidence remains the acceptance packet. Production was not used as the rehearsal target |
-| Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta — now covered by #565's older-blob load test |
+| Migration-required items | **none found** | The candidate source is the exact live source `61234cc`, so no candidate-to-live schema or Durable Object migration exists. Compatibility and older-blob load tests cover cross-version state risk; route drift found no candidate route absent from live |
 
 ## Successor-cutover risk register
 
