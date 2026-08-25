@@ -68,6 +68,7 @@ import {
   worldFromHead,
 } from "./settle";
 import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
+import { buildRollbackEvidence } from "./rollback-evidence";
 import {
   admitTestWorldId,
   lifecycleRequestedWorldId,
@@ -494,6 +495,8 @@ export class NoemaWorldDO {
     if (request.method === "GET" && path.endsWith("/admin-status")) {
       await this.load();
       const roomList = Object.values(this.world!.rooms);
+      const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+      const rollbackEvidence = await buildRollbackEvidence(this.world!, digestEvents);
       return Response.json({
         world_id: this.world!.world_id,
         world_name: this.world!.world_name,
@@ -514,6 +517,7 @@ export class NoemaWorldDO {
         unsettled_count: this.world!.unsettled.length,
         entry_room_id: this.world!.entry_room_id,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
+        rollback_evidence: rollbackEvidence,
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
         pressure: adminPressureView(this.world!.pressure),
