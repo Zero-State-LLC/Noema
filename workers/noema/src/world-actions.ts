@@ -95,6 +95,7 @@ import {
   type PracticeCredit,
   type PracticeEvent,
 } from "./practice";
+import type { Checkpoint } from "./types";
 
 // === P1 Co-evolution (2026-08-21) ===
 // Explicit hook after successful actions.
@@ -179,6 +180,8 @@ async function coevolveAfterAction(w: WorldRuntime, principal: PlayerPrincipal, 
   
 
 
+}
+
 /** P2: Checkpoint API - lightweight snapshot for causal experiments / SAR.
  *  Captures sufficient state to resume with interventions (modified params, injected events).
  */
@@ -230,8 +233,9 @@ export function resumeFromCheckpoint(w: WorldRuntime, cp: Checkpoint, interventi
   }
   // Restore budgets
   for (const [pid, budgets] of Object.entries(cp.snapshot.player_budgets || {})) {
-    if (w.players?.[pid]) {
-      w.players[pid].budgets = { ...budgets };
+    const player = w.players?.[pid];
+    if (player && player.budgets) {
+      player.budgets = { ...player.budgets, ...budgets };
     }
   }
   // Restore co-evo state
@@ -257,7 +261,6 @@ export function resumeFromCheckpoint(w: WorldRuntime, cp: Checkpoint, interventi
 }
 
 // Future P1: player beliefs, new opportunities, operator-initiated evolution.
-}
 
 
 import { situationFromLive } from "./orientation";
