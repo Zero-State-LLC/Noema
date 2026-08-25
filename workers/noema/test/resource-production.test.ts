@@ -158,6 +158,19 @@ describe("RESOURCE-ECONOMY production tick", () => {
     expect(looked.observation?.available_actions?.[0]).toBe("WAIT");
   });
 
+  it("lists fractional stock below the executable minimum as unavailable", async () => {
+    const w = world(0.5);
+    const p = principal("player.harvester");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const looked = await run(w, p, "LOOK");
+    const harvest = looked.observation?.affordances?.find(
+      (a) => a.operation === "HARVEST" && a.target_id === "entity.storage-cell-cache",
+    );
+    expect(harvest?.available).toBe(false);
+    expect(harvest?.reason).toBe("Not enough stock available.");
+  });
+
   it("names free storage when the node has stock and the Player does not", async () => {
     const w = world(4);
     const p = principal("player.harvester");
