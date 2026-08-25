@@ -12,7 +12,7 @@
 | Live world | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`, ACTIVE HEALTHY, cycle 1327, players 0 | OBSERVED, `GET /ready` |
 | Live build source | `e1d44d5` (#548 merge) or `f566044` (its sole commit — identical Worker content) | INFERRED: publish trails the #548 merge (23:21:26Z) by 27 seconds, and #548 is the only Worker-content change on `main` since the previously pinned build |
 | Previously pinned build source | `06b818f` (#524) | OBSERVED, `spec-compat.json` note, derivation recorded in #522/#525 |
-| Repo pin at time of writing | `2bb3a8b4` — **two publishes stale** | OBSERVED, `spec-compat.json`; a pin move belongs with whoever publishes next, not silently inside this report |
+| Repo pin | `d9aab067`, matching live | OBSERVED. Was `2bb3a8b4` (two publishes stale) when this report was first written |
 | Specs baseline | `Noema-Specs` `d73bdec` (#289 direction package) | OBSERVED |
 
 ## Production-alpha delta report
@@ -26,13 +26,14 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 | Conformance/guard test layer (#527, #534–#539, #542/#547, #545, #546): closed-catalog, slice-catalog copy, forbidden-projection, client-pin guard, Deep Time tails, WS resume boundary, accepted-replay invariant | **implemented** | Test-only; no deploy semantics. OBSERVED |
 | Harness spec-conformance fixes (#543 field forwarding, #544 `SETTLEMENT_RESYNC` one-retry) | **implemented** | Python controller-side; runs beside agents, never deployed to the Worker. OBSERVED |
 | `spec-compat.json` metadata: per-runtime event-catalog pins (#533), `specs.commit` currency (#526/#540/#541), client pin | **configuration-only** | OBSERVED |
-| `hosted_live.worker_version_id` pin | **configuration-only — currently stale** | Pin reads `2bb3a8b4`; live is `d9aab067`. Third lag in two days; the pin does not update itself. Detection exists (`pin-currency.yml`, 6-hourly; Specs `direction-freshness.yml`); the cure — the publish writing the pin — remains an ops change nobody has made |
+| `hosted_live.worker_version_id` pin | **configuration-only — now current** | Was three lags deep and a live cross-repo contradiction: Specs direction recorded `d9aab067` while this repo pinned `2bb3a8b4`. Moved by hand with the derivation shown, and `specs_git` re-derived to `81ca8c1` with it. The cure — the publish writing the pin — is #556 |
 | Monitors and CI: `pin-currency.yml`, Specs-sibling checkout (#537), Specs `direction-freshness` | **deployed** (repo automation) | OBSERVED in workflow runs |
 | Official client (`hosted_live.official_client`; the literal lives there and in PARTNER-OPERATOR only, by guard) | **deployed** (PyPI) | OBSERVED on PyPI; verified against production incl. seal identity (Specs #283) |
 | `CRIME_DETECTED` producer | **intentionally excluded** | Five consumers, no producer; RFC-0002 detection preconditions unimplemented. Wiring it is an RFC-gated decision (audit: PARTIAL; `closed-catalog.test.ts` pins the absence) |
 | Hosted STUDY / research spine (Frontier, Observatory, Lab, Compiler, LEARN) | **blocked** | Campaign doctrine 6: blocked until natural multi-agent play produces evidence worth testing. Offline implementations complete (Specs #267) |
 | Operator device enrollment | **blocked (people step)** | `players 0` OBSERVED; `noema doctor` reports `credential: missing` as designed. Nothing in either repo can close this |
-| Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta |
+| Rollback rehearsal harness (#562): `rollback-evidence.ts`, `world-do.ts` +16/−2, rehearsal script | **implemented, not deployed** | Merged 2026-08-25T03:36Z, after the 23:21Z publish. **The only unpublished Worker-source delta on `main`.** OBSERVED via `git log e1d44d5..HEAD -- workers/noema/src` |
+| Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta — now covered by #565's older-blob load test |
 
 ## Successor-cutover risk register
 
@@ -60,7 +61,7 @@ Still open:
 
 1. **Operator device enrollment** — people step; blocks any external-agent horizon. Validation: one real `noema connect` approval, then `doctor` showing a credential. In-flight: Noema #561, noema-client #24.
 2. **Integration scenario (#549, Jcode)** — #552 merged as Gate A **candidate** evidence. Gate A is not complete.
-3. **Pin automation** (delta table) — #556 folds the pin write into publish; it deploys production, so merge is human-only. Until then the monitors are the mitigation.
+3. **Pin automation** (delta table) — #556 folds the pin write into publish; it deploys production, so merge is human-only. The pin itself is current as of the `d9aab067` move; until #556 lands, every publish still needs a hand-written pin.
 4. **Hosted connect cross-tab repair** — #563 onto main; partner-flagged as auth-adjacent. Do not merge without a human call.
 
 Do not treat this list as Gate A completion. LCA-2 remains BLOCKED until the open items have acceptance evidence.
