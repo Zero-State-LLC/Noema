@@ -1,7 +1,7 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY and ADMIN send through Resend when RESEND_API_KEY is set, falling back
- * to the Postmark standby when POSTMARK_SERVER_TOKEN is set (RFC-0032).
+ * PLAY and ADMIN send through Resend when RESEND_API_KEY is set. Auth flows
+ * retain their Supabase fallback when Resend is unavailable.
  */
 
 import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";

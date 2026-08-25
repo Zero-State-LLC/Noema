@@ -38,9 +38,6 @@ export interface Env {
   };
   /** Resend API key — transactional provider for PLAY/ADMIN/agent letters. */
   RESEND_API_KEY?: string;
-  POSTMARK_SERVER_TOKEN?: string;
-  POSTMARK_FROM_EMAIL?: string;
-  POSTMARK_MESSAGE_STREAM?: string;
   /** Optional verified Resend sender override. */
   RESEND_FROM_EMAIL?: string;
 }
