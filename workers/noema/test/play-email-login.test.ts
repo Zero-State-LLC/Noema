@@ -458,13 +458,10 @@ describe("play login HTML", () => {
     expect(html).toMatch(/<details[^>]*id="connect-onboard"/);
     expect(html).not.toContain("Fallback: enter the short code");
     expect(html).not.toMatch(/id="d-approve" hidden/);
-    const visibleHead = html
-      .replace(/<script[\s\S]*?<\/script\s*>/gi, " ")
-      .replace(/<details[\s\S]*?<\/details\s*>/gi, " ")
-      .replace(/<[^>]+>/g, " ");
-    expect(visibleHead).toMatch(/Approve this agent/);
-    expect(visibleHead).toMatch(/Sign in to approve/);
-    expect(visibleHead).not.toMatch(/pipx install noema-client/);
-    expect(visibleHead).not.toMatch(/noema connect --email/);
+    const taskHead = html.slice(0, html.indexOf("<details"));
+    expect(taskHead).toContain("Approve this agent");
+    expect(taskHead).toContain("Sign in to approve");
+    expect(taskHead).not.toContain("pipx install noema-client");
+    expect(taskHead).not.toContain("noema connect --email");
   });
 });
