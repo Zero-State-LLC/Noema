@@ -269,7 +269,7 @@ describe("planes", () => {
     expect(html).toContain("ENTER_WORLD");
     expect(html).toContain("request_id");
     expect(html).toContain("x-noema-seal");
-    expect(html).toContain('new URLSearchParams(location.search).get("connect_code")');
+    expect(html).toContain('canonicalCode(params.get("connect_code") || params.get("code"))');
     expect(html).toContain("Agent approved. Return to the agent terminal.");
     expect(html).toContain('id="d-code"');
     expect(html).toContain('placeholder="AB12-CD34"');

@@ -175,6 +175,33 @@ describe("requestPlayMagicLink", () => {
     expect(sent[0]).toBe("https://noema.guru/play/callback?token_hash=playhash&type=magiclink&next=%2Fconnect");
   });
 
+  it("ignores open-redirect next values on generated mail links", async () => {
+    const sent: string[] = [];
+    let generateBody = "";
+    const fetchImpl = async (_url: string, init?: RequestInit) => {
+      generateBody = String(init?.body || "");
+      return new Response(
+        JSON.stringify({ properties: { hashed_token: "playhash", verification_type: "magiclink" } }),
+        { status: 200 },
+      );
+    };
+    await requestPlayMagicLink(
+      env({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "srk", RESEND_API_KEY: "re_test" }),
+      new Request("https://noema.guru/x"),
+      { email: "prabu.openclaw@gmail.com", next: "https://evil.example/phish" },
+      {
+        fetch: fetchImpl,
+        throttle: new LoginThrottle(),
+        sendPlay: async (mail) => {
+          sent.push(mail.href);
+        },
+      },
+    );
+    expect(JSON.parse(generateBody).options.redirect_to).toBe("https://noema.guru/play/callback");
+    expect(sent[0]).toBe("https://noema.guru/play/callback?token_hash=playhash&type=magiclink");
+    expect(sent[0]).not.toMatch(/evil/);
+  });
+
   it("falls back to Supabase otp when Resend delivery fails", async () => {
     const calls: string[] = [];
     const res = await requestPlayMagicLink(
@@ -358,7 +385,7 @@ describe("play login HTML", () => {
 
     const connect = connectHtml();
     expect(connect).toContain('body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode() })');
-    expect(connect).toContain('new URLSearchParams(location.search).get("connect_code")');
+    expect(connect).toContain('canonicalCode(params.get("connect_code") || params.get("code"))');
     expect(connect).toContain('localStorage.setItem("noema.connect.code"');
     expect(connect).toContain('localStorage.removeItem("noema.connect.code"');
     expect(connect).toContain('sessionStorage.setItem("noema.connect.code"');

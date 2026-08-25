@@ -291,7 +291,8 @@ noema connect</code></pre>
       const raw = (document.getElementById("d-code").value || "").replace(/[^a-fA-F0-9]/g, "");
       if (raw.length === 8) lookup();
     });
-    const deep = canonicalCode(new URLSearchParams(location.search).get("connect_code"));
+    const params = new URLSearchParams(location.search);
+    const deep = canonicalCode(params.get("connect_code") || params.get("code"));
     if (deep) {
       saveCode(deep);
     }
