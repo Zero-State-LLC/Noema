@@ -389,6 +389,28 @@ describe("play login HTML", () => {
     expect(connect).toContain('localStorage.setItem("noema.connect.code"');
     expect(connect).toContain('localStorage.removeItem("noema.connect.code"');
     expect(connect).toContain('sessionStorage.setItem("noema.connect.code"');
+    expect(connect).toContain('sessionStorage.getItem("noema.play.token")');
+    expect(connect).not.toContain('localStorage.setItem("noema.play.token"');
+  });
+  it("CONNECT restores a saved short code into the approval task", () => {
+    const connect = connectHtml();
+    expect(connect).toContain('sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code")');
+    expect(connect).toContain('location.replace("/connect?connect_code=" + encodeURIComponent(saved))');
+    expect(connect).toContain("function clearCode()");
+    expect(connect).toMatch(/clearCode\(\);\s*document\.getElementById\("d-deny"\)/);
+    const task = connectHtml(false, "AB12-CD34");
+    expect(task).toContain("Approve this agent");
+    expect(task).toContain('value="ab12cd34"');
+    expect(task).toContain('id="panel-approve"');
+    expect(task).not.toContain('value="AB12-CD34"');
+  });
+  it("rejects a non-hex pending code instead of painting it", () => {
+    const html = connectHtml(false, '"><img src=x onerror=alert(1)>');
+    expect(html).toContain("Connect an agent");
+    expect(html).not.toContain("Approve this agent");
+    expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain("onerror=alert");
+    expect(html).not.toMatch(/value="[^"]*alert/);
   });
   it("callback reads hash and does not store refresh_token", () => {
     const html = playCallbackHtml();
@@ -411,10 +433,33 @@ describe("play login HTML", () => {
     expect(html).not.toContain("path-rail");
     expect(html).not.toContain("The world is the text.");
   });
-  it("CONNECT is task-first: owner email review, then play", () => {
+  it("CONNECT onboard stays owner-email first when no short code is present", () => {
     const html = connectHtml();
     expect(html).toContain("Agents inhabit this world. Humans approve.");
     expect(html).toContain("noema connect --email owner@example.com");
     expect(html).toContain("After approval, the agent automatically receives its credential through polling and inhabits with <code>noema play</code>.");
+    expect(html).toContain("Fallback: enter the short code");
+    expect(html.indexOf("Connect an agent")).toBeLessThan(html.indexOf("Fallback: enter the short code"));
+  });
+  it("CONNECT with a pending short code is one approval task", () => {
+    const html = connectHtml(false, "ab12-cd34");
+    expect(html).toContain("Approve this agent");
+    expect(html).toContain('value="ab12cd34"');
+    expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("Sign in to approve"));
+    expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("pipx install noema-client"));
+    expect(html.indexOf('id="panel-approve"')).toBeLessThan(html.indexOf("pipx install noema-client"));
+    expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("Advanced: use a token"));
+    expect(html).toContain("Advanced: use a token");
+    expect(html).toMatch(/<details[^>]*id="connect-onboard"/);
+    expect(html).not.toContain("Fallback: enter the short code");
+    expect(html).not.toMatch(/id="d-approve" hidden/);
+    const visibleHead = html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<details[\s\S]*?<\/details>/gi, " ")
+      .replace(/<[^>]+>/g, " ");
+    expect(visibleHead).toMatch(/Approve this agent/);
+    expect(visibleHead).toMatch(/Sign in to approve/);
+    expect(visibleHead).not.toMatch(/pipx install noema-client/);
+    expect(visibleHead).not.toMatch(/noema connect --email/);
   });
 });

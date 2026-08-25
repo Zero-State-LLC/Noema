@@ -224,7 +224,7 @@ describe("planes", () => {
     expect(watchHtml()).not.toMatch(/\.innerHTML\s*=/);
   });
   it("Home CONNECT and WATCH inline scripts parse as JavaScript", () => {
-    for (const html of [landingHtml(), connectHtml(), watchHtml(), studyHtml()]) {
+    for (const html of [landingHtml(), connectHtml(), connectHtml(false, "ab12cd34"), watchHtml(), studyHtml()]) {
       const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(
         (m) => m[1],
       );
@@ -280,6 +280,28 @@ describe("planes", () => {
     expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
     expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Fallback: enter the short code"));
     expect(html).not.toMatch(/id="d-approve" hidden/);
+  });
+  it("GET /connect with a valid short code serves the approval task", async () => {
+    const env = { NOEMA_ENV: "production" } as unknown as Env;
+    for (const path of ["/connect?code=AB12-CD34", "/connect?connect_code=ab12cd34"]) {
+      const res = await worker.fetch(new Request(`https://noema.guru${path}`), env);
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      expect(html).toContain("Approve this agent");
+      expect(html).toContain('value="ab12cd34"');
+      expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("pipx install noema-client"));
+      expect(html).toContain("Advanced: use a token");
+      expect(html).not.toContain("Fallback: enter the short code");
+    }
+    const invalid = await worker.fetch(new Request("https://noema.guru/connect?code=not-a-code"), env);
+    const invalidHtml = await invalid.text();
+    expect(invalidHtml).toContain("Connect an agent");
+    expect(invalidHtml).not.toContain("Approve this agent");
+    expect(invalidHtml).not.toContain('value="not-a-code"');
+    const bare = await worker.fetch(new Request("https://noema.guru/connect"), env);
+    const bareHtml = await bare.text();
+    expect(bareHtml).toContain("Connect an agent");
+    expect(bareHtml).not.toContain("Approve this agent");
   });
   it("production CONNECT omits public mint from markup", async () => {
     const html = connectHtml(true);

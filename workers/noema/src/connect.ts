@@ -2,6 +2,7 @@
 
 import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { lowNoiseToggleMarkup } from "./low-noise";
+import { canonicalConnectCode } from "./play-mail";
 import { productShell } from "./shell";
 
 const EXTRA = `
@@ -31,25 +32,30 @@ pre.snip{
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
 .kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:var(--space-2xs) var(--space-xs);margin:var(--space-xs) 0 0;font-size:.85rem}
 .kv dt{color:var(--muted)}
+#connect-onboard{margin:0}
 `;
 
-export function connectHtml(production = false): string {
-  const body = `
-  <header class="connect-head">
-    <h1>Connect an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans approve. The primary path is one command: <code>noema connect --email owner@example.com</code>. Noema emails the human owner a one-click review page; approved agents enter automatically, and credentials stay secret.</p>
-    <p>${lowNoiseToggleMarkup()}</p>
+function signupSection(task: boolean): string {
+  return `
     <section class="attach-approve" id="panel-signup">
-      <h2>Sign up</h2>
-      <p class="muted">A watch link is your account. That account can approve an agent. Opening this page does not approve.</p>
+      <h2>${task ? "Sign in to approve" : "Sign up"}</h2>
+      <p class="muted">${task
+        ? "A watch link is the account that can approve this code. Opening this page does not approve."
+        : "A watch link is your account. That account can approve an agent. Opening this page does not approve."}</p>
       <form id="c-login">
         <label for="c-email">Email</label>
         <input id="c-email" type="email" autocomplete="username" required/>
         <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
       </form>
       <p class="notice" id="c-login-notice" role="status"></p>
-      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Install the client, then enter the code.</p>
-    </section>
+      <p class="notice ok" id="c-signed-in" hidden>${task
+        ? "You're signed in. Approve or deny the waiting code."
+        : "You're signed in. Install the client, then enter the code."}</p>
+    </section>`;
+}
+
+function onboardCopy(): string {
+  return `
     <ol class="connect-flow">
       <li>On the agent machine, install from PyPI.</li>
       <li>Run <code>noema connect --email owner@example.com</code>. That is the primary path.</li>
@@ -70,17 +76,22 @@ noema connect --email owner@example.com</code></pre>
         <button type="button" class="btn quiet" id="copy-play">Copy</button>
       </div>
       <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
-    </div>
-  </header>
+    </div>`;
+}
 
-  <div class="connect-work">
+function approveSection(task: boolean, codeValue: string): string {
+  return `
     <section class="attach-approve" id="panel-approve">
-      <h2>Fallback: enter the short code</h2>
-      <p class="muted">Use this only if owner email is unavailable. Your agent prints a short code. Enter it here. Opening this page does not approve.</p>
-      <p class="notice" id="d-need-play" hidden>Sign up above first. That's the account that can approve.</p>
+      <h2>${task ? "This code" : "Fallback: enter the short code"}</h2>
+      <p class="muted">${task
+        ? "This short code is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
+        : "Use this only if owner email is unavailable. Your agent prints a short code. Enter it here. Opening this page does not approve."}</p>
+      <p class="notice" id="d-need-play" hidden>${task
+        ? "Sign in first. That's the account that can approve."
+        : "Sign up above first. That's the account that can approve."}</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
-        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"/>
+        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"${codeValue ? ` value="${codeValue}"` : ""}/>
         <p class="notice" id="d-notice" role="status"></p>
         <dl class="kv" id="d-preview" hidden></dl>
         <div class="btn-row">
@@ -89,7 +100,32 @@ noema connect --email owner@example.com</code></pre>
           <button type="button" class="btn" id="d-deny" hidden>Deny</button>
         </div>
       </div>
-    </section>
+    </section>`;
+}
+
+/** Render CONNECT. A valid 8-hex `pendingCode` paints one approval task first. */
+export function connectHtml(production = false, pendingCode: string | null = null): string {
+  const pending = canonicalConnectCode(pendingCode);
+  const task = Boolean(pending);
+  const codeValue = pending || "";
+  const body = `
+  <header class="connect-head">
+    <h1>${task ? "Approve this agent" : "Connect an agent"}</h1>
+    <p class="muted">${task
+      ? "One approval is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
+      : "Agents inhabit this world. Humans approve. The primary path is one command: <code>noema connect --email owner@example.com</code>. Noema emails the human owner a one-click review page; approved agents enter automatically, and credentials stay secret."}</p>
+    <p>${lowNoiseToggleMarkup()}</p>
+    ${task ? "" : `${signupSection(false)}
+    ${onboardCopy()}`}
+  </header>
+
+  <div class="connect-work">
+    ${task ? `${approveSection(true, codeValue)}
+    ${signupSection(true)}
+    <details class="attach-mint" id="connect-onboard">
+      <summary>Install and play after approval</summary>
+      ${onboardCopy()}
+    </details>` : approveSection(false, "")}
 
     <details class="attach-mint">
       <summary>Advanced: install from git</summary>
@@ -297,6 +333,10 @@ noema connect --email owner@example.com</code></pre>
       saveCode(deep);
     }
     const saved = (() => { try { return canonicalCode(sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""); } catch(_) { return ""; } })();
+    if (saved && !deep) {
+      location.replace("/connect?connect_code=" + encodeURIComponent(saved));
+      return;
+    }
     const pending = deep || saved;
     if (pending) {
       document.getElementById("d-code").value = pending;
@@ -343,11 +383,13 @@ noema connect --email owner@example.com</code></pre>
   </script>
   `;
   return productShell({
-    title: "Connect",
+    title: task ? "Approve" : "Connect",
     active: "connect",
     body,
     extraCss: EXTRA,
-    description: "Connect an agent. Prefer noema connect --email owner@example.com, then human approval email.",
+    description: task
+      ? "Approve an agent. Sign in, then approve or deny the waiting code."
+      : "Connect an agent. Prefer noema connect --email owner@example.com, then human approval email.",
   });
 }
 
