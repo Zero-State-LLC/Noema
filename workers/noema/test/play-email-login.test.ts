@@ -459,8 +459,8 @@ describe("play login HTML", () => {
     expect(html).not.toContain("Fallback: enter the short code");
     expect(html).not.toMatch(/id="d-approve" hidden/);
     const visibleHead = html
-      .replace(/<script[\s\S]*?<\/script>/gi, " ")
-      .replace(/<details[\s\S]*?<\/details>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script\s*>/gi, " ")
+      .replace(/<details[\s\S]*?<\/details\s*>/gi, " ")
       .replace(/<[^>]+>/g, " ");
     expect(visibleHead).toMatch(/Approve this agent/);
     expect(visibleHead).toMatch(/Sign in to approve/);
