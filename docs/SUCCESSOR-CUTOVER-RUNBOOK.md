@@ -59,5 +59,5 @@ Passing LCA-4 permits the decision. It does not force deployment.
 
 - Isolated rollback rehearsal: Noema #562 merged (closes #555)
 - Older-world DO fixture: Noema #565 merged (closes #553); #557 closed as superseded
-- Pin-on-publish: Noema #556 (deploys production; human-only)
+- Pin-on-publish: retarget onto `main` as dispatch + ACK (merging does not deploy). #556 remains the earlier stacked branch.
 - Connect repair on `main`: Noema #563 (auth-adjacent; human call)

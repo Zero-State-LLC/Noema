@@ -131,6 +131,8 @@ NOEMA_ENV=production bash ./scripts/deploy-stage0.sh
 
 Confirm `GET /health` reports `"env":"production"`. Bare `wrangler deploy` without the var is **not** production.
 
+The generated post-deploy pin workflow (`.github/workflows/deploy-worker-pin-pr.yml`) is `workflow_dispatch` only. Merging it does not deploy. Dispatch requires typing `I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN`, running from `main`, and `DEFAULT_WORLD_ID=world.perihelion-reach-3`. After a successful deploy it opens a reviewable pin PR; it never writes `spec-compat.json` to `main`.
+
 Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 ## Successor world (RFC-0121)

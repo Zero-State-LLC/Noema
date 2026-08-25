@@ -53,6 +53,7 @@ describe("successor cutover runbook", () => {
   it("points related evidence at merged #565/#562, not the superseded fixture PR", () => {
     expect(RUNBOOK).toContain("Noema #565 merged");
     expect(RUNBOOK).toContain("Noema #562 merged");
+    expect(RUNBOOK).toContain("dispatch + ACK");
     expect(RUNBOOK).not.toMatch(/Older-world DO fixture: Noema #557\b/);
   });
 
