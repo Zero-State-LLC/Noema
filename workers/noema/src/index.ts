@@ -55,6 +55,7 @@ import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
+import { canonicalConnectCode } from "./play-mail";
 import { providerOverview, verifyResend, verifySupabase } from "./provider-management";
 import { robotsTxt, sitemapXml } from "./seo";
 import { studyHtml } from "./study";
@@ -251,7 +252,8 @@ export default {
         return html(studyHtml());
       }
       if (request.method === "GET" && path === "/connect") {
-        return html(connectHtml(env.NOEMA_ENV === "production"));
+        const pending = canonicalConnectCode(url.searchParams.get("connect_code") || url.searchParams.get("code"));
+        return html(connectHtml(env.NOEMA_ENV === "production", pending));
       }
       if (request.method === "GET" && path === "/connect/enroll") {
         return html(enrollHtml());
