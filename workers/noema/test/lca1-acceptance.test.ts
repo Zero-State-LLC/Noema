@@ -175,7 +175,7 @@ describe("LCA-1 integrated existing-system acceptance", () => {
 
     expect((await act(env, vesper, "lca1.enter.vesper", "ENTER_WORLD")).body.ok).toBe(true);
     expect((await act(env, nacre, "lca1.move.east", "MOVE", { direction: "east" })).body.ok).toBe(true);
-    const harvested = await act(env, nacre, "lca1.harvest.materials", "COMMIT", {
+    const harvested = await act(env, nacre, "lca1.harvest.materials", "HARVEST", {
       operation: "HARVEST",
       entity_id: "entity.storage-cell-cache",
       amount: 1,
