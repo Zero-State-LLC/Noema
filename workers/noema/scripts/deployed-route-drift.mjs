@@ -19,10 +19,25 @@ import { readFileSync } from "node:fs";
 
 const ROUTE_SOURCE = "workers/noema/src/index.ts";
 
-/** Route literals the Worker router compares `path` against. */
+/**
+ * Routes the Worker router matches, as `METHOD path`.
+ *
+ * The method is not decoration. 27 of 50 routes are POST-only, and a POST-only
+ * route probed with GET falls through the router to 404 — indistinguishable
+ * from absent. The first real run of this script reported two live routes as
+ * ABSENT for exactly that reason.
+ */
 export function extractRoutes(source) {
+  const text = String(source || "");
   const out = new Set();
-  for (const m of String(source || "").matchAll(/path === "([^"]+)"/g)) out.add(m[1]);
+  for (const m of text.matchAll(/method === "([A-Z]+)"\s*&&\s*path === "([^"]+)"/g)) {
+    out.add(`${m[1]} ${m[2]}`);
+  }
+  // Routes matched on path alone answer any method; GET is the safe probe.
+  for (const m of text.matchAll(/(?<!method === "[A-Z]{1,10}" && )path === "([^"]+)"/g)) {
+    const path = m[1];
+    if (![...out].some((r) => r.endsWith(` ${path}`))) out.add(`ANY ${path}`);
+  }
   return [...out].sort();
 }
 
@@ -36,6 +51,17 @@ export function diffRoutes(liveSource, mainSource) {
 }
 
 /**
+ * Only GET is probed. Sending the real method would mean POSTing to endpoints
+ * like `/v1/auth/device/review/approve` against production, which could approve
+ * a live device enrollment. A drift detector must never mutate the thing it
+ * measures, so a non-GET route is reported as unprobeable rather than guessed.
+ */
+export function isProbeable(route) {
+  const method = String(route).split(" ")[0];
+  return method === "GET" || method === "ANY";
+}
+
+/**
  * 404 means the router never matched — the route is not in the running build.
  * Anything else means the handler ran and rejected, so the route IS deployed.
  * A network failure is indeterminate and must not read as either.
@@ -46,16 +72,25 @@ export function classifyProbe(status) {
   return "PRESENT";
 }
 
-/** An added route that probes PRESENT means the publish carried it. */
+/**
+ * An added route that probes PRESENT means the publish carried it.
+ *
+ * `published` speaks only for routes actually probed. Unprobeable POST routes
+ * are counted and reported so partial coverage is visible rather than implied,
+ * and a run that probed nothing is never "published".
+ */
 export function summarize(results) {
-  const absent = results.filter((r) => r.verdict === "ABSENT").map((r) => r.route);
-  const present = results.filter((r) => r.verdict === "PRESENT").map((r) => r.route);
-  const undetermined = results.filter((r) => r.verdict === "UNDETERMINED").map((r) => r.route);
+  const pick = (v) => results.filter((r) => r.verdict === v).map((r) => r.route);
+  const absent = pick("ABSENT");
+  const present = pick("PRESENT");
+  const undetermined = pick("UNDETERMINED");
+  const unprobeable = pick("UNPROBEABLE");
   return {
     absent,
     present,
     undetermined,
-    published: absent.length === 0 && undetermined.length === 0 && results.length > 0,
+    unprobeable,
+    published: absent.length === 0 && undetermined.length === 0 && present.length > 0,
   };
 }
 
@@ -84,9 +119,15 @@ async function main() {
 
   const results = [];
   for (const route of added) {
+    const path = route.slice(route.indexOf(" ") + 1);
+    if (!isProbeable(route)) {
+      results.push({ route, status: null, verdict: "UNPROBEABLE" });
+      console.log(`  ${route} → not probed (non-GET; would mutate production)`);
+      continue;
+    }
     let status = null;
     try {
-      const res = await fetch(`${origin}${route}`, { method: "GET" });
+      const res = await fetch(`${origin}${path}`, { method: "GET" });
       status = res.status;
     } catch {
       status = null;
@@ -96,7 +137,11 @@ async function main() {
     console.log(`  ${route} → ${status ?? "unreachable"} ${verdict}`);
   }
   const s = summarize(results);
-  console.log(s.published ? "PUBLISHED: every added route answers on the live build" : "NOT PUBLISHED: added routes are absent from the live build");
+  if (s.published) {
+    console.log(`PUBLISHED: every probed route answers on the live build (${s.present.length} probed, ${s.unprobeable.length} not probeable)`);
+  } else {
+    console.log(`NOT PUBLISHED: ${s.absent.length} absent, ${s.undetermined.length} undetermined, ${s.unprobeable.length} not probeable`);
+  }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) await main();
