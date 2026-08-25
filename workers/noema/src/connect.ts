@@ -210,7 +210,7 @@ noema connect</code></pre>
           const res = await fetch("/v1/play/login/request", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: cEmail.value, next: "connect", code: currentCode() }),
+            body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode() }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -291,7 +291,7 @@ noema connect</code></pre>
       const raw = (document.getElementById("d-code").value || "").replace(/[^a-fA-F0-9]/g, "");
       if (raw.length === 8) lookup();
     });
-    const deep = canonicalCode(new URLSearchParams(location.search).get("code"));
+    const deep = canonicalCode(new URLSearchParams(location.search).get("connect_code"));
     if (deep) {
       saveCode(deep);
     }
