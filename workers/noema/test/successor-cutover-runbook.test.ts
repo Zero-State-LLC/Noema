@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUNBOOK = readFileSync(join(HERE, "../../../docs/SUCCESSOR-CUTOVER-RUNBOOK.md"), "utf8");
+const RISK = readFileSync(join(HERE, "../../../docs/LCA1-DELTA-AND-CUTOVER-RISK.md"), "utf8");
 const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), "utf8")) as {
   frozen_release?: { genesis_id?: string; do_name?: string; world_id?: string; seal?: string };
   hosted_live?: { world_id?: string; genesis_id?: string; do_name?: string };
@@ -47,5 +48,19 @@ describe("successor cutover runbook", () => {
     expect(RUNBOOK).toContain("not reseeding");
     expect(RUNBOOK).toContain("PLAY never follows that allowlist");
     expect(RUNBOOK).toContain("DEFAULT_WORLD_ID");
+  });
+
+  it("points related evidence at merged #565/#562, not the superseded fixture PR", () => {
+    expect(RUNBOOK).toContain("Noema #565 merged");
+    expect(RUNBOOK).toContain("Noema #562 merged");
+    expect(RUNBOOK).not.toMatch(/Older-world DO fixture: Noema #557\b/);
+  });
+
+  it("does not leave closed LCA-2 residuals marked open in the risk register", () => {
+    expect(RISK).not.toContain("No automated cross-version load test");
+    expect(RISK).not.toContain("no rehearsed rollback artifact exists");
+    expect(RISK).toContain("#565");
+    expect(RISK).toContain("#562");
+    expect(RISK).toContain("Gate A is not complete");
   });
 });
