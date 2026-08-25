@@ -252,7 +252,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
           const res = await fetch("/v1/play/login/request", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode() }),
+            body: JSON.stringify({ email: cEmail.value, next: "connect", connect_code: currentCode(), auth_flow: authFlow }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -272,6 +272,15 @@ export function connectHtml(production = false, pendingCode: string | null = nul
       return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
     }
     function currentCode(){ return canonicalCode(document.getElementById("d-code").value || ""); }
+    const authFlow = (() => {
+      try {
+        const existing = sessionStorage.getItem("noema.connect.auth_flow") || "";
+        if (/^[0-9a-f]{32}$/.test(existing)) return existing;
+        const created = crypto.randomUUID().replace(/-/g, "").toLowerCase();
+        sessionStorage.setItem("noema.connect.auth_flow", created);
+        return created;
+      } catch (_) { return ""; }
+    })();
     function saveCode(code){
       const v = canonicalCode(code);
       if (!v) return;
@@ -286,7 +295,8 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     const preview = document.getElementById("d-preview");
     const dNotice = document.getElementById("d-notice");
     try {
-      const authChannel = new BroadcastChannel("noema-play-auth");
+      if (!authFlow) throw new Error("auth flow unavailable");
+      const authChannel = new BroadcastChannel("noema-play-auth:" + authFlow);
       authChannel.addEventListener("message", (event) => {
         const data = event.data || {};
         if (data.type !== "noema.play.authenticated" || typeof data.token !== "string" || !data.token) return;

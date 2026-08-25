@@ -405,7 +405,7 @@ export default {
 
       // Public WATCH/CONNECT email login (HumanPrincipal; never inhabit)
       if (request.method === "POST" && path === "/v1/play/login/request") {
-        const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string; code?: string; connect_code?: string };
+        const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string; code?: string; connect_code?: string; auth_flow?: string };
         return cors(await requestPlayMagicLink(env, request, body));
       }
       if (request.method === "POST" && path === "/v1/play/login/consume") {

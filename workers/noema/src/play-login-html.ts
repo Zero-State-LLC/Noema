@@ -63,6 +63,8 @@ export function playCallbackHtml(): string {
   const type = search.get("type") || hash.get("type") || "";
   const authCode = search.get("code") || hash.get("code") || "";
   const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || "";
+  const rawAuthFlow = search.get("auth_flow") || hash.get("auth_flow") || "";
+  const authFlow = /^[0-9a-f]{32}$/.test(rawAuthFlow.trim().toLowerCase()) ? rawAuthFlow.trim().toLowerCase() : "";
   const connectCode = (() => {
     const raw = rawConnectCode.trim().replace(/-/g, "").toLowerCase();
     return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
@@ -82,7 +84,8 @@ export function playCallbackHtml(): string {
       // Keep the bearer token tab-scoped, but hand it to an already-open
       // same-origin CONNECT tab so approving after a mail-link click works.
       try {
-        const channel = new BroadcastChannel("noema-play-auth");
+        if (!authFlow) throw new Error("auth flow unavailable");
+        const channel = new BroadcastChannel("noema-play-auth:" + authFlow);
         channel.postMessage({
           type: "noema.play.authenticated",
           token: data.access_token,
@@ -95,7 +98,11 @@ export function playCallbackHtml(): string {
       const raw = search.get("next") || hash.get("next") || "";
       let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       if (next === "/connect") {
-        if (connectCode) next = "/connect?connect_code=" + encodeURIComponent(connectCode);
+        const nextParams = new URLSearchParams();
+        if (connectCode) nextParams.set("connect_code", connectCode);
+        if (authFlow) nextParams.set("auth_flow", authFlow);
+        const nextQuery = nextParams.toString();
+        if (nextQuery) next = "/connect?" + nextQuery;
       }
       location.href = next;
     } catch (err) {
