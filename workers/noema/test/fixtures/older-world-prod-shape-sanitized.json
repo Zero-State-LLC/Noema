@@ -1,13 +1,25 @@
 {
-  "fixture_version": "prod-shape-sanitized-2026-08-issue-553",
+  "fixture_version": "prod-shape-sanitized-legacy-nested-deep-time-2026-08-issue-553",
   "sanitization": {
-    "source": "production-shaped synthetic older Durable Object state",
+    "source": "production-shaped synthetic older Durable Object state with Deep Time only under co_evolution.deep_time",
     "contains_real_user_data": false,
     "redactions": [
       "handles",
       "message text",
       "ids",
       "timestamps"
+    ],
+    "omitted_current_schema_fields": [
+      "world.scars",
+      "world.evidence_fragments",
+      "world.trajectory_digest",
+      "world.norm_ratchets",
+      "world.lore_attractors",
+      "organizations.treasury",
+      "player.practice",
+      "player.trade_memory",
+      "player.danger_memory",
+      "player.discovery"
     ]
   },
   "world": {
@@ -208,15 +220,6 @@
         "channel": {
           "text": "sanitized channel notice",
           "cycle": 35
-        },
-        "treasury": {
-          "budgets": {
-            "attention": 1,
-            "compute": 4,
-            "energy": 3,
-            "influence": 2,
-            "storage": 5
-          }
         },
         "offices": {
           "office.steward": {
@@ -422,57 +425,6 @@
           }
         ]
       }
-    },
-    "scars": [
-      {
-        "scar_id": "scar.relay-neglect",
-        "domain": "economic",
-        "room_id": "room.relay-quarter",
-        "entity_id": "entity.relay-trunk",
-        "cycle_born": 13,
-        "strength": 0.44,
-        "decay_rate": 0.02,
-        "fossilized": false,
-        "visibility": "public",
-        "reconstruction_confidence": 0.82,
-        "harvest_count": 3
-      }
-    ],
-    "evidence_fragments": [
-      {
-        "fragment_id": "frag.route-ledger",
-        "subject_ref": "entity.relay-trunk",
-        "cycle": 30,
-        "kind": "TRADE",
-        "player_id": "player.agent-aloe",
-        "claim": "agents repaired the relay after archive evidence"
-      }
-    ],
-    "trajectory_digest": {
-      "entity.relay-trunk": {
-        "room_id": "room.relay-quarter",
-        "last_cycle": 36,
-        "harvest_count": 3
-      }
-    },
-    "norm_ratchets": {
-      "org_create": {
-        "key": "org_create",
-        "established_cycle": 12,
-        "last_hit_cycle": 35,
-        "hits": 4,
-        "reversal_cost": 2,
-        "path_dependence_strength": 0.7
-      }
-    },
-    "lore_attractors": [
-      {
-        "attractor_id": "lore.east-route",
-        "label": "the east route remembers repair",
-        "weight": 0.61,
-        "room_id": "room.relay-quarter",
-        "basin": "forming"
-      }
-    ]
+    }
   }
 }

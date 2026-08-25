@@ -25,6 +25,9 @@ function readFixture(text = readFileSync(FIXTURE_PATH, "utf8")): FixtureEnvelope
   if (!String(parsed.fixture_version || "").includes("prod-shape-sanitized")) {
     throw new Error("fixture must declare sanitized production shape");
   }
+  if (!String(parsed.fixture_version || "").includes("legacy-nested-deep-time")) {
+    throw new Error("fixture must declare the nested Deep Time older-blob shape");
+  }
   requireRecord(parsed.world, "fixture.world");
   const world = parsed.world;
   if (typeof world.world_id !== "string" || !world.world_id.startsWith("world.")) throw new Error("world_id is required");
@@ -42,9 +45,29 @@ function cloneWorld(): WorldRuntime {
 }
 
 describe("LCA-2 older Durable Object compatibility fixture", () => {
+  it("stores Deep Time only under co_evolution.deep_time, the older blob location", () => {
+    const raw = JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as {
+      world: Record<string, unknown>;
+    };
+    const world = raw.world;
+    expect(world).not.toHaveProperty("scars");
+    expect(world).not.toHaveProperty("evidence_fragments");
+    expect(world).not.toHaveProperty("trajectory_digest");
+    expect(world).not.toHaveProperty("norm_ratchets");
+    expect(world).not.toHaveProperty("lore_attractors");
+    const org = (world.organizations as Record<string, Record<string, unknown>>)["org.civic-repair"];
+    expect(org).not.toHaveProperty("treasury");
+    const nested = (world.co_evolution as { deep_time: { scars: Array<{ scar_id: string }> } }).deep_time;
+    expect(nested.scars[0]).toEqual(expect.objectContaining({ scar_id: "scar.relay-neglect" }));
+    const repairs = (world.culture as { sites: Record<string, { repairs?: unknown[] }> }).sites["entity.relay-trunk"].repairs;
+    expect(repairs).toEqual([expect.objectContaining({ event_id: "evt.repair.000207", actor_id: "player.agent-aloe" })]);
+  });
+
   it("loads the sanitized production-shape older world through migration and recovery without dropping public state", async () => {
     const world = cloneWorld();
     const before = structuredClone(world);
+    expect(before.scars).toBeUndefined();
+    expect(before.organizations["org.civic-repair"].treasury).toBeUndefined();
     migrateWorldRuntime(world);
 
     let persistedHead: WorldHead | null = null;
@@ -133,16 +156,28 @@ describe("LCA-2 older Durable Object compatibility fixture", () => {
     });
     expect(recovered.unsettled).toEqual([]);
 
-    // Deep Time, culture, and pressure.
+    // Deep Time lifted from the nested blob; culture repairs and empty catalogs filled.
     expect(recovered.co_evolution?.harvest_pressure).toEqual(before.co_evolution?.harvest_pressure);
     expect(recovered.co_evolution?.regen_mod).toEqual(before.co_evolution?.regen_mod);
     expect(recovered.scars?.[0]).toMatchObject({ scar_id: "scar.relay-neglect", strength: 0.44 });
+    expect(recovered.co_evolution?.deep_time?.scars?.[0]).toMatchObject({ scar_id: "scar.relay-neglect" });
     expect(recovered.co_evolution?.deep_time?.evidence_fragments?.[0]).toMatchObject({ fragment_id: "frag.route-ledger" });
     expect(recovered.trajectory_digest?.["entity.relay-trunk"].harvest_count).toBe(3);
     expect(recovered.norm_ratchets?.org_create.reversal_cost).toBe(2);
     expect(recovered.lore_attractors?.[0].label).toContain("east route");
     expect(recovered.culture?.sites["entity.relay-trunk"].repair_ids).toEqual(["evt.repair.000207"]);
+    expect(recovered.culture?.sites["entity.relay-trunk"].repairs).toEqual([
+      expect.objectContaining({ event_id: "evt.repair.000207", actor_id: "player.agent-aloe", cycle: 33 }),
+    ]);
     expect(recovered.pressure?.class_activations).toEqual({ infrastructure_failure: 2, resource_scarcity: 1, access_restriction: 1 });
+    expect(recovered.players["player.agent-aloe"].practice?.catalog_id).toBe("mastery-catalog/gc1-s1");
+    expect(recovered.organizations["org.civic-repair"].treasury).toMatchObject({
+      attention: 0,
+      compute: 0,
+      energy: 0,
+      influence: 0,
+      storage: 0,
+    });
 
     // Canonical head is the migrated live snapshot, with transient settlement queues stripped.
     const head = persistedHead as WorldHead | null;

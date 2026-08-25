@@ -375,7 +375,12 @@ describe("runIncidentRecover", () => {
       expect(persistedWorld.trajectory_digest?.["entity.relay-trunk"].harvest_count).toBe(3);
       expect(persistedWorld.norm_ratchets?.org_create.reversal_cost).toBe(2);
       expect(persistedWorld.lore_attractors?.[0].label).toContain("east route");
+      expect(legacyWorld.scars).toBeUndefined();
       expect(persistedWorld.culture?.sites["entity.relay-trunk"].repair_ids).toEqual(["evt.repair.000207"]);
+      expect(persistedWorld.culture?.sites["entity.relay-trunk"].repairs).toEqual([
+        expect.objectContaining({ event_id: "evt.repair.000207", actor_id: "player.agent-aloe" }),
+      ]);
+      expect(persistedWorld.players["player.agent-aloe"].practice?.catalog_id).toBe("mastery-catalog/gc1-s1");
       expect(persistedWorld.pressure?.class_activations).toEqual({ infrastructure_failure: 2, resource_scarcity: 1, access_restriction: 1 });
       expect(persistedWorld.public_social_events?.[0]).toMatchObject({ kind: "repair", target_id: "entity.relay-trunk", actor_id: "player.agent-aloe" });
       expect(persistedWorld.evidence_fragments?.[0]).toMatchObject({ fragment_id: "frag.route-ledger" });
