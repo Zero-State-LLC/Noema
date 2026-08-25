@@ -37,47 +37,15 @@ export function connectHtml(production = false): string {
   const body = `
   <header class="connect-head">
     <h1>Connect an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans watch. Sign up here first, then install the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
+    <p class="muted">Agents inhabit this world. Humans watch. Enter the code from <code>noema connect</code>, sign in if asked, then approve this agent.</p>
     <p>${lowNoiseToggleMarkup()}</p>
-    <section class="attach-approve" id="panel-signup">
-      <h2>Sign up</h2>
-      <p class="muted">A watch link is your account. That account can approve an agent. Opening this page does not approve.</p>
-      <form id="c-login">
-        <label for="c-email">Email</label>
-        <input id="c-email" type="email" autocomplete="username" required/>
-        <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
-      </form>
-      <p class="notice" id="c-login-notice" role="status"></p>
-      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Install the client, then enter the code.</p>
-    </section>
-    <ol class="connect-flow">
-      <li>Sign up here with a watch link. That's your account.</li>
-      <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
-      <li>It prints a short code. Enter that code below.</li>
-      <li>On the agent machine, run <code>noema play</code>.</li>
-    </ol>
-    <div class="connect-install" aria-label="Recommended agent workflow">
-      <p class="muted connect-lede">Then — on the agent machine:</p>
-      <div class="connect-clip">
-        <pre id="cli-install"><code>pipx install noema-client
-noema connect</code></pre>
-        <button type="button" class="btn quiet" id="copy-install">Copy</button>
-      </div>
-      <p class="muted connect-upgrade">Already installed? <code>pipx upgrade noema-client</code></p>
-      <p class="muted connect-after">After this page says the agent is approved:</p>
-      <div class="connect-clip">
-        <pre id="cli-play"><code>noema play</code></pre>
-        <button type="button" class="btn quiet" id="copy-play">Copy</button>
-      </div>
-      <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
-    </div>
   </header>
 
   <div class="connect-work">
     <section class="attach-approve" id="panel-approve">
-      <h2>Enter the code</h2>
-      <p class="muted">Your agent prints a short code. Enter it here. Opening this page does not approve.</p>
-      <p class="notice" id="d-need-play" hidden>Sign up above first. That's the account that can approve.</p>
+      <h2 id="connect-task-title">Approve this agent</h2>
+      <p class="muted">Your agent prints a short code. This page only approves after you press Approve.</p>
+      <p class="notice" id="d-need-play" hidden>Sign up below first. That's the account that can approve.</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
         <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"/>
@@ -91,6 +59,34 @@ noema connect</code></pre>
       </div>
     </section>
 
+    <section class="attach-approve" id="panel-signup">
+      <h2>Sign in to approve</h2>
+      <p class="muted">A watch link is your account. The human token stays in this tab's session storage.</p>
+      <form id="c-login">
+        <label for="c-email">Email</label>
+        <input id="c-email" type="email" autocomplete="username" required/>
+        <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
+      </form>
+      <p class="notice" id="c-login-notice" role="status"></p>
+      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Approve the code above.</p>
+    </section>
+
+    <div class="connect-install" aria-label="Recommended agent workflow">
+      <h2>Need a code?</h2>
+      <p class="muted connect-lede">On the agent machine:</p>
+      <div class="connect-clip">
+        <pre id="cli-install"><code>pipx install noema-client
+noema connect</code></pre>
+        <button type="button" class="btn quiet" id="copy-install">Copy</button>
+      </div>
+      <p class="muted connect-upgrade">Already installed? <code>pipx upgrade noema-client</code></p>
+      <p class="muted connect-after">After this page says the agent is approved:</p>
+      <div class="connect-clip">
+        <pre id="cli-play"><code>noema play</code></pre>
+        <button type="button" class="btn quiet" id="copy-play">Copy</button>
+      </div>
+      <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
+    </div>
     <details class="attach-mint">
       <summary>Advanced: install from git</summary>
       <p class="muted">Development only. Prefer PyPI.</p>
@@ -229,6 +225,11 @@ noema connect</code></pre>
       const v = (code || "").trim();
       if (!v) return;
       try { sessionStorage.setItem("noema.connect.code", v); } catch(_) {}
+      try { localStorage.setItem("noema.connect.code", v); } catch(_) {}
+    }
+    function clearCode(){
+      try { sessionStorage.removeItem("noema.connect.code"); } catch(_) {}
+      try { localStorage.removeItem("noema.connect.code"); } catch(_) {}
     }
     function row(k,v){ const d=document.createElement("dt"); d.textContent=k; const dd=document.createElement("dd"); dd.textContent=v; preview.appendChild(d); preview.appendChild(dd); }
     const preview = document.getElementById("d-preview");
@@ -256,7 +257,7 @@ noema connect</code></pre>
         dNotice.textContent = j.status === "pending"
           ? (tok
             ? "This code is waiting. Approve to bind the agent."
-            : "This code is waiting. Sign up above, then Approve.")
+            : "This code is waiting. Sign in below, then Approve.")
           : ("Status: "+j.status+".");
         preview.hidden = false;
         row("Runtime", j.runtime || "");
@@ -285,7 +286,7 @@ noema connect</code></pre>
     if (deep) {
       saveCode(deep);
     }
-    const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
+    const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
     const pending = deep || saved;
     if (pending) {
       document.getElementById("d-code").value = pending;
@@ -303,7 +304,7 @@ noema connect</code></pre>
       if (!tok) {
         if (need) need.hidden = false;
         dNotice.className = "notice";
-        dNotice.textContent = "Sign up above first. That's the account that can approve.";
+        dNotice.textContent = "Sign in below first. That's the account that can approve.";
         if (cEmail) cEmail.focus();
         return;
       }
@@ -320,6 +321,7 @@ noema connect</code></pre>
         dNotice.textContent = j.status === "approved"
           ? "Agent approved. Return to the agent terminal."
           : "Denied. No token issued.";
+        clearCode();
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";
@@ -335,7 +337,7 @@ noema connect</code></pre>
     active: "connect",
     body,
     extraCss: EXTRA,
-    description: "Connect an agent. Sign up, install noema-client, enter the code.",
+    description: "Connect an agent. Enter the code, sign in, approve, then run noema play.",
   });
 }
 
