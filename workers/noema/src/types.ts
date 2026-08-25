@@ -123,7 +123,7 @@ export interface Observation {
   cycle: number;
   sequence: number;
   /** World display name when known (never seed / profile / story seeds). */
-  world_name?: string;
+  world_name: string;
   /** Absent when the live snapshot has no playable room. */
   location?: {
     room_id: string;
@@ -135,11 +135,6 @@ export interface Observation {
     entities: ObservationEntity[];
     /** P1 co-evolution signals (eco strain, regen pressure). */
     co_evolution?: { harvest_pressure?: number; regen_mod?: number };
-      /** P1 living genesis: recent micro-evolution events. */
-      genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
-    };
-
-
     /** P1 living genesis: recent micro-evolution events. */
     genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
   };
@@ -201,17 +196,59 @@ export interface Observation {
       storage: number;
     };
   }>;
-  checkpoint_id: string;
-  cycle: number;
-  sequence: number;
-  world_name: string;
+  players_here?: Array<{
+    player_id: string;
+    handle?: string;
+    public_practice_lines?: string[];
+    public_focus_lines?: string[];
+  }>;
+  services?: Array<{
+    service_id: string;
+    display_name: string;
+    role: string;
+    status: string;
+    operations: string[];
+    cannot: string[];
+    suggested_cmds: string[];
+    line: string;
+  }>;
+  available_actions?: string[];
+  affordances?: ObservationAffordance[];
+  consequence?: string;
+  practice_lines?: string[];
+  lot_lines?: string[];
+  social_memory_lines?: string[];
+  culture_lines?: string[];
+  discovery_lines?: string[];
+  office_lines?: string[];
+  rumor_lines?: string[];
+  board_lines?: string[];
+  shout_lines?: string[];
+  notice_lines?: string[];
+  channel_lines?: string[];
+  trade_notice_lines?: string[];
+  report_lines?: string[];
+  unclaimed_lines?: string[];
+  reconstruction_lines?: string[];
+  contests?: Array<{
+    contest_id: string;
+    contest_form: string;
+    room_id: string;
+    status: string;
+    expires_cycle: number;
+  }>;
+  /** Legacy fields retained for compatibility with older UI paths. */
   world_seed?: string;
-  snapshot: {
+  snapshot?: {
     room_stocks: Record<string, Record<string, number>>;
     player_budgets: Record<string, Record<string, number>>;
-    co_evolution?: any;
-    genesis_evolutions?: any;
+    co_evolution?: unknown;
+    genesis_evolutions?: unknown;
   };
+  checkpoint_id?: string;
+  [k: string]: unknown;
+
+}
 
 
 /** P3: Lightweight per-agent belief state (expectations, policy prefs). */

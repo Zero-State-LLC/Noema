@@ -6,8 +6,6 @@
 
 import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
 
-export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK" | "EWM_ENHANCED";
-
 export type StorySeedId =
   | "FOUNDING_SPLIT"
   | "OLD_TRADE_NETWORK"
@@ -105,7 +103,10 @@ export interface GenesisRoom {
     regen_rate?: number;
     repairable?: boolean;
     harvestable?: boolean;
-}>;
+    production_hint?: string;
+    conversion_eligible?: string[];
+    production_type?: string;
+  }>;
   tags?: string[];
 }
 
@@ -429,50 +430,7 @@ function buildCycle0(
 
   const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions, theme);
 
-  // EWM_ENHANCED profile seeding (P4 cutover variant) – hardened with guards + idempotency
-  if ((profile as any).ewm_features) {
-    const archetypes = [
-      { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" },
-      { id: "archetype.trader", name: "Trade Guild (dormant)", status: "dormant" },
-      { id: "archetype.archivist", name: "Archive Custodians (dormant)", status: "dormant" },
-    ];
-    for (const arch of archetypes) {
-      if (!institutions.some((i: any) => i.id === arch.id)) institutions.push(arch);
-    }
-
-    const exchange = rooms["room.civic-exchange"] as any;
-    if (exchange) exchange.ewm_tuned = true;
-
-    for (const room of Object.values(rooms)) {
-      for (const ent of room.entities) {
-        if (ent.entity_id?.includes("salvage") || ent.stock_resource === "materials") {
-          ent.stock_amount = Math.max(ent.stock_amount ?? 4, 8);
-          ent.max_stock = Math.max(ent.max_stock ?? 12, 18);
-          ent.regen_rate = Math.max(ent.regen_rate ?? 0.8, 1.15);
-          ent.production_hint = ent.production_hint || "salvage";
-          ent.conversion_eligible = ent.conversion_eligible || ["materials->compute", "materials->influence"];
-        }
-      }
-    }
-
-    (cycle0 as any).initial_beliefs = { expected_regen: 0.82, conversion_rate: 0.55, org_threshold: 5.0, ...( (cycle0 as any).initial_beliefs || {} ) };
-    (cycle0 as any).initial_co_evolution = { harvest_pressure: 0, regen_mod: { default: 1.15 }, ...( (cycle0 as any).initial_co_evolution || {} ) };
-    (cycle0 as any).ewm_features = true;
-
-    if (institutions.length > 0) (institutions[0] as any).charter_evolvable = true;
-
-    if (rooms["room.civic-exchange"]) {
-      const hasProd = rooms["room.civic-exchange"].entities.some((e: any) => e.entity_id === "entity.production-node-ewm");
-      if (!hasProd) {
-        rooms["room.civic-exchange"].entities.push({
-          entity_id: "entity.production-node-ewm", label: "exchange-fabricator", entity_type: "PRODUCTION",
-          production_type: "materials-to-compute", stock_resource: "materials", stock_amount: 3, max_stock: 9, regen_rate: 0.9,
-        });
-      }
-    }
-  }
-
-  return {
+  const cycle0: Cycle0World = {
     world_id,
     world_name,
     world_seed,
@@ -488,6 +446,64 @@ function buildCycle0(
     opportunities,
     theme_id: theme.theme_id,
   };
+
+  // EWM_ENHANCED profile seeding (P4 cutover variant) – hardened with guards + idempotency
+  if ((profile as any).ewm_features) {
+    const archetypes: Cycle0World["institutions"] = [
+      { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" },
+      { id: "archetype.trader", name: "Trade Guild (dormant)", status: "dormant" },
+      { id: "archetype.archivist", name: "Archive Custodians (dormant)", status: "dormant" },
+    ];
+    for (const arch of archetypes) {
+      if (!institutions.some((i: any) => i.id === arch.id)) institutions.push(arch);
+    }
+
+    const exchange = cycle0.rooms["room.civic-exchange"] as GenesisRoom & { ewm_tuned?: boolean };
+    if (exchange) exchange.ewm_tuned = true;
+
+    for (const room of Object.values(cycle0.rooms)) {
+      for (const ent of room.entities) {
+        if (ent.entity_id?.includes("salvage") || ent.stock_resource === "materials") {
+          ent.stock_amount = Math.max(ent.stock_amount ?? 4, 8);
+          ent.max_stock = Math.max(ent.max_stock ?? 12, 18);
+          ent.regen_rate = Math.max(ent.regen_rate ?? 0.8, 1.15);
+          ent.production_hint = ent.production_hint || "salvage";
+          ent.conversion_eligible = ent.conversion_eligible || ["materials->compute", "materials->influence"];
+        }
+      }
+    }
+
+    (cycle0 as any).initial_beliefs = {
+      expected_regen: 0.82,
+      conversion_rate: 0.55,
+      org_threshold: 5.0,
+      ...((cycle0 as any).initial_beliefs || {}),
+    };
+    (cycle0 as any).initial_co_evolution = {
+      harvest_pressure: 0,
+      regen_mod: { default: 1.15 },
+      ...((cycle0 as any).initial_co_evolution || {}),
+    };
+    (cycle0 as any).ewm_features = true;
+
+    if (institutions.length > 0) (institutions[0] as any).charter_evolvable = true;
+
+    if (cycle0.rooms["room.civic-exchange"]) {
+      const hasProd = cycle0.rooms["room.civic-exchange"].entities.some(
+        (e: any) => e.entity_id === "entity.production-node-ewm",
+      );
+      if (!hasProd) {
+        cycle0.rooms["room.civic-exchange"].entities.push({
+          entity_id: "entity.production-node-ewm",
+          label: "exchange-fabricator",
+          entity_type: "PRODUCTION",
+          production_type: "materials-to-compute", stock_resource: "materials", stock_amount: 3, max_stock: 9, regen_rate: 0.9,
+        });
+      }
+    }
+  }
+
+  return cycle0;
 }
 
 function startingOpportunities(
