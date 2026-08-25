@@ -407,7 +407,11 @@ describe("play login HTML", () => {
     expect(connect).toMatch(/clearCode\(\);[\s\S]{0,160}document\.getElementById\("d-deny"\)/);
     expect(connect).toContain('history.replaceState(null, "", "/connect")');
     expect(connect).toMatch(/catch\(e\)[\s\S]{0,500}clearCode\(\)/);
-    expect(connect).toContain("This code is waiting. Sign in, then Approve.");
+    expect(connect).toContain("Sign in is required before approval. Use the email field below, then return here to Approve.");
+    expect(connect).toContain('if (approveButton) approveButton.textContent = tok ? "Approve" : "Sign in to approve"');
+    expect(connect).toMatch(/function syncPlaySession\(\)[\s\S]{0,180}approveButton\.textContent = tok \? "Approve" : "Sign in to approve"/);
+    expect(connect).toContain('dNotice.textContent = "Approval was not sent. Sign in first, then click Approve again."');
+    expect(connect).toContain('need.scrollIntoView({ behavior: "smooth", block: "center" })');
     expect(connect).not.toContain("Sign up above, then Approve.");
     const task = connectHtml(false, "AB12-CD34");
     expect(task).toContain("Approve this agent");
