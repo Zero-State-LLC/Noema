@@ -3110,7 +3110,7 @@ export function deriveAffordances(input: {
       }
     }
     if (e.stock_resource) {
-      const hasStock = (e.stock_amount ?? 0) > 0;
+      const hasStock = (e.stock_amount ?? 0) >= 1;
       const hasStorage = (budgets.storage ?? 0) >= 1;
       const canFuel = canPay(budgets, COSTS.HARVEST);
       const ok = hasStock && hasStorage && canFuel;
