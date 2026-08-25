@@ -1,3 +1,6 @@
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { classifyProbe, diffRoutes, extractRoutes, isProbeable, summarize } from "../scripts/deployed-route-drift.mjs";
 
@@ -7,6 +10,18 @@ import { classifyProbe, diffRoutes, extractRoutes, isProbeable, summarize } from
  * lived in a PR body. This is the same reasoning as code.
  */
 describe("deployed-route drift", () => {
+  it("runs from the Worker package directory shown by its usage", () => {
+    const testDir = dirname(fileURLToPath(import.meta.url));
+    const workerDir = resolve(testDir, "..");
+    const run = spawnSync(
+      process.execPath,
+      ["scripts/deployed-route-drift.mjs", "--live-ref", "HEAD"],
+      { cwd: workerDir, encoding: "utf8" },
+    );
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stdout).toContain("routes added since the live build: (none)");
+  });
+
   it("extracts routes with their method, and marks path-only routes ANY", () => {
     const src = `
       if (request.method === "GET" && path === "/health") return ok();
