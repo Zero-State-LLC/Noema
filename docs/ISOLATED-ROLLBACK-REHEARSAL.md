@@ -34,12 +34,15 @@ The isolated Worker intentionally has no Supabase binding. `/v1/admin/overview` 
 
 ## Exact invocation
 
-From `workers/noema`, using the CI-pinned Node 24 runtime:
+From `workers/noema`, select the CI-pinned Node 24 runtime when it is installed, then verify the actual runtime before executing. The receipt records the exact `node -v` output rather than assuming the requested runtime exists:
 
 ```bash
 export NVM_DIR="$HOME/.nvm"
 . "$NVM_DIR/nvm.sh"
-export PATH="$HOME/.nvm/versions/node/v24.19.0/bin:$PATH"
+if [ -x "$HOME/.nvm/versions/node/v24.19.0/bin/node" ]; then
+  export PATH="$HOME/.nvm/versions/node/v24.19.0/bin:$PATH"
+fi
+node -v
 
 NOEMA_ROLLBACK_REHEARSAL=I_ACKNOWLEDGE_ISOLATED_A_B_A \
 WORKER_NAME=noema-rollback-rehearsal-555-20260825 \
