@@ -551,7 +551,7 @@ function emptyPlayObservation(
   return {
     cycle: Number.isFinite(w.cycle) ? w.cycle : 0,
     sequence: Number.isFinite(w.sequence) ? w.sequence : 0,
-    world_name: w.world_name,
+    world_name: w.world_name || w.world_id || "Unknown World",
     player_id: principal.player_id,
     in_world: false,
     available_actions: [],
@@ -730,7 +730,7 @@ export function buildObservation(
   return {
     cycle: w.cycle,
     sequence: w.sequence,
-    world_name: w.world_name,
+    world_name: w.world_name || w.world_id || "Unknown World",
     location: {
       room_id: room.room_id,
       name: room.name,
