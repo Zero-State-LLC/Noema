@@ -74,6 +74,29 @@ describe("RESOURCE-ECONOMY production mapper", () => {
 });
 
 describe("RESOURCE-ECONOMY production tick", () => {
+  it("restores regen for canonical persisted nodes with fractional legacy stock", async () => {
+    const w = world(0.03241497048623045);
+    const room = w.rooms["room.civic-exchange"];
+    room.entities[0].entity_id = "entity.salvage-cache";
+    room.entities[0].stock_resource = "materials";
+    room.entities.push(
+      enrichEntity({
+        entity_id: "entity.production-node-ewm",
+        label: "exchange-fabricator",
+        entity_type: "PRODUCTION",
+        stock_resource: "materials",
+        stock_amount: 0.03241497048623045,
+      }),
+    );
+    const p = principal("player.harvester");
+
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, p, "WAIT")).ok).toBe(true);
+
+    expect(room.entities.find((e) => e.entity_id === "entity.salvage-cache")?.stock_amount).toBe(1);
+    expect(room.entities.find((e) => e.entity_id === "entity.production-node-ewm")?.stock_amount).toBe(1);
+  });
+
   it("refills an empty harvest node on cycle commit so HARVEST can run again", async () => {
     const w = world(0);
     const p = principal("player.harvester");
