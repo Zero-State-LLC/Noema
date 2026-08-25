@@ -1,10 +1,13 @@
 name: pin-currency
 
-# Not a pull-request gate. A publish legitimately lands before the PR that moves
-# the pin, so gating merges on this would go red for a correct state, and a check
-# that is red for correct states gets ignored. This runs on a schedule and on
-# demand so a stale pin announces itself instead of being found days later.
+# The scheduled/workflow_dispatch runs are drift monitors. The pull_request run is
+# intentionally narrow: it gates only PRs that edit the authoritative pin, so a
+# normal source PR is not failed just because a deployment happened first. The
+# post-deploy generated PR must pass this check before review/merge.
 on:
+  pull_request:
+    paths:
+      - "spec-compat.json"
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
