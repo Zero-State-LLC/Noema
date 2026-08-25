@@ -69,6 +69,7 @@ import {
 } from "./settle";
 import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
 import { buildRollbackEvidence } from "./rollback-evidence";
+import { buildCompatibilityEvidence } from "./compatibility-evidence";
 import {
   admitTestWorldId,
   lifecycleRequestedWorldId,
@@ -499,6 +500,8 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/admin-status")) {
+      const rawStoredWorld = await this.state.storage.get<WorldState>("world");
+      const compatibilityEvidence = buildCompatibilityEvidence(rawStoredWorld);
       await this.load();
       const roomList = Object.values(this.world!.rooms);
       const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
@@ -508,6 +511,7 @@ export class NoemaWorldDO {
         world_name: this.world!.world_name,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
+        persisted_player_count: Object.keys(this.world!.players || {}).length,
         players_present: countLivePlayers(this.world!.players),
         player_ids: listLivePlayers(this.world!.players).map((p) => p.player_id),
         live_players: listLivePlayers(this.world!.players),
@@ -524,6 +528,7 @@ export class NoemaWorldDO {
         entry_room_id: this.world!.entry_room_id,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         rollback_evidence: rollbackEvidence,
+        compatibility_evidence: compatibilityEvidence,
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
         pressure: adminPressureView(this.world!.pressure),

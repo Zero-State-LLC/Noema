@@ -396,11 +396,24 @@ describe("runIncidentRecover", () => {
         entry_room_id: "room.relay-quarter",
         settlement_health: "HEALTHY",
         unsettled_count: 0,
+        persisted_player_count: 2,
       });
       expect(statusJson.meta).toMatchObject({ status: "ACTIVE", revision: 12, settlement_ok: true });
       expect((statusJson.rooms as Array<{ room_id: string }>).map((r) => r.room_id)).toContain("room.relay-quarter");
       expect(statusJson.offices).toContainEqual(expect.objectContaining({ office_id: "office.steward", status: "ACTIVE" }));
       expect(statusJson.pressure).toBeDefined();
+      expect(statusJson.compatibility_evidence).toMatchObject({
+        pin: "do-compatibility-evidence/1",
+        source_present: true,
+        migration_ok: true,
+        usable_after: true,
+        subsystem_cardinality: {
+          rooms: 2,
+          players: 2,
+          organizations: 1,
+        },
+      });
+      expect(JSON.stringify(statusJson.compatibility_evidence)).not.toMatch(/agent-aloe|agent-birch|civic-repair/i);
     } finally {
       fetchMock.mockRestore();
     }
