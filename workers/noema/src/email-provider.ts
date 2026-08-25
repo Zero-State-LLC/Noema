@@ -8,7 +8,7 @@ export type TransactionalMail = {
   subject: string;
   html: string;
   text: string;
-  tag: "play-magic-link" | "admin-magic-link" | "agent-bootstrap";
+  tag: "play-magic-link" | "admin-magic-link" | "agent-bootstrap" | "device-enrollment-review";
 };
 
 export type EmailProvider = "resend" | "postmark";

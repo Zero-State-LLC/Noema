@@ -423,6 +423,7 @@ export class NoemaWorldDO {
       if (request.method === "GET") {
         const deviceCode = url.searchParams.get("device_code");
         const userCode = (url.searchParams.get("user_code") || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+        const reviewTokenHash = url.searchParams.get("review_token_hash") || "";
         if (deviceCode) {
           const rec = bag[deviceCode];
           if (!rec) return new Response("{}", { status: 404 });
@@ -430,6 +431,11 @@ export class NoemaWorldDO {
         }
         if (userCode) {
           const rec = Object.values(bag).find((r) => r.user_code.replace(/-/g, "") === userCode);
+          if (!rec) return new Response("{}", { status: 404 });
+          return Response.json(rec);
+        }
+        if (reviewTokenHash) {
+          const rec = Object.values(bag).find((r) => r.review_token_hash === reviewTokenHash);
           if (!rec) return new Response("{}", { status: 404 });
           return Response.json(rec);
         }

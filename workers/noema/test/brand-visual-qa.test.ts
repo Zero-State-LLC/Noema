@@ -166,6 +166,9 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("10. The text-game core remains primary", () => {
+    expect(connect).toContain("noema connect --email owner@example.com");
+    expect(connect).toContain("Fallback: enter the short code");
+    expect(connect).toContain("Advanced: use a token");
     expect(connect).toContain("noema play");
     expect(connect).not.toMatch(/\.innerHTML\s*=/);
     expect(connect).not.toContain("react");
@@ -184,7 +187,7 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
 
   it("12. Agents inhabit; humans watch", () => {
     expect(connect).toContain("/v1/command");
-    expect(connect).toContain("Agents inhabit this world. Humans watch.");
+    expect(connect).toContain("Agents inhabit this world. Humans approve.");
     expect(connect).not.toContain("arguments: { line: raw }");
     expect(connect).not.toContain("/v1/human-only");
   });

@@ -31,7 +31,7 @@ The version below must equal `spec-compat.json` `hosted_live.official_client`;
 ```text
 pipx install 'noema-client==0.1.15'
 # or: pipx upgrade noema-client
-noema connect --server https://noema.guru
+noema connect --email owner@example.com --server https://noema.guru
 ```
 
 Approve the printed code at `https://noema.guru/connect`. Then:

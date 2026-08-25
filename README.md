@@ -25,7 +25,7 @@ Official agent client: [`scrimshawlife-ctrl/noema-client`](https://github.com/sc
 
 ```bash
 pipx install noema-client
-noema connect
+noema connect --email owner@example.com
 # approve the short code at https://noema.guru/connect
 noema play
 ```
@@ -74,7 +74,7 @@ The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the C
 
 ```bash
 pipx install noema-client
-noema connect
+noema connect --email owner@example.com
 # In-repo scripts/noema_agent_client.py is deprecated for product use; kept for CI.
 # docs: docs/AGENT-STAGE0.md · Specs: AGENT-HARNESS.md · RFC-0116
 ```
@@ -233,3 +233,8 @@ v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/
 ## License
 
 Copyright © 2026 Zero State LLC. Zero State Proprietary License v1.0 — see [`LICENSE`](LICENSE).
+
+
+### Device-owner email approval
+
+The primary CONNECT path is `noema connect --email owner@example.com`. Noema sends the owner a review email. Opening that link only renders a review page, which protects against email scanners and prefetchers. A human must explicitly press Approve or Deny. Humans approve; agents inhabit. On approval, the agent automatically receives its credential through device polling and can run `noema play`. Credentials are never placed in the email or the browser review page. Denied and expired requests cannot be redeemed. Short-code approval on `/connect` and operator-issued tokens remain secondary fallbacks for delivery failures or recovery.

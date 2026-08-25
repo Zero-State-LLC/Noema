@@ -411,10 +411,10 @@ describe("play login HTML", () => {
     expect(html).not.toContain("path-rail");
     expect(html).not.toContain("The world is the text.");
   });
-  it("CONNECT is task-first: sign up, get a code, then play", () => {
+  it("CONNECT is task-first: owner email review, then play", () => {
     const html = connectHtml();
-    expect(html).toContain("Sign up here with a watch link. That's your account.");
-    expect(html).toContain("It prints a short code. Enter that code below.");
-    expect(html).toContain("On the agent machine, run <code>noema play</code>.");
+    expect(html).toContain("Agents inhabit this world. Humans approve.");
+    expect(html).toContain("noema connect --email owner@example.com");
+    expect(html).toContain("After approval, the agent automatically receives its credential through polling and inhabits with <code>noema play</code>.");
   });
 });
