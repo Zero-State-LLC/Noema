@@ -230,8 +230,10 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     const loginNotice = document.getElementById("c-login-notice");
     const signedIn = document.getElementById("c-signed-in");
     const cEmail = document.getElementById("c-email");
+    const approveButton = document.getElementById("d-approve");
     function syncPlaySession(){
       const tok = sessionToken();
+      if (approveButton) approveButton.textContent = tok ? "Approve" : "Sign in to approve";
       if (tok) {
         if (login) login.hidden = true;
         if (signedIn) signedIn.hidden = false;
@@ -351,8 +353,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         row("Scopes", (j.scopes||[]).join(", "));
         row("Expires", j.expires_at || "");
         document.getElementById("d-deny").hidden = !(tok && j.status === "pending");
-        const approve = document.getElementById("d-approve");
-        if (approve) approve.textContent = tok ? "Approve" : "Sign in to approve";
+        if (approveButton) approveButton.textContent = tok ? "Approve" : "Sign in to approve";
         if (j.status === "pending" && !tok && need) need.hidden = false;
       } catch(e) {
         hideDecide();

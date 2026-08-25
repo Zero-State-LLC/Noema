@@ -408,7 +408,8 @@ describe("play login HTML", () => {
     expect(connect).toContain('history.replaceState(null, "", "/connect")');
     expect(connect).toMatch(/catch\(e\)[\s\S]{0,500}clearCode\(\)/);
     expect(connect).toContain("Sign in is required before approval. Use the email field below, then return here to Approve.");
-    expect(connect).toContain('approve.textContent = tok ? "Approve" : "Sign in to approve"');
+    expect(connect).toContain('if (approveButton) approveButton.textContent = tok ? "Approve" : "Sign in to approve"');
+    expect(connect).toMatch(/function syncPlaySession\(\)[\s\S]{0,180}approveButton\.textContent = tok \? "Approve" : "Sign in to approve"/);
     expect(connect).toContain('dNotice.textContent = "Approval was not sent. Sign in first, then click Approve again."');
     expect(connect).toContain('need.scrollIntoView({ behavior: "smooth", block: "center" })');
     expect(connect).not.toContain("Sign up above, then Approve.");
