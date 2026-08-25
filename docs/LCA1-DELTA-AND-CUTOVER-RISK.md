@@ -10,7 +10,7 @@
 |---|---|---|
 | Live Worker | `3e5fc51f-d009-4812-9978-a6022060c3d3`, `deployed_at 2026-08-25T18:47:35.085038Z` | OBSERVED, `GET /version` |
 | Live world | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`, ACTIVE HEALTHY, cycle 2183, sequence 7824, players 0 | OBSERVED, `GET /ready` during Gate A execution |
-| Live build source | `6db67822c14baf6838a7d5be46a6eb6c40b52598` | OBSERVED from the merged PR #585 deployment execution and live version timestamp; route-drift reported no candidate routes absent from the live build |
+| Live build source | `6db67822c14baf6838a7d5be46a6eb6c40b52598` | OBSERVED from the retained deployment transcript: it names the deployment checkout and resulting Worker `3e5fc51f`; that checkout's reflog records the `origin/main` fast-forward to `6db6782` immediately before deployment. Route-drift also reported no candidate routes absent from live |
 | Previously pinned build source | `06b818f` (#524) | OBSERVED, `spec-compat.json` note, derivation recorded in #522/#525 |
 | Repo pin | `3e5fc51f-d009-4812-9978-a6022060c3d3`, matching live in this Gate A packet | OBSERVED from `GET /version`; generated pin validation passed |
 | Specs baseline | `Noema-Specs` `d73bdec` (#289 direction package) | OBSERVED |

@@ -9,9 +9,9 @@
 | Required declaration | Observed value |
 |---|---|
 | Advanced Worker commit | `6db67822c14baf6838a7d5be46a6eb6c40b52598` (`origin/main`) |
-| Complete Worker validation | 215 test files passed, 1 skipped; 1,469 tests passed, 13 skipped; `npm run typecheck` passed |
+| Complete Worker validation | Authoritative PR #585 CI: 216 test files and 1,482 tests passed with no skips; `npm run typecheck` passed. Local post-change rerun: 215 files passed / 1 skipped, 1,469 tests passed / 13 skipped |
 | Frozen production-alpha comparison | Frozen first-world pin remains runtime `9e0e41fdd589df46064b06f48b524f35d9613f16`, Worker `a210eb35-f1ce-44fd-87e4-1b11e90394b8`, `world-01`, Genesis `genesis.ef578f4ffceeccd0`; it was not touched |
-| Live production deployment | Worker `3e5fc51f-d009-4812-9978-a6022060c3d3`, deployed `2026-08-25T18:47:35.085038Z`, source candidate `6db67822c14baf6838a7d5be46a6eb6c40b52598` |
+| Live production deployment | Worker `3e5fc51f-d009-4812-9978-a6022060c3d3`, deployed `2026-08-25T18:47:35.085038Z`. The retained deployment transcript names the exact checkout path and resulting version ID; that checkout's reflog records the `origin/main` fast-forward to source candidate `6db67822c14baf6838a7d5be46a6eb6c40b52598` at `18:47:18Z`, immediately before deployment |
 | Live world constraints | `world.perihelion-reach-3`, Genesis `genesis.94d0961984b2b4f8`, accepted seal unchanged, entry `room.civic-exchange`, existing room bound unchanged |
 | External client / Controller versions | The official client version remains single-sourced in `spec-compat.json`; no external Controller participated in Gate A. External population is Gate B |
 | Enabled systems | Full suite covers GC1–GC10, diplomacy, access policy, WATCH, settlement, recovery, identity, replay, and closed-catalog guards; no accepted slice was disabled |
@@ -25,7 +25,7 @@
 
 | Gate A requirement | Evidence | Result |
 |---|---|---|
-| Complete Worker suite and typecheck pass together | `npm test` then `npm run typecheck`: 1,469 passed / 13 skipped; type generation and `tsc --noEmit` passed | PASS |
+| Complete Worker suite and typecheck pass together | PR #585 CI on the exact candidate: 216 files / 1,482 tests passed with no skips; typecheck passed. A fresh local post-change rerun also passed with environment-gated skips | PASS |
 | Existing systems remain enabled | Full suite passed, including accepted slice, closed-catalog, projection, identity, communication, economy, culture, pressure, diplomacy, access, WATCH, settlement, and recovery tests | PASS |
 | Durable state shares one event and settlement spine | `lca1-acceptance`, `isolated-settlement-proof`, `settle-head`, `settlement-chain`, and accepted-replay coverage passed | PASS |
 | Restart/recovery preserves durable state | `lca1-acceptance` preserves identity, trade memory/obligation, organization, asset, message, access restriction, budgets, and head; compatibility and incident-recovery suites passed | PASS |
@@ -39,8 +39,11 @@
 - Wrangler reported version 364 with `NOEMA_ENV=production`, protocol `1`, and `DEFAULT_WORLD_ID=world.perihelion-reach-3`.
 - `deployed-route-drift.mjs --live-ref 6db6782 --probe https://noema.guru` reported no routes added since the live build.
 
-## Targeted acceptance rerun
+## Validation provenance and targeted reruns
 
+- Authoritative PR #585 CI on candidate `6db6782`: 216 files / 1,482 tests passed with no skips; typecheck passed.
+- Fresh local post-change rerun: 215 files passed / 1 skipped; 1,469 tests passed / 13 skipped; typecheck passed.
+- The retained deployment transcript reports checkout `/home/scrimshawlife/.jcode/scratch/noema-fresh-remote-20260824/Noema`, production upload, and resulting Worker version `3e5fc51f…`; that checkout's reflog records `6db6782` immediately before the deploy.
 - Integrated scenario, compatibility, older-world load, incident recovery, settlement chain, and rollback: 6 files / 22 tests passed.
 - Accepted replay, isolated settlement proof, settle head, and settlement inspection: 4 files / 25 tests passed.
 
