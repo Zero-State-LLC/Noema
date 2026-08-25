@@ -68,6 +68,7 @@ import {
   worldFromHead,
 } from "./settle";
 import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
+import { buildRollbackEvidence } from "./rollback-evidence";
 import {
   admitTestWorldId,
   lifecycleRequestedWorldId,
@@ -494,6 +495,8 @@ export class NoemaWorldDO {
     if (request.method === "GET" && path.endsWith("/admin-status")) {
       await this.load();
       const roomList = Object.values(this.world!.rooms);
+      const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+      const rollbackEvidence = await buildRollbackEvidence(this.world!, digestEvents);
       return Response.json({
         world_id: this.world!.world_id,
         world_name: this.world!.world_name,
@@ -514,6 +517,7 @@ export class NoemaWorldDO {
         unsettled_count: this.world!.unsettled.length,
         entry_room_id: this.world!.entry_room_id,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
+        rollback_evidence: rollbackEvidence,
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
         pressure: adminPressureView(this.world!.pressure),
@@ -1011,6 +1015,10 @@ export class NoemaWorldDO {
       }
     }
     const w = this.world!;
+    const replayKey = envl.idempotency_key || envl.request_id;
+    const idempotentReplay = Boolean(
+      replayKey && w.seen_idempotency?.[`${principal.player_id}::${replayKey}`],
+    );
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
       if (gate) {
@@ -1179,7 +1187,7 @@ export class NoemaWorldDO {
       this.meta!.settlement_health = "HEALTHY";
       await this.state.storage.put("world_meta", this.meta);
     }
-    if (result.ok && result.events?.length) {
+    if (result.ok && result.events?.length && !idempotentReplay) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
     if (result.ok) {
@@ -1190,7 +1198,11 @@ export class NoemaWorldDO {
         if (oid) actor.operator_id = oid;
       }
     }
-    if (result.ok && inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system") {
+    if (
+      result.ok &&
+      !idempotentReplay &&
+      inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system"
+    ) {
       await this.recordOperatorWatch(principal, envl, result);
     }
     const keys = Object.keys(w.seen_idempotency || {});
