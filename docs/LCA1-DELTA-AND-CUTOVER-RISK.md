@@ -8,11 +8,11 @@
 
 | Fact | Value | Label |
 |---|---|---|
-| Live Worker | `3e5fc51f-d009-4812-9978-a6022060c3d3`, `deployed_at 2026-08-25T18:47:35.085038Z` | OBSERVED, `GET /version` |
-| Live world | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`, ACTIVE HEALTHY, cycle 2183, sequence 7824, players 0 | OBSERVED, `GET /ready` during Gate A execution |
-| Live build source | `6db67822c14baf6838a7d5be46a6eb6c40b52598` | OBSERVED from the retained deployment transcript: it names the deployment checkout and resulting Worker `3e5fc51f`; that checkout's reflog records the `origin/main` fast-forward to `6db6782` immediately before deployment. Route-drift also reported no candidate routes absent from live |
+| Live Worker | `01ebc196-b762-4689-a166-272e26bd73ad`, `deployed_at 2026-08-25T19:27:58.964668Z` | OBSERVED, `GET /version` |
+| Live world | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`, ACTIVE HEALTHY, cycle 2188, sequence 7839, players 0 | OBSERVED, `GET /ready` during Gate A execution |
+| Live build source | `61234ccee1861438850fef787e355d481c104553` | OBSERVED from the retained deployment transcript: it records the fast-forward from `6db6782` to `61234cc`, the exact deployment checkout, and resulting Worker `01ebc196`. Route-drift is rechecked in the execution packet |
 | Previously pinned build source | `06b818f` (#524) | OBSERVED, `spec-compat.json` note, derivation recorded in #522/#525 |
-| Repo pin | `3e5fc51f-d009-4812-9978-a6022060c3d3`, matching live in this Gate A packet | OBSERVED from `GET /version`; generated pin validation passed |
+| Repo pin | `01ebc196-b762-4689-a166-272e26bd73ad`, matching live in this Gate A packet | OBSERVED from `GET /version`; generated pin validation passed |
 | Specs baseline | `Noema-Specs` `d73bdec` (#289 direction package) | OBSERVED |
 
 ## Production-alpha delta report
@@ -26,14 +26,14 @@ Classification vocabulary is the issue's: **implemented** (in `main`, in tests) 
 | Conformance/guard test layer (#527, #534–#539, #542/#547, #545, #546): closed-catalog, slice-catalog copy, forbidden-projection, client-pin guard, Deep Time tails, WS resume boundary, accepted-replay invariant | **implemented** | Test-only; no deploy semantics. OBSERVED |
 | Harness spec-conformance fixes (#543 field forwarding, #544 `SETTLEMENT_RESYNC` one-retry) | **implemented** | Python controller-side; runs beside agents, never deployed to the Worker. OBSERVED |
 | `spec-compat.json` metadata: per-runtime event-catalog pins (#533), `specs.commit` currency (#526/#540/#541), client pin | **configuration-only** | OBSERVED |
-| `hosted_live.worker_version_id` pin | **configuration-only — current in this packet** | Production deploy source `6db6782` produced Worker `3e5fc51f`; live `/version` and `/ready` evidence generated and validated the exact pin. `specs_git` remains `81ca8c1` because the deploy did not change Specs alignment |
+| `hosted_live.worker_version_id` pin | **configuration-only — current in this packet** | Production deploy source `61234cc` produced Worker `01ebc196`; live `/version` and `/ready` evidence generated and validated the exact pin. `specs_git` remains `81ca8c1` because the deploy did not change Specs alignment |
 | Monitors and CI: `pin-currency.yml`, Specs-sibling checkout (#537), Specs `direction-freshness` | **deployed** (repo automation) | OBSERVED in workflow runs |
 | Official client (`hosted_live.official_client`; the literal lives there and in PARTNER-OPERATOR only, by guard) | **deployed** (PyPI) | OBSERVED on PyPI; verified against production incl. seal identity (Specs #283) |
 | `CRIME_DETECTED` producer | **intentionally excluded** | Five consumers, no producer; RFC-0002 detection preconditions unimplemented. Wiring it is an RFC-gated decision (audit: PARTIAL; `closed-catalog.test.ts` pins the absence) |
 | Hosted STUDY / research spine (Frontier, Observatory, Lab, Compiler, LEARN) | **blocked** | Campaign doctrine 6: blocked until natural multi-agent play produces evidence worth testing. Offline implementations complete (Specs #267) |
-| Operator device enrollment | **deployed; human acceptance still required** | The repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are in deployed source `6db6782`. Route drift reported no candidate routes absent from the live build. One canonical `noema connect` approval remains a people step; no mailbox or device secret belongs in repository evidence |
-| Enrollment / CONNECT repairs (#563, #561, #570, #583–#585): `connect.ts`, `device-enrollment.ts`, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **deployed** | OBSERVED in source `6db6782` and the deployment executed immediately after #585 merged. The earlier 404 and cross-tab leakage evidence is historical pre-repair evidence, not current status |
-| Rollback rehearsal support (#562): `rollback-evidence.ts`, `world-do.ts` | **deployed** | #562 is in source `6db6782`; isolated A-B-A evidence remains the acceptance packet. Production was not used as the rehearsal target |
+| Operator device enrollment | **deployed; human acceptance still required** | The repairs that make enrollment approvable (#563 cross-tab, #561 owner-email review, #570 foregrounded short code) are in deployed source `61234cc`. Route drift reported no candidate routes absent from the live build. One canonical `noema connect` approval remains a people step; no mailbox or device secret belongs in repository evidence |
+| Enrollment / CONNECT repairs (#563, #561, #570, #583–#585): `connect.ts`, `device-enrollment.ts`, `play-auth.ts`, `play-login-html.ts`, `play-mail.ts`, `index.ts` | **deployed** | OBSERVED in source `61234cc` and the deployment executed immediately after #586 merged. The earlier 404 and cross-tab leakage evidence is historical pre-repair evidence, not current status |
+| Rollback rehearsal support (#562): `rollback-evidence.ts`, `world-do.ts` | **deployed** | #562 is in source `61234cc`; isolated A-B-A evidence remains the acceptance packet. Production was not used as the rehearsal target |
 | Migration-required items | **none found** | No schema/DO state change between the two builds requires a migration step. OBSERVED (the inter-build diff is one route + one asset). Cross-*version* DO compatibility is a risk-register row, not a delta — now covered by #565's older-blob load test |
 
 ## Successor-cutover risk register
@@ -55,7 +55,7 @@ The successor decision this register serves: promoting the integrated advanced r
 
 Closed on `main` (do not recreate):
 
-- **Gate A integrated runtime execution** — [LCA-GATE-A-EXECUTION-2026-08-25.md](LCA-GATE-A-EXECUTION-2026-08-25.md) records a complete-suite + typecheck pass, targeted settlement/recovery/replay acceptance, and live `/version`, `/ready`, and WATCH evidence on candidate `6db6782`.
+- **Gate A integrated runtime execution** — [LCA-GATE-A-EXECUTION-2026-08-25.md](LCA-GATE-A-EXECUTION-2026-08-25.md) records a complete-suite + typecheck pass, targeted settlement/recovery/replay acceptance, and live `/version`, `/ready`, and WATCH evidence on candidate `61234cc`.
 - **Production-shape compatibility evidence** — #577 exposes sanitized aggregate migration evidence from the stored live shape through the authenticated admin boundary; no player identity or message content is returned.
 - **Cross-version DO load fixture** (risk row 2) — #565 merged; issue #553 closed. Sanitized older-format nested Deep Time blob through `migrateWorldRuntime` / incident recover. Not a live production dump.
 - **Isolated rollback rehearsal** (risk row 7) — #562 merged; issue #555 closed. Isolated workers.dev A-B-A; production GET-only.
@@ -66,4 +66,4 @@ Still open after Gate A runtime execution:
 2. **Operator device enrollment for LCA-2** — the repaired flow is deployed; the remaining validation is one real `noema connect` approval and `doctor` showing a credential. This step requires a designated human mailbox and must not record email, device code, or token material.
 3. **External population for Gate B** — enroll at least three independently controlled external Agent Players after the human approval step.
 
-**Gate A is not complete.** All five runtime checks passed on candidate `6db6782`; review, pin merge, and Specs campaign promotion remain required. LCA-2 remains blocked until that promotion and the human enrollment prerequisite complete.
+**Gate A is not complete.** All five runtime checks passed on candidate `61234cc`; review, pin merge, and Specs campaign promotion remain required. LCA-2 remains blocked until that promotion and the human enrollment prerequisite complete.
