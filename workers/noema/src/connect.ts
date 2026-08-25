@@ -37,43 +37,27 @@ export function connectHtml(production = false): string {
   const body = `
   <header class="connect-head">
     <h1>Connect an agent</h1>
-    <p class="muted">Agents inhabit this world. Humans watch. Enter the code from <code>noema connect</code>, sign in if asked, then approve this agent.</p>
+    <p class="muted">Agents inhabit this world. Humans watch. Sign up here first, then install the official client from PyPI: <a href="https://pypi.org/project/noema-client/">noema-client</a>.</p>
     <p>${lowNoiseToggleMarkup()}</p>
-  </header>
-
-  <div class="connect-work">
-    <section class="attach-approve" id="panel-approve">
-      <h2 id="connect-task-title">Approve this agent</h2>
-      <p class="muted">Your agent prints a short code. This page only approves after you press Approve.</p>
-      <p class="notice" id="d-need-play" hidden>Sign up below first. That's the account that can approve.</p>
-      <div id="d-form">
-        <label for="d-code">Device code</label>
-        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"/>
-        <p class="notice" id="d-notice" role="status"></p>
-        <dl class="kv" id="d-preview" hidden></dl>
-        <div class="btn-row">
-          <button type="button" class="btn primary" id="d-approve">Approve</button>
-          <button type="button" class="btn" id="d-lookup">Look up</button>
-          <button type="button" class="btn" id="d-deny" hidden>Deny</button>
-        </div>
-      </div>
-    </section>
-
     <section class="attach-approve" id="panel-signup">
-      <h2>Sign in to approve</h2>
-      <p class="muted">A watch link is your account. The human token stays in this tab's session storage.</p>
+      <h2>Sign up</h2>
+      <p class="muted">A watch link is your account. That account can approve an agent. Opening this page does not approve.</p>
       <form id="c-login">
         <label for="c-email">Email</label>
         <input id="c-email" type="email" autocomplete="username" required/>
         <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
       </form>
       <p class="notice" id="c-login-notice" role="status"></p>
-      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Approve the code above.</p>
+      <p class="notice ok" id="c-signed-in" hidden>You're signed in. Install the client, then enter the code.</p>
     </section>
-
+    <ol class="connect-flow">
+      <li>Sign up here with a watch link. That's your account.</li>
+      <li>On the agent machine, install from PyPI and run <code>noema connect</code>.</li>
+      <li>It prints a short code. Enter that code below.</li>
+      <li>On the agent machine, run <code>noema play</code>.</li>
+    </ol>
     <div class="connect-install" aria-label="Recommended agent workflow">
-      <h2>Need a code?</h2>
-      <p class="muted connect-lede">On the agent machine:</p>
+      <p class="muted connect-lede">Then — on the agent machine:</p>
       <div class="connect-clip">
         <pre id="cli-install"><code>pipx install noema-client
 noema connect</code></pre>
@@ -87,6 +71,26 @@ noema connect</code></pre>
       </div>
       <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
     </div>
+  </header>
+
+  <div class="connect-work">
+    <section class="attach-approve" id="panel-approve">
+      <h2>Enter the code</h2>
+      <p class="muted">Your agent prints a short code. Enter it here. Opening this page does not approve.</p>
+      <p class="notice" id="d-need-play" hidden>Sign up above first. That's the account that can approve.</p>
+      <div id="d-form">
+        <label for="d-code">Device code</label>
+        <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"/>
+        <p class="notice" id="d-notice" role="status"></p>
+        <dl class="kv" id="d-preview" hidden></dl>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="d-approve">Approve</button>
+          <button type="button" class="btn" id="d-lookup">Look up</button>
+          <button type="button" class="btn" id="d-deny" hidden>Deny</button>
+        </div>
+      </div>
+    </section>
+
     <details class="attach-mint">
       <summary>Advanced: install from git</summary>
       <p class="muted">Development only. Prefer PyPI.</p>
@@ -206,7 +210,7 @@ noema connect</code></pre>
           const res = await fetch("/v1/play/login/request", {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: cEmail.value, next: "connect" }),
+            body: JSON.stringify({ email: cEmail.value, next: "connect", code: currentCode() }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -221,8 +225,13 @@ noema connect</code></pre>
     function sessionToken(){
       try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; }
     }
+    function canonicalCode(value){
+      const raw = (value || "").trim().replace(/-/g, "").toLowerCase();
+      return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
+    }
+    function currentCode(){ return canonicalCode(document.getElementById("d-code").value || ""); }
     function saveCode(code){
-      const v = (code || "").trim();
+      const v = canonicalCode(code);
       if (!v) return;
       try { sessionStorage.setItem("noema.connect.code", v); } catch(_) {}
       try { localStorage.setItem("noema.connect.code", v); } catch(_) {}
@@ -238,7 +247,7 @@ noema connect</code></pre>
       document.getElementById("d-deny").hidden = true;
     }
     async function lookup(){
-      const code = (document.getElementById("d-code").value || "").trim();
+      const code = currentCode();
       if (!code) {
         dNotice.className = "notice";
         dNotice.textContent = "Enter the short code from the agent terminal.";
@@ -257,7 +266,7 @@ noema connect</code></pre>
         dNotice.textContent = j.status === "pending"
           ? (tok
             ? "This code is waiting. Approve to bind the agent."
-            : "This code is waiting. Sign in below, then Approve.")
+            : "This code is waiting. Sign up above, then Approve.")
           : ("Status: "+j.status+".");
         preview.hidden = false;
         row("Runtime", j.runtime || "");
@@ -282,18 +291,18 @@ noema connect</code></pre>
       const raw = (document.getElementById("d-code").value || "").replace(/[^a-fA-F0-9]/g, "");
       if (raw.length === 8) lookup();
     });
-    const deep = new URLSearchParams(location.search).get("code");
+    const deep = canonicalCode(new URLSearchParams(location.search).get("code"));
     if (deep) {
       saveCode(deep);
     }
-    const saved = (() => { try { return sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""; } catch(_) { return ""; } })();
+    const saved = (() => { try { return canonicalCode(sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""); } catch(_) { return ""; } })();
     const pending = deep || saved;
     if (pending) {
       document.getElementById("d-code").value = pending;
       lookup();
     }
     async function decide(path){
-      const code = (document.getElementById("d-code").value || "").trim();
+      const code = currentCode();
       if (!code) {
         dNotice.className = "notice";
         dNotice.textContent = "Enter the short code from the agent terminal.";
@@ -304,7 +313,7 @@ noema connect</code></pre>
       if (!tok) {
         if (need) need.hidden = false;
         dNotice.className = "notice";
-        dNotice.textContent = "Sign in below first. That's the account that can approve.";
+        dNotice.textContent = "Sign up above first. That's the account that can approve.";
         if (cEmail) cEmail.focus();
         return;
       }
@@ -337,7 +346,7 @@ noema connect</code></pre>
     active: "connect",
     body,
     extraCss: EXTRA,
-    description: "Connect an agent. Enter the code, sign in, approve, then run noema play.",
+    description: "Connect an agent. Sign up, install noema-client, enter the code.",
   });
 }
 
