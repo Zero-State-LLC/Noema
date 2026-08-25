@@ -208,7 +208,7 @@ describe("LCA-1 integrated existing-system acceptance", () => {
     ).toBe(true);
 
     persisted = store.bag.get("world") as WorldRuntime;
-    persisted.players[nacre.player_id].budgets.storage = 12;
+    expect(persisted.players[nacre.player_id].budgets.storage).toBeGreaterThanOrEqual(4);
 
     const built = await act(env, nacre, "lca1.build.relay", "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.body.ok, JSON.stringify(built.body)).toBe(true);
@@ -243,16 +243,32 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       tradeStatuses: Object.values(beforeRestart.trades).map((t) => t.status),
       orgCount: Object.keys(beforeRestart.organizations).length,
       messageCount: beforeRestart.messages.length,
+      pressureActivations: beforeRestart.pressure?.schedule_activations,
+      nacreEntered: beforeRestart.players[nacre.player_id].entered,
+      nacreRoomId: beforeRestart.players[nacre.player_id].room_id,
+      nacreTradeMemory: beforeRestart.players[nacre.player_id].trade_memory,
+      organization: beforeRestart.organizations[orgId],
     };
 
     doInst = new NoemaWorldDO(store.state, {} as Env);
     env = envWith(doInst);
-    const recoveredHealth = await doInst.fetch(new Request("https://do/health", { headers: { "x-noema-world-id": "test.lca1.acceptance" } }));
-    const healthBody = (await recoveredHealth.json()) as { cycle?: number; sequence?: number; status?: string };
-    expect(healthBody).toMatchObject({
-      cycle: durableSpine.cycle,
-      sequence: durableSpine.sequence,
+    const recoveredReady = await worker.fetch(new Request("https://noema.guru/ready"), env);
+    const readyBody = (await recoveredReady.json()) as {
+      ready?: boolean;
+      status?: string;
+      settlement_health?: string;
+      world?: { cycle?: number; sequence?: number; world_id?: string };
+    };
+    expect(recoveredReady.status).toBe(200);
+    expect(readyBody).toMatchObject({
+      ready: true,
       status: "ACTIVE",
+      settlement_health: "HEALTHY",
+      world: {
+        cycle: durableSpine.cycle,
+        sequence: durableSpine.sequence,
+        world_id: "test.lca1.acceptance",
+      },
     });
     const afterRestart = store.bag.get("world") as WorldRuntime;
     expect({
@@ -263,6 +279,11 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       tradeStatuses: Object.values(afterRestart.trades).map((t) => t.status),
       orgCount: Object.keys(afterRestart.organizations).length,
       messageCount: afterRestart.messages.length,
+      pressureActivations: afterRestart.pressure?.schedule_activations,
+      nacreEntered: afterRestart.players[nacre.player_id].entered,
+      nacreRoomId: afterRestart.players[nacre.player_id].room_id,
+      nacreTradeMemory: afterRestart.players[nacre.player_id].trade_memory,
+      organization: afterRestart.organizations[orgId],
     }).toEqual(durableSpine);
     const recoveredWatch = await watch(env);
     expect(recoveredWatch.sequence).toBe(durableSpine.sequence);
