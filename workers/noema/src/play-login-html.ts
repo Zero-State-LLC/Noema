@@ -62,8 +62,9 @@ export function playCallbackHtml(): string {
   const token_hash = search.get("token_hash") || hash.get("token_hash") || "";
   const type = search.get("type") || hash.get("type") || "";
   const authCode = search.get("code") || hash.get("code") || "";
+  const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || "";
   const connectCode = (() => {
-    const raw = (search.get("connect_code") || hash.get("connect_code") || search.get("device_code") || hash.get("device_code") || authCode || "").trim().replace(/-/g, "").toLowerCase();
+    const raw = rawConnectCode.trim().replace(/-/g, "").toLowerCase();
     return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
   })();
   (async () => {
@@ -81,7 +82,7 @@ export function playCallbackHtml(): string {
       const raw = search.get("next") || hash.get("next") || "";
       let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
       if (next === "/connect") {
-        if (connectCode) next = "/connect?code=" + encodeURIComponent(connectCode);
+        if (connectCode) next = "/connect?connect_code=" + encodeURIComponent(connectCode);
       }
       location.href = next;
     } catch (err) {

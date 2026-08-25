@@ -22,14 +22,14 @@ export function playMagicLinkHref(
   tokenHash: string,
   type = "magiclink",
   next?: string | null,
-  code?: string | null,
+  connectCode?: string | null,
 ): string {
   const base = origin.replace(/\/$/, "");
   let href = `${base}/play/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}`;
   const safe = safePlayNext(next);
   if (safe) href += `&next=${encodeURIComponent(safe)}`;
-  const canonicalCode = canonicalConnectCode(code);
-  if (canonicalCode) href += `&code=${encodeURIComponent(canonicalCode)}`;
+  const canonicalCode = canonicalConnectCode(connectCode);
+  if (canonicalCode) href += `&connect_code=${encodeURIComponent(canonicalCode)}`;
   return href;
 }
 
