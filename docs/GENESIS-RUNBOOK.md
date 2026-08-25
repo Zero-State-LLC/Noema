@@ -137,6 +137,8 @@ Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
 
 **Current PLAY (2026-08-22).** `spec-compat.json` `hosted_live`: `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`. Prior PLAY `world.perihelion-reach-2` is not reseeding. Frozen first world remains on `world-01` (operator-only). Do not reseed. Do not force reach-2.
 
+A later successor decision must follow [SUCCESSOR-CUTOVER-RUNBOOK.md](SUCCESSOR-CUTOVER-RUNBOOK.md). That record names `world-01` / `genesis.ef578f4ffceeccd0` **out of scope**. It does not authorize a cutover.
+
 Local rehearsal (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. The rehearsal script still refuses `https://noema.guru`.
 
 ```bash
