@@ -178,7 +178,7 @@ describe("LCA-1 integrated existing-system acceptance", () => {
     const harvested = await act(env, nacre, "lca1.harvest.materials", "HARVEST", {
       operation: "HARVEST",
       entity_id: "entity.storage-cell-cache",
-      amount: 1,
+      amount: 4,
     });
     expect(harvested.body.ok, JSON.stringify(harvested.body)).toBe(true);
 
