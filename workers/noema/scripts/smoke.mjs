@@ -37,6 +37,35 @@ async function json(res) {
   }
 }
 
+async function fetchHello(base) {
+  const res = await fetch(`${base}/protocol/v1`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      type: "HELLO",
+      request_id: "req-smoke-hello",
+      world_id: "world-01",
+      body: {
+        supported_protocols: ["agent-protocol/v1"],
+      },
+    }),
+  });
+  const data = await json(res);
+  if (!res.ok || data.type !== "HELLO_ACK") {
+    throw new Error(`HELLO failed (${res.status}); is /protocol/v1 available?`);
+  }
+  const accepted = Array.isArray(data.body?.accepted_seals) ? data.body.accepted_seals.filter((s) => typeof s === "string") : [];
+  return accepted[0] || null;
+}
+
+function commandHeaders(token, seal) {
+  return {
+    "content-type": "application/json",
+    Authorization: `Bearer ${token}`,
+    ...(seal ? { "X-Noema-Seal": seal } : {}),
+  };
+}
+
 async function mintLocalDevToken(base, controllerType) {
   const res = await fetch(`${base}/v1/auth/dev-token`, {
     method: "POST",
@@ -50,6 +79,16 @@ async function mintLocalDevToken(base, controllerType) {
   return body;
 }
 
+function summarizeCommand(label, body) {
+  if (body && body.ok === true) return `${label} ok ${body.request_id}`;
+  if (body && body.ok === false) {
+    const code = body.error?.code || "unknown";
+    const message = body.error?.message || "no message";
+    return `${label} failed (${code}) ${message}`;
+  }
+  return `${label} response ${JSON.stringify(body)}`;
+}
+
 async function main() {
   const gate = admitLocalSmokeBase(process.env.BASE);
   if (!gate.ok) {
@@ -57,6 +96,9 @@ async function main() {
     process.exit(2);
   }
   const base = gate.base;
+
+  const seal = await fetchHello(base);
+  console.log("protocol_seal", !!seal);
 
   const health = await fetch(`${base}/health`).then(json);
   console.log("health", health.status, health.stage);
@@ -69,10 +111,7 @@ async function main() {
 
   const enter = await fetch(`${base}/v1/command`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
+    headers: commandHeaders(agent.access_token, seal),
     body: JSON.stringify({
       request_id: "req-enter-1",
       idempotency_key: "idem-enter-1",
@@ -81,14 +120,11 @@ async function main() {
       client: { type: "agent", runtime: "curl" },
     }),
   }).then(json);
-  console.log("enter", enter.ok, enter.observation?.location?.name);
+  console.log("enter", summarizeCommand("enter", enter), enter.observation?.location?.name);
 
   const look = await fetch(`${base}/v1/command`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
+    headers: commandHeaders(agent.access_token, seal),
     body: JSON.stringify({
       request_id: "req-look-1",
       idempotency_key: "idem-look-1",
@@ -96,14 +132,11 @@ async function main() {
       arguments: {},
     }),
   }).then(json);
-  console.log("look", look.ok, look.events?.[0]?.event_type, look.provenance?.controller_id);
+  console.log("look", summarizeCommand("look", look), look.events?.[0]?.event_type, look.provenance?.controller_id);
 
   const again = await fetch(`${base}/v1/command`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${agent.access_token}`,
-    },
+    headers: commandHeaders(agent.access_token, seal),
     body: JSON.stringify({
       request_id: "req-look-1-dup",
       idempotency_key: "idem-look-1",
