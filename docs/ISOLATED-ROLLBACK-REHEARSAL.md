@@ -9,6 +9,7 @@ The rehearsal is deliberately narrower than a production deploy:
 - Worker service names must begin with `noema-rollback-rehearsal-`.
 - The only admitted world is `test.hosted-canonical.ewm-cutover`.
 - The dedicated Worker name creates a separate Worker service and Durable Object namespace.
+- The rehearsal namespace is SQLite-backed (`new_sqlite_classes`) as required for Durable Objects on this isolated Cloudflare account plan; Noema continues to use the same Durable Object storage API.
 - `wrangler.rollback-rehearsal.jsonc` has `workers_dev: true` and no routes, custom domains, cron, email binding, Supabase binding, KV, D1, R2, queues, or service bindings.
 - `NOEMA_ENV=test` enables fresh dev controller tokens only inside the dedicated service.
 - Signing and admin secrets are generated for the run, uploaded through an ephemeral mode-0600 file, never printed, and removed on exit.

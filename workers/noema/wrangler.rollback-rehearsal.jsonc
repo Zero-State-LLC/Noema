@@ -33,7 +33,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_classes": ["NoemaWorldDO"]
+      "new_sqlite_classes": ["NoemaWorldDO"]
     }
   ],
   "observability": {
