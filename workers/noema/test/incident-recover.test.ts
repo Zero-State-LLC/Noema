@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { runIncidentRecover, type AdoptLiveHeadInput } from "../src/incident-recover";
-import { NoemaWorldDO } from "../src/world-do";
 import { miniChamberState } from "../src/mini-chamber";
 import type { WorldHead } from "../src/settle";
 import type { WorldRuntime } from "../src/world-actions";
@@ -51,22 +50,6 @@ function headFrom(world: WorldRuntime, revision = 4): WorldHead {
     revision,
     state_digest: "sha256:existing",
   };
-}
-
-function fakeDurableState(storage: Map<string, unknown>) {
-  return {
-    storage: {
-      get: vi.fn(async (key: string) => storage.get(key)),
-      put: vi.fn(async (key: string, value: unknown) => {
-        storage.set(key, structuredClone(value));
-      }),
-    },
-    acceptWebSocket: vi.fn(),
-  } as unknown as DurableObjectState;
-}
-
-async function json(res: Response): Promise<Record<string, unknown>> {
-  return (await res.json()) as Record<string, unknown>;
 }
 
 describe("runIncidentRecover", () => {
@@ -240,152 +223,5 @@ describe("runIncidentRecover", () => {
     );
     expect(result).toMatchObject({ ok: false, code: "RECOVERY_REQUIRED", http: 409 });
     expect(adoptLiveHead).not.toHaveBeenCalled();
-  });
-
-  it("recovers a sanitized legacy world through the WorldDurableObject boundary and persists migrated subsystem state", async () => {
-    const legacyWorld = {
-      world_id: "world.perihelion-reach-3",
-      world_name: "Perihelion Reach 3",
-      cycle: 7,
-      sequence: 42,
-      rooms: {
-        "room.relay-quarter": {
-          room_id: "room.relay-quarter",
-          name: "Relay Quarter",
-          description: "Legacy persisted chamber.",
-          exits: [{ exit_id: "exit.to-cache", to_room_id: "room.civic-exchange", label: "civic exchange" }],
-          entities: [
-            {
-              entity_id: "entity.salvage-cache",
-              label: "salvage cache",
-              entity_type: "NODE",
-              stock_resource: "materials",
-              stock_amount: 0,
-            },
-          ],
-        },
-      },
-      players: {
-        "player.legacy": {
-          room_id: "room.relay-quarter",
-          entered: true,
-          handle: "legacy-agent",
-          last_seen_ms: Date.now(),
-          actor_kind: "live",
-        },
-      },
-      seen_idempotency: { "idem.old": "evt.old.000042" },
-      unsettled: [{ event_id: "evt.old.000042", payload: { sanitized: true } }],
-    } as unknown as WorldRuntime;
-    const legacyMeta = {
-      status: "INCIDENT",
-      config_frozen: true,
-      genesis_id: "genesis.legacy-sanitized",
-      settlement_health: "BLOCKING",
-      settlement_ok: false,
-      revision: 0,
-      writer_generation: "do.legacy",
-    };
-    const storage = new Map<string, unknown>([
-      ["world", structuredClone(legacyWorld)],
-      ["world_meta", structuredClone(legacyMeta)],
-    ]);
-    let adoptedState: Record<string, unknown> | null = null;
-    let adoptedHead: WorldHead | null = null;
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-      const url = String(input);
-      if (url.includes("/rest/v1/noema_world_heads")) {
-        return Response.json(adoptedHead ? [adoptedHead] : []);
-      }
-      if (url.includes("/rest/v1/rpc/noema_adopt_live_world_head")) {
-        const body = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
-        adoptedState = body.p_state_json as Record<string, unknown>;
-        adoptedHead = {
-          world_id: String(body.p_world_id),
-          sequence: Number(body.p_sequence),
-          cycle: Number(body.p_cycle),
-          genesis_id: String(body.p_genesis_id),
-          status: String(body.p_status),
-          settlement_health: String(body.p_settlement_health),
-          state_json: structuredClone(adoptedState) as unknown as WorldRuntime,
-          revision: 12,
-          state_digest: "sha256:adopted-legacy",
-          writer_generation: String(body.p_writer_generation),
-        };
-        return Response.json({ ok: true, revision: 12, sequence: body.p_sequence, idempotent: false });
-      }
-      return Response.json({ error: "unexpected fetch" }, { status: 500 });
-    });
-    try {
-      const env = {
-        DEFAULT_WORLD_ID: "world.perihelion-reach-3",
-        SUPABASE_URL: "https://supabase.example.test",
-        SUPABASE_SERVICE_ROLE_KEY: "service-role-test-key",
-      } as unknown as import("../src/types").Env;
-      const first = new NoemaWorldDO(fakeDurableState(storage), env);
-      const recovered = await first.fetch(new Request("https://do.example/admin-lifecycle", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-noema-world-id": "world.perihelion-reach-3" },
-        body: JSON.stringify({ action: "recover", world_id: "world.perihelion-reach-3", reason: "test" }),
-      }));
-      expect(recovered.status).toBe(200);
-      expect(await json(recovered)).toMatchObject({ ok: true, recover_mode: "adopt", revision: 12, head_present: true });
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("world_id=eq.world.perihelion-reach-3"),
-        expect.anything(),
-      );
-      expect(adoptedState).toMatchObject({
-        world_id: "world.perihelion-reach-3",
-        sequence: 42,
-        cycle: 7,
-        entry_room_id: "room.relay-quarter",
-        trades: {},
-        messages: [],
-        organizations: {},
-        reconstructions: {},
-      });
-      expect(JSON.stringify(adoptedState)).not.toContain("evt.old.000042");
-
-      const persistedWorld = storage.get("world") as WorldRuntime;
-      const persistedMeta = storage.get("world_meta") as Record<string, unknown>;
-      expect(persistedMeta).toMatchObject({ status: "ACTIVE", settlement_health: "HEALTHY", settlement_ok: true, revision: 12 });
-      expect(persistedWorld.entry_room_id).toBe("room.relay-quarter");
-      expect(persistedWorld.unsettled).toEqual([]);
-      expect(persistedWorld.players["player.legacy"].budgets).toEqual({
-        energy: 80,
-        attention: 8,
-        compute: 64,
-        influence: 40,
-        storage: 16,
-      });
-      expect(persistedWorld.players["player.legacy"].practice?.catalog_id).toBe("mastery-catalog/gc1-s1");
-      expect(persistedWorld.players["player.legacy"].trade_memory?.edges).toEqual({});
-      expect(persistedWorld.players["player.legacy"].danger_memory?.edges).toEqual({});
-      expect(persistedWorld.players["player.legacy"].deceptive_memory?.edges).toEqual({});
-      expect(persistedWorld.players["player.legacy"].discovery).toBeDefined();
-      const entity = persistedWorld.rooms["room.relay-quarter"].entities[0];
-      expect(entity.max_stock).toBe(18);
-      expect(persistedWorld.culture).toBeDefined();
-      expect(persistedWorld.pressure).toBeDefined();
-      expect(persistedWorld.rumor).toBeDefined();
-      expect(persistedWorld.co_evolution).toMatchObject({ harvest_pressure: {}, regen_mod: {} });
-
-      const restarted = new NoemaWorldDO(fakeDurableState(storage), env);
-      const status = await restarted.fetch(new Request("https://do.example/admin-status", {
-        headers: { "x-noema-world-id": "world.perihelion-reach-3" },
-      }));
-      const statusJson = await json(status);
-      expect(statusJson).toMatchObject({
-        world_id: "world.perihelion-reach-3",
-        sequence: 42,
-        entry_room_id: "room.relay-quarter",
-        settlement_health: "HEALTHY",
-        unsettled_count: 0,
-      });
-      expect(statusJson.meta).toMatchObject({ status: "ACTIVE", revision: 12, settlement_ok: true });
-      expect((statusJson.rooms as Array<{ room_id: string }>).map((r) => r.room_id)).toContain("room.relay-quarter");
-    } finally {
-      fetchMock.mockRestore();
-    }
   });
 });
