@@ -344,13 +344,15 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         dNotice.textContent = j.status === "pending"
           ? (tok
             ? "This code is waiting. Approve to bind the agent."
-            : "This code is waiting. Sign in, then Approve.")
+            : "Sign in is required before approval. Use the email field below, then return here to Approve.")
           : ("Status: "+j.status+".");
         preview.hidden = false;
         row("Runtime", j.runtime || "");
         row("Scopes", (j.scopes||[]).join(", "));
         row("Expires", j.expires_at || "");
         document.getElementById("d-deny").hidden = !(tok && j.status === "pending");
+        const approve = document.getElementById("d-approve");
+        if (approve) approve.textContent = tok ? "Approve" : "Sign in to approve";
         if (j.status === "pending" && !tok && need) need.hidden = false;
       } catch(e) {
         hideDecide();
@@ -393,8 +395,9 @@ export function connectHtml(production = false, pendingCode: string | null = nul
       const tok = sessionToken();
       if (!tok) {
         if (need) need.hidden = false;
-        dNotice.className = "notice";
-        dNotice.textContent = "Sign in first. That's the account that can approve.";
+        dNotice.className = "notice bad";
+        dNotice.textContent = "Approval was not sent. Sign in first, then click Approve again.";
+        if (need && typeof need.scrollIntoView === "function") need.scrollIntoView({ behavior: "smooth", block: "center" });
         if (cEmail) cEmail.focus();
         return;
       }
