@@ -23,7 +23,8 @@ workers/noema/node_modules/
 .wrangler/
 node_modules/
 .claude/
-.cursor/
+.cursor/*
+!.cursor/mcp.json
 .grok/
 .mcp.json
 .ignore
