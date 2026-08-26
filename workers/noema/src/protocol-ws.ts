@@ -214,6 +214,8 @@ export async function handleProtocolFrame(
 ): Promise<{ reply: Record<string, unknown>; state: ProtocolState }> {
   const type = String(msg.type || "").toUpperCase();
   if (type === "HELLO") {
+  // World Services (available_services) are included in OBSERVE responses per WORLD-SERVICES-AGENT-CONTRACT.md
+
     const resume = String(msg.body?.resume_token || "");
     if (resume) {
       const restored = await principalFromResume(env, resume);

@@ -260,6 +260,8 @@ import {
   type PendingMessage,
 } from "./communication";
 import { consultLine, isServiceConsultLine, resolveService, servicesAtRoom } from "./world-services";
+// Authority: Noema-Specs WORLD-SERVICES.md + WORLD-SERVICES-AGENT-CONTRACT.md
+// servicesAtRoom feeds available_services in observations for agents.
 import { publicReportLines, shouldWriteWorldReport } from "./world-reports";
 import {
   constructStorageCost,
@@ -657,6 +659,7 @@ function emptyPlayObservation(
     player_id: principal.player_id,
     in_world: false,
     available_actions: [],
+    available_services: [],
     consequence: consequence || "The world has no playable location yet.",
   };
 }
@@ -991,7 +994,8 @@ export function buildObservation(
         if (focus) row.public_focus_lines = [focus];
         return row;
       }),
-    services: servicesAtRoom({
+    // available_services per WORLD-SERVICES-AGENT-CONTRACT.md + world-service-capability.schema.json
+    available_services: servicesAtRoom({
       room_id: room.room_id,
       name: room.name,
       description: room.description,
@@ -1008,7 +1012,7 @@ export function buildObservation(
       display_name: s.display_name,
       role: s.role,
       status: s.status,
-      operations: s.operations,
+      operations: s.operations,  // already structured from world-services.ts per AGENT-CONTRACT
       cannot: s.cannot,
       suggested_cmds: s.suggested_cmds,
       line: s.line,

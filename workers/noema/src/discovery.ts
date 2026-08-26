@@ -1,3 +1,4 @@
+/* Authority: Noema-Specs WORLD-SERVICES.md + WORLD-SERVICES-AGENT-CONTRACT.md (World Services in UI/observations) */
 /**
  * GC6-S0 archive vs live INSPECT. Derived, not WorldState.
  * Authority: Noema-Specs RFC-0010 / RFC-0015 / docs/GC6-FIRST-SLICE.md.

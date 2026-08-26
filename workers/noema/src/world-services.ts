@@ -1,6 +1,8 @@
 /**
  * First-world World Services — convenience adapters, not Players.
- * Authority: Noema-Specs WORLD-SERVICES.md
+ * Authority: Noema-Specs WORLD-SERVICES.md + WORLD-SERVICES-AGENT-CONTRACT.md
+ * Agent contract: structured service_id + operations in observations / AVAILABLE_ACTIONS.
+ * See also: world-service-capability.schema.json
  */
 
 export type ServiceStatus = "AVAILABLE" | "DEGRADED" | "UNAVAILABLE" | "SUPERSEDED";
@@ -28,10 +30,19 @@ export interface ServiceView {
   display_name: string;
   role: string;
   status: ServiceStatus;
-  operations: string[];
+  // For agents: structured operations per WORLD-SERVICES-AGENT-CONTRACT.md
+  operations: Array<{
+    action: string;
+    target?: string;
+    parameters?: string[];
+    preconditions?: string[];
+    description?: string;
+  }>;
   cannot: string[];
   line: string;
   suggested_cmds: string[];
+  // Institution binding for agent discovery
+  institution_id?: string;
 }
 
 export const WORLD_SERVICE_CATALOG: WorldServiceDef[] = [
@@ -115,7 +126,11 @@ export function servicesAtRoom(room: RoomHint): ServiceView[] {
       display_name: def.display_name,
       role: def.role,
       status,
-      operations: def.operations,
+      operations: def.operations.map((op: string) => ({
+        action: op.includes(' ') ? op.split(' ')[0] : op,
+        description: op,
+        preconditions: ['visible in current room'],
+      })),
       cannot: def.cannot,
       line,
       suggested_cmds: cmds,

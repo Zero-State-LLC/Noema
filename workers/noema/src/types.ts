@@ -367,16 +367,39 @@ export interface Observation {
     status: string;
     expires_cycle: number;
   }>;
-  /** Location-bound World Services (adapters, not Players). */
+  /** Location-bound World Services (adapters, not Players).
+   * Legacy key for compatibility. New code should use available_services. */
   services?: Array<{
     service_id: string;
     display_name: string;
     role: string;
     status: string;
-    operations: string[];
+    operations: Array<string | { action: string; target?: string; preconditions?: string[]; description?: string }>;
     cannot: string[];
     suggested_cmds: string[];
     line: string;
+  }>;
+
+  /** Canonical agent-facing World Services per WORLD-SERVICES-AGENT-CONTRACT.md
+   * and world-service-capability.schema.json.
+   * Populated by servicesAtRoom() for location-bound desks (Quartermaster, Relay, etc.).
+   */
+  available_services?: Array<{
+    service_id: string;
+    display_name: string;
+    role: string;
+    status: string;
+    operations: Array<{
+      action: string;
+      target?: string;
+      parameters?: string[];
+      preconditions?: string[];
+      description?: string;
+    }>;
+    cannot: string[];
+    suggested_cmds: string[];
+    line?: string;
+    institution_id?: string;
   }>;
 }
 

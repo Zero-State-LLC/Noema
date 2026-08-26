@@ -1,3 +1,4 @@
+/* Authority: Noema-Specs WORLD-SERVICES.md + WORLD-SERVICES-AGENT-CONTRACT.md (World Services in UI/observations) */
 /**
  * Pure PLAY presentation helpers — testable without DOM.
  * Hosted action parity: Specs-aligned parser adapter + presentation.
