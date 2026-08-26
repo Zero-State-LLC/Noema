@@ -617,6 +617,7 @@ export class NoemaWorldDO {
         this.meta!.settlement_ok = true;
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
+        await this.scheduleTempoAlarm(Date.now());
         return Response.json({
           ok: true,
           status: this.meta!.status,

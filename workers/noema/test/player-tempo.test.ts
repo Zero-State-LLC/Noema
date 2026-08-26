@@ -17,6 +17,7 @@ import {
   tempoCanonicalFingerprint,
   validatePlayerTempoCatalog,
 } from "../src/player-tempo";
+import { runIncidentRecover } from "../src/incident-recover";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { commitCycleIfReady } from "../src/world-time";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -363,6 +364,152 @@ describe("PT10 settlement failure during RESOLVE", () => {
     expect(w.players[a.player_id].budgets.attention).toBe(beforeAttention);
     expect(w.player_tempo?.phase).toBe("RESOLVE");
     expect(w.player_tempo?.settlement_failed).toBe(true);
+  });
+
+  it("clears the freeze through Admin recover and admits a later COLLECT action", async () => {
+    const w = fixtureWorld();
+    const a = principal("player.nacre");
+    await enterThenPin(w, [a]);
+    const failed = await applyWorldCommand(
+      w,
+      a,
+      { request_id: "r.look", idempotency_key: "i.look", command: "LOOK", client_action_sequence: 1 },
+      async () => false,
+      { now: CLOCK },
+    );
+    expect(failed.ok).toBe(false);
+    expect(w.player_tempo?.settlement_failed).toBe(true);
+    const blocked = await applyWorldCommand(
+      w,
+      a,
+      { request_id: "r.look.2", idempotency_key: "i.look.2", command: "LOOK", client_action_sequence: 2 },
+      async () => true,
+      { now: CLOCK },
+    );
+    expect(blocked.error?.code).toBe("PACE_LIMITED");
+
+    let persisted: WorldRuntime | null = null;
+    const recovered = await runIncidentRecover(
+      {
+        status: "INCIDENT",
+        settlement: "BLOCKING",
+        storedWorld: w,
+        currentWorld: w,
+        writerGeneration: "do.1",
+      },
+      {
+        getHead: async () =>
+          persisted
+            ? {
+                world_id: persisted.world_id,
+                sequence: persisted.sequence,
+                cycle: persisted.cycle,
+                status: "ACTIVE",
+                settlement_health: "HEALTHY",
+                state_json: persisted,
+                revision: 1,
+                state_digest: "sha256:tempo-recover",
+              }
+            : null,
+        adoptLiveHead: async (input) => {
+          persisted = input.world;
+          return { ok: true as const, revision: 1, sequence: input.world.sequence, idempotent: false };
+        },
+      },
+    );
+    expect(recovered.ok).toBe(true);
+    if (!recovered.ok) return;
+    expect(recovered.mode).toBe("adopt");
+    expect(persisted).toBe(recovered.world);
+    expect(recovered.world.player_tempo?.phase).toBe("COLLECT");
+    expect(recovered.world.player_tempo?.settlement_failed).toBe(false);
+    expect(recovered.world.player_tempo?.accepted).toEqual([]);
+    expect(recovered.world.player_tempo?.phase_open.reason).toBe("admin-recover");
+    expect(recovered.world.cycle).toBe(0);
+    Object.assign(w, recovered.world);
+
+    const retry = await applyWorldCommand(
+      w,
+      a,
+      { request_id: "r.look", idempotency_key: "i.look", command: "LOOK", client_action_sequence: 1 },
+      async () => true,
+      { now: CLOCK },
+    );
+    expect(retry.ok).toBe(true);
+    expect(w.cycle).toBe(1);
+    expect(w.player_tempo?.phase).toBe("PRESENT");
+  });
+
+  it("restores a settlement_failed head to COLLECT without inventing a pin on unpinned worlds", async () => {
+    const frozen = fixtureWorld();
+    const a = principal("player.nacre");
+    await enterThenPin(frozen, [a]);
+    await applyWorldCommand(
+      frozen,
+      a,
+      { request_id: "r.look", idempotency_key: "i.look", command: "LOOK" },
+      async () => false,
+      { now: CLOCK },
+    );
+    expect(frozen.player_tempo?.settlement_failed).toBe(true);
+
+    const restored = await runIncidentRecover(
+      {
+        status: "INCIDENT",
+        settlement: "BLOCKING",
+        storedWorld: frozen,
+        currentWorld: frozen,
+        writerGeneration: "do.1",
+      },
+      {
+        getHead: async () => ({
+          world_id: frozen.world_id,
+          sequence: frozen.sequence,
+          cycle: frozen.cycle,
+          status: "INCIDENT",
+          settlement_health: "BLOCKING",
+          state_json: structuredClone(frozen),
+          revision: 3,
+          state_digest: "sha256:frozen-head",
+        }),
+        adoptLiveHead: async () => ({ ok: false, code: "UNUSED" }),
+      },
+    );
+    expect(restored.ok).toBe(true);
+    if (!restored.ok) return;
+    expect(restored.mode).toBe("restore");
+    expect(restored.world.player_tempo?.phase).toBe("COLLECT");
+    expect(restored.world.player_tempo?.settlement_failed).toBe(false);
+
+    const unpinned = fixtureWorld("world.test-unpinned-recover");
+    await run(unpinned, a, "ENTER_WORLD");
+    const unpinnedRecover = await runIncidentRecover(
+      {
+        status: "INCIDENT",
+        settlement: "BLOCKING",
+        storedWorld: unpinned,
+        currentWorld: unpinned,
+        writerGeneration: "do.1",
+      },
+      {
+        getHead: async () => ({
+          world_id: unpinned.world_id,
+          sequence: unpinned.sequence,
+          cycle: unpinned.cycle,
+          status: "INCIDENT",
+          settlement_health: "BLOCKING",
+          state_json: structuredClone(unpinned),
+          revision: 2,
+          state_digest: "sha256:unpinned",
+        }),
+        adoptLiveHead: async () => ({ ok: false, code: "UNUSED" }),
+      },
+    );
+    expect(unpinnedRecover.ok).toBe(true);
+    if (!unpinnedRecover.ok) return;
+    expect(unpinnedRecover.world.player_tempo_policy_version).toBeUndefined();
+    expect(unpinnedRecover.world.player_tempo).toBeUndefined();
+    expect(unpinnedRecover.world.players[a.player_id].entered).toBe(true);
   });
 });
 

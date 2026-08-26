@@ -694,3 +694,29 @@ export function markTempoSettlementFailed(w: TempoWorld): void {
   w.player_tempo.phase = "RESOLVE";
   w.player_tempo.settlement_failed = true;
 }
+
+/**
+ * Admin recover returns a pinned world to a COLLECT boundary after an
+ * uncommitted RESOLVE freeze. Unpinned worlds are unchanged. Pending
+ * idempotency keys for discarded uncommitted slots are cleared so a retry
+ * can fill the new COLLECT slot. Already-committed client sequences stay.
+ */
+export function recoverPinnedTempoFromIncident(
+  w: TempoWorld & { seen_idempotency?: Record<string, unknown> },
+  now: number,
+): boolean {
+  if (!isPlayerTempoPinned(w) || !w.player_tempo) return false;
+  if (!w.player_tempo.settlement_failed && w.player_tempo.phase !== "RESOLVE") return false;
+  const discarded = [...w.player_tempo.accepted];
+  openCollectPhase(w, now, "admin-recover", "admin");
+  for (const action of discarded) {
+    const idem = `${action.player_id}::${action.idempotency_key}`;
+    if (w.seen_idempotency) delete w.seen_idempotency[idem];
+    if (w.player_tempo.last_used_sequence[action.player_id] === action.client_action_sequence) {
+      const prior = action.client_action_sequence - 1;
+      if (prior > 0) w.player_tempo.last_used_sequence[action.player_id] = prior;
+      else delete w.player_tempo.last_used_sequence[action.player_id];
+    }
+  }
+  return true;
+}
