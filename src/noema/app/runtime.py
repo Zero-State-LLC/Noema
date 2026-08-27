@@ -21,7 +21,7 @@ from noema.actions.router import ActionRouter
 from noema.auth.identity import IdentityService
 from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
-from noema.world.state import SituationsBundle, AgentsBundle
+from noema.world.state import SituationsBundle, AgentsBundle, CatalogBundle
 from noema.config.deployment import (
     configuration_digest,
     load_deployment_config,
@@ -50,7 +50,7 @@ from noema.research.observatory.analysis import Observatory, ObservatoryResult
 from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
 from noema.research.observatory.trajectory_v03 import upgrade_v01_capture_to_v03
 from noema.world.reduce import apply_event
-from noema.world.state import (acceptance_projection, RoomsBundle, EntitiesBundle, OrganizationsBundle, get_core_entity)
+from noema.world.state import (acceptance_projection, RoomsBundle, EntitiesBundle, OrganizationsBundle, get_core_entity, CatalogBundle)
 
 
 class NoemaRuntime:
@@ -393,15 +393,21 @@ class NoemaRuntime:
             "Deep Time": subsystem("READY", sum(deep_counts.values()), None),
         }
 
-        profiles = []
-        for profile in profile_catalog().get("profiles") or []:
-            profiles.append(
-                {
-                    "profile_id": profile.get("profile_id"),
-                    "name": profile.get("name") or profile.get("title") or profile.get("profile_id"),
-                    "summary": profile.get("summary") or profile.get("description"),
-                }
-            )
+        if self.store.ready:
+            state = self.store.get_state()
+            catalog = CatalogBundle(state)
+            profiles = []
+            for profile in catalog.get_genesis_profiles():
+                profiles.append(
+                    {
+                        "profile_id": profile.get("profile_id"),
+                        "name": profile.get("name") or profile.get("title") or profile.get("profile_id"),
+                        "summary": profile.get("summary") or profile.get("description"),
+                    }
+                )
+        else:
+            profiles = []
+        
         last_genesis = None
         if self._last_genesis:
             last_genesis = {
@@ -1222,14 +1228,23 @@ class NoemaRuntime:
         profile_id: str,
         story_seed_ids: list[str] | None = None,
     ) -> dict[str, Any]:
+        state = self._require_scope(session_id, "world")
         principal = self.get_principal(session_id)
         if principal.role != Role.ADMIN:
             raise GenesisError("NOT_AUTHORIZED", "only ADMIN may run Genesis")
+        
+        catalog = CatalogBundle(state)
+        
+        # Validate using CatalogBundle
+        if not catalog.validate_genesis_profile(profile_id):
+            raise GenesisError("INVALID_PROFILE", f"invalid genesis profile: {profile_id}")
+        validated_seeds = catalog.validate_story_seeds(list(story_seed_ids or []))
+        
         result = self.genesis.preview(
             world_name=world_name,
             world_seed=world_seed,
             profile_id=profile_id,
-            story_seed_ids=story_seed_ids,
+            story_seed_ids=validated_seeds,
         )
         self._last_genesis = result
         return {

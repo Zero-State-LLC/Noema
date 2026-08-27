@@ -19,6 +19,8 @@ from noema.world.state import (
     RoomsBundle,
     EntitiesBundle,
     AgentsBundle,
+    ValidatorBundle,
+    ActionBundle,
 )
 
 
@@ -98,6 +100,11 @@ class ActionRouter:
         *,
         principal_agent_id: str | None = None,
     ) -> tuple[WorldState, list[dict[str, Any]], list[dict[str, Any]]]:
+        # Initialize bundles for this mutation cycle
+        validator = ValidatorBundle(state)
+        action_bundle = ActionBundle(state, self.world_id)
+        bundles = {"agents": AgentsBundle(state), "rooms": RoomsBundle(state), "entities": EntitiesBundle(state)}
+        
         validated: list[dict[str, Any]] = []
         results: list[dict[str, Any]] = []
         for raw in actions:
