@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from noema.actions.errors import (
+    CONFLICT,
     NOT_AUTHORIZED,
     VERSION_MISMATCH,
     WORLD_NOT_READY,
@@ -129,17 +130,34 @@ class NoemaRuntime:
             return deployment_config
         return load_deployment_config(deployment_config)
 
-    def start_world(self, seed_path: Path | str) -> dict[str, Any]:
-        with self._writer:
-            state = self.store.load_from_seed(seed_path)
-            # version gate
-            catalog = state.catalog_version
-            supported = self.spec_compat.get("versions", {}).get("event_catalog")
-            if supported and catalog != supported:
+    def _assert_lineage(self, state: Any, *, allow_migration: bool = False) -> None:
+        """C17: incompatible catalog/rules fail closed unless an explicit migration."""
+        versions = self.spec_compat.get("versions") or {}
+        catalog = versions.get("event_catalog")
+        rules = versions.get("world_rules")
+        if catalog and getattr(state, "catalog_version", None) and state.catalog_version != catalog:
+            raise ActionError(
+                VERSION_MISMATCH,
+                f"unsupported event catalog {state.catalog_version}; runtime supports {catalog}",
+            )
+        if rules and getattr(state, "world_version", None) and state.world_version != rules:
+            if not allow_migration:
                 raise ActionError(
                     VERSION_MISMATCH,
-                    f"unsupported event catalog {catalog}; runtime supports {supported}",
+                    f"incompatible world_rules {state.world_version}; runtime supports {rules} "
+                    "(explicit migration required)",
                 )
+
+    def start_world(self, seed_path: Path | str, *, allow_migration: bool = False) -> dict[str, Any]:
+        with self._writer:
+            if self.store.has_started_world():
+                raise ActionError(
+                    CONFLICT,
+                    "world already started; resume instead of reseeding",
+                    details={"event_count": self.store.committed_event_count()},
+                )
+            state = self.store.load_from_seed(seed_path)
+            self._assert_lineage(state, allow_migration=allow_migration)
             self.router = ActionRouter(state.world_id)
             snap = self.store.commit_cycle(state, [], snapshot=True)
             return {
@@ -152,9 +170,15 @@ class NoemaRuntime:
                 "snapshot": snap,
             }
 
-    def resume_world(self, seed_path: Path | str | None = None) -> dict[str, Any]:
+    def resume_world(
+        self,
+        seed_path: Path | str | None = None,
+        *,
+        allow_migration: bool = False,
+    ) -> dict[str, Any]:
         with self._writer:
             state = self.store.rehydrate_from_db(seed_path)
+            self._assert_lineage(state, allow_migration=allow_migration)
             self.router = ActionRouter(state.world_id)
             return {
                 "world_id": state.world_id,
@@ -163,6 +187,12 @@ class NoemaRuntime:
                 "ledger_head": state.last_event_digest,
                 "resumed": True,
             }
+
+    def autoload_world(self, seed_path: Path | str) -> dict[str, Any]:
+        """Boot helper: resume an existing ledger, otherwise seed a new world."""
+        if self.store.has_started_world():
+            return self.resume_world(seed_path)
+        return self.start_world(seed_path)
 
     def ensure_ready(self) -> None:
         if not self.store.ready or self.router is None:
@@ -189,14 +219,27 @@ class NoemaRuntime:
         }
 
     def version(self) -> dict[str, Any]:
+        """C17 public version lineage. Extra keys stay for offline clients."""
+        manifest = self.runtime_manifest()
         return {
+            "product_version": manifest["product_version"],
+            "spec_version": manifest["spec_version"],
+            "world_rules_version": manifest["world_rules_version"],
+            "agent_protocol_version": manifest["agent_protocol_version"],
+            "event_catalog_version": manifest["event_catalog_version"],
+            "world_id": manifest["world_id"],
+            "world_version": manifest["world_version"],
+            "world_seed_digest": manifest["world_seed_digest"],
+            "configuration_digest": manifest["configuration_digest"],
+            "current_cycle": manifest["current_cycle"],
+            "ledger_head": manifest["ledger_head"],
+            "snapshot_head": manifest["snapshot_head"],
             "runtime_version": self.spec_compat.get("runtime_version")
             or self.spec_compat.get("runtime_name", "noema") + "/0.1.0",
             "spec_pin": self.spec_compat.get("specs", {}),
             "versions": self.spec_compat.get("versions", {}),
             "implementation_phase": self.spec_compat.get("implementation_phase"),
             "deferred_milestones": self.spec_compat.get("deferred_milestones", []),
-            "configuration_digest": self.configuration_digest,
             "architecture": (self.deployment_config.get("architecture") or {}).get("shape"),
         }
 
@@ -527,9 +570,9 @@ class NoemaRuntime:
     def apply_player_action(self, session_id: str, action: dict[str, Any]) -> dict[str, Any]:
         principal = self.get_principal(session_id)
         if principal.is_spectator() or principal.role == Role.RESEARCHER:
-            raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
+            raise ActionError(NOT_AUTHORIZED, "Agents play this world. Humans watch.")
         if not principal.can_mutate_world():
-            raise ActionError(NOT_AUTHORIZED, "role cannot mutate world")
+            raise ActionError(NOT_AUTHORIZED, "Agents play this world. Humans watch.")
         sess = self._require_scope(session_id, "noema.action.submit")
         self.ensure_ready()
         assert self.router is not None
