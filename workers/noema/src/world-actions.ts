@@ -1733,6 +1733,7 @@ export async function runPinnedTempoResolve(
   w: WorldRuntime,
   settle: SettleFn,
   now: number,
+  commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>,
 ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }> {
   const snapshot = structuredClone(w);
   markTempoResolveOpen(w, now, "freeze");
@@ -1790,6 +1791,9 @@ export async function runPinnedTempoResolve(
       settleEv,
     );
     markTempoPresent(w, now);
+    if (commit && !(await commit(allEvents))) {
+      return failClosed("Cycle settlement failed; the cycle is uncommitted.");
+    }
     return { ok: true, events: allEvents };
   } catch (e) {
     const code = e instanceof Error ? (e as Error & { code?: string }).code : "";

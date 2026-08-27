@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import catalogJson from "../src/player-tempo-catalog.1.0.json";
 import {
   advanceTempoAdmissionClock,
+  admitTempoAction,
   changeTempoMode,
   inferWorldKind,
   loadPlayerTempoCatalog,
@@ -18,7 +19,7 @@ import {
   validatePlayerTempoCatalog,
 } from "../src/player-tempo";
 import { runIncidentRecover } from "../src/incident-recover";
-import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import { applyWorldCommand, runPinnedTempoResolve, type WorldRuntime } from "../src/world-actions";
 import { commitCycleIfReady } from "../src/world-time";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -346,6 +347,57 @@ describe("PT09 arrival order independence", () => {
 });
 
 describe("PT10 settlement failure during RESOLVE", () => {
+  it("runs a durable commit callback before returning a resolved batch", async () => {
+    const w = fixtureWorld();
+    const a = principal("player.nacre");
+    await enterThenPin(w, [a]);
+    const envelope = {
+      request_id: "r.look.callback",
+      idempotency_key: "i.look.callback",
+      command: "LOOK",
+    };
+    const admitted = admitTempoAction(w, {
+      principal: a,
+      envelope,
+      verb: "LOOK",
+      now: CLOCK,
+      worldPaused: false,
+    });
+    expect(admitted.ok).toBe(true);
+    let committedEventCount = 0;
+    const resolved = await runPinnedTempoResolve(w, async () => true, CLOCK, async (events) => {
+      committedEventCount = events.length;
+      return true;
+    });
+    expect(resolved.ok).toBe(true);
+    expect(committedEventCount).toBeGreaterThan(0);
+    expect(w.player_tempo?.phase).toBe("PRESENT");
+  });
+
+  it("freezes the batch when the durable commit callback rejects it", async () => {
+    const w = fixtureWorld();
+    const a = principal("player.nacre");
+    await enterThenPin(w, [a]);
+    const envelope = {
+      request_id: "r.look.commit-fail",
+      idempotency_key: "i.look.commit-fail",
+      command: "LOOK",
+    };
+    const admitted = admitTempoAction(w, {
+      principal: a,
+      envelope,
+      verb: "LOOK",
+      now: CLOCK,
+      worldPaused: false,
+    });
+    expect(admitted.ok).toBe(true);
+    const resolved = await runPinnedTempoResolve(w, async () => true, CLOCK, async () => false);
+    expect(resolved.ok).toBe(false);
+    expect(w.cycle).toBe(0);
+    expect(w.player_tempo?.phase).toBe("RESOLVE");
+    expect(w.player_tempo?.settlement_failed).toBe(true);
+  });
+
   it("leaves the cycle uncommitted and restores verb effects", async () => {
     const w = fixtureWorld();
     const a = principal("player.nacre");

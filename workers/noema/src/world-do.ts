@@ -691,7 +691,12 @@ export class NoemaWorldDO {
           return Response.json({ error: { code: closed.code, message: closed.message } }, { status: 409 });
         }
         if (closed.should_resolve) {
-          const resolved = await runPinnedTempoResolve(this.world!, async () => true, now);
+          const resolved = await runPinnedTempoResolve(
+            this.world!,
+            async () => true,
+            now,
+            (events) => this.commitTempoResolution(events),
+          );
           if (!resolved.ok) {
             await this.save();
             return Response.json({ error: resolved.result.error }, { status: 409 });
@@ -1316,16 +1321,66 @@ export class NoemaWorldDO {
     await this.state.storage.setAlarm(next);
   }
 
+  private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean> {
+    const ledgerEvents = canonicalEventsForCommit(events);
+    if (!ledgerEvents.length || !this.env.SUPABASE_URL || !this.env.SUPABASE_SERVICE_ROLE_KEY) return true;
+    const durable = await getWorldHead(this.env, this.world!.world_id);
+    const operatorLatch =
+      (this.env as { NOEMA_ALLOW_PROD_BOOTSTRAP?: string }).NOEMA_ALLOW_PROD_BOOTSTRAP === "1";
+    const bootstrapEmpty = !durable && (this.allowCanonicalBootstrap || operatorLatch);
+    const toCommit = bootstrapEmpty
+      ? withIsolatedBootstrapEvent(ledgerEvents, this.world!.world_id, this.meta!.genesis_id)
+      : ledgerEvents;
+    const principal: PlayerPrincipal = {
+      player_id: "player.system-tempo",
+      agent_id: "agent.system-tempo",
+      session_id: "sess.system-tempo",
+      controller_id: "ctrl.system-tempo",
+      controller_type: "agent",
+      scopes: ["noema.world.observe"],
+      protocol_version: "1",
+      authentication_context: "tempo-alarm",
+    };
+    const committed = await commitCanonicalSettlement(this.env, {
+      settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
+      expected_revision: this.meta!.revision ?? 0,
+      writer_generation: this.meta!.writer_generation || "do.1",
+      genesis_id: this.meta!.genesis_id || null,
+      status: this.meta!.status,
+      settlement_health: "HEALTHY",
+      world: this.world!,
+      principal,
+      events: toCommit,
+      previous_digest: durable?.ledger_head_digest ?? null,
+      allow_bootstrap: bootstrapEmpty,
+    });
+    if (!committed.ok) {
+      this.meta!.settlement_ok = false;
+      this.meta!.settlement_health = "BLOCKING";
+      this.meta!.status = "INCIDENT";
+      await this.state.storage.put("world_meta", this.meta);
+      return false;
+    }
+    this.meta!.revision = committed.revision;
+    this.meta!.settlement_ok = true;
+    this.meta!.settlement_health = "HEALTHY";
+    await this.state.storage.put("world_meta", this.meta);
+    return true;
+  }
+
   async alarm(): Promise<void> {
     await this.load();
     if (!this.world || !isPlayerTempoPinned(this.world)) return;
     const now = Date.now();
     const adv = advanceTempoAdmissionClock(this.world, now);
     if (adv.should_resolve) {
-      const before = structuredClone(this.world);
-      const resolved = await runPinnedTempoResolve(this.world, async () => true, now);
+      const resolved = await runPinnedTempoResolve(
+        this.world,
+        async () => true,
+        now,
+        (events) => this.commitTempoResolution(events),
+      );
       if (!resolved.ok) {
-        this.world = before;
         await this.save();
         await this.scheduleTempoAlarm(now);
         return;
