@@ -132,3 +132,13 @@ All deepenings remain exercised and green.
 - Target merge: main
 - Unrelated untracked files (node_modules, .claude/, etc.) left out.
 - Full handoff already sent to Prabu.
+
+## Commit + Merge completed (2026-08-26)
+- Commit on feat/ewm-enhanced-cutover-2026-08: 826f394
+- Pushed feature branch.
+- Merged into main via cherry-pick in main worktree (to avoid worktree/main divergence issues): bf61b7d
+- Main worktree HEAD now at bf61b7d on main (immediately after latest ded49dd).
+- Our changes cleanly applied (no conflicts on architecture files).
+- Verified in main worktree: deep_minimize, AdapterStrategy, core_entity + state_bundles present.
+- Full relevant tests green post-merge prep: 28 + 66 passed in targeted slices.
+- Plan (including this note) is part of the merged commit.
