@@ -840,6 +840,33 @@ export default {
         return cors(json(await res.json(), res.status));
       }
 
+      if (request.method === "POST" && path === "/v1/admin/tempo") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          action?: string;
+          mode?: string;
+          reason?: string;
+          world_id?: string;
+          now?: number;
+        };
+        const target = resolveAdminOperatorWorldId(body.world_id, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
+        const id = env.WORLD_DO.idFromName(target.do_name);
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-tempo", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: body.action,
+            mode: body.mode,
+            reason: body.reason,
+            now: body.now,
+          }),
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
       if (request.method === "POST" && path === "/v1/admin/lifecycle") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);

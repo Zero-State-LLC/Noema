@@ -153,6 +153,7 @@ describe("runIncidentRecover", () => {
     expect(persisted.world.unsettled).toEqual([]);
     expect(persisted.status).toBe("ACTIVE");
     expect(persisted.settlement_health).toBe("HEALTHY");
+    expect(persisted.world.player_tempo).toBeUndefined();
     expect(JSON.stringify(persisted)).not.toMatch(/evt\.00000[0-9]/);
   });
 
@@ -195,6 +196,8 @@ describe("runIncidentRecover", () => {
     expect(result.revision).toBe(4);
     expect(result.world.sequence).toBe(75);
     expect(adoptLiveHead).not.toHaveBeenCalled();
+    expect(result.world.player_tempo).toBeUndefined();
+    expect(result.world.player_tempo_policy_version).toBeUndefined();
   });
 
   it("does not flip ACTIVE when adopt persist fails", async () => {

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noema.guru/specs/player-tempo-policy.1.0.schema.json",
+  "title": "NOEMA player tempo policy catalog schema 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["catalog_id", "policy_version", "modes", "errors", "invariants"],
+  "properties": {
+    "catalog_id": { "const": "player-tempo-catalog/1.0" },
+    "policy_version": { "const": "player-tempo/1.0" },
+    "modes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mode", "allowed_world_kinds", "collect_window_ms", "presentation_hold_ms", "freeze_triggers", "max_mutating_actions_per_player_per_cycle", "empty_window_advances", "surplus_action_policy"],
+        "properties": {
+          "mode": { "enum": ["OBSERVED_LIVE", "FAST_TEST", "STEP_TEST"] },
+          "allowed_world_kinds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["PRODUCTION", "ORDINARY_LIVE", "ISOLATED_TEST"] }
+          },
+          "collect_window_ms": { "type": ["integer", "null"], "minimum": 0 },
+          "presentation_hold_ms": { "type": "integer", "minimum": 0 },
+          "freeze_triggers": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["PARTICIPANT_QUORUM", "COLLECT_DEADLINE_WITH_ACTION", "OPERATOR_BATCH_CLOSE", "OPERATOR_STEP"] }
+          },
+          "max_mutating_actions_per_player_per_cycle": { "const": 1 },
+          "empty_window_advances": { "const": false },
+          "surplus_action_policy": { "const": "REJECT" }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": { "enum": ["ACTION_SLOT_FILLED", "PACE_LIMITED"] }
+    },
+    "invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonical_clock", "canonical_order", "wall_clock_is_reducer_input", "client_selects_mode", "missing_action_is_wait", "test_mode_bypasses_settlement"],
+      "properties": {
+        "canonical_clock": { "const": "World.cycle" },
+        "canonical_order": { "const": "action_priority,agent_id,client_action_sequence,action_id" },
+        "wall_clock_is_reducer_input": { "const": false },
+        "client_selects_mode": { "const": false },
+        "missing_action_is_wait": { "const": false },
+        "test_mode_bypasses_settlement": { "const": false }
+      }
+    }
+  }
+}

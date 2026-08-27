@@ -62,6 +62,20 @@ import { actorKindFromPrincipal, isUsableLiveWorld } from "./ops";
 import { isolatedLedgerEventId } from "./test-world";
 import { commitCycleIfReady } from "./world-time";
 import {
+  admitTempoAction,
+  advanceTempoAdmissionClock,
+  fillsActionSlot,
+  isPlayerTempoPinned,
+  loadPlayerTempoCatalog,
+  markTempoPresent,
+  markTempoResolveOpen,
+  markTempoSettlementFailed,
+  paceLimitedError,
+  shouldFreezeTempo,
+  sortAcceptedActions,
+  type TempoErrorDetail,
+} from "./player-tempo";
+import {
   ACCESS_CLASS,
   ACCESS_DURATION_CYCLES,
   RESOURCE_CLASS,
@@ -561,6 +575,12 @@ export type WorldRuntime = {
   world_seed?: string;
   cycle: number;
   sequence: number;
+  /** Hosted world kind for player-tempo mode containment. Unset worlds infer it. */
+  world_kind?: import("./player-tempo").WorldKind;
+  /** Unset keeps RFC-0019 WAIT quorum. Pin is `player-tempo/1.0`. */
+  player_tempo_policy_version?: string;
+  player_tempo_mode?: import("./player-tempo").TempoMode;
+  player_tempo?: import("./player-tempo").PlayerTempoState;
   /** WR-S0 last public report. Projection only. Never on WATCH. */
   last_report?: { cycle: number; lines: string[] };
   entry_room_id: string;
@@ -1533,16 +1553,322 @@ const PROTOCOL_VERBS = new Set([
   "FOCUS",
 ]);
 
-export async function applyWorldCommand(
+export type ApplyWorldCommandOptions = {
+  /** Replay an admitted envelope during RESOLVE. Skip admission and apply verb effects. */
+  tempoResolve?: boolean;
+  /** Admission clock only. Never a reducer input. */
+  now?: number;
+  worldPaused?: boolean;
+};
+
+type SettleFn = (ev: {
+  event_id: string;
+  event_type: string;
+  sequence: number;
+  payload: Record<string, unknown>;
+}) => Promise<boolean>;
+
+function tempoErrorResult(request_id: string, error: TempoErrorDetail): CommandResult {
+  return {
+    ok: false,
+    request_id,
+    error: {
+      code: error.code,
+      message: error.message,
+      cycle: error.cycle,
+      phase: error.phase,
+      retry_after_ms: error.retry_after_ms,
+    },
+  };
+}
+
+function restoreWorldRuntime(target: WorldRuntime, snapshot: WorldRuntime): void {
+  for (const key of Object.keys(target)) {
+    delete (target as Record<string, unknown>)[key];
+  }
+  Object.assign(target, snapshot);
+}
+
+function appendCommittedEvent(
   w: WorldRuntime,
-  principal: PlayerPrincipal,
-  envl: CommandEnvelope,
-  settle: (ev: {
+  events: NonNullable<CommandResult["events"]>,
+  event_type: string,
+  payload: Record<string, unknown>,
+  opts?: { ledger?: boolean },
+) {
+  const skipLedger = new Set(["LOOK", "OBSERVATION_GENERATED", "INSPECT", "WAIT"]);
+  const ledger = opts?.ledger ?? !skipLedger.has(event_type);
+  if (ledger) w.sequence += 1;
+  const sequence = w.sequence;
+  const event_id = ledger
+    ? isolatedLedgerEventId(String(w.world_id || ""), sequence)
+    : `evt.obs.${crypto.randomUUID()}`;
+  const ev = { event_id, event_type, sequence, payload };
+  events.push(ev);
+  return ev;
+}
+
+/** Cycle increment aftermath. Callers increment World.cycle before this, or via commitCycleIfReady. */
+export async function runCommittedCycleWorldOps(
+  w: WorldRuntime,
+  pushEvent: (
+    event_type: string,
+    payload: Record<string, unknown>,
+    opts?: { ledger?: boolean },
+  ) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> },
+  settleEv: (ev: {
     event_id: string;
     event_type: string;
     sequence: number;
     payload: Record<string, unknown>;
-  }) => Promise<boolean>,
+  }) => Promise<void>,
+): Promise<void> {
+  for (const [pid, player] of Object.entries(w.players)) {
+    const spoiled = spoilWornLots(player.lot_grades, player.budgets, player.lot_origins);
+    player.lot_grades = spoiled.grades;
+    player.lot_origins = spoiled.origins;
+    player.spoil_lines = spoiled.lines;
+    for (const loss of spoiled.losses) {
+      const spoilEv = pushEvent("BUDGET_CONSUMED", {
+        player_id: pid,
+        cost_paid: { [loss.resource]: loss.amount },
+        reason: "SPOILAGE",
+      });
+      await settleEv(spoilEv);
+    }
+  }
+  await resolveDueContests(w, pushEvent, settleEv);
+  await applyScheduledPressure(w, pushEvent, settleEv);
+  await applyResourceProduction(w, pushEvent, settleEv);
+  await deliverDelayedMessages(w, pushEvent, settleEv);
+  await expireInstitutionEmergencies(w, pushEvent, settleEv);
+  for (const room of Object.values(w.rooms)) {
+    if (isHiddenRoom(room)) continue;
+    for (const ent of roomEntities(room)) {
+      if (!shouldAbandon(ent, w.cycle)) continue;
+      ent.unclaimed = true;
+      const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+      if (idx >= 0) room.entities[idx] = ent;
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: ent.entity_id,
+        set: { unclaimed: true },
+        unset: [],
+        operation: "ABANDON",
+      });
+      await settleEv(ev);
+    }
+  }
+  for (const room of Object.values(w.rooms)) {
+    if (isHiddenRoom(room)) continue;
+    for (const ent of roomEntities(room)) {
+      const classId = infraClassOf(ent);
+      if (!isInProgress(ent) || !isMultiCycleClass(classId)) continue;
+      ent.in_progress = undefined;
+      ent.last_steward_cycle = w.cycle;
+      const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
+      if (idx >= 0) room.entities[idx] = ent;
+      const ev = pushEvent("ENTITY_UPDATE", {
+        entity_id: ent.entity_id,
+        set: { in_progress: false, last_steward_cycle: w.cycle, infra_type: classId },
+        unset: ["in_progress"],
+        operation: "PROMOTE",
+      });
+      await settleEv(ev);
+    }
+  }
+  for (const room of Object.values(w.rooms)) {
+    if (isHiddenRoom(room)) continue;
+    if (room.shout && w.cycle - room.shout.cycle >= SHOUT_EXPIRE_AFTER_CYCLES) {
+      room.shout = undefined;
+    }
+    if (room.board?.length) {
+      room.board = room.board.filter((n) => w.cycle - n.cycle < BOARD_EXPIRE_AFTER_CYCLES);
+      if (!room.board.length) room.board = undefined;
+    }
+    if (room.institution_notice && w.cycle - room.institution_notice.cycle >= NOTICE_EXPIRE_AFTER_CYCLES) {
+      room.institution_notice = undefined;
+    }
+    if (room.trade_notice && w.cycle - room.trade_notice.cycle >= TRADE_NOTICE_EXPIRE_AFTER_CYCLES) {
+      room.trade_notice = undefined;
+    }
+  }
+  for (const org of Object.values(w.organizations)) {
+    if (org.channel && w.cycle - org.channel.cycle >= CHANNEL_EXPIRE_AFTER_CYCLES) {
+      org.channel = undefined;
+    }
+  }
+  for (const agr of missedCommitments(w.agreements, w.cycle)) {
+    agr.status = "BROKEN";
+    const fromId = agr.terms?.machine.resource_commitments?.[0]?.from_id || agr.party_ids[0];
+    const ev = pushEvent("AGREEMENT_BROKEN", {
+      breach_id: allocateBreachId(w.sequence, w.cycle, agr.agreement_id),
+      agreement_id: agr.agreement_id,
+      broken_by: fromId,
+      reason: "VIOLATION",
+      breach_type: "COMMITMENT_MISS",
+      influence_delta_by_party: { [fromId]: 0 },
+      release_commitments: true,
+      visibility: "PUBLIC",
+    });
+    await settleEv(ev);
+  }
+  if (shouldWriteWorldReport(w.cycle)) {
+    w.last_report = {
+      cycle: w.cycle,
+      lines: publicReportLines(
+        w.rooms,
+        w.organizations,
+        w.contests,
+        w.access_restrictions,
+        w.cycle,
+        w.public_social_events,
+        Object.values(w.reconstructions || {}),
+        Object.values(w.agreements || {}),
+      ),
+    };
+  }
+}
+
+export async function runPinnedTempoResolve(
+  w: WorldRuntime,
+  settle: SettleFn,
+  now: number,
+  commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>,
+): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }> {
+  const snapshot = structuredClone(w);
+  markTempoResolveOpen(w, now, "freeze");
+  const allEvents: NonNullable<CommandResult["events"]> = [];
+  const failClosed = (message: string): { ok: false; result: CommandResult } => {
+    restoreWorldRuntime(w, snapshot);
+    markTempoSettlementFailed(w);
+    return {
+      ok: false,
+      result: {
+        ok: false,
+        request_id: "tempo.resolve",
+        error: { code: "SETTLEMENT_FAILED", message, cycle: w.cycle, phase: "RESOLVE" },
+      },
+    };
+  };
+  try {
+    for (const slot of sortAcceptedActions(w.player_tempo?.accepted || [])) {
+      const result = await applyWorldCommand(
+        w,
+        slot.principal,
+        slot.envelope,
+        async (ev) => {
+          const ok = await settle(ev);
+          if (!ok) {
+            const err = new Error("TEMPO_SETTLEMENT_FAILED");
+            (err as Error & { code?: string }).code = "TEMPO_SETTLEMENT_FAILED";
+            throw err;
+          }
+          return true;
+        },
+        { tempoResolve: true, now },
+      );
+      allEvents.push(...(result.events || []));
+      const idem = `${slot.principal.player_id}::${slot.idempotency_key}`;
+      w.seen_idempotency[idem] = result;
+    }
+    w.cycle += 1;
+    const settleEv = async (ev: {
+      event_id: string;
+      event_type: string;
+      sequence: number;
+      payload: Record<string, unknown>;
+    }) => {
+      const ok = await settle(ev);
+      if (!ok) {
+        const err = new Error("TEMPO_SETTLEMENT_FAILED");
+        (err as Error & { code?: string }).code = "TEMPO_SETTLEMENT_FAILED";
+        throw err;
+      }
+    };
+    await runCommittedCycleWorldOps(
+      w,
+      (event_type, payload, opts) => appendCommittedEvent(w, allEvents, event_type, payload, opts),
+      settleEv,
+    );
+    markTempoPresent(w, now);
+    if (commit) {
+      let committed = false;
+      try {
+        committed = await commit(allEvents);
+      } catch {
+        committed = false;
+      }
+      if (!committed) return failClosed("Cycle settlement failed; the cycle is uncommitted.");
+    }
+    return { ok: true, events: allEvents };
+  } catch (e) {
+    const code = e instanceof Error ? (e as Error & { code?: string }).code : "";
+    if (code === "TEMPO_SETTLEMENT_FAILED") {
+      return failClosed("Cycle settlement failed; the cycle is uncommitted.");
+    }
+    throw e;
+  }
+}
+
+async function admitPinnedTempoIfNeeded(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  envl: CommandEnvelope,
+  verb: string,
+  settle: SettleFn,
+  request_id: string,
+  idem: string,
+  opts: ApplyWorldCommandOptions,
+): Promise<CommandResult | null> {
+  const loaded = loadPlayerTempoCatalog();
+  if (!loaded.ok) {
+    return tempoErrorResult(request_id, {
+      code: loaded.code,
+      message: loaded.message,
+      cycle: w.cycle,
+    });
+  }
+  if (!w.player_tempo) {
+    return tempoErrorResult(request_id, {
+      code: "TEMPO_POLICY_UNAVAILABLE",
+      message: "Pinned player-tempo state is missing.",
+      cycle: w.cycle,
+    });
+  }
+  const now = opts.now ?? Date.now();
+  let adv = advanceTempoAdmissionClock(w, now);
+  if (adv.should_resolve) {
+    const resolved = await runPinnedTempoResolve(w, settle, now);
+    if (!resolved.ok) return resolved.result;
+    adv = advanceTempoAdmissionClock(w, now);
+  }
+  if (!fillsActionSlot(verb)) return null;
+  if (opts.worldPaused) {
+    return tempoErrorResult(request_id, paceLimitedError(w, now, "The world is paused."));
+  }
+  const admitted = admitTempoAction(w, {
+    principal,
+    envelope: envl,
+    verb,
+    now,
+    worldPaused: opts.worldPaused,
+  });
+  if (!admitted.ok) return tempoErrorResult(request_id, admitted.error);
+  const pending = success(w, principal, request_id, [], "Action accepted for this cycle.", false);
+  w.seen_idempotency[idem] = pending;
+  if (!shouldFreezeTempo(w, now)) return pending;
+  const resolved = await runPinnedTempoResolve(w, settle, now);
+  if (!resolved.ok) return resolved.result;
+  const applied = w.seen_idempotency[idem] || pending;
+  return { ...applied, events: resolved.events };
+}
+
+export async function applyWorldCommand(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  envl: CommandEnvelope,
+  settle: SettleFn,
+  opts?: ApplyWorldCommandOptions,
 ): Promise<CommandResult> {
   const request_id = envl.request_id || crypto.randomUUID();
   migrateWorldRuntime(w);
@@ -1551,7 +1877,7 @@ export async function applyWorldCommand(
   if (!w.players || typeof w.players !== "object") w.players = {};
   principal = rebindDeviceAgentOccupancy(w, principal);
   const idem = `${principal.player_id}::${envl.idempotency_key || request_id}`;
-  if (w.seen_idempotency[idem]) return w.seen_idempotency[idem];
+  if (!opts?.tempoResolve && w.seen_idempotency[idem]) return w.seen_idempotency[idem];
 
   if (hasPrivateCognition(envl)) {
     return fail(request_id, "INVALID_REQUEST", "private cognition fields are not accepted");
@@ -1599,6 +1925,9 @@ export async function applyWorldCommand(
   const macroFlag = Boolean((envl.arguments || {} as { _macro_step?: boolean })._macro_step);
   if (macro.steps.length > 1) {
     if (macroFlag) return fail(request_id, "MACRO_REJECTED", "Macros cannot nest.");
+    if (isPlayerTempoPinned(w) && !opts?.tempoResolve) {
+      return fail(request_id, "MACRO_REJECTED", "Pinned player-tempo admits one action per cycle.");
+    }
     let last: CommandResult | undefined;
     for (let i = 0; i < macro.steps.length; i++) {
       last = await applyWorldCommand(
@@ -1611,6 +1940,7 @@ export async function applyWorldCommand(
           arguments: { line: macro.steps[i], _macro_step: true },
         },
         settle,
+        opts,
       );
       if (!last.ok) return last;
     }
@@ -1760,6 +2090,19 @@ export async function applyWorldCommand(
   }
 
   const action = parsed.action;
+  if (!opts?.tempoResolve && isPlayerTempoPinned(w)) {
+    const gated = await admitPinnedTempoIfNeeded(
+      w,
+      principal,
+      envl,
+      action.verb,
+      settle,
+      request_id,
+      idem,
+      opts || {},
+    );
+    if (gated) return gated;
+  }
   const events: NonNullable<CommandResult["events"]> = [];
   let settled = false;
   const entry = w.entry_room_id || "room.relay-quarter";
@@ -1909,7 +2252,8 @@ export async function applyWorldCommand(
     pl.wait_until_cycle = w.cycle + waitCycles;
     pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
-    const committed = commitCycleIfReady(w);
+    const committed = isPlayerTempoPinned(w) ? false : commitCycleIfReady(w);
+    const ledgerWait = isPlayerTempoPinned(w) || committed;
     pushEvent(
       "WAIT",
       {
@@ -1919,113 +2263,10 @@ export async function applyWorldCommand(
         world_cycle: w.cycle,
         cycle_committed: committed,
       },
-      { ledger: committed },
+      { ledger: ledgerWait },
     );
     if (committed) {
-      for (const [pid, player] of Object.entries(w.players)) {
-        const spoiled = spoilWornLots(player.lot_grades, player.budgets, player.lot_origins);
-        player.lot_grades = spoiled.grades;
-        player.lot_origins = spoiled.origins;
-        player.spoil_lines = spoiled.lines;
-        for (const loss of spoiled.losses) {
-          const spoilEv = pushEvent("BUDGET_CONSUMED", {
-            player_id: pid,
-            cost_paid: { [loss.resource]: loss.amount },
-            reason: "SPOILAGE",
-          });
-          await settleEv(spoilEv);
-        }
-      }
-      await resolveDueContests(w, pushEvent, settleEv);
-      await applyScheduledPressure(w, pushEvent, settleEv);
-      await applyResourceProduction(w, pushEvent, settleEv);
-      await deliverDelayedMessages(w, pushEvent, settleEv);
-      await expireInstitutionEmergencies(w, pushEvent, settleEv);
-      for (const room of Object.values(w.rooms)) {
-        if (isHiddenRoom(room)) continue;
-        for (const ent of roomEntities(room)) {
-          if (!shouldAbandon(ent, w.cycle)) continue;
-          ent.unclaimed = true;
-          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
-          if (idx >= 0) room.entities[idx] = ent;
-          const ev = pushEvent("ENTITY_UPDATE", {
-            entity_id: ent.entity_id,
-            set: { unclaimed: true },
-            unset: [],
-            operation: "ABANDON",
-          });
-          await settleEv(ev);
-        }
-      }
-      for (const room of Object.values(w.rooms)) {
-        if (isHiddenRoom(room)) continue;
-        for (const ent of roomEntities(room)) {
-          const classId = infraClassOf(ent);
-          if (!isInProgress(ent) || !isMultiCycleClass(classId)) continue;
-          ent.in_progress = undefined;
-          ent.last_steward_cycle = w.cycle;
-          const idx = room.entities.findIndex((e) => e.entity_id === ent.entity_id);
-          if (idx >= 0) room.entities[idx] = ent;
-          const ev = pushEvent("ENTITY_UPDATE", {
-            entity_id: ent.entity_id,
-            set: { in_progress: false, last_steward_cycle: w.cycle, infra_type: classId },
-            unset: ["in_progress"],
-            operation: "PROMOTE",
-          });
-          await settleEv(ev);
-        }
-      }
-      for (const room of Object.values(w.rooms)) {
-        if (isHiddenRoom(room)) continue;
-        if (room.shout && w.cycle - room.shout.cycle >= SHOUT_EXPIRE_AFTER_CYCLES) {
-          room.shout = undefined;
-        }
-        if (room.board?.length) {
-          room.board = room.board.filter((n) => w.cycle - n.cycle < BOARD_EXPIRE_AFTER_CYCLES);
-          if (!room.board.length) room.board = undefined;
-        }
-        if (room.institution_notice && w.cycle - room.institution_notice.cycle >= NOTICE_EXPIRE_AFTER_CYCLES) {
-          room.institution_notice = undefined;
-        }
-        if (room.trade_notice && w.cycle - room.trade_notice.cycle >= TRADE_NOTICE_EXPIRE_AFTER_CYCLES) {
-          room.trade_notice = undefined;
-        }
-      }
-      for (const org of Object.values(w.organizations)) {
-        if (org.channel && w.cycle - org.channel.cycle >= CHANNEL_EXPIRE_AFTER_CYCLES) {
-          org.channel = undefined;
-        }
-      }
-      for (const agr of missedCommitments(w.agreements, w.cycle)) {
-        agr.status = "BROKEN";
-        const fromId = agr.terms?.machine.resource_commitments?.[0]?.from_id || agr.party_ids[0];
-        const ev = pushEvent("AGREEMENT_BROKEN", {
-          breach_id: allocateBreachId(w.sequence, w.cycle, agr.agreement_id),
-          agreement_id: agr.agreement_id,
-          broken_by: fromId,
-          reason: "VIOLATION",
-          breach_type: "COMMITMENT_MISS",
-          influence_delta_by_party: { [fromId]: 0 },
-          release_commitments: true,
-          visibility: "PUBLIC",
-        });
-        await settleEv(ev);
-      }
-      if (shouldWriteWorldReport(w.cycle)) {
-        w.last_report = {
-          cycle: w.cycle,
-          lines: publicReportLines(
-            w.rooms,
-            w.organizations,
-            w.contests,
-            w.access_restrictions,
-            w.cycle,
-            w.public_social_events,
-            Object.values(w.reconstructions || {}),
-            Object.values(w.agreements || {}),
-          ),
-        };
-      }
+      await runCommittedCycleWorldOps(w, pushEvent, settleEv);
     }
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);

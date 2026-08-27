@@ -1043,6 +1043,16 @@ export function adminHtml(): string {
         ["Status", g.status],
         ["Settlement health", w.settlement_health || g.settlement_health || "—"],
         ["Cycle", w.cycle],
+        ["Tempo policy", (w.player_tempo && w.player_tempo.policy_version) || "RFC-0019"],
+        ["Tempo mode", (w.player_tempo && w.player_tempo.mode) || "—"],
+        ["Tempo phase", (w.player_tempo && w.player_tempo.phase) || "—"],
+        ["Tempo deadline", (w.player_tempo && w.player_tempo.step_required)
+          ? "step required"
+          : (w.player_tempo && w.player_tempo.collect_deadline_ms) || "—"],
+        ["Tempo slots", w.player_tempo
+          ? (w.player_tempo.accepted_slot_count + " / " + w.player_tempo.active_participant_count)
+          : "—"],
+        ["Presentation hold ms", (w.player_tempo && w.player_tempo.presentation_hold_remaining_ms) || 0],
         ["Sequence", w.sequence],
         ["Head present", data.canonical_head && data.canonical_head.head_present ? "yes" : "no"],
         ["Head sequence", data.canonical_head ? data.canonical_head.head_sequence : "—"],

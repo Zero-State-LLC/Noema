@@ -85,9 +85,20 @@ import {
   ensureSuccessorMaterialsCache,
   evictLeftoverHumanOccupancy,
   migrateWorldRuntime,
+  runPinnedTempoResolve,
   type RoomState,
   type WorldRuntime,
 } from "./world-actions";
+import {
+  advanceTempoAdmissionClock,
+  changeTempoMode,
+  isPlayerTempoPinned,
+  nextTempoAlarmAt,
+  operatorTempoTrigger,
+  pinPlayerTempo,
+  publicTempoProjection,
+  type TempoMode,
+} from "./player-tempo";
 
 type WorldState = WorldRuntime;
 type Room = RoomState;
@@ -531,6 +542,7 @@ export class NoemaWorldDO {
         compatibility_evidence: compatibilityEvidence,
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
+        player_tempo: publicTempoProjection(this.world!, Date.now()),
         pressure: adminPressureView(this.world!.pressure),
         emergency_scopes: Object.values(this.world!.organizations || {}).flatMap((o) =>
           (o.emergency_scopes || []).map((s) => ({
@@ -605,6 +617,7 @@ export class NoemaWorldDO {
         this.meta!.settlement_ok = true;
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
+        await this.scheduleTempoAlarm(Date.now());
         return Response.json({
           ok: true,
           status: this.meta!.status,
@@ -631,6 +644,69 @@ export class NoemaWorldDO {
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         reason: body.reason || null,
       });
+    }
+
+    if (request.method === "POST" && path.endsWith("/admin-tempo")) {
+      const body = (await request.json()) as {
+        action?: string;
+        mode?: TempoMode;
+        reason?: string;
+        now?: number;
+      };
+      await this.load();
+      const now = typeof body.now === "number" ? body.now : Date.now();
+      const action = String(body.action || "").toLowerCase();
+      if (action === "pin") {
+        const pinned = pinPlayerTempo(this.world!, {
+          mode: body.mode || "OBSERVED_LIVE",
+          now,
+          reason: body.reason || "admin pin",
+          defaultWorldId: this.env.DEFAULT_WORLD_ID,
+        });
+        if (!pinned.ok) {
+          return Response.json({ error: { code: pinned.code, message: pinned.message } }, { status: 409 });
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      if (action === "mode") {
+        const changed = changeTempoMode(this.world!, {
+          mode: body.mode || "OBSERVED_LIVE",
+          now,
+          reason: body.reason || "",
+          defaultWorldId: this.env.DEFAULT_WORLD_ID,
+        });
+        if (!changed.ok) {
+          return Response.json({ error: { code: changed.code, message: changed.message } }, { status: 409 });
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      if (action === "step" || action === "batch_close") {
+        const trigger = action === "step" ? "OPERATOR_STEP" : "OPERATOR_BATCH_CLOSE";
+        const closed = operatorTempoTrigger(this.world!, { trigger, now });
+        if (!closed.ok) {
+          return Response.json({ error: { code: closed.code, message: closed.message } }, { status: 409 });
+        }
+        if (closed.should_resolve) {
+          const resolved = await runPinnedTempoResolve(
+            this.world!,
+            async () => true,
+            now,
+            (events) => this.commitTempoResolution(events),
+          );
+          if (!resolved.ok) {
+            await this.save();
+            return Response.json({ error: resolved.result.error }, { status: 409 });
+          }
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      return Response.json({ error: { code: "INVALID_REQUEST", message: "Unknown tempo admin action." } }, { status: 400 });
     }
 
     if (request.method === "GET" && path.endsWith("/digests")) {
@@ -1072,6 +1148,9 @@ export class NoemaWorldDO {
         // is known.  Never write a candidate separately here.
         void ev;
         return true;
+      }, {
+        now: Date.now(),
+        worldPaused: this.meta!.status === "PAUSED",
       });
     } catch (e) {
       console.error("applyWorldCommand", e instanceof Error ? e.stack || e.message : e);
@@ -1228,7 +1307,100 @@ export class NoemaWorldDO {
         error: { code: "COMMAND_FAILED", message: "The world could not persist that action." },
       };
     }
+    await this.scheduleTempoAlarm(Date.now());
     return result;
+  }
+
+  private async scheduleTempoAlarm(now: number): Promise<void> {
+    if (!this.world || !isPlayerTempoPinned(this.world)) return;
+    const next = nextTempoAlarmAt(this.world.player_tempo, now);
+    if (next == null) {
+      await this.state.storage.deleteAlarm();
+      return;
+    }
+    await this.state.storage.setAlarm(next);
+  }
+
+  private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean> {
+    const ledgerEvents = canonicalEventsForCommit(events);
+    if (!ledgerEvents.length || !this.env.SUPABASE_URL || !this.env.SUPABASE_SERVICE_ROLE_KEY) return true;
+    const durable = await getWorldHead(this.env, this.world!.world_id);
+    const operatorLatch =
+      (this.env as { NOEMA_ALLOW_PROD_BOOTSTRAP?: string }).NOEMA_ALLOW_PROD_BOOTSTRAP === "1";
+    const bootstrapEmpty = !durable && (this.allowCanonicalBootstrap || operatorLatch);
+    const toCommit = bootstrapEmpty
+      ? withIsolatedBootstrapEvent(ledgerEvents, this.world!.world_id, this.meta!.genesis_id)
+      : ledgerEvents;
+    const principal: PlayerPrincipal = {
+      player_id: "player.system-tempo",
+      agent_id: "agent.system-tempo",
+      session_id: "sess.system-tempo",
+      controller_id: "ctrl.system-tempo",
+      controller_type: "agent",
+      scopes: ["noema.world.observe"],
+      protocol_version: "1",
+      authentication_context: "tempo-alarm",
+    };
+    const committed = await commitCanonicalSettlement(this.env, {
+      settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
+      expected_revision: this.meta!.revision ?? 0,
+      writer_generation: this.meta!.writer_generation || "do.1",
+      genesis_id: this.meta!.genesis_id || null,
+      status: this.meta!.status,
+      settlement_health: "HEALTHY",
+      world: this.world!,
+      principal,
+      events: toCommit,
+      previous_digest: durable?.ledger_head_digest ?? null,
+      allow_bootstrap: bootstrapEmpty,
+    });
+    if (!committed.ok) {
+      this.meta!.settlement_ok = false;
+      this.meta!.settlement_health = "BLOCKING";
+      this.meta!.status = "INCIDENT";
+      await this.state.storage.put("world_meta", this.meta);
+      return false;
+    }
+    this.meta!.revision = committed.revision;
+    this.meta!.settlement_ok = true;
+    this.meta!.settlement_health = "HEALTHY";
+    await this.state.storage.put("world_meta", this.meta);
+    return true;
+  }
+
+  async alarm(): Promise<void> {
+    await this.load();
+    if (!this.world || !isPlayerTempoPinned(this.world)) return;
+    const now = Date.now();
+    const adv = advanceTempoAdmissionClock(this.world, now);
+    if (adv.should_resolve) {
+      const resolved = await runPinnedTempoResolve(
+        this.world,
+        async () => true,
+        now,
+        (events) => this.commitTempoResolution(events),
+      );
+      if (!resolved.ok) {
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return;
+      }
+      if (resolved.events.length) {
+        const actor: PlayerPrincipal = {
+          player_id: "player.system-tempo",
+          agent_id: "agent.system-tempo",
+          session_id: "sess.system-tempo",
+          controller_id: "ctrl.system-tempo",
+          controller_type: "agent",
+          scopes: ["noema.world.observe"],
+          protocol_version: "1",
+          authentication_context: "tempo-alarm",
+        };
+        await this.recordDigestEvents(actor, resolved.events, this.world.cycle);
+      }
+    }
+    await this.save();
+    await this.scheduleTempoAlarm(now);
   }
 
   private async loadDigestConfig(): Promise<DigestConfig> {
