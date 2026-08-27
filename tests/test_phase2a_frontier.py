@@ -880,7 +880,9 @@ def test_e2e_frontier_play_capture_select_inject_observe(tmp_path: Path):
     assert "selection_rationale" not in blob
 
     # ledger has situation
-    assert rt.store.get_state().situations
+    # v3.2.1: cleaned direct raw field access; use safe getattr (situations is minor; no full bundle yet)
+    state = rt.store.get_state()
+    assert getattr(state, 'situations', None)  # non-empty situations present
 
     # spectator sees pressure not targeting
     spectator = rt.create_session(role=Role.SPECTATOR)

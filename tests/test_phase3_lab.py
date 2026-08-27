@@ -424,3 +424,56 @@ def test_execute_run_never_marks_production():
     )
     assert run["production_mutated"] is False
     assert run["fork"]["mutates_production"] is False
+
+
+# v3.2.1 Slice C stability test for state_bundles + core entity
+def test_v321_state_bundles_core_stability_and_projection():
+    """Proves that the thin core entity (6 fields) remains stable when using bundles.
+
+    acceptance_projection and spectator projections now go through bundle interfaces.
+    This is the stability guarantee of the deepened WorldState module.
+    """
+    from noema.world.state import (
+        load_seed, get_core_entity,
+        RoomsBundle, EntitiesBundle, OrganizationsBundle,
+        acceptance_projection,
+    )
+    from noema.observations.project import project_spectator_live
+
+    state = load_seed(FIXTURES / "world-seed.json")
+
+    core1 = get_core_entity(state)
+    assert len(core1) == 6
+    assert set(core1.keys()) == {"world_id", "world_version", "seed", "catalog_version", "cycle", "sequence"}
+
+    # Exercise bundles
+    rooms_b = RoomsBundle(state)
+    ents_b = EntitiesBundle(state)
+    orgs_b = OrganizationsBundle(state)
+
+    _ = rooms_b.rooms
+    _ = ents_b.entities
+    _ = orgs_b.organizations
+    _ = ents_b.entity_ids()
+    _ = orgs_b.organization_member_ids  # method exists
+
+    core2 = get_core_entity(state)
+    assert core1 == core2, "core entity must be stable across bundle usage"
+
+    # Projections still work and use the deepened paths
+    view = acceptance_projection(state)
+    assert view["world_id"] == core1["world_id"]
+    assert "organizations" in view
+    assert "entities_present" in view
+
+    live = project_spectator_live(state)
+    assert live["world_id"] == core1["world_id"]
+    assert "rooms" in live or "organizations" in live
+
+    # One more assertion: even after reducer-style mutation via bundle helper,
+    # the core entity remains untouched (proves stable seam)
+    RoomsBundle(state).link_entity(list(state.rooms.keys())[0], "stability-test-eid")
+    core3 = get_core_entity(state)
+    assert core1 == core3, "core entity untouched even after reducer-style mutation via bundle"
+
+    print("state_bundles core stability + projection via bundles: verified")

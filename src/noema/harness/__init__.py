@@ -4,7 +4,14 @@ Official distributed client: scrimshawlife-ctrl/noema-client.
 This package remains for server-side tests. Not the first-world install path.
 """
 
-from noema.harness.adapters import FirstValidAffordanceAdapter, ScriptedAdapter
+from noema.harness.adapters import (
+    AdapterStrategy,
+    DebugStrategy,
+    FirstValidAffordanceAdapter,
+    LlmStrategy,
+    ScriptedAdapter,
+    ScriptedStrategy,
+)
 from noema.harness.auth import DeviceEnrollmentProvider, EnvTokenProvider, StaticTokenProvider
 from noema.harness.errors import HarnessError
 from noema.harness.loop import HeadlessHarness
@@ -15,13 +22,17 @@ from noema.harness.types import ActionProposal, FailureClass, UnattendedRun
 
 __all__ = [
     "ActionProposal",
+    "AdapterStrategy",
+    "DebugStrategy",
     "DeviceEnrollmentProvider",
     "EnvTokenProvider",
     "FailureClass",
     "FirstValidAffordanceAdapter",
     "HarnessError",
     "HeadlessHarness",
+    "LlmStrategy",
     "ScriptedAdapter",
+    "ScriptedStrategy",
     "StaticTokenProvider",
     "TenantError",
     "UnattendedRun",

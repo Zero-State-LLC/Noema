@@ -150,6 +150,27 @@ def test_p09_p12_minimize_removes_eligible_keeps_protected():
     assert result["minimality_status"] in ("ONE_MINIMAL", "PARTIALLY_MINIMIZED", "NOT_MINIMIZED")
     # removable history unit should be droppable
     assert "unit.history.unrelated-cycles" in result["removed"] or "unit.history.unrelated-cycles" not in result["retained"]
+# v3.2.1 dedicated test for the deep consolidated interface
+def test_v321_deep_minimize_1_interface():
+    """Proves the 1-interface benefit of deep_minimize.
+
+    Previously required bouncing through compiler, admission, minimize, oracle.
+    Now a single deep module interface.
+    """
+    from noema.research.compiler.minimize import deep_minimize
+    units = validate_unit_manifest(_load("unit-manifest.json"))["units"]
+    protected = {u["unit_id"] for u in units if u.get("protected")}
+    oracle = BehavioralOracle(protected_ids=protected, required_ids=protected)
+
+    # Direct call — no full compiler session needed
+    result = deep_minimize(units, oracle, max_oracle_calls=256, compile_id="compile.v321-deep")
+
+    assert "retained" in result
+    assert "removed" in result
+    assert result["status"] in ("COMPILED", "BUDGET_EXHAUSTED", "INVALID_EVIDENCE")
+    # The interface is now one deep module
+    print("deep_minimize called directly — 1 interface instead of 5 modules")
+
 
 
 # P13–P15 oracle

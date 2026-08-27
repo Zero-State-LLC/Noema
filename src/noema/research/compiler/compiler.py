@@ -14,7 +14,7 @@ from noema.research.compiler.errors import (
     OVER_MINIMIZATION,
 )
 from noema.research.compiler.intent import compile_intent_to_request, validate_capture_intent
-from noema.research.compiler.minimize import minimize, reject_over_minimization
+from noema.research.compiler.minimize import deep_minimize, minimize, reject_over_minimization  # v3.2.1: deep_minimize is the recommended consolidated interface
 from noema.research.compiler.oracle import BehavioralOracle
 from noema.research.compiler.projection import (
     advanced_capture_view,
@@ -153,9 +153,10 @@ class Compiler:
 
         # over-min protection sample: refuse removing protected
         if reject_over_minimization(protected, protected):
-            pass  # structural true; enforced in minimize
+            pass  # structural true; enforced in deep_minimize
 
-        minimization = minimize(
+        # v3.2.1: use the deep consolidated interface
+        minimization = deep_minimize(
             units,
             oracle,
             edges=graph.get("edges"),

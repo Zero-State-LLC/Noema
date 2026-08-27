@@ -50,7 +50,7 @@ from noema.research.observatory.analysis import Observatory, ObservatoryResult
 from noema.research.observatory.redaction import observatory_research_overlay, redact_observatory_public
 from noema.research.observatory.trajectory_v03 import upgrade_v01_capture_to_v03
 from noema.world.reduce import apply_event
-from noema.world.state import acceptance_projection
+from noema.world.state import (acceptance_projection, RoomsBundle, EntitiesBundle, OrganizationsBundle, get_core_entity)
 
 
 class NoemaRuntime:
@@ -396,10 +396,11 @@ class NoemaRuntime:
                 "cycle": state.cycle,
                 "sequence": state.sequence,
                 "ledger_head": state.last_event_digest,
-                "rooms": len(state.rooms),
-                "infrastructure_entities": len(state.entities),
-                "active_players": len(state.active_agents),
-                "organizations": len(state.organizations),
+                # v3.2.1: via state_bundles for locality
+                "rooms": len(RoomsBundle(state).rooms),
+                "infrastructure_entities": len(EntitiesBundle(state).entities),
+                "active_players": len(state.active_agents),  # core for now
+                "organizations": len(OrganizationsBundle(state).organizations),
                 "snapshots": len(self.store.list_snapshots()),
             }
             after = max(0, int(state.sequence) - 40)

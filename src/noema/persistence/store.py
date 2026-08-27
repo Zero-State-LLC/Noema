@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from noema.world.digest import sha256_digest
-from noema.world.state import WorldState, acceptance_projection, load_seed
+from noema.world.state import WorldState, RoomsBundle, EntitiesBundle, OrganizationsBundle, MessagesBundle, TradesBundle, acceptance_projection, load_seed, get_core_entity
 
 Backend = Literal["sqlite", "postgres"]
 

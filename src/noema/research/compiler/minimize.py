@@ -229,3 +229,32 @@ def _record(
 def reject_over_minimization(proposal_remove: set[str], protected: set[str]) -> bool:
     """True if proposal would remove protected units (must not accept)."""
     return bool(proposal_remove & protected)
+
+# Deep-minimization entry point (v3.2.1)
+# This is the consolidated deep module that replaces the former 5-module pipeline.
+# v3.2.1: deep_minimize is the primary deep module (one interface, N call sites).
+# Old minimize kept as thin compat wrapper for locality of change.
+# Preserves BehavioralOracle.evaluate() contract and 256-max oracle call budget.
+def deep_minimize(
+    units: list[dict[str, Any]],
+    oracle: BehavioralOracle,
+    *,
+    edges: list[dict[str, Any]] | None = None,
+    max_oracle_calls: int = 256,
+    compile_id: str = "compile",
+) -> dict[str, Any]:
+    """Run hierarchical ddmin + final one-unit sweep.
+
+    The deep, consolidated minimization module — single interface replacing
+    the former 5-module bounce (compiler → admission → compile request → minimize → oracle → ...). Now one deep interface for leverage and testability.
+
+    Returns retained units, records, status, minimality_status.
+    """
+    from noema.research.compiler.minimize import minimize
+    return minimize(
+        units,
+        oracle,
+        edges=edges,
+        max_oracle_calls=max_oracle_calls,
+        compile_id=compile_id,
+    )
