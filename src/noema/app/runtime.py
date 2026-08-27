@@ -21,6 +21,7 @@ from noema.actions.router import ActionRouter
 from noema.auth.identity import IdentityService
 from noema.auth.roles import Principal, Role
 from noema.observations.project import project_agent_observation, project_spectator_live
+from noema.world.state import SituationsBundle, AgentsBundle
 from noema.config.deployment import (
     configuration_digest,
     load_deployment_config,
@@ -534,9 +535,8 @@ class NoemaRuntime:
                 raise ActionError(NOT_AUTHORIZED, "agent_id does not match session")
             if not agent_id:
                 raise ActionError(NOT_AUTHORIZED, "agent_id required")
-            if agent_id not in state.registered_agents:
-                state.registered_agents[agent_id] = {"agent_id": agent_id, "display_name": agent_id}
-                self.store._state.registered_agents[agent_id] = state.registered_agents[agent_id]
+            agent_bundle = AgentsBundle(state)
+            agent_bundle.ensure_registered_agent(agent_id)
             action = {
                 **action,
                 "agent_id": agent_id,
@@ -773,10 +773,11 @@ class NoemaRuntime:
         """WATCH-safe world pressure summary without research metadata."""
         self.ensure_ready()
         state = self.store.get_state()
-        event_ids = []
-        for sid, sit in (state.situations or {}).items():
-            event_ids.append(sid)
-        narrative = "World conditions shift." if state.situations else "Quiet conditions."
+        sit_bundle = SituationsBundle(state)
+        public_situations = sit_bundle.get_public_situations()
+        # get_public_situations returns list of dicts with situation_id keys
+        event_ids = [sit["situation_id"] for sit in public_situations]
+        narrative = "World conditions shift." if public_situations else "Quiet conditions."
         view = public_pressure_summary(
             cycle=state.cycle,
             world_id=state.world_id,

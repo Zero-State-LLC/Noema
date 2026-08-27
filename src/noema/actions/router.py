@@ -14,7 +14,12 @@ from noema.actions.errors import (
 from noema.scheduler.order import sort_actions
 from noema.world.digest import event_body_digest, sha256_digest
 from noema.world.reduce import ReduceError, apply_event
-from noema.world.state import WorldState
+from noema.world.state import (
+    WorldState,
+    RoomsBundle,
+    EntitiesBundle,
+    AgentsBundle,
+)
 
 
 EventEmitter = Callable[[WorldState, dict[str, Any]], WorldState]
@@ -125,6 +130,9 @@ class ActionRouter:
         return next_state, events, results
 
     def _action_to_events(
+    # Router now routes most state access through bundle_seams (RoomsBundle,
+    # EntitiesBundle, AgentsBundle) for greater depth + locality.
+    
         self,
         state: WorldState,
         action: dict[str, Any],
@@ -159,12 +167,14 @@ class ActionRouter:
             return event
 
         if verb == "ENTER_WORLD":
+            rooms = RoomsBundle(state)
+            agents = AgentsBundle(state)
             room_id = params.get("room_id")
             if not room_id:
-                # default first room
-                room_id = next(iter(state.rooms))
-            budgets = params.get("budgets") or dict(state.budget_defaults)
-            reg = state.registered_agents.get(agent_id) or {"agent_id": agent_id}
+                # default first room via bundle seam
+                room_id = rooms.first_room_id()
+            budgets = params.get("budgets") or dict(state.budget_defaults)  # core field (stable)
+            reg = agents.registered_agent(agent_id) or {"agent_id": agent_id}
             emit(
                 "AGENT_ENTERED_WORLD",
                 {
@@ -175,7 +185,8 @@ class ActionRouter:
                 },
             )
         elif verb == "LEAVE_WORLD":
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             emit(
@@ -183,7 +194,9 @@ class ActionRouter:
                 {"agent_id": agent_id, "room_id": agent["room_id"], "reason": params.get("reason") or "LEFT"},
             )
         elif verb == "LOOK":
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            rooms = RoomsBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             room_id = agent["room_id"]
@@ -198,13 +211,13 @@ class ActionRouter:
                     "observation_id": obs_id,
                 },
             )
-            # deterministic observation digest from room projection
-            room = state.rooms[room_id]
+            # deterministic observation digest from room projection via bundle seam
+            room = rooms.room(room_id) or {}
             body = {
                 "kind": "LOOK",
                 "room_id": room_id,
                 "name": room.get("name"),
-                "entity_ids": list(room.get("entity_ids") or []),
+                "entity_ids": rooms.room_entity_ids(room_id),
             }
             obs_digest = sha256_digest(body)
             emit(
@@ -219,13 +232,15 @@ class ActionRouter:
                 },
             )
         elif verb == "MOVE":
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            rooms = RoomsBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             exit_id = params.get("exit_id")
             if not exit_id:
                 raise ActionError(INVALID_ACTION, "exit_id required")
-            exit_rec = state.exits.get(exit_id)
+            exit_rec = rooms.exit(exit_id)
             if not exit_rec:
                 raise ActionError(PRECONDITION_FAILED, "unknown exit")
             cost = params.get("cost_paid") or {"energy": 1}
@@ -240,7 +255,10 @@ class ActionRouter:
                 },
             )
         elif verb == "INSPECT":
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            rooms = RoomsBundle(state)
+            ents = EntitiesBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             entity_id = params.get("entity_id") or params.get("target")
@@ -258,7 +276,7 @@ class ActionRouter:
                     "observation_id": obs_id,
                 },
             )
-            ent = state.entities.get(entity_id, {})
+            ent = ents.entity(entity_id) or {}
             body = {"kind": "INSPECT", "entity_id": entity_id, "entity_type": ent.get("entity_type")}
             emit(
                 "OBSERVATION_GENERATED",
@@ -317,7 +335,9 @@ class ActionRouter:
             )
         elif verb == "HARVEST":
             # map to BUDGET / RESOURCE_TRANSFER from entity stock when possible
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            ents = EntitiesBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             entity_id = params.get("entity_id")
@@ -335,7 +355,9 @@ class ActionRouter:
                 },
             )
         elif verb == "REPAIR":
-            agent = state.active_agents.get(agent_id)
+            agents = AgentsBundle(state)
+            ents = EntitiesBundle(state)
+            agent = agents.active_agent(agent_id)
             if not agent:
                 raise ActionError(PRECONDITION_FAILED, "agent not in world")
             entity_id = params.get("entity_id")
@@ -343,17 +365,18 @@ class ActionRouter:
                 raise ActionError(INVALID_ACTION, "entity_id required for REPAIR")
             # spend energy and bump condition if present
             cost = params.get("cost_paid") or {"energy": 1}
+            budgets = agents.agent_budgets(agent_id)
             emit(
                 "BUDGET_CONSUMED",
                 {
                     "agent_id": agent_id,
                     "resource": "energy",
                     "amount": float(cost.get("energy", 1)),
-                    "remaining": float(agent["budgets"].get("energy", 0)) - float(cost.get("energy", 1)),
+                    "remaining": float(budgets.get("energy", 0)) - float(cost.get("energy", 1)),
                     "action_id": action["action_id"],
                 },
             )
-            ent = state.entities.get(entity_id) or {}
+            ent = ents.entity(entity_id) or {}
             condition = float((ent.get("state") or {}).get("condition", 50))
             emit(
                 "ENTITY_UPDATE",
