@@ -3,6 +3,8 @@
  * Authority: Noema-Specs docs/DIPLOMACY-S2.md / RFC-0100.
  */
 
+import { deterministicId } from "./ids";
+
 export const DIPLOMACY_CATALOG_ID = "diplomacy-catalog/s2";
 export const AGREEMENT_FORM_COST = { compute: 2, influence: 1 } as const;
 export const AGREEMENT_TERMINATE_COST = { compute: 1 } as const;
@@ -26,6 +28,33 @@ export const AGREEMENT_REASONS = ["VIOLATION", "MUTUAL", "EXPIRED", "SUPERSEDED"
 export type AgreementType = (typeof AGREEMENT_TYPES)[number];
 export type AgreementReason = (typeof AGREEMENT_REASONS)[number];
 export type AgreementStatus = "OFFERED" | "ACTIVE" | "BROKEN";
+
+/** Reader-facing noun for each catalog agreement type. */
+const AGREEMENT_NOUNS: Record<AgreementType, string> = {
+  TRADE: "trade",
+  NON_AGGRESSION: "non-aggression",
+  ACCESS: "access",
+  RESOURCE_COMMITMENT: "resource commitment",
+  MUTUAL_DEFENSE: "mutual defense",
+};
+
+export function agreementNoun(type: AgreementType | string | undefined): string {
+  return AGREEMENT_NOUNS[String(type || "TRADE").toUpperCase() as AgreementType] || "agreement";
+}
+
+/** "You withdraw the non-aggression offer." */
+export function agreementWithdrawLine(type: AgreementType | string | undefined): string {
+  return `You withdraw the ${agreementNoun(type)} offer.`;
+}
+
+/** "Non-aggression agreement <id> is broken." */
+export function agreementBrokenLine(
+  type: AgreementType | string | undefined,
+  agreementId: string,
+): string {
+  const noun = agreementNoun(type);
+  return `${noun.charAt(0).toUpperCase()}${noun.slice(1)} agreement ${agreementId} is broken.`;
+}
 
 export type AgreementTerms = {
   machine: {
@@ -79,12 +108,13 @@ export function samePair(partyIds: string[] | undefined, a: string, b: string): 
   return ids.length === 2 && ids[0] === want[0] && ids[1] === want[1];
 }
 
-export function allocateAgreementId(): string {
-  return `agreement.${Math.random().toString(16).slice(2, 10)}`;
+export function allocateAgreementId(seq?: number, cycle?: number, subject?: string): string {
+  // ADR-008: derived from committed world facts, not an implicit random stream.
+  return deterministicId("agreement", seq, cycle, subject);
 }
 
-export function allocateBreachId(): string {
-  return `breach.${Math.random().toString(16).slice(2, 10)}`;
+export function allocateBreachId(seq?: number, cycle?: number, subject?: string): string {
+  return deterministicId("breach", seq, cycle, subject);
 }
 
 export function parseAgreementReason(raw: string): AgreementReason | null {

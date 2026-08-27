@@ -222,7 +222,7 @@ def test_l20_production_world_isolation(tmp_path: Path):
 def test_l20_player_cannot_run_lab(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="p")
+    sess = rt.create_session(role=Role.AGENT, agent_id="p")
     with pytest.raises(ResearchError) as ei:
         rt.run_lab(sess["session_id"], intent=_load("experiment-intent.json"), interventions=[])
     assert ei.value.code == POLICY_DENIED
@@ -353,7 +353,7 @@ def test_l33_l34_e2e_intent_to_study_projection(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
     # play a little for realism
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.p")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.p")
     rt.apply_player_action(
         player["session_id"],
         {

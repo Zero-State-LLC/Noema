@@ -68,6 +68,27 @@ def test_d05_d06_succession_and_founder_departure():
     assert transferred.get("current_custodian") == "agent.vesper.steward"
 
 
+# D07 dormancy
+def test_d07_dormancy_retains_addressable_history():
+    dormant = validate_institution(_load("institution.json"))
+    assert dormant["status"] == "DORMANT"
+    assert dormant["institution_id"]
+    vacant = validate_succession(_load("succession-vacant.json"))
+    assert vacant["outcome"] == "VACANT"
+    assert vacant["institution_continues"] is True
+    stepped = set_lifecycle(validate_institution(_load("institution-active.json")), "DORMANT", cycle=1900)
+    assert stepped["status"] == "DORMANT"
+    assert stepped["addressable"] is True
+
+
+# D08 dissolution
+def test_d08_dissolution_retains_addressable_history():
+    dissolved = set_lifecycle(validate_institution(_load("institution-active.json")), "DISSOLVED", cycle=2000)
+    assert dissolved["status"] == "DISSOLVED"
+    assert dissolved["addressable"] is True
+    assert dissolved.get("status") != "DELETED"
+
+
 # D09 lineage identity classes
 def test_d09_lineage_identity_classes():
     lin = validate_lineage(_load("institution-lineage.json"))
@@ -132,6 +153,72 @@ def test_d24_world_scar_from_events():
     assert scar["digest"] == _load("expected-digests.json")["scar_digest"]
 
 
+# D19 institutional memory
+def test_d19_institutional_memory_archive_and_practices():
+    inst = validate_institution(_load("institution.json"))
+    archive = validate_artifact(_load("artifact-archive.json"))
+    assert inst["archive_ref"] == archive["artifact_id"]
+    assert archive["artifact_class"] == "ARCHIVE"
+    assert inst["persistent_practices"]
+    assert archive["claims_are_not_world_truth"] is True
+
+
+# D20–D21 cultural transmission + semantic lineage
+def test_d20_d21_semantic_lineage_not_auto_interpreted():
+    lin = _load("semantic-lineage.json")
+    assert lin["schema_version"] == "semantic-lineage/0.6"
+    assert lin["auto_interpreted"] is False
+    assert lin["canonical_subject_id"]
+    assert lin["digest"] == _load("expected-digests.json")["semantic_lineage_digest"]
+    body = {k: v for k, v in lin.items() if k != "digest"}
+    assert sha256_digest(body) == lin["digest"]
+    forms = [e["surface_form"] for e in lin["entries"]]
+    assert len(set(forms)) > 1
+    labels = {e["claim_label"] for e in lin["entries"]}
+    assert "PROVEN" not in labels
+    assert labels <= {"OBSERVED", "INFERRED", "SPECULATIVE", "NOT_COMPUTABLE"}
+
+
+# D23 historical geography
+def test_d23_historical_geography_place_has_scar():
+    scar = validate_scar(_load("world-scar.json"))
+    onboard = _load("play-onboarding.json")
+    play = _load("play-old-relay.json")
+    assert scar["location_ref"]
+    assert scar["simple_label"] in onboard["presentation"]["nearby"]
+    assert "scar.relay-south.damage" in play["canonical_source_refs"]
+    assert play["mode"] == "PLAY"
+    assert play["research_detail"] is False
+    assert play["canonical_claim_label"] != "PROVEN"
+
+
+# D25 inheritance is explicit
+def test_d25_inheritance_explicit_successor_not_same_entity():
+    pred = validate_institution(_load("institution.json"))
+    succ_inst = validate_institution(_load("institution-successor.json"))
+    succession = validate_succession(_load("succession.json"))
+    assert pred["inheritor_refs"]
+    assert succession["institution_continues"] is True
+    assert succ_inst["continuity"]["identity_class"] == "SUCCESSOR_ENTITY"
+    assert succ_inst["continuity"]["predecessor_institution_id"] == pred["institution_id"]
+    assert succ_inst["succession_mechanism"] == "INHERITED_BY_ORGANIZATION"
+    assert succ_inst["institution_id"] != pred["institution_id"]
+
+
+# D26 historical snapshot ≠ ledger
+def test_d26_snapshot_separated_from_ledger():
+    hidden = _load("evidence-ledger-hidden.json")
+    red = filter_hidden_evidence(hidden, player_visible=False)
+    assert red["redacted"] is True
+    with pytest.raises(DeepTimeError) as ei:
+        filter_hidden_evidence(hidden, player_visible=True)
+    assert ei.value.code == HIDDEN_HISTORY
+    snap = DeepTimeRegistry().snapshot()
+    assert snap["ledger_is_canonical"] is True
+    assert snap["lore_is_not_truth"] is True
+    assert "events" not in snap
+
+
 # D27–D29 projections
 def test_d27_d29_projections():
     play = play_history_view(
@@ -153,6 +240,14 @@ def test_d27_d29_projections():
         subject_ids=["inst.nacre-relay-stewardship"],
     )
     assert study["mode"] == "STUDY"
+    play_fx = _load("play-old-relay.json")
+    watch_fx = _load("watch-timeline.json")
+    study_fx = _load("study-questions.json")
+    assert play_fx["mode"] == "PLAY" and play_fx["research_detail"] is False
+    assert watch_fx["mode"] == "WATCH" and watch_fx["research_detail"] is False
+    assert study_fx["mode"] == "STUDY" and study_fx["research_detail"] is True
+    assert "inst.nacre-relay-stewardship" in watch_fx["canonical_source_refs"]
+    assert "inst.nacre-relay-stewardship" in study_fx["canonical_source_refs"]
 
 
 # D30 lore boundary
@@ -256,7 +351,7 @@ def test_g09_admin_only_activate_and_freeze(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     # need session before world for genesis preview; admin can preview without world
     admin = rt.create_session(role=Role.ADMIN)
-    player = rt.create_session(role=Role.PLAYER, agent_id="p")
+    player = rt.create_session(role=Role.AGENT, agent_id="p")
     researcher = rt.create_session(role=Role.RESEARCHER)
     with pytest.raises(GenesisError) as ei:
         rt.genesis_preview(player["session_id"], world_name="X", world_seed="s", profile_id="YOUNG_FRONTIER")
@@ -283,7 +378,7 @@ def test_g09_admin_only_activate_and_freeze(tmp_path: Path):
         rt.genesis_activate(admin["session_id"], gid)
     assert e2.value.code == ALREADY_ACTIVATED
     # PLAY works after activation
-    p2 = rt.create_session(role=Role.PLAYER, agent_id="agent.g")
+    p2 = rt.create_session(role=Role.AGENT, agent_id="agent.g")
     r = rt.apply_player_action(
         p2["session_id"],
         {

@@ -4,8 +4,14 @@
  * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in the environment.
  * Prints status codes and redacted head fields. Never prints secrets.
  * Does not apply SQL, invent events, or reseed Genesis.
+ * RPC names are probed via GET OpenAPI. Never POST to settlement RPCs.
  */
-import { adoptSequenceFromReceipt, summarizeChain } from "./settlement-chain.mjs";
+import {
+  adoptSequenceFromReceipt,
+  openApiAvailable,
+  openApiRpcPresent,
+  summarizeChain,
+} from "./settlement-chain.mjs";
 const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const worldId = process.env.SUPABASE_CANONICAL_WORLD_ID || "world.perihelion-reach";
@@ -23,7 +29,12 @@ const headers = {
   apikey: key,
   authorization: `Bearer ${key}`,
   accept: "application/json",
-  "content-type": "application/json",
+};
+
+const openapiHeaders = {
+  apikey: key,
+  authorization: `Bearer ${key}`,
+  accept: "application/openapi+json",
 };
 
 async function probe(name, href, init) {
@@ -53,34 +64,32 @@ function redactHead(row) {
   };
 }
 
+function rpcHint(openapiOk, present) {
+  if (!openapiOk) return "openapi_unavailable";
+  return present ? "named in OpenAPI" : "RPC name missing from OpenAPI";
+}
+
+const COMMIT_RPC = "noema_commit_canonical_settlement";
+const ADOPT_RPC = "noema_adopt_live_world_head";
 const headUrl = `${url}/rest/v1/noema_world_heads?world_id=eq.${encodeURIComponent(worldId)}&select=world_id,cycle,sequence,revision,writer_generation,settlement_health,genesis_id,state_digest,ledger_head_event_id&limit=1`;
 const eventsUrl = `${url}/rest/v1/noema_settled_events?world_id=eq.${encodeURIComponent(worldId)}&select=sequence&order=sequence`;
 const firstReceiptUrl = `${url}/rest/v1/noema_canonical_settlements?world_id=eq.${encodeURIComponent(worldId)}&select=revision,sequence,ledger_head_event_id&order=revision.asc&limit=1`;
 const lastReceiptUrl = `${url}/rest/v1/noema_canonical_settlements?world_id=eq.${encodeURIComponent(worldId)}&select=revision,sequence,ledger_head_event_id&order=revision.desc&limit=1`;
-const commitRpc = `${url}/rest/v1/rpc/noema_commit_canonical_settlement`;
-const adoptRpc = `${url}/rest/v1/rpc/noema_adopt_live_world_head`;
+const openapiUrl = `${url}/rest/v1/`;
 
-const [head, events, firstReceipt, lastReceipt, commit, adopt] = await Promise.all([
+const [head, events, firstReceipt, lastReceipt, openapi] = await Promise.all([
   probe("noema_world_heads", headUrl, { headers }),
   probe("noema_settled_events", eventsUrl, { headers }),
   probe("first_receipt", firstReceiptUrl, { headers }),
   probe("last_receipt", lastReceiptUrl, { headers }),
-  probe("noema_commit_canonical_settlement", commitRpc, {
-    method: "POST",
-    headers,
-    body: "{}",
-  }),
-  probe("noema_adopt_live_world_head", adoptRpc, {
-    method: "POST",
-    headers,
-    body: "{}",
-  }),
+  probe("openapi", openapiUrl, { headers: openapiHeaders }),
 ]);
 
 const rows = Array.isArray(head.body) ? head.body : [];
 const tablePresent = head.status === 200;
-const commitPresent = commit.status !== 404 && commit.status !== 406;
-const adoptPresent = adopt.status !== 404 && adopt.status !== 406;
+const openapiOk = openApiAvailable(openapi.status, openapi.body);
+const commitPresent = openapiOk && openApiRpcPresent(openapi.body, COMMIT_RPC);
+const adoptPresent = openapiOk && openApiRpcPresent(openapi.body, ADOPT_RPC);
 const eventRows = Array.isArray(events.body) ? events.body : [];
 const firstRec = Array.isArray(firstReceipt.body) ? firstReceipt.body[0] : null;
 const lastRec = Array.isArray(lastReceipt.body) ? lastReceipt.body[0] : null;
@@ -115,15 +124,20 @@ const out = {
     present: tablePresent,
     row: tablePresent ? redactHead(rows[0] || null) : null,
   },
+  openapi: {
+    http: openapi.status,
+    available: openapiOk,
+    hint: openapiOk ? "rpc names read from GET /rest/v1/ OpenAPI" : "openapi_unavailable",
+  },
   noema_commit_canonical_settlement: {
-    http: commit.status,
-    present: commitPresent,
-    hint: commit.status === 404 || commit.status === 406 ? "RPC missing from schema cache" : "function exists (empty body is expected to fail closed)",
+    http: openapi.status,
+    present: openapiOk ? commitPresent : null,
+    hint: rpcHint(openapiOk, commitPresent),
   },
   noema_adopt_live_world_head: {
-    http: adopt.status,
-    present: adoptPresent,
-    hint: adopt.status === 404 || adopt.status === 406 ? "RPC missing from schema cache" : "function exists (empty body is expected to fail closed)",
+    http: openapi.status,
+    present: openapiOk ? adoptPresent : null,
+    hint: rpcHint(openapiOk, adoptPresent),
   },
   chain: {
     ...chain,

@@ -41,6 +41,7 @@ type ViewObs = {
     condition?: string;
     exits?: unknown[];
     entities?: Array<{
+      entity_id?: string;
       label?: string;
       entity_type?: string;
       condition?: number;
@@ -59,6 +60,7 @@ type ViewObs = {
   players_here?: Array<{ player_id?: string; handle?: string; public_practice_lines?: string[] } | unknown>;
   practice_lines?: string[];
   lot_lines?: string[];
+  inherited_lines?: string[];
   social_memory_lines?: string[];
   culture_lines?: string[];
   discovery_lines?: string[];
@@ -106,24 +108,10 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
   const cycle = typeof obs.cycle === "number" ? obs.cycle : null;
   let relayIntegrity: number | null = null;
   const ents = loc.entities || [];
-  const relays = ents.filter((e) => {
-    const t = String(e.entity_type || "").toUpperCase();
-    const lab = String(e.label || "").toLowerCase();
-    return t === "INFRASTRUCTURE" && /relay|conduit|trunk/.test(lab) && typeof e.condition === "number";
-  });
-  const infra = relays.length
-    ? relays
-    : ents.filter((e) => String(e.entity_type || "").toUpperCase() === "INFRASTRUCTURE" && typeof e.condition === "number");
+  const infra = ents.filter(
+    (e) => String(e.entity_type || "").toUpperCase() === "INFRASTRUCTURE" && typeof e.condition === "number",
+  );
   if (infra[0] && typeof infra[0].condition === "number") relayIntegrity = infra[0].condition;
-  if (relayIntegrity === null) {
-    for (const line of obs.report_lines || []) {
-      const m = String(line).match(/condition\s+(\d+)\s*\.?$/i);
-      if (m) {
-        relayIntegrity = Number(m[1]);
-        break;
-      }
-    }
-  }
   const status: PlayerStatusRow[] = [];
 
   if (obs.world_name) status.push({ label: label("world"), value: obs.world_name });
@@ -139,6 +127,9 @@ export function toPlayerView(obs: ViewObs): PlayerWorldView {
   }
   for (const line of (obs.lot_lines || []).slice(0, 4)) {
     if (line) status.push({ label: label("lot"), value: line });
+  }
+  for (const line of (obs.inherited_lines || []).slice(0, 3)) {
+    if (line) status.push({ label: label("inherited"), value: line });
   }
   for (const line of (obs.social_memory_lines || []).slice(0, 3)) {
     if (line) status.push({ label: label("tie"), value: line });

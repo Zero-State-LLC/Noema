@@ -1,0 +1,430 @@
+{
+  "fixture_version": "prod-shape-sanitized-legacy-nested-deep-time-2026-08-issue-553",
+  "sanitization": {
+    "source": "production-shaped synthetic older Durable Object state with Deep Time only under co_evolution.deep_time",
+    "contains_real_user_data": false,
+    "redactions": [
+      "handles",
+      "message text",
+      "ids",
+      "timestamps"
+    ],
+    "omitted_current_schema_fields": [
+      "world.scars",
+      "world.evidence_fragments",
+      "world.trajectory_digest",
+      "world.norm_ratchets",
+      "world.lore_attractors",
+      "organizations.treasury",
+      "player.practice",
+      "player.trade_memory",
+      "player.danger_memory",
+      "player.discovery"
+    ]
+  },
+  "world": {
+    "world_id": "world.perihelion-reach-sanitized-old",
+    "world_name": "Perihelion Reach",
+    "world_seed": "sanitized-prod-shape-old-v1",
+    "cycle": 37,
+    "sequence": 218,
+    "entry_room_id": "room.relay-quarter",
+    "rooms": {
+      "room.relay-quarter": {
+        "room_id": "room.relay-quarter",
+        "name": "Relay Quarter",
+        "description": "Sanitized public hub with prior agent activity.",
+        "exits": [
+          {
+            "direction": "east",
+            "to_room_id": "room.archive-yard"
+          }
+        ],
+        "entities": [
+          {
+            "entity_id": "entity.relay-trunk",
+            "label": "relay trunk",
+            "entity_type": "INFRASTRUCTURE",
+            "condition": 64,
+            "owner_id": "player.agent-aloe",
+            "co_owner_id": "player.agent-birch",
+            "infra_type": "relay"
+          },
+          {
+            "entity_id": "entity.civic-cache",
+            "label": "civic cache",
+            "entity_type": "RESOURCE",
+            "stock_resource": "materials",
+            "stock_amount": 11,
+            "max_stock": 18,
+            "regen_rate": 0.75,
+            "owner_id": "org.civic-repair"
+          }
+        ],
+        "board": [
+          {
+            "text": "repair compact held",
+            "cycle": 34
+          }
+        ],
+        "institution_notice": {
+          "text": "Civic Repair keeps the east route open.",
+          "cycle": 35,
+          "org_id": "org.civic-repair",
+          "org_name": "Civic Repair"
+        }
+      },
+      "room.archive-yard": {
+        "room_id": "room.archive-yard",
+        "name": "Archive Yard",
+        "description": "Public archive yard with weathered instruments.",
+        "exits": [
+          {
+            "direction": "west",
+            "to_room_id": "room.relay-quarter"
+          }
+        ],
+        "entities": [
+          {
+            "entity_id": "entity.archive-index",
+            "label": "archive index",
+            "entity_type": "ARTIFACT",
+            "archive_subject_entity_id": "entity.relay-trunk",
+            "archive_claim": "OPERATING"
+          }
+        ],
+        "tags": [
+          "public",
+          "archive"
+        ]
+      }
+    },
+    "players": {
+      "player.agent-aloe": {
+        "room_id": "room.relay-quarter",
+        "entered": true,
+        "handle": "aloe",
+        "actor_kind": "system",
+        "controller_type": "agent",
+        "last_seen_ms": 0,
+        "budgets": {
+          "attention": 6,
+          "compute": 55,
+          "energy": 71,
+          "influence": 28,
+          "storage": 12
+        },
+        "lot_grades": {
+          "storage": "SOUND"
+        },
+        "lot_origins": {
+          "storage": {
+            "room_id": "room.relay-quarter",
+            "room_name": "Relay Quarter",
+            "producer_id": "entity.civic-cache"
+          }
+        },
+        "inherited": {
+          "scar_vector": [
+            {
+              "scar_id": "scar.relay-neglect",
+              "domain": "economic",
+              "room_id": "room.relay-quarter",
+              "entity_id": "entity.relay-trunk",
+              "cycle_born": 13,
+              "strength": 0.44,
+              "decay_rate": 0.02,
+              "fossilized": false,
+              "visibility": "public",
+              "reconstruction_confidence": 0.82,
+              "harvest_count": 3
+            }
+          ],
+          "trajectory_digest": [
+            {
+              "room_id": "room.relay-quarter",
+              "last_cycle": 36,
+              "harvest_count": 3
+            }
+          ],
+          "lore_seeds": [
+            "repairers remember the east route"
+          ]
+        }
+      },
+      "player.agent-birch": {
+        "room_id": "room.archive-yard",
+        "entered": true,
+        "handle": "birch",
+        "actor_kind": "system",
+        "controller_type": "agent",
+        "last_seen_ms": 0,
+        "budgets": {
+          "attention": 5,
+          "compute": 48,
+          "energy": 68,
+          "influence": 31,
+          "storage": 9
+        }
+      }
+    },
+    "trades": {
+      "trade.repair-escrow": {
+        "trade_id": "trade.repair-escrow",
+        "proposer_id": "player.agent-aloe",
+        "counterparty_id": "player.agent-birch",
+        "offered": {
+          "storage": 2
+        },
+        "requested": {
+          "compute": 3
+        },
+        "status": "OPEN",
+        "reserved": {
+          "storage": 2
+        },
+        "expires_cycle": 40,
+        "acting_for": "org.civic-repair",
+        "office_id": "office.steward"
+      }
+    },
+    "messages": [
+      {
+        "message_id": "msg.sanitized.1",
+        "sender_id": "player.agent-birch",
+        "recipient_id": "player.agent-aloe",
+        "text": "sanitized operational note",
+        "status": "DELIVERED",
+        "delivered_cycle": 36
+      }
+    ],
+    "organizations": {
+      "org.civic-repair": {
+        "org_id": "org.civic-repair",
+        "name": "Civic Repair",
+        "charter": "Keep public routes usable and publish repair obligations.",
+        "status": "ACTIVE",
+        "creator_id": "player.agent-aloe",
+        "members": [
+          {
+            "agent_id": "player.agent-aloe",
+            "role": "founder"
+          },
+          {
+            "agent_id": "player.agent-birch",
+            "role": "officer"
+          }
+        ],
+        "created_cycle": 12,
+        "public_notice": "Public relay stewardship compact.",
+        "channel": {
+          "text": "sanitized channel notice",
+          "cycle": 35
+        },
+        "offices": {
+          "office.steward": {
+            "office_id": "office.steward",
+            "title": "Route Steward",
+            "holder_id": "player.agent-birch",
+            "profile": "REPAIR",
+            "scope": {
+              "entity_ids": [
+                "entity.relay-trunk"
+              ],
+              "room_ids": [
+                "room.relay-quarter"
+              ]
+            },
+            "created_cycle": 18,
+            "status": "ACTIVE"
+          }
+        },
+        "office_precedence": [
+          "office.steward"
+        ],
+        "emergency_scopes": [
+          {
+            "scope_id": "emergency.route-east",
+            "office_id": "office.steward",
+            "entity_ids": [
+              "entity.relay-trunk"
+            ],
+            "room_ids": [
+              "room.relay-quarter"
+            ],
+            "active_until_cycle": 39,
+            "reason": "sanitized relay degradation"
+          }
+        ]
+      }
+    },
+    "agreements": {
+      "agreement.repair-watch": {
+        "agreement_id": "agreement.repair-watch",
+        "type": "AID",
+        "party_a": "player.agent-aloe",
+        "party_b": "player.agent-birch",
+        "status": "ACTIVE",
+        "formed_cycle": 25,
+        "terms": "share repair observations",
+        "reason": "route stewardship"
+      }
+    },
+    "access_restrictions": [
+      {
+        "restriction_id": "access.east-route.office-only",
+        "scope": "EXIT",
+        "mode": "ALLOW_ONLY",
+        "applies_to": "org.civic-repair",
+        "room_id": "room.relay-quarter",
+        "exit_id": "east",
+        "expires_cycle": 41
+      }
+    ],
+    "seen_idempotency": {
+      "player.agent-aloe::old-look": {
+        "ok": true,
+        "request_id": "old-look",
+        "events": [],
+        "settled": true
+      }
+    },
+    "unsettled": [
+      {
+        "event_id": "evt.unsettled.sanitized",
+        "event_type": "OBSERVATION_NOTE",
+        "sequence": 219,
+        "cycle": 37,
+        "payload": {
+          "note": "must not become canonical head"
+        }
+      }
+    ],
+    "culture": {
+      "sites": {
+        "entity.relay-trunk": {
+          "repair_ids": [
+            "evt.repair.000207"
+          ],
+          "accessors": [
+            "player.agent-aloe",
+            "player.agent-birch"
+          ],
+          "repair_cycles": [
+            33
+          ],
+          "repairs": [
+            {
+              "event_id": "evt.repair.000207",
+              "actor_id": "player.agent-aloe",
+              "cycle": 33
+            }
+          ],
+          "last_observed_cycle": 36
+        }
+      }
+    },
+    "pressure": {
+      "schedule_activations": 2,
+      "class_activations": {
+        "infrastructure_failure": 2,
+        "resource_scarcity": 1,
+        "access_restriction": 1
+      },
+      "last_by_class": {
+        "infrastructure_failure": 34,
+        "resource_scarcity": 35,
+        "access_restriction": 36
+      },
+      "last_cycle": 36,
+      "pulses": [
+        {
+          "text": "A route restriction tightened.",
+          "cycle": 36,
+          "ttl": 20
+        }
+      ]
+    },
+    "public_social_events": [
+      {
+        "cycle": 34,
+        "kind": "repair",
+        "actor_id": "player.agent-aloe",
+        "target_id": "entity.relay-trunk"
+      }
+    ],
+    "co_evolution": {
+      "harvest_pressure": {
+        "room.relay-quarter": 7,
+        "room.archive-yard": 2
+      },
+      "regen_mod": {
+        "entity.civic-cache": 0.85
+      },
+      "protocol_strength": {
+        "repair-compact": 0.7
+      },
+      "protocol_tokens": {
+        "repair-compact": [
+          "relay",
+          "route",
+          "notice"
+        ]
+      },
+      "last_evo_cycle": 36,
+      "deep_time": {
+        "scars": [
+          {
+            "scar_id": "scar.relay-neglect",
+            "domain": "economic",
+            "room_id": "room.relay-quarter",
+            "entity_id": "entity.relay-trunk",
+            "cycle_born": 13,
+            "strength": 0.44,
+            "decay_rate": 0.02,
+            "fossilized": false,
+            "visibility": "public",
+            "reconstruction_confidence": 0.82,
+            "harvest_count": 3
+          }
+        ],
+        "evidence_fragments": [
+          {
+            "fragment_id": "frag.route-ledger",
+            "subject_ref": "entity.relay-trunk",
+            "cycle": 30,
+            "kind": "TRADE",
+            "player_id": "player.agent-aloe",
+            "claim": "agents repaired the relay after archive evidence"
+          }
+        ],
+        "trajectory_digest": {
+          "entity.relay-trunk": {
+            "room_id": "room.relay-quarter",
+            "last_cycle": 36,
+            "harvest_count": 3
+          }
+        },
+        "norm_ratchets": {
+          "org_create": {
+            "key": "org_create",
+            "established_cycle": 12,
+            "last_hit_cycle": 35,
+            "hits": 4,
+            "reversal_cost": 2,
+            "path_dependence_strength": 0.7
+          }
+        },
+        "lore_attractors": [
+          {
+            "attractor_id": "lore.east-route",
+            "label": "the east route remembers repair",
+            "weight": 0.61,
+            "room_id": "room.relay-quarter",
+            "basin": "forming"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -30,10 +30,11 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
     notice.className = "notice";
     notice.textContent = "Requesting watch link…";
     try {
+      const next = new URLSearchParams(location.search).get("next");
       const res = await fetch("/v1/play/login/request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.value }),
+        body: JSON.stringify(next ? { email: email.value, next } : { email: email.value }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error((data.error && data.error.message) || res.statusText);
@@ -60,31 +61,59 @@ export function playCallbackHtml(): string {
   const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
   const token_hash = search.get("token_hash") || hash.get("token_hash") || "";
   const type = search.get("type") || hash.get("type") || "";
-  const code = search.get("code") || hash.get("code") || "";
+  const authCode = search.get("code") || hash.get("code") || "";
+  const rawConnectCode = search.get("connect_code") || hash.get("connect_code") || "";
+  const rawAuthFlow = search.get("auth_flow") || hash.get("auth_flow") || "";
+  const authFlow = /^[0-9a-f]{32}$/.test(rawAuthFlow.trim().toLowerCase()) ? rawAuthFlow.trim().toLowerCase() : "";
+  const connectCode = (() => {
+    const raw = rawConnectCode.trim().replace(/-/g, "").toLowerCase();
+    return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
+  })();
   (async () => {
     try {
       const res = await fetch("/v1/play/login/consume", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token_hash, type, code }),
+        body: JSON.stringify({ token_hash, type, code: authCode }),
       });
       const data = await res.json();
       if (!res.ok || !data.access_token) throw new Error("not authorized");
       sessionStorage.setItem("noema.play.token", data.access_token);
       if (data.handle) sessionStorage.setItem("noema.play.handle", String(data.handle).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32));
       if (data.player_id) sessionStorage.setItem("noema.play.player_id", String(data.player_id));
+      // Keep the bearer token tab-scoped, but hand it to an already-open
+      // same-origin CONNECT tab so approving after a mail-link click works.
+      try {
+        if (!authFlow) throw new Error("auth flow unavailable");
+        const channel = new BroadcastChannel("noema-play-auth:" + authFlow);
+        channel.postMessage({
+          type: "noema.play.authenticated",
+          token: data.access_token,
+          handle: data.handle,
+          player_id: data.player_id,
+          connect_code: connectCode,
+        });
+        channel.close();
+      } catch (_) {}
       const raw = search.get("next") || hash.get("next") || "";
-      const next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
+      let next = raw === "/connect" || raw === "connect" ? "/connect" : "/watch";
+      if (next === "/connect") {
+        const nextParams = new URLSearchParams();
+        if (connectCode) nextParams.set("connect_code", connectCode);
+        if (authFlow) nextParams.set("auth_flow", authFlow);
+        const nextQuery = nextParams.toString();
+        if (nextQuery) next = "/connect?" + nextQuery;
+      }
       location.href = next;
     } catch (err) {
-      location.href = "/play?error=1";
+      location.href = "/connect?error=1";
     }
   })();
 })();
 </script>`;
   return productShell({
-    title: "Play login",
-    active: "play",
+    title: "Connect login",
+    active: "connect",
     body,
     description: "Opening the door.",
   });

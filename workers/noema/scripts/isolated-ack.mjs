@@ -3,6 +3,7 @@
  * Isolated hosted ACK on test.hosted-canonical.*
  * Loads ~/.config/noema/operator.env (never prints values).
  * Refuses noema.guru and Perihelion.
+ * ack-s3 may lack way-lamp; use isolated-inspect.mjs + inspect-s0.
  */
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";

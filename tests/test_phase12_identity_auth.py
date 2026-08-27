@@ -283,7 +283,7 @@ def test_spectator_cannot_observe_another_agent(tmp_path: Path):
     seed = Path("fixtures/v01-seed/world-seed.json")
     if seed.is_file():
         rt.start_world(seed)
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.alice")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.alice")
     rt.apply_player_action(
         player["session_id"],
         {
@@ -445,6 +445,50 @@ def test_http_rejects_oversized_request_body(tmp_path: Path):
             assert exc.code == 413
             body = json.loads(exc.read().decode())
             assert body["error"]["code"] == "PAYLOAD_TOO_LARGE"
+    finally:
+        httpd.shutdown()
+
+
+def test_http_rejects_malformed_request_bodies_as_client_errors(tmp_path: Path):
+    from http.server import ThreadingHTTPServer
+    import threading
+    import urllib.error
+    import urllib.request
+
+    rt = NoemaRuntime(db_path=tmp_path / "malformed.sqlite3")
+    handler = make_handler(rt)
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    def post(payload: bytes, *, content_length: str | None = None):
+        headers = {"Content-Type": "application/json"}
+        if content_length is not None:
+            headers["Content-Length"] = content_length
+        req = urllib.request.Request(
+            base + "/auth/human",
+            data=payload,
+            headers=headers,
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+            assert False, "malformed request must fail"
+        except urllib.error.HTTPError as exc:
+            return exc.code, json.loads(exc.read().decode()), exc.headers
+
+    try:
+        cases = [
+            (b"{not-json", None),
+            (b"[]", None),
+            (b"{}", "not-a-number"),
+        ]
+        for payload, content_length in cases:
+            status, body, headers = post(payload, content_length=content_length)
+            assert status == 400
+            assert body["error"]["code"] == "INVALID_REQUEST"
+            assert headers.get("Cache-Control") == "no-store"
     finally:
         httpd.shutdown()
 

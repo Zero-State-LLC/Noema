@@ -25,13 +25,17 @@ import {
   mintDevControllerToken,
   requireScope,
   resolvePrincipal,
-  denyNonAgentPlay,
+  requireAgentPlayer,
 } from "./auth";
 import { connectHtml, enrollHtml } from "./connect";
 import { applyCors } from "./cors";
+import { durableRevocationStore, isControllerRevoked } from "./controller-revocation";
 import {
   approveDevice,
+  approveDeviceReview,
+  reviewDevicePage,
   denyDevice,
+  denyDeviceReview,
   durableDeviceStore,
   pollDeviceToken,
   previewDevice,
@@ -46,18 +50,21 @@ import {
   previewAgentEnrollment,
   requestAgentEnrollment,
 } from "./enrollment";
-import { catalog, GenesisError, previewGenesis } from "./genesis";
+import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId, resolveAdminOperatorWorldId } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
+import { manifestoHtml } from "./manifesto";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
-import { playHtml } from "./play";
-import { providerOverview, verifyPostmark, verifyResend, verifySupabase } from "./provider-management";
+import { canonicalConnectCode } from "./play-mail";
+import { providerOverview, verifyResend, verifySupabase } from "./provider-management";
+import { robotsTxt, sitemapXml } from "./seo";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
+import { watchMapHtml } from "./watch-map-page";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
-import { applyPlayerCommand } from "./protocol-ws";
+import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
 import { acceptProtocolWebSocket, protocolHello } from "./protocol-ws";
 import { checkLiveAgentSeal, parseSeal } from "./seal";
 import {
@@ -86,6 +93,19 @@ function html(body: string, status = 200, cache = "no-store"): Response {
       "x-frame-options": "DENY",
       "referrer-policy": "no-referrer",
       "content-security-policy": HTML_CSP,
+      "strict-transport-security": "max-age=31536000; includeSubDomains",
+    },
+  });
+}
+
+function publicText(body: string, contentType: string, cache = "public, max-age=300"): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": contentType,
+      "cache-control": cache,
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer",
       "strict-transport-security": "max-age=31536000; includeSubDomains",
     },
   });
@@ -198,15 +218,26 @@ export default {
     }
 
     try {
-      // Product entry (Specs EXPERIENCE): landing + PLAY / WATCH / STUDY / CONNECT
+      // Product entry (Specs EXPERIENCE): landing + manifesto + PLAY / WATCH / STUDY / CONNECT
       if (
         request.method === "GET" &&
         (path === "/" || path === "/index.html" || path === "/memo" || path === "/memo.html")
       ) {
         return html(landingHtml(), 200, "public, max-age=30");
       }
-      if (request.method === "GET" && path === "/play") {
-        return html(playHtml());
+      if (request.method === "GET" && path === "/manifesto") {
+        return html(manifestoHtml(), 200, "public, max-age=30");
+      }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/robots.txt") {
+        return publicText(robotsTxt(), "text/plain; charset=utf-8");
+      }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/sitemap.xml") {
+        return publicText(sitemapXml(), "application/xml; charset=utf-8");
+      }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/play") {
+        const dest = new URL("/connect", url);
+        dest.search = url.search;
+        return Response.redirect(dest.toString(), 308);
       }
       if (request.method === "GET" && path === "/play/callback") {
         return html(playCallbackHtml());
@@ -214,11 +245,15 @@ export default {
       if (request.method === "GET" && path === "/watch") {
         return html(watchHtml());
       }
+      if (request.method === "GET" && path === "/watch/map") {
+        return html(watchMapHtml());
+      }
       if (request.method === "GET" && path === "/study") {
         return html(studyHtml());
       }
       if (request.method === "GET" && path === "/connect") {
-        return html(connectHtml());
+        const pending = canonicalConnectCode(url.searchParams.get("connect_code") || url.searchParams.get("code"));
+        return html(connectHtml(env.NOEMA_ENV === "production", pending));
       }
       if (request.method === "GET" && path === "/connect/enroll") {
         return html(enrollHtml());
@@ -251,17 +286,29 @@ export default {
         );
       }
 
+      // OPERATIONS.md "Health surfaces": /health is process up, /ready is
+      // world loadable, /version is product/spec/protocol/world pins. The
+      // running build id belongs here, not on /health.
+      if (request.method === "GET" && path === "/version") {
+        return cors(
+          json({
+            product: "noema",
+            stage: "0",
+            env: env.NOEMA_ENV || "local",
+            protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
+            world_id: env.DEFAULT_WORLD_ID || "world-01",
+            // Cloudflare stamps these; absent locally, and omitted rather
+            // than guessed so a missing binding never reads as a real pin.
+            worker_version_id: env.CF_VERSION?.id,
+            deployed_at: env.CF_VERSION?.timestamp,
+          }),
+        );
+      }
+
       if (request.method === "GET" && path === "/ready") {
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
-        const stub = env.WORLD_DO.get(id);
-        const h = await stub.fetch("https://do/health");
-        const body = (await h.json().catch(() => ({}))) as {
-          ok?: boolean;
-          status?: string;
-          settlement_health?: string;
-          playable?: boolean;
-        };
-        if (!h.ok) {
+        // Typed play_blocked even when the DO is unreachable. PLAY reads this
+        // field; a 500 INTERNAL would skip the fail-closed banner.
+        const blocked = (world: unknown = {}) => {
           const pr = playReady("NOT_ACTIVE", "HEALTHY");
           return cors(
             json({
@@ -270,21 +317,35 @@ export default {
               code: "WORLD_NOT_READY",
               status: pr.status,
               settlement_health: pr.settlement_health,
+              world,
+            }),
+          );
+        };
+        try {
+          const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+          const stub = env.WORLD_DO.get(id);
+          const h = await stub.fetch("https://do/health");
+          const body = (await h.json().catch(() => ({}))) as {
+            ok?: boolean;
+            status?: string;
+            settlement_health?: string;
+            playable?: boolean;
+          };
+          if (!h.ok) return blocked(body);
+          const pr = playReady(body.status, body.settlement_health, body.playable !== false);
+          return cors(
+            json({
+              ready: pr.ready,
+              play_blocked: pr.play_blocked,
+              code: pr.code,
+              status: pr.status,
+              settlement_health: pr.settlement_health,
               world: body,
             }),
           );
+        } catch {
+          return blocked({ ok: false });
         }
-        const pr = playReady(body.status, body.settlement_health, body.playable !== false);
-        return cors(
-          json({
-            ready: pr.ready,
-            play_blocked: pr.play_blocked,
-            code: pr.code,
-            status: pr.status,
-            settlement_health: pr.settlement_health,
-            world: body,
-          }),
-        );
       }
 
       // Public WATCH projection (no auth — spectator)
@@ -292,6 +353,13 @@ export default {
         const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
         const stub = env.WORLD_DO.get(id);
         const res = await stub.fetch("https://do/watch");
+        const body = await res.json();
+        return cors(json(body, res.status));
+      }
+      if (request.method === "GET" && (path === "/v1/watch/map" || path === "/watch/map.json")) {
+        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/watch-map");
         const body = await res.json();
         return cors(json(body, res.status));
       }
@@ -335,9 +403,9 @@ export default {
         return cors(json({ ...minted, token_type: "bearer" }));
       }
 
-      // Public PLAY email login (any mailbox → Player JWT; never admin-access)
+      // Public WATCH/CONNECT email login (HumanPrincipal; never inhabit)
       if (request.method === "POST" && path === "/v1/play/login/request") {
-        const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string };
+        const body = (await request.json().catch(() => ({}))) as { email?: string; next?: string; code?: string; connect_code?: string; auth_flow?: string };
         return cors(await requestPlayMagicLink(env, request, body));
       }
       if (request.method === "POST" && path === "/v1/play/login/consume") {
@@ -358,8 +426,18 @@ export default {
         const body = (await request.json().catch(() => ({}))) as {
           metadata?: { runtime?: string };
           scopes?: string[];
+          owner_email?: string;
         };
         return cors(await startDeviceEnrollment(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "GET" && path === "/v1/auth/device/review") {
+        return cors(await reviewDevicePage(env, request, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/review/approve") {
+        return cors(await approveDeviceReview(env, request, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/device/review/deny") {
+        return cors(await denyDeviceReview(env, request, { store: durableDeviceStore(env) }));
       }
       if (request.method === "GET" && path === "/v1/auth/device/preview") {
         return cors(await previewDevice(env, request, { store: durableDeviceStore(env) }));
@@ -375,6 +453,64 @@ export default {
       if (request.method === "POST" && path === "/v1/auth/device/token") {
         const body = (await request.json().catch(() => ({}))) as { device_code?: string };
         return cors(await pollDeviceToken(env, request, body, { store: durableDeviceStore(env) }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/controller/revoke") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const body = (await request.json().catch(() => ({}))) as { controller_id?: string };
+        const controller_id = String(body.controller_id || agent.controller_id);
+        if (controller_id !== agent.controller_id) {
+          return cors(err("NOT_AUTHORIZED", "cannot revoke another Controller", 403));
+        }
+        const store = durableRevocationStore(env);
+        const now = new Date().toISOString();
+        await store.put({
+          kind: "controller",
+          id: controller_id,
+          controller_id,
+          revoked_at: now,
+          revoked_by: agent.controller_id,
+        });
+        if (agent.jti) {
+          await store.put({
+            kind: "jti",
+            id: agent.jti,
+            controller_id,
+            revoked_at: now,
+            revoked_by: agent.controller_id,
+          });
+        }
+        return cors(json({ revoked: true, controller_id }));
+      }
+      if (request.method === "POST" && path === "/v1/auth/controller/rotate") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const store = durableRevocationStore(env);
+        if (await isControllerRevoked(store, agent.controller_id, agent.jti)) {
+          return cors(err("NOT_AUTHORIZED", "controller revoked", 401));
+        }
+        if (agent.jti) {
+          await store.put({
+            kind: "jti",
+            id: agent.jti,
+            controller_id: agent.controller_id,
+            revoked_at: new Date().toISOString(),
+            revoked_by: agent.controller_id,
+          });
+        }
+        const handle = agent.player_id.replace(/^player\./, "").slice(0, 32) || "player";
+        const minted = await mintControllerToken(env, {
+          handle,
+          controllerType: "agent",
+          playerId: agent.player_id,
+          controllerId: agent.controller_id,
+          amr: "rotate",
+        });
+        return cors(json({ ...minted, rotated: true }));
       }
 
       /**
@@ -393,12 +529,12 @@ export default {
         if (!handle || handle.length < 2) {
           return cors(err("INVALID_REQUEST", "handle required (2–32 chars [A-Za-z0-9_-])", 400));
         }
-        const ctype = body.controller_type === "human" || body.controller_type === "hybrid"
-          ? body.controller_type
-          : "agent";
+        if (body.controller_type === "human" || body.controller_type === "hybrid") {
+          return cors(err("NOT_AUTHORIZED", "live Controller issuance is agent-only", 403));
+        }
         const minted = await mintControllerToken(env, {
           handle,
-          controllerType: ctype,
+          controllerType: "agent",
           expiresIn: body.expires_in,
           issuedByAdmin: true,
           operatorId: admin.operator_id,
@@ -463,6 +599,9 @@ export default {
       if (request.method === "GET" && path === "/v1/admin/overview") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
+        const requested = new URL(request.url).searchParams.get("world_id") || undefined;
+        const target = resolveAdminOperatorWorldId(requested, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
 
         const health = {
           status: "ok",
@@ -470,9 +609,9 @@ export default {
           stage: "0",
           env: env.NOEMA_ENV || "local",
           protocol_version: env.NOEMA_PROTOCOL_VERSION || "1",
-          world_id: env.DEFAULT_WORLD_ID || "world-01",
+          world_id: target.do_name,
         };
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const id = env.WORLD_DO.idFromName(target.do_name);
         const stub = env.WORLD_DO.get(id);
         const worldRes = await stub.fetch("https://do/admin-status");
         const world = (await worldRes.json()) as Record<string, unknown>;
@@ -556,8 +695,7 @@ export default {
         const body = (await request.json().catch(() => ({}))) as { provider?: string };
         if (body.provider === "supabase") return cors(json(await verifySupabase(env)));
         if (body.provider === "resend") return cors(json(await verifyResend(env)));
-        if (body.provider === "postmark") return cors(json(await verifyPostmark(env)));
-        return cors(err("INVALID_REQUEST", "provider must be supabase, resend, or postmark", 400));
+        return cors(err("INVALID_REQUEST", "provider must be supabase or resend", 400));
       }
 
       if (request.method === "GET" && path === "/v1/admin/genesis/catalog") {
@@ -576,30 +714,37 @@ export default {
             world_seed?: string;
             profile_id?: string;
             story_seed_ids?: string[];
+            world_id?: string;
           };
-          const result = await previewGenesis({
+          const target = resolveAdminGenesisWorldId(body.world_id, env);
+          if (!target.ok) {
+            return cors(err(target.code, target.message, target.code === "POLICY_DENIED" ? 403 : 400));
+          }
+          const genesisInput = {
             world_name: body.world_name || "Perihelion Reach",
             world_seed: body.world_seed || "",
             profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
             story_seed_ids: body.story_seed_ids,
-          });
-          const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+            ...(String(body.world_id || "").trim() ? { world_id: target.world_id } : {}),
+          };
+          const result = await previewGenesis(genesisInput);
+          const id = env.WORLD_DO.idFromName(target.world_id);
           const stub = env.WORLD_DO.get(id);
+          const worldHeaders = { "content-type": "application/json", "x-noema-world-id": target.world_id };
           // Capture live sequence before store
-          const before = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          const before = (await (await stub.fetch("https://do/health", { headers: worldHeaders })).json()) as {
+            sequence?: number;
+          };
           await stub.fetch("https://do/genesis-preview-store", {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: worldHeaders,
             body: JSON.stringify({ result }),
           });
-          const after = (await (await stub.fetch("https://do/health")).json()) as { sequence?: number };
+          const after = (await (await stub.fetch("https://do/health", { headers: worldHeaders })).json()) as {
+            sequence?: number;
+          };
           // Determinism self-check: re-preview same inputs
-          const again = await previewGenesis({
-            world_name: body.world_name || "Perihelion Reach",
-            world_seed: body.world_seed || "",
-            profile_id: body.profile_id || "FRACTURED_OLD_WORLD",
-            story_seed_ids: body.story_seed_ids,
-          });
+          const again = await previewGenesis(genesisInput);
           const deterministic =
             again.genesis_id === result.genesis_id && again.cycle0_digest === result.cycle0_digest;
 
@@ -632,6 +777,7 @@ export default {
           genesis_id?: string;
           confirm?: boolean;
           force?: boolean;
+          world_id?: string;
         };
         if (!body.genesis_id) return cors(err("INVALID_REQUEST", "genesis_id required", 400));
         if (!body.confirm) {
@@ -641,15 +787,21 @@ export default {
         if (body.force && envName === "production") {
           return cors(err("POLICY_DENIED", "force supersede forbidden in production", 403));
         }
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const target = resolveAdminGenesisWorldId(body.world_id, env);
+        if (!target.ok) {
+          return cors(err(target.code, target.message, target.code === "POLICY_DENIED" ? 403 : 400));
+        }
+        const id = env.WORLD_DO.idFromName(target.world_id);
         const stub = env.WORLD_DO.get(id);
+        const worldHeaders = { "content-type": "application/json", "x-noema-world-id": target.world_id };
         const res = await stub.fetch("https://do/genesis-activate", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: worldHeaders,
           body: JSON.stringify({
             genesis_id: body.genesis_id,
             admin_session_id: admin.session_id,
             force: Boolean(body.force),
+            ...(String(body.world_id || "").trim() ? { world_id: target.world_id } : {}),
           }),
         });
         const data = await res.json();
@@ -688,11 +840,40 @@ export default {
         return cors(json(await res.json(), res.status));
       }
 
+      if (request.method === "POST" && path === "/v1/admin/tempo") {
+        const admin = await resolveAdmin(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const body = (await request.json().catch(() => ({}))) as {
+          action?: string;
+          mode?: string;
+          reason?: string;
+          world_id?: string;
+          now?: number;
+        };
+        const target = resolveAdminOperatorWorldId(body.world_id, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
+        const id = env.WORLD_DO.idFromName(target.do_name);
+        const stub = env.WORLD_DO.get(id);
+        const res = await stub.fetch("https://do/admin-tempo", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: body.action,
+            mode: body.mode,
+            reason: body.reason,
+            now: body.now,
+          }),
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
       if (request.method === "POST" && path === "/v1/admin/lifecycle") {
         const admin = await resolveAdmin(request, env);
         if (admin instanceof Response) return cors(admin);
-        const body = (await request.json().catch(() => ({}))) as { action?: string; reason?: string };
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const body = (await request.json().catch(() => ({}))) as { action?: string; reason?: string; world_id?: string };
+        const target = resolveAdminOperatorWorldId(body.world_id, env);
+        if (!target.ok) return cors(err(target.code, target.message, 400));
+        const id = env.WORLD_DO.idFromName(target.do_name);
         const stub = env.WORLD_DO.get(id);
         const res = await stub.fetch("https://do/admin-lifecycle", {
           method: "POST",
@@ -729,7 +910,10 @@ export default {
           controller_type?: "human" | "agent";
         };
         const handle = (body.handle || "demo").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "demo";
-        const minted = await mintDevControllerToken(env, handle, body.controller_type || "agent");
+        if (body.controller_type === "human") {
+          return cors(err("NOT_AUTHORIZED", "dev-token inhabit mint is agent-only", 403));
+        }
+        const minted = await mintDevControllerToken(env, handle, "agent");
         return cors(json({ ...minted, token_type: "bearer" }));
       }
 
@@ -744,7 +928,10 @@ export default {
       if (request.method === "POST" && (path === "/v1/command" || path === "/protocol/v1/command")) {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
-        if (!(await allowThrottled(commandThrottle, env, `player:${principal.player_id}`, 120, 60_000))) {
+        const throttleKey = "player_id" in principal && principal.player_id
+          ? `player:${principal.player_id}`
+          : `human:${"identity_id" in principal ? principal.identity_id : "anon"}`;
+        if (!(await allowThrottled(commandThrottle, env, throttleKey, 120, 60_000))) {
           return cors(err("RATE_LIMITED", "too many commands", 429, true));
         }
 
@@ -758,11 +945,11 @@ export default {
       if (request.method === "POST" && path === "/v1/operator/test-world/command") {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
-        const watched = denyNonAgentPlay(principal);
-        if (watched) return cors(watched);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
         const admin = await resolveSignedAdminHeader(request, env);
         if (admin instanceof Response) return cors(admin);
-        const denied = requireScope(principal, "noema.action.submit");
+        const denied = requireScope(agent, "noema.action.submit");
         if (denied) return cors(denied);
 
         const body = (await request.json().catch(() => ({}))) as CommandEnvelope & { world_id?: string };
@@ -775,14 +962,14 @@ export default {
           return cors(err("INVALID_REQUEST", "private cognition fields are not accepted", 400));
         }
 
-        const envelope: CommandEnvelope = {
+        const envelope: CommandEnvelope = stripHumanPlayLine({
           request_id: body.request_id,
           command: body.command,
           arguments: body.arguments,
           idempotency_key: body.idempotency_key,
           player_id: body.player_id,
-        };
-        const doRes = await routeToWorld(env, admitted.world_id, principal, envelope, { allow_bootstrap: true });
+        });
+        const doRes = await routeToWorld(env, admitted.world_id, agent, envelope, { allow_bootstrap: true });
         const data = await doRes.json();
         return cors(json(data, doRes.status));
       }
@@ -792,9 +979,11 @@ export default {
       if (request.method === "POST" && path === "/v1/operator/test-world/lifecycle") {
         const principal = await resolvePrincipal(request, env);
         if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
         const admin = await resolveSignedAdminHeader(request, env);
         if (admin instanceof Response) return cors(admin);
-        const denied = requireScope(principal, "noema.action.submit");
+        const denied = requireScope(agent, "noema.action.submit");
         if (denied) return cors(denied);
 
         const body = (await request.json().catch(() => ({}))) as { world_id?: string; action?: string; reason?: string };
@@ -840,10 +1029,10 @@ export default {
           });
           const principal = await resolvePrincipal(fake, env);
           if (principal instanceof Response) return cors(principal);
-          const watched = denyNonAgentPlay(principal);
-          if (watched) return cors(watched);
+          const agent = requireAgentPlayer(principal);
+          if (agent instanceof Response) return cors(agent);
           const sealed = checkLiveAgentSeal({
-            controllerType: principal.controller_type,
+            controllerType: agent.controller_type,
             worldKind: "default",
             presented: parseSeal((body.body as { prompt_version_hash?: string } | undefined)?.prompt_version_hash),
           });
@@ -853,13 +1042,13 @@ export default {
               protocol: "agent-protocol/v1",
               type: "AUTH_ACK",
               request_id: body.request_id,
-              agent_id: principal.agent_id,
+              agent_id: agent.agent_id,
               body: {
-                session_id: principal.session_id,
-                player_id: principal.player_id,
-                controller_id: principal.controller_id,
-                agent_id: principal.agent_id,
-                scopes: principal.scopes,
+                session_id: agent.session_id,
+                player_id: agent.player_id,
+                controller_id: agent.controller_id,
+                agent_id: agent.agent_id,
+                scopes: agent.scopes,
               },
             }),
           );

@@ -275,6 +275,7 @@ describe("GC5-S0 world delivery", () => {
     expect(blocked.error?.code).toBe(UNREACHABLE_REASON);
 
     await run(w, nacre, "MOVE", { direction: "west" });
+    w.players[nacre.player_id].budgets.storage = 15;
     const repaired = await run(w, nacre, "COMMIT", {
       operation: "REPAIR",
       entity_id: "entity.relay-7",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConstructibleClass } from "../src/construction";
+import { CONSTRUCT_COSTS, parseConstructibleClass } from "../src/construction";
 import { CARGO_LINE, moveEnergyCost } from "../src/transport";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText } from "../src/actions";
@@ -94,6 +94,7 @@ describe("GC2-S1 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets({ ...DEFAULT_BUDGETS, energy: 80, storage: 16 });
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.route_link.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/route link is under construction/i);
@@ -113,6 +114,7 @@ describe("GC2-S1 world path", () => {
     const q = principal("player.vesper");
     await run(hidden, q, "ENTER_WORLD");
     hidden.players[q.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    hidden.players[q.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.route_link.storage || 0);
     hidden.players[q.player_id].room_id = "room.vault";
     const blocked = await run(hidden, q, "BUILD", { operation: "CONSTRUCT", class: "route_link" });
     expect(blocked.ok).toBe(false);

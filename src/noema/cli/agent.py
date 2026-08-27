@@ -8,6 +8,7 @@ import os
 import sys
 
 from noema.harness.auth import StaticTokenProvider, enroll_device, resolve_token
+from noema.harness.deprecation import warn_internal_client
 from noema.harness.observe import to_state
 from noema.harness.policy import HarnessPolicy
 from noema.harness.report import write_report
@@ -73,7 +74,8 @@ def _send(client: GatewayClient, action: str, arg: str | None):
 
 
 def main(argv: list[str] | None = None, http=None) -> int:
-    p = argparse.ArgumentParser(description="NOEMA headless agent harness")
+    warn_internal_client()
+    p = argparse.ArgumentParser(description="NOEMA headless agent harness (deprecated product client)")
     p.add_argument("--base", default=os.environ.get("NOEMA_BASE", "https://noema.guru"))
     p.add_argument("--token", default=os.environ.get("NOEMA_TOKEN"))
     p.add_argument("--handle", default="ref-agent")

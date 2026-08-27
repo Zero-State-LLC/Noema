@@ -40,11 +40,12 @@ describe("C11 human onboarding", () => {
       { fetch: async () => new Response(JSON.stringify({ user: USER }), { status: 200 }) },
     );
     expect(minted).not.toBeInstanceOf(Response);
-    const ok = minted as { access_token: string; player_id: string; controller_type: string };
+    const ok = minted as { access_token: string; identity_id: string; controller_type: string };
     expect(ok.controller_type).toBe("human");
+    expect(ok.identity_id).toBeTruthy();
     expect("refresh_token" in ok).toBe(false);
     const claims = await verifyHs256(ok.access_token, SIGNING);
-    expect(claims.typ).toBe("access");
+    expect(claims.typ).toBe("platform");
     expect(claims.amr).toBe("email_magic_link");
     expect(claims.issued_by).toBeUndefined();
   });
@@ -117,5 +118,25 @@ describe("C13 spectator onboarding", () => {
     expect(j.watch_live).toBe("watch-live/1.0");
     expect(typeof j.sequence).toBe("number");
     expect(calls.every((c) => c.op !== "fetch" || String(c.url || "").includes("/watch"))).toBe(true);
+  });
+
+  it("WATCH stays non-mutating: no storage-write or command ops reach the world DO", async () => {
+    // The static page never touches the DO at all.
+    const pageCalls: DoCall[] = [];
+    const page = await hit("/watch", { method: "GET" }, pageCalls);
+    expect(page.status).toBe(200);
+    expect(pageCalls.filter((c) => c.op === "fetch")).toEqual([]);
+
+    // The live snapshot is a bodiless read of the /watch projection only.
+    const calls: DoCall[] = [];
+    const live = await hitWatchLive(calls, { method: "GET" });
+    expect(live.status).toBe(200);
+    const fetches = calls.filter((c) => c.op === "fetch");
+    expect(fetches.length).toBeGreaterThan(0);
+    for (const c of fetches) {
+      expect(String(c.url || "")).toContain("/watch");
+      expect(String(c.url || "")).not.toMatch(/command|settle|genesis|admin|entity|append|put|write|mutate/i);
+      expect(c.body ?? null).toBeNull();
+    }
   });
 });

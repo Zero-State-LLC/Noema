@@ -43,7 +43,7 @@ def test_role_isolation_matrix(tmp_path: Path):
     """Players cannot operate research/admin; researchers cannot Genesis."""
     rt = NoemaRuntime(db_path=tmp_path / "iso.db")
     admin = rt.create_session(role=Role.ADMIN)
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.p")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.p")
     researcher = rt.create_session(role=Role.RESEARCHER)
     spectator = rt.create_session(role=Role.SPECTATOR)
 
@@ -124,7 +124,7 @@ def test_full_core_loop_e2e(tmp_path: Path):
     seq_after_genesis = rt.store.get_state().sequence
 
     # --- PLAY ---
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.core")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.core")
     for seq, verb, params in [
         (1, "ENTER_WORLD", {}),
         (2, "LOOK", {"attention_spent": 1}),

@@ -1,10 +1,8 @@
 {
   "mcpServers": {
-    "graft": {
-      "command": "graft",
-      "args": [
-        "mcp"
-      ]
+    "cloudflare-api": {
+      "type": "http",
+      "url": "https://mcp.cloudflare.com/mcp"
     }
   }
 }

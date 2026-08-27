@@ -3,6 +3,7 @@ import { adminCallbackHtml, adminHtml, adminLoginHtml } from "../src/admin";
 import {
   ADMIN_AGENT_OPERATOR_EMAIL,
   ADMIN_OPERATOR_EMAIL,
+  ADMIN_PARTNER_OPERATOR_EMAIL,
   GENERIC_LOGIN_MESSAGE,
   LoginThrottle,
   adminAllowlist,
@@ -52,13 +53,16 @@ describe("allowlist + throttle", () => {
   it("always allows the hardcoded operator mailboxes", () => {
     expect(ADMIN_OPERATOR_EMAIL).toBe("zer0state@zer0state.com");
     expect(ADMIN_AGENT_OPERATOR_EMAIL).toBe("boof@agentmail.to");
+    expect(ADMIN_PARTNER_OPERATOR_EMAIL).toBe("prabu.openclaw@gmail.com");
     expect(adminAllowlist(env({ ADMIN_ALLOWLIST_EMAILS: "" }))).toEqual([
       "zer0state@zer0state.com",
       "boof@agentmail.to",
+      "prabu.openclaw@gmail.com",
     ]);
     expect(adminAllowlist(env())).toEqual([
       "zer0state@zer0state.com",
       "boof@agentmail.to",
+      "prabu.openclaw@gmail.com",
       "ops@example.com",
     ]);
   });
@@ -331,10 +335,10 @@ describe("requestAdminMagicLink", () => {
     expect(sent.map((mail) => mail.to)).toEqual(["boof@agentmail.to"]);
   });
 
-  it("wires an Admin request through the real Postmark adapter", async () => {
+  it("wires an Admin request through the real Resend adapter", async () => {
     const providerBodies: Array<Record<string, unknown>> = [];
     const res = await requestAdminMagicLink(
-      env({ ADMIN_ALLOWLIST_EMAILS: "", POSTMARK_SERVER_TOKEN: "pm_test" }),
+      env({ ADMIN_ALLOWLIST_EMAILS: "", RESEND_API_KEY: "re_test" }),
       new Request("https://noema.guru/x"),
       { email: ADMIN_OPERATOR_EMAIL },
       {
@@ -344,10 +348,10 @@ describe("requestAdminMagicLink", () => {
             status: 200,
           }),
         mailFetch: async (input, init) => {
-          expect(String(input)).toBe("https://api.postmarkapp.com/email");
-          expect(new Headers(init?.headers).get("x-postmark-server-token")).toBe("pm_test");
+          expect(String(input)).toBe("https://api.resend.com/emails");
+          expect(new Headers(init?.headers).get("authorization")).toBe("Bearer re_test");
           providerBodies.push(JSON.parse(String(init?.body || "{}")));
-          return new Response(JSON.stringify({ ErrorCode: 0, MessageID: "pm-admin-1" }), {
+          return new Response(JSON.stringify({ id: "re-admin-1" }), {
             status: 200,
           });
         },
@@ -355,18 +359,18 @@ describe("requestAdminMagicLink", () => {
     );
     expect(res.status).toBe(200);
     expect(providerBodies).toHaveLength(1);
-    expect(providerBodies[0].Tag).toBe("admin-magic-link");
-    expect(providerBodies[0].To).toBe(ADMIN_OPERATOR_EMAIL);
-    expect(String(providerBodies[0].HtmlBody)).toContain("OPEN ADMIN");
+    expect(providerBodies[0].tags).toEqual([{ name: "noema_message", value: "admin-magic-link" }]);
+    expect(providerBodies[0].to).toEqual([ADMIN_OPERATOR_EMAIL]);
+    expect(String(providerBodies[0].html)).toContain("OPEN ADMIN");
   });
 
-  it("falls back Postmark to ADMIN_MAIL without sending Supabase otp", async () => {
+  it("falls back Resend to ADMIN_MAIL without sending Supabase otp", async () => {
     const supabaseCalls: string[] = [];
     const bindingMessages: unknown[] = [];
     const res = await requestAdminMagicLink(
       env({
         ADMIN_ALLOWLIST_EMAILS: "",
-        POSTMARK_SERVER_TOKEN: "pm_test",
+        RESEND_API_KEY: "re_test",
         ADMIN_MAIL: { send: async (message) => { bindingMessages.push(message); } },
       }),
       new Request("https://noema.guru/x"),
@@ -386,10 +390,10 @@ describe("requestAdminMagicLink", () => {
     expect(bindingMessages).toHaveLength(1);
   });
 
-  it("falls back to Supabase otp when Postmark fails and ADMIN_MAIL is absent", async () => {
+  it("falls back to Supabase otp when Resend fails and ADMIN_MAIL is absent", async () => {
     const supabaseCalls: string[] = [];
     const res = await requestAdminMagicLink(
-      env({ ADMIN_ALLOWLIST_EMAILS: "", POSTMARK_SERVER_TOKEN: "pm_test", ADMIN_MAIL: undefined }),
+      env({ ADMIN_ALLOWLIST_EMAILS: "", RESEND_API_KEY: "re_test", ADMIN_MAIL: undefined }),
       new Request("https://noema.guru/x"),
       { email: ADMIN_OPERATOR_EMAIL },
       {
@@ -596,6 +600,8 @@ describe("admin login HTML", () => {
     expect(html).toContain("All agents");
     expect(html).toContain("awatch-roster");
     expect(html).toContain("NoemaAdminPhosphorPick");
+    expect(html).toContain('#awatch-sites .awatch-pick[aria-pressed="true"]');
+    expect(html).toContain(".awatch-phos{position:relative;z-index:1}");
     expect(html).not.toContain("legend.png");
   });
 

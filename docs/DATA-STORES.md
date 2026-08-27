@@ -6,17 +6,48 @@ Inventory of required tables, RPCs, isolation rules, and ownership for hosted PL
 
 Claim labels: **OBSERVED** (read from files or live endpoints this pass), **INFERRED** (follows from those facts without a SQL session), **SPECULATIVE** (not established).
 
-### Live probe 2026-08-19 (`/ready` + M0 scripts)
+### Live probe 2026-08-19 (SQL session)
+
+Read-only Supabase MCP against project `dezykkherxlaysxyvgbs` after re-auth. Did **not** apply SQL. Did **not** invent a head. Did **not** Recover. Did **not** reseed. Did **not** POST to settlement RPCs.
 
 | Check | Result | Label |
 |---|---|---|
-| `GET https://noema.guru/ready` 03:47:14Z | HTTP 200 · `ready:true` · `play_blocked:false` · `code:null` · `status:ACTIVE` · `settlement_health:HEALTHY` · world `world.perihelion-reach` · cycle 105 · sequence **305** · `genesis_id:genesis.ef578f4ffceeccd0` · `playable:true` | OBSERVED |
-| `GET https://noema.guru/ready` 03:48:19Z | HTTP 200 · same genesis · sequence **307** · `play_blocked:false` · `players:0` | OBSERVED after golden-path ENTER+LEAVE |
-| `GET https://noema.guru/health` | HTTP 200 · `status:ok` · `service:noema-gateway` · `stage:0` · `env:production` · `protocol_version:1` · `world_id:world-01` | OBSERVED |
-| Production bootstrap-blocked? | **No.** `play_blocked:false`. Sequence 288 → 305 → 307 is live play, not a missing head. | OBSERVED `/ready` |
-| Residual | Live isolated SQL inspect (`inspect-settlement.mjs`) needs `SUPABASE_*`. Isolated ACK ENTER 200 / Perihelion 403 already OBSERVED this run. Not “apply SQL / bootstrap Perihelion.” Do not Recover. Do not reseed. | OBSERVED scripts + `/ready` |
+| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `ACTIVE`/`HEALTHY`, cycle 105, sequence **307**, `genesis.ef578f4ffceeccd0` | OBSERVED |
+| Hosted `schema_migrations` | `20260812181043_noema_world_schema`, `20260812195616_noema_settled_events`, `20260816023118_noema_adopt_live_world_head` | OBSERVED |
+| Tables | `noema_world_heads` 5 rows · `noema_settled_events` 309 rows · `noema_canonical_settlements` 200 receipts | OBSERVED |
+| RPCs | both present, `SECURITY DEFINER`; `EXECUTE` `service_role` true; `anon` / `authenticated` false | OBSERVED |
+| Perihelion head | `world.perihelion-reach` · `ACTIVE`/`HEALTHY` · cycle 105 · seq **307** · revision **176** · writer `do.1` · genesis `genesis.ef578f4ffceeccd0` · digest prefix `sha256:18acf` · `evt.000307` | OBSERVED |
+| Perihelion receipts / events | 176 receipts (max revision 176); 280 settled events (seq 0..307) | OBSERVED |
+| Adopt receipt (revision 1) | sequence 92 · `settlement.adopt-live.world.perihelion-reach` | OBSERVED |
+| Holes 0..307 | **28** — same pre-adopt count as 2026-08-17; adopt does not backfill | OBSERVED |
+| Isolated `inspect-s0` | `DEMO_SEED`/`HEALTHY` · cycle 0 · seq 1 · rev 2 · digest `sha256:fe5cf` · events `evt.tw.inspect-s0.000000` + `.000001` both `AGENT_ENTERED_WORLD` (LOOK/INSPECT do not settle) | OBSERVED |
+| Isolated `ack-s3` | `DEMO_SEED`/`HEALTHY` · cycle 4 · seq 18 · rev 19 · digest `sha256:1189a` | OBSERVED |
+| Other isolated heads | `ack-s0` ACTIVE rev 2 seq 1; `ack-s2` ACTIVE rev 1 seq 0 (adopt-only) | OBSERVED |
+| `/ready` vs SQL | cycle / sequence / genesis / HEALTHY **match** Perihelion head | OBSERVED |
 
-Baseline pin table: [RUNTIME-READINESS-2026-08-13.md](RUNTIME-READINESS-2026-08-13.md).
+SQL-head inspect residual is **closed** for this read path. Production head is not missing. Do not Recover. Do not reseed.
+
+### Production deploy pin 2026-08-18 (#317)
+
+Addendum. Does not replace the `/ready`-only or SQL-session probes below. **Do not Recover. Do not reseed.**
+
+| Check | Result | Label |
+|---|---|---|
+| Production Worker | version `90b31d30-ae40-4e8f-ba2f-4bac396b769b` from git `5755a25` (#317). Previous production was `e28650ff`. | OBSERVED |
+| `/ready` wrap on production | DO `!ok`/throw → 200 `{ready:false, play_blocked:true, code:WORLD_NOT_READY}` not 500. Happy path this run still `ACTIVE`/`HEALTHY` seq 307. | OBSERVED |
+| `GET /play` | 308 → `/connect` | OBSERVED |
+| chrome | Home · Manifesto · Watch · Connect | OBSERVED |
+| Isolated SQL inspect | Closed 2026-08-19 via read-only MCP (addendum above). Prior session was UNCONFIGURED without `SUPABASE_*`. | OBSERVED 2026-08-19 |
+| `inspect-settlement.mjs` | GET heads/events/receipts (redacted). RPC names via GET OpenAPI (`Accept: application/openapi+json`). Does not POST empty `{}` to settlement RPCs. Missing OpenAPI → `openapi_unavailable`. | OBSERVED on disk this pass |
+
+### Live probe 2026-08-18 (`/ready` only)
+
+| Check | Result | Label |
+|---|---|---|
+| `GET https://noema.guru/ready` | `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, world `world.perihelion-reach`, cycle 105, sequence **307**, `genesis_id:genesis.ef578f4ffceeccd0` | OBSERVED this run (same-day 303 → 305 → 307) |
+| `GET https://noema.guru/health` | `status:ok` `service:noema-gateway` `stage:0` `env:production` `world_id:world-01` | OBSERVED |
+| Production head missing? | **No.** Head + RPCs already OBSERVED 2026-08-17 (below). Sequence drift 288 → 307 is live play, not a missing head. | OBSERVED `/ready` + prior SQL |
+| Residual | Isolated SQL-head inspect needs `SUPABASE_*` (UNCONFIGURED in some shells). Worker unit settle/STALE_HEAD/recover + live isolated ENTER 200 already shipped. Not “apply SQL on Perihelion.” Do not Recover. Do not reseed. | OBSERVED tests + `/ready` |
 
 ### Live probe 2026-08-17 (SQL session)
 
@@ -166,7 +197,7 @@ OBSERVED in `supabase/migrations/20260816013000_noema_adopt_live_world_head.sql`
 |---|---|---|
 | **DO** (`NoemaWorldDO`) | Live world JSON (`world`), `world_meta` (status, revision, writer_generation, genesis_id, settlement_health), operator digest config/history. Named DO `__noema_enrollments__` holds enrollment + device bags. Live ordering. | Canonical ACK. Invented ledger `0..n` when SQL head is missing. |
 | **Postgres** | Reconstructable head (`noema_world_heads`), canonical events, settlement receipts. RPC is the single semantic write transaction. | Research truth. Player/Admin session minting. Product HTML. |
-| **Auth** (Supabase Auth) | Magic-link generate/verify for PLAY and ADMIN. Human JWT `sub` mapped to an ephemeral Player principal. | World state, ledger, Genesis, research. Admin privilege is never inherited from a Player session. |
+| **Auth** (Supabase Auth) | Magic-link generate/verify for WATCH/CONNECT and ADMIN. Human JWT `sub` maps to a `HumanPrincipal` (RFC-0120). Never `player_id`. | World state, ledger, Genesis, research. Admin privilege is never inherited from a Player session. |
 | **Storage** | Worker `[assets]` (`wrangler.toml` binding `ASSETS`) serves product HTML/media. No Worker writes to Supabase Storage or R2 for world truth. | World ledger, receipts, enrollments. |
 | **Offline-only** | Python `WorldStore` (`meta`/`events`/`snapshots`/`sessions`), all `research_*`, offline `id_*`, evidence-receipt files/keyring. | Hosted PLAY ACK. Must not be treated as the product writer. |
 
@@ -181,7 +212,7 @@ Enrollment-audit, revocation, and evidence-receipt tables are **not required** f
 | Proposed table | Required now? | Rationale |
 |---|---|---|
 | Enrollment-audit | **No** | Hosted enrollment and device codes persist in DO storage (`enrollments`, `devices` on `__noema_enrollments__`). Offline `id_device_codes` is Chamber-only. No SQL audit table is referenced by settle/recover. Adding one would not unblock ACK or Recover. |
-| Revocation | **No** | Offline `id_controllers.revoked_at` / `id_credentials.revoked_at` are Chamber identity. Hosted access is JWT expiry + operator mint/deny. Emergency `revoked_cycle` is world state inside the DO, not a SQL table. A hosted revocation ledger is not on the settlement path. |
+| Revocation | **No SQL table** | Offline `id_controllers.revoked_at` / `id_credentials.revoked_at` are Chamber identity. Hosted inhabit revocation is a DO bag on `__noema_enrollments__` (`revocations`, not Postgres). JWT expiry still applies. Historical `controller_type` human/hybrid on access tokens is HumanPrincipal compatibility — not rewritten on the ledger. Emergency `revoked_cycle` is world state inside the world DO. |
 | Evidence-receipt | **No** | Phase 11 receipts are HMAC files + keyring (`src/noema/evidence/receipts.py`). Mandatory only for offline `research-isolated` / `reproducibility` / `public-evidence-export`. Not a hosted PLAY table. |
 
 Do not create these on hosted Postgres until a later identity/evidence slice explicitly requires them.
@@ -198,7 +229,7 @@ Still **not** independently verified:
 ["new isolated test.hosted-canonical.* ACK this pass (needs PLAYER_TOKEN + X-Noema-Admin-Token)"]
 ```
 
-Prior-doc sequences 92 vs 94 vs 288 are historical; current OBSERVED `/ready` sequence is 305 (2026-08-19).
+Prior-doc sequences 92 vs 94 are historical; current observed sequence is 288.
 
 ---
 
@@ -213,7 +244,7 @@ Prior-doc sequences 92 vs 94 vs 288 are historical; current OBSERVED `/ready` se
 | Recover adopts via `noema_adopt_live_world_head` or REST snapshot; never invents events | OBSERVED |
 | RPCs grant execute to `service_role` only (in SQL files) | OBSERVED |
 | Research tables are rebuildable and offline-only | OBSERVED in code; hosted copies if any are unused by the Worker |
-| Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 305 | OBSERVED 2026-08-19 (`play_blocked:false`; was seq 288 on 2026-08-17) |
+| Live `/ready` ACTIVE / HEALTHY / genesis.ef578f4ffceeccd0 / cycle 105 / seq 288 | OBSERVED 2026-08-17 |
 | Hosted tables + both RPCs + Perihelion head (rev 160, digest prefix `sha256:f163f`) | OBSERVED 2026-08-17 via read-only SQL |
 | Adopt at rev 1 seq 92; post-adopt 93..288 contiguous; receipts 2..160 | OBSERVED |
 | New isolated test-world ACK this pass | blocked (no Player + admin tokens in this shell) |

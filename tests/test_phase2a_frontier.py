@@ -35,7 +35,19 @@ from noema.world.state import load_seed
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures" / "v01-seed"
 V02 = ROOT / "fixtures" / "v02-frontier"
-SPECS_V02 = Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier")
+# Sibling checkout first; the bare absolute literal only ever resolved on one
+# machine. Local fixtures win either way — this is the fallback.
+SPECS_V02 = next(
+    (
+        p
+        for p in (
+            ROOT.parent / "Noema-Specs" / "examples" / "v02-frontier",
+            Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier"),
+        )
+        if p.is_dir()
+    ),
+    Path("/home/scrimshawlife/Noema-Specs/examples/v02-frontier"),
+)
 
 
 def _load(name: str) -> dict | list:
@@ -568,7 +580,7 @@ def test_f12_frontier_cannot_write_worldstate_api():
 def test_f12_player_cannot_invoke_frontier(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.p")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.p")
     with pytest.raises(ResearchError) as ei:
         rt.run_frontier(sess["session_id"], _load("frontier-request.json"), {})
     assert ei.value.code == POLICY_DENIED
@@ -706,7 +718,7 @@ def test_f15_not_computable_not_zero_uncertainty():
 def test_trajectory_capture_and_rebuild(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     rt.apply_player_action(
         sess["session_id"],
         {
@@ -752,7 +764,7 @@ def test_frontier_cannot_force_agent_action(tmp_path: Path):
         ],
     )
     # player still chooses independently
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.p2")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.p2")
     r = rt.apply_player_action(
         player["session_id"],
         {
@@ -815,7 +827,7 @@ def test_e2e_frontier_play_capture_select_inject_observe(tmp_path: Path):
     rt = NoemaRuntime(db_path=tmp_path / "w.db")
     rt.start_world(FIXTURES / "world-seed.json")
 
-    player = rt.create_session(role=Role.PLAYER, agent_id="agent.e2e")
+    player = rt.create_session(role=Role.AGENT, agent_id="agent.e2e")
     rt.apply_player_action(
         player["session_id"],
         {

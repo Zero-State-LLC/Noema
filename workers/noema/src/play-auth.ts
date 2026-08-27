@@ -1,6 +1,6 @@
 /**
- * Player email magic-link auth — separate from ADMIN sessions.
- * No admin allowlist; public play path.
+ * Human platform magic-link — WATCH/CONNECT identity, not inhabit.
+ * No admin allowlist. Separate from ADMIN sessions.
  */
 
 import {
@@ -10,17 +10,19 @@ import {
   loginRedirectOrigin,
   normalizeEmail,
 } from "./admin-auth";
-import { err, json, mintControllerToken } from "./auth";
+import { err, json, mintHumanPlatformToken } from "./auth";
 import { allowLoginThrottled } from "./rate-limit";
 import {
   composePlayMail,
+  canonicalAuthFlow,
+  canonicalConnectCode,
   extractHashedToken,
   PLAY_MAIL_FROM,
   playMagicLinkHref,
   safePlayNext,
   type PlayMailer,
 } from "./play-mail";
-import { sendTransactionalEmail } from "./email-provider";
+import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const GENERIC_PLAY_LOGIN_MESSAGE =
@@ -39,12 +41,14 @@ export const playLoginThrottle = new LoginThrottle();
 export async function requestPlayMagicLink(
   env: Env,
   req: Request,
-  body: { email?: string; next?: string },
+  body: { email?: string; next?: string; code?: string; connect_code?: string; auth_flow?: string },
   opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendPlay?: PlayMailer; mailFetch?: typeof fetch },
 ): Promise<Response> {
   const email = normalizeEmail(String(body.email || ""));
   if (!email) return err("INVALID_REQUEST", "email required", 400);
   const next = safePlayNext(body.next);
+  const code = canonicalConnectCode(body.connect_code ?? body.code);
+  const authFlow = canonicalAuthFlow(body.auth_flow);
 
   const throttle = opts?.throttle || playLoginThrottle;
   const ip = clientIp(req);
@@ -56,8 +60,13 @@ export async function requestPlayMagicLink(
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const callback = next ? `${origin}/play/callback?next=${encodeURIComponent(next)}` : `${origin}/play/callback`;
-      const canProvider = Boolean(opts?.sendPlay || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN);
+      const callbackParams = new URLSearchParams();
+      if (next) callbackParams.set("next", next);
+      if (code) callbackParams.set("connect_code", code);
+      if (authFlow) callbackParams.set("auth_flow", authFlow);
+      const callbackQuery = callbackParams.toString();
+      const callback = callbackQuery ? `${origin}/play/callback?${callbackQuery}` : `${origin}/play/callback`;
+      const canProvider = Boolean(opts?.sendPlay || hasTransactionalProvider(env));
       let sent = false;
       if (canProvider) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {
@@ -76,7 +85,7 @@ export async function requestPlayMagicLink(
         const payload = await res.json().catch(() => ({}));
         const extracted = extractHashedToken(payload);
         if (res.ok && extracted) {
-          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next);
+          const href = playMagicLinkHref(origin, extracted.token, extracted.type, next, code, authFlow);
           const mail = composePlayMail(email, href);
           const send =
             opts?.sendPlay ||
@@ -131,7 +140,7 @@ export async function consumePlayMagicLink(
   body: { token_hash?: string; type?: string; code?: string },
   opts?: { fetch?: AdminFetch },
 ): Promise<
-  | { access_token: string; player_id: string; handle: string; controller_type: "human"; expires_in: number }
+  | { access_token: string; identity_id: string; handle: string; controller_type: "human"; expires_in: number }
   | Response
 > {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -185,20 +194,17 @@ export async function consumePlayMagicLink(
 
   const email = normalizeEmail(String(payload.user?.email || payload.email || ""));
   const handle = playHandleFromEmail(email);
-  const compact = id.replace(/-/g, "").slice(0, 12);
 
-  const minted = await mintControllerToken(env, {
-    handle,
-    controllerType: "human",
-    expiresIn: 86400,
-    playerId: `player.${compact}`,
+  const minted = await mintHumanPlatformToken(env, {
     identityId: id,
+    handle,
+    expiresIn: 86400,
     amr: "email_magic_link",
   });
 
   return {
     access_token: minted.access_token,
-    player_id: minted.player_id,
+    identity_id: minted.identity_id,
     handle,
     controller_type: "human",
     expires_in: minted.expires_in,

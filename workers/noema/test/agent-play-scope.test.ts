@@ -106,13 +106,16 @@ describe("agents inhabit — humans watch", () => {
       amr: "email_magic_link",
     });
     expect(minted.controller_type).toBe("human");
+    expect(minted.player_id).toBe("");
     const me = await worker.fetch(
       new Request("https://noema.local/v1/me", { headers: { Authorization: `Bearer ${minted.access_token}` } }),
       env(calls),
     );
     expect(me.status).toBe(200);
-    const identity = (await me.json()) as { principal?: { controller_type?: string } };
+    const identity = (await me.json()) as { principal?: { kind?: string; controller_type?: string; player_id?: string } };
+    expect(identity.principal?.kind).toBe("human");
     expect(identity.principal?.controller_type).toBe("human");
+    expect(identity.principal?.player_id).toBeUndefined();
     const cmd = await hit(
       "/v1/command",
       {

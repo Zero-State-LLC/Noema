@@ -112,6 +112,24 @@ describe("GC2-S0 catalog mapper", () => {
     expect(parseConstructibleClass("route link")).toBe("route_link");
   });
 
+  it("pins Genesis-shaped label fallback (frozen, settlement-adjacent)", () => {
+    expect(
+      infraClassOf({
+        entity_id: "entity.relay-7",
+        label: "scarred-conduit",
+        entity_type: "INFRASTRUCTURE",
+      }),
+    ).toBe("relay");
+    expect(
+      infraClassOf({
+        entity_id: "x",
+        label: "relay",
+        entity_type: "INFRASTRUCTURE",
+        infra_type: "workshop",
+      }),
+    ).toBe("workshop");
+  });
+
   it("classifies live infrastructure from id/label and ignores ruins", () => {
     expect(
       infraClassOf({
@@ -177,7 +195,7 @@ describe("GC2-S0 parse", () => {
         expect(alias.action.arguments.class).toBe("generator");
       }
     }
-    const dismantle = parseHumanCommand("dismantle entity.relay-7", {
+    const dismantle = parseHumanCommand("dismantle scarred-conduit", {
       entities: [
         enrichEntity({
           entity_id: "entity.relay-7",
@@ -223,6 +241,7 @@ describe("GC2-S0 CONSTRUCT", () => {
     await run(w, p, "ENTER_WORLD");
     await run(w, p, "MOVE", { direction: "east" });
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.relay.storage || 0);
     const before = { ...w.players[p.player_id].budgets };
     const result = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(result.ok).toBe(true);
@@ -243,7 +262,7 @@ describe("GC2-S0 CONSTRUCT", () => {
     expect(`${entity.entity_id} ${entity.label}`.toLowerCase()).toMatch(/relay/);
     expect(w.players[p.player_id].budgets.energy).toBe(before.energy - 8);
     expect(w.players[p.player_id].budgets.compute).toBe(before.compute - 4);
-    expect(w.players[p.player_id].budgets.storage).toBe(before.storage - 4);
+    expect(w.players[p.player_id].budgets.storage).toBe(before.storage + 4);
     expect(w.players[p.player_id].budgets.influence).toBe(before.influence - 2);
     expect(w.cycle).toBe(0);
   });
@@ -297,6 +316,7 @@ describe("GC2-S0 CONSTRUCT", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     await run(w, p, "MOVE", { direction: "east" });
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.generator.storage || 0);
     const result = await run(w, p, "construct generator", { line: "construct generator" });
     expect(result.ok).toBe(true);
     expect(w.rooms["room.east"].entities[0].infra_type).toBe("generator");
@@ -309,6 +329,7 @@ describe("GC2-S0 DISMANTLE", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     await run(w, p, "MOVE", { direction: "east" });
+    w.players[p.player_id].budgets.storage = 8;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     expect(built.ok).toBe(true);
     await run(w, p, "WAIT");
@@ -341,6 +362,7 @@ describe("GC2-S0 DISMANTLE", () => {
     await run(w, other, "ENTER_WORLD");
     await run(w, owner, "MOVE", { direction: "east" });
     await run(w, other, "MOVE", { direction: "east" });
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.relay.storage || 0);
     await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "relay" });
     const entityId = w.rooms["room.east"].entities[0].entity_id;
     const energy = w.players[other.player_id].budgets.energy;
@@ -367,6 +389,7 @@ describe("GC2-S0 DISMANTLE", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.rooms["room.hub"].entities[0].condition = 40;
+    w.players[p.player_id].budgets.storage = 15;
     const before = w.players[p.player_id].budgets.energy;
     const repair = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
     expect(repair.ok).toBe(true);

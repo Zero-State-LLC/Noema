@@ -3,14 +3,31 @@ import { mintAdminSession } from "../src/admin-auth";
 import { mintControllerToken } from "../src/auth";
 import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
-import { admitTestWorldId, isolatedLedgerEventId, resolveLoadWorldId } from "../src/test-world";
+import {
+  admitTestWorldId,
+  isolatedLedgerEventId,
+  withIsolatedBootstrapEvent,
+  lifecycleRequestedWorldId,
+  recoverBoundWorldId,
+  resolveLoadWorldId,
+} from "../src/test-world";
+import { ENROLLMENT_DO_NAME } from "../src/enrollment";
 import { RATE_LIMIT_DO_NAME } from "../src/rate-limit";
 import { ACCEPTED_SEALS } from "../src/seal";
 import type { Env } from "../src/types";
 
 const SIGNING = "test-signing-secret-isolated-world";
 
-type DoCall = { op: string; name?: string; body?: Record<string, unknown> | null };
+type DoCall = {
+  op: string;
+  name?: string;
+  body?: Record<string, unknown> | null;
+  headers?: Record<string, string>;
+};
+
+function worldCalls(calls: DoCall[]) {
+  return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME && c.name !== ENROLLMENT_DO_NAME);
+}
 
 function mockWorldDo(calls: DoCall[]) {
   return {
@@ -20,12 +37,20 @@ function mockWorldDo(calls: DoCall[]) {
     },
     get(id: { name: string }) {
       return {
-        fetch: async (_url: string, init?: RequestInit) => {
+        fetch: async (url: string, init?: RequestInit) => {
+          const raw = init?.headers instanceof Headers
+            ? Object.fromEntries(init.headers.entries())
+            : ((init?.headers || {}) as Record<string, string>);
+          const path = String(url);
           calls.push({
             op: "fetch",
             name: id.name,
+            headers: raw,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/revoke")) {
+            return new Response("{}", { status: 404 });
+          }
           return new Response(JSON.stringify({ ok: true, world_id: id.name }), {
             status: 200,
             headers: { "content-type": "application/json" },
@@ -83,6 +108,47 @@ describe("isolatedLedgerEventId", () => {
     expect(isolatedLedgerEventId("test.hosted-canonical.ack-s0", 0)).toBe("evt.tw.ack-s0.000000");
     expect(isolatedLedgerEventId("world.perihelion-reach", 0)).toBe("evt.000000");
     expect(isolatedLedgerEventId("world-01", 1)).toBe("evt.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).toBe("evt.w.perihelion-reach-2.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-3", 1)).toBe("evt.w.perihelion-reach-3.000001");
+    expect(isolatedLedgerEventId("world.perihelion-reach-2", 1)).not.toBe(
+      isolatedLedgerEventId("world.perihelion-reach", 1),
+    );
+  });
+});
+
+describe("withIsolatedBootstrapEvent", () => {
+  it("prepends sequence 0 WORLD_BOOTSTRAP when first PLAY event is 1", () => {
+    const worldId = "test.hosted-canonical.ewm-cutover";
+    const out = withIsolatedBootstrapEvent(
+      [{ event_id: isolatedLedgerEventId(worldId, 1), event_type: "ENTER_WORLD", sequence: 1, payload: {} }],
+      worldId,
+      "genesis.c683369b09acad07",
+    );
+    expect(out.map((e) => [e.sequence, e.event_type])).toEqual([
+      [0, "WORLD_BOOTSTRAP"],
+      [1, "ENTER_WORLD"],
+    ]);
+    expect(out[0].event_id).toBe("evt.tw.ewm-cutover.000000");
+    expect(out[0].payload).toEqual({ genesis_id: "genesis.c683369b09acad07", world_id: worldId });
+  });
+
+  it("bootstraps empty EWM product world at sequence 0", () => {
+    const worldId = "world.perihelion-reach-3";
+    const out = withIsolatedBootstrapEvent(
+      [{ event_id: isolatedLedgerEventId(worldId, 1), event_type: "ENTER_WORLD", sequence: 1, payload: {} }],
+      worldId,
+      "genesis.test",
+    );
+    expect(out[0]).toMatchObject({ sequence: 0, event_type: "WORLD_BOOTSTRAP", event_id: "evt.w.perihelion-reach-3.000000" });
+  });
+
+  it("does not rewrite successor or already-zero batches", () => {
+    const live = [{ event_id: "evt.w.perihelion-reach-2.000456", event_type: "LOOK", sequence: 456, payload: {} }];
+    expect(withIsolatedBootstrapEvent(live, "world.perihelion-reach-2")).toEqual(live);
+    const zero = [
+      { event_id: isolatedLedgerEventId("test.hosted-canonical.ewm-cutover", 0), event_type: "ENTER_WORLD", sequence: 0 },
+    ];
+    expect(withIsolatedBootstrapEvent(zero, "test.hosted-canonical.ewm-cutover")).toEqual(zero);
   });
 });
 
@@ -94,6 +160,12 @@ describe("admitTestWorldId", () => {
 
   it("denies Perihelion before any other check", () => {
     const denied = admitTestWorldId("world.perihelion-reach");
+    expect(denied.ok).toBe(false);
+    if (!denied.ok) expect(denied.code).toBe("WORLD_FORBIDDEN");
+  });
+
+  it("denies world.perihelion-reach-2", () => {
+    const denied = admitTestWorldId("world.perihelion-reach-2");
     expect(denied.ok).toBe(false);
     if (!denied.ok) expect(denied.code).toBe("WORLD_FORBIDDEN");
   });
@@ -116,6 +188,49 @@ describe("admitTestWorldId", () => {
   });
 });
 
+describe("lifecycleRequestedWorldId", () => {
+  it("binds an admitted isolate from body or header and ignores Perihelion", () => {
+    expect(lifecycleRequestedWorldId("test.hosted-canonical.inspect-s0")).toBe(
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(lifecycleRequestedWorldId("world.perihelion-reach")).toBeNull();
+    expect(lifecycleRequestedWorldId("world-01")).toBeNull();
+    expect(lifecycleRequestedWorldId("")).toBeNull();
+  });
+});
+
+describe("recoverBoundWorldId", () => {
+  it("keeps production recover on the live id when no isolate is bound", () => {
+    const got = recoverBoundWorldId(null, undefined, "world.perihelion-reach");
+    expect(got).toEqual({ ok: true, world_id: "world.perihelion-reach" });
+  });
+
+  it("refuses recover when the loaded or stored world is not the admitted isolate", () => {
+    const leaked = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      undefined,
+      "world.perihelion-reach",
+    );
+    expect(leaked.ok).toBe(false);
+    if (!leaked.ok) expect(leaked.code).toBe("WORLD_FORBIDDEN");
+    const storedLeak = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      "world.perihelion-reach",
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(storedLeak.ok).toBe(false);
+  });
+
+  it("recovers only the admitted isolate when bind and loaded ids match", () => {
+    const got = recoverBoundWorldId(
+      "test.hosted-canonical.inspect-s0",
+      "test.hosted-canonical.inspect-s0",
+      "test.hosted-canonical.inspect-s0",
+    );
+    expect(got).toEqual({ ok: true, world_id: "test.hosted-canonical.inspect-s0" });
+  });
+});
+
 describe("POST /v1/operator/test-world/command", () => {
   const envelope = {
     world_id: "test.hosted-canonical.verify-1",
@@ -135,7 +250,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls.some((c) => c.op === "idFromName")).toBe(false);
+    expect(worldCalls(calls).some((c) => c.op === "idFromName")).toBe(false);
   });
 
   it("denies default world id before DO lookup", async () => {
@@ -147,7 +262,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("denies arbitrary world ids before DO lookup", async () => {
@@ -159,7 +274,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a missing Player bearer", async () => {
@@ -171,7 +286,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a missing signed admin header", async () => {
@@ -183,7 +298,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects Player-only dual-auth", async () => {
@@ -196,7 +311,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects admin-only dual-auth", async () => {
@@ -209,7 +324,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects an unsigned raw operator token in X-Noema-Admin-Token", async () => {
@@ -224,7 +339,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects a Player access token placed in the admin header", async () => {
@@ -237,7 +352,7 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("routes dual-auth admitted commands to the test world id", async () => {
@@ -249,11 +364,12 @@ describe("POST /v1/operator/test-world/command", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    expect(calls.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
-    expect(calls[0].name).toBe("test.hosted-canonical.verify-1");
-    expect(calls[0].name).not.toBe("world-01");
-    expect(calls[1].body?.world_id).toBe("test.hosted-canonical.verify-1");
-    expect(calls[1].body?.allow_bootstrap).toBe(true);
+    const routed = worldCalls(calls);
+    expect(routed.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
+    expect(routed[0].name).toBe("test.hosted-canonical.verify-1");
+    expect(routed[0].name).not.toBe("world-01");
+    expect(routed[1].body?.world_id).toBe("test.hosted-canonical.verify-1");
+    expect(routed[1].body?.allow_bootstrap).toBe(true);
   });
 });
 
@@ -267,7 +383,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("denies default world recover before DO lookup", async () => {
@@ -279,7 +395,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(403);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects missing dual-auth", async () => {
@@ -291,7 +407,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("rejects non-recover actions", async () => {
@@ -303,7 +419,7 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(400);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("routes recover to the admitted test world only", async () => {
@@ -315,11 +431,13 @@ describe("POST /v1/operator/test-world/lifecycle", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    expect(calls.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
-    expect(calls[0].name).toBe("test.hosted-canonical.ack-s0");
-    expect(calls[0].name).not.toBe("world-01");
-    expect(calls[1].body?.action).toBe("recover");
-    expect(calls[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
+    const routed = worldCalls(calls);
+    expect(routed.map((c) => c.op)).toEqual(["idFromName", "fetch"]);
+    expect(routed[0].name).toBe("test.hosted-canonical.ack-s0");
+    expect(routed[0].name).not.toBe("world-01");
+    expect(routed[1].body?.action).toBe("recover");
+    expect(routed[1].body?.world_id).toBe("test.hosted-canonical.ack-s0");
+    expect(String(routed[1].headers?.["x-noema-world-id"] || "")).toBe("test.hosted-canonical.ack-s0");
   });
 });
 
@@ -334,7 +452,7 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME)).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 
   it("keeps PLAY on DEFAULT_WORLD_ID without bootstrap when world_id is omitted", async () => {
@@ -347,10 +465,10 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    const worldCalls = calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME);
-    expect(worldCalls[0].name).toBe("world-01");
-    expect(worldCalls[1].body?.allow_bootstrap).toBe(false);
-    expect(worldCalls[1].body?.world_id).toBe("world-01");
+    const routed = worldCalls(calls);
+    expect(routed[0].name).toBe("world-01");
+    expect(routed[1].body?.allow_bootstrap).toBe(false);
+    expect(routed[1].body?.world_id).toBe("world-01");
   });
 
   it("does not accept a forged signed header as PLAY authority", async () => {
@@ -372,6 +490,6 @@ describe("POST /v1/command world routing", () => {
       calls,
     );
     expect(res.status).toBe(401);
-    expect(calls).toEqual([]);
+    expect(worldCalls(calls)).toEqual([]);
   });
 });

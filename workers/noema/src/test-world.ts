@@ -22,9 +22,34 @@ export function isAdmittedTestWorldId(worldId: string): boolean {
 export function isolatedLedgerEventId(worldId: string, sequence: number): string {
   const admitted = admitTestWorldId(worldId);
   const seq = sequence.toString().padStart(6, "0");
-  if (!admitted.ok) return `evt.${seq}`;
-  const suffix = admitted.world_id.slice(TEST_WORLD_PREFIX.length).replace(/[^a-zA-Z0-9.-]+/g, ".");
-  return `evt.tw.${suffix}.${seq}`;
+  if (admitted.ok) {
+    const suffix = admitted.world_id.slice(TEST_WORLD_PREFIX.length).replace(/[^a-zA-Z0-9.-]+/g, ".");
+    return `evt.tw.${suffix}.${seq}`;
+  }
+  // Hosted successor shares the settlement table with frozen Perihelion.
+  if (worldId === "world.perihelion-reach-2") return `evt.w.perihelion-reach-2.${seq}`;
+  if (worldId === "world.perihelion-reach-3") return `evt.w.perihelion-reach-3.${seq}`;
+  return `evt.${seq}`;
+}
+
+/**
+ * Canonical RPC bootstrap uses last_sequence = -1, so the first event must be
+ * sequence 0. PLAY increments before emit, so the first ENTER is sequence 1.
+ * Prepend a WORLD_BOOTSTRAP event at 0 only for isolated worlds with no head.
+ */
+export function withIsolatedBootstrapEvent<
+  T extends { event_id: string; event_type: string; sequence: number; payload?: Record<string, unknown> },
+>(events: T[], worldId: string, genesisId?: string | null): T[] {
+  const product = worldId === "world.perihelion-reach-3";
+  if (!admitTestWorldId(worldId).ok && !product) return events;
+  if (!events.length || events[0].sequence !== 1) return events;
+  const bootstrap = {
+    event_id: isolatedLedgerEventId(worldId, 0),
+    event_type: "WORLD_BOOTSTRAP",
+    sequence: 0,
+    payload: { genesis_id: genesisId || null, world_id: worldId },
+  } as unknown as T;
+  return [bootstrap, ...events];
 }
 
 /**
@@ -64,4 +89,35 @@ export function resolveLoadWorldId(
   const requested = String(requestedWorldId || "").trim();
   if (requested) return requested;
   return String(defaultWorldId || "").trim() || "world-01";
+}
+
+/** Isolated recover bind. Perihelion / DEFAULT_WORLD_ID stay unbound so production load uses the default DO. */
+export function lifecycleRequestedWorldId(raw: unknown): string | null {
+  const admitted = admitTestWorldId(raw);
+  return admitted.ok ? admitted.world_id : null;
+}
+
+export type RecoverBind =
+  | { ok: true; world_id: string }
+  | { ok: false; code: "WORLD_FORBIDDEN"; message: string };
+
+/** Isolated recover may only read/adopt the admitted isolate. Production recover leaves requested null. */
+export function recoverBoundWorldId(
+  requested: string | null | undefined,
+  storedWorldId: string | null | undefined,
+  currentWorldId: string | null | undefined,
+): RecoverBind {
+  const req = String(requested || "").trim();
+  const stored = String(storedWorldId || "").trim();
+  const current = String(currentWorldId || "").trim();
+  if (req) {
+    if (stored && stored !== req) {
+      return { ok: false, code: "WORLD_FORBIDDEN", message: "stored world is not the admitted isolate" };
+    }
+    if (current && current !== req) {
+      return { ok: false, code: "WORLD_FORBIDDEN", message: "loaded world is not the admitted isolate" };
+    }
+    return { ok: true, world_id: req };
+  }
+  return { ok: true, world_id: stored || current };
 }

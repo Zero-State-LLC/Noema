@@ -4,6 +4,7 @@
  */
 
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
+import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { followOperatorWatch, phosphorSnapshotFromOperatorWatch } from "./operator-watch";
 import { phosphorInlineScript } from "./watch-phosphor";
@@ -128,10 +129,12 @@ code{color:var(--teal);font-family:var(--font-mono);font-size:.86em}
   background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;
 }
 .awatch-pick[aria-pressed="true"]{border-color:var(--color-state-active);color:var(--color-state-active)}
+.awatch-phos{position:relative;z-index:1}
 .awatch-phos[hidden]{display:none}
-.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body)}
+.awatch-phos-bar{margin:0 0 .4rem;color:var(--faint);font:.75rem/1.2 var(--font-body);pointer-events:none}
 .awatch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
+  position:relative;z-index:1;pointer-events:auto;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
   border:1px solid var(--line);cursor:pointer;
 }
@@ -152,7 +155,7 @@ ${FONTS}<style>${CSS}</style>
   <div class="brand">OPERATOR<span>admin ≠ player · not PLAY</span></div>
   <nav class="nav" aria-label="Planes">
     <a href="/">Product</a>
-    <a href="/play">Play</a>
+    <a href="/connect">Connect</a>
     <a href="/admin" aria-current="page">Admin</a>
   </nav>
   <span class="tag warn">ADMIN</span>
@@ -505,7 +508,7 @@ export function adminHtml(): string {
         </article>
         <article class="card pad s12">
           <p class="kicker">Issue controller token</p>
-          <p class="muted" style="margin-top:.35rem">Mints an agent inhabit token (not ADMIN). Paste into PLAY → Access token, or use as Bearer with X-Noema-Seal. Does not re-enable public dev-token. Human login is email magic-link, not this mint.</p>
+          <p class="muted" style="margin-top:.35rem">Mints an agent inhabit token (not ADMIN). Copy the inhabit snippet. Does not re-enable public dev-token. Human login is email magic-link, not this mint.</p>
           <div class="grid" style="margin-top:.5rem">
             <div class="s4">
               <label for="tok-handle">Handle</label>
@@ -605,15 +608,6 @@ export function adminHtml(): string {
           <dl class="kv" id="provider-resend-details"></dl>
           <button class="btn quiet" type="button" id="provider-resend-verify" style="margin-top:.75rem">Verify Resend</button>
         </article>
-        <article class="card pad s4">
-          <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:start">
-            <div><p class="kicker">Transactional mail · standby</p><h2 style="font-size:1.1rem">Postmark</h2></div>
-            <span class="tag" id="provider-postmark-tag">checking</span>
-          </div>
-          <p class="muted" id="provider-postmark-message">Verifying server and message stream…</p>
-          <dl class="kv" id="provider-postmark-details"></dl>
-          <button class="btn quiet" type="button" id="provider-postmark-verify" style="margin-top:.75rem">Verify Postmark</button>
-        </article>
         <article class="card pad s12">
           <p class="kicker">Break-glass boundary</p>
           <p class="empty">Secret values, arbitrary SQL, unrestricted recipients, and credential rotation are intentionally unavailable to browser code. Configure management credentials as Worker secrets before enabling reviewed break-glass operations.</p>
@@ -662,6 +656,7 @@ export function adminHtml(): string {
   }
 
   const $ = (id) => document.getElementById(id);
+  ${agentInhabitSnippetJs()}
   const notice = (msg, kind="") => { const el=$("notice"); el.textContent=msg||""; el.className="notice"+(kind?" "+kind:""); };
 
   function glyphNode(id) {
@@ -722,13 +717,11 @@ export function adminHtml(): string {
     const data = await api("/v1/admin/providers");
     renderProvider("supabase", data.providers.supabase);
     renderProvider("resend", data.providers.resend);
-    renderProvider("postmark", data.providers.postmark);
     const c = data.configuration || {};
     const caps = c.capabilities || {};
     kv($("provider-capabilities"), [
       ["Ready for deploy", data.ready_for_deploy ? "yes" : "no"],
       ["Supabase management token", c.supabase && c.supabase.management_token ? "configured" : "missing"],
-      ["Postmark account token", c.postmark && c.postmark.account_token ? "configured" : "missing"],
       ["Resend API key", c.resend && c.resend.api_key ? "configured" : "missing"],
       ["Controlled mail test", caps.send_controlled_test ? "available" : "unavailable"],
       ["Credential rotation", caps.rotate_credentials ? "available" : "disabled"],
@@ -867,7 +860,10 @@ export function adminHtml(): string {
   window.NoemaAdminPhosphorPick = function(roomId) {
     const id = String(roomId || "");
     if (!id) return;
-    setWatchFollow({ handle: "", room_id: id });
+    Promise.resolve(setWatchFollow({ handle: "", room_id: id })).then(() => {
+      const site = document.querySelector('#awatch-sites .awatch-pick[aria-pressed="true"]');
+      if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
+    }).catch(() => undefined);
   };
 
   async function loadAgentWatch() {
@@ -935,7 +931,15 @@ export function adminHtml(): string {
           meta.textContent = exits.map((x) => (x.direction || "") + " → " + (x.to_room_name || "")).join(" · ");
           btn.append(meta);
         }
-        const labels = Array.isArray(r.player_labels) ? r.player_labels : [];
+        const roomName = String(r.name || "").trim().toLowerCase();
+        const roomId = String(r.room_id || "").trim().toLowerCase();
+        const slug = roomId.replace(/^room\./, "");
+        const labels = (Array.isArray(r.player_labels) ? r.player_labels : [])
+          .map((h) => String(h || "").trim())
+          .filter((h) => {
+            const n = h.toLowerCase();
+            return h && !n.startsWith("room.") && n !== roomName && n !== roomId && n !== slug;
+          });
         if (labels.length) {
           const meta = document.createElement("div");
           meta.className = "meta";
@@ -1039,6 +1043,16 @@ export function adminHtml(): string {
         ["Status", g.status],
         ["Settlement health", w.settlement_health || g.settlement_health || "—"],
         ["Cycle", w.cycle],
+        ["Tempo policy", (w.player_tempo && w.player_tempo.policy_version) || "RFC-0019"],
+        ["Tempo mode", (w.player_tempo && w.player_tempo.mode) || "—"],
+        ["Tempo phase", (w.player_tempo && w.player_tempo.phase) || "—"],
+        ["Tempo deadline", (w.player_tempo && w.player_tempo.step_required)
+          ? "step required"
+          : (w.player_tempo && w.player_tempo.collect_deadline_ms) || "—"],
+        ["Tempo slots", w.player_tempo
+          ? (w.player_tempo.accepted_slot_count + " / " + w.player_tempo.active_participant_count)
+          : "—"],
+        ["Presentation hold ms", (w.player_tempo && w.player_tempo.presentation_hold_remaining_ms) || 0],
         ["Sequence", w.sequence],
         ["Head present", data.canonical_head && data.canonical_head.head_present ? "yes" : "no"],
         ["Head sequence", data.canonical_head ? data.canonical_head.head_sequence : "—"],
@@ -1165,7 +1179,6 @@ export function adminHtml(): string {
   }
   $("provider-supabase-verify").addEventListener("click", () => verifyProvider("supabase"));
   $("provider-resend-verify").addEventListener("click", () => verifyProvider("resend"));
-  $("provider-postmark-verify").addEventListener("click", () => verifyProvider("postmark"));
 
   $("life-incident-confirm").addEventListener("change", (e) => {
     $("life-incident").disabled = !e.target.checked;
@@ -1339,13 +1352,13 @@ export function adminHtml(): string {
       lastControllerToken = data.access_token || "";
       $("tok-out").textContent =
         "# operator-minted controller token (Player — not ADMIN)\\n" +
-        "export NOEMA_BASE=" + location.origin + "\\n" +
-        "export TOKEN=" + lastControllerToken + "\\n" +
         "# player_id=" + (data.player_id || "") + "\\n" +
         "# controller_id=" + (data.controller_id || "") + "\\n" +
         "# controller_type=" + (data.controller_type || ctype) + "\\n" +
         "# expires_in=" + (data.expires_in || "") + "s\\n" +
-        "# PLAY: open /play → session card → Access token → Enter world (agent + seal)";
+        ((data.controller_type || ctype) === "agent"
+          ? inhabitSnippet(lastControllerToken)
+          : "# humans watch — this token cannot command");
       $("tok-notice").className = "notice ok";
       $("tok-notice").textContent = "Minted " + (data.player_id || "") + " · " + (data.controller_type || ctype) + " · " + Math.round((data.expires_in || 0) / 3600) + "h";
       $("tok-copy").disabled = !lastControllerToken;

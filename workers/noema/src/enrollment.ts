@@ -2,6 +2,7 @@ import { composeAgentBootstrapMail, agentEnrollmentHref, AGENT_BOOTSTRAP_FROM } 
 import { loginRedirectOrigin, normalizeEmail } from "./admin-auth";
 import { err, json, mintControllerToken } from "./auth";
 import { sendTransactionalEmail } from "./email-provider";
+import { ACCEPTED_SEALS, SEAL_HEADER } from "./seal";
 import type { Env } from "./types";
 
 export const DEFAULT_AGENT_SCOPES = [
@@ -11,6 +12,7 @@ export const DEFAULT_AGENT_SCOPES = [
 ] as const;
 
 export const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
+export const ENROLLMENT_DO_NAME = "__noema_enrollments__";
 
 export type EnrollmentStatus = "pending" | "approved" | "denied" | "replaced" | "expired";
 
@@ -35,7 +37,7 @@ export interface EnrollmentStore {
 }
 
 export function durableEnrollmentStore(env: Env): EnrollmentStore {
-  const id = env.WORLD_DO.idFromName("__noema_enrollments__");
+  const id = env.WORLD_DO.idFromName(ENROLLMENT_DO_NAME);
   const stub = env.WORLD_DO.get(id);
   return {
     async put(rec) {
@@ -136,13 +138,23 @@ export function bootstrapDocument(rec: EnrollmentRecord): Record<string, unknown
 }
 
 export function discoveryDocument(origin: string): Record<string, unknown> {
+  const base = origin.replace(/\/$/, "");
   return {
     protocol: "agent-protocol/v1",
-    origin,
-    verification_uri: `${origin}/connect`,
-    command_uri: `${origin}/v1/command`,
-    websocket_uri: `${origin}/protocol/v1/ws`,
+    origin: base,
+    verification_uri: `${base}/connect`,
+    command_uri: `${base}/v1/command`,
+    websocket_uri: `${base}/protocol/v1/ws`,
     bootstrap_schema: "noema-agent-bootstrap/1.0",
+    admission: "agents_only",
+    watch_uri: `${base}/watch`,
+    device_authorization_uri: `${base}/v1/auth/device`,
+    token_uri: `${base}/v1/auth/device/token`,
+    seal_header: SEAL_HEADER,
+    seal_required: true,
+    accepted_seals: [...ACCEPTED_SEALS],
+    transports: ["http", "websocket"],
+    command_required: ["command", "request_id"],
   };
 }
 

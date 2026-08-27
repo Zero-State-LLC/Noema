@@ -5,7 +5,7 @@ import worker from "../src/index";
 import { countEnteredPlayers, countLivePlayers, playReady } from "../src/ops";
 import { humanizeError, waitingCopy } from "../src/play-ui";
 import { playCallbackHtml } from "../src/play-login-html";
-import { playHtml } from "../src/play";
+
 import { ACCEPTED_SEALS } from "../src/seal";
 import type { CommandEnvelope, Env, PlayerPrincipal } from "../src/types";
 import { applyWorldCommand, buildObservation, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
@@ -97,6 +97,9 @@ function liveDo(world: WorldRuntime) {
     get: () => ({
       fetch: async (url: string, init?: RequestInit) => {
         const path = String(url);
+        if (path.includes("/revoke")) {
+          return new Response("{}", { status: 404 });
+        }
         if (path.includes("/health")) {
           return Response.json({
             ok: true,
@@ -186,7 +189,7 @@ describe("play attach — empty world snapshot", () => {
       request_id: "web.empty-look",
       idempotency_key: "web.empty-look",
       command: "LOOK",
-      arguments: { line: "look" },
+      arguments: {},
     });
     expect(res.status).toBe(400);
     const body = (await res.json()) as {
@@ -252,8 +255,8 @@ describe("play attach — canonical head snapshot", () => {
     const enter = await authedCommand(head, {
       request_id: "web.head-enter",
       idempotency_key: "web.head-enter",
-      command: "LOOK",
-      arguments: { line: "enter" },
+      command: "ENTER_WORLD",
+      arguments: {},
     });
     expect(enter.status).toBe(200);
     const entered = (await enter.json()) as {
@@ -273,7 +276,7 @@ describe("play attach — canonical head snapshot", () => {
       request_id: "web.head-look",
       idempotency_key: "web.head-look",
       command: "LOOK",
-      arguments: { line: "look" },
+      arguments: {},
     });
     expect(look.status).toBe(200);
     const looked = (await look.json()) as {
@@ -407,8 +410,5 @@ describe("play attach presentation", () => {
     const html = playCallbackHtml();
     expect(html).toContain("noema.play.handle");
     expect(html).toContain("data.handle");
-    const play = playHtml();
-    expect(play).toContain("waitingCopy");
-    expect(play).toMatch(/handle\.length < 2[\s\S]*preToken|preToken[\s\S]*handle\.length < 2/);
   });
 });

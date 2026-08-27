@@ -8,6 +8,10 @@
 | `deployment-config.schema.json` | Specs schema reference (validator is pure-Python in `noema.config`) |
 
 ```bash
+# Local compose golden path (C14): Postgres + modular monolith
+cp .env.example .env
+docker-compose up
+
 noema-serve --config examples/deployment/local-deployment-config.json
 noema-verify --config examples/deployment/local-deployment-config.json --db data/noema.sqlite3
 ```

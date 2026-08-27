@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { providerConfiguration, providerOverview, verifyPostmark, verifySupabase } from "../src/provider-management";
+import { providerConfiguration, providerOverview, verifySupabase } from "../src/provider-management";
 import type { Env } from "../src/types";
 
 function env(overrides: Partial<Env> = {}): Env {
@@ -19,8 +19,7 @@ describe("admin provider management", () => {
     const config = providerConfiguration(env({
       SUPABASE_URL: "https://project-ref.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "secret-service-role",
-      POSTMARK_SERVER_TOKEN: "secret-postmark",
-      POSTMARK_MESSAGE_STREAM: "outbound",
+      RESEND_API_KEY: "secret-resend",
     }));
     expect(config.supabase).toEqual({
       url: true,
@@ -28,28 +27,16 @@ describe("admin provider management", () => {
       management_token: false,
       project_ref: "project-ref",
     });
-    expect(config.postmark.server_token).toBe(true);
+    expect(config.resend.api_key).toBe(true);
     expect(JSON.stringify(config)).not.toContain("secret-service-role");
-    expect(JSON.stringify(config)).not.toContain("secret-postmark");
+    expect(JSON.stringify(config)).not.toContain("secret-resend");
   });
 
-  it("verifies the Postmark server and configured stream", async () => {
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ Name: "NOEMA", DeliveryType: "Live" }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ID: "outbound", ServerID: 42 }), { status: 200 }));
-    const result = await verifyPostmark(env({ POSTMARK_SERVER_TOKEN: "pm", POSTMARK_MESSAGE_STREAM: "outbound" }), fetchImpl);
-    expect(result.healthy).toBe(true);
-    expect(result.details).toMatchObject({ server_name: "NOEMA", stream_id: "outbound" });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(fetchImpl.mock.calls[0][1].headers).toEqual({ "X-Postmark-Server-Token": "pm" });
-  });
-
-  it("fails closed when Postmark is missing or rejects the token", async () => {
-    expect((await verifyPostmark(env())).healthy).toBe(false);
-    const fetchImpl = vi.fn().mockResolvedValue(new Response("{}", { status: 401 }));
-    const result = await verifyPostmark(env({ POSTMARK_SERVER_TOKEN: "bad" }), fetchImpl);
-    expect(result.healthy).toBe(false);
-    expect(result.details.server_status).toBe(401);
+  it("reports Resend as the sole transactional provider", () => {
+    const config = providerConfiguration(env({ RESEND_API_KEY: "secret-resend" }));
+    expect(config.resend.priority).toBe("primary");
+    expect(config).not.toHaveProperty("postmark");
+    expect(JSON.stringify(config)).not.toContain("secret-resend");
   });
 
   it("verifies the exact canonical Perihelion head boundary", async () => {
@@ -80,7 +67,7 @@ describe("admin provider management", () => {
     const result = await providerOverview(env({
       SUPABASE_URL: "https://project-ref.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "role",
-      POSTMARK_SERVER_TOKEN: "bad",
+      RESEND_API_KEY: "bad",
     }), fetchImpl as typeof fetch);
     expect(result.ready_for_deploy).toBe(false);
     expect(result.secrets_exposed).toBe(false);
@@ -101,7 +88,7 @@ describe("admin provider management", () => {
       ADMIN_OPERATOR_TOKEN: "operator-secret",
       SUPABASE_URL: "https://project-ref.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "service-role-secret",
-      POSTMARK_SERVER_TOKEN: "postmark-secret",
+      RESEND_API_KEY: "resend-secret",
     });
     const sessionRes = await worker.fetch(
       new Request("https://noema.guru/v1/admin/session", {
@@ -123,8 +110,7 @@ describe("admin provider management", () => {
           settlement_health: "HEALTHY",
         }]), { status: 200 });
       }
-      if (url.endsWith("/server")) return new Response(JSON.stringify({ Name: "NOEMA", DeliveryType: "Live" }), { status: 200 });
-      return new Response(JSON.stringify({ ID: "outbound", ServerID: 42 }), { status: 200 });
+      return new Response(JSON.stringify({ data: [{ name: "noema.guru", status: "verified" }] }), { status: 200 });
     }));
     try {
       const res = await worker.fetch(
@@ -136,7 +122,7 @@ describe("admin provider management", () => {
       expect(res.status).toBe(200);
       const text = await res.text();
       expect(text).not.toContain("service-role-secret");
-      expect(text).not.toContain("postmark-secret");
+      expect(text).not.toContain("resend-secret");
       expect(JSON.parse(text)).toMatchObject({ ready_for_deploy: true, secrets_exposed: false });
     } finally {
       vi.unstubAllGlobals();

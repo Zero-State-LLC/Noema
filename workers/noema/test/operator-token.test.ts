@@ -10,15 +10,16 @@ const env = {
 } as unknown as Env;
 
 describe("operator-minted controller tokens", () => {
-  it("mints a Player access token (not admin typ)", async () => {
+  it("human mint is a platform token, not a Player", async () => {
     const m = await mintControllerToken(env, {
       handle: "alice",
       controllerType: "human",
       expiresIn: 7200,
       issuedByAdmin: true,
     });
-    expect(m.player_id).toBe("player.alice");
+    expect(m.player_id).toBe("");
     expect(m.controller_type).toBe("human");
+    expect(m.identity_id).toBe("id.alice");
     expect(m.expires_in).toBe(7200);
     expect(m.token_type).toBe("bearer");
     expect(m.access_token.split(".").length).toBe(3);

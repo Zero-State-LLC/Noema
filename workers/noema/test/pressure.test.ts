@@ -175,6 +175,7 @@ describe("GC10-S0 schedule", () => {
     expect(w.rooms["room.hub"].entities[0].condition).toBe(35);
     expect(w.pressure?.schedule_activations || 0).toBe(0);
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 15;
     const repair = await run(w, p, "COMMIT", {
       operation: "REPAIR",
       entity_id: PREFERRED_RELAY_ID,
@@ -217,6 +218,8 @@ function s1World(): WorldRuntime {
             entity_id: PREFERRED_NODE_ID,
             label: "storage-cell-cache",
             entity_type: "INFRASTRUCTURE",
+            stock_resource: "energy",
+            stock_amount: 8,
           }),
         ],
       },

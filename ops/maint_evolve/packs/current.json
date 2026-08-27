@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "energy_floor": 12,
+  "harvest_caution": 0.0,
+  "inspect_skip": [],
+  "room_priority": [],
+  "legalize_blocks": [],
+  "wait_before_look": true,
+  "prompt_goals": []
+}

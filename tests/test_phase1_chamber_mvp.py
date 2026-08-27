@@ -17,7 +17,21 @@ from noema.world.digest import sha256_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "fixtures" / "v01-seed"
-SPECS_FIXTURES = Path("/home/scrimshawlife/Noema-Specs/examples/v01-seed")
+def _specs_dir(*parts: str) -> Path:
+    """A Noema-Specs path, sibling checkout first.
+
+    This used to be a bare `/home/scrimshawlife/...` literal, so the tests that
+    depend on it skipped for everyone except one machine — including the only
+    check that replays the fixtures Specs actually publishes.
+    """
+    candidates = [
+        ROOT.parent / "Noema-Specs" / Path(*parts),
+        Path("/home/scrimshawlife/Noema-Specs") / Path(*parts),
+    ]
+    return next((p for p in candidates if p.exists()), candidates[0])
+
+
+SPECS_FIXTURES = _specs_dir("examples", "v01-seed")
 
 
 def test_phase0_seed_replay_equivalent_local():
@@ -34,9 +48,55 @@ def test_phase0_seed_replay_equivalent_specs_path():
     assert result.ok, "\n".join(result.divergences)
 
 
+def test_v01_seed_fixtures_agree_with_the_published_ones():
+    """The runtime's v0.1 fixtures must not contradict the ones Specs publishes.
+
+    They are not byte-identical: the published `world-seed.json` carries
+    `allows_substructure` and `strategic_roles` on every room and the runtime
+    copy does not. No shared key disagrees, and replay is EQUIVALENT against
+    either, so the runtime simply ignores those fields.
+
+    A superset is tolerated and stays visible in the message below. A *differing
+    value* is not — that would mean the two repositories disagree about the world
+    the conformance claim starts from.
+    """
+    if not SPECS_FIXTURES.is_dir():
+        pytest.skip("Noema-Specs fixtures not available on disk")
+
+    def flatten(obj: object, path: str = "") -> dict[str, object]:
+        out: dict[str, object] = {}
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                out.update(flatten(v, f"{path}.{k}"))
+        elif isinstance(obj, list):
+            for i, v in enumerate(obj):
+                out.update(flatten(v, f"{path}[{i}]"))
+        else:
+            out[path] = obj
+        return out
+
+    extra_by_file: dict[str, list[str]] = {}
+    for local in sorted(FIXTURES.glob("*.json")):
+        published = SPECS_FIXTURES / local.name
+        assert published.is_file(), f"{local.name} is not published by Specs"
+        a = flatten(json.loads(local.read_text(encoding="utf-8")))
+        b = flatten(json.loads(published.read_text(encoding="utf-8")))
+        disagree = {k: (a[k], b[k]) for k in a.keys() & b.keys() if a[k] != b[k]}
+        assert not disagree, f"{local.name} disagrees with the published fixture: {disagree}"
+        extra = sorted(b.keys() - a.keys())
+        if extra:
+            extra_by_file[local.name] = extra
+
+    # Recorded, not asserted away: the published seed is a superset today.
+    assert set(extra_by_file) <= {"world-seed.json"}, extra_by_file
+
+
 def test_spec_compat_manifest_present():
     data = json.loads((ROOT / "spec-compat.json").read_text(encoding="utf-8"))
     assert data["versions"]["event_catalog"] == "event-catalog/0.1"
+    # versions.event_catalog describes THIS runtime. The hosted Worker implements
+    # 0.2 and is pinned separately; one field cannot describe both.
+    assert data["hosted_runtime"]["event_catalog"] == "event-catalog/0.2"
     assert data["versions"]["canonicalization"] == "noema-jcs/1"
     assert data["specs"]["repository"].endswith("Noema-Specs")
     # core loop may be marked complete after phase 7 without breaking Chamber pin
@@ -59,7 +119,7 @@ def test_playable_chamber_e2e_and_restart(tmp_path: Path):
     start = rt.start_world(FIXTURES / "world-seed.json")
     assert start["catalog_version"] == "event-catalog/0.1"
 
-    sess = rt.create_session(role=Role.PLAYER, agent_id="agent.player.1")
+    sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
     sid = sess["session_id"]
 
     def act(verb: str, seq: int, **params):
@@ -247,8 +307,8 @@ def test_version_endpoints_and_health():
 def test_message_delivery_before_next_action():
     rt = NoemaRuntime(db_path=":memory:")
     rt.start_world(FIXTURES / "world-seed.json")
-    a = rt.create_session(role=Role.PLAYER, agent_id="agent.a")
-    b = rt.create_session(role=Role.PLAYER, agent_id="agent.b")
+    a = rt.create_session(role=Role.AGENT, agent_id="agent.a")
+    b = rt.create_session(role=Role.AGENT, agent_id="agent.b")
     for sid, aid, seq in ((a["session_id"], "agent.a", 1), (b["session_id"], "agent.b", 1)):
         rt.apply_player_action(
             sid,
@@ -274,3 +334,27 @@ def test_message_delivery_before_next_action():
     assert types == ["MESSAGE", "MESSAGE_DELIVERED"]
     obs_b = rt.observe(b["session_id"], "agent.b")
     assert any(m.get("text") == "hello" for m in obs_b.get("MESSAGES") or [])
+
+
+def test_reducers_are_exactly_closed_catalog_v01():
+    """The offline runtime reduces 0.1 and nothing else.
+
+    This is what makes `versions.event_catalog` true for this runtime, and also
+    why it cannot be true for the hosted Worker, which emits seven types beyond
+    0.1 (six RFC-0002 / RFC-0101 types plus TRADE_CANCELLED / RFC-0127). A
+    reducer registry that drifts from the catalog is a replay break, so it is
+    pinned rather than assumed.
+    """
+    from noema.world.reduce import REDUCERS
+
+    candidates = [
+        ROOT.parent / "Noema-Specs" / "specs" / "event-types.json",
+        SPECS_FIXTURES.parent.parent / "specs" / "event-types.json",
+    ]
+    catalog_path = next((p for p in candidates if p.is_file()), None)
+    if catalog_path is None:
+        pytest.skip("Noema-Specs catalog not available on disk")
+
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    expected = {row["eventType"] for row in catalog["x-noema-event-types"]}
+    assert set(REDUCERS) == expected

@@ -11,6 +11,7 @@
     "test": "vitest run",
     "smoke": "node ./scripts/smoke.mjs",
     "smoke:hosted": "node ./scripts/hosted-conformance.mjs",
+    "rehearse:rollback": "node ./scripts/rollback-rehearsal.mjs",
     "secrets:push": "bash ./scripts/push-secrets-from-env.sh",
     "secrets:list": "wrangler secret list"
   },

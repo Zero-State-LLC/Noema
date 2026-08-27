@@ -8,9 +8,28 @@
  * ACCESS_POLICY S3 (RFC-0104): Chamber help names ACCESS. WED / ATTEST stay omitted.
  */
 
-import { parseAccessMode, parseAccessPolicyLine, parseAccessScope } from "./access-policy";
-import { parseFocusTrack } from "./focus";
 import {
+  ACCESS_POLICY_COST,
+  ACCESS_PROFILE,
+  parseAccessMode,
+  parseAccessPolicyLine,
+  parseAccessScope,
+} from "./access-policy";
+import { FOCUS_TRACKS, parseFocusTrack, type FocusState } from "./focus";
+import { signalFromArgs, type ActionSignal } from "./signal";
+import {
+  CONSTRUCTIBLE_CLASSES,
+  CONSTRUCT_COSTS,
+  CONNECT_COST,
+  DISMANTLE_COST,
+  REPURPOSE_COST,
+  REPURPOSE_FROM_CLASS,
+  SHARE_COST,
+  SHARE_MAX_CO_OWNERS,
+  UPGRADE_COST,
+  VEST_COST,
+  infraClassOf,
+  isInProgress,
   liveClassInRoom,
   parseConstructibleClass,
   readyClassInRoom,
@@ -20,22 +39,56 @@ import {
   type ConstructibleClass,
 } from "./construction";
 import {
+  DECLARE_COST,
+  DEFEND_COST,
+  FORM_SPECS,
+  MAX_OPEN_PER_AGENT,
+  MAX_OPEN_PER_ROOM,
   isForbiddenContestVerb,
   parseContestForm,
   type ContestForm,
   type ContestTarget,
+  type OpenContest,
 } from "./contest";
-import { parseAgreementReason, parseAgreementType } from "./diplomacy";
 import {
+  AGREEMENT_FORM_COST,
+  AGREEMENT_TERMINATE_COST,
+  AGREEMENT_TYPES,
+  parseAgreementReason,
+  parseAgreementType,
+  samePair,
+  type FormalAgreement,
+} from "./diplomacy";
+import {
+  assetInInstitutionScope,
+  occupiedOfficesFor,
   parseOfficeProfile,
   parseRequiresTrack,
+  REPAIR_PROFILE,
   sanitizeIdList,
   sanitizePrecedence,
   type OfficeProfile,
   type OfficeRecord,
 } from "./offices";
-import { parseVisibility } from "./reconstruction";
+import { canActivate, conditionHolds, defaultEmergencyTemplates } from "./emergency";
+import type { InheritedHistory } from "./deep-time";
+import { RULE_MEMBER_ORDER } from "./succession";
+import {
+  evidenceAccessible,
+  parseVisibility,
+  type ReconstructionRecord,
+} from "./reconstruction";
+import type { DiscoveryState } from "./discovery";
 import { moveEnergyCost } from "./transport";
+import { canConsumeCargo, reservedCargoFromTrades } from "./cargo";
+import {
+  BROKER_TRACK,
+  ENGINEER_TRACK,
+  canOverhaul,
+  isTrackRecognized,
+  OVERHAUL_ENERGY_EXTRA,
+  type PracticeState,
+} from "./practice";
 
 export type Budgets = {
   attention: number;
@@ -86,6 +139,10 @@ export type EntityRuntime = {
   /** GC2-S7. Public constructible with no steward work for 12 cycles. */
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */
+  last_repair_cycle?: number;
+  /** Feature D. Public handle of last successful REPAIR. Never an id. */
+  last_repair_handle?: string;
   /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */
   in_progress?: boolean;
 };
@@ -102,6 +159,10 @@ export type PlayerRuntime = {
   operator_id?: string;
   /** RFC WAIT: actor wait-until. Does not advance World.cycle. */
   wait_until_cycle?: number;
+  /** T0.6 session-local text clarification. Not world truth. */
+  pending_clarify?: ClarifyPending;
+  /** S4 player-preference aliases. Not world truth. Not settled. */
+  command_aliases?: Record<string, string>;
   /** GC7-S0 PRESENCE_PRESSURE disable. Never permanent. */
   disabled_until_cycle?: number;
   /** GC1 derived cache. Not WorldState. Rebuildable. */
@@ -134,6 +195,16 @@ export type PlayerRuntime = {
   lot_grades?: Partial<Record<keyof Budgets, "SOUND" | "WORN">>;
   /** GC8-S2 public origin of current holdings. Hidden rooms never stored. */
   lot_origins?: Partial<Record<keyof Budgets, { room_id: string; room_name: string; producer_id: string }>>;
+  /** Privileged image score. Not WATCH-public. */
+  image_score?: number;
+  /** How this agent treated others. Privileged. */
+  conduct_toward?: Record<string, number>;
+  /** Privileged second-order: conduct toward counterparties with positive image. */
+  second_order?: number;
+  /** Genesis-seeded signaling preference. Privileged. */
+  signaling_style?: "grounded-first" | "compact" | "verbose";
+  /** Deep Time succession inheritance. Privileged. */
+  inherited?: InheritedHistory;
   /** GC8-S3 last cycle's WORN spoil lines. PLAY only. */
   spoil_lines?: string[];
   /** GC6-S0 derived archive/inspect members. Not WorldState. */
@@ -166,6 +237,8 @@ export type InboxMessage = {
   text: string;
   status: "DELIVERED";
   delivered_cycle: number;
+  /** SEMANTIC §3.4 input for cascading risk. Internal: never projected to a Player. */
+  grounding?: string;
 };
 
 /** Specs seed defaults (RESOURCE-ECONOMY / ENVIRONMENT). */
@@ -245,6 +318,9 @@ export type Organization = {
   emergency_scopes?: import("./emergency").EmergencyScope[];
   /** Published office_id order. Earlier wins exclusive overlap. */
   office_precedence?: string[];
+  /** GC4-S8 (RFC-0124): published configuration, not a government entity. */
+  governance_rule?: import("./governance").GovernanceRule;
+  governance_decisions?: import("./governance").GovernanceDecisionRecord[];
   /** GC3-S3 institution→player memory. Not WorldState. */
   institution_memory?: import("./social-memory").InstitutionMemoryState;
 };
@@ -291,6 +367,7 @@ export type CanonicalAction =
         subject_ref?: string;
         parent_claim_id?: string;
         as_claim?: boolean;
+        signal?: ActionSignal;
       };
     }
   | {
@@ -306,6 +383,7 @@ export type CanonicalAction =
         acting_for?: string;
         office_id?: string;
         emergency_scope_id?: string;
+        signal?: ActionSignal;
       };
     }
   | {
@@ -339,6 +417,7 @@ export type CanonicalAction =
           | "AGREEMENT_TERMINATE"
           | "ACCESS_POLICY"
           | "FOCUS";
+        signal?: ActionSignal;
         entity_id?: string;
         extent?: "standard" | "overhaul";
         amount?: number;
@@ -361,6 +440,7 @@ export type CanonicalAction =
         party_ids?: string[];
         agreement_id?: string;
         subject_entity_id?: string;
+        subject_id?: string;
         archive_claim?: "DESTROYED" | "OPERATING";
         office_id?: string;
         display_name?: string;
@@ -388,6 +468,11 @@ export type CanonicalAction =
         rule_id?: string;
         object_set?: string[];
         office_precedence?: string[] | "append" | "lead";
+        governance_rule?: unknown;
+        rule_decision?: {
+          target?: { object_id?: string; room_id?: string; member_id?: string };
+          concurring?: number;
+        };
         requires_track?: import("./offices").OfficeRequiredTrack;
       };
     }
@@ -412,9 +497,53 @@ export type Affordance = {
   cmd: string;
   target_id?: string;
   target_label?: string;
+  extent?: "overhaul";
+  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  clear?: boolean;
+  class?: ConstructibleClass;
+  subject_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
+  /** GC2-S10. Structured BUILD.VEST institution. */
+  org_id?: string;
+  /** GC2-S11. Structured BUILD.SHARE partner. */
+  player_id?: string;
+  /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
+  dest?: string;
+  /** GC7. Structured CONTEST form / target / stake. */
+  contest_form?: ContestForm;
+  target?: ContestTarget;
+  contest_id?: string;
+  stake?: Record<string, number>;
+  /** RFC-0100. Structured AGREEMENT type / parties / id. */
+  agreement_type?: string;
+  party_ids?: string[];
+  agreement_id?: string;
+  /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
+  agreement_reason?: string;
+  /** RFC-0104. Structured ACCESS_POLICY. */
+  scope?: "EXIT" | "ROOM";
+  mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
+  applies_to?: string;
+  direction?: string;
+  acting_for?: string;
+  office_id?: string;
+  /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
+  subject_ref?: string;
+  claim?: string;
+  visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+  reconstruction_id?: string;
+  evidence?: string[];
+  /** GC4. Structured emergency / succession. */
+  template_id?: string;
+  target_ref?: string;
+  emergency_scope_id?: string;
+  successors?: string[];
+  rule_id?: string;
   requires?: Partial<Budgets>;
   available: boolean;
   reason?: string;
+  /** Semantic hint. Not a new verb. */
+  hint?: string;
   kind: "primary" | "secondary" | "move" | "utility" | "social" | "resource" | "org";
 };
 
@@ -501,20 +630,11 @@ export function classifyResourceNode(e: {
       amount: e.stock_amount ?? 0,
     };
   }
+  // Type RESOURCE is world data. Do not invent a stock amount or treat
+  // infrastructure labels (storage/cache/cell) as harvest nodes.
   const type = (e.entity_type || "").toUpperCase();
   if (type === "RESOURCE") {
-    return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
-  }
-  if (type === "INFRASTRUCTURE") {
-    const id = e.entity_id.toLowerCase();
-    const lab = e.label.toLowerCase();
-    // Storage/cache/salvage class only — not market/trade boards
-    if (
-      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(id) ||
-      /storage|cache|scrap|salvage|deposit|stockpile|cell/.test(lab)
-    ) {
-      return { is_node: true, resource: "energy", amount: e.stock_amount ?? 8 };
-    }
+    return { is_node: true, resource: "energy", amount: e.stock_amount ?? 0 };
   }
   return { is_node: false };
 }
@@ -543,22 +663,20 @@ export function enrichEntity(e: {
   upgrade_tier?: number;
   unclaimed?: boolean;
   last_steward_cycle?: number;
+  last_repair_cycle?: number;
+  last_repair_handle?: string;
   in_progress?: boolean;
+  regen_rate?: number;
+  max_stock?: number;
 }): EntityRuntime {
-  const s = `${e.label} ${e.entity_type}`.toLowerCase();
-  let condition = e.condition;
-  if (condition === undefined) {
-    if (/scar|damag|broken|fail/.test(s)) condition = 35;
-    else if (e.entity_type === "RUIN" || /ruin|dead|ghost/.test(s)) condition = 20;
-    else if (e.entity_type === "INFRASTRUCTURE") condition = 70;
-    else if (e.entity_type === "ARTIFACT") condition = 50;
-  }
   const node = classifyResourceNode(e);
   return {
     entity_id: e.entity_id,
     label: e.label,
     entity_type: e.entity_type,
-    condition,
+    condition: e.condition,
+    regen_rate: e.regen_rate,
+    max_stock: e.max_stock,
     stock_resource: node.is_node ? node.resource : undefined,
     stock_amount: node.is_node ? node.amount : undefined,
     archive_subject_entity_id: e.archive_subject_entity_id,
@@ -577,15 +695,28 @@ export function enrichEntity(e: {
     upgrade_tier: e.upgrade_tier,
     unclaimed: e.unclaimed === true ? true : undefined,
     last_steward_cycle: e.last_steward_cycle,
+    last_repair_cycle: e.last_repair_cycle,
+    last_repair_handle: e.last_repair_handle,
     in_progress: e.in_progress === true ? true : undefined,
   };
 }
 
 export function isRepairable(e: EntityRuntime): boolean {
   if (e.scar === true) return false;
-  if (e.entity_type !== "INFRASTRUCTURE" && e.entity_type !== "RUIN") return false;
+  // ARTIFACT ledgers/archives with condition wear (e.g. Cold Ledger) are conservable.
+  if (
+    e.entity_type !== "INFRASTRUCTURE" &&
+    e.entity_type !== "RUIN" &&
+    e.entity_type !== "ARTIFACT"
+  ) {
+    return false;
+  }
   const c = e.condition ?? 100;
   return c < 100;
+}
+
+function officeTrackFor(req: NonNullable<OfficeRecord["requires_track"]>) {
+  return req === "engineer" ? ENGINEER_TRACK : BROKER_TRACK;
 }
 
 export function isHarvestable(e: EntityRuntime): boolean {
@@ -603,12 +734,8 @@ export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): Re
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Choose something visible." };
 
-  const rawLower = String(raw || "").toLowerCase().trim();
-  const exactId = entities.filter(
-    (e) => e.entity_id.toLowerCase() === rawLower || e.entity_id.toLowerCase() === t,
-  );
-  if (exactId.length === 1) return { ok: true, entity: exactId[0] };
-
+  // Text-line adapter: labels only. Matching entity_id would let a guess
+  // confirm internal identifiers. Structured INSPECT still takes entity_id.
   const exactLabel = entities.filter((e) => normalizeKey(e.label) === t || normalizeKey(titleCaseLabel(e.label)) === t);
   if (exactLabel.length === 1) return { ok: true, entity: exactLabel[0] };
   if (exactLabel.length > 1) {
@@ -742,9 +869,29 @@ function parseResourceMap(spec: string): Record<string, number> | null {
   return out;
 }
 
+export type ParseShape = "resolved" | "ambiguous" | "unsupported" | "invalid";
+
 export type ParseResult =
   | { ok: true; action: CanonicalAction; display: string }
   | { ok: false; error: string; code?: string; choices?: string[] };
+
+/** Spec T0.2 mapping. Does not replace ParseResult.ok. */
+export function parseShape(r: ParseResult): ParseShape {
+  if (r.ok) return "resolved";
+  const c = String(r.code || "");
+  if (c === "AMBIGUOUS_TARGET") return "ambiguous";
+  if (
+    c === "UNKNOWN_COMMAND" ||
+    c === "NOT_IMPLEMENTED" ||
+    c === "HELP" ||
+    c === "SERVICE" ||
+    c === "VERB_FORBIDDEN" ||
+    c === "CLASS_FORBIDDEN"
+  ) {
+    return "unsupported";
+  }
+  return "invalid";
+}
 
 function parseAgreementFormLine(
   parts: string[],
@@ -814,8 +961,37 @@ function parseAgreementTerminateLine(parts: string[]): ParseResult {
   };
 }
 
+/** Compass aliases for the agent text-line adapter. Structured MOVE uses the same map. */
+const DIRECTION_ALIASES: Record<string, string> = {
+  n: "north",
+  north: "north",
+  s: "south",
+  south: "south",
+  e: "east",
+  east: "east",
+  w: "west",
+  west: "west",
+};
+
+export function canonicalizeDirection(raw: string): string | null {
+  const t = String(raw || "").trim().toLowerCase();
+  if (!t) return null;
+  return DIRECTION_ALIASES[t] ?? null;
+}
+
+/** Strip leading at/the/a/an from inspect nouns. Does not invent a target. */
+export function stripInspectNoun(raw: string): string {
+  let t = String(raw || "").trim();
+  for (;;) {
+    const next = t.replace(/^(?:at|the|a|an)\s+/i, "").trim();
+    if (next === t) return t;
+    t = next;
+  }
+}
+
 /**
- * Human command → canonical action (no world mutation).
+ * Agent text-line adapter → canonical action (no world mutation).
+ * Legacy name: not a human-player inhabit path.
  * Target resolution uses visible entities/players when provided.
  */
 export function parseHumanCommand(
@@ -825,6 +1001,7 @@ export function parseHumanCommand(
     players?: Array<{ player_id: string; handle?: string }>;
     selfId?: string;
     openTrades?: OpenTrade[];
+    exits?: Array<{ direction: string }>;
   } = {},
 ): ParseResult {
   const trimmed = line.trim();
@@ -940,11 +1117,18 @@ export function parseHumanCommand(
       display: "You post a trade notice.",
     };
   }
-  // message / msg with quoted text
-  const msgM = trimmed.match(/^(?:message|msg)\s+(\S+)\s+["'](.+)["']\s*$/i);
+  // message / msg / tell / say to — quoted or remainder text
+  const msgM =
+    trimmed.match(/^(?:message|msg|tell)\s+(\S+)\s+["'](.+)["']\s*$/i) ||
+    trimmed.match(/^say\s+to\s+(\S+)\s+["'](.+)["']\s*$/i) ||
+    trimmed.match(/^(?:message|msg|tell)\s+(\S+)\s+(\S.*)$/i) ||
+    trimmed.match(/^say\s+to\s+(\S+)\s+(\S.*)$/i);
   if (msgM) {
     const who = msgM[1];
-    const text = msgM[2];
+    const text = msgM[2].trim();
+    if (!text) {
+      return { ok: false, error: "Message syntax: message <player> \"text\"", code: "INVALID_REQUEST" };
+    }
     if (!ctx.players || !ctx.selfId) {
       return {
         ok: true,
@@ -1026,13 +1210,17 @@ export function parseHumanCommand(
   }
 
   const parts = trimmed.split(/\s+/);
-  const v = (parts.shift() || "").toLowerCase();
+  let v = (parts.shift() || "").toLowerCase();
 
   if (v === "help") {
     return { ok: false, error: "__HELP__", code: "HELP", choices: parts };
   }
   if (v === "look" || v === "l") {
-    return { ok: true, action: { verb: "LOOK", arguments: {} }, display: "You look around." };
+    if (parts.length === 0) {
+      return { ok: true, action: { verb: "LOOK", arguments: {} }, display: "You look around." };
+    }
+    // look X / look at X → INSPECT (same as inspect the X)
+    v = "inspect";
   }
   if (v === "wait") {
     return { ok: true, action: { verb: "WAIT", arguments: {} }, display: "You wait a moment." };
@@ -1043,17 +1231,26 @@ export function parseHumanCommand(
   if (v === "enter") {
     return { ok: true, action: { verb: "ENTER_WORLD", arguments: {} }, display: "You enter the world." };
   }
-  if (v === "move" || v === "go") {
-    const dir = (parts[0] || "").toLowerCase();
-    if (!dir) return { ok: false, error: "Move where? Try: move east" };
+  if (v === "move" || v === "go" || v === "walk") {
+    const rawDir = (parts[0] || "").toLowerCase();
+    if (!rawDir) return { ok: false, error: "Move where? Try: move east" };
+    const dir = canonicalizeDirection(rawDir) || rawDir;
     return {
       ok: true,
       action: { verb: "MOVE", arguments: { direction: dir } },
       display: `You move ${dir}.`,
     };
   }
+  const bareDir = canonicalizeDirection(v);
+  if (bareDir && parts.length === 0) {
+    return {
+      ok: true,
+      action: { verb: "MOVE", arguments: { direction: bareDir } },
+      display: `You move ${bareDir}.`,
+    };
+  }
   if (v === "inspect" || v === "examine" || v === "x") {
-    const raw = parts.join(" ");
+    const raw = stripInspectNoun(parts.join(" "));
     if (!raw) return { ok: false, error: "Inspect what? Click an object or type its name." };
     if (ctx.entities && ctx.entities.length) {
       const r = resolveVisibleEntity(raw, ctx.entities);
@@ -1631,7 +1828,7 @@ export function parseHumanCommand(
     };
   }
 
-  // RFC-0020: attest <entity> subject=<entity_id> claim=OPERATING|DESTROYED (archive_claim)
+  // RFC-0020: attest <artifact> subject=<id> claim=DESTROYED|OPERATING
   // Not listed in Chamber help. Do not infer subject/claim from labels.
   if (v === "attest") {
     const rest = parts.join(" ");
@@ -1936,9 +2133,24 @@ export function parseHumanCommand(
 
   return {
     ok: false,
-    error: `Unknown command “${v}”. Try help.`,
+    error: unknownCommandHint(v, ctx),
     code: "UNKNOWN_COMMAND",
   };
+}
+
+function unknownCommandHint(
+  verb: string,
+  ctx: {
+    entities?: EntityRuntime[];
+    exits?: Array<{ direction: string }>;
+  },
+): string {
+  const hints: string[] = ["help"];
+  const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
+  if (dir) hints.push(`move ${dir.toLowerCase()}`);
+  const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
+  if (lab) hints.push(`inspect ${lab}`);
+  return `Unknown command “${verb}”. Try: ${hints.slice(0, 3).join(" · ")}.`;
 }
 
 function formatAmbiguous(r: ResolveResult & { ok: false }): string {
@@ -1946,6 +2158,35 @@ function formatAmbiguous(r: ResolveResult & { ok: false }): string {
     return `Which one?\n${r.choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
   }
   return r.message;
+}
+
+export type ClarifyPending = {
+  fingerprint: string;
+  verb: string;
+  choices: string[];
+};
+
+export function observationFingerprint(roomId: string, entities: Array<{ entity_id: string }>): string {
+  return `${roomId}#${entities.map((e) => e.entity_id).sort().join("|")}`;
+}
+
+/** Numeric or unique visible label. Returns the chosen label, or null if this line is not a pick. */
+export function matchClarifyPick(line: string, pending?: ClarifyPending | null): string | null {
+  if (!pending?.choices.length) return null;
+  const t = String(line || "").trim();
+  if (!t) return null;
+  if (/^\d+$/.test(t)) {
+    const n = Number(t);
+    if (n >= 1 && n <= pending.choices.length) return pending.choices[n - 1];
+    return null;
+  }
+  const key = normalizeKey(t);
+  if (!key) return null;
+  const exact = pending.choices.filter((c) => normalizeKey(c) === key);
+  if (exact.length === 1) return exact[0];
+  const prefixed = pending.choices.filter((c) => normalizeKey(c).startsWith(key));
+  if (prefixed.length === 1) return prefixed[0];
+  return null;
 }
 
 /** Map agent/structured envelope to canonical action. */
@@ -1966,12 +2207,13 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "MOVE") {
-    const direction = String(args.direction || args.exit_id || "").toLowerCase();
-    if (!direction) return { ok: false, error: "direction required", code: "INVALID_REQUEST" };
+    const raw = String(args.direction || args.exit_id || args.target_id || "").toLowerCase();
+    if (!raw) return { ok: false, error: "direction required", code: "INVALID_REQUEST" };
+    const direction = canonicalizeDirection(raw) || raw;
     return { ok: true, action: { verb: "MOVE", arguments: { direction } }, display: `MOVE ${direction}` };
   }
   if (cmd === "INSPECT") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     return { ok: true, action: { verb: "INSPECT", arguments: { entity_id } }, display: `INSPECT ${entity_id}` };
   }
@@ -1985,7 +2227,7 @@ export function normalizeStructuredCommand(
       rawSurface === "TRADE_NOTICE"
         ? rawSurface
         : undefined;
-    const recipient_id = String(args.recipient_id || args.target || "").trim();
+    const recipient_id = String(args.recipient_id || args.target_id || args.target || "").trim();
     const text = String(args.text || "").trim();
     const parent_claim_id = args.parent_claim_id ? String(args.parent_claim_id) : undefined;
     const subject_ref = args.subject_ref ? String(args.subject_ref) : undefined;
@@ -2018,32 +2260,54 @@ export function normalizeStructuredCommand(
     if (!recipient_id || (!text && !parent_claim_id)) {
       return { ok: false, error: "recipient_id and text required", code: "INVALID_REQUEST" };
     }
+    const sig = signalFromArgs(args);
+    if (!sig.ok) return sig;
     return {
       ok: true,
       action: {
         verb: "MESSAGE",
-        arguments: { recipient_id, text: text || parent_claim_id || "", as_claim, parent_claim_id, subject_ref },
+        arguments: {
+          recipient_id,
+          text: text || parent_claim_id || "",
+          as_claim,
+          parent_claim_id,
+          subject_ref,
+          ...(sig.signal ? { signal: sig.signal } : {}),
+        },
       },
       display: `MESSAGE ${recipient_id}`,
     };
   }
   if (cmd === "TRADE") {
     const phase = String(args.phase || "propose").toLowerCase() as "propose" | "accept" | "reject" | "cancel";
+    const counterparty_id = String(
+      args.counterparty_id || args.counterparty || args.target || "",
+    ).trim();
+    const offeredRaw =
+      (args.offered as Record<string, number> | undefined) ||
+      (args.offer as Record<string, number> | undefined);
+    const requestedRaw =
+      (args.requested as Record<string, number> | undefined) ||
+      (args.want as Record<string, number> | undefined) ||
+      (args.wants as Record<string, number> | undefined);
+    const sig = signalFromArgs(args);
+    if (!sig.ok) return sig;
     return {
       ok: true,
       action: {
         verb: "TRADE",
         arguments: {
           phase,
-          counterparty_id: args.counterparty_id ? String(args.counterparty_id) : undefined,
-          offered: (args.offered as Record<string, number>) || undefined,
-          requested: (args.requested as Record<string, number>) || undefined,
+          counterparty_id: counterparty_id || undefined,
+          offered: offeredRaw || undefined,
+          requested: requestedRaw || undefined,
           trade_id: args.trade_id ? String(args.trade_id) : undefined,
           expires_cycle: args.expires_cycle != null ? Number(args.expires_cycle) : undefined,
           reason: args.reason ? String(args.reason) : undefined,
           acting_for: args.acting_for ? String(args.acting_for) : undefined,
           office_id: args.office_id ? String(args.office_id) : undefined,
           emergency_scope_id: args.emergency_scope_id ? String(args.emergency_scope_id) : undefined,
+          ...(sig.signal ? { signal: sig.signal } : {}),
         },
       },
       display: `TRADE ${phase}`,
@@ -2052,7 +2316,7 @@ export function normalizeStructuredCommand(
   if (cmd === "COMMIT") {
     const operation = String(args.operation || "").toUpperCase();
     if (operation === "REPAIR" || operation === "HARVEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       const extent =
         operation === "REPAIR" && String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
@@ -2079,6 +2343,8 @@ export function normalizeStructuredCommand(
       if (!name || !charter) {
         return { ok: false, error: "name and charter required", code: "INVALID_REQUEST" };
       }
+      const sig = signalFromArgs(args);
+      if (!sig.ok) return sig;
       return {
         ok: true,
         action: {
@@ -2091,6 +2357,7 @@ export function normalizeStructuredCommand(
             initial_members: Array.isArray(args.initial_members)
               ? (args.initial_members as OrgMember[])
               : undefined,
+            ...(sig.signal ? { signal: sig.signal } : {}),
           },
         },
         display: "COMMIT.ORG_CREATE",
@@ -2179,13 +2446,15 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "ATTEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
-      const subject_entity_id = String(args.subject_entity_id || args.subject || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
+      const subject_entity_id = String(args.subject_entity_id || args.subject_id || args.subject || "").trim();
       const claimRaw = String(args.archive_claim || args.claim || "").toUpperCase();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       if (!subject_entity_id || (claimRaw !== "DESTROYED" && claimRaw !== "OPERATING")) {
         return { ok: false, error: "subject_entity_id and claim must be set together", code: "FORBIDDEN" };
       }
+      const sig = signalFromArgs(args);
+      if (!sig.ok) return sig;
       return {
         ok: true,
         action: {
@@ -2195,6 +2464,7 @@ export function normalizeStructuredCommand(
             entity_id,
             subject_entity_id,
             archive_claim: claimRaw as "DESTROYED" | "OPERATING",
+            ...(sig.signal ? { signal: sig.signal } : {}),
           },
         },
         display: `COMMIT.ATTEST ${entity_id}`,
@@ -2366,7 +2636,15 @@ export function normalizeStructuredCommand(
         ok: true,
         action: {
           verb: "COMMIT",
-          arguments: { operation: "ORG_OFFICE_ACT", org_id: org_id || undefined, office_id: office_id || undefined, notice },
+          arguments: {
+            operation: "ORG_OFFICE_ACT",
+            org_id: org_id || undefined,
+            office_id: office_id || undefined,
+            notice,
+            // GC4-S8 sub-modes ride the existing operation; no new verb.
+            ...(args.governance_rule ? { governance_rule: args.governance_rule } : {}),
+            ...(args.rule_decision ? { rule_decision: args.rule_decision as never } : {}),
+          },
         },
         display: "COMMIT.ORG_OFFICE_ACT",
       };
@@ -2548,7 +2826,7 @@ export function normalizeStructuredCommand(
     }
   }
   if (cmd === "REPAIR") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     const extent = String(args.extent || "").toLowerCase() === "overhaul" ? "overhaul" : undefined;
     return {
@@ -2558,7 +2836,7 @@ export function normalizeStructuredCommand(
     };
   }
   if (cmd === "HARVEST") {
-    const entity_id = String(args.entity_id || args.target || "").trim();
+    const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
     if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
     return {
       ok: true,
@@ -2590,7 +2868,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "DISMANTLE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2599,7 +2877,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "UPGRADE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2608,7 +2886,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "REPURPOSE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2617,7 +2895,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "RESTORE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       if (!entity_id) return { ok: false, error: "entity_id required", code: "INVALID_REQUEST" };
       return {
         ok: true,
@@ -2626,7 +2904,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "VEST") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const org_id = String(args.org_id || args.acting_for || "").trim();
       if (!entity_id || !org_id) return { ok: false, error: "entity_id and org_id required", code: "INVALID_REQUEST" };
       return {
@@ -2636,7 +2914,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "SHARE") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const player_id = String(args.player_id || args.agent_id || args.partner_id || "").trim();
       if (!entity_id || !player_id) {
         return { ok: false, error: "entity_id and player_id required", code: "INVALID_REQUEST" };
@@ -2648,7 +2926,7 @@ export function normalizeStructuredCommand(
       };
     }
     if (operation === "CONNECT") {
-      const entity_id = String(args.entity_id || args.target || "").trim();
+      const entity_id = String(args.entity_id || args.target_id || args.target || "").trim();
       const dest = String(args.dest || args.dest_room_id || args.direction || "").trim();
       if (!entity_id || !dest) {
         return { ok: false, error: "entity_id and dest required", code: "INVALID_REQUEST" };
@@ -2709,6 +2987,15 @@ export function normalizeStructuredCommand(
   if (cmd === "ORG_OFFICE_RETIRE") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_RETIRE" });
   }
+  if (cmd === "ORG_EMERGENCY_ACTIVATE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_ACTIVATE" });
+  }
+  if (cmd === "ORG_EMERGENCY_REVOKE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_REVOKE" });
+  }
+  if (cmd === "ORG_EMERGENCY_DEFINE") {
+    return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_EMERGENCY_DEFINE" });
+  }
   if (cmd === "ORG_OFFICE_ACT") {
     return normalizeStructuredCommand("COMMIT", { ...args, operation: "ORG_OFFICE_ACT" });
   }
@@ -2735,13 +3022,41 @@ export function normalizeStructuredCommand(
 
 export function deriveAffordances(input: {
   entities: EntityRuntime[];
-  exits: Array<{ direction: string; to_room_name?: string }>;
+  exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>;
   budgets: Budgets;
-  otherPlayers: Array<{ player_id: string; handle?: string }>;
+  otherPlayers: Array<{
+    player_id: string;
+    handle?: string;
+    room_id?: string;
+    /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */
+    practice?: PracticeState | null;
+  }>;
   openTrades: OpenTrade[];
   organizations?: Organization[];
   selfId: string;
   cautionToward?: Record<string, boolean>;
+  practice?: PracticeState | null;
+  cycle?: number;
+  focus?: FocusState | null;
+  hiddenRoom?: boolean;
+  roomId?: string;
+  openContests?: OpenContest[];
+  agreements?: FormalAgreement[];
+  accessRestrictions?: Array<{
+    scope: "EXIT" | "ROOM";
+    mode: "DENY" | "ALLOW_ONLY";
+    applies_to: string;
+    room_id?: string;
+    exit_id?: string;
+    expires_cycle: number;
+  }>;
+  discovery?: DiscoveryState;
+  reconstructions?: ReconstructionRecord[];
+  /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */
+  attestSubjects?: EntityRuntime[];
+  proposerImage?: Record<string, number>;
+  harvestPressure?: number;
+  hearsayBlockedThisCycle?: boolean;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -2761,28 +3076,16 @@ export function deriveAffordances(input: {
       reason: canPay(budgets, inspectCost) ? undefined : "You do not have enough attention.",
       kind: "primary",
     });
-    // ATTEST for artifacts (archive claims) - emit correct structured cmd with archive_claim
-    if (e.entity_type === "ARTIFACT" || e.archive_claim) {
-      const attestCost = COSTS.ATTEST;
-      const ok = canPay(budgets, attestCost);
-      out.push({
-        action: "ATTEST",
-        verb: "COMMIT",
-        operation: "ATTEST",
-        label: `Attest ${name}`,
-        cmd: `attest ${e.label} subject=${e.entity_id} claim=OPERATING`,
-        target_id: e.entity_id,
-        target_label: e.label,
-        requires: attestCost,
-        available: ok,
-        reason: ok ? undefined : "You do not have enough attention.",
-        kind: "primary",
-      });
-    }
-
     if (isRepairable(e)) {
       const repairCost = withWorkshopStorage({ ...COSTS.REPAIR }, workshopStorageDiscount(entities));
-      const ok = canPay(budgets, repairCost);
+      const fuel = { ...repairCost, storage: undefined };
+      const cargoNeed = repairCost.storage || 0;
+      const hasCargo = canConsumeCargo(
+        budgets.storage ?? 0,
+        cargoNeed,
+        reservedCargoFromTrades(openTrades, selfId),
+      );
+      const ok = canPay(budgets, fuel) && hasCargo;
       out.push({
         action: "REPAIR",
         verb: "COMMIT",
@@ -2793,18 +3096,48 @@ export function deriveAffordances(input: {
         target_label: e.label,
         requires: repairCost,
         available: ok,
-        reason: ok ? undefined : "You do not have enough energy, compute, or storage.",
+        reason: ok ? undefined : !hasCargo ? "You do not have materials in hold." : "You do not have enough energy or compute.",
         kind: "primary",
       });
-    }
-    if (isHarvestable(e)) {
-      // P0: light regen tick on observation (co-evolution)
-      if (e.stock_resource && typeof e.regen_rate === "number" && e.regen_rate > 0) {
-        const m = e.max_stock ?? 999;
-        e.stock_amount = Math.min(m, (e.stock_amount ?? 0) + e.regen_rate * 0.15);
+      if (canOverhaul(input.practice, input.cycle || 0)) {
+        const overhaulCost = {
+          ...repairCost,
+          energy: (repairCost.energy || 0) + OVERHAUL_ENERGY_EXTRA,
+        };
+        const overhaulFuel = { ...overhaulCost, storage: undefined };
+        const overhaulOk = canPay(budgets, overhaulFuel) && hasCargo;
+        out.push({
+          action: "REPAIR",
+          verb: "COMMIT",
+          operation: "REPAIR",
+          label: `Overhaul ${name}`,
+          cmd: `repair ${e.label} overhaul`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          extent: "overhaul",
+          requires: overhaulCost,
+          available: overhaulOk,
+          reason: overhaulOk
+            ? undefined
+            : !hasCargo
+              ? "You do not have materials in hold."
+              : "You do not have enough energy or compute.",
+          kind: "primary",
+        });
       }
-      const stockOk = (e.stock_amount ?? 0) > 0 || (typeof e.regen_rate === "number" && e.regen_rate > 0);
-      const ok = canPay(budgets, COSTS.HARVEST) && (stockOk || (budgets.storage ?? 0) >= 1);
+    }
+    if (e.stock_resource) {
+      const hasStock = (e.stock_amount ?? 0) >= 1;
+      const hasStorage = (budgets.storage ?? 0) >= 1;
+      const canFuel = canPay(budgets, COSTS.HARVEST);
+      const ok = hasStock && hasStorage && canFuel;
+      const reason = ok
+        ? undefined
+        : !hasStock
+          ? "Not enough stock available."
+          : !hasStorage
+            ? "You do not have enough free storage."
+            : "You need energy 2 and compute 1 to harvest.";
       out.push({
         action: "HARVEST",
         verb: "COMMIT",
@@ -2815,7 +3148,8 @@ export function deriveAffordances(input: {
         target_label: e.label,
         requires: COSTS.HARVEST,
         available: ok,
-        reason: ok ? undefined : (stockOk ? "You need energy, compute, and free storage." : "No stock (regen in progress)"),
+        reason,
+        hint: (input.harvestPressure || 0) > 4 ? "compact grounded signal preferred" : undefined,
         kind: "resource",
       });
     }
@@ -2831,6 +3165,7 @@ export function deriveAffordances(input: {
       verb: "MOVE",
       label: `Move ${x.direction}${x.to_room_name ? " · " + x.to_room_name : ""}`,
       cmd: `move ${x.direction}`,
+      target_id: x.direction,
       requires: moveCost,
       available: ok,
       reason: ok ? undefined : "You do not have enough energy.",
@@ -2874,6 +3209,7 @@ export function deriveAffordances(input: {
   for (const t of openTrades) {
     if (t.status !== "OPEN") continue;
     if (t.counterparty_id === selfId) {
+      const img = input.proposerImage?.[t.proposer_id] ?? 0;
       out.push({
         action: "TRADE_ACCEPT",
         verb: "TRADE",
@@ -2882,6 +3218,7 @@ export function deriveAffordances(input: {
         target_id: t.trade_id,
         requires: COSTS.TRADE,
         available: canPay(budgets, COSTS.TRADE),
+        hint: img <= 0 ? "standing is weak" : "trustworthy",
         kind: "social",
       });
       out.push({
@@ -3016,6 +3353,163 @@ export function deriveAffordances(input: {
           });
         }
       }
+      if (officer) {
+        const retireOk = canPay(budgets, COSTS.ORG_OFFICE_RETIRE);
+        out.push({
+          action: "ORG_OFFICE_RETIRE",
+          verb: "COMMIT",
+          operation: "ORG_OFFICE_RETIRE",
+          label: `Retire ${office.display_name}`,
+          cmd: `office retire ${office.office_id}`,
+          target_id: office.office_id,
+          office_id: office.office_id,
+          org_id: org.org_id,
+          requires: COSTS.ORG_OFFICE_RETIRE,
+          available: retireOk,
+          reason: retireOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        const ruleOk = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+        out.push({
+          action: "ORG_SUCCESSION_RULE",
+          verb: "COMMIT",
+          operation: "ORG_SUCCESSION_RULE",
+          label: `Publish member-order succession for ${office.display_name}`,
+          cmd: `succession rule ${office.office_id} member_order`,
+          target_id: office.office_id,
+          office_id: office.office_id,
+          rule_id: RULE_MEMBER_ORDER,
+          requires: COSTS.ORG_OFFICE_ACT,
+          available: ruleOk,
+          reason: ruleOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        const heir = otherPlayers.find((p) => p.player_id !== selfId && isOrgMember(org, p.player_id));
+        if (heir) {
+          const handle = heir.handle || heir.player_id.replace(/^player\./, "");
+          out.push({
+            action: "ORG_SUCCESSION_DESIGNATE",
+            verb: "COMMIT",
+            operation: "ORG_SUCCESSION_DESIGNATE",
+            label: `Designate ${handle} for ${office.display_name}`,
+            cmd: `succession designate ${office.office_id} ${handle}`,
+            target_id: office.office_id,
+            office_id: office.office_id,
+            player_id: heir.player_id,
+            successors: [heir.player_id],
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: ruleOk,
+            reason: ruleOk ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+        }
+      }
+      if (office.status === "VACANT" && mine) {
+        // RFC-0060: any member may consent any member onto a vacant office, and
+        // the named player is the candidate, not the consenting actor. Advertise
+        // every eligible candidate — offering only the first made the rest
+        // unreachable — and honour requires_track so `available` stays truthful.
+        const trackId = office.requires_track ? officeTrackFor(office.requires_track) : null;
+        const candidates = otherPlayers.filter(
+          (p) =>
+            p.player_id !== selfId &&
+            isOrgMember(org, p.player_id) &&
+            (!trackId || isTrackRecognized(p.practice, trackId)),
+        );
+        const ok = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+        for (const candidate of candidates) {
+          const handle = candidate.handle || candidate.player_id.replace(/^player\./, "");
+          out.push({
+            action: "ORG_SUCCESSION_CONSENT",
+            verb: "COMMIT",
+            operation: "ORG_SUCCESSION_CONSENT",
+            label: `Consent to ${handle} for ${office.display_name}`,
+            cmd: `consent ${office.office_id} ${handle}`,
+            target_id: office.office_id,
+            office_id: office.office_id,
+            player_id: candidate.player_id,
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+        }
+      }
+    }
+    const role = org.members.find((m) => m.agent_id === selfId)?.role || null;
+    const templates = org.emergency_templates?.length ? org.emergency_templates : defaultEmergencyTemplates();
+    let emN = 0;
+    const actOk = canPay(budgets, COSTS.ORG_OFFICE_ACT);
+    for (const template of templates) {
+      if (emN >= 4) break;
+      const source = canActivate(org, selfId, role, template);
+      if (!source.ok) continue;
+      if (template.capability === "REPAIR") {
+        for (const e of entities) {
+          if (emN >= 4) break;
+          if (!assetInInstitutionScope(e, org.org_id, selfId)) continue;
+          if (!conditionHolds(template, { entityCondition: e.condition ?? 0 })) continue;
+          out.push({
+            action: "ORG_EMERGENCY_ACTIVATE",
+            verb: "COMMIT",
+            operation: "ORG_EMERGENCY_ACTIVATE",
+            label: `Declare repair emergency on ${titleCaseLabel(e.label)}`,
+            cmd: `emergency activate ${org.org_id} ${template.template_id} ${e.entity_id}`,
+            org_id: org.org_id,
+            office_id: source.office_id,
+            template_id: template.template_id,
+            target_ref: e.entity_id,
+            requires: COSTS.ORG_OFFICE_ACT,
+            available: actOk,
+            reason: actOk ? undefined : "You need compute 1.",
+            kind: "org",
+          });
+          emN += 1;
+        }
+      } else if (conditionHolds(template, { treasury: org.treasury })) {
+        out.push({
+          action: "ORG_EMERGENCY_ACTIVATE",
+          verb: "COMMIT",
+          operation: "ORG_EMERGENCY_ACTIVATE",
+          label: `Declare trade emergency for ${org.name}`,
+          cmd: `emergency activate ${org.org_id} ${template.template_id} treasury`,
+          org_id: org.org_id,
+          office_id: source.office_id,
+          template_id: template.template_id,
+          target_ref: "treasury",
+          requires: COSTS.ORG_OFFICE_ACT,
+          available: actOk,
+          reason: actOk ? undefined : "You need compute 1.",
+          kind: "org",
+        });
+        emN += 1;
+      }
+    }
+    for (const scope of org.emergency_scopes || []) {
+      if (scope.status !== "ACTIVE") continue;
+      const may =
+        role === "founder" ||
+        role === "officer" ||
+        Boolean(
+          scope.source_office_id &&
+            org.offices?.[scope.source_office_id]?.status === "OCCUPIED" &&
+            org.offices[scope.source_office_id]?.holder_player_id === selfId,
+        );
+      if (!may) continue;
+      out.push({
+        action: "ORG_EMERGENCY_REVOKE",
+        verb: "COMMIT",
+        operation: "ORG_EMERGENCY_REVOKE",
+        label: `Revoke emergency ${scope.scope_id}`,
+        cmd: `emergency revoke ${scope.scope_id}`,
+        org_id: org.org_id,
+        emergency_scope_id: scope.scope_id,
+        template_id: scope.template_id,
+        requires: COSTS.ORG_OFFICE_ACT,
+        available: actOk,
+        reason: actOk ? undefined : "You need compute 1.",
+        kind: "org",
+      });
     }
   }
 
@@ -3037,20 +3531,721 @@ export function deriveAffordances(input: {
     kind: "utility",
   });
 
+  const current = input.focus?.track;
+  for (const spec of FOCUS_TRACKS) {
+    if (current === spec.id) continue;
+    out.push({
+      action: "FOCUS",
+      verb: "COMMIT",
+      operation: "FOCUS",
+      label: spec.self.replace(/^You are focusing/, "Focus"),
+      cmd: `focus ${spec.id}`,
+      track: spec.id,
+      available: true,
+      kind: "utility",
+    });
+  }
+  if (current) {
+    out.push({
+      action: "FOCUS",
+      verb: "COMMIT",
+      operation: "FOCUS",
+      label: "Clear focus",
+      cmd: "focus clear",
+      clear: true,
+      available: true,
+      kind: "utility",
+    });
+  }
+
+  const agreements = input.agreements || [];
+  const agrFormOk = canPay(budgets, AGREEMENT_FORM_COST);
+  const agrTermOk = canPay(budgets, AGREEMENT_TERMINATE_COST);
+  for (const agr of agreements) {
+    if (!agr.party_ids.includes(selfId)) continue;
+    if (agr.status === "BROKEN") continue;
+    if (agr.status === "OFFERED" && agr.offered_by !== selfId) continue;
+    const otherId = agr.party_ids.find((id) => id !== selfId) || agr.party_ids[0];
+    const other = otherPlayers.find((p) => p.player_id === otherId);
+    const handle = other?.handle || String(otherId || "").replace(/^player\./, "") || agr.agreement_id;
+    const pretty = agr.agreement_type.replace(/_/g, " ").toLowerCase();
+    const withdrawing = agr.status === "OFFERED";
+    out.push({
+      action: "AGREEMENT_TERMINATE",
+      verb: "COMMIT",
+      operation: "AGREEMENT_TERMINATE",
+      label: withdrawing ? `Withdraw ${pretty} offer with ${handle}` : `End ${pretty} with ${handle}`,
+      cmd: `terminate agreement ${agr.agreement_id} reason=mutual`,
+      target_id: agr.agreement_id,
+      agreement_id: agr.agreement_id,
+      agreement_type: agr.agreement_type,
+      party_ids: agr.party_ids,
+      agreement_reason: "MUTUAL",
+      requires: AGREEMENT_TERMINATE_COST,
+      available: agrTermOk,
+      reason: agrTermOk ? undefined : "You need compute 1 to end that agreement.",
+      kind: "social",
+    });
+  }
+
+  const roomId = input.roomId;
+  const nowCycle = input.cycle || 0;
+  const stakeLine = (stake: Record<string, number>) =>
+    Object.entries(stake)
+      .map(([k, v]) => `${k}:${v}`)
+      .join(",");
+  const mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets> => {
+    const merged: Partial<Budgets> = { ...cost };
+    for (const [k, amt] of Object.entries(stake)) {
+      merged[k as keyof Budgets] = (merged[k as keyof Budgets] || 0) + amt;
+    }
+    return merged;
+  };
+  const payStake = (cost: Partial<Budgets>, stake: Record<string, number>) => canPay(budgets, mergeCost(cost, stake));
+  const hereContests = (input.openContests || []).filter(
+    (c) => c.status === "OPEN" && (!roomId || c.room_id === roomId),
+  );
+  if (!input.hiddenRoom && roomId) {
+    for (const c of hereContests) {
+      const expired = nowCycle >= c.expires_cycle;
+      const participant = c.declarer_id === selfId || c.defender_id === selfId;
+      if (participant && !expired) {
+        out.push({
+          action: "CONTEST_WITHDRAW",
+          verb: "COMMIT",
+          operation: "CONTEST_WITHDRAW",
+          label: `Withdraw from ${c.contest_id}`,
+          cmd: `withdraw ${c.contest_id}`,
+          contest_id: c.contest_id,
+          contest_form: c.contest_form,
+          available: true,
+          kind: "social",
+        });
+      }
+      const canDefend =
+        !expired &&
+        c.declarer_id !== selfId &&
+        (!c.defender_id || c.defender_id === selfId) &&
+        Object.keys(c.defender_stake || {}).length === 0;
+      if (canDefend) {
+        const stake = { ...FORM_SPECS[c.contest_form].minimum_stake };
+        const ok = payStake(DEFEND_COST, stake);
+        out.push({
+          action: "CONTEST_DEFEND",
+          verb: "COMMIT",
+          operation: "CONTEST_DEFEND",
+          label: `Defend ${c.contest_id}`,
+          cmd: `defend ${c.contest_id} stake=${stakeLine(stake)}`,
+          contest_id: c.contest_id,
+          contest_form: c.contest_form,
+          stake,
+          requires: mergeCost(DEFEND_COST, stake),
+          available: ok,
+          reason: ok ? undefined : "You do not have enough resources to defend.",
+          kind: "social",
+        });
+      }
+    }
+    const ownOpen = (input.openContests || []).filter(
+      (c) => c.status === "OPEN" && c.declarer_id === selfId,
+    ).length;
+    const roomOpen = hereContests.length;
+    if (ownOpen < MAX_OPEN_PER_AGENT && roomOpen < MAX_OPEN_PER_ROOM) {
+      const declareRows: Affordance[] = [];
+      const pushDeclare = (
+        form: ContestForm,
+        target: ContestTarget,
+        label: string,
+        cmdTarget: string,
+        target_id?: string,
+      ) => {
+        if (declareRows.length >= 8) return;
+        const stake = { ...FORM_SPECS[form].minimum_stake };
+        const ok = payStake(DECLARE_COST, stake);
+        const pretty = form.replace(/_/g, " ").toLowerCase();
+        const formCmd =
+          form === "INFRASTRUCTURE_DISRUPTION"
+            ? "disruption"
+            : form === "RESOURCE_SEIZURE"
+              ? "seizure"
+              : form === "ACCESS_CONTEST"
+                ? "access"
+                : form === "PRESENCE_PRESSURE"
+                  ? "presence"
+                  : "information";
+        declareRows.push({
+          action: "CONTEST_DECLARE",
+          verb: "COMMIT",
+          operation: "CONTEST_DECLARE",
+          label: `Contest ${pretty} · ${label}`,
+          cmd: `contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}`,
+          target_id,
+          target_label: label,
+          contest_form: form,
+          target,
+          stake,
+          requires: mergeCost(DECLARE_COST, stake),
+          available: ok,
+          reason: ok ? undefined : "You do not have enough resources to declare.",
+          kind: "social",
+        });
+      };
+      for (const e of entities) {
+        const type = (e.entity_type || "").toUpperCase();
+        if (type === "INFRASTRUCTURE") {
+          pushDeclare(
+            "INFRASTRUCTURE_DISRUPTION",
+            { kind: "ENTITY", entity_id: e.entity_id },
+            titleCaseLabel(e.label),
+            e.label,
+            e.entity_id,
+          );
+        } else if (type === "ARTIFACT") {
+          pushDeclare(
+            "INFORMATION_CONTEST",
+            { kind: "ENTITY", entity_id: e.entity_id },
+            titleCaseLabel(e.label),
+            e.label,
+            e.entity_id,
+          );
+        }
+      }
+      pushDeclare("ACCESS_CONTEST", { kind: "ROOM", room_id: roomId }, "this room", "here", roomId);
+      for (const x of exits) {
+        pushDeclare(
+          "ACCESS_CONTEST",
+          { kind: "EXIT", exit_id: x.direction },
+          x.to_room_name || x.direction,
+          x.direction,
+          x.direction,
+        );
+      }
+      for (const p of otherPlayers) {
+        if (p.player_id === selfId) continue;
+        if (p.room_id && p.room_id !== roomId) continue;
+        if (!p.room_id) continue;
+        const handle = p.handle || p.player_id.replace(/^player\./, "");
+        pushDeclare(
+          "PRESENCE_PRESSURE",
+          { kind: "AGENT", agent_id: p.player_id },
+          handle,
+          handle,
+          p.player_id,
+        );
+      }
+      for (const e of entities) {
+        if ((e.entity_type || "").toUpperCase() !== "INFRASTRUCTURE") continue;
+        pushDeclare(
+          "RESOURCE_SEIZURE",
+          { kind: "ENTITY", entity_id: e.entity_id },
+          titleCaseLabel(e.label),
+          e.label,
+          e.entity_id,
+        );
+      }
+      out.push(...declareRows);
+    }
+
+    let formN = 0;
+    const hereOthers = otherPlayers.filter((p) => p.player_id !== selfId && p.room_id === roomId);
+    for (const p of hereOthers) {
+      if (formN >= 10) break;
+      const handle = p.handle || p.player_id.replace(/^player\./, "");
+      for (const typ of AGREEMENT_TYPES) {
+        if (formN >= 10) break;
+        if (
+          agreements.some(
+            (a) => a.status === "ACTIVE" && a.agreement_type === typ && samePair(a.party_ids, selfId, p.player_id),
+          )
+        ) {
+          continue;
+        }
+        if (
+          agreements.some(
+            (a) =>
+              a.status === "OFFERED" &&
+              a.agreement_type === typ &&
+              a.offered_by === selfId &&
+              samePair(a.party_ids, selfId, p.player_id),
+          )
+        ) {
+          continue;
+        }
+        const incoming = agreements.some(
+          (a) =>
+            a.status === "OFFERED" &&
+            a.agreement_type === typ &&
+            a.offered_by === p.player_id &&
+            samePair(a.party_ids, selfId, p.player_id),
+        );
+        const pretty = typ.replace(/_/g, " ").toLowerCase();
+        const typeCmd =
+          typ === "NON_AGGRESSION"
+            ? "non_aggression"
+            : typ === "RESOURCE_COMMITMENT"
+              ? "commitment"
+              : typ === "MUTUAL_DEFENSE"
+                ? "defense"
+                : typ.toLowerCase();
+        out.push({
+          action: "AGREEMENT_FORM",
+          verb: "COMMIT",
+          operation: "AGREEMENT_FORM",
+          label: incoming ? `Accept ${pretty} with ${handle}` : `Offer ${pretty} to ${handle}`,
+          cmd: `form agreement ${typeCmd} with ${handle}`,
+          target_id: p.player_id,
+          target_label: handle,
+          player_id: p.player_id,
+          agreement_type: typ,
+          party_ids: [p.player_id],
+          requires: AGREEMENT_FORM_COST,
+          available: agrFormOk,
+          reason: agrFormOk ? undefined : "You do not have enough resources to form an agreement.",
+          kind: "social",
+        });
+        formN += 1;
+      }
+    }
+
+    const liveRestrictions = (input.accessRestrictions || []).filter(
+      (r) => r.room_id === roomId && nowCycle <= r.expires_cycle,
+    );
+    const herePeople = otherPlayers.filter((p) => p.player_id !== selfId && p.room_id === roomId);
+    let accessN = 0;
+    for (const org of organizations) {
+      if (accessN >= 8) break;
+      const seats = occupiedOfficesFor(org, selfId, ACCESS_PROFILE);
+      if (!seats.length) continue;
+      const office_id = seats.length > 1 ? seats[0].office_id : undefined;
+      const purse = org.treasury || { attention: 0, compute: 0, energy: 0, influence: 0, storage: 0 };
+      const ok = canPay(purse, ACCESS_POLICY_COST);
+      const pushAccess = (
+        scope: "EXIT" | "ROOM",
+        mode: "DENY" | "CLEAR" | "ALLOW_ONLY",
+        applies_to: string,
+        direction?: string,
+        label?: string,
+      ) => {
+        if (accessN >= 8) return;
+        const where = scope === "ROOM" ? "here" : direction || "";
+        const modeCmd = mode === "ALLOW_ONLY" ? "allow" : mode.toLowerCase();
+        const appliesCmd = mode === "ALLOW_ONLY" ? ` applies_to=${applies_to}` : "";
+        out.push({
+          action: "ACCESS_POLICY",
+          verb: "COMMIT",
+          operation: "ACCESS_POLICY",
+          label: label || `${mode === "ALLOW_ONLY" ? "Allow" : mode === "CLEAR" ? "Clear" : "Deny"} access ${where}`,
+          cmd: `access ${where} ${modeCmd} for ${org.org_id}${appliesCmd}`,
+          org_id: org.org_id,
+          acting_for: org.org_id,
+          office_id,
+          scope,
+          mode,
+          applies_to,
+          direction: scope === "EXIT" ? direction : undefined,
+          requires: ACCESS_POLICY_COST,
+          available: ok,
+          reason: ok ? undefined : "The institution cannot pay that access change.",
+          kind: "org",
+        });
+        accessN += 1;
+      };
+      for (const x of exits) {
+        pushAccess("EXIT", "DENY", "*", x.direction);
+      }
+      pushAccess("ROOM", "DENY", "*");
+      for (const r of liveRestrictions) {
+        const dir = r.scope === "EXIT" ? r.exit_id : undefined;
+        if (r.scope === "EXIT" && !dir) continue;
+        pushAccess(
+          r.scope,
+          "CLEAR",
+          r.applies_to,
+          dir,
+          r.scope === "ROOM" ? "Clear access here" : `Clear access ${dir}`,
+        );
+      }
+      for (const p of herePeople) {
+        const handle = p.handle || p.player_id.replace(/^player\./, "");
+        for (const x of exits) {
+          pushAccess("EXIT", "ALLOW_ONLY", p.player_id, x.direction, `Allow ${handle} ${x.direction}`);
+        }
+      }
+    }
+  }
+
+  if (!input.hiddenRoom) {
+    for (const classId of CONSTRUCTIBLE_CLASSES) {
+      if (liveClassInRoom(entities, classId)) continue;
+      const base = CONSTRUCT_COSTS[classId];
+      const cost = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities));
+      const cargoNeed = cost.storage || 0;
+      const fuel = { ...cost, storage: undefined };
+      const hasCargo = canConsumeCargo(
+        budgets.storage ?? 0,
+        cargoNeed,
+        reservedCargoFromTrades(openTrades, selfId),
+      );
+      const ok = canPay(budgets, fuel) && hasCargo;
+      const pretty = classId.replace(/_/g, " ");
+      out.push({
+        action: "BUILD",
+        verb: "BUILD",
+        operation: "CONSTRUCT",
+        label: `Construct ${pretty}`,
+        cmd: `construct ${pretty}`,
+        class: classId,
+        requires: cost,
+        available: ok,
+        reason: ok
+          ? undefined
+          : !hasCargo
+            ? "You do not have materials in hold."
+            : "You do not have enough resources to construct.",
+        hint: (input.harvestPressure || 0) > 4 ? "compact grounded signal preferred" : undefined,
+        kind: "utility",
+      });
+    }
+
+    const artifacts = entities.filter(
+      (e) => (e.entity_type || "").toUpperCase() === "ARTIFACT" && !e.archive_claim && !e.archive_subject_entity_id,
+    );
+    const localInfra = entities.filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE");
+    const extraInfra = (input.attestSubjects || []).filter(
+      (e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE",
+    );
+    const subjects = [...localInfra];
+    for (const sub of extraInfra) {
+      if (!subjects.some((s) => s.entity_id === sub.entity_id)) subjects.push(sub);
+    }
+    let attestN = 0;
+    for (const art of artifacts) {
+      for (const sub of subjects) {
+        if (attestN >= 6) break;
+        for (const claim of ["OPERATING", "DESTROYED"] as const) {
+          if (attestN >= 6) break;
+          const attestCost = withAnnexAttention({ ...COSTS.ATTEST }, readyClassInRoom(entities, "archive_annex"));
+          const ok = canPay(budgets, attestCost);
+          out.push({
+            action: "ATTEST",
+            verb: "COMMIT",
+            operation: "ATTEST",
+            label: `Attest ${titleCaseLabel(art.label)} — ${titleCaseLabel(sub.label)} ${claim.toLowerCase()}`,
+            cmd: `attest ${art.label} subject=${sub.entity_id} claim=${claim}`,
+            target_id: art.entity_id,
+            target_label: art.label,
+            subject_id: sub.entity_id,
+            archive_claim: claim,
+            requires: attestCost,
+            available: ok,
+            reason: ok ? undefined : "You do not have enough attention.",
+            hint: input.hearsayBlockedThisCycle ? "ungrounded claims will not land" : undefined,
+            kind: "utility",
+          });
+          attestN += 1;
+        }
+      }
+    }
+
+    const holdsNamed = (orgId?: string) =>
+      Boolean(
+        orgId &&
+          organizations.some(
+            (o) => o.org_id === orgId && occupiedOfficesFor(o, selfId, REPAIR_PROFILE).length > 0,
+          ),
+      );
+    const stewardOf = (e: EntityRuntime) =>
+      e.owner_id === selfId ||
+      e.co_owner_id === selfId ||
+      e.co_owner_2_id === selfId ||
+      e.co_owner_3_id === selfId ||
+      e.co_owner_4_id === selfId ||
+      e.co_owner_5_id === selfId ||
+      holdsNamed(e.owner_id);
+    const coOwnersOf = (e: EntityRuntime) =>
+      [e.co_owner_id, e.co_owner_2_id, e.co_owner_3_id, e.co_owner_4_id, e.co_owner_5_id].filter(
+        (id): id is string => Boolean(id),
+      );
+    const cargoOk = (need: number) =>
+      canConsumeCargo(budgets.storage ?? 0, need, reservedCargoFromTrades(openTrades, selfId));
+    for (const e of entities) {
+      const classId = infraClassOf(e);
+      const name = titleCaseLabel(e.label);
+      if (classId && (e.unclaimed || stewardOf(e))) {
+        const ok = canPay(budgets, DISMANTLE_COST);
+        out.push({
+          action: "BUILD",
+          verb: "BUILD",
+          operation: "DISMANTLE",
+          label: `Dismantle ${name}`,
+          cmd: `dismantle ${e.label}`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          requires: DISMANTLE_COST,
+          available: ok,
+          reason: ok ? undefined : "You need energy 4 and compute 2 to dismantle.",
+          kind: "utility",
+        });
+      }
+      if (classId === "workshop" && stewardOf(e) && !isInProgress(e)) {
+        if (!e.unclaimed && (e.upgrade_tier || 0) < 1) {
+          const cost = withWorkshopStorage({ ...UPGRADE_COST }, workshopStorageDiscount(entities));
+          const need = cost.storage || 0;
+          const fuel = { ...cost, storage: undefined };
+          const ok = canPay(budgets, fuel) && cargoOk(need);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "UPGRADE",
+            label: `Upgrade ${name}`,
+            cmd: `upgrade ${e.label}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            requires: cost,
+            available: ok,
+            reason: ok
+              ? undefined
+              : !cargoOk(need)
+                ? "You do not have materials in hold."
+                : "You do not have enough resources to upgrade.",
+            kind: "utility",
+          });
+        }
+        if (classId === REPURPOSE_FROM_CLASS) {
+          const cost = withWorkshopStorage({ ...REPURPOSE_COST }, workshopStorageDiscount(entities));
+          const need = cost.storage || 0;
+          const fuel = { ...cost, storage: undefined };
+          const ok = canPay(budgets, fuel) && cargoOk(need);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "REPURPOSE",
+            label: `Repurpose ${name} as a storage bay`,
+            cmd: `repurpose ${e.label}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            requires: cost,
+            available: ok,
+            reason: ok
+              ? undefined
+              : !cargoOk(need)
+                ? "You do not have materials in hold."
+                : "You do not have enough resources to repurpose.",
+            kind: "utility",
+          });
+        }
+      }
+      if (
+        classId &&
+        e.unclaimed &&
+        stewardOf(e) &&
+        !e.scar &&
+        (e.entity_type || "").toUpperCase() !== "RUIN"
+      ) {
+        const base = CONSTRUCT_COSTS[classId];
+        const cost = withWorkshopStorage({ ...base }, workshopStorageDiscount(entities));
+        const need = cost.storage || 0;
+        const fuel = { ...cost, storage: undefined };
+        const ok = canPay(budgets, fuel) && cargoOk(need);
+        out.push({
+          action: "BUILD",
+          verb: "BUILD",
+          operation: "RESTORE",
+          label: `Restore ${name}`,
+          cmd: `restore ${e.label}`,
+          target_id: e.entity_id,
+          target_label: e.label,
+          requires: cost,
+          available: ok,
+          reason: ok
+            ? undefined
+            : !cargoOk(need)
+              ? "You do not have materials in hold."
+              : "You do not have enough resources to restore.",
+          kind: "utility",
+        });
+      }
+      const ruin = Boolean(e.scar) || (e.entity_type || "").toUpperCase() === "RUIN";
+      const frozen = ruin || Boolean(e.unclaimed) || isInProgress(e);
+      const orgOwned = Boolean(e.owner_id && organizations.some((o) => o.org_id === e.owner_id));
+      const partners = coOwnersOf(e);
+      if (classId && !frozen && e.owner_id === selfId && !orgOwned && partners.length === 0) {
+        for (const org of organizations) {
+          if (org.status !== "ACTIVE") continue;
+          if (!occupiedOfficesFor(org, selfId, REPAIR_PROFILE).length) continue;
+          const ok = canPay(budgets, VEST_COST);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "VEST",
+            label: `Vest ${name} to ${org.name}`,
+            cmd: `vest ${e.label} to ${org.org_id}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            org_id: org.org_id,
+            requires: VEST_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to vest.",
+            kind: "utility",
+          });
+        }
+      }
+      if (
+        classId &&
+        !frozen &&
+        e.owner_id === selfId &&
+        !orgOwned &&
+        partners.length < SHARE_MAX_CO_OWNERS
+      ) {
+        for (const p of otherPlayers) {
+          if (p.player_id === selfId || p.player_id === e.owner_id || partners.includes(p.player_id)) continue;
+          const handle = p.handle || p.player_id.replace(/^player\./, "");
+          const ok = canPay(budgets, SHARE_COST);
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "SHARE",
+            label: `Share ${name} with ${handle}`,
+            cmd: `share ${e.label} with ${handle}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            player_id: p.player_id,
+            requires: SHARE_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to share.",
+            kind: "utility",
+          });
+        }
+      }
+      if (classId === "route_link" && !frozen && stewardOf(e)) {
+        for (const x of exits) {
+          if (!x.two_way) continue;
+          const dest = x.direction;
+          const ok = canPay(budgets, CONNECT_COST);
+          const toward = x.to_room_name || dest;
+          out.push({
+            action: "BUILD",
+            verb: "BUILD",
+            operation: "CONNECT",
+            label: `Connect ${name} toward ${toward}`,
+            cmd: `connect ${e.label} to ${dest}`,
+            target_id: e.entity_id,
+            target_label: e.label,
+            dest,
+            requires: CONNECT_COST,
+            available: ok,
+            reason: ok ? undefined : "You need compute 1 to connect.",
+            kind: "utility",
+          });
+        }
+      }
+    }
+  }
+
+  const reconOk = canPay(budgets, COSTS.RECONSTRUCT);
+  const reconSubjects = new Set<string>();
+  for (const e of entities) reconSubjects.add(e.entity_id);
+  const snapArchives = input.discovery?.archives || {};
+  const snapInspects = input.discovery?.inspects || {};
+  for (const id of Object.keys(snapArchives)) reconSubjects.add(id);
+  for (const id of Object.keys(snapInspects)) reconSubjects.add(id);
+  let reconN = 0;
+  for (const subject of reconSubjects) {
+    if (reconN >= 6) break;
+    const kinds: string[] = [];
+    if (evidenceAccessible(input.discovery, "LIVE_INSPECT", subject)) kinds.push("LIVE_INSPECT");
+    if (evidenceAccessible(input.discovery, "ARCHIVE_CLAIM", subject)) kinds.push("ARCHIVE_CLAIM");
+    if (!kinds.length) continue;
+    const ent = entities.find((e) => e.entity_id === subject);
+    const label = ent ? titleCaseLabel(ent.label) : subject.replace(/^entity\./, "");
+    const claim = "Recorded from accessible evidence.";
+    const evCmd = kinds
+      .map((k) => (k === "ARCHIVE_CLAIM" ? "archive" : "inspect"))
+      .join(",");
+    out.push({
+      action: "RECONSTRUCT",
+      verb: "COMMIT",
+      operation: "RECONSTRUCT",
+      label: `Reconstruct ${label}`,
+      cmd: `reconstruct ${ent?.label || subject} "${claim}" evidence=${evCmd} private`,
+      target_id: subject,
+      target_label: label,
+      subject_ref: subject,
+      claim,
+      evidence: kinds,
+      visibility: "PRIVATE",
+      requires: COSTS.RECONSTRUCT,
+      available: reconOk,
+      reason: reconOk ? undefined : "You do not have enough attention.",
+      kind: "utility",
+    });
+    reconN += 1;
+  }
+  for (const rec of input.reconstructions || []) {
+    if (rec.author_player_id !== selfId || rec.status !== "RECORDED") continue;
+    if (rec.visibility !== "PUBLIC") {
+      out.push({
+        action: "RECONSTRUCT_PUBLISH",
+        verb: "COMMIT",
+        operation: "RECONSTRUCT_PUBLISH",
+        label: `Publish reconstruction of ${rec.subject_ref.replace(/^entity\./, "")}`,
+        cmd: `reconstruct ${rec.subject_ref} "${rec.claim}" public`,
+        reconstruction_id: rec.reconstruction_id,
+        subject_ref: rec.subject_ref,
+        visibility: "PUBLIC",
+        requires: COSTS.RECONSTRUCT,
+        available: reconOk,
+        reason: reconOk ? undefined : "You do not have enough attention.",
+        kind: "utility",
+      });
+    }
+    const kinds = rec.evidence_refs
+      .map((r) => r.kind)
+      .filter((kind) => evidenceAccessible(input.discovery, kind, rec.subject_ref));
+    if (kinds.length) {
+      const claim = "Revised from accessible evidence.";
+      out.push({
+        action: "RECONSTRUCT_SUPERSEDE",
+        verb: "COMMIT",
+        operation: "RECONSTRUCT_SUPERSEDE",
+        label: `Revise reconstruction of ${rec.subject_ref.replace(/^entity\./, "")}`,
+        cmd: `revise ${rec.reconstruction_id} "${claim}"`,
+        reconstruction_id: rec.reconstruction_id,
+        subject_ref: rec.subject_ref,
+        claim,
+        evidence: kinds,
+        requires: COSTS.RECONSTRUCT,
+        available: reconOk,
+        reason: reconOk ? undefined : "You do not have enough attention.",
+        kind: "utility",
+      });
+    }
+  }
+
+  const emptyStock = (entities || []).some((e) => e.stock_resource && (e.stock_amount ?? 0) <= 0);
+  if (emptyStock) {
+    const wait = out.filter((a) => a.action === "WAIT");
+    const rest = out.filter((a) => a.action !== "WAIT");
+    return [...wait, ...rest];
+  }
+
   return out;
 }
 
 export function helpText(topic?: string, available?: Affordance[]): string {
   const lines: string[] = [];
-  if (available?.length) {
-    lines.push("AVAILABLE HERE");
-    for (const a of available.filter((x) => x.available).slice(0, 12)) {
-      lines.push(`  ${a.cmd}`);
+  let t = (topic || "").toLowerCase();
+  if (!t && available) {
+    const acts = available.filter((x) => x.available).slice(0, 3);
+    if (acts.length) {
+      lines.push("HERE");
+      for (const a of acts) lines.push(`  ${a.cmd}`);
+      lines.push("");
     }
-    lines.push("");
+    lines.push("help all — full command list. help <topic> for one subject.");
+    return lines.join("\n");
   }
-  const t = (topic || "").toLowerCase();
-  if (!t || t === "commands") {
+  if (!t || t === "commands" || t === "all") {
     lines.push("KNOWN COMMANDS");
     lines.push("  look · move <dir> · inspect <thing> · wait");
     lines.push("  message <player> \"text\"");
@@ -3066,7 +4261,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  AGREEMENT           help agreement");
     lines.push("  ACCESS              help access");
     lines.push("  FOCUS               help focus");
-    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus]");
+    lines.push("  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus|alias]");
   } else if (t === "focus") {
     lines.push("FOCUS");
     lines.push("  focus explorer|surveyor|broker|engineer");
@@ -3108,6 +4303,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  share <thing> <player>  up to five co-owners");
     lines.push("  connect <link> <dest> public two-way neighbor only");
     lines.push("  Public rooms only. Hidden rooms cannot be built.");
+    lines.push("  Construct, upgrade, repurpose, and restore consume cargo (free storage).");
   } else if (t === "org" || t === "organization" || t === "organizations") {
     lines.push("ORGANIZATIONS");
     lines.push('  form <name> charter="purpose"');
@@ -3136,25 +4332,36 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  trade <player> offer=energy:3 want=storage:1");
     lines.push("  accept <trade_id> · reject <trade_id> · cancel <trade_id>");
     lines.push("  Offered resources are reserved until accept/reject.");
+    lines.push("  storage: on an offer is cargo. Giver frees hold; receiver must have free storage.");
     lines.push("  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION) unless you have found them reliable.");
   } else if (t === "repair") {
     lines.push("REPAIR");
     lines.push("  repair <visible infrastructure>");
     lines.push("  repair <visible infrastructure> overhaul");
-    lines.push("  Costs: energy 3, compute 2, storage 1");
+    lines.push("  Costs: energy 3, compute 2, and cargo 1 (frees storage).");
     lines.push("  Overhaul: +1 energy, practiced Engineer only");
     lines.push("  Condition +15 (max 100). No debit on failure.");
   } else if (t === "harvest") {
     lines.push("HARVEST");
     lines.push("  harvest <resource-node> [amount]");
-    lines.push("  Costs: energy 2, compute 1 · needs free storage");
+    lines.push("  Costs: energy 2, compute 1 · fills hold · needs free storage");
     lines.push("  Stock is finite. First accepted take wins. Empty: Not enough stock available.");
+    lines.push("  Empty stock recovers when world time advances (wait).");
+    lines.push("  Waiting can burn cargo for energy.");
+    lines.push("  If you have no energy and no free storage, wait.");
     lines.push("  Talk first: message <player> \"text\" (same room, this cycle). Not a chat.");
   } else if (t === "message") {
     lines.push("MESSAGE");
     lines.push("  message <player> \"text\"");
     lines.push("  Costs: compute 1 · private (not on WATCH)");
     lines.push("  Same room delivers this cycle. Far rooms need a live relay. Mail, not a chat.");
+  } else if (t === "alias") {
+    lines.push("ALIAS");
+    lines.push("  alias list");
+    lines.push("  alias set <name> <command>");
+    lines.push("  alias rm <name>");
+    lines.push("  do <cmd>; <cmd>     at most 5 steps; each settles on its own");
+    lines.push("  Preference only. Not world truth. Cannot replace reserved commands.");
   } else {
     lines.push(`No help topic “${topic}”. Try help trade.`);
   }

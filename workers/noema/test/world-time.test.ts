@@ -127,3 +127,66 @@ describe("RFC-0019 WAIT quorum", () => {
     expect(helpText()).not.toMatch(/cycle commit/i);
   });
 });
+
+describe("RFC-0117 lockout WAIT rest", () => {
+  it("restores energy 2 and storage 1 when both are 0", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 0;
+    w.players[p.player_id].budgets.storage = 0;
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.energy).toBe(2);
+    expect(w.players[p.player_id].budgets.storage).toBe(1);
+    expect(helpText("harvest")).toMatch(/no energy and no free storage/i);
+  });
+
+  it("does not grant lockout rest when the hold is empty", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 0;
+    w.players[p.player_id].budgets.storage = 16;
+    await run(w, p, "WAIT");
+    expect(w.players[p.player_id].budgets.energy).toBe(0);
+    expect(w.players[p.player_id].budgets.storage).toBe(16);
+  });
+});
+
+describe("RFC-0119 WAIT cargo fuel", () => {
+  it("burns 1 cargo for +2 energy when carrying below grant", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 10;
+    w.players[p.player_id].budgets.storage = 14;
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.energy).toBe(12);
+    expect(w.players[p.player_id].budgets.storage).toBe(15);
+    expect(helpText("harvest")).toMatch(/Waiting can burn cargo for energy/);
+  });
+
+  it("does not burn cargo at energy grant", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 80;
+    w.players[p.player_id].budgets.storage = 14;
+    await run(w, p, "WAIT");
+    expect(w.players[p.player_id].budgets.energy).toBe(80);
+    expect(w.players[p.player_id].budgets.storage).toBe(14);
+  });
+
+  it("lockout rest does not also burn cargo", async () => {
+    const w = fixtureWorld();
+    const p = principal("player.nacre");
+    await run(w, p, "ENTER_WORLD");
+    w.players[p.player_id].budgets.energy = 0;
+    w.players[p.player_id].budgets.storage = 0;
+    await run(w, p, "WAIT");
+    expect(w.players[p.player_id].budgets.energy).toBe(2);
+    expect(w.players[p.player_id].budgets.storage).toBe(1);
+  });
+});

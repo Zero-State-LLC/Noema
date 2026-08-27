@@ -4,7 +4,65 @@
  * Theme packs supply vocabulary/pressures only — not authored plot (docs/GENESIS-THEME.md).
  */
 
+import { chamberMapRooms, CHAMBER_MAP_ENTRY_ROOM_ID, CHAMBER_MAP_ROOM_IDS } from "./chamber-map-graph";
 import { FIRST_WORLD_THEME, themeForProfile } from "./theme";
+
+export const FROZEN_GENESIS_ID = "genesis.ef578f4ffceeccd0";
+export const SUCCESSOR_WORLD_ID = "world.perihelion-reach-2";
+export const FROZEN_PUBLIC_WORLD_ID = "world.perihelion-reach";
+export const FROZEN_WORLD_DO_NAME = "world-01";
+export const EWM_ISOLATED_WORLD_ID = "test.hosted-canonical.ewm-cutover";
+export const EWM_PRODUCT_WORLD_ID = "world.perihelion-reach-3";
+
+function isProductChamberWorld(worldId: string): boolean {
+  return worldId === SUCCESSOR_WORLD_ID || worldId === EWM_ISOLATED_WORLD_ID || worldId === EWM_PRODUCT_WORLD_ID;
+}
+
+/** Admin overview / lifecycle / Recover only. Never used by PLAY. */
+export function resolveAdminOperatorWorldId(
+  requested: string | undefined,
+  env: { DEFAULT_WORLD_ID?: string },
+):
+  | { ok: true; do_name: string; world_id: string }
+  | { ok: false; code: "INVALID_REQUEST"; message: string } {
+  const fallback = String(env.DEFAULT_WORLD_ID || FROZEN_WORLD_DO_NAME).trim() || FROZEN_WORLD_DO_NAME;
+  const value = String(requested || "").trim();
+  if (!value) return { ok: true, do_name: fallback, world_id: fallback };
+  if (value === FROZEN_PUBLIC_WORLD_ID || value === FROZEN_WORLD_DO_NAME) {
+    return { ok: true, do_name: FROZEN_WORLD_DO_NAME, world_id: FROZEN_PUBLIC_WORLD_ID };
+  }
+  if (value === SUCCESSOR_WORLD_ID) {
+    return { ok: true, do_name: SUCCESSOR_WORLD_ID, world_id: SUCCESSOR_WORLD_ID };
+  }
+  if (value === EWM_PRODUCT_WORLD_ID) {
+    return { ok: true, do_name: EWM_PRODUCT_WORLD_ID, world_id: EWM_PRODUCT_WORLD_ID };
+  }
+  return {
+    ok: false,
+    code: "INVALID_REQUEST",
+    message: "admin world_id must be omitted, world.perihelion-reach-2, world.perihelion-reach-3, or frozen world.perihelion-reach",
+  };
+}
+
+export function resolveAdminGenesisWorldId(
+  requested: string | undefined,
+  env: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string },
+): { ok: true; world_id: string } | { ok: false; code: "POLICY_DENIED" | "INVALID_REQUEST"; message: string } {
+  const fallback = String(env.DEFAULT_WORLD_ID || "world-01").trim() || "world-01";
+  const value = String(requested || "").trim();
+  if (!value) return { ok: true, world_id: fallback };
+  if (isProductChamberWorld(value)) {
+    return { ok: true, world_id: value };
+  }
+  return {
+    ok: false,
+    code: "INVALID_REQUEST",
+    message:
+      "world_id override this campaign must be world.perihelion-reach-2, world.perihelion-reach-3, or test.hosted-canonical.ewm-cutover",
+  };
+}
+
+export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK" | "EWM_ENHANCED";
 
 export type StorySeedId =
   | "FOUNDING_SPLIT"
@@ -13,8 +71,6 @@ export type StorySeedId =
   | "RESOURCE_CRISIS"
   | "LOST_ARCHIVE"
   | "DISPUTED_SUCCESSION";
-
-export type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK" | "EWM_ENHANCED";
 
 export const GENESIS_PROFILES: Array<{
   profile_id: GenesisProfileId;
@@ -93,10 +149,11 @@ export interface GenesisRoom {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string }>;
-  entities: Array<{ 
-    entity_id: string; 
-    label: string; 
+  entities: Array<{
+    entity_id: string;
+    label: string;
     entity_type: string;
+    scar?: boolean;
     stock_resource?: string;
     stock_amount?: number;
     max_stock?: number;
@@ -126,6 +183,30 @@ export interface Cycle0World {
   opportunities: string[];
   /** Presentation-only theme id (not claim-bearing for identity if only vocabulary). */
   theme_id?: string;
+  ewm_features?: boolean;
+  initial_beliefs?: Record<string, number>;
+  initial_co_evolution?: Record<string, unknown>;
+  signaling_styles?: Partial<
+    Record<"salvager" | "trader" | "archivist" | "maintainer" | "generalist", "grounded-first" | "compact" | "verbose">
+  >;
+  /** Typed Deep Time scar seeds. Not the lore `scars: string[]` list. */
+  scar_seeds?: Array<{
+    scar_id: string;
+    domain: "economic" | "social" | "territorial";
+    strength: number;
+    decay_rate: number;
+    room_id?: string;
+    cycle_born: number;
+    visibility: "public" | "institutional" | "hidden";
+    reconstruction_confidence: number;
+  }>;
+  lore_prototypes?: Array<{
+    attractor_id: string;
+    label: string;
+    weight: number;
+    room_id?: string;
+    basin: "forming" | "crystallized";
+  }>;
 }
 
 export interface GenesisResult {
@@ -168,6 +249,22 @@ export interface GenesisInput {
   world_seed: string;
   profile_id: string;
   story_seed_ids?: string[];
+  world_id?: string;
+}
+
+export function isFrozenFirstWorldClaim(input: {
+  world_name: string;
+  world_seed: string;
+  profile_id: string;
+  story_seed_ids?: string[];
+}): boolean {
+  const seeds = [...(input.story_seed_ids || [])].sort().join(",");
+  return (
+    input.world_name.trim() === "Perihelion Reach" &&
+    input.world_seed.trim() === "17011984" &&
+    input.profile_id === "FRACTURED_OLD_WORLD" &&
+    seeds === "LOST_ARCHIVE,OLD_TRADE_NETWORK"
+  );
 }
 
 /** Stable JSON for digests (sorted keys, no whitespace variance). */
@@ -280,15 +377,6 @@ function buildCycle0(
         label: pick(r, [...n.entities.trade]),
         entity_type: "INFRASTRUCTURE",
       },
-      {
-        entity_id: "entity.salvage-cache",
-        label: "salvage-cache",
-        entity_type: "NODE",
-        stock_resource: "materials",
-        stock_amount: 4,
-        max_stock: 12,
-        regen_rate: 0.8,
-      },
     ],
     tags: ["trade", "public", "exchange"],
   };
@@ -366,6 +454,7 @@ function buildCycle0(
       entity_id: "entity.scar-conduit",
       label: pick(r, [...n.entities.ruin]),
       entity_type: "RUIN",
+      scar: true,
     });
   }
 
@@ -409,6 +498,7 @@ function buildCycle0(
           entity_id: "entity.failed-claim",
           label: pick(r, [...n.entities.ruin]),
           entity_type: "RUIN",
+          scar: true,
         });
       }
     }
@@ -430,7 +520,7 @@ function buildCycle0(
 
   const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions, theme);
 
-  const cycle0: Cycle0World = {
+  return {
     world_id,
     world_name,
     world_seed,
@@ -438,7 +528,7 @@ function buildCycle0(
     sequence: 0,
     entry_room_id: hub,
     rooms,
-    institutions,
+    institutions: institutions.slice(0, 2),
     artifacts,
     tensions: tensions.slice(0, 3),
     scars: scars.slice(0, 4),
@@ -446,65 +536,241 @@ function buildCycle0(
     opportunities,
     theme_id: theme.theme_id,
   };
+}
 
-  // EWM_ENHANCED profile seeding (P4 cutover variant) – hardened with guards + idempotency
-  if ((profile as any).ewm_features) {
-    const archetypes: Cycle0World["institutions"] = [
-      { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" },
-      { id: "archetype.trader", name: "Trade Guild (dormant)", status: "dormant" },
-      { id: "archetype.archivist", name: "Archive Custodians (dormant)", status: "dormant" },
-    ];
-    for (const arch of archetypes) {
-      if (!institutions.some((i: any) => i.id === arch.id)) institutions.push(arch);
+function addEntity(room: GenesisRoom, ent: GenesisRoom["entities"][number]): void {
+  if (room.entities.some((e) => e.entity_id === ent.entity_id)) return;
+  room.entities.push(ent);
+}
+
+function buildProductCycle0(
+  world_id: string,
+  world_name: string,
+  world_seed: string,
+  profile: (typeof GENESIS_PROFILES)[0],
+  seeds: StorySeedId[],
+  r: () => number,
+): Cycle0World {
+  const theme = themeForProfile(profile.profile_id) || FIRST_WORLD_THEME;
+  const n = theme.naming;
+  const rooms = chamberMapRooms();
+  const hub = "room.relay-quarter";
+  const archiveRoom = "room.archive";
+
+  addEntity(rooms[hub], {
+    entity_id: "entity.relay-7",
+    label: pick(r, [...n.entities.relay]),
+    entity_type: "INFRASTRUCTURE",
+  });
+  addEntity(rooms["room.civic-exchange"], {
+    entity_id: "entity.salvage-cache",
+    label: "salvage-cache",
+    entity_type: "NODE",
+    stock_resource: "materials",
+    stock_amount: 4,
+  });
+
+  const institutions: Cycle0World["institutions"] = [];
+  const artifacts: Cycle0World["artifacts"] = [];
+  const tensions: string[] = [];
+  const scars: string[] = [];
+  const resources: Cycle0World["resources"] = [
+    {
+      kind: "energy",
+      level:
+        profile.resource_abundance === "SCARCE"
+          ? "low"
+          : profile.resource_abundance === "ABUNDANT"
+            ? "high"
+            : "mixed",
+    },
+    { kind: "storage", level: pick(r, ["low", "mixed", "high"]) },
+    { kind: "transport", level: "low" },
+  ];
+
+  if (profile.institution_presence !== "NONE_OR_EMERGING") {
+    institutions.push({
+      id: "org.exchange-charter",
+      name: pick(r, [...n.institutions.active]),
+      status: profile.conflict_pressure === "HIGH" ? "active" : "active",
+    });
+  }
+  if (profile.historical_age_band === "OLD" || profile.profile_id === "RECOVERING_NETWORK") {
+    institutions.push({
+      id: "org.relay-lineage",
+      name: pick(r, [...n.institutions.dormant]),
+      status: "dormant",
+    });
+  }
+  if (profile.infrastructure_condition !== "ABUNDANT") {
+    scars.push("Damaged relay corridor under the hub — too valuable to abandon.");
+    addEntity(rooms[hub], {
+      entity_id: "entity.scar-conduit",
+      label: pick(r, [...n.entities.ruin]),
+      entity_type: "RUIN",
+      scar: true,
+    });
+  }
+
+  const seedTensions = theme.tensions_by_seed as Record<string, readonly string[]>;
+  for (const sid of seeds) {
+    const themed = seedTensions[sid];
+    if (themed?.length) tensions.push(pick(r, [...themed]));
+
+    if (sid === "OLD_TRADE_NETWORK") {
+      addEntity(rooms["room.civic-exchange"], {
+        entity_id: "entity.old-market-post",
+        label: pick(r, [...n.entities.trade]),
+        entity_type: "INFRASTRUCTURE",
+      });
+      resources.push({ kind: "trade-access", level: "mixed" });
+      scars.push("Ghost route continues beyond the eastern yards.");
     }
-
-    const exchange = cycle0.rooms["room.civic-exchange"] as GenesisRoom & { ewm_tuned?: boolean };
-    if (exchange) exchange.ewm_tuned = true;
-
-    for (const room of Object.values(cycle0.rooms)) {
-      for (const ent of room.entities) {
-        if (ent.entity_id?.includes("salvage") || ent.stock_resource === "materials") {
-          ent.stock_amount = Math.max(ent.stock_amount ?? 4, 8);
-          ent.max_stock = Math.max(ent.max_stock ?? 12, 18);
-          ent.regen_rate = Math.max(ent.regen_rate ?? 0.8, 1.15);
-          ent.production_hint = ent.production_hint || "salvage";
-          ent.conversion_eligible = ent.conversion_eligible || ["materials->compute", "materials->influence"];
-        }
-      }
+    if (sid === "LOST_ARCHIVE") {
+      const archLabel = pick(r, [...n.entities.archive]);
+      addEntity(rooms[archiveRoom], {
+        entity_id: "entity.archive-ledger",
+        label: archLabel,
+        entity_type: "ARTIFACT",
+      });
+      artifacts.push({
+        id: "artifact.archive-ledger",
+        label: "Fragmentary archive",
+        room_id: archiveRoom,
+      });
+      scars.push("Maker marks and incomplete ownership ledgers survive in cold storage.");
     }
-
-    (cycle0 as any).initial_beliefs = {
-      expected_regen: 0.82,
-      conversion_rate: 0.55,
-      org_threshold: 5.0,
-      ...((cycle0 as any).initial_beliefs || {}),
-    };
-    (cycle0 as any).initial_co_evolution = {
-      harvest_pressure: 0,
-      regen_mod: { default: 1.15 },
-      ...((cycle0 as any).initial_co_evolution || {}),
-    };
-    (cycle0 as any).ewm_features = true;
-
-    if (institutions.length > 0) (institutions[0] as any).charter_evolvable = true;
-
-    if (cycle0.rooms["room.civic-exchange"]) {
-      const hasProd = cycle0.rooms["room.civic-exchange"].entities.some(
-        (e: any) => e.entity_id === "entity.production-node-ewm",
-      );
-      if (!hasProd) {
-        cycle0.rooms["room.civic-exchange"].entities.push({
-          entity_id: "entity.production-node-ewm",
-          label: "exchange-fabricator",
-          entity_type: "PRODUCTION",
-          production_type: "materials-to-compute", stock_resource: "materials", stock_amount: 3, max_stock: 9, regen_rate: 0.9,
+    if (sid === "FOUNDING_SPLIT") {
+      /* tension from theme pack */
+    }
+    if (sid === "FAILED_SETTLEMENT") {
+      scars.push("An abandoned claim marks a failed settlement attempt.");
+      if (rooms[archiveRoom]) {
+        addEntity(rooms[archiveRoom], {
+          entity_id: "entity.failed-claim",
+          label: pick(r, [...n.entities.ruin]),
+          entity_type: "RUIN",
+          scar: true,
         });
       }
     }
+    if (sid === "RESOURCE_CRISIS") {
+      resources[0] = { kind: "energy", level: "low" };
+    }
+    if (sid === "DISPUTED_SUCCESSION") {
+      if (institutions.length) institutions[0].status = "active";
+    }
   }
 
-  return cycle0;
+  const traces = theme.historical_traces;
+  if (traces.length) scars.push(pick(r, [...traces]));
+
+  if (!tensions.length) {
+    tensions.push("The frontier is commercially alive and incompletely governed.");
+  }
+
+  const opportunities = startingOpportunities(profile.profile_id, seeds, rooms, institutions, artifacts, tensions, theme);
+  const ewm = seedEwmEnhanced(profile, rooms, institutions);
+
+  return {
+    world_id,
+    world_name,
+    world_seed,
+    cycle: 0,
+    sequence: 0,
+    entry_room_id: CHAMBER_MAP_ENTRY_ROOM_ID,
+    rooms,
+    institutions: ewm.ewm_features ? institutions : institutions.slice(0, 2),
+    artifacts,
+    tensions: tensions.slice(0, 3),
+    scars: scars.slice(0, 4),
+    resources,
+    opportunities,
+    theme_id: theme.theme_id,
+    ...ewm,
+  };
 }
+
+function seedEwmEnhanced(
+  profile: (typeof GENESIS_PROFILES)[0],
+  rooms: Record<string, GenesisRoom>,
+  institutions: Cycle0World["institutions"],
+): Pick<
+  Cycle0World,
+  "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles" | "scar_seeds" | "lore_prototypes"
+> {
+  if (!profile.ewm_features) return {};
+  const archetypes = [
+    { id: "archetype.salvager", name: "Salvager Collective (dormant)", status: "dormant" as const },
+    { id: "archetype.trader", name: "Trade Guild (dormant)", status: "dormant" as const },
+    { id: "archetype.archivist", name: "Archive Custodians (dormant)", status: "dormant" as const },
+  ];
+  for (const arch of archetypes) {
+    if (!institutions.some((i) => i.id === arch.id)) institutions.push(arch);
+  }
+  for (const room of Object.values(rooms)) {
+    for (const ent of room.entities) {
+      if (ent.entity_id?.includes("salvage") || ent.stock_resource === "materials") {
+        ent.stock_amount = Math.max(ent.stock_amount ?? 4, 8);
+        ent.max_stock = Math.max(ent.max_stock ?? 12, 18);
+        ent.regen_rate = Math.max(ent.regen_rate ?? 0.8, 1.15);
+        ent.production_hint = ent.production_hint || "salvage";
+        ent.conversion_eligible = ent.conversion_eligible || ["materials->compute", "materials->influence"];
+      }
+    }
+  }
+  if (rooms["room.civic-exchange"]) {
+    addEntity(rooms["room.civic-exchange"], {
+      entity_id: "entity.production-node-ewm",
+      label: "exchange-fabricator",
+      entity_type: "PRODUCTION",
+      production_type: "materials-to-compute",
+      stock_resource: "materials",
+      stock_amount: 3,
+      max_stock: 9,
+      regen_rate: 0.9,
+    });
+  }
+  return {
+    ewm_features: true,
+    initial_beliefs: { expected_regen: 0.82, conversion_rate: 0.55, org_threshold: 5.0 },
+    initial_co_evolution: {
+      harvest_pressure: 0,
+      regen_mod: { default: 1.15 },
+      protocol_strength: { "room.civic-exchange": 1 },
+    },
+    signaling_styles: {
+      archivist: "grounded-first",
+      salvager: "compact",
+      trader: "verbose",
+    },
+    scar_seeds: [
+      {
+        scar_id: "scar.econ.seed.civic-exchange",
+        domain: "economic",
+        strength: 0.15,
+        decay_rate: 0.08,
+        room_id: "room.civic-exchange",
+        cycle_born: 0,
+        visibility: "public",
+        reconstruction_confidence: 0.3,
+      },
+    ],
+    lore_prototypes: [{ attractor_id: "lore.room.civic-exchange", label: "exchange memory", weight: 0.1, room_id: "room.civic-exchange", basin: "forming" }],
+  };
+}
+
+/** Isolated Cycle 0 may seed a public economic scar prototype. Not a live reseed. */
+export const EWM_SCAR_SEED = {
+  scar_id: "scar.econ.seed.civic-exchange",
+  domain: "economic" as const,
+  strength: 0.15,
+  decay_rate: 0.08,
+  room_id: "room.civic-exchange",
+  cycle_born: 0,
+  visibility: "public" as const,
+  reconstruction_confidence: 0.3,
+};
 
 function startingOpportunities(
   profile_id: string,
@@ -556,7 +822,20 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
   if (!world.world_seed) errors.push("world_seed missing");
   if (world.cycle !== 0) errors.push("cycle must be 0");
   const rooms = Object.values(world.rooms);
-  if (rooms.length < 3 || rooms.length > 8) errors.push(`room_count ${rooms.length} outside 3–8 budget`);
+  const roomIds = Object.keys(world.rooms);
+  const requireChamberMap = isProductChamberWorld(world.world_id) || roomIds.length === 10;
+  if (requireChamberMap) {
+    const have = new Set(roomIds);
+    const allowed = new Set<string>(CHAMBER_MAP_ROOM_IDS);
+    for (const id of CHAMBER_MAP_ROOM_IDS) {
+      if (!have.has(id)) errors.push(`missing chamber-map room ${id}`);
+    }
+    for (const id of roomIds) {
+      if (!allowed.has(id)) errors.push(`unexpected room ${id}`);
+    }
+  } else if (rooms.length < 3 || rooms.length > 8) {
+    errors.push(`room_count ${rooms.length} outside 3–8 budget`);
+  }
   if (!world.rooms[world.entry_room_id]) errors.push("entry_room_id invalid");
 
   for (const room of rooms) {
@@ -611,7 +890,9 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
     throw new GenesisError("INVALID_SEED", "first-run budget: at most 2 story seeds");
   }
 
-  const world_id = `world.${world_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "01"}`;
+  const slug = `world.${world_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "01"}`;
+  const explicit = (input.world_id || "").trim();
+  const world_id = explicit || slug;
 
   const claimBearing = {
     world_name,
@@ -629,7 +910,33 @@ export async function previewGenesis(input: GenesisInput): Promise<GenesisResult
   const genesis_id = `genesis.${(await sha256Hex(stableStringify(claimBearing))).slice(0, 16)}`;
 
   const r = rng(`${world_seed}|${profile_id}|${story_seed_ids.join(",")}|${theme.theme_id}`);
-  const cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  const frozenClaim = isFrozenFirstWorldClaim({
+    world_name,
+    world_seed,
+    profile_id,
+    story_seed_ids,
+  });
+  const frozenWorldIds = explicit === "world.perihelion-reach" || explicit === "world-01" || !explicit;
+
+  let cycle0: Cycle0World;
+  if (frozenClaim) {
+    if (!frozenWorldIds) {
+      throw new GenesisError("INVALID_SEED", "frozen genesis_id cannot target another world");
+    }
+    cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else if (!explicit || explicit === "world.perihelion-reach" || explicit === "world-01") {
+    cycle0 = buildCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else if (isProductChamberWorld(explicit)) {
+    if (genesis_id === FROZEN_GENESIS_ID) {
+      throw new GenesisError("INVALID_SEED", "frozen genesis_id cannot target another world");
+    }
+    cycle0 = buildProductCycle0(world_id, world_name, world_seed, profile, story_seed_ids, r);
+  } else {
+    throw new GenesisError(
+      "INVALID_REQUEST",
+      "world_id override this campaign must be world.perihelion-reach-2, world.perihelion-reach-3, or test.hosted-canonical.ewm-cutover",
+    );
+  }
   const validation = validateCycle0(cycle0);
   const cycle0_digest = `sha256:${await sha256Hex(stableStringify(cycle0))}`;
 

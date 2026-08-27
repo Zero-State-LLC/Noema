@@ -17,12 +17,12 @@ Do not conflate them. Chamber play stays readable text. Pages `index.html` is a 
 ### Must include
 
 - Perihelion Reach world door on `index.html`
-- Enter-the-world link to https://noema.guru/watch
+- Watch-the-agents link to https://noema.guru/watch
 - `memo.html` as the builder map
 
 ### Must not
 
-- Teach PLAY / WATCH / STUDY as the first decision on `index.html`
+- Present PLAY and STUDY as equal **hero CTAs** on `index.html` (Watch is the primary action; Play is a tab)
 - Invent metrics or consciousness claims
 - Assign untrusted strings via `innerHTML`
 
@@ -33,13 +33,14 @@ Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/s
 
 | Page | Macrostructure |
 |---|---|
-| Hosted `/` | Letter / left-biased world door |
+| Hosted `/` | Marquee Hero / full-bleed table door |
+| Hosted `/manifesto` | Long Document / written thesis |
 | Hosted `/play` (signed-out) | Letter / left-biased enter |
 | Hosted `/watch` | Map-diagram (text graph primary; Phosphor optional) |
-| Hosted `/connect` | Workbench (single column; device approve first) |
+| Hosted `/connect` | Workbench (sign up, install official client, enter code; inhabit after Advanced token) |
 | Hosted `/study` | Short notice |
 | Hosted 404 | Miss note, not a second door |
 | Pages `index.html` | Same door as hosted `/` (pointer, no email form) |
 | `memo.html` | Long Document (for builders who click through) |
 
-Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Pages share tokens and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. The signed-out `/play` door is in the system.
+Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Every product surface uses Home · Manifesto · Watch · Connect. Home overlays that bar on the table still; other surfaces keep the solid bar. The thesis lives on `/manifesto`, not on the Home first-read. Pages share tokens, tabs, and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. Inhabit lives on `/connect`, hidden on signed-out first-read until Advanced token opens or a chamber session starts.

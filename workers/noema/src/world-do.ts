@@ -1,7 +1,16 @@
 import { enrichEntity } from "./actions";
 import { isHiddenRoom } from "./construction";
+import { persistDeepTime } from "./deep-time";
 import type { Cycle0World, GenesisResult } from "./genesis";
-import { buildWatchLive, type WatchPlayerIn, type WatchRoomIn, type WatchSourceEvent } from "./watch-live";
+import {
+  buildWatchLive,
+  heldFromSnapshot,
+  type HeldHeadline,
+  type WatchPlayerIn,
+  type WatchRoomIn,
+  type WatchSourceEvent,
+} from "./watch-live";
+import { buildWatchMap } from "./watch-map";
 import {
   appendOperatorWatchLine,
   buildOperatorWatch,
@@ -12,6 +21,7 @@ import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
 import { publicEmergencyPulses } from "./emergency";
+import { requireAgentPlayer } from "./auth";
 import {
   applyControllingSession,
   applyWorldLifecycle,
@@ -42,29 +52,53 @@ import {
 } from "./operator-digests";
 import type { DeviceRecord } from "./device-enrollment";
 import type { EnrollmentRecord } from "./enrollment";
+import type { RevocationRecord } from "./controller-revocation";
 import { runIncidentRecover } from "./incident-recover";
 import {
   commitAdoptedLiveHead,
   canonicalEventsForCommit,
+  commandResultHttpStatus,
   commitCanonicalSettlement,
   getWorldHead,
   replayUnsettled,
+  resolveSoftSettlementFailure,
   settleEvent,
   settleGenesisActivation,
   shouldRestoreFromHead,
   worldFromHead,
 } from "./settle";
-import { checkExpectedHead } from "./settle-fence";
-import { admitTestWorldId, resolveLoadWorldId } from "./test-world";
-import { MINI_ENTRY_ROOM_ID, miniChamberState } from "./mini-chamber";
+import { checkExpectedHead, isContentionSettlementFail } from "./settle-fence";
+import { buildRollbackEvidence } from "./rollback-evidence";
+import { buildCompatibilityEvidence } from "./compatibility-evidence";
+import {
+  admitTestWorldId,
+  lifecycleRequestedWorldId,
+  recoverBoundWorldId,
+  resolveLoadWorldId,
+  withIsolatedBootstrapEvent,
+} from "./test-world";
+import { ATTEST_WORLD_ID, MINI_ENTRY_ROOM_ID, attestChamberState, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
   applyWorldCommand,
   buildObservation,
+  ensureSuccessorMaterialsCache,
+  evictLeftoverHumanOccupancy,
   migrateWorldRuntime,
+  runPinnedTempoResolve,
   type RoomState,
   type WorldRuntime,
 } from "./world-actions";
+import {
+  advanceTempoAdmissionClock,
+  changeTempoMode,
+  isPlayerTempoPinned,
+  nextTempoAlarmAt,
+  operatorTempoTrigger,
+  pinPlayerTempo,
+  publicTempoProjection,
+  type TempoMode,
+} from "./player-tempo";
 
 type WorldState = WorldRuntime;
 type Room = RoomState;
@@ -138,11 +172,12 @@ function demoState(world_id: string): WorldState {
 
 /** Isolated test worlds get the mini chamber. Production / demo keep DEMO_ROOMS. */
 export function bootstrapWorldState(world_id: string): WorldState {
+  if (world_id === ATTEST_WORLD_ID) return attestChamberState(world_id);
   if (admitTestWorldId(world_id).ok) return miniChamberState(world_id);
   return demoState(world_id);
 }
 
-function cycle0ToWorld(c0: Cycle0World): WorldState {
+export function cycle0ToWorld(c0: Cycle0World): WorldState {
   const rooms: Record<string, Room> = {};
   for (const [id, r] of Object.entries(c0.rooms)) {
     rooms[id] = {
@@ -153,7 +188,7 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
       entities: r.entities.map((e) => enrichEntity(e)),
     };
   }
-  return {
+  const w: WorldState = {
     world_id: c0.world_id,
     world_name: c0.world_name,
     world_seed: c0.world_seed,
@@ -168,6 +203,33 @@ function cycle0ToWorld(c0: Cycle0World): WorldState {
     seen_idempotency: {},
     unsettled: [],
   };
+  // SEMANTIC-EVOLUTION §7 / DEEP-TIME §2.4 / ECONOMY-EWM §7: genesis seeds
+  // become live world state. Before this, the Cycle 0 document carried
+  // initial_co_evolution / scar_seeds / lore_prototypes / signaling_styles
+  // that never left the genesis digest (audit G6/D5).
+  if (c0.initial_co_evolution || c0.initial_beliefs || c0.signaling_styles) {
+    const seed = (c0.initial_co_evolution || {}) as Record<string, unknown>;
+    const rec = (v: unknown): Record<string, number> =>
+      v && typeof v === "object" ? (v as Record<string, number>) : {};
+    w.co_evolution = {
+      // genesis emits harvest_pressure as a scalar 0 — live state is per-room
+      harvest_pressure: rec(seed.harvest_pressure),
+      regen_mod: rec(seed.regen_mod),
+      protocol_strength: rec(seed.protocol_strength),
+      genesis_seeds: {
+        ...(c0.initial_beliefs ? { initial_beliefs: c0.initial_beliefs } : {}),
+        ...(c0.signaling_styles ? { signaling_styles: c0.signaling_styles as Record<string, string> } : {}),
+      },
+    };
+  }
+  if (c0.scar_seeds?.length) {
+    w.scars = c0.scar_seeds.map((s) => ({ ...s }));
+  }
+  if (c0.lore_prototypes?.length) {
+    w.lore_attractors = c0.lore_prototypes.map((l) => ({ ...l }));
+  }
+  if (w.scars || w.lore_attractors) persistDeepTime(w as never);
+  return w;
 }
 
 export class NoemaWorldDO {
@@ -178,10 +240,18 @@ export class NoemaWorldDO {
   private previews: Record<string, GenesisResult> = {};
   private requestedWorldId: string | null = null;
   private allowCanonicalBootstrap = false;
+  /** §4A hold: last served headline, presentation-only. WATCH stays non-mutating (no storage write). */
+  private watchHeld: HeldHeadline | null = null;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
+  }
+
+  /** Admin genesis routes may target perihelion-reach-2; do not require admitTestWorldId. */
+  private bindAdminGenesisWorld(request: Request): void {
+    const headerWorld = (request.headers.get("x-noema-world-id") || "").trim();
+    if (headerWorld) this.requestedWorldId = headerWorld;
   }
 
   private async watchSnapshot() {
@@ -215,13 +285,14 @@ export class NoemaWorldDO {
       at: ev.at,
       payload: ev.payload,
     }));
-    return buildWatchLive({
+    const snap = buildWatchLive({
       world_id: this.world!.world_id,
       cycle: this.world!.cycle,
       sequence: this.world!.sequence,
       rooms: this.world!.rooms as Record<string, WatchRoomIn>,
       players,
       events,
+      held: this.watchHeld,
       handles: Object.fromEntries(
         Object.entries(this.world!.players || {}).map(([id, p]) => [id, p.handle]),
       ),
@@ -236,6 +307,7 @@ export class NoemaWorldDO {
             visibility: r.visibility,
             claim: r.claim,
             epistemic: r.epistemic,
+            author_id: r.author_player_id,
           })),
         ),
         ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
@@ -243,7 +315,15 @@ export class NoemaWorldDO {
         ...(this.world!.institution_pulses || []),
         ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
       ],
+      rumor: this.world!.rumor,
+      organizations: Object.values(this.world!.organizations || {}).map((o) => ({
+        org_id: o.org_id,
+        name: o.name,
+        offices: o.offices,
+      })),
     });
+    this.watchHeld = heldFromSnapshot(snap);
+    return snap;
   }
 
   private async operatorWatchSnapshot(operatorId?: string) {
@@ -323,6 +403,26 @@ export class NoemaWorldDO {
       return new Response("method not allowed", { status: 405 });
     }
 
+    if (path.endsWith("/revoke") || path === "/revoke") {
+      const bag =
+        (await this.state.storage.get<Record<string, RevocationRecord>>("revocations")) || {};
+      if (request.method === "PUT") {
+        const rec = (await request.json()) as RevocationRecord;
+        if (!rec?.kind || !rec?.id) return Response.json({ error: "kind and id required" }, { status: 400 });
+        bag[`${rec.kind}:${rec.id}`] = rec;
+        await this.state.storage.put("revocations", bag);
+        return Response.json({ ok: true });
+      }
+      if (request.method === "GET") {
+        const kind = url.searchParams.get("kind") || "";
+        const id = url.searchParams.get("id") || "";
+        const rec = bag[`${kind}:${id}`];
+        if (!rec) return new Response("{}", { status: 404 });
+        return Response.json(rec);
+      }
+      return new Response("method not allowed", { status: 405 });
+    }
+
     if (path.endsWith("/device") || path === "/device") {
       const bag = (await this.state.storage.get<Record<string, DeviceRecord>>("devices")) || {};
       if (request.method === "PUT") {
@@ -335,6 +435,7 @@ export class NoemaWorldDO {
       if (request.method === "GET") {
         const deviceCode = url.searchParams.get("device_code");
         const userCode = (url.searchParams.get("user_code") || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+        const reviewTokenHash = url.searchParams.get("review_token_hash") || "";
         if (deviceCode) {
           const rec = bag[deviceCode];
           if (!rec) return new Response("{}", { status: 404 });
@@ -345,6 +446,11 @@ export class NoemaWorldDO {
           if (!rec) return new Response("{}", { status: 404 });
           return Response.json(rec);
         }
+        if (reviewTokenHash) {
+          const rec = Object.values(bag).find((r) => r.review_token_hash === reviewTokenHash);
+          if (!rec) return new Response("{}", { status: 404 });
+          return Response.json(rec);
+        }
         // No resolvable lookup key — same as unknown id (do not list the bag).
         return new Response("{}", { status: 404 });
       }
@@ -352,6 +458,7 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/health")) {
+      this.bindAdminGenesisWorld(request);
       await this.load();
       return Response.json({
         ok: true,
@@ -369,6 +476,22 @@ export class NoemaWorldDO {
 
     if (request.method === "GET" && path.endsWith("/watch")) {
       return Response.json(await this.watchSnapshot());
+    }
+    if (request.method === "GET" && path.endsWith("/watch-map")) {
+      const live = await this.watchSnapshot();
+      const w = this.world;
+      return Response.json(
+        buildWatchMap({
+          live,
+          scars: (w as { scars?: Array<{ room_id?: string; strength: number; visibility: string; domain: string }> } | null)?.scars,
+          harvest_pressure: w?.co_evolution?.harvest_pressure,
+          protocol_strength: w?.co_evolution?.protocol_strength,
+          reconstructions: Object.values(w?.reconstructions || {}).map((r) => ({
+            fidelity: (r as { fidelity?: number }).fidelity,
+            visibility: r.visibility,
+          })),
+        }),
+      );
     }
 
     if (request.method === "GET" && path.endsWith("/admin-watch")) {
@@ -388,13 +511,18 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/admin-status")) {
+      const rawStoredWorld = await this.state.storage.get<WorldState>("world");
+      const compatibilityEvidence = buildCompatibilityEvidence(rawStoredWorld);
       await this.load();
       const roomList = Object.values(this.world!.rooms);
+      const digestEvents = (await this.state.storage.get<DigestEvent[]>("digest_events")) || [];
+      const rollbackEvidence = await buildRollbackEvidence(this.world!, digestEvents);
       return Response.json({
         world_id: this.world!.world_id,
         world_name: this.world!.world_name,
         cycle: this.world!.cycle,
         sequence: this.world!.sequence,
+        persisted_player_count: Object.keys(this.world!.players || {}).length,
         players_present: countLivePlayers(this.world!.players),
         player_ids: listLivePlayers(this.world!.players).map((p) => p.player_id),
         live_players: listLivePlayers(this.world!.players),
@@ -410,8 +538,11 @@ export class NoemaWorldDO {
         unsettled_count: this.world!.unsettled.length,
         entry_room_id: this.world!.entry_room_id,
         settlement_health: this.meta!.settlement_health || "HEALTHY",
+        rollback_evidence: rollbackEvidence,
+        compatibility_evidence: compatibilityEvidence,
         meta: this.publicMeta(),
         preview_count: Object.keys(this.previews).length,
+        player_tempo: publicTempoProjection(this.world!, Date.now()),
         pressure: adminPressureView(this.world!.pressure),
         emergency_scopes: Object.values(this.world!.organizations || {}).flatMap((o) =>
           (o.emergency_scopes || []).map((s) => ({
@@ -441,11 +572,20 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "POST" && path.endsWith("/admin-lifecycle")) {
+      const body = (await request.json()) as { action?: string; reason?: string; world_id?: string };
+      const bound = lifecycleRequestedWorldId(body.world_id || request.headers.get("x-noema-world-id"));
+      this.requestedWorldId = bound;
       await this.load();
-      const body = (await request.json()) as { action?: string; reason?: string };
       const action = String(body.action || "").toLowerCase();
       if (action === "recover") {
         const stored = await this.state.storage.get<WorldState>("world");
+        const boundWorld = recoverBoundWorldId(bound, stored?.world_id, this.world?.world_id);
+        if (!boundWorld.ok) {
+          return Response.json(
+            { error: { code: boundWorld.code, message: boundWorld.message } },
+            { status: 403 },
+          );
+        }
         const recovered = await runIncidentRecover(
           {
             status: this.meta!.status,
@@ -456,8 +596,14 @@ export class NoemaWorldDO {
             writerGeneration: this.meta!.writer_generation || "do.1",
           },
           {
-            getHead: (worldId) => getWorldHead(this.env, worldId),
-            adoptLiveHead: (input) => commitAdoptedLiveHead(this.env, input),
+            getHead: (worldId) =>
+              worldId === boundWorld.world_id
+                ? getWorldHead(this.env, worldId)
+                : Promise.resolve(null),
+            adoptLiveHead: (input) =>
+              input.world.world_id === boundWorld.world_id
+                ? commitAdoptedLiveHead(this.env, input)
+                : Promise.resolve({ ok: false, code: "WORLD_FORBIDDEN" }),
           },
         );
         if (!recovered.ok) {
@@ -471,6 +617,7 @@ export class NoemaWorldDO {
         this.meta!.settlement_ok = true;
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
+        await this.scheduleTempoAlarm(Date.now());
         return Response.json({
           ok: true,
           status: this.meta!.status,
@@ -497,6 +644,69 @@ export class NoemaWorldDO {
         settlement_health: this.meta!.settlement_health || "HEALTHY",
         reason: body.reason || null,
       });
+    }
+
+    if (request.method === "POST" && path.endsWith("/admin-tempo")) {
+      const body = (await request.json()) as {
+        action?: string;
+        mode?: TempoMode;
+        reason?: string;
+        now?: number;
+      };
+      await this.load();
+      const now = typeof body.now === "number" ? body.now : Date.now();
+      const action = String(body.action || "").toLowerCase();
+      if (action === "pin") {
+        const pinned = pinPlayerTempo(this.world!, {
+          mode: body.mode || "OBSERVED_LIVE",
+          now,
+          reason: body.reason || "admin pin",
+          defaultWorldId: this.env.DEFAULT_WORLD_ID,
+        });
+        if (!pinned.ok) {
+          return Response.json({ error: { code: pinned.code, message: pinned.message } }, { status: 409 });
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      if (action === "mode") {
+        const changed = changeTempoMode(this.world!, {
+          mode: body.mode || "OBSERVED_LIVE",
+          now,
+          reason: body.reason || "",
+          defaultWorldId: this.env.DEFAULT_WORLD_ID,
+        });
+        if (!changed.ok) {
+          return Response.json({ error: { code: changed.code, message: changed.message } }, { status: 409 });
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      if (action === "step" || action === "batch_close") {
+        const trigger = action === "step" ? "OPERATOR_STEP" : "OPERATOR_BATCH_CLOSE";
+        const closed = operatorTempoTrigger(this.world!, { trigger, now });
+        if (!closed.ok) {
+          return Response.json({ error: { code: closed.code, message: closed.message } }, { status: 409 });
+        }
+        if (closed.should_resolve) {
+          const resolved = await runPinnedTempoResolve(
+            this.world!,
+            async () => true,
+            now,
+            (events) => this.commitTempoResolution(events),
+          );
+          if (!resolved.ok) {
+            await this.save();
+            return Response.json({ error: resolved.result.error }, { status: 409 });
+          }
+        }
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return Response.json({ ok: true, player_tempo: publicTempoProjection(this.world!, now) });
+      }
+      return Response.json({ error: { code: "INVALID_REQUEST", message: "Unknown tempo admin action." } }, { status: 400 });
     }
 
     if (request.method === "GET" && path.endsWith("/digests")) {
@@ -533,6 +743,7 @@ export class NoemaWorldDO {
 
     // Store preview (does not mutate live world authority)
     if (request.method === "POST" && path.endsWith("/genesis-preview-store")) {
+      this.bindAdminGenesisWorld(request);
       await this.loadMeta();
       const body = (await request.json()) as { result: GenesisResult };
       if (!body?.result?.genesis_id) {
@@ -560,6 +771,7 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/genesis-preview-get")) {
+      this.bindAdminGenesisWorld(request);
       const gid = url.searchParams.get("genesis_id") || "";
       this.previews = (await this.state.storage.get<Record<string, GenesisResult>>("genesis_previews")) || {};
       const p = this.previews[gid];
@@ -569,11 +781,13 @@ export class NoemaWorldDO {
 
     // Atomic activation
     if (request.method === "POST" && path.endsWith("/genesis-activate")) {
+      this.bindAdminGenesisWorld(request);
       await this.loadMeta();
       const body = (await request.json()) as {
         genesis_id: string;
         admin_session_id: string;
         force?: boolean;
+        world_id?: string;
       };
       if (!body?.genesis_id) {
         return Response.json({ error: { code: "INVALID_REQUEST", message: "genesis_id required" } }, { status: 400 });
@@ -610,6 +824,18 @@ export class NoemaWorldDO {
               details: preview.validation?.errors || [],
             },
           },
+          { status: 400 },
+        );
+      }
+      if (preview.genesis_id === "genesis.ef578f4ffceeccd0" && preview.world_id !== "world.perihelion-reach") {
+        return Response.json(
+          { error: { code: "INVALID_SEED", message: "frozen genesis cannot activate on another world" } },
+          { status: 400 },
+        );
+      }
+      if (body.world_id && preview.world_id !== body.world_id) {
+        return Response.json(
+          { error: { code: "INVALID_REQUEST", message: "world_id does not match preview" } },
           { status: 400 },
         );
       }
@@ -727,14 +953,32 @@ export class NoemaWorldDO {
       );
     }
 
+    const agent = requireAgentPlayer(body.principal);
+    if (agent instanceof Response) return agent;
+
     const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
     const requested = String(body.world_id || headerWorld || "").trim();
     const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
     this.requestedWorldId = admitted.ok ? admitted.world_id : null;
     this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
+    // Preview health/store may bind a successor id on this isolate. PLAY must
+    // not keep that in-memory world; reload from storage / DEFAULT_WORLD_ID.
+    if (!admitted.ok) {
+      this.world = null;
+      this.meta = null;
+    }
 
-    const result = await this.applyCommand(body.principal, body.envelope);
-    return Response.json(result, { status: result.ok ? 200 : 400 });
+    try {
+      const result = await this.applyCommand(agent, body.envelope);
+      return Response.json(result, { status: commandResultHttpStatus(result) });
+    } catch (e) {
+      console.error("do/command", e instanceof Error ? e.stack || e.message : e);
+      return Response.json({
+        ok: false,
+        request_id: body.envelope?.request_id || "unknown",
+        error: { code: "COMMAND_FAILED", message: "The world could not apply that action." },
+      });
+    }
   }
 
   private publicMeta(): Record<string, unknown> {
@@ -781,18 +1025,60 @@ export class NoemaWorldDO {
           : "room.relay-quarter";
       }
       migrateWorldRuntime(this.world);
+    } else {
+      migrateWorldRuntime(this.world);
     }
-    if (expireStalePresence(this.world.players)) {
+    const filledHarvest = ensureSuccessorMaterialsCache(this.world);
+    if (expireStalePresence(this.world.players) || filledHarvest) {
       await this.save();
     }
   }
 
-  private async save(): Promise<void> {
-    if (this.world) await this.state.storage.put("world", this.world);
+  private dropDisposableSystemActors(): number {
+    if (!this.world?.players) return 0;
+    let n = 0;
+    for (const [id, p] of Object.entries(this.world.players)) {
+      const handle = String(p.handle || "");
+      if (/^(reach-maint|tester)/i.test(handle)) continue;
+      if (p.actor_kind !== "system") continue;
+      delete this.world.players[id];
+      n += 1;
+    }
+    if (Array.isArray(this.world.messages) && this.world.messages.length > 20) {
+      this.world.messages = this.world.messages.slice(-20);
+    }
+    this.world.seen_idempotency = {};
+    this.world.trades = {};
+    return n;
+  }
+
+  private async save(): Promise<boolean> {
+    if (!this.world) return true;
+    const put = () => this.state.storage.put("world", this.world);
+    try {
+      await put();
+      return true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("TOOBIG")) throw e;
+      const dropped = this.dropDisposableSystemActors();
+      const bytes = JSON.stringify(this.world).length;
+      console.error("save TOOBIG; dropped disposable system actors", dropped, "bytes", bytes);
+      try {
+        await put();
+        return true;
+      } catch (e2) {
+        const msg2 = e2 instanceof Error ? e2.message : String(e2);
+        if (!msg2.includes("TOOBIG")) throw e2;
+        console.error("save still TOOBIG after compact", "bytes", bytes);
+        return false;
+      }
+    }
   }
 
   private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult> {
     await this.load();
+    evictLeftoverHumanOccupancy(this.world!, principal.player_id);
     const mutating = isMutatingCommand(commandForOps(envl.command, envl.arguments));
     const health = this.meta!.settlement_health || "HEALTHY";
     if (mutating && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -816,6 +1102,10 @@ export class NoemaWorldDO {
       }
     }
     const w = this.world!;
+    const replayKey = envl.idempotency_key || envl.request_id;
+    const idempotentReplay = Boolean(
+      replayKey && w.seen_idempotency?.[`${principal.player_id}::${replayKey}`],
+    );
     if (mutating) {
       const gate = mutationBlocked(this.meta!.status, health);
       if (gate) {
@@ -858,8 +1148,12 @@ export class NoemaWorldDO {
         // is known.  Never write a candidate separately here.
         void ev;
         return true;
+      }, {
+        now: Date.now(),
+        worldPaused: this.meta!.status === "PAUSED",
       });
-    } catch {
+    } catch (e) {
+      console.error("applyWorldCommand", e instanceof Error ? e.stack || e.message : e);
       this.world = before;
       const code = isUsableLiveWorld(w) ? "COMMAND_FAILED" : "WORLD_NOT_READY";
       const message =
@@ -887,8 +1181,19 @@ export class NoemaWorldDO {
     const ledgerEvents = canonicalEventsForCommit(result.events);
     if (mutating && result.ok && ledgerEvents.length && this.env.SUPABASE_URL && this.env.SUPABASE_SERVICE_ROLE_KEY) {
       const durable = await getWorldHead(this.env, w.world_id);
+      // Fail closed: a missing durable head must never auto-bootstrap the
+      // production world (a Postgres outage/restore window would otherwise
+      // re-emit a sequence-0 WORLD_BOOTSTRAP over live history). Bootstrapping
+      // requires the explicit per-request admit (isolated worlds) or the
+      // operator env latch set only for a genesis activation window.
+      const operatorLatch =
+        (this.env as { NOEMA_ALLOW_PROD_BOOTSTRAP?: string }).NOEMA_ALLOW_PROD_BOOTSTRAP === "1";
+      const bootstrapEmpty = !durable && (this.allowCanonicalBootstrap || operatorLatch);
+      const toCommit = bootstrapEmpty
+        ? withIsolatedBootstrapEvent(ledgerEvents, w.world_id, this.meta!.genesis_id)
+        : ledgerEvents;
       const committed = await commitCanonicalSettlement(this.env, {
-        settlement_id: `settlement.${ledgerEvents.map((event) => event.event_id).join(".")}`,
+        settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
         expected_revision: this.meta!.revision ?? 0,
         writer_generation: this.meta!.writer_generation || "do.1",
         genesis_id: this.meta!.genesis_id || null,
@@ -896,29 +1201,83 @@ export class NoemaWorldDO {
         settlement_health: "HEALTHY",
         world: w,
         principal,
-        events: ledgerEvents,
+        events: toCommit,
         previous_digest: durable?.ledger_head_digest ?? null,
-        allow_bootstrap: this.allowCanonicalBootstrap,
+        allow_bootstrap: bootstrapEmpty,
       });
       if (!committed.ok) {
-        this.world = before;
-        this.meta!.settlement_ok = false;
-        this.meta!.settlement_health = nextSettlementHealth(health, false);
-        this.meta!.status = "INCIDENT";
+        // Soft-restore sequence drift (PR #363). Contention races stay ACTIVE with resync.
+        // Other durable failures still INCIDENT via resolveSoftSettlementFailure.
+        if (isContentionSettlementFail(committed.code)) {
+          const head = await getWorldHead(this.env, w.world_id);
+          if (head && typeof head.revision === "number") {
+            this.world = worldFromHead(head, before);
+            migrateWorldRuntime(this.world);
+            this.meta!.revision = head.revision;
+          } else {
+            this.world = before;
+          }
+          // Prefer SETTLEMENT_RESYNC for sequence-class soft codes; else race message.
+          const soft = await resolveSoftSettlementFailure({
+            code: committed.code,
+            before: this.world,
+            request_id: envl.request_id || "unknown",
+            getHead: (worldId) => getWorldHead(this.env, worldId),
+            writer_generation: this.meta!.writer_generation || "do.1",
+          });
+          if (soft.mode === "soft_restore") {
+            this.world = soft.world || this.world;
+            this.meta!.settlement_ok = soft.metaPatch.settlement_ok;
+            this.meta!.settlement_health = soft.metaPatch.settlement_health;
+            this.meta!.status = soft.metaPatch.status;
+            if (typeof soft.metaPatch.revision === "number") {
+              this.meta!.revision = soft.metaPatch.revision;
+            }
+            await this.state.storage.put("world_meta", this.meta);
+            await this.save();
+            return soft.result;
+          }
+          // Contention without soft code: no INCIDENT, ask retry
+          this.meta!.settlement_ok = true;
+          this.meta!.settlement_health = "HEALTHY";
+          this.meta!.status = "ACTIVE";
+          await this.state.storage.put("world_meta", this.meta);
+          await this.save();
+          return {
+            ok: false,
+            request_id: envl.request_id || "unknown",
+            error: {
+              code: committed.code,
+              message: "That action lost the settlement race. Observe and try again.",
+            },
+          };
+        }
+        const soft = await resolveSoftSettlementFailure({
+          code: committed.code,
+          before,
+          request_id: envl.request_id || "unknown",
+          getHead: (worldId) => getWorldHead(this.env, worldId),
+          writer_generation: this.meta!.writer_generation || "do.1",
+        });
+        this.world = soft.world || before;
+        this.meta!.settlement_ok = soft.metaPatch.settlement_ok;
+        this.meta!.settlement_health = soft.metaPatch.settlement_health;
+        this.meta!.status = soft.metaPatch.status;
+        if (typeof soft.metaPatch.revision === "number") {
+          this.meta!.revision = soft.metaPatch.revision;
+        } else if (soft.mode === "incident") {
+          this.meta!.settlement_health = nextSettlementHealth(health, false);
+        }
         await this.state.storage.put("world_meta", this.meta);
         await this.save();
-        return {
-          ok: false,
-          request_id: envl.request_id || "unknown",
-          error: { code: committed.code, message: "canonical settlement was not committed; world entered INCIDENT" },
-        };
+        return soft.result;
       }
       this.meta!.revision = committed.revision;
       this.meta!.settlement_ok = true;
       this.meta!.settlement_health = "HEALTHY";
       await this.state.storage.put("world_meta", this.meta);
     }
-    if (result.ok && result.events?.length) {
+    if (result.ok && result.events?.length && !idempotentReplay) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
     }
     if (result.ok) {
@@ -929,15 +1288,119 @@ export class NoemaWorldDO {
         if (oid) actor.operator_id = oid;
       }
     }
-    if (result.ok && inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system") {
+    if (
+      result.ok &&
+      !idempotentReplay &&
+      inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system"
+    ) {
       await this.recordOperatorWatch(principal, envl, result);
     }
     const keys = Object.keys(w.seen_idempotency || {});
     if (keys.length > 200) {
       for (const k of keys.slice(0, keys.length - 200)) delete w.seen_idempotency[k];
     }
-    await this.save();
+    const persisted = await this.save();
+    if (mutating && !persisted) {
+      return {
+        ok: false,
+        request_id: envl.request_id || "unknown",
+        error: { code: "COMMAND_FAILED", message: "The world could not persist that action." },
+      };
+    }
+    await this.scheduleTempoAlarm(Date.now());
     return result;
+  }
+
+  private async scheduleTempoAlarm(now: number): Promise<void> {
+    if (!this.world || !isPlayerTempoPinned(this.world)) return;
+    const next = nextTempoAlarmAt(this.world.player_tempo, now);
+    if (next == null) {
+      await this.state.storage.deleteAlarm();
+      return;
+    }
+    await this.state.storage.setAlarm(next);
+  }
+
+  private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean> {
+    const ledgerEvents = canonicalEventsForCommit(events);
+    if (!ledgerEvents.length || !this.env.SUPABASE_URL || !this.env.SUPABASE_SERVICE_ROLE_KEY) return true;
+    const durable = await getWorldHead(this.env, this.world!.world_id);
+    const operatorLatch =
+      (this.env as { NOEMA_ALLOW_PROD_BOOTSTRAP?: string }).NOEMA_ALLOW_PROD_BOOTSTRAP === "1";
+    const bootstrapEmpty = !durable && (this.allowCanonicalBootstrap || operatorLatch);
+    const toCommit = bootstrapEmpty
+      ? withIsolatedBootstrapEvent(ledgerEvents, this.world!.world_id, this.meta!.genesis_id)
+      : ledgerEvents;
+    const principal: PlayerPrincipal = {
+      player_id: "player.system-tempo",
+      agent_id: "agent.system-tempo",
+      session_id: "sess.system-tempo",
+      controller_id: "ctrl.system-tempo",
+      controller_type: "agent",
+      scopes: ["noema.world.observe"],
+      protocol_version: "1",
+      authentication_context: "tempo-alarm",
+    };
+    const committed = await commitCanonicalSettlement(this.env, {
+      settlement_id: `settlement.${toCommit.map((event) => event.event_id).join(".")}`,
+      expected_revision: this.meta!.revision ?? 0,
+      writer_generation: this.meta!.writer_generation || "do.1",
+      genesis_id: this.meta!.genesis_id || null,
+      status: this.meta!.status,
+      settlement_health: "HEALTHY",
+      world: this.world!,
+      principal,
+      events: toCommit,
+      previous_digest: durable?.ledger_head_digest ?? null,
+      allow_bootstrap: bootstrapEmpty,
+    });
+    if (!committed.ok) {
+      this.meta!.settlement_ok = false;
+      this.meta!.settlement_health = "BLOCKING";
+      this.meta!.status = "INCIDENT";
+      await this.state.storage.put("world_meta", this.meta);
+      return false;
+    }
+    this.meta!.revision = committed.revision;
+    this.meta!.settlement_ok = true;
+    this.meta!.settlement_health = "HEALTHY";
+    await this.state.storage.put("world_meta", this.meta);
+    return true;
+  }
+
+  async alarm(): Promise<void> {
+    await this.load();
+    if (!this.world || !isPlayerTempoPinned(this.world)) return;
+    const now = Date.now();
+    const adv = advanceTempoAdmissionClock(this.world, now);
+    if (adv.should_resolve) {
+      const resolved = await runPinnedTempoResolve(
+        this.world,
+        async () => true,
+        now,
+        (events) => this.commitTempoResolution(events),
+      );
+      if (!resolved.ok) {
+        await this.save();
+        await this.scheduleTempoAlarm(now);
+        return;
+      }
+      if (resolved.events.length) {
+        const actor: PlayerPrincipal = {
+          player_id: "player.system-tempo",
+          agent_id: "agent.system-tempo",
+          session_id: "sess.system-tempo",
+          controller_id: "ctrl.system-tempo",
+          controller_type: "agent",
+          scopes: ["noema.world.observe"],
+          protocol_version: "1",
+          authentication_context: "tempo-alarm",
+        };
+        await this.recordDigestEvents(actor, resolved.events, this.world.cycle);
+      }
+    }
+    await this.save();
+    await this.scheduleTempoAlarm(now);
   }
 
   private async loadDigestConfig(): Promise<DigestConfig> {

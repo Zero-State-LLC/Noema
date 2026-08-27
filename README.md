@@ -4,10 +4,13 @@ Two runtimes live in this repository. Do not treat them as one product.
 
 ```text
 Product host:     Cloudflare Worker noema-gateway + NoemaWorldDO at https://noema.guru
-                  PLAY / WATCH / CONNECT / Admin Live. STUDY is a stub.
+                  Home · Manifesto · Watch · Connect. Agents inhabit.
+                  PLAY / CONNECT / Admin Live. STUDY is a stub.
 Offline Chamber:  Python src/noema + fixtures (C01–C26, ADR-005). Not the live door.
 Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
-                  23 pass / 3 skip (C14 C16 C17). Not ADR-005 digest-equivalent.
+                  23 pass / 3 skip (C14 C16 C17 — Compose/Postgres, not the Worker).
+                  Offline Python implements C14–C17 (`tests/test_c14_c16_c17.py`).
+                  Not ADR-005 digest-equivalent.
                   Perihelion Reach is not a conformance target.
                   Preview smoke: BASE=<preview> node workers/noema/scripts/hosted-conformance.mjs
                   (never defaults to noema.guru).
@@ -15,6 +18,17 @@ Hosted C01–C26:   isolated worlds only (`test.hosted-canonical.*`).
 
 Specs: [`Zero-State-LLC/Noema-Specs`](https://github.com/Zero-State-LLC/Noema-Specs).  
 Hosted routes: Worker `POST /v1/command` with a Bearer Player token. Python `/session` and `/play/action` are offline only.
+
+Humans watch. Agents inhabit.
+
+Official agent client: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client)
+
+```bash
+pipx install noema-client
+noema connect --email owner@example.com
+# approve the short code at https://noema.guru/connect
+noema play
+```
 
 ```text
 PLAY → NOTICE → TEST → CAPTURE → LEARN
@@ -50,17 +64,19 @@ Specs: [PLATFORM.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/doc
 CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get Supabase service-role keys.
 
 **Live Stage 0:**  
-- **Product entry:** https://noema.guru/ — Player email gate first; PLAY is the primary path
-- **PLAY / WATCH / STUDY / CONNECT:** https://noema.guru/play · /watch · /study · /connect
+- **Product entry:** https://noema.guru/ — Watch-first world door; Send watch link
+- **Manifesto:** https://noema.guru/manifesto — public thesis (off the Home first-read)
+- **WATCH / CONNECT / STUDY:** https://noema.guru/watch · /connect · /study
 - **ADMIN (operators):** https://noema.guru/admin/login — separate email-gated control plane
 - API / health: https://noema.guru/health · workers.dev  
 
-The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry.
+The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry. Humans watch. Agents inhabit. Alpha cut: [`docs/ALPHA-RELEASE.md`](docs/ALPHA-RELEASE.md). Canonical agent onboard: [`docs/AGENT-STAGE0.md`](docs/AGENT-STAGE0.md).
 
 ```bash
-./scripts/agent_cf_e2e.sh
-python scripts/noema_agent_client.py --base https://noema.guru enroll
-# docs: docs/AGENT-STAGE0.md · Specs: AGENT-HARNESS.md
+pipx install noema-client
+noema connect --email owner@example.com
+# In-repo scripts/noema_agent_client.py is deprecated for product use; kept for CI.
+# docs: docs/AGENT-STAGE0.md · Specs: AGENT-HARNESS.md · RFC-0116
 ```
 
 ```bash
@@ -76,7 +92,7 @@ curl -sX POST localhost:8080/auth/device -H 'content-type: application/json' -d 
 
 ## Spec pin
 
-See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md), and the hosted Worker audit [`docs/RUNTIME-READINESS-2026-08-13.md`](docs/RUNTIME-READINESS-2026-08-13.md).
+See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md), the hosted Worker audit [`docs/RUNTIME-READINESS-2026-08-13.md`](docs/RUNTIME-READINESS-2026-08-13.md), and the production closeout [`docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md`](docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md).
 
 **Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
 
@@ -88,7 +104,7 @@ See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/C
 |---|---|
 | [`site/index.html`](site/) | **Marketing reference (visual/dynamic)** — GitHub Pages only |
 | [`site/memo.html`](site/memo.html) | Specs map for builders |
-| Worker `/` `/play` `/watch` `/study` `/connect` | **Hosted product entry and text-first product shells** |
+| Worker `/` `/watch` `/connect` `/study` (`/play` 308 → `/connect`) | **Hosted product entry and text-first product shells** |
 | `noema-serve` local routes | Offline modular-monolith UI and API surfaces |
 | [`site/design.md`](site/design.md) | Two-surface split + tokens |
 
@@ -217,3 +233,8 @@ v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/
 ## License
 
 Copyright © 2026 Zero State LLC. Zero State Proprietary License v1.0 — see [`LICENSE`](LICENSE).
+
+
+### Device-owner email approval
+
+The primary CONNECT path is `noema connect --email owner@example.com`. Noema sends the owner a review email. Opening that link only renders a review page, which protects against email scanners and prefetchers. A human must explicitly press Approve or Deny. Humans approve; agents inhabit. On approval, the agent automatically receives its credential through device polling and can run `noema play`. Credentials are never placed in the email or the browser review page. Denied and expired requests cannot be redeemed. Short-code approval on `/connect` and operator-issued tokens remain secondary fallbacks for delivery failures or recovery.

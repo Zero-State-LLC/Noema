@@ -3,6 +3,8 @@ export interface Env {
   WORLD_DO: DurableObjectNamespace;
   NOEMA_ENV: string;
   NOEMA_PROTOCOL_VERSION: string;
+  /** Cloudflare version_metadata: the running Worker Version. Read-only. */
+  CF_VERSION?: { id: string; tag: string; timestamp: string };
   DEFAULT_WORLD_ID: string;
   /** Static marketing splash + assets (wrangler [assets]). */
   ASSETS: Fetcher;
@@ -34,15 +36,7 @@ export interface Env {
   ADMIN_MAIL?: {
     send(message: unknown): Promise<void | { messageId?: string }>;
   };
-  /** Postmark server token — standby Worker-sent PLAY/ADMIN/agent letters. Secret. */
-  POSTMARK_SERVER_TOKEN?: string;
-  /** Optional Postmark account token. Break-glass operations only. */
-  POSTMARK_ACCOUNT_TOKEN?: string;
-  /** Optional verified sender override. */
-  POSTMARK_FROM_EMAIL?: string;
-  /** Postmark transactional stream; defaults to outbound. */
-  POSTMARK_MESSAGE_STREAM?: string;
-  /** Resend API key — production-primary transactional provider when configured. */
+  /** Resend API key — transactional provider for PLAY/ADMIN/agent letters. */
   RESEND_API_KEY?: string;
   /** Optional verified Resend sender override. */
   RESEND_FROM_EMAIL?: string;
@@ -58,11 +52,33 @@ export interface AdminPrincipal {
   operator_id: string;
 }
 
-/** human = identity (watch / approve). agent = inhabit. hybrid is refused at command admission. */
-export type ControllerType = "human" | "agent" | "hybrid";
+/** Live inhabit issuance is agent-only. human/hybrid remain historical compatibility. */
+export type LiveControllerType = "agent";
+export type LegacyControllerType = "human" | "hybrid" | "agent";
+export type ControllerType = LegacyControllerType;
 
-/** Authenticated principal. Only `controller_type: "agent"` may inhabit via applyPlayerCommand. */
+/** Human platform principal. MUST NOT carry player_id or world-mutation scopes. RFC-0120. */
+export interface HumanPrincipal {
+  kind: "human";
+  identity_id: string;
+  account_id?: string;
+  session_id: string;
+  roles: Array<"spectator" | "authorizer" | "researcher" | "admin">;
+  permissions: string[];
+  scopes: string[];
+  amr?: string;
+  protocol_version: string;
+  authentication_context: string;
+  /** Display-only leftover; never inhabit authority. */
+  controller_type?: "human" | "hybrid";
+}
+
+/**
+ * Agent Player principal consumed by the World Engine.
+ * Only `controller_type: "agent"` may inhabit via applyPlayerCommand.
+ */
 export interface PlayerPrincipal {
+  kind?: "agent_player";
   player_id: string;
   agent_id: string;
   identity_id?: string;
@@ -73,9 +89,22 @@ export interface PlayerPrincipal {
   /** Set when an ADMIN minted or enrolled this Controller. Opaque — not an email. */
   operator_id?: string;
   amr?: string;
+  /** JWT id; used for credential rotation. */
+  jti?: string;
   scopes: string[];
   protocol_version: string;
   authentication_context: string;
+}
+
+export type Principal = HumanPrincipal | PlayerPrincipal;
+
+export function isHumanPrincipal(p: Principal): p is HumanPrincipal {
+  return p.kind === "human";
+}
+
+export function isAgentPlayerPrincipal(p: Principal): p is PlayerPrincipal {
+  if (p.kind === "human") return false;
+  return typeof (p as PlayerPrincipal).player_id === "string" && (p as PlayerPrincipal).player_id.length > 0;
 }
 
 export interface CommandEnvelope {
@@ -90,6 +119,14 @@ export interface CommandEnvelope {
   player_id?: string;
   /** Isolated test tenant only when dual-auth is present. Omitted = DEFAULT_WORLD_ID. */
   world_id?: string;
+  /** Client monotonic sequence scoped to this Player. Required on accepted tempo mutations. */
+  client_action_sequence?: number;
+}
+
+export interface ObservationTrace {
+  kind: "scar" | "construction" | "notice";
+  text: string;
+  visibility: "public";
 }
 
 export interface ObservationEntity {
@@ -103,6 +140,7 @@ export interface ObservationEntity {
   regen_rate?: number;
   repairable?: boolean;
   harvestable?: boolean;
+  scar?: boolean;
 }
 
 export interface ObservationAffordance {
@@ -113,9 +151,66 @@ export interface ObservationAffordance {
   cmd: string;
   target_id?: string;
   target_label?: string;
+  /** GC1-S8. Structured REPAIR overhaul. Omitted for standard repair. */
+  extent?: "overhaul";
+  /** GC1-S7. Structured FOCUS track. Omitted when `clear` is set. */
+  track?: "explorer" | "surveyor" | "broker" | "engineer";
+  /** GC1-S7. Structured FOCUS clear. */
+  clear?: boolean;
+  /** GC2. Structured BUILD.CONSTRUCT class. */
+  class?: string;
+  /** RFC-0020. Structured ATTEST subject entity. */
+  subject_id?: string;
+  archive_claim?: "DESTROYED" | "OPERATING";
+  /** GC2-S10. Structured BUILD.VEST institution. */
+  org_id?: string;
+  /** GC2-S11. Structured BUILD.SHARE partner. */
+  player_id?: string;
+  /** GC2-S12. Structured BUILD.CONNECT dest (direction or room id). */
+  dest?: string;
+  /** GC7. Structured CONTEST form / target / stake. */
+  contest_form?: string;
+  target?: {
+    kind: string;
+    entity_id?: string;
+    exit_id?: string;
+    room_id?: string;
+    agent_id?: string;
+    holder_id?: string;
+    resource?: string;
+    amount?: number;
+  };
+  contest_id?: string;
+  stake?: Record<string, number>;
+  /** RFC-0100. Structured AGREEMENT type / parties / id. */
+  agreement_type?: string;
+  party_ids?: string[];
+  agreement_id?: string;
+  /** RFC-0100. Catalog terminate reason. Not the unavailable-copy `reason`. */
+  agreement_reason?: string;
+  /** RFC-0104. Structured ACCESS_POLICY. */
+  scope?: "EXIT" | "ROOM";
+  mode?: "DENY" | "CLEAR" | "ALLOW_ONLY";
+  applies_to?: string;
+  direction?: string;
+  acting_for?: string;
+  office_id?: string;
+  /** RFC-0024. Structured RECONSTRUCT subject / account / record. */
+  subject_ref?: string;
+  claim?: string;
+  visibility?: "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+  reconstruction_id?: string;
+  evidence?: string[];
+  /** GC4. Structured emergency / succession. */
+  template_id?: string;
+  target_ref?: string;
+  emergency_scope_id?: string;
+  successors?: string[];
+  rule_id?: string;
   requires?: Record<string, number>;
   available: boolean;
   reason?: string;
+  hint?: string;
   kind: string;
 }
 
@@ -123,7 +218,7 @@ export interface Observation {
   cycle: number;
   sequence: number;
   /** World display name when known (never seed / profile / story seeds). */
-  world_name: string;
+  world_name?: string;
   /** Absent when the live snapshot has no playable room. */
   location?: {
     room_id: string;
@@ -133,16 +228,40 @@ export interface Observation {
     condition?: string;
     exits: Array<{ direction: string; to_room_id: string; to_room_name?: string }>;
     entities: ObservationEntity[];
-    /** P1 co-evolution signals (eco strain, regen pressure). */
-    co_evolution?: { harvest_pressure?: number; regen_mod?: number };
-    /** P1 living genesis: recent micro-evolution events. */
-    genesis_evolutions?: Array<{ cycle: number; kind: string; details: string }>;
+    traces?: ObservationTrace[];
+    co_evolution?: { harvest_pressure?: number; regen_mod?: number; protocol_strength?: number };
+    genesis_evolutions?: Array<{
+      cycle: number;
+      kind: string;
+      details: string;
+      lineage_id?: string;
+      parent_kind?: string;
+    }>;
   };
   /** AGENT-ORIENTATION-S1: live place + strain-if-present. Never a thesis. */
   situation?: { place: string; strain?: string };
+  /** Feature B PRESSURE. Same local band as location.condition. Derived, not WorldState. */
+  pressure?: string;
   /** GC1-S7 self focus line. */
   focus_lines?: string[];
   player_id: string;
+  signaling_quality?: number;
+  drift_alerts?: string[];
+  cascading_risk?: number;
+  protocol_strength?: number;
+  compositionality?: number;
+  reputation_summary?: { self_image: number; self_second_order: number };
+  active_norms?: { org_create_influence: number; harvest_pressure: number; last_ratchet?: string };
+  scars?: Array<{
+    scar_id: string;
+    domain: string;
+    strength: number;
+    reconstruction_confidence: number;
+    visibility: string;
+  }>;
+  historical_context?: { fragments: number; reconstruction_confidence: number };
+  path_dependence_index?: number;
+  lore_attractors?: Array<{ attractor_id: string; label: string; weight: number; basin: string }>;
   /** False after LEAVE_WORLD or before ENTER_WORLD. */
   in_world?: boolean;
   /** Self budgets (Player-visible). */
@@ -196,12 +315,61 @@ export interface Observation {
       storage: number;
     };
   }>;
+  /** Other active players (addressable handles, no secrets). GC1-S6 may add public_practice_lines. */
   players_here?: Array<{
     player_id: string;
     handle?: string;
     public_practice_lines?: string[];
     public_focus_lines?: string[];
   }>;
+  /** Legacy string list + structured affordances */
+  available_actions: string[];
+  affordances?: ObservationAffordance[];
+  /** Last action consequence for UI */
+  consequence?: string;
+  /** Feature B room text (name → HERE → EXITS → STATUS → HAPPENED). Derived. */
+  play_text?: string;
+  /** GC1 self-only practice lines. Never put first-person lines on WATCH. */
+  practice_lines?: string[];
+  /** DEEP-TIME §3.4 succession inheritance, self-scoped and id-free. */
+  inherited_lines?: string[];
+  /** GC8-S1 self-only worn holdings. Never put on WATCH. */
+  lot_lines?: string[];
+  /** GC3-S0 self-only trade-memory lines. Never put on WATCH or players_here. */
+  social_memory_lines?: string[];
+  /** GC9-S0 site custom lines for the current room. Never put on WATCH. */
+  culture_lines?: string[];
+  /** GC6-S0 self-only archive/inspect contradiction. Never put on WATCH. */
+  discovery_lines?: string[];
+  /** GC4-S1 institution office summary. Public names/holders only. */
+  office_lines?: string[];
+  /** GC6-S1 reconstruction accounts the viewer may see. Not canonical truth. */
+  reconstruction_lines?: string[];
+  /** GC5-S2 held-claim lines. Never put on WATCH. Not truth. */
+  rumor_lines?: string[];
+  /** GC5-S5 room board notices. Last 5. Public room only. Never put on WATCH. */
+  board_lines?: string[];
+  /** GC5-S4 last room shout. Public room only. Never put on WATCH. */
+  shout_lines?: string[];
+  /** GC5-S6 last institution notice. Public room only. Never put on WATCH. */
+  notice_lines?: string[];
+  /** GC5-S7 last org channel notes. Current members only. Never put on WATCH. */
+  channel_lines?: string[];
+  /** GC5-S8 last trade notice. Public room only. Never put on WATCH. */
+  trade_notice_lines?: string[];
+  /** WR-S0 last public world report. Never put on WATCH. */
+  report_lines?: string[];
+  /** GC2-S7 UNCLAIMED public constructibles. Never put on WATCH. */
+  unclaimed_lines?: string[];
+  /** GC7-S0 public contest band. No hidden ids, holdings, or HP. */
+  contests?: Array<{
+    contest_id: string;
+    contest_form: string;
+    room_id: string;
+    status: string;
+    expires_cycle: number;
+  }>;
+  /** Location-bound World Services (adapters, not Players). */
   services?: Array<{
     service_id: string;
     display_name: string;
@@ -212,51 +380,17 @@ export interface Observation {
     suggested_cmds: string[];
     line: string;
   }>;
-  available_actions?: string[];
-  affordances?: ObservationAffordance[];
-  consequence?: string;
-  practice_lines?: string[];
-  lot_lines?: string[];
-  social_memory_lines?: string[];
-  culture_lines?: string[];
-  discovery_lines?: string[];
-  office_lines?: string[];
-  rumor_lines?: string[];
-  board_lines?: string[];
-  shout_lines?: string[];
-  notice_lines?: string[];
-  channel_lines?: string[];
-  trade_notice_lines?: string[];
-  report_lines?: string[];
-  unclaimed_lines?: string[];
-  reconstruction_lines?: string[];
-  contests?: Array<{
-    contest_id: string;
-    contest_form: string;
-    room_id: string;
-    status: string;
-    expires_cycle: number;
-  }>;
-  /** Legacy fields retained for compatibility with older UI paths. */
-  world_seed?: string;
-  snapshot?: {
-    room_stocks: Record<string, Record<string, number>>;
-    player_budgets: Record<string, Record<string, number>>;
-    co_evolution?: unknown;
-    genesis_evolutions?: unknown;
-  };
-  checkpoint_id?: string;
-  [k: string]: unknown;
-
 }
 
+export type { ActionSignal, SignalGrounding } from "./signal";
 
 /** P3: Lightweight per-agent belief state (expectations, policy prefs). */
 export interface BeliefState {
   expected_regen?: number;
   org_threshold?: number;
   preferred_actions?: string[];
-  counterparty_reliability?: Record<string, number>;  // simple trust
+  counterparty_reliability?: Record<string, number>;
+  signaling_style?: "grounded-first" | "compact" | "verbose";
 }
 
 /** P3: Heterogeneous agent role profiles (production bias, risk). */
@@ -274,7 +408,14 @@ export interface CommandResult {
     agent_id: string;
   };
   settled?: boolean;
-  error?: { code: string; message: string; choices?: string[] };
+  error?: {
+    code: string;
+    message: string;
+    choices?: string[];
+    cycle?: number;
+    phase?: string;
+    retry_after_ms?: number;
+  };
 }
 
 export interface Checkpoint {
@@ -288,6 +429,8 @@ export interface Checkpoint {
     player_budgets: Record<string, Record<string, number>>;
     co_evolution?: any;
     genesis_evolutions?: any;
+    scars?: unknown;
+    trajectory_digest?: unknown;
   };
   created_at: number;
   note?: string;

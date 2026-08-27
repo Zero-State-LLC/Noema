@@ -89,6 +89,7 @@ describe("GC2-S8 world path", () => {
     const other = principal("player.vesper");
     await run(w, owner, "ENTER_WORLD");
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, owner, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
@@ -105,6 +106,7 @@ describe("GC2-S8 world path", () => {
     expect(stolen.error?.code).toBe("NOT_OWNER");
 
     w.players[owner.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[owner.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const storageBefore = w.players[owner.player_id].budgets.storage;
     const restored = await run(w, owner, "BUILD", { operation: "RESTORE", entity_id: shop.entity_id });
     expect(restored.ok).toBe(true);
@@ -115,7 +117,7 @@ describe("GC2-S8 world path", () => {
     expect(same.unclaimed).toBeFalsy();
     expect(same.infra_type).toBe("workshop");
     expect(same.condition).toBe(50);
-    expect(storageBefore - w.players[owner.player_id].budgets.storage).toBe(CONSTRUCT_COSTS.workshop.storage);
+    expect(w.players[owner.player_id].budgets.storage - storageBefore).toBe(CONSTRUCT_COSTS.workshop.storage);
 
     const again = await run(w, owner, "BUILD", { operation: "RESTORE", entity_id: shop.entity_id });
     expect(again.ok).toBe(false);

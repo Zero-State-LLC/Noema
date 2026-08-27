@@ -1,43 +1,21 @@
 # Runtime readiness — 2026-08-13 (S0 closeout)
 
-**Addendum 2026-08-19 (M0 baseline pin — commands run).**
+**Addendum 2026-08-19 (SQL-head inspect).**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`. Do not Recover.
+
+Read-only Supabase MCP (`dezykkherxlaysxyvgbs`) after re-auth. Perihelion SQL head **matches** `/ready`: `ACTIVE`/`HEALTHY` cycle 105 sequence **307** revision **176** genesis `genesis.ef578f4ffceeccd0` digest prefix `sha256:18acf`. Isolated `test.hosted-canonical.inspect-s0` is `DEMO_SEED`/`HEALTHY` rev 2 seq 1 (two `AGENT_ENTERED_WORLD`; LOOK/INSPECT do not settle). Both settlement RPCs present (`SECURITY DEFINER`, `service_role` EXECUTE only). SQL-head inspect residual is **closed**. Production head is not missing.
+
+**Addendum 2026-08-18 (#317 production deploy pin).**  
+Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`. Do not Recover.
+
+OBSERVED Worker version `90b31d30-ae40-4e8f-ba2f-4bac396b769b` from git `5755a25` (#317). Previous production was `e28650ff`. `/ready` wrap is on production: DO `!ok`/throw → 200 `{ready:false, play_blocked:true, code:WORLD_NOT_READY}` not 500. Happy path this run still `ACTIVE`/`HEALTHY` sequence 307. `GET /play` 308 → `/connect`; chrome Home · Manifesto · Watch · Connect.
+
+Isolated SQL inspect still UNCONFIGURED without `SUPABASE_*`; MCP OAuth not authorized this session. Residual is isolated SQL-head inspect, not missing production head. `inspect-settlement.mjs` now probes RPC names via GET OpenAPI and does not POST empty `{}` to settlement RPCs.
+
+**Addendum 2026-08-18 (`/ready` re-fetch).**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
 
-Proof against shipped runtime `origin/main` `60c38a95324acaa626721c17743d8db387cadd45` (#315). Workspace checkout at `891d51d` is behind shipped main; tests/scripts ran from that shipped tree. Specs catalog hash checked on disk.
-
-OBSERVED `curl GET https://noema.guru/ready` **before** hosted scripts (HTTP 200, `date: Wed, 19 Aug 2026 03:47:14 GMT`): `ready:true`, `play_blocked:false`, `code:null`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence **305**, `genesis_id:genesis.ef578f4ffceeccd0`, `playable:true`, `players:0`. OBSERVED `GET https://noema.guru/health` (HTTP 200, same minute): `status:ok`, `service:noema-gateway`, `stage:0`, `env:production`, `protocol_version:1`, `world_id:world-01`.
-
-OBSERVED same `/ready` **after** shipped `agent-golden-path.mjs` live ENTER/LOOK/LEAVE (HTTP 200, `date: Wed, 19 Aug 2026 03:48:19 GMT`): cycle 105, sequence **307**, same genesis, `play_blocked:false`, `ACTIVE`/`HEALTHY`, `players:0`. Sequence 305 → 307 is those two live mutating commands, not a missing head.
-
-Production is **not** bootstrap-blocked. `play_blocked:false` is the live play gate. `p_allow_bootstrap=false` on `POST /v1/command` is the RFC-0016/0017 policy (do not invent a Perihelion head) — not a live outage. Residual is live isolated SQL inspect (`SUPABASE_*` / `inspect-settlement.mjs`), not Perihelion bootstrap.
-
-### Baseline pin (OBSERVED 2026-08-19)
-
-| Pin | Value | Label |
-|---|---|---|
-| Product | `https://noema.guru` | OBSERVED |
-| Shipped runtime SHA | `60c38a95324acaa626721c17743d8db387cadd45` (`origin/main` #315) | OBSERVED `git rev-parse` |
-| `GET /ready` (03:47:14Z) | HTTP 200 · `ready:true` · `play_blocked:false` · `code:null` · seq **305** | OBSERVED |
-| `GET /ready` (03:48:19Z, post golden) | HTTP 200 · same genesis · seq **307** · `play_blocked:false` | OBSERVED |
-| World status | `ACTIVE` · `settlement_health:HEALTHY` · `playable:true` | OBSERVED |
-| World | `world.perihelion-reach` / Perihelion Reach | OBSERVED |
-| DO name (health) | `world-01` | OBSERVED `/health` |
-| Genesis | `genesis.ef578f4ffceeccd0` | OBSERVED |
-| Cycle / sequence | 105 / **307** (was 305 before live ENTER+LEAVE) | OBSERVED |
-| Players | 0 (after LEAVE) | OBSERVED |
-| `GET /health` | HTTP 200 · `ok` · `noema-gateway` · `stage:0` · `env:production` · `protocol_version:1` | OBSERVED |
-| `POST /v1/command` unauth | HTTP 401 · `NOT_AUTHORIZED` · Bearer token required | OBSERVED |
-| Production bootstrap-blocked? | **No** (`play_blocked:false`) | OBSERVED |
-| Published seal | `sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395` | OBSERVED `seal.ts` + catalog + `examples/sealed-prompt/s0.txt` digest |
-| `/v1/command` bootstrap policy | `p_allow_bootstrap=false` unless `allow_bootstrap === true` | OBSERVED `settle.ts` L313; isolated test-world route sets true |
-| First-world profile / seeds / Cycle 0 digest | FRACTURED_OLD_WORLD · OLD_TRADE_NETWORK + LOST_ARCHIVE · `17011984` · `sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6` | Spec pin ([FIRST-WORLD-SPEC-FREEZE.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/FIRST-WORLD-SPEC-FREEZE.md)); **not** re-read from Admin this run |
-| vitest `workers/noema` | 156 files / 948 tests passed (incl. `agent-golden-path`, `isolated-settlement-proof`, `seal`, `settle-head`) | OBSERVED `npm test` on shipped tree |
-| `isolated-ack.mjs` | `ok:true` · `test.hosted-canonical.ack-s3` · ENTER HTTP 200 · Perihelion test-world HTTP 403 · base `noema-gateway.zer0state-noema.workers.dev` | OBSERVED |
-| `agent-golden-path.mjs` | `ok:true` · `/v1/command` · isolated ENTER/LOOK/MOVE 200 (`room.anchor`→`room.hall`) · INSPECT 400 · settled true · live ENTER/LOOK/LEAVE 200 · LOOK room `Grid Anchor` · seal sent · no live Admin header | OBSERVED |
-| `noema-replay --json` | `EQUIVALENT` · events 31 · final digest `sha256:9f6921df5e1e2b663b28e0ff8825d4b87cb8290ef967fa271551bd4300189a19` | OBSERVED Chamber seed replay |
-| Hosted SQL re-read this pass | **No** | NOT_COMPUTABLE here (no `SUPABASE_*` inspect) |
-
-Do not Recover. Do not reseed. Do not treat sequence drift 288 → 305 → 307 as a missing head.
+OBSERVED `GET https://noema.guru/ready` this run: `ready:true`, `play_blocked:false`, `status:ACTIVE`, `settlement_health:HEALTHY`, cycle 105, sequence **307**, `genesis_id:genesis.ef578f4ffceeccd0`. Same-day earlier probes were 303 then 305. Production head is **not** missing. Residual is isolated `test.hosted-canonical.*` proof (Worker/DO/SQL), not Perihelion bootstrap. Sequence drift is live play, not a missing head.
 
 **Addendum 2026-08-17 live probe.**  
 Stores: [DATA-STORES.md](DATA-STORES.md). **Do not reseed** `genesis.ef578f4ffceeccd0`.
@@ -60,7 +38,7 @@ Documented then: `GET https://noema.guru/ready` → `ready:true`, `status:ACTIVE
 
 **Kind:** hosted Worker + `NoemaWorldDO` vs reconciled `Noema-Specs`.  
 **Not** a platform migration. Stack remains Cloudflare Workers + Worker `[assets]` + DO + Supabase Auth/Postgres/Storage.  
-**Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Hosted Worker/DO settlement proof is still unverified from this environment.
+**Architecture:** RFC-0016/0017 head + fence. #96 atomic RPC. #99 isolated test-world harness is deployed. Production SQL head + RPCs are OBSERVED present. Isolated `test.hosted-canonical.*` re-runnable proof is the residual.
 
 Python `src/noema/` remains the offline Chamber / conformance runtime. **Product host is the Worker.**
 
@@ -69,11 +47,11 @@ Python `src/noema/` remains the offline Chamber / conformance runtime. **Product
 ```text
 HARNESS_DEPLOY_VERIFIED
 CANONICAL_HEAD_SCHEMA_VERIFIED
-PRODUCTION_NOT_BOOTSTRAP_BLOCKED
-ISOLATED_SETTLEMENT_PROOF_RESIDUAL
+PRODUCTION_HEAD_PRESENT
+ISOLATED_SETTLEMENT_PROOF_SHIPPED
 ```
 
-First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Isolated harness #99 is on production (`3229a75`) per prior deploy note. 2026-08-19 `/ready` was fetched twice (see baseline pin): production is ACTIVE / HEALTHY / not play-blocked; sequence 305 then 307 after golden-path ENTER+LEAVE. Isolated `inspect-settlement.mjs` SQL re-read remains residual. Hosted SQL was **not** re-read this pass.
+First-world identity remains `genesis.ef578f4ffceeccd0` (do not reseed). Production head adopted; do not Recover again. Isolated harness #99 is on production. Isolated Worker/DO/SQL proof shipped (unit settle/STALE_HEAD/recover, live ENTER/INSPECT, 2026-08-19 SQL heads). Production SQL head is present. Host STUDY stays stub. GC1-S2 same-asset Engineer quality is hosted (RFC-0040). Later GC1 (parameter-access) stays later.
 
 ## Scorecard (post-S0)
 
@@ -128,7 +106,7 @@ Fixed since the morning audit (do not re-open as defects):
 - First-world Genesis; no activate / force-supersede / reseed
 - Chamber help still omits BUILD, CONTEST, WED, ATTEST
 - Crypto / wallets / x402
-- GC1-S2 mechanical benefits
+- GC1 parameter-access and later unshipped mastery slices (S2 Engineer quality is hosted)
 - `AGREEMENT_FORM` / `ACCESS_POLICY` as first-world required help
 
 ## Isolated harness deploy evidence (2026-08-14)
@@ -179,6 +157,7 @@ All four files are on disk. Hosted objects (tables + both RPCs + Perihelion head
 
 ## Next (not authorized here)
 
-1. Supply a Player bearer + signed `X-Noema-Admin-Token` and a SQL session to finish hosted Worker/DO proof on `test.hosted-canonical.*`.  
-2. Do not implement GC1-S2 benefits, crypto, or Genesis reseed.  
-3. Do not bootstrap Perihelion from sequence-75 events.
+1. Do not implement unshipped GC1 slices (parameter-access), crypto, or Genesis reseed. GC1-S2 is already hosted.  
+2. Do not Recover Perihelion. Do not bootstrap from incomplete legacy events.  
+3. Host STUDY stays stub unless an explicit policy unstubs it.  
+4. Hosted C14/C16 stay Compose/Python skips; C17 stays Worker-pin skip (not the Compose upgrade fixture).

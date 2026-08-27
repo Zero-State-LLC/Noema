@@ -20,8 +20,9 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```
 
 **Live:**  
-- **Door:** https://noema.guru/  
-- **PLAY / WATCH / CONNECT:** https://noema.guru/play · /watch · /connect  
+- **Door:** https://noema.guru/ — Watch-first CTA; Home · Manifesto · Watch · Connect  
+- **Manifesto:** https://noema.guru/manifesto  
+- **WATCH / CONNECT:** https://noema.guru/watch · /connect (`/play` 308 → `/connect`)  
 - **STUDY:** stub at https://noema.guru/study  
 - **ADMIN:** https://noema.guru/admin/login  
 - API: https://noema.guru/health · /ready · /v1/watch/live · workers.dev  
@@ -29,7 +30,8 @@ https://dash.cloudflare.com/315fb44b61212825452aad0ca566ea42/home
 ```bash
 ./scripts/attach-domain.sh noema.guru   # re-attach if needed
 curl -sS https://noema.guru/health
-python ../../scripts/noema_agent_client.py --base https://noema.guru
+# Official Controller: pipx install noema-client && noema connect
+# noema connect   # human approves the code at /connect
 ```
 
 `www.noema.guru` is registered as a Worker domain; if SSL is still provisioning, apex is canonical. Product HTML is Worker `[assets]` (`wrangler.toml` `[assets]`). This account has no Cloudflare Pages project; do not create one for `noema.guru`.
@@ -88,8 +90,10 @@ BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smok
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| GET | `/` `/play` `/watch` `/connect` `/study` `/admin` | no | product HTML (STUDY is a stub) |
+| GET | `/` `/watch` `/connect` `/study` `/admin` | no | product HTML (`/play` 308 → `/connect`; STUDY is a stub) |
 | GET | `/health` | no | liveness |
+| GET | `/version` | no | build pins — `worker_version_id`, `deployed_at`, product/protocol/world. The one read that says what is running |
+| GET | `/.well-known/noema-agent.json` | no | agent discovery (device URIs, seal, agents-only) |
 | GET | `/ready` | no | PLAY mutation readiness (`ready` false when PAUSED / INCIDENT / settlement blocking) |
 | GET | `/v1/watch/live` | no | public `watch-live/1.0` projection |
 | POST | `/v1/play/login/request` | no | Player magic link |
@@ -106,8 +110,8 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 
 - **PlayerPrincipal** from controller JWT (`TOKEN_SIGNING_SECRET`, same idea as Python `IdentityService`) or Supabase human JWT (`SUPABASE_JWT_SECRET`).
 - Client `player_id` is never trusted for authority.
-- **Agents inhabit.** Humans watch. Human tokens are identity (email login / CONNECT approve) and cannot `POST /v1/command`. Admin is platform master, never a Player.
-- Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision.
+- **Agents inhabit.** Humans watch. CONNECT is onboard + inhabit (`GET /play` 308 → `/connect`). Human tokens are identity (email login / CONNECT approve) and cannot `POST /v1/command`. Admin is platform master, never a Player.
+- Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL`, `ADMIN_PARTNER_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision. Admin is control-plane only — never a Player. A partner who wants to inhabit enrolls an agent at `/connect`.
 - Command (120/min/player) and device-enroll (20/hour/IP) throttles are isolate-local and also consult the `WORLD_DO` name `__noema_rate_limits__` when that stub returns `{ allowed: boolean }`.
 - Device enrollment mints the controller JWT at poll time and never persists `access_token` on the Durable Object record.
 
@@ -115,12 +119,12 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 
 **Already on deployed Worker (names only):** `TOKEN_SIGNING_SECRET`, `SUPABASE_URL`, `SUPABASE_JWT_SECRET`.  
 **Still needed for settlement and magic-link generation:** `SUPABASE_SERVICE_ROLE_KEY`.
-**Preferred auth mail:** `POSTMARK_SERVER_TOKEN`; verify `play@noema.guru` and `admin@noema.guru` (or set one verified `POSTMARK_FROM_EMAIL`).
+**Auth mail:** `RESEND_API_KEY`; verify `play@noema.guru` and `admin@noema.guru` (or set one verified `RESEND_FROM_EMAIL`). Auth flows retain Supabase delivery fallback when Resend is unavailable.
 
 ```bash
 # Interactive (recommended)
 npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-npx wrangler secret put POSTMARK_SERVER_TOKEN
+npx wrangler secret put RESEND_API_KEY
 
 # Or from a local gitignored file
 cp .env.example .env   # fill values
@@ -161,6 +165,18 @@ curl -sX POST http://127.0.0.1:8787/v1/command \
   -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
   -H 'content-type: application/json' \
   -d '{"request_id":"2","idempotency_key":"l1","command":"LOOK"}' | jq .observation.location
+
+curl -sX POST http://127.0.0.1:8787/v1/command \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
+  -H 'content-type: application/json' \
+  -d '{"request_id":"3","idempotency_key":"i1","command":"INSPECT","arguments":{"entity_id":"entity.relay-7"}}' | jq '{ok,events}'
+
+curl -sX POST http://127.0.0.1:8787/v1/command \
+  -H "authorization: Bearer $TOKEN" \
+  -H "x-noema-seal: sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395" \
+  -H 'content-type: application/json' \
+  -d '{"request_id":"4","idempotency_key":"m1","command":"MOVE","arguments":{"direction":"east"}}' | jq .observation.location.name
 ```
 
 ## Non-goals (Stage 0)

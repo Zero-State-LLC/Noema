@@ -1,9 +1,10 @@
 /**
  * Worker-sent ADMIN magic-link mail.
- * PLAY and ADMIN prefer Resend when RESEND_API_KEY is set; Postmark is standby.
+ * PLAY and ADMIN send through Resend when RESEND_API_KEY is set. Auth flows
+ * retain their Supabase fallback when Resend is unavailable.
  */
 
-import { sendTransactionalEmail } from "./email-provider";
+import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
 import type { Env } from "./types";
 
 export const ADMIN_MAIL_SUBJECT = "NOEMA Admin Access";
@@ -64,7 +65,7 @@ export function renderAdminMailText(href: string): string {
     "",
     "4. After Recover, re-check /ready. If a later PLAY mutate fail-closes to INCIDENT again, report the settlement failure. Do not invent a new world.",
     "",
-    "5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.",
+    "5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; thawing STUDY/Genesis/new verbs; sharing this link.",
     "",
     "6. The session lasts about one hour. Request another letter to this mailbox:",
     '   POST https://noema.guru/v1/admin/login/request  {"email":"<this mailbox>"}',
@@ -174,7 +175,7 @@ export function renderAdminMailHtml(href: string): string {
           </tr>
           <tr>
             <td style="padding:0 28px 12px;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;color:#A8A39A;">
-              5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; implementing parked GC1-S2 benefits; sharing this link.
+              5. Forbidden: PLAY verbs with this session; device enrollment; hidden-room invention; thawing STUDY/Genesis/new verbs; sharing this link.
             </td>
           </tr>
           <tr>
@@ -249,7 +250,7 @@ export async function deliverAdminMail(env: Env, mail: {
   html: string;
   text: string;
 }, fetchImpl: typeof fetch = fetch): Promise<void> {
-  if (env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN) {
+  if (hasTransactionalProvider(env)) {
     try {
       const sent = await sendTransactionalEmail(env, {
         from: `NOEMA ADMIN <${ADMIN_MAIL_FROM}>`,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -303,3 +304,129 @@ def test_adapter_failure_does_not_invent_action():
     turn = harness.run_turn()
     assert not turn.ok
     assert http.posts == []
+
+
+def test_policy_blocked_tags_gated_affordances_with_responsible_flag():
+    policy = HarnessPolicy()  # org/contest/access default False
+    affordances = [
+        {"action": "ORG_CREATE"},
+        {"action": "CONTEST_DECLARE"},
+        {"action": "AGREEMENT_FORM"},
+        {"operation": "ACCESS_GRANT"},
+        {"action": "TRADE"},  # allowed by default — must not appear
+        {"action": "MOVE"},  # always allowed — must not appear
+        {"action": "SETTLE_UNKNOWN"},  # unknown family — default deny
+        {"action": "ORG_CREATE"},  # duplicate — deduped
+        "not-a-dict",
+    ]
+    blocked = policy.blocked(affordances)
+    by_action = {b["action"]: b["policy_flag"] for b in blocked}
+    assert by_action == {
+        "ORG_CREATE": "allow_org_create",
+        "CONTEST_DECLARE": "allow_contest",
+        "AGREEMENT_FORM": "allow_contest",
+        "ACCESS_GRANT": "allow_access",
+        "SETTLE_UNKNOWN": "default_deny",
+    }
+    # visibility only: permits() unchanged
+    assert not policy.permits("ORG_CREATE")
+    assert policy.permits("TRADE")
+    # flags flipped on -> those actions drop out of blocked()
+    open_policy = HarnessPolicy(allow_org_create=True, allow_contest=True, allow_access=True)
+    assert open_policy.blocked(affordances) == [
+        {"action": "SETTLE_UNKNOWN", "policy_flag": "default_deny"}
+    ]
+
+
+def test_policy_blocked_surfaces_in_context_and_report():
+    obs = _obs()
+    obs["affordances"] = list(obs.get("affordances") or []) + [{"action": "ORG_CREATE"}]
+    state = to_state(obs)
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    assert {"action": "ORG_CREATE", "policy_flag": "allow_org_create"} in ctx["system"]["policy_blocked"]
+
+    from noema.harness.report import write_report
+
+    path = write_report(
+        Path(tempfile.mkdtemp()) / "report.json",
+        {"classification": "ok", "policy_blocked": [{"action": "ORG_CREATE", "policy_flag": "allow_org_create"}]},
+    )
+    body = json.loads(path.read_text())
+    assert body["policy_blocked"] == [{"action": "ORG_CREATE", "policy_flag": "allow_org_create"}]
+
+
+def test_semantic_look_fields_forwarded_as_received():
+    """AGENT-HARNESS §ASP: hint, reputation_summary, and active_norms are
+    forwarded as received. The Worker attaches the latter two at the top level
+    of the observation, and to_state used to drop both — so an agent driven by
+    this harness paid the live ORG_CREATE cost in active_norms without being
+    able to read it, the same gap noema-client#20 closed in the official
+    client (which is this module's downstream fork)."""
+    from noema.harness.memory import WorkingMemory
+    from noema.harness.observe import prepare_context, to_state
+    from noema.harness.policy import HarnessPolicy
+
+    obs = {
+        "world_name": "Perihelion Reach",
+        "cycle": 91,
+        "player_id": "player.tester",
+        "location": {"name": "Civic Exchange"},
+        "reputation_summary": {"self_image": 4, "self_second_order": 2},
+        "active_norms": {"org_create_influence": 7, "harvest_pressure": 0.25},
+        "affordances": [
+            {"action": "HARVEST", "available": True, "hint": "compact grounded signal preferred"}
+        ],
+    }
+    state = to_state(obs)
+    assert state.reputation_summary == {"self_image": 4, "self_second_order": 2}
+    assert state.active_norms["org_create_influence"] == 7
+
+    ctx = prepare_context(state, WorkingMemory(), HarnessPolicy())
+    assert ctx["canonical"]["reputation_summary"]["self_image"] == 4
+    assert ctx["canonical"]["active_norms"]["org_create_influence"] == 7
+    # hint was never lost — it rides inside the raw affordance dicts.
+    assert ctx["canonical"]["affordances"][0]["hint"] == "compact grounded signal preferred"
+
+    # Forwarded as received, not invented: absent upstream means absent here.
+    bare = to_state({"world_name": "Perihelion Reach"})
+    assert bare.reputation_summary is None
+    assert bare.active_norms is None
+
+
+def test_settlement_resync_retries_once_with_same_key_then_surfaces():
+    """AGENT-HARNESS §8: SETTLEMENT_RESYNC gets ONE automatic retry with the
+    SAME idempotency_key, then surfaces. Never WORLD_INCIDENT. Never a loop.
+
+    The Worker emits this on soft head restore after sequence drift
+    (settle.ts: "retry the command"); the official client already complies.
+    The harness classified it as ACTION_REJECTED and never retried, so a
+    routine contention event read as a canonical rejection."""
+    calls: list[dict] = []
+
+    def resync_once(method, url, body, token, headers=None):
+        calls.append(dict(body))
+        if len(calls) == 1:
+            return {"ok": False, "error": {"code": "SETTLEMENT_RESYNC", "message": "retry the command"}, "_http_status": 409}
+        return {"ok": True, "observation": {"cycle": 5}, "_http_status": 200}
+
+    client = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=resync_once)
+    result = client.send_command("WAIT", {})
+    assert result.ok is True
+    assert len(calls) == 2
+    assert calls[0]["idempotency_key"] == calls[1]["idempotency_key"]
+    assert calls[0]["request_id"] == calls[1]["request_id"]
+
+    # A resync that persists retries exactly once, then surfaces as its own
+    # class — not WORLD_INCIDENT, not ACTION_REJECTED, and never a loop.
+    always: list[dict] = []
+
+    def resync_forever(method, url, body, token, headers=None):
+        always.append(dict(body))
+        return {"ok": False, "error": {"code": "SETTLEMENT_RESYNC", "message": "retry the command"}, "_http_status": 409}
+
+    client2 = GatewayClient("https://noema.guru", StaticTokenProvider(TOKEN), http=resync_forever)
+    result2 = client2.send_command("WAIT", {})
+    assert result2.ok is False
+    assert len(always) == 2
+    assert result2.failure == FailureClass.SETTLEMENT_RESYNC
+    assert result2.failure != FailureClass.WORLD_INCIDENT

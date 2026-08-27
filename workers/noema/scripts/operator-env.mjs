@@ -32,6 +32,7 @@ export function operatorEnvPaths(cwd = process.cwd()) {
 
 export function loadOperatorEnv(cwd = process.cwd()) {
   const loaded = [];
+  const rejected = [];
   const values = {};
   for (const path of operatorEnvPaths(cwd)) {
     let st;
@@ -41,13 +42,18 @@ export function loadOperatorEnv(cwd = process.cwd()) {
       continue;
     }
     if (!st.isFile()) continue;
+    const mode = st.mode & 0o777;
+    if ((mode & 0o077) !== 0) {
+      rejected.push({ path, mode, reason: "operator secret file must be owner-readable only (chmod 600)" });
+      continue;
+    }
     const parsed = parseOperatorEnv(readFileSync(path, "utf8"));
     for (const [k, v] of Object.entries(parsed)) {
       if (values[k] === undefined) values[k] = v;
     }
-    loaded.push({ path, keys: Object.keys(parsed).sort(), mode: st.mode & 0o777 });
+    loaded.push({ path, keys: Object.keys(parsed).sort(), mode });
   }
-  return { values, loaded };
+  return { values, loaded, rejected };
 }
 
 /** operator secret (raw) vs already-minted admin JWT */

@@ -1,5 +1,45 @@
 [
   {
+    "date": "2026-08-19",
+    "scope": "workers/noema connect",
+    "macrostructure": "Workbench",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "In-place /connect redesign: official client first; hide inhabit until Advanced token or chamber; flatten install card; production mint in markup.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "Unify Play + Connect onto /connect: onboard + inhabit + chamber. Four-tab chrome.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
+    "scope": "workers/noema manifesto",
+    "macrostructure": "Long Document",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "none",
+    "brief": "Hosted /manifesto as written thesis; Home · Manifesto · Watch on the human door. Thesis stays off Home first-read.",
+    "design_system": "site/design.md"
+  },
+  {
+    "date": "2026-08-18",
+    "scope": "workers/noema homepage",
+    "macrostructure": "Marquee Hero",
+    "genre": "atmospheric",
+    "theme": "noema-ledger-dark",
+    "enrichment": "hero-table photograph, Watch-first pills",
+    "brief": "Home full-bleed table still with overlay N9 + three honest lines + Watch / Send watch link. No Infinite Worlds, no brochure nav.",
+    "design_system": "site/design.md"
+  },
+  {
     "date": "2026-08-18",
     "scope": "app",
     "macrostructure": "Letter",

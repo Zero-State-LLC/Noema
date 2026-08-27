@@ -12,8 +12,8 @@ import { adminHtml, adminLoginHtml } from "../src/admin";
 import { connectHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
-import { playHtml } from "../src/play";
-import { productShell } from "../src/shell";
+
+import { PRODUCT_CSS, productShell } from "../src/shell";
 import { studyHtml } from "../src/study";
 import type { Env } from "../src/types";
 import { watchHtml } from "../src/watch";
@@ -67,11 +67,11 @@ describe("brand slice 0 — hosted HTML routes", () => {
   it("serves the product surfaces", async () => {
     const paths: Array<[string, number, string]> = [
       ["/", 200, "Perihelion Reach"],
-      ["/play", 200, 'id="play-chamber"'],
+      ["/manifesto", 200, "A World for Minds"],
       ["/play/callback", 200, "/v1/play/login/consume"],
       ["/watch", 200, "/v1/watch/live"],
-      ["/connect", 200, "/v1/command"],
-      ["/study", 200, "not open"],
+      ["/connect", 200, 'id="d-code"'],
+      ["/study", 200, "does not rewrite the ledger"],
       ["/admin/login", 200, "/v1/admin/login"],
     ];
     for (const [path, status, needle] of paths) {
@@ -80,17 +80,28 @@ describe("brand slice 0 — hosted HTML routes", () => {
       expect(res.status, path).toBe(status);
       expect(html.toLowerCase(), path).toContain(needle.toLowerCase());
     }
+    const play = await worker.fetch(new Request("https://noema.guru/play"), bareEnv);
+    expect(play.status).toBe(308);
+    expect(play.headers.get("location")).toBe("https://noema.guru/connect");
   });
 
-  it("does not put STUDY in primary nav", () => {
+  it("puts STUDY on primary nav without PLAY", () => {
     const nav = productShell({ title: "T", active: "home", body: "x" }).match(
       /<nav class="nav"[\s\S]*?<\/nav>/,
     )?.[0];
     expect(nav).toBeTruthy();
+    expect(nav).toMatch(/>Home</);
+    expect(nav).toMatch(/>Manifesto</);
     expect(nav).toMatch(/>Watch</);
+    expect(nav).toMatch(/>Connect</);
+    expect(nav).toMatch(/>Study</);
     expect(nav).not.toMatch(/>Play</);
-    expect(nav).not.toMatch(/>Connect</);
-    expect(nav).not.toMatch(/>Study</);
+  });
+
+  it("product tabs use the hero type treatment", () => {
+    expect(PRODUCT_CSS).toMatch(/\.nav a\{[^}]*text-transform:uppercase/);
+    expect(PRODUCT_CSS).toMatch(/\.nav a\{[^}]*letter-spacing:\.14em/);
+    expect(landingHtml()).toContain("--color-state-active:#3DDCFF");
   });
 });
 
@@ -102,9 +113,9 @@ describe("brand slice 0 — player / admin boundary", () => {
     expect(html).toContain("/admin/login");
   });
 
-  it("PLAY does not request admin login", () => {
-    expect(playHtml()).toContain("/v1/play/login/request");
-    expect(playHtml()).not.toContain("/v1/admin/login/request");
+  it("CONNECT does not request admin login", () => {
+    expect(connectHtml()).toContain("/v1/play/login/request");
+    expect(connectHtml()).not.toContain("/v1/admin/login/request");
   });
 
   it("admin login does not use the PLAY consume path", () => {
@@ -117,36 +128,20 @@ describe("brand slice 0 — player / admin boundary", () => {
   it("admin console is not a PLAY client", () => {
     const html = adminHtml();
     expect(html).not.toContain('id="cmd"');
-    expect(html).not.toContain("/v1/command");
+    expect(html).not.toMatch(/api\("\/v1\/command"/);
+    expect(html).not.toMatch(/fetch\("\/v1\/command"/);
     expect(html).toMatch(/operator|admin/i);
+    expect(html).toContain("ENTER_WORLD");
+    expect(html).toContain("humans watch — this token cannot command");
   });
 });
 
 describe("brand slice 0 — gameplay command surface", () => {
-  it("PLAY posts inhabit lines to /v1/command", () => {
-    const html = playHtml();
-    expect(html).toContain("/v1/command");
-    expect(html).toContain('id="cmd"');
-    expect(html).toContain('id="send"');
-    expect(html).toMatch(/arguments:\s*\{\s*line:/);
-  });
-
-  it("chamber keeps location, here, actions, trail, command", () => {
-    const html = playHtml();
-    expect(html).toContain('id="room-name"');
-    expect(html).toContain('id="trail"');
-    expect(html).toContain('id="action-rail"');
-    expect(html).toContain("AVAILABLE HERE");
-    expect(html).toContain('id="world-key"');
-    expect(html).toMatch(/@media\(max-width:640px\)/);
-    expect(html).toMatch(/min-height:44px/);
-    expect(html).toContain('id="world-strip"');
-    expect(html).toContain('id="signal-feed"');
-    expect(html).toContain('id="entity-list"');
-    expect(html).toContain('id="exit-list"');
-    expect(html).toContain('id="cmd-form"');
-    expect(html).toContain("ch-mast");
-    expect(html).toContain("ch-rail");
+  it("CONNECT does not post inhabit lines from the browser", () => {
+    const html = connectHtml();
+    expect(html).not.toContain('id="cmd"');
+    expect(html).not.toContain('id="send"');
+    expect(html).not.toMatch(/arguments:\s*\{\s*line:/);
   });
 });
 
@@ -160,12 +155,10 @@ describe("brand slice 0 — accessibility hooks", () => {
     expect(shell).toContain('<main id="main"');
   });
 
-  it("PLAY announces status and trail", () => {
-    const html = playHtml();
-    expect(html).toContain('id="trail" aria-live="polite"');
-    expect(html).toContain('id="notice" role="status"');
-    expect(html).toContain('for="cmd"');
-    expect(html).toContain('aria-label="Command line"');
+  it("CONNECT announces device-code status", () => {
+    const html = connectHtml();
+    expect(html).toContain('id="d-notice" role="status"');
+    expect(html).toMatch(/id="d-code"[^>]*aria-describedby="d-notice"/);
   });
 
   it("WATCH honors live status and reduced motion", () => {
@@ -177,7 +170,7 @@ describe("brand slice 0 — accessibility hooks", () => {
 
 describe("brand slice 1 — player tokens", () => {
   it("player HTML has semantic tokens and no copper/Fraunces", () => {
-    for (const html of [landingHtml(), playHtml(), watchHtml(), connectHtml(), studyHtml()]) {
+    for (const html of [landingHtml(), watchHtml(), connectHtml(), studyHtml()]) {
       expect(html).toContain("--color-surface-world");
       expect(html).toContain("IBM+Plex+Sans");
       expect(html).toContain("family=Syne");
@@ -187,17 +180,14 @@ describe("brand slice 1 — player tokens", () => {
     }
   });
 
-  it("command input stays machine voice", () => {
-    expect(playHtml()).toMatch(/\.cmdform input\{[^}]*font-family:var\(--font-machine\)/);
-  });
 });
 
 describe("brand slice 0 — performance ceilings", () => {
   it("PLAY and WATCH stay under the gzip budget", () => {
-    const play = gzipBytes(playHtml());
+    const connect = gzipBytes(connectHtml());
     const watch = gzipBytes(watchHtml());
     const door = gzipBytes(landingHtml());
-    expect(play).toBeLessThan(PLAY_GZIP_CEILING);
+    expect(connect).toBeLessThan(PLAY_GZIP_CEILING);
     expect(watch).toBeLessThan(WATCH_GZIP_CEILING);
     expect(door).toBeLessThan(PLAY_GZIP_CEILING);
     expect(PHOSPHOR_JS_BUDGET).toBe(100 * 1024);
@@ -205,7 +195,7 @@ describe("brand slice 0 — performance ceilings", () => {
   });
 
   it("connect and study stubs stay small", () => {
-    expect(gzipBytes(connectHtml())).toBeLessThan(80 * 1024);
+    expect(gzipBytes(connectHtml())).toBeLessThan(PLAY_GZIP_CEILING);
     expect(gzipBytes(studyHtml())).toBeLessThan(40 * 1024);
   });
 });

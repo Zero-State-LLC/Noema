@@ -28,11 +28,21 @@ run_worker_first = true
 html_handling = "none"
 not_found_handling = "none"
 
+# Cloudflare stamps the running Worker Version here. /health echoes it so the
+# live build is self-reporting: spec-compat.json's hand-maintained pin has
+# silently lagged a real deploy three times, and inferring the live build from
+# public surfaces is guesswork.
+[version_metadata]
+binding = "CF_VERSION"
+
 [vars]
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
-DEFAULT_WORLD_ID = "world-01"
-POSTMARK_MESSAGE_STREAM = "outbound"
+DEFAULT_WORLD_ID = "world.perihelion-reach-3"
+# NOEMA_ALLOW_PROD_BOOTSTRAP: unset by default (fail-closed). Set to "1" only
+# for a genesis activation window where the canonical head is legitimately
+# empty; a missing head otherwise refuses bootstrap instead of re-emitting a
+# sequence-0 WORLD_BOOTSTRAP over live history.
 
 [[durable_objects.bindings]]
 name = "WORLD_DO"
@@ -63,8 +73,7 @@ invocation_logs = true
 # ADMIN_ALLOWLIST_EMAILS  (comma-separated operator mailboxes; never [vars])
 
 # Worker-sent ADMIN magic-link mail (Email Routing fallback).
-# Preferred outbound: RESEND_API_KEY secret (PLAY + ADMIN + agent bootstrap).
-# Standby outbound: POSTMARK_SERVER_TOKEN.
+# Outbound mail: RESEND_API_KEY secret (PLAY + ADMIN + agent bootstrap).
 [[send_email]]
 name = "ADMIN_MAIL"
 destination_address = "zer0state@zer0state.com"

@@ -22,9 +22,20 @@ import {
   statusFromObservation,
   titleCaseLabel,
   trailFromResult,
+  roomPresentationModel,
+  parseLowNoiseFlag,
+  lowNoiseRoomText,
+  lowNoiseWatchText,
+  fourBeatFromResult,
 } from "../src/play-ui";
-import { playHtml } from "../src/play";
+import { DEFAULT_BUDGETS, cloneBudgets } from "../src/actions";
+import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
+import { connectHtml } from "../src/connect";
+import { landingHtml } from "../src/landing";
+import { watchHtml } from "../src/watch";
 import { studyHtml } from "../src/study";
+import { productShell } from "../src/shell";
 
 const GRID: Parameters<typeof deriveOpportunities>[0] = {
   room_id: "room.relay-quarter",
@@ -217,53 +228,7 @@ describe("play-ui helpers", () => {
   });
 });
 
-describe("play shell HTML", () => {
-  const html = playHtml();
-
-  it("removes controller selector from normal PLAY", () => {
-    expect(html).not.toMatch(/id="ctype"/);
-    expect(html).not.toMatch(/<option value="agent"/);
-    expect(html).toMatch(/Enter world/);
-    expect(html).not.toMatch(/Connect an agent/);
-  });
-
-  it("uses chamber workspace hierarchy", () => {
-    expect(html).toMatch(/id="play-chamber"/);
-    expect(html).toMatch(/WHERE/);
-    expect(html).toMatch(/>HERE</);
-    expect(html).toMatch(/>EXITS</);
-    expect(html).toMatch(/id="cmd"/);
-  });
-
-  it("keeps command line and advanced details", () => {
-    expect(html).toMatch(/id="cmd"/);
-    expect(html).toMatch(/Advanced details/i);
-    expect(html).toMatch(/id="token-paste"/);
-  });
-
-  it("avoids player-facing system jargon in primary chrome", () => {
-    expect(html).not.toMatch(/PlayerPrincipal/);
-    expect(html).not.toMatch(/Genesis/);
-    expect(html).not.toMatch(/settlement internals/i);
-    expect(html).toMatch(/WHERE/);
-  });
-
-  it("does not embed story seed ids in the shell", () => {
-    expect(containsHiddenHistory(html)).toBe(false);
-  });
-
-  it("keeps collapsed Advanced token paste for operator-issued tokens", () => {
-    expect(html).toMatch(/id="token-primary"/);
-    expect(html).toMatch(/id="token-paste"/);
-    expect(html).toMatch(/Agent controller token/);
-    expect(html).not.toMatch(/Admin → Players/);
-    expect(html).toMatch(/id="play-health"/);
-    expect(html).toMatch(/id="desk-list"/);
-    expect(html).toMatch(/id="players-here"/);
-    expect(html).toMatch(/id="bonds-card"/);
-    expect(html).toMatch(/>Leave</);
-  });
-
+describe("play shell helpers", () => {
   it("first session offers at most three local acts", () => {
     const worn = firstSessionActs({
       name: "Exchange",
@@ -286,8 +251,8 @@ describe("play shell HTML", () => {
   });
 
   it("first strain line is one live sentence or empty", () => {
-    expect(firstStrainLine({ condition: "crane seized and worn." })).toMatch(/worn|seiz/i);
-    expect(firstStrainLine({ entities: [{ entity_id: "e", label: "relay", entity_type: "infra", condition: 20 }] })).toMatch(/relay/i);
+    expect(firstStrainLine({ condition: "crane seized and worn." })).toBe("");
+    expect(firstStrainLine({ entities: [{ entity_id: "e", label: "relay", entity_type: "infra", condition: 20 }] })).toMatch(/relay.*20/);
     expect(firstStrainLine({ description: "Quiet dust." })).toBe("");
   });
 
@@ -297,15 +262,13 @@ describe("play shell HTML", () => {
   });
 
   it("embeds play-ui helpers instead of a forked copy", () => {
-    expect(html).toContain("function deriveOpportunities");
-    expect(html).toContain("function renderServiceDesksHtml");
     expect(playUiRuntimeSource()).toContain("function deriveOpportunities");
+    expect(playUiRuntimeSource()).toContain("function renderServiceDesksHtml");
   });
 
   it("shims esbuild keepNames __name so inlined toPlayerView can run", () => {
     const src = playUiRuntimeSource();
     expect(src).toContain('const __name = function(fn) { return fn; }');
-    expect(html).toContain('const __name = function(fn) { return fn; }');
     const shim = 'const __name = function(fn) { return fn; };';
     expect(src.startsWith(shim)).toBe(true);
     const keepNames = new Function(`${shim}\nreturn __name(function probe() { return "ok"; }, "probe")();`)();
@@ -477,11 +440,284 @@ describe("play-ui HTML escaping", () => {
   });
 });
 
-describe("STUDY stub", () => {
-  it("is an honest not-open page without fake lab chrome", () => {
+describe("S1 RoomPresentationModel", () => {
+  it("orders HERE by label and EXITS by direction without exposing entity ids", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        condition: "Infrastructure shows damage.",
+        entities: [
+          { entity_id: "z", label: "zinc-post", entity_type: "INFRASTRUCTURE" },
+          { entity_id: "a", label: "amber-relay", entity_type: "INFRASTRUCTURE", condition: 35 },
+        ],
+        exits: [
+          { direction: "west", to_room_id: "room.w", to_room_name: "Yards" },
+          { direction: "east", to_room_id: "room.e", to_room_name: "Coldline" },
+        ],
+      },
+      consequence: "You look around.",
+    });
+    expect(model.name).toBe("Grid Anchor");
+    expect(model.description).toBe("A frontier anchor.");
+    expect(model.pressure).toBe("Infrastructure shows damage.");
+    expect(model.here.map((e) => e.label)).toEqual(["amber-relay", "zinc-post"]);
+    expect(model.exits.map((x) => x.direction)).toEqual(["east", "west"]);
+    expect(JSON.stringify(model)).not.toMatch(/entity_id|room\.hub/);
+    expect(model.here.every((e) => !("entity_id" in e))).toBe(true);
+    expect(model.happened).toBe("You look around.");
+  });
+
+  it("does not invent HERE items from empty observation", () => {
+    const model = roomPresentationModel({ location: null });
+    expect(model.here).toEqual([]);
+    expect(model.exits).toEqual([]);
+    expect(model.name).toBe("");
+  });
+});
+
+describe("R0 STATUS + four-beat", () => {
+  it("puts compact budgets after EXITS without cycle or entity ids", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        condition: "Infrastructure shows damage.",
+        entities: [{ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }],
+        exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+      },
+      budgets: { energy: 10, attention: 8, compute: 64, storage: 16, influence: 40 },
+      practice_lines: ["You have been doing survey work."],
+      consequence: "You look around.",
+    });
+    expect(model.status.map((r) => r.label)).toEqual([
+      "Energy",
+      "Attention",
+      "Compute",
+      "Storage",
+      "Influence",
+      "Work",
+    ]);
+    expect(model.status.find((r) => r.label === "Energy")?.value).toBe("10");
+    expect(model.status.find((r) => r.label === "Work")?.value).toBe("You have been doing survey work.");
+    const text = lowNoiseRoomText(model);
+    const exitsAt = text.indexOf("EXITS");
+    const statusAt = text.indexOf("STATUS");
+    const happenedAt = text.indexOf("HAPPENED");
+    expect(exitsAt).toBeGreaterThan(-1);
+    expect(statusAt).toBeGreaterThan(exitsAt);
+    expect(happenedAt).toBeGreaterThan(statusAt);
+    expect(text).toMatch(/Energy 10/);
+    expect(text).toMatch(/Storage 16/);
+    expect(text).not.toMatch(/entity\.relay-7|room\.hub|Cycle /);
+  });
+
+  it("does not invent STATUS when budgets are absent", () => {
+    const model = roomPresentationModel({
+      location: {
+        room_id: "room.hub",
+        name: "Grid Anchor",
+        description: "A frontier anchor.",
+        exits: [],
+        entities: [],
+      },
+    });
+    expect(model.status).toEqual([]);
+    expect(lowNoiseRoomText(model)).not.toMatch(/STATUS|Energy|Storage/);
+  });
+
+  it("four-beat fail keeps the machine code in Advanced and next from affordances", () => {
+    const beat = fourBeatFromResult({
+      command: "MOVE",
+      ok: false,
+      errorCode: "BUDGET_EXCEEDED",
+      errorMessage: "You do not have enough energy.",
+      affordances: [
+        { cmd: "wait", available: true },
+        { cmd: "look", available: true },
+      ],
+    });
+    expect(beat.tried).toMatch(/move/i);
+    expect(beat.outcome).toBe("fail");
+    expect(beat.changed).toMatch(/energy/i);
+    expect(beat.next).toBe("wait");
+    expect(beat.advanced).toMatch(/BUDGET_EXCEEDED/);
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+          entities: [],
+        },
+        budgets: { energy: 0, attention: 8, compute: 64, storage: 16, influence: 40 },
+        happenedBeats: beat,
+      }),
+    );
+    expect(text).toMatch(/HAPPENED/);
+    expect(text).toMatch(/fail/i);
+    expect(text).toMatch(/wait/);
+    expect(text).not.toMatch(/BUDGET_EXCEEDED/);
+  });
+});
+
+describe("R0 LOOK observation", () => {
+  it("LOOK observation feeds compact STATUS energy plus another budget", async () => {
+    const w: WorldRuntime = {
+      world_id: "test.hosted-canonical.r0-status",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          exits: [{ direction: "east", to_room_id: "room.east" }],
+          entities: [],
+        },
+      },
+      players: {},
+      trades: {},
+      messages: [],
+      organizations: {},
+      seen_idempotency: {},
+      unsettled: [],
+    };
+    const p: PlayerPrincipal = {
+      player_id: "player.nacre",
+      agent_id: "agent.nacre",
+      session_id: "sess.test",
+      controller_id: "ctrl.nacre",
+      controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1",
+      authentication_context: "test",
+    };
+    const run = (command: string) => {
+      const envl: CommandEnvelope = {
+        request_id: "r." + command,
+        idempotency_key: "i." + command,
+        command,
+        arguments: {},
+      };
+      return applyWorldCommand(w, p, envl, async () => true);
+    };
+    expect((await run("ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const look = await run("LOOK");
+    expect(look.ok).toBe(true);
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: look.observation?.location as never,
+        budgets: look.observation?.budgets,
+        practice_lines: look.observation?.practice_lines,
+        consequence: look.observation?.consequence,
+      }),
+    );
+    expect(look.observation?.budgets?.energy).toBe(80);
+    expect(text).toMatch(/STATUS/);
+    expect(text).toMatch(/Energy 80/);
+    expect(text).toMatch(/Attention /);
+    const exitsAt = text.indexOf("EXITS");
+    expect(text.indexOf("STATUS")).toBeGreaterThan(exitsAt);
+    expect(look.observation?.pressure).toBe(look.observation?.location?.condition);
+    expect(look.observation?.pressure).toBeTruthy();
+    expect(look.observation?.play_text).toMatch(/PRESSURE/);
+  });
+});
+
+describe("S5 low-noise", () => {
+  it("parses preference: stored wins, else query, else reduced motion", () => {
+    expect(parseLowNoiseFlag("1", "", false)).toBe(true);
+    expect(parseLowNoiseFlag("0", "?low_noise=1", true)).toBe(false);
+    expect(parseLowNoiseFlag(null, "?low_noise=1", false)).toBe(true);
+    expect(parseLowNoiseFlag(null, "", true)).toBe(true);
+    expect(parseLowNoiseFlag(null, "", false)).toBe(false);
+  });
+
+  it("renders authorized room text without glyphs", () => {
+    const text = lowNoiseRoomText(
+      roomPresentationModel({
+        location: {
+          room_id: "room.hub",
+          name: "Grid Anchor",
+          description: "A frontier anchor.",
+          condition: "Infrastructure shows damage.",
+          entities: [{ entity_id: "a", label: "scarred-conduit", entity_type: "INFRASTRUCTURE", condition: 35 }],
+          exits: [{ direction: "east", to_room_id: "room.e", to_room_name: "Coldline" }],
+          traces: [{ kind: "scar", text: "A scar remains (scarred-conduit)." }],
+        },
+        consequence: "You look around.",
+      }),
+    );
+    expect(text).toMatch(/Grid Anchor/);
+    expect(text).toMatch(/HERE/);
+    expect(text).toMatch(/scarred-conduit condition 35%/);
+    expect(text).toMatch(/EXITS/);
+    expect(text).toMatch(/east — Coldline/);
+    expect(text).toMatch(/TRACES/);
+    expect(text).not.toMatch(/<svg|glyph|entity\.a|room\.hub/i);
+    const descAt = text.indexOf("A frontier anchor.");
+    const pressureAt = text.indexOf("PRESSURE");
+    const hereAt = text.indexOf("HERE");
+    expect(pressureAt).toBeGreaterThan(descAt);
+    expect(hereAt).toBeGreaterThan(pressureAt);
+    expect(text).toMatch(/PRESSURE\nInfrastructure shows damage\./);
+  });
+
+  it("exposes the preference on WATCH, not a human inhabit door", () => {
+    const watch = watchHtml();
+    expect(watch).toContain('id="watch-low-noise"');
+    expect(watch).toContain("Humans watch");
+  });
+
+  it("watch low-noise is text-complete without requiring a canvas", () => {
+    const text = lowNoiseWatchText({
+      headline: "A player moves east.",
+      copy: "Coldline · just now",
+      recent: ["A player moves east.", "A scar is visible."],
+    });
+    expect(text).toMatch(/A player moves east/);
+    expect(text).toMatch(/Coldline/);
+    expect(text).not.toMatch(/canvas|pixel/i);
+  });
+
+  it("Home and CONNECT share the WATCH client preference and stay text-complete", () => {
+    const home = landingHtml();
+    const connect = connectHtml();
+    const watch = watchHtml();
+    const shell = productShell({ title: "T", active: "connect", body: "<p>x</p>" });
+    for (const html of [home, connect, watch, shell]) {
+      expect(html).toContain("noema.low_noise");
+      expect(html).toContain("parseLowNoiseFlag");
+      expect(html).toContain("is-low-noise");
+    }
+    expect(home).toContain("data-low-noise");
+    expect(connect).toContain("data-low-noise");
+    expect(home).toMatch(/body\.is-low-noise[\s\S]*\.hero-art/);
+    expect(home).not.toMatch(/id="home-now"[^>]*aria-live/);
+    expect(home).toMatch(/<figure class="hero-art"[^>]*aria-hidden="true"/);
+    expect(home).toMatch(/<img src="\/assets\/hero-table\.jpg"[^>]*alt=""/);
+    expect(connect).toMatch(/id="d-code"[^>]*aria-describedby="d-notice"/);
+    expect(connect).not.toContain("watch-phosphor");
+    expect(watch).toContain('id="watch-low-noise"');
+  });
+});
+
+describe("STUDY observational", () => {
+  it("is observational and does not inhabit or fake a lab", () => {
     const html = studyHtml();
     expect(html).not.toMatch(/id="m-trails"/);
-    expect(html).toMatch(/not open/i);
+    expect(html).not.toMatch(/not open/i);
+    expect(html).toMatch(/does not rewrite the ledger/i);
+    expect(html).toContain("/v1/watch/live");
     expect(html).not.toMatch(/aria-controls="panel-notice"/);
+    expect(html).not.toContain('href="/play"');
+    expect(html).not.toMatch(/NOTICE|CAPTURE AS TEST|id="panel-notice"/);
   });
 });

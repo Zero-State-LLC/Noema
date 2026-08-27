@@ -45,8 +45,8 @@ describe("controller JWT fail-closed", () => {
     const b = await resolvePrincipal(req, e);
     expect(a).not.toBeInstanceOf(Response);
     expect(b).not.toBeInstanceOf(Response);
-    expect((a as PlayerPrincipal).session_id).toBe(String(claims.sid));
-    expect((b as PlayerPrincipal).session_id).toBe((a as PlayerPrincipal).session_id);
+    expect((a as { session_id: string }).session_id).toBe(String(claims.sid));
+    expect((b as { session_id: string }).session_id).toBe((a as { session_id: string }).session_id);
   });
 
   it("refuses to mint without TOKEN_SIGNING_SECRET", async () => {
@@ -80,9 +80,11 @@ describe("controller JWT fail-closed", () => {
       env({ SUPABASE_JWT_SECRET: secret }),
     );
     expect(p).not.toBeInstanceOf(Response);
-    expect((p as PlayerPrincipal).authentication_context).toBe("supabase_jwt");
-    expect((p as PlayerPrincipal).player_id).toBe("player.111111112222");
-    expect((p as PlayerPrincipal).controller_type).toBe("human");
+    expect((p as { kind: string }).kind).toBe("human");
+    expect((p as { authentication_context: string }).authentication_context).toBe("supabase_jwt");
+    expect((p as { identity_id: string }).identity_id).toBe("11111111-2222-3333-4444-555555555555");
+    expect((p as { player_id?: string }).player_id).toBeUndefined();
+    expect((p as { controller_type?: string }).controller_type).toBe("human");
   });
 });
 
@@ -128,6 +130,7 @@ describe("development token deployment boundary", () => {
     async (noemaEnv) => {
       const res = await requestDevToken(noemaEnv);
       expect(res.status).toBe(200);
+      expect(res.headers.get("cache-control")).toBe("no-store");
       const body = (await res.json()) as { access_token?: string };
       expect(body.access_token).toBeTruthy();
     },
@@ -174,7 +177,7 @@ describe("supabase ES256 enter-world principal", () => {
     return { token, pair };
   }
 
-  it("resolves a valid ES256 Supabase token via JWKS as a Player, not ADMIN", async () => {
+  it("resolves a valid ES256 Supabase token via JWKS as a HumanPrincipal, not ADMIN", async () => {
     const { token, pair } = await es256Token();
     const fetchImpl: typeof fetch = async () =>
       new Response(JSON.stringify({ keys: [pair.publicJwk] }), { status: 200 });
@@ -189,12 +192,13 @@ describe("supabase ES256 enter-world principal", () => {
         }),
       );
       expect(p).not.toBeInstanceOf(Response);
-      const principal = p as PlayerPrincipal;
+      const principal = p as { kind: string; authentication_context: string; controller_type?: string; player_id?: string; identity_id: string; scopes: string[] };
+      expect(principal.kind).toBe("human");
       expect(principal.authentication_context).toBe("supabase_jwt");
       expect(principal.controller_type).toBe("human");
-      expect(principal.player_id).toBe("player.aaaaaaaabbbb");
+      expect(principal.player_id).toBeUndefined();
       expect(principal.identity_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-      expect(principal.scopes).toContain("noema.action.submit");
+      expect(principal.scopes).not.toContain("noema.action.submit");
       expect(principal.scopes).not.toContain("noema.world.admin");
 
       const admin = await resolveAdmin(

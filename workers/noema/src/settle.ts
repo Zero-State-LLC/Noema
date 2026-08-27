@@ -34,6 +34,93 @@ export type CanonicalCommit =
   | { ok: true; revision: number; sequence: number; idempotent: boolean }
   | { ok: false; code: string };
 
+/** Settlement failures that mean DO sequence drifted from the durable head. */
+export const SOFT_SETTLEMENT_CODES = new Set([
+  "NONCONTIGUOUS_SEQUENCE",
+  "REVISION_MISMATCH",
+  "EXPECTED_REVISION_MISMATCH",
+  "SEQUENCE_GAP",
+]);
+
+/**
+ * Structured CommandResult always travels as HTTP 200.
+ * Clients must read `ok` / `error.code` — action failures are not transport errors.
+ */
+export function commandResultHttpStatus(_result: { ok?: boolean }): number {
+  return 200;
+}
+
+export type SoftSettlementFailure = {
+  mode: "soft_restore" | "incident";
+  world: import("./world-actions").WorldRuntime | null;
+  result: {
+    ok: false;
+    request_id: string;
+    error: { code: string; message: string };
+  };
+  metaPatch: {
+    status: "ACTIVE" | "INCIDENT";
+    settlement_health: "HEALTHY" | "DEGRADED" | "BLOCKING";
+    settlement_ok: boolean;
+    revision?: number;
+  };
+};
+
+/**
+ * Rapid PLAY can race the durable head into NONCONTIGUOUS_SEQUENCE.
+ * When a head exists, restore it and ask the client to retry — do not INCIDENT.
+ */
+export async function resolveSoftSettlementFailure(input: {
+  code: string;
+  before: import("./world-actions").WorldRuntime;
+  request_id: string;
+  getHead: (worldId: string) => Promise<WorldHead | null>;
+  writer_generation: string;
+}): Promise<SoftSettlementFailure> {
+  void input.writer_generation;
+  if (SOFT_SETTLEMENT_CODES.has(input.code)) {
+    const head = await input.getHead(input.before.world_id);
+    if (head && head.state_json && typeof head.sequence === "number") {
+      const restored = worldFromHead(head, input.before);
+      return {
+        mode: "soft_restore",
+        world: restored,
+        result: {
+          ok: false,
+          request_id: input.request_id,
+          error: {
+            code: "SETTLEMENT_RESYNC",
+            message: "world head resynced after sequence drift; retry the command",
+          },
+        },
+        metaPatch: {
+          status: "ACTIVE",
+          settlement_health: "HEALTHY",
+          settlement_ok: true,
+          revision: typeof head.revision === "number" ? head.revision : undefined,
+        },
+      };
+    }
+  }
+  return {
+    mode: "incident",
+    world: input.before,
+    result: {
+      ok: false,
+      request_id: input.request_id,
+      error: {
+        code: input.code,
+        message: "canonical settlement was not committed; world entered INCIDENT",
+      },
+    },
+    metaPatch: {
+      status: "INCIDENT",
+      settlement_health: "BLOCKING",
+      settlement_ok: false,
+    },
+  };
+}
+
 /** Observational candidates use evt.obs.* and must not enter the canonical RPC. */
 export function canonicalEventsForCommit<T extends { event_id: string }>(
   events: T[] | undefined | null,

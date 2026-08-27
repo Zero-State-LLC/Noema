@@ -3,6 +3,7 @@
  * Visual tokens: Noema-Specs VISUAL-DESIGN.md via theme/tokens.ts.
  */
 
+import { lowNoiseBootScript } from "./low-noise";
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 
 export const PRODUCT_CSS = `
@@ -40,12 +41,12 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .brand-sub{color:var(--faint);font:.7rem/1.2 var(--font-body)}
 .nav{display:flex;flex-wrap:wrap;gap:.15rem .95rem;justify-content:flex-end;margin-left:auto}
 .nav a{
-  color:var(--muted);text-decoration:none;white-space:nowrap;
-  font:500 .86rem/1.2 var(--font-body);
+  color:var(--ink);text-decoration:none;white-space:nowrap;
+  text-transform:uppercase;letter-spacing:.14em;
+  font:600 .72rem/1.2 var(--font-interface);
   transition:color .15s var(--ease);
 }
-.nav a:hover,.nav a[aria-current=page]{color:var(--ink)}
-.nav a[aria-current=page]{color:var(--color-state-active)}
+.nav a:hover,.nav a[aria-current=page]{color:var(--color-state-active)}
 .runtime{
   display:inline-flex;align-items:center;gap:.45rem;
   color:var(--faint);font:.7rem/1 var(--font-mono);
@@ -60,8 +61,9 @@ button:disabled{opacity:.42;cursor:not-allowed}
 .wrap{width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:var(--space-lg) 0 var(--space-xl);scroll-margin-top:5.5rem}
 #main{scroll-margin-top:5.5rem}
 .kicker{
-  color:var(--color-text-secondary);font:500 .65rem/1.3 var(--font-interface);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--color-state-active);font:600 .72rem/1.3 var(--font-display);letter-spacing:.14em;text-transform:uppercase;
 }
+.place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 h1{
   margin:.2rem 0 .55rem;max-width:16ch;min-width:0;
   font:550 clamp(2.2rem,5.5vw,3.4rem)/1.04 var(--font-display);
@@ -135,6 +137,9 @@ code{color:var(--color-text-machine);font-size:.88em}
   border-top:1px solid var(--line);
 }
 
+.foot a{color:inherit;text-underline-offset:.18em}
+.foot a:hover{color:var(--color-state-active)}
+.foot-contact{display:inline-flex;flex-wrap:wrap;gap:.35rem .65rem;align-items:center}
 .foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 @media(max-width:700px){
@@ -145,6 +150,8 @@ code{color:var(--color-text-machine);font-size:.88em}
   .btn{min-height:44px}
   .nav a{min-height:44px;display:inline-flex;align-items:center}
   input,select{min-height:44px;font-size:16px}
+  .foot{align-items:flex-start;flex-direction:column;gap:.4rem;padding-top:var(--space-md)}
+  .foot-contact{line-height:1.65}
 }
 @media(max-width:540px){
   .brand-sub{display:none}
@@ -155,6 +162,23 @@ code{color:var(--color-text-machine);font-size:.88em}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+body.is-low-noise .hero-art,body.is-low-noise .glyph{display:none!important}
+body.is-low-noise.hero-bleed .hero::after{display:none}
+body.is-low-noise.hero-bleed .top{
+  position:relative;background:var(--void);border-bottom:1px solid var(--line);
+}
+body.is-low-noise.hero-bleed .foot{
+  position:relative;background:var(--void);border-top:1px solid var(--line);
+}
+body.is-low-noise.hero-bleed .wrap{
+  width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:var(--space-lg) 0 var(--space-xl);
+}
+body.is-low-noise.hero-bleed .hero{min-height:0;justify-content:flex-start}
+body.is-low-noise.hero-bleed .hero-copy{
+  text-align:left;padding:0;width:auto;max-width:none;margin:0;
+}
+body.is-low-noise.hero-bleed .hero-copy .invite{margin-left:0;margin-right:auto}
+body.is-low-noise.hero-bleed .hero-gate{justify-content:start;justify-items:stretch}
 .glyph{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em;flex:0 0 auto}
 .glyph svg{display:block;width:100%;height:100%}
 .glyph-player{color:var(--color-state-social)}
@@ -177,7 +201,7 @@ code{color:var(--color-text-machine);font-size:.88em}
 .key-row strong{font-weight:600}
 `;
 
-export type ProductNav = "home" | "play" | "watch" | "study" | "connect";
+export type ProductNav = "home" | "manifesto" | "play" | "watch" | "study" | "connect";
 
 const FONTS = FONT_LINKS;
 
@@ -187,6 +211,7 @@ export function productShell(opts: {
   body: string;
   extraCss?: string;
   description?: string;
+  bleed?: boolean;
 }): string {
   const nav = (href: string, label: string, key: ProductNav) =>
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
@@ -194,29 +219,42 @@ export function productShell(opts: {
     opts.description ||
     "Perihelion Reach — watch the agents play.";
   const homeDoor = opts.active === "home";
-  const letterDoor = homeDoor || opts.active === "play";
+  const letterDoor = homeDoor || opts.active === "manifesto";
   const runtime =
     letterDoor
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   const canonical =
     !opts.active || opts.active === "home" ? "/" : "/" + opts.active;
+  const canonicalUrl = `https://noema.guru${canonical}`;
+  const ogTitle = `${opts.title} · NOEMA`;
+  const ogImage = "https://noema.guru/assets/hero-table.jpg";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="#0E1114"/>
-<title>${opts.title} · NOEMA</title>
+<title>${ogTitle}</title>
 <meta name="description" content="${desc}"/>
-<meta property="og:title" content="${opts.title} · NOEMA"/>
+<meta property="og:site_name" content="NOEMA"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="${canonicalUrl}"/>
+<meta property="og:title" content="${ogTitle}"/>
 <meta property="og:description" content="${desc}"/>
-<meta property="og:image" content="https://noema.guru/assets/og-social.jpg"/>
-<link rel="canonical" href="https://noema.guru${canonical}"/>
+<meta property="og:image" content="${ogImage}"/>
+<meta property="og:image:alt" content="Perihelion Reach"/>
+<meta property="og:image:width" content="1248"/>
+<meta property="og:image:height" content="832"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="${ogTitle}"/>
+<meta name="twitter:description" content="${desc}"/>
+<meta name="twitter:image" content="${ogImage}"/>
+<link rel="canonical" href="${canonicalUrl}"/>
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
 </head>
-<body>
+<body${opts.bleed ? ' class="hero-bleed"' : ""}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">
@@ -225,7 +263,10 @@ ${FONTS}
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}
-    ${homeDoor ? nav("/watch", "Watch", "watch") : `${nav("/play", "Play", "play")}${nav("/watch", "Watch", "watch")}${nav("/connect", "Connect", "connect")}`}
+    ${nav("/manifesto", "Manifesto", "manifesto")}
+    ${nav("/watch", "Watch", "watch")}
+    ${nav("/connect", "Connect", "connect")}
+    ${nav("/study", "Study", "study")}
   </nav>
   ${runtime}
 </header>
@@ -233,8 +274,13 @@ ${FONTS}
 ${opts.body}
 </main>
 <footer class="foot">
-  <span>NOEMA · Perihelion Reach</span>
-  <span>${letterDoor ? `<a class="foot-operator" href="/admin/login">operator</a>` : `PLAY · WATCH · CONNECT · <a class="foot-operator" href="/admin/login">operator</a>`}</span>
+  <span>NOEMA · Perihelion Reach · A Zero State LLC project</span>
+  <span class="foot-contact">
+    <a href="https://zer0state.com">Zero State</a>
+    <a href="mailto:zer0state@zer0state.com">zer0state@zer0state.com</a>
+    <span>·</span>
+    <a class="foot-operator" href="/admin/login">operator</a>
+  </span>
 </footer>
 <script>
 (() => {
@@ -275,6 +321,7 @@ ${opts.body}
   }
 })();
 </script>
+${lowNoiseBootScript()}
 </body>
 </html>`;
 }

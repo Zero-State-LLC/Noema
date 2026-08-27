@@ -12,6 +12,7 @@ import {
   extractHashedToken,
 } from "./admin-mail";
 import { err, json } from "./auth";
+import { hasTransactionalProvider } from "./email-provider";
 import { JwtError, mintHs256, verifyHs256 } from "./jwt";
 import { parseOperatorId, SHARED_TOKEN_OPERATOR_ID } from "./ops";
 import { SlidingWindowThrottle, allowLoginThrottled } from "./rate-limit";
@@ -155,7 +156,14 @@ export const ADMIN_OPERATOR_EMAIL = "zer0state@zer0state.com";
 /** Dedicated Admin-agent mailbox. Always allowed so consume cannot depend on the secret alone. */
 export const ADMIN_AGENT_OPERATOR_EMAIL = "boof@agentmail.to";
 
-export const LOCKED_ADMIN_EMAILS = [ADMIN_OPERATOR_EMAIL, ADMIN_AGENT_OPERATOR_EMAIL] as const;
+/** Partner operator mailbox (Prabu). Admin control-plane only — never a Player. */
+export const ADMIN_PARTNER_OPERATOR_EMAIL = "prabu.openclaw@gmail.com";
+
+export const LOCKED_ADMIN_EMAILS = [
+  ADMIN_OPERATOR_EMAIL,
+  ADMIN_AGENT_OPERATOR_EMAIL,
+  ADMIN_PARTNER_OPERATOR_EMAIL,
+] as const;
 
 export function parseAllowlist(raw?: string): string[] {
   if (!raw) return [];
@@ -222,7 +230,7 @@ export async function requestAdminMagicLink(
   if (allow.includes(email) && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const origin = loginRedirectOrigin(env, req);
-      const canWorkerSend = Boolean(opts?.sendAdmin || env.RESEND_API_KEY || env.POSTMARK_SERVER_TOKEN || env.ADMIN_MAIL);
+      const canWorkerSend = Boolean(opts?.sendAdmin || hasTransactionalProvider(env) || env.ADMIN_MAIL);
       let sent = false;
       if (canWorkerSend) {
         const res = await fetchImpl(`${env.SUPABASE_URL.replace(/\/$/, "")}/auth/v1/admin/generate_link`, {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SHARE_COST, SHARE_MAX_CO_OWNERS } from "../src/construction";
+import { CONSTRUCT_COSTS, SHARE_COST, SHARE_MAX_CO_OWNERS } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, helpText } from "../src/actions";
 import { projectionIdForEvent } from "../src/watch-live";
@@ -84,6 +84,7 @@ describe("GC2-S23 world path", () => {
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].handle = "Nacre";
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, a, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const opened = await run(w, a, "WAIT");
@@ -143,6 +144,7 @@ describe("GC2-S23 world path", () => {
     expect(sixth.ok).toBe(false);
     expect(sixth.error?.code).toBe("FORBIDDEN");
 
+    w.players[f.player_id].budgets.storage = 14;
     const upgrade = await run(w, f, "BUILD", { operation: "UPGRADE", entity_id: entityId });
     expect(upgrade.ok).toBe(true);
 

@@ -1,6 +1,9 @@
 import { loginRedirectOrigin } from "./admin-auth";
 import { err, json, mintControllerToken, resolvePrincipal } from "./auth";
-import type { Env, PlayerPrincipal } from "./types";
+import { sendTransactionalEmail } from "./email-provider";
+import { isHumanPrincipal } from "./types";
+import type { Principal } from "./types";
+import type { Env } from "./types";
 
 export const GAME_SCOPES = [
   "noema.player.read",
@@ -21,6 +24,14 @@ export type DeviceRecord = {
   status: DeviceStatus;
   player_id: string | null;
   controller_id: string | null;
+  approver_id?: string;
+  owner_email?: string;
+  review_token_hash?: string;
+  review_token_expires_at?: string;
+  review_world_id?: string;
+  review_runtime?: string;
+  review_scopes?: string[];
+  review_owner_email?: string;
   issued_at: string;
   expires_at: string;
 };
@@ -29,6 +40,7 @@ export interface DeviceStore {
   put(rec: DeviceRecord): Promise<void>;
   getByDeviceCode(deviceCode: string): Promise<DeviceRecord | null>;
   getByUserCode(userCode: string): Promise<DeviceRecord | null>;
+  getByReviewTokenHash?(hash: string): Promise<DeviceRecord | null>;
 }
 
 export function memoryDeviceStore(seed: DeviceRecord[] = []): DeviceStore {
@@ -45,6 +57,12 @@ export function memoryDeviceStore(seed: DeviceRecord[] = []): DeviceStore {
       const norm = normalizeUserCode(userCode);
       for (const rec of byDevice.values()) {
         if (rec.user_code === norm) return { ...rec };
+      }
+      return null;
+    },
+    async getByReviewTokenHash(hash) {
+      for (const rec of byDevice.values()) {
+        if (rec.review_token_hash === hash) return { ...rec };
       }
       return null;
     },
@@ -83,7 +101,21 @@ export function durableDeviceStore(env: Env): DeviceStore {
       if (!res.ok) throw new Error("device load failed");
       return parseDeviceRecord(await res.json());
     },
+    async getByReviewTokenHash(hash) {
+      const res = await stub.fetch(`https://do/device?review_token_hash=${encodeURIComponent(hash)}`);
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("device load failed");
+      return parseDeviceRecord(await res.json());
+    },
   };
+}
+
+export function normalizeOwnerEmail(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const email = raw.trim().toLowerCase();
+  if (!email || email.length > 254) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
 }
 
 export function normalizeUserCode(raw: string): string {
@@ -116,6 +148,22 @@ function randomDeviceCode(): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+function randomReviewToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function reviewSecret(env: Env): string | null {
+  return String((env as unknown as { DEVICE_REVIEW_TOKEN_SECRET?: string }).DEVICE_REVIEW_TOKEN_SECRET || "").trim() || null;
+}
+
+async function hashReviewToken(env: Env, token: string): Promise<string | null> {
+  const secret = reviewSecret(env);
+  if (!secret) return null;
+  return hashDeviceSecret(`${secret}:${token}`);
+}
+
 export function verificationUri(env: Env, req: Request): string {
   if ((env.NOEMA_ENV || "").toLowerCase() === "production") return "https://noema.guru/connect";
   return `${loginRedirectOrigin(env, req).replace(/\/$/, "")}/connect`;
@@ -125,29 +173,76 @@ export function allocateDeviceControllerId(): string {
   return `ctrl.device.${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
+/** Canonical Agent Player id for a CONNECT device Controller. */
+export function playerIdFromDeviceController(controllerId: string): string | null {
+  if (!/^ctrl\.device\./i.test(controllerId)) return null;
+  const slug = controllerId.replace(/^ctrl\./i, "").replace(/[^a-z0-9]/gi, "").slice(0, 24);
+  return slug ? `player.${slug}` : null;
+}
+
 export async function startDeviceEnrollment(
   env: Env,
   req: Request,
-  body: { metadata?: { runtime?: string }; scopes?: string[] },
-  opts?: { store?: DeviceStore; now?: number },
+  body: { metadata?: { runtime?: string }; scopes?: string[]; owner_email?: string },
+  opts?: { store?: DeviceStore; now?: number; fetchImpl?: typeof fetch },
 ): Promise<Response> {
   const store = opts?.store;
   if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
   const now = opts?.now ?? Date.now();
   const device_code = randomDeviceCode();
+  const owner_email = normalizeOwnerEmail(body.owner_email);
+  const runtime = String(body.metadata?.runtime || "external").slice(0, 64);
+  const scopes = filterGameScopes(body.scopes);
+  const world = String(env.DEFAULT_WORLD_ID || "world-01");
   const rec: DeviceRecord = {
     device_code,
     device_code_hash: await hashDeviceSecret(device_code),
     user_code: randomUserCode(),
-    scopes: filterGameScopes(body.scopes),
-    runtime: String(body.metadata?.runtime || "external").slice(0, 64),
+    scopes,
+    runtime,
     status: "pending",
     player_id: null,
     controller_id: allocateDeviceControllerId(),
     issued_at: new Date(now).toISOString(),
     expires_at: new Date(now + DEVICE_TTL_MS).toISOString(),
   };
+  let review_token: string | null = null;
+  if (owner_email) {
+    review_token = randomReviewToken();
+    const review_token_hash = await hashReviewToken(env, review_token);
+    if (review_token_hash) {
+      rec.owner_email = owner_email;
+      rec.review_token_hash = review_token_hash;
+      rec.review_token_expires_at = rec.expires_at;
+      rec.review_world_id = world;
+      rec.review_runtime = runtime;
+      rec.review_scopes = [...scopes];
+      rec.review_owner_email = owner_email;
+    }
+  }
   await store.put(rec);
+  let review_delivery: "not_requested" | "sent" | "failed" | "unconfigured" = owner_email ? "unconfigured" : "not_requested";
+  if (owner_email && review_token && rec.review_token_hash) {
+    const base = verificationUri(env, req).replace(/\/connect$/, "");
+    const review = `${base}/v1/auth/device/review?token=${encodeURIComponent(review_token)}`;
+    try {
+      const sent = await sendTransactionalEmail(env, {
+        from: "Noema <no-reply@noema.guru>",
+        to: owner_email,
+        subject: `Review Noema Controller connection for ${runtime}`,
+        text: `Review: ${review}\n\nOne human click opens a review page. It does not approve until you press Approve on that page. Deny is available there too.\nWorld: ${world}\nRuntime: ${runtime}\nScopes: ${scopes.join(", ")}`,
+        html: `<p>A Controller is requesting access to <strong>${world}</strong>.</p><p>Runtime: ${runtime}</p><p><a href="${review}">Review request</a></p><p>Opening the link only renders a review page; explicit Approve or Deny is required.</p>`,
+        tag: "device-enrollment-review",
+      }, opts?.fetchImpl || fetch);
+      review_delivery = "sent";
+      console.info("device_enrollment_review_email_sent", { provider: sent.provider, message_id: sent.messageId, world, runtime });
+    } catch (e) {
+      review_delivery = "failed";
+      console.warn("device_enrollment_review_email_failed", { world, runtime, reason: e instanceof Error ? e.message : "error" });
+    }
+  } else if (owner_email && !reviewSecret(env)) {
+    console.warn("device_enrollment_review_secret_absent", { world, runtime });
+  }
   return json({
     device_code,
     user_code: rec.user_code,
@@ -156,7 +251,92 @@ export async function startDeviceEnrollment(
     expires_in: 600,
     interval: 5,
     scopes: rec.scopes,
+    review_delivery,
   });
+}
+
+async function reviewRecord(env: Env, store: DeviceStore, token?: string): Promise<DeviceRecord | Response> {
+  const hash = token ? await hashReviewToken(env, token) : null;
+  if (!hash || !store.getByReviewTokenHash) return err("NOT_AUTHORIZED", "invalid or expired review token", 401);
+  const rec = await store.getByReviewTokenHash(hash);
+  if (!rec) return err("NOT_AUTHORIZED", "invalid or expired review token", 401);
+  const exact = rec.review_world_id === String(env.DEFAULT_WORLD_ID || "world-01") && rec.review_runtime === rec.runtime && JSON.stringify(rec.review_scopes || []) === JSON.stringify(rec.scopes || []) && Boolean(rec.owner_email) && rec.review_owner_email === rec.owner_email;
+  if (!exact) return err("NOT_AUTHORIZED", "invalid or expired review token", 401);
+  return rec;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[c] || c);
+}
+
+export async function reviewDevicePage(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const token = new URL(req.url).searchParams.get("token") || "";
+  const rec = await reviewRecord(env, store, token || undefined);
+  if (rec instanceof Response) return rec;
+  const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
+  const disabled = status === "pending" ? "" : " disabled";
+  const body = `<!doctype html><html><head><meta charset="utf-8"><title>Review Noema agent connection</title></head><body>
+    <main>
+      <h1>Review agent connection</h1>
+      <p>Opening this link does not approve or deny anything. Email scanners and previews only see this page.</p>
+      <p>Humans approve; agents inhabit after approval. If approved, the agent automatically receives credentials through device polling. Credentials never appear in this email or browser page.</p>
+      <dl>
+        <dt>World</dt><dd>${escapeHtml(rec.review_world_id || "world-01")}</dd>
+        <dt>Runtime</dt><dd>${escapeHtml(rec.runtime)}</dd>
+        <dt>Status</dt><dd>${escapeHtml(status)}</dd>
+        <dt>Expires</dt><dd>${escapeHtml(rec.expires_at)}</dd>
+      </dl>
+      <form method="post" action="/v1/auth/device/review/approve"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit"${disabled}>Approve</button></form>
+      <form method="post" action="/v1/auth/device/review/deny"><input type="hidden" name="token" value="${escapeHtml(token)}"><button type="submit"${disabled}>Deny</button></form>
+      <p>Denied or expired requests cannot be redeemed. Use the short-code approval or operator token fallback only if email approval is unavailable.</p>
+    </main>
+  </body></html>`;
+  return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+}
+
+async function reviewTokenFromRequest(req: Request): Promise<string | undefined> {
+  const urlToken = new URL(req.url).searchParams.get("token");
+  if (urlToken) return urlToken;
+  if (req.method !== "POST") return undefined;
+  const ctype = req.headers.get("content-type") || "";
+  if (ctype.includes("application/json")) {
+    const body = (await req.clone().json().catch(() => ({}))) as { token?: unknown };
+    return typeof body.token === "string" ? body.token : undefined;
+  }
+  if (ctype.includes("application/x-www-form-urlencoded") || ctype.includes("multipart/form-data")) {
+    const form = await req.clone().formData().catch(() => null);
+    const token = form?.get("token");
+    return typeof token === "string" ? token : undefined;
+  }
+  return undefined;
+}
+
+export async function approveDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const rec = await reviewRecord(env, store, await reviewTokenFromRequest(req));
+  if (rec instanceof Response) return rec;
+  const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
+  if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
+  const controller_id = rec.controller_id || allocateDeviceControllerId();
+  const player_id = rec.player_id || playerIdFromDeviceController(controller_id) || `player.agent`;
+  await store.put({ ...rec, status: "approved", player_id, controller_id, review_token_hash: undefined });
+  console.info("device_enrollment_review_approved", { world: rec.review_world_id, runtime: rec.runtime, scopes: rec.scopes });
+  return json({ status: "approved", user_code: rec.user_code, player_id, controller_id, scopes: rec.scopes, runtime: rec.runtime });
+}
+
+export async function denyDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
+  const store = opts?.store;
+  if (!store) return err("UNAVAILABLE", "device store unavailable", 503);
+  const rec = await reviewRecord(env, store, await reviewTokenFromRequest(req));
+  if (rec instanceof Response) return rec;
+  const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
+  if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
+  await store.put({ ...rec, status: "denied", review_token_hash: undefined });
+  console.info("device_enrollment_review_denied", { world: rec.review_world_id, runtime: rec.runtime, scopes: rec.scopes });
+  return json({ status: "denied", user_code: rec.user_code });
 }
 
 export async function effectiveDeviceStatus(rec: DeviceRecord, now: number): Promise<DeviceStatus> {
@@ -184,18 +364,17 @@ export async function previewDevice(
   });
 }
 
-function canHumanApprove(principal: PlayerPrincipal): boolean {
+function canHumanApprove(principal: Principal): boolean {
+  if (isHumanPrincipal(principal)) return true;
   if ((principal.scopes || []).includes("noema.controller.manage")) return true;
-  if (principal.controller_type === "human" || principal.controller_type === "hybrid") return true;
-  if (principal.amr === "email_magic_link") return true;
   return false;
 }
 
-async function requireHumanApprover(req: Request, env: Env): Promise<PlayerPrincipal | Response> {
+async function requireHumanApprover(req: Request, env: Env): Promise<Principal | Response> {
   const principal = await resolvePrincipal(req, env);
   if (principal instanceof Response) return principal;
   if (!canHumanApprove(principal)) {
-    return err("NOT_AUTHORIZED", "only a human Controller may approve device enrollment", 403);
+    return err("NOT_AUTHORIZED", "only a human platform principal may approve device enrollment", 403);
   }
   return principal;
 }
@@ -216,17 +395,20 @@ export async function approveDevice(
   const status = await effectiveDeviceStatus(rec, now);
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
   const controller_id = rec.controller_id || allocateDeviceControllerId();
+  const player_id =
+    rec.player_id || playerIdFromDeviceController(controller_id) || `player.agent`;
   const next: DeviceRecord = {
     ...rec,
     status: "approved",
-    player_id: approver.player_id,
+    player_id,
     controller_id,
+    approver_id: isHumanPrincipal(approver) ? approver.identity_id : undefined,
   };
   await store.put(next);
   return json({
     status: "approved",
     user_code: rec.user_code,
-    player_id: approver.player_id,
+    player_id,
     controller_id,
     scopes: rec.scopes,
     runtime: rec.runtime,
@@ -245,8 +427,8 @@ export async function denyDevice(
   if (approver instanceof Response) return approver;
   const rec = await store.getByUserCode(String(body.user_code || ""));
   if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
-  if (rec.player_id && rec.player_id !== approver.player_id) {
-    return err("NOT_AUTHORIZED", "cannot deny another Player's enrollment", 403);
+  if (rec.approver_id && isHumanPrincipal(approver) && rec.approver_id !== approver.identity_id) {
+    return err("NOT_AUTHORIZED", "cannot deny another account's enrollment", 403);
   }
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
   if (status !== "pending") return json({ status, user_code: rec.user_code });

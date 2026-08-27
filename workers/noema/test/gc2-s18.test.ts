@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONSTRUCT_COSTS,
   MULTI_CYCLE_CLASS,
   isInProgress,
   isMultiCycleClass,
@@ -105,6 +106,7 @@ describe("GC2-S18 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.archive_annex.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(built.ok).toBe(true);
     expect(built.observation?.consequence).toMatch(/under construction/);
@@ -134,6 +136,7 @@ describe("GC2-S18 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.archive_annex.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(built.ok).toBe(true);
     expect(isInProgress(w.rooms["room.yard"].entities.find((e) => e.infra_type === "archive_annex")!)).toBe(true);
@@ -168,6 +171,7 @@ describe("GC2-S18 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.archive_annex.storage || 0) - 2;
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "archive_annex" });
     expect(built.ok).toBe(true);
     const entityId = w.rooms["room.yard"].entities.find((e) => e.infra_type === "archive_annex")!.entity_id;

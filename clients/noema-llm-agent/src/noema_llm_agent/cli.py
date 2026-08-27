@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from typing import Optional
 
 import typer
@@ -31,6 +32,11 @@ def run(
     turns: int = typer.Option(4, "--turns"),
 ) -> None:
     """HELLO → AUTH → ENTER_WORLD → observe/decide/act."""
+    print(
+        "DEPRECATED: in-repo noema-llm-agent is not the official client. "
+        "Install with `pipx install noema-client` then run `noema connect`. Kept for CI.",
+        file=sys.stderr,
+    )
 
     async def _main() -> None:
         client = await connect_protocol(

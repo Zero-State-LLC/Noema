@@ -57,7 +57,7 @@ function world(): WorldRuntime {
 }
 
 describe("World Services derivation", () => {
-  it("places a Relay Keeper at Grid Anchor without creating a Player", () => {
+  it("places a Relay Keeper only when infrastructure has authorized damage", () => {
     const svcs = servicesAtRoom({
       room_id: "room.hub",
       name: "Grid Anchor",
@@ -68,23 +68,22 @@ describe("World Services derivation", () => {
     expect(svcs.find((s) => s.service_id === "service.relay.01")?.status).toBe("DEGRADED");
   });
 
-  it("marks Contract Clerk unavailable without hosted agreements", () => {
+  it("does not invent registry or contract desks from civic room names", () => {
     const svcs = servicesAtRoom({
       room_id: "room.town",
       name: "Contract Town",
       description: "Registry and civic desks",
       entities: [],
     });
-    expect(svcs.find((s) => s.service_id === "service.contracts.01")?.status).toBe("UNAVAILABLE");
-    expect(svcs.some((s) => s.service_id === "service.registry.01")).toBe(true);
+    expect(svcs).toEqual([]);
   });
 
-  it("resolves talk aliases", () => {
+  it("resolves talk aliases when a damaged infrastructure entity is present", () => {
     const present = servicesAtRoom({
       room_id: "room.hub",
       name: "Grid Anchor",
       description: "relay",
-      entities: [{ label: "relay", entity_type: "INFRASTRUCTURE" }],
+      entities: [{ label: "relay", entity_type: "INFRASTRUCTURE", condition: 40, repairable: true }],
     });
     expect(resolveService("keeper", present)?.service_id).toBe("service.relay.01");
   });

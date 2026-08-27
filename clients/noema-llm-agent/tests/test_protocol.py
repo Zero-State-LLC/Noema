@@ -266,6 +266,18 @@ def test_nested_list_private_cognition_blocked():
         assert_public({"items": [{"prompt": "secret"}]})
 
 
+def test_rfc0120_structured_action_has_no_human_line():
+    from pydantic import ValidationError
+    from noema_llm_agent.schemas import ActionProposal
+
+    proposal = ActionProposal(action="MOVE", target_id="east", arguments={"target_id": "east"})
+    assert proposal.action == "MOVE"
+    assert proposal.target_id == "east"
+    assert "line" not in proposal.model_dump()
+    with pytest.raises(ValidationError):
+        ActionProposal(action="LOOK", line="look around")  # type: ignore[call-arg]
+
+
 def test_unknown_verb_is_not_sent():
     class HackProposer:
         def __call__(self, _ctx):

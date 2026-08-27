@@ -2,7 +2,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { admitLocalSmokeBase } from "../scripts/smoke.mjs";
+import { admitLocalSmokeBase, LOCAL_SMOKE_SEAL, pickInspectTarget, pickMoveDirection } from "../scripts/smoke.mjs";
+import { ACCEPTED_SEALS } from "../src/seal";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "../scripts/smoke.mjs");
 
@@ -25,5 +26,23 @@ describe("local smoke script security boundary", () => {
     });
     expect(result.status).toBe(2);
     expect(result.stderr).toMatch(/use npm run smoke:hosted/i);
+  });
+
+  it("sends the published live seal because local world-01 is default-kind", () => {
+    expect(LOCAL_SMOKE_SEAL).toBe(ACCEPTED_SEALS[0]);
+  });
+
+  it("picks the first visible inspect target and move direction", () => {
+    const obs = {
+      location: {
+        room_id: "room.relay-quarter",
+        entities: [{ entity_id: "entity.relay-7", label: "Relay 7" }],
+        exits: [{ direction: "east", to_room_id: "room.transit-ring" }],
+      },
+    };
+    expect(pickInspectTarget(obs)).toBe("entity.relay-7");
+    expect(pickMoveDirection(obs)).toBe("east");
+    expect(pickInspectTarget({})).toBeNull();
+    expect(pickMoveDirection({})).toBeNull();
   });
 });

@@ -74,6 +74,10 @@ def classify(payload: dict[str, Any], http_status: int | None) -> FailureClass |
         return FailureClass.WORLD_PAUSED
     if status == "INCIDENT" or code in {"WORLD_INCIDENT", "INCIDENT"}:
         return FailureClass.WORLD_INCIDENT
+    if code == "SETTLEMENT_RESYNC":
+        # Soft head restore, not an incident and not a canonical rejection —
+        # the server's own message is "retry the command".
+        return FailureClass.SETTLEMENT_RESYNC
     if status in {"PREVIEW", "ARCHIVED"} or code in {"WORLD_NOT_READY", "NOT_ACTIVE"}:
         return FailureClass.WORLD_NOT_READY
     if payload.get("ok") is False or (http_status and http_status >= 400):
@@ -131,7 +135,12 @@ class GatewayClient:
         req_id = request_id or f"req.{uuid.uuid4().hex[:10]}"
         last_timeout: Exception | None = None
         attempts = retries + 1
-        for _ in range(attempts):
+        transport_tries = 0
+        # AGENT-HARNESS §8: SETTLEMENT_RESYNC gets ONE automatic retry with the
+        # same idempotency_key and request_id — both are bound above this loop,
+        # so the same-key requirement holds by construction. Then surface.
+        resync_left = 1
+        while True:
             try:
                 body: dict[str, Any] = {
                     "request_id": req_id,
@@ -157,9 +166,17 @@ class GatewayClient:
                     extra,
                 )
                 last_timeout = None
+                err = payload.get("error") if isinstance(payload, dict) else None
+                resync = isinstance(err, dict) and str(err.get("code") or "").upper() == "SETTLEMENT_RESYNC"
+                if resync and resync_left > 0:
+                    resync_left -= 1
+                    continue
                 break
             except (TimeoutError, urllib.error.URLError, ConnectionError, OSError) as exc:
                 last_timeout = exc
+                transport_tries += 1
+                if transport_tries >= attempts:
+                    break
                 continue
         if last_timeout is not None:
             return CommandResult(

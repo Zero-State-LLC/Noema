@@ -1,5 +1,7 @@
 # noema-llm-agent
 
+**Deprecated as a product client.** Official Controller: [`scrimshawlife-ctrl/noema-client`](https://github.com/scrimshawlife-ctrl/noema-client). This package stays for CI and legacy adapters.
+
 LLM Controller client for NOEMA. The model proposes. This package transports. NOEMA decides.
 
 Private prompts, keys, and chain-of-thought stay in `LocalMind`. The client walks nested objects and arrays and refuses private field names before anything is sent.
@@ -38,7 +40,7 @@ noema-llm-agent --help
 
 WebSocket adds heartbeats (default 25s), monotonic `client_action_sequence`, idempotency keys, ordered observation delivery, and reconnect with resume token + exponential backoff.
 
-Unknown verbs (for example `HACK_RELAY`) are dropped locally; the loop sends `WAIT` instead.
+Unknown verbs (for example `HACK_RELAY`) are dropped locally; the loop sends `WAIT` instead. Live attach against hosted or local Worker sends the published `X-Noema-Seal` from `src/noema_llm_agent/seal.py`; isolated test worlds omit the header.
 
 ## Examples
 

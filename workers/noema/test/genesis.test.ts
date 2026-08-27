@@ -4,7 +4,6 @@ import {
   previewGenesis,
   redactedPublicWorld,
   stableStringify,
-  validateEWMProfile,
   validateCycle0,
 } from "../src/genesis";
 
@@ -16,7 +15,7 @@ const REHEARSAL = {
 };
 
 describe("hosted genesis", () => {
-  it("catalog includes all supported profiles including EWM enhanced", () => {
+  it("catalog has canonical profiles plus EWM_ENHANCED", () => {
     const c = catalog();
     expect(c.profiles.map((p) => p.profile_id).sort()).toEqual([
       "EWM_ENHANCED",
@@ -87,6 +86,23 @@ describe("hosted genesis", () => {
     expect(stableStringify({ b: 1, a: 2 })).toBe(stableStringify({ a: 2, b: 1 }));
   });
 
+  const FROZEN = {
+    world_name: "Perihelion Reach",
+    world_seed: "17011984",
+    profile_id: "FRACTURED_OLD_WORLD",
+    story_seed_ids: ["OLD_TRADE_NETWORK", "LOST_ARCHIVE"],
+  };
+
+  it("frozen first-world candidate keeps genesis_id and 5-room graph", async () => {
+    const a = await previewGenesis(FROZEN);
+    expect(a.genesis_id).toBe("genesis.ef578f4ffceeccd0");
+    expect(Object.keys(a.cycle0.rooms).sort()).toEqual(
+      ["room.civic-exchange", "room.infra-vault", "room.relay-quarter", "room.ruin-shelf", "room.transit-ring"].sort(),
+    );
+    expect(a.cycle0.rooms["room.archive"]).toBeUndefined();
+    expect(a.validation.ok).toBe(true);
+  });
+
   it("theme pack applies frontier vocabulary without seed IDs in public projection", async () => {
     const a = await previewGenesis(REHEARSAL);
     expect(a.theme?.theme_id).toBe("perihelion-reach");
@@ -108,18 +124,5 @@ describe("hosted genesis", () => {
     expect(s).not.toContain("theme_id");
     expect(s).not.toContain("FRACTURED_OLD_WORLD");
     expect(pub).not.toHaveProperty("theme_id");
-  });
-
-  it("enhanced profile validates and returns EWM-specific world shaping", async () => {
-    const c = await previewGenesis({
-      ...REHEARSAL,
-      profile_id: "EWM_ENHANCED",
-      story_seed_ids: ["RESOURCE_CRISIS"],
-    });
-    expect(c.genesis_profile_id).toBe("EWM_ENHANCED");
-
-    const ewms = validateEWMProfile(c.cycle0);
-    expect(ewms.ok).toBe(true);
-    expect(ewms.warnings).toEqual([]);
   });
 });

@@ -1,0 +1,45 @@
+{
+  "catalog_id": "player-tempo-catalog/1.0",
+  "policy_version": "player-tempo/1.0",
+  "modes": [
+    {
+      "mode": "OBSERVED_LIVE",
+      "allowed_world_kinds": ["PRODUCTION", "ORDINARY_LIVE", "ISOLATED_TEST"],
+      "collect_window_ms": 20000,
+      "presentation_hold_ms": 10000,
+      "freeze_triggers": ["PARTICIPANT_QUORUM", "COLLECT_DEADLINE_WITH_ACTION"],
+      "max_mutating_actions_per_player_per_cycle": 1,
+      "empty_window_advances": false,
+      "surplus_action_policy": "REJECT"
+    },
+    {
+      "mode": "FAST_TEST",
+      "allowed_world_kinds": ["ISOLATED_TEST"],
+      "collect_window_ms": 0,
+      "presentation_hold_ms": 0,
+      "freeze_triggers": ["PARTICIPANT_QUORUM", "OPERATOR_BATCH_CLOSE"],
+      "max_mutating_actions_per_player_per_cycle": 1,
+      "empty_window_advances": false,
+      "surplus_action_policy": "REJECT"
+    },
+    {
+      "mode": "STEP_TEST",
+      "allowed_world_kinds": ["ISOLATED_TEST"],
+      "collect_window_ms": null,
+      "presentation_hold_ms": 0,
+      "freeze_triggers": ["OPERATOR_STEP"],
+      "max_mutating_actions_per_player_per_cycle": 1,
+      "empty_window_advances": false,
+      "surplus_action_policy": "REJECT"
+    }
+  ],
+  "errors": ["ACTION_SLOT_FILLED", "PACE_LIMITED"],
+  "invariants": {
+    "canonical_clock": "World.cycle",
+    "canonical_order": "action_priority,agent_id,client_action_sequence,action_id",
+    "wall_clock_is_reducer_input": false,
+    "client_selects_mode": false,
+    "missing_action_is_wait": false,
+    "test_mode_bypasses_settlement": false
+  }
+}

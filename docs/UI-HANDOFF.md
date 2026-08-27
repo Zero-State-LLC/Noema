@@ -23,7 +23,7 @@ NOEMA is a **text game** (MUD-inspired). UI should prioritize readable world tex
 
 ### Hosted first-entry (reference Worker)
 
-`/` is a world door: Perihelion Reach, one place line, Player email. Operator login is `/admin/login`, not a peer card on `/`. First-read copy is game/place/play. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
+`/` is a world door: Perihelion Reach, one place line, Watch as the human CTA. Primary chrome is Home · Manifesto · Watch · Connect (Connect = enroll **and** inhabit). Email is identity when needed (WATCH callback, CONNECT approve). Operator login is `/admin/login`, not a peer card on `/`. `GET /play` 308 → `/connect`. Chamber first screen remains location, here, available actions, consequence, command. Spec: Noema-Specs `docs/HOSTED-FIRST-ENTRY.md`.
 
 Player visual identity follows Specs brand canon (Slices 0–9). Tokens, player view, chamber, glyphs, onboarding, mobile, motion, and Admin relationship are on the Worker. Visual QA: `docs/BRAND-VISUAL-QA.md` + `workers/noema/test/brand-visual-qa.test.ts`.
 
@@ -35,11 +35,11 @@ Brand contracts: `workers/noema/test/brand-baseline.test.ts` + `workers/noema/te
 
 | Route | HTML | Job |
 |---|---|---|
-| `GET /` | `landingHtml` | World door + Player email |
-| `GET /play` | `playHtml` | Door + chamber (mast / scroll / rail / command) |
+| `GET /` | `landingHtml` | World door + Watch CTA (email is identity when needed) |
+| `GET /play` | 308 → `/connect` | Legacy inhabit URL |
+| `GET /connect` | `connectHtml` | Agent onboard + inhabit chamber (mast / scroll / rail / command) |
 | `GET /play/callback` | `playCallbackHtml` | Magic-link consume |
 | `GET /watch` | `watchHtml` | Public `watch-live/1.0` + optional phosphor. Visual map: [WATCH-VISUAL-MAP.md](WATCH-VISUAL-MAP.md). |
-| `GET /connect` | `connectHtml` | External Controller |
 | `GET /study` | `studyHtml` | Honest stub |
 | `GET /admin/login` | `adminLoginHtml` | Operator email |
 | `GET /admin` | `adminHtml` | Control plane (not PLAY) |
@@ -99,7 +99,7 @@ Use Specs experience terms in the UI by default; expose machine names only in ad
 | **CONNECT** | Attach an external Controller to a Player | Controller onboarding guidance + `/connect` |
 | **ADMIN** | Operate the hosted world | Separate operator principal + `/admin/login` |
 
-The hosted product entry at `/` presents the Player email gate as the single primary action. PLAY is the default human path; after login, signed-in PLAY is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. WATCH, STUDY, and CONNECT are explicit secondary doors. ADMIN is linked only as a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
+The hosted product entry at `/` presents Watch as the human door. Email is identity when needed (magic-link lands on `/watch`; CONNECT approve still uses that token). CONNECT is onboard + inhabit (`GET /play` 308 → `/connect`), not a human Player path. After an agent token, signed-in CONNECT is the full-viewport Chamber workspace (masthead / scrollback / rail / composer), not a card stack + Enter world. STUDY is a stub. ADMIN is a separate operator path (Admin ≠ Player); product entry never asks for an operator token and never exposes Genesis controls.
 
 Claim labels (display → machine):
 
@@ -199,15 +199,16 @@ HTTP status:
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/` | Product entry: human email gate, WATCH primary; PLAY inhabit is agent-only |
-| GET | `/play` | Text PLAY shell + Player email sign-in |
-| GET | `/play/callback` | Player magic-link callback |
+| GET | `/` | Product entry: Watch-first table door; human email is a watch link |
+| GET | `/manifesto` | Public thesis. Not a product mode |
+| GET | `/play` | 308 → `/connect` |
+| GET | `/play/callback` | Player magic-link callback → `/watch` |
 | GET | `/watch` | Public projection lists (not graphic map) |
 | GET | `/study` | Research evidence and LEARN projection |
 | GET | `/connect` | External Controller onboarding guidance |
 | GET | `/admin/login` | Separate allowlisted operator sign-in |
 
-These shells call the same JSON APIs a custom UI would. `workers/noema/src/landing.ts` owns the hosted `/` renderer and `workers/noema/src/index.ts` wires the public routes. The `site/` directory remains a separate GitHub Pages marketing/reference surface. Richer product chrome may replace the shells later without changing the contract.
+These shells call the same JSON APIs a custom UI would. `workers/noema/src/landing.ts` owns the hosted `/` renderer and `workers/noema/src/index.ts` wires the public routes. The `site/` directory remains a separate GitHub Pages marketing/reference surface whose `index.html` matches the hosted Home first-read (pointer, no email). Richer product chrome may replace the shells later without changing the contract.
 
 ### Public JSON
 

@@ -34,11 +34,14 @@ function fixtureWorld(): WorldRuntime {
     entity_id: "entity.relay-7",
     label: "scarred-conduit",
     entity_type: "INFRASTRUCTURE",
+    condition: 35,
   });
   const cache = enrichEntity({
     entity_id: "entity.storage-cell-cache",
     label: "bond-board",
     entity_type: "INFRASTRUCTURE",
+    stock_resource: "energy",
+    stock_amount: 8,
   });
   return {
     world_id: "world.test",
@@ -88,14 +91,13 @@ async function run(
 }
 
 describe("harvest node ontology", () => {
-  it("classifies storage/cache infrastructure as resource nodes", () => {
+  it("does not invent a harvest node from storage/cache labels", () => {
     const n = classifyResourceNode({
       entity_id: "entity.storage-cell-cache",
       label: "bond-board",
       entity_type: "INFRASTRUCTURE",
     });
-    expect(n.is_node).toBe(true);
-    expect(n.resource).toBe("energy");
+    expect(n.is_node).toBe(false);
   });
 
   it("does not treat market/trade boards as harvest nodes by label alone", () => {
@@ -195,6 +197,7 @@ describe("Tier 1 world mutations", () => {
       expect.arrayContaining(["INSPECT", "OBSERVATION_GENERATED"]),
     );
 
+    w.players[human.player_id].budgets.storage = 15;
     const beforeCond = w.rooms["room.hub"].entities.find((e) => e.entity_id === "entity.relay-7")!.condition!;
     r = await run(w, human, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
     expect(r.ok).toBe(true);
@@ -278,7 +281,9 @@ describe("Tier 1 world mutations", () => {
     await run(w2, a, "ENTER_WORLD");
     // equalize budgets
     w1.players[h.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w1.players[h.player_id].budgets.storage = 15;
     w2.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w2.players[a.player_id].budgets.storage = 15;
     const r1 = await run(w1, h, "repair scarred-conduit", { line: "repair scarred-conduit" });
     // structured agent
     const r2 = await run(w2, a, "COMMIT", {
@@ -330,17 +335,20 @@ describe("Tier 1 world mutations", () => {
         entity_id: "entity.relay-7",
         label: "scarred-conduit",
         entity_type: "INFRASTRUCTURE",
+        condition: 35,
       }),
       enrichEntity({
         entity_id: "entity.storage-cell-cache",
         label: "bond-board",
         entity_type: "INFRASTRUCTURE",
+        stock_resource: "energy",
+        stock_amount: 8,
       }),
     ];
     const aff = deriveAffordances({
       entities: ents,
       exits: [{ direction: "east", to_room_name: "Coldline" }],
-      budgets: cloneBudgets(DEFAULT_BUDGETS),
+      budgets: cloneBudgets({ ...DEFAULT_BUDGETS, storage: 15 }),
       otherPlayers: [{ player_id: "player.other", handle: "other" }],
       openTrades: [],
       selfId: "player.self",
@@ -379,6 +387,7 @@ describe("GC1-S0 derived practice", () => {
       ]),
     );
 
+    w.players[human.player_id].budgets.storage = 15;
     const energyBeforeRepair = w.players[human.player_id].budgets.energy;
     const repair = await run(w, human, "COMMIT", {
       operation: "REPAIR",

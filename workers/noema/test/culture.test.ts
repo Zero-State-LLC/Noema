@@ -129,7 +129,7 @@ describe("GC9-S0 world projection", () => {
       ...DEFAULT_BUDGETS,
       energy: 80,
       compute: 64,
-      storage: 16,
+      storage: 15,
     });
     w.rooms["room.hub"].entities[0].condition = 40;
 
@@ -138,7 +138,7 @@ describe("GC9-S0 world projection", () => {
         ...DEFAULT_BUDGETS,
         energy: 80,
         compute: 64,
-        storage: 16,
+        storage: 15,
       });
       const r = await run(w, nacre, "COMMIT", {
         operation: "REPAIR",

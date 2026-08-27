@@ -1,0 +1,58 @@
+name: pin-currency
+
+# The scheduled/workflow_dispatch runs are drift monitors. The pull_request run is
+# intentionally narrow: it gates only PRs that edit the authoritative pin, so a
+# normal source PR is not failed just because a deployment happened first. The
+# post-deploy generated PR must pass this check before review/merge.
+on:
+  pull_request:
+    paths:
+      - "spec-compat.json"
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pin-currency
+  cancel-in-progress: true
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: spec-compat.json
+          sparse-checkout-cone-mode: false
+      - name: Compare hosted_live.worker_version_id against GET /version
+        run: |
+          set -euo pipefail
+          PINNED=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['hosted_live']['worker_version_id'])")
+          BODY=$(curl -fsS --connect-timeout 5 --max-time 20 https://noema.guru/version) || {
+            echo "::warning::/version unreachable; pin currency not determined this run"
+            exit 0
+          }
+          LIVE=$(printf '%s' "$BODY" | python3 -c "import json,sys;print(json.load(sys.stdin).get('worker_version_id',''))") || {
+            echo "::warning::/version returned unparseable JSON; pin currency not determined"
+            exit 0
+          }
+          DEPLOYED=$(printf '%s' "$BODY" | python3 -c "import json,sys;print(json.load(sys.stdin).get('deployed_at',''))") || true
+          echo "pinned: $PINNED"
+          echo "live:   $LIVE  (deployed_at $DEPLOYED)"
+          if [ -z "$LIVE" ]; then
+            echo "::warning::/version returned no worker_version_id; pin currency not determined"
+            exit 0
+          fi
+          if [ "$PINNED" != "$LIVE" ]; then
+            echo "::error::spec-compat.json hosted_live.worker_version_id is stale."
+            echo "::error::pinned $PINNED, live $LIVE, deployed_at $DEPLOYED"
+            echo "Move the pin, and re-derive which commits the build carries — /version"
+            echo "reports the version id and the deploy time, not a source commit."
+            exit 1
+          fi
+          echo "Pin matches the live Worker."

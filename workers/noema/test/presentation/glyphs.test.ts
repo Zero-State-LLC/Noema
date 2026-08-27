@@ -15,7 +15,6 @@ import {
   legendHtml,
 } from "../../src/presentation/glyphs";
 import { adminHtml } from "../../src/admin";
-import { playHtml } from "../../src/play";
 import { watchHtml } from "../../src/watch";
 
 describe("glyph catalog", () => {
@@ -37,7 +36,10 @@ describe("glyph catalog", () => {
     expect(glyphForEntity("INFRASTRUCTURE", "relay-7", 83)).toBe("infra");
     expect(glyphForEntity("INFRASTRUCTURE", "scarred-conduit", 20)).toBe("distress");
     expect(glyphForEntity("RESOURCE", "cache")).toBe("resource");
-    expect(glyphForEntity("PROP", "Trade stall")).toBe("trade");
+    expect(glyphForEntity("TRADE", "Trade stall")).toBe("trade");
+    expect(glyphForEntity("PROP", "Trade stall")).toBe("event");
+    expect(glyphForEntity("PROP", "scarred relay ruin")).toBe("event");
+    expect(glyphForEntity("ARTIFACT", "archive ledger")).toBe("unknown");
     expect(glyphForLine("Unconfirmed — The vault is empty.")).toBe("rumor");
     expect(glyphForLine("Board — Need fuel")).toBe("comms");
     expect(glyphForLine("INFRASTRUCTURE CONTROL · OPEN")).toBe("danger");
@@ -62,10 +64,7 @@ describe("glyph catalog", () => {
     expect(html).not.toContain("glyphs-players.png");
   });
 
-  it("PLAY, WATCH, and Admin Watch agents ship the key and skip raster sheets", () => {
-    expect(playHtml()).toContain('id="world-key"');
-    expect(playHtml()).toContain('aria-label="Location"');
-    expect(playHtml()).not.toContain("legend.png");
+  it("WATCH and Admin Watch agents ship the key and skip raster sheets", () => {
     expect(watchHtml()).toContain('id="world-key"');
     expect(watchHtml()).not.toContain("glyphs-entities.png");
     expect(watchHtml()).not.toContain("legend.png");

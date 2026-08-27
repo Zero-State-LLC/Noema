@@ -3,7 +3,7 @@ import { applyWorldCommand, type WorldRuntime } from "../../src/world-actions";
 import { bootstrapWorldState } from "../../src/world-do";
 import { buildWatchLive, type WatchRoomIn } from "../../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../../src/types";
-import { adminToken, hit, hitWatchLive, playerToken, type DoCall } from "./harness";
+import { adminToken, hit, hitWatchLive, playerToken, worldDoCalls, type DoCall } from "./harness";
 import {
   MINI_DEADEND_ROOM_ID,
   MINI_ENTRY_ROOM_ID,
@@ -129,7 +129,7 @@ describe("C03 idempotent action replay", () => {
       calls,
     );
     expect(res.status).toBe(200);
-    const posted = calls.find((c) => c.op === "fetch");
+    const posted = worldDoCalls(calls).find((c) => c.op === "fetch");
     expect(posted?.name).toBe("test.hosted-canonical.c03-fwd");
     expect(posted?.body?.allow_bootstrap).toBe(true);
     const envelope = posted?.body?.envelope as { idempotency_key?: string; command?: string };

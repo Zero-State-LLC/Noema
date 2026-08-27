@@ -4,7 +4,7 @@
  */
 
 import { isHiddenRoom } from "./construction";
-import { inferActorKind, isPresentNow, type PresencePlayer } from "./ops";
+import { isPresentNow, type PresencePlayer } from "./ops";
 import { publicTitleLine, type PracticeState } from "./practice";
 import { publicFocusLine, type FocusState } from "./focus";
 import { watchPublicDescriptorLines, type SocialEvent } from "./social-memory";
@@ -15,6 +15,13 @@ import {
   glyphForProjection,
   glyphForRoom,
 } from "./presentation/glyphs";
+import {
+  laterTraceInputs,
+  projectRoomTraces,
+  publicTraces,
+  type LaterTraceOrg,
+  type LaterTraceRumor,
+} from "./play-traces";
 
 export const WATCH_LIVE_PIN = "watch-live/1.0";
 
@@ -30,6 +37,10 @@ export type WatchEvent = {
   room_id?: string;
   occurred_at?: number;
   detail?: string;
+  /** §6: public handle of the acting Player; omitted (never "A player") when not public. */
+  actor_label?: string;
+  /** §4.A.1: server-derived public consequence; bands only, omitted when unprovable. */
+  consequence?: string;
 };
 
 export type WatchSourceEvent = {
@@ -48,7 +59,18 @@ export type WatchRoomIn = {
   name: string;
   description: string;
   exits: Array<{ direction: string; to_room_id: string; hidden?: boolean }>;
-  entities: Array<{ entity_id: string; label: string; entity_type: string; hidden?: boolean }>;
+  entities: Array<{
+    entity_id: string;
+    label: string;
+    entity_type: string;
+    hidden?: boolean;
+    scar?: boolean;
+    in_progress?: boolean;
+    unclaimed?: boolean;
+    owner_id?: string;
+    last_repair_cycle?: number;
+    last_repair_handle?: string;
+  }>;
   hidden?: boolean;
   tags?: string[];
 };
@@ -138,6 +160,19 @@ const PULSE_PROJECTION: Record<string, string> = {
 
 const PRIVATE_EVENT_TYPES = new Set(Object.keys(EVENT_TO_PROJECTION).filter((k) => EVENT_TO_PROJECTION[k] === null));
 
+/**
+ * Every event type that can reach the public feed, including the three the
+ * projection handles by rule rather than by table. Exported so the redaction
+ * sweep enumerates the real set: hidden-room coverage used to be written case
+ * by case, which is how the harvest path (#520) went years without any.
+ */
+export const PUBLIC_EVENT_TYPES: string[] = [
+  ...Object.keys(EVENT_TO_PROJECTION).filter((k) => EVENT_TO_PROJECTION[k] !== null),
+  "ENTITY_UPDATE",
+  "RESOURCE_TRANSFER",
+  "INFRASTRUCTURE_DISRUPTED",
+];
+
 export function watchEventTier(projectionId: string, band?: string): WatchTier {
   if (projectionId === "infrastructure" && band === "failed") return "MAJOR";
   if (projectionId === "infrastructure_disrupted") return "MAJOR";
@@ -147,9 +182,22 @@ export function watchEventTier(projectionId: string, band?: string): WatchTier {
 export function projectionIdForEvent(eventType: string, payload?: Record<string, unknown>): string | null {
   const t = String(eventType || "").toUpperCase();
   if (PRIVATE_EVENT_TYPES.has(t)) return null;
+  if (t === "CRIME_DETECTED") {
+    // §7 redaction / §4E: only crimes already public may reach the public window.
+    const flags = Array.isArray(payload?.flags) ? (payload!.flags as unknown[]).map(String) : [];
+    if (payload?.visibility === "PUBLIC" || flags.includes("PUBLIC_HISTORY")) return "crime_detected";
+    return null;
+  }
   if (t === "RESOURCE_TRANSFER") {
-    if (payload?.kind === "harvest" || payload?.from === "node") return "harvest";
+    const fromId = typeof payload?.from_id === "string" ? payload.from_id : "";
+    if (payload?.kind === "harvest" || payload?.from === "node" || fromId.startsWith("entity.")) return "harvest";
     return "resource_change";
+  }
+  if (t === "INFRASTRUCTURE_DISRUPTED") {
+    // §4.E: band failed → MAJOR infrastructure_disrupted; else NOTABLE infrastructure.
+    const after = typeof payload?.condition_after === "number" ? payload.condition_after : undefined;
+    if (after !== undefined && conditionBand(after) === "failed") return "infrastructure_disrupted";
+    return "infrastructure";
   }
   if (t === "ENTITY_UPDATE") {
     if (payload?.operation === "REPURPOSE") return null;
@@ -161,13 +209,31 @@ export function projectionIdForEvent(eventType: string, payload?: Record<string,
     if (payload?.operation === "VEST") return null;
     if (payload?.operation === "SHARE") return null;
     if (payload?.operation === "CONNECT") return null;
+    if (
+      payload?.operation === "HARVEST" ||
+      payload?.operation === "ATTEST" ||
+      payload?.operation === "INFORMATION_CONTEST" ||
+      payload?.operation === "PRESENCE_PRESSURE"
+    ) return null;
     if (payload?.kind === "repair" || payload?.operation === "REPAIR") return "production";
+    if (payload?.operation === "PRODUCTION") return "production";
     if (payload?.band === "failed" || payload?.status === "failed") return "infrastructure_disrupted";
     if (payload?.kind === "infra" || payload?.entity_type === "INFRASTRUCTURE") return "infrastructure";
-    return "production";
+    // RFC-0126: ENTITY_UPDATE exposure is allowlisted. A future or unnamed
+    // operation stays off the public door until a separate exposure decision
+    // grants it an explicit projection.
+    return null;
   }
   if (t in EVENT_TO_PROJECTION) return EVENT_TO_PROJECTION[t] ?? null;
   return null;
+}
+
+function isOperatorOrSmokeHandle(handle: string): boolean {
+  const n = handle.trim().toLowerCase();
+  if (!n) return true;
+  if (/^smoke[-_]/.test(n)) return true;
+  if (/^op\./.test(n) || /^operator[._-]/.test(n)) return true;
+  return false;
 }
 
 function publicHandle(p: { handle?: string; player_id?: string }): string | null {
@@ -177,19 +243,135 @@ function publicHandle(p: { handle?: string; player_id?: string }): string | null
   if (p.player_id && h === p.player_id) return null;
   // Default mint is the 12-hex suffix of player_id — counts only, not a public name.
   if (/^[0-9a-f]{12}$/i.test(h)) return null;
+  if (isOperatorOrSmokeHandle(h)) return null;
   return h.slice(0, 32);
 }
 
-function labelOf(ev: WatchSourceEvent): string {
-  if (ev.player_id && inferActorKind(ev.player_id, ev.actor_kind) === "system") {
-    return "A player";
+export type OccupantRoomRef = { name?: string; room_id?: string };
+
+/** True when a candidate occupant label is actually a room title or room id. */
+export function isRoomNameOccupantLabel(label: string, rooms?: Iterable<OccupantRoomRef>): boolean {
+  const n = String(label || "").trim().toLowerCase();
+  if (!n) return true;
+  if (n.startsWith("room.")) return true;
+  if (!rooms) return false;
+  for (const room of rooms) {
+    if (String(room?.name || "").trim().toLowerCase() === n) return true;
+    const id = String(room?.room_id || "").trim().toLowerCase();
+    if (id && (id === n || id.replace(/^room\./, "") === n)) return true;
   }
-  return publicHandle(ev) || "A player";
+  return false;
+}
+
+/**
+ * Occupant label is the actor handle (tester, reach-maint3, hermes).
+ * Never a room name / room id — Civic Exchange is a site, not a Player.
+ */
+export function publicOccupantLabel(
+  p: { handle?: string; player_id?: string },
+  rooms?: Iterable<OccupantRoomRef>,
+): string | null {
+  const label = publicHandle(p);
+  if (!label || isRoomNameOccupantLabel(label, rooms)) return null;
+  return label;
+}
+
+export function occupantLabelsFrom(
+  labels: unknown,
+  rooms?: Iterable<OccupantRoomRef>,
+): string[] {
+  if (!Array.isArray(labels)) return [];
+  const out: string[] = [];
+  for (const raw of labels) {
+    const label = String(raw || "").trim();
+    if (!label || isRoomNameOccupantLabel(label, rooms)) continue;
+    if (out.includes(label)) continue;
+    out.push(label.slice(0, 32));
+  }
+  return out;
+}
+
+function labelOf(ev: WatchSourceEvent, rooms?: Iterable<OccupantRoomRef>): string {
+  return publicOccupantLabel(ev, rooms) || "A player";
 }
 
 function roomName(id: string | undefined, rooms: Record<string, { name?: string }>): string | undefined {
   if (!id) return undefined;
   return rooms[id]?.name;
+}
+
+/** SPECTATOR.md public bands: >=75 ok, 25..74 degraded, <25 failed. Integers never leave the Worker. */
+export function conditionBand(n: number): "ok" | "degraded" | "failed" {
+  if (n >= 75) return "ok";
+  if (n >= 25) return "degraded";
+  return "failed";
+}
+
+/** Public room containing a public entity, or undefined. Hidden rooms/entities never match, even on unfiltered input. */
+function entityHome(
+  entityId: string | undefined,
+  publicRooms: Record<string, WatchRoomIn>,
+): { room: WatchRoomIn; label: string } | undefined {
+  if (!entityId) return undefined;
+  for (const room of Object.values(publicRooms)) {
+    if (!room || isHiddenRoom(room)) continue;
+    const hit = (room.entities || []).find((e) => e.entity_id === entityId && e.hidden !== true);
+    if (hit) return { room, label: hit.label || "infrastructure" };
+  }
+  return undefined;
+}
+
+/**
+ * §5: the id an entity-scoped event is scoped *by*. Entity mutations carry
+ * `entity_id`; a harvest carries the node as `RESOURCE_TRANSFER.from_id` and no
+ * `entity_id` at all, which is how it slipped past the #508 site resolution and
+ * kept rendering unlocated. Only an `entity.` ref counts — a trade leg's
+ * `from_id` is a player.
+ */
+export function entityScopeId(payload: Record<string, unknown> | undefined): string | undefined {
+  const direct = payload?.entity_id;
+  if (typeof direct === "string" && direct) return direct;
+  const from = payload?.from_id;
+  if (typeof from === "string" && from.startsWith("entity.")) return from;
+  return undefined;
+}
+
+function isRepairUpdate(ev: WatchSourceEvent): boolean {
+  if (String(ev.event_type || "").toUpperCase() !== "ENTITY_UPDATE") return false;
+  return ev.payload?.operation === "REPAIR" || ev.payload?.kind === "repair";
+}
+
+/**
+ * §4.A.1: deterministic public consequence. Bands only; omitted when unprovable.
+ * Derives solely from public event payload numbers that never reach the wire.
+ */
+export function consequenceForEvent(
+  ev: WatchSourceEvent,
+  publicRooms: Record<string, WatchRoomIn>,
+): string | undefined {
+  const t = String(ev.event_type || "").toUpperCase();
+  const payload = ev.payload || {};
+  let before: unknown;
+  let after: unknown;
+  let entityId: string | undefined;
+  if (t === "INFRASTRUCTURE_DISRUPTED") {
+    before = payload.condition_before;
+    after = payload.condition_after;
+    entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
+  } else if (t === "ENTITY_UPDATE" && payload.field === "condition" && (isRepairUpdate(ev) || payload.authorizer === "schedule")) {
+    before = payload.from;
+    after = payload.to;
+    entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
+  } else {
+    return undefined;
+  }
+  if (typeof before !== "number" || typeof after !== "number") return undefined;
+  const home = entityHome(entityId, publicRooms);
+  if (!home) return undefined;
+  const from = conditionBand(before);
+  const to = conditionBand(after);
+  if (from === to) return undefined;
+  return `${home.label}: ${from} → ${to}`;
 }
 
 function payloadRoomId(payload: Record<string, unknown> | undefined): string | undefined {
@@ -203,9 +385,9 @@ function payloadRoomId(payload: Record<string, unknown> | undefined): string | u
 
 export function phraseWatchEvent(
   ev: WatchSourceEvent,
-  publicRooms: Record<string, { name?: string }>,
+  publicRooms: Record<string, { name?: string; room_id?: string }>,
 ): string {
-  const who = labelOf(ev);
+  const who = labelOf(ev, Object.values(publicRooms));
   const payload = ev.payload || {};
   const destId = typeof payload.to === "string" ? payload.to : typeof payload.to_room_id === "string" ? payload.to_room_id : undefined;
   const destPublic = destId ? publicRooms[destId] : undefined;
@@ -215,7 +397,17 @@ export function phraseWatchEvent(
     (typeof payload.room_name === "string" && publicRooms[String(payload.room_id || "")]
       ? payload.room_name
       : undefined);
-  const site = destName || roomName(typeof payload.room_id === "string" ? payload.room_id : destId, publicRooms);
+  // §4: any entity-scoped event MUST resolve its public site. An entity
+  // mutation carries entity_id and normally no room_id, so payload room ids
+  // alone leave it unlocated and it degrades to the filler the spec bans.
+  const entitySite = entityHome(
+    entityScopeId(payload),
+    publicRooms as Record<string, WatchRoomIn>,
+  )?.room.name;
+  const site =
+    destName ||
+    roomName(typeof payload.room_id === "string" ? payload.room_id : destId, publicRooms) ||
+    entitySite;
 
   switch (String(ev.event_type || "").toUpperCase()) {
     case "MOVE":
@@ -238,11 +430,39 @@ export function phraseWatchEvent(
     case "CONTEST_RESOLVED":
       return site ? `A contest resolved at ${site}` : "A contest resolved";
     case "RESOURCE_TRANSFER":
-      return site ? `Harvest at ${site}` : "A harvest was recorded";
+      // §5: "Harvest at <site>" only for harvests. Trade legs and contest
+      // seizures also emit RESOURCE_TRANSFER and must not be narrated as harvests.
+      if (projectionIdForEvent("RESOURCE_TRANSFER", payload) === "harvest") {
+        return site ? `Harvest at ${site}` : "A harvest was recorded";
+      }
+      return site ? `Resources moved at ${site}` : "Resources changed hands";
     case "ORG_CREATE":
     case "ORG_MEMBER_ADD":
     case "ORG_MEMBER_REMOVE":
       return site ? `An organization acted at ${site}` : "An organization acted";
+    case "ENTITY_UPDATE": {
+      if (isRepairUpdate(ev)) {
+        const home = entityHome(typeof payload.entity_id === "string" ? payload.entity_id : undefined, publicRooms as Record<string, WatchRoomIn>);
+        const target = home?.label || "infrastructure";
+        const repairer = publicOccupantLabel({ handle: typeof payload.last_repair_handle === "string" ? payload.last_repair_handle : ev.handle }, Object.values(publicRooms)) || labelOf(ev, Object.values(publicRooms));
+        return `${repairer} repaired ${target}`;
+      }
+      if (String(payload.operation || "").toUpperCase() === "PRODUCTION") {
+        // Recovery happened, never how much: quantities are counters (§7).
+        // The unlocated arm is unreachable — sourceToWatchEvent drops any
+        // entity-scoped event that resolves no public room — and returns empty
+        // rather than an unlocated "Stocks recovered", which would be the very
+        // filler §4 bans if anything ever bypassed that gate.
+        return site ? `Stocks recovered at ${site}` : "";
+      }
+      return site ? `Public activity at ${site}` : "Public activity";
+    }
+    case "INFRASTRUCTURE_DISRUPTED": {
+      const home = entityHome(typeof payload.entity_id === "string" ? payload.entity_id : undefined, publicRooms as Record<string, WatchRoomIn>);
+      const target = home?.label || "Infrastructure";
+      const at = site || home?.room.name;
+      return at ? `${target} was disrupted at ${at}` : `${target} was disrupted`;
+    }
     default:
       return site ? `Public activity at ${site}` : "Public activity";
   }
@@ -275,27 +495,48 @@ export function selectNotableEvent(opts: {
   }
   const ranked = rankEvents(candidates);
   if (opts.held) {
-    const newest = Math.max(0, ...candidates.map((c) => c.sequence));
-    const heldPick = holdHeadline(opts.held, candidates, newest);
+    const heldPick = holdHeadline(opts.held, candidates);
     if (heldPick) return heldPick;
   }
   if (ranked[0]) return ranked[0];
   return quietHeadline(opts.players_present);
 }
 
-export function holdHeadline(
-  held: HeldHeadline,
-  window: WatchEvent[],
-  newestSequence: number,
-): WatchEvent | null {
+export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null {
   const inWindow = window.find((e) => e.sequence === held.sequence && e.projection_id === held.projection_id);
   const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier]);
-  const aged = newestSequence - held.sequence > 8;
+  // §4A step 5: age by newer PUBLIC candidates, never by raw ledger-sequence
+  // arithmetic — private LOOK/MESSAGE traffic must not rotate the headline.
+  const aged = window.filter((e) => e.sequence > held.sequence).length > 8;
   if (inWindow && !higher && !aged) {
     return { ...held, ...inWindow };
   }
   const pool = aged && inWindow ? window.filter((e) => e.sequence !== held.sequence) : window;
   return rankEvents(pool)[0] || rankEvents(window)[0] || null;
+}
+
+/**
+ * Carry the served headline between polls so the §4A hold is wired for every
+ * non-page consumer (HTTP poll and WS stream). Synthetic world-status and the
+ * quiet fallback are never held.
+ */
+export function heldFromSnapshot(snapshot: Record<string, unknown> | null | undefined): HeldHeadline | null {
+  const n = snapshot?.notable_event as Partial<WatchEvent> | null | undefined;
+  if (!n || typeof n.sequence !== "number" || n.sequence <= 0) return null;
+  if (typeof n.projection_id !== "string" || n.projection_id === "world_status") return null;
+  if (typeof n.line !== "string" || !n.line) return null;
+  if (n.tier !== "NORMAL" && n.tier !== "NOTABLE" && n.tier !== "MAJOR") return null;
+  const held: HeldHeadline = {
+    sequence: n.sequence,
+    tier: n.tier,
+    projection_id: n.projection_id,
+    line: n.line,
+  };
+  if (typeof n.cycle === "number") held.cycle = n.cycle;
+  if (typeof n.room_id === "string") held.room_id = n.room_id;
+  if (typeof n.occurred_at === "number") held.occurred_at = n.occurred_at;
+  if (typeof n.detail === "string") held.detail = n.detail;
+  return held;
 }
 
 function rankEvents(events: WatchEvent[]): WatchEvent[] {
@@ -343,9 +584,8 @@ function livePublicPlayers(players: WatchPlayerIn[], now: number): WatchPlayerIn
   });
 }
 
-function publicPlayerLabel(p: WatchPlayerIn): string | null {
-  if (inferActorKind(p.player_id, p.actor_kind) === "system") return null;
-  return publicHandle(p);
+function publicPlayerLabel(p: WatchPlayerIn, rooms?: Iterable<OccupantRoomRef>): string | null {
+  return publicOccupantLabel(p, rooms);
 }
 
 function sourceToWatchEvent(
@@ -359,8 +599,27 @@ function sourceToWatchEvent(
     // Hidden or unknown room — still allow leave; drop other room-bound leaks.
     if (roomId.startsWith("room.")) return null;
   }
-  const publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
+  let publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
+  // RFC-0057 grants REPURPOSE a PLAY line only; WATCH stays silent.
+  if (String(ev.payload?.operation || "").toUpperCase() === "REPURPOSE") return null;
+  // §4: ANY entity-scoped event resolves its public site this way, not just
+  // repair and disruption. Narrowing it here is what left the live feed
+  // rendering every maintenance event as unlocated "Public activity".
+  const scopeId = entityScopeId(ev.payload);
+  if (!publicRoomId && scopeId) {
+    // §5: resolve via the entity's public room; if none, the event is
+    // omitted, not anonymized into filler.
+    const home = entityHome(scopeId, publicRooms);
+    if (!home) return null;
+    publicRoomId = home.room.room_id;
+  }
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
+  const roomRefs = Object.values(publicRooms);
+  const actor = publicOccupantLabel(ev, roomRefs) ||
+    (isRepairUpdate(ev)
+      ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
+      : null);
+  const consequence = consequenceForEvent(ev, publicRooms);
   return {
     sequence: ev.sequence,
     cycle: ev.cycle ?? 0,
@@ -370,6 +629,8 @@ function sourceToWatchEvent(
     glyph: glyphForProjection(projectionId),
     room_id: publicRoomId,
     occurred_at: typeof ev.at === "number" ? ev.at : undefined,
+    ...(actor ? { actor_label: actor } : {}),
+    ...(consequence ? { consequence } : {}),
   };
 }
 
@@ -398,6 +659,8 @@ export function buildWatchLive(input: {
   freshness?: string;
   held?: HeldHeadline | null;
   now?: number;
+  rumor?: LaterTraceRumor;
+  organizations?: LaterTraceOrg[];
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -435,16 +698,30 @@ export function buildWatchLive(input: {
     held: input.held,
   });
 
+  const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {
     const here = byRoom.get(r.room_id) || [];
-    const labels = here.map(publicPlayerLabel).filter((h): h is string => Boolean(h));
+    const labels = here.map((p) => publicPlayerLabel(p, roomRefs)).filter((h): h is string => Boolean(h));
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
-    const entities = (r.entities || []).filter(isPublicEntity).map((e) => ({
+    const publicEntities = (r.entities || []).filter(isPublicEntity);
+    const entities = publicEntities.map((e) => ({
       entity_id: e.entity_id,
       label: e.label,
       entity_type: e.entity_type,
       glyph: glyphForEntity(e.entity_type, e.label),
     }));
+    const traces = publicTraces(
+      projectRoomTraces({
+        hidden: r.hidden,
+        entities: publicEntities,
+        ...laterTraceInputs({
+          room_id: r.room_id,
+          entities: publicEntities,
+          rumor: input.rumor,
+          orgs: input.organizations,
+        }),
+      }),
+    );
     const recentHere = candidates.some((ev) => ev.room_id === r.room_id);
     const row: Record<string, unknown> = {
       room_id: r.room_id,
@@ -464,13 +741,14 @@ export function buildWatchLive(input: {
       player_glyph: glyphForPlayer(),
       active: here.length > 0 || recentHere,
     };
+    if (traces.length) row.traces = traces;
     if (labels.length) row.public_player_labels = labels;
     const titles = here
-      .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
+      .map((p) => publicTitleLine(publicPlayerLabel(p, roomRefs), p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (titles.length) row.public_title_lines = titles;
     const focuses = here
-      .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
+      .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
       .filter((line): line is string => Boolean(line));
     if (focuses.length) row.public_focus_lines = focuses;
     return row;
@@ -479,11 +757,11 @@ export function buildWatchLive(input: {
   const playersPresent = live.filter((p) => p.room_id && publicRooms[p.room_id]).length;
   const public_title_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicTitleLine(publicPlayerLabel(p), p.practice, input.cycle, p.player_id))
+    .map((p) => publicTitleLine(publicPlayerLabel(p, roomRefs), p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const public_focus_lines = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
-    .map((p) => publicFocusLine(publicPlayerLabel(p), p.focus, p.practice, input.cycle, p.player_id))
+    .map((p) => publicFocusLine(publicPlayerLabel(p, roomRefs), p.focus, p.practice, input.cycle, p.player_id))
     .filter((line): line is string => Boolean(line));
   const handles = input.handles || Object.fromEntries((input.players || []).map((p) => [p.player_id, p.handle]));
   const public_descriptor_lines = watchPublicDescriptorLines(
@@ -507,6 +785,61 @@ export function buildWatchLive(input: {
     rooms: roomsOut,
     recent_events: recent,
     notable_event: notable,
+    narrative: buildWatchNarrative({
+      now: notable,
+      recent,
+      world_status: input.world_status || null,
+      cycle: input.cycle,
+      players_present: playersPresent,
+      public_pulses: pulses,
+      rooms_present: roomsOut.length,
+    }),
     note: "Spectator projection is never world truth and never mutates the ledger.",
   };
+}
+
+export type WatchNarrative = {
+  now: WatchEvent;
+  recently: WatchEvent[];
+  world: {
+    status: string | null;
+    cycle: number;
+    players_present: number;
+    rooms_present: number;
+    pulses: string[];
+  };
+};
+
+/** NOW / RECENTLY / WORLD from the existing public projection. No new feed. */
+export function buildWatchNarrative(opts: {
+  now: WatchEvent;
+  recent: WatchEvent[];
+  world_status: string | null;
+  cycle: number;
+  players_present: number;
+  public_pulses?: string[];
+  rooms_present: number;
+}): WatchNarrative {
+  const nowSeq = opts.now.sequence;
+  const recently = opts.recent.filter((e) => e.sequence !== nowSeq).slice(0, 6);
+  return {
+    now: opts.now,
+    recently,
+    world: {
+      status: opts.world_status,
+      cycle: opts.cycle,
+      players_present: opts.players_present,
+      rooms_present: opts.rooms_present,
+      pulses: (opts.public_pulses || []).slice(0, 4),
+    },
+  };
+}
+
+/** Causal edges require an explicit payload relation. Sequence adjacency is not a cause. */
+export function explicitWatchCause(payload?: Record<string, unknown> | null): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const rel = payload.caused_by ?? payload.parent_event_id ?? payload.relation;
+  if (typeof rel !== "string") return null;
+  const t = rel.trim();
+  return t || null;
 }

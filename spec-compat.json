@@ -3,6 +3,49 @@
   "runtime_name": "noema",
   "runtime_version": "0.12.0",
   "product_milestone": "hosted-chamber-stage-0",
+  "release_channel": "alpha",
+  "release_doc": "docs/ALPHA-RELEASE.md",
+  "frozen_release": {
+    "status": "thawed",
+    "name": "hosted-alpha-0.12.1",
+    "runtime_git": "9e0e41fdd589df46064b06f48b524f35d9613f16",
+    "specs_git": "5768b011bab7bfc946152495eb80c2e1e2ad1c3e",
+    "worker_version_id": "a210eb35-f1ce-44fd-87e4-1b11e90394b8",
+    "genesis_id": "genesis.ef578f4ffceeccd0",
+    "world_id": "world.perihelion-reach",
+    "do_name": "world-01",
+    "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
+    "official_client": "noema-client==0.1.8",
+    "doc": "docs/HOSTED-ALPHA-FREEZE.md",
+    "chrome": "home-manifesto-watch-connect",
+    "unfreeze": "FULL THAW 2026-08-20: hosted-alpha freeze lifted on the test build. RFC-0120 identity stays law. Last frozen pin 9e0e41f / Worker a210eb35 / Specs 5768b01. PLAY later cut over to hosted_live (RFC-0121); this block stays the frozen first-world snapshot."
+  },
+  "hosted_live": {
+    "world_id": "world.perihelion-reach-3",
+    "genesis_id": "genesis.94d0961984b2b4f8",
+    "do_name": "world.perihelion-reach-3",
+    "entry_room_id": "room.civic-exchange",
+    "profile_id": "EWM_ENHANCED",
+    "worker_version_id": "772e244c-52b8-41bf-bdf4-ea600db4f15f",
+    "specs_git": "81ca8c1e6b1d1ca474cf31958439fb0bdb9a465c",
+    "official_client": "noema-client==0.1.15",
+    "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
+    "rfc": "RFC-0122",
+    "note": "Production PLAY default. Worker 772e244c-52b8-41bf-bdf4-ea600db4f15f published 2026-08-25T22:54:48.805Z, READ from GET /version after successful production deployment of source commit 27f9aa8ee9344bb3ad41e91bf2f3c7b26cdd0b37. Generated post-deploy pin PR evidence fetched 2026-08-25T22:54:56.845Z from https://noema.guru/version; world_id world.perihelion-reach-3 and Genesis genesis.94d0961984b2b4f8 were derived from live /version + /ready. Prior worker_version_id was 01ebc196-b762-4689-a166-272e26bd73ad. A new worker_version_id does not imply a Specs pin change; specs_git remains the live build's Specs alignment unless changed by the deployed source. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only).",
+    "source_commit": "27f9aa8ee9344bb3ad41e91bf2f3c7b26cdd0b37",
+    "deployed_at": "2026-08-25T22:54:48.805Z",
+    "version_evidence": {
+      "url": "https://noema.guru/version",
+      "fetched_at": "2026-08-25T22:54:56.845Z",
+      "worker_version_id": "772e244c-52b8-41bf-bdf4-ea600db4f15f",
+      "deployed_at": "2026-08-25T22:54:48.805Z",
+      "source_commit": "27f9aa8ee9344bb3ad41e91bf2f3c7b26cdd0b37",
+      "world_id": "world.perihelion-reach-3",
+      "genesis_id": "genesis.94d0961984b2b4f8",
+      "env": "production",
+      "protocol_version": "1"
+    }
+  },
   "implementation_phase": "phase-12-identity-connect",
   "core_loop_status": "complete",
   "hosted_runtime": {
@@ -11,21 +54,33 @@
     "durable_object": "NoemaWorldDO",
     "product_url": "https://noema.guru",
     "command_path": "/v1/command",
-    "study": "stub",
+    "study": "observational",
+    "event_catalog": "event-catalog/0.2",
+    "event_catalog_note": "The hosted Worker implements 0.2. It emits the six contestation and access types RFC-0002 and RFC-0101 added over 0.1 -- ACCESS_RESTRICTED, AGREEMENT_BROKEN, AGREEMENT_FORMED, CONTEST_DECLARED, CONTEST_RESOLVED, INFRASTRUCTURE_DISRUPTED -- plus TRADE_CANCELLED (RFC-0127). It does not emit CRIME_DETECTED, which is catalogued in 0.2 and has consumers but no producer. versions.event_catalog stays 0.1 because it describes the offline Python runtime, whose REDUCERS registry is exactly the 24 types of 0.1. One pin cannot describe both runtimes; this is the hosted half. See Noema-Specs docs/EVENT-CATALOG-AUDIT.md.",
     "chamber_suite": {
       "matrix": "workers/noema/test/conformance/hosted-matrix.json",
       "target": "isolated",
       "pass": 23,
       "skip": 3,
       "pending": 0,
-      "skip_ids": ["C14", "C16", "C17"],
-      "note": "Behavioral Worker tests on test.hosted-canonical.* only. Python remains ADR-005 digest authority. Perihelion is not a conformance target."
+      "skip_ids": [
+        "C14",
+        "C16",
+        "C17"
+      ],
+      "skip_owners": {
+        "C14": "offline-python-compose",
+        "C16": "offline-python-ops",
+        "C17": "hosted-deploy-pin"
+      },
+      "note": "Behavioral Worker tests on test.hosted-canonical.* only. Python remains ADR-005 digest authority. Perihelion is not a conformance target. C14/C16 stay Compose/Python; C17 is Worker deploy SHA + NOEMA_PROTOCOL_VERSION."
     }
   },
   "offline_runtime": {
     "host": "python-modular-monolith",
     "entry": "noema-serve",
-    "note": "C01–C26 / ADR-005 conformance. Not the live door."
+    "compose": "docker-compose.yml",
+    "note": "C01–C26 / ADR-005 conformance. C14 C16 C17 run here (Compose + SQLite/Postgres). Not the live door."
   },
   "persistence": {
     "local_default": "sqlite",
@@ -43,9 +98,27 @@
   "deployment": {
     "config_schema": "deployment-config/1.0",
     "config_fixture": "examples/deployment/local-deployment-config.json",
-    "ui_surfaces": ["/", "/play", "/watch", "/connect", "/study", "/admin"],
-    "json_surfaces_hosted": ["/health", "/ready", "/v1/watch/live", "/v1/command"],
-    "json_surfaces_offline": ["/health", "/ready", "/version", "/manifest", "/config"]
+    "ui_surfaces": [
+      "/",
+      "/watch",
+      "/connect",
+      "/study",
+      "/admin"
+    ],
+    "json_surfaces_hosted": [
+      "/health",
+      "/ready",
+      "/version",
+      "/v1/watch/live",
+      "/v1/command"
+    ],
+    "json_surfaces_offline": [
+      "/health",
+      "/ready",
+      "/version",
+      "/manifest",
+      "/config"
+    ]
   },
   "evidence": {
     "receipt_version": "evidence-receipt/1.0",
@@ -65,11 +138,12 @@
   "specs": {
     "repository": "https://github.com/Zero-State-LLC/Noema-Specs",
     "pin_label": "v0.1-v0.7-core-loop-freeze",
-    "pin_note": "Hosted Stage 0 is the Worker at noema.guru. Python src/noema is offline conformance for the v0.1–v0.7 freeze.",
-    "commit": "d69be87f1cd4deedb52a67bdaa7a44b6a411adef",
+    "pin_note": "Hosted Stage 0 is the Worker at noema.guru. Python src/noema is offline conformance for the v0.1–v0.7 freeze. This pin tracks Noema-Specs main and is hand-updated; it is the commit THIS REPOSITORY is aligned to. It is not hosted_live.specs_git, which is the commit the LIVE WORKER BUILD implements and moves per publish. They differ whenever Specs moves without a publish, and this one must never be older than that one.",
+    "commit": "d73bdec67a2d695633f12d36b2780dd0b90097ef",
     "ref": "main",
     "freeze_doc": "docs/SPEC-FREEZE-CORE-LOOP.md",
-    "runtime_map": "docs/CORE-LOOP-RUNTIME.md"
+    "runtime_map": "docs/CORE-LOOP-RUNTIME.md",
+    "hosted_rfc_map": "docs/RFC-RUNTIME-AUDIT-2026-08-23.md"
   },
   "fixture_identity": {
     "chamber_seed_package": "fixtures/v01-seed",

@@ -1,5 +1,7 @@
 # PLAY first 90 seconds — arrive in a place
 
+**Supersede (2026-08-19):** inhabit is `/connect`. `GET /play` 308 → `/connect`. This file is historical Chamber IA.
+
 **Status:** approved — implementing  
 **Date:** 2026-08-18  
 **Host:** `https://noema.guru` (`/`, `/play`, Chamber)  

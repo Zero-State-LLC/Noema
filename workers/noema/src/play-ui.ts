@@ -4,9 +4,12 @@
  */
 
 import { helpText, parseHumanCommand } from "./actions";
+import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphEl, glyphForEntity, glyphForLine, glyphMeta } from "./presentation/glyphs";
 import { toPlayerView } from "./presentation/player-view";
 import { label } from "./presentation/terms";
+
+export { LOW_NOISE_KEY, parseLowNoiseFlag };
 
 export type ExitObs = {
   direction: string;
@@ -23,6 +26,7 @@ export type EntityObs = {
   harvestable?: boolean;
   stock_resource?: string;
   stock_amount?: number;
+  scar?: boolean;
 };
 
 export type LocationObs = {
@@ -32,6 +36,7 @@ export type LocationObs = {
   exits: ExitObs[];
   entities: EntityObs[];
   condition?: string;
+  traces?: Array<{ kind: string; text: string; visibility?: string }>;
   services?: Array<{
     service_id: string;
     display_name: string;
@@ -43,6 +48,263 @@ export type LocationObs = {
     suggested_cmds?: string[];
   }>;
 };
+
+/** Read-only PLAY room grammar. Authorized observation fields only. No entity ids. */
+export type RoomHereItem = {
+  label: string;
+  entity_type: string;
+  condition?: number;
+  repairable?: boolean;
+  harvestable?: boolean;
+  stock_resource?: string;
+  stock_amount?: number;
+};
+
+export type RoomExitItem = {
+  direction: string;
+  to_room_name?: string;
+};
+
+export type StatusGlanceRow = { label: string; value: string };
+
+export type HappenedBeat = {
+  tried: string;
+  outcome: "ok" | "fail";
+  changed?: string;
+  next?: string;
+  advanced?: string;
+};
+
+export type RoomPresentationModel = {
+  name: string;
+  description: string;
+  pressure?: string;
+  here: RoomHereItem[];
+  exits: RoomExitItem[];
+  traces: string[];
+  status: StatusGlanceRow[];
+  happened?: string;
+  happenedBeats?: HappenedBeat;
+};
+
+function compareHere(a: EntityObs, b: EntityObs): number {
+  const la = titleCaseLabel(a.label).localeCompare(titleCaseLabel(b.label));
+  if (la !== 0) return la;
+  return String(a.entity_id || "").localeCompare(String(b.entity_id || ""));
+}
+
+export function stableHereEntities(entities?: EntityObs[] | null): EntityObs[] {
+  return [...(entities || [])].filter((e) => String(e.label || "").trim()).sort(compareHere);
+}
+
+export function stableExits(exits?: ExitObs[] | null): ExitObs[] {
+  return [...(exits || [])]
+    .filter((x) => String(x.direction || "").trim())
+    .sort((a, b) => String(a.direction).localeCompare(String(b.direction)));
+}
+
+const STATUS_BUDGETS: Array<{ key: "energy" | "attention" | "compute" | "storage" | "influence"; label: string }> = [
+  { key: "energy", label: "Energy" },
+  { key: "attention", label: "Attention" },
+  { key: "compute", label: "Compute" },
+  { key: "storage", label: "Storage" },
+  { key: "influence", label: "Influence" },
+];
+
+export function compactStatusRows(input: {
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+  energy_floor_risk?: boolean;
+  play_blocked?: boolean;
+}): StatusGlanceRow[] {
+  const rows: StatusGlanceRow[] = [];
+  const b = input.budgets;
+  if (b) {
+    for (const { key, label } of STATUS_BUDGETS) {
+      if (b[key] !== undefined) rows.push({ label, value: String(b[key]) });
+    }
+  }
+  for (const line of (input.practice_lines || []).slice(0, 3)) {
+    const t = String(line || "").trim();
+    if (t) rows.push({ label: "Work", value: t });
+  }
+  if (input.energy_floor_risk) rows.push({ label: "Flag", value: "energy_floor_risk" });
+  if (input.play_blocked) rows.push({ label: "Flag", value: "play_blocked" });
+  return rows;
+}
+
+export function fourBeatFromResult(opts: {
+  command?: string;
+  ok: boolean;
+  consequence?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  affordances?: Array<{ cmd?: string; available?: boolean }>;
+}): HappenedBeat {
+  const verb = String(opts.command || "").trim().toLowerCase() || "act";
+  const tried = opts.ok ? `You ${verb}.` : `You try to ${verb}.`;
+  const next =
+    (opts.affordances || []).find((a) => a.available !== false && String(a.cmd || "").trim())?.cmd?.trim() ||
+    undefined;
+  if (opts.ok) {
+    return {
+      tried,
+      outcome: "ok",
+      changed: String(opts.consequence || "").trim() || undefined,
+      next,
+    };
+  }
+  const human = humanizeError(opts.errorCode, opts.errorMessage);
+  const named = String(opts.errorMessage || "").trim();
+  const changed = named && !/^[A-Z_]+$/.test(named) && !isRawExceptionMessage(named) ? named : human.primary;
+  return {
+    tried,
+    outcome: "fail",
+    changed,
+    next,
+    advanced: human.advanced,
+  };
+}
+
+export function roomPresentationModel(input: {
+  location?: LocationObs | null;
+  consequence?: string;
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+  energy_floor_risk?: boolean;
+  play_blocked?: boolean;
+  happenedBeats?: HappenedBeat;
+}): RoomPresentationModel {
+  const loc = input.location;
+  const here = stableHereEntities(loc?.entities).map((e) => ({
+    label: e.label,
+    entity_type: e.entity_type,
+    condition: e.condition,
+    repairable: e.repairable,
+    harvestable: e.harvestable,
+    stock_resource: e.stock_resource,
+    stock_amount: e.stock_amount,
+  }));
+  const exits = stableExits(loc?.exits).map((x) => ({
+    direction: String(x.direction).trim(),
+    to_room_name: x.to_room_name,
+  }));
+  const pressure = String(loc?.condition || "").trim();
+  const happened = String(input.consequence || "").trim();
+  const traces = (loc?.traces || [])
+    .map((t) => String(t.text || "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const status = compactStatusRows(input);
+  return {
+    name: String(loc?.name || "").trim(),
+    description: String(loc?.description || "").trim(),
+    pressure: pressure || undefined,
+    here,
+    exits,
+    traces,
+    status,
+    happened: happened || undefined,
+    happenedBeats: input.happenedBeats,
+  };
+}
+
+/** Agent-consumable room text. No glyphs. Authorized fields only. */
+export function lowNoiseRoomText(model: RoomPresentationModel): string {
+  const lines: string[] = [];
+  if (model.name) lines.push(model.name);
+  if (model.description) lines.push(model.description);
+  if (model.pressure) {
+    lines.push("PRESSURE");
+    lines.push(model.pressure);
+  }
+  if (model.here.length) {
+    lines.push("HERE");
+    for (const e of model.here) {
+      let bit = e.label;
+      if (e.condition != null) bit += " condition " + e.condition + "%";
+      lines.push(bit);
+    }
+  }
+  if (model.exits.length) {
+    lines.push("EXITS");
+    for (const x of model.exits) {
+      lines.push(x.direction + (x.to_room_name ? " — " + x.to_room_name : ""));
+    }
+  }
+  if (model.status.length) {
+    lines.push("STATUS");
+    for (const r of model.status) {
+      lines.push(r.label + " " + r.value);
+    }
+  }
+  if (model.traces.length) {
+    lines.push("TRACES");
+    for (const t of model.traces) lines.push(t);
+  }
+  if (model.happenedBeats) {
+    lines.push("HAPPENED");
+    lines.push(model.happenedBeats.tried);
+    lines.push(model.happenedBeats.outcome);
+    if (model.happenedBeats.changed) lines.push(model.happenedBeats.changed);
+    if (model.happenedBeats.next) lines.push(model.happenedBeats.next);
+  } else if (model.happened) {
+    lines.push("HAPPENED");
+    lines.push(model.happened);
+  }
+  return lines.join("\n") || "No place is visible.";
+}
+
+/** Feature B room text from a Player observation. No second LOOK. */
+export function playTextFromObservation(obs: {
+  location?: LocationObs | null;
+  consequence?: string;
+  budgets?: {
+    attention?: number;
+    compute?: number;
+    energy?: number;
+    influence?: number;
+    storage?: number;
+  };
+  practice_lines?: string[];
+} | null | undefined): string {
+  if (!obs?.location) return "";
+  return lowNoiseRoomText(
+    roomPresentationModel({
+      location: obs.location,
+      consequence: obs.consequence,
+      budgets: obs.budgets,
+      practice_lines: obs.practice_lines,
+    }),
+  );
+}
+
+/** Spectator text. Canvas is never required. */
+export function lowNoiseWatchText(input: { headline?: string; copy?: string; recent?: string[] }): string {
+  const lines: string[] = [];
+  const head = String(input.headline || "").trim();
+  const copy = String(input.copy || "").trim();
+  if (head) lines.push(head);
+  if (copy && copy !== head) lines.push(copy);
+  for (const r of input.recent || []) {
+    const t = String(r || "").trim();
+    if (t) lines.push(t);
+    if (lines.length >= 10) break;
+  }
+  return lines.join("\n") || "The Chamber is quiet.";
+}
 
 export type PlayerHere = {
   player_id: string;
@@ -157,54 +419,43 @@ export function entityKindPhrase(entity_type: string): string {
   return "object";
 }
 
-export function entityConditionGlyph(label: string, entity_type: string): string {
-  const s = `${label} ${entity_type}`.toLowerCase();
-  if (/scar|damag|fail|broken|ruin|ghost|dead/.test(s)) return "◐";
-  if (/unknown|fragment|partial|incomplete/.test(s)) return "?";
-  if (/market|board|compact|active|post/.test(s)) return "●";
+export function entityConditionGlyph(label: string, entity_type: string, condition?: number, scar?: boolean): string {
+  void label;
+  void entity_type;
+  if (scar === true || (condition != null && condition < 50)) return "◐";
   return "●";
 }
 
-export function entityConditionText(label: string, entity_type: string): string {
-  const s = `${label} ${entity_type}`.toLowerCase();
-  if (/scar|damag|broken/.test(s)) return "damaged";
-  if (/fail|ruin|dead/.test(s)) return "ruined";
-  if (/ghost|partial|fragment|incomplete/.test(s)) return "partial / incomplete";
-  if (/market|board|post/.test(s)) return "trade access present";
-  if (entity_type === "ARTIFACT") return "surviving record";
-  if (entity_type === "INFRASTRUCTURE") return "present";
+export function entityConditionText(label: string, entity_type: string, condition?: number, scar?: boolean): string {
+  void label;
+  void entity_type;
+  if (scar === true || (condition != null && condition < 50)) return "damaged";
   return "present";
 }
 
-/** Local condition line derived from room text + entities (no invented lore). */
+/** Local condition: observation.condition, or presence only. Never label regex. */
 export function deriveLocalCondition(loc: LocationObs): string {
   if (loc.condition) return String(loc.condition);
   const ents = loc.entities || [];
-  const blob = `${loc.description || ""} ${ents.map((e) => e.label || "").join(" ")}`.toLowerCase();
-  const bits: string[] = [];
-  if (/scar|damag|broken|fail/.test(blob)) bits.push("Local infrastructure shows damage.");
-  if (/trade|market|exchange|bond/.test(blob)) bits.push("Trade structures are nearby.");
-  if (/archive|ledger|record/.test(blob)) bits.push("A surviving record is nearby.");
-  if (/route|ghost|thin|spindle|link/.test(blob)) bits.push("Routes continue outward.");
-  if (!bits.length) {
-    if (ents.length) bits.push("Objects here can be inspected.");
-    else bits.push("Open ground — exits are your next information.");
+  if (ents.some((e) => e.condition != null && e.condition < 50)) {
+    return "Infrastructure shows damage.";
   }
-  return bits.slice(0, 2).join(" ");
+  return ents.length ? "Objects here can be inspected." : "Open ground — exits are your next information.";
 }
 
 export function deriveOpportunities(loc: LocationObs): Opportunity[] {
   const out: Opportunity[] = [];
   for (const e of loc.entities || []) {
     const name = titleCaseLabel(e.label);
-    const cond = entityConditionText(e.label, e.entity_type);
+    const cond = entityConditionText(e.label, e.entity_type, e.condition);
     const inspectCmd = `inspect ${e.label}`;
-    if (e.repairable || /scar|damag|broken|fail|ruin/i.test(`${e.label} ${e.entity_type}`)) {
+    const canRepair = e.repairable === true || (e.condition != null && e.condition < 100 && e.entity_type !== "ARTIFACT");
+    if (canRepair) {
       out.push({
         id: `opp-${e.entity_id}-dmg`,
         text: `${name} looks ${cond}${e.condition != null ? ` (${e.condition}%)` : ""}.`,
-        actionLabel: e.repairable !== false ? `Repair ${name}` : `Inspect ${name}`,
-        cmd: e.repairable !== false ? `repair ${e.label}` : inspectCmd,
+        actionLabel: `Repair ${name}`,
+        cmd: `repair ${e.label}`,
         priority: 10,
       });
     } else if (e.harvestable || (e.stock_amount != null && e.stock_amount > 0)) {
@@ -213,22 +464,6 @@ export function deriveOpportunities(loc: LocationObs): Opportunity[] {
         text: `${name} has ${e.stock_amount ?? "?"} ${e.stock_resource || "resource"} available.`,
         actionLabel: `Harvest ${name}`,
         cmd: `harvest ${e.label}`,
-        priority: 9,
-      });
-    } else if (/market|board|post|trade/i.test(e.label)) {
-      out.push({
-        id: `opp-${e.entity_id}-trade`,
-        text: `${name} — trade access may be reachable here.`,
-        actionLabel: `Inspect ${name}`,
-        cmd: inspectCmd,
-        priority: 8,
-      });
-    } else if (e.entity_type === "ARTIFACT" || /ledger|archive|record/i.test(e.label)) {
-      out.push({
-        id: `opp-${e.entity_id}-art`,
-        text: `${name} is a surviving record.`,
-        actionLabel: `Inspect ${name}`,
-        cmd: inspectCmd,
         priority: 9,
       });
     } else {
@@ -456,8 +691,20 @@ export function lookCopyFromObservation(
   err?: { code?: string; message?: string },
 ): { worldLine: string; roomName: string; roomDesc: string } {
   const loc = obs?.location;
-  const roomName = String(loc?.name || "").trim();
-  const roomDesc = String(loc?.description || "").trim();
+  const model = roomPresentationModel({
+    location: loc
+      ? {
+          room_id: "",
+          name: String(loc.name || ""),
+          description: String(loc.description || ""),
+          exits: [],
+          entities: [],
+        }
+      : null,
+    consequence: obs?.consequence,
+  });
+  const roomName = model.name;
+  const roomDesc = model.description;
   if (roomName || roomDesc) {
     return {
       worldLine: String(obs?.world_name || "").trim() || "In world",
@@ -877,8 +1124,9 @@ export function renderServiceDesksHtml(
 }
 
 export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
-  if (!exits || !exits.length) return "";
-  return exits
+  const ordered = stableExits(exits);
+  if (!ordered.length) return "";
+  return ordered
     .map((x) => {
       const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
       return (
@@ -895,13 +1143,14 @@ export function renderExitTokensHtml(exits?: ExitObs[] | null): string {
 }
 
 export function renderEntityListHtml(entities?: EntityObs[] | null): string {
-  if (!entities || !entities.length) {
+  const ordered = stableHereEntities(entities);
+  if (!ordered.length) {
     return '<li class="empty">Nothing notable right here.</li>';
   }
-  return entities
+  return ordered
     .map((e) => {
       const name = titleCaseLabel(e.label);
-      let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+      let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
       if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
       if (e.harvestable && e.stock_amount != null) {
         sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
@@ -1156,8 +1405,9 @@ export function fillServiceDesks(el: DomRoot, services?: LocationObs["services"]
 
 export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
   el.replaceChildren();
-  if (!exits || !exits.length) return;
-  for (const x of exits) {
+  const ordered = stableExits(exits);
+  if (!ordered.length) return;
+  for (const x of ordered) {
     const dest = x.to_room_name || titleCaseLabel(String(x.to_room_id || "").replace(/^room\./, "") || x.direction || "ahead");
     const li = h("li");
     const dir = String(x.direction || "").trim() || "ahead";
@@ -1168,13 +1418,14 @@ export function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void {
 
 export function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void {
   el.replaceChildren();
-  if (!entities || !entities.length) {
+  const ordered = stableHereEntities(entities);
+  if (!ordered.length) {
     el.append(h("li", "empty", "Nothing notable right here."));
     return;
   }
-  for (const e of entities) {
+  for (const e of ordered) {
     const name = titleCaseLabel(e.label);
-    let sub = entityConditionText(e.label, e.entity_type) + " · " + entityKindPhrase(e.entity_type);
+    let sub = entityConditionText(e.label, e.entity_type, e.condition) + " · " + entityKindPhrase(e.entity_type);
     if (e.condition != null) sub = "condition " + e.condition + "% · " + sub;
     if (e.harvestable && e.stock_amount != null) {
       sub = e.stock_amount + " " + (e.stock_resource || "resource") + " · " + sub;
@@ -1281,11 +1532,7 @@ export function firstSessionActs(
     seen.add(key);
     out.push({ label, cmd });
   };
-  const worn = (loc.entities || []).find((e) => {
-    const n = typeof e.condition === "number" ? e.condition : 100;
-    const blob = `${e.label || ""} ${loc.condition || ""} ${loc.description || ""}`;
-    return n < 70 || /seiz|worn|broken|thin|fail|snap|damage/i.test(blob);
-  });
+  const worn = (loc.entities || []).find((e) => typeof e.condition === "number" && e.condition < 70);
   if (worn && worn.label) add(`inspect the ${worn.label}`, `inspect ${worn.label}`);
   const exits = (loc.exits || []).filter((x) => String(x.direction || "").trim());
   if (exits.length) {
@@ -1316,13 +1563,12 @@ export function firstStrainLine(loc: {
   description?: string;
   entities?: EntityObs[];
 }): string {
-  const cond = String(loc.condition || "");
-  const condHit = cond.match(/[^.!?]*?(damage|scar|fail|broken|worn|thin|seiz)[^.!?]*[.!?]?/i);
-  if (condHit) return condHit[0].trim();
+  void loc.condition;
+  void loc.description;
   const worn = (loc.entities || []).find((e) => typeof e.condition === "number" && e.condition < 70);
-  if (worn && worn.label) return `${worn.label} is worn.`;
+  if (worn && worn.label) return `${worn.label} condition ${worn.condition}.`;
   const empty = (loc.entities || []).find((e) => e.harvestable && e.stock_amount === 0);
-  if (empty && empty.label) return `${empty.label} is empty.`;
+  if (empty && empty.label) return `${empty.label} stock 0.`;
   return "";
 }
 
@@ -1407,6 +1653,16 @@ export function playUiRuntimeSource(): string {
     humanizeError,
     waitingCopy,
     lookCopyFromObservation,
+    compactStatusRows,
+    fourBeatFromResult,
+    roomPresentationModel,
+    stableHereEntities,
+    stableExits,
+    parseLowNoiseFlag,
+    lowNoiseRoomText,
+    playTextFromObservation,
+    lowNoiseWatchText,
+    LOW_NOISE_KEY,
     trailFromResult,
     routeDiagram,
     statusFromObservation,

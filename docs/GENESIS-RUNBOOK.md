@@ -131,7 +131,31 @@ NOEMA_ENV=production bash ./scripts/deploy-stage0.sh
 
 Confirm `GET /health` reports `"env":"production"`. Bare `wrangler deploy` without the var is **not** production.
 
+The generated post-deploy pin workflow (`.github/workflows/deploy-worker-pin-pr.yml`) is `workflow_dispatch` only. Merging it does not deploy. Dispatch requires typing `I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN`, running from `main`, and `DEFAULT_WORLD_ID=world.perihelion-reach-3`. After a successful deploy it opens a reviewable pin PR; it never writes `spec-compat.json` to `main`.
+
 Gate evidence: [PRODUCTION-GENESIS-GATE.md](PRODUCTION-GENESIS-GATE.md).
+
+## Successor world (RFC-0121)
+
+**Current PLAY (2026-08-22).** `spec-compat.json` `hosted_live`: `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8`. Prior PLAY `world.perihelion-reach-2` is not reseeding. Frozen first world remains on `world-01` (operator-only). Do not reseed. Do not force reach-2.
+
+A later successor decision must follow [SUCCESSOR-CUTOVER-RUNBOOK.md](SUCCESSOR-CUTOVER-RUNBOOK.md). That record names `world-01` / `genesis.ef578f4ffceeccd0` **out of scope**. It does not authorize a cutover.
+
+Local rehearsal (preview, or preview + activate). `--successor --activate` stops after activation; it does not inhabit. The rehearsal script still refuses `https://noema.guru`.
+
+```bash
+ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor
+ADMIN_TOKEN=… BASE=http://127.0.0.1:8787 ./scripts/genesis_rehearsal.sh --successor --activate
+```
+
+**Historical production cutover (2026-08-21, RFC-0121).** Completed. Do not repeat. PLAY later moved to reach-3 (RFC-0122). The steps below are the evidence record:
+
+1. Deploy Worker that allows Admin `world_id: world.perihelion-reach-2` on preview/activate. Keep `DEFAULT_WORLD_ID=world-01`. `force` and reseed stay `POLICY_DENIED`. Omitted `world_id` still targets the live 5-room DO.
+2. Admin preview successor on production. Require `genesis_id ≠ genesis.ef578f4ffceeccd0` and `room_count: 10`.
+3. Admin `confirm: true` activate on `world.perihelion-reach-2`. No `force`. Do not reseed `genesis.ef578f4ffceeccd0`.
+4. Set production `DEFAULT_WORLD_ID=world.perihelion-reach-2` and deploy. PLAY then uses the successor DO. Do not add PLAY to the old DO.
+   Successor production genesis (2026-08-21): `genesis.dbeb43d198ce81b1`, seed `perihelion-successor-rehearsal-01`, 10 rooms. Frozen first world remains `genesis.ef578f4ffceeccd0` on the `world-01` DO.
+5. Admin overview / Recover of the frozen world: `GET /v1/admin/overview?world_id=world.perihelion-reach` and `POST /v1/admin/lifecycle { "action":"recover", "world_id":"world.perihelion-reach" }` target the `world-01` DO. PLAY never follows that allowlist.
 
 ## Recovery
 

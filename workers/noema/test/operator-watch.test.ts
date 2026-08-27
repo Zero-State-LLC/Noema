@@ -101,11 +101,61 @@ describe("operator watch theater", () => {
     const exits = market.exits as Array<{ glyph: string }>;
     expect(exits[0].glyph).toBe("threshold");
     const ents = market.entities as Array<{ glyph: string; label: string }>;
-    expect(ents[0]).toEqual({ label: "Trade stall", entity_type: "PROP", glyph: "trade" });
+    expect(ents[0]).toEqual({ label: "Trade stall", entity_type: "PROP", glyph: "event" });
     const lines = snap.lines as Array<{ handle: string; line: string }>;
     expect(lines[0].handle).toBe("hermes");
     expect(lines[0].line).toMatch(/Open stalls/);
     expect(JSON.stringify(lines[0])).not.toMatch(/operator_id|op\./);
+  });
+
+  it("labels Civic Exchange occupants as system actor handles, never the room name", () => {
+    const snap = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 4,
+      sequence: 8,
+      now: NOW,
+      rooms: {
+        "room.civic-exchange": {
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          exits: [],
+          entities: [],
+        },
+      },
+      players: {
+        "player.tester": {
+          handle: "tester",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+        },
+        "player.reach-maint3": {
+          handle: "reach-maint3",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          controller_type: "agent",
+          operator_id: "op.token",
+        },
+        "player.ghost-room": {
+          handle: "Civic Exchange",
+          room_id: "room.civic-exchange",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+        },
+      },
+      lines: [],
+    });
+    const civic = (snap.sites as Array<Record<string, unknown>>).find((s) => s.room_id === "room.civic-exchange")!;
+    expect(civic.players_present).toBe(3);
+    expect(civic.player_labels).toEqual(["tester", "reach-maint3"]);
+    expect(civic.player_labels).not.toContain("Civic Exchange");
+    const agents = snap.agents as Array<{ handle: string }>;
+    expect(agents.map((a) => a.handle)).toEqual(["tester", "reach-maint3", "Civic Exchange"]);
   });
 
   it("hides other operators' owned agents and keeps unowned legacy visible", () => {
@@ -329,5 +379,71 @@ describe("operator watch theater", () => {
     expect(pixel.rooms.find((r) => r.room_id === "room.b")?.active).toBe(true);
     expect(pixel.rooms.find((r) => r.room_id === "room.a")?.active).toBe(false);
     expect(pixel.recent_events.every((e) => e.room_id === "room.b")).toBe(true);
+  });
+
+  it("PIXEL room pick follows that site on live text", () => {
+    const built = buildOperatorWatch({
+      world_id: "world.test",
+      cycle: 1,
+      sequence: 4,
+      now: NOW,
+      rooms: {
+        "room.a": { room_id: "room.a", name: "Relay Quarter", exits: [], entities: [] },
+        "room.b": { room_id: "room.b", name: "Transit Ring", exits: [], entities: [] },
+      },
+      players: {
+        "player.mine": {
+          handle: "vesper",
+          room_id: "room.b",
+          entered: true,
+          last_seen_ms: NOW,
+          actor_kind: "system",
+          operator_id: "op.token",
+        },
+      },
+      operator_id: "op.token",
+      lines: [
+        {
+          at: NOW,
+          handle: "vesper",
+          room_id: "room.b",
+          room_name: "Transit Ring",
+          command: "LOOK",
+          line: "Transit Ring — a public corridor.",
+          glyph: "loc",
+          operator_id: "op.token",
+        },
+        {
+          at: NOW + 1,
+          handle: "vesper",
+          room_id: "room.a",
+          room_name: "Relay Quarter",
+          command: "MOVE",
+          line: "You arrive at Relay Quarter.",
+          glyph: "player",
+          operator_id: "op.token",
+        },
+      ],
+    });
+    const focused = followOperatorWatch(
+      {
+        agents: built.agents as Array<{ handle: string; room_id?: string; glyph: "player" }>,
+        sites: built.sites as OperatorWatchSite[],
+        lines: built.lines as Array<{ handle?: string; room_id?: string }>,
+      },
+      { room_id: "room.b" },
+    );
+    expect(focused.focus_room_id).toBe("room.b");
+    expect(focused.lines.map((l) => l.room_id)).toEqual(["room.b"]);
+    expect(focused.sites.find((s) => s.room_id === "room.b")?.active).toBe(true);
+    expect(focused.sites.find((s) => s.room_id === "room.a")?.active).toBe(false);
+    const pixel = phosphorSnapshotFromOperatorWatch({
+      sequence: Number(built.sequence),
+      sites: built.sites as OperatorWatchSite[],
+      lines: built.lines as Array<{ room_id?: string; handle?: string }>,
+      follow: { room_id: "room.b" },
+    });
+    expect(pixel.focus_room_id).toBe("room.b");
+    expect(pixel.rooms.find((r) => r.room_id === "room.b")?.active).toBe(true);
   });
 });

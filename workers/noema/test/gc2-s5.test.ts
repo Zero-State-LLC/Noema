@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { UPGRADE_COST, withWorkshopStorage, workshopStorageDiscount } from "../src/construction";
+import { CONSTRUCT_COSTS, UPGRADE_COST, withWorkshopStorage, workshopStorageDiscount } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText, parseHumanCommand } from "../src/actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -88,11 +88,13 @@ describe("GC2-S5 world path", () => {
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.workshop.storage || 0);
     const built = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "workshop" });
     expect(built.ok).toBe(true);
     const shop = w.rooms["room.hub"].entities.find((e) => e.infra_type === "workshop")!;
     const opened = await run(w, p, "WAIT");
     expect(opened.ok).toBe(true);
+    w.players[p.player_id].budgets.storage = 16 - (UPGRADE_COST.storage || 0);
     const first = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: shop.entity_id });
     expect(first.ok).toBe(true);
     expect(first.events?.map((e) => e.event_type).sort()).toEqual(["BUDGET_CONSUMED", "ENTITY_UPDATE"]);
@@ -105,10 +107,11 @@ describe("GC2-S5 world path", () => {
     expect(again.error?.code).toBe("FORBIDDEN");
 
     w.players[p.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[p.player_id].budgets.storage = 16 - (CONSTRUCT_COSTS.generator.storage || 0);
     const storageBefore = w.players[p.player_id].budgets.storage;
     const gen = await run(w, p, "BUILD", { operation: "CONSTRUCT", class: "generator" });
     expect(gen.ok).toBe(true);
-    expect(storageBefore - w.players[p.player_id].budgets.storage).toBe(3);
+    expect(w.players[p.player_id].budgets.storage - storageBefore).toBe(3);
 
     const relay = await run(w, p, "BUILD", { operation: "UPGRADE", entity_id: "entity.relay-a" });
     expect(relay.ok).toBe(false);

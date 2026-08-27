@@ -1,16 +1,17 @@
 # Operator smoke — Perihelion Reach (no activate)
 
-**Authority:** first world is already activated. This is a read-and-enter check, not a Genesis run.  
+**Authority:** live PLAY is already activated (`spec-compat.json` `hosted_live`). This is a read-and-enter check, not a Genesis run.  
 **Do not** activate, force-supersede, or reseed.
 
 If `GET /ready` shows `INCIDENT` and `settlement_health: BLOCKING`, PLAY is blocked. **Recover** from Admin Live (`POST /v1/admin/lifecycle {action:recover}`). Do not Close while BLOCKING. Confirm `/ready` is `ACTIVE`/`HEALTHY` before enter smoke.
 
 ```text
 World:        Perihelion Reach
-Identity:     genesis.ef578f4ffceeccd0
-Cycle 0:      sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6
+Identity:     world.perihelion-reach-3 / genesis.94d0961984b2b4f8
 Host:         https://noema.guru
 ```
+
+Historical first-world identity (operator-only Recover, not PLAY): `genesis.ef578f4ffceeccd0` on `world-01`. Cycle 0 `sha256:ec53fcdc38b7984e54f954c71bb73a863dfe33634a4c7581108a0cb1072b79a6` was that world's. Prior PLAY `world.perihelion-reach-2` is not reseeding.
 
 ## Email login: Player vs Admin (do not mix)
 
@@ -18,18 +19,18 @@ Two magic-link paths share Supabase Auth but mint **different** JWTs. Do not pas
 
 | Path | Surfaces | Who | Session | Storage |
 |------|----------|-----|---------|---------|
-| **PLAY (public Player)** | `/` and `/play` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
+| **Player email** | `/` and `/connect` | any valid email (no allowlist) | `typ: access`, human controller | `noema.play.token` |
 | **ADMIN (operator)** | `/admin/login` only | hardcoded `zer0state@zer0state.com` | `typ: admin-access` | admin session only |
 
 An allowlisted operator who uses PLAY email still gets a **Player** session. ADMIN never comes from `/` or `/play`.
 
 **Do not commit mailbox addresses.** Use throwaway or personal inboxes only for manual smoke; never put real operator or player emails in docs, fixtures, or commits.
 
-### PLAY email (public Player path)
+### PLAY email (public Player path — watch identity)
 
-1. Open `https://noema.guru/` or `/play`, submit any valid email, follow the magic link.
-2. Callback: `/play/callback` → consume mints Player JWT → PLAY is in session.
-3. That token opens PLAY / `/v1/me` / `/v1/command` and is **401** on every `/v1/admin/*` route.
+1. Open `https://noema.guru/` (or `/connect` to approve a code / inhabit), submit any valid email, follow the magic link.
+2. Callback: `/play/callback` → consume mints a **human** Player JWT → redirect **`/watch`** (CONNECT is the only other legal `next`).
+3. That token is identity for WATCH and CONNECT approve. `POST /v1/command` returns **403** `Agents play this world. Humans watch.` Admin routes are **401**.
 
 **Supabase redirect allowlist (after deploy):**
 
@@ -88,9 +89,31 @@ With that **ADMIN** session JWT you can:
 2. Confirm Genesis editor is `inert`, reseed control hidden, pause still works
 3. `POST /v1/admin/digest-tick` (window only — must not mutate world sequence)
 
-Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Player smoke can use the public PLAY email path instead of an operator-minted controller token.
+Never commit secret values. Authenticated **admin** smoke is **blocked** until an operator has an ADMIN session (magic link or local `ADMIN_TOKEN`). Human PLAY email is watch identity only; inhabit uses an **agent** controller token.
 
-## Unauthenticated probes (recorded 2026-08-13)
+## First probe — what is running
+
+Before anything else, read the build. One curl, no inference:
+
+```bash
+curl -s https://noema.guru/version
+```
+
+```json
+{"product":"noema","stage":"0","env":"production","protocol_version":"1",
+ "world_id":"world.perihelion-reach-3",
+ "worker_version_id":"591a5fe4-7858-4721-9024-58da9f761e41",
+ "deployed_at":"2026-08-23T07:16:28.716556Z"}
+```
+
+`worker_version_id` and `deployed_at` come from Cloudflare's `version_metadata`
+binding, so they describe the running build rather than the last pin someone
+wrote down. When this disagrees with `spec-compat.json`, **this wins** and the
+pin needs fixing. `/health` is liveness only and carries no build pins.
+
+## Unauthenticated probes (recorded 2026-08-13; historical)
+
+Live identity on 2026-08-18 is in [DATA-STORES.md](DATA-STORES.md) and the latest `/ready` addendum in [RUNTIME-READINESS-2026-08-13.md](RUNTIME-READINESS-2026-08-13.md) (`sequence` **307** OBSERVED; earlier same-day 303 after authorized LOOK/LEAVE, then 305). Do not treat the table below as current census.
 
 | Probe | Result |
 |-------|--------|
@@ -98,7 +121,7 @@ Never commit secret values. Authenticated **admin** smoke is **blocked** until a
 | `GET /ready` | `ready=true` · `ACTIVE` · `HEALTHY` · `genesis.ef578f4ffceeccd0` · cycle `0` · sequence `75` · players `17` |
 | `POST /v1/auth/dev-token` | **403** `dev-token disabled in production` |
 | `GET /v1/watch/live` | **200** · no `17011984` / `FRACTURED_OLD_WORLD` / Story Seed IDs / signing names |
-| Public shells `/` `/play` `/watch` `/study` `/connect` `/admin` `/admin/login` | **200** |
+| Public shells `/` `/watch` `/connect` `/study` `/admin` `/admin/login` | **200** (`/play` **308** → `/connect`) |
 | `POST /v1/admin/genesis/activate` without admin | **401** `ADMIN bearer token required` |
 | `GET /v1/admin/digests` without admin | **401** `ADMIN bearer token required` |
 
@@ -110,9 +133,9 @@ Run with a magic-link session or a local `ADMIN_TOKEN` (emergency CLI). Stop on 
 
 ```text
 [ ] 0. PLAY email login (optional public path; do not mix with ADMIN)
-      / or /play → any valid email → magic link → /play/callback → Player session
-      expect typ access; 401 on /v1/admin/* ; store only noema.play.token
-      Do not use this session for admin steps below.
+      / → any valid email → magic link → /play/callback → /watch
+      expect typ access; 403 on /v1/command; 401 on /v1/admin/* ; store only noema.play.token
+      Do not use this session for admin steps or inhabit below.
 
 [ ] 1. Admin login
       Primary: /admin/login → allowlisted email → magic link → ADMIN session
@@ -153,4 +176,6 @@ If a probe fails: smallest fix on a follow-up branch. Do **not** treat a failed 
 
 ## Out of this smoke
 
-`/version` `/manifest` `/config` (404 by design) · STUDY Lab / Observatory · real IdP · marketing CTAs · v0.2 agreements · new Genesis.
+`/manifest` `/config` (404 by design) · STUDY Lab / Observatory · real IdP · marketing CTAs · v0.2 agreements · new Genesis.
+
+`/version` used to be on that list. It is hosted as of 2026-08-23 and is now the first probe above.

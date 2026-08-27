@@ -27,8 +27,8 @@ function principal(id: string): PlayerPrincipal {
     player_id: id,
     agent_id: `agent.${id}`,
     session_id: "sess.test",
-    controller_id: `ctrl.${id}`,
-    controller_type: "human",
+    controller_id: `ctrl.agent.${id}`,
+    controller_type: "agent",
     scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
     protocol_version: "1",
     authentication_context: "test",
@@ -115,6 +115,7 @@ describe("GC1-S8 world path", () => {
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[a.player_id].budgets.energy = 20;
+    w.players[a.player_id].budgets.storage = 15;
 
     const locked = await run(w, a, "COMMIT", {
       operation: "REPAIR",
@@ -136,6 +137,7 @@ describe("GC1-S8 world path", () => {
     await run(w, a, "ENTER_WORLD");
     w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
     w.players[a.player_id].budgets.energy = 20;
+    w.players[a.player_id].budgets.storage = 15;
     w.players[a.player_id].practice = recognizedEngineer();
 
     const energyBefore = w.players[a.player_id].budgets.energy;
@@ -175,5 +177,45 @@ describe("GC1-S8 world path", () => {
     });
     expect(broke.ok).toBe(false);
     expect(broke.error?.code).toBe("BUDGET_EXCEEDED");
+  });
+
+  it("LOOK exposes structured overhaul affordance only for a maintained Engineer", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    await run(w, a, "ENTER_WORLD");
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].budgets.storage = 15;
+
+    const plain = await run(w, a, "LOOK");
+    expect(plain.ok).toBe(true);
+    const plainAff = plain.observation?.affordances || [];
+    expect(plainAff.some((x) => x.operation === "REPAIR" && x.extent === "overhaul")).toBe(false);
+    expect(plainAff.some((x) => x.operation === "REPAIR" && !x.extent)).toBe(true);
+
+    w.players[a.player_id].practice = recognizedEngineer();
+    const eng = await run(w, a, "LOOK");
+    expect(eng.ok).toBe(true);
+    const over = (eng.observation?.affordances || []).find(
+      (x) => x.operation === "REPAIR" && x.extent === "overhaul",
+    );
+    expect(over?.available).toBe(true);
+    expect(over?.target_id).toBe("entity.relay-a");
+    expect(over?.label).toMatch(/Overhaul/i);
+    expect(over?.requires?.energy).toBe(4);
+    expect(JSON.stringify(over)).not.toMatch(/arguments\.line/);
+  });
+});
+
+describe("GC1-S8 latent affordance", () => {
+  it("does not advertise overhaul when the Engineer track is LATENT", async () => {
+    const w = world();
+    const a = principal("player.nacre");
+    await run(w, a, "ENTER_WORLD");
+    w.cycle = 13;
+    w.players[a.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    w.players[a.player_id].practice = recognizedEngineer();
+    const look = await run(w, a, "LOOK");
+    expect(look.ok).toBe(true);
+    expect((look.observation?.affordances || []).some((x) => x.extent === "overhaul")).toBe(false);
   });
 });
