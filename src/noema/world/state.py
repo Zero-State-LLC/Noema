@@ -1095,4 +1095,3 @@ def acceptance_projection(state: 'WorldState') -> dict[str, Any]:
     def remove_pending(self, obs_id: str) -> None:
         """Narrow seam."""
         self._state.pending_observations.pop(obs_id, None)
-
