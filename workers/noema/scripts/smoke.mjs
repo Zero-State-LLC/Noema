@@ -55,15 +55,16 @@ export function pickMoveDirection(observation) {
   return hit ? String(hit.direction) : null;
 }
 
-async function mintLocalDevToken(base, controllerType, handle) {
+async function mintLocalDevToken(base, handle) {
   const res = await fetch(`${base}/v1/auth/dev-token`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ handle, controller_type: controllerType }),
+    body: JSON.stringify({ handle, controller_type: "agent" }),
   });
   const body = await json(res);
   if (res.status !== 200 || !body.access_token) {
-    throw new Error(`local ${controllerType} token mint failed (${res.status}); is npm run dev running?`);
+    const detail = body.error?.message || body.error?.code || "unexpected response";
+    throw new Error(`local agent token mint failed (${res.status}): ${detail}`);
   }
   return body;
 }
@@ -94,18 +95,16 @@ async function main() {
   console.log("health", health.status, health.stage);
 
   const stamp = Date.now().toString(36);
-  const human = await mintLocalDevToken(base, "human", `smoke-human-${stamp}`);
-  console.log("human_token", !!human.access_token, human.player_id);
-
-  const agent = await mintLocalDevToken(base, "agent", `smoke-agent-${stamp}`);
-  console.log("agent_token", !!agent.access_token, agent.player_id);
-
-  const humanLook = await command(base, human.access_token, {
-    request_id: `req-human-look-${stamp}`,
-    command: "LOOK",
-    arguments: {},
+  const humanMint = await fetch(`${base}/v1/auth/dev-token`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ handle: `smoke-human-${stamp}`, controller_type: "human" }),
   });
-  console.log("human_command_status", humanLook.status, humanLook.body.error?.message || "");
+  const humanMintBody = await json(humanMint);
+  console.log("human_dev_token_status", humanMint.status, humanMintBody.error?.code || "");
+
+  const agent = await mintLocalDevToken(base, `smoke-agent-${stamp}`);
+  console.log("agent_token", !!agent.access_token, agent.player_id);
 
   const enter = await command(base, agent.access_token, {
     request_id: `req-enter-${stamp}`,
@@ -182,7 +181,7 @@ async function main() {
     !look.body.ok ||
     !inspect.body.ok ||
     !move.body.ok ||
-    humanLook.status !== 403 ||
+    humanMint.status !== 403 ||
     unauth.status === 200
   ) {
     process.exit(1);
