@@ -5,6 +5,7 @@ import {
   redactedPublicWorld,
   stableStringify,
   validateCycle0,
+  validateEWMProfile,
 } from "../src/genesis";
 
 const REHEARSAL = {
@@ -60,6 +61,39 @@ describe("hosted genesis", () => {
     const v = validateCycle0(a.cycle0);
     expect(v.ok).toBe(true);
     expect(a.starting_opportunities.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("EWM_ENHANCED validation is part of canonical Cycle 0 acceptance", async () => {
+    const result = await previewGenesis({
+      ...REHEARSAL,
+      world_id: "test.hosted-canonical.ewm-cutover",
+      world_seed: "ewm-validation-01",
+      profile_id: "EWM_ENHANCED",
+    });
+    expect(result.validation.ok).toBe(true);
+    expect(validateEWMProfile(result.cycle0)).toEqual({ ok: true, warnings: [] });
+
+    const invalid = structuredClone(result.cycle0);
+    for (const room of Object.values(invalid.rooms)) {
+      room.entities = room.entities.filter(
+        (entity) => entity.entity_type !== "PRODUCTION" && entity.stock_resource !== "materials",
+      );
+    }
+    invalid.institutions = invalid.institutions.filter(
+      (institution) => !institution.id.startsWith("archetype."),
+    );
+    invalid.initial_beliefs = { expected_regen: 0.1 };
+
+    const validation = validateCycle0(invalid);
+    expect(validation.ok).toBe(false);
+    expect(validation.errors).toEqual(
+      expect.arrayContaining([
+        "EWM_ENHANCED: missing harvestable nodes",
+        "EWM_ENHANCED: missing production nodes",
+        "EWM_ENHANCED: insufficient archetypes",
+        "EWM_ENHANCED: weak expected_regen",
+      ]),
+    );
   });
 
   it("redacted public world never includes genesis inputs", async () => {
