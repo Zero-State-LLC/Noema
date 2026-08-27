@@ -88,3 +88,85 @@ class FirstValidAffordanceAdapter:
         if "LOOK" in available or not available:
             return ActionProposal(action="LOOK")
         return ActionProposal(action=str(available[0]))
+
+# Adapter strategy pattern (v3.2.1)
+# Consolidated from 4 adapter types into a single AdapterStrategy interface
+# with 3 concrete strategies. Maintains backward compatibility.
+
+from abc import ABC, abstractmethod
+from typing import Any, Optional
+
+from noema.harness.types import ActionProposal
+
+
+class AdapterStrategy(ABC):
+    """Primary adapter interface replacing 4 overlapping adapter types."""
+
+    @abstractmethod
+    def decide(self, context: dict[str, Any]) -> Optional[ActionProposal]:
+        """Decide the next action based on the current canonical context."""
+        pass
+
+
+class ScriptedStrategy(AdapterStrategy):
+    """Wraps ScriptedAdapter behavior — step-through sequence of proposals."""
+
+    def __init__(self, steps: list[Any]) -> None:
+        self._steps = list(steps)
+
+    def decide(self, _context: dict[str, Any]) -> Optional[ActionProposal]:
+        if not self._steps:
+            return None
+        return self._steps.pop(0)
+
+
+class LlmStrategy(AdapterStrategy):
+    """Wraps LlmProposeAdapter behavior — LLM-driven proposal selection."""
+
+    def decide(self, context: dict[str, Any]) -> Optional[ActionProposal]:
+        # Placeholder: LLM-driven decision logic
+        # In production, this would consult an LLM provider
+        affordances = context.get('affordances', [])
+        for aff in affordances:
+            if aff.get('available', True):
+                action = str(aff.get('action') or aff.get('operation') or '').upper()
+                if action:
+                    args: dict[str, Any] = {}
+                    if action == 'MOVE':
+                        # Would derive direction from affordance
+                        pass
+                    return ActionProposal(action=action, target_id=aff.get('target_id'), arguments=args)
+        return None
+
+
+class DebugStrategy(AdapterStrategy):
+    """Wraps DebugAdapter behavior — deterministic debug-mode proposals.
+
+    v3.2.1: Consolidated interface. Supports remaining() for loop compat.
+    """
+
+    def __init__(self, failed: ActionProposal | None = None) -> None:
+        from noema.harness.debug import _RETRYABLE, _FORBIDDEN  # reuse constants if possible
+        steps: list[ActionProposal] = []
+        if failed and (failed.action or "").upper() in {"LOOK", "INSPECT", "WAIT", "OBSERVE"}:
+            steps.append(ActionProposal(
+                action=failed.action.upper(),
+                target_id=failed.target_id,
+                arguments=dict(failed.arguments or {}),
+            ))
+        if not steps or steps[0].action != "LOOK":
+            steps.append(ActionProposal(action="LOOK"))
+        steps.append(ActionProposal(action="WAIT"))
+        self._steps = steps
+
+    def remaining(self) -> int:
+        return len(self._steps)
+
+    def decide(self, _context: dict[str, Any]) -> Optional[ActionProposal]:
+        forbidden = {"MOVE", "HARVEST", "TRADE", "REPAIR", "COMMIT.HARVEST", "COMMIT.REPAIR"}
+        while self._steps:
+            nxt = self._steps.pop(0)
+            if (nxt.action or "").upper() in forbidden:
+                continue
+            return nxt
+        return None

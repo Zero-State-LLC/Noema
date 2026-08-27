@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from noema.world.state import WorldState
+from noema.world.state import WorldState, RoomsBundle, EntitiesBundle, OrganizationsBundle
 
 
 class ReduceError(Exception):
@@ -100,11 +100,7 @@ def reduce_AGENT_ENTERED_WORLD(state: WorldState, event: dict[str, Any]) -> Worl
         "manifest_id": p.get("manifest_id"),
         "wait_until": None,
     }
-    room = state.rooms[room_id]
-    ids = list(room.get("entity_ids") or [])
-    if agent_id not in ids:
-        ids.append(agent_id)
-        room["entity_ids"] = ids
+    RoomsBundle(state).link_entity(room_id, agent_id)
     return state
 
 
@@ -114,8 +110,7 @@ def reduce_AGENT_LEFT_WORLD(state: WorldState, event: dict[str, Any]) -> WorldSt
     room_id = p["room_id"]
     agent = _agent(state, agent_id)
     _require(agent["room_id"] == room_id, "location mismatch on leave")
-    room = state.rooms[room_id]
-    room["entity_ids"] = [x for x in (room.get("entity_ids") or []) if x != agent_id]
+    RoomsBundle(state).unlink_entity(room_id, agent_id)
     del state.active_agents[agent_id]
     state.audit.append({"type": "AGENT_LEFT", "agent_id": agent_id, "reason": p["reason"]})
     return state
@@ -134,13 +129,8 @@ def reduce_MOVE(state: WorldState, event: dict[str, Any]) -> WorldState:
     conditions = exit_rec.get("conditions") or []
     _require(not conditions, "exit conditions unmet")
     _debit(agent["budgets"], p["cost_paid"])
-    src = state.rooms[p["from_room_id"]]
-    dst = state.rooms[p["to_room_id"]]
-    src["entity_ids"] = [x for x in (src.get("entity_ids") or []) if x != agent_id]
-    dst_ids = list(dst.get("entity_ids") or [])
-    if agent_id not in dst_ids:
-        dst_ids.append(agent_id)
-    dst["entity_ids"] = dst_ids
+    RoomsBundle(state).unlink_entity(p["from_room_id"], agent_id)
+    RoomsBundle(state).link_entity(p["to_room_id"], agent_id)
     agent["room_id"] = p["to_room_id"]
     return state
 
@@ -357,7 +347,7 @@ def reduce_ORG_CREATE(state: WorldState, event: dict[str, Any]) -> WorldState:
     ids = [m["agent_id"] for m in members]
     _require(len(ids) == len(set(ids)), "duplicate member")
     _require(p["creator_id"] in ids, "creator not in members")
-    state.organizations[p["org_id"]] = {
+    OrganizationsBundle(state).create(p["org_id"], {
         "org_id": p["org_id"],
         "name": p["name"],
         "charter": p["charter"],
@@ -365,7 +355,7 @@ def reduce_ORG_CREATE(state: WorldState, event: dict[str, Any]) -> WorldState:
         "creator_id": p["creator_id"],
         "members": [{"agent_id": m["agent_id"], "role": m["role"]} for m in members],
         "created_cycle": event["cycle"],
-    }
+    })
     return state
 
 
@@ -375,9 +365,7 @@ def reduce_ORG_MEMBER_ADD(state: WorldState, event: dict[str, Any]) -> WorldStat
     _require(org is not None and org["status"] == "ACTIVE", "org inactive")
     assert org is not None
     _require(p["agent_id"] in state.active_agents or p["agent_id"] in state.registered_agents, "unknown agent")
-    existing = {m["agent_id"] for m in org["members"]}
-    _require(p["agent_id"] not in existing, "already member")
-    org["members"].append({"agent_id": p["agent_id"], "role": p["role"]})
+    OrganizationsBundle(state).add_member(p["org_id"], p["agent_id"], p["role"])
     return state
 
 

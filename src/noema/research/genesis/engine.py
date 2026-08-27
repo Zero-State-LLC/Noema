@@ -15,7 +15,7 @@ from noema.research.genesis.errors import (
     GenesisError,
 )
 from noema.world.digest import sha256_digest
-from noema.world.state import WorldState, load_seed
+from noema.world.state import WorldState, RoomsBundle, EntitiesBundle, load_seed
 
 ROOT = Path(__file__).resolve().parents[4]
 
@@ -200,8 +200,9 @@ class GenesisEngine:
             "ordinary_world_valid": True,
             "profile_id": profile["profile_id"],
             "story_seed_ids": seeds,
-            "room_count": len(state.rooms),
-            "entity_count": len(state.entities),
+            # v3.2.1: demonstrate state bundles
+            "room_count": len(RoomsBundle(state).rooms),
+            "entity_count": len(EntitiesBundle(state).entities),
             "uneven_resources": profile.get("resource_abundance") == "MIXED",
             "deep_time_ready": True,
         }

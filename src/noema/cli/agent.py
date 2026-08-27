@@ -166,7 +166,11 @@ def main(argv: list[str] | None = None, http=None) -> int:
         return 0 if result.ok else 1
 
     if action == "run":
-        from noema.harness.adapters import FirstValidAffordanceAdapter, ScriptedAdapter
+        from noema.harness.adapters import (
+            FirstValidAffordanceAdapter,
+            ScriptedAdapter,
+            ScriptedStrategy,
+        )
         from noema.harness.loop import HeadlessHarness
 
         if args.adapter == "scripted":
@@ -175,7 +179,8 @@ def main(argv: list[str] | None = None, http=None) -> int:
                 data = json.loads(PathRead(args.arg))
                 for item in data:
                     steps.append(ActionProposal(**item))
-            adapter = ScriptedAdapter(steps)
+            # v3.2.1: use AdapterStrategy
+            adapter = ScriptedStrategy(steps)
         elif args.adapter == "llm":
             from noema.llm.adapter import LlmProposeAdapter
             from noema.llm.providers import OpenAICompatibleProposer, StaticProposer

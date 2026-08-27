@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from noema.world.state import WorldState
+from noema.world.state import WorldState, RoomsBundle, OrganizationsBundle
 
 
 def project_agent_observation(state: WorldState, agent_id: str) -> dict[str, Any]:
@@ -86,10 +86,19 @@ def project_agent_observation(state: WorldState, agent_id: str) -> dict[str, Any
 
 
 def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, Any]:
-    """WATCH-safe public projection — no research metadata."""
+    """WATCH-safe public projection — no research metadata.
+
+    v3.2.1: Uses state_bundles for rooms and organizations.
+    Deepens the spectator projection module by going through the bundle interfaces
+    rather than direct state fields (locality: bundle concerns are isolated;
+    leverage: bundles can evolve independently of the projection).
+    """
+    room_bundle = RoomsBundle(state)
+    org_bundle = OrganizationsBundle(state)
+
     orgs = [
         {"org_id": oid, "name": o.get("name"), "status": o.get("status"), "member_count": len(o.get("members") or [])}
-        for oid, o in state.organizations.items()
+        for oid, o in org_bundle.organizations.items()
         if o.get("status") == "ACTIVE"
     ]
     agents = [
@@ -98,7 +107,7 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
     ]
     rooms = [
         {"room_id": rid, "name": r.get("name"), "entity_count": len(r.get("entity_ids") or [])}
-        for rid, r in list(state.rooms.items())[:limit]
+        for rid, r in list(room_bundle.rooms.items())[:limit]
     ]
     # Public situations: existence/pressure only — no research targeting metadata
     public_situations = []

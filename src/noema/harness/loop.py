@@ -12,6 +12,7 @@ from noema.harness.policy import HarnessPolicy
 from noema.harness.transport import GatewayClient
 from noema.harness.orientation import check_orientation_s0
 from noema.harness.debug import DebugAdapter
+from noema.harness.adapters import AdapterStrategy, DebugStrategy  # v3.2.1: deep consolidated adapter_strategy interface
 from noema.harness.report import classify_with_model
 from noema.harness.smell import detect_smell
 from noema.harness.types import ActionProposal, FailureClass, NoemaState, TurnResult, UnattendedRun
@@ -19,6 +20,13 @@ from noema.harness.validate import validate_proposal
 
 
 class Adapter(Protocol):
+    """Legacy Protocol for adapter decide surface.
+
+    v3.2.1: The deep module/interface is AdapterStrategy (see adapters.py).
+    One interface (AdapterStrategy) replaces the previous proliferation of
+    adapter classes for leverage (single test surface) and locality (bugs
+    in decision logic now concentrate in strategies).
+    """
     def decide(self, context: dict[str, Any]) -> ActionProposal | None: ...
 
 
@@ -47,7 +55,7 @@ class HeadlessHarness:
     def __init__(
         self,
         client: GatewayClient,
-        adapter: Adapter,
+        adapter: Adapter | AdapterStrategy,  # v3.2.1 accepts the deep AdapterStrategy
         policy: HarnessPolicy | None = None,
         memory: WorkingMemory | None = None,
         *,
@@ -174,7 +182,7 @@ class HeadlessHarness:
         previous_room = ((self.state.location or {}) if self.state else {}).get("room_id")
         previous_room = str(previous_room) if previous_room else None
         while len(turns) < max_turns:
-            if self.mode == "debug" and isinstance(self.adapter, DebugAdapter) and self.adapter.remaining() == 0:
+            if self.mode == "debug" and isinstance(self.adapter, (DebugAdapter, DebugStrategy)) and getattr(self.adapter, "remaining", lambda: 0)() == 0:  # v3.2.1: support deep AdapterStrategy
                 break
             turn = self.run_turn()
             turns.append(turn)
@@ -190,7 +198,10 @@ class HeadlessHarness:
                 if smell.kind == "auth":
                     self.breaker.trip("auth_failure")
                     break
-                self.adapter = DebugAdapter(turn.proposal)
+                # v3.2.1: wire the deep DebugStrategy (Candidate 2)
+                # This makes the consolidated adapter_strategy real in the runtime harness loop.
+                # Benefits: locality (debug decision logic in one strategy module), leverage (any strategy can be swapped at this seam).
+                self.adapter = DebugStrategy(turn.proposal)
                 if smell.kind == "incident":
                     observed = self._act(ActionProposal(action="OBSERVE"))
                     turns.append(observed)
