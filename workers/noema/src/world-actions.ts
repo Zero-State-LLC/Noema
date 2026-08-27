@@ -1791,8 +1791,14 @@ export async function runPinnedTempoResolve(
       settleEv,
     );
     markTempoPresent(w, now);
-    if (commit && !(await commit(allEvents))) {
-      return failClosed("Cycle settlement failed; the cycle is uncommitted.");
+    if (commit) {
+      let committed = false;
+      try {
+        committed = await commit(allEvents);
+      } catch {
+        committed = false;
+      }
+      if (!committed) return failClosed("Cycle settlement failed; the cycle is uncommitted.");
     }
     return { ok: true, events: allEvents };
   } catch (e) {
