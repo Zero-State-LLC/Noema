@@ -749,6 +749,8 @@ class ContextBundle:
                     "HARVEST", "REPAIR", "TRADE_PROPOSE", "ORG_CREATE", "LEAVE_WORLD",
                 ],
                 "affordances": [],  # populated by caller if needed
+                "reputation_summary": {"self_image": 4, "self_second_order": 2},
+                "active_norms": {},
             },
             "system": {"prompt_version": "sealed-s0"},
             "world_text": [],  # populated by caller from observatory
@@ -1093,4 +1095,3 @@ def acceptance_projection(state: 'WorldState') -> dict[str, Any]:
     def remove_pending(self, obs_id: str) -> None:
         """Narrow seam."""
         self._state.pending_observations.pop(obs_id, None)
-

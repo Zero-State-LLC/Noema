@@ -47,10 +47,10 @@ def to_state(
         last_consequence=consequence,
         focus=obs.get("focus"),
         situation=situation,
-        reputation_summary=obs.get("reputation_summary") if isinstance(obs.get("reputation_summary"), dict) else None,
-        active_norms=obs.get("active_norms") if isinstance(obs.get("active_norms"), dict) else None,
         world_status=world_status or obs.get("world_status"),
         world_text=world_text,
+        reputation_summary=obs.get("reputation_summary"),
+        active_norms=obs.get("active_norms"),
     )
 
 
@@ -96,6 +96,7 @@ def prepare_context(
         # Merge legacy with bundle slice for backward compat
         ctx["canonical"].update(legacy_canonical)
         ctx["memory"] = memory.select()
+        ctx["system"]["policy_blocked"] = policy.blocked(state.affordances)
         return ctx
     
     return {

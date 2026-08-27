@@ -870,6 +870,13 @@ export function validateCycle0(world: Cycle0World): { ok: boolean; errors: strin
   const entityCount = rooms.reduce((n, r) => n + r.entities.length, 0);
   if (entityCount < 1) errors.push("world has no inspectable entities");
 
+  // EWM-enhanced worlds are only valid when their economy bootstrap is
+  // actually usable. Keep this inside the canonical Cycle 0 validator so a
+  // preview cannot report VALIDATED while omitting harvest, production, or
+  // archetype prerequisites required by the cutover profile.
+  const ewm = validateEWMProfile(world);
+  for (const warning of ewm.warnings) errors.push(`EWM_ENHANCED: ${warning}`);
+
   return { ok: errors.length === 0, errors };
 }
 
