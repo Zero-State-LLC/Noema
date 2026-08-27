@@ -99,6 +99,7 @@ export type TempoWorld = {
   world_id: string;
   cycle: number;
   sequence: number;
+  unsettled?: unknown[];
   world_kind?: WorldKind;
   player_tempo_policy_version?: string;
   player_tempo_mode?: TempoMode;
@@ -408,6 +409,10 @@ function atBoundary(tempo: PlayerTempoState | undefined): boolean {
   return true;
 }
 
+function hasUnresolvedSettlement(w: TempoWorld): boolean {
+  return Array.isArray(w.unsettled) && w.unsettled.length > 0;
+}
+
 function freezeParticipants(w: TempoWorld, now: number): string[] {
   return presentPlayerIds(w.players, now).sort();
 }
@@ -439,6 +444,13 @@ export function pinPlayerTempo(
 ): TempoPinResult {
   const loaded = requirePinnedCatalog();
   if (!loaded.ok) return loaded;
+  if (hasUnresolvedSettlement(w)) {
+    return {
+      ok: false,
+      code: "TEMPO_PIN_FORBIDDEN",
+      message: "Player-tempo pin changes require a committed cycle boundary with no unresolved settlement candidates.",
+    };
+  }
   if (isPlayerTempoPinned(w) && !atBoundary(w.player_tempo)) {
     return {
       ok: false,
@@ -484,6 +496,13 @@ export function changeTempoMode(
 ): TempoPinResult {
   if (!isPlayerTempoPinned(w) || !w.player_tempo) {
     return { ok: false, code: "TEMPO_PIN_FORBIDDEN", message: "This world is not pinned to player-tempo/1.0." };
+  }
+  if (hasUnresolvedSettlement(w)) {
+    return {
+      ok: false,
+      code: "TEMPO_PIN_FORBIDDEN",
+      message: "Tempo mode changes require a committed cycle boundary with no unresolved settlement candidates.",
+    };
   }
   if (!String(input.reason || "").trim()) {
     return { ok: false, code: "TEMPO_PIN_FORBIDDEN", message: "A tempo mode change requires a reason." };

@@ -647,6 +647,16 @@ describe("PT16 replay of recorded accepted set", () => {
 });
 
 describe("unpinned worlds stay on RFC-0019", () => {
+  it("refuses a tempo pin while unresolved settlement candidates remain", () => {
+    const w = fixtureWorld();
+    w.unsettled = [{ event_id: "evt.pending", payload: { source: "pre-canonical" } }];
+    const denied = pinPlayerTempo(w, { mode: "FAST_TEST", now: CLOCK, reason: "test pin" });
+    expect(denied.ok).toBe(false);
+    if (denied.ok) throw new Error("expected tempo pin to be denied");
+    expect(denied.code).toBe("TEMPO_PIN_FORBIDDEN");
+    expect(w.player_tempo).toBeUndefined();
+  });
+
   it("still commits from WAIT quorum and applies LOOK immediately", async () => {
     const w = fixtureWorld("world.test-unpinned");
     const a = principal("player.nacre");
