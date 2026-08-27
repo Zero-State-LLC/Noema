@@ -145,9 +145,9 @@ def test_admin_overview_counts_agents_inside_total_players(running_runtime):
         headers={"X-Session-Id": admin["session_id"]},
     )
     assert status == 200
-    assert overview["players"] == {"total": 1, "human_controlled": 0, "agent_controlled": 1}
+    assert overview["players"] == {"total": 2, "human_controlled": 1, "agent_controlled": 1}
     assert {item["world_ontology"] for item in overview["sessions"] if item["is_player"]} == {"PLAYER"}
-    assert {item["controller"] for item in overview["sessions"] if item["is_player"]} == {"AGENT"}
+    assert {item["controller"] for item in overview["sessions"] if item["is_player"]} == {"HUMAN", "AGENT"}
     assert "agents" not in overview["players"]
 
 

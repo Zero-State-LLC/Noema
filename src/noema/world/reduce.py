@@ -11,6 +11,7 @@ class ReduceError(Exception):
     """Deterministic reducer rejection."""
 
 
+
 REGISTERED_SEED_STREAMS = frozenset(
     {
         "world_event_director.v1",
@@ -21,11 +22,9 @@ REGISTERED_SEED_STREAMS = frozenset(
     }
 )
 
-
 def require_seed_stream(name: object) -> None:
     if not isinstance(name, str) or name not in REGISTERED_SEED_STREAMS:
         raise ReduceError(f"unknown seed stream: {name}")
-
 
 Reducer = Callable[[WorldState, dict[str, Any]], WorldState]
 
