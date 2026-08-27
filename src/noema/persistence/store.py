@@ -1352,29 +1352,12 @@ class WorldStore:
         c.execute(sql, (key, value))
 
     def _serialize_state(self, state: WorldState) -> dict[str, Any]:
-        return {
-            "world_id": state.world_id,
-            "world_version": state.world_version,
-            "seed": state.seed,
-            "catalog_version": state.catalog_version,
-            "cycle": state.cycle,
-            "sequence": state.sequence,
-            "budget_defaults": state.budget_defaults,
-            "rooms": state.rooms,
-            "exits": state.exits,
-            "entities": state.entities,
-            "registered_agents": state.registered_agents,
-            "active_agents": state.active_agents,
-            "organizations": state.organizations,
-            "messages": state.messages,
-            "trades": state.trades,
-            "pending_observations": state.pending_observations,
-            "observation_digests": state.observation_digests,
-            "destroyed_entities": state.destroyed_entities,
-            "situations": state.situations,
-            "last_event_digest": state.last_event_digest,
-            "event_count": state.event_count,
-        }
+        """Persistence serialization now delegates through WorldState bundle seam.
+        Deepens the persistence module: snapshot/rehydrate logic uses the narrow
+        to_serializable_dict interface (locality + leverage).
+        """
+        # Use the bundle-backed seam exclusively (seam is always present after WorldState update)
+        return state.to_serializable_dict()
 
 
 def _is_serialization_failure(exc: BaseException) -> bool:

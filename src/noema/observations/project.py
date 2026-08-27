@@ -4,10 +4,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from noema.world.state import WorldState, RoomsBundle, OrganizationsBundle
+from noema.world.state import WorldState, RoomsBundle, OrganizationsBundle, SituationsBundle
 
 
 def project_agent_observation(state: WorldState, agent_id: str) -> dict[str, Any]:
+    """Agent observation projection feeding harness NoemaState.
+
+    Deepened via bundle_seams (RoomsBundle, MessagesBundle) for harness paths.
+    Increases depth, locality (projection logic uses narrow interfaces),
+    and leverage (bundles evolve without breaking harness observations).
+    """
+    from noema.world.state import RoomsBundle, MessagesBundle
     agent = state.active_agents.get(agent_id)
     if not agent:
         return {
@@ -20,38 +27,14 @@ def project_agent_observation(state: WorldState, agent_id: str) -> dict[str, Any
             "MESSAGES": [],
         }
     room_id = agent["room_id"]
-    room = state.rooms[room_id]
-    visible_entities = []
-    for eid in room.get("entity_ids") or []:
-        if eid == agent_id:
-            continue
-        ent = state.entities.get(eid)
-        if ent and ent.get("status", "LIVE") == "LIVE":
-            visible_entities.append(
-                {
-                    "entity_id": eid,
-                    "entity_type": ent.get("entity_type"),
-                    "label": (ent.get("properties") or {}).get("label") or eid,
-                }
-            )
-        elif eid in state.active_agents:
-            visible_entities.append({"entity_id": eid, "entity_type": "AGENT"})
+    room_bundle = RoomsBundle(state)
+    room = room_bundle.room(room_id) or {}
+    visible_entities = room_bundle.visible_entities(room_id, exclude_agent_id=agent_id)
+    exits = room_bundle.exits_from(room_id)
 
-    exits = [
-        {"exit_id": e["exit_id"], "to_room_id": e["to_room_id"]}
-        for e in state.exits.values()
-        if e.get("from_room_id") == room_id
-    ]
-    messages = [
-        {
-            "message_id": m["message_id"],
-            "sender_id": m["sender_id"],
-            "text": m["text"],
-            "status": m["status"],
-        }
-        for m in state.messages.values()
-        if m.get("recipient_id") == agent_id and m.get("status") == "DELIVERED"
-    ]
+    msg_bundle = MessagesBundle(state)
+    messages = msg_bundle.messages_for(agent_id, status="DELIVERED")
+
     return {
         "agent_id": agent_id,
         "world_id": state.world_id,
@@ -101,6 +84,8 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
         for oid, o in org_bundle.organizations.items()
         if o.get("status") == "ACTIVE"
     ]
+    # Use bundle where possible; keep light direct for public snapshot (harness paths benefit upstream)
+    room_bundle = RoomsBundle(state)
     agents = [
         {"agent_id": aid, "room_id": a.get("room_id")}
         for aid, a in state.active_agents.items()
@@ -109,16 +94,11 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
         {"room_id": rid, "name": r.get("name"), "entity_count": len(r.get("entity_ids") or [])}
         for rid, r in list(room_bundle.rooms.items())[:limit]
     ]
-    # Public situations: existence/pressure only — no research targeting metadata
+    # Public situations: existence/pressure only
     public_situations = []
-    for sid, sit in (state.situations or {}).items():
-        public_situations.append(
-            {
-                "situation_id": sid,
-                "status": sit.get("status"),
-                "target_room_ids": list(sit.get("target_room_ids") or []),
-            }
-        )
+    sit_bundle = SituationsBundle(state)
+    for sit in sit_bundle.get_public_situations():
+        public_situations.append(sit)
     return {
         "surface": "LIVE",
         "world_id": state.world_id,

@@ -6,12 +6,22 @@ from typing import Any, Callable
 
 from noema.harness.types import ActionProposal
 from noema.llm.proposal import ProposalError, parse_proposal
+from noema.world.state import WorldState, ContextBundle
 
 ProposeFn = Callable[[dict[str, Any]], str | dict[str, Any]]
 
 
 def redacted_context(context: dict[str, Any]) -> dict[str, Any]:
-    """Canonical slice only. Never include tokens or LocalMind."""
+    """Canonical slice only. Never include tokens or LocalMind.
+    
+    Now delegates to ContextBundle for depth and locality.
+    """
+    state = context.get("_state")
+    agent_id = context.get("_agent_id")
+    if state and agent_id:
+        bundle = ContextBundle(state)
+        return bundle.slice_for_agent(agent_id)
+    # Fallback for tests/legacy callers without state
     return {
         "canonical": context.get("canonical") or {},
         "system": context.get("system") or {},

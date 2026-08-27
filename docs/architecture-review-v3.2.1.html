@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review for Noema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({startOnLoad: true, theme: "neutral", securityLevel: "loose"});
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+      <header class="border-b border-slate-200 pb-6">
+        <h1 class="text-3xl font-bold tracking-tight">Architecture review for Noema</h1>
+        <p class="text-slate-500 mt-1">Codebase deepening opportunities — 2026-08-26 (v3.2.1 assimilated)</p>
+      </header>
+
+      <section id="candidates" class="space-y-10">
+        <!-- Candidate 1 -->
+        <article>
+          <div class="flex items-baseline border-b border-slate-200 pb-3 mb-3">
+            <h2 class="font-semibold text-lg tracking-tight">Collapse the compiler minimization pipeline</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 rounded text-xs font-medium emerald-600">Strong</span>
+              <span class="px-2 py-1 rounded text-xs font-medium gray-500">in-process</span>
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Files</h3>
+          <pre class="font-mono text-sm">src/noema/research/compiler/minimize.py</pre>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Problem</h3>
+          <p>5-module minimization pipeline with overlapping interfaces.</p>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Solution</h3>
+          <p><code>deep_minimize()</code> replaces <code>minimize()</code> — same algorithm, same oracle contract, same 256-call budget, concentrated in one module.</p>
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before</h4><div class="mermaid">flowchart LR A[Compile] --> B[Admission] --> C[Graph] --> D[Oracle] --> E[Result] classDef leak stroke:#dc2626 stroke-width:2px; class B,D leak</div></div>
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">After</h4><div class="mermaid">flowchart LR A --> M[deep_minimize()] --> E classDef deep background:#0f172a color:#f1f5f9; class M deep</div></div>
+          </div>
+          <ul class="list-disc list-inside text-slate-600 space-y-1 mt-3">
+            <li>Tests hit one interface instead of 5</li>
+            <li>Leverage: one interface, N call sites</li>
+            <li>Locality: bugs concentrate in one module</li>
+          </ul>
+        </article>
+
+        <!-- Candidate 2 -->
+        <article>
+          <div class="flex items-baseline border-b border-slate-200 pb-3 mb-3">
+            <h2 class="font-semibold text-lg tracking-tight">Collapse adapter proliferation</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 rounded text-xs font-medium amber-600">Worth exploring</span>
+              <span class="px-2 py-1 rounded text-xs font-medium gray-500">local-substitutable</span>
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Files</h3>
+          <pre class="font-mono text-sm">src/noema/harness/adapters.py</pre>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Problem</h4>
+          <p>4 adapter types with overlapping decide() responsibilities.</p>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Solution</h3>
+          <p><code>AdapterStrategy</code> interface + 3 strategies: ScriptedStrategy, LlmStrategy, DebugStrategy. Harness loop selects one.</p>
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before</h4><div class="mermaid">flowchart LR A[Harness] --> B[ScriptedAdapter]; A --> C[FirstValidAffordanceAdapter]; A --> D[LlmProposeAdapter]; A --> E[DebugAdapter] classDef leak stroke:#dc2626 stroke-width:2px; class B,C,D,E leak</div></div>
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">After</h4><div class="mermaid">flowchart LR A --> F[AdapterStrategy]; F -->|scripted| B; F -->|llm| D; F -->|debug| E classDef deep background:#0f172a color:#f1f5f9; class F deep</div></div>
+          </div>
+          <ul class="list-disc list-inside text-slate-600 space-y-1 mt-3">
+            <li>Tests hit one interface instead of 4</li>
+            <li>Leverage: one interface, N call sites</li>
+            <li>Locality: bugs concentrate in one adapter</li>
+          </ul>
+        </article>
+
+        <!-- Candidate 3 -->
+        <article>
+          <div class="flex items-baseline border-b border-slate-200 pb-3 mb-3">
+            <h2 class="font-semibold text-lg tracking-tight">Deepify the WorldState module</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-1 rounded text-xs font-medium emerald-600">Strong</span>
+              <span class="px-2 py-1 rounded text-xs font-medium gray-500">in-process</span>
+            </div>
+          </div>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Files</h3>
+          <pre class="font-mono text-sm">src/noema/world/state.py</pre>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Problem</h3>
+          <p>WorldState dataclass has 36 fields; interface nearly as complex as implementation.</p>
+          <h3 class="text-sm font-medium text-slate-600 mb-2">Solution</h3>
+          <p>Split into core entity (6 fields) + 5 bundles: RoomsBundle, EntitiesBundle, OrganizationsBundle, MessagesBundle, TradesBundle. Acceptance projection delegates to bundles.</p>
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">Before</h4><div class="mermaid">flowchart LR A[WorldState] --> B[Acceptance projection]; A --> C[Seed loader]; A --> D[Persistence] classDef leak stroke:#dc2626 stroke-width:2px; class B,C,D leak</div></div>
+            <div><h4 class="text-xs uppercase tracking-wider text-slate-500 mb-2">After</h4><div class="mermaid">flowchart LR A[Core entity] --> B[Acceptance projection]; A --> C[Seed loader]; A --> D[Persistence] classDef deep background:#0f172a color:#f1f5f9; class A deep</div></div>
+          </div>
+          <ul class="list-disc list-inside text-slate-600 space-y-1 mt-3">
+            <li>Tests hit one interface instead of 36 fields</li>
+            <li>Leverage: one interface, N modules</li>
+            <li>Locality: bugs concentrate in one bundle</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="top-recommendation" class="pt-8 border-t border-slate-200">
+        <h2 class="text-2xl font-bold tracking-tight">Top recommendation</h2>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="rounded-lg border border-emerald-400 p-4">
+            <h3 class="text-xl font-bold text-emerald-600">1. Collapse the compiler minimization pipeline</h3>
+            <p class="text-slate-600 mt-1">5 modules → 1, strongest leverage, oracle contract preserved.</p>
+          </div>
+          <div class="roundedbg-emerald-100 p-3 mb-3"><p class="text-sm text-emerald-800">Recommendation strength: Strong</p></div>
+          <p class="text-sm text-slate-600">Why first: Gateway to all research fixture generation. Before/after: 5 steps → 1.</p>
+        </div>
+        <div><h3 class="text-xs text-slate-500 mt-2">Cascade order</h3><ol class="list-decimal list-inside text-slate-600 space-y-1 text-xs"><li>Candidate 1: Collapse compiler minimization pipeline (Strong, in-process)</li><li>Candidate 3: Deepify WorldState module (Strong, in-process)</li><li>Candidate 2: Collapse adapter proliferation (Worth exploring, local-substitutable)</li></ol></div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1167,7 +1167,7 @@ export class NoemaWorldDO {
         observation: {
           cycle: w.cycle || 0,
           sequence: w.sequence || 0,
-          world_name: w.world_name,
+          world_name: w.world_name || w.world_id || "Unknown World",
           player_id: principal.player_id,
           in_world: false,
           available_actions: [],

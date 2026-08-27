@@ -4,27 +4,11 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from noema.world.state import WorldState, RoomsBundle, EntitiesBundle, OrganizationsBundle
+from noema.world.state import (WorldState, RoomsBundle, EntitiesBundle, OrganizationsBundle, AgentsBundle, MessagesBundle, TradesBundle, PendingObservationsBundle, SituationsBundle)
 
 
 class ReduceError(Exception):
     """Deterministic reducer rejection."""
-
-
-REGISTERED_SEED_STREAMS = frozenset(
-    {
-        "world_event_director.v1",
-        "noise.stream.v01",
-        "frontier.stream.v01",
-        "frontier.seed.v02",
-        "stream.contest.1",
-    }
-)
-
-
-def require_seed_stream(name: object) -> None:
-    if not isinstance(name, str) or name not in REGISTERED_SEED_STREAMS:
-        raise ReduceError(f"unknown seed stream: {name}")
 
 
 Reducer = Callable[[WorldState, dict[str, Any]], WorldState]
@@ -36,38 +20,14 @@ def _require(cond: bool, msg: str) -> None:
 
 
 def _agent(state: WorldState, agent_id: str) -> dict[str, Any]:
-    _require(agent_id in state.active_agents, f"agent not active: {agent_id}")
-    return state.active_agents[agent_id]
+    # use bundle_seam for reduce module (locality + leverage)
+    return AgentsBundle(state).get_active_agent_or_raise(agent_id)
 
 
 def _holder_resource_slot(state: WorldState, holder_id: str, resource: str) -> tuple[dict[str, Any], str]:
-    """Return the mutable balance bucket and key for a holder.
-
-    Holders can be active agents or live entities. Agents use ``budgets`` with
-    per-resource keys. Entities store a resource bucket in ``state`` and often
-    use ``available`` for the active amount.
-    """
-
-    if holder_id in state.active_agents:
-        return state.active_agents[holder_id]["budgets"], ""
-
-    ent = state.entities.get(holder_id)
-    _require(ent is not None, f"holder missing: {holder_id}")
-    _require(ent.get("status", "LIVE") == "LIVE", f"holder inactive: {holder_id}")
-
-    props = ent.get("properties") or {}
-    state_bucket = ent.setdefault("state", {})
-
-    # Most entities in v0.1 use a single ``available`` slot, constrained by
-    # a declared resource kind in properties.
-    if "resource" in props:
-        _require(props.get("resource") == resource, f"holder resource mismatch: {holder_id}")
-        _require("available" in state_bucket, f"holder missing available: {holder_id}")
-        return state_bucket, "available"
-
-    # Fall back to a direct resource key for other entity shapes.
-    _require(resource in state_bucket, f"holder missing resource {resource}: {holder_id}")
-    return state_bucket, resource
+    """Return the mutable balance bucket and key for a holder (now via bundle_seam)."""
+    # use EntitiesBundle + AgentsBundle seams for reduce module depth/locality
+    return EntitiesBundle(state).get_holder_resource_slot(holder_id, resource)
 
 
 def _debit(budgets: dict[str, float], costs: dict[str, float]) -> None:
@@ -105,18 +65,14 @@ def reduce_AGENT_ENTERED_WORLD(state: WorldState, event: dict[str, Any]) -> Worl
     p = event["payload"]
     agent_id = p["agent_id"]
     room_id = p["room_id"]
-    _require(agent_id in state.registered_agents, f"unknown agent {agent_id}")
-    _require(agent_id not in state.active_agents, f"already active {agent_id}")
-    _require(room_id in state.rooms, f"unknown room {room_id}")
+    ab = AgentsBundle(state)
+    _require(ab.registered_agent(agent_id) is not None, f"unknown agent {agent_id}")
+    _require(ab.active_agent(agent_id) is None, f"already active {agent_id}")
+    rb = RoomsBundle(state)
+    _require(rb.room(room_id) is not None, f"unknown room {room_id}")
     budgets = {k: float(v) for k, v in p["budgets"].items()}
-    state.active_agents[agent_id] = {
-        "agent_id": agent_id,
-        "room_id": room_id,
-        "budgets": budgets,
-        "manifest_id": p.get("manifest_id"),
-        "wait_until": None,
-    }
-    RoomsBundle(state).link_entity(room_id, agent_id)
+    # use bundle_seam for depth/locality/leverage in reduce module
+    AgentsBundle(state).enter_active_agent(agent_id, room_id, budgets, p.get("manifest_id"))
     return state
 
 
@@ -127,7 +83,8 @@ def reduce_AGENT_LEFT_WORLD(state: WorldState, event: dict[str, Any]) -> WorldSt
     agent = _agent(state, agent_id)
     _require(agent["room_id"] == room_id, "location mismatch on leave")
     RoomsBundle(state).unlink_entity(room_id, agent_id)
-    del state.active_agents[agent_id]
+    # use bundle_seam for leave
+    AgentsBundle(state).leave_active_agent(agent_id)
     state.audit.append({"type": "AGENT_LEFT", "agent_id": agent_id, "reason": p["reason"]})
     return state
 
@@ -144,10 +101,10 @@ def reduce_MOVE(state: WorldState, event: dict[str, Any]) -> WorldState:
     _require(exit_rec["to_room_id"] == p["to_room_id"], "exit dest mismatch")
     conditions = exit_rec.get("conditions") or []
     _require(not conditions, "exit conditions unmet")
-    _debit(agent["budgets"], p["cost_paid"])
-    RoomsBundle(state).unlink_entity(p["from_room_id"], agent_id)
-    RoomsBundle(state).link_entity(p["to_room_id"], agent_id)
-    agent["room_id"] = p["to_room_id"]
+    # use bundle seams for debit + atomic move + room update
+    AgentsBundle(state).debit_agent_budgets(agent_id, p["cost_paid"])
+    RoomsBundle(state).move_agent(p["from_room_id"], p["to_room_id"], agent_id)
+    AgentsBundle(state).update_agent_room(agent_id, p["to_room_id"])
     return state
 
 
@@ -175,8 +132,10 @@ def reduce_LOOK(state: WorldState, event: dict[str, Any]) -> WorldState:
     _require(agent["budgets"].get("attention", 0) >= spend, "insufficient attention")
     obs_id = p["observation_id"]
     _require(obs_id not in state.pending_observations, "duplicate observation id")
-    agent["budgets"]["attention"] = float(agent["budgets"]["attention"]) - spend
-    state.pending_observations[obs_id] = {
+    # use seam for budget mutation
+    AgentsBundle(state).debit_agent_budgets(p["agent_id"], {"attention": spend})
+    # use PendingObservationsBundle seam for reduce module
+    PendingObservationsBundle(state).add_pending(obs_id, {
         "observation_id": obs_id,
         "agent_id": p["agent_id"],
         "kind": "LOOK",
@@ -184,7 +143,7 @@ def reduce_LOOK(state: WorldState, event: dict[str, Any]) -> WorldState:
         "source_event_id": event["event_id"],
         "noise_id": None,
         "status": "PENDING",
-    }
+    })
     return state
 
 
@@ -201,8 +160,10 @@ def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState:
     _require(agent["budgets"].get("attention", 0) >= spend, "insufficient attention")
     obs_id = p["observation_id"]
     _require(obs_id not in state.pending_observations, "duplicate observation id")
-    agent["budgets"]["attention"] = float(agent["budgets"]["attention"]) - spend
-    state.pending_observations[obs_id] = {
+    # use seam for budget mutation
+    AgentsBundle(state).debit_agent_budgets(p["agent_id"], {"attention": spend})
+    # use PendingObservationsBundle seam
+    PendingObservationsBundle(state).add_pending(obs_id, {
         "observation_id": obs_id,
         "agent_id": p["agent_id"],
         "kind": "INSPECT",
@@ -211,7 +172,7 @@ def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState:
         "source_event_id": event["event_id"],
         "noise_id": None,
         "status": "PENDING",
-    }
+    })
     return state
 
 
@@ -220,15 +181,17 @@ def reduce_MESSAGE(state: WorldState, event: dict[str, Any]) -> WorldState:
     sender = _agent(state, p["sender_id"])
     _require(p["recipient_id"] in state.active_agents, "recipient not active")
     _require(p["message_id"] not in state.messages, "duplicate message")
-    _debit(sender["budgets"], p["cost_paid"])
-    state.messages[p["message_id"]] = {
+    # use seam
+    AgentsBundle(state).debit_agent_budgets(p["sender_id"], p["cost_paid"])
+    # use MessagesBundle seam for reduce module
+    MessagesBundle(state).add_message(p["message_id"], {
         "message_id": p["message_id"],
         "sender_id": p["sender_id"],
         "recipient_id": p["recipient_id"],
         "text": p["text"],
         "status": "QUEUED",
         "delivered_cycle": None,
-    }
+    })
     return state
 
 
@@ -253,11 +216,11 @@ def reduce_TRADE_PROPOSED(state: WorldState, event: dict[str, Any]) -> WorldStat
     proposer = state.active_agents[p["proposer_id"]]
     for resource, amount in p["offered"].items():
         _require(float(proposer["budgets"].get(resource, 0)) >= float(amount), "offer underfunded")
-    # reserve offered
+    # reserve offered (use seam for mutations)
     reservations = {k: float(v) for k, v in p["offered"].items()}
-    for resource, amount in reservations.items():
-        proposer["budgets"][resource] = float(proposer["budgets"][resource]) - amount
-    state.trades[p["trade_id"]] = {
+    AgentsBundle(state).debit_agent_budgets(p["proposer_id"], reservations)
+    # use TradesBundle seam
+    TradesBundle(state).propose_trade(p["trade_id"], {
         "trade_id": p["trade_id"],
         "proposer_id": p["proposer_id"],
         "counterparty_id": p["counterparty_id"],
@@ -266,7 +229,7 @@ def reduce_TRADE_PROPOSED(state: WorldState, event: dict[str, Any]) -> WorldStat
         "status": "OPEN",
         "reserved": reservations,
         "expires_cycle": p.get("expires_cycle"),
-    }
+    })
     return state
 
 
@@ -420,20 +383,15 @@ def reduce_ENTITY_CREATE(state: WorldState, event: dict[str, Any]) -> WorldState
         "status": "LIVE",
         "created_cycle": event["cycle"],
     }
-    state.entities[eid] = ent
+    # use EntitiesBundle seam for create + room link (reduce module deepening)
+    room_id = None
     if isinstance(loc, dict) and loc.get("kind") == "ROOM":
         room_id = loc["room_id"]
         _require(room_id in state.rooms, "unknown room")
-        ids = list(state.rooms[room_id].get("entity_ids") or [])
-        if eid not in ids:
-            ids.append(eid)
-        state.rooms[room_id]["entity_ids"] = ids
     elif isinstance(loc, str):
-        _require(loc in state.rooms, "unknown room string location")
-        ids = list(state.rooms[loc].get("entity_ids") or [])
-        if eid not in ids:
-            ids.append(eid)
-        state.rooms[loc]["entity_ids"] = ids
+        room_id = loc
+        _require(room_id in state.rooms, "unknown room string location")
+    EntitiesBundle(state).create_and_link(eid, ent, room_id)
     return state
 
 
@@ -444,18 +402,8 @@ def reduce_ENTITY_DESTROY(state: WorldState, event: dict[str, Any]) -> WorldStat
     _require(ent is not None, "unknown entity")
     assert ent is not None
     _require(ent.get("status", "LIVE") == "LIVE", "already destroyed")
-    ent["status"] = "ARCHIVED"
-    ent["destroyed_cycle"] = event["cycle"]
-    ent["destroy_reason"] = p["reason"]
-    loc = ent.get("location")
-    if isinstance(loc, dict) and loc.get("kind") == "ROOM":
-        room_id = loc["room_id"]
-        if room_id in state.rooms:
-            state.rooms[room_id]["entity_ids"] = [
-                x for x in (state.rooms[room_id].get("entity_ids") or []) if x != eid
-            ]
-    if eid not in state.destroyed_entities:
-        state.destroyed_entities.append(eid)
+    # use EntitiesBundle seam for destroy + room cleanup
+    EntitiesBundle(state).destroy_entity(eid, p["reason"], event["cycle"])
     return state
 
 
@@ -467,31 +415,8 @@ def reduce_ENTITY_UPDATE(state: WorldState, event: dict[str, Any]) -> WorldState
     set_map = p.get("set") or {}
     unset_list = p.get("unset") or []
     _require(len(set_map) + len(unset_list) >= 1, "empty update")
-    for key in sorted(set_map):
-        if key.startswith("state."):
-            _set_nested(ent, key, set_map[key])
-        elif key.startswith("properties."):
-            _set_nested(ent, key, set_map[key])
-        else:
-            # treat as state key by default for fixture compatibility
-            if key in ent.get("state", {}) or key.startswith("status") or "." not in key:
-                if key == "state.status" or key.endswith(".status"):
-                    _set_nested(ent, key if "." in key else f"state.{key}", set_map[key])
-                else:
-                    ent.setdefault("state", {})
-                    # support "state.status" style already handled
-                    if "." in key:
-                        _set_nested(ent, key, set_map[key])
-                    else:
-                        ent["state"][key] = set_map[key]
-            else:
-                _set_nested(ent, key, set_map[key])
-    for key in unset_list:
-        if "." in key:
-            _unset_nested(ent, key)
-        else:
-            ent.get("state", {}).pop(key, None)
-            ent.get("properties", {}).pop(key, None)
+    # use EntitiesBundle seam for update (reduce module)
+    EntitiesBundle(state).update_entity(p["entity_id"], set_map, unset_list)
     return state
 
 
@@ -553,7 +478,7 @@ def reduce_SITUATION_INJECTED(state: WorldState, event: dict[str, Any]) -> World
     _require(p["situation_id"] not in state.situations, "duplicate situation")
     for room_id in p["target_room_ids"]:
         _require(room_id in state.rooms, f"unknown target room {room_id}")
-    state.situations[p["situation_id"]] = {
+    SituationsBundle(state).set_situation(p["situation_id"], {
         "situation_id": p["situation_id"],
         "genome_id": p["genome_id"],
         "genome_version": p["genome_version"],
@@ -562,13 +487,13 @@ def reduce_SITUATION_INJECTED(state: WorldState, event: dict[str, Any]) -> World
         "score_components": dict(p["score_components"]),
         "seed_stream_id": p["seed_stream_id"],
         "status": "ACTIVE",
-    }
+    })
     return state
 
 
 def reduce_NOISE_APPLIED(state: WorldState, event: dict[str, Any]) -> WorldState:
     p = event["payload"]
-    pending = state.pending_observations.get(p["observation_id"])
+    pending = PendingObservationsBundle(state).get_pending(p["observation_id"])
     _require(pending is not None, "unknown pending observation")
     assert pending is not None
     _require(pending["agent_id"] == p["agent_id"], "agent mismatch")
@@ -585,7 +510,7 @@ def reduce_NOISE_APPLIED(state: WorldState, event: dict[str, Any]) -> WorldState
 
 def reduce_OBSERVATION_GENERATED(state: WorldState, event: dict[str, Any]) -> WorldState:
     p = event["payload"]
-    pending = state.pending_observations.get(p["observation_id"])
+    pending = PendingObservationsBundle(state).get_pending(p["observation_id"])
     _require(pending is not None, "unknown pending observation")
     assert pending is not None
     _require(pending["agent_id"] == p["agent_id"], "agent mismatch")
@@ -640,9 +565,6 @@ def apply_event(state: WorldState, event: dict[str, Any]) -> WorldState:
         _require(event.get("previous_digest") in (None, ""), "first event previous_digest must be null")
     else:
         _require(event.get("previous_digest") == state.last_event_digest, "digest chain break")
-    payload = event.get("payload")
-    if isinstance(payload, dict) and "seed_stream_id" in payload:
-        require_seed_stream(payload.get("seed_stream_id"))
 
     next_state = state.clone()
     next_state = reducer(next_state, event)
