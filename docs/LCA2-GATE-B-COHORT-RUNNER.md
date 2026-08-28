@@ -150,6 +150,35 @@ noema-lca cohort report \
 A successful isolated process run has internal status `SIMULATED` and evidence
 verdict `NOT_COMPUTABLE`. Verification intentionally exits nonzero.
 
+### Genuine local Worker + official-client E2E
+
+`tests/test_gate_b_cohort_local_e2e.py` is the smallest process-level proof of
+the isolated path. It starts `wrangler dev` on loopback with throwaway local
+signing/operator values, mints three distinct local agent credentials, and runs
+exactly three processes through `run_cohort`. Every process is the real
+`noema` console script from an official `noema-client` checkout, not a fixture
+with the same basename.
+
+```bash
+NOEMA_OFFICIAL_CLIENT_REPO=/path/to/noema-client \
+  pytest -q tests/test_gate_b_cohort_local_e2e.py
+```
+
+The checkout must have its development environment installed at
+`.venv/bin/noema`. The test verifies that this console script imports the
+package from that checkout. A test-only `sitecustomize` observer records only
+digests and command metadata into each cohort-provided model-context and
+action-history directory. This proves separate processes, credentials, Player
+and Controller ids, model-context boundaries, request ids, idempotency keys,
+and action histories without retaining observations or secrets.
+
+The signed local Admin session is injected only by the test harness because
+the official client's isolated operator endpoint requires dual auth. The
+runner's production safety rule that rejects Admin inputs is unchanged. This
+test never targets production, never automates enrollment, and must finish as
+`SIMULATED` / `NOT_COMPUTABLE` with external independence `NOT_CLAIMED`. It is
+not Gate B evidence.
+
 ## Live human-approval pause
 
 Live preparation is pinned to `https://noema.guru` and omits `--isolated` and
