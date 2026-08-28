@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeStructuredCommand } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
-import { buildWatchLive } from "../src/watch-live";
+import { buildWatchLive, type WatchRoomIn } from "../src/watch-live";
 import { miniChamberState, MINI_ENTRY_ROOM_ID, MINI_HALL_ROOM_ID } from "../src/mini-chamber";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 import { projectRoomTraces, publicTraces } from "../src/play-traces";
@@ -177,8 +177,8 @@ describe("RFC-0120 P12 Deep Time traces", () => {
           description: "A short public corridor.",
           exits: [{ direction: "west", to_room_id: MINI_ENTRY_ROOM_ID }],
           entities: [
-            { entity_id: "e.scar", label: "ruin", scar: true },
-            { entity_id: "e.repair", label: "fixed", last_repair_cycle: 4, last_repair_handle: "tester" },
+            { entity_id: "e.scar", label: "ruin", entity_type: "object", scar: true },
+            { entity_id: "e.repair", label: "fixed", entity_type: "object", last_repair_cycle: 4, last_repair_handle: "tester" },
           ],
         },
       },
@@ -186,7 +186,10 @@ describe("RFC-0120 P12 Deep Time traces", () => {
       events: [],
       now: 1_700_000_000_000,
     });
-    const hall = Array.isArray(snap.rooms) ? snap.rooms.find(r => r.room_id === MINI_HALL_ROOM_ID) : snap.rooms?.[MINI_HALL_ROOM_ID];
+    const rooms = snap.rooms as unknown;
+    const hall = Array.isArray(rooms)
+      ? rooms.find((room: { room_id?: string }) => room.room_id === MINI_HALL_ROOM_ID) as { traces?: Array<{ visibility?: string; kind?: string }> } | undefined
+      : (rooms as Record<string, { traces?: Array<{ visibility?: string; kind?: string }> }>)[MINI_HALL_ROOM_ID];
     const traces = hall?.traces || [];
     expect(traces.length).toBeGreaterThan(0);
     expect(traces.every((t) => t.visibility === "public")).toBe(true);
@@ -205,8 +208,8 @@ describe("RFC-0120 P12 Deep Time traces", () => {
     // Checkpoint restore preserves the state (see audit-conformance-fixes.test.ts).
     const reconstructedState = {
       entities: [
-        { entity_id: "e.recon", label: "ancient-ruin", scar: true },
-        { entity_id: "e.recon2", label: "maintained", last_repair_cycle: 3, last_repair_handle: "archivist" },
+        { entity_id: "e.recon", label: "ancient-ruin", entity_type: "object", scar: true },
+        { entity_id: "e.recon2", label: "maintained", entity_type: "object", last_repair_cycle: 3, last_repair_handle: "archivist" },
       ],
     };
     const traces = publicTraces(projectRoomTraces(reconstructedState));
@@ -233,7 +236,7 @@ describe("RFC-0120 P12 Deep Time traces", () => {
           name: "Hall",
           description: "Public corridor.",
           exits: [{ direction: "west", to_room_id: MINI_ENTRY_ROOM_ID }],
-          entities: [{ entity_id: "e.scar", label: "ruin", scar: true }],
+          entities: [{ entity_id: "e.scar", label: "ruin", entity_type: "object", scar: true }],
         },
       },
       players: [{ player_id: "player.hermes", handle: "hermes", room_id: MINI_HALL_ROOM_ID, entered: true }],
@@ -253,7 +256,10 @@ describe("RFC-0120 P12 Deep Time traces", () => {
       // ok
     }
     // traces if present are public
-    const hall = Array.isArray(snap.rooms) ? snap.rooms.find(r => r.room_id === MINI_HALL_ROOM_ID) : snap.rooms?.[MINI_HALL_ROOM_ID];
+    const rooms = snap.rooms as unknown;
+    const hall = Array.isArray(rooms)
+      ? rooms.find((room: { room_id?: string }) => room.room_id === MINI_HALL_ROOM_ID) as { traces?: Array<{ visibility?: string }> } | undefined
+      : (rooms as Record<string, { traces?: Array<{ visibility?: string }> }>)[MINI_HALL_ROOM_ID];
     if (hall && hall.traces) {
       expect(Array.isArray(hall.traces)).toBe(true);
       expect(hall.traces.every((t) => t.visibility === "public")).toBe(true);
@@ -276,7 +282,7 @@ describe("RFC-0120 P12 Deep Time traces", () => {
           name: "Hall",
           description: "Closeout corridor.",
           exits: [],
-          entities: [{ entity_id: "e.scar", label: "legacy-ruin", scar: true }],
+          entities: [{ entity_id: "e.scar", label: "legacy-ruin", entity_type: "object", scar: true }],
         },
       },
       players: [],
@@ -288,7 +294,10 @@ describe("RFC-0120 P12 Deep Time traces", () => {
     expect(blob).not.toMatch(/"inbox"/);
     expect(blob).not.toMatch(/"visibility":s*"private"/);
     // Traces (if present from scars) are public; ties P12+P13+P14.
-    const hall = Array.isArray(snap.rooms) ? snap.rooms.find(r => r.room_id === MINI_HALL_ROOM_ID) : snap.rooms?.[MINI_HALL_ROOM_ID];
+    const rooms = snap.rooms as unknown;
+    const hall = Array.isArray(rooms)
+      ? rooms.find((room: { room_id?: string }) => room.room_id === MINI_HALL_ROOM_ID) as { traces?: Array<{ visibility?: string }> } | undefined
+      : (rooms as Record<string, { traces?: Array<{ visibility?: string }> }>)[MINI_HALL_ROOM_ID];
     if (hall && hall.traces && hall.traces.length > 0) {
       expect(hall.traces.every((t) => t.visibility === "public")).toBe(true);
     }
