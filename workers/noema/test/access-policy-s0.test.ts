@@ -160,6 +160,17 @@ describe("ACCESS_POLICY S0 world path", () => {
     expect(w.access_restrictions?.some((r) => r.exit_id === "east" && w.cycle <= r.expires_cycle)).toBe(false);
   });
 
+
+  it("ALLOW_ONLY requires applies_to and parses correctly (S3)", () => {
+    const res = parseHumanCommand("access here allow for player.foo applies_to=player.foo");
+    expect(res.ok).toBe(true);
+    if (res.ok && res.action.verb === "COMMIT") {
+      expect(res.action.arguments.mode).toBe("ALLOW_ONLY");
+      expect(res.action.arguments.applies_to).toBe("player.foo");
+      expect(res.action.arguments.scope).toBe("ROOM");
+    }
+  });
+
   it("forbids access without GRANT_ACCESS", async () => {
     const w = world();
     const p = principal("player.nacre");

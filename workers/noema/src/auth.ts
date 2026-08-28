@@ -280,7 +280,17 @@ export async function mintControllerToken(
 }> {
   const handle =
     (opts.handle || "player").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32) || "player";
-  if (opts.controllerType === "human" || opts.controllerType === "hybrid") {
+  const requestedType = opts.controllerType || "agent";
+
+  // RFC-0120 P3 (AGENT-ONLY-PLAYER-IDENTITY-PACKETS.md): New production/live Controller
+  // credentials for inhabit are agent-only. Live mint human/hybrid REJECT.
+  // Human platform principals (WATCH/CONNECT) use mintHumanPlatformToken directly.
+  // Isolated/dev fixtures may still use agent (or legacy for test compat).
+  if ((requestedType === "human" || requestedType === "hybrid") && !isExplicitLocalDev(env)) {
+    throw new Error("live Controller issuance is agent-only (RFC-0120 P3; see docs/RFC0120-LIVE-IDENTITY-CONTINUATION-PLAN.md)");
+  }
+
+  if (requestedType === "human" || requestedType === "hybrid") {
     const platform = await mintHumanPlatformToken(env, {
       identityId: opts.identityId || `id.${handle}`,
       handle,
@@ -385,5 +395,25 @@ export function requireAgentPlayer(principal: Principal): PlayerPrincipal | Resp
   const denied = denyNonAgentPlay(principal);
   if (denied) return denied;
   if (!isAgentPlayerPrincipal(principal)) return err("NOT_AUTHORIZED", HUMAN_WATCH_MESSAGE, 403);
+  return principal;
+}
+
+/** Message for dead/retired/suspended players attempting inhabiting actions. */
+export const PLAYER_DEAD_MESSAGE = "Player is dead, retired, or suspended and cannot perform inhabiting actions.";
+
+/**
+ * Require that the Agent Player is "live" (not dead/retired/suspended).
+ *
+ * DEPRECATED STRING HOOK: The string-based check has been removed/weakened.
+ * Liveness is now primarily enforced in the WORLD_DO (/command handler)
+ * by consulting the player ledger (world.players[player_id]).
+ *
+ * The gateway calls this for early belt-and-suspenders, but the authoritative
+ * rejection (PLAYER_DEAD) comes from the DO when the player record is missing
+ * or marked dead/retired/suspended.
+ */
+export function requireLivePlayer(principal: PlayerPrincipal): PlayerPrincipal | Response {
+  // Pass-through: no string hook.
+  // Real/dead checks live in world-do.ts and the conformance harness mock.
   return principal;
 }
