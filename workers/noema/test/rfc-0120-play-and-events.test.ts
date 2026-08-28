@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { env, hit, playerToken, envWithDeadPlayers, type DoCall } from "./conformance/harness";
+import type { Env as WorkerEnv } from "../src/types";
 import { mintHs256 as sign } from "../src/jwt";
 import { SIGNING } from "./conformance/harness";
 import { HUMAN_WATCH_MESSAGE, PLAYER_DEAD_MESSAGE, mintControllerToken } from "../src/auth";
@@ -12,7 +13,7 @@ import { HUMAN_WATCH_MESSAGE, PLAYER_DEAD_MESSAGE, mintControllerToken } from ".
 describe("RFC-0120 play and events", () => {
   it("legacy human principal with player_id cannot perform look action (inhabiting action)", async () => {
     const calls: DoCall[] = [];
-    const e: Env = env(calls) as Env;
+    const e: WorkerEnv = env(calls);
     const now = Math.floor(Date.now() / 1000);
     const token = await sign(
       {
@@ -47,13 +48,13 @@ describe("RFC-0120 play and events", () => {
       calls
     );
     expect(res.status).toBe(403);
-    const errBody = await res.json();
+    const errBody = await res.json() as { error?: { message?: string; code?: string } };
     expect(errBody.error?.message).toBe(HUMAN_WATCH_MESSAGE);
   });
 
   it("agent principal can perform look action when authorized", async () => {
     const calls: DoCall[] = [];
-    const e: Env = env(calls) as Env;
+    const e: WorkerEnv = env(calls);
     const token = await playerToken(calls);
 
     // P1/P2 verification: explicit kind + scopes on /v1/me (HumanPrincipal vs AgentPlayerPrincipal)
@@ -79,7 +80,7 @@ describe("RFC-0120 play and events", () => {
     );
     // We expect a successful response (200) because the agent is authorized.
     expect(res.status).toBe(200);
-    const resBody = await res.json();
+    const resBody = await res.json() as { ok?: boolean; command?: string; observation?: { player_id?: string; available_actions: Array<{ action: string; target_id?: string }>; location?: { room_id?: string } } };
     // We can also check that the response contains the expected data from the dummyRoute.
     expect(resBody).toHaveProperty("ok", true);
     expect(resBody).toHaveProperty("command", "LOOK");
@@ -88,17 +89,18 @@ describe("RFC-0120 play and events", () => {
     // Agent principals receive structured obs (no human parser).
     // available_actions must be objects (Affordance[]), not MUD strings.
     expect(resBody).toHaveProperty("observation");
-    const obs = resBody.observation || {};
+    const obs = resBody.observation;
+    expect(obs).toBeDefined();
     expect(obs).toHaveProperty("player_id");
-    expect(obs.player_id).toBeDefined();
+    expect(obs?.player_id).toBeDefined();
     expect(obs).toHaveProperty("available_actions");
-    expect(Array.isArray(obs.available_actions)).toBe(true);
-    if (obs.available_actions.length > 0) {
+    expect(Array.isArray(obs?.available_actions)).toBe(true);
+    if (obs && obs.available_actions.length > 0) {
       const first = obs.available_actions[0];
       expect(first).toHaveProperty("action");  // structured, not string
       expect(typeof first.action).toBe("string");
     }
-    if (obs.location) {
+    if (obs?.location) {
       expect(obs.location).toHaveProperty("room_id");
     }
 
@@ -110,7 +112,7 @@ describe("RFC-0120 play and events", () => {
     expect(cmdBody.arguments).not.toHaveProperty("line");
     expect(cmdBody).toHaveProperty("command");
     // If affordance-driven (simulated from obs), target_id would be used:
-    if (obs.available_actions && obs.available_actions.length > 0 && obs.available_actions[0].target_id) {
+    if (obs && obs.available_actions.length > 0 && obs.available_actions[0].target_id) {
       const affCmd = { command: obs.available_actions[0].action, arguments: { target_id: obs.available_actions[0].target_id } };
       expect(affCmd.arguments).not.toHaveProperty("line");
     }
@@ -129,7 +131,7 @@ describe("RFC-0120 play and events", () => {
     expect(res.status).toBe(200);
     // Harness now simulates active status for live players (mirrors world-do.ts ledger)
     // (real DO sets status: "active" on first inhabit)
-    const body = await res.json();
+    const body = await res.json() as { ok?: boolean };
     expect(body.ok).toBe(true);
   });
 
@@ -163,7 +165,7 @@ describe("RFC-0120 play and events", () => {
       [deadPlayerId]  // seed as dead in world.players simulation
     );
     expect(res.status).toBe(403);
-    const errBody = await res.json();
+    const errBody = await res.json() as { error?: { message?: string; code?: string } };
     expect(errBody.error?.code).toBe("PLAYER_DEAD");
   });
 
@@ -177,7 +179,7 @@ describe("RFC-0120 play and events", () => {
     );
     const res = await hit("/v1/command", { body: { request_id: "s1", command: "LOOK", arguments: {} }, headers: { Authorization: "Bearer " + token } }, calls, undefined, undefined, [suspendedId]);
     expect(res.status).toBe(403);
-    const errBody = await res.json();
+    const errBody = await res.json() as { error?: { message?: string; code?: string } };
     expect(errBody.error?.code).toBe("PLAYER_DEAD");
   });
 
@@ -191,7 +193,7 @@ describe("RFC-0120 play and events", () => {
     );
     const res = await hit("/v1/command", { body: { request_id: "r1", command: "LOOK", arguments: {} }, headers: { Authorization: "Bearer " + token } }, calls, undefined, undefined, [retiredId]);
     expect(res.status).toBe(403);
-    const errBody = await res.json();
+    const errBody = await res.json() as { error?: { message?: string; code?: string } };
     expect(errBody.error?.code).toBe("PLAYER_DEAD");
   });
 
@@ -208,7 +210,7 @@ describe("RFC-0120 play and events", () => {
     // To simulate "missing" rejection, we temporarily use a convention or extend. For now use a special marker.
     const res = await hit("/v1/command", { body: { request_id: "m1", command: "LOOK", arguments: {} }, headers: { Authorization: "Bearer " + token } }, calls, undefined, undefined, [`${missingId}:missing`]);
     expect(res.status).toBe(403);
-    const errBody = await res.json();
+    const errBody = await res.json() as { error?: { message?: string; code?: string } };
     expect(errBody.error?.code).toBe("PLAYER_DEAD");
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mintControllerToken, resolvePrincipal } from "../src/auth";
+import { mintHumanPlatformToken, mintControllerToken, resolvePrincipal } from "../src/auth";
 import { LoginThrottle, resolveAdmin } from "../src/admin-auth";
 import { connectHtml } from "../src/connect";
 import { landingHtml } from "../src/landing";
@@ -30,15 +30,12 @@ function env(partial: Partial<Env> = {}): Env {
 
 describe("mintControllerToken identity overrides", () => {
   it("human mint is a platform token without player_id", async () => {
-    const m = await mintControllerToken(env(), {
-      handle: "alice",
-      controllerType: "human",
-      expiresIn: 86400,
-      playerId: "player.abc123def456",
+    const m = await mintHumanPlatformToken(env(), {
       identityId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      handle: "alice",
+      expiresIn: 86400,
       amr: "email_magic_link",
     });
-    expect(m.player_id).toBe("");
     expect(m.controller_type).toBe("human");
     expect(m.identity_id).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     expect(m.expires_in).toBe(86400);

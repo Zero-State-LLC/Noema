@@ -57,10 +57,10 @@ async function humanBearer(e = env()) {
 }
 
 describe("startDeviceEnrollment", () => {
-  it("returns user_code, production verification_uri, 600s expiry, and no token", async () => {
+  it("returns the production verification_uri regardless of the request origin", async () => {
     const store = memoryDeviceStore();
     const res = await startDeviceEnrollment(
-      env(),
+      env({ NOEMA_ENV: "production" }),
       new Request("https://example.com/v1/auth/device", { method: "POST" }),
       { metadata: { runtime: "openclaw" } },
       { store },
@@ -74,8 +74,58 @@ describe("startDeviceEnrollment", () => {
       interval: number;
       scopes: string[];
     };
-    expect(body.user_code).toMatch(/^[A-F0-9]{4}-[A-F0-9]{4}$/);
     expect(body.verification_uri).toBe("https://noema.guru/connect");
+  });
+
+  it.each(["local", "test"])("uses the trusted request origin in %s", async (runtimeEnv) => {
+    const store = memoryDeviceStore();
+    const res = await startDeviceEnrollment(
+      env({ NOEMA_ENV: runtimeEnv }),
+      new Request("https://preview.example/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "openclaw" } },
+      { store },
+    );
+    const body = (await res.json()) as { verification_uri: string };
+    expect(body.verification_uri).toBe("https://preview.example/connect");
+  });
+
+  it("does not trust hostile forwarded-origin headers in local and test environments", async () => {
+    const store = memoryDeviceStore();
+    const res = await startDeviceEnrollment(
+      env(),
+      new Request("https://preview.example/v1/auth/device", {
+        method: "POST",
+        headers: {
+          "X-Forwarded-Host": "evil.example",
+          "X-Forwarded-Proto": "https",
+          Forwarded: "host=evil.example;proto=https",
+        },
+      }),
+      { metadata: { runtime: "openclaw" } },
+      { store },
+    );
+    const body = (await res.json()) as { verification_uri: string };
+    expect(body.verification_uri).toBe("https://preview.example/connect");
+  });
+
+  it("returns user_code, expiry, scopes, and no token", async () => {
+    const store = memoryDeviceStore();
+    const res = await startDeviceEnrollment(
+      env(),
+      new Request("https://example.com/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "openclaw" } },
+      { store },
+    );
+    const body = (await res.json()) as {
+      user_code: string;
+      verification_uri: string;
+      expires_in: number;
+      interval: number;
+      scopes: string[];
+      access_token?: string;
+    };
+    expect(body.user_code).toMatch(/^[A-F0-9]{4}-[A-F0-9]{4}$/);
+    expect(body.verification_uri).toBe("https://example.com/connect");
     expect(body.expires_in).toBe(600);
     expect(body.interval).toBe(5);
     expect(body.scopes).toEqual([

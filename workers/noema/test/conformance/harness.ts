@@ -112,7 +112,7 @@ export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>
                       }
                       // Ledger flesh-out: for non-dead, simulate active player record status (P1/P2 + lifecycle)
                       if (path === "/command" && envelope?.command) {
-                        const playerId = agent?.player_id || "";
+                        const playerId = String(principal.player_id || "");
                         if (playerId && !deadPlayers.has(playerId)) {
                           // Ensure players map has a live record (for future status queries)
                           if (!players.has(playerId)) {

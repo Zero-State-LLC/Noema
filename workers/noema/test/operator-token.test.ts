@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mintControllerToken, resolvePrincipal } from "../src/auth";
+import { mintHumanPlatformToken, mintControllerToken, resolvePrincipal } from "../src/auth";
 import type { Env } from "../src/types";
 
 const env = {
@@ -11,13 +11,11 @@ const env = {
 
 describe("operator-minted controller tokens", () => {
   it("human mint is a platform token, not a Player", async () => {
-    const m = await mintControllerToken(env, {
+    const m = await mintHumanPlatformToken(env, {
+      identityId: "id.alice",
       handle: "alice",
-      controllerType: "human",
       expiresIn: 7200,
-      issuedByAdmin: true,
     });
-    expect(m.player_id).toBe("");
     expect(m.controller_type).toBe("human");
     expect(m.identity_id).toBe("id.alice");
     expect(m.expires_in).toBe(7200);

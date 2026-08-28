@@ -956,34 +956,17 @@ export class NoemaWorldDO {
     const agent = requireAgentPlayer(body.principal);
     if (agent instanceof Response) return agent;
 
-    // Dead player handling + live ledger flesh-out (RFC-0120 P1/P2/P4 + PLAYER-LIFECYCLE)
-    // Consult the player ledger (world.players) for liveness. Missing or no-status = live for new agent players.
-    // Human principals never reach here (requireAgentPlayer). New enrollments use fresh agent player_id (P4).
+    // Consult the player ledger for liveness. Missing records are created only by
+    // ENTER_WORLD below, never as a side effect of LOOK or another action.
     await this.load();
     let playerRec = this.world?.players?.[agent.player_id];
-    const isDead = !playerRec || (playerRec as any).dead === true ||
-                   (playerRec as any).status === "dead" || (playerRec as any).status === "retired" || (playerRec as any).status === "suspended";
-    if (isDead) {
+    const lifecycle = playerRec?.lifecycle_status || "ACTIVE";
+    if (lifecycle !== "ACTIVE") {
       return Response.json({
         ok: false,
         request_id: body.envelope?.request_id || "unknown",
-        error: { code: "PLAYER_DEAD", message: "Player is dead, retired, or suspended and cannot perform inhabiting actions." }
+        error: { code: "PLAYER_UNAVAILABLE", message: "This Player is no longer active." }
       }, { status: 403 });
-    }
-    // Ensure live player record has explicit status (flesh-out for future queries, presence, Deep Time)
-    if (this.world && this.world.players) {
-      if (!playerRec) {
-        // First inhabit for this agent player: create minimal live record (P4 fresh allocation)
-        this.world.players[agent.player_id] = {
-          ...(this.world.players[agent.player_id] || {}),
-          status: "active",
-          actor_kind: "agent",
-          controlling_session_id: agent.session_id,
-        };
-        playerRec = this.world.players[agent.player_id];
-      } else if (!playerRec.status) {
-        playerRec.status = "active";
-      }
     }
 
     const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");

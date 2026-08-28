@@ -1,0 +1,68 @@
+{
+  "schema_version": "lca2-candidate-baseline/1.0",
+  "run_id": "lca2-gate-b-candidate-baseline-2026-08-28",
+  "captured_at": "2026-08-28T17:28:00-07:00",
+  "candidate": {
+    "runtime_repository": "https://github.com/Zero-State-LLC/Noema",
+    "runtime_commit": "5797c1383cd3e9066c1677789672b4539f835160",
+    "specs_repository": "https://github.com/Zero-State-LLC/Noema-Specs",
+    "specs_commit": "6b4358cb005bc26a55ae2cdca848d7c2c42caa56",
+    "branch": "fix/lca2-gate-b-runtime-baseline",
+    "deployment_mutated": false
+  },
+  "live_public_state": {
+    "base_url": "https://noema.guru",
+    "world_id": "world.perihelion-reach-3",
+    "genesis_id": "genesis.94d0961984b2b4f8",
+    "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
+    "entry_room_id": "room.civic-exchange",
+    "worker_version_id": "772e244c-52b8-41bf-bdf4-ea600db4f15f",
+    "deployed_source_commit": "27f9aa8ee9344bb3ad41e91bf2f3c7b26cdd0b37",
+    "deployed_at": "2026-08-25T22:54:48.805353Z",
+    "protocol_version": "1",
+    "ready_status": "ACTIVE",
+    "settlement_health": "HEALTHY",
+    "play_blocked": false,
+    "canonical_head": {
+      "cycle": 4067,
+      "sequence": 14034,
+      "source": "GET /v1/watch/live"
+    }
+  },
+  "toolchain": {
+    "node": "v22.23.0",
+    "npm": "12.0.2",
+    "python": "3.12.3",
+    "wrangler": "4.123.0",
+    "typescript": "5.9.3"
+  },
+  "package_identity": {
+    "worker_package": "noema-worker@0.1.0",
+    "python_package": "noema@0.12.0",
+    "worker_lockfile_sha256": "b1a10b2e3d5ec52fa97e13451a242bf49b8a801ee197ced83089b4455354757b"
+  },
+  "non_secret_configuration": {
+    "input_files": [
+      "spec-compat.json",
+      "workers/noema/wrangler.toml",
+      "workers/noema/package.json",
+      "workers/noema/package-lock.json"
+    ],
+    "digest_algorithm": "sha256",
+    "digest": "93eaf05fe0eaa9afb0f5f4c995d55c590e3a1deaa61ea4168d6d76b82da6ec9e"
+  },
+  "gate_b_status": "BLOCKED",
+  "blockers": [
+    "Current Worker test and typecheck failures must be repaired before evidence promotion.",
+    "Three independently controlled external Controllers and retained redacted evidence are not present.",
+    "Canonical human-approved enrollment evidence is not present in this candidate receipt."
+  ],
+  "redaction": {
+    "secrets_included": false,
+    "tokens_included": false,
+    "emails_included": false,
+    "device_codes_included": false,
+    "private_prompts_included": false,
+    "private_cognition_included": false
+  }
+}

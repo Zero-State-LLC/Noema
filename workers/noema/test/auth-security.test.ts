@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import worker from "../src/index";
-import { mintControllerToken, resolvePrincipal } from "../src/auth";
+import { mintHumanPlatformToken, mintControllerToken, resolvePrincipal } from "../src/auth";
 import { generateEs256Pair, mintEs256, mintHs256, resetJwksCache, verifyHs256 } from "../src/jwt";
 import { resolveAdmin } from "../src/admin-auth";
 import type { Env } from "../src/types";
@@ -35,7 +35,7 @@ describe("controller JWT fail-closed", () => {
 
   it("reuses sid from the bearer instead of minting a new sess per request", async () => {
     const e = env();
-    const minted = await mintControllerToken(e, { handle: "nacre", controllerType: "human" });
+    const minted = await mintHumanPlatformToken(e, { identityId: "id.nacre", handle: "nacre" });
     const claims = await verifyHs256(minted.access_token, "test-signing-secret");
     expect(String(claims.sid || "")).toMatch(/^sess\./);
     const req = new Request("https://noema.local/v1/me", {

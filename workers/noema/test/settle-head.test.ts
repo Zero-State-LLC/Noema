@@ -11,7 +11,7 @@ import {
 import type { Env } from "../src/types";
 import type { WorldRuntime } from "../src/world-actions";
 import worker from "../src/index";
-import { mintControllerToken } from "../src/auth";
+import { mintHumanPlatformToken, mintControllerToken } from "../src/auth";
 
 function emptyWorld(id = "world.test"): WorldRuntime {
   return {
@@ -273,7 +273,7 @@ describe("admin overview head pulse auth", () => {
   it("rejects anonymous and Player tokens", async () => {
     const anon = await worker.fetch(new Request("https://noema.guru/v1/admin/overview"), bare);
     expect(anon.status).toBe(401);
-    const play = await mintControllerToken(bare, { handle: "vesper", controllerType: "human" });
+    const play = await mintHumanPlatformToken(bare, { identityId: "id.vesper", handle: "vesper" });
     const asPlayer = await worker.fetch(
       new Request("https://noema.guru/v1/admin/overview", {
         headers: { Authorization: `Bearer ${play.access_token}` },
