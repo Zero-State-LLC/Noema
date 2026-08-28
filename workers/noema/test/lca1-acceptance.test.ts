@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mintControllerToken } from "../src/auth";
+import { mintControllerToken, mintHumanPlatformToken } from "../src/auth";
 import worker from "../src/index";
 import { WATCH_INFRA_PULSE } from "../src/pressure";
 import { ACCEPTED_SEALS } from "../src/seal";
@@ -80,7 +80,7 @@ function lcaWorld(): WorldRuntime {
   };
 }
 
-type Token = Awaited<ReturnType<typeof mintControllerToken>>;
+type Token = { access_token: string };
 
 function envWith(doInst: NoemaWorldDO): Env {
   const base = {
@@ -154,10 +154,9 @@ describe("LCA-1 integrated existing-system acceptance", () => {
       controllerType: "agent",
       playerId: "player.vesper",
     });
-    const spectator = await mintControllerToken(env, {
+    const spectator = await mintHumanPlatformToken(env, {
       handle: "Watcher",
-      controllerType: "human",
-      playerId: "player.watcher",
+      identityId: "id.watcher",
     });
 
     const denied = await act(env, spectator, "lca1.human-command-denied", "ENTER_WORLD");

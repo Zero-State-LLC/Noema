@@ -704,6 +704,7 @@ function failPlay(
 
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
   if (!w.players || typeof w.players !== "object") w.players = {};
+  const actorKind = actorKindFromPrincipal(principal);
   let p = w.players[principal.player_id];
   if (!p) {
     p = {
@@ -711,7 +712,7 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
       entered: false,
       budgets: cloneBudgets(null),
       handle: handleFromPrincipal(principal),
-      actor_kind: "live",
+      actor_kind: actorKind,
       lifecycle_status: "ACTIVE",
       controlling_session_id: principal.session_id,
     };
@@ -723,7 +724,7 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
   }
   if (!p.handle) p.handle = handleFromPrincipal(principal);
   if (!p.room_id) p.room_id = room_id;
-  p.actor_kind = "live";
+  p.actor_kind = actorKind;
   p.last_seen_ms = Date.now();
   if (principal.controller_type) p.controller_type = principal.controller_type;
   if (principal.operator_id) p.operator_id = principal.operator_id;

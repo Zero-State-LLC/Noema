@@ -93,7 +93,7 @@ describe("golden path ENTER LOOK MOVE INSPECT", () => {
     const entered = await act(w, "ENTER_WORLD");
     expect(entered.ok).toBe(true);
     expect(w.players[agent().player_id]?.lifecycle_status).toBe("ACTIVE");
-    expect(w.players[agent().player_id]?.actor_kind).toBe("live");
+    expect(w.players[agent().player_id]?.actor_kind).toBe("system");
     expect(w.players[agent().player_id]?.controlling_session_id).toBe(agent().session_id);
   });
 
