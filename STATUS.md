@@ -235,3 +235,13 @@ Observed evidence in both profiles showing:
 - **Refs**: e462b6b (handoff), b2a8ef4 (current), RFC-0120 packets (P7–P9), AGENT-ONLY-PLAYER-IDENTITY-PACKETS.md, RFC-0120-ACCEPTANCE.md, client ActionProposal schema, AGENT-HARNESS.md.
 
 **Current RFC-0120 slice state (OBSERVED)**: P1–P9 evidence strengthened for hosted. Structured discovery + client/harness shape verified. Ready for next (P10 Chamber tooling or access policy full slice or merge signal).
+
+**Full Merge Prep Status (post-rebase)**:
+- Branch rebased onto latest main (c16959a on top of fdb9edd EWM).
+- Targeted RFC-0120 + access: 16/16 green.
+- Broader workers/noema/test/: only pre-existing unrelated failures (no regressions).
+- `git diff --check` clean. Stash of noise applied; core tree clean.
+- Commit ready: 8 files, 627 + /14 - (P7-P9 + prep).
+- Merge-ready (OBSERVED): Yes for RFC-0120 slice. Next operator action: PR/review/merge.
+
+**Access Policy Slice Start (post RFC-0120 merge prep)**: S3 catalog/parser already present + integrated. Added helpText "access" listing + ALLOW_ONLY applies_to test (S3 contract). 8+ tests now cover. help omits schema name. Continuing s0-s3 verification.
