@@ -11,6 +11,7 @@ import base64
 import copy
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -62,6 +63,32 @@ _SECRET_ARG = re.compile(r"(^bearer\s+|eyJ[A-Za-z0-9_-]+\.|[A-Za-z0-9._%+-]+@[A-
 _SECRET_VALUE = re.compile(
     r"(?:^bearer\s+|(?:access|refresh|approval|receipt|device)[_-]?(?:token|code)[=:._-]|"
     r"\b(?:sk|pk|api|tok|secret)[_-][A-Za-z0-9_-]{12,}\b|eyJ[A-Za-z0-9_-]{8,}\.)",
+    re.I,
+)
+_SECRET_LITERAL = re.compile(r"^(?:token|secret|password|credential|api[_-]?key|private[_-]?key)$", re.I)
+_BENIGN_PUBLIC_VALUES = frozenset(
+    {
+        *CLAIM_STATUSES,
+        *VERDICTS,
+        *PROCESS_STATUSES,
+        *RUN_STATUSES,
+        "ACTIVE",
+        "APPROVED",
+        "DENIED",
+        "DISABLED",
+        "ENABLED",
+        "FAILED",
+        "HEALTHY",
+        "NOT_APPLICABLE",
+        "PUBLIC_NOT_APPLICABLE",
+        "SUCCEEDED",
+        "UNKNOWN",
+    }
+)
+_BENIGN_PUBLIC_ASSIGNMENT = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*[=:](?P<value>[A-Z][A-Z0-9_]*)$")
+_PUBLIC_VERSION = re.compile(r"^(?:[A-Za-z][A-Za-z0-9_.-]*[-_])?v?\d+(?:\.\d+){0,3}(?:[-+][A-Za-z0-9_.-]+)?$")
+_PUBLIC_IDENTIFIER = re.compile(
+    r"^(?:controller|player|world|room|genesis|request|run|seal|client|runtime|spec|worker)[._-][A-Za-z0-9._-]+$",
     re.I,
 )
 _BROWSER = re.compile(r"(playwright|selenium|chromedriver|geckodriver|xdg-open|open-browser|webbrowser)", re.I)
@@ -193,29 +220,83 @@ def _private_dir(path: Path) -> None:
 
 
 def _looks_secret_value(value: str) -> bool:
-    if not value or value.startswith("sha256:"):
+    value = value.strip()
+    if not value or value.startswith("sha256:") or value.upper() in _BENIGN_PUBLIC_VALUES:
         return False
+    assignment = _BENIGN_PUBLIC_ASSIGNMENT.fullmatch(value)
+    if assignment and assignment.group("value") in _BENIGN_PUBLIC_VALUES:
+        return False
+    if _SECRET_LITERAL.fullmatch(value):
+        return True
+    try:
+        embedded = json.loads(value)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        embedded = None
+    if isinstance(embedded, (dict, list)):
+        try:
+            _reject_private_or_secret(embedded)
+        except CohortError:
+            return True
+        if _contains_secret_value(embedded):
+            return True
     if _SECRET_ARG.search(value) or _SECRET_VALUE.search(value):
         return True
-    if _CONTEXT.fullmatch(value):
+    if _PUBLIC_VERSION.fullmatch(value) or _PUBLIC_IDENTIFIER.fullmatch(value):
         return False
     compact = re.sub(r"[^A-Za-z0-9_-]", "", value)
-    return (
-        len(compact) >= 32
-        and any(c.islower() for c in compact)
-        and any(c.isupper() for c in compact)
-        and any(c.isdigit() for c in compact)
+    if len(compact) < 32:
+        return False
+    classes = sum(
+        (
+            any(c.islower() for c in compact),
+            any(c.isupper() for c in compact),
+            any(c.isdigit() for c in compact),
+            any(c in "_-" for c in compact),
+        )
     )
+    frequencies = {character: compact.count(character) for character in set(compact)}
+    entropy = -sum((count / len(compact)) * math.log2(count / len(compact)) for count in frequencies.values())
+    return classes >= 3 and entropy >= 4.0
+
+
+def _contains_secret_value(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(
+            _PRIVATE_KEY.search(str(key))
+            or _SECRET_KEY.search(str(key))
+            or _contains_secret_value(child)
+            for key, child in value.items()
+        )
+    if isinstance(value, list):
+        return any(_contains_secret_value(child) for child in value)
+    return isinstance(value, str) and _looks_secret_value(value)
+
+
+def _sanitize_public_value(value: Any, path: tuple[str, ...] = ()) -> tuple[Any, list[str]]:
+    """Recursively redact secret-like string values and return their evidence paths."""
+    if isinstance(value, dict):
+        sanitized: dict[Any, Any] = {}
+        findings: list[str] = []
+        for key, child in value.items():
+            clean, child_findings = _sanitize_public_value(child, path + (str(key),))
+            sanitized[key] = clean
+            findings.extend(child_findings)
+        return sanitized, findings
+    if isinstance(value, list):
+        sanitized_list: list[Any] = []
+        findings = []
+        for index, child in enumerate(value):
+            clean, child_findings = _sanitize_public_value(child, path + (str(index),))
+            sanitized_list.append(clean)
+            findings.extend(child_findings)
+        return sanitized_list, findings
+    if isinstance(value, str) and _looks_secret_value(value):
+        return "[REDACTED]", [".".join(path) or "value"]
+    return value, []
 
 
 def _public_value(value: Any) -> Any:
-    if isinstance(value, dict):
-        return {key: _public_value(child) for key, child in value.items()}
-    if isinstance(value, list):
-        return [_public_value(child) for child in value]
-    if isinstance(value, str) and _looks_secret_value(value):
-        return "[REDACTED]"
-    return value
+    return _sanitize_public_value(value)[0]
 
 
 def _reject_private_or_secret(value: Any, path: tuple[str, ...] = ()) -> None:
@@ -1234,15 +1315,22 @@ def build_verification(run_dir: Path) -> dict[str, Any]:
             reasons.append(f"{participant['label']}:process_not_succeeded")
         projected: dict[str, Any] = {}
         if evidence:
+            public_evidence, secret_paths = _sanitize_public_value(evidence)
+            if secret_paths:
+                rejected_evidence = True
+                reasons.extend(
+                    f"{participant['label']}:prohibited_secret_material_redacted:{path}"
+                    for path in sorted(set(secret_paths))
+                )
             projected = {
-                key: evidence.get(key)
+                key: public_evidence.get(key)
                 for key in sorted(_ALLOWED_EVIDENCE_KEYS - {"receipts", "independent_control_receipt"})
-                if key in evidence
+                if key in public_evidence
             }
             if evidence.get("independent_control_receipt"):
                 projected["independent_control_receipt_digest"] = _digest(evidence["independent_control_receipt"])
             classifications: list[dict[str, Any]] = []
-            for receipt_value in evidence.get("receipts") or []:
+            for receipt_value in public_evidence.get("receipts") or []:
                 try:
                     classification = classify_receipt(receipt_value)
                 except CohortError:
@@ -1301,13 +1389,13 @@ def build_verification(run_dir: Path) -> dict[str, Any]:
             preflight_participants.append(
                 {
                     "label": participant["label"],
-                    "controller_reference": evidence.get("controller_reference"),
+                    "controller_reference": public_evidence.get("controller_reference"),
                     "independent_control_receipt": _digest(evidence.get("independent_control_receipt"))
                     if evidence.get("independent_control_receipt")
                     else None,
                     "reconnect_tested": evidence.get("reconnect_tested"),
-                    "onboarding_path": evidence.get("onboarding_path"),
-                    "client_version": evidence.get("client_version"),
+                    "onboarding_path": public_evidence.get("onboarding_path"),
+                    "client_version": public_evidence.get("client_version"),
                 }
             )
         participant_rows.append(

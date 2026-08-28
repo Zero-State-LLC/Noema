@@ -685,6 +685,113 @@ def test_receipt_codes_redact_plain_tokens_without_corrupting_ids():
     public = classify_receipt({"case": "accepted_action", "observed": "COMPLETE", "code": "request-123"})
     assert public["code"] == "request-123"
 
+    benign = classify_receipt(
+        {"case": "accepted_action", "observed": "COMPLETE", "code": "receipt_code=PUBLIC_NOT_APPLICABLE"}
+    )
+    assert benign["code"] == "receipt_code=PUBLIC_NOT_APPLICABLE"
+
+
+@pytest.mark.parametrize(
+    ("field", "public_value"),
+    [
+        ("schema_version", "noema-lca2-participant-evidence/1.0"),
+        ("claim_status", "OBSERVED"),
+        ("controller_reference", "controller.public-a"),
+        ("independent_control_receipt", "receipt.public-a"),
+        ("onboarding_path", "official-noema-cli"),
+        ("client_version", "noema-client-1.2.3"),
+        ("world_id", "world.perihelion-reach-3"),
+        ("credential_binding_digest", "sha256:" + "1" * 64),
+        ("controller_binding_digest", "sha256:" + "2" * 64),
+        ("contention_evidence_digest", "sha256:" + "3" * 64),
+        ("ordering_evidence_digest", "sha256:" + "4" * 64),
+        ("budget_settlement_evidence_digest", "sha256:" + "5" * 64),
+        ("acceptance_authority_digest", "sha256:" + "6" * 64),
+    ],
+)
+def test_every_projected_allowed_evidence_string_field_preserves_public_values(
+    tmp_path: Path, field: str, public_value: str
+):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    evidence_path = Path(manifest["participants"][0]["paths"]["evidence_dir"]) / "participant.json"
+    evidence = json.loads(evidence_path.read_text())
+    evidence[field] = public_value
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+    projected = build_verification(run_dir)["participants"][0]["evidence"]
+    if field == "independent_control_receipt":
+        assert projected["independent_control_receipt_digest"].startswith("sha256:")
+        assert public_value not in json.dumps(projected)
+    else:
+        assert projected[field] == public_value
+
+
+@pytest.mark.parametrize(
+    ("field", "secret_value"),
+    [
+        ("schema_version", "secret"),
+        ("claim_status", "Bearer abcdefghijklmnopqrstuvwxyz012345"),
+        ("controller_reference", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwIn0.signature"),
+        ("independent_control_receipt", "receipt_code=AbC123secretVALUE987654321"),
+        ("onboarding_path", '{"access_token":"private-token-value"}'),
+        ("client_version", "secret"),
+        ("world_id", "api_key=AbC123secretVALUE987654321"),
+        ("credential_binding_digest", "payment_secret=AbC123secretVALUE987654321"),
+        ("controller_binding_digest", "password"),
+        ("contention_evidence_digest", "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"),
+        ("ordering_evidence_digest", "credential"),
+        ("budget_settlement_evidence_digest", "private_key=AbC123secretVALUE987654321"),
+        ("acceptance_authority_digest", "tok_live_AbC123secretVALUE987654321"),
+    ],
+)
+def test_every_projected_allowed_evidence_string_field_fails_closed_on_secret_material(
+    tmp_path: Path, field: str, secret_value: str
+):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    evidence_path = Path(manifest["participants"][0]["paths"]["evidence_dir"]) / "participant.json"
+    evidence = json.loads(evidence_path.read_text())
+    evidence[field] = secret_value
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+    verification = build_verification(run_dir)
+    assert verification["verdict"] != "COMPLETE"
+    projected = verification["participants"][0]["evidence"]
+    if projected is not None and field != "independent_control_receipt":
+        assert projected[field] == "[REDACTED]"
+    if projected is not None and field == "independent_control_receipt":
+        assert secret_value not in projected["independent_control_receipt_digest"]
+    assert any(
+        reason == "controller-a:participant_evidence_invalid"
+        or reason.startswith(f"controller-a:prohibited_secret_material_redacted:{field}")
+        for reason in verification["verdict_reasons"]
+    )
+
+
+@pytest.mark.parametrize(("receipt_field", "index"), [("case", 0), ("observed", 0), ("code", 0)])
+def test_every_projected_receipt_string_field_fails_closed_on_secret_material(
+    tmp_path: Path, receipt_field: str, index: int
+):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    evidence_path = Path(manifest["participants"][0]["paths"]["evidence_dir"]) / "participant.json"
+    evidence = json.loads(evidence_path.read_text())
+    evidence["receipts"][index][receipt_field] = "secret"
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+    verification = build_verification(run_dir)
+    assert verification["verdict"] == "REJECTED"
+    classifications = verification["participants"][0]["evidence"]["receipt_classifications"]
+    assert all(row.get(receipt_field) != "secret" for row in classifications)
+    assert (
+        f"controller-a:prohibited_secret_material_redacted:receipts.{index}.{receipt_field}"
+        in verification["verdict_reasons"]
+    )
+
 
 @pytest.mark.parametrize(
     "field",
