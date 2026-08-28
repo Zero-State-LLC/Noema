@@ -72,6 +72,44 @@ async function act(w: WorldRuntime, command: string, args: Record<string, unknow
 }
 
 describe("golden path ENTER LOOK MOVE INSPECT", () => {
+  it("does not create a missing Player for LOOK or other actions before entry", async () => {
+    const w = world();
+    const looked = await act(w, "LOOK");
+    expect(looked.ok).toBe(false);
+    expect(looked.error?.code).toBe("NOT_IN_WORLD");
+    expect(w.players[agent().player_id]).toBeUndefined();
+    const moved = await act(w, "MOVE", { direction: "east" });
+    expect(moved.ok).toBe(false);
+    expect(w.players[agent().player_id]).toBeUndefined();
+  });
+
+  it("accepts legacy active records without lifecycle status and binds the session", async () => {
+    const w = world();
+    w.players[agent().player_id] = {
+      room_id: "room.a",
+      entered: false,
+      budgets: { attention: 8, compute: 64, energy: 80, influence: 40, storage: 16 },
+    };
+    const entered = await act(w, "ENTER_WORLD");
+    expect(entered.ok).toBe(true);
+    expect(w.players[agent().player_id]?.lifecycle_status).toBe("ACTIVE");
+    expect(w.players[agent().player_id]?.actor_kind).toBe("live");
+    expect(w.players[agent().player_id]?.controlling_session_id).toBe(agent().session_id);
+  });
+
+  it.each(["SUSPENDED", "RETIRED", "DEAD"] as const)("rejects %s players", async (status) => {
+    const w = world();
+    w.players[agent().player_id] = {
+      room_id: "room.a",
+      entered: true,
+      lifecycle_status: status,
+      budgets: { attention: 8, compute: 64, energy: 80, influence: 40, storage: 16 },
+    };
+    const result = await act(w, "LOOK");
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("PLAYER_UNAVAILABLE");
+  });
+
   it("changes room on MOVE and inspects a co-located entity", async () => {
     const w = world();
     const entered = await act(w, "ENTER_WORLD");

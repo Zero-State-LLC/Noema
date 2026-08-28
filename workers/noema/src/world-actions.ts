@@ -711,6 +711,9 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
       entered: false,
       budgets: cloneBudgets(null),
       handle: handleFromPrincipal(principal),
+      actor_kind: "live",
+      lifecycle_status: "ACTIVE",
+      controlling_session_id: principal.session_id,
     };
     w.players[principal.player_id] = p;
   } else if (!p.budgets) {
@@ -720,7 +723,7 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
   }
   if (!p.handle) p.handle = handleFromPrincipal(principal);
   if (!p.room_id) p.room_id = room_id;
-  p.actor_kind = actorKindFromPrincipal(principal);
+  p.actor_kind = "live";
   p.last_seen_ms = Date.now();
   if (principal.controller_type) p.controller_type = principal.controller_type;
   if (principal.operator_id) p.operator_id = principal.operator_id;
@@ -787,7 +790,12 @@ export function buildObservation(
   const existing = w.players?.[principal.player_id];
   const room = resolvePlayRoom(w, existing?.entered ? existing.room_id : w.entry_room_id);
   if (!room) return emptyPlayObservation(w, principal, consequence);
-  const pl = ensurePlayer(w, principal, room.room_id);
+  // Observations, including admission failures, must not create occupancy.
+  const pl = existing || {
+    room_id: room.room_id,
+    entered: false,
+    budgets: cloneBudgets(null),
+  };
   const entities = roomEntities(room);
   const exits = publicExits(w, room).map((e) => ({
     direction: e.direction,
@@ -1875,7 +1883,7 @@ export async function applyWorldCommand(
   if (!w.seen_idempotency || typeof w.seen_idempotency !== "object") w.seen_idempotency = {};
   if (!Array.isArray(w.unsettled)) w.unsettled = [];
   if (!w.players || typeof w.players !== "object") w.players = {};
-  principal = rebindDeviceAgentOccupancy(w, principal);
+  if (w.players[principal.player_id]) principal = rebindDeviceAgentOccupancy(w, principal);
   const idem = `${principal.player_id}::${envl.idempotency_key || request_id}`;
   if (!opts?.tempoResolve && w.seen_idempotency[idem]) return w.seen_idempotency[idem];
 
@@ -1886,6 +1894,7 @@ export async function applyWorldCommand(
   if (envl.player_id && envl.player_id !== principal.player_id) {
     return fail(request_id, "FORBIDDEN", "player_id does not match principal");
   }
+
 
   if (!isUsableLiveWorld(w) || !resolvePlayRoom(w)) {
     return failPlay(
@@ -2150,7 +2159,16 @@ export async function applyWorldCommand(
 
   // ——— ENTER ———
   if (action.verb === "ENTER_WORLD") {
+    const existing = w.players[principal.player_id];
+    if (existing) {
+      const status = existing.lifecycle_status || "ACTIVE";
+      if (status !== "ACTIVE") {
+        return failPlay(w, principal, request_id, "PLAYER_UNAVAILABLE", "This Player is no longer active.");
+      }
+    }
     const pl = ensurePlayer(w, principal, entry);
+    pl.lifecycle_status = "ACTIVE";
+    pl.controlling_session_id = principal.session_id;
     pl.room_id = entry;
     pl.entered = true;
     const ev = pushEvent("AGENT_ENTERED_WORLD", {
@@ -2190,6 +2208,14 @@ export async function applyWorldCommand(
     return result;
   }
 
+  const existing = w.players[principal.player_id];
+  if (!existing) {
+    return failPlay(w, principal, request_id, "NOT_IN_WORLD", "Enter the world first.");
+  }
+  const lifecycle = existing.lifecycle_status || "ACTIVE";
+  if (lifecycle !== "ACTIVE") {
+    return failPlay(w, principal, request_id, "PLAYER_UNAVAILABLE", "This Player is no longer active.");
+  }
   const pl = ensurePlayer(w, principal, entry);
 
   // ——— LOOK / OBSERVE ———

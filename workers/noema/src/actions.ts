@@ -151,6 +151,8 @@ export type PlayerRuntime = {
   room_id: string;
   entered: boolean;
   budgets: Budgets;
+  /** Runtime lifecycle admission state. Missing on legacy records means ACTIVE. */
+  lifecycle_status?: "ACTIVE" | "SUSPENDED" | "RETIRED" | "DEAD";
   handle?: string;
   controlling_session_id?: string;
   last_seen_ms?: number;
