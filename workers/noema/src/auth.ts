@@ -58,12 +58,27 @@ function humanPrincipalFromClaims(
 ): HumanPrincipal {
   const identity =
     String(claims.identity_id || claims.sub || claims.player_id || "").trim() || newId("id");
+
+  // P11 (AGENT-ONLY-PLAYER-IDENTITY-PACKETS.md): researcher and admin roles on
+  // HumanPrincipal are explicitly non-Player. They MUST NOT carry player_id or
+  // mutation scopes. Researcher cannot ENTER_WORLD as Player; admin cannot
+  // inherit Player scopes.
+  const baseRoles = ["spectator", "authorizer"];
+  const claimRoles = Array.isArray(claims.roles)
+    ? (claims.roles as string[]).filter((r) =>
+        ["spectator", "authorizer", "researcher", "admin"].includes(r),
+      )
+    : [];
+  const roles = Array.from(new Set([...baseRoles, ...claimRoles])) as Array<
+    "spectator" | "authorizer" | "researcher" | "admin"
+  >;
+
   return {
     kind: "human",
     identity_id: identity,
     account_id: claims.account_id ? String(claims.account_id) : undefined,
     session_id: sessionIdFromClaims(claims.sid),
-    roles: ["spectator", "authorizer"],
+    roles,
     permissions: [...HUMAN_PLATFORM_SCOPES],
     scopes: Array.isArray(claims.scopes)
       ? (claims.scopes as string[]).filter((s) => s !== "noema.action.submit")

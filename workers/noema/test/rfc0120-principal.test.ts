@@ -128,3 +128,65 @@ describe("RFC-0120 principal split", () => {
     }
   });
 });
+
+  // P11: Research/admin isolation (researcher ≠ Player; admin ≠ Player)
+  // Per AGENT-ONLY-PLAYER-IDENTITY-PACKETS.md + RFC-0120.
+  // Human principals carrying researcher or admin roles remain HumanPrincipal
+  // (kind:"human"), have no player_id, and are rejected by requireAgentPlayer.
+  it("HumanPrincipal with researcher role is non-Player (P11)", async () => {
+    const e = env([]) as Env;
+    const token = await sign(
+      {
+        sub: "researcher-1111-2222-3333-444455556666",
+        aud: "authenticated",
+        email: "researcher@example.com",
+        roles: ["spectator", "researcher"],
+        exp: Math.floor(Date.now() / 1000) + 60,
+      },
+      SIGNING,
+    );
+    const p = await resolvePrincipal(
+      new Request("https://noema.local/v1/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { ...e, SUPABASE_JWT_SECRET: SIGNING },
+    );
+    expect(p).not.toBeInstanceOf(Response);
+    const human = p as { kind: string; player_id?: string; roles: string[]; scopes: string[] };
+    expect(human.kind).toBe("human");
+    expect(human.player_id).toBeUndefined();
+    expect(human.roles).toContain("researcher");
+    expect(human.scopes).not.toContain("noema.action.submit");
+
+    const denied = requireAgentPlayer(p as any);
+    expect(denied).toBeInstanceOf(Response);
+    expect((denied as Response).status).toBe(403);
+  });
+
+  it("HumanPrincipal with admin role is non-Player (P11)", async () => {
+    const e = env([]) as Env;
+    const token = await sign(
+      {
+        sub: "admin-aaaa-bbbb-cccc-ddddeeeeffff",
+        aud: "authenticated",
+        email: "ops@example.com",
+        roles: ["authorizer", "admin"],
+        exp: Math.floor(Date.now() / 1000) + 60,
+      },
+      SIGNING,
+    );
+    const p = await resolvePrincipal(
+      new Request("https://noema.local/v1/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { ...e, SUPABASE_JWT_SECRET: SIGNING },
+    );
+    expect(p).not.toBeInstanceOf(Response);
+    const human = p as { kind: string; player_id?: string; roles: string[] };
+    expect(human.kind).toBe("human");
+    expect(human.player_id).toBeUndefined();
+    expect(human.roles).toContain("admin");
+
+    const denied = requireAgentPlayer(p as any);
+    expect(denied).toBeInstanceOf(Response);
+  });

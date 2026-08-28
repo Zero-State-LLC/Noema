@@ -331,3 +331,41 @@ python validation/validate_all.py                   # in Noema-Specs: prints the
 ```
 
 If the first two disagree, stop and re-derive the boundary before reading any row below it.
+
+## Re-derive 2026-08-27 (post e37d45c + live world.perihelion-reach-3)
+
+**Live observed:** {"product":"noema","stage":"0","env":"production","protocol_version":"1","world_id":"world.perihelion-reach-3","worker_version_id":"772e244c-52b8-41bf-bdf4-ea600db4f15f","deployed_at":"2026-08-25T22:54:48.805353Z"}
+
+**git log (e37d45c..HEAD src/test):** no core commits (evidence/docs only).
+
+**Targeted conformance (Step 1):** rfc0120* + play-traces + access + principal + watch-census + rfc0123 + closed-catalog + gc7* → 10 files, 65 passed | 6 skipped (71).
+
+**Post-0120 RFCs 0124–0127 (Step 2):** All LIVE per table + fresh verification:
+- 0124: gc4-s8-governance.test.ts (28+ passed in dedicated run)
+- 0125: gc9-s2-inheritance-schism.test.ts
+- 0126: watch-entity-update-census.test.ts (ENTITY_UPDATE allowlist enforced in watch-live.ts)
+- 0127: closed-catalog.test.ts + world-actions.ts (TRADE_CANCELLED); crime PARTIAL unchanged.
+
+**Table status:** Current. 122 LIVE pattern holds; PARTIAL/CLIENT/OFFLINE/NONE rows unchanged. No drift vs prior audit.
+
+**Verification:** Steps 1-2 executed per plan docs/POST-RFC0120-NEXT-10-STEPS-PLAN.md; git diff --check clean; STATUS appended.
+
+Next re-derive on next publish or new RFC per original guidance.
+
+## Re-derive 2026-08-27 (repeat, no new publish or new RFCs)
+
+**Trigger:** User instruction repeating the standing next: "Re-derive on next live publish or when new RFCs land in Noema-Specs-current."
+
+**Live observed:** {"product":"noema","stage":"0","env":"production","protocol_version":"1","world_id":"world.perihelion-reach-3","worker_version_id":"772e244c-52b8-41bf-bdf4-ea600db4f15f","deployed_at":"2026-08-25T22:54:48.805353Z"} (unchanged from prior re-derive).
+
+**git log (e37d45c..HEAD src/test):** 0 core changes (evidence/docs only).
+
+**Targeted conformance:** rfc0120-traces + closed-catalog + watch-entity-update-census + gc7* + rfc0123-genesis-seeds → 7 files, 34 passed | 6 skipped (40). Green.
+
+**Specs check (Noema-Specs-current):**
+- No RFC files >0127 (ls confirmed 0).
+- validation/validate_all.py: PASS (same slices as before).
+
+**Table status:** Current. No drift vs live or prior re-derive. 122 LIVE pattern holds; RFC-0002 PARTIAL, CLIENT/OFFLINE/NONE rows unchanged. RFC-0124–0127 remain LIVE per previous evidence.
+
+**Action taken:** Confirmed. No updates required to rows. Standing next remains: re-derive on next live publish or new RFCs.
