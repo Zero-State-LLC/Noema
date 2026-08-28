@@ -2166,6 +2166,18 @@ export async function applyWorldCommand(
       if (status !== "ACTIVE") {
         return failPlay(w, principal, request_id, "PLAYER_UNAVAILABLE", "This Player is no longer active.");
       }
+      if (existing.entered) {
+        const result = success(
+          w,
+          principal,
+          request_id,
+          [],
+          `You are already in ${w.world_name || "the world"}.`,
+          true,
+        );
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
     }
     const pl = ensurePlayer(w, principal, entry);
     pl.lifecycle_status = "ACTIVE";

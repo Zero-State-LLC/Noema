@@ -59,3 +59,17 @@ def test_preflight_blocks_incident_world_and_dirty_repository(tmp_path):
     assert result["verdict"] == "BLOCKED"
     assert "world_blocked" in result["verdict_reasons"]
     assert "repository_dirty" in result["verdict_reasons"]
+
+
+def test_preflight_blocks_incomplete_canonical_head(tmp_path):
+    result = build_preflight(candidate(canonical_head={"sequence": 1}), repository=clean_repo(tmp_path))
+    assert result["verdict"] == "BLOCKED"
+    assert "canonical_head_incomplete" in result["verdict_reasons"]
+
+
+def test_preflight_blocks_missing_participant_reconnect_evidence(tmp_path):
+    participants = candidate()["participants"]
+    participants[1] = {k: v for k, v in participants[1].items() if k != "reconnect_tested"}
+    result = build_preflight(candidate(participants=participants), repository=clean_repo(tmp_path))
+    assert result["verdict"] == "BLOCKED"
+    assert "participant_reconnect_evidence_incomplete" in result["verdict_reasons"]

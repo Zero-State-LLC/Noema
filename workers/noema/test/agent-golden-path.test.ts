@@ -97,6 +97,20 @@ describe("golden path ENTER LOOK MOVE INSPECT", () => {
     expect(w.players[agent().player_id]?.controlling_session_id).toBe(agent().session_id);
   });
 
+  it("treats repeated entry as a semantic no-op without relocating or emitting", async () => {
+    const w = world();
+    await act(w, "ENTER_WORLD");
+    await act(w, "MOVE", { direction: "east" });
+    const sequence = w.sequence;
+
+    const repeated = await act(w, "ENTER_WORLD");
+
+    expect(repeated.ok).toBe(true);
+    expect(repeated.events).toEqual([]);
+    expect(w.sequence).toBe(sequence);
+    expect(w.players[agent().player_id]?.room_id).toBe("room.b");
+  });
+
   it.each(["SUSPENDED", "RETIRED", "DEAD"] as const)("rejects %s players", async (status) => {
     const w = world();
     w.players[agent().player_id] = {

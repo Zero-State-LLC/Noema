@@ -49,6 +49,15 @@ def required(obj, path):
     return cur
 
 
+def required_any(obj, *paths):
+    for path in paths:
+        try:
+            return required(obj, path)
+        except ValueError:
+            pass
+    raise ValueError(f"missing required evidence field: {' or '.join(paths)}")
+
+
 def same_pointer(left, right) -> bool:
     """Treat short and full Git commit pointers as equal when one prefixes the other."""
     a, b = str(left), str(right)
@@ -65,12 +74,15 @@ def build_report(specs_path: Path, compat_path: Path, version_path: Path, ready_
     worker = str(required(version, "worker_version_id"))
     source = compat.get("hosted_live", {}).get("source_commit")
     pinned_worker = compat.get("hosted_live", {}).get("worker_version_id")
-    live_world = version.get("world_id") or ready.get("world_id") or ready.get("world", {}).get("world_id")
-    live_genesis = ready.get("genesis_id") or ready.get("world", {}).get("genesis_id")
+    version_world = str(required(version, "world_id"))
+    ready_world = str(required_any(ready, "world_id", "world.world_id"))
+    live_genesis = str(required_any(ready, "genesis_id", "world.genesis_id"))
+    live_source = version.get("source_commit")
     evidence = compat.get("hosted_live", {}).get("version_evidence", {})
     unsupported = (
         (evidence.get("worker_version_id") and pinned_worker and evidence["worker_version_id"] != pinned_worker)
         or (evidence.get("source_commit") and source and evidence["source_commit"] != source)
+        or (live_source and source and not same_pointer(live_source, source))
     )
     relationship = "unsupported_worker_source_relationship" if unsupported else (
         "supported_recorded_pair" if source else "worker_source_unrecorded"
@@ -78,7 +90,8 @@ def build_report(specs_path: Path, compat_path: Path, version_path: Path, ready_
     mismatches = []
     checks = [
         ("worker_version_id", pinned_worker, worker, "current_deployment_pointer"),
-        ("world_id", compat.get("hosted_live", {}).get("world_id"), live_world, "current_deployment_pointer"),
+        ("world_id", version_world, ready_world, "live_identity_consistency"),
+        ("world_id", compat.get("hosted_live", {}).get("world_id"), version_world, "current_deployment_pointer"),
         ("genesis_id", compat.get("hosted_live", {}).get("genesis_id"), live_genesis, "current_deployment_pointer"),
         ("specs_git", compat.get("hosted_live", {}).get("specs_git"), specs.get("production_alpha_specs") or specs.get("production_implements_specs"), "historical_vs_current_authority"),
         ("source_commit", source, specs.get("advanced_worker_runtime"), "historical_vs_current_runtime"),

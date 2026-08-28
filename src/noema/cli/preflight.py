@@ -74,6 +74,8 @@ def build_preflight(source: dict[str, Any], *, repository: Path | str = ".") -> 
     ]
     if len(independent) < 3:
         reasons.append("fewer_than_three_independent_participant_receipts")
+    if len(independent) >= 3 and any(not _truth(p.get("reconnect_tested")) for p in independent):
+        reasons.append("participant_reconnect_evidence_incomplete")
     if not receipts or not any(_truth(r.get("approved") or r.get("approval_evidence")) for r in receipts if isinstance(r, dict)):
         reasons.append("enrollment_approval_evidence_absent")
     clean = _repo_clean(Path(repository))
@@ -81,6 +83,8 @@ def build_preflight(source: dict[str, Any], *, repository: Path | str = ".") -> 
         reasons.append("repository_dirty")
 
     canonical = src.get("canonical_head") or {}
+    if not isinstance(canonical, dict) or canonical.get("sequence") is None or not canonical.get("digest"):
+        reasons.append("canonical_head_incomplete")
     record = {
         "schema_version": SCHEMA_VERSION,
         "run_id": src.get("run_id"),

@@ -42,7 +42,7 @@ def test_main_fails_internal_unsupported_worker_source_pair(tmp_path: Path, caps
     compat = tmp_path / "c.json"
     write_json(compat, {"hosted_live": {"worker_version_id": "w1", "source_commit": "a" * 40, "version_evidence": {"worker_version_id": "w2", "source_commit": "a" * 40}}})
     version = tmp_path / "v.json"
-    write_json(version, {"worker_version_id": "w1", "deployed_at": "2026-01-01T00:00:00Z"})
+    write_json(version, {"worker_version_id": "w1", "deployed_at": "2026-01-01T00:00:00Z", "world_id": "w"})
     ready = tmp_path / "r.json"
     write_json(ready, {"world_id": "w", "genesis_id": "g"})
     assert main(["--specs", str(specs), "--compat", str(compat), "--version", str(version), "--ready", str(ready)]) == 2
@@ -84,3 +84,41 @@ evidence_commits:
     assert pointers["advanced_worker_runtime"] == "fedcba9"
     assert not any(m["field"] == "specs_git" for m in report["mismatches"])
     assert any(m["classification"] == "historical_vs_current_runtime" for m in report["mismatches"])
+
+
+def test_report_requires_ready_identity(tmp_path: Path):
+    specs = tmp_path / "s.yaml"
+    specs.write_text("production_implements_specs: s\n", encoding="utf-8")
+    compat = tmp_path / "c.json"
+    write_json(compat, {"hosted_live": {"worker_version_id": "w1", "source_commit": "a" * 40}})
+    version = tmp_path / "v.json"
+    write_json(version, {"worker_version_id": "w1", "world_id": "world-1"})
+    ready = tmp_path / "r.json"
+    write_json(ready, {"ready": True})
+
+    try:
+        build_report(specs, compat, version, ready)
+    except ValueError as exc:
+        assert "world_id" in str(exc)
+    else:
+        raise AssertionError("missing /ready identity must fail closed")
+
+
+def test_report_fails_live_source_commit_outside_recorded_pair(tmp_path: Path):
+    specs = tmp_path / "s.yaml"
+    specs.write_text("production_implements_specs: s\n", encoding="utf-8")
+    compat = tmp_path / "c.json"
+    write_json(compat, {"hosted_live": {
+        "worker_version_id": "w1",
+        "source_commit": "a" * 40,
+        "version_evidence": {"worker_version_id": "w1", "source_commit": "a" * 40},
+    }})
+    version = tmp_path / "v.json"
+    write_json(version, {"worker_version_id": "w1", "world_id": "world-1", "source_commit": "b" * 40})
+    ready = tmp_path / "r.json"
+    write_json(ready, {"world": {"world_id": "world-1", "genesis_id": "genesis-1"}})
+
+    report = build_report(specs, compat, version, ready)
+
+    assert report["relationship"] == "unsupported_worker_source_relationship"
+    assert report["status"] == "FAIL"
