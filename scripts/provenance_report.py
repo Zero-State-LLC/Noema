@@ -21,7 +21,8 @@ def load_state(path: Path) -> dict:
     # YAML dependency and, more importantly, never rewrites or normalizes the file.
     text = path.read_text(encoding="utf-8")
     out = {"source": str(path)}
-    for key in ("as_of", "production_specs_baseline", "production_implements_specs",
+    for key in ("as_of", "production_alpha_specs", "production_alpha_site",
+                "production_specs_baseline", "production_implements_specs",
                 "production_successor_runtime", "live_worker_version_id", "advanced_worker_runtime"):
         m = re.search(rf"^\s*{re.escape(key)}:\s*([^#\n]+)", text, re.M)
         if m:
@@ -48,6 +49,14 @@ def required(obj, path):
     return cur
 
 
+def same_pointer(left, right) -> bool:
+    """Treat short and full Git commit pointers as equal when one prefixes the other."""
+    a, b = str(left), str(right)
+    if re.fullmatch(r"[0-9a-f]{7,40}", a, re.I) and re.fullmatch(r"[0-9a-f]{7,40}", b, re.I):
+        return a.startswith(b) or b.startswith(a)
+    return a == b
+
+
 def build_report(specs_path: Path, compat_path: Path, version_path: Path, ready_path: Path) -> dict:
     specs = load_state(specs_path)
     compat = load_json(compat_path)
@@ -71,11 +80,12 @@ def build_report(specs_path: Path, compat_path: Path, version_path: Path, ready_
         ("worker_version_id", pinned_worker, worker, "current_deployment_pointer"),
         ("world_id", compat.get("hosted_live", {}).get("world_id"), live_world, "current_deployment_pointer"),
         ("genesis_id", compat.get("hosted_live", {}).get("genesis_id"), live_genesis, "current_deployment_pointer"),
-        ("specs_git", compat.get("hosted_live", {}).get("specs_git"), specs.get("production_implements_specs"), "historical_vs_current_authority"),
+        ("specs_git", compat.get("hosted_live", {}).get("specs_git"), specs.get("production_alpha_specs") or specs.get("production_implements_specs"), "historical_vs_current_authority"),
+        ("source_commit", source, specs.get("advanced_worker_runtime"), "historical_vs_current_runtime"),
         ("worker_version_id", specs.get("live_worker_version_id"), worker, "historical_vs_current_deployment"),
     ]
     for field, left, right, classification in checks:
-        if left is not None and right is not None and left != right:
+        if left is not None and right is not None and not same_pointer(left, right):
             mismatches.append({"field": field, "left": left, "right": right, "classification": classification})
     return redact({
         "schema_version": "noema-provenance-report/1.0",

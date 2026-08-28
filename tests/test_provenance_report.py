@@ -47,3 +47,40 @@ def test_main_fails_internal_unsupported_worker_source_pair(tmp_path: Path, caps
     write_json(ready, {"world_id": "w", "genesis_id": "g"})
     assert main(["--specs", str(specs), "--compat", str(compat), "--version", str(version), "--ready", str(ready)]) == 2
     assert "unsupported Worker/source" in capsys.readouterr().err
+
+
+def test_report_reads_real_nested_current_state_commit_pointers(tmp_path: Path):
+    specs = tmp_path / "current-state.v1.yaml"
+    specs.write_text(
+        """as_of: 2026-08-24
+evidence_commits:
+  production_alpha_specs: abcdef0
+  production_alpha_site: 1234567
+  advanced_worker_runtime: fedcba9
+""",
+        encoding="utf-8",
+    )
+    compat = tmp_path / "spec-compat.json"
+    write_json(compat, {"hosted_live": {
+        "worker_version_id": "worker-1",
+        "world_id": "world-1",
+        "genesis_id": "genesis-1",
+        "specs_git": "abcdef0123456789abcdef0123456789abcdef01",
+        "source_commit": "0000000000000000000000000000000000000000",
+        "version_evidence": {
+            "worker_version_id": "worker-1",
+            "source_commit": "0000000000000000000000000000000000000000",
+        },
+    }})
+    version = tmp_path / "version.json"
+    write_json(version, {"worker_version_id": "worker-1", "world_id": "world-1"})
+    ready = tmp_path / "ready.json"
+    write_json(ready, {"world": {"world_id": "world-1", "genesis_id": "genesis-1"}})
+
+    report = build_report(specs, compat, version, ready)
+
+    pointers = report["sources"]["specs_current_state"]["pointers"]
+    assert pointers["production_alpha_specs"] == "abcdef0"
+    assert pointers["advanced_worker_runtime"] == "fedcba9"
+    assert not any(m["field"] == "specs_git" for m in report["mismatches"])
+    assert any(m["classification"] == "historical_vs_current_runtime" for m in report["mismatches"])
