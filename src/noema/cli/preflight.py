@@ -74,6 +74,16 @@ def build_preflight(source: dict[str, Any], *, repository: Path | str = ".") -> 
     ]
     if len(independent) < 3:
         reasons.append("fewer_than_three_independent_participant_receipts")
+    participant_ids = {
+        str(p.get("controller_reference") or p.get("player_reference") or p.get("label") or "").strip()
+        for p in independent
+    }
+    receipt_ids = {
+        str(p.get("independent_control_receipt") or p.get("independent_receipt") or "").strip()
+        for p in independent
+    }
+    if len(participant_ids - {""}) < 3 or len(receipt_ids - {""}) < 3:
+        reasons.append("fewer_than_three_distinct_independent_participants")
     if len(independent) >= 3 and any(not _truth(p.get("reconnect_tested")) for p in independent):
         reasons.append("participant_reconnect_evidence_incomplete")
     if not receipts or not any(_truth(r.get("approved") or r.get("approval_evidence")) for r in receipts if isinstance(r, dict)):

@@ -18,7 +18,7 @@ def candidate(**overrides):
         "world": {"world_id": "world.perihelion", "genesis": "genesis.1", "seal": "seal.1", "room": "room.main", "status": "ACTIVE"},
         "health": {"status": "ok", "settlement_health": "HEALTHY"},
         "test_evidence": {"worker_tests": "green", "worker_typecheck": "green"},
-        "participants": [{"label": f"controller-{x}", "independent_control_receipt": "receipt-{x}", "reconnect_tested": True} for x in "abc"],
+        "participants": [{"label": f"controller-{x}", "independent_control_receipt": f"receipt-{x}", "reconnect_tested": True} for x in "abc"],
         "operator_receipts": [{"label": "controller-a", "approved": True}],
         "canonical_head": {"sequence": 1, "digest": "sha256:1"},
     }
@@ -73,3 +73,10 @@ def test_preflight_blocks_missing_participant_reconnect_evidence(tmp_path):
     result = build_preflight(candidate(participants=participants), repository=clean_repo(tmp_path))
     assert result["verdict"] == "BLOCKED"
     assert "participant_reconnect_evidence_incomplete" in result["verdict_reasons"]
+
+
+def test_preflight_blocks_duplicate_participant_and_receipt_records(tmp_path):
+    duplicate = {"label": "controller-a", "independent_control_receipt": "receipt-a", "reconnect_tested": True}
+    result = build_preflight(candidate(participants=[duplicate, duplicate, duplicate]), repository=clean_repo(tmp_path))
+    assert result["verdict"] == "BLOCKED"
+    assert "fewer_than_three_distinct_independent_participants" in result["verdict_reasons"]
