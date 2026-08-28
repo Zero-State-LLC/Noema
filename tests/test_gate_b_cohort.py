@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import hashlib
 import json
-import os
 import subprocess
 import threading
 import time
@@ -36,12 +36,15 @@ def fake_noema(tmp_path: Path) -> Path:
     binary.parent.mkdir(parents=True)
     binary.write_text(
         """#!/usr/bin/env python3
+import hashlib
 import json
 import os
 import pathlib
 import sys
 import time
 label = os.environ["NOEMA_COHORT_LABEL"]
+def digest(value):
+    return "sha256:" + hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 record = {
     "label": label,
     "cwd": os.getcwd(),
@@ -62,6 +65,9 @@ if os.environ.get("FAKE_FAIL") == label:
 evidence_path = pathlib.Path(os.environ["NOEMA_COHORT_EVIDENCE_FILE"])
 evidence_path.parent.mkdir(parents=True, exist_ok=True)
 world_id = os.environ["NOEMA_COHORT_WORLD_ID"]
+credential = pathlib.Path(os.environ["NOEMA_CONFIG_DIR"]) / "credential.json"
+credential_binding = "sha256:" + hashlib.sha256(credential.read_bytes()).hexdigest() if credential.exists() else digest("isolated")
+controller_reference = "controller." + label
 receipts = [
     {"case": "partial_enrollment", "observed": "BLOCKED", "code": "fake"},
     {"case": "duplicate_enrollment", "observed": "REJECTED", "code": "fake"},
@@ -76,8 +82,14 @@ receipts = [
 evidence_path.write_text(json.dumps({
     "schema_version": "noema-lca2-participant-evidence/1.0",
     "claim_status": "OBSERVED",
-    "controller_reference": "controller." + label,
+    "controller_reference": controller_reference,
     "independent_control_receipt": "receipt." + label,
+    "credential_binding_digest": credential_binding,
+    "controller_binding_digest": digest(controller_reference),
+    "contention_evidence_digest": digest("contention." + label),
+    "ordering_evidence_digest": digest("ordering." + label),
+    "budget_settlement_evidence_digest": digest("budget." + label),
+    "acceptance_authority_digest": digest("gate-b-acceptance-authority"),
     "reconnect_tested": True,
     "onboarding_path": "official-noema-cli",
     "client_version": "fake-1",
@@ -170,6 +182,8 @@ def enable_live_credentials(run_dir: Path, manifest: dict) -> None:
         path = Path(participant["paths"]["credential_dir"]) / "credential.json"
         path.write_text(json.dumps({"access_token": "fake-private-token-" + label}), encoding="utf-8")
         path.chmod(0o600)
+        credential_binding = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        controller_reference = "controller." + label
         approval = {
             "schema_version": "noema-lca2-human-approval/1.0",
             "run_id": manifest["run_id"],
@@ -178,6 +192,10 @@ def enable_live_credentials(run_dir: Path, manifest: dict) -> None:
             "enrollment_status": "COMPLETE",
             "approval_receipt": "approval." + label,
             "independent_control_receipt": "receipt." + label,
+            "credential_binding_digest": credential_binding,
+            "controller_binding_digest": "sha256:" + hashlib.sha256(
+                json.dumps(controller_reference, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
         }
         (approvals / f"{label}.json").write_text(json.dumps(approval), encoding="utf-8")
 
@@ -230,11 +248,51 @@ def test_prepare_rejects_unsafe_or_shared_process_definitions(tmp_path: Path, mu
         prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
 
 
+def test_isolated_categorically_rejects_noema_guru(tmp_path: Path):
+    value = config(tmp_path, fake_noema(tmp_path))
+    value["server"] = "https://noema.guru"
+    with pytest.raises(CohortError, match="categorically cannot target"):
+        prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
+
+
+def test_prepare_rejects_relative_basename_spoof_and_wrong_rendered_server(tmp_path: Path):
+    value = config(tmp_path, fake_noema(tmp_path))
+    value["participants"][0]["argv"][0] = "spoof/noema"
+    with pytest.raises(CohortError, match="absolute executable"):
+        prepare(write_config(tmp_path, value), tmp_path / "spoof-run", mode="isolated")
+
+    value = config(tmp_path / "server", fake_noema(tmp_path / "server"), mode="live")
+    value["participants"][0]["argv"][2] = "http://127.0.0.1:8787"
+    with pytest.raises(CohortError, match="server binding"):
+        prepare(write_config(tmp_path / "server", value), tmp_path / "server-run", mode="live")
+
+
+def test_manifest_edit_after_prepare_fails_integrity_check(tmp_path: Path):
+    run_dir, _ = prepared(tmp_path)
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["server"] = "https://noema.guru"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(CohortError, match="integrity check failed"):
+        cohort_status(run_dir)
+
+
+def test_client_executable_edit_after_prepare_fails_integrity_check(tmp_path: Path):
+    binary = fake_noema(tmp_path)
+    value = config(tmp_path, binary)
+    run_dir = tmp_path / "run"
+    prepare(write_config(tmp_path, value), run_dir, mode="isolated")
+    binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    binary.chmod(0o755)
+    with pytest.raises(CohortError, match="client executable integrity check failed"):
+        run_cohort(run_dir, mode="isolated")
+
+
 def test_prepare_rejects_duplicate_rendered_argv_and_shared_environment_source(tmp_path: Path):
     binary = fake_noema(tmp_path)
     value = config(tmp_path, binary)
     for participant in value["participants"]:
-        participant["argv"] = [str(binary), "--isolated", "play"]
+        participant["argv"] = [str(binary), "--server", "{server}", "--isolated", "play"]
     with pytest.raises(CohortError, match="independent rendered argv"):
         prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
 
@@ -332,11 +390,12 @@ def test_isolated_end_to_end_runs_three_processes_and_never_completes(tmp_path: 
 
 
 def test_process_crash_is_classified_without_restart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    run_dir, _ = prepared(tmp_path)
+    binary = fake_noema(tmp_path)
+    value = config(tmp_path, binary)
+    value["participants"][1]["env_from"] = {"FAKE_FAIL": "FAIL_A"}
+    run_dir = tmp_path / "run"
+    prepare(write_config(tmp_path, value), run_dir, mode="isolated")
     monkeypatch.setenv("FAIL_A", "controller-b")
-    manifest = json.loads((run_dir / "manifest.json").read_text())
-    manifest["participants"][1]["env_from"] = {"FAKE_FAIL": "FAIL_A"}
-    (run_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     code, result = run_cohort(run_dir, mode="isolated")
     assert code == 1
     assert result["status"] == "FAILED"
@@ -357,13 +416,14 @@ def test_process_crash_is_classified_without_restart(tmp_path: Path, monkeypatch
 
 
 def test_stop_cancels_all_running_process_groups(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    run_dir, _ = prepared(tmp_path)
+    binary = fake_noema(tmp_path)
+    value = config(tmp_path, binary)
     for suffix in "abc":
         monkeypatch.setenv(f"SLEEP_{suffix.upper()}", "5")
-    manifest = json.loads((run_dir / "manifest.json").read_text())
-    for participant, suffix in zip(manifest["participants"], "abc", strict=True):
+    for participant, suffix in zip(value["participants"], "abc", strict=True):
         participant["env_from"] = {"FAKE_SLEEP": f"SLEEP_{suffix.upper()}"}
-    (run_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    run_dir = tmp_path / "run"
+    prepare(write_config(tmp_path, value), run_dir, mode="isolated")
 
     outcome: dict = {}
 
@@ -492,18 +552,48 @@ def test_live_rejects_shared_credentials_and_blocks_partial_approval(tmp_path: P
     assert "controller-b:partial_enrollment" in result["approval_reasons"]
 
 
-@pytest.mark.parametrize("status", ["DUPLICATE", "EXPIRED"])
-def test_live_rejects_duplicate_or_expired_enrollment_receipts(tmp_path: Path, status: str):
+@pytest.mark.parametrize(("status", "approved"), [("DUPLICATE", True), ("EXPIRED", True), ("DUPLICATE", False), ("EXPIRED", False)])
+def test_live_rejects_duplicate_or_expired_enrollment_receipts(tmp_path: Path, status: str, approved: bool):
     run_dir, manifest = prepared(tmp_path, mode="live")
     enable_live_credentials(run_dir, manifest)
     approval = run_dir / "approvals" / "controller-b.json"
     row = json.loads(approval.read_text())
     row["enrollment_status"] = status
+    row["approved"] = approved
     approval.write_text(json.dumps(row), encoding="utf-8")
     code, result = run_cohort(run_dir, mode="live", ack=LIVE_ACK)
     assert code == 2
     assert result["verdict"] == "REJECTED"
     assert f"controller-b:{status.lower()}_enrollment" in result["approval_reasons"]
+
+
+def test_live_rejects_approval_binding_mismatch(tmp_path: Path):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    approval = run_dir / "approvals" / "controller-b.json"
+    row = json.loads(approval.read_text())
+    row["credential_binding_digest"] = "sha256:" + "0" * 64
+    approval.write_text(json.dumps(row), encoding="utf-8")
+    code, result = run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    assert code == 2
+    assert "controller-b:credential_binding_mismatch" in result["approval_reasons"]
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["contention_evidence_digest", "ordering_evidence_digest", "budget_settlement_evidence_digest", "acceptance_authority_digest"],
+)
+def test_live_complete_requires_acceptance_authority_evidence(tmp_path: Path, field: str):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    evidence = Path(manifest["participants"][0]["paths"]["evidence_dir"]) / "participant.json"
+    row = json.loads(evidence.read_text())
+    row.pop(field)
+    evidence.write_text(json.dumps(row), encoding="utf-8")
+    verification = build_verification(run_dir)
+    assert verification["verdict"] == "BLOCKED"
+    assert f"controller-a:{field}_missing_or_invalid" in verification["verdict_reasons"]
 
 
 def test_live_rejects_duplicate_human_approval_receipts(tmp_path: Path):

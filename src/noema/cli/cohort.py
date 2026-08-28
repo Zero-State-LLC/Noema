@@ -70,6 +70,12 @@ _ALLOWED_EVIDENCE_KEYS = frozenset(
         "onboarding_path",
         "client_version",
         "world_id",
+        "credential_binding_digest",
+        "controller_binding_digest",
+        "contention_evidence_digest",
+        "ordering_evidence_digest",
+        "budget_settlement_evidence_digest",
+        "acceptance_authority_digest",
         "receipts",
     }
 )
@@ -118,6 +124,13 @@ def _canonical(value: Any) -> str:
 
 def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(_canonical(value).encode("utf-8")).hexdigest()
+
+
+def _file_digest(path: Path) -> str:
+    try:
+        return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as exc:
+        raise CohortError(f"client executable cannot be integrity-bound: {path}") from exc
 
 
 def _atomic_json(path: Path, value: Any, *, mode: int = 0o600) -> None:
@@ -177,9 +190,12 @@ def _render_argv(argv: list[str], values: dict[str, str]) -> list[str]:
     return rendered
 
 
-def _validate_public_cli(argv: list[str], *, mode: str) -> None:
+def _validate_public_cli(argv: list[str], *, mode: str, server: str) -> None:
     if not argv or Path(argv[0]).name != "noema":
         raise CohortError("participant argv must invoke the official public `noema` executable")
+    executable = Path(argv[0])
+    if argv[0] != "noema" and not executable.is_absolute():
+        raise CohortError("participant argv must use `noema` from PATH or an absolute executable path")
     if "play" not in argv:
         raise CohortError("participant argv must use the bounded public `noema play` command")
     if "connect" in argv:
@@ -196,6 +212,11 @@ def _validate_public_cli(argv: list[str], *, mode: str) -> None:
         raise CohortError("live argv must not contain --isolated")
     if mode == "live" and "--world-id" in argv:
         raise CohortError("live argv must use the hosted world binding and omit --world-id")
+    if "--server" not in argv:
+        raise CohortError("participant argv must explicitly bind the configured server")
+    server_indexes = [index for index, value in enumerate(argv) if value == "--server"]
+    if len(server_indexes) != 1 or server_indexes[0] + 1 >= len(argv) or argv[server_indexes[0] + 1].rstrip("/") != server:
+        raise CohortError("participant argv server binding must exactly match the prepared server")
 
 
 def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dict[str, Any]:
@@ -216,8 +237,8 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
         raise CohortError("isolated mode requires world_id test.hosted-canonical.*")
     if mode == "live" and (server != "https://noema.guru" or world_id.startswith("test.hosted-canonical.")):
         raise CohortError("live mode is pinned to https://noema.guru and a non-isolated world")
-    if mode == "isolated" and server == "https://noema.guru" and not world_id.startswith("test.hosted-canonical."):
-        raise CohortError("isolated mode cannot target the live world")
+    if mode == "isolated" and server == "https://noema.guru":
+        raise CohortError("isolated mode categorically cannot target https://noema.guru")
 
     max_log_bytes = source.get("max_log_bytes", 65536)
     timeout = source.get("process_timeout_seconds", 900)
@@ -296,7 +317,15 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
             **{key: str(path) for key, path in paths.items()},
         }
         rendered = _render_argv(list(argv), values)
-        _validate_public_cli(rendered, mode=mode)
+        _validate_public_cli(rendered, mode=mode, server=server)
+        executable_path = Path(rendered[0]).resolve() if Path(rendered[0]).is_absolute() else None
+        if executable_path is None:
+            found = shutil.which(rendered[0])
+            if not found:
+                raise CohortError(f"client executable is unavailable during preparation: {rendered[0]}")
+            executable_path = Path(found).resolve()
+        if not executable_path.is_file() or not os.access(executable_path, os.X_OK):
+            raise CohortError(f"client executable is unavailable during preparation: {rendered[0]}")
         argv_digest = _digest(rendered)
         if argv_digest in argv_digests:
             raise CohortError("each process must have independent rendered argv")
@@ -311,6 +340,8 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
                 "world_id": world_id,
                 "argv": rendered,
                 "argv_digest": argv_digest,
+                "client_executable_path": str(executable_path),
+                "client_executable_digest": _file_digest(executable_path),
                 "env_from": dict(sorted(env_from.items())),
                 "idempotency_namespace": namespace,
                 "paths": {key: str(path) for key, path in paths.items()},
@@ -347,7 +378,7 @@ def prepare(config_path: Path, run_dir: Path, *, mode: str) -> dict[str, Any]:
     manifest = _validate_config(source, mode=mode, run_dir=run_dir)
     manifest_path = run_dir / "manifest.json"
     if manifest_path.exists():
-        existing = _load_json(manifest_path)
+        existing = _load_manifest(run_dir)
         if existing.get("source_digest") != manifest["source_digest"] or existing.get("mode") != mode:
             raise CohortError("run_dir already contains a different prepared cohort")
         return {
@@ -376,6 +407,7 @@ def prepare(config_path: Path, run_dir: Path, *, mode: str) -> dict[str, Any]:
         "schema_version": STATE_SCHEMA,
         "run_id": manifest["run_id"],
         "mode": mode,
+        "manifest_digest": _digest(manifest),
         "status": status,
         "processes": [
             {"slot": p["slot"], "label": p["label"], "status": "PENDING", "pid": None, "start_ticks": None}
@@ -400,6 +432,8 @@ def prepare(config_path: Path, run_dir: Path, *, mode: str) -> dict[str, Any]:
                         "enrollment_status",
                         "approval_receipt",
                         "independent_control_receipt",
+                        "credential_binding_digest",
+                        "controller_binding_digest",
                     ],
                     "write_completed_receipt_to": str(approvals_dir / f"{participant['label']}.json"),
                 },
@@ -437,6 +471,9 @@ def _load_manifest(run_dir: Path) -> dict[str, Any]:
         raise CohortError("unsupported or missing cohort manifest")
     if len(manifest.get("participants") or []) != 3:
         raise CohortError("manifest must retain exactly three participants")
+    state = _load_json(run_dir / "state.json")
+    if state.get("manifest_digest") != _digest(manifest):
+        raise CohortError("prepared manifest integrity check failed")
     return manifest
 
 
@@ -560,7 +597,7 @@ def _credential_marker(path: Path) -> str | None:
     try:
         if credential.stat().st_mode & 0o077:
             return None
-        return hashlib.sha256(credential.read_bytes()).hexdigest()
+        return "sha256:" + hashlib.sha256(credential.read_bytes()).hexdigest()
     except OSError:
         return None
 
@@ -598,6 +635,8 @@ def _load_human_approvals(run_dir: Path, manifest: dict[str, Any]) -> dict[str, 
             "enrollment_status",
             "approval_receipt",
             "independent_control_receipt",
+            "credential_binding_digest",
+            "controller_binding_digest",
         }
         if set(value) - allowed or value.get("schema_version") != HUMAN_APPROVAL_SCHEMA:
             rejected.append(f"{label}:approval_receipt_invalid")
@@ -606,15 +645,17 @@ def _load_human_approvals(run_dir: Path, manifest: dict[str, Any]) -> dict[str, 
             rejected.append(f"{label}:approval_binding_mismatch")
             continue
         status = str(value.get("enrollment_status") or "").upper()
-        if value.get("approved") is not True or status == "PARTIAL":
-            blocked.append(f"{label}:partial_enrollment")
-            continue
         if status in {"DUPLICATE", "EXPIRED"}:
             rejected.append(f"{label}:{status.lower()}_enrollment")
             continue
+        if value.get("approved") is not True or status == "PARTIAL":
+            blocked.append(f"{label}:partial_enrollment")
+            continue
         approval_receipt = str(value.get("approval_receipt") or "")
         independence_receipt = str(value.get("independent_control_receipt") or "")
-        if status != "COMPLETE" or not approval_receipt or not independence_receipt:
+        credential_binding = str(value.get("credential_binding_digest") or "")
+        controller_binding = str(value.get("controller_binding_digest") or "")
+        if status != "COMPLETE" or not approval_receipt or not independence_receipt or not credential_binding or not controller_binding:
             blocked.append(f"{label}:approval_or_independence_receipt_missing")
             continue
         if _SECRET_ARG.search(approval_receipt) or _SECRET_ARG.search(independence_receipt):
@@ -628,6 +669,8 @@ def _load_human_approvals(run_dir: Path, manifest: dict[str, Any]) -> dict[str, 
                 "status": "COMPLETE",
                 "approval_receipt_digest": _digest(approval_receipt),
                 "independent_control_receipt_digest": _digest(independence_receipt),
+                "credential_binding_digest": credential_binding,
+                "controller_binding_digest": controller_binding,
             }
         )
     if len(approval_receipts) != len(rows) or len(independence_receipts) != len(rows):
@@ -718,6 +761,23 @@ def run_cohort(
                 "missing_credential_labels": missing_credentials,
                 "shared_credentials": shared_credentials,
             }
+        approval_by_label = {row["label"]: row for row in approvals["approvals"]}
+        binding_mismatches = sorted(
+            participant["label"]
+            for participant in manifest["participants"]
+            if approval_by_label[participant["label"]]["credential_binding_digest"]
+            != markers[participant["label"]]
+        )
+        if binding_mismatches:
+            state["status"] = "AWAITING_HUMAN_APPROVAL"
+            state["reason"] = "approval_credential_binding_mismatch"
+            _atomic_json(run_dir / "state.json", state)
+            return 2, {
+                "run_id": manifest["run_id"],
+                "status": state["status"],
+                "verdict": "REJECTED",
+                "approval_reasons": [f"{label}:credential_binding_mismatch" for label in binding_mismatches],
+            }
         _atomic_json(
             run_dir / "human-approval.json",
             {
@@ -733,7 +793,13 @@ def run_cohort(
     for participant in manifest["participants"]:
         env = _process_environment(participant, mode=mode)
         argv = list(participant["argv"])
-        argv[0] = _resolve_executable(argv, env)
+        resolved = Path(_resolve_executable(argv, env)).resolve()
+        if (
+            str(resolved) != participant.get("client_executable_path")
+            or _file_digest(resolved) != participant.get("client_executable_digest")
+        ):
+            raise CohortError(f"prepared client executable integrity check failed: {participant['label']}")
+        argv[0] = str(resolved)
         prepared.append((participant, env, argv))
 
     cancel_path = run_dir / "cancel.requested"
@@ -998,6 +1064,11 @@ def build_verification(run_dir: Path) -> dict[str, Any]:
     receipt_refs: set[str] = set()
     observed_cases: set[str] = set()
     rejected_evidence = False
+    approval_rows = {}
+    approval_path = run_dir / "human-approval.json"
+    if manifest["mode"] == "live" and approval_path.is_file():
+        approval_rows = {row.get("label"): row for row in _load_json(approval_path).get("approvals") or []}
+    acceptance_authorities: set[str] = set()
     for participant in manifest["participants"]:
         process = execution_by_label.get(participant["label"]) or {}
         evidence, evidence_reasons = _participant_evidence(participant)
@@ -1047,6 +1118,29 @@ def build_verification(run_dir: Path) -> dict[str, Any]:
                     rejected_evidence = True
                 controller_refs.add(controller)
                 receipt_refs.add(receipt)
+                approval = approval_rows.get(participant["label"]) or {}
+                if evidence.get("credential_binding_digest") != approval.get("credential_binding_digest"):
+                    reasons.append(f"{participant['label']}:credential_approval_binding_mismatch")
+                    rejected_evidence = True
+                expected_controller_binding = _digest(controller) if controller else None
+                if (
+                    evidence.get("controller_binding_digest") != expected_controller_binding
+                    or evidence.get("controller_binding_digest") != approval.get("controller_binding_digest")
+                ):
+                    reasons.append(f"{participant['label']}:controller_approval_binding_mismatch")
+                    rejected_evidence = True
+                for field in (
+                    "contention_evidence_digest",
+                    "ordering_evidence_digest",
+                    "budget_settlement_evidence_digest",
+                    "acceptance_authority_digest",
+                ):
+                    value = evidence.get(field)
+                    if not isinstance(value, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", value):
+                        reasons.append(f"{participant['label']}:{field}_missing_or_invalid")
+                authority = evidence.get("acceptance_authority_digest")
+                if isinstance(authority, str):
+                    acceptance_authorities.add(authority)
             preflight_participants.append(
                 {
                     "label": participant["label"],
@@ -1076,11 +1170,12 @@ def build_verification(run_dir: Path) -> dict[str, Any]:
         rejected_evidence = True
     if manifest["mode"] == "live":
         reasons.extend(f"negative_receipt_missing:{case}" for case in sorted(_REQUIRED_NEGATIVE_CASES - observed_cases))
+        if len(acceptance_authorities) != 1:
+            reasons.append("single_acceptance_authority_binding_required")
 
     preflight_source = copy.deepcopy(manifest["preflight"])
     preflight_source["run_id"] = manifest["run_id"]
     preflight_source["participants"] = preflight_participants
-    approval_path = run_dir / "human-approval.json"
     approval_present = approval_path.is_file() and _load_json(approval_path).get("verdict") == "OPEN"
     preflight_source["operator_receipts"] = (
         [{"label": "cohort-human-approval", "approved": True, "approval_evidence": "local-explicit-attestation"}]

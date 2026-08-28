@@ -34,7 +34,9 @@ Evidence uses only these lifecycle verdicts:
 ## Safety boundaries
 
 Preparation accepts exactly three injected commands. Every command must invoke
-the public `noema play` surface directly. Each process receives a distinct:
+the public `noema play` surface directly, use either the exact `noema` PATH
+command or an absolute executable path, and exactly bind the configured server.
+Each process receives a distinct:
 
 - working directory
 - XDG config directory
@@ -58,6 +60,9 @@ Opaque approval and independence receipts are emitted only as digests.
 Before spawning, the runner calls `noema.cli.preflight.build_preflight` and
 rejects unhealthy state, dirty candidate source, failed tests or typecheck,
 missing or disagreeing pins, and incomplete canonical-head evidence.
+The canonical prepared-manifest digest is stored in `state.json` and checked on
+every manifest load. Editing `manifest.json` after preparation fails closed.
+Isolated mode categorically rejects `https://noema.guru`.
 
 ## Non-secret configuration
 
@@ -165,12 +170,16 @@ short code through the normal CONNECT UI. Each resulting private
   "approved": true,
   "enrollment_status": "COMPLETE",
   "approval_receipt": "<opaque-distinct-receipt>",
-  "independent_control_receipt": "<opaque-distinct-receipt>"
+  "independent_control_receipt": "<opaque-distinct-receipt>",
+  "credential_binding_digest": "sha256:<private-credential-file-digest>",
+  "controller_binding_digest": "sha256:<opaque-controller-reference-digest>"
 }
 ```
 
-All three approvals, receipt pairs, and credential files must be present and
-distinct. `PARTIAL` enrollment is `BLOCKED`. `DUPLICATE` or `EXPIRED`
+All three approvals, receipt pairs, credential/controller bindings, and
+credential files must be present, correlated, and distinct where applicable.
+`PARTIAL` enrollment is `BLOCKED`. `DUPLICATE` or `EXPIRED`, including when
+`approved` is false,
 enrollment, duplicate receipts, shared credential content, or malformed binding
 is `REJECTED`.
 
@@ -208,6 +217,10 @@ Receipt cases have deterministic expected classifications:
 A live `COMPLETE` verdict requires three successful processes, three distinct
 observed controller and independence receipts, matching world bindings,
 reconnect evidence, the required negative-case receipts, an `OPEN` final
-preflight, and no rejected classification. This verdict is evidence for the
+preflight, and no rejected classification. Each participant must also provide
+opaque SHA-256 bindings for contention, ordering, budget settlement, and the
+shared acceptance authority. Credential and controller bindings must correlate
+with the human approval receipt. These are required receipt fields, not a claim
+that production execution occurred. This verdict is evidence for the
 bounded cohort run only. It does not claim Gate B, Gate C, endurance, hosted
 STUDY, successor readiness, or deployment authority.
