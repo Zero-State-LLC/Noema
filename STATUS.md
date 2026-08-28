@@ -861,3 +861,13 @@ All via play-traces.ts (publicTraces always visibility:"public", no ids leaked, 
 **Outcome (OBSERVED):** Table current. No drift. No new publish or RFCs. Standing next unchanged.
 
 **Audit updated** with repeat re-derive entry.
+
+## Production publish triggered (2026-08-27)
+
+**Dispatch:** Deploy Worker and open pin PR
+**Acknowledge:** I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN
+**Run:** https://github.com/Zero-State-LLC/Noema/actions/runs/33143862239
+**Current main:** 5de9052 (docs re-derive + plan execution)
+**Pre-publish checks:** Will run typecheck + full test on main.
+
+**Next per workflow:** Worker deploy to production, then auto pin PR opened for review.
