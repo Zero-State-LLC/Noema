@@ -21,7 +21,7 @@ import type { Env } from "../src/types";
 function env(partial: Partial<Env> = {}): Env {
   return {
     TOKEN_SIGNING_SECRET: "test-signing-secret",
-    NOEMA_ENV: "production",
+    NOEMA_ENV: "test",
     NOEMA_PROTOCOL_VERSION: "1",
     DEFAULT_WORLD_ID: "world-01",
     ...partial,

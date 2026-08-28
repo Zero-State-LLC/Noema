@@ -4,7 +4,7 @@ import worker from "../../src/index";
 import { ENROLLMENT_DO_NAME } from "../../src/enrollment";
 import { RATE_LIMIT_DO_NAME } from "../../src/rate-limit";
 import { ACCEPTED_SEALS } from "../../src/seal";
-import type { Env } from "../../src/types";
+import type { Env, CommandEnvelope } from "../../src/types";
 
 export const SIGNING = "test-signing-secret-hosted-conformance";
 export const OPERATOR = "operator-token-value-ok";
@@ -15,9 +15,10 @@ export function worldDoCalls(calls: DoCall[]): DoCall[] {
   return calls.filter((c) => c.name !== RATE_LIMIT_DO_NAME && c.name !== ENROLLMENT_DO_NAME);
 }
 
-export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>) {
+export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>, deadPlayers: Set<string> = new Set()) {
   const devices = new Map<string, Record<string, unknown>>();
   const revocations = new Map<string, Record<string, unknown>>();
+  const players = new Map<string, Record<string, unknown>>(); // simulated world.players
   return {
     idFromName(name: string) {
       calls.push({ op: "idFromName", name });
@@ -80,6 +81,74 @@ export function mockWorldDo(calls: DoCall[], watchBody?: Record<string, unknown>
               { status: 200, headers: { "content-type": "application/json" } },
             );
           }
+                    if (path.includes("/command")) {
+                      // Parse the body to get the envelope and principal
+                      let body: any = {};
+                      if (init?.body) {
+                        try {
+                          body = JSON.parse(String(init.body));
+                        } catch {
+                          body = {};
+                        }
+                      }
+                      const principal = body.principal || {};
+                      const playerId = principal.player_id || "";
+                      const envelope = body.envelope as CommandEnvelope;
+                      const command = envelope?.command || "LOOK";
+
+                      const isExplicitDead = deadPlayers.has(playerId);
+                      const isMissingMarker = playerId.includes(":missing");
+                      // For missing player test: if ID not in known players and marked missing, reject
+                      const isMissing = isMissingMarker || (!players.has(playerId) && deadPlayers.has(`${playerId}:missing`));
+                      if (isExplicitDead || isMissingMarker || isMissing) {
+                        return new Response(JSON.stringify({
+                          ok: false,
+                          request_id: envelope?.request_id || "unknown",
+                          error: { code: "PLAYER_DEAD", message: "Player is dead, retired, or suspended and cannot perform inhabiting actions." }
+                        }), {
+                          status: 403,
+                          headers: { "content-type": "application/json" },
+                        });
+                      }
+                      // Ledger flesh-out: for non-dead, simulate active player record status (P1/P2 + lifecycle)
+                      if (path === "/command" && envelope?.command) {
+                        const playerId = agent?.player_id || "";
+                        if (playerId && !deadPlayers.has(playerId)) {
+                          // Ensure players map has a live record (for future status queries)
+                          if (!players.has(playerId)) {
+                            players.set(playerId, { status: "active", actor_kind: "agent" });
+                          } else {
+                            const rec = players.get(playerId) || {};
+                            rec.status = rec.status || "active";
+                            players.set(playerId, rec);
+                          }
+                        }
+                      }
+
+                      // Simulate presence: record the player if not dead
+                      if (playerId && !players.has(playerId)) {
+                        players.set(playerId, { player_id: playerId, room_id: "room.entry", entered: true });
+                      }
+
+                      // P7/P8 observation contract stub for live agent
+                      // Structured Affordance objects (P8: no human MUD parser strings)
+                      const obs = {
+                        cycle: 1,
+                        sequence: 1,
+                        player_id: playerId || "player.test",
+                        in_world: true,
+                        location: { room_id: "room.entry", name: "Entry" },
+                        available_actions: [
+                          { action: "LOOK", verb: "LOOK", label: "Look", target_id: null },
+                          { action: "MOVE", verb: "MOVE", label: "Move North", target_id: "room.north" }
+                        ],
+                        status: { energy: 100 },
+                      };
+                      return new Response(JSON.stringify({ ok: true, world_id: id.name, command, observation: obs }), {
+                        status: 200,
+                        headers: { "content-type": "application/json" },
+                      });
+                    }
           return new Response(JSON.stringify({ ok: true, world_id: id.name }), {
             status: 200,
             headers: { "content-type": "application/json" },
@@ -96,20 +165,27 @@ export function env(
   calls: DoCall[],
   defaultWorldId = "world-01",
   watchBody?: Record<string, unknown>,
+  deadPlayerIds: string[] = [],
 ): Env {
+  const deadSet = new Set(deadPlayerIds);
   let world = worldByCalls.get(calls);
   if (!world) {
-    world = mockWorldDo(calls, watchBody);
+    world = mockWorldDo(calls, watchBody, deadSet);
     worldByCalls.set(calls, world);
   }
   return {
     TOKEN_SIGNING_SECRET: SIGNING,
-    NOEMA_ENV: "production",
+    NOEMA_ENV: "test",
     NOEMA_PROTOCOL_VERSION: "1",
     DEFAULT_WORLD_ID: defaultWorldId,
     ADMIN_OPERATOR_TOKEN: OPERATOR,
     WORLD_DO: world,
   } as unknown as Env;
+}
+
+
+export function envWithDeadPlayers(calls: DoCall[], deadPlayerIds: string[] = [], defaultWorldId = "world-01") {
+  return env(calls, defaultWorldId, undefined, deadPlayerIds);
 }
 
 export async function playerToken(calls: DoCall[] = []) {
@@ -134,6 +210,7 @@ export async function hit(
   calls: DoCall[],
   defaultWorldId?: string,
   watchBody?: Record<string, unknown>,
+  deadPlayerIds: string[] = [],
 ) {
   const headers: Record<string, string> = { "content-type": "application/json", ...(init.headers || {}) };
   const liveSeal = ACCEPTED_SEALS[0];
@@ -145,7 +222,7 @@ export async function hit(
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
-  return worker.fetch(req, env(calls, defaultWorldId, watchBody));
+  return worker.fetch(req, env(calls, defaultWorldId, watchBody, deadPlayerIds));
 }
 
 export async function hitWatchLive(

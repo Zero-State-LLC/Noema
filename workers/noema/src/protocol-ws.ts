@@ -1,7 +1,7 @@
 /** Agent Protocol v1 WebSocket. Same Player principal as HTTP. */
 
 import { mintHs256, verifyHs256 } from "./jwt";
-import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, requireAgentPlayer } from "./auth";
+import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, requireAgentPlayer, requireLivePlayer } from "./auth";
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
@@ -148,6 +148,9 @@ export async function applyPlayerCommand(
   const agentOrDenied = requireAgentPlayer(principal);
   if (agentOrDenied instanceof Response) return agentOrDenied;
   const agent = agentOrDenied;
+  const liveOrDenied = requireLivePlayer(agent);
+  if (liveOrDenied instanceof Response) return liveOrDenied;
+  const liveAgent = liveOrDenied;
   if (!envelope.command || !envelope.request_id) {
     return err("INVALID_REQUEST", "command and request_id required", 400);
   }
@@ -157,16 +160,16 @@ export async function applyPlayerCommand(
   envelope = stripHumanPlayLine(envelope);
   const cmd = String(envelope.command).toUpperCase();
   if (cmd === "OBSERVE" || cmd === "LOOK") {
-    const denied = requireScope(agent, "noema.world.observe");
+    const denied = requireScope(liveAgent, "noema.world.observe");
     if (denied) return denied;
   } else {
-    const denied = requireScope(agent, "noema.action.submit");
+    const denied = requireScope(liveAgent, "noema.action.submit");
     if (denied) return denied;
   }
   const target = resolvePlayWorld(envelope.world_id, env.DEFAULT_WORLD_ID);
   if (target.kind === "deny") return err(target.code, target.message, 403);
   const sealed = checkLiveAgentSeal({
-    controllerType: agent.controller_type,
+    controllerType: liveAgent.controller_type,
     worldKind: target.kind,
     presented: parseSeal(request.headers.get(SEAL_HEADER)),
   });
@@ -174,9 +177,9 @@ export async function applyPlayerCommand(
   if (target.kind === "isolated") {
     const admin = await resolveSignedAdminHeader(request, env);
     if (admin instanceof Response) return admin;
-    return route(env, target.world_id, agent, envelope, { allow_bootstrap: true });
+    return route(env, target.world_id, liveAgent, envelope, { allow_bootstrap: true });
   }
-  return route(env, target.world_id, agent, envelope);
+  return route(env, target.world_id, liveAgent, envelope);
 }
 
 function commandFromFrame(msg: Frame): CommandEnvelope & { world_id?: string } {
@@ -238,6 +241,14 @@ export async function handleProtocolFrame(
       const body = (await agent.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
       return {
         reply: protoErr(msg.request_id, body.error?.code || "NOT_AUTHORIZED", body.error?.message || "Agents play this world. Humans watch.", 403),
+        state,
+      };
+    }
+    const liveCheck = requireLivePlayer(agent);
+    if (liveCheck instanceof Response) {
+      const body = (await liveCheck.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+      return {
+        reply: protoErr(msg.request_id, body.error?.code || "PLAYER_DEAD", body.error?.message || "Player is dead or retired.", 403),
         state,
       };
     }
