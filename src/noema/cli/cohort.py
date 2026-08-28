@@ -7,6 +7,7 @@ logic.
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import hashlib
 import json
@@ -14,6 +15,7 @@ import os
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import threading
@@ -57,6 +59,11 @@ _PRIVATE_KEY = re.compile(
 )
 _SECRET_KEY = re.compile(r"(^|_)(token|secret|password|api_key|private_key|bearer|email|device_code)($|_)", re.I)
 _SECRET_ARG = re.compile(r"(^bearer\s+|eyJ[A-Za-z0-9_-]+\.|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+_SECRET_VALUE = re.compile(
+    r"(?:^bearer\s+|(?:access|refresh|approval|receipt|device)[_-]?(?:token|code)[=:._-]|"
+    r"\b(?:sk|pk|api|tok|secret)[_-][A-Za-z0-9_-]{12,}\b|eyJ[A-Za-z0-9_-]{8,}\.)",
+    re.I,
+)
 _BROWSER = re.compile(r"(playwright|selenium|chromedriver|geckodriver|xdg-open|open-browser|webbrowser)", re.I)
 _PRIVILEGED_ENV = re.compile(r"(ADMIN|SERVICE_ROLE|HUMAN_SESSION|OPERATOR_TOKEN)", re.I)
 _ALLOWED_PARTICIPANT_KEYS = frozenset({"label", "argv", "decision_context", "env_from"})
@@ -154,12 +161,61 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _private_dir(path: Path) -> None:
-    path.mkdir(parents=True, exist_ok=True)
+def _assert_contained(path: Path, root: Path) -> None:
     try:
-        os.chmod(path, 0o700)
-    except OSError:
-        pass
+        path.resolve(strict=False).relative_to(root.resolve(strict=True))
+    except (OSError, ValueError) as exc:
+        raise CohortError(f"private path escapes prepared run directory: {path}") from exc
+
+
+def _assert_owned(mode_path: Path, *, directory: bool, mode: int) -> os.stat_result:
+    try:
+        info = mode_path.lstat()
+    except OSError as exc:
+        raise CohortError(f"private path cannot be inspected: {mode_path}") from exc
+    expected_kind = stat.S_ISDIR if directory else stat.S_ISREG
+    if not expected_kind(info.st_mode) or stat.S_ISLNK(info.st_mode):
+        raise CohortError(f"private path must be a {'directory' if directory else 'regular file'}: {mode_path}")
+    if stat.S_IMODE(info.st_mode) != mode:
+        raise CohortError(f"private path must have mode {mode:04o}: {mode_path}")
+    if hasattr(os, "getuid") and info.st_uid != os.getuid():
+        raise CohortError(f"private path must be owned by the current user: {mode_path}")
+    return info
+
+
+def _private_dir(path: Path) -> None:
+    try:
+        path.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(path, 0o700, follow_symlinks=False)
+    except OSError as exc:
+        raise CohortError(f"private directory permissions cannot be enforced: {path}") from exc
+    _assert_owned(path, directory=True, mode=0o700)
+
+
+def _looks_secret_value(value: str) -> bool:
+    if not value or value.startswith("sha256:"):
+        return False
+    if _SECRET_ARG.search(value) or _SECRET_VALUE.search(value):
+        return True
+    if _CONTEXT.fullmatch(value):
+        return False
+    compact = re.sub(r"[^A-Za-z0-9_-]", "", value)
+    return (
+        len(compact) >= 32
+        and any(c.islower() for c in compact)
+        and any(c.isupper() for c in compact)
+        and any(c.isdigit() for c in compact)
+    )
+
+
+def _public_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _public_value(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_public_value(child) for child in value]
+    if isinstance(value, str) and _looks_secret_value(value):
+        return "[REDACTED]"
+    return value
 
 
 def _reject_private_or_secret(value: Any, path: tuple[str, ...] = ()) -> None:
@@ -190,13 +246,13 @@ def _render_argv(argv: list[str], values: dict[str, str]) -> list[str]:
     return rendered
 
 
-def _validate_public_cli(argv: list[str], *, mode: str, server: str) -> None:
+def _validate_public_cli(argv: list[str], *, mode: str, server: str, world_id: str, config_dir: str) -> None:
     if not argv or Path(argv[0]).name != "noema":
         raise CohortError("participant argv must invoke the official public `noema` executable")
     executable = Path(argv[0])
     if argv[0] != "noema" and not executable.is_absolute():
         raise CohortError("participant argv must use `noema` from PATH or an absolute executable path")
-    if "play" not in argv:
+    if argv.count("play") != 1:
         raise CohortError("participant argv must use the bounded public `noema play` command")
     if "connect" in argv:
         raise CohortError("cohort processes may not automate enrollment; a human must run `noema connect`")
@@ -206,17 +262,42 @@ def _validate_public_cli(argv: list[str], *, mode: str, server: str) -> None:
     for arg in argv:
         if _SECRET_ARG.search(arg) or arg in {"--email", "--token", "--access-token", "--device-code"}:
             raise CohortError("literal credentials, email, and enrollment material are forbidden in argv")
-    if mode == "isolated" and "--isolated" not in argv:
+    option_values: dict[str, str | None] = {}
+    value_options = {"--server", "--world-id", "--config-dir"}
+    flag_options = {"--isolated"}
+    index = 1
+    while index < len(argv):
+        arg = argv[index]
+        option, equals, inline = arg.partition("=")
+        if option in value_options:
+            if option in option_values:
+                raise CohortError(f"duplicate participant option is forbidden: {option}")
+            if equals:
+                if not inline:
+                    raise CohortError(f"participant option requires a value: {option}")
+                option_values[option] = inline
+            else:
+                if index + 1 >= len(argv) or argv[index + 1].startswith("--"):
+                    raise CohortError(f"participant option requires a value: {option}")
+                option_values[option] = argv[index + 1]
+                index += 1
+        elif option in flag_options:
+            if equals or option in option_values:
+                raise CohortError(f"duplicate or valued participant flag is forbidden: {option}")
+            option_values[option] = None
+        index += 1
+    if mode == "isolated" and "--isolated" not in option_values:
         raise CohortError("isolated argv must pass the official client's --isolated guard")
-    if mode == "live" and "--isolated" in argv:
+    if mode == "live" and "--isolated" in option_values:
         raise CohortError("live argv must not contain --isolated")
-    if mode == "live" and "--world-id" in argv:
+    if mode == "live" and "--world-id" in option_values:
         raise CohortError("live argv must use the hosted world binding and omit --world-id")
-    if "--server" not in argv:
-        raise CohortError("participant argv must explicitly bind the configured server")
-    server_indexes = [index for index, value in enumerate(argv) if value == "--server"]
-    if len(server_indexes) != 1 or server_indexes[0] + 1 >= len(argv) or argv[server_indexes[0] + 1].rstrip("/") != server:
+    if str(option_values.get("--server") or "").rstrip("/") != server:
         raise CohortError("participant argv server binding must exactly match the prepared server")
+    if str(option_values.get("--config-dir") or "") != config_dir:
+        raise CohortError("participant argv config-dir must exactly match its private credential directory")
+    if mode == "isolated" and option_values.get("--world-id") != world_id:
+        raise CohortError("isolated argv world-id must exactly match the prepared world")
 
 
 def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dict[str, Any]:
@@ -317,7 +398,13 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
             **{key: str(path) for key, path in paths.items()},
         }
         rendered = _render_argv(list(argv), values)
-        _validate_public_cli(rendered, mode=mode, server=server)
+        _validate_public_cli(
+            rendered,
+            mode=mode,
+            server=server,
+            world_id=world_id,
+            config_dir=str(paths["credential_dir"]),
+        )
         executable_path = Path(rendered[0]).resolve() if Path(rendered[0]).is_absolute() else None
         if executable_path is None:
             found = shutil.which(rendered[0])
@@ -372,10 +459,12 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
 
 
 def prepare(config_path: Path, run_dir: Path, *, mode: str) -> dict[str, Any]:
+    config_path = config_path.expanduser().resolve(strict=True)
     source = _load_json(config_path)
     run_dir = run_dir.expanduser().resolve()
     _private_dir(run_dir)
     manifest = _validate_config(source, mode=mode, run_dir=run_dir)
+    manifest["source_config_path"] = str(config_path)
     manifest_path = run_dir / "manifest.json"
     if manifest_path.exists():
         existing = _load_manifest(run_dir)
@@ -471,8 +560,13 @@ def _load_manifest(run_dir: Path) -> dict[str, Any]:
         raise CohortError("unsupported or missing cohort manifest")
     if len(manifest.get("participants") or []) != 3:
         raise CohortError("manifest must retain exactly three participants")
+    source_path = Path(str(manifest.get("source_config_path") or ""))
+    if not source_path.is_absolute():
+        raise CohortError("prepared manifest lacks an authoritative source config")
+    expected = _validate_config(_load_json(source_path), mode=str(manifest.get("mode") or ""), run_dir=run_dir)
+    expected["source_config_path"] = str(source_path)
     state = _load_json(run_dir / "state.json")
-    if state.get("manifest_digest") != _digest(manifest):
+    if manifest != expected or state.get("manifest_digest") != _digest(expected):
         raise CohortError("prepared manifest integrity check failed")
     return manifest
 
@@ -592,14 +686,67 @@ def _terminate_processes(processes: list[subprocess.Popen[bytes]], *, grace_seco
 
 def _credential_marker(path: Path) -> str | None:
     credential = path / "credential.json"
-    if not credential.is_file():
+    if not credential.exists() and not credential.is_symlink():
         return None
     try:
-        if credential.stat().st_mode & 0o077:
-            return None
+        _assert_owned(credential, directory=False, mode=0o600)
         return "sha256:" + hashlib.sha256(credential.read_bytes()).hexdigest()
-    except OSError:
+    except OSError as exc:
+        raise CohortError(f"credential file cannot be safely read: {credential}") from exc
+
+
+def _jwt_identity(token: str) -> str | None:
+    parts = token.split(".")
+    if len(parts) != 3:
         return None
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(parts[1] + "=" * (-len(parts[1]) % 4)))
+    except (ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    for key in ("controller_id", "player_id", "sub"):
+        value = payload.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _credential_controller_binding(path: Path) -> str:
+    credential = path / "credential.json"
+    _assert_owned(credential, directory=False, mode=0o600)
+    value = _load_json(credential)
+    identities: set[str] = set()
+    for key in ("controller_reference", "controller_id", "player_id", "subject", "sub"):
+        identity = value.get(key)
+        if isinstance(identity, str) and identity:
+            identities.add(identity)
+    for key in ("access_token", "token"):
+        token = value.get(key)
+        if isinstance(token, str):
+            identity = _jwt_identity(token)
+            if identity:
+                identities.add(identity)
+    if len(identities) != 1:
+        raise CohortError(f"credential must admit exactly one controller identity: {credential}")
+    return _digest(next(iter(identities)))
+
+
+def _recheck_private_boundaries(run_dir: Path, manifest: dict[str, Any], *, live: bool) -> None:
+    _assert_owned(run_dir, directory=True, mode=0o700)
+    for participant in manifest["participants"]:
+        for raw_path in participant["paths"].values():
+            path = Path(raw_path)
+            _assert_contained(path, run_dir)
+            _assert_owned(path, directory=True, mode=0o700)
+        for suffix in ("home", "tmp"):
+            path = Path(participant["paths"]["work_dir"]) / suffix
+            _assert_contained(path, run_dir)
+            _assert_owned(path, directory=True, mode=0o700)
+        if live:
+            credential = Path(participant["paths"]["credential_dir"]) / "credential.json"
+            _assert_contained(credential, run_dir)
+            _assert_owned(credential, directory=False, mode=0o600)
 
 
 def _baseline_preflight(manifest: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -658,7 +805,7 @@ def _load_human_approvals(run_dir: Path, manifest: dict[str, Any]) -> dict[str, 
         if status != "COMPLETE" or not approval_receipt or not independence_receipt or not credential_binding or not controller_binding:
             blocked.append(f"{label}:approval_or_independence_receipt_missing")
             continue
-        if _SECRET_ARG.search(approval_receipt) or _SECRET_ARG.search(independence_receipt):
+        if _looks_secret_value(approval_receipt) or _looks_secret_value(independence_receipt):
             rejected.append(f"{label}:secret_like_approval_receipt")
             continue
         approval_receipts.add(approval_receipt)
@@ -703,7 +850,7 @@ def classify_receipt(receipt: dict[str, Any]) -> dict[str, Any]:
         "case": case,
         "status": expected,
         "matched": observed == expected,
-        "code": str(receipt.get("code") or "") or None,
+        "code": _public_value(str(receipt.get("code") or "")) or None,
     }
 
 
@@ -724,19 +871,8 @@ def run_cohort(
         verdict = "NOT_COMPUTABLE" if mode == "isolated" else "OPEN"
         return 0, {"run_id": manifest["run_id"], "status": state["status"], "verdict": verdict}
 
-    preflight, preflight_reasons = _baseline_preflight(manifest)
-    if preflight_reasons:
-        state["reason"] = "critical_preflight_blocked"
-        _atomic_json(run_dir / "state.json", state)
-        return 2, {
-            "run_id": manifest["run_id"],
-            "status": state["status"],
-            "verdict": "REJECTED",
-            "reasons": preflight_reasons,
-            "preflight_verdict": preflight["verdict"],
-        }
-
     if mode == "live":
+        _recheck_private_boundaries(run_dir, manifest, live=False)
         approvals = _load_human_approvals(run_dir, manifest)
         markers = {
             p["label"]: _credential_marker(Path(p["paths"]["credential_dir"])) for p in manifest["participants"]
@@ -762,21 +898,29 @@ def run_cohort(
                 "shared_credentials": shared_credentials,
             }
         approval_by_label = {row["label"]: row for row in approvals["approvals"]}
+        controller_bindings = {
+            participant["label"]: _credential_controller_binding(Path(participant["paths"]["credential_dir"]))
+            for participant in manifest["participants"]
+        }
         binding_mismatches = sorted(
             participant["label"]
             for participant in manifest["participants"]
             if approval_by_label[participant["label"]]["credential_binding_digest"]
             != markers[participant["label"]]
+            or approval_by_label[participant["label"]]["controller_binding_digest"]
+            != controller_bindings[participant["label"]]
         )
-        if binding_mismatches:
+        duplicate_controller_bindings = len(set(controller_bindings.values())) != len(controller_bindings)
+        if binding_mismatches or duplicate_controller_bindings:
             state["status"] = "AWAITING_HUMAN_APPROVAL"
-            state["reason"] = "approval_credential_binding_mismatch"
+            state["reason"] = "approval_controller_or_credential_binding_mismatch"
             _atomic_json(run_dir / "state.json", state)
             return 2, {
                 "run_id": manifest["run_id"],
                 "status": state["status"],
                 "verdict": "REJECTED",
-                "approval_reasons": [f"{label}:credential_binding_mismatch" for label in binding_mismatches],
+                "approval_reasons": [f"{label}:credential_or_controller_binding_mismatch" for label in binding_mismatches]
+                + (["duplicate_controller_binding"] if duplicate_controller_bindings else []),
             }
         _atomic_json(
             run_dir / "human-approval.json",
@@ -789,7 +933,20 @@ def run_cohort(
             },
         )
 
+    preflight, preflight_reasons = _baseline_preflight(manifest)
+    if preflight_reasons:
+        state["reason"] = "critical_preflight_blocked"
+        _atomic_json(run_dir / "state.json", state)
+        return 2, {
+            "run_id": manifest["run_id"],
+            "status": state["status"],
+            "verdict": "REJECTED",
+            "reasons": preflight_reasons,
+            "preflight_verdict": preflight["verdict"],
+        }
+
     prepared: list[tuple[dict[str, Any], dict[str, str], list[str]]] = []
+    _recheck_private_boundaries(run_dir, manifest, live=mode == "live")
     for participant in manifest["participants"]:
         env = _process_environment(participant, mode=mode)
         argv = list(participant["argv"])

@@ -180,10 +180,13 @@ def enable_live_credentials(run_dir: Path, manifest: dict) -> None:
     for participant in manifest["participants"]:
         label = participant["label"]
         path = Path(participant["paths"]["credential_dir"]) / "credential.json"
-        path.write_text(json.dumps({"access_token": "fake-private-token-" + label}), encoding="utf-8")
+        controller_reference = "controller." + label
+        path.write_text(
+            json.dumps({"access_token": "fake-private-token-" + label, "controller_reference": controller_reference}),
+            encoding="utf-8",
+        )
         path.chmod(0o600)
         credential_binding = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-        controller_reference = "controller." + label
         approval = {
             "schema_version": "noema-lca2-human-approval/1.0",
             "run_id": manifest["run_id"],
@@ -267,12 +270,60 @@ def test_prepare_rejects_relative_basename_spoof_and_wrong_rendered_server(tmp_p
         prepare(write_config(tmp_path / "server", value), tmp_path / "server-run", mode="live")
 
 
+@pytest.mark.parametrize(
+    "attack",
+    ["equals", "duplicate"],
+)
+def test_isolated_cli_rejects_equals_and_duplicate_server_bypasses(tmp_path: Path, attack: str):
+    value = config(tmp_path, fake_noema(tmp_path))
+    argv = value["participants"][0]["argv"]
+    if attack == "equals":
+        argv[1:3] = ["--server=https://noema.guru"]
+    else:
+        argv[3:3] = ["--server", "https://noema.guru"]
+    with pytest.raises(CohortError, match="server binding|duplicate participant option"):
+        prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
+
+
+@pytest.mark.parametrize(
+    "replacement, message",
+    [
+        (["--world-id=test.hosted-canonical.other"], "world-id"),
+        (["--config-dir=/tmp/shared-credentials"], "config-dir"),
+    ],
+)
+def test_cli_rejects_equals_world_and_config_dir_bypasses(tmp_path: Path, replacement: list[str], message: str):
+    value = config(tmp_path, fake_noema(tmp_path))
+    argv = value["participants"][0]["argv"]
+    option = replacement[0].split("=", 1)[0]
+    index = argv.index(option)
+    argv[index:index + 2] = replacement
+    with pytest.raises(CohortError, match=message):
+        prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
+
+
 def test_manifest_edit_after_prepare_fails_integrity_check(tmp_path: Path):
     run_dir, _ = prepared(tmp_path)
     manifest_path = run_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     manifest["server"] = "https://noema.guru"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(CohortError, match="integrity check failed"):
+        cohort_status(run_dir)
+
+
+def test_manifest_and_state_sibling_digest_cannot_forge_safety_fields(tmp_path: Path):
+    run_dir, _ = prepared(tmp_path)
+    manifest_path = run_dir / "manifest.json"
+    state_path = run_dir / "state.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["safety"]["browser_automation"] = "ALLOWED"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    state = json.loads(state_path.read_text())
+    state["manifest_digest"] = "sha256:" + hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    state_path.write_text(json.dumps(state), encoding="utf-8")
     with pytest.raises(CohortError, match="integrity check failed"):
         cohort_status(run_dir)
 
@@ -284,7 +335,7 @@ def test_client_executable_edit_after_prepare_fails_integrity_check(tmp_path: Pa
     prepare(write_config(tmp_path, value), run_dir, mode="isolated")
     binary.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     binary.chmod(0o755)
-    with pytest.raises(CohortError, match="client executable integrity check failed"):
+    with pytest.raises(CohortError, match="manifest integrity check failed"):
         run_cohort(run_dir, mode="isolated")
 
 
@@ -293,7 +344,7 @@ def test_prepare_rejects_duplicate_rendered_argv_and_shared_environment_source(t
     value = config(tmp_path, binary)
     for participant in value["participants"]:
         participant["argv"] = [str(binary), "--server", "{server}", "--isolated", "play"]
-    with pytest.raises(CohortError, match="independent rendered argv"):
+    with pytest.raises(CohortError, match="config-dir"):
         prepare(write_config(tmp_path, value), tmp_path / "run", mode="isolated")
 
     value = config(tmp_path, binary)
@@ -576,7 +627,63 @@ def test_live_rejects_approval_binding_mismatch(tmp_path: Path):
     approval.write_text(json.dumps(row), encoding="utf-8")
     code, result = run_cohort(run_dir, mode="live", ack=LIVE_ACK)
     assert code == 2
-    assert "controller-b:credential_binding_mismatch" in result["approval_reasons"]
+    assert "controller-b:credential_or_controller_binding_mismatch" in result["approval_reasons"]
+
+
+@pytest.mark.parametrize("attack", ["arbitrary", "duplicate"])
+def test_live_rejects_controller_bindings_before_spawn(tmp_path: Path, attack: str):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    approval = run_dir / "approvals" / "controller-b.json"
+    row = json.loads(approval.read_text())
+    if attack == "arbitrary":
+        row["controller_binding_digest"] = "sha256:" + "7" * 64
+        approval.write_text(json.dumps(row), encoding="utf-8")
+    else:
+        credential_b = Path(manifest["participants"][1]["paths"]["credential_dir"]) / "credential.json"
+        credential_row = json.loads(credential_b.read_text())
+        credential_row["controller_reference"] = "controller.controller-a"
+        credential_b.write_text(json.dumps(credential_row), encoding="utf-8")
+        row["credential_binding_digest"] = "sha256:" + hashlib.sha256(credential_b.read_bytes()).hexdigest()
+        first_approval = json.loads((run_dir / "approvals" / "controller-a.json").read_text())
+        row["controller_binding_digest"] = first_approval["controller_binding_digest"]
+        approval.write_text(json.dumps(row), encoding="utf-8")
+    code, result = run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+    assert code == 2
+    assert result["verdict"] == "REJECTED"
+    assert not any(
+        (Path(participant["paths"]["work_dir"]) / "process-context.json").exists()
+        for participant in manifest["participants"]
+    )
+
+
+@pytest.mark.parametrize("attack", ["directory-mode", "credential-mode", "credential-symlink"])
+def test_launch_rechecks_private_filesystem_boundaries(tmp_path: Path, attack: str):
+    run_dir, manifest = prepared(tmp_path, mode="live")
+    enable_live_credentials(run_dir, manifest)
+    participant = manifest["participants"][0]
+    credential = Path(participant["paths"]["credential_dir"]) / "credential.json"
+    if attack == "directory-mode":
+        Path(participant["paths"]["credential_dir"]).chmod(0o755)
+    elif attack == "credential-mode":
+        credential.chmod(0o644)
+    else:
+        outside = tmp_path / "outside-credential.json"
+        outside.write_bytes(credential.read_bytes())
+        outside.chmod(0o600)
+        credential.unlink()
+        credential.symlink_to(outside)
+    with pytest.raises(CohortError, match="private path|mode 0?600|mode 0?700"):
+        run_cohort(run_dir, mode="live", ack=LIVE_ACK)
+
+
+def test_receipt_codes_redact_plain_tokens_without_corrupting_ids():
+    secret = classify_receipt(
+        {"case": "accepted_action", "observed": "COMPLETE", "code": "approval_code=AbC123secretVALUE987654321"}
+    )
+    assert secret["code"] == "[REDACTED]"
+    public = classify_receipt({"case": "accepted_action", "observed": "COMPLETE", "code": "request-123"})
+    assert public["code"] == "request-123"
 
 
 @pytest.mark.parametrize(
