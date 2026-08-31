@@ -5,7 +5,7 @@
 - **Recent Completion**:
   - Architecture Deepening v3.3 — Full Bundle Seam Coverage (merged via #594)
   - EWM cutover audit integration and test gate restoration (merged via #596)
-- **Current Focus**: Implementing Hosted Alpha Thaw & RFC-0120 Completion slice, following observed specs handoff from abraxas (Noema-Specs commit e462b6b).
+- **Current Focus**: Implementing Hosted Alpha Thaw & RFC-0120 Completion slice, following the observed handoff from Noema-Specs (commit e462b6b).
 - **Related Completed Work**:
   - fix/ewm-cutover-audit-2026-08 (now merged)
   - feat/architecture-deepening-v3.3
@@ -19,23 +19,23 @@
 - `/docs/evidence/` shows completed Architecture Deepening v3.2.1 → v3.3 transition and EWM cutover integration.
 - Noema-Specs-current shows recent work: Resend email provider migration (b2a8ef4), validation case pinning.
 - CI test gates restored and all tests passing on main.
-- Observed handoff signal from abraxas: Noema-Specs commit e462b6b (docs: record Slice A runtime completion (RFC-0125 / GC9-S2) (#254)).
+- Observed handoff signal from Noema-Specs: commit e462b6b (docs: record Slice A runtime completion (RFC-0125 / GC9-S2) (#254)).
 - Observed acknowledgment from coding: Created feature branch feat/hosted-alpha-thaw-rfc0120-completion to begin work on the Hosted Alpha Thaw & RFC-0120 Completion slice, referencing the spec commit e462b6b.
 
 ## Agent Board Coordination (omh-agent-board)
-**Workflow Objective**: Verified handoff of sealed specs from the Noema-Specs repo (abraxas) to the Noema repo (coding) for the Hosted Alpha Thaw & RFC-0120 Completion slice.
+**Workflow Objective**: Verified handoff of sealed specs from the Noema-Specs repo to the Noema repo (coding) for the Hosted Alpha Thaw & RFC-0120 Completion slice.
 
-**Observed Handoff Signal from abraxas**:
+**Observed Handoff Signal from Noema-Specs**:
 - Commit: e462b6b
 - Message: docs: record Slice A runtime completion (RFC-0125 / GC9-S2) (#254)
 - This commit records that Slice A runtime is completed, indicating that the specs for Slice A (which includes aspects relevant to Hosted Alpha Thaw & RFC-0120) are sealed and ready for implementation.
 
 **Observed Acknowledgment from coding**:
 - Created feature branch: feat/hosted-alpha-thaw-rfc0120-completion
-- This branch is intended to implement the Hosted Alpha Thaw & RFC-0120 Completion slice, based on the specs signal from abraxas.
+- This branch is intended to implement the Hosted Alpha Thaw & RFC-0120 Completion slice, based on the specs signal from Noema-Specs.
 
 **Required Context**:
-- In abraxas/Noema-Specs: current sealed specs state (e.g., latest commit hash, sealed documents, validation receipts).
+- In Noema-Specs: current sealed specs state (e.g., latest commit hash, sealed documents, validation receipts).
 - In coding/Noema: implementation readiness (main branch green, test suite passing).
 
 **Prepared Guidance (Not Observed Evidence)**:
@@ -49,7 +49,7 @@ This agent-board/v1 card provides orchestration guidance only. It does not claim
 
 **Stop Condition**:
 Observed evidence in both profiles showing:
-- **abraxas**: Specs slice sealed/exported (commit e462b6b) with an explicit handoff signal (this status update) sent to coding.
+- **Noema-Specs**: Specs slice sealed/exported (commit e462b6b) with an explicit handoff signal (this status update) sent to coding.
 - **coding**: Specs received (acknowledgment via feature branch), a feature branch created off `main`, first failing test written (TDD red state) that references the sealed specs artifact.
 - **Verified linkage**: The coding work explicitly references the sealed specs artifact (e.g., via commit message, issue link, or inline comment referencing e462b6b).
 
