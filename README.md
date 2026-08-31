@@ -96,6 +96,8 @@ See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/C
 
 **Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
 
+**LCA-2 Gate B cohort runner:** [`docs/LCA2-GATE-B-COHORT-RUNNER.md`](docs/LCA2-GATE-B-COHORT-RUNNER.md) — safe exactly-three-process orchestration through the official `noema` CLI. Isolated runs never claim completion; live runs require explicit human approval and acknowledgement.
+
 **Product UI handoff:** [`docs/UI-HANDOFF.md`](docs/UI-HANDOFF.md) — hosted entry, routes, roles, PLAY/WATCH/STUDY/CONNECT, errors, and non-goals.
 
 ## Public site (GitHub Pages)

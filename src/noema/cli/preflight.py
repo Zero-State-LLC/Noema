@@ -65,7 +65,12 @@ def build_preflight(source: dict[str, Any], *, repository: Path | str = ".") -> 
     )
     if any(not v for v in pin_values) or pin_disagree:
         reasons.append("pins_missing_or_disagree")
-    if str(world.get("status") or health.get("status") or "").upper() in {"BLOCKED", "INCIDENT", "BLOCKING"} or str(health.get("settlement") or health.get("settlement_health") or "").upper() in {"BLOCKED", "INCIDENT", "BLOCKING", "DEGRADED"}:
+    blocked_statuses = {"BLOCKED", "INCIDENT", "BLOCKING", "UNHEALTHY"}
+    degraded_health = blocked_statuses | {"DEGRADED"}
+    world_status = str(world.get("status") or "").upper()
+    health_status = str(health.get("status") or "").upper()
+    settlement_status = str(health.get("settlement") or health.get("settlement_health") or "").upper()
+    if world_status in blocked_statuses or health_status in degraded_health or settlement_status in degraded_health:
         reasons.append("world_blocked")
     independent = [
         p for p in participants

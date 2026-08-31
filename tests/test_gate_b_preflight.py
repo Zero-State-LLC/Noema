@@ -60,6 +60,14 @@ def test_preflight_blocks_incident_world_and_dirty_repository(tmp_path):
     assert "world_blocked" in result["verdict_reasons"]
     assert "repository_dirty" in result["verdict_reasons"]
 
+def test_preflight_blocks_incident_health_even_when_world_is_active(tmp_path):
+    result = build_preflight(
+        candidate(world={"status": "ACTIVE"}, health={"status": "INCIDENT", "settlement_health": "HEALTHY"}),
+        repository=clean_repo(tmp_path),
+    )
+    assert result["verdict"] == "BLOCKED"
+    assert "world_blocked" in result["verdict_reasons"]
+
 
 def test_preflight_blocks_incomplete_canonical_head(tmp_path):
     result = build_preflight(candidate(canonical_head={"sequence": 1}), repository=clean_repo(tmp_path))
