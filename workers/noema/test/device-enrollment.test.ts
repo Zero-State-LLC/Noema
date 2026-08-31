@@ -7,6 +7,8 @@ import {
   denyDevice,
   denyDeviceReview,
   DEVICE_TTL_MS,
+  DEVICE_TTL_SECONDS,
+  DEVICE_POLL_INTERVAL_SECONDS,
   durableDeviceStore,
   GAME_SCOPES,
   memoryDeviceStore,
@@ -126,7 +128,12 @@ describe("startDeviceEnrollment", () => {
     };
     expect(body.user_code).toMatch(/^[A-F0-9]{4}-[A-F0-9]{4}$/);
     expect(body.verification_uri).toBe("https://example.com/connect");
-    expect(body.expires_in).toBe(600);
+    // Regression guard: expires_in was a hardcoded 600 while DEVICE_TTL_MS set the
+    // real expiry. The client derives its polling deadline from this field, so a
+    // drift between them would silently stop polling before the code expired.
+    expect(body.expires_in).toBe(DEVICE_TTL_SECONDS);
+    expect(body.expires_in).toBe(DEVICE_TTL_MS / 1000);
+    expect(body.interval).toBe(DEVICE_POLL_INTERVAL_SECONDS);
     expect(body.interval).toBe(5);
     expect(body.scopes).toEqual([
       "noema.player.read",
