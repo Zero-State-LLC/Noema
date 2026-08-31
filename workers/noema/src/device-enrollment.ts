@@ -11,7 +11,13 @@ export const GAME_SCOPES = [
   "noema.action.submit",
 ] as const;
 
-export const DEVICE_TTL_MS = 10 * 60 * 1000;
+// Async human approval is the normal case: an operator is rarely at the keyboard
+// at the instant an agent mints a code. Ten minutes was too short to be workable
+// and produced repeated expired-unapproved enrollments. Thirty minutes matches
+// common device-flow TTLs and keeps the phishing window bounded.
+export const DEVICE_TTL_MS = 30 * 60 * 1000;
+export const DEVICE_TTL_SECONDS = Math.floor(DEVICE_TTL_MS / 1000);
+export const DEVICE_POLL_INTERVAL_SECONDS = 5;
 
 export type DeviceStatus = "pending" | "approved" | "denied" | "expired" | "redeemed";
 
@@ -248,8 +254,8 @@ export async function startDeviceEnrollment(
     user_code: rec.user_code,
     controller_id: rec.controller_id,
     verification_uri: verificationUri(env, req),
-    expires_in: 600,
-    interval: 5,
+    expires_in: DEVICE_TTL_SECONDS,
+    interval: DEVICE_POLL_INTERVAL_SECONDS,
     scopes: rec.scopes,
     review_delivery,
   });
@@ -448,7 +454,7 @@ export async function pollDeviceToken(
   if (!rec) return err("NOT_AUTHORIZED", "unknown device_code", 401);
   const now = opts?.now ?? Date.now();
   const status = await effectiveDeviceStatus(rec, now);
-  if (status === "pending") return json({ status: "authorization_pending", interval: 5 });
+  if (status === "pending") return json({ status: "authorization_pending", interval: DEVICE_POLL_INTERVAL_SECONDS });
   if (status === "expired") {
     if (rec.status === "pending") await store.put({ ...rec, status: "expired" });
     return err("NOT_AUTHORIZED", "device code expired", 401);
