@@ -7,11 +7,11 @@ import { phosphorInlineScript } from "./watch-phosphor";
 
 const EXTRA = `
 /* Hallmark · genre: atmospheric · macrostructure: Map-Diagram · design-system: site/design.md */
-.watch-head{margin:0 0 1.25rem}
+.watch-head{margin:0 0 .8rem}
 .watch-head h1{
   margin:0 0 .35rem;max-width:none;
-  font:550 clamp(1.8rem,4.5vw,2.6rem)/1.05 var(--font-display);
-  letter-spacing:-.02em;
+  font:550 clamp(1.15rem,2.4vw,1.55rem)/1.1 var(--font-display);
+  letter-spacing:.01em;
 }
 .watch-head .muted{max-width:42rem}
 .watch-meta{
@@ -21,7 +21,7 @@ const EXTRA = `
 .watch-meta .tag{margin:0}
 .watch-state-plate{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr));
-  gap:.55rem 1rem;margin:.85rem 0 0;padding:.7rem 0 0;border-top:1px solid var(--line);
+  gap:.45rem 1rem;margin:.55rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);
 }
 .watch-state-plate .k{
   display:block;color:var(--faint);font:.62rem/1.2 var(--font-mono);
@@ -69,7 +69,9 @@ const EXTRA = `
   animation:banner-in 240ms var(--ease) 1 both;
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
-.watch-stage{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(15rem,.8fr);gap:1.25rem 2rem;margin-top:1.15rem}
+.watch-stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(17rem,.75fr);gap:1rem 1.5rem;margin-top:.8rem}
+.watch-map-col{min-width:0}
+.watch-side{display:grid;align-content:start;gap:1rem;min-width:0}
 @media(max-width:860px){
   .watch-stage{grid-template-columns:1fr;gap:1.25rem}
   #watch-here-open{display:block;width:100%;min-height:44px;margin:.65rem 0 0}
@@ -97,7 +99,7 @@ const EXTRA = `
   #watch-here-sheet.is-open{opacity:1}
 }
 .watch-phos{
-  margin:.85rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);background:transparent;
+  margin:.5rem 0 0;padding:.5rem 0 0;border-top:1px solid var(--line);background:transparent;
 }
 .watch-graph{margin:0;padding:0;list-style:none;display:grid;gap:.35rem;min-height:11rem}
 .watch-site{padding:.45rem 0 .55rem;border-bottom:1px solid var(--line);font:500 .86rem/1.45 var(--font-mono)}
@@ -145,17 +147,13 @@ const EXTRA = `
 .watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
-.watch-atmos{
-  position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.14;
-  background:url(/assets/watch-spectator.jpg) center/cover no-repeat;
-}
 .watch-col{position:relative;z-index:1}
 @media(prefers-reduced-motion:reduce){
   .watch-feed li,.watch-hero,.watch-hero.major,.watch-line .mark.flash,.watch-banner.on{
     transition:none!important;animation:none!important;
   }
 }
-body.is-low-noise .watch-atmos,body.is-low-noise .watch-phos,body.is-low-noise .glyph{display:none!important}
+body.is-low-noise .watch-phos,body.is-low-noise .glyph{display:none!important}
 body.is-low-noise #watch-low-noise{display:block}
 #watch-low-noise{
   display:none;margin:.85rem 0 0;white-space:pre-wrap;
@@ -234,25 +232,8 @@ export function watchHtml(): string {
     ${legendHtml()}
   </header>
 
-  <article class="watch-hero" id="watch-hero">
-    <p class="now-k">Now</p>
-    <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
-    <p class="sub" id="watch-copy"></p>
-    <p class="watch-conseq" id="watch-conseq" hidden></p>
-    <div class="watch-banner" id="watch-banner" hidden></div>
-    <div class="watch-follow-bar" id="watch-follow-bar">
-      <span class="watch-following" id="watch-following" hidden></span>
-      <button type="button" class="btn quiet" id="watch-follow-actor" hidden></button>
-      <button type="button" class="btn quiet" id="watch-follow-site" hidden></button>
-      <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
-    </div>
-    <div class="watch-summary" id="watch-summary" hidden></div>
-    <pre id="watch-low-noise" hidden></pre>
-  </article>
-
   <section class="watch-stage">
-    <div class="watch-atmos" aria-hidden="true"></div>
-    <section class="watch-col" aria-labelledby="watch-graph-label">
+    <section class="watch-col watch-map-col" aria-labelledby="watch-graph-label">
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
@@ -267,15 +248,32 @@ export function watchHtml(): string {
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
     </section>
-    <section class="watch-col" id="watch-here-sheet" aria-labelledby="watch-feed-label">
-      <div class="watch-here-head">
-        <strong>Recently</strong>
-        <button class="btn quiet" id="watch-here-close" type="button" aria-label="Close">×</button>
-      </div>
-      <h2 id="watch-feed-label">Recently</h2>
-      <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
-      <ol class="watch-feed" id="watch-feed"></ol>
-    </section>
+    <aside class="watch-side" aria-label="Current and recent public activity">
+      <article class="watch-hero" id="watch-hero">
+        <p class="now-k">Now</p>
+        <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
+        <p class="sub" id="watch-copy"></p>
+        <p class="watch-conseq" id="watch-conseq" hidden></p>
+        <div class="watch-banner" id="watch-banner" hidden></div>
+        <div class="watch-follow-bar" id="watch-follow-bar">
+          <span class="watch-following" id="watch-following" hidden></span>
+          <button type="button" class="btn quiet" id="watch-follow-actor" hidden></button>
+          <button type="button" class="btn quiet" id="watch-follow-site" hidden></button>
+          <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
+        </div>
+        <div class="watch-summary" id="watch-summary" hidden></div>
+        <pre id="watch-low-noise" hidden></pre>
+      </article>
+      <section class="watch-col" id="watch-here-sheet" aria-labelledby="watch-feed-label">
+        <div class="watch-here-head">
+          <strong>Recently</strong>
+          <button class="btn quiet" id="watch-here-close" type="button" aria-label="Close">×</button>
+        </div>
+        <h2 id="watch-feed-label">Recently</h2>
+        <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
+        <ol class="watch-feed" id="watch-feed"></ol>
+      </section>
+    </aside>
   </section>
   <button class="btn quiet" id="watch-here-open" type="button" aria-expanded="false" aria-controls="watch-here-sheet">Here</button>
   <div class="watch-here-backdrop" id="watch-here-backdrop" hidden></div>
