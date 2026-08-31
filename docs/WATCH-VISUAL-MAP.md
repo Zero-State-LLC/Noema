@@ -6,7 +6,7 @@
 
 **Named pins.** Inventory. Tokens. Tiered phosphor — one MAJOR, ≤3 non-MAJOR (Living Chamber, Specs §18.6). Reduced-motion. Viewports 360 / 390 / 768 / 1280 / 1440. Budgets 180 / 100 / 200.
 
-Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.md) · [PLAYER-BRAND](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/PLAYER-BRAND.md) · [VISUAL-DESIGN](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/VISUAL-DESIGN.md) · `workers/noema/src/watch.ts` · `workers/noema/src/watch-phosphor.ts`.
+Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.md) · [WATCH-VISUAL-DIRECTION](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/WATCH-VISUAL-DIRECTION.md) · [PLAYER-BRAND](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/PLAYER-BRAND.md) · [VISUAL-DESIGN](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/VISUAL-DESIGN.md) · `workers/noema/src/watch.ts` · `workers/noema/src/watch-phosphor.ts`.
 
 ---
 
@@ -24,7 +24,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | MAJOR banner (renders on MAJOR headline, clears ≤2 polls) | `#watch-banner` · `.watch-banner.on` | major-change signal |
 | Feed insert settle (new rows brighten then settle ≤900ms) | `.watch-feed li.fresh` | functional chrome |
 | Headline mark flash (one-shot ≤400ms, NOTABLE/MAJOR change) | `.watch-line .mark.flash` | functional chrome |
-| Atmosphere plate | `.watch-atmos` (`/assets/watch-spectator.jpg`) | functional chrome (≤200 KiB assets) |
+| Ground field | Phosphor Canvas `--void` fill and semantic HTML surface | non-decorative map ground |
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
 | ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; TEXT/no-canvas fallback only, never beside the live canvas) | `#watch-pre` | required text (desktop, TEXT mode) |
@@ -53,7 +53,7 @@ No operator plane, no budgets, no secrets, no Story Seed IDs.
 
 `--ember` is `--color-state-critical` and is not the MAJOR token.
 
-Forbidden: scanlines, glitch, Orbitron, reticle, dashboard, continuous particles.
+Forbidden: wallpaper imagery, giant gradients, scanlines, glitch, Orbitron, reticle, dashboard, continuous particles.
 
 ---
 

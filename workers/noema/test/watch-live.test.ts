@@ -1091,6 +1091,15 @@ describe("watch HTML surface", () => {
     expect(html).toContain("var(--font-mono)");
   });
 
+  it("keeps the public map before subordinate activity and chrome", () => {
+    expect(html.indexOf('class="watch-col watch-map-col"')).toBeGreaterThan(-1);
+    expect(html.indexOf('class="watch-col watch-map-col"')).toBeLessThan(html.indexOf('id="watch-hero"'));
+    expect(html).toMatch(/\.watch-stage\{display:grid;grid-template-columns:minmax\(0,1\.65fr\) minmax\(17rem,\.75fr\)/);
+    expect(html).toContain('class="watch-side" aria-label="Current and recent public activity"');
+    expect(html).not.toContain('class="watch-atmos"');
+    expect(html).not.toContain("watch-spectator.jpg");
+  });
+
   it("marks feed tiers with a text prefix, never color-only (§9)", () => {
     expect(html).toContain('el("span", "mark", markFor(ev.tier))');
     expect(html).toMatch(/\.watch-feed li\{[^}]*grid-template-columns:\.9rem 1\.1rem 1fr/);
