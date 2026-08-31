@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from noema.cli import cohort
 from noema.cli.cohort import (
     CohortError,
     LIVE_ACK,
@@ -861,3 +862,41 @@ def test_invalid_or_private_participant_evidence_blocks_and_is_not_projected(tmp
     assert verification["verdict"] == "REJECTED"
     assert "controller-a:participant_evidence_invalid" in verification["verdict_reasons"]
     assert verification["participants"][0]["evidence"] is None
+
+
+def test_live_mode_does_not_inherit_interpreter_code_channels(monkeypatch):
+    """PYTHONPATH/VIRTUAL_ENV execute orchestrator code in every Controller.
+
+    One PYTHONPATH entry loads the same sitecustomize into all three processes,
+    which is a shared decision context under the Gate B independence contract —
+    and it would leave no trace in the retained evidence. Isolated mode keeps
+    them so the local end-to-end harness can install its observer hook.
+    """
+    monkeypatch.setenv("PYTHONPATH", "/tmp/shared-planner")
+    monkeypatch.setenv("VIRTUAL_ENV", "/tmp/shared-venv")
+    monkeypatch.setenv("PATH", "/usr/bin")
+    participant = {
+        "label": "controller-a",
+        "idempotency_namespace": "ns-a",
+        "paths": {
+            key: f"/run/{key}"
+            for key in (
+                "work_dir",
+                "config_dir",
+                "credential_dir",
+                "model_context_dir",
+                "action_history_dir",
+                "idempotency_dir",
+                "evidence_dir",
+            )
+        },
+    }
+
+    live = cohort._process_environment(participant, mode="live")
+    assert "PYTHONPATH" not in live
+    assert "VIRTUAL_ENV" not in live
+    assert live["PATH"] == "/usr/bin"
+
+    isolated = cohort._process_environment(participant, mode="isolated")
+    assert isolated["PYTHONPATH"] == "/tmp/shared-planner"
+    assert isolated["VIRTUAL_ENV"] == "/tmp/shared-venv"

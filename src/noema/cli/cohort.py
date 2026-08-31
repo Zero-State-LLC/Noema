@@ -447,6 +447,10 @@ def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dic
         for target, source_name in env_from.items():
             if not isinstance(target, str) or not isinstance(source_name, str):
                 raise CohortError("env_from names must be strings")
+            if mode == "live" and target in _LIVE_FORBIDDEN_INHERITED_ENV:
+                raise CohortError(
+                    f"env_from must not set {target} in live mode: it executes orchestrator code in every Controller"
+                )
             if not _ENV_NAME.fullmatch(target) or not _ENV_NAME.fullmatch(source_name):
                 raise CohortError("env_from names must be uppercase environment variable names")
             if _PRIVATE_KEY.search(target) or _PRIVATE_KEY.search(source_name):
@@ -679,8 +683,22 @@ def _pid_alive(pid: int | None, start_ticks: int | None) -> bool:
         return False
 
 
+# Inherited from the orchestrator for every participant. PYTHONPATH and
+# VIRTUAL_ENV are interpreter-code channels: one PYTHONPATH entry executes in all
+# three Controllers through sitecustomize, which is a shared decision context by
+# any reading of the Gate B independence contract. They are dropped in live mode.
+# Isolated mode keeps them so the local end-to-end harness can install its
+# observer hook.
+_INHERITED_ENV = ("PATH", "PYTHONPATH", "VIRTUAL_ENV", "LANG", "LC_ALL", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE")
+_LIVE_FORBIDDEN_INHERITED_ENV = frozenset({"PYTHONPATH", "VIRTUAL_ENV"})
+
+
 def _process_environment(participant: dict[str, Any], *, mode: str) -> dict[str, str]:
-    keep = ("PATH", "PYTHONPATH", "VIRTUAL_ENV", "LANG", "LC_ALL", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE")
+    keep = tuple(
+        name
+        for name in _INHERITED_ENV
+        if mode != "live" or name not in _LIVE_FORBIDDEN_INHERITED_ENV
+    )
     env = {key: os.environ[key] for key in keep if key in os.environ}
     missing: list[str] = []
     for target, source_name in participant.get("env_from", {}).items():
