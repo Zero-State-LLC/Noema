@@ -171,8 +171,20 @@ def _atomic_json(path: Path, value: Any, *, mode: int = 0o600) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     data = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
-    tmp.write_text(data, encoding="utf-8")
-    os.chmod(tmp, mode)
+    # Create at the target mode instead of widening then narrowing. Writing first
+    # and chmod-ing after left the file briefly at 0644 under a normal umask, and
+    # this writes credential-adjacent evidence. O_TRUNC keeps the previous
+    # overwrite semantics; fchmod pins the exact mode, because the umask can only
+    # clear bits from the open() mode and an existing file keeps its own.
+    descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+    try:
+        os.fchmod(descriptor, mode)
+        handle = os.fdopen(descriptor, "w", encoding="utf-8")
+    except BaseException:
+        os.close(descriptor)
+        raise
+    with handle:
+        handle.write(data)
     os.replace(tmp, path)
 
 
