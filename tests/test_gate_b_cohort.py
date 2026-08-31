@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import stat
 import subprocess
 import threading
 import time
@@ -40,6 +42,7 @@ def fake_noema(tmp_path: Path) -> Path:
 import hashlib
 import json
 import os
+import stat
 import pathlib
 import sys
 import time
@@ -900,3 +903,26 @@ def test_live_mode_does_not_inherit_interpreter_code_channels(monkeypatch):
     isolated = cohort._process_environment(participant, mode="isolated")
     assert isolated["PYTHONPATH"] == "/tmp/shared-planner"
     assert isolated["VIRTUAL_ENV"] == "/tmp/shared-venv"
+
+
+def test_atomic_json_creates_at_target_mode_without_a_widening_window(tmp_path: Path, monkeypatch):
+    """The file must never exist at a wider mode, not merely end up narrow.
+
+    Writing then chmod-ing left a window at 0644 under a normal umask, and this
+    writes credential-adjacent evidence. Neutralising chmod isolates the
+    creation mode: if correctness depended on the later call, this fails.
+    """
+    monkeypatch.setattr(cohort.os, "chmod", lambda *a, **k: None)
+    monkeypatch.setattr(cohort.os, "fchmod", lambda *a, **k: None)
+    previous = os.umask(0o022)
+    try:
+        target = tmp_path / "evidence.json"
+        cohort._atomic_json(target, {"controller": "controller-a"})
+        assert stat.S_IMODE(target.lstat().st_mode) == 0o600
+        assert json.loads(target.read_text()) == {"controller": "controller-a"}
+
+        cohort._atomic_json(target, {"controller": "controller-b"})
+        assert stat.S_IMODE(target.lstat().st_mode) == 0o600
+        assert json.loads(target.read_text()) == {"controller": "controller-b"}
+    finally:
+        os.umask(previous)
