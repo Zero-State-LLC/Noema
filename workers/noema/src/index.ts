@@ -80,8 +80,17 @@ import { NoemaWorldDO } from "./world-do";
 
 export { NoemaWorldDO };
 
+// The chrome asks for the typography HOSTED-FIRST-ENTRY pins -- Syne for
+// display, IBM Plex Sans/Mono for interface and machine text -- from Google
+// Fonts. Until 2026-09-01 this CSP blocked that request, so every public page
+// silently rendered in system fallback while the design system specified
+// otherwise. Both hosts are required and they are not interchangeable:
+// fonts.googleapis.com serves the @font-face stylesheet (style-src) and
+// fonts.gstatic.com serves the woff2 files it references (font-src). font-src
+// was absent entirely and inherited default-src 'self', so allowing only the
+// stylesheet host would still have blocked every font file.
 const HTML_CSP =
-  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {
