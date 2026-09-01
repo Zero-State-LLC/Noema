@@ -1370,7 +1370,8 @@ function recordCulture(
   w.culture = applyCultureEvents(w.culture, events as CultureEvent[], actingPlayerId, w.cycle);
 }
 
-function recordTradeMemory(
+/** Exported as a test seam for RFC-0129 conformance item 3. Behavior unchanged. */
+export function recordTradeMemory(
   w: WorldRuntime,
   events: NonNullable<CommandResult["events"]> | undefined,
 ): void {
