@@ -48,6 +48,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Check out pinned Noema-Specs beside the workspace
+        # Cross-repo conformance tests resolve ../Noema-Specs. Keep this
+        # deployment gate aligned with CI by checking out the exact Specs
+        # commit declared in spec-compat.json, never the moving main branch.
+        # Provenance: Notion Sprint 001 Hub + Loop 805 Slice 00 + Hash: NOT_COMPUTABLE
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
+          git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
+          git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
+          echo "Noema-Specs at $PIN"
+
       - name: Refuse frozen first world as PLAY default
         run: |
           set -euo pipefail
