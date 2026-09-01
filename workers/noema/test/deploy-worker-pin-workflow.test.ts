@@ -39,6 +39,20 @@ describe("deploy-worker-pin-pr workflow", () => {
       DEPLOY.indexOf("npm run deploy"),
     );
   });
+
+  it("requires read-only settlement and email-provider safety evidence before deploy", () => {
+    expect(DEPLOY).toContain("Read-only canonical settlement preflight");
+    expect(DEPLOY).toContain("SUPABASE_CANONICAL_WORLD_ID: world.perihelion-reach-3");
+    expect(DEPLOY).toContain("node scripts/inspect-settlement.mjs");
+    expect(DEPLOY).toContain("Read-only transactional email preflight");
+    expect(DEPLOY).toContain("node scripts/email-provider-preflight.mjs");
+    expect(DEPLOY.indexOf("Read-only canonical settlement preflight")).toBeLessThan(
+      DEPLOY.indexOf("npm run deploy"),
+    );
+    expect(DEPLOY.indexOf("Read-only transactional email preflight")).toBeLessThan(
+      DEPLOY.indexOf("npm run deploy"),
+    );
+  });
 });
 
 describe("pin-currency PR gate", () => {
