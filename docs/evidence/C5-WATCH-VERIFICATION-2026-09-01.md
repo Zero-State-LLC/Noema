@@ -91,6 +91,46 @@ labels only, commenting that matching an id "would let a guess confirm internal
 identifiers". That tension is the reason to pin the rule rather than assume either way.
 `SKILL.ORIENT` says to report a `SPEC DEFECT` rather than silently pick a side.
 
+## Second pass, 2026-09-01 — the items the first pass left open
+
+The first pass claimed HTTP dependencies but not the WebSocket, and did not
+reach TEXT, low-noise, or reduced-motion behaviour, without listing them as
+uncovered. They are covered here. **No further findings** — every item passes.
+
+| C5 item | Result |
+|---|---|
+| WebSocket 101 | `HTTP/1.1 101 Switching Protocols` on `/v1/watch/stream`, with `Sec-WebSocket-Accept`. A plain GET without upgrade headers correctly returns 405 |
+| stream payload | first frame is `watch-live/1.0`, `world.perihelion-reach-3`, and carries no `player_id` |
+| TEXT / PIXEL toggle | keyboard-reachable buttons with `aria-pressed`; TEXT hides the canvas host so the canvas renders at `0x0`, PIXEL restores it to `366x205`; the choice persists as `noema.watch.mode` |
+| semantic site list | 10 items in **both** modes, matching the 10 public rooms — the accessible authority is always present, as §4.B requires |
+| `<pre>` cartogram | present and `aria-hidden="true"`, i.e. atmosphere, never the authority |
+| low-noise control | `aria-pressed` flips, body gains `is-low-noise`, persists as `noema.low_noise` — client-local only, per §4.G |
+| reduced motion | six rules under `prefers-reduced-motion`, including a global `animation-duration: .01ms !important` and `transition: none` on feed, hero, flash and banner — §8's instant replace |
+| MAJOR banner | `display:none` idle, `display:block` with `.on`. §8 names permanently-`display:none` banner chrome as a defect; this is not that |
+
+### One thing the WebSocket check settled
+
+`/v1/watch/live` and the stream both render through `watchSnapshot()` →
+`buildWatchLive`, so the entity-id removal in Noema#617 closes that exposure on
+**both** surfaces with one change. The stream frame observed here still carried
+`entity_id` only because live runs `02fd112`, which predates #617.
+
+### Two false alarms, recorded so the next pass does not repeat them
+
+Both were measurement errors, caught by re-measuring rather than reported:
+
+- **"the semantic site list is empty."** It read zero items immediately after
+  navigation. The page had not fetched yet; three seconds later it held 10. Let
+  the poll land before asserting on rendered content.
+- **"TEXT does not disable the canvas."** `canvas.hidden` was false and
+  `display` was `block`, so the element looked live. Its **parent** is hidden,
+  giving it a client box of `0x0`. Test the rendered box — `clientWidth` /
+  `clientHeight` or `offsetParent` — not the element's own `hidden`/`display`.
+
+A third near-miss belongs with them: the first WebSocket attempt returned **405**
+and looked like a broken upgrade. It was curl defaulting to HTTP/2, where the
+upgrade does not apply. Forcing `--http1.1` returned 101.
+
 ## Not covered here
 
 C5's "map dominance and event/map coupling" was checked visually — the map leads and
