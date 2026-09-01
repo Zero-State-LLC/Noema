@@ -18,7 +18,6 @@ OUT = Path(__file__).resolve().parents[1] / "public" / "assets"
 
 STILLS = {
     "1.jpg": "hero-phosphor.jpg",
-    "9.jpg": "watch-spectator.jpg",
     "5.jpg": "play-chamber.jpg",
     "7.jpg": "study-traces.jpg",
     "3.jpg": "topology-bg.jpg",
