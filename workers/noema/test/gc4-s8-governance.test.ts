@@ -2,9 +2,10 @@
  *  The specs fixtures in Noema-Specs/examples/gc4-governance are the oracle:
  *  the runtime evaluator must agree with the validator on every one. */
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 import {
   evaluateGovernanceDecision,
   governanceLines,
@@ -158,7 +159,7 @@ describe("GC4-S8 — visibility stays member-scoped", () => {
 });
 
 describe("GC4-S8 — agrees with the specs fixtures (conformance oracle)", () => {
-  const have = existsSync(FIXTURES);
+  const have = haveSpecsArtifacts(FIXTURES);
   it.skipIf(!have)("every specs fixture evaluates to its expected outcome", () => {
     const files = readdirSync(FIXTURES).filter((f) => f.startsWith("attempt-"));
     expect(files.length).toBeGreaterThanOrEqual(8);
