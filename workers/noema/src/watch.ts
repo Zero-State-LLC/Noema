@@ -747,7 +747,7 @@ export function watchHtml(): string {
             ents.forEach(e => {
               const item = el("span", "watch-exit");
               item.append(glyphNode(e.glyph || "event"));
-              item.append(document.createTextNode(e.label || e.entity_id || ""));
+              item.append(document.createTextNode(e.label || ""));
               eLine.append(item);
             });
           }
