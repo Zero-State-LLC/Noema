@@ -507,6 +507,11 @@ export function watchHtml(): string {
       if (s < 3600) return Math.round(s / 60) + " min ago";
       return Math.round(s / 3600) + " hr ago";
     }
+    // §9 flood guard, same reason as setTag below: the headline is an
+    // aria-live node and this page repaints every POLL_MS.
+    function setLiveText(node, text) {
+      if (node.textContent !== text) node.textContent = text;
+    }
     function setTag(text, cls) {
       const tag = $("watch-state");
       if (tag.textContent !== text) tag.textContent = text;
@@ -593,7 +598,7 @@ export function watchHtml(): string {
         mark.classList.add("flash");
       }
       state.headKey = headKey;
-      $("watch-headline").textContent = head.line || "The Chamber is quiet.";
+      setLiveText($("watch-headline"), head.line || "The Chamber is quiet.");
       const site = roomName(rooms, head.room_id);
       const when = ago(head.occurred_at);
       const bits = [site, when, head.detail].filter(Boolean);
@@ -804,7 +809,7 @@ export function watchHtml(): string {
     }
 
     function showUnavailable(msg) {
-      $("watch-headline").textContent = "Projection unavailable.";
+      setLiveText($("watch-headline"), "Projection unavailable.");
       $("watch-copy").textContent = msg || "";
       setTag("unavailable", "tag");
       $("watch-map").replaceChildren(el("li", "watch-empty", "Projection unavailable."));

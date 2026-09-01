@@ -38,12 +38,12 @@ export function watchMapHtml(): string {
   <header class="map-head">
     <h1>Live map</h1>
     <p class="muted">Richer spectator projection. Theater stays at <a href="/watch">/watch</a>. Derived, not world truth.</p>
-    <div class="map-meta"><span class="tag" id="map-state">connecting</span><span id="map-cycle">cycle —</span><button type="button" class="btn quiet" id="map-pause" aria-pressed="false">Pause</button></div>
+    <div class="map-meta"><span class="tag" id="map-state" aria-live="polite">connecting</span><span id="map-cycle">cycle —</span><button type="button" class="btn quiet" id="map-pause" aria-pressed="false">Pause</button></div>
     <div class="layer-toggles" id="toggles" role="group" aria-label="Layers"></div>
   </header>
   <div class="map-grid">
     <section aria-label="Map">
-      <div class="highlight" id="highlight" hidden></div>
+      <div class="highlight" id="highlight" aria-live="polite" aria-atomic="true" hidden></div>
       <div class="map-board" id="board"></div>
     </section>
     <aside>
@@ -56,6 +56,14 @@ export function watchMapHtml(): string {
     const $ = (id) => document.getElementById(id);
     // §7 (WATCH-LIGHTWEIGHT-SPECTATOR): world text is untrusted — build DOM
     // via textContent only; interpolated-markup assignment is a defect.
+    // WATCH-LIGHTWEIGHT-SPECTATOR §9: "Periodic updates MUST NOT flood AT."
+    // Assigning textContent replaces the text node even when the string is
+    // unchanged, and a mutation on an aria-live node is an announcement
+    // opportunity. This page repaints every 8s, so every live write is guarded.
+    // Mirrors setTag() in watch.ts.
+    function setLive(node, text){
+      if (node.textContent !== text) node.textContent = text;
+    }
     function el(tag, className, text){
       const n = document.createElement(tag);
       if (className) n.className = className;
@@ -63,7 +71,7 @@ export function watchMapHtml(): string {
       return n;
     }
     function paint(d){
-      $("map-state").textContent = d.freshness || "live";
+      setLive($("map-state"), d.freshness || "live");
       $("map-cycle").textContent = "cycle " + (d.cycle || "—");
       const layers = d.layers || [];
       const tog = $("toggles");
@@ -132,7 +140,7 @@ export function watchMapHtml(): string {
       }
       const hi = d.narrative && d.narrative.highlight;
       const box = $("highlight");
-      if (hi && hi.line) { box.hidden = false; box.textContent = String(hi.line); }
+      if (hi && hi.line) { setLive(box, String(hi.line)); box.hidden = false; }
       else box.hidden = true;
     }
     let paused = false;
@@ -141,7 +149,7 @@ export function watchMapHtml(): string {
         const r = await fetch("/v1/watch/map");
         const d = await r.json();
         paint(d);
-      } catch (e) { $("map-state").textContent = "offline"; }
+      } catch (e) { setLive($("map-state"), "offline"); }
     }
     // §6.1 (WATCH-REAL-TIME-MAPPING): pause stops the poll; hidden tabs skip.
     $("map-pause").addEventListener("click", () => {
@@ -149,7 +157,7 @@ export function watchMapHtml(): string {
       const b = $("map-pause");
       b.setAttribute("aria-pressed", paused ? "true" : "false");
       b.textContent = paused ? "Resume" : "Pause";
-      if (paused) $("map-state").textContent = "paused";
+      if (paused) setLive($("map-state"), "paused");
       else refresh();
     });
     refresh();
