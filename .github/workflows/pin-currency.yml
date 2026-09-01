@@ -29,6 +29,31 @@ jobs:
           persist-credentials: false
           sparse-checkout: spec-compat.json
           sparse-checkout-cone-mode: false
+      - name: Report specs.commit drift against Noema-Specs main
+        # Warning only, never a failure. Noema CI clones Noema-Specs pinned to
+        # specs.commit, so when the pin lags, a cross-repo test whose fixture
+        # landed after it skips in CI while passing locally -- green, checking
+        # nothing (that is what happened to RFC-0129's suite, #608). This makes
+        # the lag visible on the six-hourly monitor. It does not fail, because
+        # this repo deliberately does not go red for a change in another one.
+        run: |
+          set -euo pipefail
+          PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
+          rm -rf /tmp/specs-drift
+          git clone --quiet --filter=blob:none --no-checkout \
+            https://github.com/Zero-State-LLC/Noema-Specs.git /tmp/specs-drift
+          MAIN=$(git -C /tmp/specs-drift rev-parse HEAD)
+          if ! git -C /tmp/specs-drift cat-file -e "$PIN" 2>/dev/null; then
+            echo "::warning::spec-compat.json specs.commit ${PIN} is not a commit in Noema-Specs."
+            exit 0
+          fi
+          BEHIND=$(git -C /tmp/specs-drift rev-list --count "${PIN}..${MAIN}")
+          if [ "$BEHIND" -gt 0 ]; then
+            echo "::warning::spec-compat.json specs.commit is ${BEHIND} commit(s) behind Noema-Specs main (${MAIN}). Cross-repo tests needing a newer fixture will skip in CI rather than run. Re-sync the pin with the Worker suite verified green against it."
+          else
+            echo "specs.commit is current with Noema-Specs main (${MAIN})."
+          fi
+
       - name: Compare hosted_live.worker_version_id against GET /version
         run: |
           set -euo pipefail
