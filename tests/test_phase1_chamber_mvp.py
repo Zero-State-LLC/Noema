@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.specs_checkout import require_specs
+from specs_checkout import require_specs
 
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.specs_checkout import require_specs
+from specs_checkout import require_specs
 
 MISSING = Path("/nonexistent/noema-specs/examples/v01-seed")
 
