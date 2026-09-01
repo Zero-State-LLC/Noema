@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.specs_checkout import require_specs
+
 from noema.actions.errors import ActionError
 from noema.app.runtime import NoemaRuntime
 from noema.auth.roles import Role
@@ -42,8 +44,7 @@ def test_phase0_seed_replay_equivalent_local():
 
 
 def test_phase0_seed_replay_equivalent_specs_path():
-    if not SPECS_FIXTURES.is_dir():
-        pytest.skip("Noema-Specs fixtures not available on disk")
+    require_specs(SPECS_FIXTURES, "published v0.1 seed fixtures")
     result = replay_v01_seed(SPECS_FIXTURES)
     assert result.ok, "\n".join(result.divergences)
 
@@ -60,8 +61,7 @@ def test_v01_seed_fixtures_agree_with_the_published_ones():
     value* is not — that would mean the two repositories disagree about the world
     the conformance claim starts from.
     """
-    if not SPECS_FIXTURES.is_dir():
-        pytest.skip("Noema-Specs fixtures not available on disk")
+    require_specs(SPECS_FIXTURES, "published v0.1 seed fixtures")
 
     def flatten(obj: object, path: str = "") -> dict[str, object]:
         out: dict[str, object] = {}
@@ -353,7 +353,7 @@ def test_reducers_are_exactly_closed_catalog_v01():
     ]
     catalog_path = next((p for p in candidates if p.is_file()), None)
     if catalog_path is None:
-        pytest.skip("Noema-Specs catalog not available on disk")
+        require_specs(candidates[0], "event-types catalog")
 
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     expected = {row["eventType"] for row in catalog["x-noema-event-types"]}
