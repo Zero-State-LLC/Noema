@@ -81,7 +81,7 @@ so ids like `entity.relay-7` and `entity.salvage-cache` are public.
 This is flagged as an **ambiguity, not a violation**, because the doctrine does not
 reach it:
 
-- [WATCH-LIGHTWEIGHT-SPECTATOR.md](../../docs/WATCH-LIGHTWEIGHT-SPECTATOR.md) bans entity
+- [WATCH-LIGHTWEIGHT-SPECTATOR.md](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/WATCH-LIGHTWEIGHT-SPECTATOR.md) (Noema-Specs) bans entity
   ids explicitly for `rooms[].traces[]`, and that ban is honoured;
 - it describes room detail as showing "public entity labels", not ids;
 - no rule states whether `rooms[].entities[]` may carry `entity_id`.
