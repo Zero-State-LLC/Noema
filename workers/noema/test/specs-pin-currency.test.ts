@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const COMPAT = JSON.parse(readFileSync(join(HERE, "../../../spec-compat.json"), "utf8")) as {
@@ -29,7 +30,7 @@ function inSpecs(args: string[]): string {
  * not, same as the GC4-S8 fixtures.
  */
 describe("cross-repo Specs pin currency", () => {
-  const have = existsSync(join(SPECS_REPO, ".git"));
+  const have = haveSpecsArtifacts(join(SPECS_REPO, ".git"));
 
   it("declares both pins", () => {
     expect(COMPAT.specs.commit).toMatch(/^[0-9a-f]{40}$/);

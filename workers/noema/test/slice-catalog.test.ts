@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const SRC = join(HERE, "../src");
@@ -73,7 +74,7 @@ function presentInWorker(src: string, value: string): boolean {
 const OPTIONAL = new Set(["social-memory-catalog.gc3-s7.json:prefer_line"]);
 
 describe("game-slice catalogs agree with the Worker", () => {
-  const have = existsSync(SPECS);
+  const have = haveSpecsArtifacts(SPECS);
 
   it.skipIf(!have)("finds catalogs and copy to check", () => {
     const found = copyStrings();

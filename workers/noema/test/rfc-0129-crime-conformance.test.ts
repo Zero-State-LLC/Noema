@@ -25,9 +25,10 @@
  * checked out beside this repo, skipped when it is not — the closed-catalog
  * pattern.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 import { creditsFromDangerEvent, watchPublicDescriptorLines } from "../src/social-memory";
 import { publicReportLines } from "../src/world-reports";
 import { projectionIdForEvent } from "../src/watch-live";
@@ -37,7 +38,7 @@ const HERE = new URL(".", import.meta.url).pathname;
 const EXAMPLES = join(HERE, "../../../../Noema-Specs/examples/catalog");
 const PUBLIC_FIXTURE = join(EXAMPLES, "valid-event-catalog-0.2-crime-detected-public.json");
 const NEITHER_FIXTURE = join(EXAMPLES, "valid-event-catalog-0.2-crime-detected-neither.json");
-const have = existsSync(PUBLIC_FIXTURE) && existsSync(NEITHER_FIXTURE);
+const have = haveSpecsArtifacts(PUBLIC_FIXTURE, NEITHER_FIXTURE);
 
 type Fixture = {
   event_id: string;
