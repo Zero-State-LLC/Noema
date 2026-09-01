@@ -88,6 +88,25 @@ jobs:
           npm run typecheck
           npm test
 
+      - name: Read-only canonical settlement preflight
+        working-directory: workers/noema
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_CANONICAL_WORLD_ID: world.perihelion-reach-3
+        run: |
+          set -euo pipefail
+          node scripts/inspect-settlement.mjs
+
+      - name: Read-only transactional email preflight
+        working-directory: workers/noema
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+        run: |
+          set -euo pipefail
+          node scripts/email-provider-preflight.mjs
+
       - name: Deploy production Worker
         working-directory: workers/noema
         env:
