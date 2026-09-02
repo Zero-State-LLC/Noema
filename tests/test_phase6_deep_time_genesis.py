@@ -153,8 +153,14 @@ def test_d36_reconstruction_fidelity_and_controller_validation():
     for fidelity in (-0.01, 1.01, True):
         with pytest.raises(DeepTimeError):
             validate_reconstruction({**base, "fidelity": fidelity})
-    with pytest.raises(DeepTimeError):
-        validate_reconstruction({**base, "controllers": 3.0})
+
+    for controllers in (0, -1, True, 3.0, "3", [], {}):
+        with pytest.raises(DeepTimeError) as exc:
+            validate_reconstruction({**base, "controllers": controllers})
+        assert exc.value.code == NARRATIVE_INVENTION
+
+    omitted = validate_reconstruction(base)
+    assert "controllers" not in omitted
 
 
 # D37 Gate B registry fidelity / Controller metadata
@@ -174,6 +180,51 @@ def test_d37_registry_preserves_reconstruction_fidelity_and_controllers():
     assert stored["fidelity"] == 0.85
     assert stored["controllers"] == 3
     assert reg.snapshot()["reconstructions"] == [stored]
+
+
+def test_d38_reconstruction_ingest_preserves_provenance_digest_and_caller(tmp_path: Path):
+    rt = NoemaRuntime(db_path=tmp_path / "d38.sqlite3")
+    researcher = rt.create_session(role=Role.RESEARCHER)
+    recon = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.gate-b.38",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": ["controller-a", "controller-b", "controller-c"],
+        "fidelity": 0.9,
+        "controllers": 3,
+    }
+    before = dict(recon)
+
+    out = rt.deep_time_ingest(researcher["session_id"], {"reconstructions": [recon]})
+
+    stored = out["snapshot"]["reconstructions"][0]
+    assert stored["controllers"] == 3
+    assert stored["fidelity"] == 0.9
+    assert stored["digest"].startswith("sha256:")
+    assert recon == before
+    assert rt.deep_time.reconstructions["recon.gate-b.38"] == stored
+
+    invalid_base = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.invalid",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": ["controller-a"],
+    }
+    for controllers in (0, -1, True, 1.5, "3", [], {}):
+        with pytest.raises(DeepTimeError) as exc:
+            rt.deep_time_ingest(
+                researcher["session_id"],
+                {
+                    "reconstructions": [
+                        {
+                            **invalid_base,
+                            "reconstruction_id": f"recon.invalid.{type(controllers).__name__}",
+                            "controllers": controllers,
+                        }
+                    ]
+                },
+            )
+        assert exc.value.code == NARRATIVE_INVENTION
 
 
 # D22 names immutable

@@ -16,6 +16,7 @@ import {
   pollDeviceToken,
   previewDevice,
   startDeviceEnrollment,
+  verifyApprovedDeviceEnrollments,
 } from "../src/device-enrollment";
 import { verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
@@ -56,6 +57,37 @@ async function humanBearer(e = env()) {
     amr: "email_magic_link",
   });
   return minted.access_token;
+}
+
+async function completeShortCodeEnrollment(store: ReturnType<typeof memoryDeviceStore>, e: Env, handle: string) {
+  const started = await startDeviceEnrollment(
+    e,
+    new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+    { metadata: { runtime: handle } },
+    { store },
+  );
+  const { user_code } = (await started.json()) as { user_code: string };
+  const approved = await approveDevice(
+    e,
+    new Request("https://noema.guru/v1/auth/device/approve", {
+      method: "POST",
+      headers: { authorization: `Bearer ${await humanBearer(e)}` },
+    }),
+    { user_code },
+    { store },
+  );
+  expect(approved.status).toBe(200);
+  const body = (await approved.json()) as {
+    approval_receipt: string;
+    independent_control_receipt: string;
+    controller_binding_digest: string;
+  };
+  expect(body.approval_receipt).toMatch(/^approval\./);
+  expect(body.independent_control_receipt).toMatch(/^receipt\./);
+  expect(body.controller_binding_digest).toMatch(/^[0-9a-f]{64}$/);
+  const rec = await store.getByUserCode(user_code);
+  expect(rec).not.toBeNull();
+  return rec!;
 }
 
 describe("startDeviceEnrollment", () => {
@@ -238,7 +270,14 @@ describe("device review token URLs", () => {
     const token = reviewTokenFromMail(calls);
     const approved = await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${token}`), { store });
     expect(approved.status).toBe(200);
-    expect((await approved.json()) as { access_token?: string }).not.toHaveProperty("access_token");
+    const approval = (await approved.json()) as {
+      access_token?: string;
+      approval_receipt?: string;
+      independent_control_receipt?: string;
+    };
+    expect(approval).not.toHaveProperty("access_token");
+    expect(approval.approval_receipt).toMatch(/^approval\./);
+    expect(approval.independent_control_receipt).toMatch(/^receipt\./);
     expect((await approveDeviceReview(e, new Request(`https://noema.guru/v1/auth/device/review/approve?token=${token}`), { store })).status).toBe(401);
     const polled = await pollDeviceToken(e, new Request("https://noema.guru/v1/auth/device/token", { method: "POST" }), { device_code }, { store });
     expect(polled.status).toBe(200);
@@ -315,6 +354,36 @@ describe("previewDevice", () => {
     expect(body.runtime).toBe("hermes");
     expect(body.access_token).toBeUndefined();
   });
+
+  it("is WATCH-safe: approval status is visible without controller identity or credentials", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      {},
+      { store },
+    );
+    const { user_code } = (await started.json()) as { user_code: string };
+    const pending = await previewDevice(e, new Request(`https://noema.guru/v1/auth/device/preview?user_code=${user_code}`), { store });
+    expect(((await pending.json()) as { status: string }).status).toBe("pending");
+
+    await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${await humanBearer(e)}` },
+      }),
+      { user_code },
+      { store },
+    );
+    const approved = await previewDevice(e, new Request(`https://noema.guru/v1/auth/device/preview?user_code=${user_code}`), { store });
+    const body = (await approved.json()) as Record<string, unknown>;
+    expect(body.status).toBe("approved");
+    expect(body).not.toHaveProperty("access_token");
+    expect(body).not.toHaveProperty("controller_id");
+    expect(body).not.toHaveProperty("player_id");
+  });
 });
 
 describe("approveDevice", () => {
@@ -344,12 +413,18 @@ describe("approveDevice", () => {
       access_token?: string;
       status: string;
       controller_id: string;
+      approval_receipt: string;
+      independent_control_receipt: string;
+      controller_binding_digest: string;
     };
     expect(body.status).toBe("approved");
     expect(body.player_id).toMatch(/^player\./);
     expect(body.player_id).not.toBe("player.prabu");
     expect(body.access_token).toBeUndefined();
     expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    expect(body.approval_receipt).toMatch(/^approval\./);
+    expect(body.independent_control_receipt).toMatch(/^receipt\./);
+    expect(body.controller_binding_digest).toMatch(/^[0-9a-f]{64}$/);
     const stored = await store.getByUserCode(user_code);
     expect(stored).not.toHaveProperty("access_token");
     expect(stored?.status).toBe("approved");
@@ -376,6 +451,34 @@ describe("approveDevice", () => {
       { store },
     );
     expect(res.status).toBe(403);
+  });
+
+  it("verifies three independently approved enrollments and rejects contention/recovery gaps", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const records = [
+      await completeShortCodeEnrollment(store, e, "controller-a"),
+      await completeShortCodeEnrollment(store, e, "controller-b"),
+      await completeShortCodeEnrollment(store, e, "controller-c"),
+    ];
+
+    expect((await verifyApprovedDeviceEnrollments(records)).ok).toBe(true);
+    expect(new Set(records.map((record) => record.controller_id)).size).toBe(3);
+    expect(new Set(records.map((record) => record.approval_receipt)).size).toBe(3);
+    expect(new Set(records.map((record) => record.independent_control_receipt)).size).toBe(3);
+
+    const contention = records.map((record) => ({ ...record, controller_id: records[0].controller_id }));
+    const contended = await verifyApprovedDeviceEnrollments(contention);
+    expect(contended.ok).toBe(false);
+    expect(contended.reason).toContain("contention");
+
+    const recoveryRequired = records.map((record, index) => ({
+      ...record,
+      status: index === 0 ? "expired" as const : record.status,
+    }));
+    const recovered = await verifyApprovedDeviceEnrollments(recoveryRequired);
+    expect(recovered.ok).toBe(false);
+    expect(recovered.reason).toContain("approved or redeemed");
   });
 });
 
