@@ -29,6 +29,8 @@ export type EvidenceFragment = {
   kind: "ATTEST" | "HARVEST" | "TRADE";
   cycle: number;
   player_id: string;
+  /** Controller provenance for multi-controller evidence attribution. */
+  controller_id?: string;
   grounding?: string;
   claim?: string;
 };
@@ -183,7 +185,16 @@ export function pushEvidenceFragment(
   const full: EvidenceFragment = {
     // ADR-008: fragment ids persist in co_evolution.deep_time, so a replay of
     // identical inputs must reproduce them exactly.
-    fragment_id: deterministicId(`ev.${frag.cycle}`, frag.subject_ref, frag.kind, frag.player_id, frag.cycle, frag.grounding, frag.claim),
+    fragment_id: deterministicId(
+      `ev.${frag.cycle}`,
+      frag.subject_ref,
+      frag.kind,
+      frag.player_id,
+      frag.cycle,
+      frag.grounding,
+      frag.claim,
+      ...(frag.controller_id ? [frag.controller_id] : []),
+    ),
     ...frag,
   };
   w.evidence_fragments = [...(w.evidence_fragments || []), full].slice(-64);
@@ -218,6 +229,7 @@ export function reconstructionFidelity(
   claim: string,
   fragments: EvidenceFragment[],
   subject: string,
+  controllerCount = 1,
 ): number {
   const about = fragments.filter((f) => f.subject_ref === subject);
   if (!about.length) return 0.2;
@@ -226,21 +238,29 @@ export function reconstructionFidelity(
   const mentionsScar = /scar|over-harvest|deplet|worn|ruin/.test(text);
   const mentionsSubject = text.includes(subject.replace(/^entity\./, "").slice(0, 8).toLowerCase()) || text.length > 8;
   const base = 0.25 + 0.4 * (grounded.length / Math.max(1, about.length)) + (mentionsScar ? 0.2 : 0) + (mentionsSubject ? 0.15 : 0);
-  return clamp01(base);
+  // Independent Controller corroboration is a bounded confidence boost. The
+  // default preserves the pre-Gate-B score and the cap prevents a controller
+  // count from overwhelming the evidence-derived score.
+  const additionalControllers = Math.min(2, Math.max(0, Math.floor(controllerCount) - 1));
+  return clamp01(base + additionalControllers * 0.05);
 }
 
 export function weakenScarsForReconstruction(
   w: DeepTimeSlice,
   subject: string,
   fidelity: number,
+  controllerCount = 1,
 ): number {
   if (fidelity < 0.5) return 0;
   let n = 0;
+  const additionalControllers = Math.min(2, Math.max(0, Math.floor(controllerCount) - 1));
+  const weakening = 0.2 * (1 + additionalControllers * 0.25);
+  const confidence = clamp01(fidelity + additionalControllers * 0.05);
   for (const s of w.scars || []) {
     if (s.fossilized) continue;
     if (s.entity_id === subject || s.room_id && subject.startsWith("entity.")) {
-      s.strength = clamp01(s.strength - 0.2);
-      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, fidelity));
+      s.strength = clamp01(s.strength - weakening);
+      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, confidence));
       n += 1;
     }
   }

@@ -13,6 +13,26 @@ def validate_reconstruction(recon: dict[str, Any]) -> dict[str, Any]:
         raise DeepTimeError(NARRATIVE_INVENTION, "unsupported reconstruction schema")
     if not recon.get("evidence_set"):
         raise DeepTimeError(NARRATIVE_INVENTION, "reconstruction requires evidence_set")
+    # Fidelity is a bounded derived claim. Keep the supplied numeric value
+    # unchanged so registry storage and its digest remain lossless.
+    if "fidelity" in recon:
+        fidelity = recon["fidelity"]
+        if (
+            isinstance(fidelity, bool)
+            or not isinstance(fidelity, (int, float))
+            or not 0 <= fidelity <= 1
+        ):
+            raise DeepTimeError(NARRATIVE_INVENTION, "reconstruction fidelity must be between 0 and 1")
+    # Gate B evidence may report how many independent Controllers contributed.
+    # This is metadata about the evidence, not a new gameplay authority.
+    if "controllers" in recon:
+        controllers = recon["controllers"]
+        if (
+            isinstance(controllers, bool)
+            or not isinstance(controllers, int)
+            or controllers < 0
+        ):
+            raise DeepTimeError(NARRATIVE_INVENTION, "reconstruction controllers must be a non-negative integer")
     # no narrative invention: every inference must cite sources
     for inf in recon.get("inferences") or []:
         if not inf.get("source_refs") and not inf.get("claim_label"):

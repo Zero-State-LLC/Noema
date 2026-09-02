@@ -66,8 +66,11 @@ class DeepTimeRegistry:
 
     def put_reconstruction(self, recon: dict[str, Any]) -> dict[str, Any]:
         v = validate_reconstruction(recon)
-        self.reconstructions[v["reconstruction_id"]] = v
-        return v
+        # Keep optional derived metadata intact. Fidelity and the Controller
+        # contribution count are evidence fields, not registry projections.
+        record = dict(v)
+        self.reconstructions[record["reconstruction_id"]] = record
+        return record
 
     def put_lineage(self, lineage: dict[str, Any]) -> dict[str, Any]:
         v = validate_lineage(lineage)
