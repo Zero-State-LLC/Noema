@@ -638,6 +638,8 @@ export type WorldRuntime = {
   /** Deep Time compressed scars. Derived from harvest/attest trajectories. Not a second ledger. */
   scars?: ScarRecord[];
   evidence_fragments?: EvidenceFragment[];
+  /** Canonical observation evidence metadata; retained in semantic state. */
+  observation_digests?: Record<string, unknown>;
   trajectory_digest?: Record<string, TrajectoryDigest>;
   norm_ratchets?: Record<string, NormRatchet>;
   lore_attractors?: LoreAttractor[];
@@ -3722,6 +3724,7 @@ export async function applyWorldCommand(
         kind: "HARVEST",
         cycle: w.cycle,
         player_id: principal.player_id,
+        controller_id: principal.controller_id,
         grounding: "observed",
         claim: `harvest ${amount}`,
       });
@@ -5807,10 +5810,15 @@ async function applyReconstructCommand(
   };
   w.reconstructions[reconstruction_id] = rec;
   if (prior) prior.status = "SUPERSEDED";
-  const fidelity = reconstructionFidelity(claim, w.evidence_fragments || [], subject);
+  const controllerCount = new Set(
+    (w.evidence_fragments || [])
+      .filter((fragment) => fragment.subject_ref === subject)
+      .map((fragment) => fragment.controller_id || fragment.player_id),
+  ).size;
+  const fidelity = reconstructionFidelity(claim, w.evidence_fragments || [], subject, controllerCount);
   rec.fidelity = fidelity;
   rec.epistemic = fidelity < 0.35 ? "CONTESTED" : rec.epistemic;
-  const weakened = weakenScarsForReconstruction(w, subject, fidelity);
+  const weakened = weakenScarsForReconstruction(w, subject, fidelity, controllerCount);
   debit(pl.budgets, COSTS.RECONSTRUCT);
   pushEvent("BUDGET_CONSUMED", {
     player_id: principal.player_id,
@@ -6556,6 +6564,7 @@ async function applyAttest(
     kind: "ATTEST",
     cycle: w.cycle,
     player_id: principal.player_id,
+    controller_id: principal.controller_id,
     grounding: args.signal?.grounding,
     claim,
   });

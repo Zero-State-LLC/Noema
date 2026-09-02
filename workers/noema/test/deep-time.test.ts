@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyWorldCommand, migrateWorldRuntime, type WorldRuntime } from "../src/world-actions";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
+import { reconstructionFidelity, weakenScarsForReconstruction } from "../src/deep-time";
 import { buildWatchLive } from "../src/watch-live";
 import { previewGenesis } from "../src/genesis";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
@@ -145,6 +146,41 @@ describe("p5-dt-02 evidence + reconstruct fidelity", () => {
     const recorded = Object.values(w.reconstructions || {})[0];
     expect(recorded.fidelity).toBeGreaterThan(0.4);
     expect(w.scars![0].strength).toBeLessThan(strengthBefore);
+  });
+
+  it("adds a bounded corroboration boost for three independent Controllers", () => {
+    const w = fixture();
+    const fragments = [
+      {
+        fragment_id: "fragment.a",
+        subject_ref: "entity.salvage-cache",
+        kind: "ATTEST" as const,
+        cycle: 1,
+        player_id: "player.a",
+        controller_id: "ctrl.a",
+        grounding: "observed",
+      },
+    ];
+    const one = reconstructionFidelity("record", fragments, "entity.salvage-cache", 1);
+    const three = reconstructionFidelity("record", fragments, "entity.salvage-cache", 3);
+    expect(three).toBeGreaterThan(one);
+    expect(three).toBeLessThanOrEqual(1);
+
+    w.scars = [{
+      scar_id: "scar.test",
+      domain: "economic",
+      strength: 0.8,
+      decay_rate: 0.01,
+      room_id: "room.hub",
+      entity_id: "entity.salvage-cache",
+      cycle_born: 1,
+      visibility: "public",
+      reconstruction_confidence: 0.2,
+    }];
+    const before = w.scars![0].strength;
+    weakenScarsForReconstruction(w, "entity.salvage-cache", three, 3);
+    expect(w.scars![0].strength).toBeLessThan(before - 0.2);
+    expect(w.scars![0].reconstruction_confidence).toBeGreaterThanOrEqual(three);
   });
 });
 

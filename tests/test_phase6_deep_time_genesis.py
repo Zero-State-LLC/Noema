@@ -137,6 +137,45 @@ def test_d16_d18_reconstruction_and_hidden():
     assert red["redacted"] is True
 
 
+# D36 Gate B validation of derived fidelity and Controller metadata
+def test_d36_reconstruction_fidelity_and_controller_validation():
+    base = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.gate-b.36",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": ["evidence.controller-a"],
+    }
+    validated = validate_reconstruction({**base, "fidelity": 0.75, "controllers": 3})
+    assert validated["fidelity"] == 0.75
+    assert validated["controllers"] == 3
+    assert validated["digest"].startswith("sha256:")
+
+    for fidelity in (-0.01, 1.01, True):
+        with pytest.raises(DeepTimeError):
+            validate_reconstruction({**base, "fidelity": fidelity})
+    with pytest.raises(DeepTimeError):
+        validate_reconstruction({**base, "controllers": 3.0})
+
+
+# D37 Gate B registry fidelity / Controller metadata
+def test_d37_registry_preserves_reconstruction_fidelity_and_controllers():
+    reg = DeepTimeRegistry()
+    recon = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.gate-b.37",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": ["evidence.controller-a", "evidence.controller-b", "evidence.controller-c"],
+        "fidelity": 0.85,
+        "controllers": 3,
+    }
+
+    stored = reg.put_reconstruction(recon)
+
+    assert stored["fidelity"] == 0.85
+    assert stored["controllers"] == 3
+    assert reg.snapshot()["reconstructions"] == [stored]
+
+
 # D22 names immutable
 def test_d22_canonical_id_immutable_under_rename():
     name = validate_name(_load("name-relay-south.json"))
