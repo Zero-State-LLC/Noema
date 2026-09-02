@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -403,3 +404,26 @@ def test_genesis_fixture_digests_shape():
     if a.get("digest"):
         assert a["digest"].startswith("sha256:")
     assert "genesis_result_a_digest" in exp
+
+
+def test_d38_deep_time_ingest_fidelity(tmp_path: Path):
+    """Gate B: deep_time_ingest should forward fidelity/controllers when ingesting reconstructions."""
+    rt = NoemaRuntime(db_path=tmp_path / "w.db")
+    researcher = rt.create_session(role=Role.RESEARCHER)
+    recon = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.ingest.fid",
+        "evidence_set": [{"kind": "observed"}],
+        "fidelity": 0.78,
+        "controllers": 3,
+    }
+    original = deepcopy(recon)
+
+    out = rt.deep_time_ingest(researcher["session_id"], {"reconstructions": [recon]})
+
+    stored = rt.deep_time.reconstructions["recon.ingest.fid"]
+    snapshot_record = out["snapshot"]["reconstructions"][0]
+    assert stored["fidelity"] == snapshot_record["fidelity"] == 0.78
+    assert stored["controllers"] == snapshot_record["controllers"] == 3
+    assert stored["digest"] == snapshot_record["digest"]
+    assert recon == original
