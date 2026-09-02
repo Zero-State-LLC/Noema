@@ -55,7 +55,16 @@ describe("requestAgentEnrollment (Gate B multi-controller)", () => {
     const result = await requestAgentEnrollment([{ label: "a" }, { label: "b" }]);
     const check = verifyEnrollmentIndependence(result);
     expect(check.ok).toBe(false);
-    expect(check.reason).toMatch(/need 3/);
+    expect(check.reason).toMatch(/need exactly 3/);
+  });
+
+  it("rejects a batch larger than the exact three-controller Gate B bound", async () => {
+    const result = await requestAgentEnrollment([
+      { label: "a" }, { label: "b" }, { label: "c" }, { label: "d" },
+    ]);
+    const check = verifyEnrollmentIndependence(result);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toMatch(/exactly 3/);
   });
 });
 
