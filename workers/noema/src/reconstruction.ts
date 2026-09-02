@@ -90,21 +90,51 @@ export function visibleTo(
   return false;
 }
 
+/**
+ * Gate B: multi-controller contention labels for WATCH evidence lines.
+ * Returns a deterministic label for each distinct controller_id contributing
+ * evidence to a reconstruction, for display in WATCH output.
+ */
+export function controllerContentionLabels(
+  refs: ReconstructionEvidence[],
+): string[] {
+  const seen = new Set<string>();
+  const labels: string[] = [];
+  for (const ref of refs) {
+    const cid = ref.source_entity_id;
+    if (cid && !seen.has(cid)) {
+      seen.add(cid);
+      labels.push(cid.replace(/^ctrl\./, "").slice(0, 16));
+    }
+  }
+  return labels;
+}
+
 export function reconstructionLines(
   recs: ReconstructionRecord[],
   names: Record<string, string | undefined>,
 ): string[] {
   const out: string[] = [];
   for (const rec of recs) {
-    const status = rec.epistemic === "CONTESTED" ? "Contested" : "Recorded";
+    const isContested = rec.epistemic === "CONTESTED";
+    const status = isContested ? "Contested" : "Recorded";
     const n = rec.evidence_refs.length;
     const subject = rec.subject_ref.replace(/^entity\./, "");
+    const displayName = names[rec.subject_ref] ?? names[subject] ?? subject;
     const account = rec.claim.trim().slice(0, 160);
-    out.push(`Reconstruction: ${subject}`);
+    out.push(`Reconstruction: ${displayName}`);
     out.push(`Based on: ${n} accessible source${n === 1 ? "" : "s"}`);
     if (account) out.push(`Account: ${account}`);
     out.push(`Status: ${status}`);
+    // Gate B: emit fidelity line when present (WATCH evidence support)
+    if (typeof rec.fidelity === "number") {
+      out.push(`Fidelity: ${rec.fidelity.toFixed(2)}`);
+    }
+    // Gate B: emit contention line when multiple independent controllers contributed
+    const controllers = controllerContentionLabels(rec.evidence_refs);
+    if (isContested && controllers.length >= 2) {
+      out.push(`Contention: ${controllers.join(", ")}`);
+    }
   }
-  void names;
-  return out.slice(0, 12);
+  return out.slice(0, 20);
 }
