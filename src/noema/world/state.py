@@ -276,6 +276,14 @@ class EntitiesBundle:
 
 
 
+    def patch_entity(self, entity_id: str, fields: dict[str, Any]) -> None:
+        """Gate B mutation seam: shallow-merge fields into an entity dict (reduce locality).
+        Used for INSPECT controller tracking without touching core entity properties."""
+        if entity_id not in self._state.entities:
+            return
+        for k, v in fields.items():
+            self._state.entities[entity_id][k] = v
+
     def entity_or_raise(self, entity_id: str) -> dict[str, Any]:
         """Narrow seam: return entity or raise (reduce locality)."""
         if entity_id not in self._state.entities:

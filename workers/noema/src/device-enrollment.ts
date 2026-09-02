@@ -186,6 +186,108 @@ export function playerIdFromDeviceController(controllerId: string): string | nul
   return slug ? `player.${slug}` : null;
 }
 
+// ---------------------------------------------------------------------------
+// Gate B: multi-controller enrollment support (3+ independent external controllers)
+// ---------------------------------------------------------------------------
+
+export type AgentEnrollmentRequest = {
+  label: string;
+  runtime?: string;
+  scopes?: string[];
+  owner_email?: string;
+};
+
+export type AgentEnrollmentReceipt = {
+  label: string;
+  controller_id: string;
+  player_id: string | null;
+  /** Opaque binding digest for Gate B evidence. sha256 of controller_id. */
+  controller_binding_digest: string;
+  status: "PENDING" | "DUPLICATE" | "CONTENTION";
+};
+
+export type BatchEnrollmentResult = {
+  receipts: AgentEnrollmentReceipt[];
+  /** Controllers that share a controller_id (should never happen; fail-closed). */
+  contention: string[];
+};
+
+/**
+ * Gate B: allocate enrollment receipts for a batch of 3+ independent external
+ * Agent Controllers. Each controller must have a distinct label and receives a
+ * distinct controller_id + player_id. Duplicate labels or colliding controller
+ * ids are flagged as CONTENTION (fail-closed: the batch is still returned so
+ * the caller can inspect and reject).
+ *
+ * This does NOT start device-flow or write to a store — use startDeviceEnrollment
+ * for each receipt after human approval.
+ */
+export async function requestAgentEnrollment(
+  requests: AgentEnrollmentRequest[],
+): Promise<BatchEnrollmentResult> {
+  const receipts: AgentEnrollmentReceipt[] = [];
+  const contention: string[] = [];
+  const seenLabels = new Set<string>();
+  const seenControllerIds = new Set<string>();
+
+  for (const req of requests) {
+    const label = String(req.label || "").trim();
+    const isDuplicateLabel = seenLabels.has(label);
+    seenLabels.add(label);
+
+    const controller_id = allocateDeviceControllerId();
+    const isDuplicateController = seenControllerIds.has(controller_id);
+    seenControllerIds.add(controller_id);
+
+    const player_id = playerIdFromDeviceController(controller_id);
+    const controller_binding_digest = await sha256Hex(controller_id);
+
+    let status: AgentEnrollmentReceipt["status"] = "PENDING";
+    if (isDuplicateLabel || isDuplicateController) {
+      status = isDuplicateLabel ? "DUPLICATE" : "CONTENTION";
+      contention.push(controller_id);
+    }
+
+    receipts.push({ label, controller_id, player_id, controller_binding_digest, status });
+  }
+
+  return { receipts, contention };
+}
+
+/** Verify that a batch enrollment result satisfies Gate B independence requirements:
+ *  - exactly `count` receipts (default 3)
+ *  - all PENDING (no DUPLICATE or CONTENTION)
+ *  - all controller_ids, player_ids, and labels are distinct
+ */
+export function verifyEnrollmentIndependence(
+  result: BatchEnrollmentResult,
+  count = 3,
+): { ok: boolean; reason?: string } {
+  if (result.receipts.length < count) {
+    return { ok: false, reason: `need ${count} receipts, got ${result.receipts.length}` };
+  }
+  if (result.contention.length > 0) {
+    return { ok: false, reason: `contention detected: ${result.contention.join(", ")}` };
+  }
+  const labels = result.receipts.map((r) => r.label);
+  const controllerIds = result.receipts.map((r) => r.controller_id);
+  const playerIds = result.receipts.map((r) => r.player_id);
+  if (new Set(labels).size !== labels.length) return { ok: false, reason: "duplicate labels" };
+  if (new Set(controllerIds).size !== controllerIds.length) return { ok: false, reason: "duplicate controller_ids" };
+  if (new Set(playerIds).size !== playerIds.length) return { ok: false, reason: "duplicate player_ids" };
+  if (result.receipts.some((r) => r.status !== "PENDING")) {
+    return { ok: false, reason: "non-pending receipt in batch" };
+  }
+  return { ok: true };
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export async function startDeviceEnrollment(
   env: Env,
   req: Request,
