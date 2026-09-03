@@ -15,7 +15,6 @@
   - Graft advisory, plan maintenance, handoff orchestration.  
   - Visible assignments only (board #18, #321 comments).  
   - Cross-repo continuity (Noema + Noema-Specs).  
-  - Buzz channel/DM facilitation and stats reporting (graft token savings).  
   - Do not execute Galadriel-assigned code slices unless explicitly handed back.
 
 - **Galadriel (Execution Partner):**  
@@ -65,7 +64,6 @@ Success criteria:
 - Board #18 items (#290 / phase5 slice) moved to Review → Done (visible).
 - #321 thread documents graft usage, token savings, and collaboration handoffs.
 - Parent continuation plan evidence row for Gate B updated.
-- Graft stats reported (target: continue >300k–400k+ savings pattern on surfaces).
 
 Follow-on milestone (after this): Full LCA-2 Gate B candidate (live 3-enrollment receipts + reconstruction evidence packet) or next ranked item from parent plan.
 
@@ -158,7 +156,6 @@ All future collaboration handoffs must reference this document.
 
 **Executed by:** Abrasax (lead verification + artifacts; delegated core hosted manual to Galadriel per plan).
 
-**Grafts performed before runs/edits:** Multiple targeted graft ask on "phase5-verify", "Gate B fidelity", "WATCH", "buildWatchLive", "project_spectator_live", "drawPhosphorFrame", test files, continuation plans, CHANGELOG, etc. (savings this turn: 26k + 4k + 15k + 8k + 31k + 18k + 29k + 26k + 164k + 140k + ... cumulative well over 500k tokens this phase).
 
 **TDD Verification Runs (all targeted markers now GREEN):**
 - Workers:
@@ -338,7 +335,6 @@ Each now contains explicit "Cohort Sign-in & Sandbox Approval Handling" / "Cohor
 
 **C2 TDD prep:** test_d35_canonical_fidelity_multi_controller exists in tests/test_phase6_deep_time_genesis.py (graft hit, mirrors canonicalWorldState for Gate B). Can extend for full canonicalStateMaterial/settlement roundtrip if directed.
 
-**Graft savings this turn:** 100k+ (build + ~8k 72% canonical/reduce + priors 80-93% eff; cumul >>500k).
 
 **Next supportive:** Awaiting g direction on C0 hosted manual or C2 slice (TDD on canonical fidelity or cohort UX helper).
 
@@ -413,7 +409,6 @@ All supportive tasks advanced. Ready for g direction on C0 (hosted manual /watch
 ### Turn Close (supportive)
 - cohort-signin-analysis: MARKED COMPLETE (full repo graft analysis + skills now contain the documented improvements for 3-agent cohort sign-in/approval friction).
 - supportive-continuation: Advanced with re-checks, graft build, C2 TDD prep (test_d35 confirmed + seams for extension), plan updates. Next recommended: extend test_d35 (failing first) for full canonicalStateMaterial + settlement + reconstruction roundtrip with controllerCount=3 (assert fidelity preserved).
-- Total graft savings this turn: ~144k (99% re-check) + ~9.8k (81% C2) + ~13k (77% cohort) + ~153k (99% test_d35) + build = **~320k+** (phase cumul >>500k-1M+; 77-99% efficiency).
 - All graft-first, TDD-prep, supportive, evidence-boundary. Ready for g direction on C0 hosted manual or specific C1/C2 handoff via #321/board/Buzz.
 
 
@@ -429,7 +424,6 @@ Graft re-check (mandatory after reload): JUSTIFIED for both tasks.
 
 Graft build: 563 files re-indexed.
 Graft C2 TDD prep: canonicalStateMaterial + reconstructionFidelity seams (~8k saved).
-Graft savings this turn: re-check ~3.3k (65%) + C2 ~8.1k (74%) + build (baseline) + prior cumulative.
 Total this turn: ~11k+ (phase >>500k).
 
 Status: C0 delegated to g. C1 prepped. C2 TDD (test_d35 extension for canonical roundtrip) ready. Cohort improvements now in skills + repo.
@@ -673,7 +667,6 @@ Integrated with existing `buzz-send.py` (reuses keys/relay/channel from .env). M
 ---
 
 ### Supportive Continuation Update — 2026-09-03 02:06 UTC
-**Task slice:** Skills (codex/hermes-agent/github-auth) reloaded full. Graft this slice: 84,287 tok saved (96%). New surfaces: buildWatchLive (watch-live.ts:649-812) explicitly accepts reconstructions[] + reconstruction_fidelity + controllers for public projection (Gate B TDD phase2 comment). weakenScarsForReconstruction + reconstructionFidelity (deep-time.ts) with controllerCount multi-boost. Phase6 tests: 34/34 green re-verified. Supportive-continuation justified: advances LCA-2 Gate B fidelity/multi-controller visibility. C0 hosted manual direction surfaced via WATCH/live paths. Cross-ref plan next. Ready for g direction on C0 or continue C1/C2.
 **Graft re-check:** justified (see details below)
 **Next:** Ready for g direction on C0 or specific C1/C2 action (e.g. failing TDD extension for controllerCount=3 roundtrip).
 
@@ -1136,4 +1129,61 @@ Clean evidence only. Full chain (reduce → deep_time → canonical/settlement �
 - Re-verifies: phase6 34/34, client 5/5 green.
 - Plan cleaned (savings stripped).
 - Next: Awaiting g on C0 delegation (hosted manual/phase5-verify/watch fidelity surfaces). Continue supportive C2/C3 as directed.
+
+
+### Supportive Continuation Update — C0 Delegation Prep (clean, no savings)
+**Task slice:** next after C2 PR#625 merge — delegate C0 hosted manual/phase5-verify/watch fidelity to g
+**Graft re-check:** justified (post skill reloads + grafts on buildWatchLive/drawPhosphorFrame + re-verifies)
+
+- Post PR#625: full C2 fidelity/multi-controller chain merged (settlement roundtrip + WATCH surfaces via reconstructions/fidelity/controllers).
+- Graft on C0 surfaces: buildWatchLive accepts reconstructions + reconstruction_fidelity + controllers (Gate B comments); drawPhosphorFrame modulates by fidelity + ctrlBoost (matches deep-time multiBoost).
+- Evidence boundary (from plan): phase5-verify still PHASE5_PENDING for hosted (fidelity data in live /watch /map /phosphor post-deploy).
+- Re-verifies: phase6 fidelity/d39 subset green (12 passed filtered), full 37/37 + client 5/5.
+- Plan cleaned.
+- Next: clean Buzz delegation request to g for C0 hosted manual verification + phase5-verify on current worker (fidelity visibility in projections).
+- Continue supportive C1/C2/C3 grafts/evidence as directed. Awaiting g response on #321/board.
+
+
+### Supportive Continuation Update — Board #321 / CHANGELOG / Specs crossref (clean, no savings)
+**Task slice:** C0 delegation prep + board/CHANGELOG/specs for post C2 fidelity
+**Graft re-check:** justified (grafts on deep_time_ingest, test_d38/d39, runtime.py)
+
+- Graft: test_d38/d39 confirm deep_time_ingest forwards fidelity/controllers (runtime.py L1216+ iterates reconstructions, calls put_reconstruction with fidelity).
+- Evidence boundary: C2 complete, C0 delegated via clean Buzz.
+- Re-verifies green.
+- Plan/evidence cleaned + appended.
+- Next: await g response on C0; continue supportive grafts on board #321 updates, Noema-Specs next Gate B candidate, handoff prep.
+- Refs board #321, #18, #590/#622.
+
+
+### Supportive Continuation Update — C0 Delegation Prep + Watch Fidelity Surfaces (clean, no savings)
+**Task slice:** next-1/2/3/4: C0 phase5-verify / hosted manual / watch fidelity (buildWatchLive, watchSnapshot, phosphor, map, spectator) + re-verifies + clean append
+**Graft re-check:** justified (post PR#625 merge on main 791d5c9; C2 settlement + full multi-controller WATCH chain complete; C0 pending g per plan)
+
+- Grafts (MANDATORY first):
+  - buildWatchLive (workers/noema/src/watch-live.ts): accepts reconstructions?: Array<{fidelity, controllers, visibility}>, reconstruction_fidelity, controllers; Gate B comment on forwarding from deep_time / watchSnapshot; fail-closed defaults 0/1.
+  - drawPhosphorFrame (watch-phosphor.ts:L930+): reconstruction_fidelity + controllers modulate intensity (fidBoost, ctrlBoost matching deep-time multiBoost); Gate B comment.
+  - project_spectator_live (src/noema/observations/project.py): forwards reconstruction_fidelity (avg public) + controllers (max) from state.reconstructions; Gate B phase2 wiring comment matching TS contract.
+  - deep_time_ingest (runtime.py:L1216+): iterates records.get("reconstructions"), calls put_reconstruction(dict(r)) with explicit Gate B (Galadriel task) comment tying to registry/validate/reduce obs_digests.
+  - canonicalStateMaterial + related: preserves state for settlement fidelity roundtrips.
+  - Additional: watchSnapshot / world-do wiring implied in grafts for full surfaces.
+
+- Re-verifies (correct cwd, repeated): tests/test_phase6_deep_time_genesis.py **37/37 passed** (fidelity/d39/d38 subsets green); noema-client-current/tests/test_semantic_obs.py **5/5 passed**.
+- Evidence boundary: C2 complete (PR#625 merged squash). C0: PHASE5_PENDING for hosted manual verification of fidelity visibility in /watch /map /phosphor /live projections on current worker (desktop/mobile). Local grafts confirm seams wired end-to-end for public projections.
+- Plan/evidence: cleaned (savings stripped via sed); this clean block appended.
+- Next: clean Buzz delegation request to g (Galadriel) for C0 hosted manual/phase5-verify on watch fidelity surfaces. Awaiting g direction/response on #321/board. Continue supportive C1/C2/C3 grafts as needed.
+- Refs: board #321, #18, #590/#622, PR #625 (merged commit 791d5c9).
+
+
+### Supportive Continuation Update — Board #321 / Handoff Prep / Noema-Specs Gate B Crossref (clean, no savings)
+**Task slice:** next-6/8/10 + delegation sent
+**Graft re-check:** justified (C0 surfaces + deep_time full grafted; delegation Buzz sent; awaiting g)
+
+- Grafts: require_specs (tests/specs_checkout.py) for Noema-Specs handling (skip/fail in CI if missing post-pin); test_d32_gate_b_multi_controller_fidelity (test_phase6...py) deepening obs_digests for fidelity/controllers; prior grafts cover handoff artifacts (plan links, evidence boundary table, graft spans for g on phase5-verify).
+- Clean Buzz delegation sent successfully (event accepted): explicit request to g for C0 hosted manual/phase5-verify on fidelity visibility in projections.
+- Evidence boundary: C2 complete. C0 PHASE5_PENDING (hosted verification delegated). Handoff artifacts in plan (this block + prior C0 prep).
+- Plan/CHANGELOG/specs crossref: plan updated clean; board #321 refs maintained; Noema-Specs next candidate after fidelity visibility (Gate B multi-controller) noted for future.
+- Re-verifies: 37/37 + 5/5 green.
+- Next: await g response on C0 / #321. Supportive grafts continue if directed. Clean process.
+- Refs: board #321/#18, PR#625 (merged), Noema-Specs.
 
