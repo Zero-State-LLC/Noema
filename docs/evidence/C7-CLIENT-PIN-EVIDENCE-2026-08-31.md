@@ -5,6 +5,19 @@
 **Verdict:** **NOT YET.** The four checks that do not require enrollment pass. Three that do require it are unrun.
 **This packet does not promote the pin.** It changes no pin, contract, or runtime.
 
+## Amendment 2026-09-03 — owner-authorized pin advance
+
+Danny authorized advancing `hosted_live.official_client` to `noema-client==0.1.20`
+(verified GitHub Latest release [`v0.1.20`](https://github.com/scrimshawlife-ctrl/noema-client/releases/tag/v0.1.20)
+on `scrimshawlife-ctrl/noema-client`, also on PyPI; `v0.1.21` was not tagged).
+The 2026-08-31 verdict above stays historically accurate: C7 enrollment / act /
+receipt checks were unrun, and this amendment does not run them. This is an
+owner override, not a rewrite that the 2026-08-31 packet already allowed
+promotion.
+
+This amendment does not complete Gate B. Gate B remains **OWNER_BLOCKED**.
+This amendment does not enroll, publish a Worker, or close LCA-2.
+
 ## Why this exists
 
 [The continuation plan](CONTINUATION_PLAN_spec-directed-runtime-2026-08-31.md) C7 says:
@@ -109,3 +122,7 @@ and `hosted_live.official_client` may advance to `noema-client==0.1.20`, closing
 the mismatch explicitly, as `A10` requires.
 
 Promoting the pin because `0.1.20` exists remains a forbidden fill.
+
+The 2026-09-03 amendment at the top is the later owner override that advanced
+the pin anyway. It does not rewrite this 2026-08-31 follow-on as already
+allowed, and it does not complete Gate B (`OWNER_BLOCKED`).

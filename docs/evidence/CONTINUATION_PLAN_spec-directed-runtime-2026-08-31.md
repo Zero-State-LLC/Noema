@@ -6,6 +6,12 @@
 **Official client baseline:** `af19d165e8ba2ef4d9a327ac6c831213058ad433` (`0.1.20`)  
 **Disposition:** continue from existing work; do not restart or recreate WATCH, cohort, auth, or client stabilization slices.
 
+**Amendment 2026-09-03 (client pin):** Danny authorized advancing
+`hosted_live.official_client` to `noema-client==0.1.20` (GitHub Latest
+`v0.1.20`; `v0.1.21` was not tagged). C7 enrollment-bound checks remain
+unrun. Gate B remains **OWNER_BLOCKED**. This does not enroll, publish,
+or close LCA-2.
+
 ## Objective
 
 Bring accepted Specs, runtime source, the deployed Worker, the official client,
@@ -23,7 +29,7 @@ state. Select the first missing link, not the most visible feature.
 | WATCH `/watch/map` | Desktop and 390 px mobile browser loads passed; map, Health, River, navigation, and live state rendered | CURRENT_DEPLOYMENT_VERIFIED |
 | Map-first source `45e2070` | Not deployed | HOSTED_NOT_COMPUTABLE |
 | Official client | Source/release `0.1.20`; clean suite passed 165 tests; live discovery and `doctor` passed | VERIFY_EXISTING |
-| Hosted client pin | `noema-client==0.1.15` | PROMOTION_NOT_EVIDENCED |
+| Hosted client pin | `noema-client==0.1.20` | OWNER_AUTHORIZED (Danny 2026-09-03; C7 enrollment checks still unrun) |
 | LCA cohort runner | Real local Worker plus three official-client processes verified; participant isolation protections present | RUNNER_VERIFIED_LOCAL |
 || Gate B | Code paths for fail-closed optional reconstruction controllers (positive real int or omitted) + human approval + independent-control receipts for exactly three enrollments (rejecting contention/recovery gaps) merged via #624 (Galadriel assignments Noema #622 + Noema-Specs #290); tests passed (Worker 1628, Python 541); live external controllers and human approvals absent | OWNER_BLOCKED (code advanced; local evidence only) |
 | Email provider status | Hosted provider-management is ADMIN-gated | AUTHORIZED_PROBE_REQUIRED |
@@ -179,6 +185,13 @@ After the deployed Worker is settled, run:
 - cross-repo command/affordance fixtures.
 
 Promote the pin only when the evidence applies to the current Worker.
+
+**Amendment 2026-09-03:** Danny authorized advancing `hosted_live.official_client`
+to `noema-client==0.1.20` (latest existing GitHub release; `v0.1.21` was not
+tagged). The rule above still holds as the 2026-09-01 instruction: do not
+promote solely because a tag exists. This override does not complete the
+enrollment-bound C7 checks and does not complete Gate B. Gate B remains
+**OWNER_BLOCKED**.
 
 ### C8. Complete live LCA Gate B evidence
 
