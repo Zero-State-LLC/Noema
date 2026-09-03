@@ -27,7 +27,7 @@ class WorldState:
     messages: dict[str, dict[str, Any]] = field(default_factory=dict)
     trades: dict[str, dict[str, Any]] = field(default_factory=dict)
     pending_observations: dict[str, dict[str, Any]] = field(default_factory=dict)
-    observation_digests: dict[str, str] = field(default_factory=dict)
+    observation_digests: dict[str, dict[str, Any] | str] = field(default_factory=dict)  # deepened for Gate B multi-controller fidelity (architecture seam)
     situations: dict[str, dict[str, Any]] = field(default_factory=dict)
     audit: list[dict[str, Any]] = field(default_factory=list)
     destroyed_entities: list[str] = field(default_factory=list)

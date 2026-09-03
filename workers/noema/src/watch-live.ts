@@ -661,6 +661,10 @@ export function buildWatchLive(input: {
   now?: number;
   rumor?: LaterTraceRumor;
   organizations?: LaterTraceOrg[];
+  // Gate B (TDD phase2): reconstructions / fidelity from deep_time for public projection
+  reconstructions?: Array<{ fidelity?: number; controllers?: number; visibility?: string }>;
+  reconstruction_fidelity?: number;
+  controllers?: number;
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
@@ -697,6 +701,15 @@ export function buildWatchLive(input: {
     candidates,
     held: input.held,
   });
+
+  // Gate B (phase2 wiring): forward fidelity + controllerCount from reconstructions / deep_time_ingest
+  // (input will be populated by watchSnapshot / runtime when wired; default fail-closed to 0/1)
+  const reconstruction_fidelity = input.reconstruction_fidelity ??
+    (input.reconstructions && input.reconstructions.length
+      ? (input.reconstructions.find((r: any) => (r.visibility || "").toUpperCase() === "PUBLIC")?.fidelity ||
+         input.reconstructions[0]?.fidelity || 0)
+      : 0);
+  const controllers = input.controllers ?? 1;
 
   const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {
@@ -773,7 +786,7 @@ export function buildWatchLive(input: {
     handles,
   );
 
-  return {
+  return { reconstruction_fidelity, controllers, corroboration: controllers, 
     watch_live: WATCH_LIVE_PIN,
     projection: "public",
     world_id: input.world_id,

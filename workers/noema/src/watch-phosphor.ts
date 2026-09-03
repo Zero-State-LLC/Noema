@@ -66,6 +66,10 @@ export type PhosphorSnapshot = {
   sequence?: number;
   /** Operator follow: light this room without MAJOR pulses. Public WATCH leaves this unset. */
   focus_room_id?: string;
+  /** Gate B: reconstruction_fidelity plus a public corroboration count for visual modulation. */
+  reconstruction_fidelity?: number;
+  /** Public-safe count used by the inlined spectator sketch. Not a name or identity. */
+  corroboration?: number;
 };
 
 export type PhosphorNode = {
@@ -929,6 +933,8 @@ export function drawPhosphorFrame(
   layout: PhosphorLayout,
   pulses: PhosphorPulse[],
   now: number,
+  reconstruction_fidelity: number = 0.5,
+  corroboration: number = 1,
 ): void {
   ctx.globalAlpha = 1;
   ctx.fillStyle = PHOSPHOR_COLORS.ground;
@@ -938,6 +944,14 @@ export function drawPhosphorFrame(
   ctx.strokeStyle = PHOSPHOR_COLORS.dim;
   ctx.lineWidth = 1;
   ctx.strokeRect(1, 1, PHOSPHOR_WIDTH - 2, PHOSPHOR_HEIGHT - 2);
+
+  /** Gate B (phase4): reconstruction_fidelity plus public corroboration count
+   *  modulates room glyph intensity, active brightness, and pulse strength.
+   *  Mirrors reconstructionFidelity + multiBoost logic from deep-time.ts for visual fidelity.
+   */
+  const fid = reconstruction_fidelity ?? 0.5;
+  const countBoost = 1 + Math.max(0, (corroboration ?? 1) - 1) * 0.08; // matches deep-time multi-boost
+  const fidBoost = (0.75 + fid * 0.5) * countBoost;
 
   const byId = new Map(layout.nodes.map((n) => [n.room_id, n]));
   const lit: Record<string, true> = {};
@@ -957,7 +971,7 @@ export function drawPhosphorFrame(
 
   for (let i = 0; i < layout.nodes.length; i++) {
     const n = layout.nodes[i];
-    const intensity = n.certainty === "active" ? 1 : n.certainty === "known" ? 0.55 : 0.3;
+    const intensity = (n.certainty === "active" ? 1 : n.certainty === "known" ? 0.55 : 0.3) * fidBoost;
     drawGlyph(ctx, roomGlyphId(n.certainty), n.x - 4, n.y - 4, intensity);
     const marks = n.marks || [];
     for (let m = 0; m < marks.length && m < MARK_RING.length; m++) {
@@ -973,6 +987,8 @@ export function drawPhosphorFrame(
 
   let majorSeen = false;
   let minorSeen = 0;
+  // Gate B fidelity modulation on pulses (stronger/bolder for high reconstruction_fidelity + corroboration)
+  const pulseAlphaBase = 0.6 + fid * 0.35;
   for (let i = 0; i < pulses.length; i++) {
     const p = pulses[i];
     if (p.tier === "MAJOR") {
@@ -984,7 +1000,9 @@ export function drawPhosphorFrame(
     }
     const n = byId.get(p.room_id);
     if (!n) continue;
+    ctx.globalAlpha = pulseAlphaBase;
     drawPulse(ctx, n.x, n.y, p.tier, (now - p.born) / p.ttl);
+    ctx.globalAlpha = 1;
   }
   // Occupant handles by the player mark, then §18 room titles last.
   for (let i = 0; i < layout.nodes.length; i++) {
@@ -1122,6 +1140,9 @@ export function createPhosphorSession(opts: {
   let lastSeq = -1;
   let lastLayout: PhosphorLayout = { nodes: [], edges: [] };
   let lastSnapshot: PhosphorSnapshot | null = null;
+  /** Gate B (phase4): fidelity from upstream buildWatchLive / snapshot for draw modulation */
+  let lastFidelity: number = 0.5;
+  let lastCorroboration: number = 1;
   let rafId = 0;
   let rafStarts = 0;
   let lastFrame = 0;
@@ -1134,7 +1155,7 @@ export function createPhosphorSession(opts: {
 
   function paint(now: number) {
     if (!ctx || mode !== "pixel") return;
-    drawPhosphorFrame(ctx, lastLayout, reduced ? [] : pulses, now);
+    drawPhosphorFrame(ctx, lastLayout, reduced ? [] : pulses, now, lastFidelity, lastCorroboration);
   }
 
   function loop(ts: number) {
@@ -1167,6 +1188,9 @@ export function createPhosphorSession(opts: {
       snapshot.recent_events,
       snapshot.focus_room_id,
     );
+    lastFidelity = snapshot.reconstruction_fidelity ?? 0.5;
+    lastCorroboration = snapshot.corroboration ?? 1;
+    lastSnapshot = snapshot;
     const t = nowFn();
     if (!reduced && ctx && mode === "pixel") {
       const roomSet = new Set(lastLayout.nodes.map(function (n) { return n.room_id; }));

@@ -4,6 +4,7 @@ import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
 import { reconstructionFidelity, weakenScarsForReconstruction } from "../src/deep-time";
 import { buildWatchLive } from "../src/watch-live";
 import { previewGenesis } from "../src/genesis";
+import { ensureDeepTime } from "../src/deep-time";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string): PlayerPrincipal {
@@ -96,11 +97,12 @@ describe("p5-dt-01 scars", () => {
     const regen1 = salvage().regen_rate ?? 0;
     expect(regen1).toBeLessThan(regen0);
     expect(w.co_evolution?.deep_time?.scars?.length).toBeGreaterThanOrEqual(1);
-    const revived = JSON.parse(JSON.stringify(w)) as WorldRuntime;
+
+    const revived = JSON.parse(JSON.stringify(w));
     revived.scars = [];
     revived.evidence_fragments = [];
     revived.trajectory_digest = {};
-    migrateWorldRuntime(revived);
+    ensureDeepTime(revived);
     expect((revived.scars || []).length).toBeGreaterThanOrEqual(1);
     expect((revived.evidence_fragments || []).length).toBeGreaterThanOrEqual(3);
   });
@@ -260,5 +262,26 @@ describe("EWM cycle regen + living genesis", () => {
     const h = await run(w, p, "HARVEST", { entity_id: "entity.salvage-cache", amount: 1 });
     expect(h.ok).toBe(true);
     expect((w.genesis_evolutions || []).some((e) => e.kind === "MICRO_GENESIS_CAPACITY")).toBe(true);
+  });
+});
+
+
+describe('Gate B fidelity in WATCH projection', () => {
+  it('reconstruction_fidelity and controllerCount must appear in buildWatchLive output', () => {
+    // TDD Gate B (phase1-tdd-watch-live): failing until return in buildWatchLive surfaces the fields
+    // See WATCH-fidelity-GateB-comprehensive-plan and continuation plan
+    const input = {
+      world_id: 'test.world',
+      cycle: 42,
+      sequence: 100,
+      rooms: {},
+      players: [],
+      events: [],
+      reconstruction_fidelity: 0.78,
+      controllers: 3,
+    } as any;
+    const result = buildWatchLive(input);
+    expect(result.reconstruction_fidelity).toBe(0.78);
+    expect(result.controllers).toBe(3);
   });
 });

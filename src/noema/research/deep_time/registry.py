@@ -66,11 +66,14 @@ class DeepTimeRegistry:
 
     def put_reconstruction(self, recon: dict[str, Any]) -> dict[str, Any]:
         v = validate_reconstruction(recon)
-        # Keep optional derived metadata intact. Fidelity and the Controller
-        # contribution count are evidence fields, not registry projections.
-        record = dict(v)
-        self.reconstructions[record["reconstruction_id"]] = record
-        return record
+        # Gate B deepen (Galadriel task / Prabu workload): explicitly preserve fidelity + controllers
+        # from multi-controller reconstructions (ties to validate, reconstructionFidelity, reduce observation_digests)
+        if "fidelity" in recon:
+            v["fidelity"] = recon["fidelity"]
+        if "controllers" in recon:
+            v["controllers"] = recon["controllers"]
+        self.reconstructions[v["reconstruction_id"]] = v
+        return v
 
     def put_lineage(self, lineage: dict[str, Any]) -> dict[str, Any]:
         v = validate_lineage(lineage)

@@ -41,8 +41,15 @@ def validate_reconstruction(recon: dict[str, Any]) -> dict[str, Any]:
             raise DeepTimeError(NARRATIVE_INVENTION, "inference missing sources")
         if inf.get("claim_label") == "OBSERVED" and not inf.get("source_refs"):
             raise DeepTimeError(NARRATIVE_INVENTION, "OBSERVED inference requires sources")
+    # Gate B deepen (auto-pilot / Prabu task 7 target): explicit fidelity + multi-controller support
+    # fidelity (0-1) from reconstructionFidelity / reduce observation_digests for 3+ controllers
+    fidelity = recon.get("fidelity")
+    if fidelity is not None:
+        if not (0.0 <= float(fidelity) <= 1.0):
+            raise DeepTimeError(NARRATIVE_INVENTION, "fidelity must be in [0,1]")
     out = dict(recon)
     out["narrative_invention"] = False
+    # include fidelity/controllers in digest for Gate B multi-controller provenance
     out["digest"] = sha256_digest({k: v for k, v in out.items() if k != "digest"})
     return out
 

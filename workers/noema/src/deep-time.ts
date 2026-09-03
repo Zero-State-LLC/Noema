@@ -229,7 +229,7 @@ export function reconstructionFidelity(
   claim: string,
   fragments: EvidenceFragment[],
   subject: string,
-  controllerCount = 1,
+  controllerCount: number = 1,  // Gate B: multi-controller (3+) support for fidelity boost
 ): number {
   const about = fragments.filter((f) => f.subject_ref === subject);
   if (!about.length) return 0.2;
@@ -238,29 +238,27 @@ export function reconstructionFidelity(
   const mentionsScar = /scar|over-harvest|deplet|worn|ruin/.test(text);
   const mentionsSubject = text.includes(subject.replace(/^entity\./, "").slice(0, 8).toLowerCase()) || text.length > 8;
   const base = 0.25 + 0.4 * (grounded.length / Math.max(1, about.length)) + (mentionsScar ? 0.2 : 0) + (mentionsSubject ? 0.15 : 0);
-  // Independent Controller corroboration is a bounded confidence boost. The
-  // default preserves the pre-Gate-B score and the cap prevents a controller
-  // count from overwhelming the evidence-derived score.
-  const additionalControllers = Math.min(2, Math.max(0, Math.floor(controllerCount) - 1));
-  return clamp01(base + additionalControllers * 0.05);
+  // Gate B deepen (Prabu task + Python reduce fidelity seam): reward independent multi-controller observations
+  const multiBoost = Math.min(0.25, (controllerCount - 1) * 0.08);
+  return clamp01(base + multiBoost);
 }
 
 export function weakenScarsForReconstruction(
   w: DeepTimeSlice,
   subject: string,
   fidelity: number,
-  controllerCount = 1,
+  controllerCount: number = 1,  // Gate B: multi-controller (3+) strengthens weakening + confidence
 ): number {
   if (fidelity < 0.5) return 0;
   let n = 0;
-  const additionalControllers = Math.min(2, Math.max(0, Math.floor(controllerCount) - 1));
-  const weakening = 0.2 * (1 + additionalControllers * 0.25);
-  const confidence = clamp01(fidelity + additionalControllers * 0.05);
+  // Gate B deepen (graft-driven from weakenScars + reconstructionFidelity): scale effect by controllers
+  const weakenDelta = 0.2 * Math.min(2, controllerCount);
+  const confBoost = fidelity * (1 + Math.min(0.5, (controllerCount - 1) * 0.15));
   for (const s of w.scars || []) {
     if (s.fossilized) continue;
     if (s.entity_id === subject || s.room_id && subject.startsWith("entity.")) {
-      s.strength = clamp01(s.strength - weakening);
-      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, confidence));
+      s.strength = clamp01(s.strength - weakenDelta);
+      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, confBoost));
       n += 1;
     }
   }

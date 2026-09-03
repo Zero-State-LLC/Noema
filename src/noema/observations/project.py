@@ -99,6 +99,25 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
     sit_bundle = SituationsBundle(state)
     for sit in sit_bundle.get_public_situations():
         public_situations.append(sit)
+
+    # Gate B (phase2 wiring): forward reconstruction_fidelity + controllers from state reconstructions
+    # (matches TS watchSnapshot/buildWatchLive contract; fail-closed defaults)
+    recs = getattr(state, "reconstructions", {}) or {}
+    rec_list = []
+    if isinstance(recs, dict):
+        for r in recs.values():
+            if isinstance(r, dict):
+                rec_list.append({
+                    "fidelity": r.get("fidelity", 0),
+                    "visibility": r.get("visibility", "PUBLIC"),
+                    "controllers": r.get("controllers", 1),
+                })
+            else:
+                rec_list.append({"fidelity": getattr(r, "fidelity", 0), "visibility": getattr(r, "visibility", "PUBLIC"), "controllers": getattr(r, "controllers", 1)})
+    public_fids = [r["fidelity"] for r in rec_list if str(r.get("visibility", "")).upper() == "PUBLIC"] or [0]
+    reconstruction_fidelity = sum(public_fids) / len(public_fids)
+    controllers = max((r.get("controllers", 1) for r in rec_list), default=1)
+
     return {
         "surface": "LIVE",
         "world_id": state.world_id,
@@ -110,5 +129,9 @@ def project_spectator_live(state: WorldState, *, limit: int = 20) -> dict[str, A
         "rooms": rooms,
         "world_pressures": public_situations,
         "read_only": True,
+        # Gate B fidelity fields for public WATCH projection
+        "reconstruction_fidelity": reconstruction_fidelity,
+        "controllers": controllers,
+        "reconstructions": rec_list,
     }
 

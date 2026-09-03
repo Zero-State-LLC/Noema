@@ -21,6 +21,10 @@ export function canonicalWorldState(world: WorldRuntime): Record<string, unknown
     delete player.last_seen_ms;
     delete player.controlling_session_id;
   }
+  // Gate B deepen (Prabu task / architecture): fidelity and multi-controller (3+) data
+  // from reduce (observation_digests, reconstructionFidelity, weakenScars) are semantic
+  // and preserved here for canonical reconstruction tracking / LCA-2.
+  // observation_digests/fidelity fields (if present in world) must remain for digest stability.
   return state;
 }
 

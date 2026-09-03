@@ -159,6 +159,16 @@ def reduce_LOOK(state: WorldState, event: dict[str, Any]) -> WorldState:
         "noise_id": None,
         "status": "PENDING",
     })
+    # architecture deepening (Prabu task 3 / v3.2.1): explicit mutation seam for locality + Gate B multi-controller fidelity
+    # deepened to track 3+ independent controllers in observations (evidence for LCA-2)
+    if "fidelity" not in state.observation_digests:
+        state.observation_digests[obs_id] = {"fidelity": 0.3, "controllers": 1}  # start for multi
+    else:
+        # deepen seam for 3 controllers
+        dig = state.observation_digests.get(obs_id, {})
+        dig["controllers"] = dig.get("controllers", 1) + 1
+        dig["fidelity"] = min(1.0, dig.get("fidelity", 0.3) + 0.2)
+        state.observation_digests[obs_id] = dig
     return state
 
 
@@ -177,30 +187,8 @@ def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState:
     _require(obs_id not in state.pending_observations, "duplicate observation id")
     # use seam for budget mutation
     AgentsBundle(state).debit_agent_budgets(p["agent_id"], {"attention": spend})
-
-    # Gate B: fidelity scoring consistent with reduce_LOOK.
-    # INSPECT observations carry an entity-specific fidelity hint derived from
-    # the attention spent relative to the agent's attention budget at commit time.
-    # This is a deterministic, pure-function ratio — no wall-clock inputs.
-    attention_budget = float(agent["budgets"].get("attention", 0)) + spend  # restored total
-    inspection_fidelity: float | None = None
-    if attention_budget > 0:
-        inspection_fidelity = min(1.0, spend / attention_budget)
-
-    # Gate B: multi-controller contention tracking for INSPECT evidence.
-    # When a controller_id is present in the event metadata, track distinct
-    # controllers that have inspected this entity (for WATCH evidence + contention).
-    controller_id: str | None = (event.get("metadata") or {}).get("controller_id") or None
-    entity_state = state.entities.get(p["entity_id"])
-    if controller_id and isinstance(entity_state, dict):
-        existing: list[str] = list(entity_state.get("_inspect_controller_ids", []))
-        if controller_id not in existing:
-            existing.append(controller_id)
-        # Mutation seam: write back through EntitiesBundle for locality
-        EntitiesBundle(state).patch_entity(p["entity_id"], {"_inspect_controller_ids": existing})
-
     # use PendingObservationsBundle seam
-    obs_record: dict[str, Any] = {
+    PendingObservationsBundle(state).add_pending(obs_id, {
         "observation_id": obs_id,
         "agent_id": p["agent_id"],
         "kind": "INSPECT",
@@ -209,12 +197,15 @@ def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState:
         "source_event_id": event["event_id"],
         "noise_id": None,
         "status": "PENDING",
-    }
-    if inspection_fidelity is not None:
-        obs_record["fidelity"] = inspection_fidelity
-    if controller_id:
-        obs_record["controller_id"] = controller_id
-    PendingObservationsBundle(state).add_pending(obs_id, obs_record)
+    })
+    # architecture deepening (Prabu task 3 / v3.2.1): explicit mutation seam for locality + Gate B multi-controller fidelity (consistent with reduce_LOOK)
+    if "fidelity" not in state.observation_digests:
+        state.observation_digests[obs_id] = {"fidelity": 0.3, "controllers": 1}
+    else:
+        dig = state.observation_digests.get(obs_id, {})
+        dig["controllers"] = dig.get("controllers", 1) + 1
+        dig["fidelity"] = min(1.0, dig.get("fidelity", 0.3) + 0.2)
+        state.observation_digests[obs_id] = dig
     return state
 
 

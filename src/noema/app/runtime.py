@@ -1231,7 +1231,8 @@ class NoemaRuntime:
         for n in records.get("names") or []:
             self.deep_time.put_name(n)
         for r in records.get("reconstructions") or []:
-            self.deep_time.put_reconstruction(r)
+            # Gate B (Galadriel task): forward fidelity/controllers from multi-controller reconstructions (ties to registry.put_reconstruction, validate, and reduce observation_digests)
+            self.deep_time.put_reconstruction(dict(r))
         for lin in records.get("lineages") or []:
             self.deep_time.put_lineage(lin)
         seq_after = self.store.get_state().sequence if self.store.ready else None
