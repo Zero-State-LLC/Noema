@@ -38,6 +38,13 @@ export type DeviceRecord = {
   review_runtime?: string;
   review_scopes?: string[];
   review_owner_email?: string;
+  /** Non-secret evidence created only after explicit human approval. */
+  approval_receipt?: string;
+  /** Non-secret evidence that this Controller had an independent enrollment. */
+  independent_control_receipt?: string;
+  /** Digest binding the evidence to this opaque Controller id. */
+  controller_binding_digest?: string;
+  approved_at?: string;
   issued_at: string;
   expires_at: string;
 };
@@ -186,6 +193,219 @@ export function playerIdFromDeviceController(controllerId: string): string | nul
   return slug ? `player.${slug}` : null;
 }
 
+// ---------------------------------------------------------------------------
+// Gate B: multi-controller enrollment support (3+ independent external controllers)
+// ---------------------------------------------------------------------------
+
+export type AgentEnrollmentRequest = {
+  label: string;
+  runtime?: string;
+  scopes?: string[];
+  owner_email?: string;
+};
+
+export type AgentEnrollmentReceipt = {
+  label: string;
+  controller_id: string;
+  player_id: string | null;
+  /** Opaque binding digest for Gate B evidence. sha256 of controller_id. */
+  controller_binding_digest: string;
+  status: "PENDING" | "DUPLICATE" | "CONTENTION";
+};
+
+export type DeviceApprovalReceipt = {
+  /** Device-flow acknowledgment fields; the cohort runner owns its full run receipt. */
+  approved: true;
+  enrollment_status: "COMPLETE";
+  controller_id: string;
+  player_id: string;
+  approval_receipt: string;
+  independent_control_receipt: string;
+  controller_binding_digest: string;
+};
+
+export type BatchEnrollmentResult = {
+  receipts: AgentEnrollmentReceipt[];
+  /** Controllers that share a controller_id (should never happen; fail-closed). */
+  contention: string[];
+};
+
+/**
+ * Gate B: allocate enrollment receipts for a batch of three independent external
+ * Agent Controllers. Each controller must have a distinct label and receives a
+ * distinct controller_id + player_id. Duplicate labels or colliding controller
+ * ids are flagged as CONTENTION (fail-closed: the batch is still returned so
+ * the caller can inspect and reject).
+ *
+ * This does NOT start device-flow or write to a store — use startDeviceEnrollment
+ * for each receipt after human approval.
+ */
+export async function requestAgentEnrollment(
+  requests: AgentEnrollmentRequest[],
+): Promise<BatchEnrollmentResult> {
+  const receipts: AgentEnrollmentReceipt[] = [];
+  const contention: string[] = [];
+  const seenLabels = new Set<string>();
+  const seenControllerIds = new Set<string>();
+
+  for (const req of requests) {
+    const label = String(req.label || "").trim();
+    const isDuplicateLabel = seenLabels.has(label);
+    seenLabels.add(label);
+
+    const controller_id = allocateDeviceControllerId();
+    const isDuplicateController = seenControllerIds.has(controller_id);
+    seenControllerIds.add(controller_id);
+
+    const player_id = playerIdFromDeviceController(controller_id);
+    const controller_binding_digest = await sha256Hex(controller_id);
+
+    let status: AgentEnrollmentReceipt["status"] = "PENDING";
+    if (isDuplicateLabel || isDuplicateController) {
+      status = isDuplicateLabel ? "DUPLICATE" : "CONTENTION";
+      contention.push(controller_id);
+    }
+
+    receipts.push({ label, controller_id, player_id, controller_binding_digest, status });
+  }
+
+  return { receipts, contention };
+}
+
+/** Verify that a batch enrollment result satisfies Gate B independence requirements:
+ *  - exactly `count` receipts (default 3)
+ *  - all PENDING (no DUPLICATE or CONTENTION)
+ *  - all controller_ids, player_ids, and labels are distinct
+ */
+export function verifyEnrollmentIndependence(
+  result: BatchEnrollmentResult,
+  count = 3,
+): { ok: boolean; reason?: string } {
+  if (!Number.isInteger(count) || count <= 0) {
+    return { ok: false, reason: "required receipt count must be a positive integer" };
+  }
+  if (result.receipts.length !== count) {
+    return { ok: false, reason: `need exactly ${count} receipts, got ${result.receipts.length}` };
+  }
+  if (result.contention.length > 0) {
+    return { ok: false, reason: `contention detected: ${result.contention.join(", ")}` };
+  }
+  const labels = result.receipts.map((r) => r.label);
+  const controllerIds = result.receipts.map((r) => r.controller_id);
+  const playerIds = result.receipts.map((r) => r.player_id);
+  if (labels.some((value) => !value)) return { ok: false, reason: "empty label" };
+  if (controllerIds.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "missing controller_id" };
+  }
+  if (playerIds.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "missing player_id" };
+  }
+  if (new Set(labels).size !== labels.length) return { ok: false, reason: "duplicate labels" };
+  if (new Set(controllerIds).size !== controllerIds.length) return { ok: false, reason: "duplicate controller_ids" };
+  if (new Set(playerIds).size !== playerIds.length) return { ok: false, reason: "duplicate player_ids" };
+  if (result.receipts.some((r) => r.status !== "PENDING")) {
+    return { ok: false, reason: "non-pending receipt in batch" };
+  }
+  return { ok: true };
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function randomOpaqueReceipt(prefix: string): string {
+  return `${prefix}.${randomReviewToken()}`;
+}
+
+function approvalReceiptFor(
+  rec: DeviceRecord,
+  controller_id: string,
+  player_id: string,
+): DeviceApprovalReceipt {
+  return {
+    approved: true,
+    enrollment_status: "COMPLETE",
+    controller_id,
+    player_id,
+    approval_receipt: rec.approval_receipt || randomOpaqueReceipt("approval"),
+    independent_control_receipt: rec.independent_control_receipt || randomOpaqueReceipt("receipt"),
+    controller_binding_digest: rec.controller_binding_digest || "",
+  };
+}
+
+function approvalFields(receipt: DeviceApprovalReceipt, approved_at: string): Pick<
+  DeviceRecord,
+  "approval_receipt" | "independent_control_receipt" | "controller_binding_digest" | "approved_at"
+> {
+  return {
+    approval_receipt: receipt.approval_receipt,
+    independent_control_receipt: receipt.independent_control_receipt,
+    controller_binding_digest: receipt.controller_binding_digest,
+    approved_at,
+  };
+}
+
+/**
+ * Verify the evidence produced by three completed device enrollments.
+ * Approved and redeemed records are complete; pending, denied, and expired
+ * records cannot establish Gate B enrollment. This is evidence-only and does
+ * not mutate a store or grant authority.
+ */
+export async function verifyApprovedDeviceEnrollments(
+  records: readonly DeviceRecord[],
+  count = 3,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!Number.isInteger(count) || count <= 0) {
+    return { ok: false, reason: "required enrollment count must be a positive integer" };
+  }
+  if (records.length !== count) {
+    return { ok: false, reason: `need exactly ${count} enrollments, got ${records.length}` };
+  }
+  const controllerIds = records.map((record) => record.controller_id);
+  const playerIds = records.map((record) => record.player_id);
+  const approvalReceipts = records.map((record) => record.approval_receipt);
+  const independenceReceipts = records.map((record) => record.independent_control_receipt);
+  if (records.some((record) => record.status !== "approved" && record.status !== "redeemed")) {
+    return { ok: false, reason: "all enrollments must be approved or redeemed" };
+  }
+  if (controllerIds.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "controller binding missing" };
+  }
+  if (playerIds.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "player binding missing" };
+  }
+  if (approvalReceipts.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "human approval receipt missing" };
+  }
+  if (independenceReceipts.some((value) => typeof value !== "string" || !value)) {
+    return { ok: false, reason: "independence receipt missing" };
+  }
+  if (new Set(controllerIds).size !== records.length) {
+    return { ok: false, reason: "contention detected: duplicate controller_ids" };
+  }
+  if (new Set(playerIds).size !== records.length) {
+    return { ok: false, reason: "contention detected: duplicate player_ids" };
+  }
+  if (new Set(approvalReceipts).size !== records.length) {
+    return { ok: false, reason: "duplicate human approval receipts" };
+  }
+  if (new Set(independenceReceipts).size !== records.length) {
+    return { ok: false, reason: "duplicate independence receipts" };
+  }
+  for (const record of records) {
+    if (record.player_id !== playerIdFromDeviceController(record.controller_id!)) {
+      return { ok: false, reason: "player/controller binding mismatch" };
+    }
+    if (record.controller_binding_digest !== await sha256Hex(record.controller_id!)) {
+      return { ok: false, reason: "controller binding digest mismatch" };
+    }
+  }
+  return { ok: true };
+}
+
 export async function startDeviceEnrollment(
   env: Env,
   req: Request,
@@ -328,9 +548,19 @@ export async function approveDeviceReview(env: Env, req: Request, opts?: { store
   if (status !== "pending") return err("NOT_AUTHORIZED", `device enrollment is ${status}`, 409);
   const controller_id = rec.controller_id || allocateDeviceControllerId();
   const player_id = rec.player_id || playerIdFromDeviceController(controller_id) || `player.agent`;
-  await store.put({ ...rec, status: "approved", player_id, controller_id, review_token_hash: undefined });
+  const approved_at = new Date(opts?.now ?? Date.now()).toISOString();
+  const receipt = approvalReceiptFor(rec, controller_id, player_id);
+  receipt.controller_binding_digest = await sha256Hex(controller_id);
+  await store.put({
+    ...rec,
+    status: "approved",
+    player_id,
+    controller_id,
+    ...approvalFields(receipt, approved_at),
+    review_token_hash: undefined,
+  });
   console.info("device_enrollment_review_approved", { world: rec.review_world_id, runtime: rec.runtime, scopes: rec.scopes });
-  return json({ status: "approved", user_code: rec.user_code, player_id, controller_id, scopes: rec.scopes, runtime: rec.runtime });
+  return json({ status: "approved", user_code: rec.user_code, scopes: rec.scopes, runtime: rec.runtime, ...receipt });
 }
 
 export async function denyDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response> {
@@ -403,21 +633,24 @@ export async function approveDevice(
   const controller_id = rec.controller_id || allocateDeviceControllerId();
   const player_id =
     rec.player_id || playerIdFromDeviceController(controller_id) || `player.agent`;
+  const approved_at = new Date(now).toISOString();
+  const receipt = approvalReceiptFor(rec, controller_id, player_id);
+  receipt.controller_binding_digest = await sha256Hex(controller_id);
   const next: DeviceRecord = {
     ...rec,
     status: "approved",
     player_id,
     controller_id,
     approver_id: isHumanPrincipal(approver) ? approver.identity_id : undefined,
+    ...approvalFields(receipt, approved_at),
   };
   await store.put(next);
   return json({
     status: "approved",
     user_code: rec.user_code,
-    player_id,
-    controller_id,
     scopes: rec.scopes,
     runtime: rec.runtime,
+    ...receipt,
   });
 }
 
@@ -485,5 +718,8 @@ export async function pollDeviceToken(
     player_id: rec.player_id,
     controller_id: rec.controller_id,
     scopes: rec.scopes,
+    approval_receipt: rec.approval_receipt,
+    independent_control_receipt: rec.independent_control_receipt,
+    controller_binding_digest: rec.controller_binding_digest,
   });
 }

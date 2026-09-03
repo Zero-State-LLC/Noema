@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 import { buildWatchLive } from "../src/watch-live";
 
 const HERE = new URL(".", import.meta.url).pathname;
@@ -95,7 +96,7 @@ function snapshot(): string {
 }
 
 describe("forbidden projection tokens (16 slice catalogs)", () => {
-  const have = existsSync(SPECS);
+  const have = haveSpecsArtifacts(SPECS);
 
   it.skipIf(!have)("still reads the ban from the catalogs, not from this file", () => {
     const declared = new Set<string>();

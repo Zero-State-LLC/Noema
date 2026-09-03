@@ -717,8 +717,12 @@ export function buildWatchLive(input: {
     const labels = here.map((p) => publicPlayerLabel(p, roomRefs)).filter((h): h is string => Boolean(h));
     const exits = (r.exits || []).filter((x) => x.hidden !== true && Boolean(publicRooms[x.to_room_id]));
     const publicEntities = (r.entities || []).filter(isPublicEntity);
+    // WATCH-LIGHTWEIGHT-SPECTATOR pins this projection to public entity fields
+    // and separately forbids entity ids on `rooms[].traces[]`. The id was
+    // shipped here for a `label || entity_id` fallback in the spectator page
+    // that cannot fire -- `label` is required on EntityRuntime -- so it was
+    // publishing an internal identifier to satisfy an unreachable branch.
     const entities = publicEntities.map((e) => ({
-      entity_id: e.entity_id,
       label: e.label,
       entity_type: e.entity_type,
       glyph: glyphForEntity(e.entity_type, e.label),

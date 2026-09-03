@@ -11,6 +11,9 @@ export function canonicalWorldState(world: WorldRuntime): Record<string, unknown
   const { seen_idempotency: _seen, unsettled: _unsettled, ...semantic } = world;
   // Presence timestamps and controller-session binding are process/transport
   // facts. They must not make otherwise identical world truth hash differently.
+  // Every remaining field is semantic world state. This includes Deep Time
+  // reconstruction fidelity and controller-attributed observation evidence;
+  // only the two explicit process-local caches above are excluded.
   const state = structuredClone(semantic) as Record<string, unknown> & {
     players?: Record<string, Record<string, unknown>>;
   };

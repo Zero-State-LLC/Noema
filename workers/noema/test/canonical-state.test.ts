@@ -36,6 +36,39 @@ describe("canonical durable state", () => {
     expect((await canonicalStateMaterial(first)).state_digest).toBe((await canonicalStateMaterial(second)).state_digest);
   });
 
+  it("keeps reconstruction fidelity and observation evidence in semantic state", async () => {
+    const first = world() as WorldRuntime & {
+      observation_digests: Record<string, { fidelity: number; controller_id: string }>;
+    };
+    first.reconstructions = {
+      "recon.gate-b": {
+        reconstruction_id: "recon.gate-b",
+        author_player_id: "player.a",
+        subject_ref: "entity.relay",
+        claim: "the relay endured",
+        evidence_refs: [],
+        created_cycle: 2,
+        status: "RECORDED",
+        visibility: "PUBLIC",
+        epistemic: "OPEN",
+        fidelity: 0.85,
+      },
+    };
+    first.observation_digests = {
+      "obs.gate-b": { fidelity: 0.75, controller_id: "ctrl.a" },
+    };
+
+    const state = canonicalWorldState(first) as typeof first;
+    expect(state.reconstructions?.["recon.gate-b"].fidelity).toBe(0.85);
+    expect(state.observation_digests["obs.gate-b"]).toEqual({ fidelity: 0.75, controller_id: "ctrl.a" });
+
+    const second = structuredClone(first);
+    second.reconstructions!["recon.gate-b"].fidelity = 0.95;
+    expect((await canonicalStateMaterial(first)).state_digest).not.toBe(
+      (await canonicalStateMaterial(second)).state_digest,
+    );
+  });
+
   it("binds each event digest to its preceding digest and canonical fields", async () => {
     const base = { world_id: "world.test", sequence: 8, cycle: 2, event_id: "evt.8", event_type: "MOVE", payload: { room_id: "room.hub" } };
     const first = await canonicalEventDigest({ ...base, previous_digest: null });

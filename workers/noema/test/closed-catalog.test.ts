@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 
 const HERE = new URL(".", import.meta.url).pathname;
 const SRC = join(HERE, "../src");
@@ -73,7 +74,7 @@ const NEVER_EMITTED = [
 ];
 
 describe("closed event catalog conformance", () => {
-  const have = existsSync(join(SPECS, "event-types.json"));
+  const have = haveSpecsArtifacts(join(SPECS, "event-types.json"));
 
   it("finds the Worker's emitted event types", () => {
     const emitted = emittedEventTypes();

@@ -45,7 +45,6 @@ export type PhosphorRoom = {
   entities?: Array<{
     hidden?: boolean;
     label?: string;
-    entity_id?: string;
     entity_type?: string;
     glyph?: string;
   }>;

@@ -1,6 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { haveSpecsArtifacts } from "./specs-checkout";
 import { buildWatchLive, phraseWatchEvent, projectionIdForEvent } from "../src/watch-live";
 import type { WatchSourceEvent } from "../src/watch-live";
 
@@ -152,7 +153,7 @@ describe("ENTITY_UPDATE census — what WATCH does with each operation", () => {
     expect(RFC_0126_SILENT).toHaveLength(4);
   });
 
-  it.skipIf(!existsSync(RFC_0126_CONTRACT))("matches the RFC-0126 machine contract, not a copy of it", () => {
+  it.skipIf(!haveSpecsArtifacts(RFC_0126_CONTRACT))("matches the RFC-0126 machine contract, not a copy of it", () => {
     const contract = JSON.parse(readFileSync(RFC_0126_CONTRACT, "utf8")) as {
       silent_operations: string[];
       explicit_operation_projections: Record<string, string>;
