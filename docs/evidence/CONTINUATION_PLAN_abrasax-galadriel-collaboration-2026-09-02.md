@@ -1187,3 +1187,11 @@ Clean evidence only. Full chain (reduce → deep_time → canonical/settlement �
 - Next: await g response on C0 / #321. Supportive grafts continue if directed. Clean process.
 - Refs: board #321/#18, PR#625 (merged), Noema-Specs.
 
+### Merge-and-Continue Slice (PR #626)
+- Commit f3838ba: merge resolution (C2 fidelity from main + clean plan update).
+- PR #626 squash-merged to main as ba849b2. Worker typecheck on that merge is red.
+- Conflict resolve dropped Gate B APIs that 791d5c9 still had: `EvidenceFragment.controller_id` (`deep-time.ts`) and export `controllerContentionLabels` (`reconstruction.ts`). Callers in `world-actions.ts` and `gate-b-enrollment.test.ts` still use them.
+- Evidence boundary unchanged: C2 complete. C0 PHASE5_PENDING (delegated). Gate A / LCA-2 not complete.
+- Next: restore those APIs from 791d5c9. Do not reintroduce a public WATCH spectator HTML leak of the word "controller".
+
+Refs: PR#626, 791d5c9 (C2), test_phase6_deep_time_genesis.py, board #321.
