@@ -218,6 +218,7 @@ export function reconstructionFidelity(
   claim: string,
   fragments: EvidenceFragment[],
   subject: string,
+  controllerCount: number = 1,  // Gate B: multi-controller (3+) support for fidelity boost
 ): number {
   const about = fragments.filter((f) => f.subject_ref === subject);
   if (!about.length) return 0.2;
@@ -226,21 +227,27 @@ export function reconstructionFidelity(
   const mentionsScar = /scar|over-harvest|deplet|worn|ruin/.test(text);
   const mentionsSubject = text.includes(subject.replace(/^entity\./, "").slice(0, 8).toLowerCase()) || text.length > 8;
   const base = 0.25 + 0.4 * (grounded.length / Math.max(1, about.length)) + (mentionsScar ? 0.2 : 0) + (mentionsSubject ? 0.15 : 0);
-  return clamp01(base);
+  // Gate B deepen (Prabu task + Python reduce fidelity seam): reward independent multi-controller observations
+  const multiBoost = Math.min(0.25, (controllerCount - 1) * 0.08);
+  return clamp01(base + multiBoost);
 }
 
 export function weakenScarsForReconstruction(
   w: DeepTimeSlice,
   subject: string,
   fidelity: number,
+  controllerCount: number = 1,  // Gate B: multi-controller (3+) strengthens weakening + confidence
 ): number {
   if (fidelity < 0.5) return 0;
   let n = 0;
+  // Gate B deepen (graft-driven from weakenScars + reconstructionFidelity): scale effect by controllers
+  const weakenDelta = 0.2 * Math.min(2, controllerCount);
+  const confBoost = fidelity * (1 + Math.min(0.5, (controllerCount - 1) * 0.15));
   for (const s of w.scars || []) {
     if (s.fossilized) continue;
     if (s.entity_id === subject || s.room_id && subject.startsWith("entity.")) {
-      s.strength = clamp01(s.strength - 0.2);
-      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, fidelity));
+      s.strength = clamp01(s.strength - weakenDelta);
+      s.reconstruction_confidence = clamp01(Math.max(s.reconstruction_confidence, confBoost));
       n += 1;
     }
   }

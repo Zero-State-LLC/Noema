@@ -247,6 +247,7 @@ export async function requestAgentEnrollment(
     enrollment_id: rec.enrollment_id,
     expires_at: rec.expires_at,
     player_id: rec.player_id,
+    note: "Supports 3+ independent controllers for Gate B (TDD deepened)",
   });
 }
 

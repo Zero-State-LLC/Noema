@@ -165,6 +165,15 @@ def test_play_watch_study_share_hosted_chrome():
     for html in (play_html(), watch_html(), study_html()):
         assert "World offline" in html
 
+    # TDD Gate B (phase1-tdd-ui-map): fidelity must appear in watch map tab / public projection
+    # See comprehensive plan surface 5 (gateway/ui.py watch_html + watch-map-page.ts)
+    # and grafts on watch_html L187, map function in JS
+    watch = watch_html()
+    assert "Map" in watch
+    # phase3/5: fidelity now surfaced in map tab via ui.py map(data) + phase2 projection wiring
+    assert "Reconstruction fidelity" in watch or "Gate B multi-controller visibility" in watch, "fidelity text should be in generated watch_html map (see plan + grafts)"
+    # data present in public projection (buildWatchLive return + map)
+
 
 def test_play_surface_keeps_research_and_admin_terms_out():
     html = play_html()

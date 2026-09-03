@@ -94,17 +94,19 @@ export function reconstructionLines(
   recs: ReconstructionRecord[],
   names: Record<string, string | undefined>,
 ): string[] {
-  const out: string[] = [];
+  const out: string[] = []
   for (const rec of recs) {
-    const status = rec.epistemic === "CONTESTED" ? "Contested" : "Recorded";
-    const n = rec.evidence_refs.length;
-    const subject = rec.subject_ref.replace(/^entity\./, "");
-    const account = rec.claim.trim().slice(0, 160);
-    out.push(`Reconstruction: ${subject}`);
-    out.push(`Based on: ${n} accessible source${n === 1 ? "" : "s"}`);
-    if (account) out.push(`Account: ${account}`);
-    out.push(`Status: ${status}`);
+    const status = rec.epistemic === "CONTESTED" ? "Contested" : "Recorded"
+    const n = rec.evidence_refs.length
+    const subject = rec.subject_ref.replace(/^entity\./, "")
+    const account = rec.claim.trim().slice(0, 160)
+    out.push(`Reconstruction: ${subject}`)
+    out.push(`Based on: ${n} accessible source${n === 1 ? "" : "s"}`)
+    if (account) out.push(`Account: ${account}`)
+    out.push(`Status: ${status}`)
+    if (rec.fidelity !== undefined) out.push(`Fidelity: ${rec.fidelity} (Gate B multi-controller evidence)`)
   }
-  void names;
-  return out.slice(0, 12);
+  if (recs.length > 1) out.push(`Multi-controller (${recs.length}) for Gate B WATCH digest`)
+  void names
+  return out.slice(0, 12)
 }

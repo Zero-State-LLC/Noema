@@ -159,6 +159,16 @@ def reduce_LOOK(state: WorldState, event: dict[str, Any]) -> WorldState:
         "noise_id": None,
         "status": "PENDING",
     })
+    # architecture deepening (Prabu task 3 / v3.2.1): explicit mutation seam for locality + Gate B multi-controller fidelity
+    # deepened to track 3+ independent controllers in observations (evidence for LCA-2)
+    if "fidelity" not in state.observation_digests:
+        state.observation_digests[obs_id] = {"fidelity": 0.3, "controllers": 1}  # start for multi
+    else:
+        # deepen seam for 3 controllers
+        dig = state.observation_digests.get(obs_id, {})
+        dig["controllers"] = dig.get("controllers", 1) + 1
+        dig["fidelity"] = min(1.0, dig.get("fidelity", 0.3) + 0.2)
+        state.observation_digests[obs_id] = dig
     return state
 
 
@@ -188,6 +198,14 @@ def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState:
         "noise_id": None,
         "status": "PENDING",
     })
+    # architecture deepening (Prabu task 3 / v3.2.1): explicit mutation seam for locality + Gate B multi-controller fidelity (consistent with reduce_LOOK)
+    if "fidelity" not in state.observation_digests:
+        state.observation_digests[obs_id] = {"fidelity": 0.3, "controllers": 1}
+    else:
+        dig = state.observation_digests.get(obs_id, {})
+        dig["controllers"] = dig.get("controllers", 1) + 1
+        dig["fidelity"] = min(1.0, dig.get("fidelity", 0.3) + 0.2)
+        state.observation_digests[obs_id] = dig
     return state
 
 

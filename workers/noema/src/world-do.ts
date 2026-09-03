@@ -285,6 +285,15 @@ export class NoemaWorldDO {
       at: ev.at,
       payload: ev.payload,
     }));
+    const reconstructions = Object.values(this.world!.reconstructions || {}).map((r: any) => ({
+      fidelity: r.fidelity ?? 0,
+      controllers: r.controllers ?? 1,
+      visibility: r.visibility || "PUBLIC",
+    }));
+    const reconstruction_fidelity = reconstructions.length
+      ? (reconstructions.find((r: any) => (r.visibility || "").toUpperCase() === "PUBLIC")?.fidelity || reconstructions[0].fidelity || 0)
+      : 0;
+    const controllers = reconstructions.length ? reconstructions[0].controllers : 1;
     const snap = buildWatchLive({
       world_id: this.world!.world_id,
       cycle: this.world!.cycle,
@@ -321,6 +330,10 @@ export class NoemaWorldDO {
         name: o.name,
         offices: o.offices,
       })),
+      // Gate B (phase2 wiring): forward fidelity + controllerCount from reconstructions / deep_time_ingest
+      reconstructions,
+      reconstruction_fidelity,
+      controllers,
     });
     this.watchHeld = heldFromSnapshot(snap);
     return snap;
