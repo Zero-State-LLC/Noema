@@ -7,9 +7,10 @@
 
 ## Amendment 2026-09-03 — owner-authorized pin advance
 
-Danny authorized advancing `hosted_live.official_client` to `noema-client==0.1.20`
-(verified GitHub Latest release [`v0.1.20`](https://github.com/scrimshawlife-ctrl/noema-client/releases/tag/v0.1.20)
-on `scrimshawlife-ctrl/noema-client`, also on PyPI; `v0.1.21` was not tagged).
+Danny authorized advancing `hosted_live.official_client` to `noema-client==0.1.21`
+(verified GitHub Latest release [`v0.1.21`](https://github.com/scrimshawlife-ctrl/noema-client/releases/tag/v0.1.21)
+on `scrimshawlife-ctrl/noema-client`, tag commit `0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3`,
+PR #34 squash-merged; also on PyPI).
 The 2026-08-31 verdict above stays historically accurate: C7 enrollment / act /
 receipt checks were unrun, and this amendment does not run them. This is an
 owner override, not a rewrite that the 2026-08-31 packet already allowed
