@@ -1,7 +1,7 @@
 # NOEMA spec-directed runtime continuation plan
 
-**Recorded:** 2026-08-31  
-**Runtime baseline:** `45e207054ae128b7117bc0e50cbd221464894702` (`origin/main`)  
+**Recorded:** 2026-09-01 (post #624)  
+**Runtime baseline:** `684869e485bc433e543765610a0767177a18afbb` (origin/main, Gate B provenance)  
 **Specs baseline:** `2e3438fd82aac384b6e8c7720596ebe0b45930ca`  
 **Official client baseline:** `af19d165e8ba2ef4d9a327ac6c831213058ad433` (`0.1.20`)  
 **Disposition:** continue from existing work; do not restart or recreate WATCH, cohort, auth, or client stabilization slices.
@@ -25,7 +25,7 @@ state. Select the first missing link, not the most visible feature.
 | Official client | Source/release `0.1.20`; clean suite passed 165 tests; live discovery and `doctor` passed | VERIFY_EXISTING |
 | Hosted client pin | `noema-client==0.1.15` | PROMOTION_NOT_EVIDENCED |
 | LCA cohort runner | Real local Worker plus three official-client processes verified; participant isolation protections present | RUNNER_VERIFIED_LOCAL |
-| Gate B | Live enrollment, three independent receipts, reconnect/action evidence, and settlement remain absent | OWNER_BLOCKED |
+|| Gate B | Code paths for fail-closed optional reconstruction controllers (positive real int or omitted) + human approval + independent-control receipts for exactly three enrollments (rejecting contention/recovery gaps) merged via #624 (Galadriel assignments Noema #622 + Noema-Specs #290); tests passed (Worker 1628, Python 541); live external controllers and human approvals absent | OWNER_BLOCKED (code advanced; local evidence only) |
 | Email provider status | Hosted provider-management is ADMIN-gated | AUTHORIZED_PROBE_REQUIRED |
 | Live email delivery/fallback | No controlled live delivery was executed in this campaign | NOT_COMPUTABLE |
 
@@ -40,6 +40,8 @@ around enrollment timing, cohort environment sanitization, evidence-file modes,
 Specs validation, client `0.1.20`, and event-contract reconciliation. Do not
 replace these implementations unless current canon or observed behavior proves
 a defect.
+
+**2026-09-01 partner slice (Galadriel):** Forge completion for Noema #622 + Noema-Specs #290. reconstruction.py now fails closed on optional controllers (positive real int required or omitted compatible). device-enrollment.ts now records/validates human approval + independent-control receipts for exactly three enrollments, rejects contention/recovery gaps. PR #624 (forge/gate-b-enrollment-provenance @706657a) merged to main; all reported tests green (no claim on live controllers). Local evidence only for fail-closed paths.
 
 Before each material slice record:
 
@@ -151,6 +153,8 @@ Only after C4, rerun real browser acceptance against the new Worker:
 Classify visual defects as `RECOMPOSE` or `REPAIR_EXISTING`. Do not create a new
 WATCH framework.
 
+**Verification receipt (Galadriel, 2026-09-02 Gate B WATCH C0):** Completed read-only hosted verification. /watch and /watch/map HTTP 200; desktop Chrome + 390x844 mobile renders; /health /ready 200 ACTIVE/HEALTHY. /v1/watch/live + /v1/watch/map agree on world.perihelion-reach-3, cycle 10259, sequence 26489. Hosted Worker: 3f9b0e44-98c1-46f9-8232-bb44051a754f. Local commit: 706657a. Focused verification 22 passed; git diff --check clean. Screenshots: watch-20260903T000324Z.png + watch-map-390-.... Boundary preserved (OWNER_BLOCKED, no source SHA public, no fabricated enrollments). Updated: docs/evidence/WATCH-FIDELITY-GATE-B-2026-09-03.md + continuation plan + assets/.
+
 ### C6. Run controlled live email acceptance separately
 
 **Owner:** authorized ADMIN operator with a controlled recipient.  
@@ -193,6 +197,8 @@ Do not build another runner. Use the existing cohort lifecycle:
 
 Without those external receipts the verdict remains `BLOCKED`, not `COMPLETE`.
 
+Implementation support for steps 2-3 (human approval + independent-control receipts for exactly three enrollments, plus reconstruction controller fail-closed) now merged in main via Galadriel #624 / Noema #622 + Specs #290. Use for future live evidence collection.
+
 ## Periodic refresh
 
 After every two meaningful slices, refresh repository heads, open/draft PRs,
@@ -222,5 +228,4 @@ Stop only when every remaining meaningful item is one of:
 - `COMPLETE`: source, hosted identity, client, WATCH, Gate evidence, and repository pins are reconciled.
 
 At the time of this plan the campaign is `OWNER_BLOCKED` at C0/C1/C3, C6, and
-C8. Unblocked work is limited to review response, read-only refresh, and evidence
-preparation that does not impersonate live acceptance.
+C8 (code paths for reconstruction fail-closed and 3-enrollment receipts now in via #624; live approvals/controllers remain the blocker). Unblocked work is limited to review response, read-only refresh, evidence preparation, and plan updates that do not impersonate live acceptance.
