@@ -29,6 +29,8 @@ export type EvidenceFragment = {
   kind: "ATTEST" | "HARVEST" | "TRADE";
   cycle: number;
   player_id: string;
+  /** Controller provenance for multi-controller evidence attribution. */
+  controller_id?: string;
   grounding?: string;
   claim?: string;
 };
@@ -183,7 +185,16 @@ export function pushEvidenceFragment(
   const full: EvidenceFragment = {
     // ADR-008: fragment ids persist in co_evolution.deep_time, so a replay of
     // identical inputs must reproduce them exactly.
-    fragment_id: deterministicId(`ev.${frag.cycle}`, frag.subject_ref, frag.kind, frag.player_id, frag.cycle, frag.grounding, frag.claim),
+    fragment_id: deterministicId(
+      `ev.${frag.cycle}`,
+      frag.subject_ref,
+      frag.kind,
+      frag.player_id,
+      frag.cycle,
+      frag.grounding,
+      frag.claim,
+      ...(frag.controller_id ? [frag.controller_id] : []),
+    ),
     ...frag,
   };
   w.evidence_fragments = [...(w.evidence_fragments || []), full].slice(-64);
