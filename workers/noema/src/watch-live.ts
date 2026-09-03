@@ -786,7 +786,7 @@ export function buildWatchLive(input: {
     handles,
   );
 
-  return { reconstruction_fidelity, controllers, 
+  return { reconstruction_fidelity, controllers, corroboration: controllers, 
     watch_live: WATCH_LIVE_PIN,
     projection: "public",
     world_id: input.world_id,
