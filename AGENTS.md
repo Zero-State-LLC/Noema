@@ -52,6 +52,16 @@ production deploy path and cannot publish.
 If CI or tests look wrong, open a labeled defect (`bug`). Do not edit tests or
 fixtures to force green. Do not reward-hack.
 
+## SDLC
+
+For non-trivial product changes, require an `intent.md` (or a link to one
+under Noema-Specs [`intent/`](https://github.com/Zero-State-LLC/Noema-Specs/tree/main/intent))
+before implementation. Next artifacts are spec → plan → code.
+
+Do not invent product intents in this runtime repo. Product intent home is
+Noema-Specs. This tree may hold ops intents only when needed; see
+[`intent/README.md`](intent/README.md).
+
 <!-- graft:start -->
 ## Graft — repo context graph
 
