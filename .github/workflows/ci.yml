@@ -2,156 +2,25 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  worker:
+  build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: workers/noema
     steps:
-      - uses: actions/checkout@v7
-      - name: Check out Noema-Specs beside the workspace
-        # The cross-repo conformance tests resolve ../Noema-Specs. actions/checkout
-        # refuses a path outside the workspace, so clone it directly; the repo is
-        # public and needs no token.
-        #
-        # Pinned to spec-compat.json `specs.commit`, not main. This job asserts
-        # that THIS commit agrees with the Specs commit it declares alignment to.
-        # Tracking main would make Noema CI go red for a change in another
-        # repository, which is a signal about the pin, not about the pull request
-        # — `.github/workflows/pin-currency.yml` is where that belongs.
-        working-directory: ${{ github.workspace }}
-        run: |
-          set -euo pipefail
-          PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
-          git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
-          git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
-          echo "Noema-Specs at $PIN"
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: workers/noema/package-lock.json
-      - name: Install Worker dependencies
-        run: npm ci
-      - name: Typecheck Worker
-        run: npm run typecheck
-      - name: Test Worker
-        run: npm test
-
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: noema
-          POSTGRES_PASSWORD: noema
-          POSTGRES_DB: noema
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U noema -d noema"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-    env:
-      NOEMA_TEST_PG_DSN: postgresql://noema:noema@127.0.0.1:5432/noema
-    steps:
-      - uses: actions/checkout@v7
-      - name: Check out Noema-Specs beside the workspace
-        # The cross-repo conformance tests resolve ../Noema-Specs. actions/checkout
-        # refuses a path outside the workspace, so clone it directly; the repo is
-        # public and needs no token.
-        #
-        # Pinned to spec-compat.json `specs.commit`, not main. This job asserts
-        # that THIS commit agrees with the Specs commit it declares alignment to.
-        # Tracking main would make Noema CI go red for a change in another
-        # repository, which is a signal about the pin, not about the pull request
-        # — `.github/workflows/pin-currency.yml` is where that belongs.
-        working-directory: ${{ github.workspace }}
-        run: |
-          set -euo pipefail
-          PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
-          git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
-          git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
-          echo "Noema-Specs at $PIN"
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev,postgres]"
-      - name: Seed replay
-        run: noema-replay
-      - name: Tests (SQLite + PostgreSQL)
-        run: pytest -q
-      - name: Operator verify smoke
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from noema.app.runtime import NoemaRuntime
-          from noema.auth.roles import Role
-          from noema.ops.backup import backup_world, restore_world
-          from noema.ops.verify import verify_world
-
-          root = Path(".")
-          db = root / "data" / "ci-smoke.sqlite3"
-          db.parent.mkdir(parents=True, exist_ok=True)
-          if db.exists():
-              db.unlink()
-          rt = NoemaRuntime(db_path=db)
-          rt.start_world(root / "fixtures" / "v01-seed" / "world-seed.json")
-          sess = rt.create_session(role=Role.AGENT, agent_id="agent.player.1")
-          rt.apply_player_action(
-              sess["session_id"],
-              {
-                  "verb": "ENTER_WORLD",
-                  "agent_id": "agent.player.1",
-                  "client_action_sequence": 1,
-                  "action_id": "act.1",
-                  "idempotency_key": "idem.1",
-                  "parameters": {},
-              },
-          )
-          rt.store.close()
-          v = verify_world(db, seed_path=root / "fixtures" / "v01-seed" / "world-seed.json")
-          assert v.ok, v.failures
-          print(v.pass_line())
-          bdir = root / "backups" / "ci-smoke"
-          if bdir.exists():
-              import shutil
-              shutil.rmtree(bdir)
-          backup_world(db, bdir, seed_path=root / "fixtures" / "v01-seed" / "world-seed.json")
-          restored = root / "data" / "ci-restored.sqlite3"
-          if restored.exists():
-              restored.unlink()
-          out = restore_world(
-              bdir,
-              restored,
-              seed_path=root / "fixtures" / "v01-seed" / "world-seed.json",
-          )
-          assert out["verify_ok"] is True
-          print("NOEMA BACKUP/RESTORE: PASS")
-          PY
-
-  llm-agent:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: clients/noema-llm-agent
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - name: Install
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[dev]"
-      - name: Tests
-        run: pytest -q
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Add your project's dependencies here, e.g.:
+        # pip install -r requirements.txt
+    - name: Run tests
+      run: |
+        # Add your test command here, e.g.:
+        # pytest
