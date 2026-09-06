@@ -41,6 +41,23 @@ STRINGS = {
     "alias": "Alias",
     "ambiguity": "Ambiguity",
     "non_global_ranking": "not a global model ranking",
+    # Added for more GC-/LCA-/INSTITUTIONAL-/ATTENTION-/PLAYER-ONBOARDING/LLM-AGENT-INTEGRATION/REMAINING-WORK EPs (i18n AX R3 Gate B)
+    "archive_claim": "Archive claim",
+    "live_inspect": "Live inspect",
+    "contradiction": "Contradiction",
+    "resolution_status": "Resolution status",
+    "investigated": "Investigated",
+    "engineer_quality": "Engineer quality",
+    "practiced_hands": "You work this {label} with practiced hands.",
+    "channel_note": "A channel note in {org}",
+    "not_addressable": "NOT_ADDRESSABLE",
+    "research_assimilation": "Research Assimilation",
+    "defer": "DEFER",
+    "acceptance_metric": "Acceptance metric",
+    "first_entry": "First entry",
+    "available_here": "AVAILABLE HERE",
+    "player_naming": "Player naming",
+    "action_consequence": "action consequence",
 }
 
 def t(key: str, default: str | None = None) -> str:
