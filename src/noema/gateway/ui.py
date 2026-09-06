@@ -446,6 +446,15 @@ STRINGS = {
     "session_label": "session ",
     "refresh_label": "Refresh",
     "loading_operator_projection": "{STRINGS.get("loading_operator_projection", "Loading the operator projection…")}"
+
+    "device_enrollment": "device enrollment",
+    "scoped_credentials": "scoped credentials",
+    "local_handle_note": "Local: use a handle. Hosted: paste a Supabase access token (or use OAuth when wired).",
+    "player_label": "player ",
+    "agent_id_label": "agent id ",
+    "play_enter_world": "PLAY / enter the world",
+    "action_seq_label": "action seq ",
+    "refresh_observation_label": "Refresh observation"
 }
 # i18n sweep continue (empty states, watch renders, JS + Chamber AX) - Extension Point for full locale support (additive, per noema-specs-mud-runtime-handoff + omh-accessibility-audit)
 # i18n sweep (play surface + Chamber AX) - Extension Point for full locale support (additive, per noema-specs-mud-runtime-handoff)
@@ -491,17 +500,17 @@ def index_html() -> str:
 
 def connect_html() -> str:
     body = r'''
-    <section class="page-head" aria-labelledby="connect-title"><div><div class="kicker">{STRINGS["connect_kicker"]}</div><h1 id="connect-title">{STRINGS["connect_title"]}</h1><p>{STRINGS["connect_desc"]}</p></div><div class="meta"><span>device enrollment</span><span>scoped credentials</span></div></section>
+    <section class="page-head" aria-labelledby="connect-title"><div><div class="kicker">{STRINGS["connect_kicker"]}</div><h1 id="connect-title">{STRINGS["connect_title"]}</h1><p>{STRINGS["connect_desc"]}</p></div><div class="meta"><span>{STRINGS.get('device_enrollment', 'device enrollment')}</span><span>{STRINGS.get('scoped_credentials', 'scoped credentials')}</span></div></section>
     <section class="watch-grid" aria-label="Connect workspace">
       <article class="card card-pad">
         <div class="card-head"><h2 class="card-title">{STRINGS["human_identity"]}</h2><span class="tag" id="human-state">{STRINGS.get('offline_tag', 'offline')}</span></div>
-        <p class="empty">Local: use a handle. Hosted: paste a Supabase access token (or use OAuth when wired).</p>
+        <p class="empty">{STRINGS.get('local_handle_note', 'Local: use a handle. Hosted: paste a Supabase access token (or use OAuth when wired).')}</p>
         <form class="session-form" id="human-form" style="margin-top:.8rem">
           <div><label for="human-handle">{STRINGS["human_handle_label"]}</label><input id="human-handle" value="alice" autocomplete="username"/></div>
           <div><label for="human-token">{STRINGS["human_token_label"]}</label><input id="human-token" autocomplete="off" spellcheck="false" placeholder="eyJ…"/></div>
           <button class="button primary" type="submit">{STRINGS["human_signin"]}</button>
         </form>
-        <div class="session-meta" id="human-meta"><span>player <code id="human-player">-</code></span><span>agent id <code id="human-agent">-</code></span></div>
+        <div class="session-meta" id="human-meta"><span>{STRINGS.get('player_label', 'player ')}<code id="human-player">-</code></span><span>{STRINGS.get('agent_id_label', 'agent id ')}<code id="human-agent">-</code></span></div>
         <p class="notice" id="human-notice" role="status"></p>
       </article>
       <article class="card card-pad">
@@ -554,7 +563,7 @@ curl -sX POST /auth/device/token -H 'content-type: application/json' \
 
 def play_html() -> str:
     body = r'''
-    <section class="page-head" aria-labelledby="play-title"><div><div class="kicker">PLAY / enter the world</div><h1 id="play-title">{STRINGS["play_title"]}</h1><p>{STRINGS["play_desc"]}</p></div><div class="meta"><span id="play-cycle">{STRINGS.get('cycle_default', 'cycle -')}</span><span id="play-seq">{STRINGS.get('sequence_default', 'sequence -')}</span><span>{STRINGS.get('text_first', 'text-first')}</span></div></section>
+    <section class="page-head" aria-labelledby="play-title"><div><div class="kicker">{STRINGS.get('play_enter_world', 'PLAY / enter the world')}</div><h1 id="play-title">{STRINGS["play_title"]}</h1><p>{STRINGS["play_desc"]}</p></div><div class="meta"><span id="play-cycle">{STRINGS.get('cycle_default', 'cycle -')}</span><span id="play-seq">{STRINGS.get('sequence_default', 'sequence -')}</span><span>{STRINGS.get('text_first', 'text-first')}</span></div></section>
     <section class="play-grid" aria-label="PLAY workspace">
       <aside class="card routes card-pad" aria-labelledby="routes-title"><div class="card-head"><h2 class="card-title" id="routes-title">{STRINGS["known_routes"]}</h2><span class="tag" id="route-count">0</span></div><ul class="route-list" id="route-list"><li class="empty">{STRINGS["start_session_routes"]}</li></ul><p class="empty">{STRINGS["only_geography"]}</p></aside>
       <section class="play-main">
@@ -563,7 +572,7 @@ def play_html() -> str:
         <article class="card command" aria-labelledby="command-title"><div class="card-head"><h2 class="card-title" id="command-title">{STRINGS["command_line"]}</h2><span class="tag">Enter to send</span></div><form class="command-form" id="command-form"><label class="sr" for="command-input">NOEMA command</label><input class="command-input" id="command-input" autocomplete="off" spellcheck="false" placeholder="{STRINGS["placeholder_cmd"]}" disabled/><button class="button primary" id="command-send" type="submit" disabled>{STRINGS["send"]}</button></form><div class="actions" id="actions" aria-label="Contextual actions"><span class="empty">{STRINGS["actions_available_after"]}</span></div><p class="empty">{STRINGS["try_commands_example"]}</p><p class="notice" id="play-notice" role="status" aria-live="polite"></p></article>
       </section>
       <aside class="status" aria-label="Player status">
-        <article class="card session"><div class="card-head"><h2 class="card-title">Session</h2><span class="tag" id="session-state">{STRINGS.get('offline_tag', 'offline')}</span></div><form class="session-form" id="session-form"><div><label for="agent-input">Agent handle (dev)</label><input id="agent-input" value="agent.player.1" autocomplete="off" spellcheck="false"/></div><div><label for="access-input">Controller access token</label><input id="access-input" autocomplete="off" spellcheck="false" placeholder="from /auth/human or device enrollment" required/></div><button class="button primary" id="session-start" type="submit">{STRINGS["start_session"]}</button></form><div class="session-meta"><span>{STRINGS.get("session_label", "session ")}<code id="session-id">-</code></span><span>action seq <code id="action-seq">0</code></span><span>controller <code id="controller-id">-</code></span></div><button class="button quiet" id="observe" type="button" disabled style="width:100%;margin-top:.7rem">STRINGS['refresh'] observation</button><p class="empty" style="margin-top:.5rem"><a href="/connect">Connect an agent</a> · agents inhabit, humans watch</p></article>
+        <article class="card session"><div class="card-head"><h2 class="card-title">Session</h2><span class="tag" id="session-state">{STRINGS.get('offline_tag', 'offline')}</span></div><form class="session-form" id="session-form"><div><label for="agent-input">Agent handle (dev)</label><input id="agent-input" value="agent.player.1" autocomplete="off" spellcheck="false"/></div><div><label for="access-input">Controller access token</label><input id="access-input" autocomplete="off" spellcheck="false" placeholder="{STRINGS.get('local_handle_note', 'from /auth/human or device enrollment')}" required/></div><button class="button primary" id="session-start" type="submit">{STRINGS["start_session"]}</button></form><div class="session-meta"><span>{STRINGS.get("session_label", "session ")}<code id="session-id">-</code></span><span>{STRINGS.get('action_seq_label', 'action seq ')}<code id="action-seq">0</code></span><span>controller <code id="controller-id">-</code></span></div><button class="button quiet" id="observe" type="button" disabled style="width:100%;margin-top:.7rem">{STRINGS.get('refresh_observation_label', 'Refresh observation')}</button><p class="empty" style="margin-top:.5rem"><a href="/connect">Connect an agent</a> · agents inhabit, humans watch</p></article>
         <article class="card status-card"><div class="card-head"><h2 class="card-title">{STRINGS["available_budgets"]}</h2><span class="tag">live</span></div><dl class="budget-list" id="budget-list"><div class="empty">{STRINGS["budget_values_after"]}</div></dl><p class="empty" id="wait-status"></p></article>
         <article class="card messages"><div class="card-head"><h2 class="card-title">Messages</h2><span class="tag" id="message-count">0</span></div><ul class="message-list" id="message-list"><li class="empty">{STRINGS["no_delivered_messages"]}</li></ul></article>
       </aside>
