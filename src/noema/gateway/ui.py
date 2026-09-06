@@ -64,7 +64,7 @@ STRINGS = {
     "home_watch": "Watch",
     "connect_kicker": "Connect · Agent Controller",
     "connect_title": "Approve Agent Connection",
-    "connect_desc": "External agents and local handles. Sign in or enroll a device.",
+    "connect_desc": "{STRINGS.get('external_agents_desc', 'External agents and local handles. Sign in or enroll a device.')}",
     "human_identity": "1 · Human identity",
     "human_handle_label": "Handle (local dev)",
     "human_token_label": "Supabase access token (optional)",
@@ -117,7 +117,7 @@ STRINGS = {
     "frontier_station": "A frontier station at the edge of known space.",
     "connect_agent_controller": "Connect · Agent Controller",
     "approve_agent_connection": "Approve Agent Connection",
-    "external_agents_desc": "External agents and local handles. Sign in or enroll a device.",
+    "external_agents_desc": "{STRINGS.get('external_agents_desc', 'External agents and local handles. Sign in or enroll a device.')}",
     "request_unavailable": "Request unavailable.",
     "no_description_location": "No description for this location.",
     "sequence_label": "Sequence",
@@ -126,7 +126,7 @@ STRINGS = {
     "preview_ready_label": "Preview ready.",
     "preview_label": "PREVIEW",
     "loading": "Loading...",
-    "refreshing": "Refreshing...",
+    "refreshing": "{STRINGS.get('refreshing_label', 'Refreshing...')}",
     "start_world": "{STRINGS.get("start_configured_label", "Start configured world")}",
     "overview": "01 / overview",
     "keep_legible": "Keep the world legible.",
@@ -148,9 +148,9 @@ STRINGS = {
     "no_exits_visible": "No exits are visible from here.",
     "start_session_routes": "Start a session to see the routes you can currently reach.",
     "no_public_pressure_exposed": "No public pressure is exposed in the current projection.",
-    "no_active_agents_visible": "No active agents are visible.",
+    "no_active_agents_visible": "{STRINGS.get('no_active_agents_visible', 'No active agents are visible.')}",
     "no_public_organizations": "No public organizations are present in the current projection.",
-    "no_known_sites_projection": "The public map has no known sites in this projection.",
+    "no_known_sites_projection": "{STRINGS.get('no_known_sites_projection', 'The public map has no known sites in this projection.')}",
     "public_history_unavailable": "Public history is not available from the current runtime projection yet.",
     "visible_pressure_kicker": "{STRINGS.get('watch_visible_pressure', 'Visible pressure')}",
     "active_presence_kicker": "{STRINGS.get('watch_active_presence', 'Active presence')}",
@@ -165,7 +165,7 @@ STRINGS = {
     "budget_values_after": "Budget values appear after entering the world.",
     "no_description_location": "No description for this location.",
     "world_event_fallback": "World event",
-    "connecting_projection": "Connecting to the public world projection...",
+    "connecting_projection": "{STRINGS.get('connecting_projection', 'Connecting to the public world projection...')}",
     "projection_{STRINGS.get("waiting_label", "waiting")}": "{STRINGS.get(\"watch_hero_headline\", \"The public projection is {STRINGS.get("waiting_label", "waiting")} for its next visible change.\")}",
     "no_public_pressure_exposed_detail": "No public pressure is currently exposed by this projection. That is a real empty state, not a placeholder event.",
     "no_interesting_behavior": "{STRINGS.get(\"study_no_interesting\", \"No interesting behavior has been captured yet.\")}",
@@ -227,7 +227,7 @@ STRINGS = {
     "watch_title": "{STRINGS.get(\"watch_title\", \"The Chamber.\")}",
     "watch_desc": "{STRINGS.get(\"watch_desc\", \"A public window on the live world. Agents move through sites. Humans watch. Not the world itself.\")}",
     "watch_readonly": "{STRINGS.get(\"watch_readonly\", \"read-only\")}",
-    "watch_live_world": "{STRINGS.get(\"watch_live_world\", \"Live world\")}",
+    "watch_live_world": "{STRINGS.get(\"watch_live_world\", \"{STRINGS.get('watch_live_world', 'Live world')}\")}",
     "watch_hero_headline": "{STRINGS.get(\"watch_hero_headline\", \"The public projection is {STRINGS.get("waiting_label", "waiting")} for its next visible change.\")}",
     "watch_hero_copy": "{STRINGS.get(\"watch_hero_copy\", \"The runtime exposes a permissioned state projection. Public pressure appears here without invented motives or hidden research detail.\")}",
     "watch_refresh_projection": "{STRINGS.get('watch_refresh_projection', 'Refresh projection')}",
@@ -465,7 +465,7 @@ STRINGS = {
     "messages_title": "Messages",
     "enter_to_send": "Enter to send",
     "command_label": "NOEMA command",
-    "refreshing_label": "Refreshing...",
+    "refreshing_label": "{STRINGS.get('refreshing_label', 'Refreshing...')}",
     "loading_label": "Loading...",
     "connecting_label": "connecting",
     "opening_world": "Opening a place in the world…",
@@ -530,7 +530,7 @@ def connect_html() -> str:
         <p class="notice" id="human-notice" role="status"></p>
       </article>
       <article class="card card-pad">
-        <div class="card-head"><h2 class="card-title">{STRINGS["device_code"]}</h2><span class="tag">from agent</span></div>
+        <div class="card-head"><h2 class="card-title">{STRINGS["device_code"]}</h2><span class="tag">{STRINGS.get('from_agent_tag', 'from agent')}</span></div>
         <form class="session-form" id="preview-form">
           <div><label for="user-code">{STRINGS["user_code_label"]}</label><input id="user-code" autocomplete="off" spellcheck="false" placeholder="K7Q9-M2FX" style="text-transform:uppercase;letter-spacing:.12em"/></div>
           <button class="button" type="submit">{STRINGS["look_up"]}</button>
@@ -544,7 +544,7 @@ def connect_html() -> str:
       </article>
     </section>
     <section class="card card-pad" style="margin-top:.8rem">
-      <div class="card-head"><h2 class="card-title">{STRINGS["agent_side"]}</h2><span class="tag">curl</span></div>
+      <div class="card-head"><h2 class="card-title">{STRINGS["agent_side"]}</h2><span class="tag">{STRINGS.get('curl_tag', 'curl')}< /span></div>
       <pre class="admin-code" id="agent-snippet"># 1. Start enrollment
 curl -sX POST /auth/device -H 'content-type: application/json' \
   -d '{"metadata":{"framework":"hermes"}}'
@@ -621,7 +621,7 @@ def play_html() -> str:
 def watch_html() -> str:
     body = r'''
     <section class="page-head" aria-labelledby="watch-title"><div><div class="kicker">{STRINGS.get(\"watch_kicker\", \"WATCH / public projection\")}</div><h1 id="watch-title">{STRINGS.get(\"watch_title\", \"The Chamber.\")}</h1><p>{STRINGS.get(\"watch_desc\", \"A public window on the live world. Agents move through sites. Humans watch. Not the world itself.\")}</p></div><div class="meta"><span>{STRINGS.get(\"watch_readonly\", \"read-only\")}</span><span id="watch-cycle">cycle -</span><span id="watch-updated">{STRINGS.get("waiting_label", "waiting")}</span></div></section>
-    <section class="watch-grid"><article class="card watch-hero"><div class="kicker">{STRINGS.get(\"watch_live_world\", \"Live world\")}</div><h2 id="watch-headline">{STRINGS.get(\"watch_hero_headline\", \"The public projection is {STRINGS.get("waiting_label", "waiting")} for its next visible change.\")}</h2><p id="watch-copy">{STRINGS.get(\"watch_hero_copy\", \"The runtime exposes a permissioned state projection. Public pressure appears here without invented motives or hidden research detail.\")}</p><div class="watch-controls"><button class="button primary" id="watch-refresh" type="button">STRINGS['refresh'] projection</button><button class="button quiet" id="watch-pause" type="button">{STRINGS.get(\"watch_pause_updates\", \"Pause updates\")}</button><span class="tag" id="watch-state">connecting</span></div></article><aside class="card summary" aria-label="World summary"><div class="summary-cell"><div class="kicker">agents</div><strong id="watch-agents">-</strong></div><div class="summary-cell"><div class="kicker">realms</div><strong id="watch-realms">-</strong></div><div class="summary-cell"><div class="kicker">known sites</div><strong id="watch-rooms">-</strong></div><div class="summary-cell"><div class="kicker">pressures</div><strong id="watch-pressures">-</strong></div></aside></section>
+    <section class="watch-grid"><article class="card watch-hero"><div class="kicker">{STRINGS.get(\"watch_live_world\", \"{STRINGS.get('watch_live_world', 'Live world')}\")}</div><h2 id="watch-headline">{STRINGS.get(\"watch_hero_headline\", \"The public projection is {STRINGS.get("waiting_label", "waiting")} for its next visible change.\")}</h2><p id="watch-copy">{STRINGS.get(\"watch_hero_copy\", \"The runtime exposes a permissioned state projection. Public pressure appears here without invented motives or hidden research detail.\")}</p><div class="watch-controls"><button class="button primary" id="watch-refresh" type="button">STRINGS['refresh'] projection</button><button class="button quiet" id="watch-pause" type="button">{STRINGS.get(\"watch_pause_updates\", \"Pause updates\")}</button><span class="tag" id="watch-state">connecting</span></div></article><aside class="card summary" aria-label="World summary"><div class="summary-cell"><div class="kicker">agents</div><strong id="watch-agents">-</strong></div><div class="summary-cell"><div class="kicker">realms</div><strong id="watch-realms">-</strong></div><div class="summary-cell"><div class="kicker">known sites</div><strong id="watch-rooms">-</strong></div><div class="summary-cell"><div class="kicker">pressures</div><strong id="watch-pressures">-</strong></div></aside></section>
     <nav class="tabs" aria-label="Watch views" role="tablist"><button class="tab" role="tab" aria-selected="true" data-tab="live">{STRINGS.get(\"watch_tab_live\", \"Live\")}</button><button class="tab" role="tab" aria-selected="false" data-tab="realms">{STRINGS.get(\"watch_tab_realms\", \"Realms\")}</button><button class="tab" role="tab" aria-selected="false" data-tab="map">{STRINGS.get(\"watch_tab_map\", \"Map\")}</button><button class="tab" role="tab" aria-selected="false" data-tab="history">{STRINGS.get(\"watch_tab_history\", \"History\")}</button></nav>
     <section class="card watch-view" id="watch-view" aria-live="polite"><div class="empty">{STRINGS.get(\"watch_connecting\", \"Connecting to the public world projection…\")}</div></section>
     <script>
@@ -646,7 +646,7 @@ def watch_html() -> str:
 def study_html() -> str:
     body = r'''
     <section class="page-head" aria-labelledby="study-title"><div><div class="kicker">{STRINGS.get(\"study_kicker\", \"STUDY / authorized evidence\")}</div><h1 id="study-title">{STRINGS.get(\"study_title\", \"Understand what the world keeps.\")}</h1><p>{STRINGS.get(\"study_desc\", \"STUDY is separate from PLAY. It presents readable evidence, tests, captured work, and learnings without rewriting the world or strengthening claims.\")}</p></div><div class="meta"><span>interesting</span><span>test</span><span>capture</span><span>learn</span></div></section>
-    <section class="card study-gate"><div><div class="kicker">{STRINGS.get(\"study_researcher\", \"Researcher session\")}</div><h2>{STRINGS.get(\"study_open_ready\", \"Open the evidence view when you are ready.\")}</h2><p>This shell reads the existing permissioned research projection. It does not place research controls inside ordinary play. Supply an operator token - STUDY never mints a researcher session without credentials.</p></div><div class="card-head-actions"><label class="sr" for="study-token">{STRINGS.get('operator_token_label', 'Operator token')}</label><input id="study-token" autocomplete="off" spellcheck="false" placeholder="NOEMA_ADMIN_TOKEN"/><button class="button primary" id="study-connect" type="button">{STRINGS.get(\"study_open_button\", \"Open STUDY\")}</button><button class="button quiet" id="study-notice" type="button" disabled>{STRINGS.get(\"study_notice_button\", \"Notice recent activity\")}</button></div><span class="tag" id="study-state">{STRINGS.get(\"study_not_connected\", \"{STRINGS.get('study_not_connected', 'not connected')}\")}</span></section>
+    <section class="card study-gate"><div><div class="kicker">{STRINGS.get(\"study_researcher\", \"Researcher session\")}</div><h2>{STRINGS.get(\"study_open_ready\", \"Open the evidence view when you are ready.\")}</h2><p>{STRINGS.get('study_shell_note', 'This shell reads the existing permissioned research projection. It does not place research controls inside ordinary play. Supply an operator token - STUDY never mints a researcher session without credentials.')}</p></div><div class="card-head-actions"><label class="sr" for="study-token">{STRINGS.get('operator_token_label', 'Operator token')}</label><input id="study-token" autocomplete="off" spellcheck="false" placeholder="NOEMA_ADMIN_TOKEN"/><button class="button primary" id="study-connect" type="button">{STRINGS.get(\"study_open_button\", \"Open STUDY\")}</button><button class="button quiet" id="study-notice" type="button" disabled>{STRINGS.get(\"study_notice_button\", \"Notice recent activity\")}</button></div><span class="tag" id="study-state">{STRINGS.get(\"study_not_connected\", \"{STRINGS.get('study_not_connected', 'not connected')}\")}</span></section>
     <section id="study-content" hidden>
     <div class="study-steps" role="tablist" aria-label="{STRINGS.get('study_steps_label', 'STUDY path')}">
       <button class="study-step" type="button" role="tab" aria-selected="true" data-step="notice"><b>{STRINGS.get(\"study_step_01_notice\", \"{STRINGS.get('study_step_01_notice', '01 notice')}\")}</b><span>{STRINGS.get(\"study_observed_trails\", \"Observed trails\")}</span></button>
