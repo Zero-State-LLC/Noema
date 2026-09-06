@@ -2,6 +2,38 @@
 
 from __future__ import annotations
 
+# Centralized i18n for dev Chamber UI labels (R3+ elevation, AGENT-ORIENTATION, AX).
+# Agent protocol and transcripts remain canonical English. Use t(key, default) for UI.
+STRINGS = {
+    "home": "Home",
+    "play": "Play",
+    "watch": "Watch",
+    "connect": "Connect",
+    "brand": "NOEMA",
+    "perihelion_reach": "Perihelion Reach",
+    "world_offline": "World offline",
+    "approve_agent_connection": "Approve an agent connection.",
+    "external_agents_controllers": "External agents are Controllers.",
+    "human_identity": "Human identity",
+    "device_code": "Device code",
+    "backups_restore": "Backups and restore",
+    "evidence_receipts": "Evidence and receipts",
+    "runtime_checks": "Runtime checks",
+    "request_unavailable": "Request unavailable",
+    "world_ready": "world ready",
+    "world_waiting": "world waiting",
+    "runtime_offline": "runtime offline",
+    "gate_c": "Gate C",
+    "evidence_pack": "evidence pack",
+    "verdict": "verdict",
+}
+
+def t(key: str, default: str | None = None) -> str:
+    """Return translated string or default/key. Central for i18n/AX."""
+    if default is None:
+        default = key
+    return STRINGS.get(key, default)
+
 
 FONT_LINKS = (
     '<link rel="preconnect" href="https://fonts.googleapis.com"/>'
@@ -32,7 +64,7 @@ CSS = r"""
 COMMON_JS = r"""
 (() => {
   class NoemaError extends Error { constructor(message,status,payload){super(message);this.status=status;this.payload=payload;this.code=payload&&payload.error&&payload.error.code?payload.error.code:`HTTP_${status||"ERROR"}`;} }
-  const errorText=(error,fallback="Request unavailable")=>{const code=error&&error.code,message=error&&error.message;if(code&&message)return `${code} · ${message}`;return message||fallback;};
+  const errorText=(error,fallback= window.noema && window.noema.t ? window.noema.t("request_unavailable", "Request unavailable") : "Request unavailable")=>{const code=error&&error.code,message=error&&error.message;if(code&&message)return `${code} · ${message}`;return message||fallback;};
   async function api(path,options={}){const response=await fetch(path,options);const kind=response.headers.get("content-type")||"";const payload=kind.includes("json")?await response.json():await response.text();if(!response.ok){const message=payload&&payload.error&&payload.error.message?payload.error.message:`Request failed (${response.status})`;throw new NoemaError(message,response.status,payload);}return payload;}
   const text=(value,fallback="—")=>value===null||value===undefined||value===""?fallback:String(value);const node=(tag,cls,value)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=value;return el;};const headers=(sid)=>sid?{"X-Session-Id":sid}:{};const tone=(el,value,cls="")=>{if(!el)return;el.textContent=value;el.classList.remove("ok","warn","bad");if(cls)el.classList.add(cls);};
   async function runtimeStatus(){const results=await Promise.allSettled([api("/health"),api("/ready"),api("/version")]);const health=results[0].status==="fulfilled"?results[0].value:null;const ready=results[1].status==="fulfilled"?results[1].value:results[1].reason&&results[1].reason.payload;const version=results[2].status==="fulfilled"?results[2].value:null;const ok=Boolean(health&&health.status==="ok"),live=Boolean(ready&&ready.ready),dot=document.getElementById("runtime-dot"),label=document.getElementById("runtime-label");if(dot){dot.classList.remove("ok","warn","bad");dot.classList.add(live?"ok":ok?"warn":"bad");}if(label)label.textContent=live?"world ready":ok?"world waiting":"runtime offline";const runtimeVersion=document.getElementById("runtime-version");if(runtimeVersion)runtimeVersion.textContent=version?`v${text(version.runtime_version)}`:"v—";tone(document.getElementById("home-health"),health?text(health.status):"unavailable",health?"ok":"bad");tone(document.getElementById("home-ready"),live?"ready":"not ready",live?"ok":"warn");const versionEl=document.getElementById("home-version");if(versionEl)versionEl.textContent=version?text(version.runtime_version):"unavailable";}
@@ -47,12 +79,12 @@ def _shell(title: str, body: str, active: str = "", *, door: bool = False) -> st
         current = ' aria-current="page"' if key == active else ""
         return f'<a href="{href}"{current}>{label}</a>'
     links = (
-        nav("/", "Home", "home")
-        + nav("/play", "Play", "play")
-        + nav("/watch", "Watch", "watch")
-        + nav("/connect", "Connect", "connect")
+        nav("/", t("home", "Home"), "home")
+        + nav("/play", t("play", "Play"), "play")
+        + nav("/watch", t("watch", "Watch"), "watch")
+        + nav("/connect", t("connect", "Connect"), "connect")
     )
-    brand_sub = "Perihelion Reach"
+    brand_sub = t("perihelion_reach", "Perihelion Reach")
     gate = (
         ""
         if door
