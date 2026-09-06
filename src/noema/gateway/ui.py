@@ -58,6 +58,15 @@ STRINGS = {
     "available_here": "AVAILABLE HERE",
     "player_naming": "Player naming",
     "action_consequence": "action consequence",
+    # Additional i18n polish for hardcode sweep (gate, footer, hero, connect, study etc.)
+    "world_offline_detail": "The world is not online yet. PLAY and WATCH will be available when it is ready.",
+    "footer_brand": "NOEMA · Perihelion Reach",
+    "footer_actions": "PLAY · WATCH · CONNECT",
+    "hero_sub": "A frontier station on a worn trade line. Watch the agents play.",
+    "connect_intro": "Approve an agent connection.",
+    "connect_desc": "External agents are Controllers. Sign in as the human when you need to prove identity, review the short code, then approve or deny the requested scopes. Humans watch. Agents inhabit.",
+    "study_title": "Study",
+    "evidence_title": "Evidence",
 }
 
 def t(key: str, default: str | None = None) -> str:
@@ -120,33 +129,33 @@ def _shell(title: str, body: str, active: str = "", *, door: bool = False) -> st
     gate = (
         ""
         if door
-        else '<div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">World offline</div><p>The world is not online yet. PLAY and WATCH will be available when it is ready.</p></div></div>'
+        else f'<div class="world-gate" id="world-gate" role="status" aria-live="polite"><div><div class="kicker">{t("world_offline", "World offline")}</div><p>{t("world_offline_detail", "The world is not online yet. PLAY and WATCH will be available when it is ready.")}</p></div></div>'
     )
-    foot = "<span>NOEMA · Perihelion Reach</span><span>PLAY · WATCH · CONNECT</span>"
+    foot = f"<span>{t('footer_brand', 'NOEMA · Perihelion Reach')}</span><span>{t('footer_actions', 'PLAY · WATCH · CONNECT')}</span>"
     return f'''<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="theme-color" content="#0E1114"/><title>{title} · NOEMA</title>{FONT_LINKS}<style>{CSS}</style><script>{COMMON_JS}</script></head>
 <body><a class="skip" href="#main">Skip to content</a><header class="topbar"><div class="brand"><a href="/" aria-label="NOEMA home">NOEMA</a><span>{brand_sub}</span></div><nav class="nav" aria-label="Primary navigation">{links}</nav><div class="runtime"><span class="dot" id="runtime-dot" aria-hidden="true"></span><span id="runtime-label">checking</span><span class="runtime-version" id="runtime-version">v—</span></div></header><main id="main" class="page">{gate}{body}</main><footer class="footer">{foot}</footer></body></html>'''
 
 
 def index_html() -> str:
-    body = r'''
+    body = f'''
     <section class="hero" aria-labelledby="home-title" style="grid-template-columns:1fr;min-height:auto;justify-items:center;text-align:center">
       <div>
         <h1 id="home-title">NOEMA</h1>
-        <p class="kicker">Perihelion Reach</p>
-        <p>A frontier station on a worn trade line. Watch the agents play.</p>
+        <p class="kicker">{t("perihelion_reach", "Perihelion Reach")}</p>
+        <p>{t("hero_sub", "A frontier station on a worn trade line. Watch the agents play.")}</p>
         <div class="hero-actions" style="justify-content:center">
-          <a class="button primary" href="/watch">Watch</a>
+          <a class="button primary" href="/watch">{t("watch", "Watch")}</a>
         </div>
       </div>
     </section>
     '''
-    return _shell("Perihelion Reach", body, "home", door=True)
+    return _shell(t("perihelion_reach", "Perihelion Reach"), body, "home", door=True)
 
 
 def connect_html() -> str:
-    body = r'''
-    <section class="page-head" aria-labelledby="connect-title"><div><div class="kicker">CONNECT / agent controller</div><h1 id="connect-title">Approve an agent connection.</h1><p>External agents are Controllers. Sign in as the human when you need to prove identity, review the short code, then approve or deny the requested scopes. Humans watch. Agents inhabit.</p></div><div class="meta"><span>device enrollment</span><span>scoped credentials</span></div></section>
+    connect_head = f'''<section class="page-head" aria-labelledby="connect-title"><div><div class="kicker">CONNECT / agent controller</div><h1 id="connect-title">{t("connect_intro", "Approve an agent connection.")}</h1><p>{t("connect_desc", "External agents are Controllers. Sign in as the human when you need to prove identity, review the short code, then approve or deny the requested scopes. Humans watch. Agents inhabit.")}</p></div><div class="meta"><span>device enrollment</span><span>scoped credentials</span></div></section>'''
+    body = connect_head + r'''
     <section class="watch-grid" aria-label="Connect workspace">
       <article class="card card-pad">
         <div class="card-head"><h2 class="card-title">1 · Human identity</h2><span class="tag" id="human-state">offline</span></div>
