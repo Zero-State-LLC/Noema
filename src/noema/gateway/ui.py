@@ -26,6 +26,21 @@ STRINGS = {
     "gate_c": "Gate C",
     "evidence_pack": "evidence pack",
     "verdict": "verdict",
+    # Added for remaining EPs (hosted, freeze, operator, MUD tasks, behavioral regression)
+    "hosted_first_entry": "Hosted First Entry",
+    "watch_first": "Watch First",
+    "alpha_freeze": "Alpha Freeze",
+    "thaw": "Thaw",
+    "operator_maint": "Operator Maint",
+    "maint_evolve": "Maint Evolve",
+    "policy_pack": "Policy Pack",
+    "regression": "Regression",
+    "behavioral_regression": "Behavioral Regression",
+    "mud_parser": "MUD Parser",
+    "s0_parser": "S0 Parser",
+    "alias": "Alias",
+    "ambiguity": "Ambiguity",
+    "non_global_ranking": "not a global model ranking",
 }
 
 def t(key: str, default: str | None = None) -> str:
