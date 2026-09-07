@@ -82,4 +82,3 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld()) {
   return { env, calls, hit, command, agent, restart: () => instances.clear(),
     persistedWorld: async () => structuredClone(await stores.get(WORLD)?.storage.get<WorldRuntime>("world")) };
 }
-
