@@ -6,23 +6,74 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.11'
+        cache: pip
+        cache-dependency-path: pyproject.toml
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # Add your project's dependencies here, e.g.:
-        # pip install -r requirements.txt
+      run: python -m pip install -e '.[dev]'
     - name: Check AGENTS.md contract
       run: python3 scripts/check_agents_md.py
-    - name: Run tests
+    - name: Check out pinned Noema-Specs beside the workspace
+      # Python conformance tests also consume sibling Specs artifacts.
       run: |
-        # Add your test command here, e.g.:
-        # pytest
+        set -euo pipefail
+        PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
+        git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
+        git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
+        echo "Noema-Specs at $PIN"
+    # PostgreSQL and official-client E2E require separately provisioned services
+    # or checkouts. Keep their existing skip reasons visible, not filtered away.
+    - name: Run offline Python suite
+      run: python -m pytest -q -ra
+
+  worker:
+    name: Worker regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: workers/noema
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: workers/noema/package-lock.json
+    - name: Check out pinned Noema-Specs beside the workspace
+      # Cross-repo conformance tests require sibling fixtures and Git history.
+      # Match the dispatch-only deploy gate's pin, never moving Specs main.
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+        PIN=$(python3 -c "import json;print(json.load(open('spec-compat.json'))['specs']['commit'])")
+        git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
+        git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
+        echo "Noema-Specs at $PIN"
+    - name: Install Worker dependencies
+      run: npm ci
+    - name: Run complete Worker suite
+      run: npm test -- --maxWorkers=1 --no-file-parallelism
+    - name: Typecheck Worker
+      # Preserve independent typecheck diagnostics even when tests fail.
+      if: ${{ !cancelled() }}
+      run: npm run typecheck
