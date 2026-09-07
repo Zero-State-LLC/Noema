@@ -285,15 +285,13 @@ export class NoemaWorldDO {
       at: ev.at,
       payload: ev.payload,
     }));
-    const reconstructions = Object.values(this.world!.reconstructions || {}).map((r: any) => ({
-      fidelity: r.fidelity ?? 0,
-      controllers: r.controllers ?? 1,
-      visibility: r.visibility || "PUBLIC",
+    const reconstructions = Object.values(this.world!.reconstructions || {}).map((r) => ({
+      fidelity: r.fidelity,
+      // Preserve optional stored adapter data without inventing a Controller
+      // census: the current reconstruction producer does not persist this field.
+      controllers: (r as typeof r & { controllers?: number }).controllers,
+      visibility: r.visibility,
     }));
-    const reconstruction_fidelity = reconstructions.length
-      ? (reconstructions.find((r: any) => (r.visibility || "").toUpperCase() === "PUBLIC")?.fidelity || reconstructions[0].fidelity || 0)
-      : 0;
-    const controllers = reconstructions.length ? reconstructions[0].controllers : 1;
     const snap = buildWatchLive({
       world_id: this.world!.world_id,
       cycle: this.world!.cycle,
@@ -330,10 +328,8 @@ export class NoemaWorldDO {
         name: o.name,
         offices: o.offices,
       })),
-      // Gate B (phase2 wiring): forward fidelity + controllerCount from reconstructions / deep_time_ingest
+      // Let the public builder select both fields after checking visibility.
       reconstructions,
-      reconstruction_fidelity,
-      controllers,
     });
     this.watchHeld = heldFromSnapshot(snap);
     return snap;
