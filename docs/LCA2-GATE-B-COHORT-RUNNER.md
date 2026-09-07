@@ -14,6 +14,7 @@ exercise the runner, but can never establish external participation or produce
 
 ```text
 noema-lca cohort prepare
+noema-lca cohort bind-device-receipt
 noema-lca cohort run isolated
 noema-lca cohort run live
 noema-lca cohort status
@@ -221,6 +222,105 @@ noema-lca cohort run live \
 ```
 
 This repository change does not execute that command or perform the approvals.
+
+### Binding retained device receipts without changing their meaning
+
+The Worker `DeviceApprovalReceipt` is **not** the runner approval above.
+Worker `controller_binding_digest` is lowercase SHA-256 hex of the Controller
+ID's raw UTF-8 bytes, with no prefix. Runner `controller_binding_digest` is
+`sha256:` plus SHA-256 of that same Controller ID encoded as a canonical JSON
+string (`ensure_ascii=True`, compact separators). Its quotes are hashed too.
+Runner `credential_binding_digest` instead hashes the exact private
+`credential.json` bytes. Do not edit credentials or copy the Worker digest into
+the runner field. The generic runner digest and `/1.0` schemas are unchanged.
+
+After separately authorized CONNECT approval, a designated reviewer may retain
+**only** these seven fields from the actual approval response, unchanged, in a
+private file bound to the prepared run and participant:
+
+```json
+{
+  "run_id": "<prepared-run-id>",
+  "label": "controller-a",
+  "device_receipt": {
+    "approved": true,
+    "enrollment_status": "COMPLETE",
+    "controller_id": "<Worker Controller ID>",
+    "player_id": "<Worker Player ID>",
+    "approval_receipt": "<original approval reference>",
+    "independent_control_receipt": "<original receipt reference>",
+    "controller_binding_digest": "<original raw UTF-8 digest>"
+  }
+}
+```
+
+This is an input template, not enrollment evidence. Never invent its values.
+The actual `POST /v1/auth/device/approve` and review-approve responses contain
+these fields. Exclude `user_code`, review tokens, headers and all other fields.
+Do not save the raw `/v1/auth/device/token` response: it contains an access token.
+There is no new receipt URL, automatic receipt export, approval, or enrollment
+command. If the supported authorized response was not retained, or the selected
+Worker does not return these fields, this procedure is **BLOCKED**. Do not
+re-enroll, intercept credentials, or fabricate evidence to fill the gap.
+
+With the official credential already in its prepared private directory, set
+the input file mode to `0600` and run this **local-only** operation, once per slot:
+
+```bash
+noema-lca cohort bind-device-receipt \
+  --run-dir "$HOME/.local/state/noema/lca2-live" \
+  --label controller-a \
+  --receipt /private/controller-a-device-receipt.json
+```
+
+It checks the run/label, Worker digest, separate token Controller/Player claims,
+device-enrolled Agent type, private file boundaries, and duplicate bindings. It
+retains the unchanged input values at `approvals/controller-a.device.json` and
+writes the existing `/1.0` approval to `approvals/controller-a.json`, both `0600`.
+Existing destinations are never overwritten, including concurrent replay.
+Bind sequentially. After an interrupted write, retain any partial evidence for
+review rather than deleting/rebinding it blindly. Subsequent cohort preflight
+still rejects changed credential bytes and duplicate Controller identities.
+
+Worker opaque references are high-entropy values. The adapter uses canonical
+JSON SHA-256 **references to them** in the runner's `approval_receipt` and
+`independent_control_receipt` fields, without relaxing its secret detector.
+Participant evidence must use the resulting runner reference, not the original
+opaque Worker value. Public reports may hash that reference again under the
+historical format. The private sidecar preserves how it was derived.
+
+The sidecar is retained provenance for reviewer inspection, not a new required
+field in the historical approval schema. Keep it with the approval and pinned
+source/deployment evidence. Legacy approvals remain interpretable without it.
+These local consistency checks do **not** verify JWT signatures, authenticate
+operator-provided evidence, detect a dishonest operator rebinding an old source
+to another run, establish a fresh live approval, or prove autonomous decision
+independence. They are not authorization or Gate B acceptance.
+
+Exact official client `v0.1.21` inspection found distinct Player and Controller
+fields in `StoredCredential`. Normal `connect()` saves start-response metadata:
+the Worker start supplies a Controller ID but no Player ID, so this path stores
+`player_id: null` while the access token carries both IDs. Poll receipts are not
+persisted by that release. This is not evidence that the client stores two
+conflicting Controller IDs. If a legitimate stored Player field is present, the
+runner now binds the explicit Controller field separately, preserving legacy
+fallback behavior for credentials without an explicit Controller ID.
+
+An isolated regression exercises actual Worker HTTP device routes with an
+in-memory DO boundary, exact `v0.1.21` `connect(auto_enter=False)` persistence,
+the adapter, and the actual no-spawn cohort binding preflight:
+
+```bash
+NOEMA_OFFICIAL_CLIENT_REPO=/private/exact-v0.1.21-export \
+NOEMA_ESBUILD=/path/to/workers/noema/node_modules/.bin/esbuild \
+PYTHONPATH=src pytest -q tests/test_gate_b_device_receipts.py
+```
+
+It explicitly forbids external fetches, retains no real credentials, and never
+submits gameplay. The release boundary skips if the declared release/tool inputs are absent.
+Two smaller local receipt-invariant checks remain always-on. CI must supply both
+variables to claim the stronger boundary result. This is synthetic integration
+evidence, not a deployed or durable-storage proof.
 
 ## Narrow participant receipts
 
