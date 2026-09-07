@@ -52,8 +52,8 @@ credentials, enroll Controllers, send email, spend a run budget, or mutate a wor
 ### Disposition refresh, 2026-09-07 PT (post Deploy + pin)
 
 Supersedes the UTC table above for C2–C6. C0 remains MERGED; C1/C6/C8 remain
-blocked as stated. This is not Gate B completion, enrollment, spend, or a full
-WATCH acceptance suite.
+blocked as stated. This is not Gate B completion, enrollment, or spend. C5
+public WATCH is completed in the same-day amendment that follows.
 
 OBSERVED pin table (Worker, `/version`, `/ready`, `hosted_live`, Specs/runtime
 heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md)
@@ -66,12 +66,26 @@ heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026
 | C2 | PARTIAL / CI_GREEN | Runtime PR CI now runs Worker and Python regression ([#635](https://github.com/Zero-State-LLC/Noema/pull/635), closed #632). Main CI is green on the deploy source after [#638](https://github.com/Zero-State-LLC/Noema/pull/638) ([run 34167567879](https://github.com/Zero-State-LLC/Noema/actions/runs/34167567879) on `9c25603581992da0440b2dd733a554aca98adef0`) and remains green through pin [#639](https://github.com/Zero-State-LLC/Noema/pull/639) and baseline [#640](https://github.com/Zero-State-LLC/Noema/pull/640). A full local candidate suite (Worker + typecheck + integration + official-client path) may still be required for P2. Specs issue [#324](https://github.com/Zero-State-LLC/Noema-Specs/issues/324) is OBSERVED CLOSED (title: CI build does not execute specification validation); Specs CI now runs `bash validation/run.sh` on push/PR. |
 | C3 | COMPLETE | Explicit production deploy was authorized and dispatched with acknowledge `I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN` from `9c25603581992da0440b2dd733a554aca98adef0`. Deploy workflow SUCCESS: [run 34167731843](https://github.com/Zero-State-LLC/Noema/actions/runs/34167731843). |
 | C4 | COMPLETE | Worker published as `04ef6ecb-65b9-430e-b0fd-141a2cc7179f` (`deployed_at` 2026-09-07T22:46:20.53456Z). Pin PR [#639](https://github.com/Zero-State-LLC/Noema/pull/639) merged; `hosted_live.worker_version_id` matches live `/version`; merge commit `957620894a2c45810d3f20aa53c65d9fbf5f0d5b` is on `main`. Specs pin [#638](https://github.com/Zero-State-LLC/Noema/pull/638) and baseline docs [#640](https://github.com/Zero-State-LLC/Noema/pull/640) are also on `main`. |
-| C5 | VERIFICATION_PENDING | Deploy succeeded. Public `/version` and `/ready` are OBSERVED in the §2 pin table (ACTIVE, HEALTHY, play open). No in-repo post-`04ef6ecb` WATCH browser acceptance suite (desktop/mobile map, coupling, rooms, a11y, live identity). The 2026-09-02 Galadriel receipt is prior Worker `3f9b0e44-98c1-46f9-8232-bb44051a754f`, not current-Worker acceptance. |
+| C5 | COMPLETE | Public WATCH acceptance on Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`. Receipt: [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md). The 2026-09-02 Galadriel receipt remains prior Worker `3f9b0e44-98c1-46f9-8232-bb44051a754f`. This is not Gate B, enrollment, or email. |
 | C6 | OWNER_BLOCKED | Controlled live email acceptance still requires an authorized ADMIN operator, a controlled recipient, and explicit send approval. No email was sent in this refresh. |
 | C7 | PIN_ADVANCED / ACCEPTANCE_UNRUN | Unchanged. Client pin remains `noema-client==0.1.21`. Enrollment-bound checks (discover/doctor/enroll/act/refuse/resync/reconnect on the current Worker) remain unrun. |
 | C8 | OWNER_BLOCKED | Unchanged. Three independent external Controllers and approval-bound acceptance evidence remain required. Gate B remains **OWNER_BLOCKED**. |
 
 This PT refresh did not enroll Controllers, send email, spend a run budget,
+mutate a world, or claim Gate B.
+
+### Disposition amendment, 2026-09-07 PT (C5 public WATCH)
+
+Supersedes the C5 row in the post-Deploy PT table. C6 / C7 / C8 and Gate B
+are unchanged.
+
+Public HTTP + browser WATCH on Worker `04ef6ecb` is recorded in
+[WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md).
+Desktop and 390×844 `/watch` and `/watch/map` passed. Live and map agree on
+`world.perihelion-reach-3`, cycle `16882`, sequence `39805`. Narrow wrap is
+`RECOMPOSE`, not `REPAIR_EXISTING`.
+
+This amendment does not enroll Controllers, send email, spend a run budget,
 mutate a world, or claim Gate B.
 
 ## Objective
@@ -87,10 +101,12 @@ state. Select the first missing link, not the most visible feature.
 | Runtime source | `45e2070` contains the map-first WATCH integration and passed the complete Worker suite and typecheck | SOURCE_IMPLEMENTED |
 | Hosted Worker (2026-09-01) | `34f4b0dc-85c6-4adb-8fd8-9ccffae73b99`, source `a68f5d8d6dcc441696e4ab883d120bc3cc53d398` | HOSTED_OLDER_SOURCE (historical) |
 | Hosted Worker (2026-09-02 C5 receipt) | `3f9b0e44-98c1-46f9-8232-bb44051a754f` | PRIOR_DEPLOYMENT (not current) |
-| Hosted Worker (2026-09-07 PT) | `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`, source `9c25603581992da0440b2dd733a554aca98adef0`, `deployed_at` 2026-09-07T22:46:20.53456Z | HOSTED_PINNED — OBSERVED in [§2 refresh](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md) ([#640](https://github.com/Zero-State-LLC/Noema/pull/640)); WATCH suite VERIFICATION_PENDING |
+| Hosted Worker (2026-09-07 PT) | `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`, source `9c25603581992da0440b2dd733a554aca98adef0`, `deployed_at` 2026-09-07T22:46:20.53456Z | HOSTED_PINNED — OBSERVED in [§2 refresh](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md) ([#640](https://github.com/Zero-State-LLC/Noema/pull/640)); public WATCH COMPLETE in [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md) |
 | Hosted world | `world.perihelion-reach-3`, `genesis.94d0961984b2b4f8`, ACTIVE, HEALTHY, playable | HOSTED_READ_ONLY_VERIFIED (re-OBSERVED 2026-09-07 PT via `/ready`; cycle is probe-time, not a frozen pin) |
-| WATCH `/watch` | Desktop browser load passed; HTTP dependencies returned 200 and stream upgraded with 101 | PRIOR_DEPLOYMENT_VERIFIED (not proven on `04ef6ecb`) |
-| WATCH `/watch/map` | Desktop and 390 px mobile browser loads passed; map, Health, River, navigation, and live state rendered | PRIOR_DEPLOYMENT_VERIFIED (not proven on `04ef6ecb`) |
+| WATCH `/watch` (2026-09-07 PT, Worker `04ef6ecb`) | Desktop and 390×844 browser loads passed; HTTP 200; LIVE; `ACTIVE · healthy`; Perihelion Reach | CURRENT_DEPLOYMENT_VERIFIED — [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md) |
+| WATCH `/watch/map` (2026-09-07 PT, Worker `04ef6ecb`) | Desktop and 390×844 browser loads passed; map, Health `deep` / reconstruction `0.8`, River, navigation, live state | CURRENT_DEPLOYMENT_VERIFIED — [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md) |
+| WATCH `/watch` (prior) | Desktop browser load passed; HTTP dependencies returned 200 and stream upgraded with 101 | PRIOR_DEPLOYMENT_VERIFIED (Worker `3f9b0e44` and earlier) |
+| WATCH `/watch/map` (prior) | Desktop and 390 px mobile browser loads passed; map, Health, River, navigation, and live state rendered | PRIOR_DEPLOYMENT_VERIFIED (Worker `3f9b0e44` and earlier) |
 | Map-first source `45e2070` | Historical “not deployed” note from 2026-09-01. Later publish is Worker `04ef6ecb` from source `9c25603`; that is not a claim that `45e2070` itself is live. | HISTORICAL_NOTE |
 | Official client | Source/release `0.1.20`; clean suite passed 165 tests; live discovery and `doctor` passed | VERIFY_EXISTING |
 | Hosted client pin | `noema-client==0.1.21` | OWNER_AUTHORIZED (Danny 2026-09-03; C7 enrollment checks still unrun) |
@@ -99,10 +115,11 @@ state. Select the first missing link, not the most visible feature.
 | Email provider status | Hosted provider-management is ADMIN-gated | AUTHORIZED_PROBE_REQUIRED |
 | Live email delivery/fallback | No controlled live delivery was executed in this campaign | NOT_COMPUTABLE |
 
-Prior-deployment browser evidence (`3f9b0e44` and earlier) does not prove the
-map-first source changes on current Worker `04ef6ecb`. Local tests and
-read-only provider checks do not prove live Resend or Postmark delivery or
-fallback behavior.
+Current-Worker public WATCH is recorded in
+[WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md).
+The 2026-09-02 Galadriel receipt remains prior Worker `3f9b0e44` and is not
+deleted. Local tests and read-only provider checks do not prove live Resend or
+Postmark delivery or fallback behavior.
 
 ## Collaborator continuity
 
@@ -228,10 +245,11 @@ Do not reseed, activate Genesis, recover, or mutate `world-01`.
 
 ### C5. Verify the newly deployed WATCH source
 
-**Disposition (2026-09-07 PT):** `VERIFICATION_PENDING`. Public `/version` and
-`/ready` OBSERVED after Deploy (Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`,
-ACTIVE / HEALTHY, play open). That is not the full WATCH browser acceptance
-list below. No in-repo receipt reruns those checks against `04ef6ecb`.
+**Disposition (2026-09-07 PT, later same day):** `COMPLETE` for public WATCH
+acceptance on Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`. Receipt:
+[WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md).
+C6 remains `OWNER_BLOCKED`. C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`.
+C8 and Gate B remain `OWNER_BLOCKED`.
 
 Only after C4, rerun real browser acceptance against the new Worker:
 
@@ -248,7 +266,9 @@ Only after C4, rerun real browser acceptance against the new Worker:
 Classify visual defects as `RECOMPOSE` or `REPAIR_EXISTING`. Do not create a new
 WATCH framework.
 
-**Verification receipt (Galadriel, 2026-09-02 Gate B WATCH C0) — prior Worker:** Completed read-only hosted verification. /watch and /watch/map HTTP 200; desktop Chrome + 390x844 mobile renders; /health /ready 200 ACTIVE/HEALTHY. /v1/watch/live + /v1/watch/map agree on world.perihelion-reach-3, cycle 10259, sequence 26489. Hosted Worker: 3f9b0e44-98c1-46f9-8232-bb44051a754f (not current; current live Worker is `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`). Local commit: 706657a. Focused verification 22 passed; git diff --check clean. Screenshots: watch-20260903T000324Z.png + watch-map-390-.... Boundary preserved (OWNER_BLOCKED, no source SHA public, no fabricated enrollments). Updated: docs/evidence/WATCH-FIDELITY-GATE-B-2026-09-03.md + continuation plan + assets/.
+**Verification receipt (2026-09-07 PT, Worker `04ef6ecb`) — public WATCH:** Read-only hosted acceptance after Deploy. `/version` `/ready` `/health` `/watch` `/watch/map` `/v1/watch/live` `/v1/watch/map` HTTP 200. Desktop and 390×844 `/watch` + `/watch/map` PASS. Live and map agree on `world.perihelion-reach-3`, cycle 16882, sequence 39805. Health `deep` / reconstruction `0.8`. Narrow wrap `RECOMPOSE`, not `REPAIR_EXISTING`. Screenshots: `docs/evidence/assets/c5-2026-09-07/`. Receipt: [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md). Boundary preserved (no Gate B, no enrollment, no email).
+
+**Verification receipt (Galadriel, 2026-09-02 Gate B WATCH C0) — prior Worker:** Completed read-only hosted verification. /watch and /watch/map HTTP 200; desktop Chrome + 390x844 mobile renders; /health /ready 200 ACTIVE/HEALTHY. /v1/watch/live + /v1/watch/map agree on world.perihelion-reach-3, cycle 10259, sequence 26489. Hosted Worker: 3f9b0e44-98c1-46f9-8232-bb44051a754f (not current; current live Worker is `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`). Local commit: 706657a. Focused verification 22 passed; git diff --check clean. Screenshots: watch-20260903T000324Z.png + watch-map-390-.... Boundary preserved (OWNER_BLOCKED, no source SHA public, no fabricated enrollments). Updated: docs/evidence/WATCH-FIDELITY-GATE-B-2026-09-03.md + continuation plan + assets/. Keep this receipt; do not delete.
 
 ### C6. Run controlled live email acceptance separately
 
@@ -331,14 +351,14 @@ Stop only when every remaining meaningful item is one of:
 - `SAFETY_BLOCKED`: the next action would mutate protected production state without authorization;
 - `COMPLETE`: source, hosted identity, client, WATCH, Gate evidence, and repository pins are reconciled.
 
-As of the 2026-09-07 PT refresh, C0 is MERGED and C3–C4 are COMPLETE (authorized
-Deploy + pin `04ef6ecb`). The campaign remains `OWNER_BLOCKED` at C1
-(protected preflight readiness not re-inspected), C6 (controlled email), and
-C8 (three independent external Controllers / Gate B). C5 is
-`VERIFICATION_PENDING` (public `/version`+`/ready` OBSERVED; full WATCH
-acceptance suite not rerun on the new Worker). C7 remains
-`PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths for reconstruction fail-closed
-and 3-enrollment receipts remain in via #624; live approvals/controllers remain
-the Gate B blocker. Unblocked work is limited to review response, read-only
-refresh, evidence preparation, C5 WATCH rerun, P2 candidate-suite evidence, and
-plan updates that do not impersonate live acceptance or enroll/spend.
+As of the 2026-09-07 PT C5 amendment, C0 is MERGED, C3–C4 are COMPLETE
+(authorized Deploy + pin `04ef6ecb`), and C5 is `COMPLETE` for public WATCH
+on that Worker
+([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)).
+The campaign remains `OWNER_BLOCKED` at C1 (protected preflight readiness not
+re-inspected), C6 (controlled email), and C8 (three independent external
+Controllers / Gate B). C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths
+for reconstruction fail-closed and 3-enrollment receipts remain in via #624;
+live approvals/controllers remain the Gate B blocker. Unblocked work is limited
+to review response, read-only refresh, evidence preparation, P2 candidate-suite
+evidence, and plan updates that do not impersonate Gate B or enroll/spend.
