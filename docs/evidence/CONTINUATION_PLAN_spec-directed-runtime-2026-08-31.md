@@ -21,13 +21,35 @@ receipts below are not current-main acceptance. P0–P2 engineering and reviewed
 PRs precede conditional live Gates B–F. Explicit deploy, enrollment,
 paid/live-run and acceptance boundaries remain intact.
 
+### Verified continuation disposition, 2026-09-07 UTC
+
+Read-only GitHub checks on 2026-09-07 confirmed runtime `main` at
+`c1be76650c995972de290d11e78a54d8baab70e9` (approved plan #631 merged)
+and Specs `main` at `94286cac7cc200a4ed244bfd7321ef16d0bfc2a1`.
+These are repository baselines, not deployment identities or acceptance evidence.
+The older observations and instructions below remain historical receipts unless
+superseded by a dated disposition here.
+
+| Queue item | Current disposition | Evidence boundary / next dependency |
+|---|---|---|
+| C0 | MERGED | GitHub reports #606 merged on 2026-09-01 at `2583f0d97ab96fe12ca89216f4ed85e1b9402fa0`. Do not wait for or recreate this PR. This check did not re-run its post-merge CI. |
+| C1 | NOT_VERIFIED | Protected preflight input names, values, and readiness were not inspected during this refresh. No configuration change is authorized. |
+| C2 | VERIFICATION_IN_PROGRESS | P1/P2 require fresh candidate Worker/Python tests, typecheck, and integration evidence. Runtime CI defect [#632](https://github.com/Zero-State-LLC/Noema/issues/632) and Specs CI defect [#324](https://github.com/Zero-State-LLC/Noema-Specs/issues/324) track missing ordinary-PR validation. No current full-suite result or deployment-readiness verdict is claimed here. |
+| C3-C6 | CONDITIONAL / OWNER_BLOCKED | Keep the explicit deploy, protected preflight, WATCH acceptance, and controlled email approvals below. No deployment, email, or recovery drill was performed in this refresh. |
+| C7 | PIN_ADVANCED / ACCEPTANCE_UNRUN | The 2026-09-03 authorization and runtime #628 advanced the pin to `noema-client==0.1.21`. Verify that exact artifact and its current-Worker enrollment/action/refusal/resync/reconnect path. Historical `0.1.20` results do not establish `0.1.21` acceptance. |
+| C8 | OWNER_BLOCKED | Three independent external Controllers and approval-bound acceptance evidence remain required. Local engineering tests cannot promote Gate B or Gate C. |
+
+The prior Gate A acceptance remains historical authority. Gate B/C status is
+unchanged. This refresh did not call live readiness endpoints, inspect private
+credentials, enroll Controllers, send email, spend a run budget, or mutate a world.
+
 ## Objective
 
 Bring accepted Specs, runtime source, the deployed Worker, the official client,
 WATCH, multi-agent play, and reproducible evidence back to one supportable
 state. Select the first missing link, not the most visible feature.
 
-## Current evidence boundary
+## Historical evidence boundary (2026-09-01, with dated amendments)
 
 | Surface | Current observation | Classification |
 |---|---|---|
@@ -40,7 +62,7 @@ state. Select the first missing link, not the most visible feature.
 | Official client | Source/release `0.1.20`; clean suite passed 165 tests; live discovery and `doctor` passed | VERIFY_EXISTING |
 | Hosted client pin | `noema-client==0.1.21` | OWNER_AUTHORIZED (Danny 2026-09-03; C7 enrollment checks still unrun) |
 | LCA cohort runner | Real local Worker plus three official-client processes verified; participant isolation protections present | RUNNER_VERIFIED_LOCAL |
-|| Gate B | Code paths for fail-closed optional reconstruction controllers (positive real int or omitted) + human approval + independent-control receipts for exactly three enrollments (rejecting contention/recovery gaps) merged via #624 (Galadriel assignments Noema #622 + Noema-Specs #290); tests passed (Worker 1628, Python 541); live external controllers and human approvals absent | OWNER_BLOCKED (code advanced; local evidence only) |
+| Gate B | Code paths for fail-closed optional reconstruction controllers (positive real int or omitted) + human approval + independent-control receipts for exactly three enrollments (rejecting contention/recovery gaps) merged via #624 (Galadriel assignments Noema #622 + Noema-Specs #290); tests passed (Worker 1628, Python 541); live external controllers and human approvals absent | OWNER_BLOCKED (code advanced; local evidence only) |
 | Email provider status | Hosted provider-management is ADMIN-gated | AUTHORIZED_PROBE_REQUIRED |
 | Live email delivery/fallback | No controlled live delivery was executed in this campaign | NOT_COMPUTABLE |
 
