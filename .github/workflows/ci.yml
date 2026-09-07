@@ -17,6 +17,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NOEMA_OFFICIAL_CLIENT_REPO: ${{ github.workspace }}/../noema-client
+      NOEMA_ESBUILD: ${{ github.workspace }}/workers/noema/node_modules/.bin/esbuild
+      WRANGLER_SEND_METRICS: 'false'
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
@@ -37,8 +41,27 @@ jobs:
         git clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git "$GITHUB_WORKSPACE/../Noema-Specs"
         git -C "$GITHUB_WORKSPACE/../Noema-Specs" checkout --quiet "$PIN"
         echo "Noema-Specs at $PIN"
-    # PostgreSQL and official-client E2E require separately provisioned services
-    # or checkouts. Keep their existing skip reasons visible, not filtered away.
+    - name: Set up Node for local boundary tests
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: workers/noema/package-lock.json
+    - name: Install Worker dependencies for local boundary tests
+      working-directory: workers/noema
+      run: npm ci
+    - name: Install pinned official client for local boundary tests
+      run: |
+        set -euo pipefail
+        CLIENT_PIN=0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3
+        git clone --quiet --filter=blob:none https://github.com/scrimshawlife-ctrl/noema-client.git "$NOEMA_OFFICIAL_CLIENT_REPO"
+        git -C "$NOEMA_OFFICIAL_CLIENT_REPO" checkout --quiet "$CLIENT_PIN"
+        python -m venv "$NOEMA_OFFICIAL_CLIENT_REPO/.venv"
+        "$NOEMA_OFFICIAL_CLIENT_REPO/.venv/bin/python" -m pip install -e "$NOEMA_OFFICIAL_CLIENT_REPO"
+        "$NOEMA_OFFICIAL_CLIENT_REPO/.venv/bin/noema" --version
+        test -x "$NOEMA_ESBUILD"
+    # Only PostgreSQL still needs separately provisioned services. Keep its
+    # existing skip reasons visible; client/Worker boundary tests now execute.
     - name: Run offline Python suite
       run: python -m pytest -q -ra
 

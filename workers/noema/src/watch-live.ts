@@ -661,8 +661,9 @@ export function buildWatchLive(input: {
   now?: number;
   rumor?: LaterTraceRumor;
   organizations?: LaterTraceOrg[];
-  // Gate B (TDD phase2): reconstructions / fidelity from deep_time for public projection
+  // Raw records must pass the public visibility gate below.
   reconstructions?: Array<{ fidelity?: number; controllers?: number; visibility?: string }>;
+  // Optional preprojected public values, never unfiltered reconstruction state.
   reconstruction_fidelity?: number;
   controllers?: number;
 }): Record<string, unknown> {
@@ -702,14 +703,15 @@ export function buildWatchLive(input: {
     held: input.held,
   });
 
-  // Gate B (phase2 wiring): forward fidelity + controllerCount from reconstructions / deep_time_ingest
-  // (input will be populated by watchSnapshot / runtime when wired; default fail-closed to 0/1)
-  const reconstruction_fidelity = input.reconstruction_fidelity ??
-    (input.reconstructions && input.reconstructions.length
-      ? (input.reconstructions.find((r: any) => (r.visibility || "").toUpperCase() === "PUBLIC")?.fidelity ||
-         input.reconstructions[0]?.fidelity || 0)
-      : 0);
-  const controllers = input.controllers ?? 1;
+  // RFC-0024 / GC6-S1: WATCH may project only public reconstructions.
+  // Retain the existing first-public selection, not a new aggregation policy.
+  // Both fields belong to that record. Missing public evidence keeps the
+  // existing 0/1 defaults, and an explicit zero must not fall back to private data.
+  const publicReconstruction = input.reconstructions?.find(
+    (r) => r.visibility?.toUpperCase() === "PUBLIC",
+  );
+  const reconstruction_fidelity = input.reconstruction_fidelity ?? publicReconstruction?.fidelity ?? 0;
+  const controllers = input.controllers ?? publicReconstruction?.controllers ?? 1;
 
   const roomRefs = Object.values(publicRooms);
   const roomsOut = Object.values(publicRooms).map((r) => {

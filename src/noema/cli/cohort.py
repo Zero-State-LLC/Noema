@@ -167,7 +167,7 @@ def _file_digest(path: Path) -> str:
         raise CohortError(f"client executable cannot be integrity-bound: {path}") from exc
 
 
-def _atomic_json(path: Path, value: Any, *, mode: int = 0o600) -> None:
+def _atomic_json(path: Path, value: Any, *, mode: int = 0o600, overwrite: bool = True) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
     data = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
@@ -185,7 +185,15 @@ def _atomic_json(path: Path, value: Any, *, mode: int = 0o600) -> None:
         raise
     with handle:
         handle.write(data)
-    os.replace(tmp, path)
+    if overwrite:
+        os.replace(tmp, path)
+    else:
+        try:
+            os.link(tmp, path)
+        except FileExistsError:
+            raise CohortError("device receipt already bound; refusing replay or overwrite") from None
+        finally:
+            tmp.unlink()
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -828,7 +836,12 @@ def _credential_controller_binding(path: Path) -> str:
     _assert_owned(credential, directory=False, mode=0o600)
     value = _load_json(credential)
     identities: set[str] = set()
-    for key in ("controller_reference", "controller_id", "player_id", "subject", "sub"):
+    # Released clients can store separate Player and Controller subjects. Only
+    # legacy files without an explicit Controller retain the old fallback rule.
+    keys = ("controller_reference", "controller_id") if value.get("controller_id") else (
+        "controller_reference", "controller_id", "player_id", "subject", "sub"
+    )
+    for key in keys:
         identity = value.get(key)
         if isinstance(identity, str) and identity:
             identities.add(identity)
@@ -841,6 +854,89 @@ def _credential_controller_binding(path: Path) -> str:
     if len(identities) != 1:
         raise CohortError(f"credential must admit exactly one controller identity: {credential}")
     return _digest(next(iter(identities)))
+
+
+def bind_device_receipt(run_dir: Path, *, label: str, receipt_path: Path) -> dict[str, Any]:
+    """Bind retained Worker evidence to a prepared slot, without enrolling or playing.
+
+    The input is an operator-retained, run/label-bound DeviceApprovalReceipt
+    projection. This checks consistency, not JWT signatures or human provenance.
+    The Worker raw UTF-8 digest and runner canonical-JSON digest stay distinct.
+    """
+    run_dir = run_dir.expanduser().resolve()
+    manifest = _load_manifest(run_dir)
+    if manifest["mode"] != "live" or _load_state(run_dir)["status"] != "AWAITING_HUMAN_APPROVAL":
+        raise CohortError("device binding requires a prepared approval-waiting cohort")
+    participant = next((p for p in manifest["participants"] if p["label"] == label), None)
+    if participant is None:
+        raise CohortError("device receipt label is not a prepared participant")
+    _recheck_private_boundaries(run_dir, manifest, live=False)
+    _assert_owned(receipt_path, directory=False, mode=0o600)
+    source = _load_json(receipt_path)
+    _reject_private_or_secret(source)
+    if set(source) != {"run_id", "label", "device_receipt"} or source.get("run_id") != manifest["run_id"] or source.get("label") != label:
+        raise CohortError("device receipt run or label binding mismatch")
+    receipt = source["device_receipt"]
+    fields = {"approved", "enrollment_status", "controller_id", "player_id", "approval_receipt",
+              "independent_control_receipt", "controller_binding_digest"}
+    if not isinstance(receipt, dict) or set(receipt) != fields:
+        raise CohortError("complete non-secret device receipt projection required")
+    if receipt["approved"] is not True or receipt["enrollment_status"] != "COMPLETE":
+        raise CohortError("device enrollment is not complete")
+    if any(not isinstance(receipt[key], str) or not receipt[key] for key in fields - {"approved"}):
+        raise CohortError("device receipt binding is missing")
+    for key, prefix in (("approval_receipt", "approval"), ("independent_control_receipt", "receipt")):
+        if not re.fullmatch(rf"{prefix}\.[A-Za-z0-9_-]{{43}}", receipt[key]):
+            raise CohortError("invalid opaque device receipt reference")
+    controller = receipt["controller_id"]
+    if hashlib.sha256(controller.encode("utf-8")).hexdigest() != receipt["controller_binding_digest"]:
+        raise CohortError("Worker raw Controller binding mismatch")
+    directory = Path(participant["paths"]["credential_dir"])
+    marker = _credential_marker(directory)
+    if marker is None or _credential_controller_binding(directory) != _digest(controller):
+        raise CohortError("device receipt credential Controller binding mismatch")
+    credential = _load_json(directory / "credential.json")
+    token = credential.get("access_token")
+    if not isinstance(token, str) or not re.fullmatch(r"[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+", token):
+        raise CohortError("device credential claims are missing or invalid")
+    try:
+        segment = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4)))
+    except (AttributeError, IndexError, ValueError):
+        raise CohortError("device credential claims are missing or invalid") from None
+    if not isinstance(claims, dict) or any(claims.get(key) != receipt[key] for key in ("controller_id", "player_id")):
+        raise CohortError("device credential identity binding mismatch")
+    if claims.get("controller_type") != "agent" or claims.get("amr") != "device_enrollment":
+        raise CohortError("device-enrolled Agent credential required")
+    if credential.get("player_id") not in (None, receipt["player_id"]):
+        raise CohortError("device credential Player binding mismatch")
+    approval = {
+        "schema_version": HUMAN_APPROVAL_SCHEMA, "run_id": manifest["run_id"], "label": label,
+        "approved": True, "enrollment_status": "COMPLETE",
+        # Opaque Worker references look like secrets to the historical runner.
+        # Use content-addressed references, retaining originals only in the sidecar.
+        "approval_receipt": _digest(receipt["approval_receipt"]),
+        "independent_control_receipt": _digest(receipt["independent_control_receipt"]),
+        "credential_binding_digest": marker, "controller_binding_digest": _digest(controller),
+    }
+    approvals_dir = run_dir / "approvals"
+    _assert_owned(approvals_dir, directory=True, mode=0o700)
+    destination = approvals_dir / f"{label}.json"
+    retained = approvals_dir / f"{label}.device.json"
+    if destination.exists() or destination.is_symlink() or retained.exists() or retained.is_symlink():
+        raise CohortError("device receipt already bound; refusing replay or overwrite")
+    for other in manifest["participants"]:
+        other_path = approvals_dir / f"{other['label']}.json"
+        if other_path.exists():
+            previous = _load_json(other_path)
+            if any(previous.get(key) == approval[key] for key in (
+                "approval_receipt", "independent_control_receipt", "credential_binding_digest", "controller_binding_digest"
+            )):
+                raise CohortError("duplicate device receipt or credential binding")
+    # Retain the original evidence first. A partial write never admits a slot.
+    _atomic_json(retained, source, overwrite=False)
+    _atomic_json(destination, approval, overwrite=False)
+    return {"run_id": manifest["run_id"], "label": label, "status": "BOUND", "verdict": "PREPARATION"}
 
 
 def _recheck_private_boundaries(run_dir: Path, manifest: dict[str, Any], *, live: bool) -> None:
@@ -1533,6 +1629,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_prepare.add_argument("--run-dir", type=Path, required=True)
     p_prepare.add_argument("--mode", choices=["isolated", "live"], required=True)
 
+    p_bind = sub.add_parser("bind-device-receipt", help="bind retained device evidence without enrollment or gameplay")
+    p_bind.add_argument("--run-dir", type=Path, required=True)
+    p_bind.add_argument("--label", required=True)
+    p_bind.add_argument("--receipt", type=Path, required=True, help="private run/label-bound non-secret receipt JSON")
+
     p_run = sub.add_parser("run", help="run exactly three official client processes")
     run_sub = p_run.add_subparsers(dest="run_mode", required=True)
     p_isolated = run_sub.add_parser("isolated", help="run an isolated cohort; never claims completion")
@@ -1562,6 +1663,9 @@ def main(argv: list[str] | None = None) -> int:
             raise CohortError("unknown command")
         if args.cohort_command == "prepare":
             result = prepare(args.config, args.run_dir, mode=args.mode)
+            code = 0
+        elif args.cohort_command == "bind-device-receipt":
+            result = bind_device_receipt(args.run_dir, label=args.label, receipt_path=args.receipt)
             code = 0
         elif args.cohort_command == "run":
             code, result = run_cohort(

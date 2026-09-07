@@ -1025,32 +1025,32 @@ describe("§18 legibility — labels never overdrawn; adjacent map key", () => {
   });
 });
 
-describe('Gate B fidelity in phosphor rendering (TDD phase1)', () => {
-  it('drawPhosphorFrame should use reconstruction_fidelity for scar/pulse modulation', () => {
-    // phase4 wired: reconstruction_fidelity + controllers now modulate intensity (fidBoost) and pulse alpha
-    // grafts: drawPhosphorFrame L928, PhosphorSnapshot, createPhosphorSession ingest/paint
-    // continuation plan + WATCH-fidelity-GateB plan surface 4
+describe("public reconstruction inputs in phosphor draw commands", () => {
+  function paintedRoom(fidelity: number, corroboration: number) {
     const ctx = mockCtx();
-    const layout = { nodes: [], edges: [] } as any;
-    const pulses: any[] = [];
-    // high fidelity example (0.78 from reconstruction + 3 controllers)
-    drawPhosphorFrame(ctx, layout, pulses, Date.now(), 0.78, 3);
-    // exercised new signature + modulation path
-    expect(true).toBe(true); // exercised (fillRect always called in draw)
-    expect(true).toBe(true); // modulation active (higher fid -> higher intensity/alpha)
-  });
-});
+    const strokes: string[] = [];
+    const originalStroke = ctx.stroke;
+    ctx.stroke = () => {
+      strokes.push(ctx.strokeStyle);
+      originalStroke();
+    };
+    const layout = layoutPublicTopology([
+      { room_id: "room.a", name: "Site A", description: "A known public site." },
+    ]);
+    expect(layout.nodes).toHaveLength(1);
+    drawPhosphorFrame(ctx, layout, [], 100, fidelity, corroboration);
+    expect(ctx.ops.some((op) => op.startsWith("fillText:SITE A@"))).toBe(true);
+    expect(ctx.ops).toContain("stroke");
+    return strokes;
+  }
 
-describe('Gate B fidelity in phosphor', () => {
-  it('drawPhosphorFrame should respect reconstruction_fidelity for modulation (Gate B)', () => {
-    // phase4 complete: drawPhosphorFrame now accepts/uses reconstruction_fidelity + controllers
-    // default (0.5,1) for low-fidelity; boosted for Gate B multi-controller
-    const ctx = mockCtx();
-    const layout = { nodes: [], edges: [] } as any;
-    const pulses: any[] = [];
-    drawPhosphorFrame(ctx, layout, pulses, Date.now()); // uses defaults
-    drawPhosphorFrame(ctx, layout, pulses, Date.now(), 0.9, 3); // high fid multi
-    expect(true).toBe(true); // exercised (fillRect always called in draw)
-    expect(true).toBe(true);
+  it("changes the known-room glyph ink when public fidelity crosses the intensity band", () => {
+    expect(paintedRoom(0, 3)).toEqual(["#3DDCFF"]);
+    expect(paintedRoom(1, 3)).toEqual(["#FFB020"]);
+  });
+
+  it("uses public corroboration in the known-room glyph intensity", () => {
+    expect(paintedRoom(1, 1)).toEqual(["#3DDCFF"]);
+    expect(paintedRoom(1, 3)).toEqual(["#FFB020"]);
   });
 });

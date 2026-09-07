@@ -88,7 +88,7 @@ def test_worker_ci_provisions_the_declared_specs_pin(tmp_path: Path, job: str):
 
     jobs = dict(re.findall(r"^  (\w+):\n(.*?)(?=^  \w+:\n|\Z)",
                            WORKFLOW.read_text().split("\njobs:\n", 1)[1], re.MULTILINE | re.DOTALL))
-    steps = [step for step in _run_steps(jobs[job]) if "git clone" in step]
+    steps = [step for step in _run_steps(jobs[job]) if "Noema-Specs.git" in step]
     assert len(steps) == 1, f"{job} CI must provision the pinned sibling Specs checkout"
     pin = "1234567890abcdef1234567890abcdef12345678"
     (tmp_path / "spec-compat.json").write_text(json.dumps({"specs": {"commit": pin}}))
@@ -111,3 +111,24 @@ def test_worker_ci_provisions_the_declared_specs_pin(tmp_path: Path, job: str):
         f"clone --quiet --filter=blob:none https://github.com/Zero-State-LLC/Noema-Specs.git {tmp_path}/../Noema-Specs",
         f"-C {tmp_path}/../Noema-Specs checkout --quiet {pin}",
     ]
+
+
+def test_python_ci_enables_official_client_boundaries():
+    build = WORKFLOW.read_text().split("  build:\n", 1)[1].split("\n  worker:", 1)[0]
+    assert "NOEMA_OFFICIAL_CLIENT_REPO: ${{ github.workspace }}/../noema-client" in build
+    assert "NOEMA_ESBUILD: ${{ github.workspace }}/workers/noema/node_modules/.bin/esbuild" in build
+    assert "uses: actions/setup-node@v4" in build
+    assert "node-version: '24'" in build
+    assert "working-directory: workers/noema\n      run: npm ci" in build
+    steps = _run_steps(build)
+    client_steps = [step for step in steps if "noema-client.git" in step]
+    assert len(client_steps) == 1
+    client = client_steps[0]
+    # The release SHA, not a moving tag or main, is the compatibility oracle.
+    assert "CLIENT_PIN=0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3" in client
+    assert 'git -C "$NOEMA_OFFICIAL_CLIENT_REPO" checkout --quiet "$CLIENT_PIN"' in client
+    assert 'python -m venv "$NOEMA_OFFICIAL_CLIENT_REPO/.venv"' in client
+    assert '"$NOEMA_OFFICIAL_CLIENT_REPO/.venv/bin/python" -m pip install -e "$NOEMA_OFFICIAL_CLIENT_REPO"' in client
+    assert '"$NOEMA_OFFICIAL_CLIENT_REPO/.venv/bin/noema" --version' in client
+    assert 'test -x "$NOEMA_ESBUILD"' in client
+    assert steps.index("npm ci") < steps.index(client) < steps.index("python -m pytest -q -ra")
