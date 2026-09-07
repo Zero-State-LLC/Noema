@@ -20,6 +20,8 @@ const cases: Array<{ name: string; records: ReconstructionInput[]; fidelity: num
   { name: "public zero before private nonzero", records: [publicZero, privateRecord], fidelity: 0, controllers: 2 },
   { name: "public after private", records: [privateRecord, publicRecord], fidelity: 0.42, controllers: 3 },
   { name: "public before private", records: [publicRecord, privateRecord], fidelity: 0.42, controllers: 3 },
+  { name: "first public zero wins over later public nonzero", records: [publicZero, publicRecord], fidelity: 0, controllers: 2 },
+  { name: "first public nonzero wins over later public zero", records: [publicRecord, publicZero], fidelity: 0.42, controllers: 3 },
   { name: "absent public evidence", records: [], fidelity: 0, controllers: 1 },
   { name: "institutional-only", records: [{ ...privateRecord, visibility: "INSTITUTIONAL" }], fidelity: 0, controllers: 1 },
   { name: "unspecified visibility", records: [{ fidelity: 0.88, controllers: 8 }], fidelity: 0, controllers: 1 },
