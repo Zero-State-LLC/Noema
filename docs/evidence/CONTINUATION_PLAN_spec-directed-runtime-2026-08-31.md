@@ -53,7 +53,8 @@ credentials, enroll Controllers, send email, spend a run budget, or mutate a wor
 
 Supersedes the UTC table above for C2–C6. C0 remains MERGED; C1/C6/C8 remain
 blocked as stated. This is not Gate B completion, enrollment, or spend. C5
-public WATCH is completed in the same-day amendment that follows.
+public WATCH and the later same-day C2 candidate-suite measurement are in the
+amendments that follow.
 
 OBSERVED pin table (Worker, `/version`, `/ready`, `hosted_live`, Specs/runtime
 heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md)
@@ -63,7 +64,7 @@ heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026
 |---|---|---|
 | C0 | MERGED | Unchanged. #606 merged 2026-09-01 at `2583f0d97ab96fe12ca89216f4ed85e1b9402fa0`. |
 | C1 | NOT_VERIFIED | Protected preflight input names, values, and readiness were still not inspected. Deploy proceeded on explicit acknowledge, not on a C1 close-out. No configuration change is authorized here. |
-| C2 | PARTIAL / CI_GREEN | Runtime PR CI now runs Worker and Python regression ([#635](https://github.com/Zero-State-LLC/Noema/pull/635), closed #632). Main CI is green on the deploy source after [#638](https://github.com/Zero-State-LLC/Noema/pull/638) ([run 34167567879](https://github.com/Zero-State-LLC/Noema/actions/runs/34167567879) on `9c25603581992da0440b2dd733a554aca98adef0`) and remains green through pin [#639](https://github.com/Zero-State-LLC/Noema/pull/639) and baseline [#640](https://github.com/Zero-State-LLC/Noema/pull/640). A full local candidate suite (Worker + typecheck + integration + official-client path) may still be required for P2. Specs issue [#324](https://github.com/Zero-State-LLC/Noema-Specs/issues/324) is OBSERVED CLOSED (title: CI build does not execute specification validation); Specs CI now runs `bash validation/run.sh` on push/PR. |
+| C2 | PARTIAL / CANDIDATE_SUITE_OBSERVED | Local Worker typecheck (exit 0) and vitest (**1673 passed**, **21 skipped**, 0 failed) OBSERVED on `d90fc450b8417a98f459f8bdbe8ee07c3b7fff11`. Receipt: [P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md). `workers/noema/src` matches live source `9c25603`; no Deploy recommended. Official-client `0.1.21` offline unit suite 165 passed (not PyPI wheel, not live enroll). C2 settlement/sender/`/ready` preflight and Python/cohort E2E remain NOT_COMPUTABLE this turn. Prior CI_GREEN on `9c25603` ([run 34167567879](https://github.com/Zero-State-LLC/Noema/actions/runs/34167567879)) is unchanged. |
 | C3 | COMPLETE | Explicit production deploy was authorized and dispatched with acknowledge `I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN` from `9c25603581992da0440b2dd733a554aca98adef0`. Deploy workflow SUCCESS: [run 34167731843](https://github.com/Zero-State-LLC/Noema/actions/runs/34167731843). |
 | C4 | COMPLETE | Worker published as `04ef6ecb-65b9-430e-b0fd-141a2cc7179f` (`deployed_at` 2026-09-07T22:46:20.53456Z). Pin PR [#639](https://github.com/Zero-State-LLC/Noema/pull/639) merged; `hosted_live.worker_version_id` matches live `/version`; merge commit `957620894a2c45810d3f20aa53c65d9fbf5f0d5b` is on `main`. Specs pin [#638](https://github.com/Zero-State-LLC/Noema/pull/638) and baseline docs [#640](https://github.com/Zero-State-LLC/Noema/pull/640) are also on `main`. |
 | C5 | COMPLETE | Public WATCH acceptance on Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`. Receipt: [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md). The 2026-09-02 Galadriel receipt remains prior Worker `3f9b0e44-98c1-46f9-8232-bb44051a754f`. This is not Gate B, enrollment, or email. |
@@ -87,6 +88,25 @@ Desktop and 390×844 `/watch` and `/watch/map` passed. Live and map agree on
 
 This amendment does not enroll Controllers, send email, spend a run budget,
 mutate a world, or claim Gate B.
+
+### Disposition amendment, 2026-09-07 PT (C2 candidate suite)
+
+Supersedes the C2 row in the post-Deploy PT table. C5 remains COMPLETE.
+C6 / C7 / C8 and Gate B are unchanged.
+
+Local Worker typecheck and vitest on `main` tip `d90fc45` are recorded in
+[P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md): typecheck
+exit 0; vitest **1673 passed / 21 skipped / 0 failed**. The 21 skips are
+bare-clone Specs-artifact guards, not disabled tests. Official-client
+`noema-client==0.1.21` offline unit suite: **165 passed**. Worker source under
+`workers/noema/src` is identical to live deploy `9c25603` (Worker `04ef6ecb`);
+`main` is 4 commits ahead, all docs/evidence/`spec-compat`. Deploy is not
+recommended from this receipt.
+
+This amendment does not complete C2 (settlement/sender/`/ready` preflight
+unrun). It does not enroll Controllers, send email, spend a run budget,
+mutate a world, or claim Gate B. C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`.
+C8 remains `OWNER_BLOCKED`.
 
 ## Objective
 
@@ -186,13 +206,17 @@ can read the live canonical row and verified sender domain.
 
 ### C2. Run deployment-readiness checks without publishing
 
-**Disposition (2026-09-07 PT):** `PARTIAL / CI_GREEN`. Ordinary PR CI now
-executes Worker and Python regression ([#635](https://github.com/Zero-State-LLC/Noema/pull/635)).
-Main CI is green on `9c25603` after [#638](https://github.com/Zero-State-LLC/Noema/pull/638)
+**Disposition (2026-09-07 PT, later same day):** `PARTIAL / CANDIDATE_SUITE_OBSERVED`.
+Worker typecheck and vitest were run locally on tip `d90fc45`
+([P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md)).
+Ordinary PR CI still executes Worker and Python regression
+([#635](https://github.com/Zero-State-LLC/Noema/pull/635)). Main CI remains
+green on deploy source `9c25603` after [#638](https://github.com/Zero-State-LLC/Noema/pull/638)
 ([run 34167567879](https://github.com/Zero-State-LLC/Noema/actions/runs/34167567879)).
-A full local candidate suite may still be required for P2. Historical
+C2 checks 4–6 (settlement inspection, sender-domain verification, live
+`/ready`) were not re-run in that candidate-suite turn. Historical
 `VERIFY_EXISTING` checks below remain the readiness list; they are not all
-re-run as a single local packet in this refresh.
+satisfied by the Worker suite alone.
 
 **Checks:**
 
@@ -351,14 +375,17 @@ Stop only when every remaining meaningful item is one of:
 - `SAFETY_BLOCKED`: the next action would mutate protected production state without authorization;
 - `COMPLETE`: source, hosted identity, client, WATCH, Gate evidence, and repository pins are reconciled.
 
-As of the 2026-09-07 PT C5 amendment, C0 is MERGED, C3–C4 are COMPLETE
-(authorized Deploy + pin `04ef6ecb`), and C5 is `COMPLETE` for public WATCH
-on that Worker
-([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)).
+As of the 2026-09-07 PT C2 candidate-suite amendment, C0 is MERGED, C3–C4 are
+COMPLETE (authorized Deploy + pin `04ef6ecb`), C5 is `COMPLETE` for public
+WATCH on that Worker
+([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)), and
+C2 is `PARTIAL / CANDIDATE_SUITE_OBSERVED`
+([P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md)).
 The campaign remains `OWNER_BLOCKED` at C1 (protected preflight readiness not
 re-inspected), C6 (controlled email), and C8 (three independent external
 Controllers / Gate B). C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths
 for reconstruction fail-closed and 3-enrollment receipts remain in via #624;
 live approvals/controllers remain the Gate B blocker. Unblocked work is limited
-to review response, read-only refresh, evidence preparation, P2 candidate-suite
-evidence, and plan updates that do not impersonate Gate B or enroll/spend.
+to review response, read-only refresh, remaining P2 integration/client-path
+evidence that does not enroll or Deploy, and plan updates that do not
+impersonate Gate B or enroll/spend.
