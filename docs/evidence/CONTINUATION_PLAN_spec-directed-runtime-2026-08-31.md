@@ -14,7 +14,12 @@ or close LCA-2.
 
 ## Execution amendment 2026-09-07
 
-Continue this queue using the owner-approved [Specs–runtime gap-closure work packets](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md). That companion reconciles current source, deployment, client, and evidence separately; historical receipts below are not current-main acceptance. P0–P2 engineering and reviewed PRs precede conditional live Gates B–F. Explicit deploy, enrollment, paid/live-run and acceptance boundaries remain intact.
+Continue this queue using the owner-approved [Specs–runtime gap-closure work
+packets](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md). That companion reconciles
+current source, deployment, client, and evidence separately; historical
+receipts below are not current-main acceptance. P0–P2 engineering and reviewed
+PRs precede conditional live Gates B–F. Explicit deploy, enrollment,
+paid/live-run and acceptance boundaries remain intact.
 
 ## Objective
 
