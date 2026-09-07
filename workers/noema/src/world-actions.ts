@@ -5802,12 +5802,17 @@ async function applyReconstructCommand(
     claim: claim.slice(0, 280),
     evidence_refs: collected.refs,
     created_cycle: w.cycle,
-    supersedes_reconstruction_id: prior?.reconstruction_id,
     status: "RECORDED",
     visibility,
     epistemic: epistemicFromEvidence(collected.refs),
-    org_id: args.org_id || prior?.org_id,
   };
+  if (prior?.reconstruction_id !== undefined) {
+    rec.supersedes_reconstruction_id = prior.reconstruction_id;
+  }
+  const orgId = args.org_id ?? prior?.org_id;
+  if (orgId !== undefined) {
+    rec.org_id = orgId;
+  }
   w.reconstructions[reconstruction_id] = rec;
   if (prior) prior.status = "SUPERSEDED";
   const controllerCount = new Set(

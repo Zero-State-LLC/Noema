@@ -273,7 +273,12 @@ export function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(",")}]`;
   const obj = value as Record<string, unknown>;
   const keys = Object.keys(obj).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
+  const entries: string[] = [];
+  for (const k of keys) {
+    if (obj[k] === undefined) continue;
+    entries.push(`${JSON.stringify(k)}:${stableStringify(obj[k])}`);
+  }
+  return `{${entries.join(",")}}`;
 }
 
 export async function sha256Hex(input: string): Promise<string> {

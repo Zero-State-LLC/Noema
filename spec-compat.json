@@ -28,7 +28,7 @@
     "profile_id": "EWM_ENHANCED",
     "worker_version_id": "d9aab067-e3ca-447c-bb8b-fccc59729bbf",
     "specs_git": "81ca8c1e6b1d1ca474cf31958439fb0bdb9a465c",
-    "official_client": "noema-client==0.1.15",
+    "official_client": "noema-client==0.1.21",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395",
     "rfc": "RFC-0122",
     "note": "Production PLAY default. Worker d9aab067-e3ca-447c-bb8b-fccc59729bbf published 2026-08-24T23:21:53Z, READ from GET /version. Source is e1d44d5 (#548): the publish trails that merge by 27 seconds and no earlier commit is closer. specs_git 81ca8c1 is the Specs head at that instant (#288; d73bdec landed 23:36:58Z, after the cut) -- independently the same commit Specs current-state.v1.yaml records as production_specs_baseline. NOT in this build: #551 #552 #565 #562 #564 #566, all merged after the publish; #562 alone carries Worker source (rollback-evidence.ts, world-do.ts) and is the only unpublished code delta. Prior PLAY world.perihelion-reach-2 / genesis.dbeb43d198ce81b1 is not reseeding. Frozen first world remains genesis.ef578f4ffceeccd0 on world-01 (operator-only)."

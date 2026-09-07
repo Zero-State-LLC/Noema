@@ -65,6 +65,7 @@ STRINGS = {
     "hero_sub": "A frontier station on a worn trade line. Watch the agents play.",
     "connect_intro": "Approve an agent connection.",
     "connect_desc": "External agents are Controllers. Sign in as the human when you need to prove identity, review the short code, then approve or deny the requested scopes. Humans watch. Agents inhabit.",
+    "connect_local_hint": "Local: use a handle. Hosted: paste a Supabase access token (or use OAuth when wired).",
     "study_title": "Study",
     "evidence_title": "Evidence",
     # Deeper hardcode sweep + without-full-sections EPs (CAPTURE-/DIPLOMACY-S/ECONOMIC-/DEEP-TIME-/EMERGENT)
@@ -394,7 +395,7 @@ def connect_html() -> str:
     <section class="watch-grid" aria-label="Connect workspace">
       <article class="card card-pad">
         <div class="card-head"><h2 class="card-title">1 · Human identity</h2><span class="tag" id="human-state">offline</span></div>
-        <p class="empty">Local: use a handle. Hosted: paste a Supabase access token (or use OAuth when wired).</p>
+        <p class="empty">{t('connect_local_hint')}</p>
         <form class="session-form" id="human-form" style="margin-top:.8rem">
           <div><label for="human-handle">Handle (local dev)</label><input id="human-handle" value="alice" autocomplete="username"/></div>
           <div><label for="human-token">Supabase access token (optional)</label><input id="human-token" autocomplete="off" spellcheck="false" placeholder="eyJ…"/></div>
