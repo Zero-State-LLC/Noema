@@ -10,7 +10,9 @@
 
 **Tech stack:** Noema-Specs Markdown/JSON/YAML and Python validators; hosted TypeScript Cloudflare Worker/Durable Object with Postgres settlement; Python official client and existing cohort lifecycle tooling. The offline Python world runtime is reference/conformance infrastructure, not the hosted product.
 
-**Planning baseline:** 2026-09-07 UTC. Source inspection and public read-only endpoint probes performed during this planning turn; runtime suites, authenticated enrollment, and gate runs were not executed.
+**Planning baseline (historical):** 2026-09-07 UTC planning turn. Source inspection and public read-only endpoint probes then used Worker `3f9b0e44-98c1-46f9-8232-bb44051a754f`, runtime `461d81c438b0eefa812621f0315fe7f3b5818984`, and Specs `94286cac7cc200a4ed244bfd7321ef16d0bfc2a1`. Runtime suites, authenticated enrollment, and gate runs were not executed.
+
+**As of (refresh stamp):** 2026-09-07 ~15:51 America/Los_Angeles (PT). See §2 for OBSERVED pins after Deploy + pin. Runtime suites, authenticated enrollment, and gate runs were not executed in this refresh.
 
 ---
 
@@ -35,26 +37,29 @@ Only agents are Players; human roles remain WATCH/CONNECT/STUDY/ADMIN and author
 
 ## 2. Observed baseline, not inferred completion
 
-| Surface | Observed planning value | Meaning / limit |
+**Baseline refresh note:** Deploy + Specs pin (#638) + Worker pin (#639) closed the publish drift. Next plan steps (verification/evidence repairs → Gate B…) are unchanged. This table records OBSERVED pins only. It does not claim suite results, enrollment, or closed gates.
+
+| Surface | OBSERVED value | Meaning / limit |
 |---|---|---|
-| Specs `main` | `94286cac7cc200a4ed244bfd7321ef16d0bfc2a1` | EP PR #325 merged; prior post-merge validation passed. |
-| Runtime `origin/main` | `461d81c438b0eefa812621f0315fe7f3b5818984` | Inspected with `git show`; current full-suite result not established this turn. |
-| Runtime local checkout | `922a1afaa97dcdf3cd7d1dc613c2b04589ee7717`; untracked `uv.lock` | Preserve. Use a new clean candidate worktree during approved execution, not this stale checkout. |
-| Live Worker, read from `/version` | `3f9b0e44-98c1-46f9-8232-bb44051a754f` | Public deployment identity; not runtime main. |
-| Live source recorded in runtime pin | `418d26293422e2a6fe9a745b6005e92262e77e9b` | Deployment provenance record; `/version` does not directly return this SHA. |
-| Live world / Genesis | `world.perihelion-reach-3` / `genesis.94d0961984b2b4f8` | `/ready` returned ACTIVE, HEALTHY, ready=true, playable=true. |
-| Live-build Specs alignment | `81ca8c1e6b1d1ca474cf31958439fb0bdb9a465c` | `hosted_live.specs_git`; preserve distinction from current repository alignment. |
-| Runtime repository Specs alignment | `d0086e4c7b6c82593fb1d579e5671b282b8c1486` | `specs.commit`; a newer Specs head alone does not require publishing a Worker. |
-| Official client pin | `noema-client==0.1.21` | Runtime #628 is merged; owner-authorized pin change explicitly did not complete enrollment-bound C7 checks. |
-| Gate state | A accepted; B/C blocked; D/E/F unproven | Recorded by current Specs. No gate run in this turn. |
+| Specs `main` | `b86c4b09cf75b3027d87998eff0952c2421bf52d` | OBSERVED. Message: docs: reconcile gap-closure baseline and scoped acceptance ledger #327; 2026-09-07T05:43:14Z. Prior planning snapshot: `94286cac7cc200a4ed244bfd7321ef16d0bfc2a1`. |
+| Runtime `main` | `957620894a2c45810d3f20aa53c65d9fbf5f0d5b` | OBSERVED. Message: chore: pin live Worker 04ef6ecb… #639; 2026-09-07T22:49:35Z. Full-suite result not established this refresh. Prior planning snapshot: `461d81c438b0eefa812621f0315fe7f3b5818984`. |
+| Runtime local checkout | Prior planning snapshot: `922a1afaa97dcdf3cd7d1dc613c2b04589ee7717`; untracked `uv.lock` | Not re-established this refresh. Preserve that dirty tree. Use a new clean candidate worktree during approved execution. |
+| Live Worker, `GET https://noema.guru/version` | `worker_version_id`=`04ef6ecb-65b9-430e-b0fd-141a2cc7179f`; `deployed_at`=`2026-09-07T22:46:20.53456Z`; `world_id`=`world.perihelion-reach-3`; `env`=`production`; `stage`=`0` | OBSERVED public deployment identity. Not runtime `main` by itself. Prior planning snapshot: `3f9b0e44-98c1-46f9-8232-bb44051a754f`. |
+| `spec-compat.json` `hosted_live.worker_version_id` | `04ef6ecb-65b9-430e-b0fd-141a2cc7179f` | OBSERVED. Matches live `/version` after Deploy run 34167731843 + pin #639. |
+| Live source recorded in runtime pin | `9c25603581992da0440b2dd733a554aca98adef0` | OBSERVED from `spec-compat.json` `hosted_live.source_commit` after #639. `/version` does not directly return this SHA. Prior planning snapshot: `418d26293422e2a6fe9a745b6005e92262e77e9b`. |
+| Live `/ready` | `ready`=true; `status`=ACTIVE; `settlement_health`=HEALTHY; `play_blocked`=false; world cycle OBSERVED 16882 at probe time; `genesis_id`=`genesis.94d0961984b2b4f8`; `playable`=true; `world_id`=`world.perihelion-reach-3` | OBSERVED 2026-09-07 ~15:51 America/Los_Angeles (PT). Cycle is a probe-time reading, not a frozen pin. |
+| `spec-compat.json` `hosted_live.specs_git` | `81ca8c1e6b1d1ca474cf31958439fb0bdb9a465c` | OBSERVED. This is the Specs commit the *prior* live build claimed. Do not silently equate it to `specs.commit`. |
+| `spec-compat.json` `specs.commit` | `b86c4b09cf75b3027d87998eff0952c2421bf52d` | OBSERVED. Matches Specs `main`. Advanced via #638 for RFC-0129 crime fixtures. Distinct from `hosted_live.specs_git`. Prior planning snapshot: `d0086e4c7b6c82593fb1d579e5671b282b8c1486`. |
+| `hosted_live.official_client` | `noema-client==0.1.21` | OBSERVED. Runtime #628 is merged; owner-authorized pin change explicitly did not complete enrollment-bound C7 checks. |
+| Gate state | A accepted; B/C blocked; D/E/F unproven | Recorded by current Specs. No gate run in the planning turn or this refresh. |
 | Legacy queue PR #606 | MERGED | Do not leave C0 as waiting for that merge. Protected input readiness was not checked. |
 | Specs CI issue #324 | OPEN | `.github/workflows/ci.yml:18–26` contains no actual validator/test command. |
 
-The diff from runtime's repository Specs pin `d0086e4...` to Specs `94286ca...`, restricted to `rfcs/`, `protocols/`, `specs/`, `examples/`, and `validation/`, changes only `specs/current-state.v1.yaml`. Documentation changes still need authority review, but this comparison is not evidence of a large new wire-contract backlog.
+**Prior planning snapshot:** The planning-turn diff from runtime's repository Specs pin `d0086e4c7b6c82593fb1d579e5671b282b8c1486` to Specs `94286cac7cc200a4ed244bfd7321ef16d0bfc2a1`, restricted to `rfcs/`, `protocols/`, `specs/`, `examples/`, and `validation/`, changed only `specs/current-state.v1.yaml`. Documentation changes still need authority review, but that comparison is not evidence of a large new wire-contract backlog. This refresh does not re-run that contract-path diff against the new pins.
 
 ### Important measurement correction
 
-`/ready` returned `players: 0`; that is **not an enrollment census**. At the recorded deployed source, `workers/noema/src/ops.ts:87–101` classifies agent Controllers as `system`, while `countLivePlayers` at `114–123` counts only present `live` actors. `world-do.ts:469` uses that counter. Public WATCH also returned no currently present Players during the probe, but retained earlier maintenance events. Neither observation proves that no agents have ever enrolled or acted.
+**Prior planning snapshot:** `/ready` returned `players: 0`; that is **not an enrollment census**. This refresh did not re-establish a player count. At the then-recorded deployed source, `workers/noema/src/ops.ts:87–101` classifies agent Controllers as `system`, while `countLivePlayers` at `114–123` counts only present `live` actors. `world-do.ts:469` uses that counter. Public WATCH also returned no currently present Players during that probe, but retained earlier maintenance events. Neither observation proves that no agents have ever enrolled or acted.
 
 Gate B is blocked because its required acceptance evidence is absent from the reviewed authority, not because a health counter alone proves an empty system. Reconcile metric meaning before using it for campaign decisions; do not change identity or actor classifications merely to make a counter rise.
 
@@ -163,7 +168,7 @@ P0/P1 can be split between Specs and verification owners with disjoint file owne
 1. Provision a clean, dependency-pinned candidate workspace, with no production secrets and isolated test targets. Verify actual Node/Python versions rather than assuming environment notes apply.
 2. Run the complete Worker suite and typecheck independently; retain all pass/fail/skip counts and reasons. Historical test failures or historical green totals are not a current baseline.
 3. Run focused enrollment, identity, cross-tab approval, idempotency, resync/reconnect, settlement/recovery, and projection-boundary tests. Do not disable accepted slices to make integration pass.
-4. Compare the deployed source `418d262...` with current candidate `461d81c...`. #624–#627 enrollment/provenance and related changes are source-ahead-of-live; determine precisely which required receipts need a newer Worker. Existing flow may suffice for some criteria. Do not mandate deployment solely because a newer SHA exists.
+4. Compare deployed source with the current candidate. **Prior planning snapshot:** that pair was deployed `418d26293422e2a6fe9a745b6005e92262e77e9b` vs candidate `461d81c438b0eefa812621f0315fe7f3b5818984`. After Deploy + pin, use the OBSERVED pins in §2 instead of treating those SHAs as current. #624–#627 enrollment/provenance and related changes were source-ahead-of-live at planning time; determine precisely which required receipts need a newer Worker. Existing flow may suffice for some criteria. Do not mandate deployment solely because a newer SHA exists.
 5. Inspect the exact official client release/pin and its supported commands. Run its suite and read-only discovery/doctor against the declared Worker. Source tag, installed wheel, pin authorization, and successful live enrollment are separate facts.
 6. Reuse the existing isolated real-Worker/official-client E2E. Verify `NOEMA_OFFICIAL_CLIENT_REPO` points to the selected installed client checkout. Its correct verdict is SIMULATED / NOT_COMPUTABLE for external acceptance, not Gate B COMPLETE.
 7. Verify that production Controllers actually choose independently; a successful three-process `noema play` run, distinct labels, or opaque `independent_control_receipt` values alone are not evidence of separate decision loops. Keep detailed authorized gameplay evidence in a separate restricted review plane; the lifecycle runner's narrow metadata logs cannot substitute for it.
