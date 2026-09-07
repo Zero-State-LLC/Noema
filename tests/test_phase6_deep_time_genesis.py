@@ -228,6 +228,69 @@ def test_d38_reconstruction_ingest_preserves_provenance_digest_and_caller(tmp_pa
         assert exc.value.code == NARRATIVE_INVENTION
 
 
+# Issue #622 lock-in: `fidelity` and `controllers` are provenance evidence, so
+# they must participate in the reconstruction content digest. Otherwise two
+# reconstructions with identical claims but different controller-count support
+# would be indistinguishable downstream, defeating Gate B provenance.
+def test_issue_622_controllers_and_fidelity_participate_in_digest():
+    base = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.gate-b.622.digest",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": ["evidence.controller-a"],
+        "fidelity": 0.5,
+        "controllers": 3,
+    }
+
+    baseline = validate_reconstruction(dict(base))
+    more_controllers = validate_reconstruction({**base, "controllers": 5})
+    higher_fidelity = validate_reconstruction({**base, "fidelity": 0.9})
+    without_controllers = validate_reconstruction(
+        {k: v for k, v in base.items() if k != "controllers"}
+    )
+
+    assert baseline["digest"] != more_controllers["digest"]
+    assert baseline["digest"] != higher_fidelity["digest"]
+    assert baseline["digest"] != without_controllers["digest"]
+
+
+def test_issue_622_registry_snapshot_round_trips_provenance_digest():
+    """The registry snapshot must expose the same fidelity/controllers/digest
+    tuple that validation produced, so downstream projections see identical
+    provenance to what was ingested (Gate B: no silent metadata loss)."""
+    reg = DeepTimeRegistry()
+    recon = {
+        "schema_version": "historical-reconstruction/0.6",
+        "reconstruction_id": "recon.gate-b.622.snapshot",
+        "subject_ref": "entity.relay-south",
+        "evidence_set": [
+            "evidence.controller-a",
+            "evidence.controller-b",
+            "evidence.controller-c",
+        ],
+        "fidelity": 0.72,
+        "controllers": 3,
+    }
+    caller_view = dict(recon)
+
+    stored = reg.put_reconstruction(recon)
+    snap = reg.snapshot()
+    snap_record = next(
+        r
+        for r in snap["reconstructions"]
+        if r["reconstruction_id"] == "recon.gate-b.622.snapshot"
+    )
+
+    assert stored["fidelity"] == 0.72
+    assert stored["controllers"] == 3
+    assert stored["digest"].startswith("sha256:")
+    assert snap_record["fidelity"] == 0.72
+    assert snap_record["controllers"] == 3
+    assert snap_record["digest"] == stored["digest"]
+    # Caller dict must not be mutated by the registry write path.
+    assert recon == caller_view
+
+
 # D22 names immutable
 def test_d22_canonical_id_immutable_under_rename():
     name = validate_name(_load("name-relay-south.json"))
