@@ -80,42 +80,14 @@ describe("RFC-0120 play and events", () => {
     );
     // We expect a successful response (200) because the agent is authorized.
     expect(res.status).toBe(200);
-    const resBody = await res.json() as { ok?: boolean; command?: string; observation?: { player_id?: string; available_actions: Array<{ action: string; target_id?: string }>; location?: { room_id?: string } } };
-    // We can also check that the response contains the expected data from the dummyRoute.
+    const resBody = await res.json() as { ok?: boolean; command?: string };
     expect(resBody).toHaveProperty("ok", true);
     expect(resBody).toHaveProperty("command", "LOOK");
+    // This dummyRoute proves gateway admission/dispatch only. Actual observation
+    // discovery (string available_actions + structured affordances) and executing
+    // an advertised target are covered by agent-http-do-boundary.test.ts using the
+    // real World DO. Do not infer a wire schema from this mock response.
 
-    // P7/P8 Agent observation contract + structured action discovery (RFC-0120 packets):
-    // Agent principals receive structured obs (no human parser).
-    // available_actions must be objects (Affordance[]), not MUD strings.
-    expect(resBody).toHaveProperty("observation");
-    const obs = resBody.observation;
-    expect(obs).toBeDefined();
-    expect(obs).toHaveProperty("player_id");
-    expect(obs?.player_id).toBeDefined();
-    expect(obs).toHaveProperty("available_actions");
-    expect(Array.isArray(obs?.available_actions)).toBe(true);
-    if (obs && obs.available_actions.length > 0) {
-      const first = obs.available_actions[0];
-      expect(first).toHaveProperty("action");  // structured, not string
-      expect(typeof first.action).toBe("string");
-    }
-    if (obs?.location) {
-      expect(obs.location).toHaveProperty("room_id");
-    }
-
-    // P9 client/harness conformance (RFC-0120 packets + client ActionProposal):
-    // Proposal/command for agent uses structured shape: action + target_id + arguments (no free-form `line`).
-    // This matches noema_llm_agent.schemas.ActionProposal (extra="forbid", no line field).
-    // Server-side: hosted strips arguments.line for agents (protocol-ws + normalizeStructuredCommand).
-    const cmdBody = { request_id: "x1", command: "LOOK", arguments: {} };  // already structured, no line
-    expect(cmdBody.arguments).not.toHaveProperty("line");
-    expect(cmdBody).toHaveProperty("command");
-    // If affordance-driven (simulated from obs), target_id would be used:
-    if (obs && obs.available_actions.length > 0 && obs.available_actions[0].target_id) {
-      const affCmd = { command: obs.available_actions[0].action, arguments: { target_id: obs.available_actions[0].target_id } };
-      expect(affCmd.arguments).not.toHaveProperty("line");
-    }
   });
 
   it("live agent player record gets explicit active status in ledger (P1/P2/P4 ledger flesh-out)", async () => {
