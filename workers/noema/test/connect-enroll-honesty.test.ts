@@ -4,7 +4,7 @@ import worker from "../src/index";
 import type { Env } from "../src/types";
 
 function scriptOf(html: string): string {
-  return [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join("\n");
+  return [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).join("\n");
 }
 
 describe("PROMETHEUS Slice B — CONNECT enroll honesty", () => {
