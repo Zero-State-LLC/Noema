@@ -51,6 +51,7 @@ function signupSection(task: boolean): string {
       <p class="notice ok" id="c-signed-in" hidden>${task
         ? "You're signed in. Approve or deny the waiting code."
         : "You're signed in. Install the client, then enter the code."}</p>
+      <p class="empty" id="c-admin-login">Operators: <a href="/admin/login">Admin login</a>, then return here. Opening this page does not approve.</p>
     </section>`;
 }
 
@@ -96,8 +97,8 @@ function approveSection(task: boolean, codeValue: string): string {
         <button type="button" class="btn quiet" id="d-saved-clear">Clear saved code</button>
       </div>
       <p class="notice" id="d-need-play" hidden>${task
-        ? "Sign in first. That's the account that can approve."
-        : "Sign in below first. That's the account that can approve."}</p>
+        ? "Sign in first. A watch link or Admin session can approve."
+        : "Sign in below first. A watch link or Admin session can approve."}</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
         <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"${codeValue ? ` value="${codeValue}"` : ""}/>
@@ -248,6 +249,7 @@ export function connectHtml(
     const login = document.getElementById("c-login");
     const loginNotice = document.getElementById("c-login-notice");
     const signedIn = document.getElementById("c-signed-in");
+    const adminLogin = document.getElementById("c-admin-login");
     const cEmail = document.getElementById("c-email");
     const approveButton = document.getElementById("d-approve");
     function syncPlaySession(){
@@ -257,10 +259,12 @@ export function connectHtml(
         if (login) login.hidden = true;
         if (signedIn) signedIn.hidden = false;
         if (need) need.hidden = true;
+        if (adminLogin) adminLogin.hidden = true;
       } else {
         if (login) login.hidden = false;
         if (signedIn) signedIn.hidden = true;
         if (need) need.hidden = false;
+        if (adminLogin) adminLogin.hidden = false;
       }
     }
     syncPlaySession();
@@ -285,8 +289,14 @@ export function connectHtml(
         }
       });
     }
-    function sessionToken(){
+    function playToken(){
       try { return sessionStorage.getItem("noema.play.token") || playTok; } catch(_) { return playTok; }
+    }
+    function adminSessionToken(){
+      try { return sessionStorage.getItem("noema.admin.token") || ""; } catch(_) { return ""; }
+    }
+    function sessionToken(){
+      return playToken() || adminSessionToken();
     }
     function canonicalCode(value){
       const raw = (value || "").trim().replace(/-/g, "").toLowerCase();
