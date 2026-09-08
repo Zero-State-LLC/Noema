@@ -14,6 +14,8 @@
 
 **As of (refresh stamp):** 2026-09-07 ~15:51 America/Los_Angeles (PT). See §2 for OBSERVED pins after Deploy + pin. Runtime suites, authenticated enrollment, and gate runs were not executed in this refresh.
 
+**Amendment (P2 tickets, 2026-09-07 PT):** G11–G13 and bounded tickets P2.1–P2.3 are COMPLETE via [#636](https://github.com/Zero-State-LLC/Noema/pull/636). Section 2 pins and Gate B/C remain unchanged. This amendment does not deploy, enroll, spend, or promote a gate.
+
 ---
 
 ## 1. Decision and scope
@@ -77,9 +79,9 @@ Gate B is blocked because its required acceptance evidence is absent from the re
 | G08 | Existing systems have not passed the required civilization scenario | Gate C integration acceptance | All eight coupled paths, two viable strategies, consequential institution, and restart preservation. |
 | G09 | WATCH under natural multi-agent pressure and endurance are unproven | Gates D/E evidence | Public-only blind review; four-hour then 24-hour run with recovery and incident receipts. |
 | G10 | Successor decision and later hosted research reopening remain downstream | Governance/deferred | Gate F decision packet; separately authorized deployment/research decisions. |
-| G11 | WATCH fallback can select private fidelity, including when public fidelity is legitimately zero; controller count comes from the first reconstruction | Source-level projection/privacy defect candidate; no live private disclosure exercised | Isolated negative/zero-value tests fail on current code; public-only projection passes without scope expansion. |
-| G12 | Worker and cohort binding digests serialize Controller IDs differently | Source-level integration mismatch; full end-to-end failure not yet exercised | A reviewed compatible binding contract passes Worker response → client persistence → cohort preflight. |
-| G13 | Some rendering tests assert true on empty fixtures; direct-module golden path bypasses parts of HTTP/DO routing | Confirmed coverage limitations, not blanket runtime failure | Observable rendering assertions and an actual supported transport/identity/projection boundary test. |
+| G11 | WATCH fallback can select private fidelity, including when public fidelity is legitimately zero; controller count comes from the first reconstruction | **CLOSED / COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636). Historical classification: source-level projection/privacy defect candidate; no live private disclosure was exercised then or now. | #636. First-public pairing with honest zeros in `workers/noema/src/watch-live.ts`. Isolated negative/zero-value cases in `workers/noema/test/watch-reconstruction-projection.test.ts` (builder + Worker GET→World DO). Phosphor intensity assertions in `workers/noema/test/watch-phosphor.test.ts` ~1028–1055. No live private-leak exercise is claimed. |
+| G12 | Worker and cohort binding digests serialize Controller IDs differently | **CLOSED / COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636). Historical classification: source-level integration mismatch; full live end-to-end failure was not exercised. | #636 and [P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md](P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md). Reviewed compatible binding: Worker response → client persistence → cohort preflight. Synthetic integration evidence only. Not live enrollment. |
+| G13 | Some rendering tests assert true on empty fixtures; direct-module golden path bypasses parts of HTTP/DO routing | **CLOSED / COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636). Historical classification: confirmed coverage limitations, not blanket runtime failure. | #636 and [P2.3-HTTP-DO-BOUNDARY-2026-09-07.md](P2.3-HTTP-DO-BOUNDARY-2026-09-07.md). Observable phosphor intensity assertions; HTTP → identity → World DO → public projection tests in `workers/noema/test/agent-http-do-boundary.test.ts`, `agent-http-do-resync.test.ts`, and `agent-http-do-projection.test.ts`. Local synthetic DO evidence, not production conformance. |
 
 **Small structural repairs:** `docs/ECONOMY-EWM-SPEC.md:30–53` has its deferred table interrupted by EP text; `docs/CIVILIZATION-CAPABILITY-MATRIX.md:42` has an orphaned offline-research row. Repair placement only, preserving all statements, deferred scope, and historical claims. These are readability/authority-maintenance tasks, not new runtime requirements.
 
@@ -177,13 +179,23 @@ P0/P1 can be split between Specs and verification owners with disjoint file owne
 
 ### Bounded P2 implementation tickets
 
-**P2.1 — Public reconstruction projection (G11):**
+**P2.1 — Public reconstruction projection (G11): COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636).
+
+Closed-by: first-public pairing with honest zeros in `workers/noema/src/watch-live.ts` (RFC-0024 / GC6-S1); `workers/noema/test/watch-reconstruction-projection.test.ts` (builder + Worker GET→World DO: private-only, public zero ± private order, first-public wins, absent/institutional/unspecified, producer→publish); phosphor intensity assertions at `workers/noema/test/watch-phosphor.test.ts` ~1028–1055. Map `workers/noema/src/watch-map.ts` still averages public fidelities; that path was outside the P2.1 first-public contract and is unchanged. No new aggregation policy. No live private-leak exercise. Controller-count provenance remains a separate #622 question.
+
+Historical ticket scope:
+
 - Inspect `workers/noema/src/world-do.ts:288–296` and `workers/noema/src/watch-live.ts:705–712,789–795` at the recorded SHA. Current `public?.fidelity || first.fidelity` selection can use a private first record when no public record exists or the public value is zero. Controller count is not tied to the selected public reconstruction.
 - Write RED cases for private-only records, public fidelity zero with private nonzero first, reversed record order, and absent public evidence. Cover the World DO snapshot adapter as well as the builder; helper-only coverage misses precomputed input.
 - Make the smallest public-only/default fix supported by the accepted projection contract. Preserve honest zero values. Resolve unspecified selection semantics in Specs first; do not invent aggregation policy or widen public data.
 - Replace empty-fixture `expect(true).toBe(true)` tests at `workers/noema/test/watch-phosphor.test.ts:1028–1055` with nonempty draw-command/intensity assertions. Pixel/math tests do not replace visual or accessibility review.
 
-**P2.2 — Device receipt → cohort binding (G12):**
+**P2.2 — Device receipt → cohort binding (G12): COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636) and [P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md](P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md).
+
+Closed-by: existing cohort `bind-device-receipt` adapter plus Worker HTTP → official client v0.1.21 persistence → `/1.0` cohort approval/preflight tests. Synthetic integration evidence only. Not live enrollment or Gate B.
+
+Historical ticket scope:
+
 - `workers/noema/src/device-enrollment.ts:312–316` hashes raw string bytes; `src/noema/cli/cohort.py:155–160,826–843` hashes canonical JSON encoding of the identity string. A non-secret fixture check returned unequal digests in this planning pass; the full integration failure has not been exercised.
 - Define an explicit provenance-preserving receipt adapter or reviewed operator procedure rather than assuming Worker and runner receipts are interchangeable. Runner `cohort.py:888–917` also requires `schema_version`, `run_id`, `label`, and credential-file binding, and rejects extra fields. Its preflight compares both bindings at `1011–1034`; copying the Worker response or digest directly cannot satisfy that contract.
 - Specify the identity subject and serialization separately for each existing evidence contract; preserve the Worker receipt while computing the required runner binding. Add cross-language vectors and a RED integration test before any compatibility-preserving change. Do not blindly change cohort's generic `_digest`, also used for other evidence, or relabel one digest format as another.
@@ -192,7 +204,12 @@ P0/P1 can be split between Specs and verification owners with disjoint file owne
 - Added helpers are not automatically HTTP endpoints. `index.ts:33–52,431–464` uses existing device routes and separately imports similarly named functions from `enrollment.ts`. Do not invent a receipt URL or expose a helper just because it is exported.
 - Existing CONNECT/device onboarding may already suffice for independent play. Deployment is necessary only when the selected evidence path requires new fields or validated fixes—not because ordinary enrollment is established as unavailable.
 
-**P2.3 — Real boundary coverage (G13):**
+**P2.3 — Real boundary coverage (G13): COMPLETE** via [#636](https://github.com/Zero-State-LLC/Noema/pull/636) and [P2.3-HTTP-DO-BOUNDARY-2026-09-07.md](P2.3-HTTP-DO-BOUNDARY-2026-09-07.md).
+
+Closed-by: `workers/noema/test/agent-http-do-boundary.test.ts`, `agent-http-do-resync.test.ts`, and `agent-http-do-projection.test.ts` (HTTP → identity → World DO → public projection, settlement resync, producer→persisted live/map). Phosphor empty-fixture assertions were replaced in P2.1. Local synthetic evidence. Not production conformance or Gate B.
+
+Historical ticket scope:
+
 - `workers/noema/test/agent-golden-path.test.ts:1–17` drives command/seal/protocol modules directly. Reuse it, but add an isolated supported HTTP/WebSocket → identity guard → World DO → public projection test for the chosen path. Direct-module coverage is not full transport/deployment proof.
 - Include human Player denial, unsupported/expired enrollment, stale/gap resynchronization, private reconstruction exclusion, and governed unauthenticated public-read limits.
 - Resolve contradictory action-discovery evidence against accepted contracts: real `world-actions.ts:864–868,1047–1056` exposes string `available_actions` and separate structured `affordances`, while mock-route `test/rfc-0120-play-and-events.test.ts:83–116` asserts object `available_actions`. Replace the mock-only contract claim with an actual authenticated enter → look → advertised affordance → command test using existing attachment/golden-path infrastructure. Preserve compatible fields; do not redesign the wire contract on the strength of a mock.
