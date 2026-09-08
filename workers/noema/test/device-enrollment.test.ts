@@ -14,6 +14,7 @@ import {
   memoryDeviceStore,
   parseDeviceRecord,
   pollDeviceToken,
+  deviceReviewEmailReady,
   previewDevice,
   startDeviceEnrollment,
   verifyApprovedDeviceEnrollments,
@@ -333,6 +334,15 @@ describe("device review token URLs", () => {
     expect((await store.getByDeviceCode(device_code))?.status).toBe("approved");
   });
 
+describe("deviceReviewEmailReady", () => {
+  it("is false until both the review secret and Resend key exist", () => {
+    expect(deviceReviewEmailReady(env())).toBe(false);
+    expect(deviceReviewEmailReady(env({ RESEND_API_KEY: "resend-key" } as Partial<Env>))).toBe(false);
+    expect(deviceReviewEmailReady(env({ DEVICE_REVIEW_TOKEN_SECRET: "review-secret" } as Partial<Env>))).toBe(false);
+    expect(deviceReviewEmailReady(reviewEnv())).toBe(true);
+  });
+});
+
 describe("previewDevice", () => {
   it("returns public fields and never a token", async () => {
     const store = memoryDeviceStore();
@@ -355,7 +365,46 @@ describe("previewDevice", () => {
     expect(body.access_token).toBeUndefined();
   });
 
-  it("is WATCH-safe: approval status is visible without controller identity or credentials", async () => {
+  it("includes controller_id and a normalized XXXX-XXXX user_code", async () => {
+    const store = memoryDeviceStore();
+    const started = await startDeviceEnrollment(
+      env(),
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "hermes" } },
+      { store },
+    );
+    const { user_code, controller_id } = (await started.json()) as {
+      user_code: string;
+      controller_id: string;
+    };
+    const denorm = user_code.replace(/-/g, "").toLowerCase();
+    const res = await previewDevice(
+      env(),
+      new Request(`https://noema.guru/v1/auth/device/preview?user_code=${denorm}`),
+      { store },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      user_code: string;
+      controller_id: string;
+      status: string;
+      runtime: string;
+      expires_at: string;
+      access_token?: string;
+      player_id?: string;
+    };
+    expect(body.user_code).toBe(user_code);
+    expect(body.user_code).toMatch(/^[A-F0-9]{4}-[A-F0-9]{4}$/);
+    expect(body.controller_id).toBe(controller_id);
+    expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    expect(body.status).toBe("pending");
+    expect(body.runtime).toBe("hermes");
+    expect(body.expires_at).toBeTruthy();
+    expect(body.access_token).toBeUndefined();
+    expect(body.player_id).toBeUndefined();
+  });
+
+  it("is WATCH-safe: no credentials or player_id, but names the controller", async () => {
     const store = memoryDeviceStore();
     const e = env();
     const started = await startDeviceEnrollment(
@@ -364,9 +413,14 @@ describe("previewDevice", () => {
       {},
       { store },
     );
-    const { user_code } = (await started.json()) as { user_code: string };
+    const { user_code, controller_id } = (await started.json()) as {
+      user_code: string;
+      controller_id: string;
+    };
     const pending = await previewDevice(e, new Request(`https://noema.guru/v1/auth/device/preview?user_code=${user_code}`), { store });
-    expect(((await pending.json()) as { status: string }).status).toBe("pending");
+    const pendingBody = (await pending.json()) as { status: string; controller_id: string };
+    expect(pendingBody.status).toBe("pending");
+    expect(pendingBody.controller_id).toBe(controller_id);
 
     await approveDevice(
       e,
@@ -380,8 +434,8 @@ describe("previewDevice", () => {
     const approved = await previewDevice(e, new Request(`https://noema.guru/v1/auth/device/preview?user_code=${user_code}`), { store });
     const body = (await approved.json()) as Record<string, unknown>;
     expect(body.status).toBe("approved");
+    expect(body.controller_id).toBe(controller_id);
     expect(body).not.toHaveProperty("access_token");
-    expect(body).not.toHaveProperty("controller_id");
     expect(body).not.toHaveProperty("player_id");
   });
 });
@@ -428,6 +482,39 @@ describe("approveDevice", () => {
     const stored = await store.getByUserCode(user_code);
     expect(stored).not.toHaveProperty("access_token");
     expect(stored?.status).toBe("approved");
+  });
+
+  it("binds when the human submits a denormalized user_code", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const started = await startDeviceEnrollment(
+      e,
+      new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+      { metadata: { runtime: "openclaw" } },
+      { store },
+    );
+    const { user_code, controller_id } = (await started.json()) as {
+      user_code: string;
+      controller_id: string;
+    };
+    const denorm = user_code.replace(/-/g, "").toLowerCase();
+    expect(denorm).not.toBe(user_code);
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${await humanBearer(e)}` },
+      }),
+      { user_code: denorm },
+      { store },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { status: string; user_code: string; controller_id: string };
+    expect(body.status).toBe("approved");
+    expect(body.user_code).toBe(user_code);
+    expect(body.controller_id).toBe(controller_id);
+    expect(await store.getByUserCode(user_code)).toMatchObject({ status: "approved", controller_id });
+    expect(await store.getByUserCode(denorm)).toMatchObject({ status: "approved", controller_id });
   });
 
   it("rejects an agent bearer", async () => {

@@ -36,6 +36,7 @@ import {
   reviewDevicePage,
   denyDevice,
   denyDeviceReview,
+  deviceReviewEmailReady,
   durableDeviceStore,
   pollDeviceToken,
   previewDevice,
@@ -262,7 +263,9 @@ export default {
       }
       if (request.method === "GET" && path === "/connect") {
         const pending = canonicalConnectCode(url.searchParams.get("connect_code") || url.searchParams.get("code"));
-        return html(connectHtml(env.NOEMA_ENV === "production", pending));
+        return html(connectHtml(env.NOEMA_ENV === "production", pending, {
+          reviewEmailReady: deviceReviewEmailReady(env),
+        }));
       }
       if (request.method === "GET" && path === "/connect/enroll") {
         return html(enrollHtml());

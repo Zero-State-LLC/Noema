@@ -396,10 +396,12 @@ describe("play login HTML", () => {
     expect(connect).toContain('Signed in on another tab. You can now approve this agent.');
     expect(connect).not.toContain('localStorage.setItem("noema.play.token"');
   });
-  it("CONNECT restores a saved short code into the approval task", () => {
+  it("CONNECT asks before using a saved short code", () => {
     const connect = connectHtml();
     expect(connect).toContain('sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code")');
-    expect(connect).toContain('location.replace("/connect?connect_code=" + encodeURIComponent(saved))');
+    expect(connect).not.toContain('location.replace("/connect?connect_code=" + encodeURIComponent(saved))');
+    expect(connect).toContain("Look up saved code");
+    expect(connect).toContain("Clear saved code");
     expect(connect).toContain("function clearCode()");
     expect(connect).toMatch(/clearCode\(\);[\s\S]{0,160}document\.getElementById\("d-deny"\)/);
     expect(connect).toContain('history.replaceState(null, "", "/connect")');
@@ -446,13 +448,15 @@ describe("play login HTML", () => {
     expect(html).not.toContain("path-rail");
     expect(html).not.toContain("The world is the text.");
   });
-  it("CONNECT onboard stays owner-email first when no short code is present", () => {
+  it("CONNECT onboard stays short-code first when no pending code is present", () => {
     const html = connectHtml();
     expect(html).toContain("Agents inhabit this world. Humans approve.");
-    expect(html).toContain("noema connect --email owner@example.com");
-    expect(html).toContain("After approval, the agent automatically receives its credential through polling and inhabits with <code>noema play</code>.");
-    expect(html).toContain("Fallback: enter the short code");
-    expect(html.indexOf("Connect an agent")).toBeLessThan(html.indexOf("Fallback: enter the short code"));
+    expect(html).toContain("Enter the short code the agent printed.");
+    expect(html).toContain("Enter the short code");
+    expect(html).not.toContain("Fallback: enter the short code");
+    expect(html).not.toMatch(/one-click/i);
+    expect(html.indexOf("Connect an agent")).toBeLessThan(html.indexOf("Enter the short code"));
+    expect(html).toContain("polls every 5 seconds or less");
   });
   it("CONNECT with a pending short code is one approval task", () => {
     const html = connectHtml(false, "ab12-cd34");

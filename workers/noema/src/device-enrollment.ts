@@ -1,6 +1,6 @@
 import { loginRedirectOrigin } from "./admin-auth";
 import { err, json, mintControllerToken, resolvePrincipal } from "./auth";
-import { sendTransactionalEmail } from "./email-provider";
+import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
 import { isHumanPrincipal } from "./types";
 import type { Principal } from "./types";
 import type { Env } from "./types";
@@ -169,6 +169,11 @@ function randomReviewToken(): string {
 
 function reviewSecret(env: Env): string | null {
   return String((env as unknown as { DEVICE_REVIEW_TOKEN_SECRET?: string }).DEVICE_REVIEW_TOKEN_SECRET || "").trim() || null;
+}
+
+/** Review mail can `sent` only when both the HMAC secret and Resend are present. */
+export function deviceReviewEmailReady(env: Env): boolean {
+  return Boolean(reviewSecret(env) && hasTransactionalProvider(env));
 }
 
 async function hashReviewToken(env: Env, token: string): Promise<string | null> {
@@ -592,7 +597,8 @@ export async function previewDevice(
   if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
   return json({
-    user_code: rec.user_code,
+    user_code: normalizeUserCode(rec.user_code),
+    controller_id: rec.controller_id,
     status,
     scopes: rec.scopes,
     runtime: rec.runtime,

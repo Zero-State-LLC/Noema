@@ -236,8 +236,10 @@ describe("planes", () => {
   });
   it("connect first paint is onboard plus inhabit", () => {
     const html = connectHtml();
-    expect(html).toContain("noema connect --email owner@example.com");
-    expect(html).toContain("Fallback: enter the short code");
+    expect(html).toContain("noema connect");
+    expect(html).toContain("Enter the short code");
+    expect(html).not.toContain("Fallback: enter the short code");
+    expect(html).not.toMatch(/one-click/i);
     expect(html).toContain("Sign up");
     expect(html).toContain("Use a token");
     expect(html).toContain("scrimshawlife-ctrl/noema-client");
@@ -271,14 +273,15 @@ describe("planes", () => {
     expect(html).toContain("request_id");
     expect(html).toContain("x-noema-seal");
     expect(html).toContain('canonicalCode(params.get("connect_code") || params.get("code"))');
-    expect(html).toContain("Agent approved. Return to the agent terminal.");
+    expect(html).toContain("Approved controller ");
+    expect(html).toContain("polls every 5 seconds or less");
     expect(html).toContain('id="d-code"');
     expect(html).toContain('placeholder="AB12-CD34"');
     expect(html).not.toMatch(/id="d-form" hidden/);
     expect(html).toContain('id="c-email"');
     expect(html).toContain("Send watch link");
+    expect(html.indexOf("<h2>Enter the short code</h2>")).toBeLessThan(html.indexOf("Sign up"));
     expect(html.indexOf("Sign up")).toBeLessThan(html.indexOf("pipx install noema-client"));
-    expect(html.indexOf("pipx install noema-client")).toBeLessThan(html.indexOf("Fallback: enter the short code"));
     expect(html).not.toMatch(/id="d-approve" hidden/);
   });
   it("GET /connect with a valid short code serves the approval task", async () => {
@@ -292,6 +295,7 @@ describe("planes", () => {
       expect(html.indexOf("Approve this agent")).toBeLessThan(html.indexOf("pipx install noema-client"));
       expect(html).toContain("Advanced: use a token");
       expect(html).not.toContain("Fallback: enter the short code");
+      expect(html).toContain("This code");
     }
     const invalid = await worker.fetch(new Request("https://noema.guru/connect?code=not-a-code"), env);
     const invalidHtml = await invalid.text();
@@ -323,7 +327,7 @@ describe("planes", () => {
     expect(html).toContain("/v1/auth/device/preview");
     expect(html).toContain("/v1/auth/device/approve");
     expect(html).toContain("noema.play.token");
-    expect(html).toMatch(/Sign up above first/i);
+    expect(html).toMatch(/Sign in below first/i);
     expect(html).toContain('id="c-email"');
     expect(html).toContain('next: "connect"');
     expect(html).not.toMatch(/\.innerHTML\s*=/);
