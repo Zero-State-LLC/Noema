@@ -11,13 +11,14 @@ Do not close #667. Do not flip Noema-Specs campaign state. No Deploy. No STUDY. 
 
 Prior Gate C evidence (CLOSED [#661](https://github.com/Zero-State-LLC/Noema/issues/661); Specs COMPLETE [Noema-Specs#331](https://github.com/Zero-State-LLC/Noema-Specs/pull/331); evidence [#662](https://github.com/Zero-State-LLC/Noema/pull/662)–[#665](https://github.com/Zero-State-LLC/Noema/pull/665)) lives in [`../gate-c-2026-09-08/`](../gate-c-2026-09-08/). This stub does not reopen Gate C and does not reuse Gate C coupled-path PASS as Gate D WATCH-legibility evidence.
 
-Companion `docs/LCA-GATE-D-SCENARIO.md` is not on Specs `main` as of this stub (may still be in flight). Track that companion's checklist as unchecked once it exists. Do not invent companion bullets.
+Companion [`docs/LCA-GATE-D-SCENARIO.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/LCA-GATE-D-SCENARIO.md) is on Specs `main` via [Noema-Specs#332](https://github.com/Zero-State-LLC/Noema-Specs/pull/332) (`cf43374f…`). Blind-review runbook: [runbook.md](runbook.md) (post-Rahu; docs/prep; **not** COMPLETE).
 
 ## Files
 
 | File | Contents |
 |------|----------|
 | [candidate-declaration.md](candidate-declaration.md) | Immutable pin bind, planned public-WATCH blind-review method placeholder, Gate D checklist (unchecked) |
+| [runbook.md](runbook.md) | Post-Rahu Gate D blind-review runbook (capture method, packet, reviewer roles, PASS/FAIL/NOT_COMPUTABLE). Docs/prep only; no live capture; not COMPLETE |
 
 ## OBSERVED live pins (bound)
 
@@ -45,7 +46,7 @@ Gate C remint-cohort Controllers, listed as **planned** public actors for a late
 
 1. All Gate D WATCH-legibility bullets remain **unchecked** until an uninvolved human reviewer records them from public WATCH alone.
 2. Blind reviewer remains **NOT ASSIGNED**.
-3. Companion `LCA-GATE-D-SCENARIO` checklist remains pending until that file exists on Specs `main`. Do not invent those bullets.
+3. Companion `LCA-GATE-D-SCENARIO` is on Specs `main` (#332). Five-statement checklist remains **unchecked** until an uninvolved blind review records OBSERVED results. Runbook landed; capture/review not started.
 4. Dedicated Gate D WATCH digest remains **NOT_COMPUTABLE**. Gate C WATCH capture is optional supporting context only.
 5. Specs campaign stays Gate D **unproven**. This packet does not flip it.
 
