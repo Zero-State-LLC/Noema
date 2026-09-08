@@ -16,6 +16,7 @@ Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets
 - [worker-source-sha.md](worker-source-sha.md) collected 2026-09-08T07:31:22Z UTC (00:31:22 PT) — live UUID → Worker **source** git SHA **OBSERVED** (`308c98de…` via PR #649 / `hosted_live`).
 - [ordering-probe.md](ordering-probe.md) collected 2026-09-08 ~07:45–07:50Z UTC (00:45–00:50 PT) — act/observe **raw** fields for sequence/cycle/budgets/`settled`/`request_id`/`events`/`provenance` **OBSERVED** via library; CLI `act` still hides them; recovery receipt object **NOT_COMPUTABLE**; HTTP headers bare.
 - [concurrent-digests.md](concurrent-digests.md) collected 2026-09-08T08:29:10–08:29:18Z UTC (01:29:10–01:29:18 PT) — **PASS** supersedes prior BLOCKED (#657): reconnect codes C5EE/B135/2D79 Approved; concurrent library LOOK a+b+c with wall-clock overlap; digests `contention_evidence_digest` / `ordering_evidence_digest` / `budget_settlement_evidence_digest` computed. New `controller_id`s after remint (expected).
+- [reconnect-admin-receipts.md](reconnect-admin-receipts.md) collected 2026-09-08T08:33:08Z UTC (01:33:08 PT) — live reconnect-cohort Admin rows (C5EE/B135/2D79) with `approver_amr=admin_session`, distinct ICR ×3 + binding digests ×3 **OBSERVED**; supersedes prior enroll device ids for live cohort; Authorizer ≠ Player (Admin 401 on Player act); Admin overview recovery/ordering receipts **NOT_COMPUTABLE**. Danny yes.
 
 ## Files
 
@@ -29,6 +30,7 @@ Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets
 | [worker-source-sha.md](worker-source-sha.md) | Addendum: OBSERVED Worker source git SHA `308c98de4173874d8a1941818ba4392ddcc2cba6` for live UUID `963b5edf…` via PR #649 + `spec-compat.json` `hosted_live` pin fields |
 | [ordering-probe.md](ordering-probe.md) | Addendum: concurrent LOOK+INSPECT raw CommandResult; OBSERVED sequence/budgets/settled/request_id/events/provenance; idempotency_key client-sent not echoed; recovery receipt NOT_COMPUTABLE; HTTP headers bare |
 | [concurrent-digests.md](concurrent-digests.md) | Addendum: **PASS** concurrent LOOK a+b+c; three cohort sha256 digests; method documented; supersedes BLOCKED (#657); new post-reconnect controller_ids noted |
+| [reconnect-admin-receipts.md](reconnect-admin-receipts.md) | Addendum: reconnect-cohort Admin rows for C5EE/B135/2D79 — `approver_amr`, ICR, binding digests (distinct ×3); supersedes enroll-cohort device ids for live Controllers; Authorizer ≠ Player; Admin overview recovery/ordering **NOT_COMPUTABLE** |
 
 ## Controllers (OBSERVED)
 
@@ -42,19 +44,19 @@ Device user codes (public, original enroll): a `C326-1B75`, b `F25B-5D4F`, c `1F
 
 **Post-reconnect remint (2026-09-08 ~01:19 PT, codes C5EE/B135/2D79):** new live controller_ids differ from the table above — a `ctrl.device.32bdc772bf02`, b `ctrl.device.a75b4a98d334`, c `ctrl.device.d6fb4938b52a` (expected after reconnect; see [concurrent-digests.md](concurrent-digests.md)).
 
-Admin receipts (see [admin-receipts.md](admin-receipts.md)): all three Gate B Controllers have **DISTINCT** `independent_control_receipt` ids and **DISTINCT** `controller_binding_digest` values (independence **OBSERVED**). C7 Boof (`0817-7E9A`) is a separate operator cut, not one of the Gate B three.
+Admin receipts (enroll cohort — [admin-receipts.md](admin-receipts.md)): distinct ICR + binding digests ×3 for prior enroll device ids (historical). **Live reconnect cohort** Admin rows (codes C5EE/B135/2D79; new device ids) are in [reconnect-admin-receipts.md](reconnect-admin-receipts.md) and **supersede** enroll device ids for the live Controllers — distinct ICR + binding digests ×3 **OBSERVED**; Danny yes. C7 Boof (`0817-7E9A`) remains a separate operator cut, not one of the Gate B three.
 
 ## #590 Gate B acceptance checklist
 
 | Checklist item | Status in this packet |
 |----------------|------------------------|
 | Record production/deployment pins, seal and room constraints, Controller versions, and canonical heads | **MOSTLY COVERED** — see [pins-human.md](pins-human.md) + [worker-source-sha.md](worker-source-sha.md): live `/version` `/ready` `/health`, client 0.1.22, Worker UUID re-verified, Noema + Specs `main` tips recorded; Worker **source** SHA `308c98de4173874d8a1941818ba4392ddcc2cba6` **OBSERVED** via #649/`hosted_live` (seal/specs_git/genesis/room included). Standalone sealed-bundle artifact file beyond `hosted_live` still **NOT_COMPUTABLE** if required separately. |
-| Enroll ≥3 independently controlled external Controllers via supported onboarding | **STRENGTHENED** — three approved enrollments + distinct controller/player/code triples ([pins-human.md](pins-human.md) §3); formal `independent_control_receipt` + distinct `controller_binding_digest` ×3 now **OBSERVED** ([admin-receipts.md](admin-receipts.md)). Separate-human-principal still **NOT_COMPUTABLE**. |
-| Confirm each human principal remains authorizer/operator/spectator and never a Player | **STRENGTHENED** — identity separation OBSERVED ([pins-human.md](pins-human.md) §2); live per-code Admin `approver_amr=admin_session` for Gate B trio + C7 now **OBSERVED** ([admin-receipts.md](admin-receipts.md)). |
+| Enroll ≥3 independently controlled external Controllers via supported onboarding | **STRENGTHENED** — three approved enrollments + distinct controller/player/code triples ([pins-human.md](pins-human.md) §3); enroll-cohort ICR/bindings **OBSERVED** ([admin-receipts.md](admin-receipts.md)); **live reconnect-cohort** ICR/bindings for remint ids also **OBSERVED** ([reconnect-admin-receipts.md](reconnect-admin-receipts.md)). Separate-human-principal still **NOT_COMPUTABLE**. |
+| Confirm each human principal remains authorizer/operator/spectator and never a Player | **STRENGTHENED** — identity separation OBSERVED ([pins-human.md](pins-human.md) §2); enroll + reconnect Admin `approver_amr=admin_session` **OBSERVED** ([admin-receipts.md](admin-receipts.md), [reconnect-admin-receipts.md](reconnect-admin-receipts.md)); Authorizer ≠ Player further **OBSERVED** (Admin 401 on Player act). |
 | For each Agent Player, capture redacted orientation + supported action surface without private strategy | **OBSERVED** — [orientation.md](orientation.md) |
 | Verify disconnect and reconnect with identity and durable state preserved | **OBSERVED** — [reconnect.md](reconnect.md); a/b/c PASS; no `--forget` / no `--force` |
 | Exercise ≥1 concurrent contention/conflict; verify ordering, idempotency, budgets | **STRENGTHENED → PASS (digests)** — prior a+b LOOK + C7 LOOK+INSPECT library fields **OBSERVED** ([ordering-probe.md](ordering-probe.md)). Multi-controller concurrent library LOOK a+b+c **PASS** with wall-clock overlap; `contention_evidence_digest` / `ordering_evidence_digest` / `budget_settlement_evidence_digest` **PASS** ([concurrent-digests.md](concurrent-digests.md)). |
-| Capture recovery receipts, WATCH digest, and redacted transcripts | **PARTIAL** — WATCH + redacted transcripts covered earlier; act **settlement/`request_id`/events** now **OBSERVED** ([ordering-probe.md](ordering-probe.md)). Dedicated **recovery receipt** object still **NOT_COMPUTABLE** on act/observe/HTTP headers. |
+| Capture recovery receipts, WATCH digest, and redacted transcripts | **PARTIAL** — WATCH + redacted transcripts covered earlier; act **settlement/`request_id`/events** now **OBSERVED** ([ordering-probe.md](ordering-probe.md)). Dedicated **recovery receipt** object still **NOT_COMPUTABLE** on act/observe/HTTP headers; Admin overview recovery/ordering receipts also **NOT_COMPUTABLE** ([reconnect-admin-receipts.md](reconnect-admin-receipts.md)). |
 | Run production health and public post-state checks after the cohort run | **OBSERVED** — post `/ready` `/health` `/version` + `/v1/watch/live` in [contention-watch.md](contention-watch.md) |
 | Update Noema-Specs campaign state only after all evidence complete | **STILL OPEN** — blocked until remaining gaps close. **Not done in this PR.** |
 
@@ -66,9 +68,10 @@ Admin receipts (see [admin-receipts.md](admin-receipts.md)): all three Gate B Co
    - `contention_evidence_digest` = `be78b73854315fef9193e700f18ea0c4da3753bce506828137b40cccf77271cc`
    - `ordering_evidence_digest` = `a1721bea4560aaf59c723d23caede64507329e80e2efee891e3560b5788db5cb`
    - `budget_settlement_evidence_digest` = `6c9577ddde721a799b5a45e06ddfc1617abf514d3f3f163512d02dd1f0075621`
-4. Post-reconnect `controller_id` remint (new ids vs prior enroll) — expected; prior Admin `independent_control_receipt` / binding digests were for old device ids and may need re-binding if continuity beyond remint is required.
+4. Post-reconnect `controller_id` remint (new ids vs prior enroll) — expected; **live reconnect-cohort** Admin ICR/bindings for new device ids now **OBSERVED** ([reconnect-admin-receipts.md](reconnect-admin-receipts.md)); prior enroll rows remain historical.
 5. `acceptance_authority_digest` not computed in the concurrent-digests pass.
 6. Separate-human-principal independence still **NOT_COMPUTABLE**.
+7. Admin overview recovery / ordering receipts still **NOT_COMPUTABLE** ([reconnect-admin-receipts.md](reconnect-admin-receipts.md)).
 
 ### Closed by [admin-receipts.md](admin-receipts.md) (now **OBSERVED**)
 
@@ -80,6 +83,12 @@ Admin receipts (see [admin-receipts.md](admin-receipts.md)): all three Gate B Co
 - Reconnect a/b/c after Admin Approve of C5EE/B135/2D79.
 - Concurrent multi-controller library LOOK (≥2; actually a+b+c) with `CommandResult.raw`.
 - Opaque SHA-256 `contention_evidence_digest` / `ordering_evidence_digest` / `budget_settlement_evidence_digest`.
+
+### Closed by [reconnect-admin-receipts.md](reconnect-admin-receipts.md) (now **OBSERVED**)
+
+- Live reconnect-cohort Admin report rows with `approver_amr=admin_session` for C5EE/B135/2D79 (Danny yes).
+- Distinct `independent_control_receipt` / `controller_binding_digest` ×3 for remint controller ids (supersedes enroll device ids for live cohort).
+- Authorizer ≠ Player strengthened (Admin 401 on Player act).
 
 ## Explicit non-claims
 
