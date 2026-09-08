@@ -28,6 +28,23 @@ export function canonicalWorldState(world: WorldRuntime): Record<string, unknown
   return state;
 }
 
+/**
+ * Raised when the canonical serializer produced text that is not valid JSON.
+ * This must never be silently persisted or hashed: RFC-0003 requires
+ * noema-jcs/1 canonical text to be valid I-JSON. Producers are responsible
+ * for filtering `undefined` out of optional-field objects before building
+ * semantic world state (see world-actions.ts RECONSTRUCT handling); this is
+ * the last-resort backstop so a future producer bug fails loudly here
+ * instead of shipping unparsable text into settlement.
+ */
+export class CanonicalStateSerializationError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = "CanonicalStateSerializationError";
+    if (options?.cause !== undefined) (this as { cause?: unknown }).cause = options.cause;
+  }
+}
+
 export async function canonicalStateMaterial(world: WorldRuntime): Promise<{
   state_json: Record<string, unknown>;
   canonical_json: string;
@@ -35,6 +52,19 @@ export async function canonicalStateMaterial(world: WorldRuntime): Promise<{
 }> {
   const state_json = canonicalWorldState(world);
   const canonical_json = stableStringify(state_json);
+  try {
+    // stableStringify skips `undefined` object values but cannot repair an
+    // `undefined` array element or other non-JSON-representable value
+    // (NaN, Infinity, bigint, etc). Validate the produced text is real JSON
+    // before it is ever hashed or handed to a settlement/rollback caller.
+    JSON.parse(canonical_json);
+  } catch (cause) {
+    throw new CanonicalStateSerializationError(
+      "canonical world state serialized to non-JSON text; refusing to hash or persist it. " +
+        "An upstream producer wrote an unsupported value (e.g. undefined) into semantic world state.",
+      { cause },
+    );
+  }
   return { state_json, canonical_json, state_digest: `sha256:${await sha256Hex(canonical_json)}` };
 }
 
