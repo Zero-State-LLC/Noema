@@ -6,20 +6,24 @@
 **Collected:** 2026-09-08 (declaration stub; no coupled-path run)  
 **Authority:** [Noema-Specs `docs/LCA-GATE-C-SCENARIO.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/LCA-GATE-C-SCENARIO.md)
 
-**This packet is a candidate declaration + pin bind only. It does not claim Gate C COMPLETE.**  
+**This packet is candidate declaration + pin bind + civilization-run evidence for paths 1–7. It does not claim Gate C COMPLETE.**  
 Do not close #661. Do not flip Noema-Specs campaign state. No Deploy. No STUDY. No endurance. No secrets.
 
 Prior Gate B evidence (CLOSED [#590](https://github.com/Zero-State-LLC/Noema/issues/590); Specs COMPLETE [Noema-Specs#329](https://github.com/Zero-State-LLC/Noema-Specs/pull/329)) lives in [`../gate-b-2026-09-08/`](../gate-b-2026-09-08/). This stub does not reopen Gate B and does not reuse the Gate B recovery-receipt waiver as Gate C evidence.
 
 **Addenda:**
-- [remint-admin-receipts.md](remint-admin-receipts.md) collected 2026-09-08T21:09:49Z UTC (14:09:49 PT) — live Gate C remint-cohort Admin rows (ED58/D9D6/CB1F) with `approver_amr=admin_session`, distinct ICR ×3 + binding digests ×3 **OBSERVED** on Worker `2c48d671…`; local Gate B creds ABSENT → remint (expected); supersedes planned Gate B reconnect device ids for this remint cohort only; Danny yes. Path 8 / recovery still **NOT_COMPUTABLE**. No civilization Player run.
+- [civilization-run.md](civilization-run.md) collected 2026-09-08 (PT) — Gate C paths 1–7 OBSERVED evidence pack on Worker `2c48d671…` with remint cohort LUDUS/ADVERSARY/VECTOR; strategy plurality ≥3 dims; Path 8 **NOT_COMPUTABLE**; **no Gate C COMPLETE**; #661 stays OPEN
+- [strategy-declarations.md](strategy-declarations.md) — pre-run public Strategy A/B declarations + operator-intervention list + canonical start heads
+- [remint-admin-receipts.md](remint-admin-receipts.md) collected 2026-09-08T21:09:49Z UTC (14:09:49 PT) — live Gate C remint-cohort Admin rows (ED58/D9D6/CB1F) with `approver_amr=admin_session`, distinct ICR ×3 + binding digests ×3 **OBSERVED** on Worker `2c48d671…`; local Gate B creds ABSENT → remint (expected); supersedes planned Gate B reconnect device ids for this remint cohort only; Danny yes. Path 8 / recovery still **NOT_COMPUTABLE**. Civilization-run paths 1–7 now in civilization-run.md (still no COMPLETE).
 
 ## Files
 
 | File | Contents |
 |------|----------|
 | [candidate-declaration.md](candidate-declaration.md) | Immutable pin bind, planned LUDUS / ADVERSARY / VECTOR reuse (superseded for live remint cohort — see remint-admin-receipts), operator-intervention placeholder, recovery **NOT_COMPUTABLE**, coupled-path + strategy-plurality tracking |
-| [remint-admin-receipts.md](remint-admin-receipts.md) | Addendum: Gate C remint-cohort Admin rows (ED58/D9D6/CB1F) on Worker `2c48d671…` — `approver_amr=admin_session`, distinct ICR ×3 + binding digests ×3 **OBSERVED**; supersedes planned Gate B reconnect device ids for this remint cohort only; Danny yes; Path 8 still **NOT_COMPUTABLE**; no civilization Player run |
+| [civilization-run.md](civilization-run.md) | Paths 1–7 OBSERVED civilization evidence pack + scorecard; Path 8 NOT_COMPUTABLE; no COMPLETE |
+| [strategy-declarations.md](strategy-declarations.md) | Pre-run Strategy A/B declarations, operator-intervention list, canonical start heads |
+| [remint-admin-receipts.md](remint-admin-receipts.md) | Addendum: Gate C remint-cohort Admin rows (ED58/D9D6/CB1F) on Worker `2c48d671…` — `approver_amr=admin_session`, distinct ICR ×3 + binding digests ×3 **OBSERVED**; supersedes planned Gate B reconnect device ids for this remint cohort only; Danny yes; Path 8 still **NOT_COMPUTABLE**; see also civilization-run.md |
 
 ## OBSERVED live pins (bound)
 
@@ -56,10 +60,10 @@ Originally listed as planned Gate C reuse in [candidate-declaration.md](candidat
 
 ## Still-open shortlist (do not invent)
 
-1. All eight coupled paths remain **unchecked** until OBSERVED on this candidate — **no civilization Player run yet**.
-2. Strategy plurality remains **unchecked** until OBSERVED.
+1. Paths **1–7** now have OBSERVED citations in [civilization-run.md](civilization-run.md) — **not** a Gate C COMPLETE claim (conjunctive eight-path rule).
+2. Strategy plurality OBSERVED (≥3 dimension divergences) in civilization-run + [strategy-declarations.md](strategy-declarations.md).
 3. Dedicated **recovery receipt** / Path 8 remains **NOT_COMPUTABLE**. The Gate B waiver does **not** satisfy Gate C recovery evidence.
-4. Canonical start/end heads, WATCH digest for the Gate C run, and pre-run strategy declarations are **not** in this stub.
+4. Canonical start/end heads and pre-run strategy declarations are now recorded; WATCH digest optional supporting context only.
 5. Specs campaign stays Gate C **unproven**. This packet does not flip it.
 6. Separate-human-principal independence still **NOT_COMPUTABLE**.
 
@@ -73,7 +77,7 @@ Originally listed as planned Gate C reuse in [candidate-declaration.md](candidat
 - Gate C is **not** COMPLETE.
 - Issue #661 stays **OPEN**.
 - Path 8 remains **NOT_COMPUTABLE**.
-- No civilization Player run yet.
+- Civilization Player run evidence collected for paths 1–7 — **still no Gate C COMPLETE** (Path 8 NOT_COMPUTABLE).
 - Planned Gate B reconnect device-id reuse is superseded **for this remint cohort only**.
 - No hosted STUDY. No Gate E endurance (4h / 24h).
 - No Deploy from this packet. No Genesis mutation. No new Player verbs.
