@@ -166,8 +166,10 @@ describe("brand slice 9 — 14 PLAYER-BRAND statements", () => {
   });
 
   it("10. The text-game core remains primary", () => {
-    expect(connect).toContain("noema connect --email owner@example.com");
-    expect(connect).toContain("Fallback: enter the short code");
+    expect(connect).toContain("noema connect");
+    expect(connect).toContain("Enter the short code");
+    expect(connect).not.toContain("Fallback: enter the short code");
+    expect(connect).not.toMatch(/one-click/i);
     expect(connect).toContain("Advanced: use a token");
     expect(connect).toContain("noema play");
     expect(connect).not.toMatch(/\.innerHTML\s*=/);

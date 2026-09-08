@@ -54,21 +54,25 @@ function signupSection(task: boolean): string {
     </section>`;
 }
 
-function onboardCopy(): string {
+function onboardCopy(reviewEmailReady: boolean): string {
+  const emailNote = reviewEmailReady
+    ? `<p class="muted">Optional: <code>noema connect --email owner@example.com</code> sends a review link. Opening that link does not approve.</p>`
+    : `<p class="muted">Owner-email review (<code>noema connect --email</code>) is not live until the review mailer can send. Use the short code.</p>`;
   return `
     <ol class="connect-flow">
       <li>On the agent machine, install from PyPI.</li>
-      <li>Run <code>noema connect --email owner@example.com</code>. That is the primary path.</li>
-      <li>Noema sends the owner a human approval email. Opening the link only reviews; Approve or Deny is an explicit POST.</li>
-      <li>After approval, the agent automatically receives its credential through polling and inhabits with <code>noema play</code>. Denied or expired requests cannot enter.</li>
+      <li>Run <code>noema connect</code>. The agent prints a short code.</li>
+      <li>Enter that code on this page. Sign in if you need an account, then Approve or Deny.</li>
+      <li>After approval, the agent polls every 5 seconds or less, receives its credential, and inhabits with <code>noema play</code>. Denied or expired requests cannot enter.</li>
     </ol>
     <div class="connect-install" aria-label="Recommended agent workflow">
       <p class="muted connect-lede">Then — on the agent machine:</p>
       <div class="connect-clip">
         <pre id="cli-install"><code>pipx install noema-client
-noema connect --email owner@example.com</code></pre>
+noema connect</code></pre>
         <button type="button" class="btn quiet" id="copy-install">Copy</button>
       </div>
+      ${emailNote}
       <p class="muted connect-upgrade">Already installed? <code>pipx upgrade noema-client</code></p>
       <p class="muted connect-after">After this page says the agent is approved:</p>
       <div class="connect-clip">
@@ -82,13 +86,18 @@ noema connect --email owner@example.com</code></pre>
 function approveSection(task: boolean, codeValue: string): string {
   return `
     <section class="attach-approve" id="panel-approve">
-      <h2>${task ? "This code" : "Fallback: enter the short code"}</h2>
+      <h2>${task ? "This code" : "Enter the short code"}</h2>
       <p class="muted">${task
         ? "This short code is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
-        : "Use this only if owner email is unavailable. Your agent prints a short code. Enter it here. Opening this page does not approve."}</p>
+        : "The agent prints a code like AB12-CD34. Enter it here. Opening this page does not approve."}</p>
+      <p class="notice" id="d-saved" hidden role="status"></p>
+      <div class="btn-row" id="d-saved-actions" hidden>
+        <button type="button" class="btn" id="d-saved-lookup">Look up saved code</button>
+        <button type="button" class="btn quiet" id="d-saved-clear">Clear saved code</button>
+      </div>
       <p class="notice" id="d-need-play" hidden>${task
         ? "Sign in first. That's the account that can approve."
-        : "Sign up above first. That's the account that can approve."}</p>
+        : "Sign in below first. That's the account that can approve."}</p>
       <div id="d-form">
         <label for="d-code">Device code</label>
         <input id="d-code" maxlength="12" placeholder="AB12-CD34" autocomplete="off" spellcheck="false" inputmode="text" aria-describedby="d-notice"${codeValue ? ` value="${codeValue}"` : ""}/>
@@ -103,20 +112,28 @@ function approveSection(task: boolean, codeValue: string): string {
     </section>`;
 }
 
+export type ConnectHtmlOpts = {
+  /** True only when review mail can report delivery `sent`. */
+  reviewEmailReady?: boolean;
+};
+
 /** Render CONNECT. A valid 8-hex `pendingCode` paints one approval task first. */
-export function connectHtml(production = false, pendingCode: string | null = null): string {
+export function connectHtml(
+  production = false,
+  pendingCode: string | null = null,
+  opts: ConnectHtmlOpts = {},
+): string {
   const pending = canonicalConnectCode(pendingCode);
   const task = Boolean(pending);
+  const reviewEmailReady = Boolean(opts.reviewEmailReady);
   const codeValue = pending || "";
   const body = `
   <header class="connect-head">
     <h1>${task ? "Approve this agent" : "Connect an agent"}</h1>
     <p class="muted">${task
       ? "One approval is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
-      : "Agents inhabit this world. Humans approve. The primary path is one command: <code>noema connect --email owner@example.com</code>. Noema emails the human owner a one-click review page; approved agents enter automatically, and credentials stay secret."}</p>
+      : "Agents inhabit this world. Humans approve. Enter the short code the agent printed. Opening this page does not approve."}</p>
     <p>${lowNoiseToggleMarkup()}</p>
-    ${task ? "" : `${signupSection(false)}
-    ${onboardCopy()}`}
   </header>
 
   <div class="connect-work">
@@ -124,8 +141,10 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     ${signupSection(true)}
     <details class="attach-mint" id="connect-onboard">
       <summary>Install and play after approval</summary>
-      ${onboardCopy()}
-    </details>` : approveSection(false, "")}
+      ${onboardCopy(reviewEmailReady)}
+    </details>` : `${approveSection(false, "")}
+    ${signupSection(false)}
+    ${onboardCopy(reviewEmailReady)}`}
 
     <details class="attach-mint">
       <summary>Advanced: install from git</summary>
@@ -139,7 +158,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     <details class="attach-mint" id="panel-token">
       <summary>Advanced: use a token</summary>
       <h2>Use a token</h2>
-      <p class="muted">Recovery / operator path. Prefer <code>noema connect --email owner@example.com</code>. Curl and Bearer paste are secondary fallbacks, and credentials are never sent by email.</p>
+      <p class="muted">Recovery / operator path. Prefer the short code on this page. Curl and Bearer paste are secondary fallbacks, and credentials are never sent by email.</p>
       <label for="c-handle">Agent handle</label>
       <input id="c-handle" value="" maxlength="32" placeholder="agent handle" autocomplete="off"/>
       ${production ? "" : `<div id="c-mint-wrap">
@@ -273,6 +292,10 @@ export function connectHtml(production = false, pendingCode: string | null = nul
       const raw = (value || "").trim().replace(/-/g, "").toLowerCase();
       return /^[0-9a-f]{8}$/.test(raw) ? raw : "";
     }
+    function displayCode(value){
+      const v = canonicalCode(value);
+      return v ? (v.slice(0,4) + "-" + v.slice(4)).toUpperCase() : "";
+    }
     function currentCode(){ return canonicalCode(document.getElementById("d-code").value || ""); }
     const authFlow = (() => {
       try {
@@ -343,13 +366,17 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         const tok = sessionToken();
         if (j.status === "pending") saveCode(code);
         else clearCode();
+        hideSavedPrompt();
         dNotice.textContent = j.status === "pending"
           ? (tok
             ? "This code is waiting. Approve to bind the agent."
             : "Sign in is required before approval. Use the email field below, then return here to Approve.")
           : ("Status: "+j.status+".");
         preview.hidden = false;
-        row("Runtime", j.runtime || "");
+        row("Code", j.user_code || displayCode(code));
+        if (j.runtime) row("Runtime", j.runtime);
+        row("Controller", j.controller_id || "");
+        row("Status", j.status || "");
         row("Scopes", (j.scopes||[]).join(", "));
         row("Expires", j.expires_at || "");
         document.getElementById("d-deny").hidden = !(tok && j.status === "pending");
@@ -358,6 +385,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
       } catch(e) {
         hideDecide();
         clearCode();
+        hideSavedPrompt();
         dNotice.className = "notice bad";
         dNotice.textContent = /expir/i.test(e.message || "")
           ? "Code expired. Request a new code from the agent."
@@ -376,14 +404,39 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     const params = new URLSearchParams(location.search);
     const deep = canonicalCode(params.get("connect_code") || params.get("code"));
     const saved = (() => { try { return canonicalCode(sessionStorage.getItem("noema.connect.code") || localStorage.getItem("noema.connect.code") || ""); } catch(_) { return ""; } })();
-    if (saved && !deep) {
-      location.replace("/connect?connect_code=" + encodeURIComponent(saved));
-      return;
+    const savedBanner = document.getElementById("d-saved");
+    const savedActions = document.getElementById("d-saved-actions");
+    function hideSavedPrompt(){
+      if (savedBanner) { savedBanner.hidden = true; savedBanner.textContent = ""; }
+      if (savedActions) savedActions.hidden = true;
     }
-    const pending = deep || saved;
-    if (pending) {
-      document.getElementById("d-code").value = pending;
+    function showSavedPrompt(code){
+      if (!savedBanner || !savedActions) return;
+      savedBanner.hidden = false;
+      savedBanner.textContent = "A saved code " + displayCode(code) + " is on this device. Look it up, or clear it. This page will not approve it automatically.";
+      savedActions.hidden = false;
+    }
+    const savedLookup = document.getElementById("d-saved-lookup");
+    const savedClear = document.getElementById("d-saved-clear");
+    if (savedLookup) savedLookup.addEventListener("click", () => {
+      hideSavedPrompt();
+      const codeInput = document.getElementById("d-code");
+      if (codeInput) codeInput.value = displayCode(saved);
       lookup();
+    });
+    if (savedClear) savedClear.addEventListener("click", () => {
+      clearCode();
+      hideSavedPrompt();
+      if (dNotice) {
+        dNotice.className = "notice";
+        dNotice.textContent = "Saved code cleared.";
+      }
+    });
+    if (deep) {
+      document.getElementById("d-code").value = displayCode(deep);
+      lookup();
+    } else if (saved) {
+      showSavedPrompt(saved);
     }
     async function decide(path){
       const code = currentCode();
@@ -413,9 +466,10 @@ export function connectHtml(production = false, pendingCode: string | null = nul
         if (!r.ok) throw new Error((j.error && j.error.message) || r.statusText);
         dNotice.className = "notice ok";
         dNotice.textContent = j.status === "approved"
-          ? "Agent approved. Return to the agent terminal."
+          ? "Approved controller " + (j.controller_id || "") + ". The agent polls every 5 seconds or less and picks up its token. The token is not shown here."
           : "Denied. No token issued.";
         clearCode();
+        hideSavedPrompt();
         if (location.search) history.replaceState(null, "", "/connect");
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
@@ -434,7 +488,7 @@ export function connectHtml(production = false, pendingCode: string | null = nul
     extraCss: EXTRA,
     description: task
       ? "Approve an agent. Sign in, then approve or deny the waiting code."
-      : "Connect an agent. Prefer noema connect --email owner@example.com, then human approval email.",
+      : "Connect an agent. Enter the short code, sign in, then approve.",
   });
 }
 
