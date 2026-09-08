@@ -1,8 +1,8 @@
 import { loginRedirectOrigin, resolveAdmin } from "./admin-auth";
 import { err, json, mintControllerToken, resolvePrincipal } from "./auth";
 import { hasTransactionalProvider, sendTransactionalEmail } from "./email-provider";
-import { isAdminPrincipal, isHumanPrincipal } from "./types";
-import type { AdminPrincipal, Env, Principal } from "./types";
+import { isHumanPrincipal } from "./types";
+import type { AdminPrincipal, Env, HumanPrincipal, Principal } from "./types";
 
 /** Observed label when an Admin Bearer session approves or denies a device code. */
 export const ADMIN_SESSION_APPROVER = "admin_session";
@@ -612,6 +612,14 @@ export async function previewDevice(
 
 type DeviceApprover = Principal | AdminPrincipal;
 
+function isAdminApprover(approver: DeviceApprover): approver is AdminPrincipal {
+  return "role" in approver && approver.role === "ADMIN";
+}
+
+function isHumanApprover(approver: DeviceApprover): approver is HumanPrincipal {
+  return "kind" in approver && approver.kind === "human";
+}
+
 function canHumanApprove(principal: Principal): boolean {
   if (isHumanPrincipal(principal)) return true;
   if ((principal.scopes || []).includes("noema.controller.manage")) return true;
@@ -619,13 +627,18 @@ function canHumanApprove(principal: Principal): boolean {
 }
 
 function approvalActor(approver: DeviceApprover): Pick<DeviceRecord, "approver_id" | "approver_amr"> {
-  if (isAdminPrincipal(approver)) {
+  if (isAdminApprover(approver)) {
     return { approver_id: ADMIN_SESSION_APPROVER, approver_amr: ADMIN_SESSION_APPROVER };
   }
-  if (isHumanPrincipal(approver)) {
+  if (isHumanApprover(approver)) {
     return { approver_id: approver.identity_id, approver_amr: approver.amr || approver.authentication_context };
   }
   return { approver_amr: approver.amr || approver.authentication_context };
+}
+
+function blocksCrossAccountDeny(rec: DeviceRecord, approver: DeviceApprover): boolean {
+  if (!rec.approver_id || !isHumanApprover(approver)) return false;
+  return rec.approver_id !== approver.identity_id;
 }
 
 async function requireDeviceApprover(req: Request, env: Env): Promise<DeviceApprover | Response> {
@@ -690,12 +703,7 @@ export async function denyDevice(
   if (approver instanceof Response) return approver;
   const rec = await store.getByUserCode(String(body.user_code || ""));
   if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
-  if (
-    rec.approver_id &&
-    !isAdminPrincipal(approver) &&
-    isHumanPrincipal(approver) &&
-    rec.approver_id !== approver.identity_id
-  ) {
+  if (blocksCrossAccountDeny(rec, approver)) {
     return err("NOT_AUTHORIZED", "cannot deny another account's enrollment", 403);
   }
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
