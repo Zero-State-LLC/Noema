@@ -108,6 +108,24 @@ unrun). It does not enroll Controllers, send email, spend a run budget,
 mutate a world, or claim Gate B. C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`.
 C8 remains `OWNER_BLOCKED`.
 
+### Disposition amendment, 2026-09-07 PT (P2.1–P2.3 after #636)
+
+Docs-only evidence refresh. Bounded tickets P2.1 / P2.2 / P2.3 are COMPLETE
+via merged [#636](https://github.com/Zero-State-LLC/Noema/pull/636)
+(`test: close approved runtime, client, WATCH, and transport evidence gaps`,
+merged 2026-09-07T05:47:56Z). C0–C8 rows above are unchanged. C6 remains
+**OWNER_BLOCKED**. C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. C8 and Gate B
+remain **OWNER_BLOCKED**. This refresh does not recommend Deploy, enroll,
+spend, or change a pin.
+
+| Item | Disposition | Evidence |
+|---|---|---|
+| P2.1 | COMPLETE | #636. First-public WATCH reconstruction with honest zeros in `workers/noema/src/watch-live.ts` (RFC-0024 / GC6-S1). Builder + Worker GET→World DO cases in `workers/noema/test/watch-reconstruction-projection.test.ts`. Phosphor intensity assertions (nonempty stroke colors) in `workers/noema/test/watch-phosphor.test.ts` ~1028–1055. No live private-leak exercise is claimed. |
+| P2.2 | COMPLETE | #636 and [P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md](P2.2-DEVICE-RECEIPT-BINDING-2026-09-07.md). Worker device-token response → official client v0.1.21 persistence → existing `/1.0` cohort approval/preflight binding. Synthetic integration evidence only. |
+| P2.3 | COMPLETE | #636 and [P2.3-HTTP-DO-BOUNDARY-2026-09-07.md](P2.3-HTTP-DO-BOUNDARY-2026-09-07.md). Local HTTP → identity → World DO → public projection coverage in `workers/noema/test/agent-http-do-boundary.test.ts`, `agent-http-do-resync.test.ts`, and `agent-http-do-projection.test.ts`. Not production conformance. |
+
+No Deploy is recommended from this docs refresh.
+
 ## Objective
 
 Bring accepted Specs, runtime source, the deployed Worker, the official client,
@@ -375,12 +393,14 @@ Stop only when every remaining meaningful item is one of:
 - `SAFETY_BLOCKED`: the next action would mutate protected production state without authorization;
 - `COMPLETE`: source, hosted identity, client, WATCH, Gate evidence, and repository pins are reconciled.
 
-As of the 2026-09-07 PT C2 candidate-suite amendment, C0 is MERGED, C3–C4 are
+As of the 2026-09-07 PT P2.1–P2.3 amendment, C0 is MERGED, C3–C4 are
 COMPLETE (authorized Deploy + pin `04ef6ecb`), C5 is `COMPLETE` for public
 WATCH on that Worker
-([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)), and
+([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)),
 C2 is `PARTIAL / CANDIDATE_SUITE_OBSERVED`
-([P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md)).
+([P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md)),
+and P2.1–P2.3 are COMPLETE via
+[#636](https://github.com/Zero-State-LLC/Noema/pull/636).
 The campaign remains `OWNER_BLOCKED` at C1 (protected preflight readiness not
 re-inspected), C6 (controlled email), and C8 (three independent external
 Controllers / Gate B). C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths
