@@ -10,6 +10,8 @@
 **This packet is evidence only. It does not claim Gate B COMPLETE.**  
 Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets.
 
+**Addendum:** [pins-human.md](pins-human.md) collected 2026-09-08T07:13:19Z UTC (00:13:19 PT).
+
 ## Files
 
 | File | Contents |
@@ -17,6 +19,7 @@ Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets
 | [orientation.md](orientation.md) | Production pins baseline; enroll connectivity; redacted orientation + action surface for three Controllers |
 | [reconnect.md](reconnect.md) | Disconnect/reconnect identity preservation for a/b/c; one optional LOOK on controller-a |
 | [contention-watch.md](contention-watch.md) | Concurrent LOOK contention (PARTIAL); WATCH digest; post-run `/ready` `/health` `/version`; recovery-receipt gap |
+| [pins-human.md](pins-human.md) | Addendum: full pin packet + canonical heads; human≠Player identity proof; independence receipts summary |
 
 ## Controllers (OBSERVED)
 
@@ -32,9 +35,9 @@ Device user codes (public): a `C326-1B75`, b `F25B-5D4F`, c `1F36-6D59`. All App
 
 | Checklist item | Status in this packet |
 |----------------|------------------------|
-| Record production/deployment pins, seal and room constraints, Controller versions, and canonical heads | **PARTIAL (OBSERVED)** — worker `/version` pin, `/ready`, `/health`, client 0.1.22, doctor `seal: required`, room `civic-exchange`. **Full pin packet with canonical Specs/Worker git heads still missing.** |
-| Enroll ≥3 independently controlled external Controllers via supported onboarding | **MOSTLY COVERED** — three approved device-code enrollments → `connected: true`. **Independence / separate-human-principal receipts still thin.** |
-| Confirm each human principal remains authorizer/operator/spectator and never a Player | **STILL OPEN** — formal human≠Player principal proof not captured. |
+| Record production/deployment pins, seal and room constraints, Controller versions, and canonical heads | **MOSTLY COVERED** — see [pins-human.md](pins-human.md): live `/version` `/ready` `/health`, client 0.1.22, Worker UUID re-verified, Noema + Specs `main` tips recorded. Worker **source** SHA + sealed bundle still **NOT_COMPUTABLE**. |
+| Enroll ≥3 independently controlled external Controllers via supported onboarding | **MOSTLY COVERED** — three approved enrollments + distinct controller/player/code triples ([pins-human.md](pins-human.md) §3). Formal `independent_control_receipt` / separate-human-principal still **NOT_COMPUTABLE**. |
+| Confirm each human principal remains authorizer/operator/spectator and never a Player | **PARTIAL** — identity separation OBSERVED ([pins-human.md](pins-human.md) §2); live per-code Admin `approver_amr` report still **NOT_COMPUTABLE**. |
 | For each Agent Player, capture redacted orientation + supported action surface without private strategy | **OBSERVED** — [orientation.md](orientation.md) |
 | Verify disconnect and reconnect with identity and durable state preserved | **OBSERVED** — [reconnect.md](reconnect.md); a/b/c PASS; no `--forget` / no `--force` |
 | Exercise ≥1 concurrent contention/conflict; verify ordering, idempotency, budgets | **PARTIAL** — concurrent LOOK a+b exits 0; attention −1 each. Explicit ordering / idempotency fields **not observed** in CLI responses. |
@@ -44,10 +47,10 @@ Device user codes (public): a `C326-1B75`, b `F25B-5D4F`, c `1F36-6D59`. All App
 
 ## Still-open shortlist (do not invent)
 
-1. Specs campaign state update (blocked on complete evidence).
-2. Full pin packet with canonical Specs / Worker git heads + sealed bundle.
-3. Formal human ≠ Player principal proof.
-4. Stronger independence receipts for the three Controllers.
+1. Specs campaign state update (blocked on complete evidence). **Not flipped.**
+2. Sealed pin bundle + Worker **source** git SHA for live UUID `963b5edf…` (repo tips recorded in [pins-human.md](pins-human.md)).
+3. Live Admin report rows with `approver_amr` for Gate B + C7 codes (O2 path semantics OBSERVED; per-code export still NOT_COMPUTABLE).
+4. Completed `independent_control_receipt` / binding-digest artifacts (distinct ids/codes OBSERVED).
 5. Explicit server ordering / idempotency / recovery receipts (CLI did not surface them).
 
 ## Explicit non-claims
