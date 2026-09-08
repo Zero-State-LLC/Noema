@@ -15,6 +15,7 @@ Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets
 - [admin-receipts.md](admin-receipts.md) collected 2026-09-08T07:31:59Z UTC (00:31:59 PT) — closes Admin report rows / `independent_control_receipt` / binding digests gap as **OBSERVED**.
 - [worker-source-sha.md](worker-source-sha.md) collected 2026-09-08T07:31:22Z UTC (00:31:22 PT) — live UUID → Worker **source** git SHA **OBSERVED** (`308c98de…` via PR #649 / `hosted_live`).
 - [ordering-probe.md](ordering-probe.md) collected 2026-09-08 ~07:45–07:50Z UTC (00:45–00:50 PT) — act/observe **raw** fields for sequence/cycle/budgets/`settled`/`request_id`/`events`/`provenance` **OBSERVED** via library; CLI `act` still hides them; recovery receipt object **NOT_COMPUTABLE**; HTTP headers bare.
+- [concurrent-digests.md](concurrent-digests.md) collected 2026-09-08T08:04–08:12Z UTC (01:04–01:12 PT) — reconnect a/b/c **BLOCKED** pending Admin Approve (ACTIVE codes `C5EE-9821` / `B135-B266` / `2D79-E3B6`); connected count **0**; cohort digests **NOT_COMPUTABLE**; digest method documented for post-Approve capture.
 
 ## Files
 
@@ -27,6 +28,7 @@ Do not close #590. Do not flip Noema-Specs campaign state. No Deploy. No secrets
 | [admin-receipts.md](admin-receipts.md) | Addendum: Noema Admin report rows — `approver_amr`, `independent_control_receipt`, `controller_binding_digest` for Gate B trio + C7 Boof (operator; labeled separately) |
 | [worker-source-sha.md](worker-source-sha.md) | Addendum: OBSERVED Worker source git SHA `308c98de4173874d8a1941818ba4392ddcc2cba6` for live UUID `963b5edf…` via PR #649 + `spec-compat.json` `hosted_live` pin fields |
 | [ordering-probe.md](ordering-probe.md) | Addendum: concurrent LOOK+INSPECT raw CommandResult; OBSERVED sequence/budgets/settled/request_id/events/provenance; idempotency_key client-sent not echoed; recovery receipt NOT_COMPUTABLE; HTTP headers bare |
+| [concurrent-digests.md](concurrent-digests.md) | Addendum: reconnect BLOCKED (3 ACTIVE Approve codes); connected=0; contention/ordering/budget digests NOT_COMPUTABLE; sha256 redacted-raw method documented |
 
 ## Controllers (OBSERVED)
 
@@ -49,7 +51,7 @@ Admin receipts (see [admin-receipts.md](admin-receipts.md)): all three Gate B Co
 | Confirm each human principal remains authorizer/operator/spectator and never a Player | **STRENGTHENED** — identity separation OBSERVED ([pins-human.md](pins-human.md) §2); live per-code Admin `approver_amr=admin_session` for Gate B trio + C7 now **OBSERVED** ([admin-receipts.md](admin-receipts.md)). |
 | For each Agent Player, capture redacted orientation + supported action surface without private strategy | **OBSERVED** — [orientation.md](orientation.md) |
 | Verify disconnect and reconnect with identity and durable state preserved | **OBSERVED** — [reconnect.md](reconnect.md); a/b/c PASS; no `--forget` / no `--force` |
-| Exercise ≥1 concurrent contention/conflict; verify ordering, idempotency, budgets | **STRENGTHENED** — prior a+b LOOK + this C7 concurrent LOOK+INSPECT. **OBSERVED** via library/raw: `sequence`/`cycle`, `budgets`/`cost_paid`, `settled`, `request_id`, `events`, `provenance`. `idempotency_key` **sent** client-side, **not echoed** by server. CLI `act` still hides structured fields. Multi-controller concurrent **re-check** blocked while a/b/c credentials expired. |
+| Exercise ≥1 concurrent contention/conflict; verify ordering, idempotency, budgets | **STRENGTHENED** — prior a+b LOOK + C7 concurrent LOOK+INSPECT library fields **OBSERVED** ([ordering-probe.md](ordering-probe.md)). Multi-controller concurrent digest re-check **BLOCKED** — a/b/c credentials expired; `connect --no-enter` minted Approve codes ([concurrent-digests.md](concurrent-digests.md)); connected count **0**; `contention_evidence_digest` / `ordering_evidence_digest` / `budget_settlement_evidence_digest` **NOT_COMPUTABLE** until Admin Approve + re-run. |
 | Capture recovery receipts, WATCH digest, and redacted transcripts | **PARTIAL** — WATCH + redacted transcripts covered earlier; act **settlement/`request_id`/events** now **OBSERVED** ([ordering-probe.md](ordering-probe.md)). Dedicated **recovery receipt** object still **NOT_COMPUTABLE** on act/observe/HTTP headers. |
 | Run production health and public post-state checks after the cohort run | **OBSERVED** — post `/ready` `/health` `/version` + `/v1/watch/live` in [contention-watch.md](contention-watch.md) |
 | Update Noema-Specs campaign state only after all evidence complete | **STILL OPEN** — blocked until remaining gaps close. **Not done in this PR.** |
@@ -58,7 +60,7 @@ Admin receipts (see [admin-receipts.md](admin-receipts.md)): all three Gate B Co
 
 1. Specs campaign state update (blocked on complete evidence). **Not flipped.**
 2. Worker **source** git SHA for live UUID `963b5edf…` — **OBSERVED** as `308c98de4173874d8a1941818ba4392ddcc2cba6` ([worker-source-sha.md](worker-source-sha.md) / PR #649 / `hosted_live`). Standalone sealed-bundle artifact file beyond `hosted_live` fields still **NOT_COMPUTABLE** if required as a distinct object.
-3. Dedicated **recovery receipt** object / Gate-A-style incident-recover pack still **NOT_COMPUTABLE** on act/observe. Ordering/budget/`request_id`/`settled` now **OBSERVED** via library ([ordering-probe.md](ordering-probe.md)); echo of `idempotency_key` still absent (client-sent only). Reconnect a/b/c then re-run multi-controller concurrent capture for cohort digests.
+3. Dedicated **recovery receipt** object / Gate-A-style incident-recover pack still **NOT_COMPUTABLE** on act/observe. Ordering/budget/`request_id`/`settled` **OBSERVED** via library ([ordering-probe.md](ordering-probe.md)); `idempotency_key` echo still absent. Multi-controller cohort digests still **NOT_COMPUTABLE** — reconnect a/b/c **BLOCKED** on Admin Approve of ACTIVE codes in [concurrent-digests.md](concurrent-digests.md) (`C5EE-9821`, `B135-B266`, `2D79-E3B6`); then re-run concurrent library LOOK and hash digests.
 
 ### Closed by [admin-receipts.md](admin-receipts.md) (now **OBSERVED**)
 
