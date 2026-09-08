@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { mintAdminSession } from "../src/admin-auth";
 import { mintControllerToken } from "../src/auth";
 import {
+  ADMIN_SESSION_APPROVER,
   approveDevice,
   approveDeviceReview,
   reviewDevicePage,
@@ -58,6 +60,26 @@ async function humanBearer(e = env()) {
     amr: "email_magic_link",
   });
   return minted.access_token;
+}
+
+async function adminBearer(e = env()) {
+  const minted = await mintAdminSession(
+    { ...e, ADMIN_OPERATOR_TOKEN: "operator-token-value-ok" },
+    "operator-token-value-ok",
+  );
+  expect(minted).not.toBeInstanceOf(Response);
+  return (minted as { access_token: string }).access_token;
+}
+
+async function pendingUserCode(store: ReturnType<typeof memoryDeviceStore>, e: Env) {
+  const started = await startDeviceEnrollment(
+    e,
+    new Request("https://noema.guru/v1/auth/device", { method: "POST" }),
+    { metadata: { runtime: "openclaw" } },
+    { store },
+  );
+  const body = (await started.json()) as { user_code: string };
+  return body.user_code;
 }
 
 async function completeShortCodeEnrollment(store: ReturnType<typeof memoryDeviceStore>, e: Env, handle: string) {
@@ -402,6 +424,7 @@ describe("previewDevice", () => {
     expect(body.expires_at).toBeTruthy();
     expect(body.access_token).toBeUndefined();
     expect(body.player_id).toBeUndefined();
+    expect((await store.getByUserCode(user_code))?.status).toBe("pending");
   });
 
   it("is WATCH-safe: no credentials or player_id, but names the controller", async () => {
@@ -482,6 +505,9 @@ describe("approveDevice", () => {
     const stored = await store.getByUserCode(user_code);
     expect(stored).not.toHaveProperty("access_token");
     expect(stored?.status).toBe("approved");
+    expect(stored?.approver_id).toBe("id.prabu");
+    expect(stored?.approver_amr).toBe("email_magic_link");
+    expect(stored?.approver_id).not.toBe(ADMIN_SESSION_APPROVER);
   });
 
   it("binds when the human submits a denormalized user_code", async () => {
@@ -567,6 +593,86 @@ describe("approveDevice", () => {
     expect(recovered.ok).toBe(false);
     expect(recovered.reason).toContain("approved or redeemed");
   });
+
+  it("accepts an Admin session bearer and labels the approver admin_session", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const user_code = await pendingUserCode(store, e);
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", {
+        method: "POST",
+        headers: { authorization: `Bearer ${await adminBearer(e)}` },
+      }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      status: string;
+      controller_id: string;
+      approval_receipt: string;
+      independent_control_receipt: string;
+      controller_binding_digest: string;
+      approver_id?: string;
+      approver_amr?: string;
+      access_token?: string;
+    };
+    expect(body.status).toBe("approved");
+    expect(body.access_token).toBeUndefined();
+    expect(body.controller_id).toMatch(/^ctrl\.device\.[a-f0-9]{12}$/);
+    expect(body.approval_receipt).toMatch(/^approval\./);
+    expect(body.independent_control_receipt).toMatch(/^receipt\./);
+    expect(body.controller_binding_digest).toMatch(/^[0-9a-f]{64}$/);
+    expect(body.approver_id).toBe(ADMIN_SESSION_APPROVER);
+    expect(body.approver_amr).toBe(ADMIN_SESSION_APPROVER);
+    const stored = await store.getByUserCode(user_code);
+    expect(stored?.status).toBe("approved");
+    expect(stored?.approver_id).toBe(ADMIN_SESSION_APPROVER);
+    expect(stored?.approver_amr).toBe(ADMIN_SESSION_APPROVER);
+    expect(stored?.controller_id).toBe(body.controller_id);
+    expect(stored?.controller_binding_digest).toBe(body.controller_binding_digest);
+  });
+
+  it("rejects approve when both play and Admin bearers are missing", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const user_code = await pendingUserCode(store, e);
+    const res = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", { method: "POST" }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(401);
+    expect((await store.getByUserCode(user_code))?.status).toBe("pending");
+  });
+
+  it("does not rebind on a second Admin approve of the same code", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const user_code = await pendingUserCode(store, e);
+    const headers = { authorization: `Bearer ${await adminBearer(e)}` };
+    const first = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", { method: "POST", headers }),
+      { user_code },
+      { store },
+    );
+    expect(first.status).toBe(200);
+    const firstBody = (await first.json()) as { controller_id: string; approval_receipt: string };
+    const second = await approveDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/approve", { method: "POST", headers }),
+      { user_code },
+      { store },
+    );
+    expect(second.status).toBe(409);
+    const stored = await store.getByUserCode(user_code);
+    expect(stored?.controller_id).toBe(firstBody.controller_id);
+    expect(stored?.approval_receipt).toBe(firstBody.approval_receipt);
+    expect(stored?.approver_id).toBe(ADMIN_SESSION_APPROVER);
+  });
 });
 
 describe("denyDevice", () => {
@@ -592,6 +698,24 @@ describe("denyDevice", () => {
     );
     expect(res.status).toBe(200);
     expect(((await res.json()) as { status: string }).status).toBe("denied");
+  });
+
+  it("accepts an Admin session bearer for deny", async () => {
+    const store = memoryDeviceStore();
+    const e = env();
+    const user_code = await pendingUserCode(store, e);
+    const res = await denyDevice(
+      e,
+      new Request("https://noema.guru/v1/auth/device/deny", {
+        method: "POST",
+        headers: { authorization: `Bearer ${await adminBearer(e)}` },
+      }),
+      { user_code },
+      { store },
+    );
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { status: string }).status).toBe("denied");
+    expect((await store.getByUserCode(user_code))?.status).toBe("denied");
   });
 
   it("fail-closed: poll after deny returns 401 and no access_token", async () => {

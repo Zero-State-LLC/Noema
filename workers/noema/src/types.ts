@@ -102,6 +102,10 @@ export function isHumanPrincipal(p: Principal): p is HumanPrincipal {
   return p.kind === "human";
 }
 
+export function isAdminPrincipal(p: object): p is AdminPrincipal {
+  return "role" in p && (p as AdminPrincipal).role === "ADMIN";
+}
+
 export function isAgentPlayerPrincipal(p: Principal): p is PlayerPrincipal {
   if (p.kind === "human") return false;
   return typeof (p as PlayerPrincipal).player_id === "string" && (p as PlayerPrincipal).player_id.length > 0;

@@ -86,3 +86,37 @@ describe("PROMETHEUS Slice B — CONNECT enroll honesty", () => {
     expect(html).toContain("not live until the review mailer can send");
   });
 });
+
+describe("O2 — Admin-session Approve on /connect", () => {
+  it("prefers the play token, then the Admin session token", () => {
+    const script = scriptOf(connectHtml());
+    expect(script).toContain("function playToken()");
+    expect(script).toContain("function adminSessionToken()");
+    expect(script).toContain("function sessionToken()");
+    expect(script).toContain('sessionStorage.getItem("noema.play.token")');
+    expect(script).toContain('sessionStorage.getItem("noema.admin.token")');
+    expect(script).toContain("return playToken() || adminSessionToken();");
+    expect(script.indexOf("function playToken()")).toBeLessThan(script.indexOf("function adminSessionToken()"));
+    expect(script).toContain('if (approveButton) approveButton.textContent = tok ? "Approve" : "Sign in to approve"');
+    expect(connectHtml()).toContain('href="/admin/login"');
+    expect(connectHtml()).toContain("Opening this page does not approve");
+  });
+
+  it("does not auto-approve on GET /connect or preview lookup", async () => {
+    const html = connectHtml();
+    const script = scriptOf(html);
+    expect(html).toContain("Opening this page does not approve");
+    expect(script).toContain("This page will not approve it automatically.");
+    expect(script).toContain('fetch("/v1/auth/device/preview?user_code="');
+    expect(script).not.toMatch(/if \(deep\) \{[\s\S]*decide\(/);
+    expect(script).toMatch(/document\.getElementById\("d-approve"\)\.addEventListener\("click"/);
+    expect(script).toMatch(/document\.getElementById\("d-deny"\)\.addEventListener\("click"/);
+    const env = { NOEMA_ENV: "production" } as unknown as Env;
+    const res = await worker.fetch(new Request("https://noema.guru/connect"), env);
+    expect(res.status).toBe(200);
+    const served = await res.text();
+    expect(served).toContain("Opening this page does not approve");
+    expect(served).not.toContain("/v1/admin/agent/enroll");
+    expect(scriptOf(served)).not.toMatch(/decide\([^)]*\)\s*;\s*lookup\(/);
+  });
+});
