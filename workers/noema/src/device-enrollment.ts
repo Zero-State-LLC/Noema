@@ -690,7 +690,12 @@ export async function denyDevice(
   if (approver instanceof Response) return approver;
   const rec = await store.getByUserCode(String(body.user_code || ""));
   if (!rec) return err("NOT_AUTHORIZED", "unknown user_code", 401);
-  if (rec.approver_id && isHumanPrincipal(approver) && rec.approver_id !== approver.identity_id) {
+  if (
+    rec.approver_id &&
+    !isAdminPrincipal(approver) &&
+    isHumanPrincipal(approver) &&
+    rec.approver_id !== approver.identity_id
+  ) {
     return err("NOT_AUTHORIZED", "cannot deny another account's enrollment", 403);
   }
   const status = await effectiveDeviceStatus(rec, opts?.now ?? Date.now());
