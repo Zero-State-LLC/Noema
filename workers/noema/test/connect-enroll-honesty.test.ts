@@ -108,9 +108,10 @@ describe("O2 — Admin-session Approve on /connect", () => {
     expect(html).toContain("Opening this page does not approve");
     expect(script).toContain("This page will not approve it automatically.");
     expect(script).toContain('fetch("/v1/auth/device/preview?user_code="');
-    expect(script).not.toMatch(/if \(deep\) \{[\s\S]*decide\(/);
-    expect(script).toMatch(/document\.getElementById\("d-approve"\)\.addEventListener\("click"/);
-    expect(script).toMatch(/document\.getElementById\("d-deny"\)\.addEventListener\("click"/);
+    expect(script).toMatch(/if \(deep\) \{\s*document\.getElementById\("d-code"\)\.value = displayCode\(deep\);\s*lookup\(\);/);
+    expect(script).not.toMatch(/if \(deep\) \{[^}]*decide\(/);
+    expect(script).toContain('document.getElementById("d-approve").addEventListener("click", () => decide("/v1/auth/device/approve"))');
+    expect(script).toContain('document.getElementById("d-deny").addEventListener("click", () => decide("/v1/auth/device/deny"))');
     const env = { NOEMA_ENV: "production" } as unknown as Env;
     const res = await worker.fetch(new Request("https://noema.guru/connect"), env);
     expect(res.status).toBe(200);
