@@ -120,6 +120,24 @@ describe("hosted genesis", () => {
     expect(stableStringify({ b: 1, a: 2 })).toBe(stableStringify({ a: 2, b: 1 }));
   });
 
+  it("stableStringify omits undefined object values so optional fields never leak into digests", () => {
+    // #634: RECONSTRUCT optional fields (org_id, supersedes_reconstruction_id)
+    // are omitted from producer objects; the canonical serializer must agree.
+    // Before ded1356 this rendered `"x":undefined` — non-JSON text in the digest.
+    expect(stableStringify({ a: 1, x: undefined })).toBe(stableStringify({ a: 1 }));
+    expect(stableStringify({ a: 1, x: undefined })).not.toContain("undefined");
+    // Nested: an optional field on a nested object is dropped too.
+    expect(
+      stableStringify({ outer: { inner: 1, missing: undefined }, other: 2 }),
+    ).toBe(stableStringify({ outer: { inner: 1 }, other: 2 }));
+    // Present falsy values (null, 0, false, "") are kept — only undefined is filtered.
+    expect(stableStringify({ a: null, b: 0, c: false, d: "" })).toBe(
+      '{"a":null,"b":0,"c":false,"d":""}',
+    );
+    // An all-undefined object serializes as an empty object, like an empty one.
+    expect(stableStringify({ x: undefined })).toBe(stableStringify({}));
+  });
+
   const FROZEN = {
     world_name: "Perihelion Reach",
     world_seed: "17011984",
