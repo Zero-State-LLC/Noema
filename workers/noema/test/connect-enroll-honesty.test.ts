@@ -3,8 +3,22 @@ import { connectHtml } from "../src/connect";
 import worker from "../src/index";
 import type { Env } from "../src/types";
 
+/** Inline CONNECT scripts. Index scan, not a tag-filter regexp. */
 function scriptOf(html: string): string {
-  return [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).join("\n");
+  const chunks: string[] = [];
+  const lower = html.toLowerCase();
+  let from = 0;
+  while (from < html.length) {
+    const open = lower.indexOf("<script", from);
+    if (open === -1) break;
+    const openEnd = html.indexOf(">", open);
+    if (openEnd === -1) break;
+    const close = lower.indexOf("</script", openEnd + 1);
+    if (close === -1) break;
+    chunks.push(html.slice(openEnd + 1, close));
+    from = close + "</script".length;
+  }
+  return chunks.join("\n");
 }
 
 describe("PROMETHEUS Slice B — CONNECT enroll honesty", () => {
