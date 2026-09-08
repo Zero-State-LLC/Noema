@@ -77,5 +77,20 @@ export async function canonicalEventDigest(input: {
   payload: Record<string, unknown>;
   previous_digest: string | null;
 }): Promise<string> {
-  return `sha256:${await sha256Hex(stableStringify(input))}`;
+  const canonical_json = stableStringify(input);
+  try {
+    // Same I-JSON backstop as canonicalStateMaterial(): event payloads are
+    // producer-built `Record<string, unknown>` (settle.ts settlement commit),
+    // so an undefined array element in a payload would otherwise be hashed
+    // into the durable event digest chain as non-JSON text — the same class
+    // of #634 regression, one function lower in the same file.
+    JSON.parse(canonical_json);
+  } catch (cause) {
+    throw new CanonicalStateSerializationError(
+      "canonical event digest serialized to non-JSON text; refusing to hash it into the settlement chain. " +
+        "An upstream producer wrote an unsupported value (e.g. undefined) into an event payload.",
+      { cause },
+    );
+  }
+  return `sha256:${await sha256Hex(canonical_json)}`;
 }

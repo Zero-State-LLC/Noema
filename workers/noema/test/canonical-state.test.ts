@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canonicalEventDigest, canonicalStateMaterial, canonicalWorldState } from "../src/canonical-state";
+import {
+  CanonicalStateSerializationError,
+  canonicalEventDigest,
+  canonicalStateMaterial,
+  canonicalWorldState,
+} from "../src/canonical-state";
+import { sha256Hex, stableStringify } from "../src/genesis";
 import type { WorldRuntime } from "../src/world-actions";
 
 function world(): WorldRuntime {
@@ -74,5 +80,37 @@ describe("canonical durable state", () => {
     const first = await canonicalEventDigest({ ...base, previous_digest: null });
     const chained = await canonicalEventDigest({ ...base, previous_digest: first });
     expect(chained).not.toBe(first);
+  });
+
+  it("keeps valid event payload digests byte-identical to the I-JSON hash of the stable text", async () => {
+    // The #634-style backstop must be transparent: for JSON-representable
+    // inputs the digest is exactly the sha256 of stableStringify(input),
+    // so historical digest chains are unaffected by the added validation.
+    const base = {
+      world_id: "world.test",
+      sequence: 9,
+      cycle: 3,
+      event_id: "evt.9",
+      event_type: "TRADE",
+      payload: { counterparty: "player.b", lines: ["iron:2", "cloth:1"], note: null },
+      previous_digest: null,
+    };
+    const expected = `sha256:${await sha256Hex(stableStringify(base))}`;
+    expect(await canonicalEventDigest(base)).toBe(expected);
+  });
+
+  it("refuses to hash an event payload that serializes to non-JSON text (undefined array element)", async () => {
+    // Same #634 class of regression as canonicalStateMaterial, one function
+    // lower: event payloads are producer-built Record<string, unknown> on the
+    // settlement commit path (settle.ts). stableStringify's object-key
+    // filtering cannot repair an undefined array element, so the text is
+    // non-JSON and must fail fast instead of entering the durable digest
+    // chain unparsable.
+    const base = { world_id: "world.test", sequence: 10, cycle: 2, event_id: "evt.10", event_type: "MOVE" };
+    const broken = stableStringify({ ...base, payload: { broken: [1, undefined, 3] }, previous_digest: null });
+    expect(() => JSON.parse(broken)).toThrow();
+    await expect(
+      canonicalEventDigest({ ...base, payload: { broken: [1, undefined, 3] }, previous_digest: null }),
+    ).rejects.toBeInstanceOf(CanonicalStateSerializationError);
   });
 });
