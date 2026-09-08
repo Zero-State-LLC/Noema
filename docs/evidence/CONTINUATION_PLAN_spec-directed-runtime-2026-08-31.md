@@ -51,10 +51,10 @@ credentials, enroll Controllers, send email, spend a run budget, or mutate a wor
 
 ### Disposition refresh, 2026-09-07 PT (post Deploy + pin)
 
-Supersedes the UTC table above for C2–C6. C0 remains MERGED; C1/C6/C8 remain
-blocked as stated. This is not Gate B completion, enrollment, or spend. C5
-public WATCH and the later same-day C2 candidate-suite measurement are in the
-amendments that follow.
+Supersedes the UTC table above for C2–C6. C0 remains MERGED; C1/C8 remain
+blocked as stated. C6 is COMPLETE in the later same-day email amendment. This
+is not Gate B completion, enrollment, or spend. C5 public WATCH and the later
+same-day C2, P2.1–P2.3, and C6 measurements are in the amendments that follow.
 
 OBSERVED pin table (Worker, `/version`, `/ready`, `hosted_live`, Specs/runtime
 heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md)
@@ -68,7 +68,7 @@ heads): [SPECS-RUNTIME-GAP-CLOSURE-2026-09-07.md](SPECS-RUNTIME-GAP-CLOSURE-2026
 | C3 | COMPLETE | Explicit production deploy was authorized and dispatched with acknowledge `I_ACKNOWLEDGE_PRODUCTION_DEPLOY_AND_PIN` from `9c25603581992da0440b2dd733a554aca98adef0`. Deploy workflow SUCCESS: [run 34167731843](https://github.com/Zero-State-LLC/Noema/actions/runs/34167731843). |
 | C4 | COMPLETE | Worker published as `04ef6ecb-65b9-430e-b0fd-141a2cc7179f` (`deployed_at` 2026-09-07T22:46:20.53456Z). Pin PR [#639](https://github.com/Zero-State-LLC/Noema/pull/639) merged; `hosted_live.worker_version_id` matches live `/version`; merge commit `957620894a2c45810d3f20aa53c65d9fbf5f0d5b` is on `main`. Specs pin [#638](https://github.com/Zero-State-LLC/Noema/pull/638) and baseline docs [#640](https://github.com/Zero-State-LLC/Noema/pull/640) are also on `main`. |
 | C5 | COMPLETE | Public WATCH acceptance on Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`. Receipt: [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md). The 2026-09-02 Galadriel receipt remains prior Worker `3f9b0e44-98c1-46f9-8232-bb44051a754f`. This is not Gate B, enrollment, or email. |
-| C6 | OWNER_BLOCKED | Controlled live email acceptance still requires an authorized ADMIN operator, a controlled recipient, and explicit send approval. No email was sent in this refresh. |
+| C6 | COMPLETE | Controlled live Admin email acceptance on Worker `04ef6ecb-65b9-430e-b0fd-141a2cc7179f`. Receipt: [C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md). Allowlisted recipient `boof@agentmail.to`. This is not Gate B, enrollment, Deploy, or spend. Fallback unrun. |
 | C7 | PIN_ADVANCED / ACCEPTANCE_UNRUN | Unchanged. Client pin remains `noema-client==0.1.21`. Enrollment-bound checks (discover/doctor/enroll/act/refuse/resync/reconnect on the current Worker) remain unrun. |
 | C8 | OWNER_BLOCKED | Unchanged. Three independent external Controllers and approval-bound acceptance evidence remain required. Gate B remains **OWNER_BLOCKED**. |
 
@@ -126,6 +126,22 @@ spend, or change a pin.
 
 No Deploy is recommended from this docs refresh.
 
+### Disposition amendment, 2026-09-07 PT (C6 controlled email)
+
+Supersedes the C6 row in the post-Deploy PT table. P2.1–P2.3 remain COMPLETE
+via #636. C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. C8 and Gate B remain
+`OWNER_BLOCKED`.
+
+Controlled live Admin email acceptance on Worker `04ef6ecb` is recorded in
+[C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md).
+Danny authorized one send to allowlisted Admin mailbox `boof@agentmail.to`.
+`POST /v1/admin/login/request` returned HTTP 200 at about `2026-09-08T01:43:27Z`.
+The mailbox received `NOEMA Admin Access` from `play@noema.guru` at that time.
+One Admin consume and `GET /v1/admin/overview` returned HTTP 200. Live Worker
+id is unchanged. No Deploy, pin change, enrollment, PLAY, or Gate B.
+
+Fallback was not exercised and is not claimed.
+
 ## Objective
 
 Bring accepted Specs, runtime source, the deployed Worker, the official client,
@@ -151,13 +167,14 @@ state. Select the first missing link, not the most visible feature.
 | LCA cohort runner | Real local Worker plus three official-client processes verified; participant isolation protections present | RUNNER_VERIFIED_LOCAL |
 | Gate B | Code paths for fail-closed optional reconstruction controllers (positive real int or omitted) + human approval + independent-control receipts for exactly three enrollments (rejecting contention/recovery gaps) merged via #624 (Galadriel assignments Noema #622 + Noema-Specs #290); tests passed (Worker 1628, Python 541); live external controllers and human approvals absent | OWNER_BLOCKED (code advanced; local evidence only) |
 | Email provider status | Hosted provider-management is ADMIN-gated | AUTHORIZED_PROBE_REQUIRED |
-| Live email delivery/fallback | No controlled live delivery was executed in this campaign | NOT_COMPUTABLE |
+| Live email delivery (2026-09-07 PT) | Controlled Admin login send to `boof@agentmail.to` OBSERVED on Worker `04ef6ecb`. Request, inbox receipt, one consume, and `/v1/admin/overview` HTTP 200. Receipt: [C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md) | COMPLETE (this send). Fallback still NOT_COMPUTABLE |
 
 Current-Worker public WATCH is recorded in
 [WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md).
 The 2026-09-02 Galadriel receipt remains prior Worker `3f9b0e44` and is not
-deleted. Local tests and read-only provider checks do not prove live Resend or
-Postmark delivery or fallback behavior.
+deleted. Current-Worker Admin email delivery is recorded in
+[C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md).
+That receipt does not prove fallback, provider-management UI, or a second send.
 
 ## Collaborator continuity
 
@@ -314,16 +331,28 @@ WATCH framework.
 
 ### C6. Run controlled live email acceptance separately
 
-**Disposition (2026-09-07 PT):** `OWNER_BLOCKED` (controlled email). Unchanged.
+**Disposition (2026-09-07 PT, later same day):** `COMPLETE` for one authorized
+Admin login send and one consume on Worker `04ef6ecb`. Receipt:
+[C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md).
+C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. C8 and Gate B remain
+`OWNER_BLOCKED`. Fallback remains `NOT_COMPUTABLE`.
 
 **Owner:** authorized ADMIN operator with a controlled recipient.  
 **Safety:** sending email is an external side effect; obtain explicit approval
 for the recipient and test.  
 **Evidence required:** provider selected, message ID/receipt, sender domain,
 template identity, controlled inbox receipt, and a deliberately exercised
-fallback case if fallback is claimed. Redact addresses and secrets.
+fallback case if fallback is claimed. Redact tokens, links, and secrets.
 
-Until this occurs, live delivery and fallback remain `NOT_COMPUTABLE`.
+**Verification receipt (2026-09-07 PT, Worker `04ef6ecb`) — controlled email:**
+Danny human-yes for `boof@agentmail.to`. `POST /v1/admin/login/request` HTTP 200
+at about `2026-09-08T01:43:27Z`. Inbox received `NOEMA Admin Access` from
+`play@noema.guru` (thread `7fce290c-f378-4087-a13f-cf885b524172`). Consume HTTP
+200 (`role` `ADMIN`, `token_type` `bearer`, `expires_in` `3600`; token redacted).
+`GET /v1/admin/overview` HTTP 200. `/ready` ACTIVE / HEALTHY / `play_blocked=false`
+on `world.perihelion-reach-3` cycle `17062` sequence `40167`. `canonical_head`
+matches DO (`head_revision` `19857`). Worker id unchanged. Not Gate B. No
+enrollment, PLAY, Deploy, or spend.
 
 ### C7. Decide official-client pin promotion
 
@@ -393,19 +422,21 @@ Stop only when every remaining meaningful item is one of:
 - `SAFETY_BLOCKED`: the next action would mutate protected production state without authorization;
 - `COMPLETE`: source, hosted identity, client, WATCH, Gate evidence, and repository pins are reconciled.
 
-As of the 2026-09-07 PT P2.1–P2.3 amendment, C0 is MERGED, C3–C4 are
-COMPLETE (authorized Deploy + pin `04ef6ecb`), C5 is `COMPLETE` for public
-WATCH on that Worker
+As of the 2026-09-07 PT C6 email-acceptance amendment, C0 is MERGED, C3–C6 are
+COMPLETE on Worker `04ef6ecb` (authorized Deploy + pin, public WATCH, and one
+controlled Admin email send:
+[C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md](C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md)),
+C5 is `COMPLETE` for public WATCH
 ([WATCH-C5-ACCEPTANCE-2026-09-07.md](WATCH-C5-ACCEPTANCE-2026-09-07.md)),
 C2 is `PARTIAL / CANDIDATE_SUITE_OBSERVED`
 ([P2-CANDIDATE-SUITE-2026-09-07.md](P2-CANDIDATE-SUITE-2026-09-07.md)),
 and P2.1–P2.3 are COMPLETE via
 [#636](https://github.com/Zero-State-LLC/Noema/pull/636).
 The campaign remains `OWNER_BLOCKED` at C1 (protected preflight readiness not
-re-inspected), C6 (controlled email), and C8 (three independent external
-Controllers / Gate B). C7 remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths
-for reconstruction fail-closed and 3-enrollment receipts remain in via #624;
-live approvals/controllers remain the Gate B blocker. Unblocked work is limited
+re-inspected) and C8 (three independent external Controllers / Gate B). C7
+remains `PIN_ADVANCED / ACCEPTANCE_UNRUN`. Code paths for reconstruction
+fail-closed and 3-enrollment receipts remain in via #624; live
+approvals/controllers remain the Gate B blocker. Unblocked work is limited
 to review response, read-only refresh, remaining P2 integration/client-path
 evidence that does not enroll or Deploy, and plan updates that do not
 impersonate Gate B or enroll/spend.
