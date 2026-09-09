@@ -1619,6 +1619,116 @@ describe("driven watch client (§11/§13)", () => {
     }
   });
 
+  it("paints Gate D TEXT facts from public actor, site, and withheld absences", async () => {
+    const client = await bootWatchClient(() =>
+      okResponse(
+        snapshot({
+          players_present: 0,
+          rooms: [
+            {
+              room_id: "room.civic-exchange",
+              name: "Civic Exchange",
+              description: "Open floor.",
+              players_present: 0,
+              active: true,
+              exits: [],
+              entities: [],
+            },
+          ],
+          recent_events: [
+            {
+              sequence: 41816,
+              cycle: 17779,
+              tier: "NORMAL",
+              projection_id: "production",
+              line: "Stocks recovered at Civic Exchange",
+              room_id: "room.civic-exchange",
+              actor_label: "reach-maint3",
+              consequence: "Stocks recovered",
+            },
+            {
+              sequence: 41816,
+              cycle: 17779,
+              tier: "NOTABLE",
+              projection_id: "message_notice",
+              line: "A report is circulating.",
+            },
+            {
+              sequence: 41815,
+              cycle: 17779,
+              tier: "NOTABLE",
+              projection_id: "organization",
+              line: "An institution declared a temporary repair authority.",
+            },
+          ],
+          notable_event: {
+            sequence: 41816,
+            cycle: 17779,
+            tier: "NOTABLE",
+            projection_id: "message_notice",
+            line: "A report is circulating.",
+          },
+        }),
+      ),
+    );
+    try {
+      expect(client.$("watch-headline").textContent).toBe("A report is circulating.");
+      expect(client.$("watch-hero-who").textContent).toBe("Who not projected publicly");
+      expect(client.$("watch-hero-where").textContent).toBe("Where not projected publicly");
+      expect(client.$("watch-conseq").textContent).toBe("Consequence not projected publicly");
+      expect(client.$("watch-now-actors").textContent).toBe("Actors: reach-maint3");
+      expect(client.$("watch-now-sites").textContent).toBe("Sites: Civic Exchange");
+      expect(client.$("watch-players").textContent).toBe("Agents in public sites: 0");
+      expect(client.$("watch-players").textContent).not.toMatch(/^0 players$/i);
+      const feed = textOf(client.$("watch-feed"));
+      expect(feed).toContain("Who reach-maint3");
+      expect(feed).toContain("Where Civic Exchange");
+      expect(feed).toContain("Consequence Stocks recovered");
+      const withheld = textOf(client.$("watch-withheld-list"));
+      expect(withheld).toContain("Notice author is not projected publicly");
+      expect(withheld).toContain("Institution name is not projected publicly");
+      expect(withheld).not.toContain("None marked");
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("omits missing recent facts and shows an honest empty Withheld band", async () => {
+    const client = await bootWatchClient(() =>
+      okResponse(
+        snapshot({
+          players_present: 2,
+          recent_events: [
+            { sequence: 20, cycle: 4, tier: "NORMAL", projection_id: "production", line: "Stocks recovered at Chamber Market" },
+          ],
+          notable_event: {
+            sequence: 20,
+            cycle: 4,
+            tier: "NORMAL",
+            projection_id: "production",
+            line: "Stocks recovered at Chamber Market",
+            room_id: "room.market",
+            actor_label: "tester",
+            consequence: "Stocks recovered",
+          },
+        }),
+      ),
+    );
+    try {
+      expect(client.$("watch-hero-who").textContent).toBe("Who tester");
+      expect(client.$("watch-hero-where").textContent).toBe("Where Chamber Market");
+      expect(client.$("watch-conseq").textContent).toBe("Consequence Stocks recovered");
+      const row = textOf(client.$("watch-feed").children[0]);
+      expect(row).toContain("Stocks recovered at Chamber Market");
+      expect(row).not.toContain("Who ");
+      expect(row).not.toContain("Consequence ");
+      expect(textOf(client.$("watch-withheld-list"))).toBe("None marked");
+      expect(client.$("watch-players").textContent).toBe("Agents in public sites: 2");
+    } finally {
+      client.restore();
+    }
+  });
+
   it("keeps the server-side stale envelope intact (rooms and feed still present)", () => {
     const snap = buildWatchLive({
       world_id: "w",
