@@ -175,29 +175,35 @@ describe("runIncidentRecover", () => {
   });
 
   it("restores from an existing durable head and does not persist a new snapshot", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const live = liveWorld();
     const durable = headFrom(live, 4);
     const adoptLiveHead = vi.fn();
-    const result = await runIncidentRecover(
-      {
-        status: "INCIDENT",
-        settlement: "BLOCKING",
-        storedWorld: live,
-        currentWorld: live,
-        writerGeneration: "do.1",
-      },
-      { getHead: async () => durable, adoptLiveHead },
-    );
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.mode).toBe("restore");
-    expect(result.status).toBe("ACTIVE");
-    expect(result.settlement).toBe("HEALTHY");
-    expect(result.revision).toBe(4);
-    expect(result.world.sequence).toBe(75);
-    expect(adoptLiveHead).not.toHaveBeenCalled();
-    expect(result.world.player_tempo).toBeUndefined();
-    expect(result.world.player_tempo_policy_version).toBeUndefined();
+    try {
+      const result = await runIncidentRecover(
+        {
+          status: "INCIDENT",
+          settlement: "BLOCKING",
+          storedWorld: live,
+          currentWorld: live,
+          writerGeneration: "do.1",
+        },
+        { getHead: async () => durable, adoptLiveHead },
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.mode).toBe("restore");
+      expect(result.status).toBe("ACTIVE");
+      expect(result.settlement).toBe("HEALTHY");
+      expect(result.revision).toBe(4);
+      // headFrom plants state_json.sequence=75 while heads.sequence=92; column is SoT.
+      expect(result.world.sequence).toBe(92);
+      expect(adoptLiveHead).not.toHaveBeenCalled();
+      expect(result.world.player_tempo).toBeUndefined();
+      expect(result.world.player_tempo_policy_version).toBeUndefined();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("does not flip ACTIVE when adopt persist fails", async () => {
