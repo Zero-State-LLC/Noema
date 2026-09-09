@@ -4,6 +4,19 @@ import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
 import { phosphorInlineScript } from "./watch-phosphor";
+import {
+  NOT_PROJECTED_PUBLICLY,
+  WITHHELD_LEDE,
+  WITHHELD_NONE,
+  agentsInPublicSitesCaption,
+  followedSiteWithheld,
+  heroFactValue,
+  namedListLine,
+  recentFactParts,
+  theaterEventPool,
+  withheldBandLines,
+  withheldFromProjection,
+} from "./watch-theater";
 
 const EXTRA = `
 /* Hallmark · genre: atmospheric · macrostructure: Map-Diagram · design-system: site/design.md */
@@ -177,6 +190,23 @@ body.is-low-noise #watch-low-noise{display:block}
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
   border:1px solid var(--line);cursor:pointer;
 }
+.watch-now-strip{margin:.85rem 0 0;padding:.7rem 0 0;border-top:1px solid var(--line);max-width:46rem}
+.watch-now-strip h2{
+  margin:0 0 .35rem;color:var(--ink);font:550 .78rem/1.2 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.watch-now-strip .lede{margin:0 0 .45rem}
+.watch-now-strip p{margin:.2rem 0;color:var(--ink);font:.86rem/1.45 var(--font-mono)}
+.watch-now-caption{color:var(--faint)!important;font:.75rem/1.4 var(--font-mono)!important}
+.watch-hero-fact{margin:.25rem 0 0 1.7rem;color:var(--ink);font:.8rem/1.4 var(--font-mono)}
+.watch-feed .facts{grid-column:3;color:var(--muted);font:.74rem}
+.watch-withheld{margin:.75rem 0 0}
+.watch-withheld h2{
+  margin:0 0 .35rem;color:var(--faint);font:550 .62rem/1.2 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.watch-withheld ul{margin:0;padding:0;list-style:none}
+.watch-withheld li{margin:.15rem 0;color:var(--ink);font:.82rem/1.45 var(--font-mono)}
 .watch-conseq{margin:.45rem 0 0 1.7rem;color:var(--color-state-active);font:550 .82rem/1.4 var(--font-mono)}
 .watch-follow-bar{display:flex;flex-wrap:wrap;gap:.35rem .6rem;align-items:center;margin:.55rem 0 0 1.7rem}
 .watch-follow-bar .btn{padding:.15rem .45rem;font-size:.62rem}
@@ -223,7 +253,6 @@ export function watchHtml(): string {
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>
       <div><span class="k">Cycle</span><span class="v" id="watch-cycle">—</span></div>
       <div><span class="k">Sequence</span><span class="v" id="watch-seq">—</span></div>
-      <div><span class="k">Players</span><span class="v" id="watch-players">0</span></div>
     </div>
     <section class="watch-standing" id="watch-standing" aria-labelledby="watch-standing-label" hidden>
       <h2 id="watch-standing-label">Public</h2>
@@ -231,6 +260,14 @@ export function watchHtml(): string {
     </section>
     ${legendHtml()}
   </header>
+
+  <section class="watch-now-strip" id="watch-now-strip" aria-labelledby="watch-now-strip-label">
+    <h2 id="watch-now-strip-label">Public now</h2>
+    <p class="lede">Actors and sites named in recent public events.</p>
+    <p id="watch-now-actors">${namedListLine("Actors", [])}</p>
+    <p id="watch-now-sites">${namedListLine("Sites", [])}</p>
+    <p class="watch-now-caption" id="watch-players">${agentsInPublicSitesCaption(0)}</p>
+  </section>
 
   <section class="watch-stage">
     <section class="watch-col watch-map-col" aria-labelledby="watch-graph-label">
@@ -253,7 +290,9 @@ export function watchHtml(): string {
         <p class="now-k">Now</p>
         <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
         <p class="sub" id="watch-copy"></p>
-        <p class="watch-conseq" id="watch-conseq" hidden></p>
+        <p class="watch-hero-fact" id="watch-hero-who">Who ${NOT_PROJECTED_PUBLICLY}</p>
+        <p class="watch-hero-fact" id="watch-hero-where">Where ${NOT_PROJECTED_PUBLICLY}</p>
+        <p class="watch-conseq" id="watch-conseq">Consequence ${NOT_PROJECTED_PUBLICLY}</p>
         <div class="watch-banner" id="watch-banner" hidden></div>
         <div class="watch-follow-bar" id="watch-follow-bar">
           <span class="watch-following" id="watch-following" hidden></span>
@@ -272,6 +311,11 @@ export function watchHtml(): string {
         <h2 id="watch-feed-label">Recently</h2>
         <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
         <ol class="watch-feed" id="watch-feed"></ol>
+        <section class="watch-withheld" id="watch-withheld" aria-labelledby="watch-withheld-label">
+          <h2 id="watch-withheld-label">Withheld</h2>
+          <p class="lede">${WITHHELD_LEDE}</p>
+          <ul id="watch-withheld-list"><li>${WITHHELD_NONE}</li></ul>
+        </section>
       </section>
     </aside>
   </section>
@@ -315,6 +359,14 @@ export function watchHtml(): string {
       if (text != null && text !== "") n.textContent = text;
       return n;
     }
+    const theaterEventPool = ${theaterEventPool.toString()};
+    const recentFactParts = ${recentFactParts.toString()};
+    const heroFactValue = ${heroFactValue.toString()};
+    const namedListLine = ${namedListLine.toString()};
+    const agentsInPublicSitesCaption = ${agentsInPublicSitesCaption.toString()};
+    const withheldFromProjection = ${withheldFromProjection.toString()};
+    const withheldBandLines = ${withheldBandLines.toString()};
+    const followedSiteWithheld = ${followedSiteWithheld.toString()};
 
     // §4.G Follow — client-local spectator preference. Emphasis only, never a
     // filter, never a server request. Matches only public snapshot identifiers.
@@ -452,7 +504,7 @@ export function watchHtml(): string {
         const home = followedRoomId(rooms);
         sum.hidden = false;
         const nowP = el("p", "");
-        nowP.append(el("span", "k", "Now"));
+        nowP.append(el("span", "k", "Followed"));
         nowP.append(document.createTextNode(home ? (roomName(rooms, home) || home) : f.id + " is not in a public site."));
         sum.append(nowP);
         const known = knownForLine(data, f.id);
@@ -571,6 +623,45 @@ export function watchHtml(): string {
     function siteRecent(events, roomId) {
       return (events || []).filter(e => e.room_id === roomId).slice(0, 3);
     }
+    function paintPublicTheater(head, events, rooms, players) {
+      const site = roomName(rooms, head && head.room_id);
+      const pool = theaterEventPool(head, events);
+      const actorNames = [];
+      const siteNames = [];
+      const marks = [];
+      for (let i = 0; i < pool.length; i++) {
+        const ev = pool[i];
+        const who = String(ev.actor_label || "").trim();
+        if (who && actorNames.indexOf(who) < 0) actorNames.push(who);
+        const where = roomName(rooms, ev.room_id);
+        if (where && siteNames.indexOf(where) < 0) siteNames.push(where);
+        const withheld = withheldFromProjection(ev.projection_id || "", ev.actor_label || "");
+        if (withheld && marks.indexOf(withheld) < 0) marks.push(withheld);
+      }
+      const followExtra = followedSiteWithheld(state.follow ? state.follow.kind : "", !!followedRoomId(rooms));
+      if (followExtra) marks.push(followExtra);
+      const whoLine = "Who " + heroFactValue(head && head.actor_label);
+      const whereLine = "Where " + heroFactValue(site);
+      const conLine = "Consequence " + heroFactValue(head && head.consequence);
+      $("watch-hero-who").textContent = whoLine;
+      $("watch-hero-where").textContent = whereLine;
+      const conseq = $("watch-conseq");
+      conseq.hidden = false;
+      conseq.textContent = conLine;
+      const when = ago(head && head.occurred_at);
+      $("watch-copy").textContent = [when, head && head.detail].filter(Boolean).join(" · ");
+      const actorsLine = namedListLine("Actors", actorNames);
+      const sitesLine = namedListLine("Sites", siteNames);
+      const occupancy = agentsInPublicSitesCaption(players);
+      $("watch-now-actors").textContent = actorsLine;
+      $("watch-now-sites").textContent = sitesLine;
+      $("watch-players").textContent = occupancy;
+      const heldLines = withheldBandLines(marks);
+      const heldList = $("watch-withheld-list");
+      heldList.replaceChildren();
+      for (let i = 0; i < heldLines.length; i++) heldList.append(el("li", "", heldLines[i]));
+      return { whoLine, whereLine, conLine, actorsLine, sitesLine, occupancy, heldLines };
+    }
     function render(data) {
       state.last = data;
       const rooms = Array.isArray(data.rooms) ? data.rooms : [];
@@ -582,7 +673,6 @@ export function watchHtml(): string {
         : Array.isArray(data.recent_events) ? data.recent_events : [];
       $("watch-cycle").textContent = String(data.cycle ?? "—");
       $("watch-seq").textContent = String(data.sequence ?? "—");
-      $("watch-players").textContent = String(players) + (players === 1 ? " player" : " players");
       $("watch-world").textContent = data.world_id || "—";
       $("watch-updated").textContent = "updated " + new Date().toLocaleTimeString();
       $("watch-fresh").textContent = (status ? status + " · " : "") + (fresh || "live");
@@ -599,26 +689,17 @@ export function watchHtml(): string {
       }
       state.headKey = headKey;
       setLiveText($("watch-headline"), head.line || "The Chamber is quiet.");
-      const site = roomName(rooms, head.room_id);
-      const when = ago(head.occurred_at);
-      const bits = [site, when, head.detail].filter(Boolean);
-      $("watch-copy").textContent = bits.join(" · ");
-      // §4.A.1: one server-derived public consequence line, or nothing.
-      const conseq = $("watch-conseq");
-      if (head.consequence) {
-        conseq.hidden = false;
-        conseq.textContent = head.consequence;
-      } else {
-        conseq.hidden = true;
-        conseq.textContent = "";
-      }
+      const painted = paintPublicTheater(head, events, rooms, players);
       renderFollowChrome(data, rooms, events, head);
       renderStanding(data);
       const ln = $("watch-low-noise");
       if (ln) {
-        const recent = events.map((e) => e.line || e.text || "").filter(Boolean);
+        const recent = events.map((e) => {
+          const facts = recentFactParts(e.actor_label, roomName(rooms, e.room_id), e.consequence).join(" · ");
+          return [e.line || e.text || "", facts].filter(Boolean).join(" ");
+        }).filter(Boolean);
         const standing = publicStandingLines(data);
-        ln.textContent = [head.line, bits.join(" · "), ...standing, ...recent.slice(0, 6)].filter(Boolean).join("\\n");
+        ln.textContent = [head.line, painted.whoLine, painted.whereLine, painted.conLine, painted.actorsLine, painted.sitesLine, painted.occupancy, ...standing, ...recent.slice(0, 6), ...painted.heldLines].filter(Boolean).join("\\n");
         ln.hidden = !document.body.classList.contains("is-low-noise");
       }
       const hero = $("watch-hero");
@@ -658,7 +739,9 @@ export function watchHtml(): string {
           li.append(glyphNode(ev.glyph || "event"));
           const wrap = el("div", "");
           wrap.append(el("span", "line", ev.line || ""));
-          const meta = [roomName(rooms, ev.room_id), ago(ev.occurred_at)].filter(Boolean).join(" · ");
+          const facts = recentFactParts(ev.actor_label, roomName(rooms, ev.room_id), ev.consequence);
+          if (facts.length) wrap.append(el("span", "facts", facts.join(" · ")));
+          const meta = ago(ev.occurred_at);
           if (meta) wrap.append(el("span", "meta", meta));
           li.append(wrap);
           feed.append(li);
@@ -811,6 +894,7 @@ export function watchHtml(): string {
     function showUnavailable(msg) {
       setLiveText($("watch-headline"), "Projection unavailable.");
       $("watch-copy").textContent = msg || "";
+      paintPublicTheater({ line: "Projection unavailable." }, [], [], 0);
       setTag("unavailable", "tag");
       $("watch-map").replaceChildren(el("li", "watch-empty", "Projection unavailable."));
       $("watch-feed").replaceChildren(el("li", "watch-empty", "Projection unavailable."));
