@@ -65,6 +65,10 @@ describe("one center stage at a time", () => {
     expect(MAP).not.toMatch(/id="watch-stage-map"[^>]*hidden/);
     expect(MAP).toContain('id="watch-map-board"');
     expect(MAP).toContain('id="watch-map-health"');
+    expect(MAP).toContain('id="watch-map-gl"');
+    expect(MAP).toContain('id="watch-hero-who"');
+    expect(MAP).toContain('id="watch-feed"');
+    expect(MAP).toContain('id="watch-withheld"');
   });
 });
 
@@ -112,6 +116,7 @@ describe("inlined MAP/mode helpers stay free of bundler __name", () => {
   it("rejects keepNames in helper source and the Chamber IIFE", () => {
     expect(watchModeInlineSource()).not.toContain("__name");
     expect(watchMapInlineSource()).not.toContain("__name");
+    expect(THEATER).toContain("/assets/watch-map-gl.js");
     const src = mainScript(THEATER);
     expect(src).toBeTruthy();
     expect(src).not.toContain("__name");

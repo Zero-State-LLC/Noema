@@ -18,7 +18,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | World / cycle / seq / players | `#watch-world` `#watch-cycle` `#watch-seq` `#watch-players` · `.watch-state-plate` | required text |
 | Connecting / live / PAUSED / error tag | `#watch-state` | required text |
 | Refresh / Pause | `#watch-refresh` `#watch-pause` | functional chrome |
-| TEXT / PIXEL mode | `#watch-mode-text` `#watch-mode-pixel` | functional chrome |
+| TEXT / PIXEL / MAP mode | `#watch-mode-text` `#watch-mode-pixel` `#watch-mode-map` | functional chrome |
 | Headline + copy | `#watch-headline` `#watch-copy` | required text |
 | MAJOR hero flash | `.watch-hero.major` | major-change signal |
 | MAJOR banner (renders on MAJOR headline, clears ≤2 polls) | `#watch-banner` · `.watch-banner.on` | major-change signal |
@@ -27,6 +27,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Ground field | Phosphor Canvas `--void` fill and semantic HTML surface | non-decorative map ground |
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
+| MAP WebGL stage (lazy `/assets/watch-map-gl.js`; DOM board fallback) | `#watch-map-gl` `#watch-map-board` | MAP mode only |
 | ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; TEXT/no-canvas fallback only, never beside the live canvas) | `#watch-pre` | required text (desktop, TEXT mode) |
 | Recent feed | `#watch-feed` | required text |
 | Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |

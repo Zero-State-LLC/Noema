@@ -12,5 +12,6 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 | `anomaly-signal.jpg` | Isolated signal |
 | `og-social.jpg` | Legacy Open Graph crop — not the live card |
 | `hero-noema.jpg` | Legacy OG alias of `og-social.jpg` |
+| `watch-map-gl.js` | MAP-only Three.js stage. Built by `npm run build:map-gl`. TEXT/PIXEL never load it. |
 
 `scripts/build-phosphor-assets.py` copies stills only. It does not emit raster glyph sheets or a second key. PLAY, WATCH, and Admin Watch agents use the live SVG catalog.

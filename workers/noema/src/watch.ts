@@ -3,6 +3,7 @@
 import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
+import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_LINE, watchMapGlInlineSource } from "./watch-map-gl";
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
@@ -230,6 +231,7 @@ body.is-low-noise #watch-low-noise{display:block}
 .watch-handle-btn:focus-visible{outline:2px solid var(--color-state-active);outline-offset:2px}
 .watch-modes{display:inline-flex;flex-wrap:wrap;gap:.35rem .45rem;align-items:center}
 ${MAP_STAGE_CSS}
+${MAP_GL_CSS}
 `;
 
 export function watchHtml(opts?: { mode?: string }): string {
@@ -334,7 +336,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null, mapGl: null, mapGlBusy: false, mapCamId: "", mapFollowId: "" };
     const $ = id => document.getElementById(id);
 
     try {
@@ -367,6 +369,9 @@ export function watchHtml(opts?: { mode?: string }): string {
     ${watchTheaterInlineSource()}
     ${watchModeInlineSource()}
     ${watchMapInlineSource()}
+    ${watchMapGlInlineSource()}
+    const MAP_GL_SRC = ${JSON.stringify(MAP_GL_SRC)};
+    const MAP_PARITY_LINE = ${JSON.stringify(MAP_PARITY_LINE)};
 
     function readStoredMode() {
       try { return localStorage.getItem("noema.watch.mode"); } catch (e) { return null; }
@@ -412,7 +417,8 @@ export function watchHtml(opts?: { mode?: string }): string {
         for (let i = 0; i < nodes.length; i++) {
           const n = nodes[i];
           if (!n) continue;
-          const art = el("article", "map-node" + (n.active ? " is-active" : ""));
+          const art = el("article", mapNodeClassName(n, state.mapCamId, state.mapFollowId));
+          art.setAttribute("data-room", String(n.room_id || ""));
           art.setAttribute("data-scar", String(n.scar_band || ""));
           art.style.gridColumn = String((Number(n.x) || 0) + 1);
           art.style.gridRow = String((Number(n.y) || 0) + 1);
@@ -446,12 +452,78 @@ export function watchHtml(opts?: { mode?: string }): string {
           return d;
         });
         state.mapLast = data;
+        const parity = $("watch-map-parity");
+        if (parity) {
+          const bad = mapHeadsDisagree(state.last, data);
+          parity.hidden = !bad;
+          parity.textContent = bad ? MAP_PARITY_LINE : "";
+        }
         paintMapStage(data);
+        syncMapGl();
       } catch (e) {
         if (state.mapLast) paintMapStage(state.mapLast);
       } finally {
         state.mapBusy = false;
       }
+    }
+    function fallbackMapDom() {
+      const canvas = $("watch-map-gl");
+      const board = $("watch-map-board");
+      if (canvas) canvas.hidden = true;
+      if (board) board.hidden = false;
+      if (state.mapGl && state.mapGl.dispose) {
+        try { state.mapGl.dispose(); } catch (e) { /* keep board */ }
+      }
+      state.mapGl = null;
+    }
+    function showMapGl() {
+      const canvas = $("watch-map-gl");
+      const board = $("watch-map-board");
+      if (canvas) canvas.hidden = false;
+      if (board) board.hidden = true;
+    }
+    function syncMapGl() {
+      if (!state.mapGl || state.mode !== "map") return;
+      const live = state.last || {};
+      const rooms = Array.isArray(live.rooms) ? live.rooms : [];
+      const mapRooms = state.mapLast && state.mapLast.base ? state.mapLast.base.rooms : [];
+      const head = state.held || {};
+      state.mapGl.update({
+        rooms: mapStageNodes(rooms, mapRooms),
+        focusRoomId: state.mapCamId,
+        followRoomId: state.mapFollowId,
+        majorRoomId: head.tier === "MAJOR" ? state.mapCamId : "",
+      });
+      if (state.mapCamId) state.mapGl.focus(state.mapCamId, mapCameraEaseMs(state.reduce));
+    }
+    function applyMapFocus(head, rooms, events) {
+      state.mapCamId = mapCameraTarget({ head: head, rooms: rooms, events: events, follow: state.follow });
+      state.mapFollowId = mapFollowedRoomId(state.follow, rooms);
+      syncMapGl();
+    }
+    function tryMapGl() {
+      if (state.mode !== "map") return;
+      if (state.mapGl) { syncMapGl(); return; }
+      const canvas = $("watch-map-gl");
+      if (!mapGlUsable(canvas)) { fallbackMapDom(); return; }
+      const api = window.NoemaWatchMapGl;
+      if (api && api.mount) {
+        try {
+          state.mapGl = api.mount(canvas, { reduce: state.reduce, onLost: fallbackMapDom });
+          showMapGl();
+          syncMapGl();
+        } catch (e) { fallbackMapDom(); }
+        return;
+      }
+      if (state.mapGlBusy) return;
+      if (!document.head || !document.head.appendChild) { fallbackMapDom(); return; }
+      state.mapGlBusy = true;
+      const s = document.createElement("script");
+      s.type = "module";
+      s.src = MAP_GL_SRC;
+      s.addEventListener("load", function() { state.mapGlBusy = false; tryMapGl(); });
+      s.addEventListener("error", function() { state.mapGlBusy = false; fallbackMapDom(); });
+      document.head.appendChild(s);
     }
     function applyWatchMode(next, persist) {
       const mode = parseWatchMode("", "", next) || "pixel";
@@ -472,8 +544,10 @@ export function watchHtml(opts?: { mode?: string }): string {
         window.NoemaPhosphor.setMode(mode === "pixel" ? "pixel" : "text");
       }
       if (persist !== false) persistWatchMode(mode);
+      if (mode === "map") tryMapGl();
+      else fallbackMapDom();
       if (mode === "map") refreshMap();
-      else if (state.last) render(state.last);
+      if (state.last) render(state.last);
     }
     state.mode = parseWatchMode(location.search || "", location.hash || "", readStoredMode());
 
@@ -799,6 +873,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       state.headKey = headKey;
       setLiveText($("watch-headline"), head.line || "The Chamber is quiet.");
       const painted = paintPublicTheater(head, events, rooms, players);
+      if (state.mode === "map") applyMapFocus(head, rooms, events);
       renderFollowChrome(data, rooms, events, head);
       renderStanding(data);
       const ln = $("watch-low-noise");

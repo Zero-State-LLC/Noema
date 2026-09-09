@@ -987,7 +987,7 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(studyHtml()).not.toMatch(/not open/i);
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("ADMIN / operations");
-    expect(watchHtml()).not.toMatch(/WebGL/i);
+    expect(watchHtml()).toContain("/assets/watch-map-gl.js");
     expect(connectHtml()).not.toMatch(/WebSocket/i);
     expect(studyHtml()).not.toMatch(/WebSocket/i);
   });
