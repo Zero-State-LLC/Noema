@@ -20,7 +20,7 @@ Authority: [Noema-Specs `docs/LIVING-ALPHA-ACCEPTANCE.md`](https://github.com/Ze
 |-------|-------|--------|
 | `candidate_id` | `lca5-gate-e-endurance` | **DECLARED** |
 | Cut | `lca5-gate-e-candidate-prep` | **DECLARED** |
-| Campaign milestone | LCA-5 / active Gate E (unproven) | Specs `#334` promotion of Gate D; **not** COMPLETE here |
+| Campaign milestone | LCA-4 / next LCA-5 / active Gate E (unproven) | Specs `#334` promotion of Gate D; **not** COMPLETE here |
 | Prior gate | Gate D COMPLETE | Specs [Noema-Specs#334](https://github.com/Zero-State-LLC/Noema-Specs/pull/334) MERGED (`23987586219dfd95fd7544da8e13a316a8bd9457`) |
 
 Humans remain HumanPrincipals who watch, connect, study, authorize, or administer. They are not Players.
@@ -52,7 +52,7 @@ Bound from tracking #682 and the live pin packet. Values copied from Deploy run 
 | Companion `LCA-GATE-E-SCENARIO.md` | — | **NOT** on Specs `main` (do not invent bullets) |
 | Official-client / Controller CLI pin | — | **TBD** (not re-run for this stub) |
 
-This stub does **not** update Specs. Campaign machine state after `#334` is LCA-5 / Gate E unproven.
+This stub does **not** update Specs. Campaign machine state after `#334` stays LCA-4 / next LCA-5 / Gate E unproven.
 
 ### 2.3 Heads at bind (not a run start)
 
