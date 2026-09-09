@@ -1,13 +1,10 @@
-/** Opt-in WATCH mapping surface. Does not replace lightweight /watch theater. */
+/**
+ * MAP stage paint helpers for the unified /watch Chamber.
+ * Board + Health read watch-map JSON. River/Recently stays on watch-live.
+ * Each function is a leaf so the inlined script does not depend on bundler names.
+ */
 
-import { productShell } from "./shell";
-
-const CSS = `
-.map-head{margin:0 0 1rem}
-.map-head h1{margin:0 0 .35rem;font:550 clamp(1.6rem,4vw,2.2rem)/1.05 var(--font-display)}
-.map-meta{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;color:var(--faint);font:.68rem/1.3 var(--font-mono)}
-.map-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(16rem,20rem);gap:1rem}
-@media(max-width:70rem){.map-grid{grid-template-columns:1fr}}
+export const MAP_STAGE_CSS = `
 .map-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;min-height:16rem}
 .map-node{position:relative;padding:.55rem .5rem;border:1px solid var(--line);background:var(--paper);min-height:4.2rem;transition:transform .35s ease,box-shadow .35s ease}
 .map-node.is-active{outline:2px solid var(--ink)}
@@ -22,154 +19,112 @@ const CSS = `
 .health dl{display:grid;grid-template-columns:1fr auto;gap:.2rem .8rem;margin:0;min-height:4.5rem}
 .health dt{color:var(--faint);font:.62rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
 .health dd{margin:0;font:550 .82rem/1.2 var(--font-mono)}
-.river{list-style:none;margin:0;padding:0;min-height:8rem;max-height:18rem;overflow:auto}
-.river li{margin:0 0 .45rem;padding:.35rem 0;border-bottom:1px solid var(--line);font:.78rem/1.35 var(--font-mono)}
-.highlight{margin:0 0 .8rem;padding:.5rem .6rem;border:1px solid var(--line)}
 @media (prefers-reduced-motion:reduce){.map-node{transition:none}}
 body.map-hide-activity .map-node .m.act{display:none}
 body.map-hide-state .map-node .scar{display:none}
-body.map-hide-event .river{display:none}
 body.map-hide-health .health{display:none}
-body.map-hide-narrative .highlight{display:none}
+#watch-stage-map[hidden],#watch-stage-places[hidden]{display:none}
 `;
 
-export function watchMapHtml(): string {
-  const body = `
-  <header class="map-head">
-    <h1>Live map</h1>
-    <p class="muted">Richer spectator projection. Theater stays at <a href="/watch">/watch</a>. Derived, not world truth.</p>
-    <div class="map-meta"><span class="tag" id="map-state" aria-live="polite">connecting</span><span id="map-cycle">cycle —</span><button type="button" class="btn quiet" id="map-pause" aria-pressed="false">Pause</button></div>
-    <div class="layer-toggles" id="toggles" role="group" aria-label="Layers"></div>
-  </header>
-  <div class="map-grid">
-    <section aria-label="Map">
-      <div class="highlight" id="highlight" aria-live="polite" aria-atomic="true" hidden></div>
-      <div class="map-board" id="board"></div>
-    </section>
-    <aside>
-      <section class="health" aria-label="World health"><h2 class="now-k">Health</h2><dl id="health"></dl></section>
-      <section aria-label="Event river"><h2 class="now-k">River</h2><ul class="river" id="river"></ul></section>
-    </aside>
-  </div>
-  <script>
-  (function(){
-    const $ = (id) => document.getElementById(id);
-    // §7 (WATCH-LIGHTWEIGHT-SPECTATOR): world text is untrusted — build DOM
-    // via textContent only; interpolated-markup assignment is a defect.
-    // WATCH-LIGHTWEIGHT-SPECTATOR §9: "Periodic updates MUST NOT flood AT."
-    // Assigning textContent replaces the text node even when the string is
-    // unchanged, and a mutation on an aria-live node is an announcement
-    // opportunity. This page repaints every 8s, so every live write is guarded.
-    // Mirrors setTag() in watch.ts.
-    function setLive(node, text){
-      if (node.textContent !== text) node.textContent = text;
+export type MapNodePaint = {
+  name?: string;
+  public_player_labels?: unknown;
+  players_present?: unknown;
+  scar_band?: unknown;
+  pressure_band?: unknown;
+};
+
+export function mapOccupantLabels(n?: MapNodePaint | null): string[] {
+  const occ = n && Array.isArray(n.public_player_labels) ? n.public_player_labels : [];
+  const roomName = String((n && n.name) || "").trim().toLowerCase();
+  const out: string[] = [];
+  for (let i = 0; i < occ.length; i++) {
+    const h = String(occ[i] || "").trim();
+    if (!h) continue;
+    if (h.toLowerCase() === roomName) continue;
+    if (/^room\./i.test(h)) continue;
+    if (out.indexOf(h) >= 0) continue;
+    out.push(h);
+  }
+  return out;
+}
+
+export function mapOccupantCaption(n?: MapNodePaint | null): string {
+  const occ = n && Array.isArray(n.public_player_labels) ? n.public_player_labels : [];
+  const roomName = String((n && n.name) || "").trim().toLowerCase();
+  const labels: string[] = [];
+  for (let i = 0; i < occ.length; i++) {
+    const h = String(occ[i] || "").trim();
+    if (!h) continue;
+    if (h.toLowerCase() === roomName) continue;
+    if (/^room\./i.test(h)) continue;
+    if (labels.indexOf(h) >= 0) continue;
+    labels.push(h);
+  }
+  if (labels.length) return labels.join(", ");
+  return String(Number(n && n.players_present) || 0) + " here";
+}
+
+export function mapNodeMetaLine(n?: MapNodePaint | null): string {
+  const scar = String((n && n.scar_band) || "").trim();
+  const pressure = String((n && n.pressure_band) || "").trim();
+  const parts: string[] = [];
+  if (scar) parts.push("scar: " + scar);
+  if (pressure) parts.push("pressure: " + pressure);
+  return parts.join(" · ");
+}
+
+export function mapHealthPairs(h?: {
+  scar_band?: unknown;
+  reconstruction_fidelity?: unknown;
+  players_present?: unknown;
+} | null): Array<[string, string]> {
+  const health = h || {};
+  const recon = health.reconstruction_fidelity;
+  return [
+    ["Scars", String(health.scar_band || "none")],
+    ["Reconstruction", recon == null || recon === "" ? "—" : String(recon)],
+    ["Players", health.players_present == null || health.players_present === "" ? "—" : String(health.players_present)],
+  ];
+}
+
+/** Layers that hide MAP-stage chrome only. Never the shared Recently feed. */
+export function mapLayerHideable(id?: string | null): boolean {
+  const k = String(id || "");
+  return k === "activity" || k === "state" || k === "health";
+}
+
+const MAP_INLINE_FNS = [
+  mapOccupantCaption,
+  mapNodeMetaLine,
+  mapHealthPairs,
+  mapLayerHideable,
+] as const;
+
+/**
+ * Leaf sources for the /watch IIFE. Wrangler keepNames wraps nested named
+ * functions as `__name(fn, "name")`; those calls abort the browser script.
+ */
+export function watchMapInlineSource(): string {
+  return MAP_INLINE_FNS.map((fn) => {
+    const src = fn.toString();
+    if (src.includes("__name")) {
+      throw new Error("watch map helper leaked bundler keepNames");
     }
-    function el(tag, className, text){
-      const n = document.createElement(tag);
-      if (className) n.className = className;
-      if (text != null && text !== "") n.textContent = text;
-      return n;
-    }
-    function paint(d){
-      setLive($("map-state"), d.freshness || "live");
-      $("map-cycle").textContent = "cycle " + (d.cycle || "—");
-      const layers = d.layers || [];
-      const tog = $("toggles");
-      if (!tog.dataset.ready) {
-        tog.replaceChildren();
-        // §5.1: a toggle must toggle something. Only layers with a working
-        // hide hook get a button — a dead aria-pressed control misinforms AT.
-        const HIDEABLE = { activity: 1, state: 1, event: 1, health: 1, narrative: 1 };
-        layers.filter(l => HIDEABLE[l.id]).forEach(l => {
-          const b = el("button", "btn quiet", String(l.label || l.id));
-          b.type = "button";
-          b.setAttribute("data-layer", String(l.id || ""));
-          b.setAttribute("aria-pressed", "true");
-          tog.append(b);
-        });
-        tog.dataset.ready = "1";
-        tog.addEventListener("click", (ev) => {
-          const b = ev.target.closest("button[data-layer]");
-          if (!b) return;
-          const on = b.getAttribute("aria-pressed") !== "true";
-          b.setAttribute("aria-pressed", on ? "true" : "false");
-          document.body.classList.toggle("map-hide-"+b.getAttribute("data-layer"), !on);
-        });
-      }
-      const nodes = (d.base && d.base.rooms) || [];
-      const board = $("board");
-      board.replaceChildren();
-      nodes.forEach(n => {
-        const art = el("article", "map-node" + (n.active ? " is-active" : ""));
-        art.setAttribute("data-scar", String(n.scar_band || ""));
-        art.style.gridColumn = String((Number(n.x) || 0) + 1);
-        art.style.gridRow = String((Number(n.y) || 0) + 1);
-        art.append(el("div", "n", String(n.name || n.room_id || "")));
-        const occ = Array.isArray(n.public_player_labels)
-          ? n.public_player_labels.map((h) => String(h || "").trim()).filter(Boolean)
-          : [];
-        const roomName = String(n.name || "").trim().toLowerCase();
-        const occupants = occ.filter((h) => h.toLowerCase() !== roomName && !/^room\./i.test(h));
-        art.append(el("div", "m act", occupants.length ? occupants.join(", ") : String(n.players_present || 0) + " here"));
-        const meta = [n.scar_band ? "scar: " + n.scar_band : "", n.pressure_band ? "pressure: " + n.pressure_band : ""].filter(Boolean).join(" · ");
-        if (meta) art.append(el("div", "m", meta));
-        const dot = el("span", "scar");
-        dot.title = n.scar_band ? "scar residue: " + n.scar_band : "scar residue";
-        art.append(dot);
-        board.append(art);
-      });
-      const h = d.health || {};
-      const dl = $("health");
-      dl.replaceChildren();
-      [["Scars", h.scar_band || "none"],["Reconstruction", h.reconstruction_fidelity],["Players", h.players_present]].forEach(([k, v]) => {
-        dl.append(el("dt", "", String(k)));
-        dl.append(el("dd", "", v == null ? "—" : String(v)));
-      });
-      const river = (d.event && d.event.river) || [];
-      const list = $("river");
-      list.replaceChildren();
-      if (!river.length) {
-        list.append(el("li", "", "Quiet."));
-      } else {
-        river.forEach(e => {
-          const li = el("li", "");
-          li.append(el("strong", "", String(e.icon || "")));
-          li.append(document.createTextNode(" " + String(e.line || "") + (e.consequence ? " — " + String(e.consequence) : "")));
-          list.append(li);
-        });
-      }
-      const hi = d.narrative && d.narrative.highlight;
-      const box = $("highlight");
-      if (hi && hi.line) { setLive(box, String(hi.line)); box.hidden = false; }
-      else box.hidden = true;
-    }
-    let paused = false;
-    async function refresh(){
-      try {
-        const r = await fetch("/v1/watch/map");
-        const d = await r.json();
-        paint(d);
-      } catch (e) { setLive($("map-state"), "offline"); }
-    }
-    // §6.1 (WATCH-REAL-TIME-MAPPING): pause stops the poll; hidden tabs skip.
-    $("map-pause").addEventListener("click", () => {
-      paused = !paused;
-      const b = $("map-pause");
-      b.setAttribute("aria-pressed", paused ? "true" : "false");
-      b.textContent = paused ? "Resume" : "Pause";
-      if (paused) setLive($("map-state"), "paused");
-      else refresh();
-    });
-    refresh();
-    setInterval(() => { if (!paused && !document.hidden) refresh(); }, 8000);
-  })();
-  </script>
-  `;
-  return productShell({
-    title: "Watch map",
-    active: "watch",
-    body,
-    extraCss: CSS,
-    description: "Opt-in WATCH real-time mapping. Lightweight theater remains /watch.",
-  });
+    return src;
+  }).join("\n");
+}
+
+export function mapStageHtml(visible = false): string {
+  return `
+      <div id="watch-stage-map"${visible ? "" : " hidden"}>
+        <h2 id="watch-map-stage-label">Map</h2>
+        <p class="lede">Richer spectator projection. Derived, not world truth.</p>
+        <div class="layer-toggles" id="watch-map-toggles" role="group" aria-label="Layers"></div>
+        <div class="map-board" id="watch-map-board"></div>
+        <section class="health" aria-label="World health">
+          <h2 class="now-k">Health</h2>
+          <dl id="watch-map-health"></dl>
+        </section>
+      </div>`;
 }

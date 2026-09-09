@@ -8,8 +8,9 @@ import {
   watchMapLayerCatalog,
   WATCH_MAP_PIN,
 } from "../src/watch-map";
-import { watchMapHtml } from "../src/watch-map-page";
+import { mapOccupantCaption, mapOccupantLabels } from "../src/watch-map-page";
 import { isPublicReadPath } from "../src/cors";
+import { watchHtml } from "../src/watch";
 
 function liveFixture() {
   return buildWatchLive({
@@ -143,11 +144,13 @@ describe("watch-map/1.0", () => {
     expect(civic?.players_present).toBe(2);
     expect(civic?.public_player_labels).toEqual(["tester", "reach-maint3"]);
     expect(civic?.public_player_labels).not.toContain("Civic Exchange");
-    expect(watchMapHtml()).toContain("public_player_labels");
+    expect(mapOccupantLabels(civic)).toEqual(["tester", "reach-maint3"]);
+    expect(mapOccupantCaption(civic)).toBe("tester, reach-maint3");
+    expect(watchHtml()).toContain("public_player_labels");
   });
 
   it("page builds DOM safely and the JSON alias is public-read", () => {
-    const html = watchMapHtml();
+    const html = watchHtml();
     expect(html).not.toContain(".innerHTML");
     expect(html).toContain("replaceChildren");
     expect(html).toContain("textContent");
@@ -173,16 +176,17 @@ describe("mapping v0.1.1 integration (spec §5.1/§6.1 + de-orphan)", () => {
     expect(count()).toBe(base);
   });
 
-  it("page ships a pause control and only working layer toggles", () => {
-    const html = watchMapHtml();
-    expect(html).toContain('id="map-pause"');
-    expect(html).toContain("!paused && !document.hidden");
-    expect(html).toContain("HIDEABLE = { activity: 1, state: 1, event: 1, health: 1, narrative: 1 }");
-    expect(html).toContain("min-height:8rem");
+  it("Chamber MAP stage ships working layer toggles and shared pause", () => {
+    const html = watchHtml({ mode: "map" });
+    expect(html).toContain('id="watch-pause"');
+    expect(html).toContain("!state.paused && !document.hidden");
+    expect(html).toContain("mapLayerHideable");
+    expect(html).toContain("min-height:16rem");
+    expect(html).not.toContain("map-hide-event");
   });
 
-  it("/watch links to the map (route is no longer an orphan)", async () => {
-    const { watchHtml } = await import("../src/watch");
-    expect(watchHtml()).toContain('href="/watch/map"');
+  it("/watch exposes MAP as a Chamber mode, not an outbound door", async () => {
+    expect(watchHtml()).toContain('id="watch-mode-map"');
+    expect(watchHtml()).not.toContain('href="/watch/map"');
   });
 });

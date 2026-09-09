@@ -5,6 +5,7 @@
  */
 
 import { GLYPH_IDS, glyphMeta, type GlyphId } from "./presentation/glyphs";
+import { watchModeInlineSource } from "./watch-mode";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
@@ -1282,12 +1283,14 @@ export function phosphorInlineScript(bind?: {
   wrapId?: string;
   textBtnId?: string;
   pixelBtnId?: string;
+  mapBtnId?: string;
   globalName?: string;
 }): string {
   const canvasId = bind?.canvasId || "watch-phosphor";
   const wrapId = bind?.wrapId || "watch-phos-wrap";
   const textBtnId = bind?.textBtnId || "watch-mode-text";
   const pixelBtnId = bind?.pixelBtnId || "watch-mode-pixel";
+  const mapBtnId = bind?.mapBtnId || "";
   const globalName = bind?.globalName || "NoemaPhosphor";
   return `(() => {
     const __name = function(fn) { return fn; };
@@ -1340,24 +1343,31 @@ export function phosphorInlineScript(bind?: {
     const CARTOGRAM_MAX_SITES = ${CARTOGRAM_MAX_SITES};
     const asciiCartogram = ${asciiCartogram.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
+    ${watchModeInlineSource()}
 
     const canvas = document.getElementById(${JSON.stringify(canvasId)});
     const wrap = document.getElementById(${JSON.stringify(wrapId)});
     const textBtn = document.getElementById(${JSON.stringify(textBtnId)});
     const pixelBtn = document.getElementById(${JSON.stringify(pixelBtnId)});
+    const mapBtn = ${JSON.stringify(mapBtnId)} ? document.getElementById(${JSON.stringify(mapBtnId)}) : null;
     let reduce = false;
     try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-    // §18: default is PIXEL when Canvas 2D is available. TEXT persists client-locally.
+    // §18: default is PIXEL when Canvas 2D is available. TEXT/MAP persist client-locally.
     const MODE_KEY = "noema.watch.mode";
-    let bootMode = "pixel";
+    let search = "";
+    let hash = "";
     try {
-      const m = localStorage.getItem(MODE_KEY);
-      if (m === "text" || m === "pixel") bootMode = m;
-    } catch (e) { /* preference only */ }
+      search = String((window.location && window.location.search) || "");
+      hash = String((window.location && window.location.hash) || "");
+    } catch (e) { search = ""; hash = ""; }
+    let stored = null;
+    try { stored = localStorage.getItem(MODE_KEY); } catch (e) { /* preference only */ }
+    let viewMode = parseWatchMode(search, hash, stored);
+    if (viewMode === "map" && !mapBtn) viewMode = stored === "text" ? "text" : "pixel";
     const session = createPhosphorSession({
       canvas: canvas,
       reducedMotion: reduce,
-      mode: bootMode,
+      mode: viewMode === "pixel" ? "pixel" : "text",
       now: function() { return Date.now(); },
       raf: function(cb) { return window.requestAnimationFrame(cb); },
       caf: function(id) { window.cancelAnimationFrame(id); }
@@ -1366,13 +1376,15 @@ export function phosphorInlineScript(bind?: {
       try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* preference only */ }
     }
     function syncMode() {
-      const pixel = session.mode === "pixel";
+      const pixel = viewMode === "pixel";
       if (wrap) wrap.hidden = !pixel;
-      if (textBtn) textBtn.setAttribute("aria-pressed", pixel ? "false" : "true");
+      if (textBtn) textBtn.setAttribute("aria-pressed", viewMode === "text" ? "true" : "false");
       if (pixelBtn) pixelBtn.setAttribute("aria-pressed", pixel ? "true" : "false");
+      if (mapBtn) mapBtn.setAttribute("aria-pressed", viewMode === "map" ? "true" : "false");
     }
-    if (textBtn) textBtn.addEventListener("click", function() { session.setMode("text"); storeMode("text"); syncMode(); });
-    if (pixelBtn) pixelBtn.addEventListener("click", function() { session.setMode("pixel"); storeMode("pixel"); syncMode(); });
+    if (textBtn) textBtn.addEventListener("click", function() { viewMode = "text"; session.setMode("text"); storeMode("text"); syncMode(); });
+    if (pixelBtn) pixelBtn.addEventListener("click", function() { viewMode = "pixel"; session.setMode("pixel"); storeMode("pixel"); syncMode(); });
+    if (mapBtn) mapBtn.addEventListener("click", function() { viewMode = "map"; session.setMode("text"); storeMode("map"); syncMode(); });
     if (canvas && typeof canvas.addEventListener === "function") {
       try { if (canvas.style) canvas.style.cursor = "pointer"; } catch (e) {}
       canvas.addEventListener("click", function(ev) {

@@ -62,7 +62,7 @@ import { robotsTxt, sitemapXml } from "./seo";
 import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
-import { watchMapHtml } from "./watch-map-page";
+import { parseWatchMode } from "./watch-mode";
 import { admitTestWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
@@ -253,10 +253,20 @@ export default {
         return html(playCallbackHtml());
       }
       if (request.method === "GET" && path === "/watch") {
-        return html(watchHtml());
+        return html(watchHtml({ mode: parseWatchMode(url.search, "", "") }));
       }
       if (request.method === "GET" && path === "/watch/map") {
-        return html(watchMapHtml());
+        const dest = new URL("/watch", url);
+        dest.search = url.search;
+        dest.searchParams.set("mode", "map");
+        return new Response(null, {
+          status: 302,
+          headers: {
+            location: dest.toString(),
+            "cache-control": "no-store",
+            "referrer-policy": "no-referrer",
+          },
+        });
       }
       if (request.method === "GET" && path === "/study") {
         return html(studyHtml());
