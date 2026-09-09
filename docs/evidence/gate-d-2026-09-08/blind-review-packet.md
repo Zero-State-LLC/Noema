@@ -2,20 +2,25 @@
 
 **Candidate:** `lca4-gate-d-watch-legibility`  
 **Issue:** [#667](https://github.com/Zero-State-LLC/Noema/issues/667) (**OPEN**)  
-**Reviewer status:** **NOT ASSIGNED** — role class only (see below). No named human.  
+**Reviewer status:** **ASSIGNED** — review in progress; statements blank until reviewer replies.  
 **Golden answers:** **NONE.** Do not invent expected statements.
 
-This packet is what an uninvolved HumanPrincipal would receive **after** human-yes assignment (runbook §4.3). It is assembled now as docs prep. It does **not** start the review and does **not** claim Gate D COMPLETE.
+**Human-yes:** OBSERVED **2026-09-08 ~20:32 PT** — campaign authority assigned blind reviewer per runbook §4.3.  
+Assignment ≠ COMPLETE. This packet does **not** claim Gate D COMPLETE. Issue #667 stays **OPEN**.
 
 ---
 
-## Reviewer role class (not assigned)
+## Reviewer role class (ASSIGNED)
 
 **Qualifying class:** Uninvolved **HumanPrincipal** who sees **public WATCH only**, is not a Player, was not a Gate C Controller operator (LUDUS / ADVERSARY / VECTOR), was not Admin Approver for that cohort’s enrollments/remints, did not author Gate C private briefings / this Gate D packet as briefed author, was not a Controller author/driver for candidate Players, and has not been briefed with Admin Live / Operator Digests / PLAY / STUDY / private MESSAGE for the window.
 
+**Assigned reviewer (minimal PII):** campaign **HumanPrincipal** / Danny — acting as uninvolved spectator.
+
+**Exclusion attestation (vs runbook §4.2):** stayed out of Gate C Controller (LUDUS / ADVERSARY / VECTOR) ops and Admin Approve for that cohort.
+
 **Exclusion list (disqualified):** Gate C civilization Controller operators; Admin Approver for that cohort; Gate C packet author / briefed private-digest operator; Controller authors for candidate Players; anyone briefed with private/Admin/PLAY/STUDY material for the window; any HumanPrincipal acting as a Player.
 
-**Assignment:** **NOT ASSIGNED.** Role class recorded only. No human-yes handover yet.
+**Assignment:** **ASSIGNED** (human-yes **2026-09-08 ~20:32 PT**). Review in progress. Five statement slots remain blank until reviewer replies. No golden answers.
 
 ---
 
@@ -123,7 +128,7 @@ State material unknowns that public WATCH correctly withholds. Do not use `unkno
 
 ## Explicit non-claims
 
-- Reviewer **NOT ASSIGNED**.
-- Gate D **not** COMPLETE.
+- Reviewer **ASSIGNED**; review pending — statements still blank.
+- Gate D **not** COMPLETE. Assignment ≠ COMPLETE.
 - #667 stays **OPEN**.
 - No Deploy / STUDY / Specs flip from this packet.
