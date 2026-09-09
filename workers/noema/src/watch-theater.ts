@@ -27,16 +27,18 @@ export function theaterEventPool(
 ): TheaterEvent[] {
   const out: TheaterEvent[] = [];
   const seen: Record<string, number> = {};
-  function add(e: TheaterEvent | null | undefined) {
-    if (!e) return;
+  const list: Array<TheaterEvent | null | undefined> = [head];
+  if (Array.isArray(events)) {
+    for (let i = 0; i < events.length; i++) list.push(events[i]);
+  }
+  for (let i = 0; i < list.length; i++) {
+    const e = list[i];
+    if (!e) continue;
     const k = String(e.sequence || 0) + ":" + String(e.projection_id || "") + ":" + String(e.line || "");
-    if (seen[k]) return;
+    if (seen[k]) continue;
     seen[k] = 1;
     out.push(e);
   }
-  add(head);
-  const list = Array.isArray(events) ? events : [];
-  for (let i = 0; i < list.length; i++) add(list[i]);
   return out;
 }
 
@@ -110,4 +112,29 @@ export function followedSiteWithheld(followKind: string, inPublicSite: boolean):
   if (followKind !== "agent") return "";
   if (inPublicSite) return "";
   return "Followed agent site is not projected publicly";
+}
+
+const THEATER_INLINE_FNS = [
+  theaterEventPool,
+  recentFactParts,
+  heroFactValue,
+  namedListLine,
+  agentsInPublicSitesCaption,
+  withheldFromProjection,
+  withheldBandLines,
+  followedSiteWithheld,
+] as const;
+
+/**
+ * Leaf sources for the /watch IIFE. Wrangler keepNames wraps nested named
+ * functions as `__name(fn, "name")`; those calls abort the browser script.
+ */
+export function watchTheaterInlineSource(): string {
+  return THEATER_INLINE_FNS.map((fn) => {
+    const src = fn.toString();
+    if (src.includes("__name")) {
+      throw new Error("watch theater helper leaked bundler keepNames");
+    }
+    return src;
+  }).join("\n");
 }

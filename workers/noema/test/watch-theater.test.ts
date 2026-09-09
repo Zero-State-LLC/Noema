@@ -12,6 +12,7 @@ import {
   namedListLine,
   recentFactParts,
   theaterEventPool,
+  watchTheaterInlineSource,
   withheldBandLines,
   withheldFromProjection,
 } from "../src/watch-theater";
@@ -115,6 +116,56 @@ describe("theaterEventPool", () => {
     expect(theaterEventPool(null, [])).toEqual([]);
     expect(theaterEventPool(null, undefined)).toEqual([]);
     expect(theaterEventPool(null, null)).toEqual([]);
+  });
+});
+
+const THEATER_INLINE_FNS = [
+  theaterEventPool,
+  recentFactParts,
+  heroFactValue,
+  namedListLine,
+  agentsInPublicSitesCaption,
+  withheldFromProjection,
+  withheldBandLines,
+  followedSiteWithheld,
+];
+
+describe("inlined theater helpers are self-contained", () => {
+  it("rejects bundler keepNames __name in helper source", () => {
+    const src = watchTheaterInlineSource();
+    expect(src).not.toContain("__name");
+    const main = watchHtml()
+      .split("<script>")
+      .map((s) => s.split("</script>")[0])
+      .find((s) => s.includes("POLL_MS") && s.includes("theaterEventPool"));
+    expect(main).toBeTruthy();
+    expect(main).not.toContain("__name");
+  });
+
+  it("keeps each helper a leaf so wrangler cannot inject __name", () => {
+    for (const fn of THEATER_INLINE_FNS) {
+      const src = fn.toString();
+      const body = src.slice(src.indexOf("{") + 1, src.lastIndexOf("}"));
+      expect(body, fn.name).not.toMatch(/\bfunction\b/);
+    }
+  });
+
+  it("runs the inlined source without a __name global", () => {
+    const fns = new Function(
+      `${watchTheaterInlineSource()}; return { theaterEventPool, heroFactValue, namedListLine, agentsInPublicSitesCaption };`,
+    )() as {
+      theaterEventPool: typeof theaterEventPool;
+      heroFactValue: typeof heroFactValue;
+      namedListLine: typeof namedListLine;
+      agentsInPublicSitesCaption: typeof agentsInPublicSitesCaption;
+    };
+    expect(fns.heroFactValue("")).toBe(NOT_PROJECTED_PUBLICLY);
+    expect(fns.namedListLine("Actors", ["reach-maint3"])).toBe("Actors: reach-maint3");
+    expect(fns.agentsInPublicSitesCaption(0)).toBe("Agents in public sites: 0");
+    expect(fns.theaterEventPool({ line: "A report is circulating." }, [
+      { line: "A report is circulating." },
+      { sequence: 1, actor_label: "reach-maint3", room_id: "room.civic-exchange", consequence: "Stocks recovered" },
+    ])).toHaveLength(2);
   });
 });
 
