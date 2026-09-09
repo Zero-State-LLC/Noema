@@ -39,7 +39,7 @@ export type WatchEvent = {
   detail?: string;
   /** §6: public handle of the acting Player; omitted (never "A player") when not public. */
   actor_label?: string;
-  /** §4.A.1: server-derived public consequence; bands only, omitted when unprovable. */
+  /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */
   consequence?: string;
 };
 
@@ -342,8 +342,39 @@ function isRepairUpdate(ev: WatchSourceEvent): boolean {
 }
 
 /**
- * §4.A.1: deterministic public consequence. Bands only; omitted when unprovable.
- * Derives solely from public event payload numbers that never reach the wire.
+ * Gate D C5 sibling: public-result consequence for production / organization /
+ * message_notice when the already-public line names an asset, notice, or office
+ * change. Never invents motives, authors, quantities, or hidden state.
+ * Omitted when the public line does not already carry that fact.
+ */
+export function consequenceForPublicBand(projectionId: string, line?: string): string | undefined {
+  const bare = String(line || "").trim().replace(/\.+$/, "");
+  if (!bare) return undefined;
+  if (projectionId === "production") {
+    if (/^Stocks recovered(?:\s+at\s+.+)?$/i.test(bare)) return "Stocks recovered";
+    return undefined;
+  }
+  if (projectionId === "message_notice") {
+    if (/^A report is circulating$/i.test(bare)) return "A report is circulating";
+    if (/^A notice reached\s+\S/i.test(bare)) return bare;
+    if (/^A public notice circulated$/i.test(bare)) return "A public notice circulated";
+    return undefined;
+  }
+  if (projectionId === "organization") {
+    if (/^An institution declared a temporary repair authority$/i.test(bare)) {
+      return "An institution declared a temporary repair authority";
+    }
+    if (/^A designated successor has taken an institution office$/i.test(bare)) {
+      return "A designated successor has taken an institution office";
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
+/**
+ * §4.A.1: deterministic public consequence. Condition bands plus C5 public
+ * asset/notice/office lines. Omitted when unprovable. Integers never leave.
  */
 export function consequenceForEvent(
   ev: WatchSourceEvent,
@@ -362,16 +393,20 @@ export function consequenceForEvent(
     before = payload.from;
     after = payload.to;
     entityId = typeof payload.entity_id === "string" ? payload.entity_id : undefined;
-  } else {
-    return undefined;
   }
-  if (typeof before !== "number" || typeof after !== "number") return undefined;
-  const home = entityHome(entityId, publicRooms);
-  if (!home) return undefined;
-  const from = conditionBand(before);
-  const to = conditionBand(after);
-  if (from === to) return undefined;
-  return `${home.label}: ${from} → ${to}`;
+  if (typeof before === "number" && typeof after === "number") {
+    const home = entityHome(entityId, publicRooms);
+    if (!home) return undefined;
+    const from = conditionBand(before);
+    const to = conditionBand(after);
+    if (from === to) return undefined;
+    return `${home.label}: ${from} → ${to}`;
+  }
+  const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
+  if (projectionId === "production" || projectionId === "organization" || projectionId === "message_notice") {
+    return consequenceForPublicBand(projectionId, phraseWatchEvent(ev, publicRooms));
+  }
+  return undefined;
 }
 
 function payloadRoomId(payload: Record<string, unknown> | undefined): string | undefined {
@@ -636,6 +671,7 @@ function sourceToWatchEvent(
 
 function pulseToWatchEvent(text: string, sequence: number, cycle: number): WatchEvent {
   const projectionId = PULSE_PROJECTION[text] || "public_pulse";
+  const consequence = consequenceForPublicBand(projectionId, text);
   return {
     sequence,
     cycle,
@@ -643,6 +679,7 @@ function pulseToWatchEvent(text: string, sequence: number, cycle: number): Watch
     projection_id: projectionId,
     line: text,
     glyph: glyphForProjection(projectionId),
+    ...(consequence ? { consequence } : {}),
   };
 }
 

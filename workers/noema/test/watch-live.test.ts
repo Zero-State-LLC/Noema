@@ -6,6 +6,8 @@ import {
   WATCH_LIVE_PIN,
   buildWatchLive,
   buildWatchNarrative,
+  consequenceForEvent,
+  consequenceForPublicBand,
   explicitWatchCause,
   capVisibleEvents,
   heldFromSnapshot,
@@ -552,6 +554,110 @@ describe("watch event tiers and phrasing", () => {
       {},
     );
     expect(line).not.toMatch(/40|energy|player\./);
+  });
+});
+
+describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
+  function liveOf(over: Partial<Parameters<typeof buildWatchLive>[0]> = {}) {
+    return buildWatchLive({
+      world_id: "w",
+      cycle: 17779,
+      sequence: 41816,
+      rooms: rooms(),
+      players: [],
+      events: [],
+      now: NOW,
+      ...over,
+    });
+  }
+
+  function recent(snap: Record<string, unknown>): WatchEvent[] {
+    return (snap.recent_events as WatchEvent[]) || [];
+  }
+
+  it("derives Stocks recovered from a public PRODUCTION payload and keeps quantities off the wire", () => {
+    const ev = src({
+      event_type: "ENTITY_UPDATE",
+      sequence: 41816,
+      handle: "reach-maint3",
+      payload: { entity_id: "entity.stall", operation: "PRODUCTION", field: "stock_amount", from: 2, to: 9 },
+    });
+    expect(consequenceForEvent(ev, rooms())).toBe("Stocks recovered");
+    const snap = liveOf({ events: [ev] });
+    const hit = recent(snap).find((e) => e.projection_id === "production");
+    expect(hit?.line).toBe("Stocks recovered at Chamber Market");
+    expect(hit?.consequence).toBe("Stocks recovered");
+    expect(hit?.actor_label).toBe("reach-maint3");
+    const wire = JSON.stringify(snap);
+    expect(wire).not.toContain('"from"');
+    expect(wire).not.toContain('"stock_amount"');
+    expect(wire).not.toContain('"to":9');
+  });
+
+  it("projects notice and office from already-public pulses and omits lines that do not name them", () => {
+    const snap = liveOf({
+      public_pulses: [
+        "A report is circulating.",
+        "An institution declared a temporary repair authority.",
+        "A designated successor has taken an institution office.",
+        "A maintenance custom has become widely observed.",
+      ],
+    });
+    const byLine = Object.fromEntries(recent(snap).map((e) => [e.line, e]));
+    expect(byLine["A report is circulating."]?.projection_id).toBe("message_notice");
+    expect(byLine["A report is circulating."]?.consequence).toBe("A report is circulating");
+    expect(byLine["An institution declared a temporary repair authority."]?.projection_id).toBe("organization");
+    expect(byLine["An institution declared a temporary repair authority."]?.consequence).toBe(
+      "An institution declared a temporary repair authority",
+    );
+    expect(byLine["A designated successor has taken an institution office."]?.consequence).toBe(
+      "A designated successor has taken an institution office",
+    );
+    expect(byLine["A maintenance custom has become widely observed."]?.projection_id).toBe("organization");
+    expect(byLine["A maintenance custom has become widely observed."]).not.toHaveProperty("consequence");
+    expect((snap.notable_event as WatchEvent).consequence).toBe("A report is circulating");
+  });
+
+  it("leaves organization acts, same-band repairs, and other bands honest-empty", () => {
+    expect(
+      consequenceForEvent(src({ event_type: "ORG_CREATE", sequence: 10, payload: { room_id: "room.market" } }), rooms()),
+    ).toBeUndefined();
+    expect(
+      consequenceForEvent(
+        src({
+          event_type: "ENTITY_UPDATE",
+          sequence: 11,
+          payload: { entity_id: "entity.core", operation: "PRODUCTION", field: "stock_amount", from: 1, to: 4 },
+        }),
+        rooms(),
+      ),
+    ).toBeUndefined();
+    expect(consequenceForPublicBand("production", "Nacre repaired Relay Trunk")).toBeUndefined();
+    expect(consequenceForPublicBand("organization", "An organization acted at Chamber Market")).toBeUndefined();
+    expect(consequenceForPublicBand("message_notice", "")).toBeUndefined();
+    expect(consequenceForPublicBand("harvest", "Harvest at Chamber Market")).toBeUndefined();
+    expect(consequenceForPublicBand("conflicting_reports", "Conflicting accounts are circulating.")).toBeUndefined();
+    const org = liveOf({
+      events: [src({ event_type: "ORG_CREATE", sequence: 12, payload: { room_id: "room.market" } })],
+    });
+    const acted = recent(org).find((e) => e.projection_id === "organization");
+    expect(acted?.line).toMatch(/organization acted/i);
+    expect(acted).not.toHaveProperty("consequence");
+  });
+
+  it("derives a public notice from MESSAGE_DELIVERED without leaking message text", () => {
+    const ev = src({
+      event_type: "MESSAGE_DELIVERED",
+      sequence: 40,
+      payload: { message_id: "msg.1", recipient_id: "player.hidden", text: "secret private body", room_id: "room.market" },
+    });
+    expect(consequenceForEvent(ev, rooms())).toBe("A notice reached Chamber Market");
+    const snap = liveOf({ events: [ev] });
+    const hit = recent(snap).find((e) => e.projection_id === "message_notice");
+    expect(hit?.line).toBe("A notice reached Chamber Market");
+    expect(hit?.consequence).toBe("A notice reached Chamber Market");
+    expect(JSON.stringify(snap)).not.toContain("secret private body");
+    expect(JSON.stringify(snap)).not.toContain("player.hidden");
   });
 });
 
@@ -1724,6 +1830,46 @@ describe("driven watch client (§11/§13)", () => {
       expect(row).not.toContain("Consequence ");
       expect(textOf(client.$("watch-withheld-list"))).toBe("None marked");
       expect(client.$("watch-players").textContent).toBe("Agents in public sites: 2");
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("paints gateway-derived C5 consequences from buildWatchLive", async () => {
+    const live = buildWatchLive({
+      world_id: "world.perihelion-reach-3",
+      cycle: 17779,
+      sequence: 41816,
+      rooms: {
+        "room.civic-exchange": {
+          room_id: "room.civic-exchange",
+          name: "Civic Exchange",
+          description: "Open floor.",
+          exits: [],
+          entities: [{ entity_id: "entity.cache", label: "salvage-cache", entity_type: "NODE" }],
+        },
+      },
+      players: [],
+      events: [
+        src({
+          event_type: "ENTITY_UPDATE",
+          sequence: 41814,
+          handle: "reach-maint3",
+          payload: { entity_id: "entity.cache", operation: "PRODUCTION", field: "stock_amount", from: 3, to: 8 },
+        }),
+      ],
+      public_pulses: ["A report is circulating.", "An institution declared a temporary repair authority."],
+      now: NOW,
+    });
+    const client = await bootWatchClient(() => okResponse(live));
+    try {
+      expect(client.$("watch-headline").textContent).toBe("A report is circulating.");
+      expect(client.$("watch-conseq").textContent).toBe("Consequence A report is circulating");
+      const feed = textOf(client.$("watch-feed"));
+      expect(feed).toContain("Consequence Stocks recovered");
+      expect(feed).toContain("Who reach-maint3");
+      expect(feed).toContain("Where Civic Exchange");
+      expect(feed).toContain("Consequence An institution declared a temporary repair authority");
     } finally {
       client.restore();
     }
