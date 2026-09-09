@@ -77,7 +77,7 @@ describe("HTML CSP allows exactly the pinned font hosts", () => {
   });
 
   it("applies to every HTML surface, not just /watch", async () => {
-    for (const path of ["/watch", "/watch/map"]) {
+    for (const path of ["/watch", "/connect"]) {
       const csp = await cspFor(path);
       expect(directive(csp, "style-src"), path).toContain("https://fonts.googleapis.com");
       expect(directive(csp, "font-src"), path).toContain("https://fonts.gstatic.com");

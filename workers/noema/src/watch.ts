@@ -3,6 +3,8 @@
 import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
+import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
+import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
 import {
   NOT_PROJECTED_PUBLICLY,
@@ -226,9 +228,12 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 .watch-handle-btn:hover,.watch-handle-btn:focus-visible{color:var(--color-state-active)}
 .watch-handle-btn:focus-visible{outline:2px solid var(--color-state-active);outline-offset:2px}
+.watch-modes{display:inline-flex;flex-wrap:wrap;gap:.35rem .45rem;align-items:center}
+${MAP_STAGE_CSS}
 `;
 
-export function watchHtml(): string {
+export function watchHtml(opts?: { mode?: string }): string {
+  const mode: WatchMode = parseWatchMode(opts?.mode ? "?mode=" + opts.mode : "", "", "");
   const body = `
   <header class="watch-head">
     <h1>The Chamber</h1>
@@ -239,10 +244,12 @@ export function watchHtml(): string {
       <span id="watch-updated" class="sr">waiting</span>
       <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
-      <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="false">TEXT</button>
-      <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="true">PIXEL</button>
+      <div class="watch-modes" role="group" aria-label="Projection mode">
+        <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="${mode === "text" ? "true" : "false"}">TEXT</button>
+        <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="${mode === "pixel" ? "true" : "false"}">PIXEL</button>
+        <button type="button" class="btn quiet" id="watch-mode-map" aria-pressed="${mode === "map" ? "true" : "false"}">MAP</button>
+      </div>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
-      <a class="btn quiet" id="watch-map-link" href="/watch/map">Live map</a>
     </div>
     <div class="watch-state-plate" aria-label="World">
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>
@@ -264,8 +271,9 @@ export function watchHtml(): string {
     <p class="watch-now-caption" id="watch-players">${agentsInPublicSitesCaption(0)}</p>
   </section>
 
-  <section class="watch-stage">
-    <section class="watch-col watch-map-col" aria-labelledby="watch-graph-label">
+  <section class="watch-stage" data-mode="${mode}">
+    <section class="watch-col watch-map-col" aria-label="Center stage">
+      <div id="watch-stage-places"${mode === "map" ? " hidden" : ""}>
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
@@ -279,6 +287,8 @@ export function watchHtml(): string {
       <nav aria-label="Public sites">
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
+      </div>
+      ${mapStageHtml(mode === "map")}
     </section>
     <aside class="watch-side" aria-label="Current and recent public activity">
       <article class="watch-hero" id="watch-hero">
@@ -324,7 +334,7 @@ export function watchHtml(): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null };
     const $ = id => document.getElementById(id);
 
     try {
@@ -355,6 +365,117 @@ export function watchHtml(): string {
       return n;
     }
     ${watchTheaterInlineSource()}
+    ${watchModeInlineSource()}
+    ${watchMapInlineSource()}
+
+    function readStoredMode() {
+      try { return localStorage.getItem("noema.watch.mode"); } catch (e) { return null; }
+    }
+    function persistWatchMode(next) {
+      try { localStorage.setItem("noema.watch.mode", next); } catch (e) { /* preference only */ }
+      try {
+        const u = new URL(location.href);
+        u.searchParams.set("mode", next);
+        const h = String(u.hash || "").replace(/^#/, "").toLowerCase();
+        if (h === "text" || h === "pixel" || h === "map") u.hash = next;
+        history.replaceState(null, "", u.pathname + u.search + u.hash);
+      } catch (e) { /* history optional */ }
+    }
+    function paintMapStage(d) {
+      const layers = (d && d.layers) || [];
+      const tog = $("watch-map-toggles");
+      if (tog && !tog.dataset.ready) {
+        tog.replaceChildren();
+        for (let i = 0; i < layers.length; i++) {
+          const l = layers[i];
+          if (!l || !mapLayerHideable(l.id)) continue;
+          const b = el("button", "btn quiet", String(l.label || l.id));
+          b.type = "button";
+          b.setAttribute("data-layer", String(l.id || ""));
+          b.setAttribute("aria-pressed", "true");
+          tog.append(b);
+        }
+        tog.dataset.ready = "1";
+        tog.addEventListener("click", function(ev) {
+          const t = ev.target;
+          const b = t && t.closest ? t.closest("button[data-layer]") : null;
+          if (!b) return;
+          const on = b.getAttribute("aria-pressed") !== "true";
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+          document.body.classList.toggle("map-hide-" + b.getAttribute("data-layer"), !on);
+        });
+      }
+      const nodes = (d && d.base && d.base.rooms) || [];
+      const board = $("watch-map-board");
+      if (board) {
+        board.replaceChildren();
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          if (!n) continue;
+          const art = el("article", "map-node" + (n.active ? " is-active" : ""));
+          art.setAttribute("data-scar", String(n.scar_band || ""));
+          art.style.gridColumn = String((Number(n.x) || 0) + 1);
+          art.style.gridRow = String((Number(n.y) || 0) + 1);
+          art.append(el("div", "n", String(n.name || n.room_id || "")));
+          art.append(el("div", "m act", mapOccupantCaption(n)));
+          const meta = mapNodeMetaLine(n);
+          if (meta) art.append(el("div", "m", meta));
+          const dot = el("span", "scar");
+          dot.title = n.scar_band ? "scar residue: " + n.scar_band : "scar residue";
+          art.append(dot);
+          board.append(art);
+        }
+      }
+      const dl = $("watch-map-health");
+      if (dl) {
+        dl.replaceChildren();
+        const pairs = mapHealthPairs(d && d.health);
+        for (let i = 0; i < pairs.length; i++) {
+          dl.append(el("dt", "", pairs[i][0]));
+          dl.append(el("dd", "", pairs[i][1]));
+        }
+      }
+    }
+    async function refreshMap() {
+      if (state.mode !== "map" || state.mapBusy) return;
+      state.mapBusy = true;
+      try {
+        const data = await fetch("/v1/watch/map").then(async function(r) {
+          const d = await r.json();
+          if (!r.ok) throw new Error((d.error && d.error.message) || r.statusText);
+          return d;
+        });
+        state.mapLast = data;
+        paintMapStage(data);
+      } catch (e) {
+        if (state.mapLast) paintMapStage(state.mapLast);
+      } finally {
+        state.mapBusy = false;
+      }
+    }
+    function applyWatchMode(next, persist) {
+      const mode = parseWatchMode("", "", next) || "pixel";
+      state.mode = mode;
+      const places = $("watch-stage-places");
+      const map = $("watch-stage-map");
+      if (places) places.hidden = mode === "map";
+      if (map) map.hidden = mode !== "map";
+      const stage = document.querySelector(".watch-stage");
+      if (stage) stage.setAttribute("data-mode", mode);
+      const ids = { text: "watch-mode-text", pixel: "watch-mode-pixel", map: "watch-mode-map" };
+      const keys = ["text", "pixel", "map"];
+      for (let i = 0; i < keys.length; i++) {
+        const btn = $(ids[keys[i]]);
+        if (btn) btn.setAttribute("aria-pressed", keys[i] === mode ? "true" : "false");
+      }
+      if (window.NoemaPhosphor) {
+        window.NoemaPhosphor.setMode(mode === "pixel" ? "pixel" : "text");
+      }
+      if (persist !== false) persistWatchMode(mode);
+      if (mode === "map") refreshMap();
+      else if (state.last) render(state.last);
+    }
+    state.mode = parseWatchMode(location.search || "", location.hash || "", readStoredMode());
 
     // §4.G Follow — client-local spectator preference. Emphasis only, never a
     // filter, never a server request. Matches only public snapshot identifiers.
@@ -893,6 +1014,7 @@ export function watchHtml(): string {
 
     function applyLive(data) {
       render(data);
+      if (state.mode === "map") refreshMap();
       if (state.paused) {
         setTag("paused", "tag warn");
         return;
@@ -969,13 +1091,25 @@ export function watchHtml(): string {
         if (site && site.scrollIntoView) site.scrollIntoView({ block: "nearest" });
       }
     };
-    // Mode toggle swaps which map renders; re-render after the phosphor
-    // script's own handler has switched the session mode.
-    ["watch-mode-text", "watch-mode-pixel"].forEach((id) => {
-      $(id).addEventListener("click", () => {
-        setTimeout(() => { if (state.last) render(state.last); }, 0);
+    // Mode rail swaps the center stage. Phosphor also binds TEXT/PIXEL;
+    // apply after that handler so canvas mode and Chamber stage agree.
+    ["watch-mode-text", "watch-mode-pixel", "watch-mode-map"].forEach((id) => {
+      const btn = $(id);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        const next = id === "watch-mode-map" ? "map" : id === "watch-mode-text" ? "text" : "pixel";
+        setTimeout(() => applyWatchMode(next), 0);
       });
     });
+    applyWatchMode(state.mode, true);
+    if (window.addEventListener) {
+      window.addEventListener("popstate", () => {
+        applyWatchMode(parseWatchMode(location.search || "", location.hash || "", readStoredMode()), false);
+      });
+      window.addEventListener("hashchange", () => {
+        applyWatchMode(parseWatchMode(location.search || "", location.hash || "", readStoredMode()), false);
+      });
+    }
     $("watch-refresh").addEventListener("click", refresh);
     $("watch-pause").addEventListener("click", () => {
       state.paused = !state.paused;
@@ -1042,7 +1176,7 @@ export function watchHtml(): string {
   })();
   </script>
   <script>
-  ${phosphorInlineScript()}
+  ${phosphorInlineScript({ mapBtnId: "watch-mode-map" })}
   </script>
   `;
   return productShell({
