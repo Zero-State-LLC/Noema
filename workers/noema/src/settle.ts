@@ -66,6 +66,48 @@ export type SoftSettlementFailure = {
   };
 };
 
+/** CF Observability / wrangler log event. Search this literal to name the RPC class. */
+export const SOFT_RESTORE_LOG_EVENT = "settlement_soft_restore";
+
+export type SoftRestoreLog = {
+  code: string;
+  client_code: "SETTLEMENT_RESYNC";
+  world_id: string;
+  do_sequence: number | null;
+  head_sequence: number | null;
+  state_json_sequence: number | null;
+  revision: number | null;
+  writer_generation: string;
+};
+
+export function stateJsonSequence(head: WorldHead | null | undefined): number | null {
+  const snap = head?.state_json;
+  return snap && typeof snap === "object" && typeof snap.sequence === "number" ? snap.sequence : null;
+}
+
+export function softRestoreLog(input: {
+  code: string;
+  world_id: string;
+  do_sequence?: number;
+  head: WorldHead | null;
+  writer_generation: string;
+}): SoftRestoreLog {
+  return {
+    code: input.code,
+    client_code: "SETTLEMENT_RESYNC",
+    world_id: input.world_id,
+    do_sequence: typeof input.do_sequence === "number" ? input.do_sequence : null,
+    head_sequence: typeof input.head?.sequence === "number" ? input.head.sequence : null,
+    state_json_sequence: stateJsonSequence(input.head),
+    revision: typeof input.head?.revision === "number" ? input.head.revision : null,
+    writer_generation: input.writer_generation,
+  };
+}
+
+export function logSoftRestore(fields: SoftRestoreLog): void {
+  console.warn(SOFT_RESTORE_LOG_EVENT, fields);
+}
+
 /**
  * Rapid PLAY can race the durable head into NONCONTIGUOUS_SEQUENCE.
  * When a head exists, restore it and ask the client to retry — do not INCIDENT.
@@ -77,11 +119,19 @@ export async function resolveSoftSettlementFailure(input: {
   getHead: (worldId: string) => Promise<WorldHead | null>;
   writer_generation: string;
 }): Promise<SoftSettlementFailure> {
-  void input.writer_generation;
   if (SOFT_SETTLEMENT_CODES.has(input.code)) {
     const head = await input.getHead(input.before.world_id);
     if (head && head.state_json && typeof head.sequence === "number") {
       const restored = worldFromHead(head, input.before);
+      logSoftRestore(
+        softRestoreLog({
+          code: input.code,
+          world_id: input.before.world_id,
+          do_sequence: input.before.sequence,
+          head,
+          writer_generation: input.writer_generation,
+        }),
+      );
       return {
         mode: "soft_restore",
         world: restored,
@@ -287,21 +337,68 @@ export type CanonicalHeadPulse = {
   do_sequence: number | null;
   do_cycle: number | null;
   do_revision: number | null;
+  state_json_sequence: number | null;
+  do_ne_head: boolean;
+  head_ne_state_json: boolean;
+  /** Empty when aligned or head absent. Read-only diagnose string for ops. */
+  mismatch: string | null;
 };
+
+export type HeadSequenceCheck = {
+  head_sequence: number | null;
+  state_json_sequence: number | null;
+  do_sequence: number | null;
+  do_ne_head: boolean;
+  head_ne_state_json: boolean;
+  mismatch: string | null;
+};
+
+/** Compare durable `noema_world_heads.sequence` to DO / `state_json.sequence`. Does not mutate. */
+export function compareHeadSequences(
+  head: WorldHead | null | undefined,
+  live: { sequence?: number },
+): HeadSequenceCheck {
+  const head_sequence = typeof head?.sequence === "number" ? head.sequence : null;
+  const json_sequence = stateJsonSequence(head);
+  const do_sequence = typeof live.sequence === "number" ? live.sequence : null;
+  const do_ne_head = head_sequence !== null && do_sequence !== null && head_sequence !== do_sequence;
+  const head_ne_state_json =
+    head_sequence !== null && json_sequence !== null && head_sequence !== json_sequence;
+  const parts: string[] = [];
+  if (do_ne_head) {
+    parts.push(`DO sequence ${do_sequence} ≠ durable head sequence ${head_sequence}`);
+  }
+  if (head_ne_state_json) {
+    parts.push(`durable head sequence ${head_sequence} ≠ state_json.sequence ${json_sequence}`);
+  }
+  return {
+    head_sequence,
+    state_json_sequence: json_sequence,
+    do_sequence,
+    do_ne_head,
+    head_ne_state_json,
+    mismatch: parts.length ? parts.join("; ") : null,
+  };
+}
 
 /** Admin-only counters. Never includes state_json, players, or genesis inputs. */
 export function summarizeCanonicalHead(
   head: WorldHead | null | undefined,
   live: { sequence?: number; cycle?: number; revision?: number | null },
 ): CanonicalHeadPulse {
+  const check = compareHeadSequences(head, live);
   return {
     head_present: Boolean(head && typeof head.sequence === "number"),
     head_revision: typeof head?.revision === "number" ? head.revision : null,
-    head_sequence: typeof head?.sequence === "number" ? head.sequence : null,
+    head_sequence: check.head_sequence,
     head_cycle: typeof head?.cycle === "number" ? head.cycle : null,
-    do_sequence: typeof live.sequence === "number" ? live.sequence : null,
+    do_sequence: check.do_sequence,
     do_cycle: typeof live.cycle === "number" ? live.cycle : null,
     do_revision: typeof live.revision === "number" ? live.revision : null,
+    state_json_sequence: check.state_json_sequence,
+    do_ne_head: check.do_ne_head,
+    head_ne_state_json: check.head_ne_state_json,
+    mismatch: check.mismatch,
   };
 }
 

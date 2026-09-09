@@ -58,7 +58,7 @@ export function renderAdminMailText(href: string): string {
     "2. First glance (read-only):",
     "   GET https://noema.guru/ready",
     "   GET https://noema.guru/v1/admin/overview",
-    "   Overview includes canonical_head: whether a durable head exists, and head sequence/revision versus the live Durable Object.",
+    "   Overview includes canonical_head: whether a durable head exists, head sequence versus DO / state_json.sequence, and an explicit DO≠head mismatch when they diverge.",
     "",
     "3. If status is INCIDENT, Recover. Do not Close while settlement is DEGRADED or BLOCKING. Do not reseed. Do not activate Genesis.",
     '   POST https://noema.guru/v1/admin/lifecycle  {"action":"recover"}',
@@ -159,7 +159,7 @@ export function renderAdminMailHtml(href: string): string {
               2. First glance (read-only).<br/>
               GET https://noema.guru/ready<br/>
               GET https://noema.guru/v1/admin/overview<br/>
-              Overview includes canonical_head: whether a durable head exists, and head sequence/revision versus the live Durable Object.
+              Overview includes canonical_head: whether a durable head exists, head sequence versus DO / state_json.sequence, and an explicit DO≠head mismatch when they diverge.
             </td>
           </tr>
           <tr>

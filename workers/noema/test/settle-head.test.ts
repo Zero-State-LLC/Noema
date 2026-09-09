@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   commitAdoptedLiveHead,
+  compareHeadSequences,
   putWorldHead,
   replayUnsettled,
   shouldRestoreFromHead,
@@ -11,6 +12,7 @@ import {
 import type { Env } from "../src/types";
 import type { WorldRuntime } from "../src/world-actions";
 import worker from "../src/index";
+import { mintAdminSession } from "../src/admin-auth";
 import { mintHumanPlatformToken, mintControllerToken } from "../src/auth";
 
 function emptyWorld(id = "world.test"): WorldRuntime {
@@ -242,11 +244,17 @@ describe("canonical head pulse", () => {
       do_sequence: 92,
       do_cycle: 0,
       do_revision: 3,
+      state_json_sequence: null,
+      do_ne_head: false,
+      head_ne_state_json: false,
+      mismatch: null,
     });
-    expect(JSON.stringify(pulse)).not.toMatch(/state_json|player|world_seed/);
+    expect(JSON.stringify(pulse)).not.toMatch(/"state_json"|world_seed/);
   });
 
   it("reports a present head next to the live DO counters", () => {
+    const snap = emptyWorld("world.perihelion-reach");
+    snap.sequence = 92;
     const pulse = summarizeCanonicalHead(
       {
         world_id: "world.perihelion-reach",
@@ -255,7 +263,7 @@ describe("canonical head pulse", () => {
         status: "ACTIVE",
         settlement_health: "HEALTHY",
         revision: 4,
-        state_json: emptyWorld("world.perihelion-reach"),
+        state_json: snap,
       },
       { sequence: 92, cycle: 0, revision: 4 },
     );
@@ -263,7 +271,56 @@ describe("canonical head pulse", () => {
     expect(pulse.head_sequence).toBe(92);
     expect(pulse.head_revision).toBe(4);
     expect(pulse.do_sequence).toBe(92);
+    expect(pulse.state_json_sequence).toBe(92);
+    expect(pulse.do_ne_head).toBe(false);
+    expect(pulse.head_ne_state_json).toBe(false);
+    expect(pulse.mismatch).toBeNull();
     expect(JSON.stringify(pulse)).not.toContain("room.hub");
+  });
+
+  it("flags DO sequence ahead of durable head (Gate E perihelion shape)", () => {
+    const snap = emptyWorld("world.perihelion-reach-3");
+    snap.sequence = 42291;
+    const check = compareHeadSequences(
+      {
+        world_id: "world.perihelion-reach-3",
+        sequence: 42291,
+        cycle: 18013,
+        status: "ACTIVE",
+        settlement_health: "HEALTHY",
+        revision: 20866,
+        state_json: snap,
+      },
+      { sequence: 42292 },
+    );
+    expect(check).toEqual({
+      head_sequence: 42291,
+      state_json_sequence: 42291,
+      do_sequence: 42292,
+      do_ne_head: true,
+      head_ne_state_json: false,
+      mismatch: "DO sequence 42292 ≠ durable head sequence 42291",
+    });
+  });
+
+  it("flags heads.sequence ≠ state_json.sequence without a live DO", () => {
+    const snap = emptyWorld("world.perihelion-reach-3");
+    snap.sequence = 42292;
+    const check = compareHeadSequences(
+      {
+        world_id: "world.perihelion-reach-3",
+        sequence: 42291,
+        cycle: 18013,
+        status: "ACTIVE",
+        settlement_health: "HEALTHY",
+        revision: 20866,
+        state_json: snap,
+      },
+      {},
+    );
+    expect(check.do_ne_head).toBe(false);
+    expect(check.head_ne_state_json).toBe(true);
+    expect(check.mismatch).toBe("durable head sequence 42291 ≠ state_json.sequence 42292");
   });
 });
 
@@ -283,5 +340,91 @@ describe("admin overview head pulse auth", () => {
     expect([401, 403]).toContain(asPlayer.status);
     const text = await asPlayer.text();
     expect(text).not.toMatch(/head_present|state_json/);
+  });
+
+  it("surfaces DO ≠ durable head on the admin overview pulse", async () => {
+    const snap = emptyWorld("world.perihelion-reach-3");
+    snap.sequence = 42291;
+    const env = {
+      NOEMA_ENV: "production",
+      TOKEN_SIGNING_SECRET: "test-signing-secret",
+      ADMIN_OPERATOR_TOKEN: "operator-token-value-ok",
+      DEFAULT_WORLD_ID: "world.perihelion-reach-3",
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-test",
+      WORLD_DO: {
+        idFromName(name: string) {
+          return { name };
+        },
+        get() {
+          return {
+            fetch: async () =>
+              new Response(
+                JSON.stringify({
+                  world_id: "world.perihelion-reach-3",
+                  sequence: 42292,
+                  cycle: 18013,
+                  meta: { status: "ACTIVE", revision: 20866, settlement_ok: true, genesis_id: "genesis.test" },
+                }),
+                { status: 200, headers: { "content-type": "application/json" } },
+              ),
+          };
+        },
+      },
+    } as unknown as Env;
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("noema_world_heads")) {
+        return new Response(
+          JSON.stringify([
+            {
+              world_id: "world.perihelion-reach-3",
+              sequence: 42291,
+              cycle: 18013,
+              status: "ACTIVE",
+              settlement_health: "HEALTHY",
+              revision: 20866,
+              writer_generation: "do.1",
+              state_json: snap,
+            },
+          ]),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("unexpected", { status: 500 });
+    }) as typeof fetch;
+    try {
+      const minted = await mintAdminSession(env, "operator-token-value-ok");
+      if (minted instanceof Response) throw new Error("failed to mint admin");
+      const res = await worker.fetch(
+        new Request("https://noema.guru/v1/admin/overview", {
+          headers: { Authorization: `Bearer ${minted.access_token}` },
+        }),
+        env,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        canonical_head: {
+          do_ne_head: boolean;
+          head_ne_state_json: boolean;
+          mismatch: string | null;
+          do_sequence: number;
+          head_sequence: number;
+          state_json_sequence: number;
+        };
+        attention: Array<{ message: string; level: string }>;
+      };
+      expect(body.canonical_head.do_sequence).toBe(42292);
+      expect(body.canonical_head.head_sequence).toBe(42291);
+      expect(body.canonical_head.state_json_sequence).toBe(42291);
+      expect(body.canonical_head.do_ne_head).toBe(true);
+      expect(body.canonical_head.head_ne_state_json).toBe(false);
+      expect(body.canonical_head.mismatch).toBe("DO sequence 42292 ≠ durable head sequence 42291");
+      expect(body.attention.some((row) => row.message === body.canonical_head.mismatch)).toBe(true);
+      expect(JSON.stringify(body.canonical_head)).not.toMatch(/room\.hub|world_seed/);
+    } finally {
+      globalThis.fetch = orig;
+    }
   });
 });
