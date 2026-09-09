@@ -9,13 +9,8 @@ import {
   WITHHELD_LEDE,
   WITHHELD_NONE,
   agentsInPublicSitesCaption,
-  followedSiteWithheld,
-  heroFactValue,
   namedListLine,
-  recentFactParts,
-  theaterEventPool,
-  withheldBandLines,
-  withheldFromProjection,
+  watchTheaterInlineSource,
 } from "./watch-theater";
 
 const EXTRA = `
@@ -359,14 +354,7 @@ export function watchHtml(): string {
       if (text != null && text !== "") n.textContent = text;
       return n;
     }
-    const theaterEventPool = ${theaterEventPool.toString()};
-    const recentFactParts = ${recentFactParts.toString()};
-    const heroFactValue = ${heroFactValue.toString()};
-    const namedListLine = ${namedListLine.toString()};
-    const agentsInPublicSitesCaption = ${agentsInPublicSitesCaption.toString()};
-    const withheldFromProjection = ${withheldFromProjection.toString()};
-    const withheldBandLines = ${withheldBandLines.toString()};
-    const followedSiteWithheld = ${followedSiteWithheld.toString()};
+    ${watchTheaterInlineSource()}
 
     // §4.G Follow — client-local spectator preference. Emphasis only, never a
     // filter, never a server request. Matches only public snapshot identifiers.
