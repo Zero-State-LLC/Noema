@@ -157,7 +157,7 @@ OBSERVED in `supabase/migrations/20260813233000_noema_atomic_canonical_settlemen
 | Production PLAY | Worker must pass `p_allow_bootstrap=false` (default). Missing head → `MISSING_CANONICAL_HEAD` |
 | Isolated test-world only | `POST /v1/operator/test-world/command` may set `allow_bootstrap: true`. `/v1/command` does not |
 | Fence | `revision` + `writer_generation` must match (`STALE_HEAD` / `STALE_FENCE`) |
-| Lineage | Contiguous sequence + digest chain; `evt.obs.*` filtered out before the RPC |
+| Lineage | Contiguous sequence + digest chain; next event must be `heads.sequence + 1`. Soft restore / `worldFromHead` hydrates `state_json` then sets `world.sequence = heads.sequence` (column is SoT). `evt.obs.*` filtered out before the RPC |
 | Idempotency | Same `settlement_id` returns `{ok, idempotent:true}` |
 | Fail-closed | Ambiguous or failed RPC is not an ACK; DO restores pre-command state and enters INCIDENT |
 

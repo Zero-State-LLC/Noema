@@ -7,7 +7,11 @@ import {
   normalizeStructuredCommand,
 } from "../src/actions";
 import { situationFromLive } from "../src/orientation";
-import { commandResultHttpStatus, resolveSoftSettlementFailure } from "../src/settle";
+import {
+  commandResultHttpStatus,
+  HEAD_SEQUENCE_CLAMP_LOG_EVENT,
+  resolveSoftSettlementFailure,
+} from "../src/settle";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, CommandResult, PlayerPrincipal } from "../src/types";
 
@@ -238,6 +242,54 @@ describe("maint play bugs — NONCONTIGUOUS soft recover", () => {
           state_json_sequence: 39,
           revision: 7,
           writer_generation: "do.1",
+        }),
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it("clamps restored world.sequence to heads.sequence when state_json is one ahead", async () => {
+    const live: WorldRuntime = { ...fixtureWorld(), sequence: 42293, cycle: 18013 };
+    const snap: WorldRuntime = { ...fixtureWorld(), sequence: 42292, cycle: 18013 };
+    const getHead = vi.fn(async () => ({
+      world_id: snap.world_id,
+      sequence: 42291,
+      cycle: 18013,
+      status: "ACTIVE",
+      settlement_health: "HEALTHY",
+      state_json: snap,
+      revision: 20866,
+      ledger_head_digest: "sha256:head",
+    }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const out = await resolveSoftSettlementFailure({
+        code: "NONCONTIGUOUS_SEQUENCE",
+        before: live,
+        request_id: "r.sot",
+        getHead,
+        writer_generation: "do.1",
+      });
+      expect(out.mode).toBe("soft_restore");
+      expect(out.world?.sequence).toBe(42291);
+      expect(out.world?.cycle).toBe(18013);
+      expect(snap.sequence).toBe(42292);
+      expect(warn).toHaveBeenCalledWith(
+        HEAD_SEQUENCE_CLAMP_LOG_EVENT,
+        expect.objectContaining({
+          world_id: snap.world_id,
+          head_sequence: 42291,
+          state_json_sequence: 42292,
+        }),
+      );
+      expect(warn).toHaveBeenCalledWith(
+        "settlement_soft_restore",
+        expect.objectContaining({
+          code: "NONCONTIGUOUS_SEQUENCE",
+          head_sequence: 42291,
+          state_json_sequence: 42292,
+          do_sequence: 42293,
         }),
       );
     } finally {

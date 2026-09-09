@@ -108,6 +108,29 @@ export function logSoftRestore(fields: SoftRestoreLog): void {
   console.warn(SOFT_RESTORE_LOG_EVENT, fields);
 }
 
+/** CF Observability / wrangler log event when restore clamps state_json.sequence to heads.sequence. */
+export const HEAD_SEQUENCE_CLAMP_LOG_EVENT = "world_from_head_sequence_clamp";
+
+export type HeadSequenceClampLog = {
+  world_id: string;
+  head_sequence: number;
+  state_json_sequence: number;
+  head_cycle: number | null;
+  state_json_cycle: number | null;
+};
+
+/** Live DO sequence is not the durable head column. Head column is SoT. */
+export function liveSequenceSkewedFromHead(
+  liveSequence: number | undefined,
+  headSequence: number | undefined,
+): boolean {
+  return typeof liveSequence === "number" && typeof headSequence === "number" && liveSequence !== headSequence;
+}
+
+function logHeadSequenceClamp(fields: HeadSequenceClampLog): void {
+  console.warn(HEAD_SEQUENCE_CLAMP_LOG_EVENT, fields);
+}
+
 /**
  * Rapid PLAY can race the durable head into NONCONTIGUOUS_SEQUENCE.
  * When a head exists, restore it and ask the client to retry — do not INCIDENT.
@@ -281,13 +304,31 @@ export function shouldRestoreFromHead(stored: WorldRuntime | null | undefined): 
   return !stored;
 }
 
+/** Hydrate from head.state_json, then clamp sequence/cycle to the head columns (SoT). */
 export function worldFromHead(
   head: WorldHead | null,
   fallback: WorldRuntime,
 ): WorldRuntime {
-  const snap = head?.state_json;
-  if (snap && typeof snap === "object" && snap.rooms) return snap;
-  return fallback;
+  if (!head) return fallback;
+  const snap = head.state_json;
+  if (!snap || typeof snap !== "object" || !snap.rooms) return fallback;
+  if (typeof head.sequence !== "number") return snap;
+  const jsonSequence = typeof snap.sequence === "number" ? snap.sequence : null;
+  const jsonCycle = typeof snap.cycle === "number" ? snap.cycle : null;
+  if (jsonSequence !== null && jsonSequence !== head.sequence) {
+    logHeadSequenceClamp({
+      world_id: head.world_id,
+      head_sequence: head.sequence,
+      state_json_sequence: jsonSequence,
+      head_cycle: typeof head.cycle === "number" ? head.cycle : null,
+      state_json_cycle: jsonCycle,
+    });
+  }
+  return {
+    ...snap,
+    sequence: head.sequence,
+    cycle: typeof head.cycle === "number" ? head.cycle : snap.cycle,
+  };
 }
 
 export async function putWorldHead(
