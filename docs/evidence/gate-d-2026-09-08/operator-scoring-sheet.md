@@ -12,8 +12,8 @@
 
 | Item | Value |
 |------|-------|
-| Reviewer identity class | **NOT ASSIGNED** (role class only; see blind-review-packet) |
-| Exclusion attestation vs runbook §4.2 | ☐ pending human-yes |
+| Reviewer identity class | **ASSIGNED** — campaign HumanPrincipal / Danny (uninvolved spectator); awaiting statements |
+| Exclusion attestation vs runbook §4.2 | ☑ human-yes **2026-09-08 ~20:32 PT** — stayed out of Gate C Controller (LUDUS/ADVERSARY/VECTOR) ops and Admin Approve for that cohort |
 | Materials actually received | ☐ digest ☐ public URLs ☐ candidate id ☐ window bounds ☐ five-statement instruction — **no** golden answers / private briefings |
 
 ---
@@ -58,7 +58,7 @@ Compare only to **pinned public ground truth**. Do not score against hidden fact
 ## Explicit non-claims block
 
 - Gate D is **not** COMPLETE because a digest was captured or this sheet exists.
-- Blind reviewer remains **NOT ASSIGNED** until runbook §4.3 human-yes.
+- Blind reviewer **ASSIGNED** (awaiting statements); Gate D still **not** COMPLETE.
 - No Deploy, Genesis mutation, STUDY, Gate E/F, or Specs campaign flip from this sheet.
 - Issue **#667 stays OPEN**.
 - Missing evidence is not a pass. Unit fixtures are not a substitute for public-WATCH blind review.
