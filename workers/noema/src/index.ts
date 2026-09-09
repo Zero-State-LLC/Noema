@@ -649,6 +649,9 @@ export default {
         if (!adminTokenConfigured(env)) {
           attention.push({ message: "ADMIN_OPERATOR_TOKEN not configured.", level: "attention" });
         }
+        if (canonical_head.mismatch) {
+          attention.push({ message: canonical_head.mismatch, level: "attention" });
+        }
         if (meta.status === "ACTIVE") {
           attention.push({ message: "WORLD ACTIVE — Genesis configuration is frozen.", level: "ok" });
           if (meta.settlement_ok === false) {

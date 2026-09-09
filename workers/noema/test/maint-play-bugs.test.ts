@@ -211,20 +211,38 @@ describe("maint play bugs — NONCONTIGUOUS soft recover", () => {
       revision: 7,
       ledger_head_digest: "sha256:head",
     }));
-    const out = await resolveSoftSettlementFailure({
-      code: "NONCONTIGUOUS_SEQUENCE",
-      before: live,
-      request_id: "r.soft",
-      getHead,
-      writer_generation: "do.1",
-    });
-    expect(out.mode).toBe("soft_restore");
-    expect(out.result.ok).toBe(false);
-    expect(out.result.error?.code).toBe("SETTLEMENT_RESYNC");
-    expect(out.metaPatch.status).toBe("ACTIVE");
-    expect(out.metaPatch.settlement_health).toBe("HEALTHY");
-    expect(out.world?.sequence).toBe(39);
-    expect(getHead).toHaveBeenCalled();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const out = await resolveSoftSettlementFailure({
+        code: "NONCONTIGUOUS_SEQUENCE",
+        before: live,
+        request_id: "r.soft",
+        getHead,
+        writer_generation: "do.1",
+      });
+      expect(out.mode).toBe("soft_restore");
+      expect(out.result.ok).toBe(false);
+      expect(out.result.error?.code).toBe("SETTLEMENT_RESYNC");
+      expect(out.metaPatch.status).toBe("ACTIVE");
+      expect(out.metaPatch.settlement_health).toBe("HEALTHY");
+      expect(out.world?.sequence).toBe(39);
+      expect(getHead).toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        "settlement_soft_restore",
+        expect.objectContaining({
+          code: "NONCONTIGUOUS_SEQUENCE",
+          client_code: "SETTLEMENT_RESYNC",
+          world_id: live.world_id,
+          do_sequence: 40,
+          head_sequence: 39,
+          state_json_sequence: 39,
+          revision: 7,
+          writer_generation: "do.1",
+        }),
+      );
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("falls through to hard INCIDENT for other settlement codes without a head", async () => {
