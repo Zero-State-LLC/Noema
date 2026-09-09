@@ -60,6 +60,7 @@ import {
   commandResultHttpStatus,
   commitCanonicalSettlement,
   getWorldHead,
+  liveSequenceSkewedFromHead,
   replayUnsettled,
   resolveSoftSettlementFailure,
   settleEvent,
@@ -1115,7 +1116,7 @@ export class NoemaWorldDO {
           cycle: durable.cycle,
           writer_generation: durable.writer_generation,
         }, this.meta!.writer_generation || "do.1");
-        if (!gate.ok) {
+        if (!gate.ok || liveSequenceSkewedFromHead(this.world!.sequence, durable.sequence)) {
           this.world = worldFromHead(durable, this.world!);
           migrateWorldRuntime(this.world);
           this.meta!.revision = durableRev;

@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   commitAdoptedLiveHead,
   compareHeadSequences,
+  HEAD_SEQUENCE_CLAMP_LOG_EVENT,
+  liveSequenceSkewedFromHead,
   putWorldHead,
   replayUnsettled,
   shouldRestoreFromHead,
@@ -61,6 +63,52 @@ describe("RFC-0016 restore rules", () => {
     expect(worldFromHead(head, fallback).world_id).toBe("world.perihelion-reach");
     expect(worldFromHead(head, fallback).sequence).toBe(75);
     expect(worldFromHead(null, fallback).world_id).toBe("world.fallback");
+  });
+
+  it("clamps state_json.sequence to heads.sequence and logs the mismatch", () => {
+    const fallback = emptyWorld("world.fallback");
+    const snap = emptyWorld("world.perihelion-reach-3");
+    snap.sequence = 42292;
+    snap.cycle = 18014;
+    const head: WorldHead = {
+      world_id: "world.perihelion-reach-3",
+      sequence: 42291,
+      cycle: 18013,
+      status: "ACTIVE",
+      settlement_health: "HEALTHY",
+      revision: 20866,
+      state_json: snap,
+    };
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const restored = worldFromHead(head, fallback);
+      expect(restored.sequence).toBe(42291);
+      expect(restored.cycle).toBe(18013);
+      expect(restored.world_id).toBe("world.perihelion-reach-3");
+      expect(snap.sequence).toBe(42292);
+      expect(snap.cycle).toBe(18014);
+      expect(warn).toHaveBeenCalledWith(
+        HEAD_SEQUENCE_CLAMP_LOG_EVENT,
+        expect.objectContaining({
+          world_id: "world.perihelion-reach-3",
+          head_sequence: 42291,
+          state_json_sequence: 42292,
+          head_cycle: 18013,
+          state_json_cycle: 18014,
+        }),
+      );
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
+describe("liveSequenceSkewedFromHead", () => {
+  it("is true only when both sides are numbers and they differ", () => {
+    expect(liveSequenceSkewedFromHead(42292, 42291)).toBe(true);
+    expect(liveSequenceSkewedFromHead(42291, 42291)).toBe(false);
+    expect(liveSequenceSkewedFromHead(undefined, 42291)).toBe(false);
+    expect(liveSequenceSkewedFromHead(42292, undefined)).toBe(false);
   });
 });
 
