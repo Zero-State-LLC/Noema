@@ -27,7 +27,10 @@ export function theaterEventPool(
 ): TheaterEvent[] {
   const out: TheaterEvent[] = [];
   const seen: Record<string, number> = {};
-  const list = [head].concat(Array.isArray(events) ? events : []);
+  const list: Array<TheaterEvent | null | undefined> = [head];
+  if (Array.isArray(events)) {
+    for (let i = 0; i < events.length; i++) list.push(events[i]);
+  }
   for (let i = 0; i < list.length; i++) {
     const e = list[i];
     if (!e) continue;
