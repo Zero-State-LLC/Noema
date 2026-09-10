@@ -1,75 +1,86 @@
-# Gate E endurance candidate-prep — 2026-09-09
+# Gate E endurance evidence — 2026-09-09 / 2026-09-10
 
-**Issue:** [Zero-State-LLC/Noema#682](https://github.com/Zero-State-LLC/Noema/issues/682)  
-**Candidate:** `lca5-gate-e-endurance`  
-**Cut:** `lca5-gate-e-candidate-prep`  
-**Collected:** 2026-09-09 (declaration stub; **no clock**)  
+**Issue:** [Zero-State-LLC/Noema#682](https://github.com/Zero-State-LLC/Noema/issues/682)
+**Candidate:** `lca5-gate-e-endurance`
+**Cut:** `lca5-gate-e-candidate-prep` + Phase A/B OBSERVED receipts (this packet)
 **Authority:** [Noema-Specs `docs/LIVING-ALPHA-ACCEPTANCE.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/LIVING-ALPHA-ACCEPTANCE.md) — Gate E (Endurance)
 
-**This packet is NOT COMPLETE. It does not claim Gate E COMPLETE.**  
-Do not close #682. Do not flip Noema-Specs campaign state. No Deploy. No STUDY. No Gate F. No Controller reconnect. No 4h clock. No secrets.
+**This packet is NOT COMPLETE. It does not claim Gate E COMPLETE, Phase A PASS, or Phase B PASS.**
+Do not close #682. Do not flip Noema-Specs campaign state. No Deploy. No STUDY. No Gate F. No Controller reconnect. No Path 8 recover. No secrets.
 
-Prior Gate D evidence (Specs COMPLETE [Noema-Specs#334](https://github.com/Zero-State-LLC/Noema-Specs/pull/334) → `23987586219dfd95fd7544da8e13a316a8bd9457`) lives in [`../gate-d-2026-09-08/`](../gate-d-2026-09-08/). This stub does not reopen Gate D and does not reuse Gate D WATCH-legibility PASS as Gate E endurance evidence.
+Prior Gate D evidence (Specs COMPLETE [Noema-Specs#334](https://github.com/Zero-State-LLC/Noema-Specs/pull/334) → `23987586219dfd95fd7544da8e13a316a8bd9457`) lives in [`../gate-d-2026-09-08/`](../gate-d-2026-09-08/). This packet does not reopen Gate D and does not reuse Gate D WATCH-legibility PASS as Gate E endurance evidence.
 
-Companion [`docs/LCA-GATE-E-SCENARIO.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/LCA-GATE-E-SCENARIO.md) is **not** on Specs `main` as of this stub (may still be in flight). Track that companion's checklist as unchecked once it exists. Do not invent companion bullets.
+Companion [`docs/LCA-GATE-E-SCENARIO.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/LCA-GATE-E-SCENARIO.md) is on Specs `main` (`d252891`, recorded in [repin-2026-09-10.md](repin-2026-09-10.md)). Track that companion's checklist as **unchecked**. Do not invent companion bullets.
 
-## Binding rules (Prep)
+[#702](https://github.com/Zero-State-LLC/Noema/pull/702) re-pin to live Worker `7188ff8a…` is **already on `main`**. This packet adds Phase A/B OBSERVED receipts and the intervention / controllers notes. It does not re-do the re-pin.
 
-These rules bind the later run. This stub does not start that run.
+## Binding rules
 
 - Recovery drill counts **inside** the 24h candidate. A serial rehearsal between 4h and 24h is extra practice only; it does not substitute unless the Specs companion later says otherwise.
-- Reconnect **≥3** independently controlled Controllers **before** the 4h clock. This stub does not reconnect anyone.
-- Players at bind: **0**. Zero-Controller endurance without a `NOT_COMPUTABLE` label is WEAK / likely `NOT_COMPUTABLE`.
+- Reconnect **≥3** independently controlled Controllers **before** the 4h clock. Start/end/remint states are in the Phase files; they do not score PASS here.
+- Players at Prep bind: **0**. Zero-Controller endurance without a `NOT_COMPUTABLE` label is WEAK / likely `NOT_COMPUTABLE`.
+- Public `/v1/watch/live` `controllers` is **not** a trio census — [controllers-watch-live-note.md](controllers-watch-live-note.md).
+- CONTROL_PLANE Deploys inside Phase B are logged in [intervention-log.md](intervention-log.md). Budget adjudication is **NOT_COMPUTABLE** from the repo alone. None is Path 8.
 
 ## Files
 
 | File | Contents |
 |------|----------|
-| [candidate-declaration.md](candidate-declaration.md) | Immutable pin bind (initial). Run fields blank / TBD / `NOT_COMPUTABLE`. Gate E checklist unchecked |
-| [repin-2026-09-10.md](repin-2026-09-10.md) | Re-pin to current live Worker `7188ff8a…` (2026-09-10T03:41Z); Worker lineage since Prep bind; historical rows retained; fail-closed marks. NOT COMPLETE |
+| [candidate-declaration.md](candidate-declaration.md) | Immutable pin bind (Prep). Run fields blank / TBD / `NOT_COMPUTABLE`. Gate E checklist unchecked |
+| [repin-2026-09-10.md](repin-2026-09-10.md) | Re-pin to live Worker `7188ff8a…` (#702 already on `main`); Worker lineage; fail-closed marks. NOT COMPLETE |
+| [phase-a-start.md](phase-a-start.md) | Phase A start receipt. Status **RUNNING** (start only). `2026-09-09T07:38:30Z`–`11:38:30Z`. Worker `592c06a4…`. ADVERSARY `ENTER`→`SETTLEMENT_RESYNC`. NOT COMPLETE |
+| [phase-a-end.md](phase-a-end.md) | Phase A end check `2026-09-09T11:44:32Z`. Heads `18318`/`43155`. Continuity **FAIL**. Overall **NOT_COMPUTABLE** as clean PASS / HOLD. NOT COMPLETE |
+| [deploy-686-probe.md](deploy-686-probe.md) | Deploy #686 probe. Actions `34335936228` SUCCESS. Worker `3db8d757…`. 3/3 ENTER OK; acceptance MET; remint skipped. NOT Gate E COMPLETE |
+| [phase-b-start.md](phase-b-start.md) | Phase B start `2026-09-09T16:37:48Z`. Worker `3db8d757…`. 3/3 ENTER+observe. Path 8 **SCHEDULED_NOT_FIRED**. NOT COMPLETE |
+| [phase-b-remint-mid.md](phase-b-remint-mid.md) | Mid-run remint `2026-09-09T22:37:57Z` (`NOT_AUTHORIZED`). New trio OK @ `18815`. `ends_at` unchanged. NOT COMPLETE |
+| [intervention-log.md](intervention-log.md) | CONTROL_PLANE rows inside Phase B (#688–#700 / pins #691–#701) plus Phase A calendar #684/#686. Heads **NOT_COMPUTABLE**. Budget **NOT_COMPUTABLE**. Not Path 8 |
+| [controllers-watch-live-note.md](controllers-watch-live-note.md) | `/v1/watch/live` `controllers` is RFC-0024 / GC6-S1 reconstruction default (`?? 1`) at `watch-live.ts:751`. Not a LUDUS/ADVERSARY/VECTOR census. Trio census **NOT_COMPUTABLE** from public surfaces |
 
-## OBSERVED live pins
+## OBSERVED live pins (Prep bind; historical)
 
-Bound from #682 and the live pin packet. Nothing invented. Re-pin / re-verify `/version` at clock start.
+Bound from #682 and the live pin packet at Prep. Current live pins are in [repin-2026-09-10.md](repin-2026-09-10.md) (#702). Nothing invented.
 
 | Pin | Value |
 |-----|-------|
 | `candidate_id` | `lca5-gate-e-endurance` |
-| `worker_version_id` | `592c06a4-fa8c-40f6-bec7-21cbc45689f9` |
+| `worker_version_id` (Prep) | `592c06a4-fa8c-40f6-bec7-21cbc45689f9` |
 | Unify source | `39d4856abd857b79aedd4304987ef6d7593d000a` ([#680](https://github.com/Zero-State-LLC/Noema/pull/680)) |
-| Main tip / pin | `0ff8aaadd294a5c13ff66eca402529ee5db263f1` ([#681](https://github.com/Zero-State-LLC/Noema/pull/681)) |
-| `deployed_at` | `2026-09-09T06:00:52.404542Z` |
+| Main tip / pin (Prep) | `0ff8aaadd294a5c13ff66eca402529ee5db263f1` ([#681](https://github.com/Zero-State-LLC/Noema/pull/681)) |
+| `deployed_at` (Prep) | `2026-09-09T06:00:52.404542Z` |
 | World | `world.perihelion-reach-3` |
 | Genesis | `genesis.94d0961984b2b4f8` |
-| Deploy run | https://github.com/Zero-State-LLC/Noema/actions/runs/34317120696 |
+| Deploy run (Prep) | https://github.com/Zero-State-LLC/Noema/actions/runs/34317120696 |
 | Gate D COMPLETE | Specs [#334](https://github.com/Zero-State-LLC/Noema-Specs/pull/334) → `23987586219dfd95fd7544da8e13a316a8bd9457` |
-| Heads at bind | cycle **17958** / sequence **42176** |
-| Players at bind | **0** |
+| Heads at Prep bind | cycle **17958** / sequence **42176** |
+| Players at Prep bind | **0** |
 | Tracking | [#682](https://github.com/Zero-State-LLC/Noema/issues/682) |
+| Current live (re-pin) | Worker `7188ff8a-3d58-449e-9e6b-2e0282ed9724` — [repin-2026-09-10.md](repin-2026-09-10.md) / [#702](https://github.com/Zero-State-LLC/Noema/pull/702) **MERGED** |
 
-## Phase checklist (unchecked)
+## Phase checklist (unchecked — receipts ≠ PASS)
 
-PROMETHEUS SEALED. Do not start without Danny human-yes.
+PROMETHEUS SEALED. Filing OBSERVED receipts does **not** check these boxes.
 
 - [ ] **Prep (no clock).** Stubs + human-yes + trio reconnect (≥3 Controllers) + pin bind + intervention budget declared.
-- [ ] **4h candidate.** PASS required before 24h opens.
-- [ ] **24h candidate (recovery drill inside the window).** ≥24h continuous; **≥1 planned restart/recovery drill inside the 24h**; honest stale/lag/incident marks; bounded logged interventions.
+- [ ] **4h candidate.** PASS required before 24h opens. Phase A overall is **NOT_COMPUTABLE** as a clean PASS / HOLD ([phase-a-end.md](phase-a-end.md)).
+- [ ] **24h candidate (recovery drill inside the window).** ≥24h continuous; **≥1 planned restart/recovery drill inside the 24h**; honest stale/lag/incident marks; bounded logged interventions. Path 8 **SCHEDULED_NOT_FIRED**.
 - [ ] **Evidence pack.** Heads range, recovery receipts, WATCH digests, intervention log, PASS/FAIL/`NOT_COMPUTABLE`. **NOT COMPLETE** until scored.
 
 ## Still-open shortlist (do not invent)
 
-1. Specs companion `LCA-GATE-E-SCENARIO.md` is not on Specs `main`. Copy its checklist here as unchecked when it lands.
-2. ≥3 independent Controllers are **not** reconnected on Worker `592c06a4…`. Required before the 4h clock. Separate human-yes.
-3. 4h clock has **not** started. Danny yes required to start Phase A.
-4. Recovery receipts, WATCH digest, start/end heads, Controller/client pins, intervention log: **NOT_COMPUTABLE** / TBD in this stub.
-5. Specs campaign stays Gate E **unproven**. This packet does not flip it.
+1. Specs companion `LCA-GATE-E-SCENARIO.md` is on Specs `main`. Copy its checklist here as unchecked; do not invent bullets. Campaign stays Gate E **unproven**.
+2. Trio census from public WATCH is **NOT_COMPUTABLE** ([controllers-watch-live-note.md](controllers-watch-live-note.md)). Admin / Controller-log census through Phase B `ends_at` is not in this packet.
+3. Phase A start/end are filed. Continuity through `ends_at` **FAIL**. Overall **NOT_COMPUTABLE** as clean PASS / HOLD. Do not treat Phase B start as Phase A PASS.
+4. Phase B start + mid-remint are filed. Path 8 remains **SCHEDULED_NOT_FIRED**. No recover JSON in this packet. Dedicated recover schema stays **NOT_COMPUTABLE**.
+5. [intervention-log.md](intervention-log.md) lists CONTROL_PLANE Deploys. Per-Deploy heads and budget adjudication are **NOT_COMPUTABLE**. None is Path 8.
+6. Specs `current-state.v1.yaml` live Worker pin may still be stale vs `7188ff8a…` (see #702 re-pin). Score packet must cite score-time `/version`.
+7. Issue #682 stays **OPEN**. This packet does not flip Specs.
 
 ## Explicit non-claims
 
-- Gate E is **not** COMPLETE.
+- Gate E is **not** COMPLETE. Phase A is **not** PASS. Phase B is **not** PASS.
 - Issue #682 stays **OPEN**.
-- This stub does **not** start the run, reconnect Controllers, or start the 4h clock.
 - No hosted STUDY. No Gate F GO / Deploy-as-success.
-- No Worker code changes. No Deploy from this packet. No Genesis mutation. No new Player verbs.
+- No Worker runtime code changes. No Deploy from this packet. No Genesis mutation. No new Player verbs.
+- No Controller reconnect, remint, or Path 8 recover from this packet.
 - No Specs campaign flip from this packet.
-- No amounts, enrollments, recoveries, or endurance verdicts invented.
+- No amounts, enrollments, recoveries, or endurance verdicts invented or upgraded.
