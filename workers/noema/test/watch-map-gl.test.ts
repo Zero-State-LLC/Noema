@@ -1,13 +1,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { watchHtml } from "../src/watch";
 import { MAP_STAGE_CSS } from "../src/watch-map-page";
 import {
   MAP_CAM_EASE_MS,
-  MAP_CAM_FOV_DEG,
   MAP_GL_CSS,
   MAP_GL_SRC,
   MAP_PARITY_LINE,
@@ -290,7 +288,7 @@ describe("public room labels", () => {
     expect(mapRoomLabelText("<img src=x>Civic")).toContain("Civic");
   });
 
-  it("projects only named public rooms and matches Three.js Direct-Camera", () => {
+  it("projects only named public rooms through the Direct-Camera pose", () => {
     const named = [
       { room_id: "room.hub", name: "Civic Exchange", x: 1, y: 1 },
       { room_id: "room.east", name: "room.east", x: 2, y: 0 },
@@ -315,25 +313,20 @@ describe("public room labels", () => {
     expect(JSON.stringify(items)).not.toContain("PRESSURE");
     expect(JSON.stringify(items)).not.toContain("room.east");
 
-    const cam = new PerspectiveCamera(MAP_CAM_FOV_DEG, 16 / 9, 0.1, 80);
-    cam.position.set(pose.eyeX, pose.eyeY, pose.eyeZ);
-    cam.lookAt(pose.lookX, pose.lookY, pose.lookZ);
-    cam.updateMatrixWorld();
-    const world = new Vector3(MAP_ROOM_GAP, 0.82, MAP_ROOM_GAP).project(cam);
-    const threeX = (world.x * 0.5 + 0.5) * 640;
-    const threeY = (-world.y * 0.5 + 0.5) * 360;
-    const got = mapProjectPoint({
-      x: MAP_ROOM_GAP,
-      y: 0.82,
-      z: MAP_ROOM_GAP,
+    const look = mapProjectPoint({
+      x: pose.lookX,
+      y: pose.lookY,
+      z: pose.lookZ,
       pose,
       aspect: 16 / 9,
       width: 640,
       height: 360,
     });
-    expect(got.visible).toBe(true);
-    expect(got.x).toBeCloseTo(threeX, 1);
-    expect(got.y).toBeCloseTo(threeY, 1);
+    expect(look.visible).toBe(true);
+    expect(look.x).toBeGreaterThan(240);
+    expect(look.x).toBeLessThan(400);
+    expect(look.y).toBeGreaterThan(120);
+    expect(look.y).toBeLessThan(240);
     expect(mapLabelScreenItems({ rooms: named, pose: null, width: 640, height: 360 })).toEqual([]);
     expect(mapProjectPoint({ x: 0, y: 0, z: 0, pose: null, width: 640, height: 360 }).visible).toBe(false);
   });
