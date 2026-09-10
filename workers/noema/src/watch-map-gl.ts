@@ -13,7 +13,7 @@ export const MAP_GL_CSS = `
 .map-gl{
   display:block;width:100%;max-width:none;height:auto;
   aspect-ratio:16/9;min-height:min(52vh,28rem);
-  background:var(--void);border:1px solid var(--line);
+  background:var(--panel);border:1px solid var(--line-hot);
 }
 .map-gl[hidden]{display:none}
 .map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
@@ -43,6 +43,113 @@ export type MapCamRoom = {
 };
 
 export type MapCamFollow = { kind?: string; id?: string } | null;
+
+export const MAP_ROOM_GAP = 2.2;
+export const MAP_CAM_FOV_DEG = 40;
+export const MAP_CAM_PAD = 1.4;
+
+export type MapCamPose = {
+  eyeX: number;
+  eyeY: number;
+  eyeZ: number;
+  lookX: number;
+  lookY: number;
+  lookZ: number;
+};
+
+export type MapCamBounds = {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  cx: number;
+  cz: number;
+  span: number;
+};
+
+/** World-space AABB of public rooms. Empty graph collapses to the origin. */
+export function mapGraphBounds(rooms?: Array<{ x?: unknown; y?: unknown } | null> | null): MapCamBounds {
+  const list = Array.isArray(rooms) ? rooms : [];
+  let minX = 0;
+  let maxX = 0;
+  let minZ = 0;
+  let maxZ = 0;
+  let n = 0;
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
+    if (!r) continue;
+    const x = Number(r.x || 0) * MAP_ROOM_GAP;
+    const z = Number(r.y || 0) * MAP_ROOM_GAP;
+    if (!n) {
+      minX = x;
+      maxX = x;
+      minZ = z;
+      maxZ = z;
+    } else {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+    n += 1;
+  }
+  const spanX = maxX - minX + 1.2;
+  const spanZ = maxZ - minZ + 1.2;
+  return {
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    cx: (minX + maxX) / 2,
+    cz: (minZ + maxZ) / 2,
+    span: Math.max(spanX, spanZ, 2.2),
+  };
+}
+
+/**
+ * Fit the room graph in frame with padding. Look-at is the focus room or the
+ * centroid — never a corner that leaves the upper canvas empty.
+ */
+export function mapCameraPose(opts?: {
+  rooms?: Array<{ room_id?: string; x?: unknown; y?: unknown } | null> | null;
+  focusId?: string | null;
+  aspect?: number | null;
+} | null): MapCamPose {
+  const rooms = opts && Array.isArray(opts.rooms) ? opts.rooms : [];
+  const b = mapGraphBounds(rooms);
+  let lookX = b.cx;
+  let lookZ = b.cz;
+  const focus = opts ? String(opts.focusId || "") : "";
+  if (focus) {
+    for (let i = 0; i < rooms.length; i++) {
+      const r = rooms[i];
+      if (r && String(r.room_id || "") === focus) {
+        lookX = Number(r.x || 0) * MAP_ROOM_GAP;
+        lookZ = Number(r.y || 0) * MAP_ROOM_GAP;
+        break;
+      }
+    }
+  }
+  const aspect = opts && Number(opts.aspect) > 0.25 ? Number(opts.aspect) : 16 / 9;
+  const half = b.span * 0.5 + MAP_CAM_PAD;
+  const fov = (MAP_CAM_FOV_DEG * Math.PI) / 180;
+  const fitH = half / Math.tan(fov * 0.5);
+  const fitW = half / (Math.tan(fov * 0.5) * aspect);
+  const dist = Math.max(fitH, fitW, 6.4);
+  const dx = 0.64;
+  const dy = 0.68;
+  const dz = 0.8;
+  const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const lookY = 0.55;
+  return {
+    eyeX: lookX + (dx / len) * dist,
+    eyeY: lookY + (dy / len) * dist,
+    eyeZ: lookZ + (dz / len) * dist,
+    lookX,
+    lookY,
+    lookZ,
+  };
+}
 
 /** Public room_id only. Empty if missing or not on the snapshot. */
 export function mapPublicRoomId(

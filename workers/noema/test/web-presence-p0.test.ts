@@ -100,9 +100,15 @@ describe("noema-web-presence-p0 — watch chrome", () => {
     expect(watch).toContain("watch-follow-bar");
     expect(watch).toContain("Clear follow");
     expect(MAP_STAGE_CSS).toContain("background:var(--panel)");
-    expect(MAP_STAGE_CSS).toContain("background:var(--void)");
+    expect(MAP_STAGE_CSS).toContain("background:var(--void-2)");
+    expect(MAP_STAGE_CSS).toContain("map-chrome-layers");
+    expect(MAP_STAGE_CSS).toContain("flex-direction:column");
     expect(MAP_STAGE_CSS).not.toMatch(/var\(--paper\)/);
     expect(MAP_STAGE_CSS).not.toMatch(/max-width:\s*36rem/);
+    expect(watch).toContain("align-items:start");
+    expect(watch).toContain('id="watch-stage-line"');
+    expect(watch).toContain("A public sketch — not the world.");
+    expect(watch).not.toMatch(/Orbitron|scanline|WORLD-STATE STRIP/i);
     expect(map.indexOf('id="watch-hero-who"')).toBeGreaterThan(map.indexOf('id="watch-map-gl"'));
     expect(text).not.toContain('from "three"');
     expect(watch).not.toMatch(BRAND_BAN);

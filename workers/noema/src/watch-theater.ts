@@ -54,6 +54,18 @@ export function recentFactParts(actor?: string | null, site?: string | null, con
   return out;
 }
 
+/** Join public phrases with a visible separator. Never concatenate `authority.Consequence` / `ExchangeWho`. */
+export function joinWatchPhrases(parts?: Array<string | null | undefined> | null): string {
+  const out: string[] = [];
+  const list = Array.isArray(parts) ? parts : [];
+  for (let i = 0; i < list.length; i++) {
+    const t = String(list[i] || "").trim();
+    if (!t) continue;
+    out.push(t);
+  }
+  return out.join(" · ");
+}
+
 /** NOW/hero slot. Missing public fields stay an explicit absence. */
 export function heroFactValue(raw?: string | null): string {
   const t = String(raw || "").trim();
@@ -117,6 +129,7 @@ export function followedSiteWithheld(followKind: string, inPublicSite: boolean):
 const THEATER_INLINE_FNS = [
   theaterEventPool,
   recentFactParts,
+  joinWatchPhrases,
   heroFactValue,
   namedListLine,
   agentsInPublicSitesCaption,

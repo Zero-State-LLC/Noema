@@ -18,27 +18,27 @@ import {
 
 const EXTRA = `
 /* Hallmark · genre: atmospheric · macrostructure: Map-Diagram · design-system: site/design.md */
-.watch-head{margin:0 0 .8rem}
+.watch-head{margin:0 0 .65rem}
 .watch-head h1{
-  margin:0 0 .35rem;max-width:none;
-  font:550 clamp(1.35rem,2.8vw,1.85rem)/1.1 var(--font-display);
+  margin:0 0 .2rem;max-width:none;
+  font:550 clamp(1.2rem,2.4vw,1.55rem)/1.1 var(--font-display);
   letter-spacing:.01em;
 }
-.watch-head .muted{max-width:42rem;color:var(--muted)}
+.watch-head .muted{max-width:46rem;margin:.15rem 0 0;color:var(--muted);font:.82rem/1.45 var(--font-body)}
 .watch-meta{
-  display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:center;
-  margin-top:.75rem;color:var(--faint);font:var(--text-meta)/1.3 var(--font-mono);
+  display:flex;flex-wrap:wrap;gap:.4rem .65rem;align-items:center;
+  margin-top:.55rem;color:var(--faint);font:var(--text-meta)/1.3 var(--font-mono);
 }
 .watch-meta .tag{margin:0}
 .watch-state-plate{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(7.5rem,1fr));
-  gap:.45rem 1rem;margin:.55rem 0 0;padding:.55rem 0 0;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:.35rem 1.15rem;align-items:baseline;
+  margin:.45rem 0 0;padding:.4rem 0 0;border-top:1px solid var(--line);
 }
 .watch-state-plate .k{
-  display:block;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+  display:inline;margin-right:.4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
 }
-.watch-state-plate .v{display:block;margin-top:.15rem;color:var(--ink);font:550 .9rem/1.3 var(--font-mono)}
+.watch-state-plate .v{display:inline;margin:0;color:var(--ink);font:550 .82rem/1.3 var(--font-mono)}
 .watch-standing{margin:.85rem 0 0;max-width:36rem}
 .watch-standing[hidden]{display:none}
 .watch-standing h2{margin:0 0 .35rem;color:var(--faint);font:550 .62rem/1.2 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}
@@ -49,8 +49,8 @@ const EXTRA = `
   letter-spacing:.12em;text-transform:uppercase;
 }
 .watch-hero{
-  min-height:5.5rem;padding:1.05rem 0 1.15rem;
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  min-height:5.5rem;padding:.9rem 1rem 1rem;
+  border:1px solid var(--line-hot);background:var(--panel);
 }
 .watch-hero.major{
   border-color:color-mix(in srgb,var(--color-state-warning) 55%, var(--line));
@@ -68,7 +68,7 @@ const EXTRA = `
 }
 .watch-line .mark{flex:0 0 auto;color:var(--color-state-active);font:550 1.05em var(--font-mono);line-height:1.2}
 .watch-hero.major .watch-line .mark{color:var(--color-state-warning)}
-.watch-hero .sub{margin:.4rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
+.watch-hero .sub{margin:.35rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
 .watch-line .mark.flash{animation:mark-flash 400ms var(--ease) 1 both}
 @keyframes mark-flash{from{filter:brightness(2.4)}to{filter:none}}
 .watch-banner{display:none}
@@ -80,11 +80,16 @@ const EXTRA = `
   animation:banner-in 240ms var(--ease) 1 both;
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
-.watch-stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(17rem,.75fr);gap:1rem 1.5rem;margin-top:.8rem}
-.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,1fr) minmax(17.5rem,22rem)}
+.watch-stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(17rem,.75fr);gap:1.15rem 1.75rem;margin-top:1.05rem;align-items:start}
+.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,1fr) minmax(17.5rem,22rem);align-items:start}
 body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(--pad)))}
 .watch-map-col{min-width:0}
-.watch-side{display:grid;align-content:start;gap:1rem;min-width:0}
+.watch-stage-story{margin:0 0 .65rem}
+.watch-stage-line{
+  margin:0;color:var(--ink);font:550 clamp(1.15rem,2.2vw,1.65rem)/1.2 var(--font-display);
+}
+.watch-stage-honest{margin:.25rem 0 0;color:var(--faint);font:.75rem/1.4 var(--font-mono)}
+.watch-side{display:grid;align-content:start;gap:1.1rem;min-width:0}
 @media(max-width:860px){
   .watch-stage{grid-template-columns:1fr;gap:1.25rem}
   .watch-stage[data-mode="map"]{grid-template-columns:1fr}
@@ -140,16 +145,17 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
   color:var(--faint);font:.72rem/1.45 var(--font-mono);white-space:pre;overflow:auto;
 }
 @media(max-width:860px){.watch-pre{display:none}}
-.watch-feed{display:grid;gap:.15rem;margin:0;padding:0;list-style:none;min-height:13rem}
+.watch-feed{display:grid;gap:.35rem;margin:0;padding:0;list-style:none;min-height:13rem}
 .watch-feed li{
-  display:grid;grid-template-columns:.9rem 1.1rem 1fr;gap:.1rem .45rem;align-items:baseline;
-  padding:.28rem 0;border-bottom:1px solid rgba(42,51,66,.35);
+  display:grid;grid-template-columns:.9rem 1.1rem 1fr;gap:.1rem .45rem;align-items:start;
+  padding:.4rem 0;border-bottom:1px solid var(--line);
   color:var(--ink);font:.86rem/1.4 var(--font-mono);
 }
 .watch-feed li .glyph{width:.9rem;height:.9rem;margin-right:0}
 .watch-feed li.quiet{opacity:.58}
 .watch-feed .mark{color:var(--faint);text-align:center}
-.watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
+.watch-feed li.notable .mark{color:var(--color-state-active);font-weight:550}
+.watch-feed li.notable .line{color:var(--ink);font-weight:550}
 .watch-feed li.major .mark{color:var(--color-state-warning);font-weight:700}
 .watch-feed li.major .line{color:var(--ink);font-weight:650}
 .watch-feed li.fresh{animation:feed-settle 900ms var(--ease) 1 both}
@@ -158,12 +164,15 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
   to{background:transparent}
 }
 .watch-feed .line{overflow-wrap:anywhere}
-.watch-feed .meta{grid-column:3;color:var(--faint);font:.7rem}
+.watch-feed .line{display:block}
+.watch-feed .facts{display:block;margin-top:.2rem;color:var(--muted);font:.74rem/1.4 var(--font-mono)}
+.watch-feed .meta{display:block;margin-top:.12rem;color:var(--faint);font:.7rem}
 .watch-empty{
   display:block;color:var(--muted);font:var(--text-body)/1.45 var(--font-mono);
   padding:.75rem .7rem;border-left:2px solid var(--line);background:var(--panel);
 }
-.watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
+.watch-foot-meta{margin:1.35rem 0 0;padding-top:.85rem;border-top:1px solid var(--line)}
+.watch-note{margin:.45rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
 .watch-col{position:relative;z-index:1}
 @media(prefers-reduced-motion:reduce){
@@ -193,21 +202,27 @@ body.is-low-noise #watch-low-noise{display:block}
 .watch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
-  border:1px solid var(--line);cursor:pointer;
+  border:1px solid var(--line-hot);cursor:pointer;
 }
-.watch-now-strip{margin:.85rem 0 0;padding:.7rem 0 0;border-top:1px solid var(--line);max-width:46rem}
+.watch-now-strip{margin:.7rem 0 0;padding:.55rem 0 .6rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:46rem}
 .watch-now-strip h2{
-  margin:0 0 .35rem;color:var(--ink);font:550 .78rem/1.2 var(--font-mono);
+  margin:0 0 .25rem;color:var(--muted);font:550 .72rem/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
 }
-.watch-now-strip .lede{margin:0 0 .45rem}
-.watch-now-strip p{margin:.2rem 0;color:var(--ink);font:.86rem/1.45 var(--font-mono)}
+.watch-now-strip .lede{margin:0 0 .3rem}
+.watch-now-strip p{margin:.15rem 0;color:var(--ink);font:.82rem/1.4 var(--font-mono)}
 .watch-now-caption{color:var(--faint)!important;font:.75rem/1.4 var(--font-mono)!important}
-.watch-hero-fact{margin:.25rem 0 0 1.7rem;color:var(--ink);font:.8rem/1.4 var(--font-mono)}
-.watch-feed .facts{grid-column:3;color:var(--muted);font:.74rem}
+.watch-hero-fact,.watch-conseq{display:block;margin:.4rem 0 0;color:var(--ink);font:.8rem/1.4 var(--font-mono)}
+.watch-hero-fact .k,.watch-conseq .k{
+  display:inline-block;min-width:7.4rem;margin-right:.45rem;
+  color:var(--faint);font:.62rem/1.4 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
+}
+.watch-hero-fact .v{color:var(--ink)}
+.watch-conseq .v{color:var(--color-state-active);font-weight:550}
 .watch-withheld{
-  margin:.85rem 0 0;padding:.15rem 0 .15rem .75rem;
+  margin:.85rem 0 0;padding:.45rem 0 .15rem .75rem;
   border-left:2px solid var(--color-state-unknown);
+  background:color-mix(in srgb,var(--color-state-unknown) 7%,transparent);
 }
 .watch-withheld h2{
   margin:0 0 .35rem;color:var(--color-state-unknown);font:550 var(--text-meta)/1.2 var(--font-mono);
@@ -215,8 +230,7 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 .watch-withheld ul{margin:0;padding:0;list-style:none}
 .watch-withheld li{margin:.15rem 0;color:var(--ink);font:var(--text-body)/1.45 var(--font-mono)}
-.watch-conseq{margin:.45rem 0 0 1.7rem;color:var(--color-state-active);font:550 .82rem/1.4 var(--font-mono)}
-.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.4rem .55rem;align-items:center;margin:.65rem 0 0 1.7rem}
+.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.4rem .55rem;align-items:center;margin:.65rem 0 0}
 .watch-follow-bar .btn{
   min-height:2rem;padding:.35rem .7rem;font-size:var(--text-kicker);
   border-color:var(--line);background:var(--panel);
@@ -256,7 +270,7 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 .watch-modes .btn.quiet:hover{color:var(--ink);background:var(--panel);border-color:transparent}
 .watch-modes .btn[aria-pressed="true"],.watch-modes .btn.quiet[aria-pressed="true"]{
-  background:var(--ink);color:var(--color-text-inverse);border-color:transparent;
+  background:var(--color-state-active);color:var(--color-text-inverse);border-color:transparent;
 }
 ${MAP_STAGE_CSS}
 ${MAP_GL_CSS}
@@ -290,7 +304,6 @@ export function watchHtml(opts?: { mode?: string }): string {
       <h2 id="watch-standing-label">Public</h2>
       <ul id="watch-standing-list"></ul>
     </section>
-    ${legendHtml()}
   </header>
 
   <section class="watch-now-strip" id="watch-now-strip" aria-labelledby="watch-now-strip-label">
@@ -303,6 +316,10 @@ export function watchHtml(opts?: { mode?: string }): string {
 
   <section class="watch-stage" data-mode="${mode}">
     <section class="watch-col watch-map-col" aria-label="Center stage">
+      <div class="watch-stage-story" id="watch-stage-story">
+        <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
+        <p class="watch-stage-honest">A public sketch — not the world.</p>
+      </div>
       <div id="watch-stage-places"${mode === "map" ? " hidden" : ""}>
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
@@ -325,9 +342,9 @@ export function watchHtml(opts?: { mode?: string }): string {
         <p class="now-k">Now</p>
         <h2 class="watch-line"><span class="mark" id="watch-mark">&gt;</span><span id="watch-headline" aria-live="polite">Connecting…</span></h2>
         <p class="sub" id="watch-copy"></p>
-        <p class="watch-hero-fact" id="watch-hero-who">Who ${NOT_PROJECTED_PUBLICLY}</p>
-        <p class="watch-hero-fact" id="watch-hero-where">Where ${NOT_PROJECTED_PUBLICLY}</p>
-        <p class="watch-conseq" id="watch-conseq">Consequence ${NOT_PROJECTED_PUBLICLY}</p>
+        <p class="watch-hero-fact" id="watch-hero-who"><span class="k">Who</span> <span class="v">${NOT_PROJECTED_PUBLICLY}</span></p>
+        <p class="watch-hero-fact" id="watch-hero-where"><span class="k">Where</span> <span class="v">${NOT_PROJECTED_PUBLICLY}</span></p>
+        <p class="watch-conseq" id="watch-conseq"><span class="k">Consequence</span> <span class="v">${NOT_PROJECTED_PUBLICLY}</span></p>
         <div class="watch-banner" id="watch-banner" hidden></div>
         <div class="watch-follow-bar" id="watch-follow-bar">
           <span class="watch-following" id="watch-following" hidden></span>
@@ -357,7 +374,10 @@ export function watchHtml(opts?: { mode?: string }): string {
   <button class="btn quiet" id="watch-here-open" type="button" aria-expanded="false" aria-controls="watch-here-sheet">Here</button>
   <div class="watch-here-backdrop" id="watch-here-backdrop" hidden></div>
 
-  <p class="watch-note">This window is a projection, not the world.</p>
+  <div class="watch-foot-meta">
+    ${legendHtml()}
+    <p class="watch-note">This window is a projection, not the world.</p>
+  </div>
 
   <script>
   (() => {
@@ -425,6 +445,7 @@ export function watchHtml(opts?: { mode?: string }): string {
           const b = el("button", "btn quiet", String(l.label || l.id));
           b.type = "button";
           b.setAttribute("data-layer", String(l.id || ""));
+          b.setAttribute("aria-label", "Map layer: " + String(l.label || l.id));
           b.setAttribute("aria-pressed", "true");
           tog.append(b);
         }
@@ -903,7 +924,10 @@ export function watchHtml(opts?: { mode?: string }): string {
         mark.classList.add("flash");
       }
       state.headKey = headKey;
-      setLiveText($("watch-headline"), head.line || "The Chamber is quiet.");
+      const story = head.line || "The Chamber is quiet.";
+      setLiveText($("watch-headline"), story);
+      const stageLine = $("watch-stage-line");
+      if (stageLine) stageLine.textContent = story;
       const painted = paintPublicTheater(head, events, rooms, players);
       if (state.mode === "map") applyMapFocus(head, rooms, events);
       renderFollowChrome(data, rooms, events, head);
@@ -911,8 +935,8 @@ export function watchHtml(opts?: { mode?: string }): string {
       const ln = $("watch-low-noise");
       if (ln) {
         const recent = events.map((e) => {
-          const facts = recentFactParts(e.actor_label, roomName(rooms, e.room_id), e.consequence).join(" · ");
-          return [e.line || e.text || "", facts].filter(Boolean).join(" ");
+          const facts = joinWatchPhrases(recentFactParts(e.actor_label, roomName(rooms, e.room_id), e.consequence));
+          return joinWatchPhrases([e.line || e.text || "", facts]);
         }).filter(Boolean);
         const standing = publicStandingLines(data);
         ln.textContent = [head.line, painted.whoLine, painted.whereLine, painted.conLine, painted.actorsLine, painted.sitesLine, painted.occupancy, ...standing, ...recent.slice(0, 6), ...painted.heldLines].filter(Boolean).join("\\n");
@@ -955,10 +979,16 @@ export function watchHtml(opts?: { mode?: string }): string {
           li.append(glyphNode(ev.glyph || "event"));
           const wrap = el("div", "");
           wrap.append(el("span", "line", ev.line || ""));
-          const facts = recentFactParts(ev.actor_label, roomName(rooms, ev.room_id), ev.consequence);
-          if (facts.length) wrap.append(el("span", "facts", facts.join(" · ")));
+          const facts = joinWatchPhrases(recentFactParts(ev.actor_label, roomName(rooms, ev.room_id), ev.consequence));
+          if (facts) {
+            wrap.append(document.createTextNode(" · "));
+            wrap.append(el("span", "facts", facts));
+          }
           const meta = ago(ev.occurred_at);
-          if (meta) wrap.append(el("span", "meta", meta));
+          if (meta) {
+            wrap.append(document.createTextNode(" · "));
+            wrap.append(el("span", "meta", meta));
+          }
           li.append(wrap);
           feed.append(li);
         });
@@ -1109,6 +1139,8 @@ export function watchHtml(opts?: { mode?: string }): string {
 
     function showUnavailable(msg) {
       setLiveText($("watch-headline"), "Projection unavailable.");
+      const stageGone = $("watch-stage-line");
+      if (stageGone) stageGone.textContent = "Projection unavailable.";
       $("watch-copy").textContent = msg || "";
       paintPublicTheater({ line: "Projection unavailable." }, [], [], 0);
       setTag("unavailable", "tag");

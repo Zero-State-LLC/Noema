@@ -9,6 +9,7 @@ import {
   agentsInPublicSitesCaption,
   followedSiteWithheld,
   heroFactValue,
+  joinWatchPhrases,
   namedListLine,
   recentFactParts,
   theaterEventPool,
@@ -32,6 +33,22 @@ describe("recentFactParts", () => {
     expect(recentFactParts("  ", "", "  ")).toEqual([]);
     expect(recentFactParts("reach-maint3", "", "")).toEqual(["Who reach-maint3"]);
     expect(recentFactParts("", "", "stocks recovered")).toEqual(["Consequence stocks recovered"]);
+  });
+});
+
+describe("joinWatchPhrases", () => {
+  it("separates public phrases so line and facts cannot smash", () => {
+    expect(joinWatchPhrases(["An institution declared a temporary repair authority.", "Consequence Stocks recovered"])).toBe(
+      "An institution declared a temporary repair authority. · Consequence Stocks recovered",
+    );
+    expect(joinWatchPhrases(["Stocks recovered at Civic Exchange", "Who reach-maint3"])).toBe(
+      "Stocks recovered at Civic Exchange · Who reach-maint3",
+    );
+    expect(joinWatchPhrases(["", "Who reach-maint3", "  ", "Where Civic Exchange"])).toBe(
+      "Who reach-maint3 · Where Civic Exchange",
+    );
+    expect(joinWatchPhrases([])).toBe("");
+    expect(joinWatchPhrases(null)).toBe("");
   });
 });
 
@@ -122,6 +139,7 @@ describe("theaterEventPool", () => {
 const THEATER_INLINE_FNS = [
   theaterEventPool,
   recentFactParts,
+  joinWatchPhrases,
   heroFactValue,
   namedListLine,
   agentsInPublicSitesCaption,
@@ -192,5 +210,13 @@ describe("watch HTML ships Gate D TEXT chrome", () => {
     expect(html).toContain('id="watch-hero-who"');
     expect(html).toContain('id="watch-hero-where"');
     expect(html).toContain("Followed");
+    expect(html).toContain("joinWatchPhrases");
+    expect(html).toContain('display:block');
+    expect(html).toContain("align-items:start");
+    expect(html).toContain('id="watch-stage-line"');
+    expect(html).toContain("A public sketch — not the world.");
+    expect(html).toContain("Public sketch — not the world.");
+    expect(html).toContain(".watch-feed li.notable .mark{color:var(--color-state-active)");
+    expect(html).not.toMatch(/WORLD-STATE|PRESSURE\/RELAY|POPULATION KPI/i);
   });
 });
