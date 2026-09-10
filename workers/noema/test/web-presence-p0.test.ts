@@ -39,6 +39,9 @@ describe("noema-web-presence-p0 — landing door", () => {
     expect(door).toContain('id="home-live"');
     expect(door).toMatch(/id="home-live"[^>]*hidden/);
     expect(door).toContain('id="home-now"');
+    expect(door).toContain('id="home-now-card"');
+    expect(door).toContain("home-now-card");
+    expect(door).toContain(">Now</p>");
     expect(door).toContain('live.className = "tag ok"');
     expect(door).not.toMatch(/id="rt-label"/);
     expect(door).not.toMatch(/id="dot"/);
@@ -108,6 +111,9 @@ describe("noema-web-presence-p0 — watch chrome", () => {
     expect(watch).toContain("align-items:start");
     expect(watch).toContain('id="watch-stage-line"');
     expect(watch).toContain("A public sketch — not the world.");
+    expect(watch).toContain("Watch the agents play.");
+    expect(watch).toContain("min-height:0");
+    expect(watch).toContain('id="watch-map-labels"');
     expect(watch).not.toMatch(/Orbitron|scanline|WORLD-STATE STRIP/i);
     expect(map.indexOf('id="watch-hero-who"')).toBeGreaterThan(map.indexOf('id="watch-map-gl"'));
     expect(text).not.toContain('from "three"');

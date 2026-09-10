@@ -18,10 +18,13 @@ import {
   mapFollowedRoomId,
   mapGlUsable,
   mapGraphBounds,
+  mapLabelScreenItems,
+  mapProjectPoint,
   mapPublicExitTarget,
   mapHeadsDisagree,
   mapNodeClassName,
   mapPublicRoomId,
+  mapRoomLabelText,
   mapStageNodes,
   watchMapGlInlineSource,
 } from "../src/watch-map-gl";
@@ -245,6 +248,7 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
       mapGlUsable,
       mapNodeClassName,
       mapStageNodes,
+      mapRoomLabelText,
     ];
     for (const fn of leaves) {
       const body = fn.toString().slice(fn.toString().indexOf("{") + 1, fn.toString().lastIndexOf("}"));
@@ -267,6 +271,75 @@ describe("built MAP chunk", () => {
     expect(stage).toContain("ResizeObserver");
     expect(stage).toContain("updateProjectionMatrix");
     expect(stage).toContain("mapCameraPose");
+    expect(stage).toContain("mapLabelScreenItems");
+    expect(stage).toContain("map-room-label");
     expect(stage).not.toContain("target.x + 3.4");
+  });
+});
+
+describe("public room labels", () => {
+  it("keeps real site names and fails closed on ids or empty", () => {
+    expect(mapRoomLabelText("Civic Exchange")).toBe("Civic Exchange");
+    expect(mapRoomLabelText("  Infrastructure Vault  ")).toBe("Infrastructure Vault");
+    expect(mapRoomLabelText("room.civic-exchange")).toBe("");
+    expect(mapRoomLabelText("")).toBe("");
+    expect(mapRoomLabelText(null)).toBe("");
+    expect(mapRoomLabelText("<img src=x>Civic")).not.toMatch(/[<>]/);
+    expect(mapRoomLabelText("<img src=x>Civic")).toContain("Civic");
+  });
+
+  it("projects only named public rooms through the Direct-Camera pose", () => {
+    const named = [
+      { room_id: "room.hub", name: "Civic Exchange", x: 1, y: 1 },
+      { room_id: "room.east", name: "room.east", x: 2, y: 0 },
+      { room_id: "room.ghost", name: "", x: 0, y: 2 },
+    ];
+    const pose = mapCameraPose({ rooms: named, focusId: "room.hub", aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms: named,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      focusId: "room.hub",
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].name).toBe("Civic Exchange");
+    expect(items[0].focus).toBe(true);
+    expect(items[0].x).toBeGreaterThan(40);
+    expect(items[0].x).toBeLessThan(600);
+    expect(items[0].y).toBeGreaterThan(20);
+    expect(items[0].y).toBeLessThan(340);
+    expect(JSON.stringify(items)).not.toContain("PRESSURE");
+    expect(JSON.stringify(items)).not.toContain("room.east");
+
+    const look = mapProjectPoint({
+      x: pose.lookX,
+      y: pose.lookY,
+      z: pose.lookZ,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+    });
+    expect(look.visible).toBe(true);
+    expect(look.x).toBeGreaterThan(240);
+    expect(look.x).toBeLessThan(400);
+    expect(look.y).toBeGreaterThan(120);
+    expect(look.y).toBeLessThan(240);
+    expect(mapLabelScreenItems({ rooms: named, pose: null, width: 640, height: 360 })).toEqual([]);
+    expect(mapProjectPoint({ x: 0, y: 0, z: 0, pose: null, width: 640, height: 360 }).visible).toBe(false);
+  });
+
+  it("ships the MAP overlay without inventing KPI rooms", () => {
+    const map = watchHtml({ mode: "map" });
+    expect(map).toContain('id="watch-map-labels"');
+    expect(map).toContain("map-room-label");
+    expect(map).toContain("mapRoomLabelText");
+    expect(map).toContain('labels: $("watch-map-labels")');
+    expect(map).not.toMatch(/WORLD-STATE STRIP|PRESSURE\/RELAY|POPULATION KPI/i);
+    expect(MAP_GL_CSS).toContain("map-labels");
+    expect(MAP_GL_CSS).toContain("map-room-label");
+    expect(MAP_STAGE_CSS).not.toMatch(/Orbitron|scanline/i);
   });
 });

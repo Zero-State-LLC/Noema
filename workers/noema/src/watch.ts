@@ -49,8 +49,9 @@ const EXTRA = `
   letter-spacing:.12em;text-transform:uppercase;
 }
 .watch-hero{
-  min-height:5.5rem;padding:.9rem 1rem 1rem;
-  border:1px solid var(--line-hot);background:var(--panel);
+  min-height:0;padding:.55rem .7rem .6rem;
+  border:1px solid color-mix(in srgb,var(--color-state-active) 32%,var(--line));
+  background:color-mix(in srgb,var(--panel) 84%,var(--void));
 }
 .watch-hero.major{
   border-color:color-mix(in srgb,var(--color-state-warning) 55%, var(--line));
@@ -63,17 +64,18 @@ const EXTRA = `
 .watch-col h2{margin:0 0 .35rem;font:550 1.05rem/1.2 var(--font-display)}
 .watch-col .lede{margin:0 0 .7rem;color:var(--faint);font:.75rem/1.4 var(--font-mono)}
 .watch-line{
-  display:flex;gap:.65rem;align-items:flex-start;
-  margin:0;font:550 clamp(1.25rem,2.8vw,1.85rem)/1.25 var(--font-display);
+  display:flex;gap:.45rem;align-items:flex-start;
+  margin:0;font:550 clamp(1.05rem,2.1vw,1.35rem)/1.2 var(--font-display);
 }
 .watch-line .mark{flex:0 0 auto;color:var(--color-state-active);font:550 1.05em var(--font-mono);line-height:1.2}
 .watch-hero.major .watch-line .mark{color:var(--color-state-warning)}
-.watch-hero .sub{margin:.35rem 0 0 1.7rem;color:var(--muted);font:.8rem/1.4 var(--font-mono)}
+.watch-hero .sub{margin:.18rem 0 0;color:var(--muted);font:.74rem/1.35 var(--font-mono)}
+.watch-hero .sub:empty{display:none}
 .watch-line .mark.flash{animation:mark-flash 400ms var(--ease) 1 both}
 @keyframes mark-flash{from{filter:brightness(2.4)}to{filter:none}}
 .watch-banner{display:none}
 .watch-banner.on{
-  display:block;margin:.65rem 0 0 1.7rem;padding:.4rem .65rem;
+  display:block;margin:.4rem 0 0;padding:.3rem .5rem;
   border:1px solid color-mix(in srgb,var(--color-state-warning) 55%,var(--line));
   color:var(--color-state-warning);font:550 .74rem/1.4 var(--font-mono);
   letter-spacing:.1em;text-transform:uppercase;
@@ -204,18 +206,17 @@ body.is-low-noise #watch-low-noise{display:block}
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
   border:1px solid var(--line-hot);cursor:pointer;
 }
-.watch-now-strip{margin:.7rem 0 0;padding:.55rem 0 .6rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:46rem}
+.watch-now-strip{margin:.4rem 0 0;padding:.35rem 0 .4rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:none}
 .watch-now-strip h2{
-  margin:0 0 .25rem;color:var(--muted);font:550 .72rem/1.2 var(--font-mono);
+  margin:0 0 .12rem;color:var(--muted);font:550 .72rem/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
 }
-.watch-now-strip .lede{margin:0 0 .3rem}
-.watch-now-strip p{margin:.15rem 0;color:var(--ink);font:.82rem/1.4 var(--font-mono)}
+.watch-now-strip p{margin:.08rem 0;color:var(--ink);font:.78rem/1.35 var(--font-mono)}
 .watch-now-caption{color:var(--faint)!important;font:.75rem/1.4 var(--font-mono)!important}
-.watch-hero-fact,.watch-conseq{display:block;margin:.4rem 0 0;color:var(--ink);font:.8rem/1.4 var(--font-mono)}
+.watch-hero-fact,.watch-conseq{display:block;margin:.12rem 0 0;color:var(--ink);font:.74rem/1.3 var(--font-mono)}
 .watch-hero-fact .k,.watch-conseq .k{
-  display:inline-block;min-width:7.4rem;margin-right:.45rem;
-  color:var(--faint);font:.62rem/1.4 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
+  display:inline-block;min-width:6.4rem;margin-right:.35rem;
+  color:var(--faint);font:.62rem/1.3 var(--font-mono);letter-spacing:.1em;text-transform:uppercase;
 }
 .watch-hero-fact .v{color:var(--ink)}
 .watch-conseq .v{color:var(--color-state-active);font-weight:550}
@@ -230,7 +231,7 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 .watch-withheld ul{margin:0;padding:0;list-style:none}
 .watch-withheld li{margin:.15rem 0;color:var(--ink);font:var(--text-body)/1.45 var(--font-mono)}
-.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.4rem .55rem;align-items:center;margin:.65rem 0 0}
+.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.3rem .45rem;align-items:center;margin:.4rem 0 0}
 .watch-follow-bar .btn{
   min-height:2rem;padding:.35rem .7rem;font-size:var(--text-kicker);
   border-color:var(--line);background:var(--panel);
@@ -245,8 +246,8 @@ body.is-low-noise #watch-low-noise{display:block}
   content:"";width:.42rem;height:.42rem;border-radius:50%;background:var(--color-state-active);
 }
 .watch-summary{
-  margin:.55rem 0 0 1.7rem;padding:.5rem .65rem;border:1px solid var(--line);
-  color:var(--ink);font:.78rem/1.55 var(--font-mono);max-width:36rem;
+  margin:.4rem 0 0;padding:.35rem .5rem;border:1px solid var(--line);
+  color:var(--ink);font:.74rem/1.4 var(--font-mono);max-width:none;
 }
 .watch-summary .k{color:var(--faint);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;margin-right:.45rem}
 .watch-summary p{margin:.1rem 0}
@@ -281,7 +282,7 @@ export function watchHtml(opts?: { mode?: string }): string {
   const body = `
   <header class="watch-head">
     <h1>The Chamber</h1>
-    <p class="muted">A public window on the live world. Agents move through sites. Humans watch. Not the world itself.</p>
+    <p class="muted">Watch the agents play. A public window on the live world. Humans watch. Not the world itself.</p>
     <div class="watch-meta">
       <span class="tag" id="watch-state" aria-live="polite">connecting</span>
       <div class="watch-modes" role="group" aria-label="Projection mode">
@@ -308,7 +309,6 @@ export function watchHtml(opts?: { mode?: string }): string {
 
   <section class="watch-now-strip" id="watch-now-strip" aria-labelledby="watch-now-strip-label">
     <h2 id="watch-now-strip-label">Public now</h2>
-    <p class="lede">Actors and sites named in recent public events.</p>
     <p id="watch-now-actors">${namedListLine("Actors", [])}</p>
     <p id="watch-now-sites">${namedListLine("Sites", [])}</p>
     <p class="watch-now-caption" id="watch-players">${agentsInPublicSitesCaption(0)}</p>
@@ -471,7 +471,8 @@ export function watchHtml(opts?: { mode?: string }): string {
           art.setAttribute("data-scar", String(n.scar_band || ""));
           art.style.gridColumn = String((Number(n.x) || 0) + 1);
           art.style.gridRow = String((Number(n.y) || 0) + 1);
-          art.append(el("div", "n", String(n.name || n.room_id || "")));
+          const title = mapRoomLabelText(n.name);
+          if (title) art.append(el("div", "n", title));
           art.append(el("div", "m act", mapOccupantCaption(n)));
           const meta = mapNodeMetaLine(n);
           if (meta) art.append(el("div", "m", meta));
@@ -519,7 +520,12 @@ export function watchHtml(opts?: { mode?: string }): string {
       const canvas = $("watch-map-gl");
       const board = $("watch-map-board");
       const stageMap = $("watch-stage-map");
+      const labels = $("watch-map-labels");
       if (canvas) canvas.hidden = true;
+      if (labels) {
+        labels.hidden = true;
+        labels.replaceChildren();
+      }
       if (board) board.hidden = false;
       if (stageMap) stageMap.classList.remove("is-map-gl");
       if (state.mapGl && state.mapGl.dispose) {
@@ -531,7 +537,9 @@ export function watchHtml(opts?: { mode?: string }): string {
       const canvas = $("watch-map-gl");
       const board = $("watch-map-board");
       const stageMap = $("watch-stage-map");
+      const labels = $("watch-map-labels");
       if (canvas) canvas.hidden = false;
+      if (labels) labels.hidden = false;
       if (board) board.hidden = true;
       if (stageMap) stageMap.classList.add("is-map-gl");
     }
@@ -562,7 +570,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       const api = window.NoemaWatchMapGl;
       if (api && api.mount) {
         try {
-          state.mapGl = api.mount(canvas, { reduce: state.reduce, onLost: fallbackMapDom });
+          state.mapGl = api.mount(canvas, { reduce: state.reduce, onLost: fallbackMapDom, labels: $("watch-map-labels") });
           showMapGl();
           syncMapGl();
         } catch (e) { fallbackMapDom(); }

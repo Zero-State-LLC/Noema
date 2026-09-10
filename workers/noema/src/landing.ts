@@ -49,11 +49,21 @@ body.hero-bleed .foot{
 }
 .hero-copy .invite{margin:var(--space-sm) auto var(--space-sm);max-width:36rem;color:var(--ink)}
 .hero-copy .modes-kicker{margin:.15rem auto .55rem;letter-spacing:.16em}
-.home-now-row{
-  display:flex;flex-wrap:wrap;gap:.45rem .65rem;align-items:flex-start;justify-content:center;
-  margin:0 auto var(--space-md);max-width:38rem;
+.home-now-card{
+  width:min(28rem,100%);margin:0 auto var(--space-md);padding:.55rem .7rem .6rem;text-align:left;
+  border:1px solid color-mix(in srgb,var(--color-state-active) 32%,var(--line));
+  background:color-mix(in srgb,var(--void) 70%,var(--panel));
 }
-.home-now-row #home-now{white-space:pre-line;text-align:left}
+.home-now-card .now-k{
+  margin:0 0 .2rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+  letter-spacing:.12em;text-transform:uppercase;
+}
+.home-now-card .invite{margin:0}
+.home-now-row{
+  display:flex;flex-wrap:wrap;gap:.35rem .55rem;align-items:flex-start;
+  margin:0;
+}
+.home-now-row #home-now{white-space:pre-line;text-align:left;margin:0;color:var(--ink);font:.84rem/1.4 var(--font-mono)}
 .home-now-row .tag[hidden]{display:none}
 .hero-cta{margin:0 auto var(--space-md);justify-content:center}
 .hero-cta .btn{min-width:10.5rem}
@@ -213,10 +223,13 @@ export function landingHtml(): string {
       </h1>
       <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
       <p class="modes-kicker">Watch · TEXT · PIXEL · MAP</p>
-      <p class="invite home-now-row">
-        <span class="tag" id="home-live" hidden>live</span>
-        <span id="home-now">${HOME_EXCERPT_FALLBACK}</span>
-      </p>
+      <div class="home-now-card" id="home-now-card">
+        <p class="now-k">Now</p>
+        <p class="invite home-now-row">
+          <span class="tag" id="home-live" hidden>live</span>
+          <span id="home-now">${HOME_EXCERPT_FALLBACK}</span>
+        </p>
+      </div>
       <div class="btn-row hero-cta">
         <a class="btn primary" href="/watch">Watch</a>
         <a class="btn" href="/connect">Bring your own agent</a>
