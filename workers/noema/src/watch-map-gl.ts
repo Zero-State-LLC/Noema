@@ -404,12 +404,19 @@ export function mapProjectPoint(opts?: {
 
 /** Public names only, screen-projected. Missing titles never become fake rooms. */
 export function mapLabelScreenItems(opts?: {
-  rooms?: Array<{ room_id?: string; name?: string; x?: unknown; y?: unknown } | null> | null;
+  rooms?: Array<{
+    room_id?: string;
+    name?: string;
+    x?: unknown;
+    y?: unknown;
+    active?: unknown;
+  } | null> | null;
   pose?: MapCamPose | null;
   aspect?: number | null;
   width?: number | null;
   height?: number | null;
   focusId?: string | null;
+  followId?: string | null;
 } | null): MapLabelItem[] {
   const o = opts || {};
   const rooms = Array.isArray(o.rooms) ? o.rooms : [];
@@ -418,6 +425,7 @@ export function mapLabelScreenItems(opts?: {
   const height = Number(o.height || 0);
   const aspect = Number(o.aspect) > 0.25 ? Number(o.aspect) : width > 2 && height > 2 ? width / height : 16 / 9;
   const focus = String(o.focusId || "");
+  const follow = String(o.followId || "");
   const out: MapLabelItem[] = [];
   if (!pose || width < 2 || height < 2) return out;
   for (let i = 0; i < rooms.length; i++) {
@@ -436,7 +444,9 @@ export function mapLabelScreenItems(opts?: {
       height,
     });
     if (!p.visible) continue;
-    out.push({ id, name, x: p.x, y: p.y, focus: !!id && id === focus });
+    // Same identity as the cyan GL node: camera target, follow, or live active.
+    const lit = !!id && (id === focus || id === follow || Boolean(r.active));
+    out.push({ id, name, x: p.x, y: p.y, focus: lit });
   }
   return out;
 }
