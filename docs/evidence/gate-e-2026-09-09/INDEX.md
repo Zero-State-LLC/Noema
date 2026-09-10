@@ -26,6 +26,7 @@ These rules bind the later run. This stub does not start that run.
 | File | Contents |
 |------|----------|
 | [candidate-declaration.md](candidate-declaration.md) | Immutable pin bind (initial). Run fields blank / TBD / `NOT_COMPUTABLE`. Gate E checklist unchecked |
+| [repin-2026-09-10.md](repin-2026-09-10.md) | Re-pin to current live Worker `7188ff8a…` (2026-09-10T03:41Z); Worker lineage since Prep bind; historical rows retained; fail-closed marks. NOT COMPLETE |
 
 ## OBSERVED live pins
 
