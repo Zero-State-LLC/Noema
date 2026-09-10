@@ -72,6 +72,8 @@ export const TOKEN_CSS = `:root{
   --teal:var(--color-state-active);
   --ember:var(--color-state-critical);
   --ok:var(--color-state-active);
+  --paper:var(--color-surface-panel);
+  --paper-2:var(--color-surface-band);
   --r:2px;
   --max:68rem;
   --pad:clamp(1rem,3.5vw,2.25rem);
@@ -81,6 +83,11 @@ export const TOKEN_CSS = `:root{
   --space-md:1.25rem;
   --space-lg:2rem;
   --space-xl:3.25rem;
+  --text-kicker:.72rem;
+  --text-meta:.62rem;
+  --text-ui:.84rem;
+  --text-body:.86rem;
+  --text-hero-line:clamp(1.35rem,3.4vw,2.35rem);
   --ease:cubic-bezier(.22,1,.36,1);
   --z-skip:6;
   --z-nav:4;

@@ -5,8 +5,15 @@
  */
 
 export const MAP_STAGE_CSS = `
-.map-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;min-height:16rem}
-.map-node{position:relative;padding:.55rem .5rem;border:1px solid var(--line);background:var(--paper);min-height:4.2rem;transition:transform .35s ease,box-shadow .35s ease}
+.map-stage{display:flex;flex-direction:column;gap:.45rem;min-width:0}
+.map-stage-head{display:flex;flex-wrap:wrap;gap:.35rem .85rem;align-items:baseline}
+.map-stage-head h2{margin:0;font:550 1.05rem/1.2 var(--font-display)}
+.map-stage-head .lede{margin:0;color:var(--faint);font:.75rem/1.4 var(--font-mono)}
+.map-board{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;min-height:16rem;
+  width:100%;padding:.45rem;border:1px solid var(--line);background:var(--void);
+}
+.map-node{position:relative;padding:.55rem .5rem;border:1px solid var(--line);background:var(--panel);min-height:4.2rem;transition:transform .35s ease,box-shadow .35s ease}
 .map-node.is-active{outline:2px solid var(--ink)}
 .map-node .n{font:550 .78rem/1.2 var(--font-mono)}
 .map-node .m{color:var(--faint);font:.62rem/1.3 var(--font-mono)}
@@ -14,9 +21,15 @@ export const MAP_STAGE_CSS = `
 .map-node[data-scar=""] .scar{display:none}
 .map-node[data-scar="faint"] .scar{opacity:.4}
 .map-node[data-scar="marked"] .scar{opacity:.7}
-.layer-toggles{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0}
+.map-chrome{
+  display:flex;flex-wrap:wrap;gap:.35rem 1.1rem;align-items:center;
+  margin:0;color:var(--faint);
+}
+.layer-toggles{display:flex;flex-wrap:wrap;gap:.35rem;margin:0}
 .layer-toggles button{font:.62rem/1.2 var(--font-mono)}
-.health dl{display:grid;grid-template-columns:1fr auto;gap:.2rem .8rem;margin:0;min-height:4.5rem}
+.health{display:flex;flex-wrap:wrap;gap:.25rem .75rem;align-items:baseline;min-width:0}
+.health .now-k{margin:0}
+.health dl{display:flex;flex-wrap:wrap;gap:.15rem .85rem;margin:0;min-height:0}
 .health dt{color:var(--faint);font:.62rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
 .health dd{margin:0;font:550 .82rem/1.2 var(--font-mono)}
 @media (prefers-reduced-motion:reduce){.map-node{transition:none}}
@@ -24,7 +37,7 @@ body.map-hide-activity .map-node .m.act{display:none}
 body.map-hide-state .map-node .scar{display:none}
 body.map-hide-health .health{display:none}
 #watch-stage-map[hidden],#watch-stage-places[hidden]{display:none}
-#watch-map-board[hidden]{display:none}
+#watch-map-board[hidden],#watch-stage-map.is-map-gl .map-board{display:none}
 `;
 
 export type MapNodePaint = {
@@ -118,16 +131,20 @@ export function watchMapInlineSource(): string {
 
 export function mapStageHtml(visible = false): string {
   return `
-      <div id="watch-stage-map"${visible ? "" : " hidden"}>
-        <h2 id="watch-map-stage-label">Map</h2>
-        <p class="lede">Richer spectator projection. Derived, not world truth.</p>
-        <div class="layer-toggles" id="watch-map-toggles" role="group" aria-label="Layers"></div>
+      <div id="watch-stage-map" class="map-stage"${visible ? "" : " hidden"}>
+        <div class="map-stage-head">
+          <h2 id="watch-map-stage-label">Map</h2>
+          <p class="lede">Richer spectator projection. Derived, not world truth.</p>
+        </div>
         <canvas id="watch-map-gl" class="map-gl" width="640" height="360" hidden aria-hidden="true"></canvas>
-        <div class="map-board" id="watch-map-board"></div>
+        <div class="map-chrome">
+          <div class="layer-toggles" id="watch-map-toggles" role="group" aria-label="Layers"></div>
+          <section class="health" aria-label="World health">
+            <h2 class="now-k">Health</h2>
+            <dl id="watch-map-health"></dl>
+          </section>
+        </div>
         <p id="watch-map-parity" class="map-parity" hidden></p>
-        <section class="health" aria-label="World health">
-          <h2 class="now-k">Health</h2>
-          <dl id="watch-map-health"></dl>
-        </section>
+        <div class="map-board" id="watch-map-board"></div>
       </div>`;
 }

@@ -3,8 +3,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { watchHtml } from "../src/watch";
+import { MAP_STAGE_CSS } from "../src/watch-map-page";
 import {
   MAP_CAM_EASE_MS,
+  MAP_GL_CSS,
   MAP_GL_SRC,
   MAP_PARITY_LINE,
   mapActionCameraRoom,
@@ -154,6 +156,26 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
     expect(map).not.toMatch(/id="watch-map-gl"[^>]*aria-live/);
   });
 
+  it("lets the GL canvas fill the map column and keeps Gate D on the rail", () => {
+    expect(MAP_GL_CSS).toMatch(/width:\s*100%/);
+    expect(MAP_GL_CSS).toMatch(/max-width:\s*none/);
+    expect(MAP_GL_CSS).toMatch(/aspect-ratio:\s*16\/9/);
+    expect(MAP_GL_CSS).not.toMatch(/max-width:\s*36rem/);
+    expect(MAP_STAGE_CSS).not.toMatch(/max-width:\s*36rem/);
+    expect(MAP_STAGE_CSS).toContain("map-chrome");
+    expect(MAP_STAGE_CSS).toContain("is-map-gl");
+    expect(map).toContain("map-stage");
+    expect(map).toContain("map-chrome");
+    expect(map).toContain('id="watch-map-board"');
+    expect(map.indexOf('id="watch-map-gl"')).toBeLessThan(map.indexOf('id="watch-map-toggles"'));
+    expect(map.indexOf('id="watch-map-gl"')).toBeLessThan(map.indexOf('id="watch-map-board"'));
+    expect(map).toContain(".watch-stage[data-mode=\"map\"]");
+    expect(map).toContain("is-map-gl");
+    expect(map).toContain("showMapGl");
+    expect(map).toContain('id="watch-hero-who"');
+    expect(map).toContain('id="watch-withheld"');
+  });
+
   it("does not put Three.js on the TEXT path and only lazy-loads the MAP chunk", () => {
     expect(map).toContain(MAP_GL_SRC);
     expect(map).toContain("tryMapGl");
@@ -201,5 +223,7 @@ describe("built MAP chunk", () => {
     expect(stage).not.toMatch(/Orbitron/i);
     expect(stage).not.toMatch(/ParticleSystem|FogExp2/);
     expect(stage).toMatch(/Event-born redraw only/);
+    expect(stage).toContain("ResizeObserver");
+    expect(stage).toContain("updateProjectionMatrix");
   });
 });

@@ -70,7 +70,6 @@ export function mountWatchMapGl(
   const renderer = new WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "low-power" });
   renderer.setPixelRatio(1);
   renderer.setClearColor(new Color(GROUND));
-  renderer.setSize(canvas.clientWidth || 640, canvas.clientHeight || 360, false);
   const scene = new Scene();
   scene.add(new AmbientLight(0xb8c4cc, 0.7));
   const key = new DirectionalLight(0xe8e4dc, 0.55);
@@ -93,6 +92,17 @@ export function mountWatchMapGl(
   function paint(): void {
     if (disposed) return;
     renderer.render(scene, camera);
+  }
+
+  function fit(): void {
+    if (disposed) return;
+    const w = canvas.clientWidth || 0;
+    const h = canvas.clientHeight || 0;
+    if (w < 2 || h < 2) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    paint();
   }
 
   function clearScene(): void {
@@ -158,10 +168,19 @@ export function mountWatchMapGl(
   }
 
   canvas.addEventListener("webglcontextlost", onContextLost);
+  let ro: ResizeObserver | null = null;
+  if (typeof ResizeObserver === "function") {
+    ro = new ResizeObserver(function () {
+      fit();
+    });
+    ro.observe(canvas);
+  }
+  fit();
 
   return {
     update(frame: StageFrame) {
       if (disposed) return;
+      fit();
       const rooms = Array.isArray(frame.rooms) ? frame.rooms : [];
       clearScene();
       addRooms(rooms, String(frame.followRoomId || ""), String(frame.majorRoomId || ""));
@@ -199,6 +218,7 @@ export function mountWatchMapGl(
     dispose() {
       stopRaf();
       disposed = true;
+      if (ro) ro.disconnect();
       canvas.removeEventListener("webglcontextlost", onContextLost);
       renderer.dispose();
     },

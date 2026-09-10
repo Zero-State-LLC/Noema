@@ -28,7 +28,7 @@ Do not conflate them. Chamber play stays readable text. Pages `index.html` is a 
 
 ### Theme
 
-Dark ledger · cyan signal `#3DDCFF` · Syne + IBM Plex Sans + IBM Plex Mono  
+Chamber tokens only (`--void` `#0E1114` · `--ink` `#E8E4DC` · cyan signal `#3DDCFF`) · Syne + IBM Plex Sans + IBM Plex Mono. Do not use a separate bone/olive Pages theme.
 Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/src/theme/tokens.ts`.
 
 | Page | Macrostructure |

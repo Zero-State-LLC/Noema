@@ -10,9 +10,13 @@ export const MAP_GL_SRC = "/assets/watch-map-gl.js";
 export const MAP_PARITY_LINE = "Map overlay is behind the live window.";
 
 export const MAP_GL_CSS = `
-.map-gl{display:block;width:100%;max-width:36rem;aspect-ratio:16/9;background:var(--void);border:1px solid var(--line)}
+.map-gl{
+  display:block;width:100%;max-width:none;height:auto;
+  aspect-ratio:16/9;min-height:min(52vh,28rem);
+  background:var(--void);border:1px solid var(--line);
+}
 .map-gl[hidden]{display:none}
-.map-parity{margin:.45rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
+.map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
 .map-parity[hidden]{display:none}
 .map-node.is-follow{outline:2px solid var(--color-state-active)}
 .map-node.is-cam{box-shadow:0 0 0 2px color-mix(in srgb,var(--color-state-warning) 55%,transparent)}

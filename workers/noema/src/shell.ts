@@ -60,9 +60,10 @@ button:disabled{opacity:.42;cursor:not-allowed}
 /* —— type + layout —— */
 .wrap{width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;padding:var(--space-lg) 0 var(--space-xl);scroll-margin-top:5.5rem}
 #main{scroll-margin-top:5.5rem}
-.kicker{
-  color:var(--color-state-active);font:600 .72rem/1.3 var(--font-display);letter-spacing:.14em;text-transform:uppercase;
+.kicker,.modes-kicker{
+  color:var(--color-state-active);font:600 var(--text-kicker)/1.3 var(--font-display);letter-spacing:.14em;text-transform:uppercase;
 }
+.modes-kicker{margin:.15rem 0 .55rem}
 .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 h1{
   margin:.2rem 0 .55rem;max-width:16ch;min-width:0;
@@ -117,11 +118,16 @@ select{cursor:pointer}
 .meta{display:flex;flex-wrap:wrap;gap:.4rem;color:var(--faint);font:.62rem var(--font-mono)}
 .meta span{padding:.2rem 0}
 .tag{
-  display:inline-flex;align-items:center;padding:.28rem .48rem;
+  display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .48rem;
   border:1px solid var(--line);border-radius:var(--r);
-  color:var(--muted);font:.58rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font:550 var(--text-meta)/1 var(--font-mono);letter-spacing:.12em;text-transform:uppercase;
 }
-.tag.ok{color:var(--color-state-active);border-color:var(--line)}
+.tag::before{
+  content:"";width:.42rem;height:.42rem;border-radius:50%;flex:0 0 auto;
+  background:currentColor;opacity:.55;
+}
+.tag.ok{color:var(--color-state-active);border-color:color-mix(in srgb,var(--color-state-active) 42%,var(--line))}
+.tag.ok::before{opacity:1}
 .tag.warn{color:var(--color-state-warning);border-color:var(--line)}
 .notice{min-height:1.2rem;margin:.55rem 0 0;color:var(--muted);font-size:.82rem}
 .notice.ok{color:var(--color-state-active)}.notice.bad{color:var(--color-state-critical)}
@@ -177,7 +183,10 @@ body.is-low-noise.hero-bleed .hero{min-height:0;justify-content:flex-start}
 body.is-low-noise.hero-bleed .hero-copy{
   text-align:left;padding:0;width:auto;max-width:none;margin:0;
 }
-body.is-low-noise.hero-bleed .hero-copy .invite{margin-left:0;margin-right:auto}
+body.is-low-noise.hero-bleed .hero-copy .invite,
+body.is-low-noise.hero-bleed .hero-copy .modes-kicker{margin-left:0;margin-right:auto}
+body.is-low-noise.hero-bleed .home-now-row,
+body.is-low-noise.hero-bleed .hero-cta{justify-content:flex-start}
 body.is-low-noise.hero-bleed .hero-gate{justify-content:start;justify-items:stretch}
 .glyph{display:inline-flex;align-items:center;justify-content:center;width:1rem;height:1rem;margin-right:.35rem;vertical-align:-.12em;flex:0 0 auto}
 .glyph svg{display:block;width:100%;height:100%}
