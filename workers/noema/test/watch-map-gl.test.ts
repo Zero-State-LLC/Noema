@@ -273,6 +273,7 @@ describe("built MAP chunk", () => {
     expect(stage).toContain("mapCameraPose");
     expect(stage).toContain("mapLabelScreenItems");
     expect(stage).toContain("map-room-label");
+    expect(stage).toContain("followId: lastFollow");
     expect(stage).not.toContain("target.x + 3.4");
   });
 });
@@ -340,6 +341,7 @@ describe("public room labels", () => {
     expect(map).not.toMatch(/WORLD-STATE STRIP|PRESSURE\/RELAY|POPULATION KPI/i);
     expect(MAP_GL_CSS).toContain("map-labels");
     expect(MAP_GL_CSS).toContain("map-room-label");
+    expect(MAP_GL_CSS).toMatch(/\.map-room-label\.is-focus\{color:var\(--color-state-active\)/);
     expect(MAP_STAGE_CSS).not.toMatch(/Orbitron|scanline/i);
   });
 
@@ -390,9 +392,46 @@ describe("public room labels", () => {
     });
     expect(items.map((it) => it.name).sort()).toEqual(["Archive", "Civic Exchange"]);
     expect(items.some((it) => it.name === "Civic Exchange" && it.focus)).toBe(true);
+    expect(items.some((it) => it.name === "Archive" && it.focus)).toBe(false);
     expect(items.some((it) => it.name === "room.ghost" || it.id === "room.ghost")).toBe(false);
     expect(items.map((it) => it.name).join(" ")).not.toMatch(/room\./);
     expect(JSON.stringify(items)).not.toContain("PRESSURE");
+  });
+
+  it("marks the live active site as focus when the camera target is empty", () => {
+    const rooms = [
+      { room_id: "room.civic-exchange", name: "Civic Exchange", x: 1, y: 1, active: true },
+      { room_id: "room.archive", name: "Archive", x: 0, y: 0, active: false },
+    ];
+    const pose = mapCameraPose({ rooms, aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      focusId: "",
+    });
+    expect(items.find((it) => it.name === "Civic Exchange")?.focus).toBe(true);
+    expect(items.find((it) => it.name === "Archive")?.focus).toBe(false);
+  });
+
+  it("marks a followed public site as focus without inventing a camera target", () => {
+    const rooms = [
+      { room_id: "room.relay-quarter", name: "Relay Quarter", x: 0, y: 1 },
+      { room_id: "room.archive", name: "Archive", x: 0, y: 0 },
+    ];
+    const pose = mapCameraPose({ rooms, aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      followId: "room.relay-quarter",
+    });
+    expect(items.find((it) => it.name === "Relay Quarter")?.focus).toBe(true);
+    expect(items.find((it) => it.name === "Archive")?.focus).toBe(false);
   });
 
   it("stacks the site-name overlay above the WebGL canvas", () => {

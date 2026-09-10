@@ -80,6 +80,7 @@ export function mountWatchMapGl(
   const nodes: Record<string, Vector3> = {};
   let raf = 0;
   let lastFocus = "";
+  let lastFollow = "";
   let lastRooms: StageRoom[] = [];
   let lastLook = { lookX: 0, lookY: 0.55, lookZ: 0 };
   let disposed = false;
@@ -118,6 +119,7 @@ export function mountWatchMapGl(
       width: w,
       height: h,
       focusId: lastFocus,
+      followId: lastFollow,
     });
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -231,6 +233,7 @@ export function mountWatchMapGl(
       lastRooms = rooms;
       clearScene();
       addRooms(rooms, String(frame.followRoomId || ""), String(frame.majorRoomId || ""));
+      lastFollow = String(frame.followRoomId || "");
       const focus = String(frame.focusRoomId || lastFocus || "");
       lastFocus = focus;
       applyPose(focus);
