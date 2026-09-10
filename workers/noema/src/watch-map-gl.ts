@@ -8,6 +8,8 @@
 export const MAP_CAM_EASE_MS = 560;
 export const MAP_GL_SRC = "/assets/watch-map-gl.js";
 export const MAP_PARITY_LINE = "Map overlay is behind the live window.";
+/** Map poll failed or came back empty; sites stay on the last agreed public map. */
+export const MAP_PARITY_HOLD_LINE = "Map overlay is behind the live window. Sites stay on the last agreed map.";
 
 export const MAP_GL_CSS = `
 .map-gl-frame{position:relative;min-width:0;isolation:isolate}
@@ -30,6 +32,7 @@ export const MAP_GL_CSS = `
   text-shadow:0 1px 2px var(--void);
 }
 .map-room-label.is-focus{color:var(--color-state-active);font-weight:650}
+.map-labels.is-held .map-room-label{opacity:.72}
 .map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
 .map-parity[hidden]{display:none}
 .map-node.is-follow{outline:2px solid var(--color-state-active)}
@@ -249,6 +252,49 @@ export function mapHeadsDisagree(
   return false;
 }
 
+export type MapParityState = "" | "behind" | "hold";
+
+/**
+ * Parity is honest, not decorative: empty when heads agree, "behind" when the
+ * map JSON lags live, "hold" when the map poll failed or came back empty and
+ * the sketch is drawn from the last agreed public map. Live stays SoT.
+ */
+export function mapParityState(opts?: {
+  live?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null;
+  map?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null;
+  failed?: boolean | null;
+  holding?: boolean | null;
+} | null): MapParityState {
+  const o = opts || {};
+  if (o.failed) return o.holding ? "hold" : "behind";
+  if (!mapHeadsDisagree(o.live, o.map)) return "";
+  return o.holding ? "hold" : "behind";
+}
+
+/**
+ * Map coords are static public x/y. A behind, failed, or empty map poll never
+ * wipes the coords already agreed; a non-empty poll always replaces them.
+ */
+export function mapHoldCoordRooms(
+  fetched?: { base?: { rooms?: unknown } | null } | null,
+  held?: MapCamRoom[] | null,
+): MapCamRoom[] {
+  const base = fetched && fetched.base ? fetched.base : null;
+  const next = base && Array.isArray(base.rooms) ? (base.rooms as MapCamRoom[]) : [];
+  if (next.length) return next;
+  return Array.isArray(held) ? held : [];
+}
+
+/**
+ * An empty live frame is a transient, not a topology change. Keep the last
+ * agreed public sketch instead of wiping it. Never adds a room.
+ */
+export function mapHoldStageRooms<T>(next?: T[] | null, prev?: T[] | null): T[] {
+  const n = Array.isArray(next) ? next : [];
+  if (n.length) return n;
+  return Array.isArray(prev) ? prev : [];
+}
+
 export function mapGlUsable(canvas?: { getContext?: (id: string) => unknown } | null): boolean {
   if (!canvas || !canvas.getContext) return false;
   try {
@@ -460,6 +506,9 @@ const MAP_GL_INLINE_FNS = [
   mapCameraTarget,
   mapCameraEaseMs,
   mapHeadsDisagree,
+  mapParityState,
+  mapHoldCoordRooms,
+  mapHoldStageRooms,
   mapGlUsable,
   mapNodeClassName,
   mapStageNodes,

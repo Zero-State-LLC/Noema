@@ -17,7 +17,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { MAP_CAM_FOV_DEG, MAP_ROOM_GAP, mapCameraPose, mapLabelScreenItems } from "./watch-map-gl";
+import { MAP_CAM_FOV_DEG, MAP_ROOM_GAP, mapCameraPose, mapHoldStageRooms, mapLabelScreenItems } from "./watch-map-gl";
 
 export type StageRoom = {
   room_id?: string;
@@ -102,9 +102,11 @@ export function mountWatchMapGl(
   function paintLabels(): void {
     if (!overlay) return;
     overlay.hidden = false;
-    overlay.replaceChildren();
     const w = canvas.clientWidth || overlay.clientWidth || 0;
     const h = canvas.clientHeight || overlay.clientHeight || 0;
+    // A zero-size canvas (hidden tab, mid-layout) cannot project anything.
+    // Keep the last painted names instead of wiping the overlay to nothing.
+    if (w < 2 || h < 2) return;
     const items = mapLabelScreenItems({
       rooms: lastRooms,
       pose: {
@@ -121,6 +123,14 @@ export function mountWatchMapGl(
       focusId: lastFocus,
       followId: lastFollow,
     });
+    // Rooms exist but none projected (pose not settled yet): hold the last
+    // agreed names rather than flashing an empty sketch. Marked as held.
+    if (!items.length && lastRooms.length && overlay.childElementCount > 0) {
+      overlay.classList.add("is-held");
+      return;
+    }
+    overlay.classList.remove("is-held");
+    overlay.replaceChildren();
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const li = document.createElement("li");
@@ -229,7 +239,8 @@ export function mountWatchMapGl(
     update(frame: StageFrame) {
       if (disposed) return;
       fit();
-      const rooms = Array.isArray(frame.rooms) ? frame.rooms : [];
+      // An empty frame (map behind live, poll gap) never wipes the sketch.
+      const rooms = mapHoldStageRooms(frame.rooms, lastRooms);
       lastRooms = rooms;
       clearScene();
       addRooms(rooms, String(frame.followRoomId || ""), String(frame.majorRoomId || ""));

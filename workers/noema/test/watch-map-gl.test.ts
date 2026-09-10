@@ -8,6 +8,7 @@ import {
   MAP_CAM_EASE_MS,
   MAP_GL_CSS,
   MAP_GL_SRC,
+  MAP_PARITY_HOLD_LINE,
   MAP_PARITY_LINE,
   MAP_ROOM_GAP,
   mapActionCameraRoom,
@@ -22,7 +23,10 @@ import {
   mapProjectPoint,
   mapPublicExitTarget,
   mapHeadsDisagree,
+  mapHoldCoordRooms,
+  mapHoldStageRooms,
   mapNodeClassName,
+  mapParityState,
   mapPublicRoomId,
   mapRoomLabelText,
   mapStageNodes,
@@ -132,6 +136,45 @@ describe("parity and fallback", () => {
     expect(mapHeadsDisagree(live, { ...live, freshness: "stale" })).toBe(true);
     expect(mapHeadsDisagree(live, null)).toBe(false);
     expect(MAP_PARITY_LINE).toBe("Map overlay is behind the live window.");
+  });
+
+  it("keeps the parity line honest: agree, behind, or held on a failed poll", () => {
+    const live = { world_id: "world.a", cycle: 4, sequence: 9, freshness: "live" };
+    expect(mapParityState({ live, map: { ...live } })).toBe("");
+    expect(mapParityState({ live, map: { ...live, sequence: 8 } })).toBe("behind");
+    expect(mapParityState({ live, map: { ...live, sequence: 8 }, holding: true })).toBe("hold");
+    expect(mapParityState({ live, map: null, failed: true })).toBe("behind");
+    expect(mapParityState({ live, map: null, failed: true, holding: true })).toBe("hold");
+    expect(mapParityState(null)).toBe("");
+    expect(MAP_PARITY_HOLD_LINE.startsWith(MAP_PARITY_LINE)).toBe(true);
+    expect(MAP_PARITY_HOLD_LINE).not.toMatch(/PRESSURE|RELAY|TRADE|POP/);
+  });
+
+  it("survives a map poll that is behind, failed, or empty without wiping coords", () => {
+    const held = [{ room_id: "room.hub", name: "Hub", x: 1, y: 2 }];
+    const fresh = { base: { rooms: [{ room_id: "room.hub", name: "Hub", x: 3, y: 4 }] } };
+    expect(mapHoldCoordRooms(fresh, held)).toEqual(fresh.base.rooms);
+    expect(mapHoldCoordRooms({ base: { rooms: [] } }, held)).toBe(held);
+    expect(mapHoldCoordRooms(null, held)).toBe(held);
+    expect(mapHoldCoordRooms(null, null)).toEqual([]);
+    // Held coords still merge onto the live snapshot; no map-only room appears.
+    const live = [{ room_id: "room.hub", name: "Hub", active: true }];
+    const nodes = mapStageNodes(live, mapHoldCoordRooms(null, held));
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].x).toBe(1);
+    expect(nodes[0].y).toBe(2);
+  });
+
+  it("never wipes the last agreed sketch on an empty frame and never adds a room", () => {
+    const prev = [{ room_id: "room.hub", name: "Hub", x: 0, y: 0 }];
+    expect(mapHoldStageRooms([], prev)).toBe(prev);
+    expect(mapHoldStageRooms(null, prev)).toBe(prev);
+    expect(mapHoldStageRooms([], [])).toEqual([]);
+    const next = [{ room_id: "room.east", name: "East", x: 1, y: 0 }];
+    expect(mapHoldStageRooms(next, prev)).toBe(next);
+    const pose = mapCameraPose({ rooms: mapHoldStageRooms([], prev), aspect: 16 / 9 });
+    const items = mapLabelScreenItems({ rooms: mapHoldStageRooms([], prev), pose, aspect: 16 / 9, width: 640, height: 360 });
+    expect(items.map((it) => it.name)).toEqual(["Hub"]);
   });
 
   it("refuses GL without a WebGL context", () => {
@@ -245,6 +288,9 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
       mapCameraTarget,
       mapCameraEaseMs,
       mapHeadsDisagree,
+      mapParityState,
+      mapHoldCoordRooms,
+      mapHoldStageRooms,
       mapGlUsable,
       mapNodeClassName,
       mapStageNodes,
@@ -442,5 +488,21 @@ describe("public room labels", () => {
     const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
     expect(html).toMatch(/\.map-labels\{[^}]*z-index:1/);
     expect(stage).toMatch(/overlay\.hidden\s*=\s*false/);
+  });
+
+  it("holds labels and coords when the map is behind live instead of wiping them", () => {
+    const html = watchHtml({ mode: "map" });
+    expect(html).toContain("mapHoldCoordRooms");
+    expect(html).toContain("mapParityState");
+    expect(html).toContain(MAP_PARITY_HOLD_LINE);
+    expect(html).toContain("state.mapCoords");
+    expect(MAP_GL_CSS).toMatch(/\.map-labels\.is-held/);
+    const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
+    expect(stage).toContain("mapHoldStageRooms(frame.rooms, lastRooms)");
+    // Zero-size canvas returns before any replaceChildren on the overlay.
+    const paint = stage.slice(stage.indexOf("function paintLabels"), stage.indexOf("function stopRaf"));
+    expect(paint.indexOf("if (w < 2 || h < 2) return;")).toBeLessThan(paint.indexOf("overlay.replaceChildren()"));
+    expect(paint).toContain('overlay.classList.add("is-held")');
+    expect(stage).not.toMatch(/Orbitron|scanline|particle/i);
   });
 });
