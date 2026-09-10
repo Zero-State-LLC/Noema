@@ -100,9 +100,10 @@ export function mountWatchMapGl(
 
   function paintLabels(): void {
     if (!overlay) return;
+    overlay.hidden = false;
     overlay.replaceChildren();
-    const w = canvas.clientWidth || 0;
-    const h = canvas.clientHeight || 0;
+    const w = canvas.clientWidth || overlay.clientWidth || 0;
+    const h = canvas.clientHeight || overlay.clientHeight || 0;
     const items = mapLabelScreenItems({
       rooms: lastRooms,
       pose: {

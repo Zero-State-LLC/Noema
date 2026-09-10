@@ -10,15 +10,16 @@ export const MAP_GL_SRC = "/assets/watch-map-gl.js";
 export const MAP_PARITY_LINE = "Map overlay is behind the live window.";
 
 export const MAP_GL_CSS = `
-.map-gl-frame{position:relative;min-width:0}
+.map-gl-frame{position:relative;min-width:0;isolation:isolate}
 .map-gl{
   display:block;width:100%;max-width:none;height:auto;
   aspect-ratio:16/9;min-height:min(52vh,28rem);
   background:var(--panel);border:1px solid var(--line-hot);
+  position:relative;z-index:0; /* WebGL layer otherwise covers sibling labels */
 }
 .map-gl[hidden]{display:none}
 .map-labels{
-  position:absolute;inset:0;margin:0;padding:0;list-style:none;
+  position:absolute;inset:0;z-index:1;margin:0;padding:0;list-style:none;
   pointer-events:none;overflow:hidden;
 }
 .map-labels[hidden]{display:none}
@@ -314,7 +315,7 @@ export function mapStageNodes(
     }
     out.push({
       room_id: r.room_id,
-      name: r.name || r.room_id,
+      name: r.name || (m && m.name) || "",
       x,
       y,
       players_present: Number(r.players_present || 0),
