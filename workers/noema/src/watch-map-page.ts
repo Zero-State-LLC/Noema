@@ -38,7 +38,7 @@ export const MAP_STAGE_CSS = `
   border-color:color-mix(in srgb,var(--color-state-active) 45%,var(--line));
   color:var(--color-state-active);
 }
-.health{display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:baseline;min-width:0}
+.map-chrome-health,.health{display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:baseline;min-width:0}
 .health dl{
   display:grid;grid-template-columns:repeat(3,minmax(5rem,auto));
   gap:.12rem 1.25rem;margin:0;min-height:0;

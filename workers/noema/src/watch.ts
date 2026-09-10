@@ -157,7 +157,8 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
   from{background:color-mix(in srgb,var(--color-state-active) 12%,transparent)}
   to{background:transparent}
 }
-.watch-feed .line{display:block;overflow-wrap:anywhere}
+.watch-feed .line{overflow-wrap:anywhere}
+.watch-feed .line{display:block}
 .watch-feed .facts{display:block;margin-top:.2rem;color:var(--muted);font:.74rem/1.4 var(--font-mono)}
 .watch-feed .meta{display:block;margin-top:.12rem;color:var(--faint);font:.7rem}
 .watch-empty{
