@@ -49,12 +49,13 @@ Recorded so the log is not silent. Still not Path 8.
 | When (UTC) | Class | Notes | Status |
 |------------|-------|-------|--------|
 | `2026-09-09T22:37:57Z` | Controller remint | [phase-b-remint-mid.md](phase-b-remint-mid.md) — `NOT_AUTHORIZED` creds expired | **OBSERVED** (not Path 8; no Deploy) |
+| `2026-09-10T04:05:40Z` | Controller remint4 | [phase-b-remint4.md](phase-b-remint4.md) — remint3 `NOT_AUTHORIZED` → new trio OK @ 19352; continuity gap ~4.5h; `ends_at` unchanged | **OBSERVED** |
 
 ---
 
 ## Budget
 
-Whether the six Phase B CONTROL_PLANE publishes, the two Phase A calendar publishes, and the mid-run remint fit a declared intervention budget is **NOT_COMPUTABLE** from this repository alone. Do not score bounded-interventions PASS from these rows.
+Whether the six Phase B CONTROL_PLANE publishes, the two Phase A calendar publishes, the mid-run remint, and remint4 fit a declared intervention budget is **NOT_COMPUTABLE** from this repository alone. Do not score bounded-interventions PASS from these rows.
 
 ---
 
