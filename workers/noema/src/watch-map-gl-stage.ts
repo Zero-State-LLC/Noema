@@ -17,7 +17,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { MAP_CAM_FOV_DEG, MAP_ROOM_GAP, mapCameraPose } from "./watch-map-gl";
+import { MAP_CAM_FOV_DEG, MAP_ROOM_GAP, mapCameraPose, mapLabelScreenItems } from "./watch-map-gl";
 
 export type StageRoom = {
   room_id?: string;
@@ -63,10 +63,11 @@ function boxColor(n: StageRoom, followId: string, majorId: string): number {
 
 export function mountWatchMapGl(
   canvas: HTMLCanvasElement,
-  opts?: { reduce?: boolean; onLost?: LostFn },
+  opts?: { reduce?: boolean; onLost?: LostFn; labels?: HTMLElement | null },
 ): { update: (frame: StageFrame) => void; focus: (roomId: string, easeMs: number) => void; dispose: () => void } {
   const reduce = Boolean(opts && opts.reduce);
   const onLost = opts && opts.onLost;
+  const overlay = opts && opts.labels;
   const renderer = new WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "low-power" });
   renderer.setPixelRatio(1);
   renderer.setClearColor(new Color(GROUND));
@@ -80,6 +81,7 @@ export function mountWatchMapGl(
   let raf = 0;
   let lastFocus = "";
   let lastRooms: StageRoom[] = [];
+  let lastLook = { lookX: 0, lookY: 0.55, lookZ: 0 };
   let disposed = false;
 
   function canvasAspect(): number {
@@ -92,7 +94,39 @@ export function mountWatchMapGl(
     const pose = mapCameraPose({ rooms: lastRooms, focusId, aspect: canvasAspect() });
     camera.position.set(pose.eyeX, pose.eyeY, pose.eyeZ);
     camera.lookAt(pose.lookX, pose.lookY, pose.lookZ);
+    lastLook = { lookX: pose.lookX, lookY: pose.lookY, lookZ: pose.lookZ };
     return pose;
+  }
+
+  function paintLabels(): void {
+    if (!overlay) return;
+    overlay.replaceChildren();
+    const w = canvas.clientWidth || 0;
+    const h = canvas.clientHeight || 0;
+    const items = mapLabelScreenItems({
+      rooms: lastRooms,
+      pose: {
+        eyeX: camera.position.x,
+        eyeY: camera.position.y,
+        eyeZ: camera.position.z,
+        lookX: lastLook.lookX,
+        lookY: lastLook.lookY,
+        lookZ: lastLook.lookZ,
+      },
+      aspect: canvasAspect(),
+      width: w,
+      height: h,
+      focusId: lastFocus,
+    });
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const li = document.createElement("li");
+      li.className = item.focus ? "map-room-label is-focus" : "map-room-label";
+      li.textContent = item.name;
+      li.style.left = item.x + "px";
+      li.style.top = item.y + "px";
+      overlay.appendChild(li);
+    }
   }
 
   function stopRaf(): void {
@@ -104,6 +138,7 @@ export function mountWatchMapGl(
   function paint(): void {
     if (disposed) return;
     renderer.render(scene, camera);
+    paintLabels();
   }
 
   function fit(): void {
@@ -231,6 +266,7 @@ export function mountWatchMapGl(
     dispose() {
       stopRaf();
       disposed = true;
+      if (overlay) overlay.replaceChildren();
       if (ro) ro.disconnect();
       canvas.removeEventListener("webglcontextlost", onContextLost);
       renderer.dispose();

@@ -216,7 +216,10 @@ describe("watch HTML ships Gate D TEXT chrome", () => {
     expect(html).toContain('id="watch-stage-line"');
     expect(html).toContain("A public sketch — not the world.");
     expect(html).toContain("Public sketch — not the world.");
+    expect(html).toContain("Watch the agents play.");
+    expect(html).toContain(".watch-hero .sub:empty{display:none}");
     expect(html).toContain(".watch-feed li.notable .mark{color:var(--color-state-active)");
+    expect(html).not.toContain("Actors and sites named in recent public events.");
     expect(html).not.toMatch(/WORLD-STATE|PRESSURE\/RELAY|POPULATION KPI/i);
   });
 });

@@ -185,6 +185,7 @@ body.is-low-noise.hero-bleed .hero-copy{
 }
 body.is-low-noise.hero-bleed .hero-copy .invite,
 body.is-low-noise.hero-bleed .hero-copy .modes-kicker{margin-left:0;margin-right:auto}
+body.is-low-noise.hero-bleed .home-now-card,
 body.is-low-noise.hero-bleed .home-now-row,
 body.is-low-noise.hero-bleed .hero-cta{justify-content:flex-start}
 body.is-low-noise.hero-bleed .hero-gate{justify-content:start;justify-items:stretch}

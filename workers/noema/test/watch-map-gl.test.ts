@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import { watchHtml } from "../src/watch";
 import { MAP_STAGE_CSS } from "../src/watch-map-page";
 import {
   MAP_CAM_EASE_MS,
+  MAP_CAM_FOV_DEG,
   MAP_GL_CSS,
   MAP_GL_SRC,
   MAP_PARITY_LINE,
@@ -18,10 +20,13 @@ import {
   mapFollowedRoomId,
   mapGlUsable,
   mapGraphBounds,
+  mapLabelScreenItems,
+  mapProjectPoint,
   mapPublicExitTarget,
   mapHeadsDisagree,
   mapNodeClassName,
   mapPublicRoomId,
+  mapRoomLabelText,
   mapStageNodes,
   watchMapGlInlineSource,
 } from "../src/watch-map-gl";
@@ -245,6 +250,7 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
       mapGlUsable,
       mapNodeClassName,
       mapStageNodes,
+      mapRoomLabelText,
     ];
     for (const fn of leaves) {
       const body = fn.toString().slice(fn.toString().indexOf("{") + 1, fn.toString().lastIndexOf("}"));
@@ -267,6 +273,80 @@ describe("built MAP chunk", () => {
     expect(stage).toContain("ResizeObserver");
     expect(stage).toContain("updateProjectionMatrix");
     expect(stage).toContain("mapCameraPose");
+    expect(stage).toContain("mapLabelScreenItems");
+    expect(stage).toContain("map-room-label");
     expect(stage).not.toContain("target.x + 3.4");
+  });
+});
+
+describe("public room labels", () => {
+  it("keeps real site names and fails closed on ids or empty", () => {
+    expect(mapRoomLabelText("Civic Exchange")).toBe("Civic Exchange");
+    expect(mapRoomLabelText("  Infrastructure Vault  ")).toBe("Infrastructure Vault");
+    expect(mapRoomLabelText("room.civic-exchange")).toBe("");
+    expect(mapRoomLabelText("")).toBe("");
+    expect(mapRoomLabelText(null)).toBe("");
+    expect(mapRoomLabelText("<img src=x>Civic")).not.toMatch(/[<>]/);
+    expect(mapRoomLabelText("<img src=x>Civic")).toContain("Civic");
+  });
+
+  it("projects only named public rooms and matches Three.js Direct-Camera", () => {
+    const named = [
+      { room_id: "room.hub", name: "Civic Exchange", x: 1, y: 1 },
+      { room_id: "room.east", name: "room.east", x: 2, y: 0 },
+      { room_id: "room.ghost", name: "", x: 0, y: 2 },
+    ];
+    const pose = mapCameraPose({ rooms: named, focusId: "room.hub", aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms: named,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      focusId: "room.hub",
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].name).toBe("Civic Exchange");
+    expect(items[0].focus).toBe(true);
+    expect(items[0].x).toBeGreaterThan(40);
+    expect(items[0].x).toBeLessThan(600);
+    expect(items[0].y).toBeGreaterThan(20);
+    expect(items[0].y).toBeLessThan(340);
+    expect(JSON.stringify(items)).not.toContain("PRESSURE");
+    expect(JSON.stringify(items)).not.toContain("room.east");
+
+    const cam = new PerspectiveCamera(MAP_CAM_FOV_DEG, 16 / 9, 0.1, 80);
+    cam.position.set(pose.eyeX, pose.eyeY, pose.eyeZ);
+    cam.lookAt(pose.lookX, pose.lookY, pose.lookZ);
+    cam.updateMatrixWorld();
+    const world = new Vector3(MAP_ROOM_GAP, 0.82, MAP_ROOM_GAP).project(cam);
+    const threeX = (world.x * 0.5 + 0.5) * 640;
+    const threeY = (-world.y * 0.5 + 0.5) * 360;
+    const got = mapProjectPoint({
+      x: MAP_ROOM_GAP,
+      y: 0.82,
+      z: MAP_ROOM_GAP,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+    });
+    expect(got.visible).toBe(true);
+    expect(got.x).toBeCloseTo(threeX, 1);
+    expect(got.y).toBeCloseTo(threeY, 1);
+    expect(mapLabelScreenItems({ rooms: named, pose: null, width: 640, height: 360 })).toEqual([]);
+    expect(mapProjectPoint({ x: 0, y: 0, z: 0, pose: null, width: 640, height: 360 }).visible).toBe(false);
+  });
+
+  it("ships the MAP overlay without inventing KPI rooms", () => {
+    const map = watchHtml({ mode: "map" });
+    expect(map).toContain('id="watch-map-labels"');
+    expect(map).toContain("map-room-label");
+    expect(map).toContain("mapRoomLabelText");
+    expect(map).toContain('labels: $("watch-map-labels")');
+    expect(map).not.toMatch(/WORLD-STATE STRIP|PRESSURE\/RELAY|POPULATION KPI/i);
+    expect(MAP_GL_CSS).toContain("map-labels");
+    expect(MAP_GL_CSS).toContain("map-room-label");
+    expect(MAP_STAGE_CSS).not.toMatch(/Orbitron|scanline/i);
   });
 });

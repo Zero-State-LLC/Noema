@@ -10,12 +10,25 @@ export const MAP_GL_SRC = "/assets/watch-map-gl.js";
 export const MAP_PARITY_LINE = "Map overlay is behind the live window.";
 
 export const MAP_GL_CSS = `
+.map-gl-frame{position:relative;min-width:0}
 .map-gl{
   display:block;width:100%;max-width:none;height:auto;
   aspect-ratio:16/9;min-height:min(52vh,28rem);
   background:var(--panel);border:1px solid var(--line-hot);
 }
 .map-gl[hidden]{display:none}
+.map-labels{
+  position:absolute;inset:0;margin:0;padding:0;list-style:none;
+  pointer-events:none;overflow:hidden;
+}
+.map-labels[hidden]{display:none}
+.map-room-label{
+  position:absolute;transform:translate(-50%,.28rem);
+  max-width:9.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--ink);font:550 .68rem/1.2 var(--font-mono);
+  text-shadow:0 1px 2px var(--void);
+}
+.map-room-label.is-focus{color:var(--color-state-active);font-weight:650}
 .map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
 .map-parity[hidden]{display:none}
 .map-node.is-follow{outline:2px solid var(--color-state-active)}
@@ -313,6 +326,120 @@ export function mapStageNodes(
   return out;
 }
 
+/** Public site title only. Raw room.* ids and empty names stay off the sketch. */
+export function mapRoomLabelText(name?: string | null): string {
+  const t = String(name || "").trim().replace(/[<>&"'`]/g, "").replace(/[\u0000-\u001f\u007f]/g, "");
+  if (!t) return "";
+  if (/^room\./i.test(t)) return "";
+  return t.length > 32 ? t.slice(0, 32) : t;
+}
+
+export type MapLabelItem = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  focus: boolean;
+};
+
+/**
+ * Project a world point through the Direct-Camera pose. Matches Three.js
+ * PerspectiveCamera + lookAt (Y-up, camera looks down −Z).
+ */
+export function mapProjectPoint(opts?: {
+  x?: number | null;
+  y?: number | null;
+  z?: number | null;
+  pose?: MapCamPose | null;
+  aspect?: number | null;
+  width?: number | null;
+  height?: number | null;
+  fovDeg?: number | null;
+} | null): { x: number; y: number; visible: boolean } {
+  const o = opts || {};
+  const pose = o.pose;
+  const width = Number(o.width || 0);
+  const height = Number(o.height || 0);
+  if (!pose || width < 2 || height < 2) return { x: 0, y: 0, visible: false };
+  const wx = Number(o.x || 0);
+  const wy = Number(o.y || 0);
+  const wz = Number(o.z || 0);
+  const dx = wx - pose.eyeX;
+  const dy = wy - pose.eyeY;
+  const dz = wz - pose.eyeZ;
+  let zx = pose.eyeX - pose.lookX;
+  let zy = pose.eyeY - pose.lookY;
+  let zz = pose.eyeZ - pose.lookZ;
+  let zlen = Math.sqrt(zx * zx + zy * zy + zz * zz);
+  if (!(zlen > 1e-8)) return { x: 0, y: 0, visible: false };
+  zx /= zlen;
+  zy /= zlen;
+  zz /= zlen;
+  let xx = zz;
+  let xy = 0;
+  let xz = -zx;
+  let xlen = Math.sqrt(xx * xx + xy * xy + xz * xz);
+  if (!(xlen > 1e-8)) return { x: 0, y: 0, visible: false };
+  xx /= xlen;
+  xy /= xlen;
+  xz /= xlen;
+  const yx = zy * xz - zz * xy;
+  const yy = zz * xx - zx * xz;
+  const yz = zx * xy - zy * xx;
+  const viewX = dx * xx + dy * xy + dz * xz;
+  const viewY = dx * yx + dy * yy + dz * yz;
+  const viewZ = dx * zx + dy * zy + dz * zz;
+  if (!(viewZ < 0)) return { x: 0, y: 0, visible: false };
+  const aspect = Number(o.aspect) > 0.25 ? Number(o.aspect) : width / height;
+  const fov = Number(o.fovDeg) > 1 ? Number(o.fovDeg) : MAP_CAM_FOV_DEG;
+  const f = 1 / Math.tan((fov * Math.PI) / 360);
+  const ndcX = ((f / aspect) * viewX) / -viewZ;
+  const ndcY = (f * viewY) / -viewZ;
+  const sx = (ndcX * 0.5 + 0.5) * width;
+  const sy = (-ndcY * 0.5 + 0.5) * height;
+  const visible = ndcX >= -1.15 && ndcX <= 1.15 && ndcY >= -1.15 && ndcY <= 1.15;
+  return { x: sx, y: sy, visible };
+}
+
+/** Public names only, screen-projected. Missing titles never become fake rooms. */
+export function mapLabelScreenItems(opts?: {
+  rooms?: Array<{ room_id?: string; name?: string; x?: unknown; y?: unknown } | null> | null;
+  pose?: MapCamPose | null;
+  aspect?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focusId?: string | null;
+} | null): MapLabelItem[] {
+  const o = opts || {};
+  const rooms = Array.isArray(o.rooms) ? o.rooms : [];
+  const pose = o.pose || null;
+  const width = Number(o.width || 0);
+  const height = Number(o.height || 0);
+  const aspect = Number(o.aspect) > 0.25 ? Number(o.aspect) : width > 2 && height > 2 ? width / height : 16 / 9;
+  const focus = String(o.focusId || "");
+  const out: MapLabelItem[] = [];
+  if (!pose || width < 2 || height < 2) return out;
+  for (let i = 0; i < rooms.length; i++) {
+    const r = rooms[i];
+    if (!r) continue;
+    const id = String(r.room_id || "");
+    const name = mapRoomLabelText(r.name);
+    if (!name) continue;
+    const p = mapProjectPoint({
+      x: Number(r.x || 0) * MAP_ROOM_GAP,
+      y: 0.82,
+      z: Number(r.y || 0) * MAP_ROOM_GAP,
+      pose,
+      aspect,
+      width,
+      height,
+    });
+    if (!p.visible) continue;
+    out.push({ id, name, x: p.x, y: p.y, focus: !!id && id === focus });
+  }
+  return out;
+}
+
 const MAP_GL_INLINE_FNS = [
   mapPublicRoomId,
   mapPublicExitTarget,
@@ -325,6 +452,7 @@ const MAP_GL_INLINE_FNS = [
   mapGlUsable,
   mapNodeClassName,
   mapStageNodes,
+  mapRoomLabelText,
 ] as const;
 
 export function watchMapGlInlineSource(): string {

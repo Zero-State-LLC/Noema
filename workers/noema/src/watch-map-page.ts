@@ -150,7 +150,10 @@ export function mapStageHtml(visible = false): string {
           <h2 id="watch-map-stage-label">Map</h2>
           <p class="lede">Richer spectator projection. Derived, not world truth.</p>
         </div>
-        <canvas id="watch-map-gl" class="map-gl" width="640" height="360" hidden aria-hidden="true"></canvas>
+        <div class="map-gl-frame" id="watch-map-gl-frame">
+          <canvas id="watch-map-gl" class="map-gl" width="640" height="360" hidden aria-hidden="true"></canvas>
+          <ul id="watch-map-labels" class="map-labels" hidden aria-label="Public sites"></ul>
+        </div>
         <div class="map-chrome">
           <div class="map-chrome-row map-chrome-layers">
             <p class="now-k" id="watch-map-layers-k">Layers</p>
