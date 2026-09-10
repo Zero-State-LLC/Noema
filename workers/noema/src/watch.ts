@@ -3,7 +3,7 @@
 import { LOW_NOISE_KEY, parseLowNoiseFlag } from "./low-noise";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
 import { productShell } from "./shell";
-import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_LINE, watchMapGlInlineSource } from "./watch-map-gl";
+import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMapGlInlineSource } from "./watch-map-gl";
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
@@ -384,7 +384,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const POLL_MS = 10000;
     const TIER_RANK = { NORMAL: 1, NOTABLE: 2, MAJOR: 3 };
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
-    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null, mapGl: null, mapGlBusy: false, mapCamId: "", mapFollowId: "" };
+    const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null, mapCoords: [], mapGl: null, mapGlBusy: false, mapCamId: "", mapFollowId: "" };
     const $ = id => document.getElementById(id);
 
     try {
@@ -420,6 +420,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     ${watchMapGlInlineSource()}
     const MAP_GL_SRC = ${JSON.stringify(MAP_GL_SRC)};
     const MAP_PARITY_LINE = ${JSON.stringify(MAP_PARITY_LINE)};
+    const MAP_PARITY_HOLD_LINE = ${JSON.stringify(MAP_PARITY_HOLD_LINE)};
 
     function readStoredMode() {
       try { return localStorage.getItem("noema.watch.mode"); } catch (e) { return null; }
@@ -492,6 +493,12 @@ export function watchHtml(opts?: { mode?: string }): string {
         }
       }
     }
+    function paintMapParity(kind) {
+      const parity = $("watch-map-parity");
+      if (!parity) return;
+      parity.hidden = !kind;
+      parity.textContent = kind === "hold" ? MAP_PARITY_HOLD_LINE : kind === "behind" ? MAP_PARITY_LINE : "";
+    }
     async function refreshMap() {
       if (state.mode !== "map" || state.mapBusy) return;
       state.mapBusy = true;
@@ -502,16 +509,16 @@ export function watchHtml(opts?: { mode?: string }): string {
           return d;
         });
         state.mapLast = data;
-        const parity = $("watch-map-parity");
-        if (parity) {
-          const bad = mapHeadsDisagree(state.last, data);
-          parity.hidden = !bad;
-          parity.textContent = bad ? MAP_PARITY_LINE : "";
-        }
+        const fetchedRooms = data && data.base && Array.isArray(data.base.rooms) ? data.base.rooms : [];
+        state.mapCoords = mapHoldCoordRooms(data, state.mapCoords);
+        paintMapParity(mapParityState({ live: state.last, map: data, failed: false, holding: !fetchedRooms.length && state.mapCoords.length > 0 }));
         paintMapStage(data);
         syncMapGl();
       } catch (e) {
+        // Poll failed: say so, keep the last agreed sketch, never wipe labels.
+        paintMapParity(mapParityState({ live: state.last, map: state.mapLast, failed: true, holding: state.mapCoords.length > 0 }));
         if (state.mapLast) paintMapStage(state.mapLast);
+        syncMapGl();
       } finally {
         state.mapBusy = false;
       }
@@ -547,7 +554,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (!state.mapGl || state.mode !== "map") return;
       const live = state.last || {};
       const rooms = Array.isArray(live.rooms) ? live.rooms : [];
-      const mapRooms = state.mapLast && state.mapLast.base ? state.mapLast.base.rooms : [];
+      const mapRooms = state.mapCoords.length ? state.mapCoords : mapHoldCoordRooms(state.mapLast, []);
       const head = state.held || {};
       state.mapGl.update({
         rooms: mapStageNodes(rooms, mapRooms),
