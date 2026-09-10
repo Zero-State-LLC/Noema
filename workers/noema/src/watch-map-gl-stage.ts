@@ -17,6 +17,7 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
+import { MAP_CAM_FOV_DEG, MAP_ROOM_GAP, mapCameraPose } from "./watch-map-gl";
 
 export type StageRoom = {
   room_id?: string;
@@ -37,15 +38,14 @@ export type StageFrame = {
 
 type LostFn = () => void;
 
-const GROUND = 0x0e1114;
-const BOX = 0x1c232b;
-const INK = 0xa8a39a;
+const GROUND = 0x161b20;
+const BOX = 0x1f262e;
+const INK = 0xc4bfb6;
 const ACTIVE = 0x3ddcff;
 const MAJOR = 0xffb020;
-const GAP = 2.2;
 
 function roomPos(n: StageRoom): Vector3 {
-  return new Vector3(Number(n.x || 0) * GAP, 0, Number(n.y || 0) * GAP);
+  return new Vector3(Number(n.x || 0) * MAP_ROOM_GAP, 0, Number(n.y || 0) * MAP_ROOM_GAP);
 }
 
 function boxHeight(n: StageRoom, followId: string): number {
@@ -71,17 +71,29 @@ export function mountWatchMapGl(
   renderer.setPixelRatio(1);
   renderer.setClearColor(new Color(GROUND));
   const scene = new Scene();
-  scene.add(new AmbientLight(0xb8c4cc, 0.7));
-  const key = new DirectionalLight(0xe8e4dc, 0.55);
+  scene.add(new AmbientLight(0xc8d4dc, 0.88));
+  const key = new DirectionalLight(0xe8e4dc, 0.7);
   key.position.set(4, 8, 3);
   scene.add(key);
-  const camera = new PerspectiveCamera(40, 16 / 9, 0.1, 80);
-  camera.position.set(4, 7, 9);
-  camera.lookAt(0, 0, 0);
+  const camera = new PerspectiveCamera(MAP_CAM_FOV_DEG, 16 / 9, 0.1, 80);
   const nodes: Record<string, Vector3> = {};
   let raf = 0;
   let lastFocus = "";
+  let lastRooms: StageRoom[] = [];
   let disposed = false;
+
+  function canvasAspect(): number {
+    const w = canvas.clientWidth || 0;
+    const h = canvas.clientHeight || 0;
+    return w > 2 && h > 2 ? w / h : 16 / 9;
+  }
+
+  function applyPose(focusId: string): { lookX: number; lookY: number; lookZ: number } {
+    const pose = mapCameraPose({ rooms: lastRooms, focusId, aspect: canvasAspect() });
+    camera.position.set(pose.eyeX, pose.eyeY, pose.eyeZ);
+    camera.lookAt(pose.lookX, pose.lookY, pose.lookZ);
+    return pose;
+  }
 
   function stopRaf(): void {
     if (!raf) return;
@@ -102,6 +114,7 @@ export function mountWatchMapGl(
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    if (lastRooms.length) applyPose(lastFocus);
     paint();
   }
 
@@ -152,10 +165,7 @@ export function mountWatchMapGl(
   }
 
   function lookAtRoom(id: string): void {
-    const at = nodes[id];
-    const target = at || new Vector3(0, 0, 0);
-    camera.position.set(target.x + 3.4, 6.4, target.z + 5.2);
-    camera.lookAt(target.x, 0.2, target.z);
+    applyPose(id);
   }
 
   function onContextLost(ev: Event): void {
@@ -182,9 +192,12 @@ export function mountWatchMapGl(
       if (disposed) return;
       fit();
       const rooms = Array.isArray(frame.rooms) ? frame.rooms : [];
+      lastRooms = rooms;
       clearScene();
       addRooms(rooms, String(frame.followRoomId || ""), String(frame.majorRoomId || ""));
-      if (!lastFocus && rooms[0] && rooms[0].room_id) lookAtRoom(String(rooms[0].room_id));
+      const focus = String(frame.focusRoomId || lastFocus || "");
+      lastFocus = focus;
+      applyPose(focus);
       paint();
     },
     focus(roomId: string, easeMs: number) {
@@ -199,16 +212,16 @@ export function mountWatchMapGl(
         paint();
         return;
       }
-      const dest = nodes[id];
+      const dest = mapCameraPose({ rooms: lastRooms, focusId: id, aspect: canvasAspect() });
       const from = camera.position.clone();
-      const to = new Vector3(dest.x + 3.4, 6.4, dest.z + 5.2);
+      const to = new Vector3(dest.eyeX, dest.eyeY, dest.eyeZ);
       const started = Date.now();
       stopRaf();
       const tick = (): void => {
         const u = Math.min(1, (Date.now() - started) / easeMs);
         const e = u * u * (3 - 2 * u);
         camera.position.lerpVectors(from, to, e);
-        camera.lookAt(dest.x, 0.2, dest.z);
+        camera.lookAt(dest.lookX, dest.lookY, dest.lookZ);
         paint();
         if (u < 1) raf = requestAnimationFrame(tick);
         else raf = 0;

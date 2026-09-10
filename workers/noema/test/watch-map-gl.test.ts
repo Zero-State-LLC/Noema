@@ -9,12 +9,15 @@ import {
   MAP_GL_CSS,
   MAP_GL_SRC,
   MAP_PARITY_LINE,
+  MAP_ROOM_GAP,
   mapActionCameraRoom,
   mapCameraEaseMs,
+  mapCameraPose,
   mapCameraTarget,
   mapFollowMoveRoom,
   mapFollowedRoomId,
   mapGlUsable,
+  mapGraphBounds,
   mapPublicExitTarget,
   mapHeadsDisagree,
   mapNodeClassName,
@@ -36,6 +39,36 @@ describe("mapPublicRoomId", () => {
     expect(mapPublicRoomId(rooms, "room.secret")).toBe("");
     expect(mapPublicRoomId(rooms, "")).toBe("");
     expect(mapPublicRoomId(null, "room.hub")).toBe("");
+  });
+});
+
+describe("mapCameraPose frames the graph", () => {
+  const plus = [
+    { room_id: "room.nw", x: 0, y: 0 },
+    { room_id: "room.ne", x: 2, y: 0 },
+    { room_id: "room.hub", x: 1, y: 1 },
+    { room_id: "room.sw", x: 0, y: 2 },
+    { room_id: "room.se", x: 2, y: 2 },
+  ];
+
+  it("looks at the centroid, not the first corner, with a shallow enough pitch", () => {
+    const b = mapGraphBounds(plus);
+    expect(b.cx).toBe(MAP_ROOM_GAP);
+    expect(b.cz).toBe(MAP_ROOM_GAP);
+    const pose = mapCameraPose({ rooms: plus, aspect: 16 / 9 });
+    expect(pose.lookX).toBeCloseTo(b.cx, 5);
+    expect(pose.lookZ).toBeCloseTo(b.cz, 5);
+    expect(pose.lookY).toBeGreaterThan(0.4);
+    const horiz = Math.hypot(pose.eyeX - pose.lookX, pose.eyeZ - pose.lookZ);
+    expect(pose.eyeY - pose.lookY).toBeLessThan(horiz);
+    expect(Math.hypot(pose.eyeX - pose.lookX, pose.eyeY - pose.lookY, pose.eyeZ - pose.lookZ)).toBeGreaterThan(6);
+  });
+
+  it("aims at a public focus room without inventing a site", () => {
+    const pose = mapCameraPose({ rooms: plus, focusId: "room.se", aspect: 16 / 9 });
+    expect(pose.lookX).toBeCloseTo(2 * MAP_ROOM_GAP, 5);
+    expect(pose.lookZ).toBeCloseTo(2 * MAP_ROOM_GAP, 5);
+    expect(mapCameraPose({ rooms: plus, focusId: "room.secret" }).lookX).toBeCloseTo(MAP_ROOM_GAP, 5);
   });
 });
 
@@ -163,8 +196,16 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
     expect(MAP_GL_CSS).not.toMatch(/max-width:\s*36rem/);
     expect(MAP_STAGE_CSS).not.toMatch(/max-width:\s*36rem/);
     expect(MAP_STAGE_CSS).toContain("map-chrome");
+    expect(MAP_STAGE_CSS).toContain("map-chrome-layers");
+    expect(MAP_STAGE_CSS).toContain("map-chrome-health");
+    expect(MAP_STAGE_CSS).toContain("flex-direction:column");
+    expect(MAP_STAGE_CSS).not.toMatch(/\.map-chrome\{[^}]*display:flex;flex-wrap:wrap/);
     expect(MAP_STAGE_CSS).toContain("is-map-gl");
     expect(map).toContain("map-stage");
+    expect(map).toContain("map-chrome-layers");
+    expect(map).toContain('aria-label="Map layer toggles"');
+    expect(map).toContain('aria-label="World health metrics"');
+    expect(map).toContain("World health");
     expect(map).toContain("map-chrome");
     expect(map).toContain('id="watch-map-board"');
     expect(map.indexOf('id="watch-map-gl"')).toBeLessThan(map.indexOf('id="watch-map-toggles"'));
@@ -225,5 +266,7 @@ describe("built MAP chunk", () => {
     expect(stage).toMatch(/Event-born redraw only/);
     expect(stage).toContain("ResizeObserver");
     expect(stage).toContain("updateProjectionMatrix");
+    expect(stage).toContain("mapCameraPose");
+    expect(stage).not.toContain("target.x + 3.4");
   });
 });

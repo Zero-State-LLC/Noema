@@ -1791,6 +1791,8 @@ describe("driven watch client (§11/§13)", () => {
       expect(feed).toContain("Who reach-maint3");
       expect(feed).toContain("Where Civic Exchange");
       expect(feed).toContain("Consequence Stocks recovered");
+      expect(feed).not.toMatch(/authority\.Consequence/);
+      expect(feed).not.toMatch(/ExchangeWho/);
       const withheld = textOf(client.$("watch-withheld-list"));
       expect(withheld).toContain("Notice author is not projected publicly");
       expect(withheld).toContain("Institution name is not projected publicly");
@@ -1871,6 +1873,8 @@ describe("driven watch client (§11/§13)", () => {
       expect(feed).toContain("Who reach-maint3");
       expect(feed).toContain("Where Civic Exchange");
       expect(feed).toContain("Consequence An institution declared a temporary repair authority");
+      expect(feed).not.toMatch(/authority\.Consequence/);
+      expect(feed).not.toMatch(/ExchangeWho/);
     } finally {
       client.restore();
     }
