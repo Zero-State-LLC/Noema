@@ -49,6 +49,11 @@ Mid `/ready`: INCIDENT, ready=false, play_blocked=true, code=WORLD_INCIDENT; hea
 
 Note: during the brief INCIDENT window the live head advanced PRE 46744→POST overview 46746 (world continued); recover `revision` restored from PRE head_revision **23242**. Cohort play loops remained ALIVE through the drill.
 
+## Dual fire (OBSERVED)
+
+Noema Admin also executed INCIDENT→recover with the same reason/session around the same window. Admin-reported PRE cycle/seq **19493/46735** recover revision **23238**; Boof operator capture (this receipt) PRE **19496/46744** recover revision **23242**. Both returned ACTIVE/HEALTHY with `recover_mode=restore`. This packet files the Boof capture as the Gate E Path 8 receipt; do not invent a merge of the two.
+
 ## Explicit non-claims
 - Not Gate E COMPLETE. Not Phase B PASS.
 - No Deploy. No invented recovery schema.
+- Do not invent a merge of the Admin and Boof captures.
