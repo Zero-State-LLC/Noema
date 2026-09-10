@@ -6,9 +6,9 @@
 **Label source:** Deploy / pin history already on `main` ([repin-2026-09-10.md](repin-2026-09-10.md) lineage; #702 MERGED)
 
 **This log does not claim Gate E COMPLETE, Phase A PASS, or Phase B PASS.**
-Do not close #682. No Deploy. No Controller reconnect. No Path 8 recover. No secrets.
+Do not close #682. No Deploy. No Controller reconnect. Path 8 recover is filed ([phase-b-path8.md](phase-b-path8.md)); this log does not re-fire it. No secrets.
 
-Rows below are labeled **OBSERVED** from merged Deploy / pin PRs. They are **not** a Path 8 drill. Budget adjudication (whether each publish sits inside a declared intervention budget) is **NOT_COMPUTABLE** from this repository alone.
+CONTROL_PLANE rows below are labeled **OBSERVED** from merged Deploy / pin PRs. They are **not** the Path 8 drill. Path 8 is the operator recover row. Budget adjudication (whether each publish sits inside a declared intervention budget) is **NOT_COMPUTABLE** from this repository alone.
 
 Heads (`cycle` / `sequence`) at each Deploy instant: **NOT_COMPUTABLE** — not sampled at those publishes. Do not invent them. Public heads are monotonic across the lineage in the #702 re-pin (`42176 → 46387`); that is not a per-Deploy census.
 
@@ -27,7 +27,7 @@ CONTROL_PLANE interventions **inside** the Phase B calendar window.
 | 5 | `2026-09-10T02:38Z` | [#698](https://github.com/Zero-State-LLC/Noema/pull/698) | `c4e25691…` | [#699](https://github.com/Zero-State-LLC/Noema/pull/699) | **CONTROL_PLANE** | **NOT_COMPUTABLE** (not sampled) | label z-index |
 | 6 | `2026-09-10T03:03Z` | [#700](https://github.com/Zero-State-LLC/Noema/pull/700) | `7188ff8a…` | [#701](https://github.com/Zero-State-LLC/Noema/pull/701) | **CONTROL_PLANE** | **NOT_COMPUTABLE** (not sampled) | focus label cyan; live at #702 diagnosis (`7188ff8a-3d58-449e-9e6b-2e0282ed9724`) |
 
-None of these is the Path 8 drill. Path 8 at Phase B start is **SCHEDULED_NOT_FIRED** ([phase-b-start.md](phase-b-start.md)). Existing Admin recover JSON only; dedicated schema stays **NOT_COMPUTABLE**.
+None of these CONTROL_PLANE rows is the Path 8 drill. Path 8 at Phase B start was **SCHEDULED_NOT_FIRED** ([phase-b-start.md](phase-b-start.md)). Path 8 later **FIRED_OK** ([phase-b-path8.md](phase-b-path8.md)). Existing Admin recover JSON only; dedicated schema stays **NOT_COMPUTABLE**.
 
 ---
 
@@ -44,25 +44,26 @@ These publishes sit **inside the Phase A calendar** (`started_at` `2026-09-09T07
 
 ## Other in-window operator rows (not CONTROL_PLANE Deploys)
 
-Recorded so the log is not silent. Still not Path 8.
+Recorded so the log is not silent. Path 8 is the recover-drill row below.
 
 | When (UTC) | Class | Notes | Status |
 |------------|-------|-------|--------|
 | `2026-09-09T22:37:57Z` | Controller remint | [phase-b-remint-mid.md](phase-b-remint-mid.md) — `NOT_AUTHORIZED` creds expired | **OBSERVED** (not Path 8; no Deploy) |
 | `2026-09-10T04:05:40Z` | Controller remint4 | [phase-b-remint4.md](phase-b-remint4.md) — remint3 `NOT_AUTHORIZED` → new trio OK @ 19352; continuity gap ~4.5h; `ends_at` unchanged | **OBSERVED** |
+| `2026-09-10T04:51:42Z` | Path 8 recover drill | [phase-b-path8.md](phase-b-path8.md) — INCIDENT→recover `gate-e-path8-declared-restart`; `recover_mode=restore` rev 23242 | **OBSERVED** |
 
 ---
 
 ## Budget
 
-Whether the six Phase B CONTROL_PLANE publishes, the two Phase A calendar publishes, the mid-run remint, and remint4 fit a declared intervention budget is **NOT_COMPUTABLE** from this repository alone. Do not score bounded-interventions PASS from these rows.
+Whether the six Phase B CONTROL_PLANE publishes, the two Phase A calendar publishes, the mid-run remint, remint4, and the Path 8 recover drill fit a declared intervention budget is **NOT_COMPUTABLE** from this repository alone. Do not score bounded-interventions PASS from these rows.
 
 ---
 
 ## Explicit non-claims
 
 - Not Gate E COMPLETE. Not Phase A PASS. Not Phase B PASS.
-- No row above is the Path 8 in-window recovery drill.
-- No Deploy, remint, or recover is authorized by filing this log.
+- CONTROL_PLANE rows are not the Path 8 drill. Path 8 is the operator recover row ([phase-b-path8.md](phase-b-path8.md)); status **FIRED_OK**. This does not score Phase B PASS.
+- No Deploy, remint, or further recover is authorized by filing this log.
 - Issue #682 stays **OPEN**.
 - Per-Deploy cycle/sequence heads remain **NOT_COMPUTABLE** unless a later receipt samples them.
