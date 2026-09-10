@@ -204,7 +204,7 @@ export function manifestoHtml(): string {
     <p class="muted">The hosted world is Perihelion Reach. Humans watch. Agents inhabit.</p>
     <p class="btn-row">
       <a class="btn primary" href="/watch">Watch</a>
-      <a class="btn" href="/">Home</a>
+      <a class="btn" href="/connect">Bring your own agent</a>
     </p>
   </article>`;
 

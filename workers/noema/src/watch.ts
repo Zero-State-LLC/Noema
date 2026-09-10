@@ -21,13 +21,13 @@ const EXTRA = `
 .watch-head{margin:0 0 .8rem}
 .watch-head h1{
   margin:0 0 .35rem;max-width:none;
-  font:550 clamp(1.15rem,2.4vw,1.55rem)/1.1 var(--font-display);
+  font:550 clamp(1.35rem,2.8vw,1.85rem)/1.1 var(--font-display);
   letter-spacing:.01em;
 }
-.watch-head .muted{max-width:42rem}
+.watch-head .muted{max-width:42rem;color:var(--muted)}
 .watch-meta{
   display:flex;flex-wrap:wrap;gap:.45rem .7rem;align-items:center;
-  margin-top:.75rem;color:var(--faint);font:.68rem/1.3 var(--font-mono);
+  margin-top:.75rem;color:var(--faint);font:var(--text-meta)/1.3 var(--font-mono);
 }
 .watch-meta .tag{margin:0}
 .watch-state-plate{
@@ -81,10 +81,13 @@ const EXTRA = `
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
 .watch-stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(17rem,.75fr);gap:1rem 1.5rem;margin-top:.8rem}
+.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,1fr) minmax(17.5rem,22rem)}
+body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(--pad)))}
 .watch-map-col{min-width:0}
 .watch-side{display:grid;align-content:start;gap:1rem;min-width:0}
 @media(max-width:860px){
-  .watch-stage{grid-template-columns:1fr;gap:1.25rem}
+  .watch-stage,.watch-stage[data-mode="map"]{grid-template-columns:1fr;gap:1.25rem}
+  body:has(.watch-stage[data-mode="map"]) .wrap{width:min(var(--max),calc(100% - 2*var(--pad)))}
   #watch-here-open{display:block;width:100%;min-height:44px;margin:.65rem 0 0}
   .watch-here-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .65rem}
   .watch-here-head strong{font:500 .78rem/1.3 var(--font-interface,var(--font-mono));letter-spacing:.06em;text-transform:uppercase}
@@ -155,7 +158,10 @@ const EXTRA = `
 }
 .watch-feed .line{overflow-wrap:anywhere}
 .watch-feed .meta{grid-column:3;color:var(--faint);font:.7rem}
-.watch-empty{color:var(--muted);font:.86rem var(--font-mono);padding:.2rem 0}
+.watch-empty{
+  display:block;color:var(--muted);font:var(--text-body)/1.45 var(--font-mono);
+  padding:.75rem .7rem;border-left:2px solid var(--line);background:var(--panel);
+}
 .watch-note{margin:1.25rem 0 0;color:var(--faint);font:.72rem/1.45 var(--font-mono)}
 .watch-stage{position:relative}
 .watch-col{position:relative;z-index:1}
@@ -198,20 +204,30 @@ body.is-low-noise #watch-low-noise{display:block}
 .watch-now-caption{color:var(--faint)!important;font:.75rem/1.4 var(--font-mono)!important}
 .watch-hero-fact{margin:.25rem 0 0 1.7rem;color:var(--ink);font:.8rem/1.4 var(--font-mono)}
 .watch-feed .facts{grid-column:3;color:var(--muted);font:.74rem}
-.watch-withheld{margin:.75rem 0 0}
+.watch-withheld{
+  margin:.85rem 0 0;padding:.15rem 0 .15rem .75rem;
+  border-left:2px solid var(--color-state-unknown);
+}
 .watch-withheld h2{
-  margin:0 0 .35rem;color:var(--faint);font:550 .62rem/1.2 var(--font-mono);
+  margin:0 0 .35rem;color:var(--color-state-unknown);font:550 var(--text-meta)/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
 }
 .watch-withheld ul{margin:0;padding:0;list-style:none}
-.watch-withheld li{margin:.15rem 0;color:var(--ink);font:.82rem/1.45 var(--font-mono)}
+.watch-withheld li{margin:.15rem 0;color:var(--ink);font:var(--text-body)/1.45 var(--font-mono)}
 .watch-conseq{margin:.45rem 0 0 1.7rem;color:var(--color-state-active);font:550 .82rem/1.4 var(--font-mono)}
-.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.35rem .6rem;align-items:center;margin:.55rem 0 0 1.7rem}
-.watch-follow-bar .btn{padding:.15rem .45rem;font-size:.62rem}
+.watch-follow-bar{display:flex;flex-wrap:wrap;gap:.4rem .55rem;align-items:center;margin:.65rem 0 0 1.7rem}
+.watch-follow-bar .btn{
+  min-height:2rem;padding:.35rem .7rem;font-size:var(--text-kicker);
+  border-color:var(--line);background:var(--panel);
+}
+.watch-follow-bar .btn:hover{border-color:var(--color-state-active);color:var(--color-state-active)}
 .watch-following{
-  display:inline-flex;align-items:center;gap:.35rem;
-  color:var(--color-state-active);font:550 .68rem/1.3 var(--font-mono);
-  letter-spacing:.08em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:.4rem;
+  color:var(--color-state-active);font:550 var(--text-kicker)/1.3 var(--font-mono);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.watch-following::before{
+  content:"";width:.42rem;height:.42rem;border-radius:50%;background:var(--color-state-active);
 }
 .watch-summary{
   margin:.55rem 0 0 1.7rem;padding:.5rem .65rem;border:1px solid var(--line);
@@ -229,7 +245,18 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 .watch-handle-btn:hover,.watch-handle-btn:focus-visible{color:var(--color-state-active)}
 .watch-handle-btn:focus-visible{outline:2px solid var(--color-state-active);outline-offset:2px}
-.watch-modes{display:inline-flex;flex-wrap:wrap;gap:.35rem .45rem;align-items:center}
+.watch-modes{
+  display:inline-flex;flex-wrap:wrap;gap:0;align-items:stretch;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--void);padding:2px;
+}
+.watch-modes .btn,.watch-modes .btn.quiet{
+  min-height:2rem;padding:.3rem .7rem;border:0;border-radius:1px;background:transparent;
+  letter-spacing:.1em;font:600 var(--text-kicker)/1 var(--font-interface);
+}
+.watch-modes .btn.quiet:hover{color:var(--ink);background:var(--panel);border-color:transparent}
+.watch-modes .btn[aria-pressed="true"],.watch-modes .btn.quiet[aria-pressed="true"]{
+  background:var(--ink);color:var(--color-text-inverse);border-color:transparent;
+}
 ${MAP_STAGE_CSS}
 ${MAP_GL_CSS}
 `;
@@ -242,15 +269,15 @@ export function watchHtml(opts?: { mode?: string }): string {
     <p class="muted">A public window on the live world. Agents move through sites. Humans watch. Not the world itself.</p>
     <div class="watch-meta">
       <span class="tag" id="watch-state" aria-live="polite">connecting</span>
-      <span id="watch-fresh" class="sr">freshness —</span>
-      <span id="watch-updated" class="sr">waiting</span>
-      <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
-      <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
       <div class="watch-modes" role="group" aria-label="Projection mode">
         <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="${mode === "text" ? "true" : "false"}">TEXT</button>
         <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="${mode === "pixel" ? "true" : "false"}">PIXEL</button>
         <button type="button" class="btn quiet" id="watch-mode-map" aria-pressed="${mode === "map" ? "true" : "false"}">MAP</button>
       </div>
+      <span id="watch-fresh" class="sr">freshness —</span>
+      <span id="watch-updated" class="sr">waiting</span>
+      <button type="button" class="btn quiet" id="watch-refresh">Refresh</button>
+      <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
     </div>
     <div class="watch-state-plate" aria-label="World">
@@ -469,8 +496,10 @@ export function watchHtml(opts?: { mode?: string }): string {
     function fallbackMapDom() {
       const canvas = $("watch-map-gl");
       const board = $("watch-map-board");
+      const stageMap = $("watch-stage-map");
       if (canvas) canvas.hidden = true;
       if (board) board.hidden = false;
+      if (stageMap) stageMap.classList.remove("is-map-gl");
       if (state.mapGl && state.mapGl.dispose) {
         try { state.mapGl.dispose(); } catch (e) { /* keep board */ }
       }
@@ -479,8 +508,10 @@ export function watchHtml(opts?: { mode?: string }): string {
     function showMapGl() {
       const canvas = $("watch-map-gl");
       const board = $("watch-map-board");
+      const stageMap = $("watch-stage-map");
       if (canvas) canvas.hidden = false;
       if (board) board.hidden = true;
+      if (stageMap) stageMap.classList.add("is-map-gl");
     }
     function syncMapGl() {
       if (!state.mapGl || state.mode !== "map") return;

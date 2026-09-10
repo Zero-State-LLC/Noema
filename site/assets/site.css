@@ -1,12 +1,13 @@
 /* Memo + header/footer only. Brochure/loop/particle styles removed. */
 
 :root {
-  --ink: #0E1114;
-  --ink-2: #161B20;
+  --void: #0E1114;
+  --panel: #161B20;
   --line: #2A333C;
-  --bone: #E8E4DC;
+  --ink: #E8E4DC;
   --muted: #A8A39A;
   --accent: #3DDCFF;
+  --color-state-active: #3DDCFF;
   --accent-ink: #0E1114;
   --font-display: "Syne", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -36,8 +37,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--ink);
-  color: var(--bone);
+  background: var(--void);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 1.0625rem;
   line-height: 1.55;
@@ -51,7 +52,7 @@ a {
 }
 
 a:hover {
-  color: var(--bone);
+  color: var(--ink);
 }
 
 :focus-visible {
@@ -86,13 +87,13 @@ a:hover {
   justify-content: space-between;
   gap: var(--space-4);
   padding: 0 var(--space-5);
-  background: var(--ink);
+  background: var(--void);
   border-bottom: 1px solid var(--line);
 }
 
 .brand {
   text-decoration: none;
-  color: var(--bone);
+  color: var(--ink);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;
@@ -121,7 +122,7 @@ a:hover {
 }
 
 .nav a {
-  color: var(--bone);
+  color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -135,7 +136,7 @@ a:hover {
   display: none;
   background: transparent;
   border: 1px solid var(--line);
-  color: var(--bone);
+  color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   padding: var(--space-2) var(--space-3);
@@ -155,7 +156,7 @@ a:hover {
     flex-direction: column;
     align-items: stretch;
     gap: 0;
-    background: var(--ink-2);
+    background: var(--panel);
     border-bottom: 1px solid var(--line);
   }
   .nav.open {
@@ -235,7 +236,7 @@ a:hover {
 
 .memo p {
   margin: 0 0 var(--space-4);
-  color: var(--bone);
+  color: var(--ink);
   line-height: 1.7;
 }
 
@@ -253,7 +254,7 @@ a:hover {
 .memo pre {
   margin: var(--space-4) 0 var(--space-5);
   padding: var(--space-4);
-  background: var(--ink-2);
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow-x: auto;
@@ -302,7 +303,7 @@ th {
   text-transform: uppercase;
   color: var(--muted);
   font-weight: 500;
-  background: var(--ink-2);
+  background: var(--panel);
 }
 
 tr:last-child td {

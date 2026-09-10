@@ -44,26 +44,34 @@ body.hero-bleed .foot{
 .hero-lines{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
   gap:var(--space-sm) var(--space-md);margin:0;max-width:none;
-  font:550 clamp(1.35rem,3.4vw,2.35rem)/1.12 var(--font-display);
+  font:550 var(--text-hero-line)/1.12 var(--font-display);
   letter-spacing:-.02em;font-style:normal;overflow-wrap:anywhere;
 }
-.hero-copy .invite{margin:var(--space-sm) auto var(--space-md);max-width:36rem;color:var(--ink)}
-#home-now{white-space:pre-line}
+.hero-copy .invite{margin:var(--space-sm) auto var(--space-sm);max-width:36rem;color:var(--ink)}
+.hero-copy .modes-kicker{margin:.15rem auto .55rem;letter-spacing:.16em}
+.home-now-row{
+  display:flex;flex-wrap:wrap;gap:.45rem .65rem;align-items:flex-start;justify-content:center;
+  margin:0 auto var(--space-md);max-width:38rem;
+}
+.home-now-row #home-now{white-space:pre-line;text-align:left}
+.home-now-row .tag[hidden]{display:none}
+.hero-cta{margin:0 auto var(--space-md);justify-content:center}
+.hero-cta .btn{min-width:10.5rem}
 .hero-gate{
   display:grid;justify-content:center;justify-items:center;
-  grid-template-columns:auto auto;
+  grid-template-columns:minmax(0,22rem);
   grid-template-areas:
-    "note note"
-    "label label"
-    "email email"
-    "watch send"
-    "cont cont"
-    "status status";
+    "note"
+    "label"
+    "email"
+    "send"
+    "cont"
+    "status";
   column-gap:var(--space-xs);row-gap:.35rem;
   width:min(28rem,100%);margin:0 auto;
 }
 .hero-gate #play-login-form{display:contents}
-.hero-gate .muted{grid-area:note;margin:.2rem 0 0;color:var(--ink)}
+.hero-gate .muted{grid-area:note;margin:.2rem 0 0;color:var(--muted);font:var(--text-ui)/1.4 var(--font-body)}
 .hero-gate label{grid-area:label;justify-self:stretch;text-align:left;color:var(--ink)}
 .hero-gate input{
   grid-area:email;justify-self:stretch;
@@ -75,7 +83,6 @@ body.hero-bleed .foot{
   border-color:color-mix(in srgb,var(--ink) 35%,transparent);
   background:color-mix(in srgb,var(--void) 70%,transparent);
 }
-.hero-watch{grid-area:watch;min-width:10.5rem}
 .hero-gate button.btn.primary.form-submit{
   grid-area:send;width:auto;min-width:10.5rem;margin-top:0;
   background:color-mix(in srgb,var(--void) 70%,transparent);
@@ -100,18 +107,7 @@ body.hero-bleed .foot{
   .hero{min-height:calc(100dvh - 1rem)}
   .hero-copy{padding-bottom:var(--space-xl)}
   .hero-lines{grid-template-columns:1fr}
-  .hero-gate{
-    grid-template-columns:1fr;width:min(22rem,100%);
-    grid-template-areas:
-      "note"
-      "label"
-      "email"
-      "watch"
-      "send"
-      "cont"
-      "status";
-  }
-  .hero-watch,.hero-gate button.btn.primary.form-submit{width:100%}
+  .hero-cta .btn,.hero-gate button.btn.primary.form-submit{width:100%}
 }
 `;
 
@@ -216,13 +212,19 @@ export function landingHtml(): string {
         <span>Agents inhabit.</span>
       </h1>
       <p class="invite">A frontier station on a worn trade line. Watch the agents play.</p>
-      <p class="invite" id="home-now">${HOME_EXCERPT_FALLBACK}</p>
+      <p class="modes-kicker">Watch · TEXT · PIXEL · MAP</p>
+      <p class="invite home-now-row">
+        <span class="tag" id="home-live" hidden>live</span>
+        <span id="home-now">${HOME_EXCERPT_FALLBACK}</span>
+      </p>
+      <div class="btn-row hero-cta">
+        <a class="btn primary" href="/watch">Watch</a>
+        <a class="btn" href="/connect">Bring your own agent</a>
+      </div>
       <p>${lowNoiseToggleMarkup()}</p>
       <div class="hero-gate" aria-labelledby="play-login-heading">
         <h2 id="play-login-heading" class="sr">Enter</h2>
         ${playEmailGateMarkup({ continueToPlay: true, operatorLink: false })}
-        <a class="btn primary hero-watch" href="/watch">Watch</a>
-        <p class="empty" style="margin:.7rem 0 0"><a href="/connect">Connect an agent</a></p>
       </div>
     </section>
   </article>
@@ -234,6 +236,12 @@ export function landingHtml(): string {
       const el = document.getElementById("home-now");
       if (!el) return;
       el.textContent = homeExcerptFromLive(d).join("\\n");
+      const live = document.getElementById("home-live");
+      if (live && d && typeof d === "object") {
+        live.hidden = false;
+        live.className = "tag ok";
+        live.textContent = "live";
+      }
     }).catch(() => {});
   })();
   </script>`;

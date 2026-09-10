@@ -2,6 +2,8 @@
 :root {
   --color-paper: #0E1114;
   --color-paper-2: #161B20;
+  --paper: var(--color-paper-2);
+  --paper-2: var(--color-panel);
   --color-panel: #1C232B;
   --color-ink: #E8E4DC;
   --color-ink-2: #A8A39A;
