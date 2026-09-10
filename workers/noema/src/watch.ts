@@ -31,14 +31,14 @@ const EXTRA = `
 }
 .watch-meta .tag{margin:0}
 .watch-state-plate{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(6.5rem,1fr));
-  gap:.25rem .85rem;margin:.5rem 0 0;padding:.45rem 0 0;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:.35rem 1.15rem;align-items:baseline;
+  margin:.45rem 0 0;padding:.4rem 0 0;border-top:1px solid var(--line);
 }
 .watch-state-plate .k{
-  display:block;color:var(--faint);font:.62rem/1.2 var(--font-mono);
+  display:inline;margin-right:.4rem;color:var(--faint);font:.62rem/1.2 var(--font-mono);
   letter-spacing:.12em;text-transform:uppercase;
 }
-.watch-state-plate .v{display:block;margin-top:.1rem;color:var(--ink);font:550 .86rem/1.3 var(--font-mono)}
+.watch-state-plate .v{display:inline;margin:0;color:var(--ink);font:550 .82rem/1.3 var(--font-mono)}
 .watch-standing{margin:.85rem 0 0;max-width:36rem}
 .watch-standing[hidden]{display:none}
 .watch-standing h2{margin:0 0 .35rem;color:var(--faint);font:550 .62rem/1.2 var(--font-mono);letter-spacing:.12em;text-transform:uppercase}
@@ -84,6 +84,11 @@ const EXTRA = `
 .watch-stage[data-mode="map"]{grid-template-columns:minmax(0,1fr) minmax(17.5rem,22rem);align-items:start}
 body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(--pad)))}
 .watch-map-col{min-width:0}
+.watch-stage-story{margin:0 0 .65rem}
+.watch-stage-line{
+  margin:0;color:var(--ink);font:550 clamp(1.15rem,2.2vw,1.65rem)/1.2 var(--font-display);
+}
+.watch-stage-honest{margin:.25rem 0 0;color:var(--faint);font:.75rem/1.4 var(--font-mono)}
 .watch-side{display:grid;align-content:start;gap:1.1rem;min-width:0}
 @media(max-width:860px){
   .watch-stage{grid-template-columns:1fr;gap:1.25rem}
@@ -149,7 +154,8 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
 .watch-feed li .glyph{width:.9rem;height:.9rem;margin-right:0}
 .watch-feed li.quiet{opacity:.58}
 .watch-feed .mark{color:var(--faint);text-align:center}
-.watch-feed li.notable .mark,.watch-feed li.notable .line{color:var(--ink);font-weight:550}
+.watch-feed li.notable .mark{color:var(--color-state-active);font-weight:550}
+.watch-feed li.notable .line{color:var(--ink);font-weight:550}
 .watch-feed li.major .mark{color:var(--color-state-warning);font-weight:700}
 .watch-feed li.major .line{color:var(--ink);font-weight:650}
 .watch-feed li.fresh{animation:feed-settle 900ms var(--ease) 1 both}
@@ -196,7 +202,7 @@ body.is-low-noise #watch-low-noise{display:block}
 .watch-phosphor{
   display:block;width:100%;max-width:36rem;height:auto;aspect-ratio:16/9;
   background:var(--void);image-rendering:pixelated;image-rendering:crisp-edges;
-  border:1px solid var(--line);cursor:pointer;
+  border:1px solid var(--line-hot);cursor:pointer;
 }
 .watch-now-strip{margin:.7rem 0 0;padding:.55rem 0 .6rem;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:46rem}
 .watch-now-strip h2{
@@ -310,6 +316,10 @@ export function watchHtml(opts?: { mode?: string }): string {
 
   <section class="watch-stage" data-mode="${mode}">
     <section class="watch-col watch-map-col" aria-label="Center stage">
+      <div class="watch-stage-story" id="watch-stage-story">
+        <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
+        <p class="watch-stage-honest">A public sketch — not the world.</p>
+      </div>
       <div id="watch-stage-places"${mode === "map" ? " hidden" : ""}>
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
@@ -914,7 +924,10 @@ export function watchHtml(opts?: { mode?: string }): string {
         mark.classList.add("flash");
       }
       state.headKey = headKey;
-      setLiveText($("watch-headline"), head.line || "The Chamber is quiet.");
+      const story = head.line || "The Chamber is quiet.";
+      setLiveText($("watch-headline"), story);
+      const stageLine = $("watch-stage-line");
+      if (stageLine) stageLine.textContent = story;
       const painted = paintPublicTheater(head, events, rooms, players);
       if (state.mode === "map") applyMapFocus(head, rooms, events);
       renderFollowChrome(data, rooms, events, head);
@@ -1126,6 +1139,8 @@ export function watchHtml(opts?: { mode?: string }): string {
 
     function showUnavailable(msg) {
       setLiveText($("watch-headline"), "Projection unavailable.");
+      const stageGone = $("watch-stage-line");
+      if (stageGone) stageGone.textContent = "Projection unavailable.";
       $("watch-copy").textContent = msg || "";
       paintPublicTheater({ line: "Projection unavailable." }, [], [], 0);
       setTag("unavailable", "tag");
