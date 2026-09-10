@@ -24,6 +24,7 @@ body.map-hide-activity .map-node .m.act{display:none}
 body.map-hide-state .map-node .scar{display:none}
 body.map-hide-health .health{display:none}
 #watch-stage-map[hidden],#watch-stage-places[hidden]{display:none}
+#watch-map-board[hidden]{display:none}
 `;
 
 export type MapNodePaint = {
@@ -121,7 +122,9 @@ export function mapStageHtml(visible = false): string {
         <h2 id="watch-map-stage-label">Map</h2>
         <p class="lede">Richer spectator projection. Derived, not world truth.</p>
         <div class="layer-toggles" id="watch-map-toggles" role="group" aria-label="Layers"></div>
+        <canvas id="watch-map-gl" class="map-gl" width="640" height="360" hidden aria-hidden="true"></canvas>
         <div class="map-board" id="watch-map-board"></div>
+        <p id="watch-map-parity" class="map-parity" hidden></p>
         <section class="health" aria-label="World health">
           <h2 class="now-k">Health</h2>
           <dl id="watch-map-health"></dl>
