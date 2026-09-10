@@ -402,7 +402,6 @@ describe("public room labels", () => {
     const html = watchHtml({ mode: "map" });
     const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
     expect(html).toMatch(/\.map-labels\{[^}]*z-index:1/);
-    expect(html.indexOf("showMapGl()")).toBeLessThan(html.indexOf("api.mount(canvas"));
     expect(stage).toMatch(/overlay\.hidden\s*=\s*false/);
   });
 });
