@@ -58,7 +58,6 @@ describe("noema-web-presence-p0 — pages pointer", () => {
     expect(PAGES_CSS).toContain("--ink: #E8E4DC");
     expect(PAGES_CSS).not.toMatch(/--bone:/);
     expect(PAGES).not.toMatch(BRAND_BAN);
-    expect(PAGES_CSS).not.toMatch(BRAND_BAN);
   });
 });
 

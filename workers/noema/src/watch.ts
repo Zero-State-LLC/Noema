@@ -86,7 +86,8 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
 .watch-map-col{min-width:0}
 .watch-side{display:grid;align-content:start;gap:1rem;min-width:0}
 @media(max-width:860px){
-  .watch-stage,.watch-stage[data-mode="map"]{grid-template-columns:1fr;gap:1.25rem}
+  .watch-stage{grid-template-columns:1fr;gap:1.25rem}
+  .watch-stage[data-mode="map"]{grid-template-columns:1fr}
   body:has(.watch-stage[data-mode="map"]) .wrap{width:min(var(--max),calc(100% - 2*var(--pad)))}
   #watch-here-open{display:block;width:100%;min-height:44px;margin:.65rem 0 0}
   .watch-here-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:0 0 .65rem}
