@@ -570,8 +570,8 @@ export function watchHtml(opts?: { mode?: string }): string {
       const api = window.NoemaWatchMapGl;
       if (api && api.mount) {
         try {
-          state.mapGl = api.mount(canvas, { reduce: state.reduce, onLost: fallbackMapDom, labels: $("watch-map-labels") });
           showMapGl();
+          state.mapGl = api.mount(canvas, { reduce: state.reduce, onLost: fallbackMapDom, labels: $("watch-map-labels") });
           syncMapGl();
         } catch (e) { fallbackMapDom(); }
         return;

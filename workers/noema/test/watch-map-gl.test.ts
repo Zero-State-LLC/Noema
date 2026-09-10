@@ -342,4 +342,67 @@ describe("public room labels", () => {
     expect(MAP_GL_CSS).toContain("map-room-label");
     expect(MAP_STAGE_CSS).not.toMatch(/Orbitron|scanline/i);
   });
+
+  it("uses a map public title when the live row has only a room id", () => {
+    const nodes = mapStageNodes(
+      [{ room_id: "room.civic-exchange" }],
+      [{ room_id: "room.civic-exchange", name: "Civic Exchange", x: 1, y: 1 }],
+    );
+    expect(nodes[0].name).toBe("Civic Exchange");
+    const pose = mapCameraPose({ rooms: nodes, focusId: "room.civic-exchange", aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms: nodes,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      focusId: "room.civic-exchange",
+    });
+    expect(items).toHaveLength(1);
+    expect(items[0].name).toBe("Civic Exchange");
+    expect(items[0].focus).toBe(true);
+  });
+
+  it("merges live public titles onto map coords and keeps room.* off the sketch", () => {
+    const live = [
+      { room_id: "room.civic-exchange", name: "Civic Exchange", active: true },
+      { room_id: "room.archive", name: "Archive" },
+      { room_id: "room.ghost", name: "room.ghost" },
+    ];
+    const map = [
+      { room_id: "room.civic-exchange", name: "Civic Exchange", x: 1, y: 1 },
+      { room_id: "room.archive", name: "Archive", x: 0, y: 0 },
+      { room_id: "room.ghost", name: "room.ghost", x: 2, y: 0 },
+    ];
+    const nodes = mapStageNodes(live, map);
+    expect(nodes).toHaveLength(3);
+    expect(nodes[0].name).toBe("Civic Exchange");
+    expect(nodes[0].x).toBe(1);
+    expect(nodes[0].y).toBe(1);
+    const pose = mapCameraPose({ rooms: nodes, focusId: "room.civic-exchange", aspect: 16 / 9 });
+    const items = mapLabelScreenItems({
+      rooms: nodes,
+      pose,
+      aspect: 16 / 9,
+      width: 640,
+      height: 360,
+      focusId: "room.civic-exchange",
+    });
+    expect(items.map((it) => it.name).sort()).toEqual(["Archive", "Civic Exchange"]);
+    expect(items.some((it) => it.name === "Civic Exchange" && it.focus)).toBe(true);
+    expect(items.some((it) => it.name === "room.ghost" || it.id === "room.ghost")).toBe(false);
+    expect(items.map((it) => it.name).join(" ")).not.toMatch(/room\./);
+    expect(JSON.stringify(items)).not.toContain("PRESSURE");
+  });
+
+  it("stacks the site-name overlay above the WebGL canvas", () => {
+    expect(MAP_GL_CSS).toMatch(/\.map-gl-frame\{[^}]*isolation:isolate/);
+    expect(MAP_GL_CSS).toMatch(/\.map-gl\{[^}]*z-index:0/);
+    expect(MAP_GL_CSS).toMatch(/\.map-labels\{[^}]*z-index:1/);
+    const html = watchHtml({ mode: "map" });
+    const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
+    expect(html).toMatch(/\.map-labels\{[^}]*z-index:1/);
+    expect(html.indexOf("showMapGl()")).toBeLessThan(html.indexOf("api.mount(canvas"));
+    expect(stage).toMatch(/overlay\.hidden\s*=\s*false/);
+  });
 });
