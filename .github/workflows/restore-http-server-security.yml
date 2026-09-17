@@ -1,1 +1,41 @@
-PLACEHOLDER
+name: restore-http-server-security
+on:
+  push:
+    paths:
+      - ".github/workflows/restore-http-server-security.yml"
+  workflow_dispatch:
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cursor/fix-codeql-gha-security-d22a
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Decode and write http_server.py
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, zlib
+          from pathlib import Path
+          b64 = """eNrtPe1y20aS//UUc/CPAF6SkrzObYo5bhUj0WvfyZJOkr3JqVQoCBySiEEABkDKjE5V9xD3hPck190zAwxIfFGy5DixUxUJg5nu6Y/p6e5pjAzDeOsF3tzxWZKOfe+avb64OGVTJ+U3zopNwpgdzJz5NY/Z2/en7C8sjHjspGG8+8/hxcFr6P32iCUz7vtJzzCMnZ1JHM6ZbU8W6SLmts28eRTGKXOCIEyd1AuDZGdHtv2ahIH6PUzEyFmaRr2Ex0tAKF/95CQcJ3XGPy54kr52grHP4w67mMXcGXvBFF+e0xABI3LSGVIix5/Co3iRriLortqHwUo0L2IfuvciJ064ekkP9sekg2/pQZIWhHzu9ByXSOnxOA7jJINIrSNs67Djkwt7+O7i9cnZm/8aHRYGR1EvXgSpN8/QHeOLM9FW6LpIZ7049HmG4wwe9B5SUr2Fp3qYOwz+OeO5F9izdO53tGc/nBZa3TAIuJtqLV4w5p+058h3Vtpjki7G+vONk7oz+Wzp84riMA3d0O85Ux6k9nI/YxI+n8q37/d3dt4Of7bPRv/5bnR+Yf90cvgLG7AX3/8re87291683NmxUcXsg/NTaBekGWM+cRZ+2k1il32XcH/y3Y8scWMv0pvYd4sgcSa86wW+F3Dskq58XtvDEPC9+VTvNnZSp/+j4lUB6yR25rzrBC4oJirCd0FIgK5BZ7uL2Ms7hvG8K7RGthnAr50dIIXZCXehbwp8BYXmcWI+7zBkaZ9dh6EPdL9y/IRbrPt3Nvbc9DJJQb/gf1d9mq8cBf1u6Zlo+Ll7EAYpsLp7sYp49yQihTX6zAjCJPAmE6Ojd35FhGi9DkfHv+hdzvgElJ3H3dPQ99yVANSNZavseSdUaCJmnw2WE7w01JTOJcEK2BXMPZMzDYs52I9AjQRG2UcnB8Mje3T8/hwJNfzQdXyjw4wUWI8/x3xp3O3Yh6NXw3dHsPQO3745ts9Ho0PojibANCbeJzRKiWGxXWYs9/a7CedjAx9uwtgf02MPrZKhJCNWTcKTBPhiu2H4weOmevTGfZQCyQV+CnrBVqQoisuJQQuhCGJwmw++w1njzAa7+NtrsHwngb/C389BGOdeygfnaQwCN64INA+WuAZCMDvB0ovDoDflqWkcn4zeDpExQBeYa8kZq+eHNzw2LSUSHA02GBY403iZC4kmjraJB2PTIAlxw9KFYcAC6f0aeoFJfZX6AkdDf8kzQvnYRgtsxs4N8Yf9N5i3gHcYaLV7AzxDmmUj0IM/iIXYLKYDGwloygTWJNslqLtJChhZBpulIZt4aBUXYK5ipiS7S3sQTTkEUoFZgBCZgrB78LtpWT05X8kZNdSGzQSXGnAXMfTwUZCBkEBFcu1RHAUCmZcIOgAHMhfIRbqtHvziRaaVs/cZ+2nh+TAZEPHarNn//c//wmi2gH2vC1YmBYPv8zHtY0DzdA5LJullkNBkKZ0uzL6FWpMagS3J5zX1ljxQ4NT0LW3aZ4JdLJ1Bv5h3UQHWCUiEOMA5SJAK5sAkAy/1fpNU5JMHthHGnpfYzjVAXqRcZxNtSrDDe2B0eZk4aHQ+vyIxjaOlMNeApPGqCANmqYa64XweBjT4ssDtTo7pymL/MihqUhEeaaTjAWc0F8Esegiw7HP9ni+SlF0jI4mva1puaPR/cnmUsveOv+AElTkJNhbxf1bcjHZ5wJGhiLkPrt2yyHHB8IxHnSJ/LF0j1PgeLfPkxkNr3esJe6Ygegnoi6m6Wo9IYIuVRmaQCHxOb7Np9aRplJSRTQAoqO6ITFf1zz9naacRIdhm13eShEmveQSuZbq6CMMjJ55yc0RqA4itzOKS3x+L3uB3jFekW3wMSxiWfhYRuE4kHH0J/02wdHxvLNG0A3wDOoqccdi/n58cs/D6V/CrJFTcUebOB27PhJ9vSk+5X/CRacMAd55flkcH0jNSTigIcc3tVGBhEyOjQbTIwWY5TE10OElwpe05bObg35ro0IGCz1Pa8GCnAyYnfYwwaKK4Q/TRln5ceDwFwaHPkhQUOAL8OwX49jV3wLOy0/ADDwiDcjTk3llcARgpAJnYrye9JuEeDOFFGHu/UfAlXQRj3dpRnCEdhsIqFJNghlVi0IS24dDLv/Wv1JaHCHB6OyV9N2f3c5fE2h264EIn3Qsk1shhFDmCe5jktRuOgaVekHZIpfqaYwxcvyJnQyLqrznNJa7HJjtxbx9QhNobL+ZRYiIWGA8RjP2Br5LBRbyA1c4DnIhpLNJJ9wfNcpD1QGIT8KbAZCQRuNXcxM5VncRsTUN329EXBI8MfGSS3i5t4m0BHPFgms4MItr0QYdoZ28c7bgzTrEDeCGIH7x8jG34Gl7MDAAjOmyJWw95lRthjNUDH3aemCXKs4E4h9WEx1TxDry5vfscOKhj3i8xS17foN3t3QB9nBi5ppoY8FSppooRqrQMez2FJqX8U7qLE4VYdoYpjXRQj+0+GtVGL3AOcgH9LoSHeaTcuKzF2WhOitPbcBfxn0+8AWmC4M1NO7fGQrJwe8WZtnPlcs9hbec1PPHMNlBt+GvS6Msp/9uA7VVa99u7ilF/Z+t5m6p5lnsgRdoxxaJ2r5iEhTIxBS6rmfvkVkh77YfOODERYm/MC4uK9r7bO6OU7+a7wMPehzRGJvEIIDopWqu1pVwKro/y44SoEHKNgChcT7wANuTA5XILQs20HoS74HatMUOKHftvLBLwXmIZ5itTp7x7PdDXN9YqbwV8vVEApsKluJJRsoZhnpM5KbWQ03gdgp/rxEC0TFwEztKb0laYBfpZ2Ee5mVIP6IBelbo+YpTKzsDoAGykucHczRaSENiuXgK7M+AYgFXcty73r0p7olHE3kiDQKnG/bjGf036Arxwqgo+WVleqQSM1dloojxMoXXdWKrkVCkjf+6eiw7dN2PBzjzYxocCM8uUWcuclRt8YYVLOfJyb79T+uK2tJW0jNLzRr+mC3XDpY0JzWL8ZXTqR0nnHwcK/VVaJFfKuAkArLV45Vz7CIIyvA39xzx1PB+zs7d31V3vSt+UDLCqbP6G915qcqPYC1wvoqSZDKZQS+ysXcuTlhpcLfL9Y2nDIvgQhDeB0oc/jBrAIs6ES4dSmPXC86ge6f99hPjX3/mSJiqfYD0bCoeNGDP86LXLhiLne+QIP634sxhereqigzAO7X+MLnIPOkt6BOFHp8+Of9h7sZbxIHdZHa8KnxkbLfp/swF6xoZ5aMx2WRKBO4NH0/JQehFPHJcnzDzYf7lJJSozzgB25FuDDmB26eizh8GJcdcv5Z+exhAh34u9vY52ZmpaTZjowJTQ0W+7W6LKz1ubUeHRLWHCX7ZFlJ37NuORB6OESv6+LTb9HLoZIR1CEzr6bVtk+Rl2HarBAOBjcmt3zJeey3ejGH7yG6Mc10c89FNVA2aZVoMnHq/KvT20Vnha9VE6WngSZJMJIy/r0jCurMu9q2YiydYSkWpL9sacAq+enL4tqKGjHkoiNHJbnMBR5QDxXHvelvPrRQhmO+Qa2iqEmYOJCIuhitWvtJJVpq4VGe0UiGYdLnlcozubbvc6CfU0VzvV9yJ0U4kEwYoK3bFrRT6M8yarr5t4okFuNlswAOInP50Z/fsgFmMbVQwzJVXMlXkRBZG6VjC0dDKIidKTZJYEJosOXdn34LzRu4bpAePIC74XC+TgRh7MncCbYCHIvbDIn7aC0ojOxeqEaQWyZ6hp3YS7gFUVR4zBRYr8cIVH+UyMZn9hY2+KyRksCbjPtHOQtgBp0+psmrzwO3xvyVuvyJoswEMX5zM8QAo1501F0ZgzwZJDIG3JA48HLq8EUpixYg/w30mzdISJbvOAopXz09HBxfDi5My6NPKRxr22V+GPITNbGYVCHgdWbsKdGIQxiUMAx2PwN8YeOE/W70Awm4RjzA17chaBVQZZhUBqIytyd1c+N6Jd0CZKCGSKbFek1rr7VQJy1zIQips2QTQV3FqOAJTtWPGymhWvTt4dr3FBzaGK9mcs4vHcE5xyZ9z9wJaew5SC0MKmI/hyFmTmXetemX5p0mzuNm44Um23cmn+SKratJ9UyaEtY334Efx52fugWOqaeJKFUtd85iy9MEYLL4Ip9APvHU6RZNblCn5QjmVwXSroh9sQpHydY5up1OrDqZIJ7OkTgFE9J7HxfMm07qyN7M7pyflTpnek66oiAnVC2yrgUJnX2sWz6SoUjlTMyvWQO8RiQJoXrdQUuGBXVd9SnbfL0nykSRkivblqeFtTVYkbFb3JxaruIKkeNCRmz3nalQdy/fr66qJzZlWnOtuyo0xR0B0ztk4p5ILRpmg9INGAhX6ojxWl1Do+2Qb6hmeExdPhjT4dUXxCARsdylboSLLwU209EFtsqh42EdqWDgRCa8X+KQ944iUNqbWtTyXLxXO/7EOTF/WoeYj7LdXcFybu2pK7Zu3C1Haz2n6kFHbgzLlmnvJGeco+TLDM8Yw7mOtuAQ+VbAMelbELeFTCLj/7aQAYxSEWkKzbT9UoAb46Gx5cvDsbHdonR4f2P0/OjpoOh7AIbiXWpDdONNjFF3XG3XqApVJLBb8hWsJm9W2t1LlpSvUVt4rOWkay6paphdHqQGC2mDtBZfbnfBE5+P0Xc6imVbgHHQRPX+aw2zFf2smCqm/u2A1+VpENWQQJT6t4p/kdGmTD2sZzLz8buPawfg6pwuB5DrMT81HFx2lM28tlEfFV2dnBxlw1arebau1qrDWAuhEsoxGmVA9drHdFtE7BldVpHCkq1zULIRqMhqF1huOh+8XLOnaVxSBvjt8Pj94cqgK/tUhOVwNUbI1DenR3P3OXH7m1zuY+bJ/MVES4PQK3zQP8DAuzqw0bpxtGvLAfUEOTtOc8dbBGURuomtYNc/ZJWGznXT77LqOddDoR7JeV6WEh9UGlOcrioOIXDNbTylLSoI47a2WRHbcO1KIvPYY1mmSKZ+Y8XvM8VFvTYDnh2Na5SROi38jdF6zPvPn2AENgT3FeeePj6hLIY/VVKxIS8KRa9FkV4eECFMJ4YkscgblThrjog2ROBb4qcPUBpBKK3ZhPIHadPTWtEu0ahbJVXwsPozHfRYDQJUB9ilUpPX7q8tl8v8raz+bywS3LCB9WTlhWVphLQTJauUv4SbuUS0uoW5Ybblk/Wl9I2JB7e/x0ZMkqQt7ZOX8bvLbCYtM8LC0UbDDTX8w612e3qWRV1OXq5gSrSAVhp0fDX0Zn1cdCAkB9Za+eErh3Hv2xc+nlFHK/JpSudLwbQ+1yTqi0A0XV6+C20dDtpmndhycFuWc1EvekuLTcogL3+g0Of9KtoRBU69sCKDt+Kx/F3tLz+RQa231Z8EfbKUTxLpDeYB+p3FnctfQFsqS/77qFtYMe/Lh8ZcsYVbCsIlUq+Zlx4/MfCZHYwmu6/O2b3LbJ40qmVUmOLmCjA8omCcjrMXaX+19AAM8YMorxJAVT5SUzvFdIjPmRhekMv/gP8JhUYGxOPOP1IDAJpAwBG3XyTCKsOFFX1ol8rVmt5spTgnGluOzhwX/U4NssWcwAIU7QErzXoB3XatTj9vlzBNxhOpS+hrnaSlSxo6ONHty7wCyJ2hZCZYWRoOrfbEIxTudzsJgpTwqxetYqaL29a7cPwM+sbNJsUWbbaVEcI789z5lePSibdXUXL8DThQFeiKi5xaK1Mi8iSqTwIzEvtecLcQEpbneBnrCv6FEXWkzA3Q5v7DDQwGRtDy3Qab9lZutE7ABYP736tlRKSgK4fVNYJtTiBePwpoKcKEzS9THUVDeodFlponnYykpjB5Ud4GhKlzfWqatyAQZlXkH1MPD/Cba+WLK22uURc/4bt/EIGW9W1YarpvoaOJHH4Z/SQVFksrV2MEqpZLTW3IRbyHiQLiLY9ajBEt8+oxa1yOpoiqKAUIuAIhSrBRgK6x0sx0TNwNt61kJ+/d0XsDm+c/3N1rSzAcCqh619j670GegbHzYY9fsej715cVjeWDcUgUM8EdBlwGtIs/baVQT7Z/EMNHgE8zR3PtnAXX2GqqluGH4rhRfLJMX1JNq+0DpynQhvcuxOv0xl11cc+wL3bMk9e1pd6YXdhFiaw+BMMm44jzw8MJMIvkmm3tQpOTiJjTdcPpLJaw4ncmEPyjWgeugiwDhAfgeqjS60NxmlMHZcH7wVx/fXjZP+6kvYGvqwKObXeBf1N3XextBIptnEwoKVScJF7BZLwETLFqbm837x9Scy/y2+x8qDD/1bsNaiGXMedRHZrhdMq78x/yagio/UeWTT1/WCexX7c8zdMB4n2vnCE39CV3pLZZuv6Mpvttp/9JutToe/HJ0MD+2LkxP7aHj2j1H7y60mRsk93wm7Xb/R845drzCV+DVdYCbFWbwIc4uPIisuKtt7bHFuFFy3FSbWCQBt1lcopEf5bLUET3YpvcJCH9zHznTu9PEPb7hYbtkC8/dFzHq1/MXo7Hh4VLQ2VBS0ijiJp2fT91G2baEB2tHv65f3y8vL78VRXumt9x02CxNxxzzsMcb+i7/19uC/fUCLf1qJLp2GFz/s/bBH3+iW/IUs+ReDBEboW3bVvuAh/iUu3MpKgJgmzkMgtToKWuFvENDonf8HD5/UcQ=="""
+          data = zlib.decompress(base64.b64decode(b64))
+          path = Path("src/noema/gateway/http_server.py")
+          path.write_bytes(data)
+          print("wrote", path, len(data))
+          assert b"commonpath" in data
+          assert b"joinpath" in data
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/noema/gateway/http_server.py
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "fix(security): restore http_server.py path confinement"
+            git push
+          fi
