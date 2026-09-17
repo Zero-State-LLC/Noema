@@ -176,7 +176,9 @@ def _atomic_json(path: Path, value: Any, *, mode: int = 0o600, overwrite: bool =
     # this writes credential-adjacent evidence. O_TRUNC keeps the previous
     # overwrite semantics; fchmod pins the exact mode, because the umask can only
     # clear bits from the open() mode and an existing file keeps its own.
-    descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode)
+    # Create with an owner-only mask (CodeQL py/overly-permissive-file), then
+    # fchmod to the caller-requested mode so intentional 0644 outputs still work.
+    descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
         os.fchmod(descriptor, mode)
         handle = os.fdopen(descriptor, "w", encoding="utf-8")
