@@ -260,7 +260,9 @@ def test_l15_provider_uses_injected_http_not_noema():
     )
     out = prop({"canonical": {"available_actions": ["WAIT"]}})
     assert "WAIT" in out
-    assert seen[0]["url"].startswith("https://llm.example")
+    from urllib.parse import urlparse
+    parsed = urlparse(seen[0]["url"])
+    assert parsed.scheme == "https" and parsed.hostname == "llm.example"
     assert "noema.guru" not in seen[0]["url"]
     assert seen[0]["key"] == "sk-mind-only"
 

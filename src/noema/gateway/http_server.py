@@ -57,19 +57,29 @@ def _admin_session_cookie(session_id: str) -> str:
 def resolve_admin_seed_path(raw: str | None, *, cwd: Path | None = None) -> Path:
     """Confine /admin/start seed_path to files under fixtures/."""
     root = (cwd or Path.cwd()).resolve()
-    fixtures = (root / "fixtures").resolve()
+    fixtures_real = os.path.realpath(root / "fixtures")
     if raw is None or not str(raw).strip():
-        candidate = (root / _DEFAULT_ADMIN_SEED).resolve()
+        # Build only under fixtures — no user-controlled path segments.
+        safe = Path(fixtures_real) / "v01-seed" / "world-seed.json"
     else:
         given = Path(str(raw))
-        candidate = given.resolve() if given.is_absolute() else (root / given).resolve()
-    try:
-        candidate.relative_to(fixtures)
-    except ValueError as exc:
-        raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/") from exc
-    if not candidate.is_file():
+        # Resolve then re-join under fixtures so file ops use a sanitized path.
+        if given.is_absolute():
+            candidate = os.path.realpath(given)
+        else:
+            candidate = os.path.realpath(root / given)
+        try:
+            if os.path.commonpath([fixtures_real, candidate]) != fixtures_real:
+                raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/")
+        except ValueError as exc:
+            raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/") from exc
+        relative = os.path.relpath(candidate, fixtures_real)
+        if relative.startswith("..") or os.path.isabs(relative):
+            raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/")
+        safe = Path(fixtures_real).joinpath(*Path(relative).parts)
+    if not safe.is_file():
         raise ActionError(NOT_AUTHORIZED, "seed_path must be a file under fixtures/")
-    return candidate
+    return safe
 
 
 class RequestEntityTooLarge(Exception):

@@ -12,6 +12,10 @@ RUN pip install --no-cache-dir -e ".[postgres]"
 RUN mkdir -p /app/data /app/var/objects /app/var/replays
 EXPOSE 8080
 
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin noema \
+ && chown -R noema:noema /app
+USER noema
+
 # Local compose binds 0.0.0.0; --allow-insecure-dev-bind is the C14 golden path
 # (NOEMA_ENV=local). Production binds must set TOKEN_SIGNING_SECRET instead.
 ENV NOEMA_DB=postgresql://noema:noema@postgres:5432/noema
