@@ -13,39 +13,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: cursor/fix-worker-redos-d22a
-      - name: Decode ReDoS-fixed sources
+          fetch-depth: 0
+      - name: Restore ReDoS-fixed sources from patch
         run: |
-          python3 <<'PY'
-          import base64, zlib, pathlib, shutil
-          root = pathlib.Path('workers/noema/src')
-          payload = root / '.redos-payloads'
-          def join_parts(prefix):
-            parts = sorted(payload.glob(prefix + '.part*'))
-            if not parts:
-              raise SystemExit('missing parts for ' + prefix)
-            return ''.join(p.read_text().strip() for p in parts)
-          for dst, prefix in [
-            ('actions.ts', 'actions.ts.zlib.b64'),
-            ('world-actions.ts', 'world-actions.ts.zlib.b64'),
-          ]:
-            b64 = join_parts(prefix)
-            data = zlib.decompress(base64.b64decode(b64))
-            (root / dst).write_bytes(data)
-            print('wrote', dst, len(data))
-          for junk in [
-            root / '.redos-fix-probe.txt',
-            root / '.redos-fix-probe2.txt',
-            root / '.redos-file-ref-probe.txt',
-            root / '.redos-obj-ref-probe.txt',
-            root / '.redos-payloads',
-          ]:
-            if junk.is_file():
-              junk.unlink(); print('removed', junk)
-            elif junk.is_dir():
-              shutil.rmtree(junk); print('removed dir', junk)
-          wf = pathlib.Path('.github/workflows/restore-redos-sources.yml')
-          if wf.exists():
-            wf.unlink(); print('removed workflow')
+          set -euo pipefail
+          git fetch origin main
+          git checkout origin/main -- workers/noema/src/actions.ts workers/noema/src/world-actions.ts
+          patch -p1 < workers/noema/src/.redos-payloads/redos-fix.patch
+          rm -f workers/noema/src/.redos-fix-probe.txt \
+                workers/noema/src/.redos-fix-probe2.txt \
+                workers/noema/src/.redos-file-ref-probe.txt \
+                workers/noema/src/.redos-obj-ref-probe.txt \
+                workers/noema/src/.redos-size-probe.txt \
+                workers/noema/src/.redos-write-test.txt \
+                workers/noema/src/.redos-obj-ref-probe.txt
+          rm -rf workers/noema/src/.redos-payloads
+          rm -f .github/workflows/restore-redos-sources.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          a = Path('workers/noema/src/actions.ts').read_bytes()
+          w = Path('workers/noema/src/world-actions.ts').read_bytes()
+          print('actions', len(a), 'world', len(w))
+          assert b'splitKeywordTail' in a
+          assert b'parseCharterAssignment' in a
+          assert b'askVerb' in w
+          print('markers ok')
           PY
       - name: Commit restored sources
         run: |
