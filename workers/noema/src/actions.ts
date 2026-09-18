@@ -1,1 +1,1 @@
-@/tmp/actions_content.txt
+${file:/workspace/org-scan/Noema/workers/noema/src/actions.ts}
