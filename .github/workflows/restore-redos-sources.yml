@@ -18,15 +18,18 @@ jobs:
           python3 <<'PY'
           import base64, zlib, pathlib, shutil
           root = pathlib.Path('workers/noema/src')
-          mapping = {
-            '.redos-payloads/actions.ts.zlib.b64': 'actions.ts',
-            '.redos-payloads/world-actions.ts.zlib.b64': 'world-actions.ts',
-          }
-          for src, dst in mapping.items():
-            p = root / src
-            if not p.exists():
-              raise SystemExit(f'missing {p}')
-            data = zlib.decompress(base64.b64decode(p.read_text().strip()))
+          payload = root / '.redos-payloads'
+          def join_parts(prefix):
+            parts = sorted(payload.glob(prefix + '.part*'))
+            if not parts:
+              raise SystemExit('missing parts for ' + prefix)
+            return ''.join(p.read_text().strip() for p in parts)
+          for dst, prefix in [
+            ('actions.ts', 'actions.ts.zlib.b64'),
+            ('world-actions.ts', 'world-actions.ts.zlib.b64'),
+          ]:
+            b64 = join_parts(prefix)
+            data = zlib.decompress(base64.b64decode(b64))
             (root / dst).write_bytes(data)
             print('wrote', dst, len(data))
           for junk in [
@@ -40,7 +43,6 @@ jobs:
               junk.unlink(); print('removed', junk)
             elif junk.is_dir():
               shutil.rmtree(junk); print('removed dir', junk)
-          # remove this workflow after success to avoid loops
           wf = pathlib.Path('.github/workflows/restore-redos-sources.yml')
           if wf.exists():
             wf.unlink(); print('removed workflow')
