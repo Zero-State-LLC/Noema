@@ -1,1 +1,1 @@
-file:///tmp/actions_content.txt
+H4sIAAAAAAAA
