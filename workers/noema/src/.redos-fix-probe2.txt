@@ -1,1 +1,0 @@
-/tmp/noema_push_command-aliases.json

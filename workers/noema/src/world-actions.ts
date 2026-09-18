@@ -1962,8 +1962,14 @@ export async function applyWorldCommand(
     return done;
   }
   if (macro.steps.length === 1) textLine = macro.steps[0];
-  const askM = textLine.trim().match(/^(?:ask|talk|use|consult|service)\s+(.+)$/i);
-  if (askM && (isServiceConsultLine(textLine) || /^ask\s+/i.test(textLine))) {
+  const askLine = textLine.trim();
+  const askVerb = ["ask", "talk", "use", "consult", "service"].find((v) => {
+    const low = askLine.toLowerCase();
+    return low === v || low.startsWith(v + " ");
+  });
+  const askRest = askVerb ? askLine.slice(askVerb.length).trim() : "";
+  const askM = askVerb && askRest ? ([askVerb, askRest] as const) : null;
+  if (askM && (isServiceConsultLine(textLine) || /^ask\b/i.test(textLine))) {
     const pl0 = w.players[principal.player_id];
     const room0 = w.rooms[pl0?.room_id || w.entry_room_id];
     const present0 = servicesAtRoom({
