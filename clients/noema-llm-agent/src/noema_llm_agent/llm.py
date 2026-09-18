@@ -34,7 +34,11 @@ class OpenAICompatibleProposer:
     def __init__(self, *, base_url: str, model: str, api_key: str | None = None) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
-        self.api_key = api_key if api_key is not None else os.environ.get("NOEMA_LLM_KEY", "")
+        self.api_key = api_key if api_key is not None else (
+            os.environ.get("NOEMA_LLM_KEY")
+            or os.environ.get("NOEMA_MODEL_API_KEY")
+            or ""
+        )
 
     def __call__(self, context: dict[str, Any]) -> str:
         from openai import OpenAI
@@ -66,8 +70,14 @@ def make_llm(
         "ollama": ("http://127.0.0.1:11434/v1", "qwen2.5:3b"),
         "groq": ("https://api.groq.com/openai/v1", "llama-3.1-8b-instant"),
         "openrouter": ("https://openrouter.ai/api/v1", "openai/gpt-4.1-mini"),
-        "openai-compatible": (os.environ.get("NOEMA_LLM_BASE") or "https://api.openai.com/v1", os.environ.get("NOEMA_LLM_MODEL") or "gpt-4.1-mini"),
-        "custom": (os.environ.get("NOEMA_LLM_BASE") or "http://127.0.0.1:11434/v1", os.environ.get("NOEMA_LLM_MODEL") or "qwen2.5:3b"),
+        "openai-compatible": (
+            os.environ.get("NOEMA_LLM_BASE") or os.environ.get("NOEMA_MODEL_BASE") or "https://api.openai.com/v1",
+            os.environ.get("NOEMA_LLM_MODEL") or os.environ.get("NOEMA_MODEL") or "gpt-4.1-mini",
+        ),
+        "custom": (
+            os.environ.get("NOEMA_LLM_BASE") or os.environ.get("NOEMA_MODEL_BASE") or "http://127.0.0.1:11434/v1",
+            os.environ.get("NOEMA_LLM_MODEL") or os.environ.get("NOEMA_MODEL") or "qwen2.5:3b",
+        ),
         "xai": ("https://api.x.ai/v1", os.environ.get("NOEMA_LLM_MODEL") or "grok-4"),
     }
     url, mid = defaults.get(name, defaults["openai-compatible"])
