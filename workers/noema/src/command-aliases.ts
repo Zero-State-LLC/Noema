@@ -1,60 +1,77 @@
-/**
- * Player-preference aliases and bounded macros. Outside world-actions on purpose:
- * keep the alias surface small, deterministic, and free of ambient world coupling.
- */
+/** Player-preference aliases and bounded macros. Outside world truth. */
 
-export const MAX_ALIASES = 24;
-export const MAX_ALIAS_EXPANSION = 160;
-export const MAX_MACRO_STEPS = 4;
+export const MAX_ALIAS_DEPTH = 4;
+export const MAX_MACRO_STEPS = 5;
+export const MAX_ALIASES = 16;
 
-const RESERVED = new Set([
-  "alias",
-  "do",
-  "help",
-  "look",
-  "go",
-  "say",
-  "ask",
-  "take",
-  "drop",
-  "give",
-  "use",
-  "build",
-  "form",
-  "vest",
-  "share",
-  "connect",
-]);
+const RESERVED = new Set(
+  [
+    "help",
+    "look",
+    "l",
+    "wait",
+    "observe",
+    "enter",
+    "move",
+    "go",
+    "walk",
+    "inspect",
+    "examine",
+    "x",
+    "repair",
+    "harvest",
+    "trade",
+    "message",
+    "msg",
+    "tell",
+    "say",
+    "alias",
+    "do",
+    "talk",
+    "form",
+    "invite",
+    "leave",
+    "accept",
+    "reject",
+    "cancel",
+  ].map((s) => s.toLowerCase()),
+);
+
+export function isReservedAliasName(name: string): boolean {
+  return RESERVED.has(String(name || "").trim().toLowerCase());
+}
+
+export function splitMacroSteps(line: string): string[] {
+  return String(line || "")
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 export type AliasMap = Record<string, string>;
 
+export function expandAliases(
+  line: string,
+  aliases: AliasMap,
+  depth = 0,
+): { line: string; error?: string } {
+  const trimmed = String(line || "").trim();
+  if (!trimmed) return { line: trimmed };
+  if (depth > MAX_ALIAS_DEPTH) return { line: trimmed, error: "Alias expansion is too deep." };
+  const parts = trimmed.split(/\s+/);
+  const head = (parts[0] || "").toLowerCase();
+  const rest = parts.slice(1).join(" ");
+  const expansion = aliases[head];
+  if (!expansion) return { line: trimmed };
+  const next = rest ? `${expansion} ${rest}`.trim() : expansion.trim();
+  return expandAliases(next, aliases, depth + 1);
+}
+
 export type AliasCommand =
   | { ok: true; op: "list" }
-  | { ok: true; op: "rm"; name: string }
   | { ok: true; op: "set"; name: string; expansion: string }
+  | { ok: true; op: "rm"; name: string }
   | { ok: false; error: string };
-
-function isReservedAliasName(name: string): boolean {
-  return RESERVED.has(name.toLowerCase());
-}
-
-export function normalizeAliasMap(raw: unknown): AliasMap {
-  if (!raw || typeof raw !== "object") return {};
-  const out: AliasMap = {};
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    const name = String(k || "")
-      .toLowerCase()
-      .trim();
-    const expansion = String(v || "").trim();
-    if (!name || !expansion) continue;
-    if (isReservedAliasName(name)) continue;
-    if (!/^[a-z][a-z0-9_-]{0,23}$/.test(name)) continue;
-    if (expansion.length > MAX_ALIAS_EXPANSION) continue;
-    out[name] = expansion;
-    if (Object.keys(out).length >= MAX_ALIASES) break;
-  }
-  return out;
-}
 
 export function parseAliasCommand(line: string): AliasCommand | null {
   const t = String(line || "").trim();
@@ -72,41 +89,28 @@ export function parseAliasCommand(line: string): AliasCommand | null {
     if (isReservedAliasName(name)) return { ok: false, error: `“${name}” is a reserved command.` };
     if (!/^[a-z][a-z0-9_-]{0,23}$/.test(name)) return { ok: false, error: "Alias names are short letters." };
     if (!expansion) return { ok: false, error: "Alias needs an expansion." };
-    if (expansion.length > MAX_ALIAS_EXPANSION) {
-      return { ok: false, error: `Alias expansions are at most ${MAX_ALIAS_EXPANSION} characters.` };
-    }
     return { ok: true, op: "set", name, expansion };
   }
-  return { ok: false, error: 'Alias syntax: alias list | alias set <name> <expansion> | alias rm <name>' };
+  return { ok: false, error: "Alias syntax: alias list | alias set <name> <command> | alias rm <name>" };
 }
 
-function splitMacroSteps(body: string): string[] {
-  const steps: string[] = [];
-  let buf = "";
-  let q: string | null = null;
-  for (let i = 0; i < body.length; i++) {
-    const ch = body[i];
-    if (q) {
-      buf += ch;
-      if (ch === q) q = null;
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      q = ch;
-      buf += ch;
-      continue;
-    }
-    if (ch === ";") {
-      const step = buf.trim();
-      if (step) steps.push(step);
-      buf = "";
-      continue;
-    }
-    buf += ch;
+export function applyAliasCommand(aliases: AliasMap, cmd: AliasCommand): { aliases: AliasMap; text: string } {
+  const next = { ...aliases };
+  if (!cmd.ok) return { aliases: next, text: cmd.error };
+  if (cmd.op === "list") {
+    const keys = Object.keys(next).sort();
+    if (!keys.length) return { aliases: next, text: "No aliases." };
+    return { aliases: next, text: keys.map((k) => `${k} → ${next[k]}`).join("\n") };
   }
-  const last = buf.trim();
-  if (last) steps.push(last);
-  return steps;
+  if (cmd.op === "rm") {
+    delete next[cmd.name];
+    return { aliases: next, text: `Alias ${cmd.name} removed.` };
+  }
+  if (Object.keys(next).length >= MAX_ALIASES && next[cmd.name] == null) {
+    return { aliases: next, text: `At most ${MAX_ALIASES} aliases.` };
+  }
+  next[cmd.name] = cmd.expansion;
+  return { aliases: next, text: `Alias ${cmd.name} → ${cmd.expansion}` };
 }
 
 export function macroStepsFromLine(line: string): { steps: string[]; error?: string } {
@@ -115,6 +119,9 @@ export function macroStepsFromLine(line: string): { steps: string[]; error?: str
   const steps = splitMacroSteps(body);
   if (steps.length > MAX_MACRO_STEPS) {
     return { steps: [], error: `Macros are at most ${MAX_MACRO_STEPS} steps.` };
+  }
+  if (steps.some((s) => /^do\b/i.test(s))) {
+    return { steps: [], error: "Macros cannot nest." };
   }
   return { steps };
 }
