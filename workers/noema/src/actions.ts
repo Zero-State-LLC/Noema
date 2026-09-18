@@ -90,6 +90,37 @@ import {
   type PracticeState,
 } from "./practice";
 
+
+/** Split "<left> <keyword> <rightToken>" without ReDoS-prone .+? regexes. */
+function splitKeywordTail(rest: string, keywords: string[]): { left: string; right: string } | null {
+  const tokens = rest.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 3) return null;
+  const right = tokens[tokens.length - 1];
+  const kw = tokens[tokens.length - 2]?.toLowerCase();
+  if (!keywords.includes(kw)) return null;
+  const left = tokens.slice(0, -2).join(" ").trim();
+  if (!left || !right) return null;
+  return { left, right };
+}
+
+/** Parse `name charter="..."` without reluctant-quantifier ReDoS. */
+function parseCharterAssignment(rest: string): { name: string; charter: string } | null {
+  const lower = rest.toLowerCase();
+  const marker = " charter=";
+  const idx = lower.lastIndexOf(marker);
+  if (idx <= 0) return null;
+  const name = rest.slice(0, idx).trim();
+  let raw = rest.slice(idx + marker.length).trim();
+  if (!name || raw.length < 2) return null;
+  const q = raw[0];
+  if (q !== '"' && q !== "'") return null;
+  if (!raw.endsWith(q)) return null;
+  const charter = raw.slice(1, -1).trim();
+  if (!charter) return null;
+  return { name, charter };
+}
+
+
 export type Budgets = {
   attention: number;
   compute: number;
@@ -1382,15 +1413,15 @@ export function parseHumanCommand(
       return parseAgreementFormLine(parts, ctx);
     }
     const rest = parts.join(" ");
-    const cm = rest.match(/^(.+?)\s+charter=["'](.+)["']\s*$/i);
+    const cm = parseCharterAssignment(rest);
     if (!cm) {
       return {
         ok: false,
         error: 'Form syntax: form <name> charter="purpose of the organization"',
       };
     }
-    const name = cm[1].trim();
-    const charter = cm[2].trim();
+    const name = cm.name;
+    const charter = cm.charter;
     if (!name || !charter) {
       return { ok: false, error: "Organization name and charter are required." };
     }
@@ -2054,10 +2085,10 @@ export function parseHumanCommand(
   // vest <thing> to <org> — GC2-S10, not listed in Chamber help
   if (v === "vest") {
     const rest = parts.join(" ");
-    const m = rest.match(/^(.+?)\s+(?:to|for)\s+(\S+)\s*$/i);
+    const m = splitKeywordTail(rest, ["to", "for"]);
     if (!m) return { ok: false, error: 'Vest syntax: vest <thing> to <org>' };
-    const raw = m[1].replace(/^["']|["']$/g, "").trim();
-    const org_id = m[2];
+    const raw = m.left.replace(/^["']|["']$/g, "").trim();
+    const org_id = m.right;
     if (ctx.entities && ctx.entities.length) {
       const r = resolveVisibleEntity(raw, ctx.entities);
       if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };
@@ -2076,10 +2107,10 @@ export function parseHumanCommand(
   // share <thing> with <player> — GC2-S11, not listed in Chamber help
   if (v === "share") {
     const rest = parts.join(" ");
-    const m = rest.match(/^(.+?)\s+with\s+(\S+)\s*$/i);
+    const m = splitKeywordTail(rest, ["with"]);
     if (!m) return { ok: false, error: "Share syntax: share <thing> with <player>" };
-    const raw = m[1].replace(/^["']|["']$/g, "").trim();
-    const who = m[2];
+    const raw = m.left.replace(/^["']|["']$/g, "").trim();
+    const who = m.right;
     let player_id = who;
     if (ctx.players && ctx.selfId) {
       const pr = resolvePlayerTarget(who, ctx.players, ctx.selfId);
@@ -2104,10 +2135,10 @@ export function parseHumanCommand(
   // connect <link> to <dir|room> — GC2-S12, not listed in Chamber help
   if (v === "connect") {
     const rest = parts.join(" ");
-    const m = rest.match(/^(.+?)\s+to\s+(\S+)\s*$/i);
+    const m = splitKeywordTail(rest, ["to"]);
     if (!m) return { ok: false, error: "Connect syntax: connect <link> to <dir|room>" };
-    const raw = m[1].replace(/^["']|["']$/g, "").trim();
-    const dest = m[2];
+    const raw = m.left.replace(/^["']|["']$/g, "").trim();
+    const dest = m.right;
     if (ctx.entities && ctx.entities.length) {
       const r = resolveVisibleEntity(raw, ctx.entities);
       if (!r.ok) return { ok: false, error: formatAmbiguous(r), code: r.code, choices: r.choices };

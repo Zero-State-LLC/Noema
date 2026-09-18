@@ -75,16 +75,17 @@ export type AliasCommand =
 
 export function parseAliasCommand(line: string): AliasCommand | null {
   const t = String(line || "").trim();
-  const m = t.match(/^alias(?:\s+(.*))?$/i);
-  if (!m) return null;
-  const rest = (m[1] || "").trim();
+  if (!/^alias\b/i.test(t)) return null;
+  const rest = t.replace(/^alias\b/i, "").trim();
   if (!rest || rest.toLowerCase() === "list") return { ok: true, op: "list" };
   const rm = rest.match(/^(?:rm|remove|unset)\s+(\S+)\s*$/i);
   if (rm) return { ok: true, op: "rm", name: rm[1].toLowerCase() };
-  const set = rest.match(/^(?:set\s+)?(\S+)\s+(.+)$/i);
-  if (set) {
-    const name = set[1].toLowerCase();
-    const expansion = set[2].trim();
+  let setBody = rest;
+  if (/^set\b/i.test(setBody)) setBody = setBody.replace(/^set\b/i, "").trim();
+  const sp = setBody.search(/\s/);
+  if (sp > 0) {
+    const name = setBody.slice(0, sp).toLowerCase();
+    const expansion = setBody.slice(sp).trim();
     if (isReservedAliasName(name)) return { ok: false, error: `“${name}” is a reserved command.` };
     if (!/^[a-z][a-z0-9_-]{0,23}$/.test(name)) return { ok: false, error: "Alias names are short letters." };
     if (!expansion) return { ok: false, error: "Alias needs an expansion." };
@@ -114,8 +115,7 @@ export function applyAliasCommand(aliases: AliasMap, cmd: AliasCommand): { alias
 
 export function macroStepsFromLine(line: string): { steps: string[]; error?: string } {
   let body = String(line || "").trim();
-  const doM = body.match(/^do\s+(.+)$/i);
-  if (doM) body = doM[1].trim();
+  if (/^do\b/i.test(body)) body = body.replace(/^do\b/i, "").trim();
   const steps = splitMacroSteps(body);
   if (steps.length > MAX_MACRO_STEPS) {
     return { steps: [], error: `Macros are at most ${MAX_MACRO_STEPS} steps.` };
