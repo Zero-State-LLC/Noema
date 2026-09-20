@@ -210,6 +210,9 @@ async function deployPhase(worker, phase, secretsFile, commands, knownBase) {
   if (version.env !== "test" || version.world_id !== REHEARSAL_WORLD) {
     fail(`deployed Worker self-reported unsafe identity: ${JSON.stringify(version)}`);
   }
+  // Warm the Worker-local DO namespace before admin genesis. A brand-new service can
+  // return INTERNAL on genesis/preview if the first post-deploy call races DO init.
+  await waitJson(`${base}/ready`, (body) => body?.ready === true && body?.world?.world_id === REHEARSAL_WORLD);
   return { base, version, deploy_output_sha256: sha256(deployed.output), deployed_version_id: deployedVersionId };
 }
 
