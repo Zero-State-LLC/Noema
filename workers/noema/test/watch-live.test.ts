@@ -8,6 +8,8 @@ import {
   buildWatchNarrative,
   consequenceForEvent,
   consequenceForPublicBand,
+  distinctFromHeadline,
+  publicWatchRoomId,
   explicitWatchCause,
   capVisibleEvents,
   heldFromSnapshot,
@@ -558,6 +560,10 @@ describe("watch event tiers and phrasing", () => {
 });
 
 describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
+  function bareLine(line?: string): string {
+    return String(line || "").trim().replace(/\.+$/, "");
+  }
+
   function liveOf(over: Partial<Parameters<typeof buildWatchLive>[0]> = {}) {
     return buildWatchLive({
       world_id: "w",
@@ -608,20 +614,23 @@ describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
     expect(byLine["A report is circulating."]?.consequence).toBe("A report is circulating");
     expect(byLine["An institution declared a temporary repair authority."]?.projection_id).toBe("organization");
     expect(byLine["An institution declared a temporary repair authority."]?.consequence).toBe(
-      "An institution declared a temporary repair authority",
+      "Temporary repair authority is in force",
+    );
+    expect(byLine["An institution declared a temporary repair authority."]?.consequence).not.toBe(
+      bareLine("An institution declared a temporary repair authority."),
     );
     expect(byLine["A designated successor has taken an institution office."]?.consequence).toBe(
-      "A designated successor has taken an institution office",
+      "An institution office has a new holder",
+    );
+    expect(byLine["A designated successor has taken an institution office."]?.consequence).not.toBe(
+      bareLine("A designated successor has taken an institution office."),
     );
     expect(byLine["A maintenance custom has become widely observed."]?.projection_id).toBe("organization");
     expect(byLine["A maintenance custom has become widely observed."]).not.toHaveProperty("consequence");
     expect((snap.notable_event as WatchEvent).consequence).toBe("A report is circulating");
   });
 
-  it("leaves organization acts, same-band repairs, and other bands honest-empty", () => {
-    expect(
-      consequenceForEvent(src({ event_type: "ORG_CREATE", sequence: 10, payload: { room_id: "room.market" } }), rooms()),
-    ).toBeUndefined();
+  it("leaves same-band repairs and other bands honest-empty", () => {
     expect(
       consequenceForEvent(
         src({
@@ -633,16 +642,83 @@ describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
       ),
     ).toBeUndefined();
     expect(consequenceForPublicBand("production", "Nacre repaired Relay Trunk")).toBeUndefined();
-    expect(consequenceForPublicBand("organization", "An organization acted at Chamber Market")).toBeUndefined();
     expect(consequenceForPublicBand("message_notice", "")).toBeUndefined();
     expect(consequenceForPublicBand("harvest", "Harvest at Chamber Market")).toBeUndefined();
     expect(consequenceForPublicBand("conflicting_reports", "Conflicting accounts are circulating.")).toBeUndefined();
+  });
+
+  it("projects a distinct institution Consequence and never copies the headline", () => {
+    const headline = "An institution declared a temporary repair authority.";
+    const consequence = consequenceForPublicBand("organization", headline);
+    expect(consequence).toBe("Temporary repair authority is in force");
+    expect(distinctFromHeadline(headline, consequence)).toBe(consequence);
+    expect(distinctFromHeadline(headline, headline)).toBeUndefined();
+    expect(distinctFromHeadline(headline, bareLine(headline))).toBeUndefined();
+  });
+
+  it("projects Where and a distinct Consequence for a public organization act", () => {
+    expect(consequenceForEvent(src({ event_type: "ORG_CREATE", sequence: 10, payload: { room_id: "room.market" } }), rooms())).toBe(
+      "An organization formed",
+    );
+    expect(consequenceForPublicBand("organization", "An organization acted at Chamber Market")).toBe(
+      "An organization took a public action",
+    );
+    expect(consequenceForPublicBand("organization", "An organization acted")).toBe("An organization took a public action");
+    const digestShaped = src({
+      event_type: "ORG_CREATE",
+      sequence: 12,
+      handle: "device48f89b55e0fe",
+      payload: { room_name: "Chamber Market" },
+    });
+    expect(publicWatchRoomId(digestShaped, rooms())).toBe("room.market");
     const org = liveOf({
-      events: [src({ event_type: "ORG_CREATE", sequence: 12, payload: { room_id: "room.market" } })],
+      events: [digestShaped],
+      players: [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.market")],
     });
     const acted = recent(org).find((e) => e.projection_id === "organization");
-    expect(acted?.line).toMatch(/organization acted/i);
-    expect(acted).not.toHaveProperty("consequence");
+    expect(acted?.line).toBe("An organization acted at Chamber Market");
+    expect(acted?.room_id).toBe("room.market");
+    expect(acted?.actor_label).toBe("device48f89b55e0fe");
+    expect(acted?.consequence).toBe("An organization formed");
+    expect(acted?.consequence).not.toBe(acted?.line);
+    expect(acted?.consequence).not.toBe(bareLine(acted?.line));
+  });
+
+  it("uses the actor's public site when an organization act carries no location", () => {
+    const ev = src({
+      event_type: "ORG_MEMBER_ADD",
+      sequence: 13,
+      handle: "device48f89b55e0fe",
+      payload: {},
+    });
+    const org = liveOf({
+      events: [ev],
+      players: [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.market")],
+    });
+    const acted = recent(org).find((e) => e.projection_id === "organization");
+    expect(acted?.line).toBe("An organization acted at Chamber Market");
+    expect(acted?.room_id).toBe("room.market");
+    expect(acted?.consequence).toBe("A membership changed");
+    expect(acted?.consequence).not.toBe(acted?.line);
+  });
+
+  it("withholds a non-public room_name on an organization act and does not relocate it", () => {
+    const ev = src({
+      event_type: "ORG_CREATE",
+      sequence: 14,
+      handle: "device48f89b55e0fe",
+      payload: { room_name: "Sealed Vault" },
+    });
+    expect(publicWatchRoomId(ev, rooms(), [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.market")])).toBeUndefined();
+    const org = liveOf({
+      events: [ev],
+      players: [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.market")],
+    });
+    const acted = recent(org).find((e) => e.projection_id === "organization");
+    expect(acted?.line).toBe("An organization acted");
+    expect(acted?.room_id).toBeUndefined();
+    expect(acted?.consequence).toBe("An organization formed");
+    expect(JSON.stringify(org)).not.toContain("Sealed Vault");
   });
 
   it("derives a public notice from MESSAGE_DELIVERED without leaking message text", () => {
@@ -1872,9 +1948,56 @@ describe("driven watch client (§11/§13)", () => {
       expect(feed).toContain("Consequence Stocks recovered");
       expect(feed).toContain("Who reach-maint3");
       expect(feed).toContain("Where Civic Exchange");
-      expect(feed).toContain("Consequence An institution declared a temporary repair authority");
+      expect(feed).toContain("An institution declared a temporary repair authority.");
+      expect(feed).toContain("Consequence Temporary repair authority is in force");
+      expect(feed).not.toContain("Consequence An institution declared a temporary repair authority");
       expect(feed).not.toMatch(/authority\.Consequence/);
       expect(feed).not.toMatch(/ExchangeWho/);
+    } finally {
+      client.restore();
+    }
+  });
+
+  it("paints org-act Where and a Consequence distinct from the headline", async () => {
+    const civic = {
+      room_id: "room.civic-exchange",
+      name: "Civic Exchange",
+      description: "Open floor.",
+      exits: [],
+      entities: [],
+    };
+    const live = buildWatchLive({
+      world_id: "world.perihelion-reach-3",
+      cycle: 21943,
+      sequence: 59526,
+      rooms: { "room.civic-exchange": civic },
+      players: [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.civic-exchange")],
+      events: [
+        src({
+          event_type: "ORG_CREATE",
+          sequence: 59526,
+          handle: "device48f89b55e0fe",
+          payload: { room_name: "Civic Exchange" },
+        }),
+      ],
+      now: NOW,
+    });
+    const notable = live.notable_event as WatchEvent;
+    expect(notable.projection_id).toBe("organization");
+    expect(notable.line).toBe("An organization acted at Civic Exchange");
+    expect(notable.room_id).toBe("room.civic-exchange");
+    expect(notable.actor_label).toBe("device48f89b55e0fe");
+    expect(notable.consequence).toBe("An organization formed");
+    expect(notable.consequence).not.toBe(notable.line);
+    const client = await bootWatchClient(() => okResponse(live));
+    try {
+      expect(client.$("watch-headline").textContent).toBe("An organization acted at Civic Exchange");
+      expect(client.$("watch-hero-who").textContent).toBe("Who device48f89b55e0fe");
+      expect(client.$("watch-hero-where").textContent).toBe("Where Civic Exchange");
+      expect(client.$("watch-hero-where").textContent).not.toBe("Where not projected publicly");
+      expect(client.$("watch-conseq").textContent).toBe("Consequence An organization formed");
+      expect(client.$("watch-conseq").textContent).not.toBe("Consequence not projected publicly");
+      expect(client.$("watch-conseq").textContent).not.toBe("Consequence " + client.$("watch-headline").textContent);
     } finally {
       client.restore();
     }

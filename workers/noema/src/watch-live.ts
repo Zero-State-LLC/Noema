@@ -341,14 +341,33 @@ function isRepairUpdate(ev: WatchSourceEvent): boolean {
   return ev.payload?.operation === "REPAIR" || ev.payload?.kind === "repair";
 }
 
+function bareWatchPhrase(line?: string): string {
+  return String(line || "").trim().replace(/\.+$/, "");
+}
+
+/** Gate D: organization Consequence must not be the headline copied onto itself. */
+export function distinctFromHeadline(headline?: string, consequence?: string): string | undefined {
+  const con = String(consequence || "").trim();
+  if (!con) return undefined;
+  if (bareWatchPhrase(con).toLowerCase() === bareWatchPhrase(headline).toLowerCase()) return undefined;
+  return con;
+}
+
+function organizationActConsequence(eventType: string): string | undefined {
+  const t = eventType.toUpperCase();
+  if (t === "ORG_CREATE") return "An organization formed";
+  if (t === "ORG_MEMBER_ADD" || t === "ORG_MEMBER_REMOVE") return "A membership changed";
+  return undefined;
+}
+
 /**
  * Gate D C5 sibling: public-result consequence for production / organization /
- * message_notice when the already-public line names an asset, notice, or office
- * change. Never invents motives, authors, quantities, or hidden state.
- * Omitted when the public line does not already carry that fact.
+ * message_notice. Never invents motives, authors, quantities, or hidden state.
+ * Organization consequences are a distinct public result, never the headline.
+ * Other bands still omit when the public line does not already carry the fact.
  */
 export function consequenceForPublicBand(projectionId: string, line?: string): string | undefined {
-  const bare = String(line || "").trim().replace(/\.+$/, "");
+  const bare = bareWatchPhrase(line);
   if (!bare) return undefined;
   if (projectionId === "production") {
     if (/^Stocks recovered(?:\s+at\s+.+)?$/i.test(bare)) return "Stocks recovered";
@@ -362,10 +381,13 @@ export function consequenceForPublicBand(projectionId: string, line?: string): s
   }
   if (projectionId === "organization") {
     if (/^An institution declared a temporary repair authority$/i.test(bare)) {
-      return "An institution declared a temporary repair authority";
+      return distinctFromHeadline(bare, "Temporary repair authority is in force");
     }
     if (/^A designated successor has taken an institution office$/i.test(bare)) {
-      return "A designated successor has taken an institution office";
+      return distinctFromHeadline(bare, "An institution office has a new holder");
+    }
+    if (/^An organization acted(?:\s+at\s+.+)?$/i.test(bare)) {
+      return distinctFromHeadline(bare, "An organization took a public action");
     }
     return undefined;
   }
@@ -403,7 +425,13 @@ export function consequenceForEvent(
     return `${home.label}: ${from} → ${to}`;
   }
   const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
-  if (projectionId === "production" || projectionId === "organization" || projectionId === "message_notice") {
+  if (projectionId === "organization") {
+    const act = organizationActConsequence(t);
+    if (act) return act;
+    const line = phraseWatchEvent(ev, publicRooms);
+    return distinctFromHeadline(line, consequenceForPublicBand(projectionId, line));
+  }
+  if (projectionId === "production" || projectionId === "message_notice") {
     return consequenceForPublicBand(projectionId, phraseWatchEvent(ev, publicRooms));
   }
   return undefined;
@@ -416,6 +444,52 @@ function payloadRoomId(payload: Record<string, unknown> | undefined): string | u
     if (typeof v === "string" && v) return v;
   }
   return undefined;
+}
+
+function publicRoomMatchingName(
+  name: string | undefined,
+  publicRooms: Record<string, { name?: string; room_id?: string }>,
+): { name?: string; room_id?: string } | undefined {
+  const n = String(name || "").trim();
+  if (!n) return undefined;
+  for (const room of Object.values(publicRooms)) {
+    if (String(room?.name || "").trim() === n) return room;
+  }
+  return undefined;
+}
+
+/**
+ * Public site for a watch event. Hidden rooms never resolve. A non-public
+ * `room_name` (digest fallback from a hidden site) withholds instead of
+ * relocating the act to the actor's current public room.
+ */
+export function publicWatchRoomId(
+  ev: WatchSourceEvent,
+  publicRooms: Record<string, WatchRoomIn>,
+  players: WatchPlayerIn[] = [],
+): string | undefined {
+  const payload = ev.payload || {};
+  const direct = payloadRoomId(payload);
+  if (direct) return publicRooms[direct] ? direct : undefined;
+  const named = typeof payload.room_name === "string" ? payload.room_name : undefined;
+  if (named && named.trim()) {
+    const hit = publicRoomMatchingName(named, publicRooms);
+    return typeof hit?.room_id === "string" && publicRooms[hit.room_id] ? hit.room_id : undefined;
+  }
+  if (projectionIdForEvent(ev.event_type, ev.payload) !== "organization") return undefined;
+  const handle = String(ev.handle || "").trim();
+  const pid = String(ev.player_id || "").trim();
+  for (const p of players) {
+    if (!p.entered || !p.room_id || !publicRooms[p.room_id]) continue;
+    if ((handle && p.handle === handle) || (pid && p.player_id === pid)) return p.room_id;
+  }
+  return undefined;
+}
+
+function withResolvedPublicRoom(ev: WatchSourceEvent, roomId: string | undefined): WatchSourceEvent {
+  if (!roomId) return ev;
+  if (ev.payload?.room_id === roomId) return ev;
+  return { ...ev, payload: { ...(ev.payload || {}), room_id: roomId } };
 }
 
 export function phraseWatchEvent(
@@ -432,6 +506,12 @@ export function phraseWatchEvent(
     (typeof payload.room_name === "string" && publicRooms[String(payload.room_id || "")]
       ? payload.room_name
       : undefined);
+  // Digest org/institution rows often carry a public `room_name` without
+  // `room_id`. Match the name only against already-public rooms.
+  const namedPublicSite = publicRoomMatchingName(
+    typeof payload.room_name === "string" ? payload.room_name : undefined,
+    publicRooms,
+  )?.name;
   // §4: any entity-scoped event MUST resolve its public site. An entity
   // mutation carries entity_id and normally no room_id, so payload room ids
   // alone leave it unlocated and it degrades to the filler the spec bans.
@@ -442,7 +522,8 @@ export function phraseWatchEvent(
   const site =
     destName ||
     roomName(typeof payload.room_id === "string" ? payload.room_id : destId, publicRooms) ||
-    entitySite;
+    entitySite ||
+    namedPublicSite;
 
   switch (String(ev.event_type || "").toUpperCase()) {
     case "MOVE":
@@ -626,6 +707,7 @@ function publicPlayerLabel(p: WatchPlayerIn, rooms?: Iterable<OccupantRoomRef>):
 function sourceToWatchEvent(
   ev: WatchSourceEvent,
   publicRooms: Record<string, WatchRoomIn>,
+  players: WatchPlayerIn[] = [],
 ): WatchEvent | null {
   const projectionId = projectionIdForEvent(ev.event_type, ev.payload);
   if (!projectionId) return null;
@@ -634,7 +716,7 @@ function sourceToWatchEvent(
     // Hidden or unknown room — still allow leave; drop other room-bound leaks.
     if (roomId.startsWith("room.")) return null;
   }
-  let publicRoomId = roomId && publicRooms[roomId] ? roomId : undefined;
+  let publicRoomId = publicWatchRoomId(ev, publicRooms, players);
   // RFC-0057 grants REPURPOSE a PLAY line only; WATCH stays silent.
   if (String(ev.payload?.operation || "").toUpperCase() === "REPURPOSE") return null;
   // §4: ANY entity-scoped event resolves its public site this way, not just
@@ -648,19 +730,20 @@ function sourceToWatchEvent(
     if (!home) return null;
     publicRoomId = home.room.room_id;
   }
+  const located = withResolvedPublicRoom(ev, publicRoomId);
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
   const roomRefs = Object.values(publicRooms);
   const actor = publicOccupantLabel(ev, roomRefs) ||
     (isRepairUpdate(ev)
       ? publicOccupantLabel({ handle: typeof ev.payload?.last_repair_handle === "string" ? ev.payload.last_repair_handle : "" }, roomRefs)
       : null);
-  const consequence = consequenceForEvent(ev, publicRooms);
+  const consequence = consequenceForEvent(located, publicRooms);
   return {
     sequence: ev.sequence,
     cycle: ev.cycle ?? 0,
     tier: watchEventTier(projectionId, band),
     projection_id: projectionId,
-    line: phraseWatchEvent(ev, publicRooms),
+    line: phraseWatchEvent(located, publicRooms),
     glyph: glyphForProjection(projectionId),
     room_id: publicRoomId,
     occurred_at: typeof ev.at === "number" ? ev.at : undefined,
@@ -671,7 +754,8 @@ function sourceToWatchEvent(
 
 function pulseToWatchEvent(text: string, sequence: number, cycle: number): WatchEvent {
   const projectionId = PULSE_PROJECTION[text] || "public_pulse";
-  const consequence = consequenceForPublicBand(projectionId, text);
+  const raw = consequenceForPublicBand(projectionId, text);
+  const consequence = projectionId === "organization" ? distinctFromHeadline(text, raw) : raw;
   return {
     sequence,
     cycle,
@@ -724,7 +808,7 @@ export function buildWatchLive(input: {
   }
 
   const fromEvents = (input.events || [])
-    .map((ev) => sourceToWatchEvent(ev, publicRooms))
+    .map((ev) => sourceToWatchEvent(ev, publicRooms, live))
     .filter((e): e is WatchEvent => Boolean(e));
 
   const fromPulses = pulses.map((text, i) => pulseToWatchEvent(text, input.sequence - i, input.cycle));
