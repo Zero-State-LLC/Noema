@@ -448,11 +448,12 @@ function payloadRoomId(payload: Record<string, unknown> | undefined): string | u
 
 function publicRoomMatchingName(
   name: string | undefined,
-  publicRooms: Record<string, { name?: string; room_id?: string }>,
+  publicRooms: Record<string, { name?: string; room_id?: string; hidden?: boolean; tags?: string[] }>,
 ): { name?: string; room_id?: string } | undefined {
   const n = String(name || "").trim();
   if (!n) return undefined;
   for (const room of Object.values(publicRooms)) {
+    if (isHiddenRoom(room)) continue;
     if (String(room?.name || "").trim() === n) return room;
   }
   return undefined;
@@ -470,7 +471,11 @@ export function publicWatchRoomId(
 ): string | undefined {
   const payload = ev.payload || {};
   const direct = payloadRoomId(payload);
-  if (direct) return publicRooms[direct] ? direct : undefined;
+  if (direct) {
+    const room = publicRooms[direct];
+    if (!room || isHiddenRoom(room)) return undefined;
+    return direct;
+  }
   const named = typeof payload.room_name === "string" ? payload.room_name : undefined;
   if (named && named.trim()) {
     const hit = publicRoomMatchingName(named, publicRooms);
@@ -723,12 +728,13 @@ function sourceToWatchEvent(
   // repair and disruption. Narrowing it here is what left the live feed
   // rendering every maintenance event as unlocated "Public activity".
   const scopeId = entityScopeId(ev.payload);
-  if (!publicRoomId && scopeId) {
+  if (scopeId) {
     // §5: resolve via the entity's public room; if none, the event is
-    // omitted, not anonymized into filler.
+    // omitted, not anonymized into filler. Actor-site fallback must not
+    // republish a hidden-entity org act as a public Chamber Market line.
     const home = entityHome(scopeId, publicRooms);
     if (!home) return null;
-    publicRoomId = home.room.room_id;
+    if (!publicRoomId) publicRoomId = home.room.room_id;
   }
   const located = withResolvedPublicRoom(ev, publicRoomId);
   const band = typeof ev.payload?.band === "string" ? ev.payload.band : undefined;
