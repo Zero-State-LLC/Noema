@@ -27,6 +27,9 @@
   "engines": {
     "node": ">=20"
   },
+  "overrides": {
+    "sharp": "0.35.4"
+  },
   "allowScripts": {
     "esbuild@0.28.1": true,
     "workerd@1.20260811.1": true
