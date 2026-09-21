@@ -72,16 +72,46 @@ export type PresencePlayer = {
 /** Shared ADMIN_OPERATOR_TOKEN operators. Email operators use `op.mail.<hash>`. */
 export const SHARED_TOKEN_OPERATOR_ID = "op.token";
 
+const SYSTEM_AUTH_CONTEXTS = new Set(["dev_token", "tempo-alarm", "operator_token"]);
+const ENROLLMENT_AMRS = new Set(["agent_enrollment", "device_enrollment"]);
+
 export function parseOperatorId(raw: unknown): string | undefined {
   const value = String(raw || "").trim().toLowerCase();
   if (/^op\.[a-z0-9._-]{1,48}$/.test(value)) return value;
   return undefined;
 }
 
-/** Magic-link humans use player.{12 hex}. Operator mint uses player.{handle}. */
-export function inferActorKind(playerId: string, stored?: ActorKind): ActorKind {
+/** Tester / maint / tempo actors stay system even when they hold agent tokens. */
+function isReservedSystemActorId(playerId: string): boolean {
+  const handle = playerId.replace(/^player\./i, "");
+  return /^(reach-maint|tester|system-)/i.test(handle);
+}
+
+/** Hex inhabit ids and device-enrolled Agent Player ids (player.device…). */
+function isAgentPlayerWorldId(playerId: string): boolean {
+  return /^player\.[0-9a-f]{12}$/i.test(playerId) || /^player\.device[0-9a-f]+$/i.test(playerId);
+}
+
+/**
+ * Classify a stored Player row.
+ * Agent Controller metadata + a valid Agent Player id is live (RFC-0120).
+ * Hex-only shape is not used to deny live to player.device… rows.
+ */
+export function inferActorKind(
+  playerId: string,
+  stored?: ActorKind,
+  controllerType?: string,
+): ActorKind {
+  if (isReservedSystemActorId(playerId)) return "system";
+  if (controllerType === "agent" && (stored !== "system" || isAgentPlayerWorldId(playerId))) {
+    return "live";
+  }
   if (stored === "live" || stored === "system") return stored;
   return /^player\.[0-9a-f]{12}$/i.test(playerId) ? "live" : "system";
+}
+
+function kindOf(id: string, p: PresencePlayer): ActorKind {
+  return inferActorKind(id, p.actor_kind, p.controller_type);
 }
 
 export function actorKindFromPrincipal(p: {
@@ -92,9 +122,14 @@ export function actorKindFromPrincipal(p: {
   amr?: string;
   identity_id?: string;
 }): ActorKind {
-  if (p.controller_type === "agent") return "system";
-  if (p.authentication_context === "dev_token") return "system";
-  if (p.issued_by === "admin") return "system";
+  if (p.authentication_context && SYSTEM_AUTH_CONTEXTS.has(p.authentication_context)) {
+    return "system";
+  }
+  if (isReservedSystemActorId(p.player_id)) return "system";
+  // Admin-mint testers stay system. Enrollment AMRs also carry issued_by=admin
+  // as audit; those principals are Agent Players, not testers.
+  if (p.issued_by === "admin" && !ENROLLMENT_AMRS.has(p.amr || "")) return "system";
+  if (p.controller_type === "agent") return "live";
   if (p.amr === "email_magic_link" || p.authentication_context === "supabase_jwt" || p.identity_id) {
     return "live";
   }
@@ -118,7 +153,7 @@ export function countLivePlayers(
 ): number {
   if (!players) return 0;
   return Object.entries(players).filter(
-    ([id, p]) => inferActorKind(id, p.actor_kind) === "live" && isPresentNow(p, now, idleMs),
+    ([id, p]) => kindOf(id, p) === "live" && isPresentNow(p, now, idleMs),
   ).length;
 }
 
@@ -130,7 +165,7 @@ export function expireStalePresence(
   if (!players) return false;
   let dirty = false;
   for (const [id, p] of Object.entries(players)) {
-    const kind = inferActorKind(id, p.actor_kind);
+    const kind = kindOf(id, p);
     if (p.actor_kind !== kind) {
       p.actor_kind = kind;
       dirty = true;
@@ -159,7 +194,7 @@ export function listLivePlayers(
 ): ActorRow[] {
   if (!players) return [];
   return Object.entries(players)
-    .filter(([id, p]) => inferActorKind(id, p.actor_kind) === "live" && isPresentNow(p, now, idleMs))
+    .filter(([id, p]) => kindOf(id, p) === "live" && isPresentNow(p, now, idleMs))
     .map(([id, p]) => ({
       player_id: id,
       handle: p.handle || id.replace(/^player\./, ""),
@@ -175,7 +210,7 @@ export function listLivePlayers(
 export function listSystemActors(players: Record<string, PresencePlayer> | undefined): ActorRow[] {
   if (!players) return [];
   return Object.entries(players)
-    .filter(([id, p]) => inferActorKind(id, p.actor_kind) === "system")
+    .filter(([id, p]) => kindOf(id, p) === "system")
     .map(([id, p]) => ({
       player_id: id,
       handle: p.handle || id.replace(/^player\./, ""),

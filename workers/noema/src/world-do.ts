@@ -282,7 +282,11 @@ export class NoemaWorldDO {
       cycle: ev.cycle,
       handle: ev.handle,
       player_id: ev.player_id,
-      actor_kind: inferActorKind(ev.player_id || "", this.world!.players[ev.player_id || ""]?.actor_kind),
+      actor_kind: inferActorKind(
+        ev.player_id || "",
+        this.world!.players[ev.player_id || ""]?.actor_kind,
+        this.world!.players[ev.player_id || ""]?.controller_type,
+      ),
       at: ev.at,
       payload: ev.payload,
     }));
@@ -1314,7 +1318,11 @@ export class NoemaWorldDO {
     if (
       result.ok &&
       !idempotentReplay &&
-      inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system"
+      inferActorKind(
+        principal.player_id,
+        w.players[principal.player_id]?.actor_kind,
+        principal.controller_type,
+      ) === "system"
     ) {
       await this.recordOperatorWatch(principal, envl, result);
     }

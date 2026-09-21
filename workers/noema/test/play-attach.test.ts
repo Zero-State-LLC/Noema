@@ -270,7 +270,7 @@ describe("play attach — canonical head snapshot", () => {
     expect(entered.observation?.location?.name).toMatch(/Relay/);
     expect(head.players["player.a7a22752ad02"]?.entered).toBe(true);
     expect(countEnteredPlayers(head.players)).toBe(1);
-    expect(countLivePlayers(head.players)).toBe(0);
+    expect(countLivePlayers(head.players)).toBe(1);
 
     const look = await authedCommand(head, {
       request_id: "web.head-look",

@@ -13,6 +13,7 @@ import {
   expireStalePresence,
   inferActorKind,
   isMutatingCommand,
+  PRESENCE_IDLE_MS,
   listSystemActors,
   mutationBlocked,
   nextSettlementHealth,
@@ -83,6 +84,110 @@ describe("command mutation class", () => {
         controller_type: "human",
       }),
     ).toBe("system");
+  });
+});
+
+describe("agent Players are live census (RFC-0120 / #726)", () => {
+  const now = 1_700_000_000_000;
+
+  it("classifies agent Player principals as live, not system", () => {
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.device91b4bb0050cf",
+        controller_type: "agent",
+        authentication_context: "controller_token",
+        amr: "device_enrollment",
+      }),
+    ).toBe("live");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.boof",
+        controller_type: "agent",
+        authentication_context: "controller_token",
+        amr: "agent_enrollment",
+        issued_by: "admin",
+      }),
+    ).toBe("live");
+  });
+
+  it("keeps true system actors as system", () => {
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.dev",
+        controller_type: "agent",
+        authentication_context: "dev_token",
+      }),
+    ).toBe("system");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.tester",
+        controller_type: "agent",
+        issued_by: "admin",
+        authentication_context: "controller_token",
+      }),
+    ).toBe("system");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.reach-maint3",
+        controller_type: "agent",
+        authentication_context: "controller_token",
+      }),
+    ).toBe("system");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.system-tempo",
+        controller_type: "agent",
+        authentication_context: "tempo-alarm",
+      }),
+    ).toBe("system");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.shared-op",
+        controller_type: "hybrid",
+        authentication_context: "operator_token",
+      }),
+    ).toBe("system");
+  });
+
+  it("counts present agent Players including player.device ids", () => {
+    const players = {
+      "player.device91b4bb0050cf": {
+        entered: true,
+        last_seen_ms: now - 1_000,
+        actor_kind: "system" as const,
+        controller_type: "agent",
+      },
+      "player.devicedca9d434f0ae": {
+        entered: true,
+        last_seen_ms: now - 2_000,
+        controller_type: "agent",
+      },
+      "player.idle-agent": {
+        entered: true,
+        last_seen_ms: now - PRESENCE_IDLE_MS - 1,
+        actor_kind: "live" as const,
+        controller_type: "agent",
+      },
+      "player.not-entered": {
+        entered: false,
+        last_seen_ms: now,
+        actor_kind: "live" as const,
+        controller_type: "agent",
+      },
+      "player.tester": {
+        entered: true,
+        last_seen_ms: now,
+        actor_kind: "system" as const,
+        controller_type: "agent",
+      },
+    };
+    expect(countLivePlayers(players, now)).toBe(2);
+    expect(inferActorKind("player.device91b4bb0050cf", "system", "agent")).toBe("live");
+    expect(inferActorKind("player.alice", undefined, "agent")).toBe("live");
+    expect(listSystemActors(players).map((r) => r.player_id)).toEqual(["player.tester"]);
+    expireStalePresence(players, now);
+    expect(players["player.device91b4bb0050cf"].actor_kind).toBe("live");
+    expect(players["player.tester"].actor_kind).toBe("system");
   });
 });
 
