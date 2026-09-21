@@ -613,6 +613,7 @@ describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
     expect(byLine["A report is circulating."]?.projection_id).toBe("message_notice");
     expect(byLine["A report is circulating."]?.consequence).toBe("A report is circulating");
     expect(byLine["An institution declared a temporary repair authority."]?.projection_id).toBe("organization");
+    expect(byLine["An institution declared a temporary repair authority."]?.room_id).toBeUndefined();
     expect(byLine["An institution declared a temporary repair authority."]?.consequence).toBe(
       "Temporary repair authority is in force",
     );
@@ -654,6 +655,55 @@ describe("Gate D C5 public-band consequence (asset / notice / office)", () => {
     expect(distinctFromHeadline(headline, consequence)).toBe(consequence);
     expect(distinctFromHeadline(headline, headline)).toBeUndefined();
     expect(distinctFromHeadline(headline, bareLine(headline))).toBeUndefined();
+  });
+
+  it("projects Where on an institution pulse when the act already has a public room", () => {
+    const snap = liveOf({
+      public_pulses: [
+        {
+          text: "An institution declared a temporary repair authority.",
+          room_id: "room.market",
+        },
+      ],
+    });
+    const hit = recent(snap).find((e) => e.line === "An institution declared a temporary repair authority.");
+    expect(hit?.projection_id).toBe("organization");
+    expect(hit?.room_id).toBe("room.market");
+    expect(hit?.consequence).toBe("Temporary repair authority is in force");
+    expect(hit?.consequence).not.toBe("An institution declared a temporary repair authority.");
+    expect(snap.public_pulses).toEqual(["An institution declared a temporary repair authority."]);
+  });
+
+  it("withholds a hidden or unknown pulse room and does not relocate the act", () => {
+    const hidden = liveOf({
+      public_pulses: [
+        { text: "An institution declared a temporary repair authority.", room_id: "room.vault" },
+      ],
+      players: [livePlayer("player.aaaaaaaaaaaa", "device48f89b55e0fe", "room.market")],
+    });
+    const hiddenHit = recent(hidden).find((e) => e.line === "An institution declared a temporary repair authority.");
+    expect(hiddenHit?.room_id).toBeUndefined();
+    expect(JSON.stringify(hidden)).not.toContain("Sealed Vault");
+
+    const unknown = liveOf({
+      public_pulses: [
+        { text: "A designated successor has taken an institution office.", room_id: "room.does-not-exist" },
+      ],
+    });
+    expect(recent(unknown).find((e) => e.projection_id === "organization")?.room_id).toBeUndefined();
+  });
+
+  it("keeps a public room when the same institution pulse arrives as both a string and a located copy", () => {
+    const snap = liveOf({
+      public_pulses: [
+        "An institution declared a temporary repair authority.",
+        { text: "An institution declared a temporary repair authority.", room_id: "room.market" },
+      ],
+    });
+    expect(snap.public_pulses).toEqual(["An institution declared a temporary repair authority."]);
+    const hits = recent(snap).filter((e) => e.line === "An institution declared a temporary repair authority.");
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.room_id).toBe("room.market");
   });
 
   it("projects Where and a distinct Consequence for a public organization act", () => {
@@ -1937,7 +1987,10 @@ describe("driven watch client (§11/§13)", () => {
           payload: { entity_id: "entity.cache", operation: "PRODUCTION", field: "stock_amount", from: 3, to: 8 },
         }),
       ],
-      public_pulses: ["A report is circulating.", "An institution declared a temporary repair authority."],
+      public_pulses: [
+        "A report is circulating.",
+        { text: "An institution declared a temporary repair authority.", room_id: "room.civic-exchange" },
+      ],
       now: NOW,
     });
     const client = await bootWatchClient(() => okResponse(live));
@@ -1949,6 +2002,9 @@ describe("driven watch client (§11/§13)", () => {
       expect(feed).toContain("Who reach-maint3");
       expect(feed).toContain("Where Civic Exchange");
       expect(feed).toContain("An institution declared a temporary repair authority.");
+      expect(feed).toContain(
+        "An institution declared a temporary repair authority. · Where Civic Exchange · Consequence Temporary repair authority is in force",
+      );
       expect(feed).toContain("Consequence Temporary repair authority is in force");
       expect(feed).not.toContain("Consequence An institution declared a temporary repair authority");
       expect(feed).not.toMatch(/authority\.Consequence/);

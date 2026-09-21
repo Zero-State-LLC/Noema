@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity, helpText, parseHumanCommand } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import { emptyTreasury } from "../src/offices";
-import { EMERGENCY_DURATION, WATCH_EMERGENCY_PULSE, publicEmergencyPulses } from "../src/emergency";
+import { EMERGENCY_DURATION, WATCH_EMERGENCY_PULSE, publicEmergencyPulseRoom, publicEmergencyPulses } from "../src/emergency";
+import { buildWatchLive } from "../src/watch-live";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function principal(id: string, controller_type: "human" | "agent" = "human"): PlayerPrincipal {
@@ -126,6 +127,35 @@ describe("GC4-S3 emergency scopes", () => {
     const look = await run(w, member, "LOOK");
     expect(look.observation?.office_lines?.some((l) => /Emergency authority active/i.test(l))).toBe(true);
     expect(publicEmergencyPulses(w.organizations, w.cycle)).toContain(WATCH_EMERGENCY_PULSE);
+    expect(w.institution_pulses).toContain(WATCH_EMERGENCY_PULSE);
+    expect(w.institution_pulse_sites?.[WATCH_EMERGENCY_PULSE]).toBe("room.hub");
+    expect(
+      publicEmergencyPulseRoom(
+        w.organizations,
+        w.cycle,
+        w.rooms,
+        Object.entries(w.players).map(([player_id, p]) => ({ player_id, room_id: p.room_id })),
+      ),
+    ).toBe("room.hub");
+    const live = buildWatchLive({
+      world_id: w.world_id,
+      cycle: w.cycle,
+      sequence: Math.max(1, w.sequence),
+      rooms: w.rooms as never,
+      players: [],
+      events: [],
+      public_pulses: [
+        {
+          text: WATCH_EMERGENCY_PULSE,
+          room_id: w.institution_pulse_sites?.[WATCH_EMERGENCY_PULSE],
+        },
+      ],
+    });
+    const projected = ((live.recent_events as Array<{ line?: string; room_id?: string }>) || []).find(
+      (e) => e.line === WATCH_EMERGENCY_PULSE,
+    );
+    expect(projected?.room_id).toBe("room.hub");
+    expect(live.public_pulses).toEqual([WATCH_EMERGENCY_PULSE]);
   });
 
   it("expires on world-time and cannot authorize after end_cycle", async () => {
