@@ -158,6 +158,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     expect(w.players[buyer.player_id].budgets.energy).toBe(DEFAULT_BUDGETS.energy + 3);
     expect(w.players[buyer.player_id].budgets.storage).toBe(beforeBuyer + 1);
     expect(w.institution_pulses).toContain("An institution traded from its treasury.");
+    expect(w.institution_pulse_sites?.["An institution traded from its treasury."]).toBe("room.hub");
   });
 
   it("empty treasury cannot offer storage it does not have", async () => {
@@ -224,6 +225,7 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     expect(w.organizations["org.line"].treasury!.energy).toBe(energy - (COSTS.REPAIR.energy || 0));
     expect(w.players[custodian.player_id].budgets.energy).toBe(DEFAULT_BUDGETS.energy);
     expect(w.institution_pulses).toContain("Institution infrastructure was repaired.");
+    expect(w.institution_pulse_sites?.["Institution infrastructure was repaired."]).toBe("room.hub");
   });
 
   it("member and vacant office cannot spend; former holder loses authority; treasury remains", async () => {

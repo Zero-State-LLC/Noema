@@ -758,10 +758,60 @@ function sourceToWatchEvent(
   };
 }
 
-function pulseToWatchEvent(text: string, sequence: number, cycle: number): WatchEvent {
+/** Pulse text, or text plus the act's public site when the writer already has one. */
+export type PublicPulseIn = string | { text: string; room_id?: string };
+
+function publicPulseText(pulse: PublicPulseIn): string {
+  return typeof pulse === "string" ? pulse : String(pulse?.text || "");
+}
+
+function publicPulseRoomId(pulse: PublicPulseIn): string | undefined {
+  if (typeof pulse === "string") return undefined;
+  const id = pulse?.room_id;
+  return typeof id === "string" && id ? id : undefined;
+}
+
+/**
+ * Keep the public `public_pulses` list as unique texts. If the same fact
+ * arrives as a bare string and as a located copy, keep the public room.
+ */
+function normalizePublicPulses(raw: PublicPulseIn[] | undefined): Array<{ text: string; room_id?: string }> {
+  const out: Array<{ text: string; room_id?: string }> = [];
+  const index = new Map<string, number>();
+  for (const pulse of raw || []) {
+    const text = publicPulseText(pulse);
+    if (!text) continue;
+    const room_id = publicPulseRoomId(pulse);
+    const existing = index.get(text);
+    if (existing !== undefined) {
+      if (room_id && !out[existing].room_id) out[existing].room_id = room_id;
+      continue;
+    }
+    index.set(text, out.length);
+    out.push(room_id ? { text, room_id } : { text });
+  }
+  return out.slice(0, 4);
+}
+
+function publicPulseWatchRoomId(
+  roomId: string | undefined,
+  publicRooms: Record<string, WatchRoomIn>,
+): string | undefined {
+  if (!roomId || !publicRooms[roomId] || isHiddenRoom(publicRooms[roomId])) return undefined;
+  return roomId;
+}
+
+function pulseToWatchEvent(
+  text: string,
+  sequence: number,
+  cycle: number,
+  publicRooms: Record<string, WatchRoomIn>,
+  roomId?: string,
+): WatchEvent {
   const projectionId = PULSE_PROJECTION[text] || "public_pulse";
   const raw = consequenceForPublicBand(projectionId, text);
   const consequence = projectionId === "organization" ? distinctFromHeadline(text, raw) : raw;
+  const publicRoomId = publicPulseWatchRoomId(roomId, publicRooms);
   return {
     sequence,
     cycle,
@@ -769,6 +819,7 @@ function pulseToWatchEvent(text: string, sequence: number, cycle: number): Watch
     projection_id: projectionId,
     line: text,
     glyph: glyphForProjection(projectionId),
+    ...(publicRoomId ? { room_id: publicRoomId } : {}),
     ...(consequence ? { consequence } : {}),
   };
 }
@@ -780,7 +831,7 @@ export function buildWatchLive(input: {
   rooms: Record<string, WatchRoomIn>;
   players: WatchPlayerIn[];
   events: WatchSourceEvent[];
-  public_pulses?: string[];
+  public_pulses?: PublicPulseIn[];
   handles?: Record<string, string | undefined>;
   world_status?: string;
   freshness?: string;
@@ -796,7 +847,8 @@ export function buildWatchLive(input: {
 }): Record<string, unknown> {
   const now = input.now ?? Date.now();
   const freshness = input.freshness || "live";
-  const pulses = Array.isArray(input.public_pulses) ? input.public_pulses.slice(0, 4) : [];
+  const locatedPulses = normalizePublicPulses(input.public_pulses);
+  const pulses = locatedPulses.map((p) => p.text);
 
   const publicRooms: Record<string, WatchRoomIn> = {};
   for (const r of Object.values(input.rooms || {})) {
@@ -817,7 +869,9 @@ export function buildWatchLive(input: {
     .map((ev) => sourceToWatchEvent(ev, publicRooms, live))
     .filter((e): e is WatchEvent => Boolean(e));
 
-  const fromPulses = pulses.map((text, i) => pulseToWatchEvent(text, input.sequence - i, input.cycle));
+  const fromPulses = locatedPulses.map((p, i) =>
+    pulseToWatchEvent(p.text, input.sequence - i, input.cycle, publicRooms, p.room_id),
+  );
   const candidates = [...fromEvents, ...fromPulses]
     .sort((a, b) => b.sequence - a.sequence)
     .slice(0, 16);

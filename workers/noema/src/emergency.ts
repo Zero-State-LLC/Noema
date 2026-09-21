@@ -238,3 +238,44 @@ export function publicEmergencyPulses(orgs: Record<string, { emergency_scopes?: 
   }
   return [];
 }
+
+type PulseRoomIn = {
+  room_id?: string;
+  entities?: Array<{ entity_id?: string; label?: string }>;
+};
+
+function roomIdForEmergencyTarget(
+  target: string | undefined,
+  rooms?: Record<string, PulseRoomIn>,
+): string | undefined {
+  const ref = String(target || "").trim();
+  if (!ref || !rooms) return undefined;
+  for (const room of Object.values(rooms)) {
+    const hit = (room.entities || []).some((e) => e.entity_id === ref || e.label === ref);
+    if (hit && room.room_id) return room.room_id;
+  }
+  return undefined;
+}
+
+/**
+ * Public site of an in-force emergency act. Prefer the targeted asset's room.
+ * Holder site is only a fallback when the act has no target room (treasury).
+ * Hidden-room withholding belongs to the WATCH projector, same bar as org form.
+ */
+export function publicEmergencyPulseRoom(
+  orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined,
+  cycle: number,
+  rooms?: Record<string, PulseRoomIn>,
+  players?: Array<{ player_id?: string; room_id?: string }>,
+): string | undefined {
+  for (const org of Object.values(orgs || {})) {
+    for (const scope of org.emergency_scopes || []) {
+      if (!isScopeEffective(scope, cycle)) continue;
+      const fromTarget = roomIdForEmergencyTarget(scope.target_ref, rooms);
+      if (fromTarget) return fromTarget;
+      const holderRoom = players?.find((p) => p.player_id === scope.holder_player_id)?.room_id;
+      if (holderRoom) return holderRoom;
+    }
+  }
+  return undefined;
+}

@@ -177,6 +177,7 @@ describe("GC4-S4 designated succession", () => {
     expect(office.history.map((h) => h.kind)).toEqual(["ASSIGNED", "VACATED", "ASSIGNED"]);
     expect(w.organizations["org.line"].treasury!.energy).toBe(energyBefore);
     expect(w.institution_pulses).toContain(WATCH_SUCCESSION_PULSE);
+    expect(w.institution_pulse_sites?.[WATCH_SUCCESSION_PULSE]).toBe(w.players[successor.player_id].room_id);
     const look = await run(w, successor, "LOOK");
     expect(look.observation?.office_lines?.some((l) => /designated successor — Sable/i.test(l))).toBe(true);
   });

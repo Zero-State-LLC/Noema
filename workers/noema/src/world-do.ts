@@ -20,7 +20,7 @@ import {
 import { publicCulturePulses } from "./culture";
 import { adminPressureView, publicPressurePulses } from "./pressure";
 import { publicRumorPulses } from "./rumor";
-import { publicEmergencyPulses } from "./emergency";
+import { publicEmergencyPulseRoom, publicEmergencyPulses, WATCH_EMERGENCY_PULSE } from "./emergency";
 import { requireAgentPlayer } from "./auth";
 import {
   applyControllingSession,
@@ -233,6 +233,27 @@ export function cycle0ToWorld(c0: Cycle0World): WorldState {
   return w;
 }
 
+function locateInstitutionWatchPulse(
+  world: WorldRuntime,
+  text: string,
+): string | { text: string; room_id: string } {
+  const stored = world.institution_pulse_sites?.[text];
+  const live =
+    text === WATCH_EMERGENCY_PULSE
+      ? publicEmergencyPulseRoom(
+          world.organizations,
+          world.cycle,
+          world.rooms,
+          Object.entries(world.players || {}).map(([player_id, p]) => ({
+            player_id,
+            room_id: p.room_id,
+          })),
+        )
+      : undefined;
+  const room_id = stored || live;
+  return room_id ? { text, room_id } : text;
+}
+
 export class NoemaWorldDO {
   private state: DurableObjectState;
   private env: Env;
@@ -324,8 +345,10 @@ export class NoemaWorldDO {
         ),
         ...publicPressurePulses(this.world!.pressure, this.world!.cycle),
         ...publicRumorPulses(this.world!.rumor),
-        ...(this.world!.institution_pulses || []),
-        ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle),
+        ...(this.world!.institution_pulses || []).map((text) => locateInstitutionWatchPulse(this.world!, text)),
+        ...publicEmergencyPulses(this.world!.organizations, this.world!.cycle).map((text) =>
+          locateInstitutionWatchPulse(this.world!, text),
+        ),
       ],
       rumor: this.world!.rumor,
       organizations: Object.values(this.world!.organizations || {}).map((o) => ({

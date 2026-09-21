@@ -222,6 +222,7 @@ import {
   findEmergencyScope,
   publicEmergencyPulses,
   resolveEmergencyFor,
+  WATCH_EMERGENCY_PULSE,
   type EmergencyScope,
 } from "./emergency";
 import {
@@ -612,6 +613,8 @@ export type WorldRuntime = {
   rumor?: import("./rumor").RumorState;
   /** Public institution consequence pulses. No balances. */
   institution_pulses?: string[];
+  /** Public room_id for a stored institution pulse text. Hidden rooms are never stored. */
+  institution_pulse_sites?: Record<string, string>;
   /** GC3-S2 public social events for WATCH/PLAY bands. Derived cache. */
   public_social_events?: import("./social-memory").SocialEvent[];
   /** P1 Co-evolution state: tracks activity pressure for env/agent adaptation. */
@@ -3091,7 +3094,7 @@ export async function applyWorldCommand(
       refreshSecondOrder(w.players, principal.player_id);
       noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
       if (trade.acting_for || acceptActingFor) {
-        noteInstitutionPulse(w, "An institution traded from its treasury.");
+        noteInstitutionPulse(w, "An institution traded from its treasury.", pl.room_id);
       }
       const evA = pushEvent("TRADE_ACCEPTED", {
         trade_id: trade.trade_id,
@@ -3622,7 +3625,7 @@ export async function applyWorldCommand(
         entity.last_repair_cycle = w.cycle;
         entity.last_repair_handle = plateHandle;
       }
-      if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.");
+      if (acting_for) noteInstitutionPulse(w, "Institution infrastructure was repaired.", room.room_id);
       pushEvent("BUDGET_CONSUMED", {
         player_id: principal.player_id,
         cost_paid: repairCost,
@@ -4485,6 +4488,7 @@ export function migrateWorldRuntime(w: WorldRuntime): void {
   if (!w.pressure) w.pressure = emptyPressure();
   if (!w.rumor) w.rumor = emptyRumor();
   w.institution_pulses = w.institution_pulses || [];
+  w.institution_pulse_sites = w.institution_pulse_sites || {};
   w.public_social_events = w.public_social_events || [];
   w.pending_messages = w.pending_messages || [];
   if (!w.co_evolution) w.co_evolution = { harvest_pressure: {}, regen_mod: {} };
@@ -4528,8 +4532,34 @@ type SettleEv = (ev: {
   payload: Record<string, unknown>;
 }) => Promise<void>;
 
-function noteInstitutionPulse(w: WorldRuntime, text: string): void {
-  w.institution_pulses = [...(w.institution_pulses || []), text].slice(-4);
+function publicActRoomId(w: WorldRuntime, roomId?: string): string | undefined {
+  const room = roomId ? w.rooms?.[roomId] : undefined;
+  if (!room || isHiddenRoom(room)) return undefined;
+  return room.room_id;
+}
+
+/** Public site of an entity-scoped act. Hidden rooms withhold; they do not fall back to the actor. */
+function publicRoomForEntityAct(w: WorldRuntime, ref?: string, fallbackRoomId?: string): string | undefined {
+  const wanted = String(ref || "").trim();
+  if (wanted) {
+    for (const room of Object.values(w.rooms || {})) {
+      if (!room?.entities?.some((e) => e.entity_id === wanted || e.label === wanted)) continue;
+      return publicActRoomId(w, room.room_id);
+    }
+  }
+  return publicActRoomId(w, fallbackRoomId);
+}
+
+function noteInstitutionPulse(w: WorldRuntime, text: string, roomId?: string): void {
+  const next = [...(w.institution_pulses || []), text].slice(-4);
+  w.institution_pulses = next;
+  const sites = { ...(w.institution_pulse_sites || {}) };
+  const site = publicActRoomId(w, roomId);
+  if (site) sites[text] = site;
+  for (const key of Object.keys(sites)) {
+    if (!next.includes(key)) delete sites[key];
+  }
+  w.institution_pulse_sites = sites;
 }
 
 function officeTrackId(req: NonNullable<OfficeRecord["requires_track"]>) {
@@ -4560,7 +4590,7 @@ async function settleOfficeHandoff(
     playerMeetsOfficeTrack(w, id, office),
   );
   if (!seated) return null;
-  noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
+  noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE, w.players[seated.holder_player_id]?.room_id);
   const ev = pushEvent("ENTITY_UPDATE", {
     entity_id: office.office_id,
     set: {
@@ -4813,7 +4843,7 @@ async function applySuccessionConsent(
     office.history.push({ cycle: w.cycle, holder_player_id: winner, kind: "ASSIGNED" });
     office.consents = [];
     inheritAtSuccession(w, winner, pl.room_id);
-    noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE);
+    noteInstitutionPulse(w, WATCH_SUCCESSION_PULSE, w.players[winner]?.room_id || pl.room_id);
     const ev = pushEvent("ENTITY_UPDATE", {
       entity_id: office.office_id,
       set: {
@@ -5965,7 +5995,7 @@ async function applyEmergencyCommand(
       spent: {},
     };
     org.emergency_scopes.push(scope);
-    noteInstitutionPulse(w, "An institution declared a temporary repair authority.");
+    noteInstitutionPulse(w, WATCH_EMERGENCY_PULSE, publicRoomForEntityAct(w, target_ref, pl.room_id));
     pushEvent("BUDGET_CONSUMED", {
       player_id: principal.player_id,
       cost_paid: COSTS.ORG_OFFICE_ACT,

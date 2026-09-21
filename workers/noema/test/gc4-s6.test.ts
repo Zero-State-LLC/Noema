@@ -119,6 +119,7 @@ describe("GC4-S6 world path", () => {
     expect(w.organizations[orgId].offices?.[officeId]?.status).toBe("OCCUPIED");
     expect(w.organizations[orgId].offices?.[officeId]?.holder_player_id).toBe(sable.player_id);
     expect(w.institution_pulses).toContain(WATCH_SUCCESSION_PULSE);
+    expect(w.institution_pulse_sites?.[WATCH_SUCCESSION_PULSE]).toBe(w.players[sable.player_id].room_id);
     expect(vacated.events?.some((e) => String(e.event_type).startsWith("SUCCESSION_"))).toBe(false);
   });
 
