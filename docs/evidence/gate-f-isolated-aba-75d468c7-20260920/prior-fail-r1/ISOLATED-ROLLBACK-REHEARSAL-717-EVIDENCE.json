@@ -1,0 +1,64 @@
+{
+  "schema_version": "noema-isolated-rollback-rehearsal/1",
+  "issue": 717,
+  "gate": "F",
+  "verdict": "FAIL",
+  "started_at": "2026-09-20T23:35:00Z",
+  "finished_at": "2026-09-20T23:35:26Z",
+  "failure": {
+    "phase": "A_activate_genesis",
+    "step": "POST /v1/admin/genesis/preview",
+    "http_status": 500,
+    "error": {
+      "code": "INTERNAL",
+      "message": "internal error"
+    },
+    "note": "Phase A wrangler deploy succeeded; script aborted before B deploy / rollback. Stock script is same-tree A/B metadata phases."
+  },
+  "isolation": {
+    "worker_name": "noema-rollback-rehearsal-gatef-75d468c7-20260920",
+    "base": "https://noema-rollback-rehearsal-gatef-75d468c7-20260920.zer0state-noema.workers.dev",
+    "world_id": "test.hosted-canonical.ewm-cutover",
+    "workers_dev_only": true,
+    "never_deployed": [
+      "noema-gateway",
+      "noema",
+      "production"
+    ]
+  },
+  "pins": {
+    "git_sha": "75d468c750aeb04490969f33d2cc13ad7e85a3a5",
+    "node": "v24.21.0",
+    "wrangler_cli": "4.123.0",
+    "cloudflare_account_id": "315fb44b61212825452aad0ca566ea42",
+    "honesty_diff": "workers-noema-630652e6-to-75d468c7.diff (sharp 0.35.2->0.35.4 override)"
+  },
+  "versions": {
+    "a": "5bc8bbaa-6b51-4525-90b1-25d9b0a6e763",
+    "b": null,
+    "rollback_active": null,
+    "a_prime": null,
+    "b_prime": null
+  },
+  "digest_match_summary": "NOT_COMPUTABLE \u2014 aborted before durable snapshot A / B / A\u2032 comparisons",
+  "production": {
+    "after_version": {
+      "product": "noema",
+      "stage": "0",
+      "env": "production",
+      "protocol_version": "1",
+      "world_id": "world.perihelion-reach-3",
+      "worker_version_id": "ac6813da-1e0a-4f0c-8566-d9346b4baed5",
+      "deployed_at": "2026-09-20T20:26:54.009622Z"
+    },
+    "unchanged_vs_expected_ac6813da": true,
+    "get_only": true
+  },
+  "assertions": {
+    "wrangler_whoami_ok": true,
+    "phase_a_deploy_ok": true,
+    "genesis_preview_ok": false,
+    "full_a_b_a_completed": false,
+    "production_identity_unchanged": true
+  }
+}

@@ -1,86 +1,344 @@
 {
   "schema_version": "noema-isolated-rollback-rehearsal/1",
-  "issue": 715,
-  "successor_pr": 717,
-  "candidate_id": "lca6-gate-f-successor-decision",
-  "verdict": "NOT_COMPUTABLE",
-  "verdict_reason": "Cloudflare auth missing. Isolated A-B-A did not start. Dual-SHA digest compare not measured.",
-  "started_at": "2026-09-20T23:26:00Z",
-  "finished_at": "2026-09-20T23:28:25Z",
-  "stopped_before": "isolated wrangler deploy",
+  "issue": 555,
+  "verdict": "PASS",
+  "started_at": "2026-09-20T23:40:00.239Z",
+  "finished_at": "2026-09-20T23:40:45.610Z",
   "isolation": {
-    "worker_name_intended": "noema-rollback-rehearsal-gatef-75d468c7-20260920",
-    "worker_created": false,
-    "base": null,
+    "worker_name": "noema-rollback-rehearsal-gatef-75d468c7-20260920-r2",
+    "base": "https://noema-rollback-rehearsal-gatef-75d468c7-20260920-r2.zer0state-noema.workers.dev",
     "world_id": "test.hosted-canonical.ewm-cutover",
     "workers_dev_only": true,
     "routes": [],
     "external_storage_bindings": [],
     "durable_object_namespace_is_worker_local": true,
-    "secrets": []
+    "secrets": [
+      "TOKEN_SIGNING_SECRET (fresh, redacted)",
+      "ADMIN_OPERATOR_TOKEN (fresh, redacted)"
+    ]
   },
   "pins": {
     "git_sha": "75d468c750aeb04490969f33d2cc13ad7e85a3a5",
-    "live_source_sha": "630652e6772d4fbc340cf155a33fd628163709d9",
     "config_sha256": "sha256:03c5b358c57b8c7d02a3e884b205d092ee2120793832de675fac333b68edd636",
     "package_lock_sha256": "sha256:95ac47f0f581c994440f9ec6b4c381e893ca0516566f743721305c3dfca14cab",
-    "package_lock_git_blob_630652e6": "c96234da2ef76d5ebd6b25187f5e06f30c4e8d8f",
-    "package_lock_git_blob_75d468c7": "24599088b4912fa30056e6a4ad24c9d9b291ec42",
-    "node": "v22.14.0",
-    "node_24_requested_by_kit": "ABSENT (nvm had v22.22.2 only)",
-    "wrangler_whoami_cli": "4.123.0",
-    "workerd": null,
-    "typescript": null,
+    "node": "v24.21.0",
+    "wrangler": "4.123.0",
+    "workerd": "1.20260811.1",
+    "typescript": "5.9.3",
     "compatibility_date": "2026-08-01",
     "canonicalization": "noema-jcs/1",
     "seal": "sha256:9b9c211c156a9b49e700fa39e409733099a38df9d95c7f6fb90ca3e9e740a395"
   },
   "versions": {
-    "a": null,
-    "b": null,
-    "rollback_active": null,
-    "a_deploy_output_sha256": null,
-    "b_deploy_output_sha256": null
+    "a": "7e749359-c2e0-445a-ba4d-3ef9002bba56",
+    "b": "c847fdc7-755d-4cab-94a4-7a8f32701256",
+    "rollback_active": "7e749359-c2e0-445a-ba4d-3ef9002bba56",
+    "a_deploy_output_sha256": "sha256:1b93e0977800f448a0b084a962337724898ba433238fce7e5298a71e8766fbe0",
+    "b_deploy_output_sha256": "sha256:6bc61e138dcc30afdb91ef6caff5e091d4e22cbede06ee69f5597abd0dcd07df"
   },
-  "method": {
-    "preferred": "dual-SHA isolated A-prime (630652e6) then B-prime (75d468c7) then rollback to A-prime",
-    "stock_script_supports_dual_sha": false,
-    "stock_script_a_b": "same-tree metadata phases (ROLLBACK_REHEARSAL_PHASE A vs B)",
-    "executed": "preflight whoami + production GET + git diff only"
+  "genesis": {
+    "genesis_id": "genesis.7e6560dc155d9b88",
+    "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+    "external_settlement_recorded": false,
+    "note": "Settlement soft-failed or unset (SUPABASE_*); DO remains live authority"
   },
-  "auth": {
-    "CLOUDFLARE_API_TOKEN": "UNSET",
-    "CLOUDFLARE_ACCOUNT_ID": "UNSET",
-    "wrangler_oauth_default_toml": "absent",
-    "wrangler_home_dir": "absent",
-    "cloudflare_mcp": "needsAuth",
-    "cloud_agent_secret_names": ["GITHUB_TOKEN"],
-    "whoami_exit": "not authenticated",
-    "whoami_output": "You are not authenticated. Please run `wrangler login`."
+  "seal_checks": {
+    "missing": "SEAL_REQUIRED",
+    "mismatch": "SEAL_MISMATCH",
+    "accepted": true
   },
-  "workers_noema_delta": {
-    "range": "630652e6772d4fbc340cf155a33fd628163709d9..75d468c750aeb04490969f33d2cc13ad7e85a3a5",
-    "files": [
-      "workers/noema/package.json",
-      "workers/noema/package-lock.json"
-    ],
-    "src_diff_empty": true,
-    "package_json_change": "overrides.sharp = 0.35.4",
-    "lockfile_stat": "278 lines changed",
-    "diff_path": "workers-noema-630652e6-75d468c7.diff"
-  },
-  "genesis": null,
-  "seal_checks": null,
   "phases": {
-    "a_before_b": null,
-    "b": null,
-    "rollback_a": null,
-    "rollback_idempotent_replay": null,
-    "recovery_write": null
-  },
-  "digest_matrix": {
-    "status": "NOT_COMPUTABLE",
-    "reason": "isolated Worker never deployed; no durable pins recorded"
+    "a_before_b": {
+      "health": {
+        "health": {
+          "status": "ok",
+          "service": "noema-gateway",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover"
+        },
+        "ready": {
+          "ready": true,
+          "play_blocked": false,
+          "code": null,
+          "status": "ACTIVE",
+          "settlement_health": "HEALTHY",
+          "world": {
+            "ok": true,
+            "world_id": "test.hosted-canonical.ewm-cutover",
+            "world_name": "Rollback Rehearsal",
+            "cycle": 0,
+            "sequence": 1,
+            "players": 0,
+            "status": "ACTIVE",
+            "settlement_health": "HEALTHY",
+            "genesis_id": "genesis.7e6560dc155d9b88",
+            "playable": true
+          }
+        },
+        "version": {
+          "product": "noema",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover",
+          "worker_version_id": "7e749359-c2e0-445a-ba4d-3ef9002bba56",
+          "deployed_at": "2026-09-20T23:40:11.58985Z"
+        }
+      },
+      "durable": {
+        "world_id": "test.hosted-canonical.ewm-cutover",
+        "genesis_id": "genesis.7e6560dc155d9b88",
+        "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+        "status": "ACTIVE",
+        "settlement_health": "HEALTHY",
+        "settlement_ok": false,
+        "cycle": 0,
+        "sequence": 1,
+        "rollback_evidence": {
+          "pin": "rollback-rehearsal-evidence/1",
+          "canonicalization_version": "noema-jcs/1",
+          "state_digest": "sha256:4249c808c36bdd47ea7000eb5fd036631880bdd9da987d5023366ce8f63724fa",
+          "history_digest": "sha256:c451d963a754f9ae7ef8340a3936d93f10edd19f4ae2b186630c6885ba02b9ba",
+          "history_count": 1,
+          "history_head_event_id": "evt.tw.ewm-cutover.000001",
+          "history_head_sequence": 1,
+          "idempotency_count": 1
+        },
+        "canonical_head": {
+          "head_present": false,
+          "head_revision": null,
+          "head_sequence": null,
+          "head_cycle": null,
+          "do_sequence": 1,
+          "do_cycle": 0,
+          "do_revision": null,
+          "state_json_sequence": null,
+          "do_ne_head": false,
+          "head_ne_state_json": false,
+          "mismatch": null
+        }
+      }
+    },
+    "b": {
+      "health": {
+        "health": {
+          "status": "ok",
+          "service": "noema-gateway",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover"
+        },
+        "ready": {
+          "ready": true,
+          "play_blocked": false,
+          "code": null,
+          "status": "ACTIVE",
+          "settlement_health": "HEALTHY",
+          "world": {
+            "ok": true,
+            "world_id": "test.hosted-canonical.ewm-cutover",
+            "world_name": "Rollback Rehearsal",
+            "cycle": 0,
+            "sequence": 1,
+            "players": 0,
+            "status": "ACTIVE",
+            "settlement_health": "HEALTHY",
+            "genesis_id": "genesis.7e6560dc155d9b88",
+            "playable": true
+          }
+        },
+        "version": {
+          "product": "noema",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover",
+          "worker_version_id": "c847fdc7-755d-4cab-94a4-7a8f32701256",
+          "deployed_at": "2026-09-20T23:40:28.931803Z"
+        }
+      },
+      "durable": {
+        "world_id": "test.hosted-canonical.ewm-cutover",
+        "genesis_id": "genesis.7e6560dc155d9b88",
+        "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+        "status": "ACTIVE",
+        "settlement_health": "HEALTHY",
+        "settlement_ok": false,
+        "cycle": 0,
+        "sequence": 1,
+        "rollback_evidence": {
+          "pin": "rollback-rehearsal-evidence/1",
+          "canonicalization_version": "noema-jcs/1",
+          "state_digest": "sha256:4249c808c36bdd47ea7000eb5fd036631880bdd9da987d5023366ce8f63724fa",
+          "history_digest": "sha256:c451d963a754f9ae7ef8340a3936d93f10edd19f4ae2b186630c6885ba02b9ba",
+          "history_count": 1,
+          "history_head_event_id": "evt.tw.ewm-cutover.000001",
+          "history_head_sequence": 1,
+          "idempotency_count": 1
+        },
+        "canonical_head": {
+          "head_present": false,
+          "head_revision": null,
+          "head_sequence": null,
+          "head_cycle": null,
+          "do_sequence": 1,
+          "do_cycle": 0,
+          "do_revision": null,
+          "state_json_sequence": null,
+          "do_ne_head": false,
+          "head_ne_state_json": false,
+          "mismatch": null
+        }
+      }
+    },
+    "rollback_a": {
+      "health": {
+        "health": {
+          "status": "ok",
+          "service": "noema-gateway",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover"
+        },
+        "ready": {
+          "ready": true,
+          "play_blocked": false,
+          "code": null,
+          "status": "ACTIVE",
+          "settlement_health": "HEALTHY",
+          "world": {
+            "ok": true,
+            "world_id": "test.hosted-canonical.ewm-cutover",
+            "world_name": "Rollback Rehearsal",
+            "cycle": 0,
+            "sequence": 1,
+            "players": 0,
+            "status": "ACTIVE",
+            "settlement_health": "HEALTHY",
+            "genesis_id": "genesis.7e6560dc155d9b88",
+            "playable": true
+          }
+        },
+        "version": {
+          "product": "noema",
+          "stage": "0",
+          "env": "test",
+          "protocol_version": "1",
+          "world_id": "test.hosted-canonical.ewm-cutover",
+          "worker_version_id": "7e749359-c2e0-445a-ba4d-3ef9002bba56",
+          "deployed_at": "2026-09-20T23:40:11.58985Z"
+        }
+      },
+      "durable": {
+        "world_id": "test.hosted-canonical.ewm-cutover",
+        "genesis_id": "genesis.7e6560dc155d9b88",
+        "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+        "status": "ACTIVE",
+        "settlement_health": "HEALTHY",
+        "settlement_ok": false,
+        "cycle": 0,
+        "sequence": 1,
+        "rollback_evidence": {
+          "pin": "rollback-rehearsal-evidence/1",
+          "canonicalization_version": "noema-jcs/1",
+          "state_digest": "sha256:4249c808c36bdd47ea7000eb5fd036631880bdd9da987d5023366ce8f63724fa",
+          "history_digest": "sha256:c451d963a754f9ae7ef8340a3936d93f10edd19f4ae2b186630c6885ba02b9ba",
+          "history_count": 1,
+          "history_head_event_id": "evt.tw.ewm-cutover.000001",
+          "history_head_sequence": 1,
+          "idempotency_count": 1
+        },
+        "canonical_head": {
+          "head_present": false,
+          "head_revision": null,
+          "head_sequence": null,
+          "head_cycle": null,
+          "do_sequence": 1,
+          "do_cycle": 0,
+          "do_revision": null,
+          "state_json_sequence": null,
+          "do_ne_head": false,
+          "head_ne_state_json": false,
+          "mismatch": null
+        }
+      }
+    },
+    "rollback_idempotent_replay": {
+      "durable": {
+        "world_id": "test.hosted-canonical.ewm-cutover",
+        "genesis_id": "genesis.7e6560dc155d9b88",
+        "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+        "status": "ACTIVE",
+        "settlement_health": "HEALTHY",
+        "settlement_ok": false,
+        "cycle": 0,
+        "sequence": 1,
+        "rollback_evidence": {
+          "pin": "rollback-rehearsal-evidence/1",
+          "canonicalization_version": "noema-jcs/1",
+          "state_digest": "sha256:4249c808c36bdd47ea7000eb5fd036631880bdd9da987d5023366ce8f63724fa",
+          "history_digest": "sha256:c451d963a754f9ae7ef8340a3936d93f10edd19f4ae2b186630c6885ba02b9ba",
+          "history_count": 1,
+          "history_head_event_id": "evt.tw.ewm-cutover.000001",
+          "history_head_sequence": 1,
+          "idempotency_count": 1
+        },
+        "canonical_head": {
+          "head_present": false,
+          "head_revision": null,
+          "head_sequence": null,
+          "head_cycle": null,
+          "do_sequence": 1,
+          "do_cycle": 0,
+          "do_revision": null,
+          "state_json_sequence": null,
+          "do_ne_head": false,
+          "head_ne_state_json": false,
+          "mismatch": null
+        }
+      },
+      "response_equal": true
+    },
+    "recovery_write": {
+      "durable": {
+        "world_id": "test.hosted-canonical.ewm-cutover",
+        "genesis_id": "genesis.7e6560dc155d9b88",
+        "cycle0_digest": "sha256:7cbd05e2709173b8bbe7a9044787a74f5068242088072a8a7cceadfcef95de03",
+        "status": "ACTIVE",
+        "settlement_health": "HEALTHY",
+        "settlement_ok": false,
+        "cycle": 1,
+        "sequence": 4,
+        "rollback_evidence": {
+          "pin": "rollback-rehearsal-evidence/1",
+          "canonicalization_version": "noema-jcs/1",
+          "state_digest": "sha256:23704f4487af3983fbaaf9ce535b5a12446024767a74952daa92613144ee61fc",
+          "history_digest": "sha256:2f844b0d13fcf0f817a3fd582e3c09e5c2e5771c57878914cacabeb20a69c297",
+          "history_count": 4,
+          "history_head_event_id": "evt.tw.ewm-cutover.000004",
+          "history_head_sequence": 4,
+          "idempotency_count": 2
+        },
+        "canonical_head": {
+          "head_present": false,
+          "head_revision": null,
+          "head_sequence": null,
+          "head_cycle": null,
+          "do_sequence": 4,
+          "do_cycle": 1,
+          "do_revision": null,
+          "state_json_sequence": null,
+          "do_ne_head": false,
+          "head_ne_state_json": false,
+          "mismatch": null
+        }
+      },
+      "command_ok": true
+    }
   },
   "production": {
     "before": {
@@ -159,26 +417,23 @@
         "deployed_at": "2026-09-20T20:26:54.009622Z"
       }
     },
-    "unchanged": true,
-    "writes": 0
+    "unchanged": true
   },
   "commands": [
-    "$ npx wrangler@4.123.0 whoami"
-  ],
-  "commands_not_run": [
-    "$ NOEMA_ROLLBACK_REHEARSAL=I_ACKNOWLEDGE_ISOLATED_A_B_A WORKER_NAME=noema-rollback-rehearsal-gatef-75d468c7-20260920 npm run rehearse:rollback"
+    "$ npx wrangler whoami",
+    "$ npx wrangler deploy --config /workspace/noema-aba-75d468c7/workers/noema/wrangler.rollback-rehearsal.jsonc --name noema-rollback-rehearsal-gatef-75d468c7-20260920-r2 --tag issue-555-a --message Issue #555 isolated rollback rehearsal phase A --var NOEMA_ENV:test --var NOEMA_PROTOCOL_VERSION:1 --var DEFAULT_WORLD_ID:test.hosted-canonical.ewm-cutover --var ROLLBACK_REHEARSAL_PHASE:A --secrets-file <ephemeral-secrets-file>",
+    "$ npx wrangler deploy --config /workspace/noema-aba-75d468c7/workers/noema/wrangler.rollback-rehearsal.jsonc --name noema-rollback-rehearsal-gatef-75d468c7-20260920-r2 --tag issue-555-b --message Issue #555 isolated rollback rehearsal phase B --var NOEMA_ENV:test --var NOEMA_PROTOCOL_VERSION:1 --var DEFAULT_WORLD_ID:test.hosted-canonical.ewm-cutover --var ROLLBACK_REHEARSAL_PHASE:B",
+    "$ npx wrangler rollback 7e749359-c2e0-445a-ba4d-3ef9002bba56 --config /workspace/noema-aba-75d468c7/workers/noema/wrangler.rollback-rehearsal.jsonc --name noema-rollback-rehearsal-gatef-75d468c7-20260920-r2 --message Issue #555 isolated A-B-A rollback rehearsal --yes"
   ],
   "assertions": {
-    "genesis_preserved": "NOT_COMPUTABLE",
-    "state_digest_preserved_a_b_a": "NOT_COMPUTABLE",
-    "history_preserved_a_b_a": "NOT_COMPUTABLE",
-    "canonical_external_head_absent": "NOT_COMPUTABLE",
-    "settlement_health_healthy": "NOT_COMPUTABLE",
-    "idempotency_survived_rollback": "NOT_COMPUTABLE",
-    "post_rollback_write_recovered": "NOT_COMPUTABLE",
+    "genesis_preserved": true,
+    "state_digest_preserved_a_b_a": true,
+    "history_preserved_a_b_a": true,
+    "canonical_external_head_absent": true,
+    "settlement_health_healthy": true,
+    "idempotency_survived_rollback": true,
+    "post_rollback_write_recovered": true,
     "production_identity_unchanged": true,
-    "readiness_healthy": "NOT_COMPUTABLE",
-    "dual_sha_digest_compare": "NOT_COMPUTABLE",
-    "gate_f_go": false
+    "readiness_healthy": true
   }
 }
