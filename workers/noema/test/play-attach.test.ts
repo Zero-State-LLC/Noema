@@ -298,7 +298,7 @@ describe("play attach — canonical head snapshot", () => {
     const readyBody = (await ready.json()) as { ready?: boolean; world?: { players?: number; playable?: boolean } };
     expect(readyBody.ready).toBe(true);
     expect(readyBody.world?.playable).toBe(true);
-    expect(readyBody.world?.players).toBe(0);
+    expect(readyBody.world?.players).toBe(1);
   });
 
   it("ENTER then LOOK still attaches when the head snapshot has an org without members", async () => {
