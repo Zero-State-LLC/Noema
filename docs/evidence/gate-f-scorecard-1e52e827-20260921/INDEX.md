@@ -1,10 +1,10 @@
 # Gate F scorecard packet — live `1e52e827` / `65086d32` (post-Deploy; GO ISSUED)
 
-**Written:** 2026-09-20 19:09 PDT · **GO-ask addendum:** 2026-09-20 19:16 PDT · **item-7 GO:** 2026-09-20 19:21 PDT  
+**Written:** 2026-09-20 19:09 PDT · **GO-ask addendum:** 2026-09-20 19:16 PDT · **item-7 GO:** 2026-09-20 19:21 PDT · **COMPLETE-pending addendum:** 2026-09-20 19:35 PDT  
 **Tracking:** [Zero-State-LLC/Noema#715](https://github.com/Zero-State-LLC/Noema/issues/715) (OPEN)  
 **Candidate:** `lca6-gate-f-successor-decision`  
 **Authority:** Specs `docs/LCA-GATE-F-SCENARIO.md` § Packet items 1–7  
-**Danny authorization:** items **1–6** filled; item-7 **GO ISSUED** (Danny human-yes **2026-09-20 ~19:20 PDT**) · residual owners **CONFIRMED** · **not** Gate F COMPLETE
+**Danny authorization:** items **1–6** filled; item-7 **GO ISSUED** (Danny human-yes **2026-09-20 ~19:20 PDT**) · residual owners **CONFIRMED** · Gate F **COMPLETE pending** Specs draft [Noema-Specs#352](https://github.com/Zero-State-LLC/Noema-Specs/pull/352) (Danny merge = COMPLETE human-yes)
 
 ## What this packet is
 
@@ -15,7 +15,7 @@
 
 ## What this packet is not
 
-- **Not** Gate F COMPLETE (Specs: `GO` ≠ COMPLETE ≠ Deploy; COMPLETE pending separately)  
+- **Not** Gate F COMPLETE until Specs [Noema-Specs#352](https://github.com/Zero-State-LLC/Noema-Specs/pull/352) merges (Specs: `GO` ≠ COMPLETE ≠ Deploy; see [`COMPLETE-PENDING.md`](COMPLETE-PENDING.md))  
 - **Not** a Deploy (Deploy [35549259561](https://github.com/Zero-State-LLC/Noema/actions/runs/35549259561) already landed; Deploy ≠ `GO`; **GO does not Deploy again**)  
 - **Not** WORLD_CUTOVER, campaign flip, or hosted STUDY reopen  
 - **Not** inventing digests — across-Deploy digests permanently **NOT_COMPUTABLE** (accepted gap)
@@ -36,7 +36,7 @@
 | Prior SUCCESSOR_NAMED (absorbed) | `75d468c750aeb04490969f33d2cc13ad7e85a3a5` (#717) | now in live `65086d32` |
 | `successor_scope` | `RUNTIME_ONLY` | #715 |
 | Dependabot sharp open alerts | **0** (as of last probe) | gh Dependabot API |
-| Scoring | items 1–6 FILLED; item 7 **GO ISSUED**; owners **CONFIRMED**; COMPLETE **pending separately** | this packet · Specs companion |
+| Scoring | items 1–6 FILLED; item 7 **GO ISSUED**; owners **CONFIRMED**; COMPLETE **pending** Specs [#352](https://github.com/Zero-State-LLC/Noema-Specs/pull/352) draft | this packet · Specs companion · [`COMPLETE-PENDING.md`](COMPLETE-PENDING.md) |
 
 ## Files
 
@@ -52,4 +52,4 @@ Related evidence (already on main): [`../gate-f-isolated-aba-75d468c7-20260920/`
 
 ## Explicit non-claims
 
-Deploy already done ≠ Gate F `GO`. **`GO` ISSUED ≠ Gate F COMPLETE.** GO does not Deploy again. GO does not open STUDY.
+Deploy already done ≠ Gate F `GO`. **`GO` ISSUED ≠ Gate F COMPLETE.** COMPLETE pending Specs draft [#352](https://github.com/Zero-State-LLC/Noema-Specs/pull/352). GO does not Deploy again. GO does not open STUDY. COMPLETE ≠ new Deploy.
