@@ -272,7 +272,7 @@ export class NoemaWorldDO {
       room_id: p.room_id,
       entered: p.entered,
       last_seen_ms: p.last_seen_ms,
-      actor_kind: p.actor_kind,
+      actor_kind: inferActorKind(player_id, p.actor_kind, p.controller_type),
       practice: p.practice,
       focus: p.focus,
     }));
@@ -282,7 +282,11 @@ export class NoemaWorldDO {
       cycle: ev.cycle,
       handle: ev.handle,
       player_id: ev.player_id,
-      actor_kind: inferActorKind(ev.player_id || "", this.world!.players[ev.player_id || ""]?.actor_kind),
+      actor_kind: inferActorKind(
+        ev.player_id || "",
+        this.world!.players[ev.player_id || ""]?.actor_kind,
+        this.world!.players[ev.player_id || ""]?.controller_type,
+      ),
       at: ev.at,
       payload: ev.payload,
     }));
@@ -1314,7 +1318,11 @@ export class NoemaWorldDO {
     if (
       result.ok &&
       !idempotentReplay &&
-      inferActorKind(principal.player_id, w.players[principal.player_id]?.actor_kind) === "system"
+      inferActorKind(
+        principal.player_id,
+        w.players[principal.player_id]?.actor_kind,
+        principal.controller_type,
+      ) === "system"
     ) {
       await this.recordOperatorWatch(principal, envl, result);
     }
