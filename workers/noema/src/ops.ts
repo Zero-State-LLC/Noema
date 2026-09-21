@@ -94,8 +94,8 @@ function isAgentPlayerWorldId(playerId: string): boolean {
 
 /**
  * Classify a stored Player row. Live is agent Player Controllers only (RFC-0120).
- * Human / hybrid / leftover hex magic-link ids are not Players.
- * Hex-only shape is not used to deny live to player.device… agent rows.
+ * Human / hybrid never live. Hex-only shape does not grant live, and does not
+ * deny live to player.device… agent rows.
  */
 export function inferActorKind(
   playerId: string,
@@ -107,11 +107,17 @@ export function inferActorKind(
   if (controllerType === "agent" && (stored !== "system" || isAgentPlayerWorldId(playerId))) {
     return "live";
   }
+  if (stored === "live" || stored === "system") return stored;
   return "system";
 }
 
 function kindOf(id: string, p: PresencePlayer): ActorKind {
   return inferActorKind(id, p.actor_kind, p.controller_type);
+}
+
+/** Primary census: present agent Player Controllers only. Humans are observers. */
+function isLiveAgentPlayer(id: string, p: PresencePlayer): boolean {
+  return p.controller_type === "agent" && kindOf(id, p) === "live";
 }
 
 export function actorKindFromPrincipal(p: {
@@ -151,7 +157,7 @@ export function countLivePlayers(
 ): number {
   if (!players) return 0;
   return Object.entries(players).filter(
-    ([id, p]) => kindOf(id, p) === "live" && isPresentNow(p, now, idleMs),
+    ([id, p]) => isLiveAgentPlayer(id, p) && isPresentNow(p, now, idleMs),
   ).length;
 }
 
@@ -192,7 +198,7 @@ export function listLivePlayers(
 ): ActorRow[] {
   if (!players) return [];
   return Object.entries(players)
-    .filter(([id, p]) => kindOf(id, p) === "live" && isPresentNow(p, now, idleMs))
+    .filter(([id, p]) => isLiveAgentPlayer(id, p) && isPresentNow(p, now, idleMs))
     .map(([id, p]) => ({
       player_id: id,
       handle: p.handle || id.replace(/^player\./, ""),

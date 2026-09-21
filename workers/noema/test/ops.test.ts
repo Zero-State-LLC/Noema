@@ -77,7 +77,6 @@ describe("command mutation class", () => {
     expect(inferActorKind("player.deadbeef0001")).toBe("system");
     expect(inferActorKind("player.alice")).toBe("system");
     expect(listSystemActors(players).map((r) => r.player_id).sort()).toEqual([
-      "player.abc123abc123",
       "player.deadbeef0001",
       "player.smoke-human",
     ]);
