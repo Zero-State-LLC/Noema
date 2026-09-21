@@ -272,7 +272,7 @@ export class NoemaWorldDO {
       room_id: p.room_id,
       entered: p.entered,
       last_seen_ms: p.last_seen_ms,
-      actor_kind: p.actor_kind,
+      actor_kind: inferActorKind(player_id, p.actor_kind, p.controller_type),
       practice: p.practice,
       focus: p.focus,
     }));

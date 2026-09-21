@@ -93,9 +93,9 @@ function isAgentPlayerWorldId(playerId: string): boolean {
 }
 
 /**
- * Classify a stored Player row.
- * Agent Controller metadata + a valid Agent Player id is live (RFC-0120).
- * Hex-only shape is not used to deny live to player.device… rows.
+ * Classify a stored Player row. Live is agent Player Controllers only (RFC-0120).
+ * Human / hybrid / leftover hex magic-link ids are not Players.
+ * Hex-only shape is not used to deny live to player.device… agent rows.
  */
 export function inferActorKind(
   playerId: string,
@@ -103,11 +103,11 @@ export function inferActorKind(
   controllerType?: string,
 ): ActorKind {
   if (isReservedSystemActorId(playerId)) return "system";
+  if (controllerType === "human" || controllerType === "hybrid") return "system";
   if (controllerType === "agent" && (stored !== "system" || isAgentPlayerWorldId(playerId))) {
     return "live";
   }
-  if (stored === "live" || stored === "system") return stored;
-  return /^player\.[0-9a-f]{12}$/i.test(playerId) ? "live" : "system";
+  return "system";
 }
 
 function kindOf(id: string, p: PresencePlayer): ActorKind {
@@ -126,14 +126,12 @@ export function actorKindFromPrincipal(p: {
     return "system";
   }
   if (isReservedSystemActorId(p.player_id)) return "system";
+  if (p.controller_type === "human" || p.controller_type === "hybrid") return "system";
   // Admin-mint testers stay system. Enrollment AMRs also carry issued_by=admin
   // as audit; those principals are Agent Players, not testers.
   if (p.issued_by === "admin" && !ENROLLMENT_AMRS.has(p.amr || "")) return "system";
   if (p.controller_type === "agent") return "live";
-  if (p.amr === "email_magic_link" || p.authentication_context === "supabase_jwt" || p.identity_id) {
-    return "live";
-  }
-  return inferActorKind(p.player_id);
+  return "system";
 }
 
 export function isPresentNow(

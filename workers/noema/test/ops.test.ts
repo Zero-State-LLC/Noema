@@ -63,20 +63,24 @@ describe("command mutation class", () => {
     ).toBe(2);
   });
 
-  it("treats missing last_seen as stale and counts only live humans", () => {
+  it("treats missing last_seen as stale and does not count leftover human rows as live", () => {
     const now = 1_700_000_000_000;
     const players = {
       "player.abc123abc123": { entered: true, last_seen_ms: now - 60_000, actor_kind: "live" as const },
       "player.deadbeef0001": { entered: true },
       "player.smoke-human": { entered: true, last_seen_ms: now - 1000, actor_kind: "system" as const },
     };
-    expect(countLivePlayers(players, now)).toBe(1);
+    expect(countLivePlayers(players, now)).toBe(0);
     expireStalePresence(players, now);
     expect(players["player.deadbeef0001"].entered).toBe(true);
     expect(players["player.smoke-human"].entered).toBe(true);
-    expect(inferActorKind("player.deadbeef0001")).toBe("live");
+    expect(inferActorKind("player.deadbeef0001")).toBe("system");
     expect(inferActorKind("player.alice")).toBe("system");
-    expect(listSystemActors(players).map((r) => r.player_id)).toEqual(["player.smoke-human"]);
+    expect(listSystemActors(players).map((r) => r.player_id).sort()).toEqual([
+      "player.abc123abc123",
+      "player.deadbeef0001",
+      "player.smoke-human",
+    ]);
     expect(
       actorKindFromPrincipal({
         player_id: "player.x",
@@ -108,6 +112,41 @@ describe("agent Players are live census (RFC-0120 / #726)", () => {
         issued_by: "admin",
       }),
     ).toBe("live");
+  });
+
+  it("does not classify human platform principals as live Players", () => {
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.abc123abc123",
+        controller_type: "human",
+        amr: "email_magic_link",
+        identity_id: "11111111-2222-3333-4444-555555555555",
+        authentication_context: "supabase_jwt",
+      }),
+    ).toBe("system");
+    expect(
+      actorKindFromPrincipal({
+        player_id: "player.abc123abc123",
+        controller_type: "hybrid",
+        authentication_context: "controller_token",
+      }),
+    ).toBe("system");
+    expect(inferActorKind("player.abc123abc123", "live", "human")).toBe("system");
+    expect(inferActorKind("player.abc123abc123", "live", "hybrid")).toBe("system");
+    const now = 1_700_000_000_000;
+    expect(
+      countLivePlayers(
+        {
+          "player.abc123abc123": {
+            entered: true,
+            last_seen_ms: now,
+            actor_kind: "live",
+            controller_type: "human",
+          },
+        },
+        now,
+      ),
+    ).toBe(0);
   });
 
   it("keeps true system actors as system", () => {

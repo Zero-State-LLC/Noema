@@ -217,7 +217,7 @@ describe("play attach — canonical head snapshot", () => {
     expect(entered.observation?.in_world).toBe(true);
     expect(entered.observation?.location?.name).toMatch(/Relay/);
     expect(countEnteredPlayers(head.players)).toBe(1);
-    expect(countLivePlayers(head.players)).toBe(1);
+    expect(countLivePlayers(head.players)).toBe(0);
 
     const looked = await run(head, p, "LOOK", { line: "look" });
     expect(looked.ok).toBe(true);
