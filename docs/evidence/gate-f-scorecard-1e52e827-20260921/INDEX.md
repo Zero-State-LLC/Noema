@@ -1,27 +1,26 @@
-# Gate F scorecard packet — live `1e52e827` / `65086d32` (post-Deploy)
+# Gate F scorecard packet — live `1e52e827` / `65086d32` (post-Deploy; GO ISSUED)
 
-**Written:** 2026-09-20 19:09 PDT · **GO-ask addendum:** 2026-09-20 19:16 PDT  
+**Written:** 2026-09-20 19:09 PDT · **GO-ask addendum:** 2026-09-20 19:16 PDT · **item-7 GO:** 2026-09-20 19:21 PDT  
 **Tracking:** [Zero-State-LLC/Noema#715](https://github.com/Zero-State-LLC/Noema/issues/715) (OPEN)  
 **Candidate:** `lca6-gate-f-successor-decision`  
 **Authority:** Specs `docs/LCA-GATE-F-SCENARIO.md` § Packet items 1–7  
-**Danny authorization:** items **1–6** filled; item-7 GO ask drafted — **`GO` unchecked** · residual owners **PROPOSED** pending confirm
+**Danny authorization:** items **1–6** filled; item-7 **GO ISSUED** (Danny human-yes **2026-09-20 ~19:20 PDT**) · residual owners **CONFIRMED** · **not** Gate F COMPLETE
 
 ## What this packet is
 
 - Post-Deploy fill of Gate F scorecard items **1–6** for **LIVE_NAMED** Worker `1e52e827-695c-4386-9795-d42b175ec166` / source `65086d324d2c52b1efd507c9174d0950095a8049`.
 - Refresh of Item-1 production delta vs prior live `ac6813da` / `630652e6` (now HISTORICAL).
 - Continuity seal for isolated A-B-A **PASS** (r2) already filed under `docs/evidence/gate-f-isolated-aba-75d468c7-20260920/`.
+- Item-7 **GO ISSUED** with owners **CONFIRMED** (Danny human-yes 2026-09-20 ~19:20 PDT).
 
 ## What this packet is not
 
-- **Not** Gate F COMPLETE  
-- **Not** item 7 verdict / **`GO` unchecked**  
-- **Not** a Deploy (Deploy [35549259561](https://github.com/Zero-State-LLC/Noema/actions/runs/35549259561) already landed; Deploy ≠ `GO`)  
+- **Not** Gate F COMPLETE (Specs: `GO` ≠ COMPLETE ≠ Deploy; COMPLETE pending separately)  
+- **Not** a Deploy (Deploy [35549259561](https://github.com/Zero-State-LLC/Noema/actions/runs/35549259561) already landed; Deploy ≠ `GO`; **GO does not Deploy again**)  
 - **Not** WORLD_CUTOVER, campaign flip, or hosted STUDY reopen  
-- **Not** inventing digests — across-Deploy digests permanently **NOT_COMPUTABLE**
-- **Not** treating PROPOSED residual owners as OBSERVED until Danny confirm
+- **Not** inventing digests — across-Deploy digests permanently **NOT_COMPUTABLE** (accepted gap)
 
-## OBSERVED pins (packet time 2026-09-20 ~19:09 PDT)
+## OBSERVED pins (packet time 2026-09-20 ~19:09 PDT; GO ~19:20–19:21 PDT)
 
 | Surface | Value | Evidence |
 |---|---|---|
@@ -37,14 +36,15 @@
 | Prior SUCCESSOR_NAMED (absorbed) | `75d468c750aeb04490969f33d2cc13ad7e85a3a5` (#717) | now in live `65086d32` |
 | `successor_scope` | `RUNTIME_ONLY` | #715 |
 | Dependabot sharp open alerts | **0** (as of last probe) | gh Dependabot API |
-| Scoring | items 1–6 filled; item 7 **NOT ISSUED** (GO ask drafted); owners **PROPOSED**; Specs companion [#350](https://github.com/Zero-State-LLC/Noema-Specs/pull/350) open (no duplicate) | this packet · Specs#350 |
+| Scoring | items 1–6 FILLED; item 7 **GO ISSUED**; owners **CONFIRMED**; COMPLETE **pending separately** | this packet · Specs companion |
 
 ## Files
 
 | File | Role |
 |---|---|
-| [SCORECARD.md](SCORECARD.md) | Items 1–6 status + item 7 NOT ISSUED / GO unchecked; item-6 owners **PROPOSED** |
-| [ITEM-7-GO-ASK.md](ITEM-7-GO-ASK.md) | Draft item-7 GO ask (honesty + proposed owners + Danny checkbox) — **does not** issue GO |
+| [SCORECARD.md](SCORECARD.md) | Items 1–6 FILLED; item 7 **GO ISSUED**; item-6 owners **CONFIRMED**; GO box checked |
+| [ITEM-7-VERDICT-GO.md](ITEM-7-VERDICT-GO.md) | Item-7 **GO** reasons, confirmed owner table, permit vs forbid (no STUDY / no sentience / no new Deploy / no WORLD_CUTOVER / no COMPLETE from GO alone) |
+| [ITEM-7-GO-ASK.md](ITEM-7-GO-ASK.md) | Prior draft ask (PROPOSED owners); retained; **VERDICT** section points at GO issued |
 | [PRODUCTION-DELTA.md](PRODUCTION-DELTA.md) | Item-1 post-Deploy delta vs prior `ac6813da` / `630652e6` |
 | [INDEX.md](INDEX.md) | This index |
 
@@ -52,4 +52,4 @@ Related evidence (already on main): [`../gate-f-isolated-aba-75d468c7-20260920/`
 
 ## Explicit non-claims
 
-Deploy already done ≠ Gate F `GO`. Scorecard fill ≠ COMPLETE. Item 7 remains **NOT ISSUED**. GO ask is a draft ask only.
+Deploy already done ≠ Gate F `GO`. **`GO` ISSUED ≠ Gate F COMPLETE.** GO does not Deploy again. GO does not open STUDY.

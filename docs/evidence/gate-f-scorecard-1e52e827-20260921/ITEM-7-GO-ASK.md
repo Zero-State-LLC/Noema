@@ -4,8 +4,8 @@
 **Tracking:** [Noema#715](https://github.com/Zero-State-LLC/Noema/issues/715) OPEN  
 **Candidate:** `lca6-gate-f-successor-decision`  
 **Live:** Worker `1e52e827-695c-4386-9795-d42b175ec166` / source `65086d324d2c52b1efd507c9174d0950095a8049`  
-**Scorecard:** [`docs/evidence/gate-f-scorecard-1e52e827-20260921/`](./) · items **1–6 FILLED** · item **7 NOT ISSUED**  
-**This document:** draft ask only — **does not** check `GO`, claim COMPLETE, or authorize Deploy.
+**Scorecard:** [`docs/evidence/gate-f-scorecard-1e52e827-20260921/`](./) · items **1–6 FILLED** · item **7 GO ISSUED** (see verdict)  
+**This document:** historical draft ask. Verdict sealed in [`ITEM-7-VERDICT-GO.md`](ITEM-7-VERDICT-GO.md).
 
 ---
 
@@ -13,11 +13,11 @@
 
 @scrimshawlife-ctrl — please choose **one**:
 
-- [ ] **Confirm proposed residual owners** (table below) **and issue `GO`**
+- [x] **Confirm proposed residual owners** (table below) **and issue `GO`** — **chosen** Danny human-yes **2026-09-20 ~19:20 PDT**
 - [ ] **Confirm proposed residual owners** **and issue `NO-GO`**
 - [ ] **Hold** (owners and/or verdict deferred; leave `GO` unchecked)
 
-Until you check one box above in a human reply on #715 (or update the scorecard yourself), item 7 remains **NOT ISSUED** and the scorecard `GO` box stays **unchecked**.
+**Outcome:** item 7 **GO ISSUED**; owners **CONFIRMED**. Full record: [`ITEM-7-VERDICT-GO.md`](ITEM-7-VERDICT-GO.md). COMPLETE still pending separately.
 
 ---
 
@@ -113,3 +113,21 @@ Owners: CONFIRM / HOLD / CHANGE (list changes)
 Item-7: GO / NO-GO / HOLD
 Accepted permanent gap: across-Deploy digests NOT_COMPUTABLE — YES / NO
 ```
+
+
+---
+
+## VERDICT (recorded)
+
+**2026-09-20 ~19:20 PDT** — Danny human-yes OBSERVED: confirm proposed owners **and** issue Gate F `GO`.
+
+| Field | Value |
+|---|---|
+| Item 7 | **GO ISSUED** |
+| Owners | **CONFIRMED** (PROPOSED → CONFIRMED) |
+| Across-Deploy digests | Permanently **NOT_COMPUTABLE** — accepted; not invented |
+| COMPLETE | **Still pending separately** (Specs: GO ≠ COMPLETE ≠ Deploy) |
+| Deploy | Already live — **GO does not Deploy again** |
+| STUDY / WORLD_CUTOVER / sentience | **Still forbidden** |
+
+Authoritative packet: [`ITEM-7-VERDICT-GO.md`](ITEM-7-VERDICT-GO.md) · scorecard [`SCORECARD.md`](SCORECARD.md).
