@@ -1,10 +1,10 @@
 # Gate F scorecard packet — live `1e52e827` / `65086d32` (post-Deploy)
 
-**Written:** 2026-09-20 19:09 PDT  
+**Written:** 2026-09-20 19:09 PDT · **GO-ask addendum:** 2026-09-20 19:16 PDT  
 **Tracking:** [Zero-State-LLC/Noema#715](https://github.com/Zero-State-LLC/Noema/issues/715) (OPEN)  
 **Candidate:** `lca6-gate-f-successor-decision`  
 **Authority:** Specs `docs/LCA-GATE-F-SCENARIO.md` § Packet items 1–7  
-**Danny authorization:** scorecard fill for items **1–6** only — **not** Gate F `GO`
+**Danny authorization:** items **1–6** filled; item-7 GO ask drafted — **`GO` unchecked** · residual owners **PROPOSED** pending confirm
 
 ## What this packet is
 
@@ -18,7 +18,8 @@
 - **Not** item 7 verdict / **`GO` unchecked**  
 - **Not** a Deploy (Deploy [35549259561](https://github.com/Zero-State-LLC/Noema/actions/runs/35549259561) already landed; Deploy ≠ `GO`)  
 - **Not** WORLD_CUTOVER, campaign flip, or hosted STUDY reopen  
-- **Not** inventing digests or risk owners — gaps marked **NOT_COMPUTABLE**
+- **Not** inventing digests — across-Deploy digests permanently **NOT_COMPUTABLE**
+- **Not** treating PROPOSED residual owners as OBSERVED until Danny confirm
 
 ## OBSERVED pins (packet time 2026-09-20 ~19:09 PDT)
 
@@ -36,13 +37,14 @@
 | Prior SUCCESSOR_NAMED (absorbed) | `75d468c750aeb04490969f33d2cc13ad7e85a3a5` (#717) | now in live `65086d32` |
 | `successor_scope` | `RUNTIME_ONLY` | #715 |
 | Dependabot sharp open alerts | **0** (as of last probe) | gh Dependabot API |
-| Scoring | items 1–6 filled here; item 7 **NOT ISSUED**; Specs still **DEFERRED** for COMPLETE | this packet · Specs companion |
+| Scoring | items 1–6 filled; item 7 **NOT ISSUED** (GO ask drafted); owners **PROPOSED**; Specs companion [#350](https://github.com/Zero-State-LLC/Noema-Specs/pull/350) open (no duplicate) | this packet · Specs#350 |
 
 ## Files
 
 | File | Role |
 |---|---|
-| [SCORECARD.md](SCORECARD.md) | Items 1–6 status + item 7 NOT ISSUED / GO unchecked |
+| [SCORECARD.md](SCORECARD.md) | Items 1–6 status + item 7 NOT ISSUED / GO unchecked; item-6 owners **PROPOSED** |
+| [ITEM-7-GO-ASK.md](ITEM-7-GO-ASK.md) | Draft item-7 GO ask (honesty + proposed owners + Danny checkbox) — **does not** issue GO |
 | [PRODUCTION-DELTA.md](PRODUCTION-DELTA.md) | Item-1 post-Deploy delta vs prior `ac6813da` / `630652e6` |
 | [INDEX.md](INDEX.md) | This index |
 
@@ -50,4 +52,4 @@ Related evidence (already on main): [`../gate-f-isolated-aba-75d468c7-20260920/`
 
 ## Explicit non-claims
 
-Deploy already done ≠ Gate F `GO`. Scorecard fill ≠ COMPLETE. Item 7 remains **NOT ISSUED**.
+Deploy already done ≠ Gate F `GO`. Scorecard fill ≠ COMPLETE. Item 7 remains **NOT ISSUED**. GO ask is a draft ask only.
