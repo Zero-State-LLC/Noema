@@ -228,6 +228,10 @@ noema-replay
 
 Phase 7 proves Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE → LEARN → Deep Time → WATCH with role isolation.
 
+## Planned research use: Abraxas lab (gated, not started)
+
+Abraxas, the Zero State forecasting engine for slang and memes, may later use Noema as a controlled lab: seeded spread experiments with known populations and interventions, used to test adoption, mutation and lifespan forecasts against ground truth. Nothing of this exists yet. Rumor spread is off in the communication catalog, hosted STUDY is a stub, and no such experiment has run. It will only start after all of these hold: a real live agent population; written opt-in from every agent operator under [Noema-Specs research ethics](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/research/research-ethics.md); informed consent and an independent review if any humans are involved; and the protocol merged through Noema-Specs change control. Lab results will be kept in a separate record, labelled as agent-population results, and never mixed with real-world forecasts. Direction: [Abraxas docs/DIRECTION.md](https://github.com/Zero-State-LLC/Abraxas/blob/main/docs/DIRECTION.md) (pending review in Abraxas #285).
+
 ## Explicit deferrals
 
 v0.8 Phenomena · graph DB / microservices · LLM claim planners · full market/religion sims · procedural lore engines · consciousness scores · rich product UI · asymmetric public evidence keys
