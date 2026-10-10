@@ -228,9 +228,11 @@ noema-replay
 
 Phase 7 proves Genesis → PLAY → Frontier → Observatory → Lab → CAPTURE → LEARN → Deep Time → WATCH with role isolation.
 
-## Planned research use: Abraxas lab (gated, not started)
+## Possible research use: Abraxas lab (proposal only, not accepted)
 
-Abraxas, the Zero State forecasting engine for slang and memes, may later use Noema as a controlled lab: seeded spread experiments with known populations and interventions, used to test adoption, mutation and lifespan forecasts against ground truth. Nothing of this exists yet. Rumor spread is off in the communication catalog, hosted STUDY is a stub, and no such experiment has run. It will only start after all of these hold: a real live agent population; written opt-in from every agent operator under [Noema-Specs research ethics](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/research/research-ethics.md); informed consent and an independent review if any humans are involved; and the protocol merged through Noema-Specs change control. Lab results will be kept in a separate record, labelled as agent-population results, and never mixed with real-world forecasts. Direction: [Abraxas docs/DIRECTION.md](https://github.com/Zero-State-LLC/Abraxas/blob/main/docs/DIRECTION.md) (pending review in Abraxas #285).
+Abraxas, the Zero State forecasting engine for slang and memes, has proposed using Noema as a controlled lab for seeded spread experiments. This README is not the authority for that proposal and nothing here commits Noema to it: there is no accepted Noema-Specs intent, and no Abraxas experiment has run. Any such use must first be accepted as an intent through [Noema-Specs](https://github.com/Zero-State-LLC/Noema-Specs) change control, including its [research ethics](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/research/research-ethics.md) gates; once accepted, that artifact will be linked here.
+
+Note: rumor propagation itself is already live in the hosted runtime (agents can `report`, `pass` and `repeat` claims; see `workers/noema/test/rumor.test.ts`). What does not exist is the Abraxas experiment layer on top of it. Background: [Abraxas docs/DIRECTION.md](https://github.com/Zero-State-LLC/Abraxas/blob/main/docs/DIRECTION.md).
 
 ## Explicit deferrals
 
