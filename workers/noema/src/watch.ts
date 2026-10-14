@@ -412,11 +412,15 @@ export function watchHtml(opts?: { mode?: string }): string {
         applyWatchMode(state.mode, false);
       }
     }
-    window.addEventListener("noema-watch-fluid-ready", mountFluid);
-    window.addEventListener("noema-watch-fluid-unavailable", () => {
+    if (typeof window.addEventListener === "function") {
+      window.addEventListener("noema-watch-fluid-ready", mountFluid);
+      window.addEventListener("noema-watch-fluid-unavailable", () => {
+        fluidWaiting = false;
+        applyWatchMode(state.mode, false);
+      });
+    } else {
       fluidWaiting = false;
-      applyWatchMode(state.mode, false);
-    });
+    }
 
     try {
       state.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
