@@ -1,0 +1,18 @@
+# workers/noema/src/watch-fluid.js
+
+- mountFluidStage · function · L6-L201 — function mountFluidStage(root, options = {})
+- $ · function · L7-L7 — $ = (id)
+- buildCells · function · L19-L30 — function buildCells()
+- drawFlat · function · L31-L59 — function drawFlat()
+- animateFlat · function · L60-L78 — function animateFlat(target)
+- step · function · L68-L75 — function step(now)
+- mapEvents · function · L79-L81 — function mapEvents()
+- showRenderer · function · L82-L91 — function showRenderer(renderer)
+- mapUnavailable · function · L92-L100 — function mapUnavailable()
+- ensureMap · function · L101-L113 — async function ensureMap()
+- setMode · function · L114-L142 — async function setMode(name)
+- current · function · L121-L121 — current = ()
+- update · function · L143-L177 — function update(snapshot)
+- focus · function · L178-L182 — function focus(roomId)
+- onReduce · function · L183-L186 — function onReduce()
+- dispose · method · L195-L199 — dispose()

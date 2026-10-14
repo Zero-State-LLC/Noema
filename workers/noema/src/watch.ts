@@ -7,6 +7,7 @@ import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMap
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
+import { anonymousWatchInlineSource, FLUID_STAGE_CSS, FLUID_STAGE_HTML } from "./watch-fluid-view";
 import {
   NOT_PROJECTED_PUBLICLY,
   WITHHELD_LEDE,
@@ -275,6 +276,7 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 ${MAP_STAGE_CSS}
 ${MAP_GL_CSS}
+${FLUID_STAGE_CSS}
 `;
 
 export function watchHtml(opts?: { mode?: string }): string {
@@ -320,6 +322,7 @@ export function watchHtml(opts?: { mode?: string }): string {
         <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
         <p class="watch-stage-honest">A public sketch — not the world.</p>
       </div>
+      ${FLUID_STAGE_HTML}
       <div id="watch-stage-places"${mode === "map" ? " hidden" : ""}>
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
@@ -331,9 +334,11 @@ export function watchHtml(opts?: { mode?: string }): string {
         </div>
       </div>
       <pre class="watch-pre" id="watch-pre" aria-hidden="true" hidden></pre>
+      <details class="watch-fluid-sites"><summary>Public sites</summary>
       <nav aria-label="Public sites">
         <ul class="watch-graph" id="watch-map"></ul>
       </nav>
+      </details>
       </div>
       ${mapStageHtml(mode === "map")}
     </section>
@@ -386,6 +391,32 @@ export function watchHtml(opts?: { mode?: string }): string {
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
     const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null, mapCoords: [], mapGl: null, mapGlBusy: false, mapCamId: "", mapFollowId: "" };
     const $ = id => document.getElementById(id);
+    const anonymousWatchView = ${anonymousWatchInlineSource()};
+    let fluidStage = null;
+    let fluidWaiting = true;
+    let pendingLive = null;
+
+    function mountFluid() {
+      if (fluidStage || !window.NoemaWatchFluid) return;
+      fluidWaiting = false;
+      try {
+        fluidStage = window.NoemaWatchFluid.mount($("watch-fluid"), { onMode: next => applyWatchMode(next) });
+        document.querySelector(".watch-stage").classList.add("has-fluid-stage");
+        fallbackMapDom();
+        if (state.last) fluidStage.update(state.last);
+        applyWatchMode(state.mode, false);
+      } catch (e) {
+        fluidStage = null;
+        $("watch-fluid").hidden = true;
+        document.querySelector(".watch-stage").classList.remove("has-fluid-stage");
+        applyWatchMode(state.mode, false);
+      }
+    }
+    window.addEventListener("noema-watch-fluid-ready", mountFluid);
+    window.addEventListener("noema-watch-fluid-unavailable", () => {
+      fluidWaiting = false;
+      applyWatchMode(state.mode, false);
+    });
 
     try {
       state.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -500,7 +531,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       parity.textContent = kind === "hold" ? MAP_PARITY_HOLD_LINE : kind === "behind" ? MAP_PARITY_LINE : "";
     }
     async function refreshMap() {
-      if (state.mode !== "map" || state.mapBusy) return;
+      if (fluidWaiting || fluidStage || state.mode !== "map" || state.mapBusy) return;
       state.mapBusy = true;
       try {
         const data = await fetch("/v1/watch/map").then(async function(r) {
@@ -551,6 +582,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (stageMap) stageMap.classList.add("is-map-gl");
     }
     function syncMapGl() {
+      if (fluidStage) return;
       if (!state.mapGl || state.mode !== "map") return;
       const live = state.last || {};
       const rooms = Array.isArray(live.rooms) ? live.rooms : [];
@@ -567,9 +599,11 @@ export function watchHtml(opts?: { mode?: string }): string {
     function applyMapFocus(head, rooms, events) {
       state.mapCamId = mapCameraTarget({ head: head, rooms: rooms, events: events, follow: state.follow });
       state.mapFollowId = mapFollowedRoomId(state.follow, rooms);
+      if (fluidStage) { fluidStage.focus(state.mapCamId); return; }
       syncMapGl();
     }
     function tryMapGl() {
+      if (fluidWaiting || fluidStage) return;
       if (state.mode !== "map") return;
       if (state.mapGl) { syncMapGl(); return; }
       const canvas = $("watch-map-gl");
@@ -612,6 +646,14 @@ export function watchHtml(opts?: { mode?: string }): string {
         window.NoemaPhosphor.setMode(mode === "pixel" ? "pixel" : "text");
       }
       if (persist !== false) persistWatchMode(mode);
+      if (fluidStage) {
+        if (window.NoemaPhosphor) window.NoemaPhosphor.setMode("text");
+        if (places) places.hidden = false;
+        if (map) map.hidden = true;
+        fluidStage.setMode(mode);
+        if (state.last) render(state.last);
+        return;
+      }
       if (mode === "map") tryMapGl();
       else fallbackMapDom();
       if (mode === "map") refreshMap();
@@ -642,6 +684,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (state.last) render(state.last);
     }
     state.follow = loadFollow();
+    if (state.follow && state.follow.kind === "agent") state.follow = null;
     function followedRoomId(rooms) {
       const f = state.follow;
       if (!f) return "";
@@ -736,7 +779,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       const f = state.follow;
       const headActor = head && head.actor_label ? String(head.actor_label) : "";
       const headSite = head && head.room_id ? roomName(rooms, head.room_id) : "";
-      const showActorBtn = headActor && !(f && f.kind === "agent" && f.id === headActor);
+      const showActorBtn = false; // The anonymous presentation follows sites, not named players.
       const showSiteBtn = head && head.room_id && !(f && f.kind === "site" && f.id === head.room_id);
       actorBtn.hidden = !showActorBtn;
       if (showActorBtn) actorBtn.textContent = "Follow " + headActor;
@@ -1166,9 +1209,14 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (window.NoemaPhosphor) window.NoemaPhosphor.fail();
     }
 
-    function applyLive(data) {
+    function applyLive(data, manual) {
+      if (!data || data.projection !== "public") return;
+      if (state.paused && !manual) { pendingLive = data; return; }
+      if (manual) pendingLive = null;
+      data = anonymousWatchView(data);
+      if (fluidStage) fluidStage.update(data);
       render(data);
-      if (state.mode === "map") refreshMap();
+      if (!fluidStage && state.mode === "map") refreshMap();
       if (state.paused) {
         setTag("paused", "tag warn");
         return;
@@ -1179,7 +1227,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       setTag(fresh === "live" ? "live" : fresh, "tag " + (fresh === "incident" ? "bad" : fresh === "live" ? "ok" : "warn"));
     }
 
-    async function refreshHttp() {
+    async function refreshHttp(manual) {
       if (state.busy || document.hidden) return;
       state.busy = true;
       try {
@@ -1188,7 +1236,7 @@ export function watchHtml(opts?: { mode?: string }): string {
           if (!r.ok) throw new Error((d.error && d.error.message) || r.statusText);
           return d;
         });
-        applyLive(data);
+        applyLive(data, manual === true);
       } catch (e) {
         showUnavailable(e.message || "Could not load public projection.");
       } finally {
@@ -1264,7 +1312,7 @@ export function watchHtml(opts?: { mode?: string }): string {
         applyWatchMode(parseWatchMode(location.search || "", location.hash || "", readStoredMode()), false);
       });
     }
-    $("watch-refresh").addEventListener("click", refresh);
+    $("watch-refresh").addEventListener("click", () => refreshHttp(true));
     $("watch-pause").addEventListener("click", () => {
       state.paused = !state.paused;
       $("watch-pause").textContent = state.paused ? "Resume updates" : "Pause updates";
@@ -1272,6 +1320,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (state.paused) {
         setTag("paused", "tag warn");
       } else {
+        if (pendingLive) { const next = pendingLive; pendingLive = null; applyLive(next); }
         refresh();
       }
     });
@@ -1332,6 +1381,7 @@ export function watchHtml(opts?: { mode?: string }): string {
   <script>
   ${phosphorInlineScript({ mapBtnId: "watch-mode-map" })}
   </script>
+  <script type="module" src="/assets/watch-fluid.js" onerror="window.dispatchEvent(new Event('noema-watch-fluid-unavailable'))"></script>
   `;
   return productShell({
     title: "Watch",
