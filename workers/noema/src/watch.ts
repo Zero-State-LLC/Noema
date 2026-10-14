@@ -7,7 +7,7 @@ import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMap
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
-import { anonymousWatchInlineSource, FLUID_STAGE_CSS, FLUID_STAGE_HTML } from "./watch-fluid-view";
+import { FLUID_STAGE_CSS, FLUID_STAGE_HTML } from "./watch-fluid-view";
 import {
   NOT_PROJECTED_PUBLICLY,
   WITHHELD_LEDE,
@@ -391,7 +391,6 @@ export function watchHtml(opts?: { mode?: string }): string {
     const GLYPHS = ${JSON.stringify(glyphCatalog())};
     const state = { paused: false, busy: false, held: null, majorLeft: 0, reduce: false, sock: null, focusRoomId: "", last: null, prevTopSeq: 0, headKey: "", follow: null, mode: "pixel", mapBusy: false, mapLast: null, mapCoords: [], mapGl: null, mapGlBusy: false, mapCamId: "", mapFollowId: "" };
     const $ = id => document.getElementById(id);
-    const anonymousWatchView = ${anonymousWatchInlineSource()};
     let fluidStage = null;
     let fluidWaiting = true;
     let pendingLive = null;
@@ -688,7 +687,6 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (state.last) render(state.last);
     }
     state.follow = loadFollow();
-    if (state.follow && state.follow.kind === "agent") state.follow = null;
     function followedRoomId(rooms) {
       const f = state.follow;
       if (!f) return "";
@@ -783,7 +781,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       const f = state.follow;
       const headActor = head && head.actor_label ? String(head.actor_label) : "";
       const headSite = head && head.room_id ? roomName(rooms, head.room_id) : "";
-      const showActorBtn = false; // The anonymous presentation follows sites, not named players.
+      const showActorBtn = headActor && !(f && f.kind === "agent" && f.id === headActor);
       const showSiteBtn = head && head.room_id && !(f && f.kind === "site" && f.id === head.room_id);
       actorBtn.hidden = !showActorBtn;
       if (showActorBtn) actorBtn.textContent = "Follow " + headActor;
@@ -1217,7 +1215,6 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (!data || data.projection !== "public") return;
       if (state.paused && !manual) { pendingLive = data; return; }
       if (manual) pendingLive = null;
-      data = anonymousWatchView(data);
       if (fluidStage) fluidStage.update(data);
       render(data);
       if (!fluidStage && state.mode === "map") refreshMap();

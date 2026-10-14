@@ -1,47 +1,4 @@
-/** Presentation adapter only. Public payloads and canonical history remain unchanged. */
-export function anonymousWatchView(data: Record<string, any>): Record<string, any> {
-  const view = JSON.parse(JSON.stringify(data));
-  const labels: string[] = [];
-  const pending: any[] = [view];
-  while (pending.length) {
-    const item = pending.pop();
-    if (!item || typeof item !== "object") continue;
-    if (typeof item.actor_label === "string" && item.actor_label) labels.push(item.actor_label);
-    if (Array.isArray(item.public_player_labels)) labels.push(...item.public_player_labels);
-    for (const key of Object.keys(item)) {
-      if (item[key] && typeof item[key] === "object") pending.push(item[key]);
-    }
-  }
-  const escaped: string[] = [];
-  for (const label of new Set(labels)) {
-    if (typeof label === "string" && label) escaped.push(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  }
-  escaped.sort();
-  const names = escaped.length ? new RegExp("(^|[^\\p{L}\\p{N}_-])(?:" + escaped.join("|") + ")(?=$|[^\\p{L}\\p{N}_-])", "gu") : null;
-  pending.push(view);
-  while (pending.length) {
-    const item = pending.pop();
-    if (!item || typeof item !== "object") continue;
-    for (const key of Object.keys(item)) {
-      if (key === "actor_label") item[key] = item[key] ? "An agent" : item[key];
-      else if (key === "public_player_labels") item[key] = [];
-      else if (["public_title_lines", "public_focus_lines", "public_descriptor_lines"].includes(key)) item[key] = [];
-      else if (names && ["line", "text", "detail", "consequence", "description"].includes(key) && typeof item[key] === "string") {
-        item[key] = item[key].replace(names, function(_match: string, prefix: string, offset: number) {
-          return prefix + (offset === 0 && !prefix ? "An agent" : "an agent");
-        });
-      } else if (item[key] && typeof item[key] === "object") pending.push(item[key]);
-    }
-  }
-  return view;
-}
-
-export function anonymousWatchInlineSource(): string {
-  const source = anonymousWatchView.toString();
-  if (source.includes("__name")) throw new Error("WATCH anonymity helper leaked bundler keepNames");
-  return source;
-}
-
+/** Fluid stage markup and styles within the existing public WATCH shell. */
 export const FLUID_STAGE_HTML = `
       <div id="watch-fluid" hidden>
         <div class="watch-fluid-frame">

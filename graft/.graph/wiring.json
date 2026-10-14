@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8576,
-    "edgeCount": 18835,
+    "nodeCount": 8573,
+    "edgeCount": 18827,
     "languages": [
       "javascript",
       "python",
@@ -86448,40 +86448,12 @@
       "name": "watch-fluid-view.ts",
       "kind": "file",
       "path": "workers/noema/src/watch-fluid-view.ts",
-      "span": "L1-L76",
+      "span": "L1-L33",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "982089f0dec4ad765068fa5b148c7cae93c69194a1d834ef375b3ec7181b2922",
-      "chars": 4459,
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
-      "id": "workers/noema/src/watch-fluid-view.ts#anonymousWatchInlineSource",
-      "name": "anonymousWatchInlineSource",
-      "kind": "function",
-      "path": "workers/noema/src/watch-fluid-view.ts",
-      "span": "L39-L43",
-      "signature": "function anonymousWatchInlineSource(): string",
-      "exported": true,
-      "origin": "ast",
-      "body_hash": "77b805c4e0b3596e65c79dad0609822d2b9edbee02ebe1e25d28cdb65b9d6084",
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
-      "id": "workers/noema/src/watch-fluid-view.ts#anonymousWatchView",
-      "name": "anonymousWatchView",
-      "kind": "function",
-      "path": "workers/noema/src/watch-fluid-view.ts",
-      "span": "L2-L37",
-      "signature": "function anonymousWatchView(data: Record<string, any>): Record<string, any>",
-      "exported": true,
-      "origin": "ast",
-      "body_hash": "442f1c9e26557042318f61db4a2fd523543055d2b2ea7009b86e30f0856cd703",
+      "body_hash": "0d25e03e63679576169283667409b4dda175a2ed5535374a0c38882178ea546b",
+      "chars": 2377,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -89818,12 +89790,12 @@
       "name": "watch.ts",
       "kind": "file",
       "path": "workers/noema/src/watch.ts",
-      "span": "L1-L1398",
+      "span": "L1-L1395",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "1f0ebbc127fae7eea889fe2a063c10c7ab3429ca24f3f2fbd7e6954ae8ef63c2",
-      "chars": 66786,
+      "body_hash": "6d52dc0992f585ae68c6de3bb570b12350b750a71598dfcfa858e2979a38a007",
+      "chars": 66571,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -89833,11 +89805,11 @@
       "name": "watchHtml",
       "kind": "function",
       "path": "workers/noema/src/watch.ts",
-      "span": "L282-L1397",
+      "span": "L282-L1394",
       "signature": "function watchHtml(opts?: { mode?: string }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "eadf2b471eb37db464e242fbf99bfaf8b37e4cb925fd40128b88115518b5f7f2",
+      "body_hash": "cd489f65b47a5372d3893f12ea3bce79c716edae1e307897c83a3e5ea345e12c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104168,21 +104140,6 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "40abdb5f7b6e1fb2c821897eabc5a10d4da0c12c440b1edcdadbe18becc24669",
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
-      "id": "workers/noema/test/watch-fluid.test.ts",
-      "name": "watch-fluid.test.ts",
-      "kind": "file",
-      "path": "workers/noema/test/watch-fluid.test.ts",
-      "span": "L1-L49",
-      "signature": null,
-      "exported": true,
-      "origin": "ast",
-      "body_hash": "a0e708122fb387376dd24ecc287f7580d44b82df9dc60c5ccc1f5440b66d4734",
-      "chars": 2616,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -193115,18 +193072,6 @@
       "confidence": "extracted"
     },
     {
-      "source": "workers/noema/src/watch-fluid-view.ts",
-      "target": "workers/noema/src/watch-fluid-view.ts#anonymousWatchInlineSource",
-      "relation": "contains",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/watch-fluid-view.ts",
-      "target": "workers/noema/src/watch-fluid-view.ts#anonymousWatchView",
-      "relation": "contains",
-      "confidence": "extracted"
-    },
-    {
       "source": "workers/noema/src/watch-fluid.js",
       "target": "workers/noema/src/watch-fluid.js#mountFluidStage",
       "relation": "contains",
@@ -195865,12 +195810,6 @@
     {
       "source": "workers/noema/src/watch.ts#watchHtml",
       "target": "workers/noema/src/shell.ts#productShell",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/src/watch.ts#watchHtml",
-      "target": "workers/noema/src/watch-fluid-view.ts#anonymousWatchInlineSource",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -224307,36 +224246,6 @@
       "target": "workers/noema/src/watch-live.ts#buildWatchLive",
       "relation": "calls",
       "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/watch-fluid.test.ts",
-      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/watch-fluid.test.ts",
-      "target": "workers/noema/src/watch-fluid-view.ts#anonymousWatchInlineSource",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/watch-fluid.test.ts",
-      "target": "workers/noema/src/watch-fluid-view.ts#anonymousWatchView",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/watch-fluid.test.ts",
-      "target": "vitest",
-      "relation": "imports",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/test/watch-fluid.test.ts",
-      "target": "workers/noema/src/watch-fluid-view.ts",
-      "relation": "imports",
-      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/watch-harvest-site.test.ts",
