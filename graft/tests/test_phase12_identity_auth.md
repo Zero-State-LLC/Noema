@@ -1,0 +1,21 @@
+# tests/test_phase12_identity_auth.py
+
+- test_jwt_roundtrip · function · L23-L27 — def test_jwt_roundtrip()
+- test_jwt_es256_jwks_accept_and_reject · function · L30-L90 — def test_jwt_es256_jwks_accept_and_reject()
+- boom · function · L83-L84 — def boom(_url: str)
+- test_bind_human_from_supabase_es256_jwks · function · L93-L125 — def test_bind_human_from_supabase_es256_jwks(tmp_path: Path)
+- fetch · function · L109-L112 — def fetch(url: str)
+- test_bind_human_from_supabase_hs256_still_works · function · L128-L143 — def test_bind_human_from_supabase_hs256_still_works(tmp_path: Path)
+- test_human_dev_bind_and_device_enrollment · function · L146-L197 — def test_human_dev_bind_and_device_enrollment(tmp_path: Path)
+- test_approve_requires_human_token_when_not_dev · function · L200-L212 — def test_approve_requires_human_token_when_not_dev(tmp_path: Path, monkeypatch)
+- test_allow_dev_human_false_refuses_dev_subject_and_tokenless_approve · function · L215-L275 — def test_allow_dev_human_false_refuses_dev_subject_and_tokenless_approve(tmp_path: Path)
+- test_spectator_cannot_observe_another_agent · function · L278-L303 — def test_spectator_cannot_observe_another_agent(tmp_path: Path)
+- test_http_auth_routes · function · L307-L356 — def test_http_auth_routes(tmp_path: Path)
+- post · function · L320-L328 — def post(path: str, body: dict) -> dict
+- test_http_session_requires_credentials · function · L359-L386 — def test_http_session_requires_credentials(tmp_path: Path)
+- test_http_controller_revoke_requires_credentials · function · L389-L416 — def test_http_controller_revoke_requires_credentials(tmp_path: Path)
+- test_http_rejects_oversized_request_body · function · L419-L449 — def test_http_rejects_oversized_request_body(tmp_path: Path)
+- test_http_rejects_malformed_request_bodies_as_client_errors · function · L452-L493 — def test_http_rejects_malformed_request_bodies_as_client_errors(tmp_path: Path)
+- post · function · L465-L479 — def post(payload: bytes, *, content_length: str | None = None)
+- test_revoke_requires_owner_token · function · L496-L516 — def test_revoke_requires_owner_token(tmp_path: Path)
+- test_deny_device_requires_owner_authorization · function · L519-L542 — def test_deny_device_requires_owner_authorization(tmp_path: Path)

@@ -1,0 +1,26 @@
+# workers/noema/src/enrollment.ts
+
+- EnrollmentStatus · type · L17-L17 — type EnrollmentStatus = "pending" | "approved" | "denied" | "replaced" | "expired";
+- EnrollmentRecord · type · L19-L31 — type EnrollmentRecord = { enrollment_id: string; token_hash: string; account_id: string; player_id: string; handle: string; origin: string; world_id: string; issued_at: string; expires_at: string; status: EnrollmentStatus; operator_id?: string; };
+- EnrollmentStore · interface · L33-L37 — interface EnrollmentStore
+- durableEnrollmentStore · function · L39-L60 — function durableEnrollmentStore(env: Env): EnrollmentStore
+- put · method · L43-L46 — async put(rec)
+- get · method · L47-L52 — async get(enrollmentId)
+- list · method · L53-L58 — async list()
+- memoryEnrollmentStore · function · L62-L76 — function memoryEnrollmentStore(seed: EnrollmentRecord[] = []): EnrollmentStore
+- put · method · L65-L67 — async put(rec)
+- get · method · L68-L71 — async get(id)
+- list · method · L72-L74 — async list()
+- hashEnrollmentToken · function · L78-L82 — async function hashEnrollmentToken(token: string): Promise<string>
+- bootstrapHttpsOrigin · function · L84-L94 — function bootstrapHttpsOrigin(env: Env, req: Request): string
+- publicPreview · function · L96-L116 — function publicPreview(rec: EnrollmentRecord): { enrollment_id: string; player_id: string; handle: string; world_id: string; requested_scopes: string[]; status: EnrollmentStatus; expires_at: string; issued_at: string; }
+- bootstrapDocument · function · L118-L138 — function bootstrapDocument(rec: EnrollmentRecord): Record<string, unknown>
+- discoveryDocument · function · L140-L159 — function discoveryDocument(origin: string): Record<string, unknown>
+- newEnrollmentId · function · L161-L163 — function newEnrollmentId(): string
+- newToken · function · L165-L169 — function newToken(): string
+- effectiveStatus · function · L171-L174 — async function effectiveStatus(rec: EnrollmentRecord, now: number): Promise<EnrollmentStatus>
+- assertEnrollmentToken · function · L176-L179 — async function assertEnrollmentToken(rec: EnrollmentRecord, token: string): Promise<boolean>
+- requestAgentEnrollment · function · L181-L252 — async function requestAgentEnrollment( env: Env, req: Request, body: { email?: string; handle?: string }, opts?: { store?: EnrollmentStore; now?: number; sendMail?: (mail: { to: string; subject: string; html: string; text: string }) => Promise<void>; mailFetch?: typeof fetch; operatorId?: string; }, ): Promise<Response>
+- previewAgentEnrollment · function · L254-L270 — async function previewAgentEnrollment( env: Env, req: Request, opts?: { store?: EnrollmentStore; now?: number }, ): Promise<Response>
+- decideAgentEnrollment · function · L272-L315 — async function decideAgentEnrollment( env: Env, req: Request, body: { enrollment_id?: string; token?: string; decision?: string }, opts?: { store?: EnrollmentStore; now?: number; operatorId?: string }, ): Promise<Response>
+- getBootstrapDocument · function · L317-L335 — async function getBootstrapDocument( env: Env, req: Request, enrollmentId: string, opts?: { store?: EnrollmentStore; now?: number }, ): Promise<Response>

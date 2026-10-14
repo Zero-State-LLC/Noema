@@ -1,0 +1,1058 @@
+# workers/noema/worker-configuration.d.ts
+
+- __BaseEnv_Env · interface · L4-L12 — interface __BaseEnv_Env
+- GlobalProps · interface · L14-L17 — interface GlobalProps
+- Env · interface · L18-L18 — interface Env extends __BaseEnv_Env
+- Env · interface · L20-L20 — interface Env extends __BaseEnv_Env
+- StringifyValues · type · L21-L23 — type StringifyValues<EnvType extends Record<string, unknown>> = { [Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string; };
+- ProcessEnv · interface · L25-L25 — interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "NOEMA_ENV" | "NOEMA_PROTOCOL_VERSION" | "DEFAULT_WORLD_ID">>
+- DOMException · class · L51-L99 — class DOMException extends Error
+- WorkerGlobalScopeEventMap · type · L100-L106 — type WorkerGlobalScopeEventMap = { fetch: FetchEvent; scheduled: ScheduledEvent; queue: QueueEvent; unhandledrejection: PromiseRejectionEvent; rejectionhandled: PromiseRejectionEvent; };
+- WorkerGlobalScope · class · L107-L109 — abstract class WorkerGlobalScope extends EventTarget<WorkerGlobalScopeEventMap>
+- Console · interface · L115-L226 — interface Console
+- BufferSource · type · L228-L228 — type BufferSource = ArrayBufferView | ArrayBuffer;
+- TypedArray · type · L229-L229 — type TypedArray = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
+- CompileError · class · L231-L233 — class CompileError extends Error
+- RuntimeError · class · L234-L236 — class RuntimeError extends Error
+- ValueType · type · L237-L237 — type ValueType = "anyfunc" | "externref" | "f32" | "f64" | "i32" | "i64" | "v128";
+- GlobalDescriptor · interface · L238-L241 — interface GlobalDescriptor
+- Global · class · L242-L246 — class Global
+- ImportValue · type · L247-L247 — type ImportValue = ExportValue | number;
+- ModuleImports · type · L248-L248 — type ModuleImports = Record<string, ImportValue>;
+- Imports · type · L249-L249 — type Imports = Record<string, ModuleImports>;
+- ExportValue · type · L250-L250 — type ExportValue = Function | Global | Memory | Table;
+- Exports · type · L251-L251 — type Exports = Record<string, ExportValue>;
+- Instance · class · L252-L255 — class Instance
+- MemoryDescriptor · interface · L256-L260 — interface MemoryDescriptor
+- Memory · class · L261-L265 — class Memory
+- ImportExportKind · type · L266-L266 — type ImportExportKind = "function" | "global" | "memory" | "table";
+- ModuleExportDescriptor · interface · L267-L270 — interface ModuleExportDescriptor
+- ModuleImportDescriptor · interface · L271-L275 — interface ModuleImportDescriptor
+- Module · class · L276-L280 — abstract class Module
+- TableKind · type · L281-L281 — type TableKind = "anyfunc" | "externref";
+- TableDescriptor · interface · L282-L286 — interface TableDescriptor
+- Table · class · L287-L293 — class Table
+- ServiceWorkerGlobalScope · interface · L303-L383 — interface ServiceWorkerGlobalScope extends WorkerGlobalScope
+- TestController · interface · L443-L444 — interface TestController
+- ExecutionContext · interface · L445-L454 — interface ExecutionContext<Props = unknown>
+- ExportedHandlerFetchHandler · type · L455-L455 — type ExportedHandlerFetchHandler<Env = unknown, CfHostMetadata = unknown, Props = unknown> = (request: Request<CfHostMetadata, IncomingRequestCfProperties<CfHostMetadata>>, env: Env, ctx: ExecutionContext<Props>) => Response | Promise<Response>;
+- ExportedHandlerConnectHandler · type · L456-L456 — type ExportedHandlerConnectHandler<Env = unknown, Props = unknown> = (socket: Socket, env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandlerTailHandler · type · L457-L457 — type ExportedHandlerTailHandler<Env = unknown, Props = unknown> = (events: TraceItem[], env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandlerTraceHandler · type · L458-L458 — type ExportedHandlerTraceHandler<Env = unknown, Props = unknown> = (traces: TraceItem[], env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandlerTailStreamHandler · type · L459-L459 — type ExportedHandlerTailStreamHandler<Env = unknown, Props = unknown> = (event: TailStream.TailEvent<TailStream.Onset>, env: Env, ctx: ExecutionContext<Props>) => TailStream.TailEventHandlerType | Promise<TailStream.TailEventHandlerType>;
+- ExportedHandlerScheduledHandler · type · L460-L460 — type ExportedHandlerScheduledHandler<Env = unknown, Props = unknown> = (controller: ScheduledController, env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandlerQueueHandler · type · L461-L461 — type ExportedHandlerQueueHandler<Env = unknown, Message = unknown, Props = unknown> = (batch: MessageBatch<Message>, env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandlerTestHandler · type · L462-L462 — type ExportedHandlerTestHandler<Env = unknown, Props = unknown> = (controller: TestController, env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- ExportedHandler · interface · L463-L473 — interface ExportedHandler<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown, Props = unknown>
+- StructuredSerializeOptions · interface · L474-L476 — interface StructuredSerializeOptions
+- Navigator · class · L477-L484 — abstract class Navigator
+- AlarmInvocationInfo · interface · L485-L489 — interface AlarmInvocationInfo
+- Cloudflare · interface · L490-L492 — interface Cloudflare
+- CachePurgeError · interface · L493-L496 — interface CachePurgeError
+- CachePurgeResult · interface · L497-L500 — interface CachePurgeResult
+- CachePurgeOptions · interface · L501-L505 — interface CachePurgeOptions
+- CacheContext · interface · L506-L508 — interface CacheContext
+- CloudflareAccessContext · interface · L509-L512 — interface CloudflareAccessContext
+- ColoLocalActorNamespace · class · L513-L515 — abstract class ColoLocalActorNamespace
+- DurableObject · interface · L516-L523 — interface DurableObject
+- DurableObjectStub · type · L524-L527 — type DurableObjectStub<T extends Rpc.DurableObjectBranded | undefined = undefined> = Fetcher<T, "alarm" | "connect" | "webSocketMessage" | "webSocketClose" | "webSocketError"> & { readonly id: DurableObjectId; readonly name?: string; };
+- DurableObjectId · interface · L528-L533 — interface DurableObjectId
+- DurableObjectNamespace · class · L534-L541 — abstract class DurableObjectNamespace<T extends Rpc.DurableObjectBranded | undefined = undefined>
+- DurableObjectJurisdiction · type · L542-L542 — type DurableObjectJurisdiction = "eu" | "fedramp" | "fedramp-high" | "us";
+- DurableObjectNamespaceNewUniqueIdOptions · interface · L543-L545 — interface DurableObjectNamespaceNewUniqueIdOptions
+- DurableObjectLocationHint · type · L546-L546 — type DurableObjectLocationHint = "wnam" | "enam" | "sam" | "weur" | "eeur" | "apac" | "apac-ne" | "apac-se" | "oc" | "afr" | "me";
+- DurableObjectRoutingMode · type · L547-L547 — type DurableObjectRoutingMode = "primary-only";
+- DurableObjectNamespaceGetDurableObjectOptions · interface · L548-L551 — interface DurableObjectNamespaceGetDurableObjectOptions
+- DurableObjectClass · interface · L552-L553 — interface DurableObjectClass<_T extends Rpc.DurableObjectBranded | undefined = undefined>
+- DurableObjectState · interface · L554-L572 — interface DurableObjectState<Props = unknown>
+- DurableObjectTransaction · interface · L573-L585 — interface DurableObjectTransaction
+- DurableObjectStorage · interface · L586-L606 — interface DurableObjectStorage
+- DurableObjectListOptions · interface · L607-L616 — interface DurableObjectListOptions
+- DurableObjectGetOptions · interface · L617-L620 — interface DurableObjectGetOptions
+- DurableObjectGetAlarmOptions · interface · L621-L623 — interface DurableObjectGetAlarmOptions
+- DurableObjectPutOptions · interface · L624-L628 — interface DurableObjectPutOptions
+- DurableObjectSetAlarmOptions · interface · L629-L632 — interface DurableObjectSetAlarmOptions
+- WebSocketRequestResponsePair · class · L633-L637 — class WebSocketRequestResponsePair
+- DurableObjectFacets · interface · L638-L643 — interface DurableObjectFacets
+- FacetStartupOptions · interface · L644-L647 — interface FacetStartupOptions<T extends Rpc.DurableObjectBranded | undefined = undefined>
+- AnalyticsEngineDataset · interface · L648-L650 — interface AnalyticsEngineDataset
+- AnalyticsEngineDataPoint · interface · L651-L655 — interface AnalyticsEngineDataPoint
+- Event · class · L661-L779 — class Event
+- EventInit · interface · L780-L784 — interface EventInit
+- EventListener · type · L785-L785 — type EventListener<EventType extends Event = Event> = (event: EventType) => void;
+- EventListenerObject · interface · L786-L788 — interface EventListenerObject<EventType extends Event = Event>
+- EventListenerOrEventListenerObject · type · L789-L789 — type EventListenerOrEventListenerObject<EventType extends Event = Event> = EventListener<EventType> | EventListenerObject<EventType>;
+- EventTarget · class · L795-L815 — class EventTarget<EventMap extends Record<string, Event> = Record<string, Event>>
+- EventTargetEventListenerOptions · interface · L816-L818 — interface EventTargetEventListenerOptions
+- EventTargetAddEventListenerOptions · interface · L819-L824 — interface EventTargetAddEventListenerOptions
+- EventTargetHandlerObject · interface · L825-L827 — interface EventTargetHandlerObject
+- AbortController · class · L833-L847 — class AbortController
+- AbortSignal · class · L853-L894 — abstract class AbortSignal extends EventTarget
+- Scheduler · interface · L895-L897 — interface Scheduler
+- SchedulerWaitOptions · interface · L898-L900 — interface SchedulerWaitOptions
+- ExtendableEvent · class · L906-L913 — abstract class ExtendableEvent extends Event
+- CustomEvent · class · L919-L927 — class CustomEvent<T = any> extends Event
+- CustomEventCustomEventInit · interface · L928-L933 — interface CustomEventCustomEventInit
+- Blob · class · L939-L983 — class Blob
+- BlobOptions · interface · L984-L986 — interface BlobOptions
+- File · class · L992-L1006 — class File extends Blob
+- FileOptions · interface · L1007-L1010 — interface FileOptions
+- CacheStorage · class · L1016-L1024 — abstract class CacheStorage
+- Cache · class · L1030-L1037 — abstract class Cache
+- CacheQueryOptions · interface · L1038-L1040 — interface CacheQueryOptions
+- Crypto · class · L1049-L1071 — abstract class Crypto
+- SubtleCrypto · class · L1078-L1152 — abstract class SubtleCrypto
+- CryptoKey · class · L1159-L1184 — abstract class CryptoKey
+- CryptoKeyPair · interface · L1185-L1188 — interface CryptoKeyPair
+- JsonWebKey · interface · L1189-L1208 — interface JsonWebKey
+- RsaOtherPrimesInfo · interface · L1209-L1213 — interface RsaOtherPrimesInfo
+- SubtleCryptoDeriveKeyAlgorithm · interface · L1214-L1221 — interface SubtleCryptoDeriveKeyAlgorithm
+- SubtleCryptoEncryptAlgorithm · interface · L1222-L1230 — interface SubtleCryptoEncryptAlgorithm
+- SubtleCryptoGenerateKeyAlgorithm · interface · L1231-L1238 — interface SubtleCryptoGenerateKeyAlgorithm
+- SubtleCryptoHashAlgorithm · interface · L1239-L1241 — interface SubtleCryptoHashAlgorithm
+- SubtleCryptoImportKeyAlgorithm · interface · L1242-L1248 — interface SubtleCryptoImportKeyAlgorithm
+- SubtleCryptoSignAlgorithm · interface · L1249-L1254 — interface SubtleCryptoSignAlgorithm
+- CryptoKeyKeyAlgorithm · interface · L1255-L1257 — interface CryptoKeyKeyAlgorithm
+- CryptoKeyAesKeyAlgorithm · interface · L1258-L1261 — interface CryptoKeyAesKeyAlgorithm
+- CryptoKeyHmacKeyAlgorithm · interface · L1262-L1266 — interface CryptoKeyHmacKeyAlgorithm
+- CryptoKeyRsaKeyAlgorithm · interface · L1267-L1272 — interface CryptoKeyRsaKeyAlgorithm
+- CryptoKeyEllipticKeyAlgorithm · interface · L1273-L1276 — interface CryptoKeyEllipticKeyAlgorithm
+- CryptoKeyArbitraryKeyAlgorithm · interface · L1277-L1282 — interface CryptoKeyArbitraryKeyAlgorithm
+- DigestStream · class · L1283-L1287 — class DigestStream extends WritableStream<ArrayBuffer | ArrayBufferView>
+- TextDecoder · class · L1293-L1304 — class TextDecoder
+- TextEncoder · class · L1310-L1325 — class TextEncoder
+- TextDecoderConstructorOptions · interface · L1326-L1329 — interface TextDecoderConstructorOptions
+- TextDecoderDecodeOptions · interface · L1330-L1332 — interface TextDecoderDecodeOptions
+- TextEncoderEncodeIntoResult · interface · L1333-L1336 — interface TextEncoderEncodeIntoResult
+- ErrorEvent · class · L1342-L1374 — class ErrorEvent extends Event
+- ErrorEventErrorEventInit · interface · L1375-L1381 — interface ErrorEventErrorEventInit
+- MessageEvent · class · L1387-L1419 — class MessageEvent extends Event
+- MessageEventInit · interface · L1420-L1422 — interface MessageEventInit
+- PromiseRejectionEvent · class · L1428-L1441 — abstract class PromiseRejectionEvent extends Event
+- FormData · class · L1447-L1523 — class FormData
+- ContentOptions · interface · L1524-L1526 — interface ContentOptions
+- HTMLRewriter · class · L1527-L1532 — class HTMLRewriter
+- HTMLRewriterElementContentHandlers · interface · L1533-L1537 — interface HTMLRewriterElementContentHandlers
+- HTMLRewriterDocumentContentHandlers · interface · L1538-L1543 — interface HTMLRewriterDocumentContentHandlers
+- Doctype · interface · L1544-L1548 — interface Doctype
+- Element · interface · L1549-L1567 — interface Element
+- EndTag · interface · L1568-L1573 — interface EndTag
+- Comment · interface · L1574-L1581 — interface Comment
+- Text · interface · L1582-L1590 — interface Text
+- DocumentEnd · interface · L1591-L1593 — interface DocumentEnd
+- FetchEvent · class · L1599-L1613 — abstract class FetchEvent extends ExtendableEvent
+- HeadersInit · type · L1614-L1614 — type HeadersInit = Headers | Iterable<Iterable<string>> | Record<string, string>;
+- Headers · class · L1620-L1673 — class Headers
+- BodyInit · type · L1674-L1674 — type BodyInit = ReadableStream<Uint8Array> | string | ArrayBuffer | ArrayBufferView | Blob | URLSearchParams | FormData | Iterable<ArrayBuffer | ArrayBufferView> | AsyncIterable<ArrayBuffer | ArrayBufferView>;
+- Body · class · L1675-L1692 — abstract class Body
+- Response · interface · L1710-L1761 — interface Response extends Body
+- ResponseInit · interface · L1762-L1769 — interface ResponseInit
+- RequestInfo · type · L1770-L1770 — type RequestInfo<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>> = Request<CfHostMetadata, Cf> | string;
+- Request · interface · L1785-L1842 — interface Request<CfHostMetadata = unknown, Cf = CfProperties<CfHostMetadata>> extends Body
+- RequestInit · interface · L1843-L1861 — interface RequestInit<Cf = CfProperties>
+- Service · type · L1862-L1862 — type Service<T extends (new (...args: any[]) => Rpc.WorkerEntrypointBranded) | Rpc.WorkerEntrypointBranded | ExportedHandler<any, any, any> | undefined = undefined> = T extends new (...args: any[]) => Rpc.WorkerEntrypointBranded ? Fetcher<InstanceType<T>> : T extends Rpc.WorkerEntrypointBranded ? Fetcher<T> : T extends Exclude<Rpc.EntrypointBranded, Rpc.WorkerEntrypointBranded> ? never : Fetcher<undefined>;
+- Fetcher · type · L1863-L1866 — type Fetcher<T extends Rpc.EntrypointBranded | undefined = undefined, Reserved extends string = never> = (T extends Rpc.EntrypointBranded ? Rpc.Provider<T, Reserved | "fetch" | "connect"> : unknown) & { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>; connect(address: SocketAddress | string, options?: SocketOptions): Socket; };
+- KVNamespaceListKey · interface · L1867-L1871 — interface KVNamespaceListKey<Metadata, Key extends string = string>
+- KVNamespaceListResult · type · L1872-L1881 — type KVNamespaceListResult<Metadata, Key extends string = string> = { list_complete: false; keys: KVNamespaceListKey<Metadata, Key>[]; cursor: string; cacheStatus: string | null; } | { list_complete: true; keys: KVNamespaceListKey<Metadata, Key>[]; cacheStatus: string | null; };
+- KVNamespace · interface · L1882-L1914 — interface KVNamespace<Key extends string = string>
+- KVNamespaceListOptions · interface · L1915-L1919 — interface KVNamespaceListOptions
+- KVNamespaceGetOptions · interface · L1920-L1923 — interface KVNamespaceGetOptions<Type>
+- KVNamespacePutOptions · interface · L1924-L1928 — interface KVNamespacePutOptions
+- KVNamespaceGetWithMetadataResult · interface · L1929-L1933 — interface KVNamespaceGetWithMetadataResult<Value, Metadata>
+- QueueContentType · type · L1934-L1934 — type QueueContentType = "text" | "bytes" | "json" | "v8";
+- Queue · interface · L1935-L1939 — interface Queue<Body = unknown>
+- QueueSendMetrics · interface · L1940-L1944 — interface QueueSendMetrics
+- QueueSendMetadata · interface · L1945-L1947 — interface QueueSendMetadata
+- QueueSendResponse · interface · L1948-L1950 — interface QueueSendResponse
+- QueueSendBatchMetrics · interface · L1951-L1955 — interface QueueSendBatchMetrics
+- QueueSendBatchMetadata · interface · L1956-L1958 — interface QueueSendBatchMetadata
+- QueueSendBatchResponse · interface · L1959-L1961 — interface QueueSendBatchResponse
+- QueueSendOptions · interface · L1962-L1965 — interface QueueSendOptions
+- QueueSendBatchOptions · interface · L1966-L1968 — interface QueueSendBatchOptions
+- MessageSendRequest · interface · L1969-L1973 — interface MessageSendRequest<Body = unknown>
+- QueueMetrics · interface · L1974-L1978 — interface QueueMetrics
+- MessageBatchMetrics · interface · L1979-L1983 — interface MessageBatchMetrics
+- MessageBatchMetadata · interface · L1984-L1986 — interface MessageBatchMetadata
+- QueueRetryOptions · interface · L1987-L1989 — interface QueueRetryOptions
+- Message · interface · L1990-L1997 — interface Message<Body = unknown>
+- QueueEvent · interface · L1998-L2004 — interface QueueEvent<Body = unknown> extends ExtendableEvent
+- MessageBatch · interface · L2005-L2011 — interface MessageBatch<Body = unknown>
+- R2Error · interface · L2012-L2018 — interface R2Error extends Error
+- R2ListOptions · interface · L2019-L2026 — interface R2ListOptions
+- R2Bucket · interface · L2027-L2041 — interface R2Bucket
+- R2MultipartUpload · interface · L2042-L2048 — interface R2MultipartUpload
+- R2UploadedPart · interface · L2049-L2052 — interface R2UploadedPart
+- R2Object · class · L2053-L2067 — abstract class R2Object
+- R2ObjectBody · interface · L2068-L2076 — interface R2ObjectBody extends R2Object
+- R2Range · type · L2077-L2085 — type R2Range = { offset: number; length?: number; } | { offset?: number; length: number; } | { suffix: number; };
+- R2Conditional · interface · L2086-L2092 — interface R2Conditional
+- R2GetOptions · interface · L2093-L2097 — interface R2GetOptions
+- R2PutOptions · interface · L2098-L2109 — interface R2PutOptions
+- R2MultipartOptions · interface · L2110-L2115 — interface R2MultipartOptions
+- R2Checksums · interface · L2116-L2123 — interface R2Checksums
+- R2StringChecksums · interface · L2124-L2130 — interface R2StringChecksums
+- R2HTTPMetadata · interface · L2131-L2138 — interface R2HTTPMetadata
+- R2Objects · type · L2139-L2147 — type R2Objects = { objects: R2Object[]; delimitedPrefixes: string[]; } & ({ truncated: true; cursor: string; } | { truncated: false; });
+- R2UploadPartOptions · interface · L2148-L2150 — interface R2UploadPartOptions
+- ScheduledEvent · class · L2151-L2155 — abstract class ScheduledEvent extends ExtendableEvent
+- ScheduledController · interface · L2156-L2160 — interface ScheduledController
+- QueuingStrategy · interface · L2161-L2164 — interface QueuingStrategy<T = any>
+- UnderlyingSink · interface · L2165-L2171 — interface UnderlyingSink<W = any>
+- UnderlyingByteSource · interface · L2172-L2178 — interface UnderlyingByteSource
+- UnderlyingSource · interface · L2179-L2185 — interface UnderlyingSource<R = any>
+- Transformer · interface · L2186-L2194 — interface Transformer<I = any, O = any>
+- StreamPipeOptions · interface · L2195-L2217 — interface StreamPipeOptions
+- ReadableStreamReadResult · type · L2218-L2224 — type ReadableStreamReadResult<R = any> = { done: false; value: R; } | { done: true; value?: undefined; };
+- ReadableStream · interface · L2230-L2278 — interface ReadableStream<R = any>
+- ReadableStreamDefaultReader · class · L2294-L2310 — class ReadableStreamDefaultReader<R = any>
+- ReadableStreamBYOBReader · class · L2316-L2333 — class ReadableStreamBYOBReader
+- ReadableStreamBYOBReaderReadableStreamBYOBReaderReadOptions · interface · L2334-L2336 — interface ReadableStreamBYOBReaderReadableStreamBYOBReaderReadOptions
+- ReadableStreamGetReaderOptions · interface · L2337-L2344 — interface ReadableStreamGetReaderOptions
+- ReadableStreamBYOBRequest · class · L2350-L2370 — abstract class ReadableStreamBYOBRequest
+- ReadableStreamDefaultController · class · L2376-L2401 — abstract class ReadableStreamDefaultController<R = any>
+- ReadableByteStreamController · class · L2407-L2438 — abstract class ReadableByteStreamController
+- WritableStreamDefaultController · class · L2444-L2457 — abstract class WritableStreamDefaultController
+- TransformStreamDefaultController · class · L2463-L2488 — abstract class TransformStreamDefaultController<O = any>
+- ReadableWritablePair · interface · L2489-L2497 — interface ReadableWritablePair<R = any, W = any>
+- WritableStream · class · L2503-L2529 — class WritableStream<W = any>
+- WritableStreamDefaultWriter · class · L2535-L2579 — class WritableStreamDefaultWriter<W = any>
+- TransformStream · class · L2585-L2599 — class TransformStream<I = any, O = any>
+- FixedLengthStream · class · L2600-L2602 — class FixedLengthStream extends IdentityTransformStream
+- IdentityTransformStream · class · L2603-L2605 — class IdentityTransformStream extends TransformStream<ArrayBuffer | ArrayBufferView, Uint8Array>
+- IdentityTransformStreamQueuingStrategy · interface · L2606-L2608 — interface IdentityTransformStreamQueuingStrategy
+- ReadableStreamValuesOptions · interface · L2609-L2611 — interface ReadableStreamValuesOptions
+- CompressionStream · class · L2617-L2619 — class CompressionStream extends TransformStream<ArrayBuffer | ArrayBufferView, Uint8Array>
+- DecompressionStream · class · L2625-L2627 — class DecompressionStream extends TransformStream<ArrayBuffer | ArrayBufferView, Uint8Array>
+- TextEncoderStream · class · L2633-L2636 — class TextEncoderStream extends TransformStream<string, Uint8Array>
+- TextDecoderStream · class · L2642-L2647 — class TextDecoderStream extends TransformStream<ArrayBuffer | ArrayBufferView, string>
+- TextDecoderStreamTextDecoderStreamInit · interface · L2648-L2651 — interface TextDecoderStreamTextDecoderStreamInit
+- ByteLengthQueuingStrategy · class · L2657-L2667 — class ByteLengthQueuingStrategy implements QueuingStrategy<ArrayBufferView>
+- CountQueuingStrategy · class · L2673-L2683 — class CountQueuingStrategy implements QueuingStrategy
+- QueuingStrategyInit · interface · L2684-L2691 — interface QueuingStrategyInit
+- TracePreviewInfo · interface · L2692-L2696 — interface TracePreviewInfo
+- ScriptVersion · interface · L2697-L2701 — interface ScriptVersion
+- TailEvent · class · L2702-L2705 — abstract class TailEvent extends ExtendableEvent
+- TraceItem · interface · L2706-L2725 — interface TraceItem
+- TraceItemAlarmEventInfo · interface · L2726-L2728 — interface TraceItemAlarmEventInfo
+- TraceItemConnectEventInfo · interface · L2729-L2730 — interface TraceItemConnectEventInfo
+- TraceItemCustomEventInfo · interface · L2731-L2732 — interface TraceItemCustomEventInfo
+- TraceItemScheduledEventInfo · interface · L2733-L2736 — interface TraceItemScheduledEventInfo
+- TraceItemQueueEventInfo · interface · L2737-L2740 — interface TraceItemQueueEventInfo
+- TraceItemEmailEventInfo · interface · L2741-L2745 — interface TraceItemEmailEventInfo
+- TraceItemTailEventInfo · interface · L2746-L2748 — interface TraceItemTailEventInfo
+- TraceItemTailEventInfoTailItem · interface · L2749-L2751 — interface TraceItemTailEventInfoTailItem
+- TraceItemFetchEventInfo · interface · L2752-L2755 — interface TraceItemFetchEventInfo
+- TraceItemFetchEventInfoRequest · interface · L2756-L2762 — interface TraceItemFetchEventInfoRequest
+- TraceItemFetchEventInfoResponse · interface · L2763-L2765 — interface TraceItemFetchEventInfoResponse
+- TraceItemJsRpcEventInfo · interface · L2766-L2768 — interface TraceItemJsRpcEventInfo
+- TraceItemHibernatableWebSocketEventInfo · interface · L2769-L2771 — interface TraceItemHibernatableWebSocketEventInfo
+- TraceItemHibernatableWebSocketEventInfoMessage · interface · L2772-L2774 — interface TraceItemHibernatableWebSocketEventInfoMessage
+- TraceItemHibernatableWebSocketEventInfoClose · interface · L2775-L2779 — interface TraceItemHibernatableWebSocketEventInfoClose
+- TraceItemHibernatableWebSocketEventInfoError · interface · L2780-L2782 — interface TraceItemHibernatableWebSocketEventInfoError
+- TraceLog · interface · L2783-L2788 — interface TraceLog
+- TraceLogErrorInfo · interface · L2789-L2793 — interface TraceLogErrorInfo
+- TraceException · interface · L2794-L2799 — interface TraceException
+- TraceDiagnosticChannelEvent · interface · L2800-L2804 — interface TraceDiagnosticChannelEvent
+- TraceMetrics · interface · L2805-L2808 — interface TraceMetrics
+- UnsafeTraceMetrics · interface · L2809-L2811 — interface UnsafeTraceMetrics
+- URL · class · L2817-L2983 — class URL
+- URLSearchParams · class · L2989-L3055 — class URLSearchParams
+- URLPattern · class · L3056-L3069 — class URLPattern
+- URLPatternInit · interface · L3070-L3080 — interface URLPatternInit
+- URLPatternComponentResult · interface · L3081-L3084 — interface URLPatternComponentResult
+- URLPatternResult · interface · L3085-L3095 — interface URLPatternResult
+- URLPatternOptions · interface · L3096-L3098 — interface URLPatternOptions
+- CloseEvent · class · L3104-L3124 — class CloseEvent extends Event
+- CloseEventInit · interface · L3125-L3129 — interface CloseEventInit
+- WebSocketEventMap · type · L3130-L3135 — type WebSocketEventMap = { close: CloseEvent; message: MessageEvent; open: Event; error: ErrorEvent; };
+- WebSocket · interface · L3158-L3204 — interface WebSocket extends EventTarget<WebSocketEventMap>
+- WebSocketAcceptOptions · interface · L3205-L3214 — interface WebSocketAcceptOptions
+- SqlStorage · interface · L3221-L3226 — interface SqlStorage
+- SqlStorageStatement · class · L3227-L3228 — abstract class SqlStorageStatement
+- SqlStorageValue · type · L3229-L3229 — type SqlStorageValue = ArrayBuffer | string | number | null;
+- SqlStorageCursor · class · L3230-L3245 — abstract class SqlStorageCursor<T extends Record<string, SqlStorageValue>>
+- Socket · interface · L3246-L3255 — interface Socket
+- SocketOptions · interface · L3256-L3260 — interface SocketOptions
+- SocketAddress · interface · L3261-L3264 — interface SocketAddress
+- TlsOptions · interface · L3265-L3267 — interface TlsOptions
+- SocketInfo · interface · L3268-L3271 — interface SocketInfo
+- EventSource · class · L3277-L3319 — class EventSource extends EventTarget
+- EventSourceEventSourceInit · interface · L3320-L3323 — interface EventSourceEventSourceInit
+- ExecOutput · interface · L3324-L3328 — interface ExecOutput
+- ContainerExecOptions · interface · L3329-L3338 — interface ContainerExecOptions
+- ContainerExecPtyOptions · interface · L3339-L3342 — interface ContainerExecPtyOptions
+- ExecProcess · interface · L3343-L3353 — interface ExecProcess
+- Container · interface · L3354-L3368 — interface Container
+- ContainerDirectorySnapshot · interface · L3369-L3374 — interface ContainerDirectorySnapshot
+- ContainerDirectorySnapshotOptions · interface · L3375-L3378 — interface ContainerDirectorySnapshotOptions
+- ContainerDirectorySnapshotRestoreParams · interface · L3379-L3382 — interface ContainerDirectorySnapshotRestoreParams
+- ContainerSnapshot · interface · L3383-L3387 — interface ContainerSnapshot
+- ContainerSnapshotOptions · interface · L3388-L3390 — interface ContainerSnapshotOptions
+- ContainerStartupOptions · interface · L3391-L3398 — interface ContainerStartupOptions
+- ContainerStartResources · interface · L3399-L3403 — interface ContainerStartResources
+- MessagePort · class · L3409-L3430 — abstract class MessagePort extends EventTarget
+- MessageChannel · class · L3436-L3450 — class MessageChannel
+- MessagePortPostMessageOptions · interface · L3451-L3453 — interface MessagePortPostMessageOptions
+- LoopbackForExport · type · L3454-L3454 — type LoopbackForExport<T extends (new (...args: any[]) => Rpc.EntrypointBranded) | ExportedHandler<any, any, any> | undefined = undefined> = T extends new (...args: any[]) => Rpc.WorkerEntrypointBranded ? LoopbackServiceStub<InstanceType<T>> : T extends new (...args: any[]) => Rpc.DurableObjectBranded ? LoopbackDurableObjectClass<InstanceType<T>> : T extends ExportedHandler<any, any, any> ? LoopbackServiceStub<undefined> : undefined;
+- LoopbackServiceStub · type · L3455-L3459 — type LoopbackServiceStub<T extends Rpc.WorkerEntrypointBranded | undefined = undefined> = Fetcher<T> & (T extends CloudflareWorkersModule.WorkerEntrypoint<any, infer Props> ? (opts: { props?: Props; }) => Fetcher<T> : (opts: { props?: any; }) => Fetcher<T>);
+- LoopbackDurableObjectClass · type · L3460-L3464 — type LoopbackDurableObjectClass<T extends Rpc.DurableObjectBranded | undefined = undefined> = DurableObjectClass<T> & (T extends CloudflareWorkersModule.DurableObject<any, infer Props> ? (opts: { props?: Props; }) => DurableObjectClass<T> : (opts: { props?: any; }) => DurableObjectClass<T>);
+- LoopbackDurableObjectNamespace · interface · L3465-L3466 — interface LoopbackDurableObjectNamespace extends DurableObjectNamespace
+- LoopbackColoLocalActorNamespace · interface · L3467-L3468 — interface LoopbackColoLocalActorNamespace extends ColoLocalActorNamespace
+- SyncKvStorage · interface · L3469-L3477 — interface SyncKvStorage
+- SyncKvListOptions · interface · L3478-L3485 — interface SyncKvListOptions
+- WorkerStub · interface · L3486-L3489 — interface WorkerStub
+- WorkerStubEntrypointOptions · interface · L3490-L3493 — interface WorkerStubEntrypointOptions
+- WorkerLoader · interface · L3494-L3497 — interface WorkerLoader
+- WorkerLoaderModule · interface · L3498-L3506 — interface WorkerLoaderModule
+- WorkerLoaderWorkerCode · interface · L3507-L3518 — interface WorkerLoaderWorkerCode
+- workerdResourceLimits · interface · L3519-L3522 — interface workerdResourceLimits
+- Performance · class · L3529-L3540 — abstract class Performance
+- Tracing · interface · L3541-L3546 — interface Tracing
+- Span · class · L3547-L3552 — abstract class Span
+- CloudflareAccessIdentity · interface · L3561-L3597 — interface CloudflareAccessIdentity extends Record<string, unknown>
+- AgentMemoryMemoryType · type · L3604-L3604 — type AgentMemoryMemoryType = "fact" | "event" | "instruction" | "task";
+- AgentMemoryThinkingLevel · type · L3606-L3606 — type AgentMemoryThinkingLevel = "low" | "medium" | "high";
+- AgentMemoryResponseLength · type · L3608-L3608 — type AgentMemoryResponseLength = "short" | "medium" | "long";
+- AgentMemoryMessage · interface · L3610-L3615 — interface AgentMemoryMessage
+- AgentMemoryIncomingMemory · interface · L3617-L3622 — interface AgentMemoryIncomingMemory
+- AgentMemoryMemory · interface · L3624-L3639 — interface AgentMemoryMemory
+- AgentMemoryMemoryListEntry · type · L3641-L3641 — type AgentMemoryMemoryListEntry = Omit<AgentMemoryMemory, "content">;
+- AgentMemoryScoredCandidate · interface · L3643-L3652 — interface AgentMemoryScoredCandidate
+- AgentMemoryIngestOptions · interface · L3654-L3657 — interface AgentMemoryIngestOptions
+- AgentMemoryGetSummaryOptions · interface · L3659-L3662 — interface AgentMemoryGetSummaryOptions
+- AgentMemoryGetSummaryResponse · interface · L3664-L3667 — interface AgentMemoryGetSummaryResponse
+- AgentMemoryRecallOptions · interface · L3676-L3683 — interface AgentMemoryRecallOptions
+- AgentMemoryRecallResult · interface · L3685-L3692 — interface AgentMemoryRecallResult
+- AgentMemoryListMemoriesOptions · interface · L3700-L3709 — interface AgentMemoryListMemoriesOptions
+- AgentMemoryListMemoriesResult · interface · L3711-L3715 — interface AgentMemoryListMemoriesResult
+- AgentMemoryProfile · class · L3721-L3786 — abstract class AgentMemoryProfile
+- AgentMemoryNamespace · class · L3804-L3820 — abstract class AgentMemoryNamespace
+- AiSearchInternalError · interface · L3822-L3823 — interface AiSearchInternalError extends Error
+- AiSearchNotFoundError · interface · L3824-L3825 — interface AiSearchNotFoundError extends Error
+- AiSearchMessage · type · L3828-L3831 — type AiSearchMessage = { role: 'system' | 'developer' | 'user' | 'assistant' | 'tool'; content: string | null; };
+- AiSearchOptions · type · L3836-L3881 — type AiSearchOptions = { retrieval?: { /** Which retrieval backend to use. Defaults to the instance's configured index_method. */ retrieval_type?: 'vector' | 'keyword' | 'hybrid'; /** Fusion method for combining vector + keyword results. */ fusion_method?: 'max' | 'rrf'; /** How keyword terms are combined: "and" = all terms must match, "or" = any term matches. */ keyword_match_mode?: 'and' | 'or'; /** Minimum similarity score (0-1) for a result to be included. Default 0.4. */ match_threshold?: number; /** Maximum number of results to return (1-50). Default 10. */ max_num_results?: number; /** Vectorize metadata filters applied to the search. */ filters?: VectorizeVectorMetadataFilter; /** Number of surrounding chunks to include for context (0-3). Default 0. */ context_expansion?: number; /** If true, return only item metadata without chunk text. */ metadata_only?: boolean; /** If true (default), return empty results on retrieval failure instead of throwing. */ return_on_failure?: boolean; /** Boost results by metadata field values. Max 3 entries. */ boost_by?: Array<{ field: string; direction?: 'asc' | 'desc' | 'exists' | 'not_exists'; }>; [key: string]: unknown; }; query_rewrite?: { enabled?: boolean; model?: string; rewrite_prompt?: string; [key: string]: unknown; }; reranking?: { enabled?: boolean; model?: string; /** Match threshold (0-1, default 0.4) */ match_threshold?: number; [key: string]: unknown; }; cache?: { enabled?: boolean; cache_threshold?: 'super_strict_match' | 'close_enough' | 'flexible_friend' | 'anything_goes'; }; [key: string]: unknown; };
+- AiSearchSearchRequest · type · L3887-L3897 — type AiSearchSearchRequest = { /** Simple query string. */ query: string; messages?: never; ai_search_options?: AiSearchOptions; } | { query?: never; /** Conversation-style input. At least one user message with non-empty content is required. */ messages: AiSearchMessage[]; ai_search_options?: AiSearchOptions; };
+- AiSearchChatCompletionsRequest · type · L3898-L3904 — type AiSearchChatCompletionsRequest = { messages: AiSearchMessage[]; model?: string; stream?: boolean; ai_search_options?: AiSearchOptions; [key: string]: unknown; };
+- AiSearchMultiSearchOptions · type · L3907-L3910 — type AiSearchMultiSearchOptions = AiSearchOptions & { /** Instance IDs to search across (1-10). */ instance_ids: string[]; };
+- AiSearchMultiSearchRequest · type · L3916-L3926 — type AiSearchMultiSearchRequest = { /** Simple query string. */ query: string; messages?: never; ai_search_options: AiSearchMultiSearchOptions; } | { query?: never; /** Conversation-style input. */ messages: AiSearchMessage[]; ai_search_options: AiSearchMultiSearchOptions; };
+- AiSearchMultiSearchChunk · type · L3928-L3930 — type AiSearchMultiSearchChunk = AiSearchSearchResponse['chunks'][number] & { instance_id: string; };
+- AiSearchMultiSearchError · type · L3932-L3935 — type AiSearchMultiSearchError = { instance_id: string; message: string; };
+- AiSearchMultiSearchResponse · type · L3937-L3941 — type AiSearchMultiSearchResponse = { search_query: string; chunks: AiSearchMultiSearchChunk[]; errors?: AiSearchMultiSearchError[]; };
+- AiSearchMultiChatCompletionsRequest · type · L3943-L3945 — type AiSearchMultiChatCompletionsRequest = Omit<AiSearchChatCompletionsRequest, 'ai_search_options'> & { ai_search_options: AiSearchMultiSearchOptions; };
+- AiSearchMultiChatCompletionsResponse · type · L3947-L3950 — type AiSearchMultiChatCompletionsResponse = Omit<AiSearchChatCompletionsResponse, 'chunks'> & { chunks: AiSearchMultiSearchChunk[]; errors?: AiSearchMultiSearchError[]; };
+- AiSearchSearchResponse · type · L3952-L3981 — type AiSearchSearchResponse = { search_query: string; chunks: Array<{ id: string; type: string; /** Match score (0-1) */ score: number; text: string; item: { timestamp?: number; key: string; metadata?: Record<string, unknown>; }; scoring_details?: { /** Keyword match score (0-1) */ keyword_score?: number; /** Vector similarity score (0-1) */ vector_score?: number; /** Keyword rank position */ keyword_rank?: number; /** Vector rank position */ vector_rank?: number; /** Reranking model score */ reranking_score?: number; /** Fusion method used to combine results */ fusion_method?: 'rrf' | 'max'; [key: string]: unknown; }; }>; };
+- AiSearchChatCompletionsResponse · type · L3982-L3997 — type AiSearchChatCompletionsResponse = { id?: string; object?: string; model?: string; choices: Array<{ index?: number; message: { role: 'system' | 'developer' | 'user' | 'assistant' | 'tool'; content: string | null; [key: string]: unknown; }; [key: string]: unknown; }>; chunks: AiSearchSearchResponse['chunks']; [key: string]: unknown; };
+- AiSearchStatsResponse · type · L3998-L4018 — type AiSearchStatsResponse = { queued?: number; running?: number; completed?: number; error?: number; skipped?: number; outdated?: number; last_activity?: string; /** Storage engine statistics. */ engine?: { vectorize?: { vectorsCount: number; dimensions: number; }; r2?: { payloadSizeBytes: number; metadataSizeBytes: number; objectCount: number; }; }; };
+- AiSearchInstanceInfo · type · L4020-L4072 — type AiSearchInstanceInfo = { id: string; type?: 'r2' | 'web-crawler' | string; source?: string; source_params?: unknown; paused?: boolean; status?: string; namespace?: string; created_at?: string; modified_at?: string; token_id?: string; ai_gateway_id?: string; rewrite_query?: boolean; reranking?: boolean; embedding_model?: string; ai_search_model?: string; rewrite_model?: string; reranking_model?: string; /** @deprecated Use index_method instead. */ hybrid_search_enabled?: boolean; /** Controls which storage backends are active. */ index_method?: { vector?: boolean; keyword?: boolean; }; /** Fusion method for combining vector and keyword results. */ fusion_method?: 'max' | 'rrf'; indexing_options?: { keyword_tokenizer?: 'porter' | 'trigram'; } | null; retrieval_options?: { keyword_match_mode?: 'and' | 'or'; boost_by?: Array<{ field: string; direction?: 'asc' | 'desc' | 'exists' | 'not_exists'; }>; } | null; chunk?: boolean; chunk_size?: number; chunk_overlap?: number; score_threshold?: number; max_num_results?: number; cache?: boolean; cache_threshold?: 'super_strict_match' | 'close_enough' | 'flexible_friend' | 'anything_goes'; custom_metadata?: Array<{ field_name: string; data_type: 'text' | 'number' | 'boolean' | 'datetime'; }>; /** Sync interval in seconds. */ sync_interval?: 3600 | 7200 | 14400 | 21600 | 43200 | 86400; metadata?: Record<string, unknown>; [key: string]: unknown; };
+- AiSearchListInstancesParams · type · L4074-L4083 — type AiSearchListInstancesParams = { page?: number; per_page?: number; /** Search instances by ID. */ search?: string; /** Field to sort by. */ order_by?: 'created_at'; /** Sort direction. */ order_by_direction?: 'asc' | 'desc'; };
+- AiSearchListResponse · type · L4084-L4092 — type AiSearchListResponse = { result: AiSearchInstanceInfo[]; result_info?: { count: number; page: number; per_page: number; total_count: number; }; };
+- AiSearchConfig · type · L4094-L4150 — type AiSearchConfig = { /** Instance ID (1-32 chars, pattern: ^[a-z0-9_]+(?:-[a-z0-9_]+)*$) */ id: string; /** Instance type. Omit to create with built-in storage. */ type?: 'r2' | 'web-crawler' | string; /** Source URL (required for web-crawler type). */ source?: string; source_params?: unknown; /** Token ID (UUID format) */ token_id?: string; ai_gateway_id?: string; /** Enable query rewriting (default false) */ rewrite_query?: boolean; /** Enable reranking (default false) */ reranking?: boolean; embedding_model?: string; ai_search_model?: string; rewrite_model?: string; reranking_model?: string; /** @deprecated Use index_method instead. */ hybrid_search_enabled?: boolean; /** Controls which storage backends are used during indexing. Defaults to vector-only. */ index_method?: { vector?: boolean; keyword?: boolean; }; /** Fusion method for combining vector and keyword results. "rrf" = reciprocal rank fusion (default), "max" = maximum score. */ fusion_method?: 'max' | 'rrf'; indexing_options?: { keyword_tokenizer?: 'porter' | 'trigram'; } | null; retrieval_options?: { keyword_match_mode?: 'and' | 'or'; boost_by?: Array<{ field: string; direction?: 'asc' | 'desc' | 'exists' | 'not_exists'; }>; } | null; chunk?: boolean; chunk_size?: number; chunk_overlap?: number; /** Minimum similarity score (0-1) for a result to be included. */ score_threshold?: number; max_num_results?: number; cache?: boolean; /** Similarity threshold for cache hits. Stricter = fewer cache hits but higher relevance. */ cache_threshold?: 'super_strict_match' | 'close_enough' | 'flexible_friend' | 'anything_goes'; custom_metadata?: Array<{ field_name: string; data_type: 'text' | 'number' | 'boolean' | 'datetime'; }>; namespace?: string; /** Sync interval in seconds. 3600=1h, 7200=2h, 14400=4h, 21600=6h, 43200=12h, 86400=24h. */ sync_interval?: 3600 | 7200 | 14400 | 21600 | 43200 | 86400; metadata?: Record<string, unknown>; [key: string]: unknown; };
+- AiSearchItemInfo · type · L4152-L4167 — type AiSearchItemInfo = { id: string; key: string; status: 'completed' | 'error' | 'skipped' | 'queued' | 'running' | 'outdated'; next_action?: 'INDEX' | 'DELETE' | null; error?: string; checksum?: string; namespace?: string; chunks_count?: number | null; file_size?: number | null; source_id?: string | null; last_seen_at?: string; created_at?: string; metadata?: Record<string, unknown>; [key: string]: unknown; };
+- AiSearchItemContentResult · type · L4168-L4173 — type AiSearchItemContentResult = { body: ReadableStream; contentType: string; filename: string; size: number; };
+- AiSearchUploadItemOptions · type · L4174-L4176 — type AiSearchUploadItemOptions = { metadata?: Record<string, unknown>; };
+- AiSearchListItemsParams · type · L4177-L4197 — type AiSearchListItemsParams = { page?: number; per_page?: number; /** Search items by key name. */ search?: string; /** Sort order for results. */ sort_by?: 'status' | 'modified_at'; /** Filter items by processing status. */ status?: 'queued' | 'running' | 'completed' | 'error' | 'skipped' | 'outdated'; /** Filter items by source (e.g. "builtin" or "web-crawler:https://example.com"). */ source?: string; /** JSON-encoded Vectorize filter for metadata filtering. */ metadata_filter?: string; /** Filter items by their unique ID. Returns at most one item. */ item_id?: string; /** * Filter items by their exact key (object key / filename). Keys are unique * per source, so combine with `source` to disambiguate across data sources. */ key?: string; };
+- AiSearchListItemsResponse · type · L4198-L4206 — type AiSearchListItemsResponse = { result: AiSearchItemInfo[]; result_info?: { count: number; page: number; per_page: number; total_count: number; }; };
+- AiSearchItemLogsParams · type · L4208-L4213 — type AiSearchItemLogsParams = { /** Maximum number of log entries to return (1-100, default 50). */ limit?: number; /** Opaque cursor for pagination. Pass the `cursor` value from a previous response. */ cursor?: string; };
+- AiSearchItemLog · type · L4214-L4222 — type AiSearchItemLog = { timestamp: string; action: string; message: string; fileKey?: string; chunkCount?: number; processingTimeMs?: number; errorType?: string; };
+- AiSearchItemLogsResponse · type · L4224-L4232 — type AiSearchItemLogsResponse = { result: AiSearchItemLog[]; result_info: { count: number; per_page: number; cursor: string | null; truncated: boolean; }; };
+- AiSearchItemChunksParams · type · L4234-L4239 — type AiSearchItemChunksParams = { /** Maximum number of chunks to return (1-100, default 20). */ limit?: number; /** Offset into the chunks list (default 0). */ offset?: number; };
+- AiSearchItemChunk · type · L4241-L4251 — type AiSearchItemChunk = { id: string; text: string; start_byte: number; end_byte: number; item?: { timestamp?: number; key: string; metadata?: Record<string, unknown>; }; };
+- AiSearchItemChunksResponse · type · L4253-L4261 — type AiSearchItemChunksResponse = { result: AiSearchItemChunk[]; result_info: { count: number; total: number; limit: number; offset: number; }; };
+- AiSearchJobInfo · type · L4263-L4271 — type AiSearchJobInfo = { id: string; source: 'user' | 'schedule'; description?: string; last_seen_at?: string; started_at?: string; ended_at?: string; end_reason?: string; };
+- AiSearchJobLog · type · L4272-L4277 — type AiSearchJobLog = { id: number; message: string; message_type: number; created_at: number; };
+- AiSearchCreateJobParams · type · L4278-L4280 — type AiSearchCreateJobParams = { description?: string; };
+- AiSearchListJobsParams · type · L4281-L4284 — type AiSearchListJobsParams = { page?: number; per_page?: number; };
+- AiSearchListJobsResponse · type · L4285-L4293 — type AiSearchListJobsResponse = { result: AiSearchJobInfo[]; result_info?: { count: number; page: number; per_page: number; total_count: number; }; };
+- AiSearchJobLogsParams · type · L4294-L4297 — type AiSearchJobLogsParams = { page?: number; per_page?: number; };
+- AiSearchJobLogsResponse · type · L4298-L4306 — type AiSearchJobLogsResponse = { result: AiSearchJobLog[]; result_info?: { count: number; page: number; per_page: number; total_count: number; }; };
+- AiSearchItem · class · L4312-L4337 — abstract class AiSearchItem
+- AiSearchItems · class · L4342-L4380 — abstract class AiSearchItems
+- AiSearchJob · class · L4385-L4396 — abstract class AiSearchJob
+- AiSearchJobs · class · L4401-L4416 — abstract class AiSearchJobs
+- AiSearchInstance · class · L4441-L4479 — abstract class AiSearchInstance
+- AiSearchNamespace · class · L4512-L4572 — abstract class AiSearchNamespace
+- AiImageClassificationInput · type · L4573-L4575 — type AiImageClassificationInput = { image: number[]; };
+- AiImageClassificationOutput · type · L4576-L4579 — type AiImageClassificationOutput = { score?: number; label?: string; }[];
+- BaseAiImageClassification · class · L4580-L4583 — abstract class BaseAiImageClassification
+- AiImageToTextInput · type · L4584-L4597 — type AiImageToTextInput = { image: number[]; prompt?: string; max_tokens?: number; temperature?: number; top_p?: number; top_k?: number; seed?: number; repetition_penalty?: number; frequency_penalty?: number; presence_penalty?: number; raw?: boolean; messages?: RoleScopedChatInput[]; };
+- AiImageToTextOutput · type · L4598-L4600 — type AiImageToTextOutput = { description: string; };
+- BaseAiImageToText · class · L4601-L4604 — abstract class BaseAiImageToText
+- AiImageTextToTextInput · type · L4605-L4619 — type AiImageTextToTextInput = { image: string; prompt?: string; max_tokens?: number; temperature?: number; ignore_eos?: boolean; top_p?: number; top_k?: number; seed?: number; repetition_penalty?: number; frequency_penalty?: number; presence_penalty?: number; raw?: boolean; messages?: RoleScopedChatInput[]; };
+- AiImageTextToTextOutput · type · L4620-L4622 — type AiImageTextToTextOutput = { description: string; };
+- BaseAiImageTextToText · class · L4623-L4626 — abstract class BaseAiImageTextToText
+- AiMultimodalEmbeddingsInput · type · L4627-L4630 — type AiMultimodalEmbeddingsInput = { image: string; text: string[]; };
+- AiIMultimodalEmbeddingsOutput · type · L4631-L4634 — type AiIMultimodalEmbeddingsOutput = { data: number[][]; shape: number[]; };
+- BaseAiMultimodalEmbeddings · class · L4635-L4638 — abstract class BaseAiMultimodalEmbeddings
+- AiObjectDetectionInput · type · L4639-L4641 — type AiObjectDetectionInput = { image: number[]; };
+- AiObjectDetectionOutput · type · L4642-L4645 — type AiObjectDetectionOutput = { score?: number; label?: string; }[];
+- BaseAiObjectDetection · class · L4646-L4649 — abstract class BaseAiObjectDetection
+- AiSentenceSimilarityInput · type · L4650-L4653 — type AiSentenceSimilarityInput = { source: string; sentences: string[]; };
+- AiSentenceSimilarityOutput · type · L4654-L4654 — type AiSentenceSimilarityOutput = number[];
+- BaseAiSentenceSimilarity · class · L4655-L4658 — abstract class BaseAiSentenceSimilarity
+- AiAutomaticSpeechRecognitionInput · type · L4659-L4661 — type AiAutomaticSpeechRecognitionInput = { audio: number[]; };
+- AiAutomaticSpeechRecognitionOutput · type · L4662-L4670 — type AiAutomaticSpeechRecognitionOutput = { text?: string; words?: { word: string; start: number; end: number; }[]; vtt?: string; };
+- BaseAiAutomaticSpeechRecognition · class · L4671-L4674 — abstract class BaseAiAutomaticSpeechRecognition
+- AiSummarizationInput · type · L4675-L4678 — type AiSummarizationInput = { input_text: string; max_length?: number; };
+- AiSummarizationOutput · type · L4679-L4681 — type AiSummarizationOutput = { summary: string; };
+- BaseAiSummarization · class · L4682-L4685 — abstract class BaseAiSummarization
+- AiTextClassificationInput · type · L4686-L4688 — type AiTextClassificationInput = { text: string; };
+- AiTextClassificationOutput · type · L4689-L4692 — type AiTextClassificationOutput = { score?: number; label?: string; }[];
+- BaseAiTextClassification · class · L4693-L4696 — abstract class BaseAiTextClassification
+- AiTextEmbeddingsInput · type · L4697-L4699 — type AiTextEmbeddingsInput = { text: string | string[]; };
+- AiTextEmbeddingsOutput · type · L4700-L4703 — type AiTextEmbeddingsOutput = { shape: number[]; data: number[][]; };
+- BaseAiTextEmbeddings · class · L4704-L4707 — abstract class BaseAiTextEmbeddings
+- RoleScopedChatInput · type · L4708-L4712 — type RoleScopedChatInput = { role: "user" | "assistant" | "system" | "tool" | (string & NonNullable<unknown>); content: string; name?: string; };
+- AiTextGenerationToolLegacyInput · type · L4713-L4726 — type AiTextGenerationToolLegacyInput = { name: string; description: string; parameters?: { type: "object" | (string & NonNullable<unknown>); properties: { [key: string]: { type: string; description?: string; }; }; required: string[]; }; };
+- AiTextGenerationToolInput · type · L4727-L4743 — type AiTextGenerationToolInput = { type: "function" | (string & NonNullable<unknown>); function: { name: string; description: string; parameters?: { type: "object" | (string & NonNullable<unknown>); properties: { [key: string]: { type: string; description?: string; }; }; required: string[]; }; }; };
+- AiTextGenerationFunctionsInput · type · L4744-L4747 — type AiTextGenerationFunctionsInput = { name: string; code: string; };
+- AiTextGenerationResponseFormat · type · L4748-L4751 — type AiTextGenerationResponseFormat = { type: string; json_schema?: any; };
+- AiTextGenerationInput · type · L4752-L4768 — type AiTextGenerationInput = { prompt?: string; raw?: boolean; stream?: boolean; max_tokens?: number; temperature?: number; top_p?: number; top_k?: number; seed?: number; repetition_penalty?: number; frequency_penalty?: number; presence_penalty?: number; messages?: RoleScopedChatInput[]; response_format?: AiTextGenerationResponseFormat; tools?: AiTextGenerationToolInput[] | AiTextGenerationToolLegacyInput[] | (object & NonNullable<unknown>); functions?: AiTextGenerationFunctionsInput[]; };
+- AiTextGenerationToolLegacyOutput · type · L4769-L4772 — type AiTextGenerationToolLegacyOutput = { name: string; arguments: unknown; };
+- AiTextGenerationToolOutput · type · L4773-L4780 — type AiTextGenerationToolOutput = { id: string; type: "function"; function: { name: string; arguments: string; }; };
+- UsageTags · type · L4781-L4785 — type UsageTags = { prompt_tokens: number; completion_tokens: number; total_tokens: number; };
+- AiTextGenerationOutput · type · L4786-L4790 — type AiTextGenerationOutput = { response?: string; tool_calls?: AiTextGenerationToolLegacyOutput[] & AiTextGenerationToolOutput[]; usage?: UsageTags; };
+- BaseAiTextGeneration · class · L4791-L4794 — abstract class BaseAiTextGeneration
+- AiTextToSpeechInput · type · L4795-L4798 — type AiTextToSpeechInput = { prompt: string; lang?: string; };
+- AiTextToSpeechOutput · type · L4799-L4801 — type AiTextToSpeechOutput = Uint8Array | { audio: string; };
+- BaseAiTextToSpeech · class · L4802-L4805 — abstract class BaseAiTextToSpeech
+- AiTextToImageInput · type · L4806-L4818 — type AiTextToImageInput = { prompt: string; negative_prompt?: string; height?: number; width?: number; image?: number[]; image_b64?: string; mask?: number[]; num_steps?: number; strength?: number; guidance?: number; seed?: number; };
+- AiTextToImageOutput · type · L4819-L4819 — type AiTextToImageOutput = ReadableStream<Uint8Array>;
+- BaseAiTextToImage · class · L4820-L4823 — abstract class BaseAiTextToImage
+- AiTranslationInput · type · L4824-L4828 — type AiTranslationInput = { text: string; target_lang: string; source_lang?: string; };
+- AiTranslationOutput · type · L4829-L4831 — type AiTranslationOutput = { translated_text?: string; };
+- BaseAiTranslation · class · L4832-L4835 — abstract class BaseAiTranslation
+- ChatCompletionContentPartText · type · L4839-L4842 — type ChatCompletionContentPartText = { type: "text"; text: string; };
+- ChatCompletionContentPartImage · type · L4843-L4849 — type ChatCompletionContentPartImage = { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high"; }; };
+- ChatCompletionContentPartInputAudio · type · L4850-L4857 — type ChatCompletionContentPartInputAudio = { type: "input_audio"; input_audio: { /** Base64 encoded audio data. */ data: string; format: "wav" | "mp3"; }; };
+- ChatCompletionContentPartFile · type · L4858-L4867 — type ChatCompletionContentPartFile = { type: "file"; file: { /** Base64 encoded file data. */ file_data?: string; /** The ID of an uploaded file. */ file_id?: string; filename?: string; }; };
+- ChatCompletionContentPartRefusal · type · L4868-L4871 — type ChatCompletionContentPartRefusal = { type: "refusal"; refusal: string; };
+- ChatCompletionContentPart · type · L4872-L4872 — type ChatCompletionContentPart = ChatCompletionContentPartText | ChatCompletionContentPartImage | ChatCompletionContentPartInputAudio | ChatCompletionContentPartFile;
+- FunctionDefinition · type · L4873-L4878 — type FunctionDefinition = { name: string; description?: string; parameters?: Record<string, unknown>; strict?: boolean | null; };
+- ChatCompletionFunctionTool · type · L4879-L4882 — type ChatCompletionFunctionTool = { type: "function"; function: FunctionDefinition; };
+- ChatCompletionCustomToolGrammarFormat · type · L4883-L4889 — type ChatCompletionCustomToolGrammarFormat = { type: "grammar"; grammar: { definition: string; syntax: "lark" | "regex"; }; };
+- ChatCompletionCustomToolTextFormat · type · L4890-L4892 — type ChatCompletionCustomToolTextFormat = { type: "text"; };
+- ChatCompletionCustomToolFormat · type · L4893-L4893 — type ChatCompletionCustomToolFormat = ChatCompletionCustomToolTextFormat | ChatCompletionCustomToolGrammarFormat;
+- ChatCompletionCustomTool · type · L4894-L4901 — type ChatCompletionCustomTool = { type: "custom"; custom: { name: string; description?: string; format?: ChatCompletionCustomToolFormat; }; };
+- ChatCompletionTool · type · L4902-L4902 — type ChatCompletionTool = ChatCompletionFunctionTool | ChatCompletionCustomTool;
+- ChatCompletionMessageFunctionToolCall · type · L4903-L4911 — type ChatCompletionMessageFunctionToolCall = { id: string; type: "function"; function: { name: string; /** JSON-encoded arguments string. */ arguments: string; }; };
+- ChatCompletionMessageCustomToolCall · type · L4912-L4919 — type ChatCompletionMessageCustomToolCall = { id: string; type: "custom"; custom: { name: string; input: string; }; };
+- ChatCompletionMessageToolCall · type · L4920-L4920 — type ChatCompletionMessageToolCall = ChatCompletionMessageFunctionToolCall | ChatCompletionMessageCustomToolCall;
+- ChatCompletionToolChoiceFunction · type · L4921-L4926 — type ChatCompletionToolChoiceFunction = { type: "function"; function: { name: string; }; };
+- ChatCompletionToolChoiceCustom · type · L4927-L4932 — type ChatCompletionToolChoiceCustom = { type: "custom"; custom: { name: string; }; };
+- ChatCompletionToolChoiceAllowedTools · type · L4933-L4939 — type ChatCompletionToolChoiceAllowedTools = { type: "allowed_tools"; allowed_tools: { mode: "auto" | "required"; tools: Array<Record<string, unknown>>; }; };
+- ChatCompletionToolChoiceOption · type · L4940-L4940 — type ChatCompletionToolChoiceOption = "none" | "auto" | "required" | ChatCompletionToolChoiceFunction | ChatCompletionToolChoiceCustom | ChatCompletionToolChoiceAllowedTools;
+- DeveloperMessage · type · L4941-L4948 — type DeveloperMessage = { role: "developer"; content: string | Array<{ type: "text"; text: string; }>; name?: string; };
+- SystemMessage · type · L4949-L4956 — type SystemMessage = { role: "system"; content: string | Array<{ type: "text"; text: string; }>; name?: string; };
+- UserMessageContentPart · type · L4964-L4980 — type UserMessageContentPart = { type: "text" | "image_url" | "input_audio" | "file"; text?: string; image_url?: { url?: string; detail?: "auto" | "low" | "high"; }; input_audio?: { data?: string; format?: "wav" | "mp3"; }; file?: { file_data?: string; file_id?: string; filename?: string; }; };
+- UserMessage · type · L4981-L4985 — type UserMessage = { role: "user"; content: string | Array<UserMessageContentPart>; name?: string; };
+- AssistantMessageContentPart · type · L4986-L4990 — type AssistantMessageContentPart = { type: "text" | "refusal"; text?: string; refusal?: string; };
+- AssistantMessage · type · L4991-L5004 — type AssistantMessage = { role: "assistant"; content?: string | null | Array<AssistantMessageContentPart>; refusal?: string | null; name?: string; audio?: { id: string; }; tool_calls?: Array<ChatCompletionMessageToolCall>; function_call?: { name: string; arguments: string; }; };
+- ToolMessage · type · L5005-L5012 — type ToolMessage = { role: "tool"; content: string | Array<{ type: "text"; text: string; }>; tool_call_id: string; };
+- FunctionMessage · type · L5013-L5017 — type FunctionMessage = { role: "function"; content: string; name: string; };
+- ChatCompletionMessageParam · type · L5018-L5018 — type ChatCompletionMessageParam = DeveloperMessage | SystemMessage | UserMessage | AssistantMessage | ToolMessage | FunctionMessage;
+- ChatCompletionsResponseFormatText · type · L5019-L5021 — type ChatCompletionsResponseFormatText = { type: "text"; };
+- ChatCompletionsResponseFormatJSONObject · type · L5022-L5024 — type ChatCompletionsResponseFormatJSONObject = { type: "json_object"; };
+- ResponseFormatJSONSchema · type · L5025-L5033 — type ResponseFormatJSONSchema = { type: "json_schema"; json_schema: { name: string; description?: string; schema?: Record<string, unknown>; strict?: boolean | null; }; };
+- ResponseFormat · type · L5034-L5034 — type ResponseFormat = ChatCompletionsResponseFormatText | ChatCompletionsResponseFormatJSONObject | ResponseFormatJSONSchema;
+- ChatCompletionsStreamOptions · type · L5035-L5038 — type ChatCompletionsStreamOptions = { include_usage?: boolean; include_obfuscation?: boolean; };
+- PredictionContent · type · L5039-L5045 — type PredictionContent = { type: "content"; content: string | Array<{ type: "text"; text: string; }>; };
+- AudioParams · type · L5046-L5051 — type AudioParams = { voice: string | { id: string; }; format: "wav" | "aac" | "mp3" | "flac" | "opus" | "pcm16"; };
+- WebSearchUserLocation · type · L5052-L5060 — type WebSearchUserLocation = { type: "approximate"; approximate: { city?: string; country?: string; region?: string; timezone?: string; }; };
+- WebSearchOptions · type · L5061-L5064 — type WebSearchOptions = { search_context_size?: "low" | "medium" | "high"; user_location?: WebSearchUserLocation; };
+- ChatTemplateKwargs · type · L5065-L5070 — type ChatTemplateKwargs = { /** Whether to enable reasoning, enabled by default. */ enable_thinking?: boolean; /** If false, preserves reasoning context between turns. */ clear_thinking?: boolean; };
+- ChatCompletionsCommonOptions · type · L5072-L5106 — type ChatCompletionsCommonOptions = { model?: string; audio?: AudioParams; frequency_penalty?: number | null; logit_bias?: Record<string, unknown> | null; logprobs?: boolean | null; top_logprobs?: number | null; max_tokens?: number | null; max_completion_tokens?: number | null; metadata?: Record<string, unknown> | null; modalities?: Array<"text" | "audio"> | null; n?: number | null; parallel_tool_calls?: boolean; prediction?: PredictionContent; presence_penalty?: number | null; reasoning_effort?: "low" | "medium" | "high" | null; chat_template_kwargs?: ChatTemplateKwargs; response_format?: ResponseFormat; seed?: number | null; service_tier?: "auto" | "default" | "flex" | "scale" | "priority" | null; stop?: string | Array<string> | null; store?: boolean | null; stream?: boolean | null; stream_options?: ChatCompletionsStreamOptions; temperature?: number | null; tool_choice?: ChatCompletionToolChoiceOption; tools?: Array<ChatCompletionTool>; top_p?: number | null; user?: string; web_search_options?: WebSearchOptions; function_call?: "none" | "auto" | { name: string; }; functions?: Array<FunctionDefinition>; };
+- PromptTokensDetails · type · L5107-L5110 — type PromptTokensDetails = { cached_tokens?: number; audio_tokens?: number; };
+- CompletionTokensDetails · type · L5111-L5116 — type CompletionTokensDetails = { reasoning_tokens?: number; audio_tokens?: number; accepted_prediction_tokens?: number; rejected_prediction_tokens?: number; };
+- CompletionUsage · type · L5117-L5123 — type CompletionUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number; prompt_tokens_details?: PromptTokensDetails; completion_tokens_details?: CompletionTokensDetails; };
+- ChatCompletionTopLogprob · type · L5124-L5128 — type ChatCompletionTopLogprob = { token: string; logprob: number; bytes: Array<number> | null; };
+- ChatCompletionTokenLogprob · type · L5129-L5134 — type ChatCompletionTokenLogprob = { token: string; logprob: number; bytes: Array<number> | null; top_logprobs: Array<ChatCompletionTopLogprob>; };
+- ChatCompletionAudio · type · L5135-L5141 — type ChatCompletionAudio = { id: string; /** Base64 encoded audio bytes. */ data: string; expires_at: number; transcript: string; };
+- ChatCompletionUrlCitation · type · L5142-L5150 — type ChatCompletionUrlCitation = { type: "url_citation"; url_citation: { url: string; title: string; start_index: number; end_index: number; }; };
+- ChatCompletionResponseMessage · type · L5151-L5162 — type ChatCompletionResponseMessage = { role: "assistant"; content: string | null; refusal: string | null; annotations?: Array<ChatCompletionUrlCitation>; audio?: ChatCompletionAudio; tool_calls?: Array<ChatCompletionMessageToolCall>; function_call?: { name: string; arguments: string; } | null; };
+- ChatCompletionLogprobs · type · L5163-L5166 — type ChatCompletionLogprobs = { content: Array<ChatCompletionTokenLogprob> | null; refusal?: Array<ChatCompletionTokenLogprob> | null; };
+- ChatCompletionChoice · type · L5167-L5172 — type ChatCompletionChoice = { index: number; message: ChatCompletionResponseMessage; finish_reason: "stop" | "length" | "tool_calls" | "content_filter" | "function_call"; logprobs: ChatCompletionLogprobs | null; };
+- ChatCompletionsMessagesInput · type · L5173-L5175 — type ChatCompletionsMessagesInput = { messages: Array<ChatCompletionMessageParam>; } & ChatCompletionsCommonOptions;
+- ChatCompletionsOutput · type · L5176-L5185 — type ChatCompletionsOutput = { id: string; object: string; created: number; model: string; choices: Array<ChatCompletionChoice>; usage?: CompletionUsage; system_fingerprint?: string | null; service_tier?: "auto" | "default" | "flex" | "scale" | "priority" | null; };
+- ResponsesInput · type · L5196-L5217 — type ResponsesInput = { background?: boolean | null; conversation?: string | ResponseConversationParam | null; include?: Array<ResponseIncludable> | null; input?: string | ResponseInput; instructions?: string | null; max_output_tokens?: number | null; parallel_tool_calls?: boolean | null; previous_response_id?: string | null; prompt_cache_key?: string; reasoning?: Reasoning | null; safety_identifier?: string; service_tier?: "auto" | "default" | "flex" | "scale" | "priority" | null; stream?: boolean | null; stream_options?: StreamOptions | null; temperature?: number | null; text?: ResponseTextConfig; tool_choice?: ToolChoiceOptions | ToolChoiceFunction; tools?: Array<Tool>; top_p?: number | null; truncation?: "auto" | "disabled" | null; };
+- ResponsesOutput · type · L5218-L5242 — type ResponsesOutput = { id?: string; created_at?: number; output_text?: string; error?: ResponseError | null; incomplete_details?: ResponseIncompleteDetails | null; instructions?: string | Array<ResponseInputItem> | null; object?: "response"; output?: Array<ResponseOutputItem>; parallel_tool_calls?: boolean; temperature?: number | null; tool_choice?: ToolChoiceOptions | ToolChoiceFunction; tools?: Array<Tool>; top_p?: number | null; max_output_tokens?: number | null; previous_response_id?: string | null; prompt?: ResponsePrompt | null; reasoning?: Reasoning | null; safety_identifier?: string; service_tier?: "auto" | "default" | "flex" | "scale" | "priority" | null; status?: ResponseStatus; text?: ResponseTextConfig; truncation?: "auto" | "disabled" | null; usage?: ResponseUsage; };
+- EasyInputMessage · type · L5243-L5247 — type EasyInputMessage = { content: string | ResponseInputMessageContentList; role: "user" | "assistant" | "system" | "developer"; type?: "message"; };
+- ResponsesFunctionTool · type · L5248-L5256 — type ResponsesFunctionTool = { name: string; parameters: { [key: string]: unknown; } | null; strict: boolean | null; type: "function"; description?: string | null; };
+- ResponseIncompleteDetails · type · L5257-L5259 — type ResponseIncompleteDetails = { reason?: "max_output_tokens" | "content_filter"; };
+- ResponsePrompt · type · L5260-L5266 — type ResponsePrompt = { id: string; variables?: { [key: string]: string | ResponseInputText | ResponseInputImage; } | null; version?: string | null; };
+- Reasoning · type · L5267-L5271 — type Reasoning = { effort?: ReasoningEffort | null; generate_summary?: "auto" | "concise" | "detailed" | null; summary?: "auto" | "concise" | "detailed" | null; };
+- ResponseContent · type · L5272-L5272 — type ResponseContent = ResponseInputText | ResponseInputImage | ResponseOutputText | ResponseOutputRefusal | ResponseContentReasoningText;
+- ResponseContentReasoningText · type · L5273-L5276 — type ResponseContentReasoningText = { text: string; type: "reasoning_text"; };
+- ResponseConversationParam · type · L5277-L5279 — type ResponseConversationParam = { id: string; };
+- ResponseCreatedEvent · type · L5280-L5284 — type ResponseCreatedEvent = { response: Response; sequence_number: number; type: "response.created"; };
+- ResponseCustomToolCallOutput · type · L5285-L5290 — type ResponseCustomToolCallOutput = { call_id: string; output: string | Array<ResponseInputText | ResponseInputImage>; type: "custom_tool_call_output"; id?: string; };
+- ResponseError · type · L5291-L5294 — type ResponseError = { code: "server_error" | "rate_limit_exceeded" | "invalid_prompt" | "vector_store_timeout" | "invalid_image" | "invalid_image_format" | "invalid_base64_image" | "invalid_image_url" | "image_too_large" | "image_too_small" | "image_parse_error" | "image_content_policy_violation" | "invalid_image_mode" | "image_file_too_large" | "unsupported_image_media_type" | "empty_image_file" | "failed_to_download_image" | "image_file_not_found"; message: string; };
+- ResponseErrorEvent · type · L5295-L5301 — type ResponseErrorEvent = { code: string | null; message: string; param: string | null; sequence_number: number; type: "error"; };
+- ResponseFailedEvent · type · L5302-L5306 — type ResponseFailedEvent = { response: Response; sequence_number: number; type: "response.failed"; };
+- ResponseFormatText · type · L5307-L5309 — type ResponseFormatText = { type: "text"; };
+- ResponseFormatJSONObject · type · L5310-L5312 — type ResponseFormatJSONObject = { type: "json_object"; };
+- ResponseFormatTextConfig · type · L5313-L5313 — type ResponseFormatTextConfig = ResponseFormatText | ResponseFormatTextJSONSchemaConfig | ResponseFormatJSONObject;
+- ResponseFormatTextJSONSchemaConfig · type · L5314-L5322 — type ResponseFormatTextJSONSchemaConfig = { name: string; schema: { [key: string]: unknown; }; type: "json_schema"; description?: string; strict?: boolean | null; };
+- ResponseFunctionCallArgumentsDeltaEvent · type · L5323-L5329 — type ResponseFunctionCallArgumentsDeltaEvent = { delta: string; item_id: string; output_index: number; sequence_number: number; type: "response.function_call_arguments.delta"; };
+- ResponseFunctionCallArgumentsDoneEvent · type · L5330-L5337 — type ResponseFunctionCallArgumentsDoneEvent = { arguments: string; item_id: string; name: string; output_index: number; sequence_number: number; type: "response.function_call_arguments.done"; };
+- ResponseFunctionCallOutputItem · type · L5338-L5338 — type ResponseFunctionCallOutputItem = ResponseInputTextContent | ResponseInputImageContent;
+- ResponseFunctionCallOutputItemList · type · L5339-L5339 — type ResponseFunctionCallOutputItemList = Array<ResponseFunctionCallOutputItem>;
+- ResponseFunctionToolCall · type · L5340-L5347 — type ResponseFunctionToolCall = { arguments: string; call_id: string; name: string; type: "function_call"; id?: string; status?: "in_progress" | "completed" | "incomplete"; };
+- ResponseFunctionToolCallItem · interface · L5348-L5350 — interface ResponseFunctionToolCallItem extends ResponseFunctionToolCall
+- ResponseFunctionToolCallOutputItem · type · L5351-L5357 — type ResponseFunctionToolCallOutputItem = { id: string; call_id: string; output: string | Array<ResponseInputText | ResponseInputImage>; type: "function_call_output"; status?: "in_progress" | "completed" | "incomplete"; };
+- ResponseIncludable · type · L5358-L5358 — type ResponseIncludable = "message.input_image.image_url" | "message.output_text.logprobs";
+- ResponseIncompleteEvent · type · L5359-L5363 — type ResponseIncompleteEvent = { response: Response; sequence_number: number; type: "response.incomplete"; };
+- ResponseInput · type · L5364-L5364 — type ResponseInput = Array<ResponseInputItem>;
+- ResponseInputContent · type · L5365-L5365 — type ResponseInputContent = ResponseInputText | ResponseInputImage;
+- ResponseInputImage · type · L5366-L5373 — type ResponseInputImage = { detail: "low" | "high" | "auto"; type: "input_image"; /** * Base64 encoded image */ image_url?: string | null; };
+- ResponseInputImageContent · type · L5374-L5381 — type ResponseInputImageContent = { type: "input_image"; detail?: "low" | "high" | "auto" | null; /** * Base64 encoded image */ image_url?: string | null; };
+- ResponseInputItem · type · L5382-L5382 — type ResponseInputItem = EasyInputMessage | ResponseInputItemMessage | ResponseOutputMessage | ResponseFunctionToolCall | ResponseInputItemFunctionCallOutput | ResponseReasoningItem;
+- ResponseInputItemFunctionCallOutput · type · L5383-L5389 — type ResponseInputItemFunctionCallOutput = { call_id: string; output: string | ResponseFunctionCallOutputItemList; type: "function_call_output"; id?: string | null; status?: "in_progress" | "completed" | "incomplete" | null; };
+- ResponseInputItemMessage · type · L5390-L5395 — type ResponseInputItemMessage = { content: ResponseInputMessageContentList; role: "user" | "system" | "developer"; status?: "in_progress" | "completed" | "incomplete"; type?: "message"; };
+- ResponseInputMessageContentList · type · L5396-L5396 — type ResponseInputMessageContentList = Array<ResponseInputContent>;
+- ResponseInputMessageItem · type · L5397-L5403 — type ResponseInputMessageItem = { id: string; content: ResponseInputMessageContentList; role: "user" | "system" | "developer"; status?: "in_progress" | "completed" | "incomplete"; type?: "message"; };
+- ResponseInputText · type · L5404-L5407 — type ResponseInputText = { text: string; type: "input_text"; };
+- ResponseInputTextContent · type · L5408-L5411 — type ResponseInputTextContent = { text: string; type: "input_text"; };
+- ResponseItem · type · L5412-L5412 — type ResponseItem = ResponseInputMessageItem | ResponseOutputMessage | ResponseFunctionToolCallItem | ResponseFunctionToolCallOutputItem;
+- ResponseOutputItem · type · L5413-L5413 — type ResponseOutputItem = ResponseOutputMessage | ResponseFunctionToolCall | ResponseReasoningItem;
+- ResponseOutputItemAddedEvent · type · L5414-L5419 — type ResponseOutputItemAddedEvent = { item: ResponseOutputItem; output_index: number; sequence_number: number; type: "response.output_item.added"; };
+- ResponseOutputItemDoneEvent · type · L5420-L5425 — type ResponseOutputItemDoneEvent = { item: ResponseOutputItem; output_index: number; sequence_number: number; type: "response.output_item.done"; };
+- ResponseOutputMessage · type · L5426-L5432 — type ResponseOutputMessage = { id: string; content: Array<ResponseOutputText | ResponseOutputRefusal>; role: "assistant"; status: "in_progress" | "completed" | "incomplete"; type: "message"; };
+- ResponseOutputRefusal · type · L5433-L5436 — type ResponseOutputRefusal = { refusal: string; type: "refusal"; };
+- ResponseOutputText · type · L5437-L5441 — type ResponseOutputText = { text: string; type: "output_text"; logprobs?: Array<Logprob>; };
+- ResponseReasoningItem · type · L5442-L5449 — type ResponseReasoningItem = { id: string; summary: Array<ResponseReasoningSummaryItem>; type: "reasoning"; content?: Array<ResponseReasoningContentItem>; encrypted_content?: string | null; status?: "in_progress" | "completed" | "incomplete"; };
+- ResponseReasoningSummaryItem · type · L5450-L5453 — type ResponseReasoningSummaryItem = { text: string; type: "summary_text"; };
+- ResponseReasoningContentItem · type · L5454-L5457 — type ResponseReasoningContentItem = { text: string; type: "reasoning_text"; };
+- ResponseReasoningTextDeltaEvent · type · L5458-L5465 — type ResponseReasoningTextDeltaEvent = { content_index: number; delta: string; item_id: string; output_index: number; sequence_number: number; type: "response.reasoning_text.delta"; };
+- ResponseReasoningTextDoneEvent · type · L5466-L5473 — type ResponseReasoningTextDoneEvent = { content_index: number; item_id: string; output_index: number; sequence_number: number; text: string; type: "response.reasoning_text.done"; };
+- ResponseRefusalDeltaEvent · type · L5474-L5481 — type ResponseRefusalDeltaEvent = { content_index: number; delta: string; item_id: string; output_index: number; sequence_number: number; type: "response.refusal.delta"; };
+- ResponseRefusalDoneEvent · type · L5482-L5489 — type ResponseRefusalDoneEvent = { content_index: number; item_id: string; output_index: number; refusal: string; sequence_number: number; type: "response.refusal.done"; };
+- ResponseStatus · type · L5490-L5490 — type ResponseStatus = "completed" | "failed" | "in_progress" | "cancelled" | "queued" | "incomplete";
+- ResponseStreamEvent · type · L5491-L5491 — type ResponseStreamEvent = ResponseCompletedEvent | ResponseCreatedEvent | ResponseErrorEvent | ResponseFunctionCallArgumentsDeltaEvent | ResponseFunctionCallArgumentsDoneEvent | ResponseFailedEvent | ResponseIncompleteEvent | ResponseOutputItemAddedEvent | ResponseOutputItemDoneEvent | ResponseReasoningTextDeltaEvent | ResponseReasoningTextDoneEvent | ResponseRefusalDeltaEvent | ResponseRefusalDoneEvent | ResponseTextDeltaEvent | ResponseTextDoneEvent;
+- ResponseCompletedEvent · type · L5492-L5496 — type ResponseCompletedEvent = { response: Response; sequence_number: number; type: "response.completed"; };
+- ResponseTextConfig · type · L5497-L5500 — type ResponseTextConfig = { format?: ResponseFormatTextConfig; verbosity?: "low" | "medium" | "high" | null; };
+- ResponseTextDeltaEvent · type · L5501-L5509 — type ResponseTextDeltaEvent = { content_index: number; delta: string; item_id: string; logprobs: Array<Logprob>; output_index: number; sequence_number: number; type: "response.output_text.delta"; };
+- ResponseTextDoneEvent · type · L5510-L5518 — type ResponseTextDoneEvent = { content_index: number; item_id: string; logprobs: Array<Logprob>; output_index: number; sequence_number: number; text: string; type: "response.output_text.done"; };
+- Logprob · type · L5519-L5523 — type Logprob = { token: string; logprob: number; top_logprobs?: Array<TopLogprob>; };
+- TopLogprob · type · L5524-L5527 — type TopLogprob = { token?: string; logprob?: number; };
+- ResponseUsage · type · L5528-L5532 — type ResponseUsage = { input_tokens: number; output_tokens: number; total_tokens: number; };
+- Tool · type · L5533-L5533 — type Tool = ResponsesFunctionTool;
+- ToolChoiceFunction · type · L5534-L5537 — type ToolChoiceFunction = { name: string; type: "function"; };
+- ToolChoiceOptions · type · L5538-L5538 — type ToolChoiceOptions = "none";
+- ReasoningEffort · type · L5539-L5539 — type ReasoningEffort = "minimal" | "low" | "medium" | "high" | null;
+- StreamOptions · type · L5540-L5542 — type StreamOptions = { include_obfuscation?: boolean; };
+- Without · type · L5544-L5546 — type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never; };
+- XOR · type · L5548-L5548 — type XOR<T, U> = (T & Without<U, T>) | (U & Without<T, U>);
+- Ai_Cf_Baai_Bge_Base_En_V1_5_Input · type · L5549-L5566 — type Ai_Cf_Baai_Bge_Base_En_V1_5_Input = { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; } | { /** * Batch of the embeddings requests to run using async-queue */ requests: { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; }[]; };
+- Ai_Cf_Baai_Bge_Base_En_V1_5_Output · type · L5567-L5577 — type Ai_Cf_Baai_Bge_Base_En_V1_5_Output = { shape?: number[]; /** * Embeddings of the requested text values */ data?: number[][]; /** * The pooling method used in the embedding process. */ pooling?: "mean" | "cls"; } | Ai_Cf_Baai_Bge_Base_En_V1_5_AsyncResponse;
+- Ai_Cf_Baai_Bge_Base_En_V1_5_AsyncResponse · interface · L5578-L5583 — interface Ai_Cf_Baai_Bge_Base_En_V1_5_AsyncResponse
+- Base_Ai_Cf_Baai_Bge_Base_En_V1_5 · class · L5584-L5587 — abstract class Base_Ai_Cf_Baai_Bge_Base_En_V1_5
+- Ai_Cf_Openai_Whisper_Input · type · L5588-L5593 — type Ai_Cf_Openai_Whisper_Input = string | { /** * An array of integers that represent the audio data constrained to 8-bit unsigned integer values */ audio: number[]; };
+- Ai_Cf_Openai_Whisper_Output · interface · L5594-L5612 — interface Ai_Cf_Openai_Whisper_Output
+- Base_Ai_Cf_Openai_Whisper · class · L5613-L5616 — abstract class Base_Ai_Cf_Openai_Whisper
+- Ai_Cf_Meta_M2M100_1_2B_Input · type · L5617-L5648 — type Ai_Cf_Meta_M2M100_1_2B_Input = { /** * The text to be translated */ text: string; /** * The language code of the source text (e.g., 'en' for English). Defaults to 'en' if not specified */ source_lang?: string; /** * The language code to translate the text into (e.g., 'es' for Spanish) */ target_lang: string; } | { /** * Batch of the embeddings requests to run using async-queue */ requests: { /** * The text to be translated */ text: string; /** * The language code of the source text (e.g., 'en' for English). Defaults to 'en' if not specified */ source_lang?: string; /** * The language code to translate the text into (e.g., 'es' for Spanish) */ target_lang: string; }[]; };
+- Ai_Cf_Meta_M2M100_1_2B_Output · type · L5649-L5654 — type Ai_Cf_Meta_M2M100_1_2B_Output = { /** * The translated text in the target language */ translated_text?: string; } | Ai_Cf_Meta_M2M100_1_2B_AsyncResponse;
+- Ai_Cf_Meta_M2M100_1_2B_AsyncResponse · interface · L5655-L5660 — interface Ai_Cf_Meta_M2M100_1_2B_AsyncResponse
+- Base_Ai_Cf_Meta_M2M100_1_2B · class · L5661-L5664 — abstract class Base_Ai_Cf_Meta_M2M100_1_2B
+- Ai_Cf_Baai_Bge_Small_En_V1_5_Input · type · L5665-L5682 — type Ai_Cf_Baai_Bge_Small_En_V1_5_Input = { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; } | { /** * Batch of the embeddings requests to run using async-queue */ requests: { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; }[]; };
+- Ai_Cf_Baai_Bge_Small_En_V1_5_Output · type · L5683-L5693 — type Ai_Cf_Baai_Bge_Small_En_V1_5_Output = { shape?: number[]; /** * Embeddings of the requested text values */ data?: number[][]; /** * The pooling method used in the embedding process. */ pooling?: "mean" | "cls"; } | Ai_Cf_Baai_Bge_Small_En_V1_5_AsyncResponse;
+- Ai_Cf_Baai_Bge_Small_En_V1_5_AsyncResponse · interface · L5694-L5699 — interface Ai_Cf_Baai_Bge_Small_En_V1_5_AsyncResponse
+- Base_Ai_Cf_Baai_Bge_Small_En_V1_5 · class · L5700-L5703 — abstract class Base_Ai_Cf_Baai_Bge_Small_En_V1_5
+- Ai_Cf_Baai_Bge_Large_En_V1_5_Input · type · L5704-L5721 — type Ai_Cf_Baai_Bge_Large_En_V1_5_Input = { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; } | { /** * Batch of the embeddings requests to run using async-queue */ requests: { text: string | string[]; /** * The pooling method used in the embedding process. `cls` pooling will generate more accurate embeddings on larger inputs - however, embeddings created with cls pooling are not compatible with embeddings generated with mean pooling. The default pooling method is `mean` in order for this to not be a breaking change, but we highly suggest using the new `cls` pooling for better accuracy. */ pooling?: "mean" | "cls"; }[]; };
+- Ai_Cf_Baai_Bge_Large_En_V1_5_Output · type · L5722-L5732 — type Ai_Cf_Baai_Bge_Large_En_V1_5_Output = { shape?: number[]; /** * Embeddings of the requested text values */ data?: number[][]; /** * The pooling method used in the embedding process. */ pooling?: "mean" | "cls"; } | Ai_Cf_Baai_Bge_Large_En_V1_5_AsyncResponse;
+- Ai_Cf_Baai_Bge_Large_En_V1_5_AsyncResponse · interface · L5733-L5738 — interface Ai_Cf_Baai_Bge_Large_En_V1_5_AsyncResponse
+- Base_Ai_Cf_Baai_Bge_Large_En_V1_5 · class · L5739-L5742 — abstract class Base_Ai_Cf_Baai_Bge_Large_En_V1_5
+- Ai_Cf_Unum_Uform_Gen2_Qwen_500M_Input · type · L5743-L5781 — type Ai_Cf_Unum_Uform_Gen2_Qwen_500M_Input = string | { /** * The input text prompt for the model to generate a response. */ prompt?: string; /** * If true, a chat template is not applied and you must adhere to the specific model's expected formatting. */ raw?: boolean; /** * Controls the creativity of the AI's responses by adjusting how many possible words it considers. Lower values make outputs more predictable; higher values allow for more varied and creative responses. */ top_p?: number; /** * Limits the AI to choose from the top 'k' most probable words. Lower values make responses more focused; higher values introduce more variety and potential surprises. */ top_k?: number; /** * Random seed for reproducibility of the generation. */ seed?: number; /** * Penalty for repeated tokens; higher values discourage repetition. */ repetition_penalty?: number; /** * Decreases the likelihood of the model repeating the same lines verbatim. */ frequency_penalty?: number; /** * Increases the likelihood of the model introducing new topics. */ presence_penalty?: number; image: number[] | (string & NonNullable<unknown>); /** * The maximum number of tokens to generate in the response. */ max_tokens?: number; };
+- Ai_Cf_Unum_Uform_Gen2_Qwen_500M_Output · interface · L5782-L5784 — interface Ai_Cf_Unum_Uform_Gen2_Qwen_500M_Output
+- Base_Ai_Cf_Unum_Uform_Gen2_Qwen_500M · class · L5785-L5788 — abstract class Base_Ai_Cf_Unum_Uform_Gen2_Qwen_500M
+- Ai_Cf_Openai_Whisper_Tiny_En_Input · type · L5789-L5794 — type Ai_Cf_Openai_Whisper_Tiny_En_Input = string | { /** * An array of integers that represent the audio data constrained to 8-bit unsigned integer values */ audio: number[]; };
+- Ai_Cf_Openai_Whisper_Tiny_En_Output · interface · L5795-L5813 — interface Ai_Cf_Openai_Whisper_Tiny_En_Output
+- Base_Ai_Cf_Openai_Whisper_Tiny_En · class · L5814-L5817 — abstract class Base_Ai_Cf_Openai_Whisper_Tiny_En
+- Ai_Cf_Openai_Whisper_Large_V3_Turbo_Input · interface · L5818-L5867 — interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Input
+- Ai_Cf_Openai_Whisper_Large_V3_Turbo_Output · interface · L5868-L5943 — interface Ai_Cf_Openai_Whisper_Large_V3_Turbo_Output
+- Base_Ai_Cf_Openai_Whisper_Large_V3_Turbo · class · L5944-L5947 — abstract class Base_Ai_Cf_Openai_Whisper_Large_V3_Turbo
+- Ai_Cf_Baai_Bge_M3_Input · type · L5948-L5953 — type Ai_Cf_Baai_Bge_M3_Input = Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts | Ai_Cf_Baai_Bge_M3_Input_Embedding | { /** * Batch of the embeddings requests to run using async-queue */ requests: (Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts_1 | Ai_Cf_Baai_Bge_M3_Input_Embedding_1)[]; };
+- Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts · interface · L5954-L5972 — interface Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts
+- Ai_Cf_Baai_Bge_M3_Input_Embedding · interface · L5973-L5979 — interface Ai_Cf_Baai_Bge_M3_Input_Embedding
+- Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts_1 · interface · L5980-L5998 — interface Ai_Cf_Baai_Bge_M3_Input_QueryAnd_Contexts_1
+- Ai_Cf_Baai_Bge_M3_Input_Embedding_1 · interface · L5999-L6005 — interface Ai_Cf_Baai_Bge_M3_Input_Embedding_1
+- Ai_Cf_Baai_Bge_M3_Output · type · L6006-L6006 — type Ai_Cf_Baai_Bge_M3_Output = Ai_Cf_Baai_Bge_M3_Output_Query | Ai_Cf_Baai_Bge_M3_Output_EmbeddingFor_Contexts | Ai_Cf_Baai_Bge_M3_Output_Embedding | Ai_Cf_Baai_Bge_M3_AsyncResponse;
+- Ai_Cf_Baai_Bge_M3_Output_Query · interface · L6007-L6018 — interface Ai_Cf_Baai_Bge_M3_Output_Query
+- Ai_Cf_Baai_Bge_M3_Output_EmbeddingFor_Contexts · interface · L6019-L6026 — interface Ai_Cf_Baai_Bge_M3_Output_EmbeddingFor_Contexts
+- Ai_Cf_Baai_Bge_M3_Output_Embedding · interface · L6027-L6037 — interface Ai_Cf_Baai_Bge_M3_Output_Embedding
+- Ai_Cf_Baai_Bge_M3_AsyncResponse · interface · L6038-L6043 — interface Ai_Cf_Baai_Bge_M3_AsyncResponse
+- Base_Ai_Cf_Baai_Bge_M3 · class · L6044-L6047 — abstract class Base_Ai_Cf_Baai_Bge_M3
+- Ai_Cf_Black_Forest_Labs_Flux_1_Schnell_Input · interface · L6048-L6057 — interface Ai_Cf_Black_Forest_Labs_Flux_1_Schnell_Input
+- Ai_Cf_Black_Forest_Labs_Flux_1_Schnell_Output · interface · L6058-L6063 — interface Ai_Cf_Black_Forest_Labs_Flux_1_Schnell_Output
+- Base_Ai_Cf_Black_Forest_Labs_Flux_1_Schnell · class · L6064-L6067 — abstract class Base_Ai_Cf_Black_Forest_Labs_Flux_1_Schnell
+- Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Input · type · L6068-L6068 — type Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Input = Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Prompt | Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Messages;
+- Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Prompt · interface · L6069-L6119 — interface Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Prompt
+- Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Messages · interface · L6120-L6287 — interface Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Messages
+- Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Output · type · L6288-L6306 — type Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct_Output = { /** * The generated text response from the model */ response?: string; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; };
+- Base_Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct · class · L6307-L6310 — abstract class Base_Ai_Cf_Meta_Llama_3_2_11B_Vision_Instruct
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Input · type · L6311-L6311 — type Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Input = Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Prompt | Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Messages | Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Async_Batch;
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Prompt · interface · L6312-L6362 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Prompt
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode · interface · L6363-L6366 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Messages · interface · L6367-L6519 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Messages
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode_1 · interface · L6520-L6523 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode_1
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Async_Batch · interface · L6524-L6568 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Async_Batch
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode_2 · interface · L6569-L6572 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_JSON_Mode_2
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Output · type · L6573-L6608 — type Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; } | string | Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_AsyncResponse;
+- Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_AsyncResponse · interface · L6609-L6614 — interface Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast_AsyncResponse
+- Base_Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast · class · L6615-L6618 — abstract class Base_Ai_Cf_Meta_Llama_3_3_70B_Instruct_Fp8_Fast
+- Ai_Cf_Meta_Llama_Guard_3_8B_Input · interface · L6619-L6650 — interface Ai_Cf_Meta_Llama_Guard_3_8B_Input
+- Ai_Cf_Meta_Llama_Guard_3_8B_Output · interface · L6651-L6679 — interface Ai_Cf_Meta_Llama_Guard_3_8B_Output
+- Base_Ai_Cf_Meta_Llama_Guard_3_8B · class · L6680-L6683 — abstract class Base_Ai_Cf_Meta_Llama_Guard_3_8B
+- Ai_Cf_Baai_Bge_Reranker_Base_Input · interface · L6684-L6701 — interface Ai_Cf_Baai_Bge_Reranker_Base_Input
+- Ai_Cf_Baai_Bge_Reranker_Base_Output · interface · L6702-L6713 — interface Ai_Cf_Baai_Bge_Reranker_Base_Output
+- Base_Ai_Cf_Baai_Bge_Reranker_Base · class · L6714-L6717 — abstract class Base_Ai_Cf_Baai_Bge_Reranker_Base
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Input · type · L6718-L6718 — type Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Input = Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Prompt | Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Messages;
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Prompt · interface · L6719-L6769 — interface Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Prompt
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_JSON_Mode · interface · L6770-L6773 — interface Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_JSON_Mode
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Messages · interface · L6774-L6920 — interface Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Messages
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_JSON_Mode_1 · interface · L6921-L6924 — interface Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_JSON_Mode_1
+- Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Output · type · L6925-L6960 — type Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; };
+- Base_Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct · class · L6961-L6964 — abstract class Base_Ai_Cf_Qwen_Qwen2_5_Coder_32B_Instruct
+- Ai_Cf_Qwen_Qwq_32B_Input · type · L6965-L6965 — type Ai_Cf_Qwen_Qwq_32B_Input = Ai_Cf_Qwen_Qwq_32B_Prompt | Ai_Cf_Qwen_Qwq_32B_Messages;
+- Ai_Cf_Qwen_Qwq_32B_Prompt · interface · L6966-L7015 — interface Ai_Cf_Qwen_Qwq_32B_Prompt
+- Ai_Cf_Qwen_Qwq_32B_Messages · interface · L7016-L7190 — interface Ai_Cf_Qwen_Qwq_32B_Messages
+- Ai_Cf_Qwen_Qwq_32B_Output · type · L7191-L7226 — type Ai_Cf_Qwen_Qwq_32B_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; };
+- Base_Ai_Cf_Qwen_Qwq_32B · class · L7227-L7230 — abstract class Base_Ai_Cf_Qwen_Qwq_32B
+- Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Input · type · L7231-L7231 — type Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Input = Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Prompt | Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Messages;
+- Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Prompt · interface · L7232-L7281 — interface Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Prompt
+- Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Messages · interface · L7282-L7456 — interface Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Messages
+- Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Output · type · L7457-L7492 — type Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; };
+- Base_Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct · class · L7493-L7496 — abstract class Base_Ai_Cf_Mistralai_Mistral_Small_3_1_24B_Instruct
+- Ai_Cf_Google_Gemma_3_12B_It_Input · type · L7497-L7497 — type Ai_Cf_Google_Gemma_3_12B_It_Input = Ai_Cf_Google_Gemma_3_12B_It_Prompt | Ai_Cf_Google_Gemma_3_12B_It_Messages;
+- Ai_Cf_Google_Gemma_3_12B_It_Prompt · interface · L7498-L7547 — interface Ai_Cf_Google_Gemma_3_12B_It_Prompt
+- Ai_Cf_Google_Gemma_3_12B_It_Messages · interface · L7548-L7706 — interface Ai_Cf_Google_Gemma_3_12B_It_Messages
+- Ai_Cf_Google_Gemma_3_12B_It_Output · type · L7707-L7742 — type Ai_Cf_Google_Gemma_3_12B_It_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The arguments passed to be passed to the tool call request */ arguments?: object; /** * The name of the tool to be called */ name?: string; }[]; };
+- Base_Ai_Cf_Google_Gemma_3_12B_It · class · L7743-L7746 — abstract class Base_Ai_Cf_Google_Gemma_3_12B_It
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Input · type · L7747-L7747 — type Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Input = Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Prompt | Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Messages | Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Async_Batch;
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Prompt · interface · L7748-L7798 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Prompt
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_JSON_Mode · interface · L7799-L7802 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_JSON_Mode
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Messages · interface · L7803-L7978 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Messages
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Async_Batch · interface · L7979-L7981 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Async_Batch
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Prompt_Inner · interface · L7982-L8032 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Prompt_Inner
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Messages_Inner · interface · L8033-L8208 — interface Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Messages_Inner
+- Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Output · type · L8209-L8257 — type Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct_Output = { /** * The generated text response from the model */ response: string; /** * Usage statistics for the inference request */ usage?: { /** * Total number of tokens in input */ prompt_tokens?: number; /** * Total number of tokens in output */ completion_tokens?: number; /** * Total number of input and output tokens */ total_tokens?: number; }; /** * An array of tool calls requests made during the response generation */ tool_calls?: { /** * The tool call id. */ id?: string; /** * Specifies the type of tool (e.g., 'function'). */ type?: string; /** * Details of the function tool. */ function?: { /** * The name of the tool to be called */ name?: string; /** * The arguments passed to be passed to the tool call request */ arguments?: object; }; }[]; };
+- Base_Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct · class · L8258-L8261 — abstract class Base_Ai_Cf_Meta_Llama_4_Scout_17B_16E_Instruct
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Input · type · L8262-L8262 — type Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Input = Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Prompt | Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Messages | Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Async_Batch;
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Prompt · interface · L8263-L8313 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Prompt
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode · interface · L8314-L8317 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Messages · interface · L8318-L8470 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Messages
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_1 · interface · L8471-L8474 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_1
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Async_Batch · interface · L8475-L8477 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Async_Batch
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Prompt_1 · interface · L8478-L8528 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Prompt_1
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_2 · interface · L8529-L8532 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_2
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Messages_1 · interface · L8533-L8685 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Messages_1
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_3 · interface · L8686-L8689 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_JSON_Mode_3
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Output · type · L8690-L8690 — type Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Output = Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Chat_Completion_Response | Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Text_Completion_Response | string | Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_AsyncResponse;
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Chat_Completion_Response · interface · L8691-L8790 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Chat_Completion_Response
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Text_Completion_Response · interface · L8791-L8854 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_Text_Completion_Response
+- Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_AsyncResponse · interface · L8855-L8860 — interface Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8_AsyncResponse
+- Base_Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8 · class · L8861-L8864 — abstract class Base_Ai_Cf_Qwen_Qwen3_30B_A3B_Fp8
+- Ai_Cf_Deepgram_Nova_3_Input · interface · L8865-L9010 — interface Ai_Cf_Deepgram_Nova_3_Input
+- Ai_Cf_Deepgram_Nova_3_Output · interface · L9011-L9043 — interface Ai_Cf_Deepgram_Nova_3_Output
+- Base_Ai_Cf_Deepgram_Nova_3 · class · L9044-L9047 — abstract class Base_Ai_Cf_Deepgram_Nova_3
+- Ai_Cf_Qwen_Qwen3_Embedding_0_6B_Input · interface · L9048-L9056 — interface Ai_Cf_Qwen_Qwen3_Embedding_0_6B_Input
+- Ai_Cf_Qwen_Qwen3_Embedding_0_6B_Output · interface · L9057-L9060 — interface Ai_Cf_Qwen_Qwen3_Embedding_0_6B_Output
+- Base_Ai_Cf_Qwen_Qwen3_Embedding_0_6B · class · L9061-L9064 — abstract class Base_Ai_Cf_Qwen_Qwen3_Embedding_0_6B
+- Ai_Cf_Pipecat_Ai_Smart_Turn_V2_Input · type · L9065-L9086 — type Ai_Cf_Pipecat_Ai_Smart_Turn_V2_Input = { /** * readable stream with audio data and content-type specified for that data */ audio: { body: object; contentType: string; }; /** * type of data PCM data that's sent to the inference server as raw array */ dtype?: "uint8" | "float32" | "float64"; } | { /** * base64 encoded audio data */ audio: string; /** * type of data PCM data that's sent to the inference server as raw array */ dtype?: "uint8" | "float32" | "float64"; };
+- Ai_Cf_Pipecat_Ai_Smart_Turn_V2_Output · interface · L9087-L9096 — interface Ai_Cf_Pipecat_Ai_Smart_Turn_V2_Output
+- Base_Ai_Cf_Pipecat_Ai_Smart_Turn_V2 · class · L9097-L9100 — abstract class Base_Ai_Cf_Pipecat_Ai_Smart_Turn_V2
+- Base_Ai_Cf_Openai_Gpt_Oss_120B · class · L9101-L9104 — abstract class Base_Ai_Cf_Openai_Gpt_Oss_120B
+- Base_Ai_Cf_Openai_Gpt_Oss_20B · class · L9105-L9108 — abstract class Base_Ai_Cf_Openai_Gpt_Oss_20B
+- Ai_Cf_Leonardo_Phoenix_1_0_Input · interface · L9109-L9138 — interface Ai_Cf_Leonardo_Phoenix_1_0_Input
+- Ai_Cf_Leonardo_Phoenix_1_0_Output · type · L9142-L9142 — type Ai_Cf_Leonardo_Phoenix_1_0_Output = string;
+- Base_Ai_Cf_Leonardo_Phoenix_1_0 · class · L9143-L9146 — abstract class Base_Ai_Cf_Leonardo_Phoenix_1_0
+- Ai_Cf_Leonardo_Lucid_Origin_Input · interface · L9147-L9176 — interface Ai_Cf_Leonardo_Lucid_Origin_Input
+- Ai_Cf_Leonardo_Lucid_Origin_Output · interface · L9177-L9182 — interface Ai_Cf_Leonardo_Lucid_Origin_Output
+- Base_Ai_Cf_Leonardo_Lucid_Origin · class · L9183-L9186 — abstract class Base_Ai_Cf_Leonardo_Lucid_Origin
+- Ai_Cf_Deepgram_Aura_1_Input · interface · L9187-L9212 — interface Ai_Cf_Deepgram_Aura_1_Input
+- Ai_Cf_Deepgram_Aura_1_Output · type · L9216-L9216 — type Ai_Cf_Deepgram_Aura_1_Output = string;
+- Base_Ai_Cf_Deepgram_Aura_1 · class · L9217-L9220 — abstract class Base_Ai_Cf_Deepgram_Aura_1
+- Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B_Input · interface · L9221-L9230 — interface Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B_Input
+- Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B_Output · interface · L9231-L9236 — interface Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B_Output
+- Base_Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B · class · L9237-L9240 — abstract class Base_Ai_Cf_Ai4Bharat_Indictrans2_En_Indic_1B
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Input · type · L9241-L9241 — type Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Input = Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Prompt | Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Messages | Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Async_Batch;
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Prompt · interface · L9242-L9292 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Prompt
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode · interface · L9293-L9296 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Messages · interface · L9297-L9449 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Messages
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_1 · interface · L9450-L9453 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_1
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Async_Batch · interface · L9454-L9456 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Async_Batch
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Prompt_1 · interface · L9457-L9507 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Prompt_1
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_2 · interface · L9508-L9511 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_2
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Messages_1 · interface · L9512-L9664 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Messages_1
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_3 · interface · L9665-L9668 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_JSON_Mode_3
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Output · type · L9669-L9669 — type Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Output = Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Chat_Completion_Response | Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Text_Completion_Response | string | Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_AsyncResponse;
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Chat_Completion_Response · interface · L9670-L9769 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Chat_Completion_Response
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Text_Completion_Response · interface · L9770-L9833 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_Text_Completion_Response
+- Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_AsyncResponse · interface · L9834-L9839 — interface Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It_AsyncResponse
+- Base_Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It · class · L9840-L9843 — abstract class Base_Ai_Cf_Aisingapore_Gemma_Sea_Lion_V4_27B_It
+- Ai_Cf_Pfnet_Plamo_Embedding_1B_Input · interface · L9844-L9849 — interface Ai_Cf_Pfnet_Plamo_Embedding_1B_Input
+- Ai_Cf_Pfnet_Plamo_Embedding_1B_Output · interface · L9850-L9865 — interface Ai_Cf_Pfnet_Plamo_Embedding_1B_Output
+- Base_Ai_Cf_Pfnet_Plamo_Embedding_1B · class · L9866-L9869 — abstract class Base_Ai_Cf_Pfnet_Plamo_Embedding_1B
+- Ai_Cf_Deepgram_Flux_Input · interface · L9870-L9903 — interface Ai_Cf_Deepgram_Flux_Input
+- Ai_Cf_Deepgram_Flux_Output · interface · L9907-L9953 — interface Ai_Cf_Deepgram_Flux_Output
+- Base_Ai_Cf_Deepgram_Flux · class · L9954-L9957 — abstract class Base_Ai_Cf_Deepgram_Flux
+- Ai_Cf_Deepgram_Aura_2_En_Input · interface · L9958-L9983 — interface Ai_Cf_Deepgram_Aura_2_En_Input
+- Ai_Cf_Deepgram_Aura_2_En_Output · type · L9987-L9987 — type Ai_Cf_Deepgram_Aura_2_En_Output = string;
+- Base_Ai_Cf_Deepgram_Aura_2_En · class · L9988-L9991 — abstract class Base_Ai_Cf_Deepgram_Aura_2_En
+- Ai_Cf_Deepgram_Aura_2_Es_Input · interface · L9992-L10017 — interface Ai_Cf_Deepgram_Aura_2_Es_Input
+- Ai_Cf_Deepgram_Aura_2_Es_Output · type · L10021-L10021 — type Ai_Cf_Deepgram_Aura_2_Es_Output = string;
+- Base_Ai_Cf_Deepgram_Aura_2_Es · class · L10022-L10025 — abstract class Base_Ai_Cf_Deepgram_Aura_2_Es
+- Ai_Cf_Black_Forest_Labs_Flux_2_Dev_Input · interface · L10026-L10031 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Dev_Input
+- Ai_Cf_Black_Forest_Labs_Flux_2_Dev_Output · interface · L10032-L10037 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Dev_Output
+- Base_Ai_Cf_Black_Forest_Labs_Flux_2_Dev · class · L10038-L10041 — abstract class Base_Ai_Cf_Black_Forest_Labs_Flux_2_Dev
+- Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B_Input · interface · L10042-L10047 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B_Input
+- Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B_Output · interface · L10048-L10053 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B_Output
+- Base_Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B · class · L10054-L10057 — abstract class Base_Ai_Cf_Black_Forest_Labs_Flux_2_Klein_4B
+- Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B_Input · interface · L10058-L10063 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B_Input
+- Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B_Output · interface · L10064-L10069 — interface Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B_Output
+- Base_Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B · class · L10070-L10073 — abstract class Base_Ai_Cf_Black_Forest_Labs_Flux_2_Klein_9B
+- Base_Ai_Cf_Zai_Org_Glm_4_7_Flash · class · L10074-L10077 — abstract class Base_Ai_Cf_Zai_Org_Glm_4_7_Flash
+- Base_Ai_Cf_Moonshotai_Kimi_K2_5 · class · L10078-L10081 — abstract class Base_Ai_Cf_Moonshotai_Kimi_K2_5
+- Base_Ai_Cf_Moonshotai_Kimi_K2_6 · class · L10082-L10085 — abstract class Base_Ai_Cf_Moonshotai_Kimi_K2_6
+- Base_Ai_Cf_Nvidia_Nemotron_3_120B_A12B · class · L10086-L10089 — abstract class Base_Ai_Cf_Nvidia_Nemotron_3_120B_A12B
+- Base_Ai_Cf_Google_Gemma_4_26B_A4B_IT · class · L10090-L10093 — abstract class Base_Ai_Cf_Google_Gemma_4_26B_A4B_IT
+- AiModels · interface · L10094-L10186 — interface AiModels
+- AiOptions · type · L10187-L10212 — type AiOptions = { /** * Send requests as an asynchronous batch job, only works for supported models * https://developers.cloudflare.com/workers-ai/features/batch-api */ queueRequest?: boolean; /** * Establish websocket connections, only works for supported models */ websocket?: boolean; /** * Tag your requests to group and view them in Cloudflare dashboard. * * Rules: * Tags must only contain letters, numbers, and the symbols: : - . / @ * Each tag can have maximum 50 characters. * Maximum 5 tags are allowed each request. * Duplicate tags will removed. */ tags?: string[]; gateway?: GatewayOptions; returnRawResponse?: boolean; prefix?: string; extraHeaders?: object; signal?: AbortSignal; };
+- AiModelsSearchParams · type · L10213-L10221 — type AiModelsSearchParams = { author?: string; hide_experimental?: boolean; page?: number; per_page?: number; search?: string; source?: number; task?: string; };
+- AiModelsSearchObject · type · L10222-L10237 — type AiModelsSearchObject = { id: string; source: number; name: string; description: string; task: { id: string; name: string; description: string; }; tags: string[]; properties: { property_id: string; value: string; }[]; };
+- ChatCompletionsBase · type · L10238-L10238 — type ChatCompletionsBase = ChatCompletionsMessagesInput;
+- ChatCompletionsInput · type · L10239-L10239 — type ChatCompletionsInput = ChatCompletionsMessagesInput;
+- InferenceUpstreamError · interface · L10240-L10241 — interface InferenceUpstreamError extends Error
+- AiInternalError · interface · L10242-L10243 — interface AiInternalError extends Error
+- AiModelListType · type · L10244-L10244 — type AiModelListType = Record<string, any>;
+- AiAsyncBatchResponse · type · L10245-L10247 — type AiAsyncBatchResponse = { request_id: string; };
+- Ai · class · L10248-L10297 — abstract class Ai<AiModelList extends AiModelListType = AiModels>
+- GatewayRetries · type · L10298-L10302 — type GatewayRetries = { maxAttempts?: 1 | 2 | 3 | 4 | 5; retryDelayMs?: number; backoff?: 'constant' | 'linear' | 'exponential'; };
+- GatewayOptions · type · L10303-L10313 — type GatewayOptions = { id: string; cacheKey?: string; cacheTtl?: number; skipCache?: boolean; metadata?: Record<string, number | string | boolean | null | bigint>; collectLog?: boolean; eventId?: string; requestTimeoutMs?: number; retries?: GatewayRetries; };
+- UniversalGatewayOptions · type · L10314-L10319 — type UniversalGatewayOptions = Exclude<GatewayOptions, 'id'> & { /** ** @deprecated */ id?: string; };
+- AiGatewayPatchLog · type · L10320-L10324 — type AiGatewayPatchLog = { score?: number | null; feedback?: -1 | 1 | null; metadata?: Record<string, number | string | boolean | null | bigint> | null; };
+- AiGatewayLog · type · L10325-L10351 — type AiGatewayLog = { id: string; provider: string; model: string; model_type?: string; path: string; duration: number; request_type?: string; request_content_type?: string; status_code: number; response_content_type?: string; success: boolean; cached: boolean; tokens_in?: number; tokens_out?: number; metadata?: Record<string, number | string | boolean | null | bigint>; step?: number; cost?: number; custom_cost?: boolean; request_size: number; request_head?: string; request_head_complete: boolean; response_size: number; response_head?: string; response_head_complete: boolean; created_at: Date; };
+- AIGatewayProviders · type · L10352-L10352 — type AIGatewayProviders = 'workers-ai' | 'anthropic' | 'aws-bedrock' | 'azure-openai' | 'google-vertex-ai' | 'huggingface' | 'openai' | 'perplexity-ai' | 'replicate' | 'groq' | 'cohere' | 'google-ai-studio' | 'mistral' | 'grok' | 'openrouter' | 'deepseek' | 'cerebras' | 'cartesia' | 'elevenlabs' | 'adobe-firefly';
+- AIGatewayHeaders · type · L10353-L10373 — type AIGatewayHeaders = { 'cf-aig-metadata': Record<string, number | string | boolean | null | bigint> | string; 'cf-aig-custom-cost': { per_token_in?: number; per_token_out?: number; } | { total_cost?: number; } | string; 'cf-aig-cache-ttl': number | string; 'cf-aig-skip-cache': boolean | string; 'cf-aig-cache-key': string; 'cf-aig-event-id': string; 'cf-aig-request-timeout': number | string; 'cf-aig-max-attempts': number | string; 'cf-aig-retry-delay': number | string; 'cf-aig-backoff': string; 'cf-aig-collect-log': boolean | string; Authorization: string; 'Content-Type': string; [key: string]: string | number | boolean | object; };
+- AIGatewayUniversalRequest · type · L10374-L10379 — type AIGatewayUniversalRequest = { provider: AIGatewayProviders | string; // eslint-disable-line endpoint: string; headers: Partial<AIGatewayHeaders>; query: unknown; };
+- AiGatewayInternalError · interface · L10380-L10381 — interface AiGatewayInternalError extends Error
+- AiGatewayLogNotFound · interface · L10382-L10383 — interface AiGatewayLogNotFound extends Error
+- AiGateway · class · L10384-L10393 — abstract class AiGateway
+- ArtifactsRepoInfo · interface · L10404-L10425 — interface ArtifactsRepoInfo
+- ArtifactsCreateRepoResult · interface · L10427-L10442 — interface ArtifactsCreateRepoResult
+- ArtifactsRepoListResult · interface · L10444-L10451 — interface ArtifactsRepoListResult
+- ArtifactsCreateTokenResult · interface · L10453-L10462 — interface ArtifactsCreateTokenResult
+- ArtifactsTokenInfo · interface · L10464-L10475 — interface ArtifactsTokenInfo
+- ArtifactsTokenListResult · interface · L10477-L10482 — interface ArtifactsTokenListResult
+- ArtifactsRepo · interface · L10488-L10519 — interface ArtifactsRepo extends ArtifactsRepoInfo
+- ArtifactsErrorCode · type · L10526-L10526 — type ArtifactsErrorCode = 'ALREADY_EXISTS' | 'NOT_FOUND' | 'IMPORT_IN_PROGRESS' | 'FORK_IN_PROGRESS' | 'INVALID_INPUT' | 'INVALID_REPO_NAME' | 'INVALID_TTL' | 'INVALID_URL' | 'REMOTE_AUTH_REQUIRED' | 'UPSTREAM_UNAVAILABLE' | 'MEMORY_LIMIT' | 'INTERNAL_ERROR';
+- ArtifactsError · interface · L10534-L10540 — interface ArtifactsError extends Error
+- Artifacts · interface · L10547-L10612 — interface Artifacts
+- AutoRAGInternalError · interface · L10617-L10618 — interface AutoRAGInternalError extends Error
+- AutoRAGNotFoundError · interface · L10623-L10624 — interface AutoRAGNotFoundError extends Error
+- AutoRAGUnauthorizedError · interface · L10629-L10630 — interface AutoRAGUnauthorizedError extends Error
+- AutoRAGNameNotSetError · interface · L10635-L10636 — interface AutoRAGNameNotSetError extends Error
+- ComparisonFilter · type · L10637-L10641 — type ComparisonFilter = { key: string; type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte'; value: string | number | boolean; };
+- CompoundFilter · type · L10642-L10645 — type CompoundFilter = { type: 'and' | 'or'; filters: ComparisonFilter[]; };
+- AutoRagSearchRequest · type · L10650-L10663 — type AutoRagSearchRequest = { query: string; filters?: CompoundFilter | ComparisonFilter; max_num_results?: number; ranking_options?: { ranker?: string; score_threshold?: number; }; reranking?: { enabled?: boolean; model?: string; }; rewrite_query?: boolean; };
+- AutoRagAiSearchRequest · type · L10668-L10671 — type AutoRagAiSearchRequest = AutoRagSearchRequest & { stream?: boolean; system_prompt?: string; };
+- AutoRagAiSearchRequestStreaming · type · L10676-L10678 — type AutoRagAiSearchRequestStreaming = Omit<AutoRagAiSearchRequest, 'stream'> & { stream: true; };
+- AutoRagSearchResponse · type · L10683-L10698 — type AutoRagSearchResponse = { object: 'vector_store.search_results.page'; search_query: string; data: { file_id: string; filename: string; score: number; attributes: Record<string, string | number | boolean | null>; content: { type: 'text'; text: string; }[]; }[]; has_more: boolean; next_page: string | null; };
+- AutoRagListResponse · type · L10703-L10711 — type AutoRagListResponse = { id: string; enable: boolean; type: string; source: string; vectorize_name: string; paused: boolean; status: string; }[];
+- AutoRagAiSearchResponse · type · L10716-L10718 — type AutoRagAiSearchResponse = AutoRagSearchResponse & { response: string; };
+- AutoRAG · class · L10723-L10749 — abstract class AutoRAG
+- BrowserRunLifecycleEvent · type · L10750-L10750 — type BrowserRunLifecycleEvent = 'load' | 'domcontentloaded' | 'networkidle0' | 'networkidle2';
+- BrowserRunResourceType · type · L10751-L10751 — type BrowserRunResourceType = 'document' | 'stylesheet' | 'image' | 'media' | 'font' | 'script' | 'texttrack' | 'xhr' | 'fetch' | 'prefetch' | 'eventsource' | 'websocket' | 'manifest' | 'signedexchange' | 'ping' | 'cspviolationreport' | 'preflight' | 'other';
+- BrowserRunBaseOptions · interface · L10753-L10851 — interface BrowserRunBaseOptions
+- BrowserRunCommonOptions · type · L10853-L10859 — type BrowserRunCommonOptions = (BrowserRunBaseOptions & { /** URL to navigate to, e.g. `"https://example.com"`. */ url: string; }) | (BrowserRunBaseOptions & { /** Set the HTML content of the page directly. */ html: string; });
+- BrowserRunPuppeteerScreenshotOptions · type · L10860-L10878 — type BrowserRunPuppeteerScreenshotOptions = { /** @default "png" */ type?: 'png' | 'jpeg' | 'webp'; /** @default "binary" */ encoding?: 'binary' | 'base64'; quality?: number; fullPage?: boolean; clip?: { x: number; y: number; width: number; height: number; scale?: number; }; omitBackground?: boolean; optimizeForSpeed?: boolean; captureBeyondViewport?: boolean; fromSurface?: boolean; };
+- BrowserRunScreenshotOptions · type · L10879-L10886 — type BrowserRunScreenshotOptions = BrowserRunCommonOptions & { /** CSS selector of the element to screenshot. */ selector?: string; /** When true, scroll the entire page before taking the screenshot. */ scrollPage?: boolean; /** @see https://pptr.dev/api/puppeteer.screenshotoptions */ screenshotOptions?: BrowserRunPuppeteerScreenshotOptions; };
+- BrowserRunPDFOptions · type · L10887-L10922 — type BrowserRunPDFOptions = BrowserRunCommonOptions & { /** @see https://pptr.dev/api/puppeteer.pdfoptions */ pdfOptions?: { /** @default 1 */ scale?: number; /** @default false */ displayHeaderFooter?: boolean; headerTemplate?: string; footerTemplate?: string; /** @default false */ printBackground?: boolean; /** @default false */ landscape?: boolean; pageRanges?: string; /** @default "letter" */ format?: 'letter' | 'legal' | 'tabloid' | 'ledger' | 'a0' | 'a1' | 'a2' | 'a3' | 'a4' | 'a5' | 'a6'; width?: string | number; height?: string | number; /** @default false */ preferCSSPageSize?: boolean; margin?: { top?: string | number; right?: string | number; bottom?: string | number; left?: string | number; }; /** @default false */ omitBackground?: boolean; /** @default true */ tagged?: boolean; /** @default false */ outline?: boolean; /** @default 30000 */ timeout?: number; }; };
+- BrowserRunScrapeOptions · type · L10923-L10928 — type BrowserRunScrapeOptions = BrowserRunCommonOptions & { /** CSS selectors to scrape. At least one element is required. */ elements: Array<{ selector: string; }>; };
+- BrowserRunLinksOptions · type · L10929-L10934 — type BrowserRunLinksOptions = BrowserRunCommonOptions & { /** When true, only return links that are visible on the page. @default false */ visibleLinksOnly?: boolean; /** When true, exclude links pointing to external domains. @default false */ excludeExternalLinks?: boolean; };
+- BrowserRunSnapshotOptions · type · L10935-L10938 — type BrowserRunSnapshotOptions = BrowserRunCommonOptions & { /** @see https://pptr.dev/api/puppeteer.screenshotoptions */ screenshotOptions?: Omit<BrowserRunPuppeteerScreenshotOptions, 'encoding'>; };
+- BrowserRunJsonBaseOptions · interface · L10939-L10947 — interface BrowserRunJsonBaseOptions
+- BrowserRunJsonOptions · type · L10952-L10962 — type BrowserRunJsonOptions = BrowserRunCommonOptions & BrowserRunJsonBaseOptions & ({ /** Natural-language prompt describing what data to extract. */ prompt: string; /** Structured output schema for the AI model. @see https://developers.cloudflare.com/workers-ai/json-mode/ */ response_format?: AiTextGenerationResponseFormat; } | { /** Natural-language prompt describing what data to extract. */ prompt?: string; /** Structured output schema for the AI model. @see https://developers.cloudflare.com/workers-ai/json-mode/ */ response_format: AiTextGenerationResponseFormat; });
+- BrowserRunContentOptions · type · L10963-L10963 — type BrowserRunContentOptions = BrowserRunCommonOptions;
+- BrowserRunMarkdownOptions · type · L10964-L10964 — type BrowserRunMarkdownOptions = BrowserRunCommonOptions;
+- BrowserRunResponseMeta · type · L10965-L10970 — type BrowserRunResponseMeta = { /** HTTP status code of the rendered page */ status: number; /** Page title */ title: string; };
+- BrowserRunContentSuccessResponse · type · L10972-L10977 — type BrowserRunContentSuccessResponse = { success: true; /** Extracted HTML content */ result: string; meta: BrowserRunResponseMeta; };
+- BrowserRunLinksSuccessResponse · type · L10979-L10983 — type BrowserRunLinksSuccessResponse = { success: true; /** Extracted links */ result: string[]; };
+- BrowserRunScrapeSuccessResponse · type · L10985-L11013 — type BrowserRunScrapeSuccessResponse = { success: true; result: Array<{ /** The CSS selector used to find elements. */ selector: string; /** Array of elements matching the selector. */ results: Array<{ /** Outer HTML of the element. */ html: string; /** Text content of the element. */ text: string; /** Width of the element in pixels. */ width: number; /** Height of the element in pixels. */ height: number; /** Top position of the element relative to the viewport in pixels. */ top: number; /** Left position of the element relative to the viewport in pixels. */ left: number; /** Array of HTML attributes on the element. */ attributes: Array<{ /** Attribute name. */ name: string; /** Attribute value. */ value: string; }>; }>; }>; };
+- BrowserRunSnapshotSuccessResponse · type · L11015-L11024 — type BrowserRunSnapshotSuccessResponse = { success: true; result: { /** HTML content of the page. */ content: string; /** Base64-encoded screenshot image. */ screenshot: string; }; meta: BrowserRunResponseMeta; };
+- BrowserRunJsonSuccessResponse · type · L11026-L11030 — type BrowserRunJsonSuccessResponse = { success: true; /** JSON data extracted from the page using an AI model */ result: Record<string, unknown>; };
+- BrowserRunMarkdownSuccessResponse · type · L11032-L11036 — type BrowserRunMarkdownSuccessResponse = { success: true; /** Extracted markdown content */ result: string; };
+- BrowserRunErrorResponse · type · L11038-L11046 — type BrowserRunErrorResponse = { success: false; errors: { message: string; code?: number; detail?: string; path?: string; }[]; };
+- BrowserRunJsonErrorResponse · type · L11048-L11051 — type BrowserRunJsonErrorResponse = BrowserRunErrorResponse & { /** Raw AI response text for debugging */ rawAiResponse?: string; };
+- BrowserRun · class · L11056-L11195 — abstract class BrowserRun
+- RequestInitCfProperties · interface · L11205-L11303 — interface RequestInitCfProperties extends Record<string, unknown>
+- RequestInitCfPropertiesVaryAction · type · L11315-L11315 — type RequestInitCfPropertiesVaryAction = "normalize" | "passthrough" | "bypass";
+- RequestInitCfPropertiesVary · interface · L11317-L11327 — interface RequestInitCfPropertiesVary
+- RequestInitCfPropertiesVaryHeader · interface · L11329-L11332 — interface RequestInitCfPropertiesVaryHeader
+- RequestInitCfPropertiesVaryAcceptHeader · interface · L11334-L11341 — interface RequestInitCfPropertiesVaryAcceptHeader extends RequestInitCfPropertiesVaryHeader
+- RequestInitCfPropertiesVaryAcceptLanguageHeader · interface · L11343-L11349 — interface RequestInitCfPropertiesVaryAcceptLanguageHeader extends RequestInitCfPropertiesVaryHeader
+- RequestInitCfPropertiesVaryHeaders · interface · L11356-L11360 — interface RequestInitCfPropertiesVaryHeaders
+- BasicImageTransformations · interface · L11361-L11536 — interface BasicImageTransformations
+- BasicImageTransformationsGravityCoordinates · interface · L11537-L11541 — interface BasicImageTransformationsGravityCoordinates
+- RequestInitCfPropertiesImageDraw · interface · L11542-L11594 — interface RequestInitCfPropertiesImageDraw extends BasicImageTransformations
+- RequestInitCfPropertiesImage · interface · L11595-L11657 — interface RequestInitCfPropertiesImage extends BasicImageTransformations
+- RequestInitCfPropertiesImageMinify · interface · L11658-L11662 — interface RequestInitCfPropertiesImageMinify
+- RequestInitCfPropertiesR2 · interface · L11663-L11668 — interface RequestInitCfPropertiesR2
+- IncomingRequestCfProperties · type · L11672-L11672 — type IncomingRequestCfProperties<HostMetadata = unknown> = IncomingRequestCfPropertiesBase & IncomingRequestCfPropertiesBotManagementEnterprise & IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> & IncomingRequestCfPropertiesGeographicInformation & IncomingRequestCfPropertiesCloudflareAccessOrApiShield;
+- IncomingRequestCfPropertiesBase · interface · L11673-L11750 — interface IncomingRequestCfPropertiesBase extends Record<string, unknown>
+- IncomingRequestCfPropertiesBotManagementBase · interface · L11751-L11777 — interface IncomingRequestCfPropertiesBotManagementBase
+- IncomingRequestCfPropertiesBotManagement · interface · L11778-L11789 — interface IncomingRequestCfPropertiesBotManagement
+- IncomingRequestCfPropertiesBotManagementEnterprise · interface · L11790-L11801 — interface IncomingRequestCfPropertiesBotManagementEnterprise extends IncomingRequestCfPropertiesBotManagement
+- IncomingRequestCfPropertiesCloudflareForSaaSEnterprise · interface · L11802-L11810 — interface IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>
+- IncomingRequestCfPropertiesCloudflareAccessOrApiShield · interface · L11811-L11827 — interface IncomingRequestCfPropertiesCloudflareAccessOrApiShield
+- IncomingRequestCfPropertiesExportedAuthenticatorMetadata · interface · L11831-L11856 — interface IncomingRequestCfPropertiesExportedAuthenticatorMetadata
+- IncomingRequestCfPropertiesGeographicInformation · interface · L11860-L11935 — interface IncomingRequestCfPropertiesGeographicInformation
+- IncomingRequestCfPropertiesTLSClientAuth · interface · L11937-L12054 — interface IncomingRequestCfPropertiesTLSClientAuth
+- IncomingRequestCfPropertiesTLSClientAuthPlaceholder · interface · L12056-L12078 — interface IncomingRequestCfPropertiesTLSClientAuthPlaceholder
+- CertVerificationStatus · type · L12080-L12094 — type CertVerificationStatus = /** Authentication succeeded */ "SUCCESS" /** No certificate was presented */ | "NONE" /** Failed because the certificate was self-signed */ | "FAILED:self signed certificate" /** Failed because the certificate failed a trust chain check */ | "FAILED:unable to verify the first certificate" /** Failed because the certificate not yet valid */ | "FAILED:certificate is not yet valid" /** Failed because the certificate is expired */ | "FAILED:certificate has expired" /** Failed for another unspecified reason */ | "FAILED";
+- IncomingRequestCfPropertiesEdgeRequestKeepAliveStatus · type · L12098-L12098 — type IncomingRequestCfPropertiesEdgeRequestKeepAliveStatus = 0 /** Unknown */ | 1 /** no keepalives (not found) */ | 2 /** no connection re-use, opening keepalive connection failed */ | 3 /** no connection re-use, keepalive accepted and saved */ | 4 /** connection re-use, refused by the origin server (`TCP FIN`) */ | 5;
+- Iso3166Alpha2Code · type · L12100-L12100 — type Iso3166Alpha2Code = "AD" | "AE" | "AF" | "AG" | "AI" | "AL" | "AM" | "AO" | "AQ" | "AR" | "AS" | "AT" | "AU" | "AW" | "AX" | "AZ" | "BA" | "BB" | "BD" | "BE" | "BF" | "BG" | "BH" | "BI" | "BJ" | "BL" | "BM" | "BN" | "BO" | "BQ" | "BR" | "BS" | "BT" | "BV" | "BW" | "BY" | "BZ" | "CA" | "CC" | "CD" | "CF" | "CG" | "CH" | "CI" | "CK" | "CL" | "CM" | "CN" | "CO" | "CR" | "CU" | "CV" | "CW" | "CX" | "CY" | "CZ" | "DE" | "DJ" | "DK" | "DM" | "DO" | "DZ" | "EC" | "EE" | "EG" | "EH" | "ER" | "ES" | "ET" | "FI" | "FJ" | "FK" | "FM" | "FO" | "FR" | "GA" | "GB" | "GD" | "GE" | "GF" | "GG" | "GH" | "GI" | "GL" | "GM" | "GN" | "GP" | "GQ" | "GR" | "GS" | "GT" | "GU" | "GW" | "GY" | "HK" | "HM" | "HN" | "HR" | "HT" | "HU" | "ID" | "IE" | "IL" | "IM" | "IN" | "IO" | "IQ" | "IR" | "IS" | "IT" | "JE" | "JM" | "JO" | "JP" | "KE" | "KG" | "KH" | "KI" | "KM" | "KN" | "KP" | "KR" | "KW" | "KY" | "KZ" | "LA" | "LB" | "LC" | "LI" | "LK" | "LR" | "LS" | "LT" | "LU" | "LV" | "LY" | "MA" | "MC" | "MD" | "ME" | "MF" | "MG" | "MH" | "MK" | "ML" | "MM" | "MN" | "MO" | "MP" | "MQ" | "MR" | "MS" | "MT" | "MU" | "MV" | "MW" | "MX" | "MY" | "MZ" | "NA" | "NC" | "NE" | "NF" | "NG" | "NI" | "NL" | "NO" | "NP" | "NR" | "NU" | "NZ" | "OM" | "PA" | "PE" | "PF" | "PG" | "PH" | "PK" | "PL" | "PM" | "PN" | "PR" | "PS" | "PT" | "PW" | "PY" | "QA" | "RE" | "RO" | "RS" | "RU" | "RW" | "SA" | "SB" | "SC" | "SD" | "SE" | "SG" | "SH" | "SI" | "SJ" | "SK" | "SL" | "SM" | "SN" | "SO" | "SR" | "SS" | "ST" | "SV" | "SX" | "SY" | "SZ" | "TC" | "TD" | "TF" | "TG" | "TH" | "TJ" | "TK" | "TL" | "TM" | "TN" | "TO" | "TR" | "TT" | "TV" | "TW" | "TZ" | "UA" | "UG" | "UM" | "US" | "UY" | "UZ" | "VA" | "VC" | "VE" | "VG" | "VI" | "VN" | "VU" | "WF" | "WS" | "YE" | "YT" | "ZA" | "ZM" | "ZW";
+- ContinentCode · type · L12102-L12102 — type ContinentCode = "AF" | "AN" | "AS" | "EU" | "NA" | "OC" | "SA";
+- CfProperties · type · L12103-L12103 — type CfProperties<HostMetadata = unknown> = IncomingRequestCfProperties<HostMetadata> | RequestInitCfProperties;
+- D1Meta · interface · L12104-L12135 — interface D1Meta
+- D1Response · interface · L12136-L12140 — interface D1Response
+- D1Result · type · L12141-L12143 — type D1Result<T = unknown> = D1Response & { results: T[]; };
+- D1ExecResult · interface · L12144-L12147 — interface D1ExecResult
+- D1SessionConstraint · type · L12148-L12156 — type D1SessionConstraint = // Indicates that the first query should go to the primary, and the rest queries // using the same D1DatabaseSession will go to any replica that is consistent with // the bookmark maintained by the session (returned by the first query). 'first-primary' // Indicates that the first query can go anywhere (primary or replica), and the rest queries // using the same D1DatabaseSession will go to any replica that is consistent with // the bookmark maintained by the session (returned by the first query). | 'first-unconstrained';
+- D1SessionBookmark · type · L12157-L12157 — type D1SessionBookmark = string;
+- D1Database · class · L12158-L12174 — abstract class D1Database
+- D1DatabaseSession · class · L12175-L12183 — abstract class D1DatabaseSession
+- D1PreparedStatement · class · L12184-L12199 — abstract class D1PreparedStatement
+- Disposable · interface · L12206-L12207 — interface Disposable
+- EmailSendResult · interface · L12211-L12216 — interface EmailSendResult
+- EmailMessage · interface · L12220-L12229 — interface EmailMessage
+- ForwardableEmailMessage · interface · L12233-L12272 — interface ForwardableEmailMessage extends EmailMessage
+- EmailAttachment · type · L12274-L12286 — type EmailAttachment = { disposition: 'inline'; contentId: string; filename: string; type: string; content: string | ArrayBuffer | ArrayBufferView; } | { disposition: 'attachment'; contentId?: undefined; filename: string; type: string; content: string | ArrayBuffer | ArrayBufferView; };
+- EmailAddress · interface · L12288-L12291 — interface EmailAddress
+- EmailDestinations · type · L12296-L12306 — type EmailDestinations = { to?: string | EmailAddress | (string | EmailAddress)[]; cc?: string | EmailAddress | (string | EmailAddress)[]; bcc?: string | EmailAddress | (string | EmailAddress)[]; } & ({ to: string | EmailAddress | (string | EmailAddress)[]; } | { cc: string | EmailAddress | (string | EmailAddress)[]; } | { bcc: string | EmailAddress | (string | EmailAddress)[]; });
+- EmailReplyMessageBuilder · interface · L12312-L12320 — interface EmailReplyMessageBuilder
+- EmailMessageBuilder · type · L12325-L12325 — type EmailMessageBuilder = EmailReplyMessageBuilder & EmailDestinations;
+- SendEmail · interface · L12329-L12332 — interface SendEmail
+- EmailEvent · class · L12333-L12335 — abstract class EmailEvent extends ExtendableEvent
+- EmailExportedHandler · type · L12336-L12336 — type EmailExportedHandler<Env = unknown, Props = unknown> = (message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext<Props>) => void | Promise<void>;
+- FlagshipEvaluationContext · type · L12348-L12348 — type FlagshipEvaluationContext = Record<string, string | number | boolean>;
+- FlagshipEvaluationDetails · interface · L12349-L12356 — interface FlagshipEvaluationDetails<T>
+- FlagshipEvaluationError · interface · L12357-L12358 — interface FlagshipEvaluationError extends Error
+- Flagship · class · L12378-L12442 — abstract class Flagship
+- HelloWorldBinding · interface · L12446-L12458 — interface HelloWorldBinding
+- Hyperdrive · interface · L12459-L12514 — interface Hyperdrive
+- ImageInfoResponse · type · L12518-L12525 — type ImageInfoResponse = { format: 'image/svg+xml'; } | { format: string; fileSize: number; width: number; height: number; };
+- ImageTransform · type · L12526-L12567 — type ImageTransform = { width?: number; height?: number; background?: string; blur?: number; border?: { color?: string; width?: number; } | { top?: number; bottom?: number; left?: number; right?: number; }; brightness?: number; contrast?: number; fit?: 'scale-down' | 'contain' | 'pad' | 'squeeze' | 'cover' | 'crop'; flip?: 'h' | 'v' | 'hv'; gamma?: number; segment?: 'foreground'; gravity?: 'face' | 'left' | 'right' | 'top' | 'bottom' | 'center' | 'auto' | 'entropy' | { x?: number; y?: number; mode: 'remainder' | 'box-center'; }; rotate?: 0 | 90 | 180 | 270; saturation?: number; sharpen?: number; trim?: 'border' | { top?: number; bottom?: number; left?: number; right?: number; width?: number; height?: number; border?: boolean | { color?: string; tolerance?: number; keep?: number; }; }; };
+- ImageDrawOptions · type · L12568-L12576 — type ImageDrawOptions = { opacity?: number; repeat?: boolean | string; composite?: ImageCompositeMode; top?: number; left?: number; bottom?: number; right?: number; };
+- ImageCompositeMode · type · L12577-L12589 — type ImageCompositeMode = /** Foreground drawn on top of backdrop (default) */ 'over' /** Foreground shown only where backdrop is opaque */ | 'in' /** Foreground drawn on top, but clipped to the backdrop's shape */ | 'atop' /** Foreground shown only where backdrop is transparent */ | 'out' /** Foreground and backdrop visible only where the other is not */ | 'xor' /** Foreground and backdrop channels added (brightening) */ | 'lighter';
+- ImageInputOptions · type · L12590-L12592 — type ImageInputOptions = { encoding?: 'base64'; };
+- ImageOutputOptions · type · L12593-L12598 — type ImageOutputOptions = { format: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | 'image/avif' | 'rgb' | 'rgba'; quality?: number; background?: string; anim?: boolean; };
+- ImageMetadata · interface · L12599-L12608 — interface ImageMetadata
+- ImageUploadOptions · interface · L12609-L12616 — interface ImageUploadOptions
+- ImageUpdateOptions · interface · L12617-L12621 — interface ImageUpdateOptions
+- ImageListOptions · interface · L12622-L12627 — interface ImageListOptions
+- ImageList · interface · L12628-L12632 — interface ImageList
+- ImageHandle · interface · L12633-L12656 — interface ImageHandle
+- HostedImagesBinding · interface · L12657-L12679 — interface HostedImagesBinding
+- ImagesBinding · interface · L12680-L12697 — interface ImagesBinding
+- ImageTransformer · interface · L12698-L12718 — interface ImageTransformer
+- ImageTransformationOutputOptions · type · L12719-L12721 — type ImageTransformationOutputOptions = { encoding?: 'base64'; };
+- ImageTransformationResult · interface · L12722-L12735 — interface ImageTransformationResult
+- ImagesError · interface · L12736-L12740 — interface ImagesError extends Error
+- MediaBinding · interface · L12745-L12752 — interface MediaBinding
+- MediaTransformer · interface · L12757-L12770 — interface MediaTransformer
+- MediaTransformationGenerator · interface · L12775-L12782 — interface MediaTransformationGenerator
+- MediaTransformationResult · interface · L12787-L12803 — interface MediaTransformationResult
+- MediaTransformationInputOptions · type · L12808-L12815 — type MediaTransformationInputOptions = { /** How the media should be resized to fit the specified dimensions */ fit?: 'contain' | 'cover' | 'scale-down'; /** Target width in pixels */ width?: number; /** Target height in pixels */ height?: number; };
+- MediaTransformationOutputOptions · type · L12820-L12843 — type MediaTransformationOutputOptions = { /** * Output mode determining the type of media to generate */ mode?: 'video' | 'spritesheet' | 'frame' | 'audio'; /** Whether to include audio in the output */ audio?: boolean; /** * Starting timestamp for frame extraction or start time for clips. (e.g. '2s'). */ time?: string; /** * Duration for video clips, audio extraction, and spritesheet generation (e.g. '5s'). */ duration?: string; /** * Number of frames in the spritesheet. */ imageCount?: number; /** * Output format for the generated media. */ format?: 'jpg' | 'png' | 'm4a'; };
+- MediaError · interface · L12848-L12852 — interface MediaError extends Error
+- NodeStyleServer · interface · L12854-L12859 — interface NodeStyleServer
+- Params · type · L12866-L12866 — type Params<P extends string = any> = Record<P, string | string[]>;
+- EventContext · type · L12867-L12880 — type EventContext<Env, P extends string, Data> = { request: Request<unknown, IncomingRequestCfProperties<unknown>>; functionPath: string; waitUntil: (promise: Promise<any>) => void; passThroughOnException: () => void; next: (input?: Request | string, init?: RequestInit) => Promise<Response>; env: Env & { ASSETS: { fetch: typeof fetch; }; }; params: Params<P>; data: Data; };
+- PagesFunction · type · L12881-L12881 — type PagesFunction<Env = unknown, Params extends string = any, Data extends Record<string, unknown> = Record<string, unknown>> = (context: EventContext<Env, Params, Data>) => Response | Promise<Response>;
+- EventPluginContext · type · L12882-L12896 — type EventPluginContext<Env, P extends string, Data, PluginArgs> = { request: Request<unknown, IncomingRequestCfProperties<unknown>>; functionPath: string; waitUntil: (promise: Promise<any>) => void; passThroughOnException: () => void; next: (input?: Request | string, init?: RequestInit) => Promise<Response>; env: Env & { ASSETS: { fetch: typeof fetch; }; }; params: Params<P>; data: Data; pluginArgs: PluginArgs; };
+- PagesPluginFunction · type · L12897-L12897 — type PagesPluginFunction<Env = unknown, Params extends string = any, Data extends Record<string, unknown> = Record<string, unknown>, PluginArgs = unknown> = (context: EventPluginContext<Env, Params, Data, PluginArgs>) => Response | Promise<Response>;
+- PipelineTransformationEntrypoint · class · L12905-L12917 — abstract class PipelineTransformationEntrypoint<Env = unknown, I extends PipelineRecord = PipelineRecord, O extends PipelineRecord = PipelineRecord>
+- PipelineRecord · type · L12918-L12918 — type PipelineRecord = Record<string, unknown>;
+- PipelineBatchMetadata · type · L12919-L12922 — type PipelineBatchMetadata = { pipelineId: string; pipelineName: string; };
+- Pipeline · interface · L12923-L12930 — interface Pipeline<T extends PipelineRecord = PipelineRecord>
+- PubSubMessage · interface · L12936-L12960 — interface PubSubMessage
+- JsonWebKeyWithKid · interface · L12962-L12965 — interface JsonWebKeyWithKid extends JsonWebKey
+- RateLimitOptions · interface · L12966-L12968 — interface RateLimitOptions
+- RateLimitOutcome · interface · L12969-L12971 — interface RateLimitOutcome
+- RateLimit · interface · L12972-L12979 — interface RateLimit
+- RpcTargetBranded · interface · L12993-L12995 — interface RpcTargetBranded
+- WorkerEntrypointBranded · interface · L12996-L12998 — interface WorkerEntrypointBranded
+- DurableObjectBranded · interface · L12999-L13001 — interface DurableObjectBranded
+- WorkflowEntrypointBranded · interface · L13002-L13004 — interface WorkflowEntrypointBranded
+- EntrypointBranded · type · L13005-L13005 — type EntrypointBranded = WorkerEntrypointBranded | DurableObjectBranded | WorkflowEntrypointBranded;
+- Stubable · type · L13007-L13007 — type Stubable = RpcTargetBranded | ((...args: any[]) => any);
+- Serializable · type · L13012-L13022 — type Serializable<T> = // Structured cloneables BaseType // Structured cloneable composites | Map<T extends Map<infer U, unknown> ? Serializable<U> : never, T extends Map<unknown, infer U> ? Serializable<U> : never> | Set<T extends Set<infer U> ? Serializable<U> : never> | ReadonlyArray<T extends ReadonlyArray<infer U> ? Serializable<U> : never> | { [K in keyof T]: K extends number | string ? Serializable<T[K]> : never; } // Special types | Stub<Stubable> // Serialized as stubs, see `Stubify` | Stubable;
+- StubBase · interface · L13025-L13028 — interface StubBase<T extends Stubable> extends Disposable
+- Stub · type · L13029-L13029 — type Stub<T extends Stubable> = Provider<T> & StubBase<T>;
+- BaseType · type · L13031-L13031 — type BaseType = void | undefined | null | boolean | number | bigint | string | TypedArray | ArrayBuffer | DataView | Date | Error | RegExp | ReadableStream<Uint8Array> | WritableStream<Uint8Array> | Request | Response | Headers;
+- Stubify · type · L13034-L13038 — type Stubify<T> = T extends Stubable ? Stub<T> : T extends Map<infer K, infer V> ? Map<Stubify<K>, Stubify<V>> : T extends Set<infer V> ? Set<Stubify<V>> : T extends Array<infer V> ? Array<Stubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Stubify<V>> : T extends BaseType ? T : T extends { [key: string | number]: any; } ? { [K in keyof T]: Stubify<T[K]>; } : T;
+- Unstubify · type · L13043-L13047 — type Unstubify<T> = T extends StubBase<infer V> ? V : T extends Map<infer K, infer V> ? Map<Unstubify<K>, Unstubify<V>> : T extends Set<infer V> ? Set<Unstubify<V>> : T extends Array<infer V> ? Array<Unstubify<V>> : T extends ReadonlyArray<infer V> ? ReadonlyArray<Unstubify<V>> : T extends BaseType ? T : T extends { [key: string | number]: unknown; } ? { [K in keyof T]: Unstubify<T[K]>; } : T;
+- UnstubifyAll · type · L13048-L13050 — type UnstubifyAll<A extends any[]> = { [I in keyof A]: Unstubify<A[I]>; };
+- MaybeProvider · type · L13053-L13053 — type MaybeProvider<T> = T extends object ? Provider<T> : unknown;
+- MaybeDisposable · type · L13054-L13054 — type MaybeDisposable<T> = T extends object ? Disposable : unknown;
+- Result · type · L13063-L13063 — type Result<R> = R extends Stubable ? Promise<Stub<R>> & Provider<R> : R extends Serializable<R> ? Promise<Stubify<R> & MaybeDisposable<R>> & MaybeProvider<R> : never;
+- MethodOrProperty · type · L13069-L13069 — type MethodOrProperty<V> = V extends (...args: infer P) => infer R ? (...args: UnstubifyAll<P>) => Result<Awaited<R>> : Result<Awaited<V>>;
+- MaybeCallableProvider · type · L13072-L13072 — type MaybeCallableProvider<T> = T extends (...args: any[]) => any ? MethodOrProperty<T> : unknown;
+- Provider · type · L13076-L13078 — type Provider<T extends object, Reserved extends string = never> = MaybeCallableProvider<T> & Pick<{ [K in keyof T]: MethodOrProperty<T[K]>; }, Exclude<keyof T, Reserved | symbol | keyof StubBase<never>>>;
+- Env · interface · L13087-L13088 — interface Env
+- GlobalProps · interface · L13107-L13108 — interface GlobalProps
+- GlobalProp · type · L13111-L13111 — type GlobalProp<K extends string, Default> = K extends keyof GlobalProps ? GlobalProps[K] : Default;
+- MainModule · type · L13114-L13114 — type MainModule = GlobalProp<"mainModule", {}>;
+- Exports · type · L13116-L13121 — type Exports = { [K in keyof MainModule]: LoopbackForExport<MainModule[K]> // If the export is listed in `durableNamespaces`, then it is also a // DurableObjectNamespace. & (K extends GlobalProp<"durableNamespaces", never> ? MainModule[K] extends new (...args: any[]) => infer DoInstance ? DoInstance extends Rpc.DurableObjectBranded ? DurableObjectNamespace<DoInstance> : DurableObjectNamespace<undefined> : DurableObjectNamespace<undefined> : {}); };
+- RpcStub · type · L13124-L13124 — type RpcStub<T extends Rpc.Stubable> = Rpc.Stub<T>;
+- RpcTarget · class · L13128-L13130 — abstract class RpcTarget implements Rpc.RpcTargetBranded
+- WorkerEntrypoint · class · L13132-L13146 — abstract class WorkerEntrypoint<Env = Cloudflare.Env, Props = {}> implements Rpc.WorkerEntrypointBranded
+- DurableObject · class · L13147-L13158 — abstract class DurableObject<Env = Cloudflare.Env, Props = {}> implements Rpc.DurableObjectBranded
+- WorkflowDurationLabel · type · L13159-L13159 — type WorkflowDurationLabel = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+- WorkflowSleepDuration · type · L13160-L13160 — type WorkflowSleepDuration = `${number} ${WorkflowDurationLabel}${'s' | ''}` | number;
+- WorkflowDelayDuration · type · L13161-L13161 — type WorkflowDelayDuration = WorkflowSleepDuration;
+- WorkflowDynamicDelayContext · type · L13162-L13165 — type WorkflowDynamicDelayContext = { ctx: WorkflowStepContext<WorkflowDelayFunction>; error: Error; };
+- WorkflowDelayFunction · type · L13166-L13166 — type WorkflowDelayFunction = (input: WorkflowDynamicDelayContext) => WorkflowDelayDuration | Promise<WorkflowDelayDuration>;
+- WorkflowTimeoutDuration · type · L13167-L13167 — type WorkflowTimeoutDuration = WorkflowSleepDuration;
+- WorkflowRetentionDuration · type · L13168-L13168 — type WorkflowRetentionDuration = WorkflowSleepDuration;
+- WorkflowBackoff · type · L13169-L13169 — type WorkflowBackoff = 'constant' | 'linear' | 'exponential';
+- WorkflowStepSensitivity · type · L13170-L13170 — type WorkflowStepSensitivity = 'output';
+- WorkflowStepConfig · type · L13171-L13179 — type WorkflowStepConfig = { retries?: { limit: number; delay: WorkflowDelayDuration | number | WorkflowDelayFunction; backoff?: WorkflowBackoff; }; timeout?: WorkflowTimeoutDuration | number; sensitive?: WorkflowStepSensitivity; };
+- WorkflowStepConfigWithStaticDelay · type · L13186-L13192 — type WorkflowStepConfigWithStaticDelay = Omit<WorkflowStepConfig, 'retries'> & { retries?: { limit: number; delay: WorkflowDelayDuration | number; backoff?: WorkflowBackoff; }; };
+- WorkflowStepConfigWithDelayFunction · type · L13193-L13199 — type WorkflowStepConfigWithDelayFunction = Omit<WorkflowStepConfig, 'retries'> & { retries: { limit: number; delay: WorkflowDelayFunction; backoff?: WorkflowBackoff; }; };
+- WorkflowStepRollbackConfig · type · L13200-L13200 — type WorkflowStepRollbackConfig = Pick<WorkflowStepConfig, 'retries' | 'timeout'>;
+- WorkflowCronSchedule · type · L13201-L13206 — type WorkflowCronSchedule = { /** Cron expression that triggered this event. */ cron: string; /** Timestamp of the scheduled trigger, in milliseconds since the Unix epoch. */ scheduledTime: number; };
+- WorkflowEvent · type · L13207-L13213 — type WorkflowEvent<T> = { payload: Readonly<T>; timestamp: Date; instanceId: string; workflowName: string; schedule?: WorkflowCronSchedule; };
+- WorkflowStepEvent · type · L13214-L13219 — type WorkflowStepEvent<T> = { payload: Readonly<T>; timestamp: Date; type: string; sensitive?: WorkflowStepSensitivity; };
+- WorkflowStepContext · type · L13220-L13236 — type WorkflowStepContext<Delay = WorkflowDelayDuration | number> = { step: { name: string; count: number; }; attempt: number; config: { retries?: { limit: number; backoff?: WorkflowBackoff; } & (Delay extends WorkflowDelayFunction ? {} : { delay: WorkflowDelayDuration | number; }); timeout?: WorkflowTimeoutDuration | number; sensitive?: WorkflowStepSensitivity; }; };
+- WorkflowRollbackContext · type · L13242-L13248 — type WorkflowRollbackContext<T = unknown, Delay = WorkflowDelayDuration | number> = { ctx: WorkflowStepContext<Delay>; error: Error; output: T | undefined; /** @deprecated Use `ctx.step.name` and `ctx.step.count` instead. */ stepName: string; };
+- WorkflowRollbackHandler · type · L13249-L13249 — type WorkflowRollbackHandler<T = unknown, Delay = WorkflowDelayDuration | number> = (ctx: WorkflowRollbackContext<T, Delay>) => Promise<void>;
+- WorkflowStepRollbackOptions · type · L13250-L13253 — type WorkflowStepRollbackOptions<T = unknown, Delay = WorkflowDelayDuration | number> = { rollback: WorkflowRollbackHandler<T, Delay>; rollbackConfig?: WorkflowStepRollbackConfig; };
+- WorkflowStep · class · L13254-L13272 — abstract class WorkflowStep
+- WorkflowInstanceStatus · type · L13273-L13273 — type WorkflowInstanceStatus = 'queued' | 'running' | 'paused' | 'errored' | 'terminated' | 'complete' | 'waiting' | 'waitingForPause' | 'unknown';
+- WorkflowEntrypoint · class · L13274-L13280 — abstract class WorkflowEntrypoint<Env = unknown, T extends Rpc.Serializable<T> | unknown = unknown> implements Rpc.WorkflowEntrypointBranded
+- SecretsStoreSecret · interface · L13293-L13299 — interface SecretsStoreSecret
+- StreamBinding · interface · L13326-L13357 — interface StreamBinding
+- StreamVideoHandle · interface · L13361-L13397 — interface StreamVideoHandle
+- StreamVideo · interface · L13398-L13504 — interface StreamVideo
+- StreamVideoStatus · type · L13505-L13526 — type StreamVideoStatus = { /** * The current processing state. */ state: string; /** * The current processing step. */ step?: string; /** * The percent complete as a string. */ pctComplete?: string; /** * An error reason code, if applicable. */ errorReasonCode: string; /** * An error reason text, if applicable. */ errorReasonText: string; };
+- StreamVideoInput · type · L13527-L13536 — type StreamVideoInput = { /** * The input width in pixels. */ width: number; /** * The input height in pixels. */ height: number; };
+- StreamPublicDetails · type · L13537-L13554 — type StreamPublicDetails = { /** * The public title for the video. */ title: string | null; /** * The public share link. */ share_link: string | null; /** * The public channel link. */ channel_link: string | null; /** * The public logo URL. */ logo: string | null; };
+- StreamDirectUpload · type · L13555-L13572 — type StreamDirectUpload = { /** * The URL an unauthenticated upload can use for a single multipart request. */ uploadURL: string; /** * A Cloudflare-generated unique identifier for a media item. */ id: string; /** * The watermark profile applied to the upload. */ watermark: StreamWatermark | null; /** * The scheduled deletion time, if any. */ scheduledDeletion: string | null; };
+- StreamDirectUploadCreateParams · type · L13573-L13613 — type StreamDirectUploadCreateParams = { /** * The maximum duration in seconds for a video upload. */ maxDurationSeconds: number; /** * The date and time after upload when videos will not be accepted. */ expiry?: string; /** * A user-defined identifier for the media creator. */ creator?: string; /** * A user modifiable key-value store used to reference other systems of record for * managing videos. */ meta?: Record<string, string>; /** * Lists the origins allowed to display the video. */ allowedOrigins?: Array<string>; /** * Indicates whether the video can be accessed using the id. When set to `true`, * a signed token must be generated with a signing key to view the video. */ requireSignedURLs?: boolean; /** * The thumbnail timestamp percentage. */ thumbnailTimestampPct?: number; /** * The date and time at which the video will be deleted. Include `null` to remove * a scheduled deletion. */ scheduledDeletion?: string | null; /** * The watermark profile to apply. */ watermark?: StreamDirectUploadWatermark; };
+- StreamDirectUploadWatermark · type · L13614-L13619 — type StreamDirectUploadWatermark = { /** * The unique identifier for the watermark profile. */ id: string; };
+- StreamUrlUploadParams · type · L13620-L13661 — type StreamUrlUploadParams = { /** * Lists the origins allowed to display the video. Enter allowed origin * domains in an array and use `*` for wildcard subdomains. Empty arrays allow the * video to be viewed on any origin. */ allowedOrigins?: Array<string>; /** * A user-defined identifier for the media creator. */ creator?: string; /** * A user modifiable key-value store used to reference other systems of * record for managing videos. */ meta?: Record<string, string>; /** * Indicates whether the video can be a accessed using the id. When * set to `true`, a signed token must be generated with a signing key to view the * video. */ requireSignedURLs?: boolean; /** * Indicates the date and time at which the video will be deleted. Omit * the field to indicate no change, or include with a `null` value to remove an * existing scheduled deletion. If specified, must be at least 30 days from upload * time. */ scheduledDeletion?: string | null; /** * The timestamp for a thumbnail image calculated as a percentage value * of the video's duration. To convert from a second-wise timestamp to a * percentage, divide the desired timestamp by the total duration of the video. If * this value is not set, the default thumbnail image is taken from 0s of the * video. */ thumbnailTimestampPct?: number; /** * The identifier for the watermark profile */ watermarkId?: string; };
+- StreamScopedCaptions · interface · L13662-L13704 — interface StreamScopedCaptions
+- StreamScopedDownloads · interface · L13705-L13734 — interface StreamScopedDownloads
+- StreamVideos · interface · L13735-L13743 — interface StreamVideos
+- StreamWatermarks · interface · L13744-L13789 — interface StreamWatermarks
+- StreamUpdateVideoParams · type · L13790-L13834 — type StreamUpdateVideoParams = { /** * Lists the origins allowed to display the video. Enter allowed origin * domains in an array and use `*` for wildcard subdomains. Empty arrays allow the * video to be viewed on any origin. */ allowedOrigins?: Array<string>; /** * A user-defined identifier for the media creator. */ creator?: string; /** * The maximum duration in seconds for a video upload. Can be set for a * video that is not yet uploaded to limit its duration. Uploads that exceed the * specified duration will fail during processing. A value of `-1` means the value * is unknown. */ maxDurationSeconds?: number; /** * A user modifiable key-value store used to reference other systems of * record for managing videos. */ meta?: Record<string, string>; /** * Indicates whether the video can be a accessed using the id. When * set to `true`, a signed token must be generated with a signing key to view the * video. */ requireSignedURLs?: boolean; /** * Indicates the date and time at which the video will be deleted. Omit * the field to indicate no change, or include with a `null` value to remove an * existing scheduled deletion. If specified, must be at least 30 days from upload * time. */ scheduledDeletion?: string | null; /** * The timestamp for a thumbnail image calculated as a percentage value * of the video's duration. To convert from a second-wise timestamp to a * percentage, divide the desired timestamp by the total duration of the video. If * this value is not set, the default thumbnail image is taken from 0s of the * video. */ thumbnailTimestampPct?: number; };
+- StreamCaption · type · L13835-L13852 — type StreamCaption = { /** * Whether the caption was generated via AI. */ generated?: boolean; /** * The language label displayed in the native language to users. */ label: string; /** * The language tag in BCP 47 format. */ language: string; /** * The status of a generated caption. */ status?: 'ready' | 'inprogress' | 'error'; };
+- StreamDownloadStatus · type · L13853-L13853 — type StreamDownloadStatus = 'ready' | 'inprogress' | 'error';
+- StreamDownloadType · type · L13854-L13854 — type StreamDownloadType = 'default' | 'audio';
+- StreamDownload · type · L13855-L13868 — type StreamDownload = { /** * Indicates the progress as a percentage between 0 and 100. */ percentComplete: number; /** * The status of a generated download. */ status: StreamDownloadStatus; /** * The URL to access the generated download. */ url?: string; };
+- StreamDownloadGetResponse · type · L13873-L13882 — type StreamDownloadGetResponse = { /** * The audio-only download. Only present if this download type has been created. */ audio?: StreamDownload; /** * The default video download. Only present if this download type has been created. */ default?: StreamDownload; };
+- StreamWatermarkPosition · type · L13883-L13883 — type StreamWatermarkPosition = 'upperRight' | 'upperLeft' | 'lowerLeft' | 'lowerRight' | 'center';
+- StreamWatermark · type · L13884-L13939 — type StreamWatermark = { /** * The unique identifier for a watermark profile. */ id: string; /** * The size of the image in bytes. */ size: number; /** * The height of the image in pixels. */ height: number; /** * The width of the image in pixels. */ width: number; /** * The date and a time a watermark profile was created. */ created: string; /** * The source URL for a downloaded image. If the watermark profile was created via * direct upload, this field is null. */ downloadedFrom: string | null; /** * A short description of the watermark profile. */ name: string; /** * The translucency of the image. A value of `0.0` makes the image completely * transparent, and `1.0` makes the image completely opaque. Note that if the image * is already semi-transparent, setting this to `1.0` will not make the image * completely opaque. */ opacity: number; /** * The whitespace between the adjacent edges (determined by position) of the video * and the image. `0.0` indicates no padding, and `1.0` indicates a fully padded * video width or length, as determined by the algorithm. */ padding: number; /** * The size of the image relative to the overall size of the video. This parameter * will adapt to horizontal and vertical videos automatically. `0.0` indicates no * scaling (use the size of the image as-is), and `1.0 `fills the entire video. */ scale: number; /** * The location of the image. Valid positions are: `upperRight`, `upperLeft`, * `lowerLeft`, `lowerRight`, and `center`. Note that `center` ignores the * `padding` parameter. */ position: StreamWatermarkPosition; };
+- StreamWatermarkCreateParams · type · L13940-L13969 — type StreamWatermarkCreateParams = { /** * A short description of the watermark profile. */ name?: string; /** * The translucency of the image. A value of `0.0` makes the image completely * transparent, and `1.0` makes the image completely opaque. Note that if the * image is already semi-transparent, setting this to `1.0` will not make the * image completely opaque. */ opacity?: number; /** * The whitespace between the adjacent edges (determined by position) of the * video and the image. `0.0` indicates no padding, and `1.0` indicates a fully * padded video width or length, as determined by the algorithm. */ padding?: number; /** * The size of the image relative to the overall size of the video. This * parameter will adapt to horizontal and vertical videos automatically. `0.0` * indicates no scaling (use the size of the image as-is), and `1.0 `fills the * entire video. */ scale?: number; /** * The location of the image. */ position?: StreamWatermarkPosition; };
+- StreamVideosListParams · type · L13970-L13995 — type StreamVideosListParams = { /** * The maximum number of videos to return. */ limit?: number; /** * Return videos created before this timestamp. * (RFC3339/RFC3339Nano) */ before?: string; /** * Comparison operator for the `before` field. * @default 'lt' */ beforeComp?: StreamPaginationComparison; /** * Return videos created after this timestamp. * (RFC3339/RFC3339Nano) */ after?: string; /** * Comparison operator for the `after` field. * @default 'gte' */ afterComp?: StreamPaginationComparison; };
+- StreamPaginationComparison · type · L13996-L13996 — type StreamPaginationComparison = 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+- StreamError · interface · L14000-L14005 — interface StreamError extends Error
+- InternalError · interface · L14006-L14008 — interface InternalError extends StreamError
+- BadRequestError · interface · L14009-L14011 — interface BadRequestError extends StreamError
+- NotFoundError · interface · L14012-L14014 — interface NotFoundError extends StreamError
+- ForbiddenError · interface · L14015-L14017 — interface ForbiddenError extends StreamError
+- RateLimitedError · interface · L14018-L14020 — interface RateLimitedError extends StreamError
+- QuotaReachedError · interface · L14021-L14023 — interface QuotaReachedError extends StreamError
+- MaxFileSizeError · interface · L14024-L14026 — interface MaxFileSizeError extends StreamError
+- InvalidURLError · interface · L14027-L14029 — interface InvalidURLError extends StreamError
+- AlreadyUploadedError · interface · L14030-L14032 — interface AlreadyUploadedError extends StreamError
+- TooManyWatermarksError · interface · L14033-L14035 — interface TooManyWatermarksError extends StreamError
+- MarkdownDocument · type · L14036-L14039 — type MarkdownDocument = { name: string; blob: Blob; };
+- OutputFormat · type · L14040-L14040 — type OutputFormat = 'markdown' | 'text';
+- ConversionResponse · type · L14041-L14054 — type ConversionResponse = { id: string; name: string; mimeType: string; format: OutputFormat; tokens: number; data: string; } | { id: string; name: string; mimeType: string; format: 'error'; error: string; };
+- ImageConversionOptions · type · L14055-L14057 — type ImageConversionOptions = { descriptionLanguage?: 'en' | 'es' | 'fr' | 'it' | 'pt' | 'de'; };
+- EmbeddedImageConversionOptions · type · L14058-L14061 — type EmbeddedImageConversionOptions = ImageConversionOptions & { convert?: boolean; maxConvertedImages?: number; };
+- ConversionOutputOptions · type · L14062-L14064 — type ConversionOutputOptions = { format?: OutputFormat; };
+- ConversionOptions · type · L14065-L14082 — type ConversionOptions = { output?: ConversionOutputOptions; html?: { images?: EmbeddedImageConversionOptions & { convertOGImage?: boolean; }; hostname?: string; cssSelector?: string; }; docx?: { images?: EmbeddedImageConversionOptions; }; image?: ImageConversionOptions; pdf?: { images?: EmbeddedImageConversionOptions; metadata?: boolean; }; };
+- ConversionRequestOptions · type · L14083-L14087 — type ConversionRequestOptions = { gateway?: GatewayOptions; extraHeaders?: object; conversionOptions?: ConversionOptions; };
+- SupportedFileFormat · type · L14088-L14091 — type SupportedFileFormat = { mimeType: string; extension: string; };
+- ToMarkdownService · class · L14092-L14096 — abstract class ToMarkdownService
+- Header · interface · L14098-L14101 — interface Header
+- FetchEventInfo · interface · L14102-L14108 — interface FetchEventInfo
+- JsRpcEventInfo · interface · L14109-L14111 — interface JsRpcEventInfo
+- ScheduledEventInfo · interface · L14112-L14116 — interface ScheduledEventInfo
+- AlarmEventInfo · interface · L14117-L14120 — interface AlarmEventInfo
+- QueueEventInfo · interface · L14121-L14125 — interface QueueEventInfo
+- EmailEventInfo · interface · L14126-L14131 — interface EmailEventInfo
+- TraceEventInfo · interface · L14132-L14135 — interface TraceEventInfo
+- HibernatableWebSocketEventInfoMessage · interface · L14136-L14138 — interface HibernatableWebSocketEventInfoMessage
+- HibernatableWebSocketEventInfoError · interface · L14139-L14141 — interface HibernatableWebSocketEventInfoError
+- HibernatableWebSocketEventInfoClose · interface · L14142-L14146 — interface HibernatableWebSocketEventInfoClose
+- HibernatableWebSocketEventInfo · interface · L14147-L14150 — interface HibernatableWebSocketEventInfo
+- CustomEventInfo · interface · L14151-L14153 — interface CustomEventInfo
+- FetchResponseInfo · interface · L14154-L14157 — interface FetchResponseInfo
+- ConnectEventInfo · interface · L14158-L14160 — interface ConnectEventInfo
+- EventOutcome · type · L14161-L14161 — type EventOutcome = "ok" | "canceled" | "exception" | "unknown" | "killSwitch" | "daemonDown" | "exceededCpu" | "exceededMemory" | "loadShed" | "responseStreamDisconnected" | "scriptNotFound" | "internalError" | "exceededWallTime";
+- ScriptVersion · interface · L14162-L14166 — interface ScriptVersion
+- TracePreviewInfo · interface · L14167-L14171 — interface TracePreviewInfo
+- Onset · interface · L14172-L14186 — interface Onset
+- Outcome · interface · L14187-L14192 — interface Outcome
+- SpanOpen · interface · L14193-L14199 — interface SpanOpen
+- SpanClose · interface · L14200-L14203 — interface SpanClose
+- DiagnosticChannelEvent · interface · L14204-L14208 — interface DiagnosticChannelEvent
+- Exception · interface · L14209-L14214 — interface Exception
+- TailStreamErrorInfo · interface · L14215-L14219 — interface TailStreamErrorInfo
+- Log · type · L14220-L14230 — type Log = { readonly type: "log"; readonly level: "debug" | "error" | "info" | "log" | "warn"; readonly errorInfo?: readonly (TailStreamErrorInfo | null)[]; } & ({ readonly message: object; readonly truncated?: false; } | { readonly message: string; readonly truncated: true; });
+- DroppedEventsDiagnostic · interface · L14231-L14234 — interface DroppedEventsDiagnostic
+- StreamDiagnostic · interface · L14235-L14239 — interface StreamDiagnostic
+- Return · interface · L14244-L14247 — interface Return
+- Attribute · interface · L14248-L14251 — interface Attribute
+- Attributes · interface · L14252-L14255 — interface Attributes
+- EventType · type · L14256-L14256 — type EventType = Onset | Outcome | SpanOpen | SpanClose | DiagnosticChannelEvent | Exception | Log | StreamDiagnostic | Return | Attributes;
+- SpanContext · interface · L14258-L14275 — interface SpanContext
+- TailEvent · interface · L14276-L14285 — interface TailEvent<Event extends EventType>
+- TailEventHandler · type · L14286-L14286 — type TailEventHandler<Event extends EventType = EventType> = (event: TailEvent<Event>) => void | Promise<void>;
+- TailEventHandlerObject · type · L14287-L14296 — type TailEventHandlerObject = { outcome?: TailEventHandler<Outcome>; spanOpen?: TailEventHandler<SpanOpen>; spanClose?: TailEventHandler<SpanClose>; diagnosticChannel?: TailEventHandler<DiagnosticChannelEvent>; exception?: TailEventHandler<Exception>; log?: TailEventHandler<Log>; return?: TailEventHandler<Return>; attributes?: TailEventHandler<Attributes>; };
+- TailEventHandlerType · type · L14297-L14297 — type TailEventHandlerType = TailEventHandler | TailEventHandlerObject;
+- VectorizeVectorMetadataValue · type · L14305-L14305 — type VectorizeVectorMetadataValue = string | number | boolean | string[];
+- VectorizeVectorMetadata · type · L14309-L14309 — type VectorizeVectorMetadata = VectorizeVectorMetadataValue | Record<string, VectorizeVectorMetadataValue>;
+- VectorFloatArray · type · L14310-L14310 — type VectorFloatArray = Float32Array | Float64Array;
+- VectorizeError · interface · L14311-L14314 — interface VectorizeError
+- VectorizeVectorMetadataFilterOp · type · L14320-L14320 — type VectorizeVectorMetadataFilterOp = '$eq' | '$ne' | '$lt' | '$lte' | '$gt' | '$gte';
+- VectorizeVectorMetadataFilterCollectionOp · type · L14321-L14321 — type VectorizeVectorMetadataFilterCollectionOp = '$in' | '$nin';
+- VectorizeVectorMetadataFilter · type · L14325-L14331 — type VectorizeVectorMetadataFilter = { [field: string]: Exclude<VectorizeVectorMetadataValue, string[]> | null | { [Op in VectorizeVectorMetadataFilterOp]?: Exclude<VectorizeVectorMetadataValue, string[]> | null; } | { [Op in VectorizeVectorMetadataFilterCollectionOp]?: Exclude<VectorizeVectorMetadataValue, string[]>[]; }; };
+- VectorizeDistanceMetric · type · L14336-L14336 — type VectorizeDistanceMetric = "euclidean" | "cosine" | "dot-product";
+- VectorizeMetadataRetrievalLevel · type · L14346-L14346 — type VectorizeMetadataRetrievalLevel = "all" | "indexed" | "none";
+- VectorizeQueryOptions · interface · L14347-L14353 — interface VectorizeQueryOptions
+- VectorizeIndexConfig · type · L14357-L14362 — type VectorizeIndexConfig = { dimensions: number; metric: VectorizeDistanceMetric; } | { preset: string; // keep this generic, as we'll be adding more presets in the future and this is only in a read capacity };
+- VectorizeIndexDetails · interface · L14369-L14380 — interface VectorizeIndexDetails
+- VectorizeIndexInfo · interface · L14384-L14393 — interface VectorizeIndexInfo
+- VectorizeVector · interface · L14397-L14406 — interface VectorizeVector
+- VectorizeMatch · type · L14410-L14413 — type VectorizeMatch = Pick<Partial<VectorizeVector>, "values"> & Omit<VectorizeVector, "values"> & { /** The score or rank for similarity, when returned as a result */ score: number; };
+- VectorizeMatches · interface · L14417-L14420 — interface VectorizeMatches
+- VectorizeVectorMutation · interface · L14428-L14433 — interface VectorizeVectorMutation
+- VectorizeAsyncMutation · interface · L14438-L14441 — interface VectorizeAsyncMutation
+- VectorizeIndex · class · L14448-L14485 — abstract class VectorizeIndex
+- Vectorize · class · L14491-L14535 — abstract class Vectorize
+- WorkerVersionMetadata · type · L14540-L14547 — type WorkerVersionMetadata = { /** The ID of the Worker Version using this binding */ id: string; /** The tag of the Worker Version using this binding */ tag: string; /** The timestamp of when the Worker Version was uploaded */ timestamp: string; };
+- WebSearchSearchOptions · type · L14552-L14560 — type WebSearchSearchOptions = { /** The search query. */ query: string; /** * Maximum number of results to return. Defaults to 10, capped at 20. * The actual count may be lower if fewer matches exist. */ limit?: number; };
+- WebSearchResult · type · L14570-L14588 — type WebSearchResult = { /** Canonical URL. */ url: string; /** Page title. */ title: string; /** Page-level description. May be absent. */ description?: string; /** * Last-modified date for the page, when known. Naive (no timezone) * ISO-8601 datetime, e.g. `"2025-11-30T04:39:48"`. */ lastModifiedDate?: string; /** * Page meta image URL (typically the `og:image`). May be absent. */ imageUrl?: string; /** Optional favicon URL for UI hints. */ faviconUrl?: string; };
+- WebSearchResponseMetadata · type · L14593-L14600 — type WebSearchResponseMetadata = { /** The query that was executed. */ query: string; /** Opaque request identifier used for support and debugging. */ requestId: string; /** End-to-end latency for this search request, in milliseconds. */ latencyMs: number; };
+- WebSearchSearchResponse · type · L14604-L14607 — type WebSearchSearchResponse = { items: WebSearchResult[]; metadata: WebSearchResponseMetadata; };
+- WebSearch · class · L14637-L14644 — abstract class WebSearch
+- DynamicDispatchLimits · interface · L14645-L14654 — interface DynamicDispatchLimits
+- DynamicDispatchOptions · interface · L14655-L14666 — interface DynamicDispatchOptions
+- DispatchNamespace · interface · L14667-L14678 — interface DispatchNamespace
+- NonRetryableError · class · L14684-L14686 — class NonRetryableError extends Error
+- Workflow · class · L14688-L14716 — abstract class Workflow<PARAMS = unknown>
+- WorkflowBatchDeleteResult · type · L14717-L14726 — type WorkflowBatchDeleteResult = { deleted: { id: string; }[]; errors: { id: string; code: number; message: string; }[]; };
+- WorkflowDurationLabel · type · L14727-L14727 — type WorkflowDurationLabel = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+- WorkflowSleepDuration · type · L14728-L14728 — type WorkflowSleepDuration = `${number} ${WorkflowDurationLabel}${'s' | ''}` | number;
+- WorkflowRetentionDuration · type · L14729-L14729 — type WorkflowRetentionDuration = WorkflowSleepDuration;
+- WorkflowInstanceCreateOptions · interface · L14730-L14747 — interface WorkflowInstanceCreateOptions<PARAMS = unknown>
+- InstanceStatus · type · L14748-L14759 — type InstanceStatus = { status: 'queued' // means that instance is waiting to be started (see concurrency limits) | 'running' | 'paused' | 'errored' | 'terminated' // user terminated the instance while it was running | 'complete' | 'waiting' // instance is hibernating and waiting for sleep or event to finish | 'waitingForPause' // instance is finishing the current work to pause | 'unknown'; error?: { name: string; message: string; }; output?: unknown; };
+- WorkflowError · interface · L14760-L14763 — interface WorkflowError
+- WorkflowInstanceTerminateOptions · interface · L14764-L14770 — interface WorkflowInstanceTerminateOptions
+- WorkflowInstanceRestartOptions · interface · L14771-L14791 — interface WorkflowInstanceRestartOptions
+- WorkflowInstance · class · L14792-L14828 — abstract class WorkflowInstance

@@ -1,0 +1,23 @@
+# workers/noema/src/watch-map-gl-stage.ts
+
+- StageRoom · type · L22-L30 — type StageRoom = { room_id?: string; name?: string; x?: number; y?: number; players_present?: number; exits?: Array<{ to_room_id?: string }>; active?: boolean; };
+- StageFrame · type · L32-L37 — type StageFrame = { rooms?: StageRoom[]; focusRoomId?: string; followRoomId?: string; majorRoomId?: string; };
+- LostFn · type · L39-L39 — type LostFn = () => void;
+- roomPos · function · L47-L49 — function roomPos(n: StageRoom): Vector3
+- boxHeight · function · L51-L55 — function boxHeight(n: StageRoom, followId: string): number
+- boxColor · function · L57-L62 — function boxColor(n: StageRoom, followId: string, majorId: string): number
+- mountWatchMapGl · function · L64-L290 — function mountWatchMapGl( canvas: HTMLCanvasElement, opts?: { reduce?: boolean; onLost?: LostFn; labels?: HTMLElement | null }, ): { update: (frame: StageFrame) => void; focus: (roomId: string, easeMs: number) => void; dispose: () => void }
+- canvasAspect · function · L88-L92 — function canvasAspect(): number
+- applyPose · function · L94-L100 — function applyPose(focusId: string): { lookX: number; lookY: number; lookZ: number }
+- paintLabels · function · L102-L143 — function paintLabels(): void
+- stopRaf · function · L145-L149 — function stopRaf(): void
+- paint · function · L151-L155 — function paint(): void
+- fit · function · L157-L167 — function fit(): void
+- clearScene · function · L169-L175 — function clearScene(): void
+- addRooms · function · L177-L213 — function addRooms(rooms: StageRoom[], followId: string, majorId: string): void
+- lookAtRoom · function · L215-L217 — function lookAtRoom(id: string): void
+- onContextLost · function · L219-L226 — function onContextLost(ev: Event): void
+- update · method · L239-L252 — update(frame: StageFrame)
+- focus · method · L253-L280 — focus(roomId: string, easeMs: number)
+- tick · function · L270-L278 — tick = (): void
+- dispose · method · L281-L288 — dispose()

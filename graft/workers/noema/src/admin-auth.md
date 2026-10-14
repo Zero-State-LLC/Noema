@@ -1,0 +1,22 @@
+# workers/noema/src/admin-auth.ts
+
+- bearer · function · L23-L27 — function bearer(req: Request): string | null
+- signingSecret · function · L29-L33 — function signingSecret(env: Env): string
+- adminTokenConfigured · function · L36-L38 — function adminTokenConfigured(env: Env): boolean
+- operatorIdForEmail · function · L41-L46 — async function operatorIdForEmail(email: string): Promise<string>
+- operatorIdFromClaims · function · L48-L53 — function operatorIdFromClaims( claims: Record<string, unknown>, amr: AdminPrincipal["authentication_context"], ): string
+- mintAdminAccess · function · L55-L84 — async function mintAdminAccess( env: Env, amr: "operator_token" | "email_magic_link", operatorId: string, ): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response>
+- mintAdminSession · function · L86-L105 — async function mintAdminSession( env: Env, operatorToken: string, ): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response>
+- adminFromSignedToken · function · L107-L135 — async function adminFromSignedToken(token: string, env: Env): Promise<AdminPrincipal | Response>
+- resolveAdmin · function · L137-L141 — async function resolveAdmin(req: Request, env: Env): Promise<AdminPrincipal | Response>
+- resolveSignedAdminHeader · function · L144-L148 — async function resolveSignedAdminHeader(req: Request, env: Env): Promise<AdminPrincipal | Response>
+- parseAllowlist · function · L168-L174 — function parseAllowlist(raw?: string): string[]
+- adminAllowlist · function · L176-L180 — function adminAllowlist(env: Env): string[]
+- normalizeEmail · function · L182-L188 — function normalizeEmail(raw: string): string | null
+- clientIp · function · L190-L192 — function clientIp(req: Request): string
+- LoginThrottle · class · L194-L198 — class LoginThrottle extends SlidingWindowThrottle
+- constructor · method · L195-L197 — constructor(limit = 5, windowMs = 3_600_000)
+- AdminFetch · type · L200-L200 — type AdminFetch = (input: string, init?: RequestInit) => Promise<Response>;
+- loginRedirectOrigin · function · L204-L211 — function loginRedirectOrigin(env: Env, req: Request): string
+- requestAdminMagicLink · function · L213-L296 — async function requestAdminMagicLink( env: Env, req: Request, body: { email?: string }, opts?: { fetch?: AdminFetch; throttle?: LoginThrottle; sendAdmin?: AdminMailer; mailFetch?: typeof fetch }, ): Promise<Response>
+- consumeAdminMagicLink · function · L298-L354 — async function consumeAdminMagicLink( env: Env, body: { token_hash?: string; type?: string; code?: string }, opts?: { fetch?: AdminFetch }, ): Promise<{ access_token: string; session_id: string; role: "ADMIN"; expires_in: number } | Response>

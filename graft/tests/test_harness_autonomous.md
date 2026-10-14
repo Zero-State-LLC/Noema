@@ -1,0 +1,33 @@
+# tests/test_harness_autonomous.py
+
+- quiet_obs · function · L21-L43 — def quiet_obs() -> dict
+- strained_obs · function · L46-L49 — def strained_obs() -> dict
+- thesis_obs · function · L52-L55 — def thesis_obs() -> dict
+- hosted_report_obs · function · L58-L88 — def hosted_report_obs() -> dict
+- hosted_worn_obs · function · L91-L138 — def hosted_worn_obs() -> dict
+- hosted_west_move_obs · function · L141-L154 — def hosted_west_move_obs() -> dict
+- FakeGateway · class · L157-L175 — class FakeGateway
+- __init__ · method · L158-L160 — def __init__(self, observation: dict) -> None
+- __call__ · method · L162-L175 — def __call__(self, method, url, body=None, token=None)
+- test_orientation_s0_accepts_location_only_and_live_strain · function · L178-L183 — def test_orientation_s0_accepts_location_only_and_live_strain()
+- test_orientation_s0_rejects_forbidden_copy_only · function · L186-L201 — def test_orientation_s0_rejects_forbidden_copy_only()
+- test_orientation_s0_accepts_hosted_report_and_midband_strain · function · L204-L213 — def test_orientation_s0_accepts_hosted_report_and_midband_strain()
+- test_unattended_hosted_report_strain_still_plays · function · L216-L225 — def test_unattended_hosted_report_strain_still_plays()
+- test_move_parses_direction_from_live_cmd_not_east · function · L228-L251 — def test_move_parses_direction_from_live_cmd_not_east()
+- test_quiet_room_waits_instead_of_inventing_pressure · function · L254-L266 — def test_quiet_room_waits_instead_of_inventing_pressure()
+- test_strained_room_selects_advertised_repair · function · L269-L281 — def test_strained_room_selects_advertised_repair()
+- test_unattended_enter_observe_then_advertised_acts · function · L284-L299 — def test_unattended_enter_observe_then_advertised_acts()
+- test_unattended_rejects_thesis_first_observe · function · L302-L309 — def test_unattended_rejects_thesis_first_observe()
+- test_unattended_strained_room_uses_advertised_repair · function · L312-L323 — def test_unattended_strained_room_uses_advertised_repair()
+- test_unattended_paused_stops_mutation · function · L326-L355 — def test_unattended_paused_stops_mutation()
+- PausedAfterObserve · class · L327-L345 — class PausedAfterObserve(FakeGateway)
+- __call__ · method · L328-L345 — def __call__(self, method, url, body=None, token=None)
+- test_cli_run_unattended_against_fake_twice · function · L358-L375 — def test_cli_run_unattended_against_fake_twice()
+- test_cli_run_adapter_llm_does_not_invent_verbs · function · L378-L401 — def test_cli_run_adapter_llm_does_not_invent_verbs()
+- empty_stock_obs · function · L404-L429 — def empty_stock_obs() -> dict
+- test_empty_stock_does_not_invent_harvest · function · L432-L441 — def test_empty_stock_does_not_invent_harvest()
+- test_unattended_token_never_enters_model_context · function · L444-L464 — def test_unattended_token_never_enters_model_context()
+- test_cli_run_after_one_connect_never_hits_play · function · L467-L522 — def test_cli_run_after_one_connect_never_hits_play()
+- ConnectGateway · class · L471-L486 — class ConnectGateway(FakeGateway)
+- __call__ · method · L472-L486 — def __call__(self, method, url, body=None, token=None)
+- test_no_agent_player_class_and_no_play_dom · function · L525-L541 — def test_no_agent_player_class_and_no_play_dom()

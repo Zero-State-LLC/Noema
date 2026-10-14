@@ -1,0 +1,15 @@
+# tests/test_gate_b_device_receipts.py
+
+- official_device_credentials · function · L16-L81 — def official_device_credentials(tmp_path, monkeypatch)
+- http · function · L52-L59 — def http(method, url, body, headers)
+- test_device_response_release_persistence_to_cohort_approval · function · L84-L110 — def test_device_response_release_persistence_to_cohort_approval(official_device_credentials, capsys)
+- test_distinct_persisted_player_is_not_a_second_controller · function · L113-L122 — def test_distinct_persisted_player_is_not_a_second_controller(official_device_credentials)
+- test_device_adapter_fails_closed · function · L130-L178 — def test_device_adapter_fails_closed(official_device_credentials, attack, capsys)
+- test_device_receipt_replay_does_not_overwrite_evidence · function · L181-L188 — def test_device_receipt_replay_does_not_overwrite_evidence(official_device_credentials)
+- test_concurrent_device_receipt_binding_has_one_winner · function · L191-L208 — def test_concurrent_device_receipt_binding_has_one_winner(official_device_credentials)
+- bind_once · function · L196-L200 — def bind_once()
+- test_device_adapter_rejects_duplicate_receipt_references · function · L212-L220 — def test_device_adapter_rejects_duplicate_receipt_references(official_device_credentials, key)
+- test_bound_approvals_fail_closed_at_cohort_preflight · function · L224-L246 — def test_bound_approvals_fail_closed_at_cohort_preflight(official_device_credentials, attack)
+- synthetic_device_input · function · L250-L272 — def synthetic_device_input(tmp_path)
+- test_missing_device_binding_is_always_rejected · function · L275-L282 — def test_missing_device_binding_is_always_rejected(synthetic_device_input)
+- test_interrupted_sidecar_write_requires_review_not_rebinding · function · L285-L294 — def test_interrupted_sidecar_write_requires_review_not_rebinding(synthetic_device_input)

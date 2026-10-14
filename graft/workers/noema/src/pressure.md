@@ -1,0 +1,24 @@
+# workers/noema/src/pressure.ts
+
+- PressureClassId · type · L36-L39 — type PressureClassId = | "infrastructure_failure" | "resource_scarcity" | "access_restriction";
+- PressurePulse · type · L41-L41 — type PressurePulse = { text: string; until_cycle: number };
+- PressureState · type · L43-L50 — type PressureState = { catalog_id: typeof PRESSURE_CATALOG_ID | typeof PRESSURE_CATALOG_S0; schedule_activations: number; last_cycle?: number; class_activations?: Partial<Record<PressureClassId, number>>; last_by_class?: Partial<Record<PressureClassId, number>>; public_pulses?: PressurePulse[]; };
+- emptyPressure · function · L58-L66 — function emptyPressure(): PressureState
+- ensurePressure · function · L68-L91 — function ensurePressure(raw: PressureState | undefined | null): PressureState
+- previewAfter · function · L93-L95 — function previewAfter(before: number, delta = CONDITION_DELTA): number
+- previewStockAfter · function · L97-L99 — function previewStockAfter(before: number, delta = STOCK_DELTA): number
+- isMild · function · L101-L103 — function isMild(after: number, min = MIN_CONDITION_AFTER): boolean
+- scheduleDue · function · L105-L107 — function scheduleDue(cycle: number, activations: number): boolean
+- classDue · function · L109-L118 — function classDue(cycle: number, cls: PressureClassId, activations: number): boolean
+- PressureTarget · type · L120-L120 — type PressureTarget = RelayLike & { room_id: string };
+- collectLiveRelaysWithRoom · function · L122-L139 — function collectLiveRelaysWithRoom( rooms: Record<string, { room_id?: string; entities?: RelayLike[] }>, ): PressureTarget[]
+- selectScheduleRelay · function · L142-L148 — function selectScheduleRelay(targets: PressureTarget[]): PressureTarget | null
+- HarvestTarget · type · L150-L156 — type HarvestTarget = { entity_id: string; label: string; room_id: string; stock_amount: number; stock_resource?: string; };
+- collectHarvestNodes · function · L158-L188 — function collectHarvestNodes( rooms: Record< string, { room_id?: string; entities?: Array<{ entity_id: string; label: string; stock_resource?: string; stock_amount?: number; }>; } >, ): HarvestTarget[]
+- selectScheduleNode · function · L190-L199 — function selectScheduleNode(targets: HarvestTarget[]): HarvestTarget | null
+- AccessTarget · type · L201-L201 — type AccessTarget = { room_id: string; exit_id: string; to_room_id: string };
+- collectPublicExits · function · L203-L219 — function collectPublicExits( rooms: Record<string, { room_id?: string; hidden?: boolean; exits?: Array<{ direction: string; to_room_id: string }> }>, ): AccessTarget[]
+- selectScheduleExit · function · L221-L230 — function selectScheduleExit(targets: AccessTarget[]): AccessTarget | null
+- notePulse · function · L232-L237 — function notePulse(state: PressureState, text: string, until_cycle: number): void
+- publicPressurePulses · function · L239-L247 — function publicPressurePulses( state: PressureState | undefined | null, cycle: number, ): string[]
+- adminPressureView · function · L249-L270 — function adminPressureView(state: PressureState | undefined | null): Record<string, unknown>

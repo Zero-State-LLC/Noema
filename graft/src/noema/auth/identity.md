@@ -1,0 +1,23 @@
+# src/noema/auth/identity.py
+
+- resolve_token_secret · function · L46-L56 — def resolve_token_secret(token_secret: str | None = None, *, env_name: str | None = None) -> str
+- _new_id · function · L59-L60 — def _new_id(prefix: str) -> str
+- _fingerprint · function · L63-L64 — def _fingerprint(secret: str, pepper: str) -> str
+- _now · function · L67-L68 — def _now() -> int
+- IdentityService · class · L71-L544 — class IdentityService
+- __init__ · method · L74-L100 — def __init__( self, store: Any, *, token_secret: str | None = None, supabase_jwt_secret: str | None = None, supabase_url: str | None = None, allow_dev_human: bool | None = None, jwks_fetch: Any | None = None, )
+- bind_human_from_supabase_token · method · L104-L134 — def bind_human_from_supabase_token(self, access_token: str) -> dict[str, Any]
+- bind_human_dev · method · L136-L140 — def bind_human_dev(self, subject: str, *, handle: str | None = None) -> dict[str, Any]
+- _ensure_human_account · method · L142-L196 — def _ensure_human_account(self, external_subject: str, *, handle_hint: str | None) -> dict[str, Any]
+- _slug_handle · method · L199-L202 — def _slug_handle(raw: str) -> str
+- _ensure_controller · method · L206-L228 — def _ensure_controller( self, player_id: str, *, ctype: str, provider: str | None, metadata: dict[str, Any], ) -> dict[str, Any]
+- _issue_tokens · method · L230-L282 — def _issue_tokens( self, controller_id: str, player: dict[str, Any], scopes: tuple[str, ...] | list[str], *, access_ttl: int = 3600, refresh_ttl: int = 60 * 60 * 24 * 30, ) -> tuple[str, str, list[str]]
+- resolve_access_token · method · L284-L310 — def resolve_access_token(self, token: str) -> dict[str, Any]
+- refresh · method · L312-L338 — def refresh(self, refresh_token: str) -> dict[str, Any]
+- revoke_controller · method · L340-L354 — def revoke_controller(self, controller_id: str, *, access_token: str | None = None) -> dict[str, Any]
+- start_device_enrollment · method · L358-L391 — def start_device_enrollment( self, *, scopes: list[str] | None = None, metadata: dict[str, Any] | None = None, ) -> dict[str, Any]
+- preview_device · method · L393-L407 — def preview_device(self, user_code: str) -> dict[str, Any]
+- _find_device_by_user_code · method · L409-L414 — def _find_device_by_user_code(self, user_code: str) -> dict[str, Any] | None
+- approve_device · method · L416-L487 — def approve_device( self, *, user_code: str, player_id: str | None = None, approver_access_token: str | None = None, approver_account_id: str | None = None, ) -> dict[str, Any]
+- deny_device · method · L489-L509 — def deny_device(self, *, user_code: str, approver_access_token: str | None = None) -> dict[str, Any]
+- poll_device_token · method · L511-L544 — def poll_device_token(self, device_code: str) -> dict[str, Any]

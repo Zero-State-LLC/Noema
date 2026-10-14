@@ -1,0 +1,35 @@
+# src/noema/world/reduce.py
+
+- ReduceError · class · L10-L11 — class ReduceError(Exception)
+- require_seed_stream · function · L25-L27 — def require_seed_stream(name: object) -> None
+- _require · function · L32-L34 — def _require(cond: bool, msg: str) -> None
+- _agent · function · L37-L39 — def _agent(state: WorldState, agent_id: str) -> dict[str, Any]: # use bundle_seam for reduce module (locality + leverage)
+- _holder_resource_slot · function · L42-L45 — def _holder_resource_slot(state: WorldState, holder_id: str, resource: str) -> tuple[dict[str, Any], str]
+- _debit · function · L48-L53 — def _debit(budgets: dict[str, float], costs: dict[str, float]) -> None
+- _set_nested · function · L56-L65 — def _set_nested(target: dict[str, Any], dotted: str, value: Any) -> None
+- _unset_nested · function · L68-L76 — def _unset_nested(target: dict[str, Any], dotted: str) -> None
+- reduce_AGENT_ENTERED_WORLD · function · L79-L91 — def reduce_AGENT_ENTERED_WORLD(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_AGENT_LEFT_WORLD · function · L94-L104 — def reduce_AGENT_LEFT_WORLD(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_MOVE · function · L107-L123 — def reduce_MOVE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_MOVE_REJECTED · function · L126-L138 — def reduce_MOVE_REJECTED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_LOOK · function · L141-L172 — def reduce_LOOK(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_INSPECT · function · L175-L209 — def reduce_INSPECT(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_MESSAGE · function · L212-L228 — def reduce_MESSAGE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_MESSAGE_DELIVERED · function · L231-L241 — def reduce_MESSAGE_DELIVERED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_TRADE_PROPOSED · function · L244-L266 — def reduce_TRADE_PROPOSED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_TRADE_ACCEPTED · function · L269-L280 — def reduce_TRADE_ACCEPTED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_TRADE_REJECTED · function · L283-L297 — def reduce_TRADE_REJECTED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_RESOURCE_TRANSFER · function · L300-L350 — def reduce_RESOURCE_TRANSFER(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ORG_CREATE · function · L353-L371 — def reduce_ORG_CREATE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ORG_MEMBER_ADD · function · L374-L381 — def reduce_ORG_MEMBER_ADD(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ORG_MEMBER_REMOVE · function · L384-L400 — def reduce_ORG_MEMBER_REMOVE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ENTITY_CREATE · function · L403-L428 — def reduce_ENTITY_CREATE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ENTITY_DESTROY · function · L431-L440 — def reduce_ENTITY_DESTROY(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_ENTITY_UPDATE · function · L443-L453 — def reduce_ENTITY_UPDATE(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_WAIT · function · L456-L462 — def reduce_WAIT(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_BUDGET_CONSUMED · function · L465-L485 — def reduce_BUDGET_CONSUMED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_BUDGET_EXCEEDED · function · L488-L506 — def reduce_BUDGET_EXCEEDED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_SITUATION_INJECTED · function · L509-L524 — def reduce_SITUATION_INJECTED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_NOISE_APPLIED · function · L527-L541 — def reduce_NOISE_APPLIED(state: WorldState, event: dict[str, Any]) -> WorldState
+- reduce_OBSERVATION_GENERATED · function · L544-L558 — def reduce_OBSERVATION_GENERATED(state: WorldState, event: dict[str, Any]) -> WorldState
+- apply_event · function · L589-L611 — def apply_event(state: WorldState, event: dict[str, Any]) -> WorldState

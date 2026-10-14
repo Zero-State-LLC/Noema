@@ -1,0 +1,31 @@
+# workers/noema/src/practice.ts
+
+- PracticeTrackId · type · L49-L49 — type PracticeTrackId = (typeof PRACTICE_TRACKS)[number]["track_id"];
+- PracticeState · type · L51-L58 — type PracticeState = { catalog_id: typeof MASTERY_CATALOG_ID | "mastery-catalog/gc1-s0"; tracks: Partial<Record<PracticeTrackId, string[]>>; recognition?: Partial<Record<PracticeTrackId, string[]>>; last_work_cycle?: Partial<Record<PracticeTrackId, number>>; latent_progress?: Partial<Record<PracticeTrackId, number>>; counterparties?: Partial<Record<PracticeTrackId, string[]>>; };
+- PracticeEvent · type · L60-L64 — type PracticeEvent = { event_id: string; event_type: string; payload?: Record<string, unknown>; };
+- PracticeTrade · type · L66-L69 — type PracticeTrade = { proposer_id: string; counterparty_id: string; };
+- emptyPractice · function · L71-L73 — function emptyPractice(): PracticeState
+- ensurePractice · function · L75-L92 — function ensurePractice(raw: PracticeState | undefined | null): PracticeState
+- payloadPlayer · function · L94-L101 — function payloadPlayer(payload: Record<string, unknown> | undefined): string | null
+- credit · function · L103-L126 — function credit( state: PracticeState, trackId: PracticeTrackId, unit: string, recognitionUnit?: string, ): PracticeState
+- creditsFromEvent · function · L129-L186 — function creditsFromEvent( ev: PracticeEvent, opts: { actingPlayerId?: string; trades?: Record<string, PracticeTrade>; } = {}, ): PracticeEventCredit[]
+- PracticeCredit · type · L188-L193 — type PracticeCredit = { track_id: PracticeTrackId; unit: string; recognition_unit?: string; party_id?: string; };
+- PracticeEventCredit · type · L195-L195 — type PracticeEventCredit = PracticeCredit & { player_id: string };
+- applyPracticeCredits · function · L197-L228 — function applyPracticeCredits( state: PracticeState | undefined, credits: PracticeCredit[], cycle?: number, ): PracticeState
+- isTrackRecognized · function · L245-L249 — function isTrackRecognized(state: PracticeState | undefined | null, trackId: PracticeTrackId): boolean
+- isTrackLatent · function · L251-L262 — function isTrackLatent( state: PracticeState | undefined | null, trackId: PracticeTrackId, now: number, ): boolean
+- isRecognizedEngineer · function · L264-L267 — function isRecognizedEngineer(state: PracticeState | undefined | null): boolean
+- hasRepairedEntity · function · L269-L273 — function hasRepairedEntity(state: PracticeState | undefined | null, entityId: string): boolean
+- canOverhaul · function · L275-L277 — function canOverhaul(state: PracticeState | undefined | null, now = 0): boolean
+- repairConditionDelta · function · L279-L292 — function repairConditionDelta( state: PracticeState | undefined | null, entityId: string, now = 0, ): { delta: 15 | 20; bonus: 0 | 5 }
+- practiceLines · function · L294-L310 — function practiceLines(state: PracticeState | undefined | null, now = 0): string[]
+- titleHandle · function · L313-L320 — function titleHandle(handle?: string | null, playerId?: string | null): string | undefined
+- publicTitleLine · function · L323-L339 — function publicTitleLine( handle: string | undefined | null, state: PracticeState | undefined | null, now = 0, playerId?: string | null, ): string | undefined
+- publicTitleLines · function · L341-L349 — function publicTitleLines( handle: string | undefined | null, state: PracticeState | undefined | null, now = 0, playerId?: string | null, ): string[]
+- trackMaintained · function · L351-L357 — function trackMaintained( state: PracticeState | undefined | null, trackId: PracticeTrackId, now: number, ): boolean
+- hasVisitedRoom · function · L359-L362 — function hasVisitedRoom(state: PracticeState | undefined | null, roomId: string): boolean
+- hasSurveyedEntity · function · L364-L367 — function hasSurveyedEntity(state: PracticeState | undefined | null, entityId: string): boolean
+- hasBrokeredWith · function · L369-L372 — function hasBrokeredWith(state: PracticeState | undefined | null, otherId: string): boolean
+- lookAttentionCost · function · L374-L381 — function lookAttentionCost( state: PracticeState | undefined | null, roomId: string, now: number, ): Partial<{ attention: number }>
+- inspectAttentionCost · function · L383-L390 — function inspectAttentionCost( state: PracticeState | undefined | null, entityId: string, now: number, ): Partial<{ attention: number }>
+- brokerWaivesCaution · function · L392-L398 — function brokerWaivesCaution( state: PracticeState | undefined | null, otherId: string, now: number, ): boolean

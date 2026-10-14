@@ -1,0 +1,68 @@
+# clients/noema-llm-agent/src/noema_llm_agent/protocol.py
+
+- _rid · function · L29-L30 — def _rid() -> str
+- _redact · function · L33-L36 — def _redact(text: str, token: str | None) -> str
+- derive_ws_url · function · L39-L51 — def derive_ws_url(endpoint: str) -> str
+- derive_http_origin · function · L54-L63 — def derive_http_origin(endpoint: str) -> str
+- ProtocolClient · class · L66-L148 — class ProtocolClient(ABC)
+- __init__ · method · L69-L79 — def __init__(self) -> None
+- store_resume_token · method · L81-L85 — def store_resume_token(self, token: Any) -> None
+- connect · method · L88-L88 — async def connect(self) -> None
+- hello · method · L91-L91 — async def hello(self) -> Envelope
+- auth · method · L94-L94 — async def auth(self, access_token: str) -> Envelope
+- register · method · L97-L97 — async def register(self, manifest: dict[str, Any] | None = None) -> Envelope
+- enter_world · method · L100-L100 — async def enter_world(self, world_id: str | None = None) -> ActResult
+- observe · method · L103-L103 — async def observe(self) -> Observation
+- act · method · L106-L113 — async def act( self, action: str, arguments: dict[str, Any] | None = None, *, target_id: str | None = None, idempotency_key: str | None = None, ) -> ActResult
+- disconnect · method · L116-L116 — async def disconnect(self) -> None
+- next_observation · method · L118-L119 — async def next_observation(self) -> Observation
+- next_mutating_meta · method · L121-L125 — def next_mutating_meta(self, idempotency_key: str | None = None) -> tuple[int, str]
+- envelope · method · L127-L148 — def envelope(self, typ: str, body: dict[str, Any], *, mutating: bool = False, idempotency_key: str | None = None) -> Envelope
+- LocalMockClient · class · L151-L236 — class LocalMockClient(ProtocolClient)
+- __init__ · method · L154-L159 — def __init__(self) -> None
+- connect · method · L161-L163 — async def connect(self) -> None
+- hello · method · L165-L170 — async def hello(self) -> Envelope
+- auth · method · L172-L187 — async def auth(self, access_token: str) -> Envelope
+- register · method · L189-L192 — async def register(self, manifest: dict[str, Any] | None = None) -> Envelope
+- _observation · method · L194-L205 — def _observation(self) -> Observation
+- enter_world · method · L207-L211 — async def enter_world(self, world_id: str | None = None) -> ActResult
+- observe · method · L213-L214 — async def observe(self) -> Observation
+- act · method · L216-L232 — async def act( self, action: str, arguments: dict[str, Any] | None = None, *, target_id: str | None = None, idempotency_key: str | None = None, ) -> ActResult
+- disconnect · method · L234-L236 — async def disconnect(self) -> None
+- HttpProtocolClient · class · L239-L378 — class HttpProtocolClient(ProtocolClient)
+- __init__ · method · L242-L247 — def __init__(self, origin: str, *, token: str | None = None, timeout: float = 30.0) -> None
+- connect · method · L249-L250 — async def connect(self) -> None
+- _post · method · L252-L272 — async def _post(self, path: str, payload: dict[str, Any], *, bearer: bool = False) -> Envelope
+- _wait_rate · method · L274-L277 — async def _wait_rate(self) -> None
+- hello · method · L279-L288 — async def hello(self) -> Envelope
+- auth · method · L290-L306 — async def auth(self, access_token: str) -> Envelope
+- register · method · L308-L319 — async def register(self, manifest: dict[str, Any] | None = None) -> Envelope
+- enter_world · method · L321-L324 — async def enter_world(self, world_id: str | None = None) -> ActResult
+- observe · method · L326-L330 — async def observe(self) -> Observation
+- act · method · L332-L374 — async def act( self, action: str, arguments: dict[str, Any] | None = None, *, target_id: str | None = None, idempotency_key: str | None = None, ) -> ActResult
+- disconnect · method · L376-L378 — async def disconnect(self) -> None
+- WebSocketProtocolClient · class · L381-L698 — class WebSocketProtocolClient(ProtocolClient)
+- __init__ · method · L384-L412 — def __init__( self, url: str, *, token: str | None = None, heartbeat_interval: float = 25.0, max_reconnects: int = 8, ws_factory: WsFactory | None = None, log: Callable[[str], None] | None = None, resume: bool = True, ) -> None
+- _info · method · L414-L415 — def _info(self, msg: str) -> None
+- connect · method · L417-L419 — async def connect(self) -> None
+- _open_socket · method · L421-L431 — async def _open_socket(self) -> None
+- _send · method · L433-L436 — async def _send(self, msg: Envelope) -> None
+- _read_loop · method · L438-L461 — async def _read_loop(self) -> None
+- _dispatch · method · L463-L482 — async def _dispatch(self, msg: Envelope) -> None
+- _flush_obs · method · L484-L497 — def _flush_obs(self) -> None
+- _deliver_obs · method · L499-L505 — def _deliver_obs(self, obs: Observation) -> None
+- _heartbeat_loop · method · L507-L524 — async def _heartbeat_loop(self) -> None
+- _force_close · method · L526-L532 — async def _force_close(self) -> None
+- _request · method · L534-L545 — async def _request(self, msg: Envelope, timeout: float = 30.0) -> Envelope
+- hello · method · L547-L557 — async def hello(self) -> Envelope
+- auth · method · L559-L572 — async def auth(self, access_token: str) -> Envelope
+- register · method · L574-L584 — async def register(self, manifest: dict[str, Any] | None = None) -> Envelope
+- enter_world · method · L586-L589 — async def enter_world(self, world_id: str | None = None) -> ActResult
+- observe · method · L591-L603 — async def observe(self) -> Observation
+- next_observation · method · L605-L616 — async def next_observation(self) -> Observation
+- act · method · L618-L646 — async def act( self, action: str, arguments: dict[str, Any] | None = None, *, target_id: str | None = None, idempotency_key: str | None = None, ) -> ActResult
+- reconnect · method · L648-L671 — async def reconnect(self) -> None
+- _cancel_bg · method · L673-L678 — async def _cancel_bg(self) -> None
+- disconnect · method · L680-L694 — async def disconnect(self) -> None
+- ensure · method · L696-L698 — async def ensure(self) -> None
+- connect_protocol · function · L701-L751 — async def connect_protocol( endpoint: str, *, transport: str = "auto", token: str | None = None, heartbeat_interval: float = 25.0, max_reconnects: int = 8, ws_factory: WsFactory | None = None, resume: bool = True, ) -> ProtocolClient

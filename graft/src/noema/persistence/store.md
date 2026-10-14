@@ -1,0 +1,85 @@
+# src/noema/persistence/store.py
+
+- is_postgres_url · function · L27-L29 — def is_postgres_url(value: str | Path) -> bool
+- open_store · function · L32-L34 — def open_store(path_or_url: Path | str = ":memory:") -> "WorldStore"
+- _normalize_pg_dsn · function · L37-L49 — def _normalize_pg_dsn(url: str) -> str
+- WorldStore · class · L52-L1360 — class WorldStore
+- __init__ · method · L55-L72 — def __init__(self, path: Path | str = ":memory:")
+- _connect_postgres · method · L74-L85 — def _connect_postgres(self, url: str) -> Any
+- _sql · method · L89-L92 — def _sql(self, statement: str) -> str
+- _execute · method · L94-L95 — def _execute(self, sql: str, params: tuple[Any, ...] | list[Any] = ()) -> Any
+- _executemany · method · L97-L98 — def _executemany(self, sql: str, seq: list[tuple[Any, ...]]) -> Any
+- _begin_write · method · L100-L105 — def _begin_write(self) -> None
+- _commit · method · L107-L113 — def _commit(self) -> None
+- _pg_in_transaction · method · L115-L125 — def _pg_in_transaction(self) -> bool: # psycopg TransactionStatus: 0=IDLE, 1=ACTIVE, 2=INTRANS, 3=INERROR, 4=UNKNOWN
+- _rollback · method · L127-L135 — def _rollback(self) -> None
+- _upsert · method · L137-L155 — def _upsert( self, table: str, pk: str, columns: list[str], values: tuple[Any, ...], *, cur: Any | None = None, ) -> None
+- _init_schema · method · L157-L373 — def _init_schema(self) -> None
+- _claim_writer · method · L375-L380 — def _claim_writer(self) -> None
+- close · method · L382-L384 — def close(self) -> None
+- ready · method · L387-L388 — def ready(self) -> bool
+- has_started_world · method · L390-L393 — def has_started_world(self) -> bool
+- committed_event_count · method · L395-L400 — def committed_event_count(self) -> int
+- load_from_seed · method · L402-L419 — def load_from_seed(self, seed_path: Path | str, *, world_id: str | None = None) -> WorldState
+- rehydrate_from_db · method · L421-L453 — def rehydrate_from_db(self, seed_path: Path | str | None = None) -> WorldState
+- _get_meta · method · L455-L457 — def _get_meta(self, key: str) -> str | None
+- get_state · method · L459-L463 — def get_state(self) -> WorldState
+- commit_cycle · method · L465-L493 — def commit_cycle( self, new_state: WorldState, events: list[dict[str, Any]], *, snapshot: bool = False, max_retries: int = 3, ) -> dict[str, Any]
+- _commit_cycle_once · method · L495-L573 — def _commit_cycle_once( self, new_state: WorldState, events: list[dict[str, Any]], *, snapshot: bool, ) -> dict[str, Any]
+- ledger_head · method · L575-L580 — def ledger_head(self) -> str | None
+- list_events · method · L582-L588 — def list_events(self, *, after_sequence: int = 0, limit: int = 100) -> list[dict[str, Any]]
+- identity_upsert_account · method · L592-L605 — def identity_upsert_account(self, row: dict[str, Any]) -> None
+- identity_get_account_by_subject · method · L607-L613 — def identity_get_account_by_subject(self, subject: str) -> dict[str, Any] | None
+- identity_upsert_player · method · L615-L639 — def identity_upsert_player(self, row: dict[str, Any]) -> None
+- identity_get_player · method · L641-L647 — def identity_get_player(self, player_id: str) -> dict[str, Any] | None
+- identity_list_players · method · L649-L655 — def identity_list_players(self, account_id: str) -> list[dict[str, Any]]
+- identity_upsert_controller · method · L657-L681 — def identity_upsert_controller(self, row: dict[str, Any]) -> None
+- identity_get_controller · method · L683-L689 — def identity_get_controller(self, controller_id: str) -> dict[str, Any] | None
+- identity_list_controllers · method · L691-L697 — def identity_list_controllers(self, player_id: str) -> list[dict[str, Any]]
+- identity_upsert_credential · method · L699-L725 — def identity_upsert_credential(self, row: dict[str, Any]) -> None
+- identity_get_credential_by_fingerprint · method · L727-L733 — def identity_get_credential_by_fingerprint(self, fingerprint: str) -> dict[str, Any] | None
+- identity_revoke_credentials_for_controller · method · L735-L743 — def identity_revoke_credentials_for_controller(self, controller_id: str) -> None
+- identity_upsert_device_code · method · L745-L782 — def identity_upsert_device_code(self, row: dict[str, Any]) -> None
+- identity_get_device_by_code · method · L784-L790 — def identity_get_device_by_code(self, device_code: str) -> dict[str, Any] | None
+- identity_get_device_by_user_code · method · L792-L798 — def identity_get_device_by_user_code(self, user_code: str) -> dict[str, Any] | None
+- _device_row · method · L801-L813 — def _device_row(r: Any) -> dict[str, Any]
+- save_session · method · L815-L839 — def save_session(self, session_id: str, data: dict[str, Any]) -> None
+- load_session · method · L841-L846 — def load_session(self, session_id: str) -> dict[str, Any] | None
+- list_sessions · method · L848-L862 — def list_sessions(self, *, limit: int = 100) -> list[dict[str, Any]]
+- verify_consistency · method · L864-L902 — def verify_consistency(self) -> list[str]
+- save_trajectory · method · L906-L928 — def save_trajectory(self, record: dict[str, Any]) -> None
+- list_trajectories · method · L930-L935 — def list_trajectories(self) -> list[dict[str, Any]]
+- save_frontier_plan · method · L937-L949 — def save_frontier_plan(self, plan: dict[str, Any]) -> None
+- save_frontier_audit · method · L951-L964 — def save_frontier_audit(self, record: dict[str, Any]) -> None
+- list_frontier_audit · method · L966-L977 — def list_frontier_audit(self, request_id: str | None = None) -> list[dict[str, Any]]
+- get_frontier_audit · method · L979-L984 — def get_frontier_audit(self, digest: str) -> dict[str, Any] | None
+- save_observatory_run · method · L986-L994 — def save_observatory_run(self, run: dict[str, Any]) -> None
+- save_observatory_candidate · method · L996-L1005 — def save_observatory_candidate(self, kind: str, analysis_run_id: str, candidate: dict[str, Any]) -> None
+- save_observatory_audit · method · L1007-L1020 — def save_observatory_audit(self, record: dict[str, Any]) -> None
+- list_observatory_candidates · method · L1022-L1033 — def list_observatory_candidates(self, kind: str | None = None) -> list[dict[str, Any]]
+- list_observatory_runs · method · L1035-L1038 — def list_observatory_runs(self) -> list[dict[str, Any]]
+- clear_research_indexes · method · L1040-L1060 — def clear_research_indexes(self) -> None
+- save_learn_behavior · method · L1062-L1070 — def save_learn_behavior(self, node: dict[str, Any]) -> None
+- save_learn_edge · method · L1072-L1080 — def save_learn_edge(self, edge: dict[str, Any]) -> None
+- save_learn_graph · method · L1082-L1090 — def save_learn_graph(self, graph: dict[str, Any]) -> None
+- list_learn_behaviors · method · L1092-L1095 — def list_learn_behaviors(self) -> list[dict[str, Any]]
+- list_learn_edges · method · L1097-L1100 — def list_learn_edges(self) -> list[dict[str, Any]]
+- save_compiler_result · method · L1102-L1114 — def save_compiler_result(self, result: dict[str, Any]) -> None
+- save_captured_test · method · L1116-L1124 — def save_captured_test(self, captured: dict[str, Any]) -> None
+- save_compiler_audit · method · L1126-L1138 — def save_compiler_audit(self, record: dict[str, Any]) -> None
+- list_captured_tests · method · L1140-L1143 — def list_captured_tests(self) -> list[dict[str, Any]]
+- list_compiler_results · method · L1145-L1148 — def list_compiler_results(self) -> list[dict[str, Any]]
+- save_lab_experiment · method · L1150-L1158 — def save_lab_experiment(self, experiment: dict[str, Any]) -> None
+- save_lab_result · method · L1160-L1172 — def save_lab_result(self, result: dict[str, Any]) -> None
+- save_lab_audit · method · L1174-L1186 — def save_lab_audit(self, record: dict[str, Any]) -> None
+- list_lab_results · method · L1188-L1191 — def list_lab_results(self) -> list[dict[str, Any]]
+- dump_meta · method · L1195-L1198 — def dump_meta(self) -> dict[str, str]
+- list_snapshots · method · L1200-L1219 — def list_snapshots(self) -> list[dict[str, Any]]
+- event_count · method · L1221-L1224 — def event_count(self) -> int
+- list_event_rows · method · L1226-L1244 — def list_event_rows(self) -> list[dict[str, Any]]
+- schema_tables_present · method · L1246-L1264 — def schema_tables_present(self) -> list[str]
+- clear_canonical · method · L1266-L1280 — def clear_canonical(self) -> None
+- import_canonical · method · L1282-L1345 — def import_canonical( self, *, meta: dict[str, str], events: list[dict[str, Any]], snapshots: list[dict[str, Any]], ) -> None
+- _set_meta · method · L1347-L1352 — def _set_meta(self, key: str, value: str, cur: Any | None = None) -> None
+- _serialize_state · method · L1354-L1360 — def _serialize_state(self, state: WorldState) -> dict[str, Any]
+- _is_serialization_failure · function · L1363-L1373 — def _is_serialization_failure(exc: BaseException) -> bool

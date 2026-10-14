@@ -1,0 +1,59 @@
+# workers/noema/src/device-enrollment.ts
+
+- DeviceStatus · type · L24-L24 — type DeviceStatus = "pending" | "approved" | "denied" | "expired" | "redeemed";
+- DeviceRecord · type · L26-L54 — type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, …). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };
+- DeviceStore · interface · L56-L61 — interface DeviceStore
+- memoryDeviceStore · function · L63-L87 — function memoryDeviceStore(seed: DeviceRecord[] = []): DeviceStore
+- put · method · L66-L68 — async put(rec)
+- getByDeviceCode · method · L69-L72 — async getByDeviceCode(code)
+- getByUserCode · method · L73-L79 — async getByUserCode(userCode)
+- getByReviewTokenHash · method · L80-L85 — async getByReviewTokenHash(hash)
+- parseDeviceRecord · function · L90-L100 — function parseDeviceRecord(data: unknown): DeviceRecord | null
+- durableDeviceStore · function · L102-L128 — function durableDeviceStore(env: Env): DeviceStore
+- put · method · L105-L108 — async put(rec)
+- getByDeviceCode · method · L109-L114 — async getByDeviceCode(deviceCode)
+- getByUserCode · method · L115-L120 — async getByUserCode(userCode)
+- getByReviewTokenHash · method · L121-L126 — async getByReviewTokenHash(hash)
+- normalizeOwnerEmail · function · L130-L136 — function normalizeOwnerEmail(raw: unknown): string | null
+- normalizeUserCode · function · L138-L142 — function normalizeUserCode(raw: string): string
+- filterGameScopes · function · L145-L148 — function filterGameScopes(_input?: string[]): string[]
+- hashDeviceSecret · function · L150-L153 — async function hashDeviceSecret(value: string): Promise<string>
+- randomUserCode · function · L155-L160 — function randomUserCode(): string
+- randomDeviceCode · function · L162-L166 — function randomDeviceCode(): string
+- randomReviewToken · function · L168-L172 — function randomReviewToken(): string
+- reviewSecret · function · L174-L176 — function reviewSecret(env: Env): string | null
+- deviceReviewEmailReady · function · L179-L181 — function deviceReviewEmailReady(env: Env): boolean
+- hashReviewToken · function · L183-L187 — async function hashReviewToken(env: Env, token: string): Promise<string | null>
+- verificationUri · function · L189-L192 — function verificationUri(env: Env, req: Request): string
+- allocateDeviceControllerId · function · L194-L196 — function allocateDeviceControllerId(): string
+- playerIdFromDeviceController · function · L199-L203 — function playerIdFromDeviceController(controllerId: string): string | null
+- AgentEnrollmentRequest · type · L209-L214 — type AgentEnrollmentRequest = { label: string; runtime?: string; scopes?: string[]; owner_email?: string; };
+- AgentEnrollmentReceipt · type · L216-L223 — type AgentEnrollmentReceipt = { label: string; controller_id: string; player_id: string | null; /** Opaque binding digest for Gate B evidence. sha256 of controller_id. */ controller_binding_digest: string; status: "PENDING" | "DUPLICATE" | "CONTENTION"; };
+- DeviceApprovalReceipt · type · L225-L234 — type DeviceApprovalReceipt = { /** Device-flow acknowledgment fields; the cohort runner owns its full run receipt. */ approved: true; enrollment_status: "COMPLETE"; controller_id: string; player_id: string; approval_receipt: string; independent_control_receipt: string; controller_binding_digest: string; };
+- BatchEnrollmentResult · type · L236-L240 — type BatchEnrollmentResult = { receipts: AgentEnrollmentReceipt[]; /** Controllers that share a controller_id (should never happen; fail-closed). */ contention: string[]; };
+- requestAgentEnrollment · function · L252-L282 — async function requestAgentEnrollment( requests: AgentEnrollmentRequest[], ): Promise<BatchEnrollmentResult>
+- verifyEnrollmentIndependence · function · L289-L319 — function verifyEnrollmentIndependence( result: BatchEnrollmentResult, count = 3, ): { ok: boolean; reason?: string }
+- sha256Hex · function · L321-L326 — async function sha256Hex(input: string): Promise<string>
+- randomOpaqueReceipt · function · L328-L330 — function randomOpaqueReceipt(prefix: string): string
+- approvalReceiptFor · function · L332-L346 — function approvalReceiptFor( rec: DeviceRecord, controller_id: string, player_id: string, ): DeviceApprovalReceipt
+- approvalFields · function · L348-L358 — function approvalFields(receipt: DeviceApprovalReceipt, approved_at: string): Pick< DeviceRecord, "approval_receipt" | "independent_control_receipt" | "controller_binding_digest" | "approved_at" >
+- verifyApprovedDeviceEnrollments · function · L366-L416 — async function verifyApprovedDeviceEnrollments( records: readonly DeviceRecord[], count = 3, ): Promise<{ ok: boolean; reason?: string }>
+- startDeviceEnrollment · function · L418-L491 — async function startDeviceEnrollment( env: Env, req: Request, body: { metadata?: { runtime?: string }; scopes?: string[]; owner_email?: string }, opts?: { store?: DeviceStore; now?: number; fetchImpl?: typeof fetch }, ): Promise<Response>
+- reviewRecord · function · L493-L501 — async function reviewRecord(env: Env, store: DeviceStore, token?: string): Promise<DeviceRecord | Response>
+- escapeHtml · function · L503-L505 — function escapeHtml(value: string): string
+- reviewDevicePage · function · L507-L532 — async function reviewDevicePage(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response>
+- reviewTokenFromRequest · function · L534-L549 — async function reviewTokenFromRequest(req: Request): Promise<string | undefined>
+- approveDeviceReview · function · L551-L573 — async function approveDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response>
+- denyDeviceReview · function · L575-L585 — async function denyDeviceReview(env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }): Promise<Response>
+- effectiveDeviceStatus · function · L587-L590 — async function effectiveDeviceStatus(rec: DeviceRecord, now: number): Promise<DeviceStatus>
+- previewDevice · function · L592-L611 — async function previewDevice( env: Env, req: Request, opts?: { store?: DeviceStore; now?: number }, ): Promise<Response>
+- DeviceApprover · type · L613-L613 — type DeviceApprover = Principal | AdminPrincipal;
+- isAdminApprover · function · L615-L617 — function isAdminApprover(approver: DeviceApprover): approver is AdminPrincipal
+- isHumanApprover · function · L619-L621 — function isHumanApprover(approver: DeviceApprover): approver is HumanPrincipal
+- canHumanApprove · function · L623-L627 — function canHumanApprove(principal: Principal): boolean
+- approvalActor · function · L629-L637 — function approvalActor(approver: DeviceApprover): Pick<DeviceRecord, "approver_id" | "approver_amr">
+- blocksCrossAccountDeny · function · L639-L642 — function blocksCrossAccountDeny(rec: DeviceRecord, approver: DeviceApprover): boolean
+- requireDeviceApprover · function · L644-L651 — async function requireDeviceApprover(req: Request, env: Env): Promise<DeviceApprover | Response>
+- approveDevice · function · L653-L692 — async function approveDevice( env: Env, req: Request, body: { user_code?: string }, opts?: { store?: DeviceStore; now?: number }, ): Promise<Response>
+- denyDevice · function · L694-L713 — async function denyDevice( env: Env, req: Request, body: { user_code?: string }, opts?: { store?: DeviceStore; now?: number }, ): Promise<Response>
+- pollDeviceToken · function · L715-L762 — async function pollDeviceToken( env: Env, req: Request, body: { device_code?: string }, opts?: { store?: DeviceStore; now?: number }, ): Promise<Response>

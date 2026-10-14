@@ -1,0 +1,27 @@
+# workers/noema/src/jwt.ts
+
+- JwtError · class · L3-L8 — class JwtError extends Error
+- constructor · method · L4-L7 — constructor(message: string)
+- JwtHeader · type · L10-L10 — type JwtHeader = Record<string, unknown>;
+- JwtClaims · type · L11-L11 — type JwtClaims = Record<string, unknown>;
+- EcJwk · type · L13-L20 — type EcJwk = { kty: string; crv?: string; kid?: string; alg?: string; x?: string; y?: string; };
+- Jwks · type · L22-L22 — type Jwks = { keys: EcJwk[] };
+- VerifyJwtOptions · type · L24-L34 — type VerifyJwtOptions = { audience?: string; issuer?: string; /** Legacy Supabase / shared-secret HS256. */ hs256Secret?: string; /** Official Supabase JWKS, e.g. https://<project>.supabase.co/auth/v1/.well-known/jwks.json */ jwksUrl?: string; /** Preloaded JWKS (tests). Skips fetch when the kid is present. */ jwks?: Jwks; fetch?: typeof fetch; };
+- JwksCacheEntry · type · L38-L38 — type JwksCacheEntry = { keys: EcJwk[]; fetchedAt: number };
+- resetJwksCache · function · L42-L44 — function resetJwksCache(): void
+- supabaseJwksUrl · function · L46-L48 — function supabaseJwksUrl(supabaseUrl: string): string
+- supabaseIssuer · function · L50-L52 — function supabaseIssuer(supabaseUrl: string): string
+- b64urlDecode · function · L54-L66 — function b64urlDecode(segment: string): Uint8Array
+- b64urlEncode · function · L68-L73 — function b64urlEncode(bytes: ArrayBuffer | Uint8Array): string
+- parseCompact · function · L75-L92 — function parseCompact(token: string): { headerB64: string; payloadB64: string; sigB64: string; header: JwtHeader; payload: JwtClaims; }
+- assertClaims · function · L94-L108 — function assertClaims(payload: JwtClaims, opts?: { audience?: string; issuer?: string }): void
+- importHmacKey · function · L110-L118 — async function importHmacKey(secret: string): Promise<CryptoKey>
+- verifyHs256 · function · L120-L135 — async function verifyHs256( token: string, secret: string, opts?: { audience?: string; issuer?: string }, ): Promise<JwtClaims>
+- mintHs256 · function · L137-L148 — async function mintHs256( claims: Record<string, unknown>, secret: string, ): Promise<string>
+- mintEs256 · function · L150-L161 — async function mintEs256( claims: Record<string, unknown>, privateKey: CryptoKey, kid: string, ): Promise<string>
+- generateEs256Pair · function · L163-L179 — async function generateEs256Pair(): Promise<{ privateKey: CryptoKey; publicJwk: EcJwk; kid: string; }>
+- importEs256Jwk · function · L181-L195 — async function importEs256Jwk(jwk: EcJwk): Promise<CryptoKey>
+- verifyEs256WithJwk · function · L197-L208 — async function verifyEs256WithJwk( headerB64: string, payloadB64: string, sigB64: string, jwk: EcJwk, ): Promise<boolean>
+- fetchJwks · function · L210-L225 — async function fetchJwks(url: string, fetchImpl: typeof fetch): Promise<EcJwk[]>
+- resolveJwk · function · L227-L251 — async function resolveJwk( kid: string, opts: VerifyJwtOptions, ): Promise<EcJwk>
+- verifyJwt · function · L257-L277 — async function verifyJwt(token: string, opts: VerifyJwtOptions = {}): Promise<JwtClaims>

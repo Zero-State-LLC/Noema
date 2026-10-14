@@ -1,0 +1,23 @@
+# workers/noema/src/rumor.ts
+
+- ClaimOriginClass · type · L11-L11 — type ClaimOriginClass = "PLAYER_MESSAGE" | "INSTITUTION_NOTICE" | "RECONSTRUCTION";
+- ClaimVisibility · type · L12-L12 — type ClaimVisibility = "PRIVATE" | "INSTITUTIONAL" | "PUBLIC";
+- ClaimEpistemic · type · L13-L13 — type ClaimEpistemic = "REPORTED" | "CORROBORATED" | "CONTESTED" | "STALE";
+- ClaimRecord · type · L15-L25 — type ClaimRecord = { claim_id: string; originator_ref: string; subject_ref?: string; content: string; created_cycle: number; derived_from?: string; origin_class: ClaimOriginClass; visibility: ClaimVisibility; origin_claim_id: string; };
+- TransmissionRecord · type · L27-L35 — type TransmissionRecord = { transmission_id: string; claim_id: string; sender_ref: string; recipient_ref: string; message_id: string; parent_transmission_id?: string; received_cycle: number; };
+- RumorState · type · L37-L42 — type RumorState = { catalog_id: typeof RUMOR_CATALOG_ID; claims: Record<string, ClaimRecord>; transmissions: TransmissionRecord[]; holders: Record<string, string[]>; };
+- emptyRumor · function · L44-L46 — function emptyRumor(): RumorState
+- ensureRumor · function · L48-L56 — function ensureRumor(raw: RumorState | undefined | null): RumorState
+- normalizeClaimText · function · L58-L60 — function normalizeClaimText(text: string): string
+- allocateClaimId · function · L62-L64 — function allocateClaimId(): string
+- holdsClaim · function · L66-L68 — function holdsClaim(state: RumorState, playerId: string, claimId: string): boolean
+- grantHold · function · L70-L73 — function grantHold(state: RumorState, playerId: string, claimId: string): void
+- rememberClaim · function · L75-L78 — function rememberClaim(state: RumorState, claim: ClaimRecord, holderId: string): void
+- recordTransmission · function · L80-L84 — function recordTransmission(state: RumorState, tx: TransmissionRecord): void
+- latestTransmissionTo · function · L86-L94 — function latestTransmissionTo( state: RumorState, claimId: string, recipientId: string, ): TransmissionRecord | undefined
+- resolveRetell · function · L96-L129 — function resolveRetell( state: RumorState, senderId: string, parentClaimId: string | undefined, text: string, cycle: number, ): | { ok: true; claim: ClaimRecord; same_claim: boolean; derived: boolean } | { ok: false; code: "NOT_FOUND" }
+- epistemicFor · function · L131-L145 — function epistemicFor( state: RumorState, claim: ClaimRecord, cycle: number, ): ClaimEpistemic
+- independentSourceCount · function · L147-L152 — function independentSourceCount(state: RumorState, claimId: string): number
+- rumorLines · function · L154-L179 — function rumorLines( state: RumorState | undefined | null, playerId: string, cycle: number, handles: Record<string, string | undefined>, ): string[]
+- publicRumorPulses · function · L181-L204 — function publicRumorPulses(state: RumorState | undefined | null): string[]
+- ClaimPayload · type · L206-L217 — type ClaimPayload = { claim_id: string; originator_ref: string; subject_ref?: string; content: string; created_cycle: number; derived_from?: string; origin_class: ClaimOriginClass; visibility: ClaimVisibility; origin_claim_id: string; parent_transmission_id?: string; };

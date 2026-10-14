@@ -1,0 +1,22 @@
+# workers/noema/src/construction.ts
+
+- ConstructibleClass · type · L20-L20 — type ConstructibleClass = (typeof CONSTRUCTIBLE_CLASSES)[number];
+- ConstructionCost · type · L22-L27 — type ConstructionCost = { energy?: number; compute?: number; storage?: number; influence?: number; };
+- isConstructibleClass · function · L58-L60 — function isConstructibleClass(raw: string | undefined | null): raw is ConstructibleClass
+- parseConstructibleClass · function · L63-L78 — function parseConstructibleClass(raw: string): ConstructibleClass | null
+- InfraLike · type · L80-L87 — type InfraLike = { entity_id: string; label: string; entity_type?: string; infra_type?: string; upgrade_tier?: number; in_progress?: boolean; };
+- infraClassOf · function · L94-L107 — function infraClassOf(e: InfraLike): ConstructibleClass | null
+- liveClassInRoom · function · L109-L111 — function liveClassInRoom(entities: InfraLike[], classId: ConstructibleClass): boolean
+- readyClassInRoom · function · L114-L116 — function readyClassInRoom(entities: InfraLike[], classId: ConstructibleClass): boolean
+- isMultiCycleClass · function · L140-L142 — function isMultiCycleClass(classId: ConstructibleClass | null | undefined): boolean
+- isInProgress · function · L153-L155 — function isInProgress(entity: { in_progress?: boolean } | null | undefined): boolean
+- shouldAbandon · function · L157-L165 — function shouldAbandon( entity: InfraLike & { unclaimed?: boolean; scar?: boolean; last_steward_cycle?: number }, nowCycle: number, ): boolean
+- workshopStorageDiscount · function · L167-L171 — function workshopStorageDiscount(entities: InfraLike[]): number
+- withWorkshopStorage · function · L173-L178 — function withWorkshopStorage<T extends { storage?: number }>(cost: T, workshop: boolean | number): T
+- withAnnexAttention · function · L182-L186 — function withAnnexAttention<T extends { attention?: number }>(cost: T, hasAnnex: boolean): T
+- isHiddenRoom · function · L188-L192 — function isHiddenRoom(room: { hidden?: boolean; tags?: string[] } | null | undefined): boolean
+- isHiddenEntity · function · L194-L198 — function isHiddenEntity(entity: { hidden?: boolean; tags?: string[] } | null | undefined): boolean
+- allocateInfraId · function · L200-L203 — function allocateInfraId(classId: ConstructibleClass): string
+- scarFromDismantle · function · L205-L220 — function scarFromDismantle(classId: ConstructibleClass): { entity_id: string; label: string; entity_type: "RUIN"; condition: number; scar: true; }
+- constructLabel · function · L223-L225 — function constructLabel(classId: ConstructibleClass): string
+- clampSalvage · function · L227-L235 — function clampSalvage( currentStorage: number, salvage: number, capacity = STORAGE_CAPACITY, ): { added: number; overflow: number; next: number }

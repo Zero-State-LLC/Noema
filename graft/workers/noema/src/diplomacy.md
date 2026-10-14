@@ -1,0 +1,22 @@
+# workers/noema/src/diplomacy.ts
+
+- AgreementType · type · L28-L28 — type AgreementType = (typeof AGREEMENT_TYPES)[number];
+- AgreementReason · type · L29-L29 — type AgreementReason = (typeof AGREEMENT_REASONS)[number];
+- AgreementStatus · type · L30-L30 — type AgreementStatus = "OFFERED" | "ACTIVE" | "BROKEN";
+- agreementNoun · function · L41-L43 — function agreementNoun(type: AgreementType | string | undefined): string
+- agreementWithdrawLine · function · L46-L48 — function agreementWithdrawLine(type: AgreementType | string | undefined): string
+- agreementBrokenLine · function · L51-L57 — function agreementBrokenLine( type: AgreementType | string | undefined, agreementId: string, ): string
+- AgreementTerms · type · L59-L74 — type AgreementTerms = { machine: { preferential_trade?: boolean; forbidden_contest_forms?: string[]; access_exit_ids?: string[]; access_room_ids?: string[]; resource_commitments?: Array<{ from_id: string; to_id: string; resource: string; amount: number; by_cycle: number; }>; defense_support_millipoints?: number; }; };
+- FormalAgreement · type · L76-L86 — type FormalAgreement = { agreement_id: string; agreement_type: AgreementType; party_ids: string[]; status: AgreementStatus; offered_by: string; cost_payer_id: string; formed_cycle?: number; visibility: "PUBLIC"; terms?: AgreementTerms; };
+- parseAgreementType · function · L88-L99 — function parseAgreementType(raw: string): AgreementType | null
+- pairKey · function · L101-L103 — function pairKey(a: string, b: string): string
+- samePair · function · L105-L109 — function samePair(partyIds: string[] | undefined, a: string, b: string): boolean
+- allocateAgreementId · function · L111-L114 — function allocateAgreementId(seq?: number, cycle?: number, subject?: string): string
+- allocateBreachId · function · L116-L118 — function allocateBreachId(seq?: number, cycle?: number, subject?: string): string
+- parseAgreementReason · function · L120-L127 — function parseAgreementReason(raw: string): AgreementReason | null
+- defaultTerms · function · L129-L154 — function defaultTerms( type: AgreementType, ctx: { offerer_id: string; other_id: string; room_id: string; cycle: number }, ): AgreementTerms
+- activePublic · function · L156-L158 — function activePublic(agreements: FormalAgreement[] | undefined): FormalAgreement[]
+- accessException · function · L160-L174 — function accessException( agreements: Record<string, FormalAgreement> | undefined, playerId: string, roomId: string, exitId?: string, ): boolean
+- forbiddenByNonAggression · function · L176-L186 — function forbiddenByNonAggression( agreements: Record<string, FormalAgreement> | undefined, playerId: string, form: string, ): FormalAgreement[]
+- defenseSupportFor · function · L188-L200 — function defenseSupportFor( agreements: Record<string, FormalAgreement> | undefined, defenderId: string | undefined, ): number
+- missedCommitments · function · L202-L210 — function missedCommitments( agreements: Record<string, FormalAgreement> | undefined, cycle: number, ): FormalAgreement[]

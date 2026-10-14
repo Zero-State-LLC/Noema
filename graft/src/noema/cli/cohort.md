@@ -1,0 +1,50 @@
+# src/noema/cli/cohort.py
+
+- CohortError · class · L151-L152 — class CohortError(ValueError)
+- _canonical · function · L155-L156 — def _canonical(value: Any) -> str
+- _digest · function · L159-L160 — def _digest(value: Any) -> str
+- _file_digest · function · L163-L167 — def _file_digest(path: Path) -> str
+- _atomic_json · function · L170-L198 — def _atomic_json(path: Path, value: Any, *, mode: int = 0o600, overwrite: bool = True) -> None
+- _load_json · function · L201-L210 — def _load_json(path: Path) -> dict[str, Any]
+- _assert_contained · function · L213-L217 — def _assert_contained(path: Path, root: Path) -> None
+- _assert_owned · function · L220-L232 — def _assert_owned(mode_path: Path, *, directory: bool, mode: int) -> os.stat_result
+- _private_dir · function · L235-L241 — def _private_dir(path: Path) -> None
+- _looks_secret_value · function · L244-L281 — def _looks_secret_value(value: str) -> bool
+- _contains_secret_value · function · L284-L294 — def _contains_secret_value(value: Any) -> bool
+- _sanitize_public_value · function · L297-L317 — def _sanitize_public_value(value: Any, path: tuple[str, ...] = ()) -> tuple[Any, list[str]]
+- _public_value · function · L320-L321 — def _public_value(value: Any) -> Any
+- _reject_private_or_secret · function · L324-L339 — def _reject_private_or_secret(value: Any, path: tuple[str, ...] = ()) -> None
+- _render_argv · function · L342-L349 — def _render_argv(argv: list[str], values: dict[str, str]) -> list[str]
+- _validate_public_cli · function · L352-L403 — def _validate_public_cli(argv: list[str], *, mode: str, server: str, world_id: str, config_dir: str) -> None
+- _validate_config · function · L406-L565 — def _validate_config(source: dict[str, Any], *, mode: str, run_dir: Path) -> dict[str, Any]
+- prepare · function · L568-L661 — def prepare(config_path: Path, run_dir: Path, *, mode: str) -> dict[str, Any]
+- _load_manifest · function · L664-L678 — def _load_manifest(run_dir: Path) -> dict[str, Any]
+- _load_state · function · L681-L685 — def _load_state(run_dir: Path) -> dict[str, Any]
+- _pid_start_ticks · function · L688-L692 — def _pid_start_ticks(pid: int) -> int | None
+- _pid_alive · function · L695-L705 — def _pid_alive(pid: int | None, start_ticks: int | None) -> bool
+- _process_environment · function · L718-L751 — def _process_environment(participant: dict[str, Any], *, mode: str) -> dict[str, str]
+- _resolve_executable · function · L754-L764 — def _resolve_executable(argv: list[str], env: dict[str, str]) -> str
+- _StreamDigest · class · L767-L787 — class _StreamDigest
+- __init__ · method · L768-L772 — def __init__(self, stream: BinaryIO) -> None
+- _run · method · L774-L780 — def _run(self) -> None
+- start · method · L782-L783 — def start(self) -> None
+- finish · method · L785-L787 — def finish(self) -> dict[str, Any]
+- _terminate_processes · function · L790-L805 — def _terminate_processes(processes: list[subprocess.Popen[bytes]], *, grace_seconds: float = 2.0) -> None
+- _credential_marker · function · L808-L816 — def _credential_marker(path: Path) -> str | None
+- _jwt_identity · function · L819-L833 — def _jwt_identity(token: str) -> str | None
+- _credential_controller_binding · function · L836-L858 — def _credential_controller_binding(path: Path) -> str
+- bind_device_receipt · function · L861-L941 — def bind_device_receipt(run_dir: Path, *, label: str, receipt_path: Path) -> dict[str, Any]
+- _recheck_private_boundaries · function · L944-L958 — def _recheck_private_boundaries(run_dir: Path, manifest: dict[str, Any], *, live: bool) -> None
+- _baseline_preflight · function · L961-L964 — def _baseline_preflight(manifest: dict[str, Any]) -> tuple[dict[str, Any], list[str]]
+- _load_human_approvals · function · L967-L1045 — def _load_human_approvals(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]
+- classify_receipt · function · L1048-L1063 — def classify_receipt(receipt: dict[str, Any]) -> dict[str, Any]
+- run_cohort · function · L1066-L1312 — def run_cohort( run_dir: Path, *, mode: str, ack: str | None = None, ) -> tuple[int, dict[str, Any]]
+- cohort_status · function · L1315-L1350 — def cohort_status(run_dir: Path) -> dict[str, Any]
+- stop_cohort · function · L1353-L1389 — def stop_cohort(run_dir: Path, *, grace_seconds: float = 2.0) -> dict[str, Any]
+- _participant_evidence · function · L1392-L1412 — def _participant_evidence(participant: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]
+- build_verification · function · L1415-L1591 — def build_verification(run_dir: Path) -> dict[str, Any]
+- verify_cohort · function · L1594-L1597 — def verify_cohort(run_dir: Path) -> tuple[int, dict[str, Any]]
+- build_report · function · L1600-L1613 — def build_report(run_dir: Path) -> dict[str, Any]
+- _print · function · L1616-L1617 — def _print(value: Any) -> None
+- build_parser · function · L1620-L1657 — def build_parser() -> argparse.ArgumentParser
+- main · function · L1660-L1695 — def main(argv: list[str] | None = None) -> int

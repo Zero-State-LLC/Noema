@@ -1,0 +1,21 @@
+# workers/noema/src/reputation.ts
+
+- SignalingStyle · type · L9-L9 — type SignalingStyle = "grounded-first" | "compact" | "verbose";
+- CoEvolutionState · type · L11-L22 — type CoEvolutionState = { harvest_pressure: Record<string, number>; regen_mod: Record<string, number>; protocol_strength: Record<string, number>; protocol_tokens?: Record<string, string[]>; last_evo_cycle?: number; last_quarantine_cycle?: number; /** Deep Time persistence blob (persistDeepTime). Must survive rebuilds. */ deep_time?: unknown; /** Genesis EWM seeds carried into live state (beliefs/styles await G3). */ genesis_seeds?: { initial_beliefs?: Record<string, number>; signaling_styles?: Record<string, string> }; };
+- ensureCoevo · function · L24-L41 — function ensureCoevo(w: { co_evolution?: Partial<CoEvolutionState> | CoEvolutionState }): CoEvolutionState
+- ensureImage · function · L43-L47 — function ensureImage(pl: PlayerRuntime): PlayerRuntime
+- bumpImage · function · L49-L53 — function bumpImage(pl: PlayerRuntime, delta: number): number
+- noteConduct · function · L55-L59 — function noteConduct(actor: PlayerRuntime, targetId: string, delta: number): void
+- secondOrderReputation · function · L62-L78 — function secondOrderReputation( players: Record<string, PlayerRuntime>, playerId: string, ): number
+- refreshSecondOrder · function · L81-L90 — function refreshSecondOrder( players: Record<string, PlayerRuntime>, playerId: string, ): number
+- WorldImageSlice · type · L92-L95 — type WorldImageSlice = { players: Record<string, PlayerRuntime>; co_evolution?: Partial<CoEvolutionState> | CoEvolutionState; };
+- justifiedPunish · function · L99-L132 — function justifiedPunish( w: WorldImageSlice, punisherId: string, targetId: string, roomId: string, ): { ok: boolean; punisher_influence: number; target_image: number; harvest_pressure: number }
+- pressureNow · function · L107-L107 — pressureNow = ()
+- noteGroundedProtocol · function · L135-L176 — function noteGroundedProtocol( w: WorldImageSlice & { cycle?: number; genesis_evolutions?: Array<{ cycle: number; kind: string; details: string; room_id?: string; lineage_id?: string; parent_kind?: string; }>; }, roomId: string, signal: ActionSignal | undefined, ): number
+- markQuarantine · function · L178-L181 — function markQuarantine(w: WorldImageSlice & { cycle?: number }): void
+- compositionality · function · L183-L187 — function compositionality(co: CoEvolutionState | undefined, roomId: string): number
+- AttestSubject · type · L189-L189 — type AttestSubject = { entity_id: string; condition?: number; scar?: boolean };
+- attestOntologyError · function · L192-L215 — function attestOntologyError( roomEntities: AttestSubject[], subjectId: string, claim: "DESTROYED" | "OPERATING", assumptions?: string[], ): string | null
+- liveEdges · function · L217-L243 — function liveEdges(w: { trades?: Record<string, { proposer_id: string; counterparty_id: string; status: string; grounding?: string }>; organizations?: Record<string, { members?: Array<{ agent_id: string }> }>; messages?: Array<{ sender_id?: string; recipient_id?: string; grounding?: string }>; }): InteractionEdge[]
+- semanticAttach · function · L245-L291 — function semanticAttach( w: { players?: Record<string, PlayerRuntime>; trades?: Record<string, { proposer_id: string; counterparty_id: string; status: string }>; organizations?: Record<string, { members?: Array<{ agent_id: string }> }>; messages?: Array<{ sender_id?: string; recipient_id?: string }>; co_evolution?: Partial<CoEvolutionState> | CoEvolutionState; genesis_evolutions?: Array<{ kind: string }>; cycle?: number; }, lookingId?: string, roomId?: string, ): { signaling_quality: number; drift_alerts: string[]; cascading_risk: number; protocol_strength?: number; compositionality?: number; reputation_summary?: { self_image: number; self_second_order: number }; active_norms?: { org_create_influence: number; harvest_pressure: number; last_ratchet?: string }; }
+- signalQuarantineMessage · function · L293-L296 — function signalQuarantineMessage(signal: ActionSignal | undefined): string | null

@@ -1,0 +1,30 @@
+# workers/noema/src/deep-time.ts
+
+- ScarDomain · type · L9-L9 — type ScarDomain = "economic" | "social" | "territorial";
+- ScarVisibility · type · L10-L10 — type ScarVisibility = "public" | "institutional" | "hidden";
+- ScarRecord · type · L12-L24 — type ScarRecord = { scar_id: string; domain: ScarDomain; strength: number; decay_rate: number; room_id?: string; entity_id?: string; cycle_born: number; harvest_count?: number; visibility: ScarVisibility; reconstruction_confidence: number; fossilized?: boolean; };
+- EvidenceFragment · type · L26-L36 — type EvidenceFragment = { fragment_id: string; subject_ref: string; kind: "ATTEST" | "HARVEST" | "TRADE"; cycle: number; player_id: string; /** Controller provenance for multi-controller evidence attribution. */ controller_id?: string; grounding?: string; claim?: string; };
+- TrajectoryDigest · type · L38-L42 — type TrajectoryDigest = { room_id: string; harvest_count: number; last_cycle: number; };
+- NormRatchet · type · L44-L52 — type NormRatchet = { key: string; reversal_cost: number; path_dependence_strength: number; established_cycle: number; hits: number; /** RFC-0123: last reinforcement cycle; drives quiet-decay. */ last_hit_cycle?: number; };
+- LoreAttractor · type · L58-L64 — type LoreAttractor = { attractor_id: string; label: string; weight: number; room_id?: string; basin: "forming" | "crystallized"; };
+- InheritedHistory · type · L66-L70 — type InheritedHistory = { scar_vector: ScarRecord[]; trajectory_digest: TrajectoryDigest[]; lore_seeds: string[]; };
+- DeepTimeBlob · type · L72-L78 — type DeepTimeBlob = { scars: ScarRecord[]; evidence_fragments: EvidenceFragment[]; trajectory_digest: Record<string, TrajectoryDigest>; norm_ratchets: Record<string, NormRatchet>; lore_attractors: LoreAttractor[]; };
+- DeepTimeSlice · type · L80-L95 — type DeepTimeSlice = { scars?: ScarRecord[]; evidence_fragments?: EvidenceFragment[]; trajectory_digest?: Record<string, TrajectoryDigest>; norm_ratchets?: Record<string, NormRatchet>; lore_attractors?: LoreAttractor[]; co_evolution?: { harvest_pressure?: Record<string, number>; regen_mod?: Record<string, number>; deep_time?: DeepTimeBlob; [key: string]: unknown; }; rooms?: Record<string, { entities?: Array<{ entity_id: string; regen_rate?: number; stock_resource?: string }> }>; cycle?: number; players?: Record<string, { inherited?: InheritedHistory | undefined }>; };
+- clamp01 · function · L97-L99 — function clamp01(n: number): number
+- ensureDeepTime · function · L101-L122 — function ensureDeepTime(w: DeepTimeSlice): void
+- persistDeepTime · function · L125-L134 — function persistDeepTime(w: DeepTimeSlice): void
+- noteHarvestTrajectory · function · L136-L165 — function noteHarvestTrajectory(w: DeepTimeSlice, roomId: string, entityId: string, cycle: number): TrajectoryDigest
+- applyScarToRegen · function · L167-L178 — function applyScarToRegen(w: DeepTimeSlice, roomId: string): void
+- pushEvidenceFragment · function · L180-L203 — function pushEvidenceFragment( w: DeepTimeSlice, frag: Omit<EvidenceFragment, "fragment_id">, ): EvidenceFragment
+- deepTimeCoEvolve · function · L206-L226 — function deepTimeCoEvolve(w: DeepTimeSlice): void
+- reconstructionFidelity · function · L228-L244 — function reconstructionFidelity( claim: string, fragments: EvidenceFragment[], subject: string, controllerCount: number = 1, // Gate B: multi-controller (3+) support for fidelity boost ): number
+- weakenScarsForReconstruction · function · L246-L267 — function weakenScarsForReconstruction( w: DeepTimeSlice, subject: string, fidelity: number, controllerCount: number = 1, // Gate B: multi-controller (3+) strengthens weakening + confidence ): number
+- publicScarsForRoom · function · L269-L271 — function publicScarsForRoom(scars: ScarRecord[] | undefined, roomId: string): ScarRecord[]
+- pathDependenceIndex · function · L273-L285 — function pathDependenceIndex( scars: ScarRecord[] | undefined, ratchets?: Record<string, NormRatchet>, ): number
+- orgCreateExtraInfluence · function · L287-L290 — function orgCreateExtraInfluence(w: DeepTimeSlice): number
+- ratchetOnOrgCreate · function · L292-L308 — function ratchetOnOrgCreate(w: DeepTimeSlice, cycle: number): NormRatchet
+- ratchetOnAttest · function · L310-L326 — function ratchetOnAttest(w: DeepTimeSlice, cycle: number): NormRatchet
+- inheritAtSuccession · function · L328-L342 — function inheritAtSuccession( w: DeepTimeSlice, successorId: string, roomId?: string, ): InheritedHistory
+- inheritedLines · function · L350-L370 — function inheritedLines(inherited: InheritedHistory | undefined): string[]
+- tickLoreAttractors · function · L372-L391 — function tickLoreAttractors(w: DeepTimeSlice): void
+- scarPersistence · function · L393-L398 — function scarPersistence(scars: ScarRecord[] | undefined, cycle: number): number
