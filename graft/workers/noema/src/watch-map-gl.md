@@ -1,0 +1,30 @@
+# workers/noema/src/watch-map-gl.ts
+
+- MapCamHead · type · L42-L47 — type MapCamHead = { tier?: string; room_id?: string; projection_id?: string; actor_label?: string; };
+- MapCamExit · type · L49-L49 — type MapCamExit = { to_room_id?: string };
+- MapCamRoom · type · L51-L60 — type MapCamRoom = { room_id?: string; name?: string; x?: unknown; y?: unknown; players_present?: unknown; public_player_labels?: unknown; exits?: MapCamExit[] | unknown; active?: unknown; };
+- MapCamFollow · type · L62-L62 — type MapCamFollow = { kind?: string; id?: string } | null;
+- MapCamPose · type · L68-L75 — type MapCamPose = { eyeX: number; eyeY: number; eyeZ: number; lookX: number; lookY: number; lookZ: number; };
+- MapCamBounds · type · L77-L85 — type MapCamBounds = { minX: number; maxX: number; minZ: number; maxZ: number; cx: number; cz: number; span: number; };
+- mapGraphBounds · function · L88-L124 — function mapGraphBounds(rooms?: Array<{ x?: unknown; y?: unknown } | null> | null): MapCamBounds
+- mapCameraPose · function · L130-L169 — function mapCameraPose(opts?: { rooms?: Array<{ room_id?: string; x?: unknown; y?: unknown } | null> | null; focusId?: string | null; aspect?: number | null; } | null): MapCamPose
+- mapPublicRoomId · function · L172-L183 — function mapPublicRoomId( rooms?: MapCamRoom[] | null, roomId?: string | null, ): string
+- mapActionCameraRoom · function · L186-L193 — function mapActionCameraRoom( head?: MapCamHead | null, rooms?: MapCamRoom[] | null, ): string
+- mapFollowMoveRoom · function · L196-L212 — function mapFollowMoveRoom( follow?: MapCamFollow, events?: Array<MapCamHead | null | undefined> | null, rooms?: MapCamRoom[] | null, ): string
+- mapFollowedRoomId · function · L214-L225 — function mapFollowedRoomId(follow?: MapCamFollow, rooms?: MapCamRoom[] | null): string
+- mapCameraTarget · function · L228-L237 — function mapCameraTarget(opts: { head?: MapCamHead | null; rooms?: MapCamRoom[] | null; events?: Array<MapCamHead | null | undefined> | null; follow?: MapCamFollow; }): string
+- mapCameraEaseMs · function · L239-L241 — function mapCameraEaseMs(reduce?: boolean | null): number
+- mapHeadsDisagree · function · L243-L253 — function mapHeadsDisagree( live?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null, map?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null, ): boolean
+- MapParityState · type · L255-L255 — type MapParityState = "" | "behind" | "hold";
+- mapParityState · function · L262-L272 — function mapParityState(opts?: { live?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null; map?: { world_id?: unknown; cycle?: unknown; sequence?: unknown; freshness?: unknown } | null; failed?: boolean | null; holding?: boolean | null; } | null): MapParityState
+- mapHoldCoordRooms · function · L278-L286 — function mapHoldCoordRooms( fetched?: { base?: { rooms?: unknown } | null } | null, held?: MapCamRoom[] | null, ): MapCamRoom[]
+- mapHoldStageRooms · function · L292-L296 — function mapHoldStageRooms<T>(next?: T[] | null, prev?: T[] | null): T[]
+- mapGlUsable · function · L298-L306 — function mapGlUsable(canvas?: { getContext?: (id: string) => unknown } | null): boolean
+- mapNodeClassName · function · L308-L319 — function mapNodeClassName( n?: MapCamRoom | null, camId?: string | null, followId?: string | null, ): string
+- mapPublicExitTarget · function · L325-L329 — function mapPublicExitTarget(toRoomId?: string | null, liveIds?: Record<string, number> | null): string
+- mapStageNodes · function · L331-L374 — function mapStageNodes( liveRooms?: MapCamRoom[] | null, mapRooms?: MapCamRoom[] | null, ): MapCamRoom[]
+- mapRoomLabelText · function · L377-L382 — function mapRoomLabelText(name?: string | null): string
+- MapLabelItem · type · L384-L390 — type MapLabelItem = { id: string; name: string; x: number; y: number; focus: boolean; };
+- mapProjectPoint · function · L396-L449 — function mapProjectPoint(opts?: { x?: number | null; y?: number | null; z?: number | null; pose?: MapCamPose | null; aspect?: number | null; width?: number | null; height?: number | null; fovDeg?: number | null; } | null): { x: number; y: number; visible: boolean }
+- mapLabelScreenItems · function · L452-L498 — function mapLabelScreenItems(opts?: { rooms?: Array<{ room_id?: string; name?: string; x?: unknown; y?: unknown; active?: unknown; } | null> | null; pose?: MapCamPose | null; aspect?: number | null; width?: number | null; height?: number | null; focusId?: string | null; followId?: string | null; } | null): MapLabelItem[]
+- watchMapGlInlineSource · function · L518-L526 — function watchMapGlInlineSource(): string

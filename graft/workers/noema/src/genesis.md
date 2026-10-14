@@ -1,0 +1,31 @@
+# workers/noema/src/genesis.ts
+
+- isProductChamberWorld · function · L17-L19 — function isProductChamberWorld(worldId: string): boolean
+- resolveAdminOperatorWorldId · function · L22-L45 — function resolveAdminOperatorWorldId( requested: string | undefined, env: { DEFAULT_WORLD_ID?: string }, ): | { ok: true; do_name: string; world_id: string } | { ok: false; code: "INVALID_REQUEST"; message: string }
+- resolveAdminGenesisWorldId · function · L47-L63 — function resolveAdminGenesisWorldId( requested: string | undefined, env: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string }, ): { ok: true; world_id: string } | { ok: false; code: "POLICY_DENIED" | "INVALID_REQUEST"; message: string }
+- GenesisProfileId · type · L65-L65 — type GenesisProfileId = "YOUNG_FRONTIER" | "FRACTURED_OLD_WORLD" | "RECOVERING_NETWORK" | "EWM_ENHANCED";
+- StorySeedId · type · L67-L73 — type StorySeedId = | "FOUNDING_SPLIT" | "OLD_TRADE_NETWORK" | "FAILED_SETTLEMENT" | "RESOURCE_CRISIS" | "LOST_ARCHIVE" | "DISPUTED_SUCCESSION";
+- GenesisRoom · interface · L147-L168 — interface GenesisRoom
+- Cycle0World · interface · L170-L210 — interface Cycle0World
+- GenesisResult · interface · L212-L245 — interface GenesisResult
+- GenesisInput · interface · L247-L253 — interface GenesisInput
+- isFrozenFirstWorldClaim · function · L255-L268 — function isFrozenFirstWorldClaim(input: { world_name: string; world_seed: string; profile_id: string; story_seed_ids?: string[]; }): boolean
+- stableStringify · function · L271-L282 — function stableStringify(value: unknown): string
+- sha256Hex · function · L284-L287 — async function sha256Hex(input: string): Promise<string>
+- profileOf · function · L289-L293 — function profileOf(id: string)
+- normalizeSeeds · function · L295-L304 — function normalizeSeeds(seeds: string[] | undefined): StorySeedId[]
+- GenesisError · class · L306-L313 — class GenesisError extends Error
+- constructor · method · L308-L312 — constructor(code: string, message: string)
+- rng · function · L316-L329 — function rng(seed: string): () => number
+- pick · function · L331-L333 — function pick<T>(r: () => number, arr: T[]): T
+- buildCycle0 · function · L335-L544 — function buildCycle0( world_id: string, world_name: string, world_seed: string, profile: (typeof GENESIS_PROFILES)[0], seeds: StorySeedId[], r: () => number, ): Cycle0World
+- link · function · L411-L415 — link = (a: string, b: string, dirA: string, dirB: string)
+- addEntity · function · L546-L549 — function addEntity(room: GenesisRoom, ent: GenesisRoom["entities"][number]): void
+- buildProductCycle0 · function · L551-L697 — function buildProductCycle0( world_id: string, world_name: string, world_seed: string, profile: (typeof GENESIS_PROFILES)[0], seeds: StorySeedId[], r: () => number, ): Cycle0World
+- seedEwmEnhanced · function · L699-L766 — function seedEwmEnhanced( profile: (typeof GENESIS_PROFILES)[0], rooms: Record<string, GenesisRoom>, institutions: Cycle0World["institutions"], ): Pick< Cycle0World, "ewm_features" | "initial_beliefs" | "initial_co_evolution" | "signaling_styles" | "scar_seeds" | "lore_prototypes" >
+- startingOpportunities · function · L780-L822 — function startingOpportunities( profile_id: string, seeds: StorySeedId[], rooms: Record<string, GenesisRoom>, institutions: Cycle0World["institutions"], artifacts: Cycle0World["artifacts"], tensions: string[], theme: typeof FIRST_WORLD_THEME, ): string[]
+- validateCycle0 · function · L824-L886 — function validateCycle0(world: Cycle0World): { ok: boolean; errors: string[] }
+- previewGenesis · function · L888-L1006 — async function previewGenesis(input: GenesisInput): Promise<GenesisResult>
+- redactedPublicWorld · function · L1009-L1047 — function redactedPublicWorld(meta: { world_id: string; cycle: number; sequence: number; rooms: Record<string, GenesisRoom>; players_present: number; world_status?: string; freshness?: string; public_pulses?: string[]; }): Record<string, unknown>
+- catalog · function · L1049-L1069 — function catalog()
+- validateEWMProfile · function · L1073-L1092 — function validateEWMProfile(world: Cycle0World): { ok: boolean; warnings: string[] }

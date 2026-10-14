@@ -28,5 +28,5 @@ node_modules/
 .grok/
 .mcp.json
 .ignore
-graft/
+graft/.cache/
 supabase/.temp/

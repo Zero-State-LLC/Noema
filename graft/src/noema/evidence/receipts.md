@@ -1,0 +1,22 @@
+# src/noema/evidence/receipts.py
+
+- EvidenceError · class · L50-L59 — class EvidenceError(ValueError)
+- __init__ · method · L53-L56 — def __init__(self, code: str, message: str)
+- as_dict · method · L58-L59 — def as_dict(self) -> dict[str, str]
+- _utc_now · function · L62-L63 — def _utc_now() -> str
+- _hex_hmac · function · L66-L67 — def _hex_hmac(key: bytes, body: bytes) -> str
+- load_keyring · function · L70-L77 — def load_keyring(path: Path | str) -> dict[str, Any]
+- save_keyring · function · L80-L88 — def save_keyring(path: Path | str, keyring: dict[str, Any]) -> None
+- generate_keyring · function · L91-L112 — def generate_keyring( *, key_id: str = "key.research.1", label: str = "research-isolated default", ) -> dict[str, Any]
+- rotate_key · function · L115-L135 — def rotate_key(keyring: dict[str, Any], *, new_key_id: str, label: str = "rotated") -> dict[str, Any]
+- _key_bytes · function · L138-L147 — def _key_bytes(keyring: dict[str, Any], key_id: str) -> bytes
+- evidence_payload_digest · function · L150-L152 — def evidence_payload_digest(payload: Any) -> str
+- create_receipt · function · L155-L203 — def create_receipt( *, evidence_digest: str, world_id: str, export_profile: str, keyring: dict[str, Any], version_lineage: dict[str, Any], consent_policy_id: str = "consent.default", exclusion_policy_id: str = "exclusion.default", key_id: str | None = None, issued_at: str | None = None, extra_scope: dict[str, Any] | None = None, ) -> dict[str, Any]
+- verify_receipt · function · L206-L225 — def verify_receipt( receipt: dict[str, Any], *, keyring: dict[str, Any], expected_world_id: str | None = None, expected_profile: str | None = None, expected_evidence_digest: str | None = None, ) -> ReceiptStatus
+- _verify_receipt_inner · function · L228-L276 — def _verify_receipt_inner( receipt: dict[str, Any], *, keyring: dict[str, Any], expected_world_id: str | None, expected_profile: str | None, expected_evidence_digest: str | None, ) -> ReceiptStatus
+- receipts_required · function · L279-L280 — def receipts_required(export_profile: str) -> bool
+- verify_receipts_for_bundle · function · L283-L369 — def verify_receipts_for_bundle( bundle_meta: dict[str, Any], *, keyring: dict[str, Any] | None, receipts: list[dict[str, Any]] | None, ) -> dict[str, Any]
+- sign_export_bundle · function · L372-L429 — def sign_export_bundle( *, payload: dict[str, Any], world_id: str, export_profile: str, keyring: dict[str, Any], version_lineage: dict[str, Any], consent_policy_id: str = "consent.default", exclusion_policy_id: str = "exclusion.default", dest: Path | str, ) -> dict[str, Any]
+- ExportVerifyResult · class · L433-L442 — class ExportVerifyResult
+- line · method · L439-L442 — def line(self) -> str
+- verify_export_dir · function · L445-L486 — def verify_export_dir( path: Path | str, *, keyring_path: Path | str | None = None, ) -> ExportVerifyResult

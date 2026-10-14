@@ -1,0 +1,26 @@
+# tests/test_harness_tenant_tester.py
+
+- _obs · function · L24-L27 — def _obs(**overrides) -> dict
+- test_missing_tenant_refuses · function · L30-L36 — def test_missing_tenant_refuses()
+- test_perihelion_without_live_refuses · function · L39-L45 — def test_perihelion_without_live_refuses()
+- test_isolated_tenant_uses_test_world_path · function · L48-L53 — def test_isolated_tenant_uses_test_world_path()
+- test_perihelion_with_live_uses_play_command · function · L56-L60 — def test_perihelion_with_live_uses_play_command()
+- test_env_tenant_and_live_flag · function · L63-L74 — def test_env_tenant_and_live_flag()
+- _turn · function · L77-L96 — def _turn(ok, command="LOOK", failure=None, http=None, error=None, room="room.a", inspect_missing=False)
+- test_quiet_wait_is_not_a_smell · function · L99-L100 — def test_quiet_wait_is_not_a_smell()
+- test_hard_fail_is_a_smell · function · L103-L109 — def test_hard_fail_is_a_smell()
+- test_move_same_room_is_contradiction · function · L112-L115 — def test_move_same_room_is_contradiction()
+- test_debug_adapter_never_moves · function · L118-L128 — def test_debug_adapter_never_moves()
+- test_model_down_unclassified · function · L131-L157 — def test_model_down_unclassified(tmp_path: Path)
+- boom · function · L132-L133 — def boom(_ctx)
+- test_model_move_is_discarded · function · L160-L168 — def test_model_move_is_discarded()
+- fake · function · L161-L162 — def fake(_ctx)
+- test_cli_perihelion_without_live_sends_no_command · function · L171-L180 — def test_cli_perihelion_without_live_sends_no_command()
+- http · function · L174-L176 — def http(method, url, body=None, token=None)
+- SequentialHttp · class · L183-L194 — class SequentialHttp
+- __init__ · method · L184-L186 — def __init__(self, responses: list[dict]) -> None
+- __call__ · method · L188-L194 — def __call__(self, method, url, body=None, token=None)
+- test_play_then_debug_on_hard_fail · function · L197-L228 — def test_play_then_debug_on_hard_fail()
+- test_isolated_client_posts_test_world_path · function · L231-L250 — def test_isolated_client_posts_test_world_path()
+- http · function · L234-L236 — def http(method, url, body=None, token=None, headers=None)
+- test_no_agent_player_still_absent · function · L253-L258 — def test_no_agent_player_still_absent()

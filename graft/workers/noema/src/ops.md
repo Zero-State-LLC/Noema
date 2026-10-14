@@ -1,0 +1,36 @@
+# workers/noema/src/ops.ts
+
+- WorldOpStatus · type · L7-L7 — type WorldOpStatus = "NOT_ACTIVE" | "DEMO_SEED" | "ACTIVE" | "PAUSED" | "INCIDENT" | "ARCHIVED";
+- SettlementHealth · type · L8-L8 — type SettlementHealth = "HEALTHY" | "DEGRADED" | "BLOCKING";
+- normalizeCommandName · function · L31-L37 — function normalizeCommandName(command: string): string
+- commandForOps · function · L40-L43 — function commandForOps(command: string, args?: { line?: unknown } | null): string
+- countEnteredPlayers · function · L45-L48 — function countEnteredPlayers(players: Record<string, { entered?: boolean }> | undefined): number
+- enteredPlayerIds · function · L50-L55 — function enteredPlayerIds(players: Record<string, { entered?: boolean }> | undefined): string[]
+- ActorKind · type · L60-L60 — type ActorKind = "live" | "system";
+- PresencePlayer · type · L62-L70 — type PresencePlayer = { entered?: boolean; last_seen_ms?: number; actor_kind?: ActorKind; handle?: string; room_id?: string; controller_type?: string; operator_id?: string; };
+- parseOperatorId · function · L78-L82 — function parseOperatorId(raw: unknown): string | undefined
+- isReservedSystemActorId · function · L85-L88 — function isReservedSystemActorId(playerId: string): boolean
+- isAgentPlayerWorldId · function · L91-L93 — function isAgentPlayerWorldId(playerId: string): boolean
+- inferActorKind · function · L100-L112 — function inferActorKind( playerId: string, stored?: ActorKind, controllerType?: string, ): ActorKind
+- kindOf · function · L114-L116 — function kindOf(id: string, p: PresencePlayer): ActorKind
+- isLiveAgentPlayer · function · L119-L121 — function isLiveAgentPlayer(id: string, p: PresencePlayer): boolean
+- actorKindFromPrincipal · function · L123-L141 — function actorKindFromPrincipal(p: { player_id: string; controller_type?: string; authentication_context?: string; issued_by?: string; amr?: string; identity_id?: string; }): ActorKind
+- isPresentNow · function · L143-L151 — function isPresentNow( p: PresencePlayer | undefined, now: number, idleMs = PRESENCE_IDLE_MS, ): boolean
+- countLivePlayers · function · L153-L162 — function countLivePlayers( players: Record<string, PresencePlayer> | undefined, now = Date.now(), idleMs = PRESENCE_IDLE_MS, ): number
+- expireStalePresence · function · L164-L181 — function expireStalePresence( players: Record<string, PresencePlayer> | undefined, now = Date.now(), idleMs = PRESENCE_IDLE_MS, ): boolean
+- ActorRow · type · L183-L192 — type ActorRow = { player_id: string; handle: string; room_id?: string; entered: boolean; last_seen_ms?: number; actor_kind: ActorKind; controller_type?: string; operator_id?: string; };
+- listLivePlayers · function · L194-L212 — function listLivePlayers( players: Record<string, PresencePlayer> | undefined, now = Date.now(), idleMs = PRESENCE_IDLE_MS, ): ActorRow[]
+- listSystemActors · function · L214-L228 — function listSystemActors(players: Record<string, PresencePlayer> | undefined): ActorRow[]
+- isMutatingCommand · function · L230-L235 — function isMutatingCommand(command: string): boolean
+- mutationBlocked · function · L237-L263 — function mutationBlocked( status: WorldOpStatus, settlement: SettlementHealth, ): { blocked: boolean; code: string; message: string } | null
+- PlayReady · type · L265-L271 — type PlayReady = { ready: boolean; play_blocked: boolean; code: string | null; status: WorldOpStatus; settlement_health: SettlementHealth; };
+- LifecycleAction · type · L274-L274 — type LifecycleAction = "pause" | "resume" | "incident" | "close";
+- LifecycleResult · type · L276-L278 — type LifecycleResult = | { ok: true; status: WorldOpStatus } | { ok: false; code: string; message: string; http: number };
+- applyWorldLifecycle · function · L281-L314 — function applyWorldLifecycle( current: WorldOpStatus, action: LifecycleAction, settlement: SettlementHealth, ): LifecycleResult
+- RecoverPlan · type · L316-L319 — type RecoverPlan = | { ok: true; restore: true; adopt: false; status: "ACTIVE"; settlement: "HEALTHY" } | { ok: true; restore: false; adopt: true; status: "ACTIVE"; settlement: "HEALTHY" } | { ok: false; code: string; message: string; http: number };
+- isUsableLiveWorld · function · L322-L333 — function isUsableLiveWorld(world: { world_id?: string; sequence?: number; rooms?: Record<string, unknown>; } | null | undefined): boolean
+- planIncidentRecover · function · L339-L360 — function planIncidentRecover( status: WorldOpStatus, _settlement: SettlementHealth, headRevision: number | null, liveUsable = false, ): RecoverPlan
+- playReady · function · L362-L404 — function playReady( status?: string | null, settlement?: string | null, livePlayable = true, ): PlayReady
+- nextSettlementHealth · function · L407-L411 — function nextSettlementHealth(current: SettlementHealth, settleOk: boolean): SettlementHealth
+- SessionTakeover · interface · L413-L417 — interface SessionTakeover
+- applyControllingSession · function · L419-L431 — function applyControllingSession( current: string | undefined, incoming: string, mutating: boolean, ): SessionTakeover

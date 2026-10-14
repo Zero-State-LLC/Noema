@@ -1,0 +1,22 @@
+# src/noema/auth/jwt_util.py
+
+- JwtError · class · L25-L26 — class JwtError(ValueError)
+- reset_jwks_cache · function · L29-L30 — def reset_jwks_cache() -> None
+- supabase_jwks_url · function · L33-L34 — def supabase_jwks_url(supabase_url: str) -> str
+- supabase_issuer · function · L37-L38 — def supabase_issuer(supabase_url: str) -> str
+- _b64url_decode · function · L41-L46 — def _b64url_decode(segment: str) -> bytes
+- _b64url_encode · function · L49-L50 — def _b64url_encode(raw: bytes) -> str
+- _parse_compact · function · L53-L65 — def _parse_compact(token: str) -> tuple[str, str, str, dict[str, Any], dict[str, Any]]
+- _assert_claims · function · L68-L84 — def _assert_claims(payload: dict[str, Any], *, audience: str | None, issuer: str | None) -> None
+- verify_hs256 · function · L87-L104 — def verify_hs256(token: str, secret: str, *, audience: str | None = None, issuer: str | None = None) -> dict[str, Any]
+- mint_hs256 · function · L107-L116 — def mint_hs256(claims: dict[str, Any], secret: str, *, headers: dict[str, Any] | None = None) -> str
+- _inv · function · L119-L120 — def _inv(x: int, m: int) -> int
+- _point_add · function · L123-L138 — def _point_add(p1: tuple[int, int] | None, p2: tuple[int, int] | None) -> tuple[int, int] | None
+- _point_mul · function · L141-L149 — def _point_mul(k: int, point: tuple[int, int]) -> tuple[int, int] | None
+- _int_from_b64url · function · L152-L153 — def _int_from_b64url(segment: str) -> int
+- mint_es256 · function · L156-L179 — def mint_es256(claims: dict[str, Any], d: int, kid: str) -> str
+- generate_es256_pair · function · L182-L200 — def generate_es256_pair() -> tuple[int, dict[str, Any], str]
+- _verify_es256_sig · function · L203-L224 — def _verify_es256_sig(jwk: dict[str, Any], data: bytes, signature: bytes) -> bool
+- _fetch_jwks · function · L227-L249 — def _fetch_jwks(url: str, fetch: Callable[[str], Any] | None) -> list[dict[str, Any]]
+- _resolve_jwk · function · L252-L276 — def _resolve_jwk( kid: str, *, jwks: dict[str, Any] | None, jwks_url: str, fetch: Callable[[str], Any] | None, ) -> dict[str, Any]
+- verify_jwt · function · L279-L308 — def verify_jwt( token: str, *, secret: str = "", jwks_url: str = "", audience: str | None = None, issuer: str | None = None, jwks: dict[str, Any] | None = None, fetch: Callable[[str], Any] | None = None, ) -> dict[str, Any]

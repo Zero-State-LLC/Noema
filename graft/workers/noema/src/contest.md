@@ -1,0 +1,26 @@
+# workers/noema/src/contest.ts
+
+- ContestForm · type · L21-L21 — type ContestForm = (typeof CONTEST_FORMS)[number];
+- ContestTarget · type · L31-L36 — type ContestTarget = | { kind: "ENTITY"; entity_id: string } | { kind: "EXIT"; exit_id: string } | { kind: "ROOM"; room_id: string } | { kind: "AGENT"; agent_id: string } | { kind: "HOLDING"; holder_id: string; resource: string; amount: number };
+- StakeMap · type · L38-L38 — type StakeMap = Record<string, number>;
+- OpenContest · type · L40-L54 — type OpenContest = { contest_id: string; declarer_id: string; defender_id?: string; acting_for?: string; defender_acting_for?: string; contest_form: ContestForm; target: ContestTarget; room_id: string; stake: StakeMap; defender_stake: StakeMap; expires_cycle: number; seed_stream_id: string; status: "OPEN" | "CLOSED"; };
+- contestOfficeProfile · function · L56-L62 — function contestOfficeProfile( form: ContestForm, ): "OPERATE_RESOURCE_ACCOUNT" | "OPERATE_NAMED_ASSET" | "ACCESS_RESTRICTED_ARCHIVE"
+- FormSpec · type · L64-L78 — type FormSpec = { minimum_stake: StakeMap; stake_weights_millipoints: StakeMap; defense_weights_millipoints: StakeMap; max_duration_cycles: number; success_threshold_millipoints: number; partial_threshold_millipoints: number; max_seizure_amount: number; max_condition_delta: number; partial_condition_delta?: number; restriction_duration_cycles?: number; partial_restriction_duration_cycles?: number; max_disable_cycles?: number; allowed_target_kinds: ContestTarget["kind"][]; };
+- parseContestForm · function · L154-L170 — function parseContestForm(raw: string): ContestForm | null
+- isForbiddenContestVerb · function · L172-L174 — function isForbiddenContestVerb(raw: string): boolean
+- sanitizeStake · function · L176-L186 — function sanitizeStake(raw: Record<string, number> | undefined | null): StakeMap | null
+- meetsMinimumStake · function · L188-L194 — function meetsMinimumStake(stake: StakeMap, form: ContestForm): boolean
+- stakePower · function · L196-L202 — function stakePower(stake: StakeMap, weights: StakeMap): number
+- infraModifier · function · L204-L207 — function infraModifier(condition: number): number
+- seedPerturbation · function · L209-L215 — async function seedPerturbation(seedStreamId: string, contestId: string): Promise<number>
+- ContestOutcome · type · L217-L217 — type ContestOutcome = "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" | "ABORTED";
+- outcomeFromScore · function · L219-L224 — function outcomeFromScore(form: ContestForm, score: number): ContestOutcome
+- scoreContest · function · L226-L249 — function scoreContest(input: { form: ContestForm; declarer_stake: StakeMap; defender_stake: StakeMap; infra_condition: number; org_defense_support_millipoints?: number; defensive_work?: boolean; seed_perturbation: number; }): { score: number; declarer_power: number; defender_power: number; infra_mod: number }
+- canonicalJson · function · L251-L257 — function canonicalJson(value: unknown): string
+- resolutionDigest · function · L259-L277 — async function resolutionDigest(input: { contest_id: string; outcome: ContestOutcome; score_millipoints: number; declarer_stake_spent: StakeMap; defender_stake_spent: StakeMap; seed_stream_id: string; }): Promise<string>
+- seizureAmount · function · L279-L284 — function seizureAmount(form: ContestForm, outcome: ContestOutcome, available: number): number
+- disruptionAfter · function · L286-L297 — function disruptionAfter( form: ContestForm, outcome: ContestOutcome, before: number, ): number | null
+- targetKindAllowed · function · L299-L301 — function targetKindAllowed(form: ContestForm, kind: ContestTarget["kind"]): boolean
+- defaultExpiresCycle · function · L303-L305 — function defaultExpiresCycle(cycle: number, form: ContestForm): number
+- maxExpiresCycle · function · L307-L309 — function maxExpiresCycle(cycle: number, form: ContestForm): number
+- publicContestProjection · function · L311-L325 — function publicContestProjection(c: OpenContest): { contest_id: string; contest_form: ContestForm; room_id: string; status: string; expires_cycle: number; }

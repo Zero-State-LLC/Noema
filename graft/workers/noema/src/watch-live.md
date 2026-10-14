@@ -1,0 +1,52 @@
+# workers/noema/src/watch-live.ts
+
+- WatchTier · type · L28-L28 — type WatchTier = "NORMAL" | "NOTABLE" | "MAJOR";
+- WatchEvent · type · L30-L44 — type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** §6: public handle of the acting Player; omitted (never "A player") when not public. */ actor_label?: string; /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };
+- WatchSourceEvent · type · L46-L55 — type WatchSourceEvent = { event_type: string; sequence: number; cycle?: number; handle?: string; player_id?: string; actor_kind?: "live" | "system"; at?: number; payload?: Record<string, unknown>; };
+- WatchRoomIn · type · L57-L76 — type WatchRoomIn = { room_id: string; name: string; description: string; exits: Array<{ direction: string; to_room_id: string; hidden?: boolean }>; entities: Array<{ entity_id: string; label: string; entity_type: string; hidden?: boolean; scar?: boolean; in_progress?: boolean; unclaimed?: boolean; owner_id?: string; last_repair_cycle?: number; last_repair_handle?: string; }>; hidden?: boolean; tags?: string[]; };
+- WatchPlayerIn · type · L78-L82 — type WatchPlayerIn = PresencePlayer & { player_id: string; practice?: PracticeState; focus?: FocusState; };
+- HeldHeadline · type · L84-L85 — type HeldHeadline = Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line"> & Partial<Pick<WatchEvent, "cycle" | "room_id" | "occurred_at" | "detail">>;
+- watchEventTier · function · L176-L180 — function watchEventTier(projectionId: string, band?: string): WatchTier
+- projectionIdForEvent · function · L182-L229 — function projectionIdForEvent(eventType: string, payload?: Record<string, unknown>): string | null
+- isOperatorOrSmokeHandle · function · L231-L237 — function isOperatorOrSmokeHandle(handle: string): boolean
+- publicHandle · function · L239-L248 — function publicHandle(p: { handle?: string; player_id?: string }): string | null
+- OccupantRoomRef · type · L250-L250 — type OccupantRoomRef = { name?: string; room_id?: string };
+- isRoomNameOccupantLabel · function · L253-L264 — function isRoomNameOccupantLabel(label: string, rooms?: Iterable<OccupantRoomRef>): boolean
+- publicOccupantLabel · function · L270-L277 — function publicOccupantLabel( p: { handle?: string; player_id?: string }, rooms?: Iterable<OccupantRoomRef>, ): string | null
+- occupantLabelsFrom · function · L279-L292 — function occupantLabelsFrom( labels: unknown, rooms?: Iterable<OccupantRoomRef>, ): string[]
+- labelOf · function · L294-L296 — function labelOf(ev: WatchSourceEvent, rooms?: Iterable<OccupantRoomRef>): string
+- roomName · function · L298-L301 — function roomName(id: string | undefined, rooms: Record<string, { name?: string }>): string | undefined
+- conditionBand · function · L304-L308 — function conditionBand(n: number): "ok" | "degraded" | "failed"
+- entityHome · function · L311-L322 — function entityHome( entityId: string | undefined, publicRooms: Record<string, WatchRoomIn>, ): { room: WatchRoomIn; label: string } | undefined
+- entityScopeId · function · L331-L337 — function entityScopeId(payload: Record<string, unknown> | undefined): string | undefined
+- isRepairUpdate · function · L339-L342 — function isRepairUpdate(ev: WatchSourceEvent): boolean
+- bareWatchPhrase · function · L344-L346 — function bareWatchPhrase(line?: string): string
+- distinctFromHeadline · function · L349-L354 — function distinctFromHeadline(headline?: string, consequence?: string): string | undefined
+- organizationActConsequence · function · L356-L361 — function organizationActConsequence(eventType: string): string | undefined
+- consequenceForPublicBand · function · L369-L395 — function consequenceForPublicBand(projectionId: string, line?: string): string | undefined
+- consequenceForEvent · function · L401-L438 — function consequenceForEvent( ev: WatchSourceEvent, publicRooms: Record<string, WatchRoomIn>, ): string | undefined
+- payloadRoomId · function · L440-L447 — function payloadRoomId(payload: Record<string, unknown> | undefined): string | undefined
+- publicRoomMatchingName · function · L449-L460 — function publicRoomMatchingName( name: string | undefined, publicRooms: Record<string, { name?: string; room_id?: string; hidden?: boolean; tags?: string[] }>, ): { name?: string; room_id?: string } | undefined
+- publicWatchRoomId · function · L467-L492 — function publicWatchRoomId( ev: WatchSourceEvent, publicRooms: Record<string, WatchRoomIn>, players: WatchPlayerIn[] = [], ): string | undefined
+- withResolvedPublicRoom · function · L494-L498 — function withResolvedPublicRoom(ev: WatchSourceEvent, roomId: string | undefined): WatchSourceEvent
+- phraseWatchEvent · function · L500-L590 — function phraseWatchEvent( ev: WatchSourceEvent, publicRooms: Record<string, { name?: string; room_id?: string }>, ): string
+- selectNotableEvent · function · L592-L624 — function selectNotableEvent(opts: { freshness: string; players_present: number; candidates: WatchEvent[]; held?: HeldHeadline | null; }): WatchEvent
+- holdHeadline · function · L626-L637 — function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null
+- heldFromSnapshot · function · L644-L661 — function heldFromSnapshot(snapshot: Record<string, unknown> | null | undefined): HeldHeadline | null
+- rankEvents · function · L663-L669 — function rankEvents(events: WatchEvent[]): WatchEvent[]
+- quietHeadline · function · L671-L680 — function quietHeadline(playersPresent: number): WatchEvent
+- capVisibleEvents · function · L682-L695 — function capVisibleEvents(candidates: WatchEvent[], max = 8, min = 5, maxMoves = 2): WatchEvent[]
+- isPublicEntity · function · L697-L699 — function isPublicEntity(e: { hidden?: boolean }): boolean
+- livePublicPlayers · function · L701-L706 — function livePublicPlayers(players: WatchPlayerIn[], now: number): WatchPlayerIn[]
+- publicPlayerLabel · function · L708-L710 — function publicPlayerLabel(p: WatchPlayerIn, rooms?: Iterable<OccupantRoomRef>): string | null
+- sourceToWatchEvent · function · L712-L759 — function sourceToWatchEvent( ev: WatchSourceEvent, publicRooms: Record<string, WatchRoomIn>, players: WatchPlayerIn[] = [], ): WatchEvent | null
+- PublicPulseIn · type · L762-L762 — type PublicPulseIn = string | { text: string; room_id?: string };
+- publicPulseText · function · L764-L766 — function publicPulseText(pulse: PublicPulseIn): string
+- publicPulseRoomId · function · L768-L772 — function publicPulseRoomId(pulse: PublicPulseIn): string | undefined
+- normalizePublicPulses · function · L778-L794 — function normalizePublicPulses(raw: PublicPulseIn[] | undefined): Array<{ text: string; room_id?: string }>
+- publicPulseWatchRoomId · function · L796-L802 — function publicPulseWatchRoomId( roomId: string | undefined, publicRooms: Record<string, WatchRoomIn>, ): string | undefined
+- pulseToWatchEvent · function · L804-L825 — function pulseToWatchEvent( text: string, sequence: number, cycle: number, publicRooms: Record<string, WatchRoomIn>, roomId?: string, ): WatchEvent
+- buildWatchLive · function · L827-L999 — function buildWatchLive(input: { world_id: string; cycle: number; sequence: number; rooms: Record<string, WatchRoomIn>; players: WatchPlayerIn[]; events: WatchSourceEvent[]; public_pulses?: PublicPulseIn[]; handles?: Record<string, string | undefined>; world_status?: string; freshness?: string; held?: HeldHeadline | null; now?: number; rumor?: LaterTraceRumor; organizations?: LaterTraceOrg[]; // Raw records must pass the public visibility gate below. reconstructions?: Array<{ fidelity?: number; controllers?: number; visibility?: string }>; // Optional preprojected public values, never unfiltered reconstruction state. reconstruction_fidelity?: number; controllers?: number; }): Record<string, unknown>
+- WatchNarrative · type · L1001-L1011 — type WatchNarrative = { now: WatchEvent; recently: WatchEvent[]; world: { status: string | null; cycle: number; players_present: number; rooms_present: number; pulses: string[]; }; };
+- buildWatchNarrative · function · L1014-L1036 — function buildWatchNarrative(opts: { now: WatchEvent; recent: WatchEvent[]; world_status: string | null; cycle: number; players_present: number; public_pulses?: string[]; rooms_present: number; }): WatchNarrative
+- explicitWatchCause · function · L1039-L1045 — function explicitWatchCause(payload?: Record<string, unknown> | null): string | null

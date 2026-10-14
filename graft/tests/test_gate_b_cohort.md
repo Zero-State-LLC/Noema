@@ -1,0 +1,45 @@
+# tests/test_gate_b_cohort.py
+
+- clean_repo · function · L30-L34 — def clean_repo(path: Path) -> Path
+- fake_noema · function · L37-L107 — def fake_noema(tmp_path: Path) -> Path
+- preflight_source · function · L110-L129 — def preflight_source() -> dict
+- config · function · L132-L164 — def config(tmp_path: Path, binary: Path, *, mode: str = "isolated") -> dict
+- write_config · function · L167-L170 — def write_config(tmp_path: Path, value: dict) -> Path
+- prepared · function · L173-L178 — def prepared(tmp_path: Path, *, mode: str = "isolated") -> tuple[Path, dict]
+- enable_live_credentials · function · L181-L207 — def enable_live_credentials(run_dir: Path, manifest: dict) -> None
+- test_prepare_creates_exactly_three_independent_private_contexts_and_is_idempotent · function · L210-L221 — def test_prepare_creates_exactly_three_independent_private_contexts_and_is_idempotent(tmp_path: Path)
+- test_prepare_rejects_unsafe_or_shared_process_definitions · function · L250-L255 — def test_prepare_rejects_unsafe_or_shared_process_definitions(tmp_path: Path, mutate, message: str)
+- test_isolated_categorically_rejects_noema_guru · function · L258-L262 — def test_isolated_categorically_rejects_noema_guru(tmp_path: Path)
+- test_prepare_rejects_relative_basename_spoof_and_wrong_rendered_server · function · L265-L274 — def test_prepare_rejects_relative_basename_spoof_and_wrong_rendered_server(tmp_path: Path)
+- test_isolated_cli_rejects_equals_and_duplicate_server_bypasses · function · L281-L289 — def test_isolated_cli_rejects_equals_and_duplicate_server_bypasses(tmp_path: Path, attack: str)
+- test_cli_rejects_equals_world_and_config_dir_bypasses · function · L299-L306 — def test_cli_rejects_equals_world_and_config_dir_bypasses(tmp_path: Path, replacement: list[str], message: str)
+- test_manifest_edit_after_prepare_fails_integrity_check · function · L309-L316 — def test_manifest_edit_after_prepare_fails_integrity_check(tmp_path: Path)
+- test_manifest_and_state_sibling_digest_cannot_forge_safety_fields · function · L319-L332 — def test_manifest_and_state_sibling_digest_cannot_forge_safety_fields(tmp_path: Path)
+- test_client_executable_edit_after_prepare_fails_integrity_check · function · L335-L343 — def test_client_executable_edit_after_prepare_fails_integrity_check(tmp_path: Path)
+- test_prepare_rejects_duplicate_rendered_argv_and_shared_environment_source · function · L346-L358 — def test_prepare_rejects_duplicate_rendered_argv_and_shared_environment_source(tmp_path: Path)
+- test_mode_guards_fail_closed · function · L361-L381 — def test_mode_guards_fail_closed(tmp_path: Path)
+- test_cli_has_required_noema_lca_cohort_commands · function · L384-L394 — def test_cli_has_required_noema_lca_cohort_commands()
+- test_live_run_pauses_for_exact_ack_human_approval_and_private_credentials · function · L397-L408 — def test_live_run_pauses_for_exact_ack_human_approval_and_private_credentials(tmp_path: Path)
+- test_isolated_end_to_end_runs_three_processes_and_never_completes · function · L411-L444 — def test_isolated_end_to_end_runs_three_processes_and_never_completes(tmp_path: Path)
+- test_process_crash_is_classified_without_restart · function · L447-L470 — def test_process_crash_is_classified_without_restart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
+- test_stop_cancels_all_running_process_groups · function · L473-L500 — def test_stop_cancels_all_running_process_groups(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
+- target · function · L485-L486 — def target() -> None
+- test_fake_live_run_only_completes_with_observed_distinct_receipts_and_open_preflight · function · L503-L523 — def test_fake_live_run_only_completes_with_observed_distinct_receipts_and_open_preflight(tmp_path: Path)
+- test_receipt_classifier_uses_only_allowed_fail_closed_statuses · function · L539-L549 — def test_receipt_classifier_uses_only_allowed_fail_closed_statuses(case: str, status: str)
+- test_critical_preflight_failure_rejects_before_process_spawn · function · L552-L562 — def test_critical_preflight_failure_rejects_before_process_spawn(tmp_path: Path)
+- test_preflight_health_pin_and_head_fail_closed · function · L573-L582 — def test_preflight_health_pin_and_head_fail_closed(tmp_path: Path, mutate, reason: str)
+- test_live_rejects_shared_credentials_and_blocks_partial_approval · function · L585-L607 — def test_live_rejects_shared_credentials_and_blocks_partial_approval(tmp_path: Path)
+- test_live_rejects_duplicate_or_expired_enrollment_receipts · function · L611-L622 — def test_live_rejects_duplicate_or_expired_enrollment_receipts(tmp_path: Path, status: str, approved: bool)
+- test_live_rejects_approval_binding_mismatch · function · L625-L634 — def test_live_rejects_approval_binding_mismatch(tmp_path: Path)
+- test_live_rejects_controller_bindings_before_spawn · function · L638-L661 — def test_live_rejects_controller_bindings_before_spawn(tmp_path: Path, attack: str)
+- test_launch_rechecks_private_filesystem_boundaries · function · L665-L681 — def test_launch_rechecks_private_filesystem_boundaries(tmp_path: Path, attack: str)
+- test_receipt_codes_redact_plain_tokens_without_corrupting_ids · function · L684-L695 — def test_receipt_codes_redact_plain_tokens_without_corrupting_ids()
+- test_every_projected_allowed_evidence_string_field_preserves_public_values · function · L716-L732 — def test_every_projected_allowed_evidence_string_field_preserves_public_values( tmp_path: Path, field: str, public_value: str )
+- test_every_projected_allowed_evidence_string_field_fails_closed_on_secret_material · function · L753-L775 — def test_every_projected_allowed_evidence_string_field_fails_closed_on_secret_material( tmp_path: Path, field: str, secret_value: str )
+- test_every_projected_receipt_string_field_fails_closed_on_secret_material · function · L779-L797 — def test_every_projected_receipt_string_field_fails_closed_on_secret_material( tmp_path: Path, receipt_field: str, index: int )
+- test_live_complete_requires_acceptance_authority_evidence · function · L804-L814 — def test_live_complete_requires_acceptance_authority_evidence(tmp_path: Path, field: str)
+- test_live_rejects_duplicate_human_approval_receipts · function · L817-L828 — def test_live_rejects_duplicate_human_approval_receipts(tmp_path: Path)
+- test_live_verification_blocks_missing_negative_case_and_rejects_mismatch · function · L831-L853 — def test_live_verification_blocks_missing_negative_case_and_rejects_mismatch(tmp_path: Path)
+- test_invalid_or_private_participant_evidence_blocks_and_is_not_projected · function · L856-L867 — def test_invalid_or_private_participant_evidence_blocks_and_is_not_projected(tmp_path: Path)
+- test_live_mode_does_not_inherit_interpreter_code_channels · function · L870-L905 — def test_live_mode_does_not_inherit_interpreter_code_channels(monkeypatch)
+- test_atomic_json_creates_at_target_mode_without_a_widening_window · function · L908-L928 — def test_atomic_json_creates_at_target_mode_without_a_widening_window(tmp_path: Path, monkeypatch)

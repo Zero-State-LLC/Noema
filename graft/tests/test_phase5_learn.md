@@ -1,0 +1,21 @@
+# tests/test_phase5_learn.py
+
+- _load · function · L32-L37 — def _load(base: Path, name: str) -> dict | list
+- test_prior_phases_green · function · L40-L43 — def test_prior_phases_green()
+- test_k01_behavior_node_fixture_digest · function · L47-L51 — def test_k01_behavior_node_fixture_digest()
+- test_k01_behavior_from_captured_test · function · L54-L59 — def test_k01_behavior_from_captured_test()
+- test_k02_closed_edge_types · function · L63-L74 — def test_k02_closed_edge_types()
+- test_k03_every_edge_has_evidence · function · L78-L81 — def test_k03_every_edge_has_evidence()
+- test_k04_k08_edge_types_present · function · L85-L93 — def test_k04_k08_edge_types_present()
+- test_k05_depends_on_has_tested_boundary · function · L96-L98 — def test_k05_depends_on_has_tested_boundary()
+- test_k07_generalizes_to_context · function · L101-L104 — def test_k07_generalizes_to_context()
+- test_k09_contested_requires_counterevidence · function · L108-L116 — def test_k09_contested_requires_counterevidence()
+- test_k10_simple_learn_view_from_fixture_edges · function · L120-L134 — def test_k10_simple_learn_view_from_fixture_edges()
+- test_k10_simple_fixture_digest · function · L137-L140 — def test_k10_simple_fixture_digest()
+- test_k11_not_tested_distinct · function · L144-L153 — def test_k11_not_tested_distinct()
+- test_k12_no_transitive_edges · function · L157-L180 — def test_k12_no_transitive_edges()
+- test_k12_not_computable_no_edge · function · L183-L194 — def test_k12_not_computable_no_edge()
+- test_graph_rebuildable_and_deterministic · function · L198-L244 — def test_graph_rebuildable_and_deterministic()
+- test_edges_from_artifacts_no_play_mutation · function · L247-L259 — def test_edges_from_artifacts_no_play_mutation()
+- test_runtime_learn_no_world_mutation · function · L263-L317 — def test_runtime_learn_no_world_mutation(tmp_path: Path)
+- test_capability_graph_fixture_shape · function · L320-L324 — def test_capability_graph_fixture_shape()

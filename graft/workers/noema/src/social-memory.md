@@ -1,0 +1,41 @@
+# workers/noema/src/social-memory.ts
+
+- TradeMemoryState · type · L36-L42 — type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id → distinct accepted trade_ids */ edges: Record<string, string[]>; /** object → evidence id → cycle credited */ at?: Record<string, Record<string, number>>; };
+- DangerMemoryState · type · L44-L49 — type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id → distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };
+- DeceptiveMemoryState · type · L51-L55 — type DeceptiveMemoryState = { catalog_id: typeof DECEPTIVE_MEMORY_CATALOG_ID; edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };
+- InstitutionMemoryState · type · L57-L64 — type InstitutionMemoryState = { catalog_id: typeof INSTITUTION_MEMORY_CATALOG_ID; trades: Record<string, string[]>; trade_at?: Record<string, Record<string, number>>; members: Record<string, "member" | "removed">; danger: Record<string, string[]>; danger_at?: Record<string, Record<string, number>>; };
+- SocialLineOpts · type · L66-L71 — type SocialLineOpts = { asOfCycle?: number; deceptive?: DeceptiveMemoryState | null; institutionLines?: string[]; publicLines?: string[]; };
+- SocialEvent · type · L73-L77 — type SocialEvent = { event_id: string; event_type: string; payload?: Record<string, unknown>; };
+- emptyTradeMemory · function · L79-L81 — function emptyTradeMemory(): TradeMemoryState
+- emptyDangerMemory · function · L83-L85 — function emptyDangerMemory(): DangerMemoryState
+- emptyDeceptiveMemory · function · L87-L89 — function emptyDeceptiveMemory(): DeceptiveMemoryState
+- emptyInstitutionMemory · function · L91-L100 — function emptyInstitutionMemory(): InstitutionMemoryState
+- ensureTradeMemory · function · L102-L109 — function ensureTradeMemory(raw: TradeMemoryState | undefined | null): TradeMemoryState
+- ensureDangerMemory · function · L111-L118 — function ensureDangerMemory(raw: DangerMemoryState | undefined | null): DangerMemoryState
+- ensureDeceptiveMemory · function · L120-L127 — function ensureDeceptiveMemory(raw: DeceptiveMemoryState | undefined | null): DeceptiveMemoryState
+- ensureInstitutionMemory · function · L129-L141 — function ensureInstitutionMemory( raw: InstitutionMemoryState | undefined | null, ): InstitutionMemoryState
+- stampAt · function · L143-L152 — function stampAt( at: Record<string, Record<string, number>> | undefined, other: string, id: string, cycle: number, ): Record<string, Record<string, number>>
+- creditAcceptedTrade · function · L154-L167 — function creditAcceptedTrade( state: TradeMemoryState | undefined, otherPlayerId: string, tradeId: string, cycle = 0, ): TradeMemoryState
+- creditsFromTradeAccepted · function · L170-L184 — function creditsFromTradeAccepted( ev: SocialEvent, trades: Record<string, { proposer_id: string; counterparty_id: string }>, ): Array<{ player_id: string; other_id: string; trade_id: string }>
+- creditDangerEvidence · function · L186-L199 — function creditDangerEvidence( state: DangerMemoryState | undefined, otherPlayerId: string, evidenceId: string, cycle = 0, ): DangerMemoryState
+- creditDeceptiveEvidence · function · L201-L214 — function creditDeceptiveEvidence( state: DeceptiveMemoryState | undefined, otherPlayerId: string, evidenceId: string, cycle = 0, ): DeceptiveMemoryState
+- strField · function · L216-L219 — function strField(payload: Record<string, unknown> | undefined, key: string): string | null
+- creditsFromDangerEvent · function · L222-L274 — function creditsFromDangerEvent( ev: SocialEvent, ): Array<{ player_id: string; other_id: string; evidence_id: string }>
+- displayName · function · L276-L278 — function displayName(other: string, names: Record<string, string | undefined>): string
+- lastCycle · function · L280-L292 — function lastCycle(at: Record<string, number> | undefined, ids: string[]): number | undefined
+- familyLive · function · L294-L304 — function familyLive( ids: string[], at: Record<string, number> | undefined, asOfCycle: number | undefined, ): boolean
+- rehabbedHostile · function · L306-L316 — function rehabbedHostile( trade: TradeMemoryState, other: string, lastHostileCycle: number | undefined, ): boolean
+- socialMemoryLines · function · L318-L375 — function socialMemoryLines( state: TradeMemoryState | undefined | null, names: Record<string, string | undefined>, danger?: DangerMemoryState | undefined | null, opts?: SocialLineOpts, ): string[]
+- liveHostileToward · function · L377-L395 — function liveHostileToward( danger: DangerMemoryState | undefined | null, deceptive: DeceptiveMemoryState | undefined | null, trade: TradeMemoryState | undefined | null, otherId: string, asOfCycle?: number, ): boolean
+- liveReliableToward · function · L397-L405 — function liveReliableToward( trade: TradeMemoryState | undefined | null, otherId: string, asOfCycle?: number, ): boolean
+- liveInstitutionReliableToward · function · L407-L415 — function liveInstitutionReliableToward( state: InstitutionMemoryState | undefined | null, otherId: string, asOfCycle?: number, ): boolean
+- tradeCautionCost · function · L417-L432 — function tradeCautionCost(liveHostile: boolean, liveReliable = false): { extra_compute: number; auto_reject: false; auto_accept: false; reason_code: string | null; total_compute: number; }
+- attestContradictionCredits · function · L434-L465 — function attestContradictionCredits(events: SocialEvent[]): Array<{ other_id: string; evidence_id: string }>
+- creditsFromDeceptiveEvent · function · L467-L485 — function creditsFromDeceptiveEvent( ev: SocialEvent, allEvents: SocialEvent[] = [], ): Array<{ player_id: string; other_id: string; evidence_id: string }>
+- watchPublicDescriptorLines · function · L487-L544 — function watchPublicDescriptorLines( events: SocialEvent[], names: Record<string, string | undefined>, ): string[]
+- creditInstitutionTrade · function · L546-L559 — function creditInstitutionTrade( state: InstitutionMemoryState | undefined, playerId: string, tradeId: string, cycle = 0, ): InstitutionMemoryState
+- creditInstitutionMember · function · L561-L570 — function creditInstitutionMember( state: InstitutionMemoryState | undefined, playerId: string, status: "member" | "removed", ): InstitutionMemoryState
+- creditInstitutionDanger · function · L572-L585 — function creditInstitutionDanger( state: InstitutionMemoryState | undefined, playerId: string, evidenceId: string, cycle = 0, ): InstitutionMemoryState
+- institutionMemoryLines · function · L587-L616 — function institutionMemoryLines( state: InstitutionMemoryState | undefined | null, orgName: string, viewerRole: "officer" | "member" | "other", viewerId: string, names: Record<string, string | undefined>, asOfCycle?: number, ): string[]
+- emit · function · L598-L602 — emit = (other: string, template: string)
+- liveInstitutionHostileToward · function · L618-L626 — function liveInstitutionHostileToward( state: InstitutionMemoryState | undefined | null, otherId: string, asOfCycle?: number, ): boolean

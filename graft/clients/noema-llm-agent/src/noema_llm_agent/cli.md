@@ -1,0 +1,4 @@
+# clients/noema-llm-agent/src/noema_llm_agent/cli.py
+
+- run · function · L21-L61 — def run( endpoint: str = typer.Option("https://noema.guru", "--endpoint", "-e"), token: Optional[str] = typer.Option(None, "--token", envvar="NOEMA_TOKEN"), transport: str = typer.Option("auto", "--transport", help="websocket|http|auto|mock"), heartbeat_interval: float = typer.Option(25.0, "--heartbeat-interval"), max_reconnects: int = typer.Option(8, "--max-reconnects"), resume: bool = typer.Option(True, "--resume/--no-resume"), provider: str = typer.Option("none", "--provider"), llm_base: Optional[str] = typer.Option(None, "--llm-base"), llm_model: Optional[str] = typer.Option(None, "--llm-model"), world_id: Optional[str] = typer.Option(None, "--world-id"), turns: int = typer.Option(4, "--turns"), ) -> None
+- _main · function · L41-L59 — async def _main() -> None

@@ -1,0 +1,31 @@
+# tests/test_llm_agent.py
+
+- _obs · function · L27-L28 — def _obs() -> dict
+- test_l05_manifest_ok · function · L31-L41 — def test_l05_manifest_ok()
+- test_l06_manifest_rejects_prompt_and_key · function · L44-L66 — def test_l06_manifest_rejects_prompt_and_key()
+- test_l07_json_look_proposal · function · L69-L71 — def test_l07_json_look_proposal()
+- test_l08_prose_move_rejected · function · L74-L77 — def test_l08_prose_move_rejected()
+- test_l09_prompt_in_proposal_rejected · function · L80-L83 — def test_l09_prompt_in_proposal_rejected()
+- test_l14_unknown_verb · function · L86-L89 — def test_l14_unknown_verb()
+- test_l10_nested_private_cognition_rejected · function · L92-L98 — def test_l10_nested_private_cognition_rejected()
+- ProtocolHttp · class · L101-L125 — class ProtocolHttp
+- __init__ · method · L102-L103 — def __init__(self) -> None
+- __call__ · method · L105-L125 — def __call__(self, method, url, body=None, token=None)
+- test_l01_hello_ok · function · L128-L131 — def test_l01_hello_ok()
+- test_l02_hello_incompatible · function · L134-L144 — def test_l02_hello_incompatible()
+- test_l03_auth_ok · function · L147-L153 — def test_l03_auth_ok()
+- test_l04_auth_missing_token · function · L156-L159 — def test_l04_auth_missing_token()
+- test_l12_perihelion_refused · function · L162-L165 — def test_l12_perihelion_refused()
+- test_l11_isolated_path · function · L168-L170 — def test_l11_isolated_path()
+- test_l13_token_never_in_model_context · function · L173-L190 — def test_l13_token_never_in_model_context()
+- propose · function · L185-L187 — def propose(payload)
+- test_l07_adapter_sends_look_not_prompt · function · L193-L209 — def test_l07_adapter_sends_look_not_prompt()
+- http · function · L196-L198 — def http(method, url, body=None, token=None, headers=None)
+- test_l08_adapter_prose_does_not_move · function · L212-L224 — def test_l08_adapter_prose_does_not_move()
+- http · function · L215-L217 — def http(method, url, body=None, token=None, headers=None)
+- test_l16_mcp_status_has_no_token · function · L227-L231 — def test_l16_mcp_status_has_no_token()
+- test_l17_no_agent_player · function · L234-L240 — def test_l17_no_agent_player()
+- test_l18_orientation_s0 · function · L243-L245 — def test_l18_orientation_s0()
+- test_l15_provider_uses_injected_http_not_noema · function · L248-L267 — def test_l15_provider_uses_injected_http_not_noema()
+- fake_post · function · L251-L253 — def fake_post(url, body, key)
+- test_static_proposer_look · function · L270-L271 — def test_static_proposer_look()

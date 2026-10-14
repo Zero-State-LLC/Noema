@@ -1,0 +1,49 @@
+# src/noema/app/runtime.py
+
+- NoemaRuntime · class · L57-L1335 — class NoemaRuntime
+- __init__ · method · L60-L97 — def __init__( self, db_path: Path | str = ":memory:", *, spec_compat_path: Path | None = None, deployment_config: dict[str, Any] | Path | str | None = None, research_capture: bool = True, frontier_config: dict[str, Any] | None = None, admin_token: str | None = None, allow_dev_human: bool | None = None, )
+- _load_compat · method · L99-L121 — def _load_compat(self, path: Path | None) -> dict[str, Any]
+- _load_deployment · method · L123-L131 — def _load_deployment( self, deployment_config: dict[str, Any] | Path | str | None ) -> dict[str, Any]
+- _assert_lineage · method · L133-L149 — def _assert_lineage(self, state: Any, *, allow_migration: bool = False) -> None
+- start_world · method · L151-L171 — def start_world(self, seed_path: Path | str, *, allow_migration: bool = False) -> dict[str, Any]
+- resume_world · method · L173-L189 — def resume_world( self, seed_path: Path | str | None = None, *, allow_migration: bool = False, ) -> dict[str, Any]
+- autoload_world · method · L191-L195 — def autoload_world(self, seed_path: Path | str) -> dict[str, Any]
+- ensure_ready · method · L197-L199 — def ensure_ready(self) -> None
+- health · method · L201-L206 — def health(self) -> dict[str, Any]
+- ready · method · L208-L219 — def ready(self) -> dict[str, Any]
+- version · method · L221-L244 — def version(self) -> dict[str, Any]
+- deployment_config_view · method · L246-L251 — def deployment_config_view(self) -> dict[str, Any]
+- runtime_manifest · method · L253-L281 — def runtime_manifest(self) -> dict[str, Any]
+- create_session · method · L283-L310 — def create_session( self, *, role: Role, principal_id: str | None = None, agent_id: str | None = None, player_id: str | None = None, controller_id: str | None = None, scopes: list[str] | None = None, ) -> dict[str, Any]
+- create_session_from_controller_token · method · L312-L326 — def create_session_from_controller_token(self, access_token: str) -> dict[str, Any]
+- create_admin_session · method · L328-L335 — def create_admin_session(self, token: str | None, *, principal_id: str | None = None) -> dict[str, Any]
+- get_principal · method · L337-L344 — def get_principal(self, session_id: str) -> Principal
+- _require_admin · method · L346-L350 — def _require_admin(self, session_id: str) -> Principal
+- _admin_session_view · method · L353-L376 — def _admin_session_view(data: dict[str, Any], *, persisted: bool) -> dict[str, Any]
+- admin_overview · method · L378-L530 — def admin_overview(self, session_id: str) -> dict[str, Any]
+- subsystem · function · L430-L431 — def subsystem(status: str, count: int, last: str | None = None) -> dict[str, Any]
+- admin_verification · method · L532-L558 — def admin_verification(self, session_id: str) -> dict[str, Any]
+- _session_record · method · L560-L564 — def _session_record(self, session_id: str) -> dict[str, Any]
+- _require_scope · method · L566-L572 — def _require_scope(self, session_id: str, scope: str) -> dict[str, Any]
+- apply_player_action · method · L574-L633 — def apply_player_action(self, session_id: str, action: dict[str, Any]) -> dict[str, Any]
+- observe · method · L635-L654 — def observe(self, session_id: str, agent_id: str | None = None) -> dict[str, Any]
+- watch_live · method · L656-L666 — def watch_live(self, session_id: str) -> dict[str, Any]
+- acceptance_view · method · L668-L670 — def acceptance_view(self) -> dict[str, Any]
+- list_trajectories · method · L674-L675 — def list_trajectories(self) -> list[dict[str, Any]]
+- rebuild_research_indexes · method · L677-L687 — def rebuild_research_indexes(self) -> list[dict[str, Any]]
+- run_frontier · method · L689-L736 — def run_frontier( self, session_id: str, request: dict[str, Any], templates: dict[str, dict[str, Any]], *, inject: bool = False, explicit_mutation_plans: list[list[dict[str, Any]]] | None = None, follow_on: dict[str, Any] | None = None, ) -> dict[str, Any]
+- _inject_selected · method · L738-L820 — def _inject_selected( self, result: FrontierResult, request: dict[str, Any], *, follow_on: dict[str, Any] | None = None, ) -> list[dict[str, Any]]
+- get_frontier_audit · method · L822-L823 — def get_frontier_audit(self, audit_id: str) -> dict[str, Any] | None
+- public_pressure_view · method · L825-L840 — def public_pressure_view(self) -> dict[str, Any]
+- run_observatory · method · L842-L918 — def run_observatory( self, session_id: str, *, trajectory: dict[str, Any] | None = None, agent_id: str | None = None, detectors: list[str] | None = None, freeze_baseline: dict[str, Any] | None = None, pre_context: dict[str, Any] | None = None, post_context: dict[str, Any] | None = None, pre_window: tuple[int, int] | None = None, post_window: tuple[int, int] | None = None, contradiction_set: dict[str, Any] | None = None, ) -> dict[str, Any]
+- research_view · method · L920-L963 — def research_view(self, session_id: str) -> dict[str, Any]
+- run_lab · method · L965-L1042 — def run_lab( self, session_id: str, *, intent: dict[str, Any] | None = None, experiment: dict[str, Any] | None = None, interventions: list[dict[str, Any]] | None = None, plan: dict[str, Any] | None = None, agent_id: str | None = None, max_runs: int | None = None, confounds: list[str] | None = None, ) -> dict[str, Any]
+- lab_capture_gate · method · L1044-L1053 — def lab_capture_gate(self, session_id: str, lab_result: dict[str, Any] | None = None) -> dict[str, Any]
+- capture_as_test · method · L1055-L1129 — def capture_as_test( self, session_id: str, *, intent: dict[str, Any], lab_result: dict[str, Any] | None = None, unit_manifest: dict[str, Any] | None = None, max_oracle_calls: int | None = None, ) -> dict[str, Any]
+- _persist_learn · method · L1131-L1137 — def _persist_learn(self, proj: LearnProjection) -> None
+- rebuild_learn · method · L1139-L1179 — def rebuild_learn( self, session_id: str, *, sources: list[dict[str, Any]] | None = None, ) -> dict[str, Any]
+- learn_view · method · L1181-L1212 — def learn_view(self, session_id: str, *, behavior_id: str | None = None) -> dict[str, Any]
+- deep_time_ingest · method · L1216-L1244 — def deep_time_ingest(self, session_id: str, records: dict[str, Any]) -> dict[str, Any]
+- deep_time_play_view · method · L1246-L1266 — def deep_time_play_view(self, session_id: str) -> dict[str, Any]
+- genesis_preview · method · L1270-L1302 — def genesis_preview( self, session_id: str, *, world_name: str, world_seed: str, profile_id: str, story_seed_ids: list[str] | None = None, ) -> dict[str, Any]
+- genesis_activate · method · L1304-L1335 — def genesis_activate(self, session_id: str, genesis_id: str) -> dict[str, Any]

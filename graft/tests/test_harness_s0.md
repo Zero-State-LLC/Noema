@@ -1,0 +1,31 @@
+# tests/test_harness_s0.py
+
+- _obs · function · L27-L30 — def _obs(**overrides) -> dict
+- FakeHttp · class · L33-L57 — class FakeHttp
+- __init__ · method · L34-L38 — def __init__(self) -> None
+- __call__ · method · L40-L57 — def __call__(self, method, url, body=None, token=None)
+- test_token_never_in_context_or_telemetry · function · L60-L73 — def test_token_never_in_context_or_telemetry()
+- test_valid_repair_maps_to_commit_and_is_sent · function · L76-L90 — def test_valid_repair_maps_to_commit_and_is_sent()
+- test_invented_verb_is_blocked_locally · function · L93-L104 — def test_invented_verb_is_blocked_locally()
+- test_unknown_target_is_blocked_locally · function · L107-L118 — def test_unknown_target_is_blocked_locally()
+- test_lost_http_retries_same_idempotency_key · function · L121-L128 — def test_lost_http_retries_same_idempotency_key()
+- test_paused_and_incident_refuse_mutation · function · L131-L145 — def test_paused_and_incident_refuse_mutation()
+- test_observation_adapter_does_not_invent_strain · function · L148-L155 — def test_observation_adapter_does_not_invent_strain()
+- test_hosted_look_fixture_round_trips · function · L158-L163 — def test_hosted_look_fixture_round_trips()
+- test_world_text_stays_out_of_system_layer · function · L166-L172 — def test_world_text_stays_out_of_system_layer()
+- test_scripted_enter_look_move_against_fake_gateway · function · L175-L192 — def test_scripted_enter_look_move_against_fake_gateway()
+- test_first_valid_affordance_selects_repair · function · L195-L202 — def test_first_valid_affordance_selects_repair()
+- test_circuit_breaker_trips_on_repeated_invalid · function · L205-L221 — def test_circuit_breaker_trips_on_repeated_invalid()
+- test_no_agent_player_type · function · L224-L230 — def test_no_agent_player_type()
+- test_device_enrollment_client_against_fake · function · L233-L269 — def test_device_enrollment_client_against_fake()
+- http · function · L236-L248 — def http(method, url, body=None, token=None)
+- test_gated_contest_not_sent · function · L272-L288 — def test_gated_contest_not_sent()
+- test_adapter_failure_does_not_invent_action · function · L291-L306 — def test_adapter_failure_does_not_invent_action()
+- Boom · class · L292-L294 — class Boom
+- decide · method · L293-L294 — def decide(self, _ctx)
+- test_policy_blocked_tags_gated_affordances_with_responsible_flag · function · L309-L338 — def test_policy_blocked_tags_gated_affordances_with_responsible_flag()
+- test_policy_blocked_surfaces_in_context_and_report · function · L341-L355 — def test_policy_blocked_surfaces_in_context_and_report()
+- test_semantic_look_fields_forwarded_as_received · function · L358-L393 — def test_semantic_look_fields_forwarded_as_received()
+- test_settlement_resync_retries_once_with_same_key_then_surfaces · function · L396-L432 — def test_settlement_resync_retries_once_with_same_key_then_surfaces()
+- resync_once · function · L406-L410 — def resync_once(method, url, body, token, headers=None)
+- resync_forever · function · L423-L425 — def resync_forever(method, url, body, token, headers=None)

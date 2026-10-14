@@ -1,0 +1,26 @@
+# tests/test_cli_serve_security.py
+
+- test_default_host_is_loopback · function · L10-L29 — def test_default_host_is_loopback(monkeypatch, tmp_path)
+- FakeServer · class · L13-L18 — class FakeServer
+- serve_forever · method · L14-L15 — def serve_forever(self) -> None
+- server_close · method · L17-L18 — def server_close(self) -> None
+- fake_serve · function · L20-L22 — def fake_serve(runtime, *, host: str, port: int)
+- test_non_loopback_local_bind_requires_explicit_unsafe_opt_in · function · L32-L55 — def test_non_loopback_local_bind_requires_explicit_unsafe_opt_in(monkeypatch, tmp_path)
+- FakeServer · class · L33-L38 — class FakeServer
+- serve_forever · method · L34-L35 — def serve_forever(self) -> None
+- server_close · method · L37-L38 — def server_close(self) -> None
+- test_explicit_unsafe_opt_in_preserves_local_network_development · function · L58-L90 — def test_explicit_unsafe_opt_in_preserves_local_network_development(monkeypatch, tmp_path)
+- FakeServer · class · L61-L66 — class FakeServer
+- serve_forever · method · L62-L63 — def serve_forever(self) -> None
+- server_close · method · L65-L66 — def server_close(self) -> None
+- fake_serve · function · L68-L70 — def fake_serve(runtime, *, host: str, port: int)
+- test_configured_production_bind_preserves_public_deployment · function · L93-L124 — def test_configured_production_bind_preserves_public_deployment(monkeypatch, tmp_path)
+- FakeServer · class · L96-L101 — class FakeServer
+- serve_forever · method · L97-L98 — def serve_forever(self) -> None
+- server_close · method · L100-L101 — def server_close(self) -> None
+- fake_serve · function · L103-L105 — def fake_serve(runtime, *, host: str, port: int)
+- test_production_loopback_refuses_missing_signing_secret · function · L127-L148 — def test_production_loopback_refuses_missing_signing_secret(monkeypatch, tmp_path)
+- FakeServer · class · L128-L133 — class FakeServer
+- serve_forever · method · L129-L130 — def serve_forever(self) -> None
+- server_close · method · L132-L133 — def server_close(self) -> None
+- test_production_refuses_builtin_dev_secret · function · L151-L163 — def test_production_refuses_builtin_dev_secret(monkeypatch)

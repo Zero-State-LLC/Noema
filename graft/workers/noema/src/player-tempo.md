@@ -1,0 +1,51 @@
+# workers/noema/src/player-tempo.ts
+
+- TempoMode · type · L15-L15 — type TempoMode = "OBSERVED_LIVE" | "FAST_TEST" | "STEP_TEST";
+- TempoPhase · type · L16-L16 — type TempoPhase = "COLLECT" | "RESOLVE" | "PRESENT";
+- WorldKind · type · L17-L17 — type WorldKind = "PRODUCTION" | "ORDINARY_LIVE" | "ISOLATED_TEST";
+- FreezeTrigger · type · L18-L22 — type FreezeTrigger = | "PARTICIPANT_QUORUM" | "COLLECT_DEADLINE_WITH_ACTION" | "OPERATOR_BATCH_CLOSE" | "OPERATOR_STEP";
+- TempoModePolicy · type · L24-L33 — type TempoModePolicy = { mode: TempoMode; allowed_world_kinds: WorldKind[]; collect_window_ms: number | null; presentation_hold_ms: number; freeze_triggers: FreezeTrigger[]; max_mutating_actions_per_player_per_cycle: 1; empty_window_advances: false; surplus_action_policy: "REJECT"; };
+- PlayerTempoCatalog · type · L35-L48 — type PlayerTempoCatalog = { catalog_id: typeof PLAYER_TEMPO_CATALOG_ID; policy_version: typeof PLAYER_TEMPO_POLICY_VERSION; modes: TempoModePolicy[]; errors: Array<"ACTION_SLOT_FILLED" | "PACE_LIMITED">; invariants: { canonical_clock: "World.cycle"; canonical_order: "action_priority,agent_id,client_action_sequence,action_id"; wall_clock_is_reducer_input: false; client_selects_mode: false; missing_action_is_wait: false; test_mode_bypasses_settlement: false; }; };
+- TempoProvenance · type · L50-L54 — type TempoProvenance = { reason: string; at_ms: number; actor: "system" | "admin" | "quorum" | "deadline" | "operator"; };
+- AcceptedTempoAction · type · L56-L66 — type AcceptedTempoAction = { player_id: string; agent_id: string; action_id: string; verb: string; action_priority: number; client_action_sequence: number; idempotency_key: string; envelope: CommandEnvelope; principal: PlayerPrincipal; };
+- RecordedTempoAction · type · L68-L76 — type RecordedTempoAction = { player_id: string; agent_id: string; action_id: string; verb: string; action_priority: number; client_action_sequence: number; idempotency_key: string; };
+- PlayerTempoState · type · L78-L96 — type PlayerTempoState = { policy_version: typeof PLAYER_TEMPO_POLICY_VERSION; mode: TempoMode; phase: TempoPhase; cycle: number; active_participant_ids: string[]; accepted: AcceptedTempoAction[]; phase_open: TempoProvenance; phase_close?: TempoProvenance; presentation_not_before_ms?: number; collect_deadline_ms?: number | null; prior_cycle: number; prior_ledger_sequence: number; last_used_sequence: Record<string, number>; last_accepted_snapshot: RecordedTempoAction[]; operator_close?: FreezeTrigger; settlement_failed?: boolean; mode_audit: Array<{ mode: TempoMode; reason: string; at_ms: number; actor: "admin" }>; };
+- TempoWorld · type · L98-L108 — type TempoWorld = { world_id: string; cycle: number; sequence: number; unsettled?: unknown[]; world_kind?: WorldKind; player_tempo_policy_version?: string; player_tempo_mode?: TempoMode; player_tempo?: PlayerTempoState; players: Record<string, { entered?: boolean; last_seen_ms?: number }>; };
+- TempoErrorDetail · type · L110-L116 — type TempoErrorDetail = { code: "ACTION_SLOT_FILLED" | "PACE_LIMITED" | "TEMPO_POLICY_UNAVAILABLE" | "CONFLICT" | "TEMPO_PIN_FORBIDDEN"; message: string; cycle?: number; phase?: TempoPhase; retry_after_ms?: number; };
+- CatalogLoad · type · L118-L120 — type CatalogLoad = | { ok: true; catalog: PlayerTempoCatalog } | { ok: false; code: "TEMPO_POLICY_UNAVAILABLE"; message: string };
+- TempoPinResult · type · L122-L124 — type TempoPinResult = | { ok: true; state: PlayerTempoState } | { ok: false; code: string; message: string };
+- validatePlayerTempoCatalog · function · L144-L190 — function validatePlayerTempoCatalog(raw: unknown): CatalogLoad
+- loadPlayerTempoCatalog · function · L192-L196 — function loadPlayerTempoCatalog(): CatalogLoad
+- tempoModePolicy · function · L198-L202 — function tempoModePolicy(mode: TempoMode): TempoModePolicy | null
+- inferWorldKind · function · L204-L217 — function inferWorldKind(worldId: string, defaultWorldId?: string): WorldKind
+- worldKindOf · function · L219-L221 — function worldKindOf(w: TempoWorld, defaultWorldId?: string): WorldKind
+- modeAllowedForKind · function · L223-L227 — function modeAllowedForKind(mode: TempoMode, kind: WorldKind): boolean
+- isPlayerTempoPinned · function · L229-L231 — function isPlayerTempoPinned(w: { player_tempo_policy_version?: string } | null | undefined): boolean
+- fillsActionSlot · function · L233-L238 — function fillsActionSlot(verb: string): boolean
+- actionPriorityForVerb · function · L240-L243 — function actionPriorityForVerb(verb: string): number
+- sortAcceptedActions · function · L245-L255 — function sortAcceptedActions<T extends RecordedTempoAction>(actions: T[]): T[]
+- recordAcceptedAction · function · L257-L267 — function recordAcceptedAction(action: AcceptedTempoAction): RecordedTempoAction
+- compactAgent · function · L269-L274 — function compactAgent(agentId: string): string
+- tempoCanonicalFingerprint · function · L276-L294 — function tempoCanonicalFingerprint(input: { cycle: number; sequence: number; accepted: RecordedTempoAction[]; events?: Array<{ event_type: string; sequence: number; event_id?: string }>; }): string
+- publicTempoProjection · function · L296-L339 — function publicTempoProjection( w: TempoWorld, now: number, ): { policy_version: string | null; mode: TempoMode | null; phase: TempoPhase | null; cycle: number; step_required: boolean; collect_deadline_ms: number | null; accepted_slot_count: number; active_participant_count: number; presentation_hold_remaining_ms: number; settlement_failed: boolean; }
+- redactedTempoState · function · L341-L357 — function redactedTempoState(tempo: PlayerTempoState | undefined): Record<string, unknown> | null
+- nextTempoAlarmAt · function · L359-L368 — function nextTempoAlarmAt(tempo: PlayerTempoState | undefined, now: number): number | null
+- paceLimitedError · function · L370-L390 — function paceLimitedError( w: TempoWorld, now: number, message = "The world is not collecting actions right now.", ): TempoErrorDetail
+- slotFilledError · function · L392-L399 — function slotFilledError(w: TempoWorld): TempoErrorDetail
+- requirePinnedCatalog · function · L401-L403 — function requirePinnedCatalog(): CatalogLoad
+- atBoundary · function · L405-L410 — function atBoundary(tempo: PlayerTempoState | undefined): boolean
+- hasUnresolvedSettlement · function · L412-L414 — function hasUnresolvedSettlement(w: TempoWorld): boolean
+- freezeParticipants · function · L416-L418 — function freezeParticipants(w: TempoWorld, now: number): string[]
+- collectDeadlineMs · function · L420-L424 — function collectDeadlineMs(mode: TempoMode, openedAt: number): number | null
+- openCollectPhase · function · L426-L439 — function openCollectPhase(w: TempoWorld, now: number, reason: string, actor: TempoProvenance["actor"]): void
+- pinPlayerTempo · function · L441-L489 — function pinPlayerTempo( w: TempoWorld, input: { mode: TempoMode; now: number; reason: string; defaultWorldId?: string }, ): TempoPinResult
+- changeTempoMode · function · L493-L535 — function changeTempoMode( w: TempoWorld, input: { mode: TempoMode; now: number; reason: string; defaultWorldId?: string }, ): TempoPinResult
+- operatorTempoTrigger · function · L537-L553 — function operatorTempoTrigger( w: TempoWorld, input: { trigger: "OPERATOR_BATCH_CLOSE" | "OPERATOR_STEP"; now: number }, ): { ok: true; should_resolve: boolean } | { ok: false; code: string; message: string }
+- shouldFreezeTempo · function · L555-L579 — function shouldFreezeTempo(w: TempoWorld, now: number): boolean
+- advanceTempoAdmissionClock · function · L581-L606 — function advanceTempoAdmissionClock( w: TempoWorld, now: number, ): { should_resolve: boolean; opened_collect: boolean }
+- readClientActionSequence · function · L608-L615 — function readClientActionSequence(envl: CommandEnvelope): number | undefined
+- admitTempoAction · function · L617-L685 — function admitTempoAction( w: TempoWorld, input: { principal: PlayerPrincipal; envelope: CommandEnvelope; verb: string; now: number; worldPaused?: boolean; }, ): { ok: true; action: AcceptedTempoAction } | { ok: false; error: TempoErrorDetail }
+- markTempoResolveOpen · function · L687-L695 — function markTempoResolveOpen(w: TempoWorld, now: number, reason: string): RecordedTempoAction[]
+- markTempoPresent · function · L697-L709 — function markTempoPresent(w: TempoWorld, now: number): void
+- markTempoSettlementFailed · function · L711-L715 — function markTempoSettlementFailed(w: TempoWorld): void
+- recoverPinnedTempoFromIncident · function · L723-L741 — function recoverPinnedTempoFromIncident( w: TempoWorld & { seen_idempotency?: Record<string, unknown> }, now: number, ): boolean

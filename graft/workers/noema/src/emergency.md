@@ -1,0 +1,22 @@
+# workers/noema/src/emergency.ts
+
+- EmergencyCapability · type · L15-L15 — type EmergencyCapability = "REPAIR" | "TRADE";
+- EmergencyStatus · type · L16-L16 — type EmergencyStatus = "ACTIVE" | "EXPIRED" | "REVOKED";
+- EmergencyCondition · type · L18-L20 — type EmergencyCondition = | { kind: "ASSET_CONDITION_LT"; threshold: number } | { kind: "TREASURY_LT"; resource: "energy"; threshold: number };
+- EmergencyTemplate · type · L22-L29 — type EmergencyTemplate = { template_id: string; source_profiles: OfficeProfile[]; capability: EmergencyCapability; condition: EmergencyCondition; duration_cycles: number; max_spend?: { energy?: number }; };
+- EmergencyScope · type · L31-L47 — type EmergencyScope = { scope_id: string; template_id: string; institution_id: string; holder_player_id: string; source_office_id?: string; capability: EmergencyCapability; target_ref: string; start_cycle: number; end_cycle: number; status: EmergencyStatus; created_cycle: number; revoked_cycle?: number; reason?: string; spent?: { energy?: number }; succession?: import("./succession").SuccessionRule; };
+- defaultEmergencyTemplates · function · L49-L67 — function defaultEmergencyTemplates(): EmergencyTemplate[]
+- allocateScopeId · function · L69-L71 — function allocateScopeId(): string
+- isScopeEffective · function · L73-L75 — function isScopeEffective(scope: EmergencyScope, cycle: number): boolean
+- conditionHolds · function · L77-L87 — function conditionHolds( template: EmergencyTemplate, args: { entityCondition?: number; treasury?: Treasury }, ): boolean
+- canActivate · function · L89-L117 — function canActivate( org: { status?: string; offices?: Record<string, OfficeRecord>; members?: Array<{ agent_id: string }> }, actorId: string, actorRole: string | null, template: EmergencyTemplate, officeId?: string, ): { ok: true; office_id?: string } | { ok: false; code: "FORBIDDEN"; message: string }
+- findEmergencyScope · function · L119-L129 — function findEmergencyScope( orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined, scopeId: string, ): { org_id: string; scope: EmergencyScope } | null
+- findDuplicate · function · L131-L145 — function findDuplicate( scopes: EmergencyScope[] | undefined, templateId: string, holderId: string, targetRef: string, cycle: number, ): EmergencyScope | undefined
+- expireDueScopes · function · L147-L156 — function expireDueScopes(scopes: EmergencyScope[] | undefined, cycle: number): EmergencyScope[]
+- resolveEmergencyUse · function · L158-L192 — function resolveEmergencyUse( org: { org_id?: string; status?: string; offices?: Record<string, OfficeRecord>; members?: Array<{ agent_id: string }>; emergency_scopes?: EmergencyScope[]; }, actorId: string, scopeId: string, capability: EmergencyCapability, targetRef: string, cycle: number, ): | { ok: true; scope: EmergencyScope } | { ok: false; code: "NOT_FOUND" | "FORBIDDEN"; message: string }
+- resolveEmergencyFor · function · L194-L225 — function resolveEmergencyFor( org: { org_id?: string; status?: string; offices?: Record<string, OfficeRecord>; members?: Array<{ agent_id: string }>; emergency_scopes?: EmergencyScope[]; }, actorId: string, capability: EmergencyCapability, targetRef: string, cycle: number, scopeId?: string, ): | { ok: true; scope: EmergencyScope } | { ok: false; code: "NOT_FOUND" | "FORBIDDEN"; message: string }
+- emergencyLines · function · L227-L231 — function emergencyLines(scopes: EmergencyScope[] | undefined, playerId: string, cycle: number): string[]
+- publicEmergencyPulses · function · L233-L240 — function publicEmergencyPulses(orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined, cycle: number): string[]
+- PulseRoomIn · type · L242-L245 — type PulseRoomIn = { room_id?: string; entities?: Array<{ entity_id?: string; label?: string }>; };
+- roomIdForEmergencyTarget · function · L247-L258 — function roomIdForEmergencyTarget( target: string | undefined, rooms?: Record<string, PulseRoomIn>, ): string | undefined
+- publicEmergencyPulseRoom · function · L265-L281 — function publicEmergencyPulseRoom( orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined, cycle: number, rooms?: Record<string, PulseRoomIn>, players?: Array<{ player_id?: string; room_id?: string }>, ): string | undefined

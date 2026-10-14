@@ -1,0 +1,47 @@
+# workers/noema/test/watch-live.test.ts
+
+- rooms · function · L36-L68 — function rooms()
+- livePlayer · function · L70-L85 — function livePlayer( id: string, handle: string, room_id: string, extra: Record<string, unknown> = {}, )
+- src · function · L87-L97 — function src(partial: Partial<WatchSourceEvent> & Pick<WatchSourceEvent, "event_type" | "sequence">): WatchSourceEvent
+- bareLine · function · L563-L565 — function bareLine(line?: string): string
+- liveOf · function · L567-L578 — function liveOf(over: Partial<Parameters<typeof buildWatchLive>[0]> = {})
+- recent · function · L580-L582 — function recent(snap: Record<string, unknown>): WatchEvent[]
+- ev · function · L791-L793 — function ev(partial: Partial<WatchEvent> & Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line">): WatchEvent
+- FakeNode · type · L1403-L1429 — type FakeNode = { tagName: string; children: FakeNode[]; attrs: Record<string, string>; handlers: Record<string, Array<(ev: unknown) => void>>; className: string; textContent: string; hidden: boolean; open: boolean; style: Record<string, string>; classList: { add(c: string): void; remove(c: string): void; toggle(c: string, on?: boolean): boolean; contains(c: string): boolean; }; setAttribute(k: string, v: string): void; getAttribute(k: string): string | null; addEventListener(type: string, fn: (ev: unknown) => void): void; append(...kids: Array<FakeNode | string>): void; replaceChildren(...kids: FakeNode[]): void; querySelector(sel: string): FakeNode | null; querySelectorAll(sel: string): FakeNode[]; focus(): void; scrollIntoView(): void; fire(type: string, ev?: unknown): void; };
+- makeWatchDom · function · L1431-L1550 — function makeWatchDom()
+- findAll · function · L1433-L1443 — function findAll(root: FakeNode, sel: string): FakeNode[]
+- walk · function · L1435-L1440 — walk = (m: FakeNode)
+- node · function · L1444-L1507 — function node(tag: string): FakeNode
+- add · method · L1456-L1460 — add(c)
+- remove · method · L1461-L1465 — remove(c)
+- toggle · method · L1466-L1472 — toggle(c, on)
+- contains · method · L1473-L1475 — contains(c)
+- setAttribute · method · L1477-L1479 — setAttribute(k, v)
+- getAttribute · method · L1480-L1482 — getAttribute(k)
+- addEventListener · method · L1483-L1485 — addEventListener(type, fn)
+- append · method · L1486-L1488 — append(...kids)
+- replaceChildren · method · L1489-L1491 — replaceChildren(...kids)
+- querySelector · method · L1492-L1494 — querySelector(sel)
+- querySelectorAll · method · L1495-L1497 — querySelectorAll(sel)
+- focus · method · L1498-L1500 — focus()
+- scrollIntoView · method · L1501-L1501 — scrollIntoView()
+- fire · method · L1502-L1504 — fire(type, ev)
+- text · function · L1508-L1512 — function text(s: string): FakeNode
+- activeElement · method · L1518-L1520 — get activeElement()
+- getElementById · method · L1521-L1528 — getElementById(id: string)
+- createElement · method · L1529-L1531 — createElement(tag: string)
+- createElementNS · method · L1532-L1534 — createElementNS(_ns: string, tag: string)
+- createTextNode · method · L1535-L1537 — createTextNode(s: string)
+- querySelector · method · L1538-L1540 — querySelector()
+- addEventListener · method · L1541-L1541 — addEventListener()
+- focused · method · L1546-L1548 — get focused()
+- textOf · function · L1552-L1557 — function textOf(n: FakeNode | null | undefined): string
+- bootWatchClient · function · L1559-L1615 — async function bootWatchClient(initial: () => unknown)
+- flush · function · L1586-L1586 — flush = ()
+- restore · function · L1587-L1595 — restore = ()
+- setFetch · method · L1606-L1608 — setFetch(fn: () => unknown)
+- refresh · method · L1609-L1612 — async refresh()
+- okResponse · function · L1617-L1619 — function okResponse(data: unknown)
+- snapshot · function · L1621-L1648 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
+- calm · function · L1686-L1691 — calm = (seq: number)
+- preventDefault · method · L1775-L1775 — preventDefault()

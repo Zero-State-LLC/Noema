@@ -1,0 +1,32 @@
+# workers/noema/src/settle.ts
+
+- SettlementEvent · interface · L5-L15 — interface SettlementEvent
+- WorldHead · type · L17-L31 — type WorldHead = { world_id: string; sequence: number; cycle: number; genesis_id?: string | null; status: string; settlement_health: string; state_json: WorldRuntime; updated_at?: string; revision?: number; ledger_head_event_id?: string | null; state_digest?: string | null; writer_generation?: string | null; ledger_head_digest?: string | null; };
+- CanonicalCommit · type · L33-L35 — type CanonicalCommit = | { ok: true; revision: number; sequence: number; idempotent: boolean } | { ok: false; code: string };
+- commandResultHttpStatus · function · L49-L51 — function commandResultHttpStatus(_result: { ok?: boolean }): number
+- SoftSettlementFailure · type · L53-L67 — type SoftSettlementFailure = { mode: "soft_restore" | "incident"; world: import("./world-actions").WorldRuntime | null; result: { ok: false; request_id: string; error: { code: string; message: string }; }; metaPatch: { status: "ACTIVE" | "INCIDENT"; settlement_health: "HEALTHY" | "DEGRADED" | "BLOCKING"; settlement_ok: boolean; revision?: number; }; };
+- SoftRestoreLog · type · L72-L81 — type SoftRestoreLog = { code: string; client_code: "SETTLEMENT_RESYNC"; world_id: string; do_sequence: number | null; head_sequence: number | null; state_json_sequence: number | null; revision: number | null; writer_generation: string; };
+- stateJsonSequence · function · L83-L86 — function stateJsonSequence(head: WorldHead | null | undefined): number | null
+- softRestoreLog · function · L88-L105 — function softRestoreLog(input: { code: string; world_id: string; do_sequence?: number; head: WorldHead | null; writer_generation: string; }): SoftRestoreLog
+- logSoftRestore · function · L107-L109 — function logSoftRestore(fields: SoftRestoreLog): void
+- HeadSequenceClampLog · type · L114-L120 — type HeadSequenceClampLog = { world_id: string; head_sequence: number; state_json_sequence: number; head_cycle: number | null; state_json_cycle: number | null; };
+- liveSequenceSkewedFromHead · function · L123-L128 — function liveSequenceSkewedFromHead( liveSequence: number | undefined, headSequence: number | undefined, ): boolean
+- logHeadSequenceClamp · function · L130-L132 — function logHeadSequenceClamp(fields: HeadSequenceClampLog): void
+- resolveSoftSettlementFailure · function · L138-L195 — async function resolveSoftSettlementFailure(input: { code: string; before: import("./world-actions").WorldRuntime; request_id: string; getHead: (worldId: string) => Promise<WorldHead | null>; writer_generation: string; }): Promise<SoftSettlementFailure>
+- canonicalEventsForCommit · function · L198-L202 — function canonicalEventsForCommit<T extends { event_id: string }>( events: T[] | undefined | null, ): T[]
+- restBase · function · L204-L209 — function restBase(env: Env): { url: string; key: string } | null
+- settleEvent · function · L216-L255 — async function settleEvent(env: Env, principal: PlayerPrincipal, ev: SettlementEvent): Promise<boolean>
+- settleGenesisActivation · function · L258-L300 — async function settleGenesisActivation( env: Env, payload: { genesis_id: string; world_id: string; cycle0_digest: string; world_seed: string; profile_id: string; story_seed_ids: string[]; admin_session_id: string; }, ): Promise<{ settled: boolean; settlement_id: string }>
+- shouldRestoreFromHead · function · L303-L305 — function shouldRestoreFromHead(stored: WorldRuntime | null | undefined): boolean
+- worldFromHead · function · L308-L332 — function worldFromHead( head: WorldHead | null, fallback: WorldRuntime, ): WorldRuntime
+- putWorldHead · function · L334-L371 — async function putWorldHead( env: Env, head: Omit<WorldHead, "updated_at">, ): Promise<boolean>
+- CanonicalHeadPulse · type · L373-L386 — type CanonicalHeadPulse = { head_present: boolean; head_revision: number | null; head_sequence: number | null; head_cycle: number | null; do_sequence: number | null; do_cycle: number | null; do_revision: number | null; state_json_sequence: number | null; do_ne_head: boolean; head_ne_state_json: boolean; /** Empty when aligned or head absent. Read-only diagnose string for ops. */ mismatch: string | null; };
+- HeadSequenceCheck · type · L388-L395 — type HeadSequenceCheck = { head_sequence: number | null; state_json_sequence: number | null; do_sequence: number | null; do_ne_head: boolean; head_ne_state_json: boolean; mismatch: string | null; };
+- compareHeadSequences · function · L398-L423 — function compareHeadSequences( head: WorldHead | null | undefined, live: { sequence?: number }, ): HeadSequenceCheck
+- summarizeCanonicalHead · function · L426-L444 — function summarizeCanonicalHead( head: WorldHead | null | undefined, live: { sequence?: number; cycle?: number; revision?: number | null }, ): CanonicalHeadPulse
+- getWorldHead · function · L446-L466 — async function getWorldHead(env: Env, worldId: string): Promise<WorldHead | null>
+- commitCanonicalSettlement · function · L472-L547 — async function commitCanonicalSettlement( env: Env, input: { settlement_id: string; expected_revision: number; writer_generation: string; genesis_id?: string | null; status: string; settlement_health: string; world: WorldRuntime; principal: PlayerPrincipal; events: NonNullable<import("./types").CommandResult["events"]>; previous_digest: string | null; allow_bootstrap?: boolean; }, ): Promise<CanonicalCommit>
+- rpcFailureCode · function · L549-L553 — function rpcFailureCode(body: Record<string, unknown> | null, status: number): string
+- commitAdoptedLiveHead · function · L559-L614 — async function commitAdoptedLiveHead( env: Env, input: { settlement_id: string; writer_generation: string; genesis_id?: string | null; status: string; settlement_health: string; world: WorldRuntime; }, ): Promise<CanonicalCommit>
+- insertAdoptedLiveHeadRow · function · L616-L661 — async function insertAdoptedLiveHeadRow( rest: { url: string; key: string }, input: { settlement_id: string; writer_generation: string; genesis_id?: string | null; status: string; settlement_health: string; world: WorldRuntime; }, material: { state_json: Record<string, unknown>; canonical_json: string; state_digest: string }, ): Promise<CanonicalCommit>
+- replayUnsettled · function · L663-L695 — async function replayUnsettled( env: Env, worldId: string, items: UnsettledEvent[], ): Promise<UnsettledEvent[]>

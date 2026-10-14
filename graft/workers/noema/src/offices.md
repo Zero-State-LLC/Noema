@@ -1,0 +1,26 @@
+# workers/noema/src/offices.ts
+
+- OfficeProfile · type · L19-L19 — type OfficeProfile = (typeof OFFICE_PROFILES)[number];
+- OfficeRequiredTrack · type · L25-L25 — type OfficeRequiredTrack = (typeof OFFICE_REQUIRED_TRACKS)[number];
+- Treasury · type · L27-L33 — type Treasury = { attention: number; compute: number; energy: number; influence: number; storage: number; };
+- emptyTreasury · function · L35-L37 — function emptyTreasury(): Treasury
+- ensureTreasury · function · L39-L42 — function ensureTreasury(org: { treasury?: Treasury }): Treasury
+- OfficeStatus · type · L44-L44 — type OfficeStatus = "VACANT" | "OCCUPIED" | "RETIRED";
+- OfficeRecord · type · L46-L63 — type OfficeRecord = { office_id: string; institution_id: string; display_name: string; status: OfficeStatus; holder_player_id?: string; authority_profile: OfficeProfile; created_cycle: number; retired_cycle?: number; history: Array<{ cycle: number; holder_player_id: string | null; kind: "ASSIGNED" | "VACATED" | "RETIRED" }>; succession?: import("./succession").SuccessionRule; /** Listed objects this grant covers. Absent/empty = whole profile universe. */ object_set?: string[]; /** GC1-S5. Absent = any member. engineer|broker only. */ requires_track?: OfficeRequiredTrack; /** GC4-S5 CONSENSUS consents. Vacant office only. */ consents?: import("./succession").OfficeConsent[]; };
+- OfficePublic · type · L65-L73 — type OfficePublic = { office_id: string; display_name: string; status: OfficeStatus; holder_player_id?: string; holder_handle?: string; authority_profile: OfficeProfile; successor_handle?: string; };
+- sanitizeIdList · function · L75-L86 — function sanitizeIdList(raw: unknown): string[] | undefined
+- sanitizePrecedence · function · L88-L94 — function sanitizePrecedence( raw: unknown, ): string[] | "append" | "lead" | undefined
+- applyPublishedPrecedence · function · L96-L113 — function applyPublishedPrecedence( org: { office_precedence?: string[] }, officeId: string, spec: string[] | "append" | "lead" | undefined, ): void
+- parseRequiresTrack · function · L115-L124 — function parseRequiresTrack(raw: unknown): OfficeRequiredTrack | null | undefined
+- parseOfficeProfile · function · L126-L129 — function parseOfficeProfile(raw: string | undefined | null): OfficeProfile | null
+- allocateOfficeId · function · L131-L141 — function allocateOfficeId(orgId: string, displayName: string, seq?: number, cycle?: number): string
+- publicOffices · function · L143-L163 — function publicOffices( offices: Record<string, OfficeRecord> | undefined, names: Record<string, string | undefined>, ): OfficePublic[]
+- officeLines · function · L165-L173 — function officeLines(offices: OfficePublic[]): string[]
+- precedenceLines · function · L181-L191 — function precedenceLines( offices: OfficePublic[], precedence: string[] | undefined, ): string[]
+- findOffice · function · L193-L203 — function findOffice( orgs: Record<string, { offices?: Record<string, OfficeRecord> }> | undefined, officeId: string, ): { org_id: string; office: OfficeRecord } | null
+- officeClaimsObject · function · L205-L209 — function officeClaimsObject(office: OfficeRecord, objectId: string): boolean
+- resolveOfficeConflict · function · L215-L269 — function resolveOfficeConflict( org: { office_precedence?: string[]; offices?: Record<string, OfficeRecord> } | undefined, actingOfficeId: string, objectId: string, ): { ok: true } | { ok: false; code: "AUTHORITY_CONFLICT" | "FORBIDDEN"; message: string }
+- occupiedOfficesFor · function · L271-L279 — function occupiedOfficesFor( org: { offices?: Record<string, OfficeRecord> } | undefined, playerId: string, profile: OfficeProfile, ): OfficeRecord[]
+- resolveInstitutionGrant · function · L281-L315 — function resolveInstitutionGrant( orgs: Record<string, { org_id?: string; status?: string; offices?: Record<string, OfficeRecord> }> | undefined, playerId: string, actingFor: string | undefined, officeId: string | undefined, profile: OfficeProfile, ): | { ok: true; org_id: string; office: OfficeRecord } | { ok: false; code: "NOT_FOUND" | "FORBIDDEN"; message: string }
+- assetInInstitutionScope · function · L317-L327 — function assetInInstitutionScope( entity: { owner_id?: string; entity_type?: string }, orgId: string, actorId: string, ): boolean
+- vacateHolderOffices · function · L329-L344 — function vacateHolderOffices( org: { offices?: Record<string, OfficeRecord> }, playerId: string, cycle: number, ): OfficeRecord[]

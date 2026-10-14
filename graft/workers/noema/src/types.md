@@ -1,0 +1,24 @@
+# workers/noema/src/types.ts
+
+- Env · interface · L2-L43 — interface Env
+- AdminPrincipal · interface · L46-L53 — interface AdminPrincipal
+- LiveControllerType · type · L56-L56 — type LiveControllerType = "agent";
+- LegacyControllerType · type · L57-L57 — type LegacyControllerType = "human" | "hybrid" | "agent";
+- ControllerType · type · L58-L58 — type ControllerType = LegacyControllerType;
+- HumanPrincipal · interface · L61-L74 — interface HumanPrincipal
+- PlayerPrincipal · interface · L80-L97 — interface PlayerPrincipal
+- Principal · type · L99-L99 — type Principal = HumanPrincipal | PlayerPrincipal;
+- isHumanPrincipal · function · L101-L103 — function isHumanPrincipal(p: Principal): p is HumanPrincipal
+- isAgentPlayerPrincipal · function · L105-L108 — function isAgentPlayerPrincipal(p: Principal): p is PlayerPrincipal
+- CommandEnvelope · interface · L110-L124 — interface CommandEnvelope
+- ObservationTrace · interface · L126-L130 — interface ObservationTrace
+- ObservationEntity · interface · L132-L144 — interface ObservationEntity
+- ObservationAffordance · interface · L146-L215 — interface ObservationAffordance
+- Observation · interface · L217-L383 — interface Observation
+- BeliefState · interface · L388-L394 — interface BeliefState
+- AgentRole · type · L397-L397 — type AgentRole = "salvager" | "trader" | "archivist" | "maintainer" | "generalist";
+- CommandResult · interface · L399-L419 — interface CommandResult
+- Checkpoint · interface · L421-L437 — interface Checkpoint
+- ProductionFunction · interface · L441-L446 — interface ProductionFunction
+- ConversionRule · interface · L448-L453 — interface ConversionRule
+- ResourceEconomyState · interface · L455-L460 — interface ResourceEconomyState

@@ -1,0 +1,136 @@
+# src/noema/world/state.py
+
+- WorldState · class · L13-L75 — class WorldState
+- clone · method · L37-L38 — def clone(self) -> WorldState
+- room_entity_ids · method · L40-L42 — def room_entity_ids(self, room_id: str) -> list[str]
+- to_serializable_dict · method · L44-L75 — def to_serializable_dict(self) -> dict[str, Any]
+- load_seed · function · L78-L100 — def load_seed(path: Path | str) -> WorldState
+- _json_number · function · L103-L111 — def _json_number(value: float | int) -> float | int
+- RoomsBundle · class · L115-L200 — class RoomsBundle
+- __init__ · method · L118-L119 — def __init__(self, state: 'WorldState') -> None
+- rooms · method · L122-L123 — def rooms(self) -> dict[str, dict[str, Any]]
+- exits · method · L126-L127 — def exits(self) -> dict[str, dict[str, Any]]
+- link_entity · method · L129-L135 — def link_entity(self, room_id: str, entity_or_agent_id: str) -> None
+- unlink_entity · method · L137-L141 — def unlink_entity(self, room_id: str, entity_or_agent_id: str) -> None
+- room_entity_ids · method · L143-L145 — def room_entity_ids(self, room_id: str) -> list[str]
+- room · method · L147-L149 — def room(self, room_id: str) -> dict[str, Any] | None
+- first_room_id · method · L151-L155 — def first_room_id(self) -> str | None
+- exit · method · L157-L159 — def exit(self, exit_id: str) -> dict[str, Any] | None
+- room_id_for_agent · method · L161-L167 — def room_id_for_agent(self, agent_id: str) -> str | None
+- move_agent · method · L169-L173 — def move_agent(self, from_room_id: str, to_room_id: str, agent_id: str) -> None
+- visible_entities · method · L176-L192 — def visible_entities(self, room_id: str, exclude_agent_id: str | None = None) -> list[dict[str, Any]]
+- exits_from · method · L194-L200 — def exits_from(self, room_id: str) -> list[dict[str, Any]]
+- EntitiesBundle · class · L203-L310 — class EntitiesBundle
+- __init__ · method · L206-L207 — def __init__(self, state: 'WorldState') -> None
+- entities · method · L210-L211 — def entities(self) -> dict[str, dict[str, Any]]
+- entity_ids · method · L213-L214 — def entity_ids(self) -> list[str]
+- entity · method · L216-L218 — def entity(self, entity_id: str) -> dict[str, Any] | None
+- create · method · L220-L222 — def create(self, entity_id: str, data: dict[str, Any]) -> None
+- remove · method · L224-L226 — def remove(self, entity_id: str) -> None
+- create_and_link · method · L231-L238 — def create_and_link(self, entity_id: str, entity: dict[str, Any], room_id: str | None = None) -> None
+- update_entity · method · L240-L256 — def update_entity(self, entity_id: str, set_map: dict[str, Any] | None = None, unset_list: list[str] | None = None) -> None
+- destroy_entity · method · L258-L275 — def destroy_entity(self, entity_id: str, reason: str | None = None, cycle: int | None = None) -> None
+- patch_entity · method · L279-L285 — def patch_entity(self, entity_id: str, fields: dict[str, Any]) -> None
+- entity_or_raise · method · L287-L291 — def entity_or_raise(self, entity_id: str) -> dict[str, Any]
+- get_holder_resource_slot · method · L293-L310 — def get_holder_resource_slot(self, holder_id: str, resource: str) -> tuple[dict[str, Any], str]
+- OrganizationsBundle · class · L312-L340 — class OrganizationsBundle
+- __init__ · method · L315-L316 — def __init__(self, state: 'WorldState') -> None
+- organizations · method · L319-L320 — def organizations(self) -> dict[str, dict[str, Any]]
+- organization_member_ids · method · L322-L324 — def organization_member_ids(self, org_id: str) -> list[str]
+- create · method · L326-L328 — def create(self, org_id: str, data: dict[str, Any]) -> None
+- add_member · method · L330-L335 — def add_member(self, org_id: str, agent_id: str, role: str) -> None
+- remove_member · method · L337-L340 — def remove_member(self, org_id: str, agent_id: str) -> None
+- AgentsBundle · class · L344-L429 — class AgentsBundle
+- __init__ · method · L347-L348 — def __init__(self, state: 'WorldState') -> None
+- active_agents · method · L351-L352 — def active_agents(self) -> dict[str, dict[str, Any]]
+- registered_agents · method · L355-L356 — def registered_agents(self) -> dict[str, dict[str, Any]]
+- active_agent · method · L358-L360 — def active_agent(self, agent_id: str) -> dict[str, Any] | None
+- registered_agent · method · L362-L364 — def registered_agent(self, agent_id: str) -> dict[str, Any] | None
+- agent_room_id · method · L366-L371 — def agent_room_id(self, agent_id: str) -> str | None
+- agent_budgets · method · L373-L376 — def agent_budgets(self, agent_id: str) -> dict[str, float]
+- ensure_registered_agent · method · L378-L386 — def ensure_registered_agent(self, agent_id: str, display_name: str | None = None) -> dict[str, Any]
+- get_active_agent_or_raise · method · L388-L392 — def get_active_agent_or_raise(self, agent_id: str) -> dict[str, Any]
+- enter_active_agent · method · L399-L411 — def enter_active_agent(self, agent_id: str, room_id: str, budgets: dict[str, float], manifest_id: str | None = None) -> None
+- leave_active_agent · method · L413-L415 — def leave_active_agent(self, agent_id: str) -> None
+- debit_agent_budgets · method · L417-L424 — def debit_agent_budgets(self, agent_id: str, costs: dict[str, float]) -> None
+- update_agent_room · method · L426-L429 — def update_agent_room(self, agent_id: str, new_room_id: str) -> None
+- MessagesBundle · class · L431-L456 — class MessagesBundle
+- __init__ · method · L434-L435 — def __init__(self, state: 'WorldState') -> None
+- messages · method · L438-L439 — def messages(self) -> dict
+- add_message · method · L441-L443 — def add_message(self, message_id: str, msg: dict[str, Any]) -> None
+- messages_for · method · L445-L456 — def messages_for(self, recipient_id: str, status: str = "DELIVERED") -> list[dict[str, Any]]
+- TradesBundle · class · L459-L472 — class TradesBundle
+- __init__ · method · L462-L463 — def __init__(self, state: 'WorldState') -> None
+- trades · method · L466-L467 — def trades(self) -> dict[str, dict[str, Any]]
+- propose_trade · method · L470-L472 — def propose_trade(self, trade_id: str, trade: dict[str, Any]) -> None
+- PendingObservationsBundle · class · L474-L490 — class PendingObservationsBundle
+- __init__ · method · L477-L478 — def __init__(self, state: 'WorldState') -> None
+- pending_observations · method · L481-L482 — def pending_observations(self) -> dict[str, dict[str, Any]]
+- add_pending · method · L484-L486 — def add_pending(self, obs_id: str, obs: dict[str, Any]) -> None
+- get_pending · method · L488-L490 — def get_pending(self, obs_id: str) -> dict[str, Any] | None
+- SituationsBundle · class · L494-L519 — class SituationsBundle
+- __init__ · method · L497-L498 — def __init__(self, state: 'WorldState') -> None
+- get_situation · method · L500-L502 — def get_situation(self, sid: str) -> dict[str, Any] | None
+- set_situation · method · L504-L508 — def set_situation(self, sid: str, data: dict[str, Any]) -> None
+- get_public_situations · method · L510-L519 — def get_public_situations(self) -> list[dict[str, Any]]
+- ValidatorBundle · class · L521-L560 — class ValidatorBundle
+- __init__ · method · L528-L529 — def __init__(self, state: 'WorldState') -> None
+- check_budget · method · L531-L540 — def check_budget(self, agent_id: str, costs: dict[str, float]) -> bool
+- check_authorization · method · L542-L546 — def check_authorization(self, principal_agent_id: str | None, action_agent_id: str) -> bool
+- check_visibility · method · L548-L560 — def check_visibility(self, agent_id: str, target_id: str) -> bool
+- ActionBundle · class · L563-L714 — class ActionBundle
+- __init__ · method · L570-L572 — def __init__(self, state: 'WorldState', world_id: str) -> None
+- route_to_reducer · method · L574-L591 — def route_to_reducer(self, verb: str) -> str
+- build_event_payload · method · L593-L714 — def build_event_payload(self, verb: str, agent_id: str, params: dict[str, Any], bundles: dict[str, Any]) -> dict[str, Any]
+- ContextBundle · class · L717-L769 — class ContextBundle
+- __init__ · method · L724-L725 — def __init__(self, state: 'WorldState') -> None
+- slice_for_agent · method · L727-L765 — def slice_for_agent(self, agent_id: str, budget_tokens: int = 4000) -> dict[str, Any]
+- slice_for_spectator · method · L767-L769 — def slice_for_spectator(self, limit: int = 20) -> dict[str, Any]
+- PromptBundle · class · L772-L801 — class PromptBundle
+- __init__ · method · L779-L780 — def __init__(self, state: 'WorldState') -> None
+- build_system_prompt · method · L782-L786 — def build_system_prompt(self) -> str
+- build_action_prompt · method · L788-L796 — def build_action_prompt(self, context_slice: dict[str, Any]) -> str
+- build_observation_prompt · method · L798-L801 — def build_observation_prompt(self, observation: dict[str, Any]) -> str
+- ModuleBundle · class · L825-L848 — class ModuleBundle
+- __init__ · method · L832-L833 — def __init__(self, state: 'WorldState') -> None
+- discover_modules · method · L835-L838 — def discover_modules(self, category: str | None = None) -> list[dict[str, Any]]
+- validate_module · method · L840-L843 — def validate_module(self, module_id: str) -> tuple[bool, str | None]
+- instantiate_module · method · L845-L848 — def instantiate_module(self, module_id: str, config: dict[str, Any] | None = None) -> Any
+- CatalogBundle · class · L851-L892 — class CatalogBundle
+- __init__ · method · L858-L859 — def __init__(self, state: 'WorldState') -> None
+- get_genesis_profiles · method · L861-L864 — def get_genesis_profiles(self) -> list[dict[str, Any]]
+- get_story_seeds · method · L866-L869 — def get_story_seeds(self) -> list[str]
+- validate_genesis_profile · method · L871-L877 — def validate_genesis_profile(self, profile_id: str) -> dict[str, Any] | None
+- validate_story_seeds · method · L879-L882 — def validate_story_seeds(self, seeds: list[str]) -> list[str]
+- get_compiler_catalog · method · L884-L887 — def get_compiler_catalog(self) -> dict[str, Any]
+- get_observatory_catalogs · method · L889-L892 — def get_observatory_catalogs(self) -> dict[str, Any]
+- EvidenceBundle · class · L895-L926 — class EvidenceBundle
+- __init__ · method · L902-L903 — def __init__(self, state: 'WorldState') -> None
+- pack_evidence · method · L905-L913 — def pack_evidence(self, event: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]
+- unpack_evidence · method · L915-L917 — def unpack_evidence(self, evidence: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]
+- register_resume · method · L919-L922 — def register_resume(self, resume_id: str, payload: dict[str, Any]) -> None
+- get_resume · method · L924-L926 — def get_resume(self, resume_id: str) -> dict[str, Any] | None
+- TelemetryBundle · class · L929-L955 — class TelemetryBundle
+- __init__ · method · L936-L937 — def __init__(self, state: 'WorldState') -> None
+- emit · method · L939-L942 — def emit(self, event_type: str, payload: dict[str, Any], *, level: str = "info") -> None
+- span · method · L944-L951 — def span(self, name: str, attributes: dict[str, Any] | None = None) -> Any
+- NoopSpan · class · L947-L950 — class NoopSpan
+- __enter__ · method · L948-L948 — def __enter__(self)
+- __exit__ · method · L949-L949 — def __exit__(self, *args)
+- set_attribute · method · L950-L950 — def set_attribute(self, key: str, value: Any)
+- record_metric · method · L953-L955 — def record_metric(self, name: str, value: float, attributes: dict[str, Any] | None = None) -> None
+- ScenarioBundle · class · L958-L992 — class ScenarioBundle
+- __init__ · method · L965-L966 — def __init__(self, state: 'WorldState') -> None
+- empty_world · method · L968-L976 — def empty_world(self, world_id: str = "test.world") -> 'WorldState'
+- world_with_agent · method · L978-L985 — def world_with_agent(self, world_id: str, agent_id: str, room_id: str | None = None) -> 'WorldState'
+- world_with_situation · method · L987-L992 — def world_with_situation(self, world_id: str, situation_id: str, data: dict[str, Any]) -> 'WorldState'
+- CompileBundle · class · L995-L1020 — class CompileBundle
+- __init__ · method · L1002-L1003 — def __init__(self, state: 'WorldState') -> None
+- parse · method · L1005-L1008 — def parse(self, source: str) -> dict[str, Any]
+- validate · method · L1010-L1012 — def validate(self, ast: dict[str, Any]) -> tuple[bool, list[str]]
+- lower · method · L1014-L1016 — def lower(self, ast: dict[str, Any]) -> dict[str, Any]
+- emit · method · L1018-L1020 — def emit(self, ir: dict[str, Any]) -> dict[str, Any]
+- get_core_entity · function · L1028-L1037 — def get_core_entity(state: 'WorldState') -> dict[str, Any]
+- acceptance_projection · function · L1042-L1105 — def acceptance_projection(state: 'WorldState') -> dict[str, Any]
+- get_pending · function · L1099-L1101 — def get_pending(self, obs_id: str) -> dict[str, Any] | None
+- remove_pending · function · L1103-L1105 — def remove_pending(self, obs_id: str) -> None

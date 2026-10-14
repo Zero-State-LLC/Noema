@@ -1,0 +1,35 @@
+# clients/noema-llm-agent/tests/test_protocol.py
+
+- FakeWS · class · L26-L63 — class FakeWS
+- __init__ · method · L27-L32 — def __init__(self, handler) -> None
+- _run · method · L34-L48 — async def _run(self) -> None
+- send · method · L50-L51 — async def send(self, raw: str) -> None
+- __aiter__ · method · L53-L54 — def __aiter__(self) -> FakeWS
+- __anext__ · method · L56-L59 — async def __anext__(self) -> str
+- close · method · L61-L63 — async def close(self) -> None
+- gateway_handler · function · L66-L116 — def gateway_handler(store: dict[str, Any])
+- handle · function · L67-L114 — def handle(msg: dict[str, Any]) -> Any
+- test_t07_local_mock · function · L120-L127 — async def test_t07_local_mock()
+- test_t01_t02_ws_handshake_and_act · function · L131-L153 — async def test_t01_t02_ws_handshake_and_act()
+- factory · function · L135-L136 — async def factory(_url: str) -> FakeWS
+- test_t03_reconnect_resume · function · L157-L172 — async def test_t03_reconnect_resume()
+- factory · function · L161-L162 — async def factory(_url: str) -> FakeWS
+- test_t04_idempotent_act · function · L176-L184 — async def test_t04_idempotent_act()
+- test_t05_heartbeat_timeout_closes · function · L188-L203 — async def test_t05_heartbeat_timeout_closes()
+- silent_ping · function · L191-L194 — def silent_ping(msg: dict[str, Any]) -> Any
+- factory · function · L196-L197 — async def factory(_url: str) -> FakeWS
+- test_t06_auto_fallback_http · function · L207-L214 — async def test_t06_auto_fallback_http(monkeypatch)
+- boom · function · L208-L209 — async def boom(_url: str) -> Any
+- test_t08_prompt_not_sent · function · L218-L223 — async def test_t08_prompt_not_sent()
+- test_t09_ordered_observations · function · L227-L250 — async def test_t09_ordered_observations()
+- burst · function · L230-L238 — def burst(msg: dict[str, Any]) -> Any
+- factory · function · L240-L241 — async def factory(_url: str) -> FakeWS
+- test_live_command_sends_seal_isolated_does_not · function · L253-L256 — def test_live_command_sends_seal_isolated_does_not()
+- test_t12_assert_public_blocks_reason · function · L259-L261 — def test_t12_assert_public_blocks_reason()
+- test_nested_list_private_cognition_blocked · function · L264-L266 — def test_nested_list_private_cognition_blocked()
+- test_rfc0120_structured_action_has_no_human_line · function · L269-L278 — def test_rfc0120_structured_action_has_no_human_line()
+- test_unknown_verb_is_not_sent · function · L281-L290 — def test_unknown_verb_is_not_sent()
+- HackProposer · class · L282-L284 — class HackProposer
+- __call__ · method · L283-L284 — def __call__(self, _ctx)
+- test_no_resume_does_not_store_token · function · L294-L298 — async def test_no_resume_does_not_store_token()
+- test_make_llm_stable · function · L301-L305 — def test_make_llm_stable()
