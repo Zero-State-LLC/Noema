@@ -2206,6 +2206,14 @@ export async function applyWorldCommand(
       return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error,
         "Name a recipient and write a message.", "message");
     }
+    if (protocolCmd === "COMMIT" && typeof rawArgs.line !== "string"
+      && parsed.code === "INVALID_REQUEST" && parsed.error === "entity_id required"
+      && (String(rawArgs.operation || "").toUpperCase() === "HARVEST"
+        || String(rawArgs.operation || "").toUpperCase() === "REPAIR")) {
+      const attempted = String(rawArgs.operation).toUpperCase() === "HARVEST" ? "harvest" : "repair";
+      return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error,
+        `Name what you want to ${attempted}.`, attempted);
+    }
     return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
   }
 
@@ -3661,7 +3669,7 @@ export async function applyWorldCommand(
     const entity = findEntity(room, action.arguments.entity_id || "");
     if (!entity) {
       return failedAction(w, principal, request_id, "NOT_FOUND",
-        `You do not see “${action.arguments.entity_id || "that"}” here.`,
+        "You do not see that here.",
         "You do not see that here.",
         action.arguments.operation === "HARVEST" ? "harvest"
           : action.arguments.operation === "REPAIR" ? "repair" : "act");
@@ -3726,9 +3734,10 @@ export async function applyWorldCommand(
       if (!canPay(payFrom, fuel)) {
         const reason = acting_for
           ? "The institution treasury cannot pay this repair."
-          : overhaul
-            ? "You need energy 4, compute 2, and storage 1 to overhaul."
-            : "You need energy 3, compute 2, and storage 1 to repair.";
+          : `You need energy ${repairCost.energy}`
+            + (cargoNeed ? `, compute ${repairCost.compute}, and storage ${cargoNeed}`
+              : ` and compute ${repairCost.compute}`)
+            + ` to ${overhaul ? "overhaul" : "repair"}.`;
         return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
           reason, reason, overhaul ? "overhaul" : "repair");
       }

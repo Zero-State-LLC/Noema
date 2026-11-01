@@ -519,6 +519,24 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("REPAIR fuel rejection reports workshop-discounted costs", async () => {
+    const w = world(); const p = principal();
+    w.rooms["room.hub"].entities.push(enrichEntity({
+      entity_id: "entity.workshop-1", label: "workshop", entity_type: "INFRASTRUCTURE",
+      infra_type: "workshop", condition: 100,
+    }));
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets.energy = 0;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.error?.message).toBe("You need energy 3 and compute 2 to repair.");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou need energy 3 and compute 2 to repair\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
+  });
+
   it("REPAIR with empty hold names missing materials", async () => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
@@ -534,16 +552,30 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it.each([
+    ["HARVEST", "harvest"],
+    ["repair", "repair"],
+  ])("structured %s without an entity has a bounded failure", async (operation, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation });
+    expect(r.ok).toBe(false); expect(r.error).toEqual({ code: "INVALID_REQUEST", message: "entity_id required" });
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nName what you want to ${attempted}. Nothing changes.`);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("HARVEST of missing entity never echoes guessed identity", async () => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
     const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
     const r = await run(w, p, "COMMIT", {
-      operation: "HARVEST", entity_id: "entity.private-guess",
+      operation: "HARVEST", entity_id: "entity.private-guess\nFORGED",
     });
     expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
     expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou do not see that here\. Nothing changes\./);
-    expect(r.observation?.play_text).not.toContain("entity.private-guess");
+    expect(JSON.stringify(r)).not.toMatch(/entity\.private-guess|FORGED/);
     expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
