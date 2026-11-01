@@ -2753,7 +2753,8 @@ export async function applyWorldCommand(
       const best = bestLiveRelayCondition(collectLiveRelays(w.rooms));
       const band = longRangeBand(best);
       if (band === "UNREACHABLE") {
-        return fail(request_id, UNREACHABLE_REASON, UNREACHABLE_MESSAGE);
+        return failedAction(w, principal, request_id, UNREACHABLE_REASON,
+          UNREACHABLE_MESSAGE, UNREACHABLE_MESSAGE, "message");
       }
       delayed = band === "DELAYED";
     }

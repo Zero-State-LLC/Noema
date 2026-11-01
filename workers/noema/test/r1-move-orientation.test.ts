@@ -375,6 +375,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.events?.some((e) => e.event_type === "ENTITY_UPDATE")).toBe(true);
   });
 
+  it("unreachable MESSAGE explains relay failure without message text", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    w.rooms["room.hub"].entities[0].condition = 24;
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, a, "MOVE", { direction: "east" })).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[a.player_id].budgets };
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "secret-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("UNREACHABLE");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nThe destination cannot be reached\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toMatch(/secret-sentinel|player\.remote|ctrl\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[a.player_id].budgets).toEqual(before);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();
