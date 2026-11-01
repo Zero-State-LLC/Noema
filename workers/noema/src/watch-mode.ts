@@ -2,9 +2,10 @@
  * Chamber projection mode. Query wins, then hash, then stored preference.
  * Default PIXEL matches the existing phosphor boot. One leaf so the /watch
  * IIFE can embed it without bundler keepNames (`__name`).
+ * "3d" is an opt-in Three.js view; it is never the default.
  */
 
-export type WatchMode = "text" | "pixel" | "map";
+export type WatchMode = "text" | "pixel" | "map" | "3d";
 
 export function parseWatchMode(
   search?: string | null,
@@ -27,12 +28,12 @@ export function parseWatchMode(
     }
   }
   let m = String(raw || "").trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map") return m;
+  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
   const h = String(hash || "");
   m = (h.charAt(0) === "#" ? h.slice(1) : h).trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map") return m;
+  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
   m = String(stored || "").trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map") return m;
+  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
   return "pixel";
 }
 
