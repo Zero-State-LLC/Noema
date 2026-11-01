@@ -404,6 +404,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.pending_messages?.length).toBe(1);
   });
 
+  it("WAIT presents only the real rest delta", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = { ...cloneBudgets(DEFAULT_BUDGETS), attention: 0, compute: 0 };
+    const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou wait\.\nok\n/);
+    expect(r.observation?.play_text).toMatch(/Attention \+2/);
+    expect(r.observation?.play_text).toMatch(/Compute \+4/);
+    expect(w.players[p.player_id].budgets.attention).toBe(before.attention + 2);
+    expect(w.players[p.player_id].budgets.compute).toBe(before.compute + 4);
+    expect(r.observation?.play_text).not.toMatch(/free energy|Energy \+\d/);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();

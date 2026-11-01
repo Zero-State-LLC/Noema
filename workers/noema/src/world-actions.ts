@@ -2392,6 +2392,8 @@ export async function applyWorldCommand(
   // ——— WAIT ———
   if (action.verb === "WAIT") {
     const waitCycles = 1;
+    const attentionBefore = pl.budgets.attention;
+    const computeBefore = pl.budgets.compute;
     pl.wait_until_cycle = w.cycle + waitCycles;
     pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
@@ -2414,6 +2416,7 @@ export async function applyWorldCommand(
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);
     const spoilNote = (pl.spoil_lines || []).join(" ");
+    const waitChange = `You wait. Attention +${pl.budgets.attention - attentionBefore} · Compute +${pl.budgets.compute - computeBefore}.`;
     const result = success(
       w,
       principal,
@@ -2421,6 +2424,8 @@ export async function applyWorldCommand(
       events,
       spoilNote ? `You wait. ${spoilNote}` : "You wait.",
       false,
+      "wait",
+      waitChange,
     );
     w.seen_idempotency[idem] = result;
     return result;
