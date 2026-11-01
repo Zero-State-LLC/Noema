@@ -2201,10 +2201,18 @@ export async function applyWorldCommand(
     if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
-    if (protocolCmd === "MESSAGE" && parsed.code === "INVALID_REQUEST"
-      && parsed.error === "recipient_id and text required") {
-      return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error,
-        "Name a recipient and write a message.", "message");
+    if (protocolCmd === "MESSAGE" && typeof rawArgs.line !== "string"
+      && parsed.code === "INVALID_REQUEST") {
+      const shown = parsed.error === "recipient_id and text required"
+        ? "Name a recipient and write a message."
+        : parsed.error === "text required"
+          ? "Write a message."
+          : parsed.error === "org_id required"
+            ? "Name a channel institution."
+            : parsed.error === "signal must be an object" || parsed.error.startsWith("signal.")
+              ? "Check the message signal."
+              : undefined;
+      if (shown) return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error, shown, "message");
     }
     if (protocolCmd === "COMMIT" && typeof rawArgs.line !== "string"
       && parsed.code === "INVALID_REQUEST" && parsed.error === "entity_id required"
@@ -3750,7 +3758,9 @@ export async function applyWorldCommand(
           "You do not have materials in hold.", "repair");
       }
       if (payFrom !== pl.budgets && !canPay(payFrom, { storage: cargoNeed })) {
-        return fail(request_id, "BUDGET_EXCEEDED", "The institution treasury cannot pay this repair.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "The institution treasury cannot pay this repair.",
+          "The institution treasury cannot pay this repair.", overhaul ? "overhaul" : "repair");
       }
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);

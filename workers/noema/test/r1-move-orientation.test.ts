@@ -435,6 +435,23 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it.each([
+    [{ surface: "BOARD", text: "" }, "text required", "Write a message."],
+    [{ surface: "CHANNEL", text: "channel-sentinel" }, "org_id required", "Name a channel institution."],
+    [{ recipient_id: "player.unknown", text: "private-sentinel", signal: { certainty: 2 } }, "signal.certainty must be 0–1", "Check the message signal."],
+  ])("structured MESSAGE validation %j has a bounded result", async (args, error, shown) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", args);
+    expect(r.ok).toBe(false); expect(r.error).toEqual({ code: "INVALID_REQUEST", message: error });
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/channel-sentinel|private-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
   it("MESSAGE to unknown player has no delivery and a bounded result", async () => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);

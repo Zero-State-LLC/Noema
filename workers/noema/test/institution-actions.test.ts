@@ -208,6 +208,27 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     expect(w.players[buyer.player_id].budgets.storage).toBe(16);
   });
 
+  it("authorized agent custodian gets bounded treasury storage rejection", async () => {
+    const w = world();
+    const founder = principal("player.nacre");
+    const custodian = principal("player.vesper", "agent");
+    await setupOrg(w, founder, custodian, "OPERATE_NAMED_ASSET");
+    w.organizations["org.line"].treasury!.storage = 0;
+    const treasuryBefore = { ...w.organizations["org.line"].treasury! };
+    const personalBefore = { ...w.players[custodian.player_id].budgets };
+    const seq = w.sequence;
+    const r = await run(w, custodian, "COMMIT", {
+      operation: "REPAIR", entity_id: "entity.relay", acting_for: "org.line",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.error).toEqual({ code: "BUDGET_EXCEEDED", message: "The institution treasury cannot pay this repair." });
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nThe institution treasury cannot pay this repair\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.organizations["org.line"].treasury).toEqual(treasuryBefore);
+    expect(w.players[custodian.player_id].budgets).toEqual(personalBefore);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(40);
+  });
+
   it("authorized custodian repairs from treasury", async () => {
     const w = world();
     const founder = principal("player.nacre");
