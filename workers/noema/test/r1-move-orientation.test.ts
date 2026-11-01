@@ -287,6 +287,24 @@ describe("R1 MOVE destination orientation", () => {
     expect(JSON.stringify(w.seen_idempotency)).toBe(beforeIdempotency);
   });
 
+  it("missing INSPECT target has bounded four-beat failure", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const current = (await run(w, p, "OBSERVE")).observation;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const beforeIdempotency = JSON.stringify(w.seen_idempotency);
+    const r = await run(w, p, "INSPECT", { entity_id: "entity.not-here" });
+    expect(r.ok).toBe(false);
+    expect(r.error?.code).toBe("INSPECT_FAILED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to inspect\.\nfail\nYou do not see that here\. Nothing changes\./);
+    expect(r.observation?.affordances).toEqual(current?.affordances);
+    expect(r.observation?.available_actions).toEqual(current?.available_actions);
+    expect(r.observation?.play_text).not.toMatch(/entity\.not-here|room\.|ctrl\./);
+    expect(r.events?.length ?? 0).toBe(0);
+    expect(w.sequence).toBe(seq); expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(JSON.stringify(w.seen_idempotency)).toBe(beforeIdempotency);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();

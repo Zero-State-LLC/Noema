@@ -749,6 +749,40 @@ function failedMove(
   return result;
 }
 
+function failedAction(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  code: string,
+  original: string,
+  shown: string,
+  attempted: string,
+): CommandResult {
+  const result = fail(request_id, code, original);
+  try {
+    const current = buildObservation(w, principal, shown);
+    const observation: Observation = {
+      ...emptyPlayObservation(w, principal, shown),
+      in_world: current.in_world,
+      location: current.location,
+      budgets: current.budgets,
+      available_actions: current.available_actions,
+      affordances: current.affordances,
+    };
+    observation.play_text = playTextFromObservation(observation, fourBeatFromResult({
+      command: attempted,
+      ok: false,
+      errorCode: code,
+      errorMessage: `${shown} Nothing changes.`,
+      affordances: current.affordances,
+    }));
+    result.observation = observation;
+  } catch {
+    // A broken room projection must not turn a rejected action into success.
+  }
+  return result;
+}
+
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
   if (!w.players || typeof w.players !== "object") w.players = {};
   const actorKind = actorKindFromPrincipal(principal);
@@ -2455,7 +2489,9 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id);
     if (!entity) {
-      return fail(request_id, "INSPECT_FAILED", `You do not see “${action.arguments.entity_id}” here.`);
+      return failedAction(w, principal, request_id, "INSPECT_FAILED",
+        `You do not see “${action.arguments.entity_id}” here.`,
+        "You do not see that here.", "inspect");
     }
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
       return fail(request_id, "FORBIDDEN", "The record is sealed.");
