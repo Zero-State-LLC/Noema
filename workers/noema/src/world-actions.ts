@@ -2548,6 +2548,9 @@ export async function applyWorldCommand(
       },
       settled,
     };
+    obs.play_text = playTextFromObservation(obs, fourBeatFromResult({
+      command: "inspect", ok: true, consequence: detail, affordances: obs.affordances,
+    }));
     w.seen_idempotency[idem] = result;
     return result;
   }

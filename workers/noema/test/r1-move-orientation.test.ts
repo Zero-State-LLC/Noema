@@ -330,6 +330,16 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("successful INSPECT includes a public HAPPENED without a second LOOK", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const r = await run(w, p, "INSPECT", { entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou inspect\.\nok\n/);
+    expect(r.events?.some((e) => e.event_type === "INSPECT")).toBe(true);
+    expect(r.events?.some((e) => e.event_type === "LOOK")).toBe(false);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();
