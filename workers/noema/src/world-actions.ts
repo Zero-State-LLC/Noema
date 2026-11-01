@@ -3724,15 +3724,13 @@ export async function applyWorldCommand(
       const cargoNeed = repairCost.storage || 0;
       const fuel = { ...repairCost, storage: undefined };
       if (!canPay(payFrom, fuel)) {
-        return fail(
-          request_id,
-          "BUDGET_EXCEEDED",
-          acting_for
-            ? "The institution treasury cannot pay this repair."
-            : overhaul
-              ? "You need energy 4, compute 2, and storage 1 to overhaul."
-              : "You need energy 3, compute 2, and storage 1 to repair.",
-        );
+        const reason = acting_for
+          ? "The institution treasury cannot pay this repair."
+          : overhaul
+            ? "You need energy 4, compute 2, and storage 1 to overhaul."
+            : "You need energy 3, compute 2, and storage 1 to repair.";
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          reason, reason, overhaul ? "overhaul" : "repair");
       }
       if (
         payFrom === pl.budgets &&
