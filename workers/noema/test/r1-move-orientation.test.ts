@@ -452,6 +452,45 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.messages).toHaveLength(0);
   });
 
+  it.each([
+    [{ line: "message" }, "UNKNOWN_COMMAND", "Write a message to a Player."],
+    [{ line: "message player.private-guess \"  \"" }, "INVALID_REQUEST", "Write a message to a Player."],
+    [{ line: "message player.private-guess private-body-sentinel" }, "NOT_FOUND", "Recipient is not addressable in this world."],
+    [{ surface: "CHANNEL", org_id: "org.private-guess", text: "private-body-sentinel" }, "NOT_ADDRESSABLE", "That channel is not addressable."],
+    [{ surface: "NOTICE", text: "private-body-sentinel" }, "FORBIDDEN", "You do not hold a notice office here."],
+    [{ surface: "NOTICE", org_id: "org.private-guess", text: "private-body-sentinel" }, "FORBIDDEN", "You do not hold a notice office here."],
+  ])("MESSAGE in-scope rejection %j stays bounded", async (args, code, shown) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", args);
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe(code);
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/private-body-sentinel|private-guess/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["not-a-claim", "That report is not known here."],
+    ["claim.private-guess", "You do not hold that report."],
+  ])("MESSAGE report %s rejection is bounded and private", async (parent, shown) => {
+    const w = world(); const p = principal(); const recipient = principal("player.vesper");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, recipient, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", {
+      recipient_id: recipient.player_id, text: "private-body-sentinel", parent_claim_id: parent,
+    });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/private-body-sentinel|private-guess/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
   it("MESSAGE to unknown player has no delivery and a bounded result", async () => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);

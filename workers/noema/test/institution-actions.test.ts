@@ -229,6 +229,28 @@ describe("GC4-S2 institution TRADE/REPAIR", () => {
     expect(w.rooms["room.hub"].entities[0].condition).toBe(40);
   });
 
+  it.each(["org.private-guess", "org.line"])(
+    "REPAIR acting_for %s without authority has a bounded rejection",
+    async (actingFor) => {
+      const w = world();
+      const p = principal("player.vesper", "agent");
+      if (actingFor === "org.line") {
+        await setupOrg(w, principal("player.nacre"), principal("player.third"), "OPERATE_NAMED_ASSET");
+      }
+      await run(w, p, "ENTER_WORLD");
+      const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+      const r = await run(w, p, "COMMIT", {
+        operation: "REPAIR", entity_id: "entity.relay", acting_for: actingFor,
+      });
+      expect(r.ok).toBe(false);
+      expect(r.observation?.play_text).toContain("HAPPENED\nYou try to repair.\nfail\nYou cannot repair for that institution. Nothing changes.");
+      expect(JSON.stringify(r)).not.toMatch(/private-guess|org\.line/);
+      expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+      expect(w.players[p.player_id].budgets).toEqual(before);
+      expect(w.rooms["room.hub"].entities[0].condition).toBe(40);
+    },
+  );
+
   it("authorized custodian repairs from treasury", async () => {
     const w = world();
     const founder = principal("player.nacre");

@@ -2201,6 +2201,15 @@ export async function applyWorldCommand(
     if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
+    if (protocolCmd === "MESSAGE" && typeof rawArgs.line === "string"
+      && /^(?:message|msg|tell|say\s+to)(?:\s|$)/i.test(rawArgs.line.trim())
+      && (parsed.code === "UNKNOWN_COMMAND" || parsed.code === "NOT_FOUND"
+        || (parsed.code === "INVALID_REQUEST" && parsed.error.startsWith("Message syntax:")))) {
+      const shown = parsed.code === "NOT_FOUND"
+        ? "Recipient is not addressable in this world."
+        : "Write a message to a Player.";
+      return failedAction(w, principal, request_id, parsed.code, shown, shown, "message");
+    }
     if (protocolCmd === "MESSAGE" && typeof rawArgs.line !== "string"
       && parsed.code === "INVALID_REQUEST") {
       const shown = parsed.error === "recipient_id and text required"
@@ -2671,7 +2680,8 @@ export async function applyWorldCommand(
         const org = w.organizations[wantedOrg];
         const held = occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE");
         if (!org || org.status !== "ACTIVE" || !held.length) {
-          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+          return failedAction(w, principal, request_id, "FORBIDDEN",
+            "You do not hold a notice office here.", "You do not hold a notice office here.", "message");
         }
         orgId = org.org_id;
         orgName = org.name;
@@ -2681,7 +2691,8 @@ export async function applyWorldCommand(
           return occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE").length > 0;
         });
         if (!found) {
-          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+          return failedAction(w, principal, request_id, "FORBIDDEN",
+            "You do not hold a notice office here.", "You do not hold a notice office here.", "message");
         }
         orgId = found.org_id;
         orgName = found.name;
@@ -2720,7 +2731,8 @@ export async function applyWorldCommand(
       const org_id = String(action.arguments.org_id || "").trim();
       const org = org_id ? w.organizations[org_id] : undefined;
       if (!org || org.status !== "ACTIVE" || !isOrgMember(org, principal.player_id)) {
-        return fail(request_id, "NOT_ADDRESSABLE", "That channel is not addressable.");
+        return failedAction(w, principal, request_id, "NOT_ADDRESSABLE",
+          "That channel is not addressable.", "That channel is not addressable.", "message");
       }
       debit(pl.budgets, COSTS.MESSAGE);
       org.channel = { text: utterance, cycle: w.cycle };
@@ -2806,7 +2818,8 @@ export async function applyWorldCommand(
     let deliverText = text;
     if (as_claim) {
       if (parent_claim_id && !parent_claim_id.startsWith("claim.")) {
-        return fail(request_id, "NOT_FOUND", "That report is not known here.");
+        return failedAction(w, principal, request_id, "NOT_FOUND",
+          "That report is not known here.", "That report is not known here.", "message");
       }
       if (parent_claim_id) {
         const held = w.rumor.claims[parent_claim_id];
@@ -2816,7 +2829,8 @@ export async function applyWorldCommand(
             : text;
         const retell = resolveRetell(w.rumor, principal.player_id, parent_claim_id, retellText, w.cycle);
         if (!retell.ok) {
-          return fail(request_id, "NOT_FOUND", "You do not hold that report.");
+          return failedAction(w, principal, request_id, "NOT_FOUND",
+            "You do not hold that report.", "You do not hold that report.", "message");
         }
         rememberClaim(w.rumor, retell.claim, principal.player_id);
         deliverText = retell.same_claim ? retell.claim.content : normalizeClaimText(text);
@@ -3702,19 +3716,23 @@ export async function applyWorldCommand(
         );
         if (grant.ok) {
           if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
-            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+            return failedAction(w, principal, request_id, "FORBIDDEN",
+              "That asset is not in this institution's scope.",
+              "That asset is not in this institution's scope.", "repair");
           }
           const conflict = resolveOfficeConflict(
             w.organizations[grant.org_id],
             grant.office.office_id,
             entity.entity_id,
           );
-          if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
+          if (!conflict.ok) return failedAction(w, principal, request_id, conflict.code,
+            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
           payFrom = ensureTreasury(w.organizations[grant.org_id]);
           grantOfficeId = grant.office.office_id;
         } else {
           const org = w.organizations[acting_for];
-          if (!org) return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+          if (!org) return failedAction(w, principal, request_id, "NOT_FOUND",
+            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
           const em = resolveEmergencyFor(
             org,
             principal.player_id,
@@ -3723,16 +3741,21 @@ export async function applyWorldCommand(
             w.cycle,
             action.arguments.emergency_scope_id,
           );
-          if (!em.ok) return fail(request_id, grant.code, grant.message);
+          if (!em.ok) return failedAction(w, principal, request_id, grant.code,
+            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
           if (!assetInInstitutionScope(entity, acting_for, principal.player_id)) {
-            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+            return failedAction(w, principal, request_id, "FORBIDDEN",
+              "That asset is not in this institution's scope.",
+              "That asset is not in this institution's scope.", "repair");
           }
           payFrom = ensureTreasury(org);
         }
       }
       const overhaul = action.arguments.extent === "overhaul";
       if (overhaul && !canOverhaul(pl.practice, w.cycle)) {
-        return fail(request_id, "FORBIDDEN", "You lack the practiced hands for an overhaul.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "You lack the practiced hands for an overhaul.",
+          "You lack the practiced hands for an overhaul.", "overhaul");
       }
       const baseRepair = { ...COSTS.REPAIR };
       if (overhaul) baseRepair.energy = (baseRepair.energy || 0) + OVERHAUL_ENERGY_EXTRA;
