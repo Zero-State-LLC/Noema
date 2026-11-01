@@ -354,6 +354,7 @@ import {
 } from "./contest";
 import type { Checkpoint, CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 import { laterTraceInputs, projectRoomTraces, publicTraces, safePlateHandle } from "./play-traces";
+import { publicOccupantLabel } from "./watch-live";
 import {
   applyAliasCommand,
   expandAliases,
@@ -2895,13 +2896,25 @@ export async function applyWorldCommand(
     await settleEv(ev1);
     await settleEv(ev2);
     noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
+    const roomRefs = Object.values(w.rooms);
+    const publicRecipient = publicOccupantLabel(
+      { handle: recipient.handle, player_id: recipient_id }, roomRefs,
+    );
+    const safeRecipientHandle = safePlateHandle(publicRecipient || undefined);
+    // Compare the display form after compatibility and separator normalization;
+    // fullwidth letters or inserted separators must not impersonate public names.
+    const normalizedRecipient = safeRecipientHandle?.normalize("NFKC").replace(/\s+(?=[._-])/g, "");
+    const recipientLabel = normalizedRecipient && publicOccupantLabel(
+      { handle: normalizedRecipient, player_id: recipient_id }, roomRefs,
+    ) ? safeRecipientHandle : "recipient";
     const result = success(
       w,
       principal,
       request_id,
       events,
-      `Message delivered to ${recipient.handle || recipient_id}.`,
+      `Message delivered to ${recipientLabel}.`,
       settled,
+      `message ${recipientLabel}`,
     );
     w.seen_idempotency[idem] = result;
     return result;
