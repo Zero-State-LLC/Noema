@@ -305,6 +305,19 @@ describe("R1 MOVE destination orientation", () => {
     expect(JSON.stringify(w.seen_idempotency)).toBe(beforeIdempotency);
   });
 
+  it("sealed INSPECT stays FORBIDDEN and reveals no sealed detail", async () => {
+    const w = world(); const p = principal();
+    w.rooms["room.hub"].entities[0].inspect_restricted_until = 10;
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "INSPECT", { entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to inspect\.\nfail\nThe record is sealed\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toMatch(/entity\.relay-7|ctrl\.|restricted_until/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();

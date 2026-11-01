@@ -2494,7 +2494,8 @@ export async function applyWorldCommand(
         "You do not see that here.", "inspect");
     }
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
-      return fail(request_id, "FORBIDDEN", "The record is sealed.");
+      return failedAction(w, principal, request_id, "FORBIDDEN",
+        "The record is sealed.", "The record is sealed.", "inspect");
     }
     const inspectCost = withAnnexAttention(
       inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
