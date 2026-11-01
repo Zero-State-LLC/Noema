@@ -2903,10 +2903,11 @@ export async function applyWorldCommand(
     const safeRecipientHandle = safePlateHandle(publicRecipient || undefined);
     // Compare the display form after compatibility and separator normalization;
     // fullwidth letters or inserted separators must not impersonate public names.
-    const normalizedRecipient = safeRecipientHandle?.normalize("NFKC").replace(/\s+(?=[._-])/g, "");
-    const recipientLabel = normalizedRecipient && publicOccupantLabel(
-      { handle: normalizedRecipient, player_id: recipient_id }, roomRefs,
-    ) ? safeRecipientHandle : "recipient";
+    const normalizedRecipient = safeRecipientHandle?.normalize("NFKC").replace(/\s*([._-])\s*/g, "$1");
+    const recipientLabel = normalizedRecipient
+      && safePlateHandle(normalizedRecipient)
+      && publicOccupantLabel({ handle: normalizedRecipient, player_id: recipient_id }, roomRefs)
+      ? safeRecipientHandle : "recipient";
     const result = success(
       w,
       principal,

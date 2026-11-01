@@ -471,7 +471,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(JSON.stringify(r.observation)).not.toContain("private-hex-sentinel");
   });
 
-  it.each(["smoke-probe", "smoke_probe", "SMOKE-probe", "op.fixture", "operator_fixture", "operator.fixture", "operator-fixture", "\u202eop.fixture", "op\n.fixture", "smoke\n-probe", "operator \u200b.fixture", "Grid Anchor", "grid anchor", "ｏｐ.fixture", "ｓｍｏｋｅ-probe", "Ｇｒｉｄ Ａｎｃｈｏｒ", "ｏｐｅｒａｔｏｒ_fixture", "player.remote"]) (
+  it.each(["smoke-probe", "smoke_probe", "SMOKE-probe", "op.fixture", "operator_fixture", "operator.fixture", "operator-fixture", "\u202eop.fixture", "op\n.fixture", "smoke\n-probe", "operator \u200b.fixture", "Grid Anchor", "grid anchor", "ｏｐ.fixture", "ｓｍｏｋｅ-probe", "Ｇｒｉｄ Ａｎｃｈｏｒ", "ｏｐｅｒａｔｏｒ_fixture", "ｅｎｔｉｔｙ．hidden", "ｃｔｒｌ．hidden", "entity .hidden", "ctrl .hidden", "entity. hidden", "ｐｌａｙｅｒ．hidden", "player.remote"]) (
     "immediate MESSAGE keeps internal recipient handle %s out of HAPPENED",
     async (handle) => {
       const w = world(); const a = principal(); const b = principal("player.remote");
