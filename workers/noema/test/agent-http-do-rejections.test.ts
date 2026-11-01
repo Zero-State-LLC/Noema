@@ -43,4 +43,21 @@ describe("Agent HTTP bounded rejections", () => {
     expect(after.messages).toEqual(before.messages);
     expect(body.events ?? []).toEqual([]);
   });
+
+  it("HTTP MESSAGE malformed channel is a bounded parser refusal", async () => {
+    const h = harness(); const token = (await h.agent()).access_token;
+    expect((await h.command(token, "ENTER_WORLD")).status).toBe(200);
+    const before = (await h.persistedWorld())!;
+    const r = await h.command(token, "MESSAGE", { surface: "CHANNEL", text: "PRIVATE_CHANNEL_SENTINEL" });
+    expect(r.status).toBe(200);
+    const body = await r.json() as any;
+    expect(body).toMatchObject({ ok: false, error: { code: "INVALID_REQUEST" } });
+    expect(body.observation?.play_text).toContain("Name a channel institution. Nothing changes.");
+    expect(JSON.stringify(body)).not.toContain("PRIVATE_CHANNEL_SENTINEL");
+    const after = (await h.persistedWorld())!;
+    expect(after.sequence).toBe(before.sequence);
+    expect(after.players["player.boundary"].budgets).toEqual(before.players["player.boundary"].budgets);
+    expect(after.messages).toEqual(before.messages);
+    expect(body.events ?? []).toEqual([]);
+  });
 });
