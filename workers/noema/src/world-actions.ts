@@ -2201,6 +2201,11 @@ export async function applyWorldCommand(
     if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
+    if (protocolCmd === "MESSAGE" && parsed.code === "INVALID_REQUEST"
+      && parsed.error === "recipient_id and text required") {
+      return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error,
+        "Name a recipient and write a message.", "message");
+    }
     return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
   }
 
