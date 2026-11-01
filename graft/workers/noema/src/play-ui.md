@@ -15,66 +15,66 @@
 - fourBeatFromResult · function · L142-L173 — function fourBeatFromResult(opts: { command?: string; ok: boolean; consequence?: string; errorCode?: string; errorMessage?: string; affordances?: Array<{ cmd?: string; available?: boolean }>; }): HappenedBeat
 - roomPresentationModel · function · L175-L222 — function roomPresentationModel(input: { location?: LocationObs | null; consequence?: string; budgets?: { attention?: number; compute?: number; energy?: number; influence?: number; storage?: number; }; practice_lines?: string[]; energy_floor_risk?: boolean; play_blocked?: boolean; happenedBeats?: HappenedBeat; }): RoomPresentationModel
 - lowNoiseRoomText · function · L225-L268 — function lowNoiseRoomText(model: RoomPresentationModel): string
-- playTextFromObservation · function · L271-L292 — function playTextFromObservation(obs: { location?: LocationObs | null; consequence?: string; budgets?: { attention?: number; compute?: number; energy?: number; influence?: number; storage?: number; }; practice_lines?: string[]; } | null | undefined): string
-- lowNoiseWatchText · function · L295-L307 — function lowNoiseWatchText(input: { headline?: string; copy?: string; recent?: string[] }): string
-- PlayerHere · type · L309-L313 — type PlayerHere = { player_id: string; handle?: string; public_practice_lines?: string[]; };
-- MailItem · type · L315-L320 — type MailItem = { message_id: string; sender_id: string; text: string; delivered_cycle: number; };
-- TradeItem · type · L322-L330 — type TradeItem = { trade_id: string; proposer_id: string; counterparty_id: string; offered: Record<string, number>; requested: Record<string, number>; status: string; role: "proposer" | "counterparty"; };
-- OrgItem · type · L332-L345 — type OrgItem = { org_id: string; name: string; charter?: string; status: string; my_role: string | null; offices?: Array<{ office_id: string; display_name: string; status: string; holder_handle?: string; }>; public_notice?: string; };
-- Opportunity · type · L347-L354 — type Opportunity = { id: string; text: string; actionLabel: string; /** Command line that runs the same backend path as the button */ cmd: string; priority: number; };
-- ContextualAction · type · L356-L360 — type ContextualAction = { label: string; cmd: string; kind: "primary" | "secondary" | "move" | "utility"; };
-- TrailKind · type · L362-L362 — type TrailKind = "you" | "local" | "world" | "fail";
-- TrailItem · type · L364-L368 — type TrailItem = { kind: TrailKind; title: string; detail?: string; };
-- titleCaseLabel · function · L404-L410 — function titleCaseLabel(raw: string): string
-- entityKindPhrase · function · L412-L420 — function entityKindPhrase(entity_type: string): string
-- entityConditionGlyph · function · L422-L427 — function entityConditionGlyph(label: string, entity_type: string, condition?: number, scar?: boolean): string
-- entityConditionText · function · L429-L434 — function entityConditionText(label: string, entity_type: string, condition?: number, scar?: boolean): string
-- deriveLocalCondition · function · L437-L444 — function deriveLocalCondition(loc: LocationObs): string
-- deriveOpportunities · function · L446-L502 — function deriveOpportunities(loc: LocationObs): Opportunity[]
-- contextualActionsForEntity · function · L504-L516 — function contextualActionsForEntity(e: EntityObs): ContextualAction[]
-- contextualActionsForLocation · function · L518-L548 — function contextualActionsForLocation(loc: LocationObs): ContextualAction[]
-- resolveEntityTarget · function · L551-L570 — function resolveEntityTarget( raw: string, entities: EntityObs[], ): { entity_id: string; label: string } | null
-- ParsedCommand · type · L572-L574 — type ParsedCommand = | { ok: true; command: string; arguments: Record<string, unknown>; display: string } | { ok: false; error: string; code?: string; choices?: string[] };
-- parsePlayCommand · function · L577-L601 — function parsePlayCommand(line: string, entities: EntityObs[] = []): ParsedCommand
-- isRawExceptionMessage · function · L604-L609 — function isRawExceptionMessage(message?: string): boolean
-- humanizeError · function · L611-L669 — function humanizeError(code?: string, message?: string): { primary: string; advanced?: string }
-- waitingCopy · function · L672-L682 — function waitingCopy(opts: { code?: string; message?: string; worldName?: string; }): { worldLine: string; roomDesc: string }
-- lookCopyFromObservation · function · L685-L721 — function lookCopyFromObservation( obs: { location?: { name?: string; description?: string }; world_name?: string; consequence?: string; } | null, err?: { code?: string; message?: string }, ): { worldLine: string; roomName: string; roomDesc: string }
-- trailFromResult · function · L723-L782 — function trailFromResult(opts: { display: string; command: string; ok: boolean; events?: Array<{ event_type?: string; sequence?: number }>; observation?: { location?: LocationObs; report_lines?: string[] }; previousRoomId?: string; errorPrimary?: string; }): TrailItem[]
-- routeDiagram · function · L785-L826 — function routeDiagram( hereName: string, exits: ExitObs[], ): { lines: string[]; hasRoutes: boolean }
-- statusFromObservation · function · L828-L852 — function statusFromObservation(obs: { cycle?: number; sequence?: number; location?: LocationObs; world_name?: string; practice_lines?: string[]; lot_lines?: string[]; social_memory_lines?: string[]; culture_lines?: string[]; discovery_lines?: string[]; report_lines?: string[]; budgets?: { attention?: number; compute?: number; energy?: number; influence?: number; storage?: number; }; messages?: unknown[]; trades?: unknown[]; organizations?: unknown[]; players_here?: unknown[]; } | null): Array<{ label: string; value: string }>
-- escHtml · function · L854-L859 — function escHtml(s: string): string
-- renderLookHtml · function · L861-L889 — function renderLookHtml(opts: { name?: string; description?: string; condition?: string; exitsLine?: string; cultureLine?: string; }): string
-- renderTrailHtml · function · L891-L924 — function renderTrailHtml(items: TrailItem[]): string
-- playerHandle · function · L926-L928 — function playerHandle(p: { player_id?: string; handle?: string; sender_id?: string }): string
-- formatResourceMap · function · L930-L934 — function formatResourceMap(m?: Record<string, number> | null): string
-- renderPlayersHereHtml · function · L936-L985 — function renderPlayersHereHtml( players?: PlayerHere[] | null, orgs?: OrgItem[] | null, selfId?: string, ): string
-- renderBondsHtml · function · L987-L1072 — function renderBondsHtml(opts: { messages?: MailItem[] | null; trades?: TradeItem[] | null; organizations?: OrgItem[] | null; }): string
-- renderServiceDesksHtml · function · L1074-L1124 — function renderServiceDesksHtml( services?: LocationObs["services"] | null, ): string
-- renderExitTokensHtml · function · L1126-L1143 — function renderExitTokensHtml(exits?: ExitObs[] | null): string
-- renderEntityListHtml · function · L1145-L1180 — function renderEntityListHtml(entities?: EntityObs[] | null): string
-- renderOpportunitiesHtml · function · L1182-L1200 — function renderOpportunitiesHtml(loc: LocationObs): string
-- DomNode · type · L1202-L1210 — type DomNode = { className: string; type?: string; hidden?: boolean; disabled?: boolean; textContent: string; setAttribute(name: string, value: string): void; append(...nodes: unknown[]): void; };
-- DomRoot · type · L1212-L1215 — type DomRoot = { replaceChildren(...nodes: unknown[]): void; append(...nodes: unknown[]): void; };
-- pageDoc · function · L1217-L1219 — function pageDoc(): { createElement(tag: string): DomNode }
-- h · function · L1221-L1226 — function h(tag: string, className?: string, text?: string): DomNode
-- cmdBtn · function · L1228-L1234 — function cmdBtn(cmd: string, text: string, aria?: string): DomNode
-- fillTrail · function · L1236-L1258 — function fillTrail(el: DomRoot, items: TrailItem[]): void
-- fillPlayersHere · function · L1260-L1295 — function fillPlayersHere( el: DomRoot, players?: PlayerHere[] | null, orgs?: OrgItem[] | null, selfId?: string, ): void
-- fillBonds · function · L1297-L1369 — function fillBonds( el: DomRoot, opts: { messages?: MailItem[] | null; trades?: TradeItem[] | null; organizations?: OrgItem[] | null; }, ): void
-- fillServiceDesks · function · L1371-L1404 — function fillServiceDesks(el: DomRoot, services?: LocationObs["services"] | null): void
-- fillExitTokens · function · L1406-L1417 — function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void
-- fillEntityList · function · L1419-L1444 — function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void
-- fillOpportunities · function · L1446-L1458 — function fillOpportunities(el: DomRoot, loc: LocationObs): void
-- fillStatusRows · function · L1460-L1467 — function fillStatusRows(el: DomRoot, rows: { label: string; value: string }[]): void
-- fillWorldStrip · function · L1469-L1484 — function fillWorldStrip( el: DomRoot & { hidden?: boolean }, rows: { label: string; value: string }[], ): void
-- fillSignalFeed · function · L1486-L1511 — function fillSignalFeed( el: DomRoot & { hidden?: boolean; getAttribute?: (name: string) => string | null; setAttribute?: (name: string, value: string) => void; }, lines: string[], ): void
-- SessionAct · type · L1513-L1513 — type SessionAct = { label: string; cmd: string };
-- firstSessionActs · function · L1516-L1558 — function firstSessionActs( loc: { name?: string; description?: string; condition?: string; entities?: EntityObs[]; exits?: ExitObs[]; }, actions?: Array<{ label: string; cmd: string; available?: boolean }>, others?: Array<{ handle?: string } | string>, ): SessionAct[]
-- add · function · L1529-L1534 — add = (label: string, cmd: string)
-- firstStrainLine · function · L1561-L1573 — function firstStrainLine(loc: { condition?: string; description?: string; entities?: EntityObs[]; }): string
-- resourceBiteLabel · function · L1575-L1583 — function resourceBiteLabel(code?: string, message?: string): string
-- fillActionRail · function · L1585-L1605 — function fillActionRail( el: DomRoot, actions: Array<{ label: string; cmd: string; available?: boolean }>, loc?: LocationObs, ): void
-- fillDisclosure · function · L1607-L1631 — function fillDisclosure( details: (DomRoot & { hidden?: boolean }) | null, list: DomRoot | null, lines: string[], itemClass?: string, ): void
-- playUiRuntimeSource · function · L1634-L1700 — function playUiRuntimeSource(): string
-- containsHiddenHistory · function · L1703-L1714 — function containsHiddenHistory(text: string): boolean
+- playTextFromObservation · function · L271-L293 — function playTextFromObservation(obs: { location?: LocationObs | null; consequence?: string; budgets?: { attention?: number; compute?: number; energy?: number; influence?: number; storage?: number; }; practice_lines?: string[]; } | null | undefined, happenedBeats?: HappenedBeat): string
+- lowNoiseWatchText · function · L296-L308 — function lowNoiseWatchText(input: { headline?: string; copy?: string; recent?: string[] }): string
+- PlayerHere · type · L310-L314 — type PlayerHere = { player_id: string; handle?: string; public_practice_lines?: string[]; };
+- MailItem · type · L316-L321 — type MailItem = { message_id: string; sender_id: string; text: string; delivered_cycle: number; };
+- TradeItem · type · L323-L331 — type TradeItem = { trade_id: string; proposer_id: string; counterparty_id: string; offered: Record<string, number>; requested: Record<string, number>; status: string; role: "proposer" | "counterparty"; };
+- OrgItem · type · L333-L346 — type OrgItem = { org_id: string; name: string; charter?: string; status: string; my_role: string | null; offices?: Array<{ office_id: string; display_name: string; status: string; holder_handle?: string; }>; public_notice?: string; };
+- Opportunity · type · L348-L355 — type Opportunity = { id: string; text: string; actionLabel: string; /** Command line that runs the same backend path as the button */ cmd: string; priority: number; };
+- ContextualAction · type · L357-L361 — type ContextualAction = { label: string; cmd: string; kind: "primary" | "secondary" | "move" | "utility"; };
+- TrailKind · type · L363-L363 — type TrailKind = "you" | "local" | "world" | "fail";
+- TrailItem · type · L365-L369 — type TrailItem = { kind: TrailKind; title: string; detail?: string; };
+- titleCaseLabel · function · L405-L411 — function titleCaseLabel(raw: string): string
+- entityKindPhrase · function · L413-L421 — function entityKindPhrase(entity_type: string): string
+- entityConditionGlyph · function · L423-L428 — function entityConditionGlyph(label: string, entity_type: string, condition?: number, scar?: boolean): string
+- entityConditionText · function · L430-L435 — function entityConditionText(label: string, entity_type: string, condition?: number, scar?: boolean): string
+- deriveLocalCondition · function · L438-L445 — function deriveLocalCondition(loc: LocationObs): string
+- deriveOpportunities · function · L447-L503 — function deriveOpportunities(loc: LocationObs): Opportunity[]
+- contextualActionsForEntity · function · L505-L517 — function contextualActionsForEntity(e: EntityObs): ContextualAction[]
+- contextualActionsForLocation · function · L519-L549 — function contextualActionsForLocation(loc: LocationObs): ContextualAction[]
+- resolveEntityTarget · function · L552-L571 — function resolveEntityTarget( raw: string, entities: EntityObs[], ): { entity_id: string; label: string } | null
+- ParsedCommand · type · L573-L575 — type ParsedCommand = | { ok: true; command: string; arguments: Record<string, unknown>; display: string } | { ok: false; error: string; code?: string; choices?: string[] };
+- parsePlayCommand · function · L578-L602 — function parsePlayCommand(line: string, entities: EntityObs[] = []): ParsedCommand
+- isRawExceptionMessage · function · L605-L610 — function isRawExceptionMessage(message?: string): boolean
+- humanizeError · function · L612-L670 — function humanizeError(code?: string, message?: string): { primary: string; advanced?: string }
+- waitingCopy · function · L673-L683 — function waitingCopy(opts: { code?: string; message?: string; worldName?: string; }): { worldLine: string; roomDesc: string }
+- lookCopyFromObservation · function · L686-L722 — function lookCopyFromObservation( obs: { location?: { name?: string; description?: string }; world_name?: string; consequence?: string; } | null, err?: { code?: string; message?: string }, ): { worldLine: string; roomName: string; roomDesc: string }
+- trailFromResult · function · L724-L783 — function trailFromResult(opts: { display: string; command: string; ok: boolean; events?: Array<{ event_type?: string; sequence?: number }>; observation?: { location?: LocationObs; report_lines?: string[] }; previousRoomId?: string; errorPrimary?: string; }): TrailItem[]
+- routeDiagram · function · L786-L827 — function routeDiagram( hereName: string, exits: ExitObs[], ): { lines: string[]; hasRoutes: boolean }
+- statusFromObservation · function · L829-L853 — function statusFromObservation(obs: { cycle?: number; sequence?: number; location?: LocationObs; world_name?: string; practice_lines?: string[]; lot_lines?: string[]; social_memory_lines?: string[]; culture_lines?: string[]; discovery_lines?: string[]; report_lines?: string[]; budgets?: { attention?: number; compute?: number; energy?: number; influence?: number; storage?: number; }; messages?: unknown[]; trades?: unknown[]; organizations?: unknown[]; players_here?: unknown[]; } | null): Array<{ label: string; value: string }>
+- escHtml · function · L855-L860 — function escHtml(s: string): string
+- renderLookHtml · function · L862-L890 — function renderLookHtml(opts: { name?: string; description?: string; condition?: string; exitsLine?: string; cultureLine?: string; }): string
+- renderTrailHtml · function · L892-L925 — function renderTrailHtml(items: TrailItem[]): string
+- playerHandle · function · L927-L929 — function playerHandle(p: { player_id?: string; handle?: string; sender_id?: string }): string
+- formatResourceMap · function · L931-L935 — function formatResourceMap(m?: Record<string, number> | null): string
+- renderPlayersHereHtml · function · L937-L986 — function renderPlayersHereHtml( players?: PlayerHere[] | null, orgs?: OrgItem[] | null, selfId?: string, ): string
+- renderBondsHtml · function · L988-L1073 — function renderBondsHtml(opts: { messages?: MailItem[] | null; trades?: TradeItem[] | null; organizations?: OrgItem[] | null; }): string
+- renderServiceDesksHtml · function · L1075-L1125 — function renderServiceDesksHtml( services?: LocationObs["services"] | null, ): string
+- renderExitTokensHtml · function · L1127-L1144 — function renderExitTokensHtml(exits?: ExitObs[] | null): string
+- renderEntityListHtml · function · L1146-L1181 — function renderEntityListHtml(entities?: EntityObs[] | null): string
+- renderOpportunitiesHtml · function · L1183-L1201 — function renderOpportunitiesHtml(loc: LocationObs): string
+- DomNode · type · L1203-L1211 — type DomNode = { className: string; type?: string; hidden?: boolean; disabled?: boolean; textContent: string; setAttribute(name: string, value: string): void; append(...nodes: unknown[]): void; };
+- DomRoot · type · L1213-L1216 — type DomRoot = { replaceChildren(...nodes: unknown[]): void; append(...nodes: unknown[]): void; };
+- pageDoc · function · L1218-L1220 — function pageDoc(): { createElement(tag: string): DomNode }
+- h · function · L1222-L1227 — function h(tag: string, className?: string, text?: string): DomNode
+- cmdBtn · function · L1229-L1235 — function cmdBtn(cmd: string, text: string, aria?: string): DomNode
+- fillTrail · function · L1237-L1259 — function fillTrail(el: DomRoot, items: TrailItem[]): void
+- fillPlayersHere · function · L1261-L1296 — function fillPlayersHere( el: DomRoot, players?: PlayerHere[] | null, orgs?: OrgItem[] | null, selfId?: string, ): void
+- fillBonds · function · L1298-L1370 — function fillBonds( el: DomRoot, opts: { messages?: MailItem[] | null; trades?: TradeItem[] | null; organizations?: OrgItem[] | null; }, ): void
+- fillServiceDesks · function · L1372-L1405 — function fillServiceDesks(el: DomRoot, services?: LocationObs["services"] | null): void
+- fillExitTokens · function · L1407-L1418 — function fillExitTokens(el: DomRoot, exits?: ExitObs[] | null): void
+- fillEntityList · function · L1420-L1445 — function fillEntityList(el: DomRoot, entities?: EntityObs[] | null): void
+- fillOpportunities · function · L1447-L1459 — function fillOpportunities(el: DomRoot, loc: LocationObs): void
+- fillStatusRows · function · L1461-L1468 — function fillStatusRows(el: DomRoot, rows: { label: string; value: string }[]): void
+- fillWorldStrip · function · L1470-L1485 — function fillWorldStrip( el: DomRoot & { hidden?: boolean }, rows: { label: string; value: string }[], ): void
+- fillSignalFeed · function · L1487-L1512 — function fillSignalFeed( el: DomRoot & { hidden?: boolean; getAttribute?: (name: string) => string | null; setAttribute?: (name: string, value: string) => void; }, lines: string[], ): void
+- SessionAct · type · L1514-L1514 — type SessionAct = { label: string; cmd: string };
+- firstSessionActs · function · L1517-L1559 — function firstSessionActs( loc: { name?: string; description?: string; condition?: string; entities?: EntityObs[]; exits?: ExitObs[]; }, actions?: Array<{ label: string; cmd: string; available?: boolean }>, others?: Array<{ handle?: string } | string>, ): SessionAct[]
+- add · function · L1530-L1535 — add = (label: string, cmd: string)
+- firstStrainLine · function · L1562-L1574 — function firstStrainLine(loc: { condition?: string; description?: string; entities?: EntityObs[]; }): string
+- resourceBiteLabel · function · L1576-L1584 — function resourceBiteLabel(code?: string, message?: string): string
+- fillActionRail · function · L1586-L1606 — function fillActionRail( el: DomRoot, actions: Array<{ label: string; cmd: string; available?: boolean }>, loc?: LocationObs, ): void
+- fillDisclosure · function · L1608-L1632 — function fillDisclosure( details: (DomRoot & { hidden?: boolean }) | null, list: DomRoot | null, lines: string[], itemClass?: string, ): void
+- playUiRuntimeSource · function · L1635-L1701 — function playUiRuntimeSource(): string
+- containsHiddenHistory · function · L1704-L1715 — function containsHiddenHistory(text: string): boolean

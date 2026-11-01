@@ -34,7 +34,7 @@ import {
   type PlayerRuntime,
 } from "./actions";
 import { SUCCESSOR_WORLD_ID } from "./genesis";
-import { playTextFromObservation } from "./play-ui";
+import { fourBeatFromResult, playTextFromObservation } from "./play-ui";
 import {
   AGREEMENT_FORM_COST,
   AGREEMENT_TERMINATE_COST,
@@ -703,6 +703,48 @@ function failPlay(
     };
   } catch {
     result.observation = emptyPlayObservation(w, principal, message);
+  }
+  return result;
+}
+
+function failedMove(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  code: string,
+  message: string,
+  direction?: string,
+): CommandResult {
+  const result = fail(request_id, code, message);
+  // The requested direction may be arbitrary client text, not a public room label.
+  const publicDirection = /^(north|south|east|west|up|down|northeast|northwest|southeast|southwest)$/.test(direction || "")
+    ? direction
+    : undefined;
+  const shown = code === "INVALID_REQUEST" && message === "direction required"
+    ? "Choose a direction to move."
+    : code === "MOVE_REJECTED" && message.startsWith("There is no exit ") && !publicDirection
+      ? "That route is unavailable."
+      : message;
+  try {
+    const current = buildObservation(w, principal, shown);
+    const observation: Observation = {
+      ...emptyPlayObservation(w, principal, shown),
+      in_world: current.in_world,
+      location: current.location,
+      budgets: current.budgets,
+      available_actions: current.available_actions,
+      affordances: current.affordances,
+    };
+    observation.play_text = playTextFromObservation(observation, fourBeatFromResult({
+      command: publicDirection ? `move ${publicDirection}` : "move",
+      ok: false,
+      errorCode: code,
+      errorMessage: `${shown} Nothing moves.`,
+      affordances: current.affordances,
+    }));
+    result.observation = observation;
+  } catch {
+    // A broken room projection must not turn a rejected action into a success.
   }
   return result;
 }
@@ -1495,6 +1537,8 @@ function success(
   events: CommandResult["events"],
   consequence: string,
   settled: boolean,
+  attempted?: string,
+  presentedChange?: string,
 ): CommandResult {
   recordPractice(w, principal.player_id, events);
   recordTradeMemory(w, events);
@@ -1508,7 +1552,15 @@ function success(
       in_world: Boolean(w.players?.[principal.player_id]?.entered),
     };
   }
-  observation.play_text = playTextFromObservation(observation);
+  observation.play_text = playTextFromObservation(
+    observation,
+    attempted ? fourBeatFromResult({
+      command: attempted,
+      ok: true,
+      consequence: presentedChange || consequence,
+      affordances: observation.affordances,
+    }) : undefined,
+  );
   return {
     ok: true,
     request_id,
@@ -2108,6 +2160,9 @@ export async function applyWorldCommand(
       w.seen_idempotency[idem] = result;
       return result;
     }
+    if (protocolCmd === "MOVE" && parsed.code === "INVALID_REQUEST" && parsed.error === "direction required") {
+      return failedMove(w, principal, request_id, "INVALID_REQUEST", parsed.error);
+    }
     return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
   }
 
@@ -2338,26 +2393,29 @@ export async function applyWorldCommand(
   if (action.verb === "MOVE") {
     const room = w.rooms[pl.room_id];
     if (!room) {
-      return fail(request_id, "NOT_FOUND", "You are not in a known room.");
+      return failedMove(w, principal, request_id, "NOT_FOUND", "You are not in a known room.");
     }
     const waivesCargo = readyClassInRoom(roomEntities(room), "route_link");
     const moveCost = { energy: moveEnergyCost(pl.budgets.storage ?? 0, undefined, waivesCargo) };
     if (!canPay(pl.budgets, moveCost)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
+      return failedMove(w, principal, request_id, "BUDGET_EXCEEDED", "You do not have enough energy.");
     }
     const direction = action.arguments.direction;
     const exit = publicExits(w, room).find(
       (e) => e.direction === direction || e.to_room_id === direction,
     );
     if (!exit) {
-      return fail(
+      return failedMove(
+        w,
+        principal,
         request_id,
         "MOVE_REJECTED",
         direction ? `There is no exit ${direction} from here.` : "Choose a direction to move.",
+        direction,
       );
     }
     if (isAccessDenied(w, principal.player_id, room.room_id, exit.direction)) {
-      return fail(request_id, "MOVE_REJECTED", "That route is restricted.");
+      return failedMove(w, principal, request_id, "MOVE_REJECTED", "That route is restricted.", exit.direction);
     }
     debit(pl.budgets, moveCost);
     const from = room.room_id;
@@ -2380,6 +2438,10 @@ export async function applyWorldCommand(
       events,
       carrying ? `${arrive} Carrying lots cost extra.` : arrive,
       settled,
+      /^(north|south|east|west|up|down|northeast|northwest|southeast|southwest)$/.test(exit.direction)
+        ? `move ${exit.direction}`
+        : "move",
+      `${arrive} Energy −${moveCost.energy}.${carrying ? " Carrying lots cost extra." : ""}`,
     );
     w.seen_idempotency[idem] = result;
     return result;
