@@ -390,6 +390,20 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[a.player_id].budgets).toEqual(before);
   });
 
+  it("delayed MESSAGE says queued rather than delivered", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    w.rooms["room.hub"].entities[0].condition = 25;
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, a, "MOVE", { direction: "east" })).ok).toBe(true);
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "secret-sentinel" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message\.\npartial\nMessage sent\. Delivery is delayed\./);
+    expect(r.observation?.play_text).not.toMatch(/secret-sentinel|Message delivered/);
+    expect(r.events?.some((e) => e.event_type === "MESSAGE_DELIVERED")).toBe(false);
+    expect(w.pending_messages?.length).toBe(1);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();

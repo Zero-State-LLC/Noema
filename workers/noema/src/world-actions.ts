@@ -2847,7 +2847,14 @@ export async function applyWorldCommand(
       // The grounded act is the sending, not the arrival: a relay delay must
       // not silently cost the sender their protocol strength.
       noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
-      const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled);
+      const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled,
+        "message", DELAYED_MESSAGE);
+      if (result.observation) {
+        result.observation.play_text = playTextFromObservation(result.observation, fourBeatFromResult({
+          command: "message", ok: true, partial: true, consequence: DELAYED_MESSAGE,
+          affordances: result.observation.affordances,
+        }));
+      }
       w.seen_idempotency[idem] = result;
       return result;
     }

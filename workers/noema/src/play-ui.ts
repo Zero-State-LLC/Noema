@@ -69,7 +69,7 @@ export type StatusGlanceRow = { label: string; value: string };
 
 export type HappenedBeat = {
   tried: string;
-  outcome: "ok" | "fail";
+  outcome: "ok" | "fail" | "partial";
   changed?: string;
   next?: string;
   advanced?: string;
@@ -143,6 +143,7 @@ export function fourBeatFromResult(opts: {
   command?: string;
   ok: boolean;
   consequence?: string;
+  partial?: boolean;
   errorCode?: string;
   errorMessage?: string;
   affordances?: Array<{ cmd?: string; available?: boolean }>;
@@ -155,7 +156,7 @@ export function fourBeatFromResult(opts: {
   if (opts.ok) {
     return {
       tried,
-      outcome: "ok",
+      outcome: opts.partial ? "partial" : "ok",
       changed: String(opts.consequence || "").trim() || undefined,
       next,
     };
