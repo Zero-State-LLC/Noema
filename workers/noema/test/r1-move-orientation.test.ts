@@ -532,6 +532,52 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before); expect(w.messages).toHaveLength(0);
   });
 
+  it.each([
+    ["LOOK", "harvest entity.private-guess", undefined, "harvest"],
+    ["LOOK", "repair entity.private-guess", undefined, "repair"],
+    ["MESSAGE", "harvest entity.private-guess", undefined, "harvest"],
+    ["repair entity.private-guess", undefined, undefined, "repair"],
+    ["harvest entity.private-guess", undefined, undefined, "harvest"],
+    ["LOOK", "fixit entity.private-guess", { fixit: "repair" }, "repair"],
+  ])("%s carrying %s bounds missing entity", async (command, line, aliases, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    if (aliases) w.players[p.player_id].command_aliases = aliases;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const nonce = Math.random().toString(16).slice(2);
+    const r = await applyWorldCommand(w, p, {
+      request_id: `r.entity.${nonce}`, idempotency_key: `i.entity.${nonce}`,
+      command, arguments: line ? { line } : {},
+    }, async () => true);
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nYou do not see that here. Nothing changes.`);
+    expect(JSON.stringify(r)).not.toContain("entity.private-guess");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("BUILD share is not mislabeled as MESSAGE", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const r = await run(w, p, "LOOK", { line: "share entity.private-guess with player.unknown" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(JSON.stringify(r)).not.toMatch(/Recipient is not addressable|You try to message|Write the message again/);
+  });
+
+  it("BUILD share clarification pick does not become a MESSAGE retry", async () => {
+    const w = world(); const a = principal();
+    const b = principal("player.dupe-one"); const c = principal("player.dupe-two");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, c, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "dupe"; w.players[c.player_id].handle = "dupe";
+    const amb = await run(w, a, "LOOK", { line: "share scarred-conduit with dupe" });
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    const picked = await run(w, a, "LOOK", { line: "1" });
+    expect(picked.error?.message).not.toContain("message again");
+    expect(JSON.stringify(picked)).not.toContain("You try to message");
+  });
+
   it.each(["inspect", "harvest"])('MESSAGE envelope with %s line does not mislabel failure as recipient', async (verb) => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);

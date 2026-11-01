@@ -751,7 +751,9 @@ function failedMove(
 }
 
 function isMessageIntent(line: string): boolean {
-  return /^(?:(?:message|msg|tell|report|pass|share|repeat)(?:\s|$)|say\s+to(?:\s|$))/i.test(line.trim());
+  const text = line.trim();
+  return /^(?:(?:message|msg|tell|report|pass|repeat)(?:\s|$)|say\s+to(?:\s|$))/i.test(text)
+    || /^share\s+\S+\s+\S+\s*$/i.test(text);
 }
 
 function failedAction(
@@ -2242,8 +2244,8 @@ export async function applyWorldCommand(
               : undefined;
       if (shown) return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error, shown, "message");
     }
-    if (protocolCmd === "COMMIT" && typeof rawArgs.line === "string"
-      && parsed.code === "NOT_FOUND" && /^(?:harvest|repair)(?:\s|$)/i.test(textLine.trim())) {
+    if (parsed.code === "NOT_FOUND" && /^(?:harvest|repair)(?:\s|$)/i.test(textLine.trim())
+      && (typeof rawArgs.line === "string" || looksLikeTextLine)) {
       const attempted = /^harvest(?:\s|$)/i.test(textLine.trim()) ? "harvest" : "repair";
       return failedAction(w, principal, request_id, "NOT_FOUND",
         "You do not see that here.", "You do not see that here.", attempted);
