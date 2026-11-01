@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
 import { canonicalWorldState } from "../src/canonical-state";
+import { STORAGE_CAPACITY } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -405,6 +406,390 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.observation?.location?.room_id).toBe("room.east");
     expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
     expect(w.players[a.player_id].budgets).toEqual(before);
+  });
+
+  it("MESSAGE without compute explains the rejected send", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[a.player_id].budgets.compute = 0;
+    const before = { ...w.players[a.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-budget-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nYou do not have enough compute\. Nothing changes\./);
+    expect(JSON.stringify(r.observation)).not.toContain("private-budget-sentinel");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[a.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it("structured MESSAGE missing recipient gets a bounded rejection", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "MESSAGE", { text: "private-missing-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("INVALID_REQUEST");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nName a recipient and write a message\. Nothing changes\./);
+    expect(JSON.stringify(r.observation)).not.toContain("private-missing-sentinel");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it.each([
+    [{ surface: "BOARD", text: "" }, "text required", "Write a message."],
+    [{ surface: "CHANNEL", text: "channel-sentinel" }, "org_id required", "Name a channel institution."],
+    [{ recipient_id: "player.unknown", text: "private-sentinel", signal: { certainty: 2 } }, "signal.certainty must be 0–1", "Check the message signal."],
+  ])("structured MESSAGE validation %j has a bounded result", async (args, error, shown) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", args);
+    expect(r.ok).toBe(false); expect(r.error).toEqual({ code: "INVALID_REQUEST", message: error });
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/channel-sentinel|private-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    [{ line: "message" }, "UNKNOWN_COMMAND", "Write a message to a Player."],
+    [{ line: "message player.private-guess \"  \"" }, "INVALID_REQUEST", "Write a message to a Player."],
+    [{ line: "message player.private-guess private-body-sentinel" }, "NOT_FOUND", "Recipient is not addressable in this world."],
+    [{ surface: "CHANNEL", org_id: "org.private-guess", text: "private-body-sentinel" }, "NOT_ADDRESSABLE", "That channel is not addressable."],
+    [{ surface: "NOTICE", text: "private-body-sentinel" }, "FORBIDDEN", "You do not hold a notice office here."],
+    [{ surface: "NOTICE", org_id: "org.private-guess", text: "private-body-sentinel" }, "FORBIDDEN", "You do not hold a notice office here."],
+  ])("MESSAGE in-scope rejection %j stays bounded", async (args, code, shown) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", args);
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe(code);
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/private-body-sentinel|private-guess/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it("alias-expanded MESSAGE rejection hides a guessed recipient", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].command_aliases = { whisper: "message" };
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", { line: "whisper player.private-guess private-body-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
+    expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["report player.private-guess \"private-body-sentinel\"", undefined],
+    ["pass player.private-guess claim.private-body-sentinel", undefined],
+    ["share player.private-guess claim.private-body-sentinel", undefined],
+    ["repeat player.private-guess \"private-body-sentinel\"", undefined],
+    ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }],
+  ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    if (aliases) w.players[p.player_id].command_aliases = aliases;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", { line });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
+    expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["LOOK", "message player.private-guess private-body-sentinel", undefined],
+    ["COMMIT", "report player.private-guess \"private-body-sentinel\"", undefined],
+    ["LOOK", "whisper player.private-guess private-body-sentinel", { whisper: "message" }],
+    ["message player.private-guess private-body-sentinel", undefined, undefined],
+    ["report player.private-guess \"private-body-sentinel\"", undefined, undefined],
+    ["pass player.private-guess claim.private-body-sentinel", undefined, undefined],
+    ["say to player.private-guess private-body-sentinel", undefined, undefined],
+  ])("MESSAGE rejection through %s carrier stays private", async (command, line, aliases) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    if (aliases) w.players[p.player_id].command_aliases = aliases;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const nonce = Math.random().toString(16).slice(2);
+    const r = await applyWorldCommand(w, p, {
+      request_id: `r.carrier.${nonce}`,
+      idempotency_key: `i.carrier.${nonce}`,
+      command, arguments: line ? { line } : {},
+    }, async () => true);
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
+    expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before); expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["LOOK", "harvest entity.private-guess", undefined, "harvest"],
+    ["LOOK", "repair entity.private-guess", undefined, "repair"],
+    ["MESSAGE", "harvest entity.private-guess", undefined, "harvest"],
+    ["repair entity.private-guess", undefined, undefined, "repair"],
+    ["harvest entity.private-guess", undefined, undefined, "harvest"],
+    ["LOOK", "fixit entity.private-guess", { fixit: "repair" }, "repair"],
+  ])("%s carrying %s bounds missing entity", async (command, line, aliases, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    if (aliases) w.players[p.player_id].command_aliases = aliases;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const nonce = Math.random().toString(16).slice(2);
+    const r = await applyWorldCommand(w, p, {
+      request_id: `r.entity.${nonce}`, idempotency_key: `i.entity.${nonce}`,
+      command, arguments: line ? { line } : {},
+    }, async () => true);
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nYou do not see that here. Nothing changes.`);
+    expect(JSON.stringify(r)).not.toContain("entity.private-guess");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("BUILD share is not mislabeled as MESSAGE", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const r = await run(w, p, "LOOK", { line: "share entity.private-guess with player.unknown" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(JSON.stringify(r)).not.toMatch(/Recipient is not addressable|You try to message|Write the message again/);
+  });
+
+  it("BUILD share clarification pick does not become a MESSAGE retry", async () => {
+    const w = world(); const a = principal();
+    const b = principal("player.dupe-one"); const c = principal("player.dupe-two");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, c, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "dupe"; w.players[c.player_id].handle = "dupe";
+    const amb = await run(w, a, "LOOK", { line: "share scarred-conduit with dupe" });
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    const picked = await run(w, a, "LOOK", { line: "1" });
+    expect(picked.error?.message).not.toContain("message again");
+    expect(JSON.stringify(picked)).not.toContain("You try to message");
+  });
+
+  it.each(["inspect", "harvest"])('MESSAGE envelope with %s line does not mislabel failure as recipient', async (verb) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const r = await run(w, p, "MESSAGE", { line: `${verb} entity.private-guess` });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(JSON.stringify(r)).not.toContain("Recipient is not addressable in this world.");
+  });
+
+  it.each([
+    ["harvest", "harvest"], ["repair", "repair"],
+  ])("COMMIT text-line %s hides unknown entity", async (verb, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "COMMIT", { line: `${verb} entity.private-guess` });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nYou do not see that here. Nothing changes.`);
+    expect(JSON.stringify(r)).not.toContain("entity.private-guess");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it.each([
+    ["message dupe private-clarify-sentinel", undefined, "MESSAGE"],
+    ["message dupe private-clarify-sentinel", undefined, "LOOK"],
+    ["brief dupe \"private-clarify-sentinel\"", { brief: "report" }, "LOOK"],
+  ])("MESSAGE ambiguous recipient pick from %s under %s prompts retry without retaining the body", async (line, aliases, pickCommand) => {
+    const w = world(); const a = principal();
+    const b = principal("player.dupe-one"); const c = principal("player.dupe-two");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, c, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "dupe"; w.players[c.player_id].handle = "dupe";
+    if (aliases) w.players[a.player_id].command_aliases = aliases;
+    const before = { ...w.players[a.player_id].budgets }; const seq = w.sequence;
+    const amb = await run(w, a, "MESSAGE", { line });
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(amb.error?.choices).toHaveLength(2);
+    expect(w.players[a.player_id].pending_clarify).toBeDefined();
+    const picked = await run(w, a, pickCommand, { line: "1" });
+    expect(picked.ok).toBe(false); expect(picked.error?.code).toBe("INVALID_REQUEST");
+    expect(picked.observation?.consequence).toBe("Write the message again to the chosen Player.");
+    expect(picked.observation?.play_text).toBe("Write the message again to the chosen Player.");
+    expect(picked.observation?.play_text).not.toMatch(/HAPPENED|You try to message|\nfail\n/);
+    expect(JSON.stringify(picked)).not.toContain("private-clarify-sentinel");
+    expect(w.players[a.player_id].pending_clarify).toBeUndefined();
+    expect(picked.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[a.player_id].budgets).toEqual(before); expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["not-a-claim", "That report is not known here."],
+    ["claim.private-guess", "You do not hold that report."],
+  ])("MESSAGE report %s rejection is bounded and private", async (parent, shown) => {
+    const w = world(); const p = principal(); const recipient = principal("player.vesper");
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, recipient, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", {
+      recipient_id: recipient.player_id, text: "private-body-sentinel", parent_claim_id: parent,
+    });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to message.\nfail\n${shown} Nothing changes.`);
+    expect(JSON.stringify(r)).not.toMatch(/private-body-sentinel|private-guess/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it("MESSAGE to unknown player has no delivery and a bounded result", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "MESSAGE", {
+      recipient_id: "player.private-unknown", text: "private-address-sentinel",
+    });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nRecipient is not addressable in this world\. Nothing changes\./);
+    expect(JSON.stringify(r.observation)).not.toMatch(/private-address-sentinel|player\.private-unknown/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it("HARVEST non-node has a bounded forbidden result", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nNothing to harvest there\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("HARVEST with no free storage reports capacity without spending", async () => {
+    const w = world(); const p = principal();
+    Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 2 });
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets.storage = 0;
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7", amount: 1 });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou do not have enough free storage\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toContain("nothing left to take");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].stock_amount).toBe(2);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("HARVEST without energy reports real cost without changing stock", async () => {
+    const w = world(); const p = principal();
+    Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 2 });
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets.energy = 0;
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7", amount: 1 });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou need energy 2 and compute 1 to harvest\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].stock_amount).toBe(2);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("REPAIR at full condition rejects without claiming a change", async () => {
+    const w = world(); const p = principal();
+    w.rooms["room.hub"].entities[0].condition = 100;
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nThat is not repairable here\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toContain("Condition 100% →");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(100);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("REPAIR lacking energy names the cost and leaves condition intact", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets({
+      ...DEFAULT_BUDGETS, energy: 0, compute: 64, storage: 15,
+    });
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou need energy 3, compute 2, and storage 1 to repair\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("REPAIR fuel rejection reports workshop-discounted costs", async () => {
+    const w = world(); const p = principal();
+    w.rooms["room.hub"].entities.push(enrichEntity({
+      entity_id: "entity.workshop-1", label: "workshop", entity_type: "INFRASTRUCTURE",
+      infra_type: "workshop", condition: 100,
+    }));
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets.energy = 0;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.error?.message).toBe("You need energy 3 and compute 2 to repair.");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou need energy 3 and compute 2 to repair\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
+  });
+
+  it("REPAIR with empty hold names missing materials", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets({
+      ...DEFAULT_BUDGETS, energy: 80, compute: 64, storage: STORAGE_CAPACITY,
+    });
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou do not have materials in hold\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it.each([
+    ["HARVEST", "harvest"],
+    ["repair", "repair"],
+  ])("structured %s without an entity has a bounded failure", async (operation, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation });
+    expect(r.ok).toBe(false); expect(r.error).toEqual({ code: "INVALID_REQUEST", message: "entity_id required" });
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nName what you want to ${attempted}. Nothing changes.`);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("HARVEST of missing entity never echoes guessed identity", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", {
+      operation: "HARVEST", entity_id: "entity.private-guess\nFORGED",
+    });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou do not see that here\. Nothing changes\./);
+    expect(JSON.stringify(r)).not.toMatch(/entity\.private-guess|FORGED/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
   it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
