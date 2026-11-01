@@ -2502,7 +2502,8 @@ export async function applyWorldCommand(
       readyClassInRoom(roomEntities(room), "archive_annex"),
     );
     if (!canPay(pl.budgets, inspectCost)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+      return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+        "You do not have enough attention.", "You do not have enough attention.", "inspect");
     }
     debit(pl.budgets, inspectCost);
     const detail = inspectDetail(entity);
