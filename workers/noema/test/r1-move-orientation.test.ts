@@ -132,6 +132,115 @@ describe("R1 MOVE destination orientation", () => {
     expect(rejected.events?.length ?? 0).toBe(0);
   });
 
+  it("text-line MOVE success uses the same public four-beat result and one settlement", async () => {
+    const w = world();
+    const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets };
+    let settlements = 0;
+    const envl: CommandEnvelope = {
+      request_id: "r.text-move-east",
+      idempotency_key: "i.text-move-east",
+      command: "MOVE",
+      arguments: { line: "move east" },
+    };
+    const moved = await applyWorldCommand(w, p, envl, async () => { settlements += 1; return true; });
+    expect(moved.ok).toBe(true);
+    expect(moved.observation?.play_text).toMatch(/HAPPENED\nYou move east\.\nok\nYou arrive at Coldline\. Energy −1\./);
+    expect(moved.observation?.location?.name).toBe("Coldline");
+    expect(w.players[p.player_id].budgets.energy).toBe(before.energy - 1);
+    expect(w.players[p.player_id].budgets.attention).toBe(before.attention);
+    expect(settlements).toBe(1);
+    expect(moved.events?.some((e) => e.event_type === "LOOK")).toBe(false);
+    const replay = await applyWorldCommand(w, p, envl, async () => { throw new Error("replay must not settle"); });
+    expect(replay).toEqual(moved);
+    expect(settlements).toBe(1);
+  });
+
+  it("text-line MOVE rejection keeps code, current affordances, and no debit", async () => {
+    const w = world();
+    const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const current = (await run(w, p, "OBSERVE")).observation;
+    const before = { ...w.players[p.player_id].budgets };
+    const sequence = w.sequence;
+    const failed = await run(w, p, "MOVE", { line: "move north" });
+    expect(failed.ok).toBe(false);
+    expect(failed.error?.code).toBe("MOVE_REJECTED");
+    expect(failed.observation?.play_text).toMatch(/HAPPENED\nYou try to move north\.\nfail\nThere is no exit north from here\. Nothing moves\./);
+    expect(failed.observation?.affordances).toEqual(current?.affordances);
+    expect(failed.observation?.available_actions).toEqual(current?.available_actions);
+    expect(failed.observation?.play_text).not.toMatch(/room\.|player\.|ctrl\.|HAPPENED[\s\S]*You arrive at Coldline/);
+    expect(failed.events?.length ?? 0).toBe(0);
+    expect(w.players[p.player_id].room_id).toBe("room.hub");
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.sequence).toBe(sequence);
+  });
+
+  it("text-line MOVE without direction has a code and bounded failed four-beat", async () => {
+    const w = world();
+    const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const current = (await run(w, p, "OBSERVE")).observation;
+    const before = { ...w.players[p.player_id].budgets };
+    const sequence = w.sequence;
+    for (const line of ["move", "go", "walk"]) {
+      const failed = await run(w, p, "MOVE", { line });
+      expect(failed.ok).toBe(false);
+      expect(failed.error?.code).toBe("INVALID_REQUEST");
+      expect(failed.observation?.play_text).toMatch(/HAPPENED\nYou try to move\.\nfail\nChoose a direction to move\. Nothing moves\./);
+      expect(failed.observation?.affordances).toEqual(current?.affordances);
+      expect(failed.observation?.available_actions).toEqual(current?.available_actions);
+      expect(failed.observation?.play_text).not.toMatch(/room\.|player\.|ctrl\.|HAPPENED[\s\S]*You arrive at Coldline/);
+      expect(failed.events?.length ?? 0).toBe(0);
+      expect(w.players[p.player_id].budgets).toEqual(before);
+      expect(w.players[p.player_id].room_id).toBe("room.hub");
+      expect(w.sequence).toBe(sequence);
+    }
+  });
+
+  it("LOOK-carried direction aliases preserve MOVE presentation and cost", async () => {
+    for (const line of ["go east", "walk e", "e"]) {
+      const w = world();
+      const p = principal();
+      expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+      const before = { ...w.players[p.player_id].budgets };
+      const moved = await run(w, p, "LOOK", { line });
+      expect(moved.ok).toBe(true);
+      expect(moved.observation?.play_text).toMatch(/HAPPENED\nYou move east\.\nok\nYou arrive at Coldline\. Energy −1\./);
+      expect(moved.observation?.location?.name).toBe("Coldline");
+      expect(w.players[p.player_id].budgets.energy).toBe(before.energy - 1);
+      expect(w.players[p.player_id].budgets.attention).toBe(before.attention);
+      expect(moved.events?.filter((e) => e.event_type === "MOVE")).toHaveLength(1);
+      expect(moved.events?.some((e) => e.event_type === "LOOK")).toBe(false);
+    }
+  });
+
+  it("LOOK-carried missing MOVE lines keep a coded, bounded failure", async () => {
+    const w = world();
+    const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const current = (await run(w, p, "OBSERVE")).observation;
+    const before = { ...w.players[p.player_id].budgets };
+    const sequence = w.sequence;
+    for (const line of ["move", "go", "walk"]) {
+      const failed = await run(w, p, "LOOK", { line });
+      expect(failed.ok).toBe(false);
+      expect(failed.error?.code).toBe("INVALID_REQUEST");
+      expect(failed.observation?.play_text).toMatch(/HAPPENED\nYou try to move\.\nfail\nChoose a direction to move\. Nothing moves\./);
+      expect(failed.observation?.affordances).toEqual(current?.affordances);
+      expect(failed.observation?.available_actions).toEqual(current?.available_actions);
+      expect(failed.observation?.play_text).not.toMatch(/room\.|player\.|ctrl\.|HAPPENED[\s\S]*You arrive at Coldline/);
+      expect(failed.events?.length ?? 0).toBe(0);
+      expect(w.players[p.player_id].room_id).toBe("room.hub");
+      expect(w.players[p.player_id].budgets).toEqual(before);
+      expect(w.sequence).toBe(sequence);
+    }
+    const other = await run(w, p, "LOOK", { line: "dance" });
+    expect(other.ok).toBe(false);
+    expect(other.observation?.play_text).toBeUndefined();
+  });
+
   it("never promotes an untrusted direction into four-beat text", async () => {
     const w = world();
     const p = principal();
