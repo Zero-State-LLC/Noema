@@ -352,6 +352,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("insufficient HARVEST with remaining stock does not claim the node is empty", async () => {
+    const w = world(); const p = principal();
+    Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 1 });
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7", amount: 2 });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.error?.message).toBe("Not enough stock available.");
+    expect(r.observation?.play_text).toContain("There is not enough left to take that much. Nothing changes.");
+    expect(r.observation?.play_text).not.toContain("nothing left to take");
+    expect(w.rooms["room.hub"].entities[0].stock_amount).toBe(1);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("successful HARVEST presents its actual transfer", async () => {
     const w = world(); const p = principal();
     Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 1 });
@@ -385,7 +400,8 @@ describe("R1 MOVE destination orientation", () => {
     const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "secret-sentinel" });
     expect(r.ok).toBe(false); expect(r.error?.code).toBe("UNREACHABLE");
     expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nThe destination cannot be reached\. Nothing changes\./);
-    expect(r.observation?.play_text).not.toMatch(/secret-sentinel|player\.remote|ctrl\./);
+    expect(JSON.stringify(r.observation)).not.toContain("secret-sentinel");
+    expect(r.observation?.location?.room_id).toBe("room.east");
     expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
     expect(w.players[a.player_id].budgets).toEqual(before);
   });
@@ -396,12 +412,25 @@ describe("R1 MOVE destination orientation", () => {
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
     expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
     expect((await run(w, a, "MOVE", { direction: "east" })).ok).toBe(true);
-    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "secret-sentinel" });
+    const envl: CommandEnvelope = {
+      request_id: "r.message.delayed.replay",
+      idempotency_key: "i.message.delayed.replay",
+      command: "MESSAGE",
+      arguments: { recipient_id: b.player_id, text: "secret-sentinel" },
+    };
+    const r = await applyWorldCommand(w, a, envl, async () => true);
     expect(r.ok).toBe(true);
     expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message\.\npartial\nMessage sent\. Delivery is delayed\./);
-    expect(r.observation?.play_text).not.toMatch(/secret-sentinel|Message delivered/);
+    expect(JSON.stringify(r.observation)).not.toMatch(/secret-sentinel|Message delivered/);
+    expect(r.observation?.location?.room_id).toBe("room.east");
     expect(r.events?.some((e) => e.event_type === "MESSAGE_DELIVERED")).toBe(false);
     expect(w.pending_messages?.length).toBe(1);
+    const beforeReplay = { sequence: w.sequence, budgets: { ...w.players[a.player_id].budgets } };
+    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); });
+    expect(replay).toEqual(r);
+    expect(w.pending_messages).toHaveLength(1);
+    expect(w.sequence).toBe(beforeReplay.sequence);
+    expect(w.players[a.player_id].budgets).toEqual(beforeReplay.budgets);
   });
 
   it("WAIT presents only the real rest delta", async () => {
@@ -417,6 +446,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets.attention).toBe(before.attention + 2);
     expect(w.players[p.player_id].budgets.compute).toBe(before.compute + 4);
     expect(r.observation?.play_text).not.toMatch(/free energy|Energy \+\d/);
+  });
+
+  it("WAIT names cycle-committed spoilage alongside measured rest", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].lot_grades = { energy: "WORN" };
+    w.players[p.player_id].budgets = { ...cloneBudgets(DEFAULT_BUDGETS), attention: 0, compute: 0 };
+    const energyBefore = w.players[p.player_id].budgets.energy;
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.cycle).toBe(1);
+    expect(w.players[p.player_id].budgets.energy).toBe(energyBefore - 1);
+    expect(r.events?.some((e) => e.event_type === "BUDGET_CONSUMED" && e.payload?.reason === "SPOILAGE")).toBe(true);
+    expect(r.observation?.play_text).toContain("Attention +2 · Compute +4.");
+    expect(r.observation?.play_text).toContain("Your worn energy spoiled.");
   });
 
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {

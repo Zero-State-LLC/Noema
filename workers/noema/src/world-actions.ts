@@ -2425,7 +2425,7 @@ export async function applyWorldCommand(
       spoilNote ? `You wait. ${spoilNote}` : "You wait.",
       false,
       "wait",
-      waitChange,
+      spoilNote ? `${waitChange} ${spoilNote}` : waitChange,
     );
     w.seen_idempotency[idem] = result;
     return result;
@@ -3794,8 +3794,11 @@ export async function applyWorldCommand(
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
       if ((entity.stock_amount ?? 0) < amount) {
+        const shown = (entity.stock_amount ?? 0) <= 0
+          ? "That node has nothing left to take."
+          : "There is not enough left to take that much.";
         return failedAction(w, principal, request_id, "FORBIDDEN",
-          "Not enough stock available.", "That node has nothing left to take.", "harvest");
+          "Not enough stock available.", shown, "harvest");
       }
       if ((pl.budgets.storage ?? 0) < amount) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
