@@ -11,87 +11,88 @@
 - emptyPlayObservation · function · L674-L688 — function emptyPlayObservation( w: WorldRuntime, principal: PlayerPrincipal, consequence?: string, ): Observation
 - failPlay · function · L690-L709 — function failPlay( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, code: string, message: string, choices?: string[], ): CommandResult
 - failedMove · function · L711-L751 — function failedMove( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, code: string, message: string, direction?: string, ): CommandResult
-- failedAction · function · L753-L785 — function failedAction( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, code: string, original: string, shown: string, attempted: string, ): CommandResult
-- ensurePlayer · function · L787-L814 — function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime
-- roomEntities · function · L816-L823 — function roomEntities(room: RoomState | null | undefined): EntityRuntime[]
-- publicExits · function · L825-L833 — function publicExits( w: WorldRuntime, room: RoomState | undefined, ): Array<{ direction: string; to_room_id: string }>
-- findEntity · function · L835-L842 — function findEntity(room: RoomState, idOrLabel: string): EntityRuntime | null
-- deriveRoomCondition · function · L844-L855 — function deriveRoomCondition(room: RoomState): string
-- inspectDetail · function · L857-L866 — function inspectDetail(entity: EntityRuntime): string
-- buildObservation · function · L868-L1292 — function buildObservation( w: WorldRuntime, principal: PlayerPrincipal, consequence?: string, ): Observation
-- fail · function · L1294-L1301 — function fail( request_id: string, code: string, message: string, choices?: string[], ): CommandResult
-- reservedCargoFor · function · L1303-L1305 — function reservedCargoFor(w: WorldRuntime, playerId: string): number
-- tradeStorageFail · function · L1307-L1318 — function tradeStorageFail( request_id: string, result: { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" }, ): CommandResult
-- moveTradeStorage · function · L1321-L1349 — function moveTradeStorage( giver: { storage?: number }, receiver: { storage?: number }, n: number, giverIsPack: boolean, receiverIsPack: boolean, ): { ok: true } | { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" }
-- creditTradeStorage · function · L1351-L1366 — function creditTradeStorage( receiver: { storage?: number }, n: number, receiverIsPack: boolean, ): { ok: true } | { ok: false; code: "RECEIVER_FULL" }
-- holdsNamedAssetOffice · function · L1368-L1372 — function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean
-- publicExitDest · function · L1374-L1382 — function publicExitDest(room: RoomState, raw: string): string | null
-- hasPublicReverse · function · L1384-L1387 — function hasPublicReverse(room: RoomState | undefined, fromRoomId: string): boolean
-- isConstructSteward · function · L1389-L1414 — function isConstructSteward( w: WorldRuntime, entity: { owner_id?: string; co_owner_id?: string; co_owner_2_id?: string; co_owner_3_id?: string; co_owner_4_id?: string; co_owner_5_id?: string; }, playerId: string, ): boolean
-- recordPractice · function · L1416-L1444 — function recordPractice( w: WorldRuntime, actingPlayerId: string, events: NonNullable<CommandResult["events"]> | undefined, ): void
-- recordCulture · function · L1446-L1453 — function recordCulture( w: WorldRuntime, actingPlayerId: string, events: NonNullable<CommandResult["events"]> | undefined, ): void
-- recordTradeMemory · function · L1456-L1566 — function recordTradeMemory( w: WorldRuntime, events: NonNullable<CommandResult["events"]> | undefined, ): void
-- success · function · L1568-L1612 — function success( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, events: CommandResult["events"], consequence: string, settled: boolean, attempted?: string, presentedChange?: string, ): CommandResult
-- ApplyWorldCommandOptions · type · L1658-L1664 — type ApplyWorldCommandOptions = { /** Replay an admitted envelope during RESOLVE. Skip admission and apply verb effects. */ tempoResolve?: boolean; /** Admission clock only. Never a reducer input. */ now?: number; worldPaused?: boolean; };
-- SettleFn · type · L1666-L1671 — type SettleFn = (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<boolean>;
-- tempoErrorResult · function · L1673-L1685 — function tempoErrorResult(request_id: string, error: TempoErrorDetail): CommandResult
-- restoreWorldRuntime · function · L1687-L1692 — function restoreWorldRuntime(target: WorldRuntime, snapshot: WorldRuntime): void
-- appendCommittedEvent · function · L1694-L1711 — function appendCommittedEvent( w: WorldRuntime, events: NonNullable<CommandResult["events"]>, event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, )
-- runCommittedCycleWorldOps · function · L1714-L1832 — async function runCommittedCycleWorldOps( w: WorldRuntime, pushEvent: ( event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, ) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> }, settleEv: (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<void>, ): Promise<void>
-- runPinnedTempoResolve · function · L1834-L1913 — async function runPinnedTempoResolve( w: WorldRuntime, settle: SettleFn, now: number, commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>, ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }>
-- failClosed · function · L1843-L1854 — failClosed = (message: string): { ok: false; result: CommandResult }
-- settleEv · function · L1877-L1889 — settleEv = async (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; })
-- admitPinnedTempoIfNeeded · function · L1915-L1966 — async function admitPinnedTempoIfNeeded( w: WorldRuntime, principal: PlayerPrincipal, envl: CommandEnvelope, verb: string, settle: SettleFn, request_id: string, idem: string, opts: ApplyWorldCommandOptions, ): Promise<CommandResult | null>
-- applyWorldCommand · function · L1968-L4558 — async function applyWorldCommand( w: WorldRuntime, principal: PlayerPrincipal, envl: CommandEnvelope, settle: SettleFn, opts?: ApplyWorldCommandOptions, ): Promise<CommandResult>
-- pushEvent · function · L2268-L2281 — pushEvent = ( event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, )
-- settleEv · function · L2283-L2306 — settleEv = async (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; })
-- signedDelta · function · L2463-L2463 — signedDelta = (delta: number)
-- rekeyLivePlayerId · function · L4561-L4627 — function rekeyLivePlayerId(w: WorldRuntime, from: string, to: string): void
-- rewriteRecord · function · L4587-L4592 — rewriteRecord = (obj: Record<string, unknown> | undefined)
-- rebindDeviceAgentOccupancy · function · L4629-L4634 — function rebindDeviceAgentOccupancy(w: WorldRuntime, principal: PlayerPrincipal): PlayerPrincipal
-- evictLeftoverHumanOccupancy · function · L4636-L4643 — function evictLeftoverHumanOccupancy(w: WorldRuntime, actingPlayerId: string): void
-- migrateWorldRuntime · function · L4646-L4720 — function migrateWorldRuntime(w: WorldRuntime): void
-- ensureSuccessorMaterialsCache · function · L4723-L4740 — function ensureSuccessorMaterialsCache(w: WorldRuntime): boolean
-- PushEv · type · L4742-L4745 — type PushEv = ( event_type: string, payload: Record<string, unknown>, ) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> };
-- SettleEv · type · L4747-L4752 — type SettleEv = (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<void>;
-- publicActRoomId · function · L4754-L4758 — function publicActRoomId(w: WorldRuntime, roomId?: string): string | undefined
-- publicRoomForEntityAct · function · L4761-L4770 — function publicRoomForEntityAct(w: WorldRuntime, ref?: string, fallbackRoomId?: string): string | undefined
-- noteInstitutionPulse · function · L4772-L4782 — function noteInstitutionPulse(w: WorldRuntime, text: string, roomId?: string): void
-- officeTrackId · function · L4784-L4786 — function officeTrackId(req: NonNullable<OfficeRecord["requires_track"]>)
-- playerMeetsOfficeTrack · function · L4788-L4792 — function playerMeetsOfficeTrack(w: WorldRuntime, playerId: string, office: OfficeRecord): boolean
-- officeTrackReject · function · L4794-L4798 — function officeTrackReject(track: NonNullable<OfficeRecord["requires_track"]>): string
-- settleOfficeHandoff · function · L4800-L4828 — async function settleOfficeHandoff( w: WorldRuntime, org: Organization, office: OfficeRecord, departedId: string, pushEvent: PushEv, settleEv: SettleEv, ): Promise<string | null>
-- settleEmergencyHandoff · function · L4830-L4853 — async function settleEmergencyHandoff( w: WorldRuntime, org: Organization, scope: EmergencyScope, departedId: string, pushEvent: PushEv, settleEv: SettleEv, ): Promise<string | null>
-- applySuccessionDesignate · function · L4855-L4944 — async function applySuccessionDesignate( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applySuccessionRule · function · L4946-L5011 — async function applySuccessionRule( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applySuccessionConsent · function · L5013-L5107 — async function applySuccessionConsent( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- releaseTradeReserve · function · L5109-L5122 — function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void
-- restrictionHits · function · L5124-L5133 — function restrictionHits( r: { scope: "EXIT" | "ROOM"; room_id?: string; exit_id?: string }, roomId: string, direction?: string, ): boolean
-- isAccessDenied · function · L5135-L5159 — function isAccessDenied( w: WorldRuntime, playerId: string, roomId: string, direction?: string, ): boolean
-- contestStakeBudgets · function · L5161-L5169 — function contestStakeBudgets( w: WorldRuntime, playerId: string | undefined, actingFor?: string, ): Budgets | undefined
-- reserveStake · function · L5171-L5175 — function reserveStake(budgets: Budgets, stake: StakeMap): void
-- releaseStake · function · L5177-L5182 — function releaseStake(budgets: Budgets | undefined, stake: StakeMap): void
-- canAffordStake · function · L5184-L5190 — function canAffordStake(budgets: Budgets, cost: Partial<Budgets>, stake: StakeMap): boolean
-- openContests · function · L5192-L5194 — function openContests(w: WorldRuntime): OpenContest[]
-- normalizeDeclareTarget · function · L5196-L5245 — function normalizeDeclareTarget( w: WorldRuntime, room: RoomState, form: ContestForm, target: ContestTarget, actorId: string, ): { ok: true; target: ContestTarget } | { ok: false; code: string; message: string }
-- applyAgreementForm · function · L5247-L5366 — async function applyAgreementForm( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyAgreementTerminate · function · L5368-L5436 — async function applyAgreementTerminate( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyFocus · function · L5438-L5460 — function applyFocus( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, ): CommandResult
-- applyAccessPolicy · function · L5462-L5610 — async function applyAccessPolicy( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyContestDeclare · function · L5612-L5742 — async function applyContestDeclare( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyContestDefend · function · L5744-L5822 — async function applyContestDefend( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyContestWithdraw · function · L5824-L5901 — async function applyContestWithdraw( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- findEntityAnywhere · function · L5903-L5909 — function findEntityAnywhere(w: WorldRuntime, idOrLabel: string): EntityRuntime | null
-- canPublishInstitutional · function · L5911-L5917 — function canPublishInstitutional(org: Organization | undefined, playerId: string): boolean
-- collectReconstructionEvidence · function · L5919-L5955 — function collectReconstructionEvidence( pl: PlayerRuntime, subject: string, kinds: string[], cycle: number, sourceEntityId: string, ): { ok: true; refs: ReconstructionEvidence[] } | { ok: false; code: string; message: string }
-- applyReconstructCommand · function · L5957-L6126 — async function applyReconstructCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- expireInstitutionEmergencies · function · L6128-L6144 — async function expireInstitutionEmergencies( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- applyEmergencyCommand · function · L6146-L6299 — async function applyEmergencyCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyOfficeCommand · function · L6301-L6746 — async function applyOfficeCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyAttest · function · L6748-L6856 — async function applyAttest( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
-- applyContestSuccessFollowOns · function · L6858-L6987 — async function applyContestSuccessFollowOns( w: WorldRuntime, contest: OpenContest, outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" | "ABORTED", pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- resolveDueContests · function · L6989-L7061 — async function resolveDueContests( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- applyResourceProduction · function · L7063-L7094 — async function applyResourceProduction( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- applyScheduledPressure · function · L7096-L7212 — async function applyScheduledPressure( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- deliverDelayedMessages · function · L7214-L7249 — async function deliverDelayedMessages( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
-- applyDeliveredClaim · function · L7251-L7284 — function applyDeliveredClaim( w: WorldRuntime, message_id: string, sender_id: string, recipient_id: string, payload: ClaimPayload, cycle: number, ): void
+- isMessageIntent · function · L753-L755 — function isMessageIntent(line: string): boolean
+- failedAction · function · L757-L789 — function failedAction( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, code: string, original: string, shown: string, attempted: string, ): CommandResult
+- ensurePlayer · function · L791-L818 — function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime
+- roomEntities · function · L820-L827 — function roomEntities(room: RoomState | null | undefined): EntityRuntime[]
+- publicExits · function · L829-L837 — function publicExits( w: WorldRuntime, room: RoomState | undefined, ): Array<{ direction: string; to_room_id: string }>
+- findEntity · function · L839-L846 — function findEntity(room: RoomState, idOrLabel: string): EntityRuntime | null
+- deriveRoomCondition · function · L848-L859 — function deriveRoomCondition(room: RoomState): string
+- inspectDetail · function · L861-L870 — function inspectDetail(entity: EntityRuntime): string
+- buildObservation · function · L872-L1296 — function buildObservation( w: WorldRuntime, principal: PlayerPrincipal, consequence?: string, ): Observation
+- fail · function · L1298-L1305 — function fail( request_id: string, code: string, message: string, choices?: string[], ): CommandResult
+- reservedCargoFor · function · L1307-L1309 — function reservedCargoFor(w: WorldRuntime, playerId: string): number
+- tradeStorageFail · function · L1311-L1322 — function tradeStorageFail( request_id: string, result: { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" }, ): CommandResult
+- moveTradeStorage · function · L1325-L1353 — function moveTradeStorage( giver: { storage?: number }, receiver: { storage?: number }, n: number, giverIsPack: boolean, receiverIsPack: boolean, ): { ok: true } | { ok: false; code: "GIVER_NOT_CARRYING" | "RECEIVER_FULL" }
+- creditTradeStorage · function · L1355-L1370 — function creditTradeStorage( receiver: { storage?: number }, n: number, receiverIsPack: boolean, ): { ok: true } | { ok: false; code: "RECEIVER_FULL" }
+- holdsNamedAssetOffice · function · L1372-L1376 — function holdsNamedAssetOffice(w: WorldRuntime, playerId: string, orgId: string): boolean
+- publicExitDest · function · L1378-L1386 — function publicExitDest(room: RoomState, raw: string): string | null
+- hasPublicReverse · function · L1388-L1391 — function hasPublicReverse(room: RoomState | undefined, fromRoomId: string): boolean
+- isConstructSteward · function · L1393-L1418 — function isConstructSteward( w: WorldRuntime, entity: { owner_id?: string; co_owner_id?: string; co_owner_2_id?: string; co_owner_3_id?: string; co_owner_4_id?: string; co_owner_5_id?: string; }, playerId: string, ): boolean
+- recordPractice · function · L1420-L1448 — function recordPractice( w: WorldRuntime, actingPlayerId: string, events: NonNullable<CommandResult["events"]> | undefined, ): void
+- recordCulture · function · L1450-L1457 — function recordCulture( w: WorldRuntime, actingPlayerId: string, events: NonNullable<CommandResult["events"]> | undefined, ): void
+- recordTradeMemory · function · L1460-L1570 — function recordTradeMemory( w: WorldRuntime, events: NonNullable<CommandResult["events"]> | undefined, ): void
+- success · function · L1572-L1616 — function success( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, events: CommandResult["events"], consequence: string, settled: boolean, attempted?: string, presentedChange?: string, ): CommandResult
+- ApplyWorldCommandOptions · type · L1662-L1668 — type ApplyWorldCommandOptions = { /** Replay an admitted envelope during RESOLVE. Skip admission and apply verb effects. */ tempoResolve?: boolean; /** Admission clock only. Never a reducer input. */ now?: number; worldPaused?: boolean; };
+- SettleFn · type · L1670-L1675 — type SettleFn = (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<boolean>;
+- tempoErrorResult · function · L1677-L1689 — function tempoErrorResult(request_id: string, error: TempoErrorDetail): CommandResult
+- restoreWorldRuntime · function · L1691-L1696 — function restoreWorldRuntime(target: WorldRuntime, snapshot: WorldRuntime): void
+- appendCommittedEvent · function · L1698-L1715 — function appendCommittedEvent( w: WorldRuntime, events: NonNullable<CommandResult["events"]>, event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, )
+- runCommittedCycleWorldOps · function · L1718-L1836 — async function runCommittedCycleWorldOps( w: WorldRuntime, pushEvent: ( event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, ) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> }, settleEv: (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<void>, ): Promise<void>
+- runPinnedTempoResolve · function · L1838-L1917 — async function runPinnedTempoResolve( w: WorldRuntime, settle: SettleFn, now: number, commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>, ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }>
+- failClosed · function · L1847-L1858 — failClosed = (message: string): { ok: false; result: CommandResult }
+- settleEv · function · L1881-L1893 — settleEv = async (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; })
+- admitPinnedTempoIfNeeded · function · L1919-L1970 — async function admitPinnedTempoIfNeeded( w: WorldRuntime, principal: PlayerPrincipal, envl: CommandEnvelope, verb: string, settle: SettleFn, request_id: string, idem: string, opts: ApplyWorldCommandOptions, ): Promise<CommandResult | null>
+- applyWorldCommand · function · L1972-L4571 — async function applyWorldCommand( w: WorldRuntime, principal: PlayerPrincipal, envl: CommandEnvelope, settle: SettleFn, opts?: ApplyWorldCommandOptions, ): Promise<CommandResult>
+- pushEvent · function · L2281-L2294 — pushEvent = ( event_type: string, payload: Record<string, unknown>, opts?: { ledger?: boolean }, )
+- settleEv · function · L2296-L2319 — settleEv = async (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; })
+- signedDelta · function · L2476-L2476 — signedDelta = (delta: number)
+- rekeyLivePlayerId · function · L4574-L4640 — function rekeyLivePlayerId(w: WorldRuntime, from: string, to: string): void
+- rewriteRecord · function · L4600-L4605 — rewriteRecord = (obj: Record<string, unknown> | undefined)
+- rebindDeviceAgentOccupancy · function · L4642-L4647 — function rebindDeviceAgentOccupancy(w: WorldRuntime, principal: PlayerPrincipal): PlayerPrincipal
+- evictLeftoverHumanOccupancy · function · L4649-L4656 — function evictLeftoverHumanOccupancy(w: WorldRuntime, actingPlayerId: string): void
+- migrateWorldRuntime · function · L4659-L4733 — function migrateWorldRuntime(w: WorldRuntime): void
+- ensureSuccessorMaterialsCache · function · L4736-L4753 — function ensureSuccessorMaterialsCache(w: WorldRuntime): boolean
+- PushEv · type · L4755-L4758 — type PushEv = ( event_type: string, payload: Record<string, unknown>, ) => { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown> };
+- SettleEv · type · L4760-L4765 — type SettleEv = (ev: { event_id: string; event_type: string; sequence: number; payload: Record<string, unknown>; }) => Promise<void>;
+- publicActRoomId · function · L4767-L4771 — function publicActRoomId(w: WorldRuntime, roomId?: string): string | undefined
+- publicRoomForEntityAct · function · L4774-L4783 — function publicRoomForEntityAct(w: WorldRuntime, ref?: string, fallbackRoomId?: string): string | undefined
+- noteInstitutionPulse · function · L4785-L4795 — function noteInstitutionPulse(w: WorldRuntime, text: string, roomId?: string): void
+- officeTrackId · function · L4797-L4799 — function officeTrackId(req: NonNullable<OfficeRecord["requires_track"]>)
+- playerMeetsOfficeTrack · function · L4801-L4805 — function playerMeetsOfficeTrack(w: WorldRuntime, playerId: string, office: OfficeRecord): boolean
+- officeTrackReject · function · L4807-L4811 — function officeTrackReject(track: NonNullable<OfficeRecord["requires_track"]>): string
+- settleOfficeHandoff · function · L4813-L4841 — async function settleOfficeHandoff( w: WorldRuntime, org: Organization, office: OfficeRecord, departedId: string, pushEvent: PushEv, settleEv: SettleEv, ): Promise<string | null>
+- settleEmergencyHandoff · function · L4843-L4866 — async function settleEmergencyHandoff( w: WorldRuntime, org: Organization, scope: EmergencyScope, departedId: string, pushEvent: PushEv, settleEv: SettleEv, ): Promise<string | null>
+- applySuccessionDesignate · function · L4868-L4957 — async function applySuccessionDesignate( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applySuccessionRule · function · L4959-L5024 — async function applySuccessionRule( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applySuccessionConsent · function · L5026-L5120 — async function applySuccessionConsent( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- releaseTradeReserve · function · L5122-L5135 — function releaseTradeReserve(w: WorldRuntime, trade: OpenTrade): void
+- restrictionHits · function · L5137-L5146 — function restrictionHits( r: { scope: "EXIT" | "ROOM"; room_id?: string; exit_id?: string }, roomId: string, direction?: string, ): boolean
+- isAccessDenied · function · L5148-L5172 — function isAccessDenied( w: WorldRuntime, playerId: string, roomId: string, direction?: string, ): boolean
+- contestStakeBudgets · function · L5174-L5182 — function contestStakeBudgets( w: WorldRuntime, playerId: string | undefined, actingFor?: string, ): Budgets | undefined
+- reserveStake · function · L5184-L5188 — function reserveStake(budgets: Budgets, stake: StakeMap): void
+- releaseStake · function · L5190-L5195 — function releaseStake(budgets: Budgets | undefined, stake: StakeMap): void
+- canAffordStake · function · L5197-L5203 — function canAffordStake(budgets: Budgets, cost: Partial<Budgets>, stake: StakeMap): boolean
+- openContests · function · L5205-L5207 — function openContests(w: WorldRuntime): OpenContest[]
+- normalizeDeclareTarget · function · L5209-L5258 — function normalizeDeclareTarget( w: WorldRuntime, room: RoomState, form: ContestForm, target: ContestTarget, actorId: string, ): { ok: true; target: ContestTarget } | { ok: false; code: string; message: string }
+- applyAgreementForm · function · L5260-L5379 — async function applyAgreementForm( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyAgreementTerminate · function · L5381-L5449 — async function applyAgreementTerminate( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyFocus · function · L5451-L5473 — function applyFocus( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, ): CommandResult
+- applyAccessPolicy · function · L5475-L5623 — async function applyAccessPolicy( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyContestDeclare · function · L5625-L5755 — async function applyContestDeclare( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyContestDefend · function · L5757-L5835 — async function applyContestDefend( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyContestWithdraw · function · L5837-L5914 — async function applyContestWithdraw( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- findEntityAnywhere · function · L5916-L5922 — function findEntityAnywhere(w: WorldRuntime, idOrLabel: string): EntityRuntime | null
+- canPublishInstitutional · function · L5924-L5930 — function canPublishInstitutional(org: Organization | undefined, playerId: string): boolean
+- collectReconstructionEvidence · function · L5932-L5968 — function collectReconstructionEvidence( pl: PlayerRuntime, subject: string, kinds: string[], cycle: number, sourceEntityId: string, ): { ok: true; refs: ReconstructionEvidence[] } | { ok: false; code: string; message: string }
+- applyReconstructCommand · function · L5970-L6139 — async function applyReconstructCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- expireInstitutionEmergencies · function · L6141-L6157 — async function expireInstitutionEmergencies( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- applyEmergencyCommand · function · L6159-L6312 — async function applyEmergencyCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyOfficeCommand · function · L6314-L6759 — async function applyOfficeCommand( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyAttest · function · L6761-L6869 — async function applyAttest( w: WorldRuntime, principal: PlayerPrincipal, request_id: string, idem: string, args: Extract<CanonicalAction, { verb: "COMMIT" }>["arguments"], pl: PlayerRuntime, events: NonNullable<CommandResult["events"]>, pushEvent: PushEv, settleEv: SettleEv, ): Promise<CommandResult>
+- applyContestSuccessFollowOns · function · L6871-L7000 — async function applyContestSuccessFollowOns( w: WorldRuntime, contest: OpenContest, outcome: "SUCCESS" | "PARTIAL_SUCCESS" | "FAILURE" | "EXPIRED" | "ABORTED", pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- resolveDueContests · function · L7002-L7074 — async function resolveDueContests( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- applyResourceProduction · function · L7076-L7107 — async function applyResourceProduction( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- applyScheduledPressure · function · L7109-L7225 — async function applyScheduledPressure( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- deliverDelayedMessages · function · L7227-L7262 — async function deliverDelayedMessages( w: WorldRuntime, pushEvent: PushEv, settleEv: SettleEv, ): Promise<void>
+- applyDeliveredClaim · function · L7264-L7297 — function applyDeliveredClaim( w: WorldRuntime, message_id: string, sender_id: string, recipient_id: string, payload: ClaimPayload, cycle: number, ): void

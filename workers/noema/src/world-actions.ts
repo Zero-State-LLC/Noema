@@ -750,6 +750,10 @@ function failedMove(
   return result;
 }
 
+function isMessageIntent(line: string): boolean {
+  return /^(?:(?:message|msg|tell|report|pass|share|repeat)(?:\s|$)|say\s+to(?:\s|$))/i.test(line.trim());
+}
+
 function failedAction(
   w: WorldRuntime,
   principal: PlayerPrincipal,
@@ -2107,11 +2111,20 @@ export async function applyWorldCommand(
     const verb = plClarify.pending_clarify.verb;
     delete plClarify.pending_clarify;
     // A MESSAGE clarification cannot replay a private body that was never retained.
-    if (String(envl.command).toUpperCase() === "MESSAGE"
-      && /^(?:message|msg|tell|report|pass|share|repeat|say)$/i.test(verb)) {
-      return failedAction(w, principal, request_id, "INVALID_REQUEST",
-        "Write the message again to the chosen Player.",
-        "Write the message again to the chosen Player.", "message");
+    if (isMessageIntent(verb) || verb === "say") {
+      const prompt = "Write the message again to the chosen Player.";
+      const result = fail(request_id, "INVALID_REQUEST", prompt);
+      const current = buildObservation(w, principal, prompt);
+      result.observation = {
+        ...emptyPlayObservation(w, principal, prompt),
+        in_world: current.in_world,
+        location: current.location,
+        budgets: current.budgets,
+        available_actions: current.available_actions,
+        affordances: current.affordances,
+        play_text: prompt,
+      };
+      return result;
     }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
   } else if (typeof rawArgs.line === "string" || textLine !== rawLine) {
@@ -2208,7 +2221,7 @@ export async function applyWorldCommand(
     if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
-    if (protocolCmd === "MESSAGE" && typeof rawArgs.line === "string"
+    if (isMessageIntent(textLine) && (typeof rawArgs.line === "string" || looksLikeTextLine)
       && (parsed.code === "UNKNOWN_COMMAND" || parsed.code === "NOT_FOUND"
         || parsed.code === "INVALID_REQUEST")) {
       const shown = parsed.code === "NOT_FOUND"
