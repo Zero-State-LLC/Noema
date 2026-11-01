@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { harness } from "./agent-http-do-fixture";
+import { mintControllerToken } from "../src/auth";
 
 beforeEach(() => vi.stubGlobal("fetch", vi.fn(() => {
   throw new Error("External network forbidden in local DO fixture");
@@ -125,5 +126,30 @@ describe("Agent HTTP bounded rejections", () => {
     const look = await h.command(token, "LOOK");
     expect(look.status).toBe(200);
     expect(JSON.stringify(await look.json())).not.toContain("PRIVATE_RESTART_SENTINEL");
+  });
+
+  it("HTTP delivered MESSAGE survives restart for recipient but not WATCH", async () => {
+    const h = harness(); const sender = await h.agent();
+    const recipient = await mintControllerToken(h.env, {
+      handle: "Receiver", controllerType: "agent", playerId: "player.receiver",
+    });
+    expect((await h.command(sender.access_token, "ENTER_WORLD")).status).toBe(200);
+    expect((await h.command(recipient.access_token, "ENTER_WORLD")).status).toBe(200);
+    const sent = await h.command(sender.access_token, "MESSAGE", {
+      recipient_id: recipient.player_id, text: "PRIVATE_DELIVERED_SENTINEL",
+    });
+    expect(sent.status).toBe(200);
+    expect((await sent.json() as any).ok).toBe(true);
+    h.restart();
+    const saved = (await h.persistedWorld())!;
+    expect(saved.messages.length).toBeGreaterThan(0);
+    const recipientLook = await h.command(recipient.access_token, "LOOK");
+    expect(recipientLook.status).toBe(200);
+    expect(JSON.stringify(await recipientLook.json())).toContain("PRIVATE_DELIVERED_SENTINEL");
+    const senderLook = await h.command(sender.access_token, "LOOK");
+    expect(JSON.stringify(await senderLook.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
+    const live = await h.hit("/v1/watch/live");
+    expect(live.status).toBe(200);
+    expect(JSON.stringify(await live.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
   });
 });
