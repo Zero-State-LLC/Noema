@@ -371,6 +371,8 @@ describe("office conflict-precedence", () => {
     });
     expect(blocked.ok).toBe(false);
     expect(blocked.error?.code).toBe("AUTHORITY_CONFLICT");
+    expect(blocked.error?.message).toBe("Overlapping offices have no published precedence.");
+    expect(blocked.observation?.play_text).toContain("Overlapping offices have no published precedence. Nothing changes.");
 
     w.organizations["org.line"].office_precedence = [ids[0], ids[1]];
     const allowed = await run(w, a, "COMMIT", {

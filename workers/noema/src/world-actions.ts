@@ -2202,7 +2202,7 @@ export async function applyWorldCommand(
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
     if (protocolCmd === "MESSAGE" && typeof rawArgs.line === "string"
-      && /^(?:message|msg|tell|say\s+to)(?:\s|$)/i.test(rawArgs.line.trim())
+      && /^(?:message|msg|tell|say\s+to)(?:\s|$)/i.test(textLine.trim())
       && (parsed.code === "UNKNOWN_COMMAND" || parsed.code === "NOT_FOUND"
         || (parsed.code === "INVALID_REQUEST" && parsed.error.startsWith("Message syntax:")))) {
       const shown = parsed.code === "NOT_FOUND"
@@ -3726,7 +3726,7 @@ export async function applyWorldCommand(
             entity.entity_id,
           );
           if (!conflict.ok) return failedAction(w, principal, request_id, conflict.code,
-            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
+            conflict.message, conflict.message, "repair");
           payFrom = ensureTreasury(w.organizations[grant.org_id]);
           grantOfficeId = grant.office.office_id;
         } else {

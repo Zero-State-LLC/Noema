@@ -472,6 +472,20 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.messages).toHaveLength(0);
   });
 
+  it("alias-expanded MESSAGE rejection hides a guessed recipient", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].command_aliases = { whisper: "message" };
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", { line: "whisper player.private-guess private-body-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
+    expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
   it.each([
     ["not-a-claim", "That report is not known here."],
     ["claim.private-guess", "You do not hold that report."],
