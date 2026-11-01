@@ -407,6 +407,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[a.player_id].budgets).toEqual(before);
   });
 
+  it("MESSAGE without compute explains the rejected send", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[a.player_id].budgets.compute = 0;
+    const before = { ...w.players[a.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-budget-sentinel" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to message\.\nfail\nYou do not have enough compute\. Nothing changes\./);
+    expect(JSON.stringify(r.observation)).not.toContain("private-budget-sentinel");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[a.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
   it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
     const w = world(); const a = principal(); const b = principal("player.remote");
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);

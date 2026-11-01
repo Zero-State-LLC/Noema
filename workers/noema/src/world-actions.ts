@@ -2572,7 +2572,8 @@ export async function applyWorldCommand(
   // ——— MESSAGE ———
   if (action.verb === "MESSAGE") {
     if (!canPay(pl.budgets, COSTS.MESSAGE)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+      return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+        "You do not have enough compute.", "You do not have enough compute.", "message");
     }
     if (action.arguments.surface === "BOARD") {
       const here = w.rooms[pl.room_id];
