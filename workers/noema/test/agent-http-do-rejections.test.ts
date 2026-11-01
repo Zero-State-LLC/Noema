@@ -60,4 +60,23 @@ describe("Agent HTTP bounded rejections", () => {
     expect(after.messages).toEqual(before.messages);
     expect(body.events ?? []).toEqual([]);
   });
+
+  it("HTTP HARVEST unknown entity preserves state and hides guess", async () => {
+    const h = harness(); const token = (await h.agent()).access_token;
+    expect((await h.command(token, "ENTER_WORLD")).status).toBe(200);
+    const before = (await h.persistedWorld())!;
+    const r = await h.command(token, "COMMIT", {
+      operation: "HARVEST", entity_id: "entity.private-guess",
+    });
+    expect(r.status).toBe(200);
+    const body = await r.json() as any;
+    expect(body).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
+    expect(body.observation?.play_text).toContain("HAPPENED\nYou try to harvest.\nfail");
+    expect(JSON.stringify(body)).not.toContain("entity.private-guess");
+    const after = (await h.persistedWorld())!;
+    expect(after.sequence).toBe(before.sequence);
+    expect(after.players["player.boundary"].budgets).toEqual(before.players["player.boundary"].budgets);
+    expect(after.rooms["room.a"].entities).toEqual(before.rooms["room.a"].entities);
+    expect(body.events ?? []).toEqual([]);
+  });
 });
