@@ -2412,6 +2412,9 @@ export async function applyWorldCommand(
     );
     if (committed) {
       await runCommittedCycleWorldOps(w, pushEvent, settleEv);
+    } else {
+      // A prior cycle's spoilage is not a consequence of this WAIT.
+      pl.spoil_lines = [];
     }
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);

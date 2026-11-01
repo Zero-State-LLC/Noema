@@ -461,6 +461,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.events?.some((e) => e.event_type === "BUDGET_CONSUMED" && e.payload?.reason === "SPOILAGE")).toBe(true);
     expect(r.observation?.play_text).toContain("Attention +2 · Compute +4.");
     expect(r.observation?.play_text).toContain("Your worn energy spoiled.");
+    expect(r.observation?.lot_lines).toContain("Your worn energy spoiled.");
   });
 
   it("WAIT does not repeat prior spoilage without a cycle commit", async () => {
@@ -475,6 +476,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.cycle).toBe(1);
     expect(r.events?.some((e) => e.payload?.reason === "SPOILAGE")).toBe(false);
     expect(r.observation?.play_text).not.toContain("Your worn energy spoiled.");
+    expect(r.observation?.lot_lines).not.toContain("Your worn energy spoiled.");
   });
 
   it("WAIT formats a net compute loss as a loss", async () => {
