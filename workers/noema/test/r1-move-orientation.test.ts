@@ -487,6 +487,61 @@ describe("R1 MOVE destination orientation", () => {
   });
 
   it.each([
+    ["report player.private-guess \"private-body-sentinel\"", undefined],
+    ["pass player.private-guess claim.private-body-sentinel", undefined],
+    ["share player.private-guess claim.private-body-sentinel", undefined],
+    ["repeat player.private-guess \"private-body-sentinel\"", undefined],
+    ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }],
+  ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    if (aliases) w.players[p.player_id].command_aliases = aliases;
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "MESSAGE", { line });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
+    expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+    expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
+    ["harvest", "harvest"], ["repair", "repair"],
+  ])("COMMIT text-line %s hides unknown entity", async (verb, attempted) => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
+    const r = await run(w, p, "COMMIT", { line: `${verb} entity.private-guess` });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nYou do not see that here. Nothing changes.`);
+    expect(JSON.stringify(r)).not.toContain("entity.private-guess");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("MESSAGE ambiguous recipient pick gives a bounded retry without retaining the body", async () => {
+    const w = world(); const a = principal();
+    const b = principal("player.dupe-one"); const c = principal("player.dupe-two");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, c, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "dupe"; w.players[c.player_id].handle = "dupe";
+    const before = { ...w.players[a.player_id].budgets }; const seq = w.sequence;
+    const amb = await run(w, a, "MESSAGE", { line: "message dupe private-clarify-sentinel" });
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(amb.error?.choices).toHaveLength(2);
+    expect(w.players[a.player_id].pending_clarify).toBeDefined();
+    const picked = await run(w, a, "MESSAGE", { line: "1" });
+    expect(picked.ok).toBe(false); expect(picked.error?.code).toBe("INVALID_REQUEST");
+    expect(picked.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nWrite the message again to the chosen Player. Nothing changes.");
+    expect(JSON.stringify(picked)).not.toContain("private-clarify-sentinel");
+    expect(w.players[a.player_id].pending_clarify).toBeUndefined();
+    expect(picked.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[a.player_id].budgets).toEqual(before); expect(w.messages).toHaveLength(0);
+  });
+
+  it.each([
     ["not-a-claim", "That report is not known here."],
     ["claim.private-guess", "You do not hold that report."],
   ])("MESSAGE report %s rejection is bounded and private", async (parent, shown) => {

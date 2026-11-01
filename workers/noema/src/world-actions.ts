@@ -2106,6 +2106,13 @@ export async function applyWorldCommand(
     }
     const verb = plClarify.pending_clarify.verb;
     delete plClarify.pending_clarify;
+    // A MESSAGE clarification cannot replay a private body that was never retained.
+    if (String(envl.command).toUpperCase() === "MESSAGE"
+      && /^(?:message|msg|tell|report|pass|share|repeat|say)$/i.test(verb)) {
+      return failedAction(w, principal, request_id, "INVALID_REQUEST",
+        "Write the message again to the chosen Player.",
+        "Write the message again to the chosen Player.", "message");
+    }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
   } else if (typeof rawArgs.line === "string" || textLine !== rawLine) {
     parsed = parseHumanCommand(textLine, parseCtx);
@@ -2202,9 +2209,8 @@ export async function applyWorldCommand(
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
     }
     if (protocolCmd === "MESSAGE" && typeof rawArgs.line === "string"
-      && /^(?:message|msg|tell|say\s+to)(?:\s|$)/i.test(textLine.trim())
       && (parsed.code === "UNKNOWN_COMMAND" || parsed.code === "NOT_FOUND"
-        || (parsed.code === "INVALID_REQUEST" && parsed.error.startsWith("Message syntax:")))) {
+        || parsed.code === "INVALID_REQUEST")) {
       const shown = parsed.code === "NOT_FOUND"
         ? "Recipient is not addressable in this world."
         : "Write a message to a Player.";
@@ -2222,6 +2228,12 @@ export async function applyWorldCommand(
               ? "Check the message signal."
               : undefined;
       if (shown) return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error, shown, "message");
+    }
+    if (protocolCmd === "COMMIT" && typeof rawArgs.line === "string"
+      && parsed.code === "NOT_FOUND" && /^(?:harvest|repair)(?:\s|$)/i.test(textLine.trim())) {
+      const attempted = /^harvest(?:\s|$)/i.test(textLine.trim()) ? "harvest" : "repair";
+      return failedAction(w, principal, request_id, "NOT_FOUND",
+        "You do not see that here.", "You do not see that here.", attempted);
     }
     if (protocolCmd === "COMMIT" && typeof rawArgs.line !== "string"
       && parsed.code === "INVALID_REQUEST" && parsed.error === "entity_id required"
