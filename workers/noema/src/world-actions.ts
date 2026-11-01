@@ -2416,17 +2416,25 @@ export async function applyWorldCommand(
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);
     const spoilNote = (pl.spoil_lines || []).join(" ");
-    const waitChange = `You wait. Attention +${pl.budgets.attention - attentionBefore} · Compute +${pl.budgets.compute - computeBefore}.`;
+    const currentSpoilNote = committed ? spoilNote : "";
+    const signedDelta = (delta: number) => delta < 0 ? `−${Math.abs(delta)}` : `+${delta}`;
+    const waitChange = `You wait. Attention ${signedDelta(pl.budgets.attention - attentionBefore)} · Compute ${signedDelta(pl.budgets.compute - computeBefore)}.`;
     const result = success(
       w,
       principal,
       request_id,
       events,
-      spoilNote ? `You wait. ${spoilNote}` : "You wait.",
+      currentSpoilNote ? `You wait. ${currentSpoilNote}` : "You wait.",
       false,
       "wait",
-      spoilNote ? `${waitChange} ${spoilNote}` : waitChange,
+      currentSpoilNote ? `${waitChange} ${currentSpoilNote}` : waitChange,
     );
+    if (!committed && result.observation?.lot_lines && pl.spoil_lines?.length) {
+      // Suppress prior-cycle consequences only in this result, not canonical state.
+      result.observation.lot_lines = result.observation.lot_lines.filter(
+        (line) => !pl.spoil_lines?.includes(line),
+      );
+    }
     w.seen_idempotency[idem] = result;
     return result;
   }
