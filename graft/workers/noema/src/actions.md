@@ -33,7 +33,7 @@
 - resolveContestTarget · function · L838-L889 — function resolveContestTarget( form: ContestForm, raw: string, ctx: { entities?: EntityRuntime[]; players?: Array<{ player_id: string; handle?: string }>; selfId?: string; }, ): | { ok: true; target: ContestTarget } | { ok: false; error: string; code?: string; choices?: string[] }
 - parseResourceMap · function · L891-L903 — function parseResourceMap(spec: string): Record<string, number> | null
 - ParseShape · type · L905-L905 — type ParseShape = "resolved" | "ambiguous" | "unsupported" | "invalid";
-- ParseResult · type · L907-L909 — type ParseResult = | { ok: true; action: CanonicalAction; display: string } | { ok: false; error: string; code?: string; choices?: string[] };
+- ParseResult · type · L907-L909 — type ParseResult = | { ok: true; action: CanonicalAction; display: string } | { ok: false; error: string; code?: string; choices?: string[]; reason?: "MOVE_DIRECTION_REQUIRED" };
 - parseShape · function · L912-L927 — function parseShape(r: ParseResult): ParseShape
 - parseAgreementFormLine · function · L929-L967 — function parseAgreementFormLine( parts: string[], ctx: { players?: Array<{ player_id: string; handle?: string }>; selfId?: string; }, ): ParseResult
 - parseAgreementTerminateLine · function · L969-L995 — function parseAgreementTerminateLine(parts: string[]): ParseResult

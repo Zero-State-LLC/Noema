@@ -2163,6 +2163,9 @@ export async function applyWorldCommand(
     if (protocolCmd === "MOVE" && parsed.code === "INVALID_REQUEST" && parsed.error === "direction required") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", parsed.error);
     }
+    if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
+      return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
+    }
     return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
   }
 

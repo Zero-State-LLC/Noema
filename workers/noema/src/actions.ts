@@ -906,7 +906,7 @@ export type ParseShape = "resolved" | "ambiguous" | "unsupported" | "invalid";
 
 export type ParseResult =
   | { ok: true; action: CanonicalAction; display: string }
-  | { ok: false; error: string; code?: string; choices?: string[] };
+  | { ok: false; error: string; code?: string; choices?: string[]; reason?: "MOVE_DIRECTION_REQUIRED" };
 
 /** Spec T0.2 mapping. Does not replace ParseResult.ok. */
 export function parseShape(r: ParseResult): ParseShape {
@@ -1266,7 +1266,7 @@ export function parseHumanCommand(
   }
   if (v === "move" || v === "go" || v === "walk") {
     const rawDir = (parts[0] || "").toLowerCase();
-    if (!rawDir) return { ok: false, error: "Move where? Try: move east" };
+    if (!rawDir) return { ok: false, error: "Move where? Try: move east", code: "INVALID_REQUEST", reason: "MOVE_DIRECTION_REQUIRED" };
     const dir = canonicalizeDirection(rawDir) || rawDir;
     return {
       ok: true,

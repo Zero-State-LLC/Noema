@@ -78,7 +78,11 @@ describe("GB-NOEMA-101 movement normalization", () => {
     for (const line of ["move", "go", "walk"]) {
       const r = parseHumanCommand(line);
       expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.error.toLowerCase()).toMatch(/move where/);
+      if (!r.ok) {
+        expect(r.error.toLowerCase()).toMatch(/move where/);
+        expect(r.code).toBe("INVALID_REQUEST");
+        expect(r.reason).toBe("MOVE_DIRECTION_REQUIRED");
+      }
     }
   });
 
