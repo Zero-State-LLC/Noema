@@ -152,4 +152,32 @@ describe("Agent HTTP bounded rejections", () => {
     expect(live.status).toBe(200);
     expect(JSON.stringify(await live.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
   });
+
+  it("HTTP rejected MESSAGE never proposes a canonical settlement", async () => {
+    const h = harness(); const token = (await h.agent()).access_token;
+    expect((await h.command(token, "ENTER_WORLD")).status).toBe(200);
+    const before = (await h.persistedWorld())!;
+    let commits = 0;
+    h.env.SUPABASE_URL = "https://settlement.invalid";
+    h.env.SUPABASE_SERVICE_ROLE_KEY = "local-fixture-only";
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      expect(url.origin).toBe("https://settlement.invalid");
+      if (url.pathname === "/rest/v1/noema_world_heads") return Response.json([]);
+      if (url.pathname === "/rest/v1/rpc/noema_commit_canonical_settlement") {
+        commits++; throw new Error("Rejected action must not reach RPC");
+      }
+      throw new Error("Unexpected local settlement request");
+    }));
+    const r = await h.command(token, "MESSAGE", { recipient_id: "player.private-guess", text: "PRIVATE_RPC_SENTINEL" });
+    expect(r.status).toBe(200);
+    const body = await r.json() as any;
+    expect(body.ok).toBe(false);
+    expect(JSON.stringify(body)).not.toMatch(/PRIVATE_RPC_SENTINEL|player\.private-guess/);
+    expect(commits).toBe(0);
+    const after = (await h.persistedWorld())!;
+    expect(after.sequence).toBe(before.sequence);
+    expect(after.messages).toEqual(before.messages);
+    expect(after.players["player.boundary"].budgets).toEqual(before.players["player.boundary"].budgets);
+  });
 });
