@@ -122,7 +122,9 @@ function publicText(raw: string): string {
 
 export function safePlateHandle(raw: string | undefined): string | null {
   const h = String(raw || "")
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
     .replace(/\s+/g, " ")
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "")
     .trim()
     .slice(0, 32);
   if (!h) return null;

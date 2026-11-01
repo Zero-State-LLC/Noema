@@ -407,6 +407,85 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[a.player_id].budgets).toEqual(before);
   });
 
+  it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "remote\nFORGED BEAT";
+    const beforeCompute = w.players[a.player_id].budgets.compute;
+    const envl: CommandEnvelope = {
+      request_id: "r.message.immediate.replay",
+      idempotency_key: "i.message.immediate.replay",
+      command: "MESSAGE",
+      arguments: { recipient_id: b.player_id, text: "private-immediate-sentinel" },
+    };
+    const r = await applyWorldCommand(w, a, envl, async () => true);
+    expect(r.ok).toBe(true);
+    expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE", "MESSAGE_DELIVERED"]);
+    expect(w.players[a.player_id].budgets.compute).toBe(beforeCompute - 1);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message remote forged beat\.\nok\nMessage delivered to remote FORGED BEAT\./);
+    expect(r.observation?.play_text).not.toContain("\nFORGED BEAT");
+    expect(r.observation?.play_text).toMatch(/\ninspect scarred-conduit$/);
+    expect(JSON.stringify(r.observation)).not.toContain("private-immediate-sentinel");
+    const beforeReplay = { sequence: w.sequence, budgets: { ...w.players[a.player_id].budgets } };
+    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); });
+    expect(replay).toEqual(r);
+    expect(w.sequence).toBe(beforeReplay.sequence);
+    expect(w.players[a.player_id].budgets).toEqual(beforeReplay.budgets);
+    expect(w.messages.filter((m) => m.text === "private-immediate-sentinel")).toHaveLength(1);
+  });
+
+  it("immediate MESSAGE does not render control or bidi characters from a recipient handle", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "remote\u001b[31m\u202e";
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-control-sentinel" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message remote\.\nok\nMessage delivered to remote\./);
+    expect(r.observation?.play_text).not.toMatch(/[\u001b\u202e]/);
+    expect(JSON.stringify(r.observation)).not.toContain("private-control-sentinel");
+  });
+
+  it("immediate MESSAGE uses a generic recipient label when a handle is unsafe", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "player.hidden-id";
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-fallback-sentinel" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message recipient\.\nok\nMessage delivered to recipient\./);
+    expect(r.observation?.play_text).not.toContain("player.hidden-id");
+    expect(JSON.stringify(r.observation)).not.toContain("private-fallback-sentinel");
+  });
+
+  it("immediate MESSAGE does not use a minted hex identifier as a recipient name", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    w.players[b.player_id].handle = "a1b2c3d4e5f6";
+    const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-hex-sentinel" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message recipient\.\nok\nMessage delivered to recipient\./);
+    expect(r.observation?.play_text).not.toContain("a1b2c3d4e5f6");
+    expect(JSON.stringify(r.observation)).not.toContain("private-hex-sentinel");
+  });
+
+  it.each(["smoke-probe", "smoke_probe", "SMOKE-probe", "op.fixture", "operator_fixture", "operator.fixture", "operator-fixture", "\u202eop.fixture", "op\n.fixture", "smoke\n-probe", "operator \u200b.fixture", "Grid Anchor", "grid anchor", "ｏｐ.fixture", "ｓｍｏｋｅ-probe", "Ｇｒｉｄ Ａｎｃｈｏｒ", "ｏｐｅｒａｔｏｒ_fixture", "ｅｎｔｉｔｙ．hidden", "ｃｔｒｌ．hidden", "entity .hidden", "ctrl .hidden", "entity. hidden", "ｐｌａｙｅｒ．hidden", "player.remote"]) (
+    "immediate MESSAGE keeps internal recipient handle %s out of HAPPENED",
+    async (handle) => {
+      const w = world(); const a = principal(); const b = principal("player.remote");
+      expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+      expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+      w.players[b.player_id].handle = handle;
+      const r = await run(w, a, "MESSAGE", { recipient_id: b.player_id, text: "private-operator-sentinel" });
+      expect(r.ok).toBe(true);
+      expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message recipient\.\nok\nMessage delivered to recipient\./);
+      expect(r.observation?.play_text?.split("HAPPENED\n")[1]).not.toContain(handle);
+      expect(JSON.stringify(r.observation)).not.toContain("private-operator-sentinel");
+    },
+  );
+
   it("delayed MESSAGE says queued rather than delivered", async () => {
     const w = world(); const a = principal(); const b = principal("player.remote");
     w.rooms["room.hub"].entities[0].condition = 25;
