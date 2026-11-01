@@ -2412,9 +2412,6 @@ export async function applyWorldCommand(
     );
     if (committed) {
       await runCommittedCycleWorldOps(w, pushEvent, settleEv);
-    } else {
-      // A prior cycle's spoilage is not a consequence of this WAIT.
-      pl.spoil_lines = [];
     }
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);
@@ -2432,6 +2429,12 @@ export async function applyWorldCommand(
       "wait",
       currentSpoilNote ? `${waitChange} ${currentSpoilNote}` : waitChange,
     );
+    if (!committed && result.observation?.lot_lines && pl.spoil_lines?.length) {
+      // Suppress prior-cycle consequences only in this result, not canonical state.
+      result.observation.lot_lines = result.observation.lot_lines.filter(
+        (line) => !pl.spoil_lines?.includes(line),
+      );
+    }
     w.seen_idempotency[idem] = result;
     return result;
   }
