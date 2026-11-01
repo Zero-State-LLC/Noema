@@ -463,6 +463,32 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.observation?.play_text).toContain("Your worn energy spoiled.");
   });
 
+  it("WAIT does not repeat prior spoilage without a cycle commit", async () => {
+    const w = world(); const a = principal(); const b = principal("player.remote");
+    expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
+    w.players[a.player_id].lot_grades = { energy: "WORN" };
+    expect((await run(w, a, "WAIT")).ok).toBe(true);
+    expect(w.cycle).toBe(1);
+    expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    const r = await run(w, a, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.cycle).toBe(1);
+    expect(r.events?.some((e) => e.payload?.reason === "SPOILAGE")).toBe(false);
+    expect(r.observation?.play_text).not.toContain("Your worn energy spoiled.");
+  });
+
+  it("WAIT formats a net compute loss as a loss", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].lot_grades = { compute: "WORN" };
+    const before = w.players[p.player_id].budgets.compute;
+    const r = await run(w, p, "WAIT");
+    expect(r.ok).toBe(true);
+    expect(w.players[p.player_id].budgets.compute).toBe(before - 1);
+    expect(r.observation?.play_text).toContain("Compute −1");
+    expect(r.observation?.play_text).not.toContain("Compute +-1");
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();
