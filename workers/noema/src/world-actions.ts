@@ -3820,7 +3820,8 @@ export async function applyWorldCommand(
 
     if (action.arguments.operation === "HARVEST") {
       if (!entity.stock_resource) {
-        return fail(request_id, "FORBIDDEN", "Nothing to harvest there.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "Nothing to harvest there.", "Nothing to harvest there.", "harvest");
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
       if ((entity.stock_amount ?? 0) < amount) {
