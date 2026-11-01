@@ -3736,7 +3736,9 @@ export async function applyWorldCommand(
         payFrom === pl.budgets &&
         !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
       ) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You do not have materials in hold.",
+          "You do not have materials in hold.", "repair");
       }
       if (payFrom !== pl.budgets && !canPay(payFrom, { storage: cargoNeed })) {
         return fail(request_id, "BUDGET_EXCEEDED", "The institution treasury cannot pay this repair.");

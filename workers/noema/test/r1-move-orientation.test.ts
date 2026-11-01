@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
 import { canonicalWorldState } from "../src/canonical-state";
+import { STORAGE_CAPACITY } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -513,6 +514,21 @@ describe("R1 MOVE destination orientation", () => {
     const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
     expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
     expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou need energy 3, compute 2, and storage 1 to repair\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
+  it("REPAIR with empty hold names missing materials", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets({
+      ...DEFAULT_BUDGETS, energy: 80, compute: 64, storage: STORAGE_CAPACITY,
+    });
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nYou do not have materials in hold\. Nothing changes\./);
     expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
     expect(w.rooms["room.hub"].entities[0].condition).toBe(80);
     expect(w.players[p.player_id].budgets).toEqual(before);
