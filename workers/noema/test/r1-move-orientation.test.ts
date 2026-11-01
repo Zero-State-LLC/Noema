@@ -460,6 +460,21 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("HARVEST with no free storage reports capacity without spending", async () => {
+    const w = world(); const p = principal();
+    Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 2 });
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets.storage = 0;
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7", amount: 1 });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou do not have enough free storage\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toContain("nothing left to take");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].stock_amount).toBe(2);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
     const w = world(); const a = principal(); const b = principal("player.remote");
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);

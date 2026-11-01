@@ -3832,7 +3832,9 @@ export async function applyWorldCommand(
           "Not enough stock available.", shown, "harvest");
       }
       if ((pl.budgets.storage ?? 0) < amount) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You do not have enough free storage.",
+          "You do not have enough free storage.", "harvest");
       }
       if (!canPay(pl.budgets, COSTS.HARVEST)) {
         return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
