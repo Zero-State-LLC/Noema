@@ -3760,13 +3760,16 @@ export async function applyWorldCommand(
       const lead = overhaul
         ? OVERHAUL_LINE.replace("{label}", titleCaseLabel(entity.label))
         : `${titleCaseLabel(entity.label)} repaired.`;
+      const repairConsequence = `${lead} Condition ${before}% → ${entity.condition}%.${overhaul ? "" : practiced}`;
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `${lead} Condition ${before}% → ${entity.condition}%.${overhaul ? "" : practiced}`,
+        repairConsequence,
         settled,
+        "repair",
+        repairConsequence,
       );
       w.seen_idempotency[idem] = result;
       return result;

@@ -363,6 +363,18 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.rooms["room.hub"].entities[0].stock_amount).toBe(0);
   });
 
+  it("successful REPAIR presents the real condition delta", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    w.players[p.player_id].budgets = cloneBudgets({
+      ...DEFAULT_BUDGETS, energy: 80, compute: 64, storage: 15,
+    });
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(true);
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou repair\.\nok\n.*Condition 80% → /);
+    expect(r.events?.some((e) => e.event_type === "ENTITY_UPDATE")).toBe(true);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();
