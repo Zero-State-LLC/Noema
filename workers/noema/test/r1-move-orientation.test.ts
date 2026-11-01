@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_BUDGETS, cloneBudgets, enrichEntity } from "../src/actions";
+import { canonicalWorldState } from "../src/canonical-state";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
@@ -471,12 +472,18 @@ describe("R1 MOVE destination orientation", () => {
     expect((await run(w, a, "WAIT")).ok).toBe(true);
     expect(w.cycle).toBe(1);
     expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
+    const canonicalSpoilBefore = (canonicalWorldState(w).players as Record<string, { spoil_lines?: string[] }>)[a.player_id].spoil_lines;
+    expect(canonicalSpoilBefore).toContain("Your worn energy spoiled.");
     const r = await run(w, a, "WAIT");
     expect(r.ok).toBe(true);
     expect(w.cycle).toBe(1);
+    expect((canonicalWorldState(w).players as Record<string, { spoil_lines?: string[] }>)[a.player_id].spoil_lines).toEqual(canonicalSpoilBefore);
     expect(r.events?.some((e) => e.payload?.reason === "SPOILAGE")).toBe(false);
     expect(r.observation?.play_text).not.toContain("Your worn energy spoiled.");
     expect(r.observation?.lot_lines).not.toContain("Your worn energy spoiled.");
+    const look = await run(w, a, "LOOK");
+    expect(look.ok).toBe(true);
+    expect(look.observation?.lot_lines).toContain("Your worn energy spoiled.");
   });
 
   it("WAIT formats a net compute loss as a loss", async () => {
