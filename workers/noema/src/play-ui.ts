@@ -279,7 +279,7 @@ export function playTextFromObservation(obs: {
     storage?: number;
   };
   practice_lines?: string[];
-} | null | undefined): string {
+} | null | undefined, happenedBeats?: HappenedBeat): string {
   if (!obs?.location) return "";
   return lowNoiseRoomText(
     roomPresentationModel({
@@ -287,6 +287,7 @@ export function playTextFromObservation(obs: {
       consequence: obs.consequence,
       budgets: obs.budgets,
       practice_lines: obs.practice_lines,
+      happenedBeats,
     }),
   );
 }

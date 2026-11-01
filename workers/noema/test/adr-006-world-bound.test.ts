@@ -219,6 +219,11 @@ describe("ADR-006 world bound and exit visibility", () => {
     expect(missing.error?.message).toBe(`There is no exit ${MISSING_DIR} from here.`);
     expect(JSON.stringify(hidden)).not.toMatch(/hidden|secret|vault/i);
     expect(JSON.stringify(missing)).not.toMatch(/hidden|secret|vault/i);
+    expect(hidden.observation?.play_text).toMatch(/HAPPENED\nYou try to move west\.\nfail/);
+    expect(hidden.observation?.play_text).not.toMatch(/hidden|secret|vault|room\./i);
+    expect(hidden.observation?.location?.exits?.map((exit) => exit.direction)).not.toContain(HIDDEN_DIR);
+    expect(hidden.observation?.available_actions?.length).toBeGreaterThan(0);
+    expect(hidden.observation?.affordances?.some((a) => a.cmd === `move ${HIDDEN_DIR}`)).toBe(false);
     expect(hidden.error?.code).toBe(missing.error?.code);
     expect(Object.keys(hidden.error || {}).sort()).toEqual(Object.keys(missing.error || {}).sort());
   });
