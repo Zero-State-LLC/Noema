@@ -489,6 +489,20 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("REPAIR at full condition rejects without claiming a change", async () => {
+    const w = world(); const p = principal();
+    w.rooms["room.hub"].entities[0].condition = 100;
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "REPAIR", entity_id: "entity.relay-7" });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to repair\.\nfail\nThat is not repairable here\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toContain("Condition 100% →");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.rooms["room.hub"].entities[0].condition).toBe(100);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
     const w = world(); const a = principal(); const b = principal("player.remote");
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);

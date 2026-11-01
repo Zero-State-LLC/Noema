@@ -3669,7 +3669,8 @@ export async function applyWorldCommand(
 
     if (action.arguments.operation === "REPAIR") {
       if (!isRepairable(entity)) {
-        return fail(request_id, "FORBIDDEN", "That is not repairable here.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "That is not repairable here.", "That is not repairable here.", "repair");
       }
       const acting_for = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
       const office_id = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
