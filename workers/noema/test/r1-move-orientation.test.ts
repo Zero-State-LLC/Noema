@@ -340,6 +340,18 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.events?.some((e) => e.event_type === "LOOK")).toBe(false);
   });
 
+  it("empty HARVEST is a coded no-stock failure", async () => {
+    const w = world(); const p = principal();
+    Object.assign(w.rooms["room.hub"].entities[0], { stock_resource: "energy", stock_amount: 0 });
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", { operation: "HARVEST", entity_id: "entity.relay-7", amount: 1 });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nThat node has nothing left to take\. Nothing changes\./);
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("failed MOVE has no destination bundle and charges no LOOK", async () => {
     const w = world();
     const p = principal();

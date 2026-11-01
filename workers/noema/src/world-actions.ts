@@ -3778,7 +3778,8 @@ export async function applyWorldCommand(
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
       if ((entity.stock_amount ?? 0) < amount) {
-        return fail(request_id, "FORBIDDEN", "Not enough stock available.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "Not enough stock available.", "That node has nothing left to take.", "harvest");
       }
       if ((pl.budgets.storage ?? 0) < amount) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
