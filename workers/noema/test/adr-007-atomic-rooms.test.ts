@@ -109,7 +109,9 @@ describe("ADR-007 atomic rooms", () => {
     const bad = await run(w, p, "INSPECT", { entity_id: "area.archive-rear" });
     expect(bad.ok).toBe(false);
     expect(bad.error?.code).toBe("INSPECT_FAILED");
-    expect(bad.observation).toBeUndefined();
+    expect(bad.observation?.play_text).toContain("You do not see that here. Nothing changes.");
+    expect(bad.observation?.location?.room_id).toBe("room.civic-exchange");
+    expect(JSON.stringify(bad.observation || {})).not.toMatch(/area\.|sub_room|nested_room/i);
     const look = await run(w, p, "LOOK");
     const loc = look.observation?.location as Record<string, unknown> | undefined;
     expect(loc?.room_id).toBe("room.civic-exchange");

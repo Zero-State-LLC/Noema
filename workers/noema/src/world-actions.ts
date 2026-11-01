@@ -749,6 +749,40 @@ function failedMove(
   return result;
 }
 
+function failedAction(
+  w: WorldRuntime,
+  principal: PlayerPrincipal,
+  request_id: string,
+  code: string,
+  original: string,
+  shown: string,
+  attempted: string,
+): CommandResult {
+  const result = fail(request_id, code, original);
+  try {
+    const current = buildObservation(w, principal, shown);
+    const observation: Observation = {
+      ...emptyPlayObservation(w, principal, shown),
+      in_world: current.in_world,
+      location: current.location,
+      budgets: current.budgets,
+      available_actions: current.available_actions,
+      affordances: current.affordances,
+    };
+    observation.play_text = playTextFromObservation(observation, fourBeatFromResult({
+      command: attempted,
+      ok: false,
+      errorCode: code,
+      errorMessage: `${shown} Nothing changes.`,
+      affordances: current.affordances,
+    }));
+    result.observation = observation;
+  } catch {
+    // A broken room projection must not turn a rejected action into success.
+  }
+  return result;
+}
+
 function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: string): PlayerRuntime {
   if (!w.players || typeof w.players !== "object") w.players = {};
   const actorKind = actorKindFromPrincipal(principal);
@@ -2358,6 +2392,8 @@ export async function applyWorldCommand(
   // ——— WAIT ———
   if (action.verb === "WAIT") {
     const waitCycles = 1;
+    const attentionBefore = pl.budgets.attention;
+    const computeBefore = pl.budgets.compute;
     pl.wait_until_cycle = w.cycle + waitCycles;
     pl.budgets.attention = Math.min(DEFAULT_BUDGETS.attention, pl.budgets.attention + 2);
     pl.budgets.compute = Math.min(DEFAULT_BUDGETS.compute, pl.budgets.compute + 4);
@@ -2380,6 +2416,7 @@ export async function applyWorldCommand(
     const locked = applyLockoutRest(pl.budgets);
     if (!locked) applyCargoFuel(pl.budgets);
     const spoilNote = (pl.spoil_lines || []).join(" ");
+    const waitChange = `You wait. Attention +${pl.budgets.attention - attentionBefore} · Compute +${pl.budgets.compute - computeBefore}.`;
     const result = success(
       w,
       principal,
@@ -2387,6 +2424,8 @@ export async function applyWorldCommand(
       events,
       spoilNote ? `You wait. ${spoilNote}` : "You wait.",
       false,
+      "wait",
+      spoilNote ? `${waitChange} ${spoilNote}` : waitChange,
     );
     w.seen_idempotency[idem] = result;
     return result;
@@ -2455,17 +2494,21 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id);
     if (!entity) {
-      return fail(request_id, "INSPECT_FAILED", `You do not see “${action.arguments.entity_id}” here.`);
+      return failedAction(w, principal, request_id, "INSPECT_FAILED",
+        `You do not see “${action.arguments.entity_id}” here.`,
+        "You do not see that here.", "inspect");
     }
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
-      return fail(request_id, "FORBIDDEN", "The record is sealed.");
+      return failedAction(w, principal, request_id, "FORBIDDEN",
+        "The record is sealed.", "The record is sealed.", "inspect");
     }
     const inspectCost = withAnnexAttention(
       inspectAttentionCost(pl.practice, entity.entity_id, w.cycle),
       readyClassInRoom(roomEntities(room), "archive_annex"),
     );
     if (!canPay(pl.budgets, inspectCost)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough attention.");
+      return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+        "You do not have enough attention.", "You do not have enough attention.", "inspect");
     }
     debit(pl.budgets, inspectCost);
     const detail = inspectDetail(entity);
@@ -2510,6 +2553,9 @@ export async function applyWorldCommand(
       },
       settled,
     };
+    obs.play_text = playTextFromObservation(obs, fourBeatFromResult({
+      command: "inspect", ok: true, consequence: detail, affordances: obs.affordances,
+    }));
     w.seen_idempotency[idem] = result;
     return result;
   }
@@ -2712,7 +2758,8 @@ export async function applyWorldCommand(
       const best = bestLiveRelayCondition(collectLiveRelays(w.rooms));
       const band = longRangeBand(best);
       if (band === "UNREACHABLE") {
-        return fail(request_id, UNREACHABLE_REASON, UNREACHABLE_MESSAGE);
+        return failedAction(w, principal, request_id, UNREACHABLE_REASON,
+          UNREACHABLE_MESSAGE, UNREACHABLE_MESSAGE, "message");
       }
       delayed = band === "DELAYED";
     }
@@ -2805,7 +2852,14 @@ export async function applyWorldCommand(
       // The grounded act is the sending, not the arrival: a relay delay must
       // not silently cost the sender their protocol strength.
       noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
-      const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled);
+      const result = success(w, principal, request_id, events, DELAYED_MESSAGE, settled,
+        "message", DELAYED_MESSAGE);
+      if (result.observation) {
+        result.observation.play_text = playTextFromObservation(result.observation, fourBeatFromResult({
+          command: "message", ok: true, partial: true, consequence: DELAYED_MESSAGE,
+          affordances: result.observation.affordances,
+        }));
+      }
       w.seen_idempotency[idem] = result;
       return result;
     }
@@ -3719,13 +3773,16 @@ export async function applyWorldCommand(
       const lead = overhaul
         ? OVERHAUL_LINE.replace("{label}", titleCaseLabel(entity.label))
         : `${titleCaseLabel(entity.label)} repaired.`;
+      const repairConsequence = `${lead} Condition ${before}% → ${entity.condition}%.${overhaul ? "" : practiced}`;
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `${lead} Condition ${before}% → ${entity.condition}%.${overhaul ? "" : practiced}`,
+        repairConsequence,
         settled,
+        "repair",
+        repairConsequence,
       );
       w.seen_idempotency[idem] = result;
       return result;
@@ -3737,7 +3794,11 @@ export async function applyWorldCommand(
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
       if ((entity.stock_amount ?? 0) < amount) {
-        return fail(request_id, "FORBIDDEN", "Not enough stock available.");
+        const shown = (entity.stock_amount ?? 0) <= 0
+          ? "That node has nothing left to take."
+          : "There is not enough left to take that much.";
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "Not enough stock available.", shown, "harvest");
       }
       if ((pl.budgets.storage ?? 0) < amount) {
         return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
@@ -3803,13 +3864,16 @@ export async function applyWorldCommand(
         claim: `harvest ${amount}`,
       });
 
+      const harvestConsequence = `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`;
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`,
+        harvestConsequence,
         settled,
+        "harvest",
+        harvestConsequence,
       );
       w.seen_idempotency[idem] = result;
       await coevolveAfterAction(w, principal, "HARVEST", result);
