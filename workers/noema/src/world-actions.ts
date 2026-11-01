@@ -2151,7 +2151,7 @@ export async function applyWorldCommand(
     }
     if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
       const pl = ensurePlayer(w, principal, w.entry_room_id);
-      const verb = (rawLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
+      const verb = (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
       pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices };
       return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }

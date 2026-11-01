@@ -520,15 +520,19 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
-  it("MESSAGE ambiguous recipient pick gives a bounded retry without retaining the body", async () => {
+  it.each([
+    ["message dupe private-clarify-sentinel", undefined],
+    ["brief dupe \"private-clarify-sentinel\"", { brief: "report" }],
+  ])("MESSAGE ambiguous recipient pick from %s gives a bounded retry without retaining the body", async (line, aliases) => {
     const w = world(); const a = principal();
     const b = principal("player.dupe-one"); const c = principal("player.dupe-two");
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);
     expect((await run(w, b, "ENTER_WORLD")).ok).toBe(true);
     expect((await run(w, c, "ENTER_WORLD")).ok).toBe(true);
     w.players[b.player_id].handle = "dupe"; w.players[c.player_id].handle = "dupe";
+    if (aliases) w.players[a.player_id].command_aliases = aliases;
     const before = { ...w.players[a.player_id].budgets }; const seq = w.sequence;
-    const amb = await run(w, a, "MESSAGE", { line: "message dupe private-clarify-sentinel" });
+    const amb = await run(w, a, "MESSAGE", { line });
     expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(amb.error?.choices).toHaveLength(2);
     expect(w.players[a.player_id].pending_clarify).toBeDefined();
