@@ -481,6 +481,9 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.events?.some((e) => e.payload?.reason === "SPOILAGE")).toBe(false);
     expect(r.observation?.play_text).not.toContain("Your worn energy spoiled.");
     expect(r.observation?.lot_lines).not.toContain("Your worn energy spoiled.");
+    const look = await run(w, a, "LOOK");
+    expect(look.ok).toBe(true);
+    expect(look.observation?.lot_lines).toContain("Your worn energy spoiled.");
   });
 
   it("WAIT formats a net compute loss as a loss", async () => {
