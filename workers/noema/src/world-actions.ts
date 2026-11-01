@@ -3837,7 +3837,9 @@ export async function applyWorldCommand(
           "You do not have enough free storage.", "harvest");
       }
       if (!canPay(pl.budgets, COSTS.HARVEST)) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You need energy 2 and compute 1 to harvest.",
+          "You need energy 2 and compute 1 to harvest.", "harvest");
       }
       const stockKind = (entity.stock_resource || "energy").toLowerCase();
       const fillsHoldOnly = stockKind === "materials" || stockKind === "cargo" || stockKind === "storage";
