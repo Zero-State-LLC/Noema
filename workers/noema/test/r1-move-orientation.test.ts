@@ -534,6 +534,20 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets).toEqual(before);
   });
 
+  it("HARVEST of missing entity never echoes guessed identity", async () => {
+    const w = world(); const p = principal();
+    expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+    const seq = w.sequence; const before = { ...w.players[p.player_id].budgets };
+    const r = await run(w, p, "COMMIT", {
+      operation: "HARVEST", entity_id: "entity.private-guess",
+    });
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.observation?.play_text).toMatch(/HAPPENED\nYou try to harvest\.\nfail\nYou do not see that here\. Nothing changes\./);
+    expect(r.observation?.play_text).not.toContain("entity.private-guess");
+    expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
+    expect(w.players[p.player_id].budgets).toEqual(before);
+  });
+
   it("immediate MESSAGE reports a delivered four-beat result without private text", async () => {
     const w = world(); const a = principal(); const b = principal("player.remote");
     expect((await run(w, a, "ENTER_WORLD")).ok).toBe(true);

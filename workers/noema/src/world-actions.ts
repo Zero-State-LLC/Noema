@@ -3660,11 +3660,11 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id || "");
     if (!entity) {
-      return fail(
-        request_id,
-        "NOT_FOUND",
+      return failedAction(w, principal, request_id, "NOT_FOUND",
         `You do not see “${action.arguments.entity_id || "that"}” here.`,
-      );
+        "You do not see that here.",
+        action.arguments.operation === "HARVEST" ? "harvest"
+          : action.arguments.operation === "REPAIR" ? "repair" : "act");
     }
 
     if (action.arguments.operation === "REPAIR") {
