@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   WATCH_LIVE_PIN,
   buildWatchLive,
@@ -1266,6 +1267,103 @@ describe("home live excerpt", () => {
     });
     expect(standing).toContain("Nacre is publicly dangerous.");
     expect(standing.join("\n")).not.toMatch(/reliable|unknown|player\./i);
+  });
+});
+
+describe("home WATCH fetch at the rendered page seam", () => {
+  const pages = [
+    ["Worker Home", landingHtml()],
+    ["static Home", readFileSync(join(HERE, "../../../site/index.html"), "utf8")],
+  ] as const;
+
+  function runHomeScript(html: string, fetchImpl: typeof fetch) {
+    const script = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)]
+      .map((match) => match[1])
+      .find((body) => body.includes("homeExcerptFromLive") && body.includes("/v1/watch/live"));
+    if (!script) throw new Error("Home WATCH script missing");
+    const initial = html.match(/<span id="home-now">([^<]*)<\/span>/)?.[1];
+    if (!initial) throw new Error("Home fallback missing");
+    const now = { textContent: initial };
+    const live = { hidden: true, className: "tag", textContent: "live" };
+    runInNewContext(script, {
+      fetch: fetchImpl,
+      document: { getElementById: (id: string) => id === "home-now" ? now : id === "home-live" ? live : null },
+      AbortController,
+      setTimeout,
+      clearTimeout,
+    });
+    return { now, live };
+  }
+
+  it.each(pages)("%s keeps the fallback and badge hidden for failed or unusable WATCH data", async (_, html) => {
+    for (const fetchImpl of [
+      () => Promise.reject(new Error("network unavailable")),
+      () => Promise.resolve({ ok: false }),
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }),
+      () => Promise.resolve({ ok: true, json: () => Promise.resolve({ narrative: { now: { line: "The Chamber is quiet." } } }) }),
+    ]) {
+      const { now, live } = runHomeScript(html, fetchImpl as unknown as typeof fetch);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(now.textContent).toBe(HOME_EXCERPT_FALLBACK);
+      expect(live.hidden).toBe(true);
+    }
+  });
+
+  it.each(pages)("%s shows only bounded, WATCH-safe lines from a valid response", async (_, html) => {
+    const fetchImpl = (() => Promise.resolve({ ok: true, json: () => Promise.resolve({
+      narrative: {
+        now: { line: "The relay dimmed." },
+        recently: [
+          { line: "player.secret-id arrived." },
+          ...Array.from({ length: 9 }, (_, i) => ({ line: `Public event ${i}.` })),
+        ],
+      },
+    }) })) as unknown as typeof fetch;
+    const { now, live } = runHomeScript(html, fetchImpl);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(now.textContent.split("\n")[0]).toBe("The relay dimmed.");
+    expect(now.textContent.split("\n").length).toBeLessThanOrEqual(5);
+    expect(now.textContent).not.toContain("player.secret-id");
+    expect(live.hidden).toBe(false);
+  });
+
+  it.each(pages)("%s ignores a WATCH response arriving after the timeout", async (_, html) => {
+    vi.useFakeTimers();
+    try {
+      let resolveFetch: ((response: Response) => void) | undefined;
+      const fetchImpl = (() => new Promise<Response>((resolve) => { resolveFetch = resolve; })) as typeof fetch;
+      const { now, live } = runHomeScript(html, fetchImpl);
+      await vi.advanceTimersByTimeAsync(5000);
+      resolveFetch?.({ ok: true, json: () => Promise.resolve({ narrative: { now: { line: "Too late." } } }) } as Response);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(now.textContent).toBe(HOME_EXCERPT_FALLBACK);
+      expect(live.hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(pages)("%s aborts a hung WATCH attempt and retains the rendered fallback", async (_, html) => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const fetchImpl = vi.fn((_url: string, options: RequestInit) => {
+        signal = options.signal as AbortSignal;
+        return new Promise<Response>(() => {});
+      }) as unknown as typeof fetch;
+      const { now, live } = runHomeScript(html, fetchImpl);
+      expect(now.textContent).toBe(HOME_EXCERPT_FALLBACK);
+      expect(live.hidden).toBe(true);
+      await vi.advanceTimersByTimeAsync(3999);
+      expect(signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(signal?.aborted).toBe(true);
+      expect(now.textContent).toBe(HOME_EXCERPT_FALLBACK);
+      expect(live.hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -224,17 +224,24 @@
       if (!lines.length) return [FALLBACK];
       return lines.slice(0, MAX);
     }
-    fetch("https://noema.guru/v1/watch/live", { credentials: "omit" }).then((r) => r.ok ? r.json() : null).then((d) => {
-      const el = document.getElementById("home-now");
-      if (!el) return;
-      el.textContent = homeExcerptFromLive(d).join("\n");
-      const live = document.getElementById("home-live");
-      if (live && d && typeof d === "object") {
-        live.hidden = false;
-        live.className = "tag ok";
-        live.textContent = "live";
-      }
-    }).catch(() => {});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    fetch("https://noema.guru/v1/watch/live", { credentials: "omit", signal: controller.signal })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (controller.signal.aborted) return;
+        const lines = homeExcerptFromLive(d);
+        if (lines.length === 1 && lines[0] === "The public record is at Watch.") return;
+        const el = document.getElementById("home-now");
+        if (!el) return;
+        el.textContent = lines.join("\n");
+        const live = document.getElementById("home-live");
+        if (live) {
+          live.hidden = false;
+          live.className = "tag ok";
+          live.textContent = "live";
+        }
+      }).catch(() => {}).finally(() => clearTimeout(timeout));
   })();
   </script>
 </body>
