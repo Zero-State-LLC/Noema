@@ -3845,13 +3845,16 @@ export async function applyWorldCommand(
         claim: `harvest ${amount}`,
       });
 
+      const harvestConsequence = `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`;
       const result = success(
         w,
         principal,
         request_id,
         events,
-        `Harvested ${amount} ${fillsHoldOnly ? stockKind : credited} from ${titleCaseLabel(entity.label)}${incoming === "WORN" ? " — worn." : "."}`,
+        harvestConsequence,
         settled,
+        "harvest",
+        harvestConsequence,
       );
       w.seen_idempotency[idem] = result;
       await coevolveAfterAction(w, principal, "HARVEST", result);
