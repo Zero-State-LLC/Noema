@@ -2765,7 +2765,9 @@ export async function applyWorldCommand(
     const text = action.arguments.text.slice(0, 500);
     const recipient = w.players[recipient_id];
     if (!recipient?.entered) {
-      return fail(request_id, "FORBIDDEN", "Recipient is not addressable in this world.");
+      return failedAction(w, principal, request_id, "FORBIDDEN",
+        "Recipient is not addressable in this world.",
+        "Recipient is not addressable in this world.", "message");
     }
     const local = pl.room_id === recipient.room_id;
     let delayed = false;
