@@ -1,0 +1,110 @@
+{
+  "schema": "noema-733-hosted-isolated/1",
+  "source_commit": "eb7425bd05af92f2c2db9f0408cd62b8c6b09e98",
+  "evidence_kind": "summarized hosted assertions; raw authenticated responses not retained",
+  "observed_at": "2026-11-02T00:45:52.230Z",
+  "worker": "noema-733-isolated-20261101",
+  "base": "https://noema-733-isolated-20261101.zer0state-noema.workers.dev",
+  "world": "test.hosted-canonical.ewm-cutover",
+  "version_before": "530a6018-6341-4507-9cb3-d2f1381eb58f",
+  "version_after": "afdb34d7-c934-4044-a698-d0b4be2da419",
+  "no_routes": true,
+  "external_database_binding": false,
+  "staging_settlement": "UNVERIFIED",
+  "initial": {
+    "sequence": 8,
+    "cycle": 0,
+    "digest": "sha256:61c5b17ca36e9c47881c639ee6ec83c47a09a020bf038ef2cc6ba7c73526bb91",
+    "history_digest": "sha256:21e013fe8792de5a59725094e2c0bc313b0290b52ac3cc226339f6dd5b027bed",
+    "history_count": 16,
+    "players": 6,
+    "unsettled": 0,
+    "canonical_head_present": false
+  },
+  "after_rejections": {
+    "sequence": 8,
+    "cycle": 0,
+    "digest": "sha256:61c5b17ca36e9c47881c639ee6ec83c47a09a020bf038ef2cc6ba7c73526bb91",
+    "history_digest": "sha256:21e013fe8792de5a59725094e2c0bc313b0290b52ac3cc226339f6dd5b027bed",
+    "history_count": 16,
+    "players": 6,
+    "unsettled": 0,
+    "canonical_head_present": false
+  },
+  "after_redeploy": {
+    "sequence": 8,
+    "cycle": 0,
+    "digest": "sha256:61c5b17ca36e9c47881c639ee6ec83c47a09a020bf038ef2cc6ba7c73526bb91",
+    "history_digest": "sha256:21e013fe8792de5a59725094e2c0bc313b0290b52ac3cc226339f6dd5b027bed",
+    "history_count": 16,
+    "players": 6,
+    "unsettled": 0,
+    "canonical_head_present": false
+  },
+  "after_replay": {
+    "sequence": 8,
+    "cycle": 0,
+    "digest": "sha256:61c5b17ca36e9c47881c639ee6ec83c47a09a020bf038ef2cc6ba7c73526bb91",
+    "history_digest": "sha256:21e013fe8792de5a59725094e2c0bc313b0290b52ac3cc226339f6dd5b027bed",
+    "history_count": 16,
+    "players": 6,
+    "unsettled": 0,
+    "canonical_head_present": false
+  },
+  "rejections": [
+    {
+      "name": "MESSAGE missing recipient",
+      "http": 200,
+      "error_code": "INVALID_REQUEST",
+      "no_events": true,
+      "no_private_echo": true,
+      "do_state_unchanged": true
+    },
+    {
+      "name": "MESSAGE unknown recipient",
+      "http": 200,
+      "error_code": "FORBIDDEN",
+      "no_events": true,
+      "no_private_echo": true,
+      "do_state_unchanged": true
+    },
+    {
+      "name": "MESSAGE malformed channel",
+      "http": 200,
+      "error_code": "INVALID_REQUEST",
+      "no_events": true,
+      "no_private_echo": true,
+      "do_state_unchanged": true
+    },
+    {
+      "name": "HARVEST unknown entity",
+      "http": 200,
+      "error_code": "NOT_FOUND",
+      "no_events": true,
+      "no_private_echo": true,
+      "do_state_unchanged": true
+    },
+    {
+      "name": "REPAIR unknown entity",
+      "http": 200,
+      "error_code": "NOT_FOUND",
+      "no_events": true,
+      "no_private_echo": true,
+      "do_state_unchanged": true
+    }
+  ],
+  "replay_stable": true,
+  "worker_redeployment_version_change": true,
+  "durable_object_eviction_or_process_restart": "UNVERIFIED; Worker redeploy alone does not prove DO eviction",
+  "recipient_delivery_positive": true,
+  "bystander_privacy": true,
+  "public_watch_http_privacy": true,
+  "real_browser_watch": {
+    "verdict": "PASS_PRIVATE_SENTINEL_ABSENT_IN_RENDERED_TEXT",
+    "url": "https://noema-733-isolated-20261101.zer0state-noema.workers.dev/watch?mode=text",
+    "world_visible": true,
+    "private_probe_values_absent": true,
+    "rendered_text_length": 2146,
+    "scope": "public text rendering only; does not prove external PostgreSQL settlement"
+  }
+}
