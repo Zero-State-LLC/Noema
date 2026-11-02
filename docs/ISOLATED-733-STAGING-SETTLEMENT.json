@@ -1,0 +1,36 @@
+{
+  "schema": "noema-733-staging-settlement/1",
+  "source_commit": "24772a76ce26b08ee027d3121a540b6c9d84a6c5",
+  "evidence_kind": "hosted command result plus independent linked staging PostgreSQL reads; screened summary, not raw authenticated responses",
+  "observed_at": "2026-11-02T01:39:57.247Z",
+  "project_ref": "dezykkherxlaysxyvgbs",
+  "worker": "noema-733-settle-20261102",
+  "worker_version": "392c5264-ae2b-491e-bd98-16e74f4daec5",
+  "no_routes": true,
+  "requested_world": "test.hosted-canonical.733-settle-20261102",
+  "configured_default_world": "test.hosted-canonical.ewm-cutover",
+  "requested_world_head_before": 0,
+  "enter_world": {"http_status": 200, "ok": true},
+  "independent_staging_postgresql_after": {
+    "head_rows": 1,
+    "world_id": "test.hosted-canonical.733-settle-20261102",
+    "revision": 1,
+    "sequence": 0,
+    "settlement_health": "HEALTHY",
+    "canonical_settlement_rows": 1,
+    "settled_event_rows": 1,
+    "first_sequence": 0,
+    "last_sequence": 0
+  },
+  "default_world_head_after_rows": 1,
+  "browser_watch": {
+    "url": "https://noema-733-settle-20261102.zer0state-noema.workers.dev/watch?mode=text",
+    "rendered_live": true,
+    "rendered_world": "test.hosted-canonical.ewm-cutover",
+    "rendered_sequence": 16,
+    "same_world_as_settlement": false,
+    "scope": "real browser rendered the configured default world; not a target-world ENTER or settlement outcome proof"
+  },
+  "durable_object_eviction_or_process_restart": "UNVERIFIED",
+  "issue_closeout": "NOT_CLAIMED"
+}
