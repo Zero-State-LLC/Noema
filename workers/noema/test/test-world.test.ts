@@ -5,6 +5,7 @@ import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
 import {
   admitTestWorldId,
+  isolatedWatchWorldId,
   isolatedLedgerEventId,
   withIsolatedBootstrapEvent,
   lifecycleRequestedWorldId,
@@ -37,8 +38,8 @@ function mockWorldDo(calls: DoCall[]) {
     },
     get(id: { name: string }) {
       return {
-        fetch: async (url: string, init?: RequestInit) => {
-          const raw = init?.headers instanceof Headers
+        fetch: async (url: string | Request, init?: RequestInit) => {
+          const raw = url instanceof Request ? Object.fromEntries(url.headers.entries()) : init?.headers instanceof Headers
             ? Object.fromEntries(init.headers.entries())
             : ((init?.headers || {}) as Record<string, string>);
           const path = String(url);
@@ -48,6 +49,7 @@ function mockWorldDo(calls: DoCall[]) {
             headers: raw,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/isolated-instance/evict")) throw new Error("DO_RESET_FOR_TEST");
           if (path.includes("/revoke")) {
             return new Response("{}", { status: 404 });
           }
@@ -102,6 +104,51 @@ async function hit(
   });
   return worker.fetch(req, env(calls, defaultWorldId));
 }
+
+describe("public isolated WATCH routing", () => {
+  const target = "test.hosted-canonical.target-733";
+  const fallback = "test.hosted-canonical.default-733";
+  for (const path of ["/v1/watch/live", "/watch/live", "/v1/watch/map", "/watch/map.json", "/v1/watch/stream", "/watch/stream"]) {
+    it(`routes ${path} to the configured isolate with a private bound header`, async () => {
+      const calls: DoCall[] = [];
+      const configured = { ...env(calls, fallback), NOEMA_ENV: "test", ISOLATED_WATCH_WORLD_ID: target } as Env;
+      const headers = new Headers({ "x-noema-world-id": fallback });
+      if (path.includes("stream")) headers.set("Upgrade", "websocket");
+      await worker.fetch(new Request(`https://noema.local${path}`, { headers }), configured);
+      expect(worldCalls(calls).filter(c => c.op === "idFromName").map(c => c.name)).toEqual([target]);
+      expect(worldCalls(calls).find(c => c.op === "fetch")?.headers?.["x-noema-world-id"]).toBe(target);
+    });
+  }
+  it("fails closed on production and invalid configured targets before DO lookup", async () => {
+    for (const setting of [
+      { NOEMA_ENV: "production", ISOLATED_WATCH_WORLD_ID: target },
+      { NOEMA_ENV: "test", ISOLATED_WATCH_WORLD_ID: "world.perihelion-reach" },
+      { NOEMA_ENV: "test", ISOLATED_WATCH_WORLD_ID: "" },
+    ]) for (const path of ["/v1/watch/live", "/v1/watch/map", "/v1/watch/stream"]) {
+      const calls: DoCall[] = [];
+      const res = await worker.fetch(new Request(`https://noema.local${path}`), { ...env(calls, fallback), ...setting } as Env);
+      expect(res.status).toBe(503);
+      expect(worldCalls(calls)).toEqual([]);
+    }
+  });
+  it("retains the default world when no isolated target is configured", async () => {
+    const calls: DoCall[] = [];
+    const res = await worker.fetch(new Request("https://noema.local/v1/watch/live"), env(calls, fallback));
+    expect(res.status).toBe(200);
+    expect(worldCalls(calls).find(c => c.op === "idFromName")?.name).toBe(fallback);
+  });
+});
+
+describe("isolatedWatchWorldId", () => {
+  it("pins public WATCH to an admitted, non-default test world only in test", () => {
+    expect(isolatedWatchWorldId("test", "test.hosted-canonical.target-733", "test.hosted-canonical.default-733"))
+      .toBe("test.hosted-canonical.target-733");
+    expect(isolatedWatchWorldId("production", "test.hosted-canonical.target-733", "world-01")).toBeNull();
+    expect(isolatedWatchWorldId("test", "test.hosted-canonical.default-733", "test.hosted-canonical.default-733")).toBeNull();
+    expect(isolatedWatchWorldId("test", "world.perihelion-reach", "world-01")).toBeNull();
+    expect(isolatedWatchWorldId("test", "", "test.hosted-canonical.default-733")).toBeNull();
+  });
+});
 
 describe("isolatedLedgerEventId", () => {
   it("namespaces isolated worlds and leaves Perihelion bare", () => {
@@ -228,6 +275,61 @@ describe("recoverBoundWorldId", () => {
       "test.hosted-canonical.inspect-s0",
     );
     expect(got).toEqual({ ok: true, world_id: "test.hosted-canonical.inspect-s0" });
+  });
+});
+
+describe("POST /v1/operator/test-world/instance", () => {
+  const target = "test.hosted-canonical.target-733";
+  const fallback = "test.hosted-canonical.default-733";
+  const path = "/v1/operator/test-world/instance";
+  const setup = (calls: DoCall[], overrides: Partial<Env> = {}) => ({
+    ...env(calls, fallback), NOEMA_ENV: "test", ISOLATED_WATCH_WORLD_ID: target, ...overrides,
+  }) as Env;
+  const send = (calls: DoCall[], bindings: Env, body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+    worker.fetch(new Request(`https://noema.local${path}`, {
+      method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
+    }), bindings);
+  it("requires both signed operator and Agent credentials before an instance lookup", async () => {
+    const calls: DoCall[] = [];
+    const body = { world_id: target, action: "probe" };
+    expect((await send(calls, setup(calls), body)).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { Authorization: `Bearer ${await playerToken()}` })).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { "X-Noema-Admin-Token": await adminToken() })).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": "operator-token-value-ok" })).status).toBe(401);
+    expect(worldCalls(calls)).toEqual([]);
+  });
+  it("routes a dual-auth instance probe only to the configured target", async () => {
+    const calls: DoCall[] = [];
+    const res = await send(calls, setup(calls), { world_id: target, action: "probe" }, {
+      Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken(),
+    });
+    expect(res.status).toBe(200);
+    expect(worldCalls(calls).map(c => [c.op, c.name])).toEqual([["idFromName", target], ["fetch", target]]);
+    expect(worldCalls(calls).find(c => c.op === "fetch")?.headers?.["x-noema-world-id"]).toBe(target);
+  });
+  it("rejects production, default, Perihelion, nonconfigured worlds and invalid actions before DO lookup", async () => {
+    const credentials = { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() };
+    for (const [world_id, action, overrides, status] of [
+      [target, "probe", { NOEMA_ENV: "production" }, 403],
+      [fallback, "probe", {}, 403],
+      ["world.perihelion-reach", "probe", {}, 403],
+      ["test.hosted-canonical.other", "probe", {}, 403],
+      [target, "unknown", {}, 400],
+    ] as const) {
+      const calls: DoCall[] = [];
+      const res = await send(calls, setup(calls, overrides), { world_id, action }, credentials);
+      expect(res.status).toBe(status);
+      expect(worldCalls(calls)).toEqual([]);
+    }
+  });
+  it("routes eviction but never acknowledges an interrupted DO as success", async () => {
+    const calls: DoCall[] = [];
+    const res = await send(calls, setup(calls), { world_id: target, action: "evict" }, {
+      Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken(),
+    });
+    expect(res.status).toBe(500);
+    expect((await res.json() as { error?: { code?: string } }).error?.code).toBe("INTERNAL");
+    expect(worldCalls(calls).map(c => c.name)).toEqual([target, target]);
   });
 });
 
