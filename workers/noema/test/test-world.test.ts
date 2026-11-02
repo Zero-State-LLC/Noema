@@ -5,6 +5,7 @@ import worker from "../src/index";
 import { mintHs256 } from "../src/jwt";
 import {
   admitTestWorldId,
+  isolatedWatchWorldId,
   isolatedLedgerEventId,
   withIsolatedBootstrapEvent,
   lifecycleRequestedWorldId,
@@ -102,6 +103,17 @@ async function hit(
   });
   return worker.fetch(req, env(calls, defaultWorldId));
 }
+
+describe("isolatedWatchWorldId", () => {
+  it("pins public WATCH to an admitted, non-default test world only in test", () => {
+    expect(isolatedWatchWorldId("test", "test.hosted-canonical.target-733", "test.hosted-canonical.default-733"))
+      .toBe("test.hosted-canonical.target-733");
+    expect(isolatedWatchWorldId("production", "test.hosted-canonical.target-733", "world-01")).toBeNull();
+    expect(isolatedWatchWorldId("test", "test.hosted-canonical.default-733", "test.hosted-canonical.default-733")).toBeNull();
+    expect(isolatedWatchWorldId("test", "world.perihelion-reach", "world-01")).toBeNull();
+    expect(isolatedWatchWorldId("test", "", "test.hosted-canonical.default-733")).toBeNull();
+  });
+});
 
 describe("isolatedLedgerEventId", () => {
   it("namespaces isolated worlds and leaves Perihelion bare", () => {
