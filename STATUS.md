@@ -2,7 +2,7 @@
 
 ## Current #733 checkpoint (2026-11-02 UTC)
 
-The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) is the current bounded checkpoint for #733. [Runtime PR #756](https://github.com/Zero-State-LLC/Noema/pull/756) at `23441dbb4eaebc20a3b4b6896b9941aae38c8d6c` has green exact-head build/Worker CI and two independent technical reviews with no concrete code blocker, but **no eligible GitHub approval** (`REVIEW_REQUIRED`). Its staging binding is incomplete and no deployment, genuine Durable Object reset, post-command PostgreSQL settlement, or same-world real-browser WATCH has been verified. #733 stays open. The older sections below are dated historical snapshots, not current branch or hosted-acceptance claims.
+The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) is the bounded checkpoint for #733. [Runtime PR #756](https://github.com/Zero-State-LLC/Noema/pull/756) merged at `038512f6ca9284522945968cf9f57c23b9a85909` from reviewed head `8845b380dc321801d5e93a7b72132f9a5849ed60`. Local mounted WATCH map/stream coverage and exact-head build/Worker CI passed, but there was **no eligible submitted GitHub approval**: the operator authorized a documented administrator review-rule bypass. Main-push CI for the merge was in progress at this checkpoint. The staging binding remains unverified, and no deployment, genuine Durable Object reset, post-command PostgreSQL settlement, or same-world real-browser WATCH has been verified. #733 stays open. The older sections below are dated historical snapshots, not current hosted-acceptance claims.
 
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
