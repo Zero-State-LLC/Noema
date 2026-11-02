@@ -17,6 +17,18 @@ describe("Agent HTTP to DO repair trace", () => {
     expect(h.writes.filter(c => c.name === WORLD)).toEqual([]);
   });
 
+  it("binds mounted public map to the configured target on first load", async () => {
+    const target = "test.hosted-canonical.watch-map-mounted";
+    const h = harness(fixtureWorld(), target, undefined, target);
+    const response = await h.hit("/v1/watch/map", undefined, undefined, "", { "x-noema-world-id": WORLD });
+    expect(response.status).toBe(200);
+    const map = await response.json() as { world_id: string };
+    expect(map.world_id).toBe(target);
+    expect(h.calls.filter(c => c.path === "/watch-map")).toEqual([{ name: target, path: "/watch-map" }]);
+    expect(h.calls.filter(c => c.name === WORLD)).toEqual([]);
+    expect(h.writes.filter(c => c.name === WORLD)).toEqual([]);
+  });
+
   it("rejects a mismatched stored world before public isolated WATCH can normalize or save it", async () => {
     const target = "test.hosted-canonical.watch-mismatch";
     const h = harness(fixtureWorld(), target, fixtureWorld(), target);
