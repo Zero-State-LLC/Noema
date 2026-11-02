@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 7141,
-    "edgeCount": 17095,
+    "nodeCount": 7143,
+    "edgeCount": 17108,
     "languages": [
       "javascript",
       "python",
@@ -72948,6 +72948,35 @@
       "origin": "ast",
       "body_hash": "33b9b114675c486cbf8d9de4a122b66fec567f06acf11b012c04ea0077881c92",
       "chars": 11466,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "name": "agent-http-do-repair-trace.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "span": "L1-L83",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "42631646775bfd0016ae80220d0d470d693a08e1b747fd30a1fba6a9ce363c5c",
+      "chars": 5356,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "span": "L21-L25",
+      "signature": "send = async (command: string, args: Record<string, unknown> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4b8a74294b13709b105b8e9f421096e2c053e2d310bd69139baf39b8c085e86c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -150748,6 +150777,12 @@
       "confidence": "inferred"
     },
     {
+      "source": "workers/noema/src/admin-auth.ts#requestAdminMagicLink",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/src/admin-auth.ts#resolveAdmin",
       "target": "workers/noema/src/admin-auth.ts#adminFromSignedToken",
       "relation": "calls",
@@ -154516,6 +154551,12 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/src/enrollment.ts#requestAgentEnrollment",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/src/focus.ts",
       "target": "workers/noema/src/focus.ts#FocusId",
       "relation": "contains",
@@ -157356,6 +157397,12 @@
     {
       "source": "workers/noema/src/play-auth.ts#requestPlayMagicLink",
       "target": "workers/noema/src/rate-limit.ts#allowLoginThrottled",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/play-auth.ts#requestPlayMagicLink",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -172403,6 +172450,66 @@
     },
     {
       "source": "workers/noema/test/agent-http-do-rejections.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
       "target": "workers/noema/test/agent-http-do-fixture.ts",
       "relation": "imports",
       "confidence": "extracted"
