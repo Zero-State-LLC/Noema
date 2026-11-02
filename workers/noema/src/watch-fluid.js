@@ -170,8 +170,12 @@ export function mountFluidStage(root, options = {}) {
         state.text = ""; state.cells = [];
         showRenderer("flat");
       } else {
-        state.map?.update(next, mapEvents());
-        showRenderer(state.renderer);
+        if (state.mode === 2 && !state.mapFailed && !state.map) {
+          void setMode("map");
+        } else {
+          state.map?.update(next, mapEvents());
+          showRenderer(state.renderer);
+        }
       }
     }
   }

@@ -4,6 +4,15 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+export function disposeSceneMeshes(scene, meshes, sharedGeometry) {
+  for (const mesh of meshes) {
+    if (!mesh) continue;
+    scene.remove(mesh);
+    if (mesh.isInstancedMesh) mesh.dispose();
+    if (mesh.geometry !== sharedGeometry) mesh.geometry.dispose();
+  }
+}
+
 export function mountStage(canvas, options = {}) {
 const L = options.layout;
 let REDUCE = Boolean(options.reducedMotion);
@@ -199,7 +208,7 @@ function towerVoxels(masses) {
 }
 
 function build(cells) {
-  for (const o of [S.blocks, S.glyphs, S.plates, S.vox]) if (o) { scene.remove(o); if (o.geometry !== unit) o.geometry.dispose(); }
+  disposeSceneMeshes(scene, [S.blocks, S.glyphs, S.plates, S.vox], unit);
   S.cells = cells;
   S.masses = computeMasses(cells);
   S.massBy = new Map(S.masses.map((mm) => [mm.room, mm]));
@@ -380,9 +389,7 @@ function dispose() {
   observer.disconnect();
   controls.dispose();
   canvas.removeEventListener("webglcontextlost", onLost);
-  for (const mesh of [S.blocks, S.glyphs, S.plates, S.vox]) {
-    if (mesh && mesh.geometry !== unit) mesh.geometry.dispose();
-  }
+  disposeSceneMeshes(scene, [S.blocks, S.glyphs, S.plates, S.vox], unit);
   unit.dispose();
   glyphMat.uniforms.uAtlas.value.dispose();
   glyphMat.dispose(); blockMat.dispose(); renderer.dispose();
