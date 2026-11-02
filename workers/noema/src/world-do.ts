@@ -993,10 +993,42 @@ export class NoemaWorldDO {
     const agent = requireAgentPlayer(body.principal);
     if (agent instanceof Response) return agent;
 
+    const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
+    const requested = String(body.world_id || headerWorld || "").trim();
+    const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
+    this.requestedWorldId = admitted.ok ? admitted.world_id : null;
+    this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
+    // Check retained identity before load(): that path may normalize and save
+    // stored state, so a forbidden cross-world command must not cause writes.
+    if (admitted.ok) {
+      const stored = await this.state.storage.get<WorldState>("world");
+      if (stored && stored.world_id !== admitted.world_id) {
+        return Response.json({
+          ok: false,
+          request_id: body.envelope.request_id || "unknown",
+          error: { code: "WORLD_FORBIDDEN", message: "Stored world does not match the command target." },
+        }, { status: 403 });
+      }
+    }
+    if (!admitted.ok || (this.world && this.world.world_id !== admitted.world_id)) {
+      this.world = null;
+      this.meta = null;
+    }
+    // Bind before loading the ledger: a fresh isolated DO must not initialize
+    // from DEFAULT_WORLD_ID and commit events under the wrong world.
+    await this.load();
+    // Production's legacy DO may carry a stored successor id distinct from
+    // DEFAULT_WORLD_ID; only an explicitly admitted isolate is identity-pinned.
+    if (admitted.ok && this.world?.world_id !== admitted.world_id) {
+      return Response.json({
+        ok: false,
+        request_id: body.envelope.request_id || "unknown",
+        error: { code: "WORLD_FORBIDDEN", message: "Stored world does not match the command target." },
+      }, { status: 403 });
+    }
     // Consult the player ledger for liveness. Missing records are created only by
     // ENTER_WORLD below, never as a side effect of LOOK or another action.
-    await this.load();
-    let playerRec = this.world?.players?.[agent.player_id];
+    const playerRec = this.world?.players?.[agent.player_id];
     const lifecycle = playerRec?.lifecycle_status || "ACTIVE";
     if (lifecycle !== "ACTIVE") {
       return Response.json({
@@ -1004,18 +1036,6 @@ export class NoemaWorldDO {
         request_id: body.envelope?.request_id || "unknown",
         error: { code: "PLAYER_UNAVAILABLE", message: "This Player is no longer active." }
       }, { status: 403 });
-    }
-
-    const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
-    const requested = String(body.world_id || headerWorld || "").trim();
-    const admitted = admitTestWorldId(requested, this.env.DEFAULT_WORLD_ID);
-    this.requestedWorldId = admitted.ok ? admitted.world_id : null;
-    this.allowCanonicalBootstrap = admitted.ok && body.allow_bootstrap === true;
-    // Preview health/store may bind a successor id on this isolate. PLAY must
-    // not keep that in-memory world; reload from storage / DEFAULT_WORLD_ID.
-    if (!admitted.ok) {
-      this.world = null;
-      this.meta = null;
     }
 
     try {
