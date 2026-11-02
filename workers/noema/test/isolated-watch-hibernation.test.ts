@@ -5,7 +5,7 @@ import type { Env } from "../src/types";
 const TARGET = "test.hosted-canonical.watch-hibernation";
 const DEFAULT = "test.hosted-canonical.watch-default";
 
-function wake(attachment: unknown, retainedWorld?: string, configuredTarget: string | undefined = TARGET) {
+function wake(attachment: unknown, retainedWorld?: string, configuredTarget: string | null = TARGET) {
   const writes: string[] = [];
   const sent: unknown[] = [];
   const state = {
@@ -17,7 +17,7 @@ function wake(attachment: unknown, retainedWorld?: string, configuredTarget: str
     },
   } as unknown as DurableObjectState;
   const env = { NOEMA_ENV: "test", DEFAULT_WORLD_ID: DEFAULT,
-    ...(configuredTarget === undefined ? {} : { ISOLATED_WATCH_WORLD_ID: configuredTarget }),
+    ...(configuredTarget === null ? {} : { ISOLATED_WATCH_WORLD_ID: configuredTarget }),
   } as Env;
   const socket = {
     deserializeAttachment: () => attachment,
@@ -99,6 +99,7 @@ describe("hibernated isolated WATCH stream", () => {
       [undefined, TARGET],
       [{ kind: "isolated-watch", world_id: DEFAULT }, TARGET],
       [{ kind: "isolated-watch", world_id: TARGET }, "test.hosted-canonical.other-target"],
+      [{ kind: "isolated-watch", world_id: TARGET }, null],
       [{ world_id: TARGET }, TARGET],
     ] as const) {
       const h = wake(attachment, undefined, configured);

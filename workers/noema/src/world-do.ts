@@ -399,9 +399,9 @@ export class NoemaWorldDO {
     if (text === "pause") return;
     try {
       // Hibernation discards instance fields; never let a retained socket load the default world.
-      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined) {
+      const attachment = ws.deserializeAttachment?.() as unknown;
+      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined || attachment != null) {
         const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
-        const attachment = ws.deserializeAttachment() as unknown;
         if (!admitted || !attachment || typeof attachment !== "object" ||
             (attachment as { kind?: unknown }).kind !== "isolated-watch" ||
             (attachment as { world_id?: unknown }).world_id !== admitted) {
