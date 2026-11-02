@@ -1,0 +1,80 @@
+{
+  "schema": "noema-733-same-world-hosted/1",
+  "evidence_kind": "screened hosted command, instance reset, independent staging PostgreSQL reads, and real-browser public WATCH; no raw authenticated bodies",
+  "observed_date_utc": "2026-11-02",
+  "source_commit": "c8a922064af1adba4387327652db5f378ee296ca",
+  "project_ref": "dezykkherxlaysxyvgbs",
+  "worker": "noema-733-acceptance-20261102",
+  "worker_version": "9978ab0f-e8f6-40c6-9254-d6ffc4c5f2fb",
+  "worker_url": "https://noema-733-acceptance-20261102.zer0state-noema.workers.dev",
+  "no_production_routes": true,
+  "target_world": "test.hosted-canonical.733-target-20261102",
+  "configured_default_world": "test.hosted-canonical.733-default-20261102",
+  "pre_command_staging": {
+    "target_head_rows": 0,
+    "target_settlement_rows": 0,
+    "target_event_rows": 0,
+    "default_head_rows": 0,
+    "default_settlement_rows": 0,
+    "default_event_rows": 0
+  },
+  "pre_reset_enter": {
+    "http_status": 200,
+    "ok": true,
+    "independent_target_head": {"revision": 1, "sequence": 0, "settlement_health": "HEALTHY"},
+    "settlement_rows": 1,
+    "event_rows": 1
+  },
+  "hosted_instance_reset": {
+    "pre_reset_probe_count": 2,
+    "pre_reset_ids_equal": true,
+    "evict_attempt_count": 1,
+    "evict_http_status": 500,
+    "post_reset_probe_http_status": 200,
+    "post_reset_id_different": true,
+    "same_worker_version": true,
+    "private_instance_ids_omitted": true
+  },
+  "post_reset_observation_only_inspect": {
+    "http_status": 200,
+    "canonical_head_advanced": false,
+    "not_counted_as_committed_repair": true
+  },
+  "post_reset_move": {
+    "precondition_observe_at": "2026-11-02T10:13:10Z",
+    "at": "2026-11-02T10:13:20Z",
+    "command": "MOVE",
+    "direction": "east",
+    "http_status": 200,
+    "ok": true,
+    "ledger_move_event_count": 1,
+    "observed_room": "room.hall",
+    "independent_staging_read_at": "2026-11-02T10:13:35Z",
+    "independent_target_head": {"revision": 2, "sequence": 1, "settlement_health": "HEALTHY"},
+    "settlement_revisions": [1, 2],
+    "settlement_sequences": [0, 1],
+    "settled_event_sequences": [0, 1],
+    "new_event_type": "MOVE",
+    "default_world_head_rows": 0,
+    "default_world_settlement_rows": 0,
+    "default_world_event_rows": 0
+  },
+  "public_watch": {
+    "real_browser": true,
+    "modes": ["pixel", "map"],
+    "rendered_world": "test.hosted-canonical.733-target-20261102",
+    "rendered_sequence": 1,
+    "rendered_public_movement": "acceptance733 entered Hall",
+    "public_live_and_map_http_status": 200,
+    "public_live_and_map_freshness": "live",
+    "public_version_id_after": "9978ab0f-e8f6-40c6-9254-d6ffc4c5f2fb"
+  },
+  "production_worker_version_control": {
+    "scope": "before and after initial isolated deployment only; not read back after target actions",
+    "unchanged": true,
+    "later_deployments_list_attempt": "NO_ACCESS_UNVERIFIED"
+  },
+  "bounded_hosted_chain": "OBSERVED",
+  "issue_closeout": "NOT_CLAIMED",
+  "remaining_scope": ["R0", "R3 additional criteria", "R4", "optional C9"]
+}

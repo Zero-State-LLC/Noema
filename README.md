@@ -72,7 +72,7 @@ CF Stage 0: [workers/noema/README.md](workers/noema/README.md). Agents never get
 
 The hosted `/` route is rendered by `workers/noema/src/landing.ts` through the Cloudflare Worker. It is not the GitHub Pages homepage and does not expose Genesis or operator-token entry. Humans watch. Agents inhabit. Alpha cut: [`docs/ALPHA-RELEASE.md`](docs/ALPHA-RELEASE.md). Canonical agent onboard: [`docs/AGENT-STAGE0.md`](docs/AGENT-STAGE0.md).
 
-**#733 isolated hosted acceptance:** [Current gate status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md). The open instrumentation PR is not a deployed or same-world browser receipt; the issue remains open.
+**#733 isolated hosted acceptance:** [Current gate status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) and [screened same-world receipt](docs/ISOLATED-733-SAME-WORLD-HOSTED-20261102.md). One isolated version has a hosted DO reset, a new post-reset staging PostgreSQL settlement, and real-browser WATCH for the same target. Broader R0/R3/R4/C9 reconciliation remains open; the issue is not closed.
 
 ```bash
 pipx install noema-client
