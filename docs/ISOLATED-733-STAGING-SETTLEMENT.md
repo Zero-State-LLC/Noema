@@ -1,0 +1,16 @@
+# Issue #733 — isolated staging settlement evidence (partial)
+
+This is a bounded runtime receipt for the [R3 isolated proof requirement](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/docs/MUD-PLAY-CRAFT-CLOSEOUT.md#3-definition-of-done). It supplements the earlier [DO-only hosted rejection evidence](ISOLATED-733-HOSTED-EVIDENCE.md), not a #733 closeout. Machine-readable summary: [`ISOLATED-733-STAGING-SETTLEMENT.json`](ISOLATED-733-STAGING-SETTLEMENT.json). The source commit for the tested runtime fix is `24772a76ce26b08ee027d3121a540b6c9d84a6c5`; neither the fix nor this receipt was merged into `main` when this evidence was gathered.
+
+## Boundary and result
+
+- Isolated no-route `workers.dev` Worker: `noema-733-settle-20261102`; version `392c5264-ae2b-491e-bd98-16e74f4daec5`. The temporary configuration had `workers_dev=true`, no routes/triggers, one `WORLD_DO` binding, and a staging Supabase binding. Project `dezykkherxlaysxyvgbs` was designated dedicated staging. The requested world was `test.hosted-canonical.733-settle-20261102`; its configured default was a **different** test world, `test.hosted-canonical.ewm-cutover`. No production routes or worlds were targeted.
+- Before the single hosted ENTER probe, a linked staging database read found no canonical head for the requested world. The hosted `/v1/operator/test-world/command` ENTER_WORLD request returned HTTP 200 with `ok=true`. The private probe receipt recorded no authenticated response body or bearer credential in this public artifact.
+- Independently querying **the linked staging PostgreSQL database** after the command returned a head for the requested world at revision **1**, sequence **0**, settlement health `HEALTHY`; **one** canonical settlement and **one** settled event, both at sequence 0. These were real database reads, not a mounted fake RPC or merely a `/ready` response. The first event is the ENTER_WORLD boundary; no claim of subsequent commands or production settlement follows.
+- A mounted regression for admitted-world binding failed against the original implementation and passed after the fix. The full Worker suite, TypeScript check, Graft build/check, and Git diff check passed before the fix commit. The local mounted canonical RPC is a fake and does **not** count as the database proof above. An additional test rejects mismatched stored isolate identity before load-time writes.
+
+## WATCH and restart limits
+
+A real browser rendered this isolated Worker's `/watch?mode=text` page as **live**, displaying the **configured default world** (`test.hosted-canonical.ewm-cutover`) at sequence 16. It did **not** render the requested `test.hosted-canonical.733-settle-20261102` world or prove the ENTER outcome. This browser observation must not be paired with the separate target-world PostgreSQL settlement as a same-world WATCH proof. The earlier DO-only real-browser private-sentinel check is in the linked receipt.
+
+A Worker deployment/version change does **not** prove DO instance eviction or process restart; that gate remains **UNVERIFIED**. No public raw authenticated requests/responses, private MESSAGE body, agent identifier, token, connection string, or credential are included. #733 must stay open until the remaining acceptance evidence is independently verified. This receipt does not assert R0/R4 completion or broader Specs closeout.

@@ -354,6 +354,7 @@ import {
 } from "./contest";
 import type { Checkpoint, CommandEnvelope, CommandResult, Observation, PlayerPrincipal } from "./types";
 import { laterTraceInputs, projectRoomTraces, publicTraces, safePlateHandle } from "./play-traces";
+import { publicOccupantLabel } from "./watch-live";
 import {
   applyAliasCommand,
   expandAliases,
@@ -747,6 +748,12 @@ function failedMove(
     // A broken room projection must not turn a rejected action into a success.
   }
   return result;
+}
+
+function isMessageIntent(line: string): boolean {
+  const text = line.trim();
+  return /^(?:(?:message|msg|tell|report|pass|repeat)(?:\s|$)|say\s+to(?:\s|$))/i.test(text)
+    || /^share\s+\S+\s+\S+\s*$/i.test(text);
 }
 
 function failedAction(
@@ -2105,6 +2112,22 @@ export async function applyWorldCommand(
     }
     const verb = plClarify.pending_clarify.verb;
     delete plClarify.pending_clarify;
+    // A MESSAGE clarification cannot replay a private body that was never retained.
+    if (isMessageIntent(verb) || verb === "say") {
+      const prompt = "Write the message again to the chosen Player.";
+      const result = fail(request_id, "INVALID_REQUEST", prompt);
+      const current = buildObservation(w, principal, prompt);
+      result.observation = {
+        ...emptyPlayObservation(w, principal, prompt),
+        in_world: current.in_world,
+        location: current.location,
+        budgets: current.budgets,
+        available_actions: current.available_actions,
+        affordances: current.affordances,
+        play_text: prompt,
+      };
+      return result;
+    }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
   } else if (typeof rawArgs.line === "string" || textLine !== rawLine) {
     parsed = parseHumanCommand(textLine, parseCtx);
@@ -2143,7 +2166,7 @@ export async function applyWorldCommand(
     }
     if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
       const pl = ensurePlayer(w, principal, w.entry_room_id);
-      const verb = (rawLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
+      const verb = (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
       pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices };
       return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }
@@ -2199,6 +2222,41 @@ export async function applyWorldCommand(
     }
     if (parsed.reason === "MOVE_DIRECTION_REQUIRED") {
       return failedMove(w, principal, request_id, "INVALID_REQUEST", "direction required");
+    }
+    if (isMessageIntent(textLine) && (typeof rawArgs.line === "string" || looksLikeTextLine)
+      && (parsed.code === "UNKNOWN_COMMAND" || parsed.code === "NOT_FOUND"
+        || parsed.code === "INVALID_REQUEST")) {
+      const shown = parsed.code === "NOT_FOUND"
+        ? "Recipient is not addressable in this world."
+        : "Write a message to a Player.";
+      return failedAction(w, principal, request_id, parsed.code, shown, shown, "message");
+    }
+    if (protocolCmd === "MESSAGE" && typeof rawArgs.line !== "string"
+      && parsed.code === "INVALID_REQUEST") {
+      const shown = parsed.error === "recipient_id and text required"
+        ? "Name a recipient and write a message."
+        : parsed.error === "text required"
+          ? "Write a message."
+          : parsed.error === "org_id required"
+            ? "Name a channel institution."
+            : parsed.error === "signal must be an object" || parsed.error.startsWith("signal.")
+              ? "Check the message signal."
+              : undefined;
+      if (shown) return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error, shown, "message");
+    }
+    if (parsed.code === "NOT_FOUND" && /^(?:harvest|repair)(?:\s|$)/i.test(textLine.trim())
+      && (typeof rawArgs.line === "string" || looksLikeTextLine)) {
+      const attempted = /^harvest(?:\s|$)/i.test(textLine.trim()) ? "harvest" : "repair";
+      return failedAction(w, principal, request_id, "NOT_FOUND",
+        "You do not see that here.", "You do not see that here.", attempted);
+    }
+    if (protocolCmd === "COMMIT" && typeof rawArgs.line !== "string"
+      && parsed.code === "INVALID_REQUEST" && parsed.error === "entity_id required"
+      && (String(rawArgs.operation || "").toUpperCase() === "HARVEST"
+        || String(rawArgs.operation || "").toUpperCase() === "REPAIR")) {
+      const attempted = String(rawArgs.operation).toUpperCase() === "HARVEST" ? "harvest" : "repair";
+      return failedAction(w, principal, request_id, "INVALID_REQUEST", parsed.error,
+        `Name what you want to ${attempted}.`, attempted);
     }
     return fail(request_id, parsed.code || "INVALID_REQUEST", parsed.error, parsed.choices);
   }
@@ -2571,7 +2629,8 @@ export async function applyWorldCommand(
   // ——— MESSAGE ———
   if (action.verb === "MESSAGE") {
     if (!canPay(pl.budgets, COSTS.MESSAGE)) {
-      return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough compute.");
+      return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+        "You do not have enough compute.", "You do not have enough compute.", "message");
     }
     if (action.arguments.surface === "BOARD") {
       const here = w.rooms[pl.room_id];
@@ -2648,7 +2707,8 @@ export async function applyWorldCommand(
         const org = w.organizations[wantedOrg];
         const held = occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE");
         if (!org || org.status !== "ACTIVE" || !held.length) {
-          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+          return failedAction(w, principal, request_id, "FORBIDDEN",
+            "You do not hold a notice office here.", "You do not hold a notice office here.", "message");
         }
         orgId = org.org_id;
         orgName = org.name;
@@ -2658,7 +2718,8 @@ export async function applyWorldCommand(
           return occupiedOfficesFor(org, principal.player_id, "PUBLISH_NOTICE").length > 0;
         });
         if (!found) {
-          return fail(request_id, "FORBIDDEN", "You do not hold a notice office here.");
+          return failedAction(w, principal, request_id, "FORBIDDEN",
+            "You do not hold a notice office here.", "You do not hold a notice office here.", "message");
         }
         orgId = found.org_id;
         orgName = found.name;
@@ -2697,7 +2758,8 @@ export async function applyWorldCommand(
       const org_id = String(action.arguments.org_id || "").trim();
       const org = org_id ? w.organizations[org_id] : undefined;
       if (!org || org.status !== "ACTIVE" || !isOrgMember(org, principal.player_id)) {
-        return fail(request_id, "NOT_ADDRESSABLE", "That channel is not addressable.");
+        return failedAction(w, principal, request_id, "NOT_ADDRESSABLE",
+          "That channel is not addressable.", "That channel is not addressable.", "message");
       }
       debit(pl.budgets, COSTS.MESSAGE);
       org.channel = { text: utterance, cycle: w.cycle };
@@ -2758,7 +2820,9 @@ export async function applyWorldCommand(
     const text = action.arguments.text.slice(0, 500);
     const recipient = w.players[recipient_id];
     if (!recipient?.entered) {
-      return fail(request_id, "FORBIDDEN", "Recipient is not addressable in this world.");
+      return failedAction(w, principal, request_id, "FORBIDDEN",
+        "Recipient is not addressable in this world.",
+        "Recipient is not addressable in this world.", "message");
     }
     const local = pl.room_id === recipient.room_id;
     let delayed = false;
@@ -2781,7 +2845,8 @@ export async function applyWorldCommand(
     let deliverText = text;
     if (as_claim) {
       if (parent_claim_id && !parent_claim_id.startsWith("claim.")) {
-        return fail(request_id, "NOT_FOUND", "That report is not known here.");
+        return failedAction(w, principal, request_id, "NOT_FOUND",
+          "That report is not known here.", "That report is not known here.", "message");
       }
       if (parent_claim_id) {
         const held = w.rumor.claims[parent_claim_id];
@@ -2791,7 +2856,8 @@ export async function applyWorldCommand(
             : text;
         const retell = resolveRetell(w.rumor, principal.player_id, parent_claim_id, retellText, w.cycle);
         if (!retell.ok) {
-          return fail(request_id, "NOT_FOUND", "You do not hold that report.");
+          return failedAction(w, principal, request_id, "NOT_FOUND",
+            "You do not hold that report.", "You do not hold that report.", "message");
         }
         rememberClaim(w.rumor, retell.claim, principal.player_id);
         deliverText = retell.same_claim ? retell.claim.content : normalizeClaimText(text);
@@ -2895,13 +2961,26 @@ export async function applyWorldCommand(
     await settleEv(ev1);
     await settleEv(ev2);
     noteGroundedProtocol(w, pl.room_id, action.arguments.signal);
+    const roomRefs = Object.values(w.rooms);
+    const publicRecipient = publicOccupantLabel(
+      { handle: recipient.handle, player_id: recipient_id }, roomRefs,
+    );
+    const safeRecipientHandle = safePlateHandle(publicRecipient || undefined);
+    // Compare the display form after compatibility and separator normalization;
+    // fullwidth letters or inserted separators must not impersonate public names.
+    const normalizedRecipient = safeRecipientHandle?.normalize("NFKC").replace(/\s*([._-])\s*/g, "$1");
+    const recipientLabel = normalizedRecipient
+      && safePlateHandle(normalizedRecipient)
+      && publicOccupantLabel({ handle: normalizedRecipient, player_id: recipient_id }, roomRefs)
+      ? safeRecipientHandle : "recipient";
     const result = success(
       w,
       principal,
       request_id,
       events,
-      `Message delivered to ${recipient.handle || recipient_id}.`,
+      `Message delivered to ${recipientLabel}.`,
       settled,
+      `message ${recipientLabel}`,
     );
     w.seen_idempotency[idem] = result;
     return result;
@@ -3638,16 +3717,17 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id || "");
     if (!entity) {
-      return fail(
-        request_id,
-        "NOT_FOUND",
-        `You do not see “${action.arguments.entity_id || "that"}” here.`,
-      );
+      return failedAction(w, principal, request_id, "NOT_FOUND",
+        "You do not see that here.",
+        "You do not see that here.",
+        action.arguments.operation === "HARVEST" ? "harvest"
+          : action.arguments.operation === "REPAIR" ? "repair" : "act");
     }
 
     if (action.arguments.operation === "REPAIR") {
       if (!isRepairable(entity)) {
-        return fail(request_id, "FORBIDDEN", "That is not repairable here.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "That is not repairable here.", "That is not repairable here.", "repair");
       }
       const acting_for = action.arguments.acting_for ? String(action.arguments.acting_for) : undefined;
       const office_id = action.arguments.office_id ? String(action.arguments.office_id) : undefined;
@@ -3663,19 +3743,23 @@ export async function applyWorldCommand(
         );
         if (grant.ok) {
           if (!assetInInstitutionScope(entity, grant.org_id, principal.player_id)) {
-            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+            return failedAction(w, principal, request_id, "FORBIDDEN",
+              "That asset is not in this institution's scope.",
+              "That asset is not in this institution's scope.", "repair");
           }
           const conflict = resolveOfficeConflict(
             w.organizations[grant.org_id],
             grant.office.office_id,
             entity.entity_id,
           );
-          if (!conflict.ok) return fail(request_id, conflict.code, conflict.message);
+          if (!conflict.ok) return failedAction(w, principal, request_id, conflict.code,
+            conflict.message, conflict.message, "repair");
           payFrom = ensureTreasury(w.organizations[grant.org_id]);
           grantOfficeId = grant.office.office_id;
         } else {
           const org = w.organizations[acting_for];
-          if (!org) return fail(request_id, "NOT_FOUND", "That institution is not known here.");
+          if (!org) return failedAction(w, principal, request_id, "NOT_FOUND",
+            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
           const em = resolveEmergencyFor(
             org,
             principal.player_id,
@@ -3684,16 +3768,21 @@ export async function applyWorldCommand(
             w.cycle,
             action.arguments.emergency_scope_id,
           );
-          if (!em.ok) return fail(request_id, grant.code, grant.message);
+          if (!em.ok) return failedAction(w, principal, request_id, grant.code,
+            "You cannot repair for that institution.", "You cannot repair for that institution.", "repair");
           if (!assetInInstitutionScope(entity, acting_for, principal.player_id)) {
-            return fail(request_id, "FORBIDDEN", "That asset is not in this institution's scope.");
+            return failedAction(w, principal, request_id, "FORBIDDEN",
+              "That asset is not in this institution's scope.",
+              "That asset is not in this institution's scope.", "repair");
           }
           payFrom = ensureTreasury(org);
         }
       }
       const overhaul = action.arguments.extent === "overhaul";
       if (overhaul && !canOverhaul(pl.practice, w.cycle)) {
-        return fail(request_id, "FORBIDDEN", "You lack the practiced hands for an overhaul.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "You lack the practiced hands for an overhaul.",
+          "You lack the practiced hands for an overhaul.", "overhaul");
       }
       const baseRepair = { ...COSTS.REPAIR };
       if (overhaul) baseRepair.energy = (baseRepair.energy || 0) + OVERHAUL_ENERGY_EXTRA;
@@ -3701,24 +3790,27 @@ export async function applyWorldCommand(
       const cargoNeed = repairCost.storage || 0;
       const fuel = { ...repairCost, storage: undefined };
       if (!canPay(payFrom, fuel)) {
-        return fail(
-          request_id,
-          "BUDGET_EXCEEDED",
-          acting_for
-            ? "The institution treasury cannot pay this repair."
-            : overhaul
-              ? "You need energy 4, compute 2, and storage 1 to overhaul."
-              : "You need energy 3, compute 2, and storage 1 to repair.",
-        );
+        const reason = acting_for
+          ? "The institution treasury cannot pay this repair."
+          : `You need energy ${repairCost.energy}`
+            + (cargoNeed ? `, compute ${repairCost.compute}, and storage ${cargoNeed}`
+              : ` and compute ${repairCost.compute}`)
+            + ` to ${overhaul ? "overhaul" : "repair"}.`;
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          reason, reason, overhaul ? "overhaul" : "repair");
       }
       if (
         payFrom === pl.budgets &&
         !canConsumeCargo(pl.budgets.storage ?? 0, cargoNeed, reservedCargoFor(w, principal.player_id))
       ) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You do not have materials in hold.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You do not have materials in hold.",
+          "You do not have materials in hold.", "repair");
       }
       if (payFrom !== pl.budgets && !canPay(payFrom, { storage: cargoNeed })) {
-        return fail(request_id, "BUDGET_EXCEEDED", "The institution treasury cannot pay this repair.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "The institution treasury cannot pay this repair.",
+          "The institution treasury cannot pay this repair.", overhaul ? "overhaul" : "repair");
       }
       const before = entity.condition ?? 0;
       const quality = repairConditionDelta(pl.practice, entity.entity_id, w.cycle);
@@ -3798,7 +3890,8 @@ export async function applyWorldCommand(
 
     if (action.arguments.operation === "HARVEST") {
       if (!entity.stock_resource) {
-        return fail(request_id, "FORBIDDEN", "Nothing to harvest there.");
+        return failedAction(w, principal, request_id, "FORBIDDEN",
+          "Nothing to harvest there.", "Nothing to harvest there.", "harvest");
       }
       const amount = Math.max(1, Math.floor(action.arguments.amount || 1));
       if ((entity.stock_amount ?? 0) < amount) {
@@ -3809,10 +3902,14 @@ export async function applyWorldCommand(
           "Not enough stock available.", shown, "harvest");
       }
       if ((pl.budgets.storage ?? 0) < amount) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You do not have enough free storage.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You do not have enough free storage.",
+          "You do not have enough free storage.", "harvest");
       }
       if (!canPay(pl.budgets, COSTS.HARVEST)) {
-        return fail(request_id, "BUDGET_EXCEEDED", "You need energy 2 and compute 1 to harvest.");
+        return failedAction(w, principal, request_id, "BUDGET_EXCEEDED",
+          "You need energy 2 and compute 1 to harvest.",
+          "You need energy 2 and compute 1 to harvest.", "harvest");
       }
       const stockKind = (entity.stock_resource || "energy").toLowerCase();
       const fillsHoldOnly = stockKind === "materials" || stockKind === "cargo" || stockKind === "storage";

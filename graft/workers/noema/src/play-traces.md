@@ -12,8 +12,8 @@
 - publicOrgName · function · L70-L77 — function publicOrgName(raw: string): string
 - laterTraceInputs · function · L80-L117 — function laterTraceInputs(input: LaterTraceInput): Pick< TraceRoom, "public_rumor" | "org_marks" | "vacant_offices" >
 - publicText · function · L119-L121 — function publicText(raw: string): string
-- safePlateHandle · function · L123-L131 — function safePlateHandle(raw: string | undefined): string | null
-- publicTraces · function · L134-L136 — function publicTraces(traces: ProjectedTrace[]): ObservationTrace[]
-- projectRoomTraces · function · L139-L230 — function projectRoomTraces(room: TraceRoom | null | undefined): ProjectedTrace[]
-- add · function · L143-L148 — add = (kind: PlayTraceKind, text: string, source_state_ref: TraceSourceRef)
-- isScar · function · L151-L152 — isScar = (e: (typeof ents)[number])
+- safePlateHandle · function · L123-L133 — function safePlateHandle(raw: string | undefined): string | null
+- publicTraces · function · L136-L138 — function publicTraces(traces: ProjectedTrace[]): ObservationTrace[]
+- projectRoomTraces · function · L141-L232 — function projectRoomTraces(room: TraceRoom | null | undefined): ProjectedTrace[]
+- add · function · L145-L150 — add = (kind: PlayTraceKind, text: string, source_state_ref: TraceSourceRef)
+- isScar · function · L153-L154 — isScar = (e: (typeof ents)[number])

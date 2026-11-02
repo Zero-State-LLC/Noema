@@ -27,8 +27,9 @@ export function fixtureWorld(): WorldRuntime {
   };
 }
 
-export function harness(initialWorld: WorldRuntime = fixtureWorld()) {
+export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime) {
   const calls: Array<{ name: string; path: string }> = [];
+  const writes: Array<{ name: string; key: string }> = [];
   const instances = new Map<string, NoemaWorldDO>();
   const stores = new Map<string, DurableObjectState>();
   // Deliberately partial Cloudflare platform fakes. All application handlers are real.
@@ -49,12 +50,20 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld()) {
                 ["world", structuredClone(initialWorld)],
                 ["world_meta", { status: "ACTIVE", genesis_id: "genesis.test.transport", config_frozen: true,
                   settlement_health: "HEALTHY" }],
+              ] : name === emptyActiveWorldId ? [
+                ...(storedAtIsolate ? [["world", structuredClone(storedAtIsolate)] as [string, unknown]] : []),
+                ["world_meta", { status: "ACTIVE", config_frozen: true, settlement_health: "HEALTHY" }],
               ] : []);
               state = { storage: {
                 async get(key: string) { return structuredClone(bag.get(key)); },
                 async put(key: string | Record<string, unknown>, value?: unknown) {
-                  if (typeof key === "string") bag.set(key, structuredClone(value));
-                  else for (const [k, v] of Object.entries(key)) bag.set(k, structuredClone(v));
+                  if (typeof key === "string") {
+                    writes.push({ name, key });
+                    bag.set(key, structuredClone(value));
+                  } else for (const [k, v] of Object.entries(key)) {
+                    writes.push({ name, key: k });
+                    bag.set(k, structuredClone(v));
+                  }
                 },
               } } as unknown as DurableObjectState;
               stores.set(name, state);
@@ -67,8 +76,8 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld()) {
       }),
     },
   } as unknown as Env;
-  async function hit(path: string, body?: Record<string, unknown>, token?: string, seal = ACCEPTED_SEALS[0]) {
-    const headers = new Headers({ "content-type": "application/json" });
+  async function hit(path: string, body?: Record<string, unknown>, token?: string, seal = ACCEPTED_SEALS[0], extraHeaders: Record<string, string> = {}) {
+    const headers = new Headers({ "content-type": "application/json", ...extraHeaders });
     if (token) headers.set("Authorization", `Bearer ${token}`);
     if (seal) headers.set("X-Noema-Seal", seal);
     return worker.fetch(new Request(`${ORIGIN}${path}`, {
@@ -79,6 +88,7 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld()) {
   const command = (token: string, command: string, args: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) =>
     hit("/v1/command", { request_id: `http.${++requestId}`, command, arguments: args, ...extra }, token);
   const agent = () => mintControllerToken(env, { handle: "Boundary", controllerType: "agent", playerId: "player.boundary" });
-  return { env, calls, hit, command, agent, restart: () => instances.clear(),
-    persistedWorld: async () => structuredClone(await stores.get(WORLD)?.storage.get<WorldRuntime>("world")) };
+  return { env, calls, writes, hit, command, agent, restart: () => instances.clear(),
+    persistedWorld: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<WorldRuntime>("world")),
+    persistedMeta: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<Record<string, unknown>>("world_meta")) };
 }
