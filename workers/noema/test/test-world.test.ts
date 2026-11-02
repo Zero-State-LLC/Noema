@@ -49,6 +49,7 @@ function mockWorldDo(calls: DoCall[]) {
             headers: raw,
             body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null,
           });
+          if (path.includes("/isolated-instance/evict")) throw new Error("DO_RESET_FOR_TEST");
           if (path.includes("/revoke")) {
             return new Response("{}", { status: 404 });
           }
@@ -274,6 +275,61 @@ describe("recoverBoundWorldId", () => {
       "test.hosted-canonical.inspect-s0",
     );
     expect(got).toEqual({ ok: true, world_id: "test.hosted-canonical.inspect-s0" });
+  });
+});
+
+describe("POST /v1/operator/test-world/instance", () => {
+  const target = "test.hosted-canonical.target-733";
+  const fallback = "test.hosted-canonical.default-733";
+  const path = "/v1/operator/test-world/instance";
+  const setup = (calls: DoCall[], overrides: Partial<Env> = {}) => ({
+    ...env(calls, fallback), NOEMA_ENV: "test", ISOLATED_WATCH_WORLD_ID: target, ...overrides,
+  }) as Env;
+  const send = (calls: DoCall[], bindings: Env, body: Record<string, unknown>, headers: Record<string, string> = {}) =>
+    worker.fetch(new Request(`https://noema.local${path}`, {
+      method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
+    }), bindings);
+  it("requires both signed operator and Agent credentials before an instance lookup", async () => {
+    const calls: DoCall[] = [];
+    const body = { world_id: target, action: "probe" };
+    expect((await send(calls, setup(calls), body)).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { Authorization: `Bearer ${await playerToken()}` })).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { "X-Noema-Admin-Token": await adminToken() })).status).toBe(401);
+    expect((await send(calls, setup(calls), body, { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": "operator-token-value-ok" })).status).toBe(401);
+    expect(worldCalls(calls)).toEqual([]);
+  });
+  it("routes a dual-auth instance probe only to the configured target", async () => {
+    const calls: DoCall[] = [];
+    const res = await send(calls, setup(calls), { world_id: target, action: "probe" }, {
+      Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken(),
+    });
+    expect(res.status).toBe(200);
+    expect(worldCalls(calls).map(c => [c.op, c.name])).toEqual([["idFromName", target], ["fetch", target]]);
+    expect(worldCalls(calls).find(c => c.op === "fetch")?.headers?.["x-noema-world-id"]).toBe(target);
+  });
+  it("rejects production, default, Perihelion, nonconfigured worlds and invalid actions before DO lookup", async () => {
+    const credentials = { Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken() };
+    for (const [world_id, action, overrides, status] of [
+      [target, "probe", { NOEMA_ENV: "production" }, 403],
+      [fallback, "probe", {}, 403],
+      ["world.perihelion-reach", "probe", {}, 403],
+      ["test.hosted-canonical.other", "probe", {}, 403],
+      [target, "unknown", {}, 400],
+    ] as const) {
+      const calls: DoCall[] = [];
+      const res = await send(calls, setup(calls, overrides), { world_id, action }, credentials);
+      expect(res.status).toBe(status);
+      expect(worldCalls(calls)).toEqual([]);
+    }
+  });
+  it("routes eviction but never acknowledges an interrupted DO as success", async () => {
+    const calls: DoCall[] = [];
+    const res = await send(calls, setup(calls), { world_id: target, action: "evict" }, {
+      Authorization: `Bearer ${await playerToken()}`, "X-Noema-Admin-Token": await adminToken(),
+    });
+    expect(res.status).toBe(500);
+    expect((await res.json() as { error?: { code?: string } }).error?.code).toBe("INTERNAL");
+    expect(worldCalls(calls).map(c => c.name)).toEqual([target, target]);
   });
 });
 

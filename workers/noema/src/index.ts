@@ -1044,6 +1044,31 @@ export default {
         return cors(json({ ...payload, world_id: admitted.world_id }, res.status));
       }
 
+      // Isolated instance verification is operator-only; never a public WATCH or PLAY command.
+      if (request.method === "POST" && path === "/v1/operator/test-world/instance") {
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(agent, "noema.action.submit");
+        if (denied) return cors(denied);
+        const body = (await request.json().catch(() => ({}))) as { world_id?: string; action?: string };
+        const worldId = isolatedWatchWorldId(env.NOEMA_ENV, body.world_id, env.DEFAULT_WORLD_ID);
+        if (!worldId || worldId !== env.ISOLATED_WATCH_WORLD_ID) {
+          return cors(err("WORLD_FORBIDDEN", "test world not configured", 403));
+        }
+        if (body.action !== "probe" && body.action !== "evict") {
+          return cors(err("INVALID_REQUEST", "action must be probe or evict", 400));
+        }
+        const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName(worldId));
+        const res = await stub.fetch(`https://do/isolated-instance/${body.action}`, {
+          method: "POST", headers: { "x-noema-world-id": worldId },
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
       // Minimal agent-protocol-shaped AUTH for adapters
       if (request.method === "POST" && path === "/protocol/v1") {
         const body = (await request.json()) as {
