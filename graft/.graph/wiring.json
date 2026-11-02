@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 7141,
-    "edgeCount": 17095,
+    "nodeCount": 7143,
+    "edgeCount": 17105,
     "languages": [
       "javascript",
       "python",
@@ -72948,6 +72948,35 @@
       "origin": "ast",
       "body_hash": "33b9b114675c486cbf8d9de4a122b66fec567f06acf11b012c04ea0077881c92",
       "chars": 11466,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "name": "agent-http-do-repair-trace.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "span": "L1-L83",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "3132107ef6de6071eddbbc3387bd51261408753615ba271576fe855c4ba3b905",
+      "chars": 5475,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-repair-trace.test.ts#sendOriginatorCommand",
+      "name": "sendOriginatorCommand",
+      "kind": "function",
+      "path": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "span": "L21-L25",
+      "signature": "sendOriginatorCommand = async (command: string, args: Record<string, unknown> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "43c13646d0f3e0b6f8818f35e0895df0b6ec39c44f22ae0314cbd845c657509c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -172403,6 +172432,66 @@
     },
     {
       "source": "workers/noema/test/agent-http-do-rejections.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#sendOriginatorCommand",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/test/agent-http-do-repair-trace.test.ts#sendOriginatorCommand",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-repair-trace.test.ts",
       "target": "workers/noema/test/agent-http-do-fixture.ts",
       "relation": "imports",
       "confidence": "extracted"
