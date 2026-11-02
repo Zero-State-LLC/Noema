@@ -63,7 +63,7 @@ import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { parseWatchMode } from "./watch-mode";
-import { admitTestWorldId } from "./test-world";
+import { admitTestWorldId, isolatedWatchWorldId } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
 import { acceptProtocolWebSocket, protocolHello } from "./protocol-ws";
@@ -370,25 +370,35 @@ export default {
         }
       }
 
-      // Public WATCH projection (no auth — spectator)
+      // Public WATCH projection (no auth — spectator). The visitor's world header is never forwarded.
+      const configuredWatch = env.ISOLATED_WATCH_WORLD_ID;
+      const watchWorld = configuredWatch === undefined
+        ? (env.DEFAULT_WORLD_ID || "world-01")
+        : isolatedWatchWorldId(env.NOEMA_ENV, configuredWatch, env.DEFAULT_WORLD_ID);
+      const watchPath = ["/v1/watch/live", "/watch/live", "/v1/watch/map", "/watch/map.json", "/v1/watch/stream", "/watch/stream"].includes(path);
+      if (watchPath && configuredWatch !== undefined && !watchWorld) {
+        return cors(err("WORLD_FORBIDDEN", "isolated WATCH target unavailable", 503));
+      }
       if (request.method === "GET" && (path === "/v1/watch/live" || path === "/watch/live")) {
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const id = env.WORLD_DO.idFromName(watchWorld!);
         const stub = env.WORLD_DO.get(id);
-        const res = await stub.fetch("https://do/watch");
+        const res = await stub.fetch("https://do/watch", { headers: { "x-noema-world-id": watchWorld! } });
         const body = await res.json();
         return cors(json(body, res.status));
       }
       if (request.method === "GET" && (path === "/v1/watch/map" || path === "/watch/map.json")) {
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const id = env.WORLD_DO.idFromName(watchWorld!);
         const stub = env.WORLD_DO.get(id);
-        const res = await stub.fetch("https://do/watch-map");
+        const res = await stub.fetch("https://do/watch-map", { headers: { "x-noema-world-id": watchWorld! } });
         const body = await res.json();
         return cors(json(body, res.status));
       }
       if (path === "/v1/watch/stream" || path === "/watch/stream") {
-        const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
+        const id = env.WORLD_DO.idFromName(watchWorld!);
         const stub = env.WORLD_DO.get(id);
-        return stub.fetch(new Request("https://do/watch-stream", request));
+        const streamRequest = new Request("https://do/watch-stream", request);
+        streamRequest.headers.set("x-noema-world-id", watchWorld!);
+        return stub.fetch(streamRequest);
       }
 
       // ——— ADMIN API (operator token → admin-access JWT; never player tokens) ———

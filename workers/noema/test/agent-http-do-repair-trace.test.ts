@@ -6,6 +6,26 @@ import { fixtureWorld, harness, WORLD } from "./agent-http-do-fixture";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Agent HTTP to DO repair trace", () => {
+  it("binds the public isolated WATCH target on its first mounted load without trusting visitor headers", async () => {
+    const target = "test.hosted-canonical.watch-mounted";
+    const h = harness(fixtureWorld(), target, undefined, target);
+    const response = await h.hit("/v1/watch/live", undefined, undefined, "", { "x-noema-world-id": WORLD });
+    expect(response.status).toBe(200);
+    expect((await response.json() as { world_id: string }).world_id).toBe(target);
+    expect(h.calls.filter(c => c.path === "/watch")).toEqual([{ name: target, path: "/watch" }]);
+    expect(h.calls.filter(c => c.name === WORLD)).toEqual([]);
+    expect(h.writes.filter(c => c.name === WORLD)).toEqual([]);
+  });
+
+  it("rejects a mismatched stored world before public isolated WATCH can normalize or save it", async () => {
+    const target = "test.hosted-canonical.watch-mismatch";
+    const h = harness(fixtureWorld(), target, fixtureWorld(), target);
+    const response = await h.hit("/v1/watch/live");
+    expect(response.status).toBe(403);
+    expect(h.writes).toEqual([]);
+    expect((await h.persistedWorld(target))?.world_id).toBe(WORLD);
+  });
+
   it("retains a repaired public plate after the originating Agent leaves and the fixture recreates the DO", async () => {
     vi.stubGlobal("fetch", vi.fn(() => { throw new Error("external network forbidden"); }));
     const world = fixtureWorld();

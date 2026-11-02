@@ -73,6 +73,7 @@ import { buildRollbackEvidence } from "./rollback-evidence";
 import { buildCompatibilityEvidence } from "./compatibility-evidence";
 import {
   admitTestWorldId,
+  isolatedWatchWorldId,
   lifecycleRequestedWorldId,
   recoverBoundWorldId,
   resolveLoadWorldId,
@@ -274,6 +275,21 @@ export class NoemaWorldDO {
   private bindAdminGenesisWorld(request: Request): void {
     const headerWorld = (request.headers.get("x-noema-world-id") || "").trim();
     if (headerWorld) this.requestedWorldId = headerWorld;
+  }
+
+  private async bindIsolatedWatch(request: Request): Promise<Response | null> {
+    if (this.env.ISOLATED_WATCH_WORLD_ID === undefined) return null;
+    const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
+    if (!admitted || request.headers.get("x-noema-world-id") !== admitted) {
+      return Response.json({ error: { code: "WORLD_FORBIDDEN" } }, { status: 403 });
+    }
+    // A named DO is not a bound ledger: check retained and loaded identity before load() can save.
+    const stored = await this.state.storage.get<WorldState>("world");
+    if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+      return Response.json({ error: { code: "WORLD_FORBIDDEN" } }, { status: 403 });
+    }
+    this.bindAdminGenesisWorld(request);
+    return null;
   }
 
   private async watchSnapshot() {
@@ -512,9 +528,13 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/watch")) {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       return Response.json(await this.watchSnapshot());
     }
     if (request.method === "GET" && path.endsWith("/watch-map")) {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       const live = await this.watchSnapshot();
       const w = this.world;
       return Response.json(
@@ -537,6 +557,8 @@ export class NoemaWorldDO {
     }
 
     if (path.endsWith("/watch-stream") && request.headers.get("Upgrade") === "websocket") {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       const pair = new WebSocketPair();
       this.state.acceptWebSocket(pair[1]);
       try {

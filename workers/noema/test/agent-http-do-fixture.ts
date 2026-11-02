@@ -27,14 +27,15 @@ export function fixtureWorld(): WorldRuntime {
   };
 }
 
-export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime) {
+export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime, publicTarget?: string) {
   const calls: Array<{ name: string; path: string }> = [];
   const writes: Array<{ name: string; key: string }> = [];
   const instances = new Map<string, NoemaWorldDO>();
   const stores = new Map<string, DurableObjectState>();
   // Deliberately partial Cloudflare platform fakes. All application handlers are real.
   const env = {
-    NOEMA_ENV: "production", NOEMA_PROTOCOL_VERSION: "1", DEFAULT_WORLD_ID: WORLD,
+    NOEMA_ENV: publicTarget ? "test" : "production", NOEMA_PROTOCOL_VERSION: "1", DEFAULT_WORLD_ID: WORLD,
+    ...(publicTarget ? { ISOLATED_WATCH_WORLD_ID: publicTarget } : {}),
     TOKEN_SIGNING_SECRET: SIGNING,
     WORLD_DO: {
       idFromName: (name: string) => ({ name }),
