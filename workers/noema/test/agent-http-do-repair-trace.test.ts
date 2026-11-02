@@ -47,6 +47,15 @@ describe("Agent HTTP to DO repair trace", () => {
     expect((await h.persistedWorld(target))?.world_id).toBe(WORLD);
   });
 
+  it("rejects mismatched retained stream world before WebSocket acceptance or writes", async () => {
+    const target = "test.hosted-canonical.watch-stream-mismatch";
+    const h = harness(fixtureWorld(), target, fixtureWorld(), target);
+    const response = await h.hit("/v1/watch/stream", undefined, undefined, "", { Upgrade: "websocket" });
+    expect(response.status).toBe(403);
+    expect(h.writes).toEqual([]);
+    expect((await h.persistedWorld(target))?.world_id).toBe(WORLD);
+  });
+
   it("retains a repaired public plate after the originating Agent leaves and the fixture recreates the DO", async () => {
     vi.stubGlobal("fetch", vi.fn(() => { throw new Error("external network forbidden"); }));
     const world = fixtureWorld();
