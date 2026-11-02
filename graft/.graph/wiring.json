@@ -48608,8 +48608,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "ddc666066ac890895c95b40e17098379e0842d801e667adb2332625ea97e2a7e",
-      "chars": 14259,
+      "body_hash": "03a93d9c9db49f98c3e038e85e8f24967202e694b497ff52b6e633ca0e341c23",
+      "chars": 14317,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48637,7 +48637,7 @@
       "signature": "function ee(n,c,u)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "00d6f39df6e69741e6425381bb35adfd23ba5b924fb478b5aaa018fe48a664f5",
+      "body_hash": "d8ddadefd9d7585feabd14664b1c5e2afef735c5ea832be8f3de1949cbb5a53b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48693,7 +48693,7 @@
       "signature": "function K(n,c)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "1ebe3f48f8c8b1d28e9bd1833645775902db5c4960c2b7105b9c92093e6a9992",
+      "body_hash": "28907fabb17e160d9b7cad1e7f4013279fab5ba20c8911d9465813613730ce6f",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48713,20 +48713,6 @@
       "crux": null
     },
     {
-      "id": "workers/noema/public/assets/watch-fluid.js#K.M",
-      "name": "M",
-      "kind": "function",
-      "path": "workers/noema/public/assets/watch-fluid.js",
-      "span": "L1-L1",
-      "signature": "M=a",
-      "exported": false,
-      "origin": "ast",
-      "body_hash": "29494e490d660ddfe8232356bab9d2aa19f8c769002c54c0a138225a9b323a5c",
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
       "id": "workers/noema/public/assets/watch-fluid.js#K.R",
       "name": "R",
       "kind": "function",
@@ -48736,6 +48722,20 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "cd83ee75347b6e25dc2b88b0212bfeb998e9f7ee7202e7849f9a32ca70119199",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/public/assets/watch-fluid.js#K.S",
+      "name": "S",
+      "kind": "function",
+      "path": "workers/noema/public/assets/watch-fluid.js",
+      "span": "L1-L1",
+      "signature": "S=a",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d58097c6c3c937a85b910c4177668887a7c2f906d9f871dfe98c24be69d4ab22",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48791,7 +48791,7 @@
       "signature": "function Q(n,c,u)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "ee3bbe3008c315771c09a097cc31b92b8f65b41b04a9ade2fb248b4dba04dd07",
+      "body_hash": "d89cc7a3084b0de0b82dfd1b72addcf24473bf1307305baaba8a511431b8b3ca",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48805,7 +48805,7 @@
       "signature": "function se(n,c={})",
       "exported": false,
       "origin": "ast",
-      "body_hash": "de751d859f015e5a6f7f5fe9bbbefa94fed944655c789e351ce2905d30fe594d",
+      "body_hash": "558644193f3a93101b3c8d1d8365645e32f11e475a81713b2699cc42f7320f40",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48861,21 +48861,7 @@
       "signature": "function L(t)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "ccf7ebd46ac544c3cda2b1edddb9975bf9c530f26d942a77fc48c20313214efd",
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
-      "id": "workers/noema/public/assets/watch-fluid.js#se.M",
-      "name": "M",
-      "kind": "function",
-      "path": "workers/noema/public/assets/watch-fluid.js",
-      "span": "L2-L3",
-      "signature": "function M()",
-      "exported": false,
-      "origin": "ast",
-      "body_hash": "91bb14b5f8495311c4094d0a7f74352c62ad97f72a0a65b21e8138a23441885c",
+      "body_hash": "e2f533b7625301894c78f58a8236c0e9fb14329e549ba4c4283c805387317007",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48903,7 +48889,7 @@
       "signature": "function P(t)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "9f0dd659862385ee63e0571bfcdfa69f4b9ff1ffc3c8a830b8f74b671c7c00fc",
+      "body_hash": "60c6a6c62b025dcfd93b1488e9b968031d83c45cea9a4405f34970fdfbfe0d91",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48917,7 +48903,7 @@
       "signature": "function m(f)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "34151061a13cebbab21ab3028981c0540280ced50d56f2026a25e373d9ecc165",
+      "body_hash": "d9d5969bb6982e2abdeb48d19a17dee8b2aaa6a1195ba16be4d33776dc7ec807",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -48937,6 +48923,20 @@
       "crux": null
     },
     {
+      "id": "workers/noema/public/assets/watch-fluid.js#se.S",
+      "name": "S",
+      "kind": "function",
+      "path": "workers/noema/public/assets/watch-fluid.js",
+      "span": "L2-L3",
+      "signature": "function S()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c3a213f20897d301c2c7dd26933a3f963d568a978462843d397692e9f18660e8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/public/assets/watch-fluid.js#se.T",
       "name": "T",
       "kind": "function",
@@ -48945,7 +48945,7 @@
       "signature": "async function T()",
       "exported": false,
       "origin": "ast",
-      "body_hash": "c35e5979b549c5b51ed5a84636db200943f10512e7af1dc1166ecd6ed4fd5fcb",
+      "body_hash": "ed8330cc94e72546416ca81de7952309573ce2827dd06df10fc11c6ada97f361",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -49001,7 +49001,7 @@
       "signature": "function w()",
       "exported": false,
       "origin": "ast",
-      "body_hash": "611e3bb52ec0c1a73faca88a590ffa28876f717ce65a0bcc18aafb244080368c",
+      "body_hash": "32d6eaaa720850888db5724f82e416cfe4a0e4bb808112c632dd315e9ba41e67",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -49029,7 +49029,7 @@
       "signature": "function te(n,c)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "853e37e7ec4f29f1fbc517424f7ab0379276d43d34f57326f013eefa5a8f6320",
+      "body_hash": "0255cd7c1b3bba0adb6d74b313074cbc541e32c65e7b358b469ca8afc12735db",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -49071,7 +49071,7 @@
       "signature": "function X(n,c,u)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "7552a8be7e9205deb0ad2100c40e230bfdfd6b0e14f575cb9f9cc073a418ce77",
+      "body_hash": "59bca0682c117cce3cff50dd3b8e7d19d1bc1dfc8c56b80fb1895733b721778c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86505,12 +86505,12 @@
       "name": "watch-fluid.js",
       "kind": "file",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L1-L209",
+      "span": "L1-L215",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "49014ddec6cc35e516e766ca026fd85ccf07ff43146a0fda959996f3a7acba7c",
-      "chars": 9452,
+      "body_hash": "05e244740437004bb562f481e1bb719a42253cf9159ef403166e2651ae204569",
+      "chars": 9674,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86520,11 +86520,11 @@
       "name": "mountFluidStage",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L6-L205",
+      "span": "L6-L211",
       "signature": "function mountFluidStage(root, options = {})",
       "exported": true,
       "origin": "ast",
-      "body_hash": "3defa09852e0d3fdeb257e96ceded112211fb8b5aec1f996d15fc8e2016c162c",
+      "body_hash": "d8a46219bdb9f6092fd56acc7096e68ce5d143323dbc4f0c7746f294e223f76e",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86590,7 +86590,7 @@
       "name": "dispose",
       "kind": "method",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L199-L203",
+      "span": "L205-L209",
       "signature": "dispose()",
       "exported": true,
       "origin": "ast",
@@ -86618,11 +86618,11 @@
       "name": "ensureMap",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L101-L113",
+      "span": "L101-L118",
       "signature": "async function ensureMap()",
       "exported": true,
       "origin": "ast",
-      "body_hash": "b290198b9777d1f92fe2fc40359be85e6d36eba8c3df4061ec0ec9cc690df2d0",
+      "body_hash": "cd8999b4e4d6360aa57f792fa98b1b2a2fb7cf82fa6d495b96945c566f1914c7",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86632,7 +86632,7 @@
       "name": "focus",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L182-L186",
+      "span": "L188-L192",
       "signature": "function focus(roomId)",
       "exported": true,
       "origin": "ast",
@@ -86674,7 +86674,7 @@
       "name": "onReduce",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L187-L190",
+      "span": "L193-L196",
       "signature": "function onReduce()",
       "exported": true,
       "origin": "ast",
@@ -86688,7 +86688,7 @@
       "name": "setMode",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L114-L142",
+      "span": "L119-L147",
       "signature": "async function setMode(name)",
       "exported": true,
       "origin": "ast",
@@ -86702,7 +86702,7 @@
       "name": "current",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L121-L121",
+      "span": "L126-L126",
       "signature": "current = ()",
       "exported": true,
       "origin": "ast",
@@ -86730,11 +86730,11 @@
       "name": "update",
       "kind": "function",
       "path": "workers/noema/src/watch-fluid.js",
-      "span": "L143-L181",
+      "span": "L148-L187",
       "signature": "function update(snapshot)",
       "exported": true,
       "origin": "ast",
-      "body_hash": "c692a9c13963df631c437fe71bb4d967604fb67aac930535b802144f7dd5c69a",
+      "body_hash": "1dff26eefa777fc5c4faccaa699d93f5b9e4f832a97a4536f66a2157cf89a5a2",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104839,12 +104839,12 @@
       "name": "watch-fluid-lifecycle.test.js",
       "kind": "file",
       "path": "workers/noema/test/watch-fluid-lifecycle.test.js",
-      "span": "L1-L90",
+      "span": "L1-L129",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "cef4144910b5452cf0057d6a809806e85d215b1c73a40fe90a06c61f266978cb",
-      "chars": 4566,
+      "body_hash": "764d7406566778eb328c6b8e73937dd46f16576f07944c2c75c2be0353ce2c56",
+      "chars": 6384,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104869,10 +104869,10 @@
       "kind": "function",
       "path": "workers/noema/test/watch-fluid-lifecycle.test.js",
       "span": "L16-L46",
-      "signature": "function stageHarness()",
+      "signature": "function stageHarness(options = {})",
       "exported": false,
       "origin": "ast",
-      "body_hash": "ecb22e7b414ff67ba35ea67c63b6bf7ffdea9049383cb1f272ac25e741c4ee23",
+      "body_hash": "d43d699c23ee36893e5d4e7876d81f87529d536a350dc624570251499afd97ad",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -168356,13 +168356,13 @@
     },
     {
       "source": "workers/noema/public/assets/watch-fluid.js#K",
-      "target": "workers/noema/public/assets/watch-fluid.js#K.M",
+      "target": "workers/noema/public/assets/watch-fluid.js#K.R",
       "relation": "contains",
       "confidence": "extracted"
     },
     {
       "source": "workers/noema/public/assets/watch-fluid.js#K",
-      "target": "workers/noema/public/assets/watch-fluid.js#K.R",
+      "target": "workers/noema/public/assets/watch-fluid.js#K.S",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -168416,12 +168416,6 @@
     },
     {
       "source": "workers/noema/public/assets/watch-fluid.js#se",
-      "target": "workers/noema/public/assets/watch-fluid.js#se.M",
-      "relation": "contains",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/public/assets/watch-fluid.js#se",
       "target": "workers/noema/public/assets/watch-fluid.js#se.O",
       "relation": "contains",
       "confidence": "extracted"
@@ -168435,6 +168429,12 @@
     {
       "source": "workers/noema/public/assets/watch-fluid.js#se",
       "target": "workers/noema/public/assets/watch-fluid.js#se.R",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/public/assets/watch-fluid.js#se",
+      "target": "workers/noema/public/assets/watch-fluid.js#se.S",
       "relation": "contains",
       "confidence": "extracted"
     },

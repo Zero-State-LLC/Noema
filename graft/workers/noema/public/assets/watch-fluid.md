@@ -6,12 +6,12 @@
 - j · function · L1-L1 — function j(n)
 - K · function · L1-L2 — function K(n,c)
 - L · function · L1-L1 — L=a
-- M · function · L1-L1 — M=a
 - ne · function · L1-L1 — function ne(n,c)
 - oe · function · L1-L1 — function oe(n,c)
 - p · function · L1-L1 — function p(e)
 - Q · function · L1-L1 — function Q(n,c,u)
 - R · function · L1-L1 — R=(a,t,r)
+- S · function · L1-L1 — S=a
 - te · function · L1-L1 — function te(n,c)
 - V · function · L1-L1 — function V(n)
 - w · function · L1-L1 — w=a
@@ -19,7 +19,7 @@
 - Y · function · L1-L1 — function Y(n)
 - z · function · L1-L1 — function z(n,c,u)
 - ie · function · L2-L2 — function ie(n,c)
-- M · function · L2-L3 — function M()
+- S · function · L2-L3 — function S()
 - se · function · L2-L3 — function se(n,c={})
 - u · function · L2-L2 — u=t
 - dispose · method · L3-L3 — dispose()

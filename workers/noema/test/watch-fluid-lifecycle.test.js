@@ -13,7 +13,7 @@ function publicSnapshot(sequence, rooms) {
   return { projection: "public", world_id: "world.test", cycle: 1, sequence, rooms, recent_events: [] };
 }
 
-function stageHarness() {
+function stageHarness(options = {}) {
   const nodes = new Map();
   for (const id of ["watch-fluid-flat", "watch-fluid-gl", "watch-fluid-text", "watch-fluid-help", "watch-fluid-note"]) {
     nodes.set(id, { hidden: false, className: "", textContent: "", clientWidth: 0, clientHeight: 0,
@@ -38,7 +38,7 @@ function stageHarness() {
     },
     matchMedia: () => ({ matches: true, addEventListener() {}, removeEventListener() {} }),
     ResizeObserver: class { observe() {} disconnect() {} },
-    document: { fonts: { ready: Promise.resolve(), load: async () => [] } },
+    document: { fonts: { ready: Promise.resolve(), load: options.fontLoad || (async () => []) } },
     window: { dispatchEvent() {} }, Event: class { constructor(type) { this.type = type; } }, console,
     setTimeout, performance: { now: () => 0 }, devicePixelRatio: 1,
   });
@@ -61,6 +61,45 @@ describe("public WATCH 3D stage lifecycle", () => {
       h.controller.update(publicSnapshot(3, [room]));
       await vi.waitFor(() => expect(h.mounted).toHaveLength(2));
       expect(h.mounted[1].update).toHaveBeenCalled();
+      expect(h.root.dataset.renderer).toBe("map");
+    } finally { h.controller.dispose(); }
+  });
+
+  it("does not mount a stale map after rooms disappear while fonts load", async () => {
+    let releaseFonts;
+    const fonts = new Promise((resolve) => { releaseFonts = resolve; });
+    const h = stageHarness({ fontLoad: () => fonts });
+    const room = { room_id: "room.market", name: "Market", active: true, exits: [], entities: [], players_present: 1 };
+    try {
+      h.controller.update(publicSnapshot(1, [room]));
+      const initial = h.controller.setMode("map");
+      h.controller.update(publicSnapshot(2, []));
+      releaseFonts([]);
+      await initial;
+      expect(h.mounted).toHaveLength(0);
+      expect(h.root.dataset.renderer).toBe("flat");
+      h.controller.update(publicSnapshot(3, [room]));
+      await vi.waitFor(() => expect(h.mounted).toHaveLength(1));
+      expect(h.root.dataset.renderer).toBe("map");
+    } finally { h.controller.dispose(); }
+  });
+
+  it("only the newest load mounts when rooms return before the first load finishes", async () => {
+    const pending = [];
+    const h = stageHarness({ fontLoad: () => new Promise((resolve) => pending.push(resolve)) });
+    const room = { room_id: "room.market", name: "Market", active: true, exits: [], entities: [], players_present: 1 };
+    try {
+      h.controller.update(publicSnapshot(1, [room]));
+      const first = h.controller.setMode("map");
+      expect(pending).toHaveLength(1);
+      h.controller.update(publicSnapshot(2, []));
+      h.controller.update(publicSnapshot(3, [room]));
+      expect(pending).toHaveLength(2);
+      pending[1]([]);
+      await vi.waitFor(() => expect(h.mounted).toHaveLength(1));
+      pending[0]([]);
+      await first;
+      expect(h.mounted).toHaveLength(1);
       expect(h.root.dataset.renderer).toBe("map");
     } finally { h.controller.dispose(); }
   });

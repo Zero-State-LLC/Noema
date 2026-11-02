@@ -1,7 +1,7 @@
 # workers/noema/test/watch-fluid-lifecycle.test.js
 
 - publicSnapshot · function · L12-L14 — function publicSnapshot(sequence, rooms)
-- stageHarness · function · L16-L46 — function stageHarness()
+- stageHarness · function · L16-L46 — function stageHarness(options = {})
 - addEventListener · method · L39-L39 — addEventListener()
 - removeEventListener · method · L39-L39 — removeEventListener()
 - disconnect · method · L40-L40 — disconnect()

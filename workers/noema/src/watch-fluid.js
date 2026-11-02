@@ -101,14 +101,19 @@ export function mountFluidStage(root, options = {}) {
   async function ensureMap() {
     if (state.map) return state.map;
     if (state.mapFailed) throw new Error("Map unavailable");
-    if (!state.mapLoading) state.mapLoading = (async () => {
-      await Promise.race([document.fonts.load('500 64px "IBM Plex Mono"'), new Promise((resolve) => setTimeout(resolve, 1500))]);
-      const { mountStage } = await import("/assets/watch-fluid-map.js");
-      if (state.disposed) throw new Error("Disposed stage");
-      state.map = mountStage(gl, { layout: L, reducedMotion: reduce.matches, onLost: mapUnavailable });
-      if (state.snapshot) state.map.update(state.snapshot, mapEvents());
-      return state.map;
-    })();
+    if (!state.mapLoading) {
+      const loading = (async () => {
+        await Promise.race([document.fonts.load('500 64px "IBM Plex Mono"'), new Promise((resolve) => setTimeout(resolve, 1500))]);
+        const { mountStage } = await import("/assets/watch-fluid-map.js");
+        if (state.disposed || state.mapLoading !== loading || !state.snapshot?.rooms.length) {
+          throw new Error("Stale map load");
+        }
+        state.map = mountStage(gl, { layout: L, reducedMotion: reduce.matches, onLost: mapUnavailable });
+        state.map.update(state.snapshot, mapEvents());
+        return state.map;
+      })();
+      state.mapLoading = loading;
+    }
     return state.mapLoading;
   }
   async function setMode(name) {
@@ -166,6 +171,7 @@ export function mountFluidStage(root, options = {}) {
     if (!previous || previous.world_id !== next.world_id || previous.sequence !== next.sequence) {
       buildCells();
       if (!allowed.size) {
+        ++state.transition; // Cancel a pending map transition before its async load can mount.
         state.map?.dispose(); state.map = null; state.mapLoading = null;
         state.text = ""; state.cells = [];
         showRenderer("flat");
