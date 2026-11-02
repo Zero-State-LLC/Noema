@@ -66,7 +66,7 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActive
                     bag.set(k, structuredClone(v));
                   }
                 },
-              } } as unknown as DurableObjectState;
+              }, acceptWebSocket(_ws: WebSocket) {} } as unknown as DurableObjectState;
               stores.set(name, state);
             }
             instance = new NoemaWorldDO(state, env);

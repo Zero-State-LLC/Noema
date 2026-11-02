@@ -56,6 +56,36 @@ describe("Agent HTTP to DO repair trace", () => {
     expect((await h.persistedWorld(target))?.world_id).toBe(WORLD);
   });
 
+  it("binds mounted public stream to the configured target on first load", async () => {
+    const target = "test.hosted-canonical.watch-stream-mounted";
+    const sent: unknown[] = [];
+    const server = {
+      serializeAttachment(_value: unknown) {},
+      send(message: string) { sent.push(JSON.parse(message)); },
+    };
+    vi.stubGlobal("WebSocketPair", class {
+      0 = {};
+      1 = server;
+    });
+    const NativeResponse = Response;
+    vi.stubGlobal("Response", class extends NativeResponse {
+      constructor(body: BodyInit | null, init?: ResponseInit & { webSocket?: unknown }) {
+        super(body, { ...init, status: init?.status === 101 ? 200 : init?.status });
+        if (init?.status === 101) Object.defineProperty(this, "status", { value: 101 });
+      }
+    });
+    const h = harness(fixtureWorld(), target, undefined, target);
+    const response = await h.hit("/v1/watch/stream", undefined, undefined, "", {
+      Upgrade: "websocket", "x-noema-world-id": WORLD,
+    });
+    expect(response.status).toBe(101);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ world_id: target });
+    expect(h.calls.filter(c => c.path === "/watch-stream")).toEqual([{ name: target, path: "/watch-stream" }]);
+    expect(h.calls.filter(c => c.name === WORLD)).toEqual([]);
+    expect(h.writes.filter(c => c.name === WORLD)).toEqual([]);
+  });
+
   it("retains a repaired public plate after the originating Agent leaves and the fixture recreates the DO", async () => {
     vi.stubGlobal("fetch", vi.fn(() => { throw new Error("external network forbidden"); }));
     const world = fixtureWorld();
