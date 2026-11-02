@@ -398,6 +398,21 @@ export class NoemaWorldDO {
     const text = typeof message === "string" ? message : "";
     if (text === "pause") return;
     try {
+      // Hibernation discards instance fields; never let a retained socket load the default world.
+      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined) {
+        const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
+        const attachment = ws.deserializeAttachment() as unknown;
+        if (!admitted || !attachment || typeof attachment !== "object" ||
+            (attachment as { kind?: unknown }).kind !== "isolated-watch" ||
+            (attachment as { world_id?: unknown }).world_id !== admitted) {
+          throw new Error("isolated WATCH socket binding unavailable");
+        }
+        const stored = await this.state.storage.get<WorldState>("world");
+        if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+          throw new Error("isolated WATCH world mismatch");
+        }
+        this.requestedWorldId = admitted;
+      }
       ws.send(JSON.stringify(await this.watchSnapshot()));
     } catch {
       ws.send(JSON.stringify({ pin: "watch-live/1.0", freshness: "unavailable" }));
@@ -581,6 +596,10 @@ export class NoemaWorldDO {
       const forbidden = await this.bindIsolatedWatch(request);
       if (forbidden) return forbidden;
       const pair = new WebSocketPair();
+      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined) {
+        // Only the validated, configured target may survive on a hibernating socket.
+        pair[1].serializeAttachment({ kind: "isolated-watch", world_id: this.requestedWorldId });
+      }
       this.state.acceptWebSocket(pair[1]);
       try {
         pair[1].send(JSON.stringify(await this.watchSnapshot()));
