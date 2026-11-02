@@ -18,18 +18,18 @@ describe("Agent HTTP to DO repair trace", () => {
     const h = harness(world);
     const originator = await h.agent();
     const token = originator.access_token;
-    const send = async (command: string, args: Record<string, unknown> = {}) => {
+    const sendOriginatorCommand = async (command: string, args: Record<string, unknown> = {}) => {
       const response = await h.command(token, command, args);
       expect(response.status).toBe(200);
       return response.json() as Promise<{ ok: boolean; error?: { code: string }; events?: Array<{ event_type: string; payload?: Record<string, unknown> }>; observation?: { location?: { room_id: string; traces?: Array<{ kind: string; text: string; visibility: string }> } } }>;
     };
-    expect((await send("ENTER_WORLD")).ok).toBe(true);
-    expect((await send("LOOK")).observation?.location?.room_id).toBe("room.a");
-    expect((await send("INSPECT", { entity_id: "entity.relay-7" })).ok).toBe(true);
-    const harvest = await send("HARVEST", { entity_id: "entity.salvage-cache", amount: 1 });
+    expect((await sendOriginatorCommand("ENTER_WORLD")).ok).toBe(true);
+    expect((await sendOriginatorCommand("LOOK")).observation?.location?.room_id).toBe("room.a");
+    expect((await sendOriginatorCommand("INSPECT", { entity_id: "entity.relay-7" })).ok).toBe(true);
+    const harvest = await sendOriginatorCommand("HARVEST", { entity_id: "entity.salvage-cache", amount: 1 });
     expect(harvest.ok, JSON.stringify(harvest.error)).toBe(true);
     const before = (await h.persistedWorld())?.rooms["room.a"].entities.find(e => e.entity_id === "entity.relay-7")?.condition;
-    const repair = await send("REPAIR", { entity_id: "entity.relay-7" });
+    const repair = await sendOriginatorCommand("REPAIR", { entity_id: "entity.relay-7" });
     expect(repair.ok, JSON.stringify(repair.error)).toBe(true);
     expect(repair.events?.map(e => e.event_type)).toContain("ENTITY_UPDATE");
     const afterRepair = await h.persistedWorld();
@@ -44,7 +44,7 @@ describe("Agent HTTP to DO repair trace", () => {
         last_repair_handle: "Boundary",
       }),
     }));
-    const left = await send("LEAVE_WORLD");
+    const left = await sendOriginatorCommand("LEAVE_WORLD");
     expect(left.ok).toBe(true);
     expect(left.events?.map(e => e.event_type)).toContain("AGENT_LEFT_WORLD");
     expect((await h.persistedWorld())?.players[originator.player_id]?.entered).toBe(false);
