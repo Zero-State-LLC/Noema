@@ -118,7 +118,11 @@ describe("Agent HTTP bounded rejections", () => {
     expect(persisted.players["player.boundary"].budgets).toEqual(before.players["player.boundary"].budgets);
     const replay = await h.hit("/v1/command", request, token);
     expect(replay.status).toBe(200);
-    expect((await replay.json() as any).error?.code).toBe(rejected.error?.code);
+    const replayed = await replay.json() as any;
+    expect(replayed.ok).toBe(false);
+    expect(replayed.error?.code).toBe(rejected.error?.code);
+    expect(replayed.events ?? []).toEqual([]);
+    expect(JSON.stringify(replayed)).not.toMatch(/PRIVATE_RESTART_SENTINEL|player\.private-guess/);
     const afterReplay = (await h.persistedWorld())!;
     expect(afterReplay.sequence).toBe(before.sequence);
     expect(afterReplay.messages).toEqual(before.messages);
@@ -133,8 +137,12 @@ describe("Agent HTTP bounded rejections", () => {
     const recipient = await mintControllerToken(h.env, {
       handle: "Receiver", controllerType: "agent", playerId: "player.receiver",
     });
+    const bystander = await mintControllerToken(h.env, {
+      handle: "Bystander", controllerType: "agent", playerId: "player.bystander",
+    });
     expect((await h.command(sender.access_token, "ENTER_WORLD")).status).toBe(200);
     expect((await h.command(recipient.access_token, "ENTER_WORLD")).status).toBe(200);
+    expect((await h.command(bystander.access_token, "ENTER_WORLD")).status).toBe(200);
     const sent = await h.command(sender.access_token, "MESSAGE", {
       recipient_id: recipient.player_id, text: "PRIVATE_DELIVERED_SENTINEL",
     });
@@ -148,6 +156,9 @@ describe("Agent HTTP bounded rejections", () => {
     expect(JSON.stringify(await recipientLook.json())).toContain("PRIVATE_DELIVERED_SENTINEL");
     const senderLook = await h.command(sender.access_token, "LOOK");
     expect(JSON.stringify(await senderLook.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
+    const bystanderLook = await h.command(bystander.access_token, "LOOK");
+    expect(bystanderLook.status).toBe(200);
+    expect(JSON.stringify(await bystanderLook.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
     const live = await h.hit("/v1/watch/live");
     expect(live.status).toBe(200);
     expect(JSON.stringify(await live.json())).not.toContain("PRIVATE_DELIVERED_SENTINEL");
@@ -158,14 +169,22 @@ describe("Agent HTTP bounded rejections", () => {
     expect((await h.command(token, "ENTER_WORLD")).status).toBe(200);
     const before = (await h.persistedWorld())!;
     let commits = 0;
+    let headReads = 0;
     h.env.SUPABASE_URL = "https://settlement.invalid";
     h.env.SUPABASE_SERVICE_ROLE_KEY = "local-fixture-only";
-    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = new URL(input instanceof Request ? input.url : String(input));
       expect(url.origin).toBe("https://settlement.invalid");
-      if (url.pathname === "/rest/v1/noema_world_heads") return Response.json([]);
+      if (url.pathname === "/rest/v1/noema_world_heads") {
+        headReads++;
+        return Response.json([{ world_id: h.env.DEFAULT_WORLD_ID, cycle: before.cycle,
+          sequence: before.sequence, revision: 0, status: "ACTIVE", settlement_health: "HEALTHY",
+          state_json: structuredClone(before) }]);
+      }
       if (url.pathname === "/rest/v1/rpc/noema_commit_canonical_settlement") {
-        commits++; throw new Error("Rejected action must not reach RPC");
+        commits++;
+        const body = JSON.parse(String(init?.body));
+        return Response.json({ ok: true, revision: 1, sequence: body.p_state_json.sequence });
       }
       throw new Error("Unexpected local settlement request");
     }));
@@ -174,10 +193,16 @@ describe("Agent HTTP bounded rejections", () => {
     const body = await r.json() as any;
     expect(body.ok).toBe(false);
     expect(JSON.stringify(body)).not.toMatch(/PRIVATE_RPC_SENTINEL|player\.private-guess/);
+    expect(headReads).toBe(1);
     expect(commits).toBe(0);
     const after = (await h.persistedWorld())!;
     expect(after.sequence).toBe(before.sequence);
     expect(after.messages).toEqual(before.messages);
     expect(after.players["player.boundary"].budgets).toEqual(before.players["player.boundary"].budgets);
+    const accepted = await h.command(token, "WAIT");
+    expect(accepted.status).toBe(200);
+    expect((await accepted.json() as any).ok).toBe(true);
+    expect(headReads).toBeGreaterThan(1);
+    expect(commits).toBe(1);
   });
 });
