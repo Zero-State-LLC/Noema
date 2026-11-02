@@ -1,0 +1,37 @@
+# workers/noema/public/assets/watch-fluid.js
+
+- B · function · L1-L1 — function B(n)
+- ee · function · L1-L1 — function ee(n,c,u)
+- G · function · L1-L1 — function G(n,c)
+- j · function · L1-L1 — function j(n)
+- K · function · L1-L2 — function K(n,c)
+- L · function · L1-L1 — L=a
+- M · function · L1-L1 — M=a
+- ne · function · L1-L1 — function ne(n,c)
+- oe · function · L1-L1 — function oe(n,c)
+- p · function · L1-L1 — function p(e)
+- Q · function · L1-L1 — function Q(n,c,u)
+- R · function · L1-L1 — R=(a,t,r)
+- te · function · L1-L1 — function te(n,c)
+- V · function · L1-L1 — function V(n)
+- w · function · L1-L1 — w=a
+- X · function · L1-L1 — function X(n,c,u)
+- Y · function · L1-L1 — function Y(n)
+- z · function · L1-L1 — function z(n,c,u)
+- ie · function · L2-L2 — function ie(n,c)
+- M · function · L2-L3 — function M()
+- se · function · L2-L3 — function se(n,c={})
+- u · function · L2-L2 — u=t
+- dispose · method · L3-L3 — dispose()
+- E · function · L3-L3 — function E(t)
+- k · function · L3-L3 — function k()
+- L · function · L3-L3 — function L(t)
+- m · function · L3-L3 — function m(f)
+- o · function · L3-L3 — o=()
+- O · function · L3-L3 — function O()
+- P · function · L3-L3 — function P(t)
+- R · function · L3-L3 — function R()
+- T · function · L3-L3 — async function T()
+- v · function · L3-L3 — async function v(t)
+- w · function · L3-L3 — function w()
+- x · function · L3-L3 — function x(t)
