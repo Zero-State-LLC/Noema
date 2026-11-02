@@ -408,7 +408,7 @@ export class NoemaWorldDO {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    if (request.method === "POST" && path === "/isolated-instance/probe") {
+    if (request.method === "POST" && (path === "/isolated-instance/probe" || path === "/isolated-instance/evict")) {
       const requested = request.headers.get("x-noema-world-id") || "";
       const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, requested, this.env.DEFAULT_WORLD_ID);
       if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID) {
@@ -417,6 +417,13 @@ export class NoemaWorldDO {
       const stored = await this.state.storage.get<WorldState>("world");
       if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
         return Response.json({ ok: false }, { status: 403 });
+      }
+      if (path === "/isolated-instance/evict") {
+        // The deployed runtime supports retryAlarm; the checked-in generated type predates it.
+        (this.state.abort as (reason: string, options: { retryAlarm: boolean }) => void)(
+          "isolated verification reset", { retryAlarm: false },
+        );
+        throw new Error("DO abort unexpectedly returned");
       }
       return Response.json({ world_id: admitted, instance_id: this.instanceId });
     }

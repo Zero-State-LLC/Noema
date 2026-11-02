@@ -55,4 +55,21 @@ describe("isolated DO instance controls", () => {
     expect((await h.request("probe", DEFAULT)).status).toBe(403);
     expect(h.writes).toEqual([]);
   });
+  it("aborts an admitted test instance without writing storage", async () => {
+    const h = fixture();
+    await expect(h.request("evict")).rejects.toThrow("DO_RESET_FOR_TEST");
+    expect(h.reads).toEqual(["world"]);
+    expect(h.writes).toEqual([]);
+    expect(h.aborts).toEqual([{ reason: "isolated verification reset", options: { retryAlarm: false } }]);
+  });
+  it("never aborts production, default, or a mismatched stored world", async () => {
+    for (const h of [fixture({ production: true }), fixture({ storedWorld: DEFAULT })]) {
+      expect((await h.request("evict")).status).toBe(403);
+      expect(h.aborts).toEqual([]);
+      expect(h.writes).toEqual([]);
+    }
+    const h = fixture();
+    expect((await h.request("evict", DEFAULT)).status).toBe(403);
+    expect(h.aborts).toEqual([]);
+  });
 });
