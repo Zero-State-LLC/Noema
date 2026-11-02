@@ -1,6 +1,10 @@
 # Noema Repository Status
 
-## Current State (as of 2026-08-27)
+## Current #733 checkpoint (2026-11-02 UTC)
+
+The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) is the current bounded checkpoint for #733. [Runtime PR #756](https://github.com/Zero-State-LLC/Noema/pull/756) at `23441dbb4eaebc20a3b4b6896b9941aae38c8d6c` has green exact-head build/Worker CI and two independent technical reviews with no concrete code blocker, but **no eligible GitHub approval** (`REVIEW_REQUIRED`). Its staging binding is incomplete and no deployment, genuine Durable Object reset, post-command PostgreSQL settlement, or same-world real-browser WATCH has been verified. #733 stays open. The older sections below are dated historical snapshots, not current branch or hosted-acceptance claims.
+
+## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
 - **Recent Completion**:
   - Architecture Deepening v3.3 — Full Bundle Seam Coverage (merged via #594)
