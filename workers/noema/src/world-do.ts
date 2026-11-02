@@ -256,6 +256,7 @@ function locateInstitutionWatchPulse(
 }
 
 export class NoemaWorldDO {
+  private readonly instanceId = crypto.randomUUID();
   private state: DurableObjectState;
   private env: Env;
   private world: WorldState | null = null;
@@ -406,6 +407,19 @@ export class NoemaWorldDO {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (request.method === "POST" && path === "/isolated-instance/probe") {
+      const requested = request.headers.get("x-noema-world-id") || "";
+      const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, requested, this.env.DEFAULT_WORLD_ID);
+      if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const stored = await this.state.storage.get<WorldState>("world");
+      if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      return Response.json({ world_id: admitted, instance_id: this.instanceId });
+    }
 
     if (path.endsWith("/ratelimit") || path === "/ratelimit") {
       if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
