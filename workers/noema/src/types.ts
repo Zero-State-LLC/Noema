@@ -6,6 +6,8 @@ export interface Env {
   /** Cloudflare version_metadata: the running Worker Version. Read-only. */
   CF_VERSION?: { id: string; tag: string; timestamp: string };
   DEFAULT_WORLD_ID: string;
+  /** Optional public WATCH target, admitted only on a dedicated test Worker. */
+  ISOLATED_WATCH_WORLD_ID?: string;
   /** Static marketing splash + assets (wrangler [assets]). */
   ASSETS: Fetcher;
   /** Shared with Python IdentityService for controller access tokens. */

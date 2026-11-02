@@ -73,6 +73,7 @@ import { buildRollbackEvidence } from "./rollback-evidence";
 import { buildCompatibilityEvidence } from "./compatibility-evidence";
 import {
   admitTestWorldId,
+  isolatedWatchWorldId,
   lifecycleRequestedWorldId,
   recoverBoundWorldId,
   resolveLoadWorldId,
@@ -255,6 +256,7 @@ function locateInstitutionWatchPulse(
 }
 
 export class NoemaWorldDO {
+  private readonly instanceId = crypto.randomUUID();
   private state: DurableObjectState;
   private env: Env;
   private world: WorldState | null = null;
@@ -274,6 +276,21 @@ export class NoemaWorldDO {
   private bindAdminGenesisWorld(request: Request): void {
     const headerWorld = (request.headers.get("x-noema-world-id") || "").trim();
     if (headerWorld) this.requestedWorldId = headerWorld;
+  }
+
+  private async bindIsolatedWatch(request: Request): Promise<Response | null> {
+    if (this.env.ISOLATED_WATCH_WORLD_ID === undefined) return null;
+    const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
+    if (!admitted || request.headers.get("x-noema-world-id") !== admitted) {
+      return Response.json({ error: { code: "WORLD_FORBIDDEN" } }, { status: 403 });
+    }
+    // A named DO is not a bound ledger: check retained and loaded identity before load() can save.
+    const stored = await this.state.storage.get<WorldState>("world");
+    if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+      return Response.json({ error: { code: "WORLD_FORBIDDEN" } }, { status: 403 });
+    }
+    this.bindAdminGenesisWorld(request);
+    return null;
   }
 
   private async watchSnapshot() {
@@ -381,6 +398,21 @@ export class NoemaWorldDO {
     const text = typeof message === "string" ? message : "";
     if (text === "pause") return;
     try {
+      // Hibernation discards instance fields; never let a retained socket load the default world.
+      const attachment = ws.deserializeAttachment?.() as unknown;
+      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined || attachment != null) {
+        const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
+        if (!admitted || !attachment || typeof attachment !== "object" ||
+            (attachment as { kind?: unknown }).kind !== "isolated-watch" ||
+            (attachment as { world_id?: unknown }).world_id !== admitted) {
+          throw new Error("isolated WATCH socket binding unavailable");
+        }
+        const stored = await this.state.storage.get<WorldState>("world");
+        if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+          throw new Error("isolated WATCH world mismatch");
+        }
+        this.requestedWorldId = admitted;
+      }
       ws.send(JSON.stringify(await this.watchSnapshot()));
     } catch {
       ws.send(JSON.stringify({ pin: "watch-live/1.0", freshness: "unavailable" }));
@@ -390,6 +422,26 @@ export class NoemaWorldDO {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    if (request.method === "POST" && (path === "/isolated-instance/probe" || path === "/isolated-instance/evict")) {
+      const requested = request.headers.get("x-noema-world-id") || "";
+      const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, requested, this.env.DEFAULT_WORLD_ID);
+      if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const stored = await this.state.storage.get<WorldState>("world");
+      if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      if (path === "/isolated-instance/evict") {
+        // The deployed runtime supports retryAlarm; the checked-in generated type predates it.
+        (this.state.abort as (reason: string, options: { retryAlarm: boolean }) => void)(
+          "isolated verification reset", { retryAlarm: false },
+        );
+        throw new Error("DO abort unexpectedly returned");
+      }
+      return Response.json({ world_id: admitted, instance_id: this.instanceId });
+    }
 
     if (path.endsWith("/ratelimit") || path === "/ratelimit") {
       if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -512,9 +564,13 @@ export class NoemaWorldDO {
     }
 
     if (request.method === "GET" && path.endsWith("/watch")) {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       return Response.json(await this.watchSnapshot());
     }
     if (request.method === "GET" && path.endsWith("/watch-map")) {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       const live = await this.watchSnapshot();
       const w = this.world;
       return Response.json(
@@ -537,7 +593,13 @@ export class NoemaWorldDO {
     }
 
     if (path.endsWith("/watch-stream") && request.headers.get("Upgrade") === "websocket") {
+      const forbidden = await this.bindIsolatedWatch(request);
+      if (forbidden) return forbidden;
       const pair = new WebSocketPair();
+      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined) {
+        // Only the validated, configured target may survive on a hibernating socket.
+        pair[1].serializeAttachment({ kind: "isolated-watch", world_id: this.requestedWorldId });
+      }
       this.state.acceptWebSocket(pair[1]);
       try {
         pair[1].send(JSON.stringify(await this.watchSnapshot()));

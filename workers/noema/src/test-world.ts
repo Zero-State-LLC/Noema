@@ -52,10 +52,14 @@ export function withIsolatedBootstrapEvent<
   return [bootstrap, ...events];
 }
 
-/**
- * Admit only `test.hosted-canonical.<suffix>`.
- * Deny Perihelion, DEFAULT_WORLD_ID, and arbitrary ids before any DO lookup.
- */
+/** Select an explicitly admitted public WATCH target only on isolated test Workers. */
+export function isolatedWatchWorldId(envName: string, raw: string | undefined, defaultWorldId: string): string | null {
+  if (envName !== "test") return null;
+  const admitted = admitTestWorldId(raw, defaultWorldId);
+  return admitted.ok ? admitted.world_id : null;
+}
+
+/** Admit only test.hosted-canonical.<suffix>; deny default and Perihelion. */
 export function admitTestWorldId(raw: unknown, defaultWorldId?: string): WorldAdmission {
   const world_id = String(raw || "").trim();
   if (!world_id) return deny("world_id required");
