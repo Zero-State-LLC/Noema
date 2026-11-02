@@ -52,6 +52,7 @@ describe("Agent HTTP to DO repair trace", () => {
     const h = harness(fixtureWorld(), target, fixtureWorld(), target);
     const response = await h.hit("/v1/watch/stream", undefined, undefined, "", { Upgrade: "websocket" });
     expect(response.status).toBe(403);
+    expect(h.accepted).toEqual([]);
     expect(h.writes).toEqual([]);
     expect((await h.persistedWorld(target))?.world_id).toBe(WORLD);
   });
@@ -59,8 +60,9 @@ describe("Agent HTTP to DO repair trace", () => {
   it("binds mounted public stream to the configured target on first load", async () => {
     const target = "test.hosted-canonical.watch-stream-mounted";
     const sent: unknown[] = [];
+    const attachments: unknown[] = [];
     const server = {
-      serializeAttachment(_value: unknown) {},
+      serializeAttachment(value: unknown) { attachments.push(value); },
       send(message: string) { sent.push(JSON.parse(message)); },
     };
     vi.stubGlobal("WebSocketPair", class {
@@ -79,6 +81,8 @@ describe("Agent HTTP to DO repair trace", () => {
       Upgrade: "websocket", "x-noema-world-id": WORLD,
     });
     expect(response.status).toBe(101);
+    expect(attachments).toEqual([{ kind: "isolated-watch", world_id: target }]);
+    expect(h.accepted).toEqual([{ name: target, socket: server }]);
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({ world_id: target });
     expect(h.calls.filter(c => c.path === "/watch-stream")).toEqual([{ name: target, path: "/watch-stream" }]);
