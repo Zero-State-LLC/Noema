@@ -106,7 +106,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string } = {}) {
+async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown> } = {}) {
   const webgl2 = opts.webgl2 !== false;
   const byId = new Map<string, Node>();
   const head = makeNode("head", webgl2);
@@ -150,7 +150,7 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   g.location = { search, hash: "", protocol: "https:", host: "noema.test", href: "https://noema.test/watch" + search };
   g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, String(v)) };
   g.history = { replaceState: (_s: unknown, _t: string, url: string) => void urls.push(url) };
-  g.fetch = async () => ({ ok: true, statusText: "", json: async () => snapshot() });
+  g.fetch = async () => ({ ok: true, statusText: "", json: async () => opts.frame || snapshot() });
   g.setInterval = () => 0;
   g.CSS = { escape: (s: string) => s };
   const restore = () => { for (const k of keys) g[k] = saved[k]; };
@@ -294,6 +294,22 @@ describe("driven WATCH client with the 3D option", () => {
     } finally {
       c.restore();
     }
+  });
+
+  it("never hands a non-public last frame to the 3D stage on selection", async () => {
+    const frame = snapshot();
+    const c = await boot({ frame });
+    try {
+      frame.projection = "private";
+      await c.click("watch-mode-3d");
+      expect(c.stage.getAttribute("data-mode")).toBe("3d");
+      const [script] = c.fluidScripts();
+      expect(script).toBeTruthy();
+      c.installFluid();
+      script.fire("load");
+      await c.flush();
+      expect(c.fluidCalls.some((call) => call.kind === "update")).toBe(false);
+    } finally { c.restore(); }
   });
 
   it("boots straight into a stored 3D preference", async () => {

@@ -65,6 +65,20 @@ describe("public WATCH 3D stage lifecycle", () => {
     } finally { h.controller.dispose(); }
   });
 
+  it("defers the 3D mount until the first public room arrives", async () => {
+    const h = stageHarness();
+    try {
+      await h.controller.setMode("map");
+      expect(h.mounted).toHaveLength(0);
+      expect(h.root.dataset.renderer).toBe("flat");
+      const room = { room_id: "room.market", name: "Market", active: true, exits: [], entities: [], players_present: 1 };
+      h.controller.update(publicSnapshot(1, [room]));
+      await vi.waitFor(() => expect(h.mounted).toHaveLength(1));
+      expect(h.mounted[0].update).toHaveBeenCalledWith(expect.objectContaining({ sequence: 1 }), []);
+      expect(h.root.dataset.renderer).toBe("map");
+    } finally { h.controller.dispose(); }
+  });
+
   it("does not mount a stale map after rooms disappear while fonts load", async () => {
     let releaseFonts;
     const fonts = new Promise((resolve) => { releaseFonts = resolve; });

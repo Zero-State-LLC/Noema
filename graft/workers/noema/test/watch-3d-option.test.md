@@ -20,7 +20,7 @@
 - fire · method · L82-L82 — fire(type, ev)
 - FluidCall · type · L88-L88 — type FluidCall = { kind: string; arg?: unknown };
 - snapshot · function · L90-L107 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
-- boot · function · L109-L204 — async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string } = {})
+- boot · function · L109-L204 — async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown> } = {})
 - getElementById · method · L120-L127 — getElementById(id: string)
 - addEventListener · method · L133-L133 — addEventListener()
 - addEventListener · method · L140-L140 — addEventListener()

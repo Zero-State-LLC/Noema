@@ -640,7 +640,7 @@ export function watchHtml(opts?: { mode?: string }): string {
         fluid.stage = api.mount($("watch-fluid"), {
           onMode: function(next) { if (next !== "map") fluidFallback(); },
         });
-        if (state.last) fluid.stage.update(state.last);
+        if (state.last && state.last.projection === "public") fluid.stage.update(state.last);
         fluid.stage.setMode("map");
         if (fluid.stage && state.mapCamId) fluid.stage.focus(state.mapCamId);
       } catch (e) {
@@ -650,7 +650,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     function tryFluid() {
       if (state.mode !== "3d") return;
       if (fluid.failed || !fluidGlUsable()) { fluidFallback(); return; }
-      if (fluid.stage) { if (state.last) fluid.stage.update(state.last); return; }
+      if (fluid.stage) { if (state.last && state.last.projection === "public") fluid.stage.update(state.last); return; }
       if (window.NoemaWatchFluid) { mountFluid(); return; }
       if (fluid.loading) return;
       if (!document.head || !document.head.appendChild) { fluidFallback(); return; }

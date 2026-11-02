@@ -105,7 +105,7 @@ export function mountFluidStage(root, options = {}) {
       const loading = (async () => {
         await Promise.race([document.fonts.load('500 64px "IBM Plex Mono"'), new Promise((resolve) => setTimeout(resolve, 1500))]);
         const { mountStage } = await import("/assets/watch-fluid-map.js");
-        if (state.disposed || state.mapLoading !== loading || !state.snapshot?.rooms.length) {
+        if (state.disposed || state.mapLoading !== loading || (state.snapshot && !state.snapshot.rooms.length)) {
           throw new Error("Stale map load");
         }
         state.map = mountStage(gl, { layout: L, reducedMotion: reduce.matches, onLost: mapUnavailable });
@@ -126,6 +126,8 @@ export function mountFluidStage(root, options = {}) {
     const current = () => transition === state.transition && !state.disposed;
     try {
       if (mode === 2) {
+        // The mode may be selected before the first public projection arrives.
+        if (!state.snapshot?.rooms.length) return;
         const map = await ensureMap();
         if (!current()) return;
         if (state.renderer === "flat") {
