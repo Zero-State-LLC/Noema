@@ -21,6 +21,144 @@ function eastMove(r: ReturnType<typeof parseHumanCommand>) {
   if (r.action.verb === "MOVE") expect(r.action.arguments.direction).toBe("east");
 }
 
+function r4CommandFixture(): { world: WorldRuntime; agent: PlayerPrincipal } {
+  return {
+    world: {
+      world_id: "world.test",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub", name: "Grid Anchor", description: "A frontier anchor.",
+          exits: [
+            { direction: "north", to_room_id: "room.north", hidden: true },
+            { direction: "south", to_room_id: "room.south" },
+            { direction: "east", to_room_id: "room.east" },
+          ],
+          entities: [],
+        },
+        "room.north": { room_id: "room.north", name: "North", description: "Hidden.", exits: [], entities: [] },
+        "room.south": { room_id: "room.south", name: "South", description: "Hidden.", hidden: true, exits: [], entities: [] },
+        "room.east": { room_id: "room.east", name: "East", description: "Visible.", exits: [], entities: [] },
+      },
+      players: {}, trades: {}, messages: [], organizations: {},
+      seen_idempotency: {}, unsettled: [],
+    },
+    agent: {
+      player_id: "player.agent", agent_id: "agent.agent", session_id: "sess.test",
+      controller_id: "ctrl.agent.agent", controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1", authentication_context: "test",
+    },
+  };
+}
+
+describe("#733 R4 retained text-command safety", () => {
+  it("does not suggest a hidden exit on unknown text", async () => {
+    const { world, agent } = r4CommandFixture();
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.enter", idempotency_key: "r4.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "r4.unknown", idempotency_key: "r4.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("north");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("south");
+    expect(result.error?.message).toContain("move east");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
+  it("rejects a pending harvest pick after visible stock changes", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "ore-east", entity_type: "RESOURCE", stock_amount: 10 }),
+      enrichEntity({ entity_id: "b", label: "ore-west", entity_type: "RESOURCE", stock_amount: 10 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.enter", idempotency_key: "r4.stock.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.amb", idempotency_key: "r4.stock.amb", command: "LOOK", arguments: { line: "harvest ore" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].entities[0].stock_amount = 1;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const picked = await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.pick", idempotency_key: "r4.stock.pick", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(picked.events ?? []).toEqual([]);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
+  it("rejects a pending pick after harvestability changes", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "ore-east", entity_type: "RESOURCE", stock_amount: 0, regen_rate: 0 }),
+      enrichEntity({ entity_id: "b", label: "ore-west", entity_type: "RESOURCE", stock_amount: 0, regen_rate: 0 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.regen.enter", idempotency_key: "r4.regen.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.regen.amb", idempotency_key: "r4.regen.amb", command: "LOOK", arguments: { line: "inspect ore" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].entities[0].regen_rate = 1;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const picked = await applyWorldCommand(world, agent,
+      { request_id: "r4.regen.pick", idempotency_key: "r4.regen.pick", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(picked.events ?? []).toEqual([]);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
+  it("rejects a pending pick after same-ID relabel", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.enter", idempotency_key: "r4.pick.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.amb", idempotency_key: "r4.pick.amb", command: "LOOK", arguments: { line: "inspect relay" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].entities[0].label = "renamed-conduit";
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const pick = await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.stale", idempotency_key: "r4.pick.stale", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(pick.ok).toBe(false);
+    expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+    expect(pick.events ?? []).toEqual([]);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+});
+
 describe("GB-NOEMA-101 movement normalization", () => {
   it("maps e / east / go east / walk east / move east to the same MOVE", () => {
     for (const line of ["e", "east", "go east", "walk east", "move east", "move e", "go e", "walk e"]) {
@@ -317,7 +455,7 @@ describe("T0.6 ambiguity lifecycle", () => {
     expect(matchClarifyPick("3", pending)).toBeNull();
     expect(matchClarifyPick("relay", pending)).toBeNull();
     expect(observationFingerprint("room.hub", [{ entity_id: "b" }, { entity_id: "a" }])).toBe(
-      "room.hub#a|b",
+      '["room.hub",[["a","","",null,"",null,false,false],["b","","",null,"",null,false,false]]]',
     );
   });
 
