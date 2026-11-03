@@ -21,6 +21,62 @@ function eastMove(r: ReturnType<typeof parseHumanCommand>) {
   if (r.action.verb === "MOVE") expect(r.action.arguments.direction).toBe("east");
 }
 
+function r4CommandFixture(): { world: WorldRuntime; agent: PlayerPrincipal } {
+  return {
+    world: {
+      world_id: "world.test",
+      world_name: "Test Reach",
+      cycle: 0,
+      sequence: 0,
+      entry_room_id: "room.hub",
+      rooms: {
+        "room.hub": {
+          room_id: "room.hub", name: "Grid Anchor", description: "A frontier anchor.",
+          exits: [
+            { direction: "north", to_room_id: "room.north", hidden: true },
+            { direction: "south", to_room_id: "room.south" },
+            { direction: "east", to_room_id: "room.east" },
+          ],
+          entities: [],
+        },
+        "room.north": { room_id: "room.north", name: "North", description: "Hidden.", exits: [], entities: [] },
+        "room.south": { room_id: "room.south", name: "South", description: "Hidden.", hidden: true, exits: [], entities: [] },
+        "room.east": { room_id: "room.east", name: "East", description: "Visible.", exits: [], entities: [] },
+      },
+      players: {}, trades: {}, messages: [], organizations: {},
+      seen_idempotency: {}, unsettled: [],
+    },
+    agent: {
+      player_id: "player.agent", agent_id: "agent.agent", session_id: "sess.test",
+      controller_id: "ctrl.agent.agent", controller_type: "agent",
+      scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+      protocol_version: "1", authentication_context: "test",
+    },
+  };
+}
+
+describe("#733 R4 retained text-command safety", () => {
+  it("does not suggest a hidden exit on unknown text", async () => {
+    const { world, agent } = r4CommandFixture();
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.enter", idempotency_key: "r4.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "r4.unknown", idempotency_key: "r4.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("north");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("south");
+    expect(result.error?.message).toContain("move east");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+});
+
 describe("GB-NOEMA-101 movement normalization", () => {
   it("maps e / east / go east / walk east / move east to the same MOVE", () => {
     for (const line of ["e", "east", "go east", "walk east", "move east", "move e", "go e", "walk e"]) {

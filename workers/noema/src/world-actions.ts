@@ -2099,7 +2099,7 @@ export async function applyWorldCommand(
     })),
     selfId: principal.player_id,
     openTrades: Object.values(w.trades || {}),
-    exits: playRoom?.exits || [],
+    exits: playRoom ? publicExits(w, playRoom) : [],
   };
   const fp = observationFingerprint(playRoom?.room_id || "", parseCtx.entities);
   const plClarify = w.players[principal.player_id];
