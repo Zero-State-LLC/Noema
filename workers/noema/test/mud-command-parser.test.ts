@@ -131,6 +131,28 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
   });
 
+  it("rejects a pending pick when a public budget changes affordance availability", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "budget.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    expect((await command("budget.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+    world.players[agent.player_id].budgets.attention = 0;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const pick = await command("budget.pick", "1");
+    expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+    expect(pick.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+  });
+
   it("keeps a pending pick valid when public exits stay unchanged", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [

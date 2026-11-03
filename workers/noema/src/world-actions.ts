@@ -2138,6 +2138,7 @@ export async function applyWorldCommand(
       description: playRoom.description,
       harvest_pressure: w.co_evolution?.harvest_pressure?.[playRoom.room_id] || 0,
     } : undefined,
+    w.players[principal.player_id]?.budgets,
   );
   const plClarify = w.players[principal.player_id];
   const pickLabel = matchClarifyPick(rawLine, plClarify?.pending_clarify);
