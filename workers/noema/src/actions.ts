@@ -1035,6 +1035,7 @@ export function parseHumanCommand(
     selfId?: string;
     openTrades?: OpenTrade[];
     exits?: Array<{ direction: string }>;
+    hintCommands?: () => string[];
   } = {},
 ): ParseResult {
   const trimmed = line.trim();
@@ -2176,13 +2177,18 @@ function unknownCommandHint(
   ctx: {
     entities?: EntityRuntime[];
     exits?: Array<{ direction: string }>;
+    hintCommands?: () => string[];
   },
 ): string {
   const hints: string[] = ["help"];
-  const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
-  if (dir) hints.push(`move ${dir.toLowerCase()}`);
-  const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
-  if (lab) hints.push(`inspect ${lab}`);
+  if (ctx.hintCommands) {
+    hints.push(...ctx.hintCommands());
+  } else {
+    const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
+    if (dir) hints.push(`move ${dir.toLowerCase()}`);
+    const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
+    if (lab) hints.push(`inspect ${lab}`);
+  }
   return `Unknown command “${verb}”. Try: ${hints.slice(0, 3).join(" · ")}.`;
 }
 

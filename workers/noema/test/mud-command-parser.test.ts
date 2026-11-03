@@ -125,6 +125,63 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
   });
 
+  it("suggests only affordable public actions", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.hint.enter", idempotency_key: "r4.hint.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const player = world.players[agent.player_id];
+    player.budgets.energy = 0;
+    player.budgets.attention = 0;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(player.budgets);
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "r4.hint.unknown", idempotency_key: "r4.hint.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(result.error?.message).not.toContain("move east");
+    expect(result.error?.message).not.toContain("inspect scarred-conduit");
+    expect(result.error?.message).toContain("help");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("north");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("south");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("entity.relay-7");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(player.budgets).toEqual(beforeBudgets);
+
+    const fresh = r4CommandFixture();
+    fresh.world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.fresh.enter", idempotency_key: "r4.hint.fresh.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const available = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.fresh.unknown", idempotency_key: "r4.hint.fresh.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(available.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(available.error?.message).toContain("move east");
+    expect(available.error?.message).toContain("inspect scarred-conduit");
+
+    fresh.world.players[fresh.agent.player_id].budgets.energy = 0;
+    const inspectOnly = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.inspect", idempotency_key: "r4.hint.inspect", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(inspectOnly.error?.message).not.toContain("move east");
+    expect(inspectOnly.error?.message).toContain("inspect scarred-conduit");
+
+    fresh.world.players[fresh.agent.player_id].budgets.energy = 20;
+    fresh.world.players[fresh.agent.player_id].budgets.attention = 0;
+    const moveOnly = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.move", idempotency_key: "r4.hint.move", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(moveOnly.error?.message).toContain("move east");
+    expect(moveOnly.error?.message).not.toContain("inspect scarred-conduit");
+  });
+
   it("rejects a pending harvest pick after visible stock changes", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [

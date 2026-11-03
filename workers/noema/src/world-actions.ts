@@ -2100,6 +2100,12 @@ export async function applyWorldCommand(
     selfId: principal.player_id,
     openTrades: Object.values(w.trades || {}),
     exits: playRoom ? publicExits(w, playRoom) : [],
+    hintCommands: () => {
+      const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
+      const move = available.find((aff) => aff.action === "MOVE");
+      const inspect = available.find((aff) => aff.action === "INSPECT");
+      return [move?.cmd, inspect?.cmd].filter((cmd): cmd is string => Boolean(cmd));
+    },
   };
   const fp = observationFingerprint(
     playRoom?.room_id || "",
