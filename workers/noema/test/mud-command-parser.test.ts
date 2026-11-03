@@ -182,6 +182,31 @@ describe("#733 R4 retained text-command safety", () => {
     expect(moveOnly.error?.message).not.toContain("inspect scarred-conduit");
   });
 
+  it("does not suggest an affordable but ambiguous inspect command", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay", entity_type: "INFRASTRUCTURE" }),
+      enrichEntity({ entity_id: "b", label: "relay", entity_type: "INFRASTRUCTURE" }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.duplicate.enter", idempotency_key: "r4.duplicate.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const result = await command("r4.duplicate.unknown", "frobnicate");
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(result.error?.message).not.toContain("inspect relay");
+    expect(result.error?.message).toContain("move east");
+    expect(result.error?.message).toContain("help");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const ambiguous = await command("r4.duplicate.inspect", "inspect relay");
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+  });
+
   it("rejects a pending harvest pick after visible stock changes", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [
