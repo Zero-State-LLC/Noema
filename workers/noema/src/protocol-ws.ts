@@ -28,7 +28,7 @@ type Frame = {
 /** Hosted inhabit is structured commands only. Parser `arguments.line` is Chamber/test tooling. */
 export function stripHumanPlayLine(envelope: CommandEnvelope): CommandEnvelope {
   const args = envelope.arguments;
-  if (!args || typeof args.line !== "string") return envelope;
+  if (!args || !("line" in args || "_macro_step" in args)) return envelope;
   const next = { ...args };
   delete next.line;
   delete next._macro_step;

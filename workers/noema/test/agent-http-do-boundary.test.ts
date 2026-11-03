@@ -117,6 +117,130 @@ describe("Agent HTTP -> real World DO boundary", () => {
     expect(await look.json()).toMatchObject({ ok: true, observation: { location: { room_id: "room.a" } } });
   });
 
+  it("keeps structured JOIN canonical despite a retained alias to a macro", async () => {
+    const seed = harness();
+    const seedToken = (await seed.agent()).access_token;
+    expect((await seed.command(seedToken, "ENTER_WORLD")).status).toBe(200);
+    const retained = (await seed.persistedWorld())!;
+    retained.players["player.boundary"].command_aliases = { join: "do look; wait PRIVATE_RETAINED_MACRO_SENTINEL" };
+    const h = harness(retained);
+    const token = (await h.agent()).access_token;
+    const response = await h.command(token, "JOIN", {}, { request_id: "retained.join" });
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    const result = JSON.parse(text) as { ok: boolean; request_id: string; events?: unknown[]; observation?: { consequence?: string } };
+    expect(result.ok).toBe(true);
+    expect(result.request_id).toBe("retained.join");
+    expect(result.observation?.consequence).toBe("You are already in Transport fixture.");
+    expect(result.events || []).toEqual([]);
+    expect(text).not.toContain("PRIVATE_RETAINED_MACRO_SENTINEL");
+    const after = (await h.persistedWorld())!;
+    expect(after.sequence).toBe(retained.sequence);
+    expect(after.players["player.boundary"].room_id).toBe(retained.players["player.boundary"].room_id);
+    expect(after.players["player.boundary"].budgets).toEqual(retained.players["player.boundary"].budgets);
+    expect(after.players["player.boundary"].command_aliases).toEqual(retained.players["player.boundary"].command_aliases);
+    h.restart();
+    const fresh = await h.command(token, "LOOK");
+    expect(fresh.status).toBe(200);
+    expect(await fresh.json()).toMatchObject({ ok: true, observation: { location: { room_id: "room.a" } } });
+    expect((await h.persistedWorld())!.sequence).toBe(retained.sequence);
+  });
+
+  it("rejects a hosted alias command without changing world state", async () => {
+    const h = harness();
+    const token = (await h.agent()).access_token;
+    const entered = await h.command(token, "ENTER_WORLD");
+    expect((await entered.json() as { ok: boolean }).ok).toBe(true);
+    const before = await h.persistedWorld();
+    const writes = h.writes.length;
+    const response = await h.command(token, "alias set ii look PRIVATE_ALIAS_SENTINEL");
+    expect(response.status).toBe(400);
+    const text = await response.text();
+    expect(text).not.toContain("PRIVATE_ALIAS_SENTINEL");
+    expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
+    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: "rl:player:player.boundary" }]);
+    expect(await h.persistedWorld()).toEqual(before);
+  });
+
+  it("rejects a hosted text macro before it can execute any step", async () => {
+    const h = harness();
+    const token = (await h.agent()).access_token;
+    const entered = await h.command(token, "ENTER_WORLD");
+    expect((await entered.json() as { ok: boolean }).ok).toBe(true);
+    const before = await h.persistedWorld();
+    const writes = h.writes.length;
+    const response = await h.command(token, "do look; wait PRIVATE_MACRO_SENTINEL");
+    expect(response.status).toBe(400);
+    const text = await response.text();
+    expect(text).not.toContain("PRIVATE_MACRO_SENTINEL");
+    expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
+    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: "rl:player:player.boundary" }]);
+    expect(await h.persistedWorld()).toEqual(before);
+  });
+
+  it("rejects text directly at the Agent DO boundary before storage writes", async () => {
+    const h = harness();
+    const token = (await h.agent()).access_token;
+    const entered = await h.command(token, "ENTER_WORLD");
+    expect((await entered.json() as { ok: boolean }).ok).toBe(true);
+    const identity = await h.hit("/v1/me", undefined, token);
+    expect(identity.status).toBe(200);
+    const principal = (await identity.json() as { principal: Record<string, unknown> }).principal;
+    const before = await h.persistedWorld();
+    const writes = h.writes.length;
+    const stub = h.env.WORLD_DO.get(h.env.WORLD_DO.idFromName(WORLD));
+    const payload = { principal, world_id: WORLD,
+      envelope: { request_id: "direct-text-isolation-1", command: "alias set ii look PRIVATE_DIRECT_SENTINEL" } };
+    const response = await stub.fetch("https://do/command", {
+      method: "POST", body: JSON.stringify(payload),
+    });
+    expect(response.status).toBe(400);
+    const text = await response.text();
+    expect(text).not.toContain("PRIVATE_DIRECT_SENTINEL");
+    expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
+    h.restart();
+    const replay = await stub.fetch("https://do/command", { method: "POST", body: JSON.stringify(payload) });
+    expect(replay.status).toBe(400);
+    expect(await replay.text()).toBe(text);
+    expect(h.writes.slice(writes)).toEqual([]);
+    expect(await h.persistedWorld()).toEqual(before);
+  });
+
+  it("rejects a direct DO text-line carrier while keeping structured LOOK available", async () => {
+    const h = harness();
+    const token = (await h.agent()).access_token;
+    expect((await h.command(token, "ENTER_WORLD")).status).toBe(200);
+    const identity = await h.hit("/v1/me", undefined, token);
+    const principal = (await identity.json() as { principal: Record<string, unknown> }).principal;
+    const before = await h.persistedWorld();
+    const writes = h.writes.length;
+    const stub = h.env.WORLD_DO.get(h.env.WORLD_DO.idFromName(WORLD));
+    const rejected = await stub.fetch("https://do/command", { method: "POST", body: JSON.stringify({
+      principal, world_id: WORLD, envelope: { request_id: "direct-line-isolation-1", command: "LOOK",
+        arguments: { line: "move east PRIVATE_LINE_SENTINEL" } },
+    }) });
+    expect(rejected.status).toBe(400);
+    const text = await rejected.text();
+    expect(text).not.toContain("PRIVATE_LINE_SENTINEL");
+    expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
+    expect(h.writes.slice(writes)).toEqual([]);
+    expect(await h.persistedWorld()).toEqual(before);
+    const look = await h.command(token, "LOOK");
+    expect(look.status).toBe(200);
+    expect(await look.json()).toMatchObject({ ok: true, observation: { location: { room_id: "room.a" } } });
+  });
+
+  it("strips an unaccompanied macro-step marker from hosted LOOK", async () => {
+    const h = harness();
+    const token = (await h.agent()).access_token;
+    const entered = await h.command(token, "ENTER_WORLD");
+    expect((await entered.json() as { ok: boolean }).ok).toBe(true);
+    const response = await h.command(token, "LOOK", { _macro_step: true });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ ok: true,
+      observation: { location: { room_id: "room.a" } } });
+  });
+
   it("enforces room bounds and principal binding in the real World DO reducer", async () => {
     const h = harness();
     const token = (await h.agent()).access_token;
