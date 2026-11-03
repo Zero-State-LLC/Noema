@@ -56,6 +56,124 @@ function r4CommandFixture(): { world: WorldRuntime; agent: PlayerPrincipal } {
 }
 
 describe("#733 R4 retained text-command safety", () => {
+  it("rejects a pending pick after visible exits change", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.exit.enter", idempotency_key: "r4.exit.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await command("r4.exit.amb", "inspect relay");
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].exits = [
+      { direction: "west", to_room_id: "room.east" },
+      ...world.rooms["room.hub"].exits.filter((exit) => exit.hidden),
+    ];
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const picked = await command("r4.exit.pick", "1");
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(picked.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+  });
+
+  it("rejects a pending pick after the public room name or description changes", async () => {
+    for (const field of ["name", "description"] as const) {
+      const { world, agent } = r4CommandFixture();
+      world.rooms["room.hub"].entities = [
+        enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+        enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      ];
+      const command = (id: string, line: string) => applyWorldCommand(world, agent,
+        { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      expect((await applyWorldCommand(world, agent,
+        { request_id: "room.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      expect((await command("room.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+      world.rooms["room.hub"][field] = `Changed ${field}`;
+      const beforeSequence = world.sequence;
+      const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+      const pick = await command("room.pick", "1");
+      expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+      expect(pick.events ?? []).toEqual([]);
+      expect(world.sequence).toBe(beforeSequence);
+      expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+      expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    }
+  });
+
+  it("rejects a pending pick after public harvest pressure changes", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    world.co_evolution = { harvest_pressure: { "room.hub": 0 }, regen_mod: {}, protocol_strength: {} };
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    expect((await command("pressure.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+    world.co_evolution.harvest_pressure["room.hub"] = 7;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const pick = await command("pressure.pick", "1");
+    expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+    expect(pick.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+  });
+
+  it("rejects a pending pick when a public budget changes affordance availability", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "budget.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    expect((await command("budget.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+    world.players[agent.player_id].budgets.attention = 0;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const pick = await command("budget.pick", "1");
+    expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+    expect(pick.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+  });
+
+  it("keeps a pending pick valid when public exits stay unchanged", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.same.enter", idempotency_key: "r4.same.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.same.amb", idempotency_key: "r4.same.amb", command: "LOOK", arguments: { line: "inspect relay" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    const picked = await applyWorldCommand(world, agent,
+      { request_id: "r4.same.pick", idempotency_key: "r4.same.pick", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(picked.ok).toBe(true);
+    expect(picked.events?.some((event) => event.event_type === "INSPECT")).toBe(true);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+  });
+
   it("does not suggest a hidden exit on unknown text", async () => {
     const { world, agent } = r4CommandFixture();
     expect((await applyWorldCommand(world, agent,
@@ -74,6 +192,201 @@ describe("#733 R4 retained text-command safety", () => {
     expect(result.events ?? []).toEqual([]);
     expect(world.sequence).toBe(beforeSequence);
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
+  it("suggests only affordable public actions", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.hint.enter", idempotency_key: "r4.hint.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const player = world.players[agent.player_id];
+    player.budgets.energy = 0;
+    player.budgets.attention = 0;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(player.budgets);
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "r4.hint.unknown", idempotency_key: "r4.hint.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(result.error?.message).not.toContain("move east");
+    expect(result.error?.message).not.toContain("inspect scarred-conduit");
+    expect(result.error?.message).toContain("help");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("north");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("south");
+    expect(JSON.stringify(result).toLowerCase()).not.toContain("entity.relay-7");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(player.budgets).toEqual(beforeBudgets);
+
+    const fresh = r4CommandFixture();
+    fresh.world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.relay-7", label: "scarred-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.fresh.enter", idempotency_key: "r4.hint.fresh.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const available = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.fresh.unknown", idempotency_key: "r4.hint.fresh.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(available.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(available.error?.message).toContain("move east");
+    expect(available.error?.message).toContain("inspect scarred-conduit");
+
+    fresh.world.players[fresh.agent.player_id].budgets.energy = 0;
+    const inspectOnly = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.inspect", idempotency_key: "r4.hint.inspect", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(inspectOnly.error?.message).not.toContain("move east");
+    expect(inspectOnly.error?.message).toContain("inspect scarred-conduit");
+
+    fresh.world.players[fresh.agent.player_id].budgets.energy = 20;
+    fresh.world.players[fresh.agent.player_id].budgets.attention = 0;
+    const moveOnly = await applyWorldCommand(fresh.world, fresh.agent,
+      { request_id: "r4.hint.move", idempotency_key: "r4.hint.move", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true);
+    expect(moveOnly.error?.message).toContain("move east");
+    expect(moveOnly.error?.message).not.toContain("inspect scarred-conduit");
+  });
+
+  it("does not suggest MOVE under presence pressure", async () => {
+    const { world, agent } = r4CommandFixture();
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    world.players[agent.player_id].disabled_until_cycle = world.cycle + 3;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const unknown = await applyWorldCommand(world, agent,
+      { request_id: "pressure.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+    expect(unknown.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(unknown.error?.message).not.toContain("move east");
+    expect(unknown.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const move = await applyWorldCommand(world, agent,
+      { request_id: "pressure.move", command: "LOOK", arguments: { line: "move east" } }, async () => true);
+    expect(move.error?.code).toBe("FORBIDDEN");
+    expect(world.players[agent.player_id].room_id).toBe("room.hub");
+    world.players[agent.player_id].disabled_until_cycle = world.cycle;
+    const restored = await applyWorldCommand(world, agent,
+      { request_id: "pressure.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+    expect(restored.error?.message).toContain("move east");
+  });
+
+  it("suggests only a MOVE command that resolves to its public exit", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].exits = [{ direction: "e", to_room_id: "room.east" }];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "direction.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const unknown = await applyWorldCommand(world, agent,
+      { request_id: "direction.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+    expect(unknown.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(unknown.error?.message).not.toContain("move e");
+    expect(unknown.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const followed = await applyWorldCommand(world, agent,
+      { request_id: "direction.follow", command: "LOOK", arguments: { line: "move e" } }, async () => true);
+    expect(followed.error?.code).toBe("MOVE_REJECTED");
+    world.rooms["room.hub"].exits = [{ direction: "east", to_room_id: "room.east" }];
+    const restored = await applyWorldCommand(world, agent,
+      { request_id: "direction.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+    expect(restored.error?.message).toContain("move east");
+    const moved = await applyWorldCommand(world, agent,
+      { request_id: "direction.moved", command: "LOOK", arguments: { line: "move east" } }, async () => true);
+    expect(moved.ok).toBe(true);
+    expect(world.players[agent.player_id].room_id).toBe("room.east");
+  });
+
+  it("does not suggest an affordable but ambiguous inspect command", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay", entity_type: "INFRASTRUCTURE" }),
+      enrichEntity({ entity_id: "b", label: "relay", entity_type: "INFRASTRUCTURE" }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.duplicate.enter", idempotency_key: "r4.duplicate.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const result = await command("r4.duplicate.unknown", "frobnicate");
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(result.error?.message).not.toContain("inspect relay");
+    expect(result.error?.message).toContain("move east");
+    expect(result.error?.message).toContain("help");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const ambiguous = await command("r4.duplicate.inspect", "inspect relay");
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+  });
+
+  it("does not suggest inspect text that targets a different entity", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.article", label: "the relay", entity_type: "INFRASTRUCTURE" }),
+      enrichEntity({ entity_id: "entity.plain", label: "relay", entity_type: "INFRASTRUCTURE" }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.article.enter", idempotency_key: "r4.article.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const hint = await command("r4.article.unknown", "frobnicate");
+    expect(hint.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(hint.error?.message).not.toContain("inspect the relay");
+    expect(hint.error?.message).toContain("inspect relay");
+    expect(hint.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const followed = await command("r4.article.follow", "inspect the relay");
+    expect(followed.events?.some((event) => event.event_type === "INSPECT" && event.payload?.entity_id === "entity.plain")).toBe(true);
+  });
+
+  it("does not suggest a restricted route or sealed inspection", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.sealed", label: "sealed-relay", entity_type: "INFRASTRUCTURE", inspect_restricted_until: 10 }),
+      enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.legal.enter", idempotency_key: "r4.legal.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    world.access_restrictions = [{
+      restriction_id: "restr.east", scope: "EXIT", mode: "DENY", applies_to: "*",
+      room_id: "room.hub", exit_id: "east", expires_cycle: 10,
+    }];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const hint = await command("r4.legal.unknown", "frobnicate");
+    expect(hint.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(hint.error?.message).not.toContain("move east");
+    expect(hint.error?.message).not.toContain("inspect sealed-relay");
+    expect(hint.error?.message).toContain("inspect open-conduit");
+    expect(hint.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect((await command("r4.legal.east", "move east")).error?.code).toBe("MOVE_REJECTED");
+    expect((await command("r4.legal.sealed", "inspect sealed-relay")).error?.code).toBe("FORBIDDEN");
+
+    world.rooms["room.hub"].entities = [world.rooms["room.hub"].entities[0]];
+    const sealedOnly = await command("r4.legal.sealedonly", "frobnicate");
+    expect(sealedOnly.error?.message).not.toContain("inspect sealed-relay");
+    world.rooms["room.hub"].entities[0].inspect_restricted_until = 0;
+    world.access_restrictions = [];
+    const restored = await command("r4.legal.restored", "frobnicate");
+    expect(restored.error?.message).toContain("move east");
+    expect(restored.error?.message).toContain("inspect sealed-relay");
   });
 
   it("rejects a pending harvest pick after visible stock changes", async () => {
@@ -455,7 +768,7 @@ describe("T0.6 ambiguity lifecycle", () => {
     expect(matchClarifyPick("3", pending)).toBeNull();
     expect(matchClarifyPick("relay", pending)).toBeNull();
     expect(observationFingerprint("room.hub", [{ entity_id: "b" }, { entity_id: "a" }])).toBe(
-      '["room.hub",[["a","","",null,"",null,false,false],["b","","",null,"",null,false,false]]]',
+      '["room.hub",[["a","","",null,"",null,false,false],["b","","",null,"",null,false,false]],[]]',
     );
   });
 

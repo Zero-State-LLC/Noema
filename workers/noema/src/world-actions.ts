@@ -2100,8 +2100,46 @@ export async function applyWorldCommand(
     selfId: principal.player_id,
     openTrades: Object.values(w.trades || {}),
     exits: playRoom ? publicExits(w, playRoom) : [],
+    hintCommands: () => {
+      const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
+      const presenceDisabled = w.players[principal.player_id]?.disabled_until_cycle;
+      const move = available.find((aff) => {
+        if (aff.action !== "MOVE" || !aff.cmd || !aff.target_id || !playRoom ||
+            (presenceDisabled != null && w.cycle < presenceDisabled) ||
+            isAccessDenied(w, principal.player_id, playRoom.room_id, aff.target_id)) return false;
+        const parsedHint = parseHumanCommand(aff.cmd, { exits: parseCtx.exits });
+        if (!parsedHint.ok || parsedHint.action.verb !== "MOVE") return false;
+        const direction = parsedHint.action.arguments.direction;
+        return direction === aff.target_id &&
+          parseCtx.exits.some((exit) => exit.direction === direction);
+      });
+      const inspect = available.find((aff) => {
+        if (aff.action !== "INSPECT" || !aff.cmd || !aff.target_id) return false;
+        const entity = parseCtx.entities.find((e) => e.entity_id === aff.target_id);
+        if (!entity || (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until)) return false;
+        const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
+        return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
+          parsedHint.action.arguments.entity_id === aff.target_id;
+      });
+      return [move?.cmd, inspect?.cmd].filter((cmd): cmd is string => Boolean(cmd));
+    },
   };
-  const fp = observationFingerprint(playRoom?.room_id || "", parseCtx.entities);
+  const fp = observationFingerprint(
+    playRoom?.room_id || "",
+    parseCtx.entities,
+    parseCtx.exits.map((exit) => ({
+      direction: exit.direction,
+      to_room_id: exit.to_room_id,
+      to_room_name: w.rooms[exit.to_room_id]?.name,
+      two_way: hasPublicReverse(w.rooms[exit.to_room_id], playRoom?.room_id || ""),
+    })),
+    playRoom ? {
+      name: playRoom.name,
+      description: playRoom.description,
+      harvest_pressure: w.co_evolution?.harvest_pressure?.[playRoom.room_id] || 0,
+    } : undefined,
+    w.players[principal.player_id]?.budgets,
+  );
   const plClarify = w.players[principal.player_id];
   const pickLabel = matchClarifyPick(rawLine, plClarify?.pending_clarify);
   let parsed: ReturnType<typeof parseHumanCommand>;

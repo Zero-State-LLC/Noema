@@ -1035,6 +1035,7 @@ export function parseHumanCommand(
     selfId?: string;
     openTrades?: OpenTrade[];
     exits?: Array<{ direction: string }>;
+    hintCommands?: () => string[];
   } = {},
 ): ParseResult {
   const trimmed = line.trim();
@@ -2176,13 +2177,18 @@ function unknownCommandHint(
   ctx: {
     entities?: EntityRuntime[];
     exits?: Array<{ direction: string }>;
+    hintCommands?: () => string[];
   },
 ): string {
   const hints: string[] = ["help"];
-  const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
-  if (dir) hints.push(`move ${dir.toLowerCase()}`);
-  const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
-  if (lab) hints.push(`inspect ${lab}`);
+  if (ctx.hintCommands) {
+    hints.push(...ctx.hintCommands());
+  } else {
+    const dir = (ctx.exits || []).map((x) => String(x.direction || "").trim()).find(Boolean);
+    if (dir) hints.push(`move ${dir.toLowerCase()}`);
+    const lab = (ctx.entities || []).map((e) => e.label).find((s) => String(s || "").trim());
+    if (lab) hints.push(`inspect ${lab}`);
+  }
   return `Unknown command “${verb}”. Try: ${hints.slice(0, 3).join(" · ")}.`;
 }
 
@@ -2211,6 +2217,9 @@ export function observationFingerprint(
     regen_rate?: number;
     scar?: boolean;
   }>,
+  exits: Array<{ direction: string; to_room_id: string; to_room_name?: string; two_way?: boolean }> = [],
+  room?: { name?: string; description?: string; harvest_pressure?: number },
+  budgets?: Budgets,
 ): string {
   const visible = entities
     .map((e) => [
@@ -2224,7 +2233,15 @@ export function observationFingerprint(
       e.scar === true,
     ] as const)
     .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
-  return JSON.stringify([roomId, visible]);
+  const publicRoutes = exits
+    .map((e) => [e.direction, e.to_room_id, e.to_room_name ?? "", e.two_way === true] as const)
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  const location = room
+    ? [roomId, room.name ?? "", room.description ?? "", room.harvest_pressure ?? 0, visible, publicRoutes]
+    : [roomId, visible, publicRoutes];
+  return JSON.stringify(budgets
+    ? [...location, [budgets.attention, budgets.compute, budgets.energy, budgets.influence, budgets.storage]]
+    : location);
 }
 
 /** Numeric or unique visible label. Returns the chosen label, or null if this line is not a pick. */
