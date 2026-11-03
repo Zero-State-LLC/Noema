@@ -2218,6 +2218,7 @@ export function observationFingerprint(
     scar?: boolean;
   }>,
   exits: Array<{ direction: string; to_room_id: string; to_room_name?: string; two_way?: boolean }> = [],
+  room?: { name?: string; description?: string; harvest_pressure?: number },
 ): string {
   const visible = entities
     .map((e) => [
@@ -2234,7 +2235,9 @@ export function observationFingerprint(
   const publicRoutes = exits
     .map((e) => [e.direction, e.to_room_id, e.to_room_name ?? "", e.two_way === true] as const)
     .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
-  return JSON.stringify([roomId, visible, publicRoutes]);
+  return JSON.stringify(room
+    ? [roomId, room.name ?? "", room.description ?? "", room.harvest_pressure ?? 0, visible, publicRoutes]
+    : [roomId, visible, publicRoutes]);
 }
 
 /** Numeric or unique visible label. Returns the chosen label, or null if this line is not a pick. */
