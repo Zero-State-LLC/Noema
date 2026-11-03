@@ -231,6 +231,44 @@ describe("#733 R4 retained text-command safety", () => {
     expect(followed.events?.some((event) => event.event_type === "INSPECT" && event.payload?.entity_id === "entity.plain")).toBe(true);
   });
 
+  it("does not suggest a restricted route or sealed inspection", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.sealed", label: "sealed-relay", entity_type: "INFRASTRUCTURE", inspect_restricted_until: 10 }),
+      enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE" }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.legal.enter", idempotency_key: "r4.legal.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    world.access_restrictions = [{
+      restriction_id: "restr.east", scope: "EXIT", mode: "DENY", applies_to: "*",
+      room_id: "room.hub", exit_id: "east", expires_cycle: 10,
+    }];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const hint = await command("r4.legal.unknown", "frobnicate");
+    expect(hint.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(hint.error?.message).not.toContain("move east");
+    expect(hint.error?.message).not.toContain("inspect sealed-relay");
+    expect(hint.error?.message).toContain("inspect open-conduit");
+    expect(hint.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    expect((await command("r4.legal.east", "move east")).error?.code).toBe("MOVE_REJECTED");
+    expect((await command("r4.legal.sealed", "inspect sealed-relay")).error?.code).toBe("FORBIDDEN");
+
+    world.rooms["room.hub"].entities = [world.rooms["room.hub"].entities[0]];
+    const sealedOnly = await command("r4.legal.sealedonly", "frobnicate");
+    expect(sealedOnly.error?.message).not.toContain("inspect sealed-relay");
+    world.rooms["room.hub"].entities[0].inspect_restricted_until = 0;
+    world.access_restrictions = [];
+    const restored = await command("r4.legal.restored", "frobnicate");
+    expect(restored.error?.message).toContain("move east");
+    expect(restored.error?.message).toContain("inspect sealed-relay");
+  });
+
   it("rejects a pending harvest pick after visible stock changes", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [

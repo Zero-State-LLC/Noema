@@ -2102,9 +2102,14 @@ export async function applyWorldCommand(
     exits: playRoom ? publicExits(w, playRoom) : [],
     hintCommands: () => {
       const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
-      const move = available.find((aff) => aff.action === "MOVE");
+      const move = available.find((aff) =>
+        aff.action === "MOVE" && aff.target_id && playRoom &&
+        !isAccessDenied(w, principal.player_id, playRoom.room_id, aff.target_id),
+      );
       const inspect = available.find((aff) => {
         if (aff.action !== "INSPECT" || !aff.cmd || !aff.target_id) return false;
+        const entity = parseCtx.entities.find((e) => e.entity_id === aff.target_id);
+        if (!entity || (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until)) return false;
         const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
         return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
           parsedHint.action.arguments.entity_id === aff.target_id;
