@@ -207,6 +207,30 @@ describe("#733 R4 retained text-command safety", () => {
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
   });
 
+  it("does not suggest inspect text that targets a different entity", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.article", label: "the relay", entity_type: "INFRASTRUCTURE" }),
+      enrichEntity({ entity_id: "entity.plain", label: "relay", entity_type: "INFRASTRUCTURE" }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.article.enter", idempotency_key: "r4.article.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const hint = await command("r4.article.unknown", "frobnicate");
+    expect(hint.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(hint.error?.message).not.toContain("inspect the relay");
+    expect(hint.error?.message).toContain("inspect relay");
+    expect(hint.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+    const followed = await command("r4.article.follow", "inspect the relay");
+    expect(followed.events?.some((event) => event.event_type === "INSPECT" && event.payload?.entity_id === "entity.plain")).toBe(true);
+  });
+
   it("rejects a pending harvest pick after visible stock changes", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [

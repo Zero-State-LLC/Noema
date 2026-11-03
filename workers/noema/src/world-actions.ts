@@ -22,7 +22,6 @@ import {
   matchClarifyPick,
   observationFingerprint,
   parseHumanCommand,
-  resolveVisibleEntity,
   sanitizeTradeAmounts,
   titleCaseLabel,
   type Budgets,
@@ -2104,11 +2103,12 @@ export async function applyWorldCommand(
     hintCommands: () => {
       const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
       const move = available.find((aff) => aff.action === "MOVE");
-      const inspect = available.find((aff) =>
-        aff.action === "INSPECT" &&
-        aff.target_label &&
-        resolveVisibleEntity(aff.target_label, parseCtx.entities).ok,
-      );
+      const inspect = available.find((aff) => {
+        if (aff.action !== "INSPECT" || !aff.cmd || !aff.target_id) return false;
+        const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
+        return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
+          parsedHint.action.arguments.entity_id === aff.target_id;
+      });
       return [move?.cmd, inspect?.cmd].filter((cmd): cmd is string => Boolean(cmd));
     },
   };
