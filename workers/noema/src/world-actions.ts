@@ -2101,7 +2101,16 @@ export async function applyWorldCommand(
     openTrades: Object.values(w.trades || {}),
     exits: playRoom ? publicExits(w, playRoom) : [],
   };
-  const fp = observationFingerprint(playRoom?.room_id || "", parseCtx.entities);
+  const fp = observationFingerprint(
+    playRoom?.room_id || "",
+    parseCtx.entities,
+    parseCtx.exits.map((exit) => ({
+      direction: exit.direction,
+      to_room_id: exit.to_room_id,
+      to_room_name: w.rooms[exit.to_room_id]?.name,
+      two_way: hasPublicReverse(w.rooms[exit.to_room_id], playRoom?.room_id || ""),
+    })),
+  );
   const plClarify = w.players[principal.player_id];
   const pickLabel = matchClarifyPick(rawLine, plClarify?.pending_clarify);
   let parsed: ReturnType<typeof parseHumanCommand>;
