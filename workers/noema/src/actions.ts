@@ -2199,8 +2199,14 @@ export type ClarifyPending = {
   choices: string[];
 };
 
-export function observationFingerprint(roomId: string, entities: Array<{ entity_id: string }>): string {
-  return `${roomId}#${entities.map((e) => e.entity_id).sort().join("|")}`;
+export function observationFingerprint(
+  roomId: string,
+  entities: Array<{ entity_id: string; label?: string; condition?: number }>,
+): string {
+  const visible = entities
+    .map((e) => [e.entity_id, e.label ?? "", e.condition ?? null] as const)
+    .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  return JSON.stringify([roomId, visible]);
 }
 
 /** Numeric or unique visible label. Returns the chosen label, or null if this line is not a pick. */

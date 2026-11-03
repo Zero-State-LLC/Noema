@@ -75,6 +75,34 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.sequence).toBe(beforeSequence);
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
   });
+
+  it("rejects a pending pick after same-ID relabel", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.enter", idempotency_key: "r4.pick.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.amb", idempotency_key: "r4.pick.amb", command: "LOOK", arguments: { line: "inspect relay" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].entities[0].label = "renamed-conduit";
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const pick = await applyWorldCommand(world, agent,
+      { request_id: "r4.pick.stale", idempotency_key: "r4.pick.stale", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(pick.ok).toBe(false);
+    expect(pick.error?.code).toBe("STALE_CLARIFICATION");
+    expect(pick.events ?? []).toEqual([]);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
 });
 
 describe("GB-NOEMA-101 movement normalization", () => {
@@ -373,7 +401,7 @@ describe("T0.6 ambiguity lifecycle", () => {
     expect(matchClarifyPick("3", pending)).toBeNull();
     expect(matchClarifyPick("relay", pending)).toBeNull();
     expect(observationFingerprint("room.hub", [{ entity_id: "b" }, { entity_id: "a" }])).toBe(
-      "room.hub#a|b",
+      '["room.hub",[["a","",null],["b","",null]]]',
     );
   });
 
