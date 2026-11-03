@@ -2201,10 +2201,26 @@ export type ClarifyPending = {
 
 export function observationFingerprint(
   roomId: string,
-  entities: Array<{ entity_id: string; label?: string; condition?: number }>,
+  entities: Array<{
+    entity_id: string;
+    label?: string;
+    entity_type?: string;
+    condition?: number;
+    stock_resource?: string;
+    stock_amount?: number;
+    scar?: boolean;
+  }>,
 ): string {
   const visible = entities
-    .map((e) => [e.entity_id, e.label ?? "", e.condition ?? null] as const)
+    .map((e) => [
+      e.entity_id,
+      e.label ?? "",
+      e.entity_type ?? "",
+      e.condition ?? null,
+      e.stock_resource ?? "",
+      e.stock_amount ?? null,
+      e.scar === true,
+    ] as const)
     .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   return JSON.stringify([roomId, visible]);
 }

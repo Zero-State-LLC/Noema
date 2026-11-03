@@ -76,6 +76,33 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
   });
 
+  it("rejects a pending harvest pick after visible stock changes", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "ore-east", entity_type: "RESOURCE", stock_amount: 10 }),
+      enrichEntity({ entity_id: "b", label: "ore-west", entity_type: "RESOURCE", stock_amount: 10 }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.enter", idempotency_key: "r4.stock.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true)).ok).toBe(true);
+    const ambiguous = await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.amb", idempotency_key: "r4.stock.amb", command: "LOOK", arguments: { line: "harvest ore" } },
+      async () => true);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
+    world.rooms["room.hub"].entities[0].stock_amount = 1;
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const picked = await applyWorldCommand(world, agent,
+      { request_id: "r4.stock.pick", idempotency_key: "r4.stock.pick", command: "LOOK", arguments: { line: "1" } },
+      async () => true);
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(picked.events ?? []).toEqual([]);
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
   it("rejects a pending pick after same-ID relabel", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [
@@ -401,7 +428,7 @@ describe("T0.6 ambiguity lifecycle", () => {
     expect(matchClarifyPick("3", pending)).toBeNull();
     expect(matchClarifyPick("relay", pending)).toBeNull();
     expect(observationFingerprint("room.hub", [{ entity_id: "b" }, { entity_id: "a" }])).toBe(
-      '["room.hub",[["a","",null],["b","",null]]]',
+      '["room.hub",[["a","","",null,"",null,false],["b","","",null,"",null,false]]]',
     );
   });
 
