@@ -752,7 +752,7 @@ function officeTrackFor(req: NonNullable<OfficeRecord["requires_track"]>) {
   return req === "engineer" ? ENGINEER_TRACK : BROKER_TRACK;
 }
 
-export function isHarvestable(e: EntityRuntime): boolean {
+export function isHarvestable(e: Pick<EntityRuntime, "stock_amount" | "regen_rate" | "stock_resource">): boolean {
   // P0 improvement: advertise if current stock or regen potential (co-evolution)
   const hasStock = (e.stock_amount ?? 0) > 0;
   const canRegen = typeof e.regen_rate === "number" && e.regen_rate > 0;
@@ -2208,6 +2208,7 @@ export function observationFingerprint(
     condition?: number;
     stock_resource?: string;
     stock_amount?: number;
+    regen_rate?: number;
     scar?: boolean;
   }>,
 ): string {
@@ -2219,6 +2220,7 @@ export function observationFingerprint(
       e.condition ?? null,
       e.stock_resource ?? "",
       e.stock_amount ?? null,
+      isHarvestable(e),
       e.scar === true,
     ] as const)
     .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
