@@ -1,5 +1,12 @@
 # Admin Email Magic-Link Login Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> All six tasks shipped and were later extended. Admin stays separate from Player under RFC-0120.
+>
+> **PRs:** [#55](https://github.com/Zero-State-LLC/Noema/pull/55), [#64](https://github.com/Zero-State-LLC/Noema/pull/64), [#114](https://github.com/Zero-State-LLC/Noema/pull/114), [#448](https://github.com/Zero-State-LLC/Noema/pull/448); acceptance receipt [#645](https://github.com/Zero-State-LLC/Noema/pull/645) (`docs/evidence/C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md`).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Allowlisted operators log into `/admin` with a Supabase magic link; the Worker mints the existing `typ: admin-access` JWT; the operator-token field leaves the login page.

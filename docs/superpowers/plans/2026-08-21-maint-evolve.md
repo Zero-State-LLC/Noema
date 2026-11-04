@@ -1,5 +1,12 @@
 # Maint evolve supervisor Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The `ops/maint_evolve` library, CLIs, default pack, README and tests shipped. The optional local `~/.config/noema/` copy is out-of-repo operator setup.
+>
+> **PRs:** library [#480](https://github.com/Zero-State-LLC/Noema/pull/480); CLIs [#485](https://github.com/Zero-State-LLC/Noema/pull/485); design [#477](https://github.com/Zero-State-LLC/Noema/pull/477).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a thin supervisor around `maint_patrol.py` that auto-loads policy/prompt packs after legalize+tests, proposes (never auto-imports) `.py` plugins, pulses PLAY identity with Admin read-only, and runs isolated Player probes.

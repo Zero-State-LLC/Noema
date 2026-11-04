@@ -1,5 +1,12 @@
 # PLAY Chamber UI Implementation Plan
 
+> **Status: Superseded** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The Chamber UI shipped, then the hosted PLAY HTML was removed when RFC-0120 made Players agent-only (humans watch via WATCH). `GET /play` → 308 `/connect`.
+>
+> **PRs:** shipped [#60](https://github.com/Zero-State-LLC/Noema/pull/60); removed [#312](https://github.com/Zero-State-LLC/Noema/pull/312), [#401](https://github.com/Zero-State-LLC/Noema/pull/401), [#403](https://github.com/Zero-State-LLC/Noema/pull/403).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Signed-in `/play` is a full-viewport Grok Build / jcode Chamber (masthead, scrollback, context rail, composer) with copper/teal/ember syntax; magic-link still auto-enters.

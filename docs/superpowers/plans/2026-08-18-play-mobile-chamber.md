@@ -1,5 +1,12 @@
 # PLAY Mobile Chamber Implementation Plan
 
+> **Status: Superseded** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The phone Chamber shipped; its surface was deleted with the hosted PLAY HTML under RFC-0120.
+>
+> **PRs:** shipped [#272](https://github.com/Zero-State-LLC/Noema/pull/272); removed [#312](https://github.com/Zero-State-LLC/Noema/pull/312), [#403](https://github.com/Zero-State-LLC/Noema/pull/403).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** On a phone, PLAY Chamber shows only room + command; HERE/exits/acts/status live in one closed Here sheet.

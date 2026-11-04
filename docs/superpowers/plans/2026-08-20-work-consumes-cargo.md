@@ -1,5 +1,12 @@
 # Work Consumes Cargo Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> RFC-0118 work-consumes-cargo shipped (`cargo.ts`, REPAIR/CONSTRUCT/TRADE, `gc8-s6.test.ts`), including the UPGRADE/REPURPOSE/RESTORE remainder. Deploy pins are recorded in the UNFREEZE PRs and are not re-verified here.
+>
+> **PRs:** [#371](https://github.com/Zero-State-LLC/Noema/pull/371), [#373](https://github.com/Zero-State-LLC/Noema/pull/373); pins [#372](https://github.com/Zero-State-LLC/Noema/pull/372), [#374](https://github.com/Zero-State-LLC/Noema/pull/374); [Specs#185](https://github.com/Zero-State-LLC/Noema-Specs/pull/185), [Specs#189](https://github.com/Zero-State-LLC/Noema-Specs/pull/189), [Specs#190](https://github.com/Zero-State-LLC/Noema-Specs/pull/190).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the hosted loop so harvest fills hold, REPAIR/CONSTRUCT consume cargo (free storage up), and TRADE `storage:` moves occupied hold — no new verbs, no crypto.

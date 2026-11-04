@@ -1,5 +1,12 @@
 # GC1-S2 Engineer Quality Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> `repairConditionDelta` shipped with `workers/noema/test/gc1-s2.test.ts`. It has since gained a latency-gate `now` parameter.
+>
+> **PRs:** [#160](https://github.com/Zero-State-LLC/Noema/pull/160).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** Inline execution. Isolated worktrees from `origin/main`. Specs first, then Worker. Admin-squash from `--repo`. Deploy Worker only.
 
 **Goal:** Recognized Engineers restore +20 (15+5) on a repeat `REPAIR` of an asset they already repaired.

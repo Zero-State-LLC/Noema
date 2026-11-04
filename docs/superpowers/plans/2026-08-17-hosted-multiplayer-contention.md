@@ -1,5 +1,12 @@
 # Hosted Multiplayer Contention Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> RFC-0113 first-accepted harvest and mail coordination shipped in both repos. Later player-tempo and quorum work extends it. The Task 7 deploy pin is recorded by the RFC runtime audit and is not re-verified here as hosted evidence.
+>
+> **PRs:** [#253](https://github.com/Zero-State-LLC/Noema/pull/253); [Specs#158](https://github.com/Zero-State-LLC/Noema-Specs/pull/158).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Pin hosted multiplayer as first-accepted harvest on the World Durable Object, with existing `MESSAGE`/shout as coordination — no live chat, no cycle freeze, no new verbs.

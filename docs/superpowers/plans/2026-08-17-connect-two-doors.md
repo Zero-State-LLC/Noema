@@ -1,5 +1,12 @@
 # CONNECT two doors Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The two-door `/connect` first paint shipped, and the harness announce URI carries `?code=`.
+>
+> **PRs:** [#264](https://github.com/Zero-State-LLC/Noema/pull/264).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** `/connect` first paint is two equal doors (Approve a code / Use a token) with no lecture or curl.

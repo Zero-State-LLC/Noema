@@ -1,5 +1,12 @@
 # Hosted Device Enrollment Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> All five `/v1/auth/device` routes and the CONNECT approval panel shipped. Approval later moved from a human PLAY Bearer to admin-session or owner-email review, which was deliberate. The Task 6 pointer in `docs/AGENT-STAGE0.md` was not added; the flow is documented in the design spec and evidence docs instead.
+>
+> **PRs:** [#122](https://github.com/Zero-State-LLC/Noema/pull/122), [#134](https://github.com/Zero-State-LLC/Noema/pull/134); later [#561](https://github.com/Zero-State-LLC/Noema/pull/561), [#601](https://github.com/Zero-State-LLC/Noema/pull/601), [#648](https://github.com/Zero-State-LLC/Noema/pull/648), [#620](https://github.com/Zero-State-LLC/Noema/pull/620), [#624](https://github.com/Zero-State-LLC/Noema/pull/624).
+>
+> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Host `POST /v1/auth/device` on noema.guru so OpenClaw / Hermes / Grok Bot attach as a Controller after the human Player approves a short code — no browser automation of the PLAY letter.
