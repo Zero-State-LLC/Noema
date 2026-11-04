@@ -88,7 +88,7 @@ async function run(
     command,
     arguments: args,
   };
-  return applyWorldCommand(w, p, envl, async () => true);
+  return applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
 }
 
 function liveDo(world: WorldRuntime) {
@@ -118,7 +118,7 @@ function liveDo(world: WorldRuntime) {
         if (!body?.principal || !body.envelope) {
           return Response.json({ error: { code: "INVALID_REQUEST", message: "principal and envelope required" } }, { status: 400 });
         }
-        const result = await applyWorldCommand(world, body.principal, body.envelope, async () => true);
+        const result = await applyWorldCommand(world, body.principal, body.envelope, async () => true, { admission: "developer" });
         return Response.json(result, { status: result.ok ? 200 : 400 });
       },
     }),

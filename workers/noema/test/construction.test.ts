@@ -98,7 +98,7 @@ async function run(
     command,
     arguments: args,
   };
-  return applyWorldCommand(w, p, envl, async () => true);
+  return applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
 }
 
 describe("GC2-S0 catalog mapper", () => {

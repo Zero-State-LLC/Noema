@@ -1661,14 +1661,22 @@ const PROTOCOL_VERBS = new Set([
   "FOCUS",
 ]);
 
+/** Admission mode (see GLOSSARY.md). "hosted" is the default; only "developer" enables developer text tooling. */
+export type AdmissionMode = "hosted" | "developer";
+
 export type ApplyWorldCommandOptions = {
   /** Replay an admitted envelope during RESOLVE. Skip admission and apply verb effects. */
   tempoResolve?: boolean;
   /** Admission clock only. Never a reducer input. */
   now?: number;
   worldPaused?: boolean;
-  /** Hosted Agent dispatch bypasses retained developer text aliases, macros and picks. */
-  hostedStructured?: boolean;
+  /**
+   * Admission mode (see GLOSSARY.md). Absent means "hosted": hosted structured
+   * dispatch never reinterprets a command as text. Developer text tooling
+   * (aliases, macros, numeric clarify picks, free-text fallback) runs only when
+   * this is "developer".
+   */
+  admission?: AdmissionMode;
 };
 
 type SettleFn = (ev: {
@@ -1844,7 +1852,8 @@ export async function runPinnedTempoResolve(
   settle: SettleFn,
   now: number,
   commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>,
-  hostedStructured = false,
+  /** Admission mode forwarded to every replayed command. Absent means "hosted". */
+  opts: Pick<ApplyWorldCommandOptions, "admission"> = {},
 ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }> {
   const snapshot = structuredClone(w);
   markTempoResolveOpen(w, now, "freeze");
@@ -1876,7 +1885,7 @@ export async function runPinnedTempoResolve(
           }
           return true;
         },
-        { tempoResolve: true, now, hostedStructured },
+        { tempoResolve: true, now, admission: opts.admission ?? "hosted" },
       );
       allEvents.push(...(result.events || []));
       const idem = `${slot.principal.player_id}::${slot.idempotency_key}`;
@@ -1949,7 +1958,7 @@ async function admitPinnedTempoIfNeeded(
   const now = opts.now ?? Date.now();
   let adv = advanceTempoAdmissionClock(w, now);
   if (adv.should_resolve) {
-    const resolved = await runPinnedTempoResolve(w, settle, now, undefined, opts.hostedStructured);
+    const resolved = await runPinnedTempoResolve(w, settle, now, undefined, { admission: opts.admission });
     if (!resolved.ok) return resolved.result;
     adv = advanceTempoAdmissionClock(w, now);
   }
@@ -1968,7 +1977,7 @@ async function admitPinnedTempoIfNeeded(
   const pending = success(w, principal, request_id, [], "Action accepted for this cycle.", false);
   w.seen_idempotency[idem] = pending;
   if (!shouldFreezeTempo(w, now)) return pending;
-  const resolved = await runPinnedTempoResolve(w, settle, now, undefined, opts.hostedStructured);
+  const resolved = await runPinnedTempoResolve(w, settle, now, undefined, { admission: opts.admission });
   if (!resolved.ok) return resolved.result;
   const applied = w.seen_idempotency[idem] || pending;
   return { ...applied, events: resolved.events };
@@ -2014,7 +2023,7 @@ export async function applyWorldCommand(
       ? String((envl.arguments as { line?: string }).line)
       : envl.command;
   let textLine = rawLine;
-  if (!opts?.hostedStructured) {
+  if (opts?.admission === "developer") {
     const aliasCmd = parseAliasCommand(textLine);
     if (aliasCmd) {
       const plA = ensurePlayer(w, principal, w.entry_room_id);
@@ -2146,7 +2155,7 @@ export async function applyWorldCommand(
     w.players[principal.player_id]?.budgets,
   );
   const plClarify = w.players[principal.player_id];
-  const pickLabel = opts?.hostedStructured ? null : matchClarifyPick(rawLine, plClarify?.pending_clarify);
+  const pickLabel = opts?.admission === "developer" ? matchClarifyPick(rawLine, plClarify?.pending_clarify) : null;
   let parsed: ReturnType<typeof parseHumanCommand>;
   if (pickLabel && plClarify?.pending_clarify) {
     if (plClarify.pending_clarify.fingerprint !== fp) {
@@ -2172,7 +2181,7 @@ export async function applyWorldCommand(
       return result;
     }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
-  } else if (!opts?.hostedStructured && (typeof rawArgs.line === "string" || textLine !== rawLine)) {
+  } else if (opts?.admission === "developer" && (typeof rawArgs.line === "string" || textLine !== rawLine)) {
     parsed = parseHumanCommand(textLine, parseCtx);
   } else {
     parsed = normalizeStructuredCommand(envl.command, rawArgs);
@@ -2181,7 +2190,7 @@ export async function applyWorldCommand(
   // Text-line fallback: never for protocol verbs (T0.8). Human lines have spaces or are not verbs.
   const protocolCmd = String(envl.command || "").toUpperCase();
   const looksLikeTextLine = /\s/.test(String(envl.command || "")) || !PROTOCOL_VERBS.has(protocolCmd);
-  if (!opts?.hostedStructured && !parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
+  if (opts?.admission === "developer" && !parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
     parsed = parseHumanCommand(envl.command, parseCtx);
   }
 

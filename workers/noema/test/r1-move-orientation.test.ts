@@ -64,7 +64,7 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
     command,
     arguments: args,
   };
-  return applyWorldCommand(w, p, envl, async () => true);
+  return applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
 }
 
 describe("R1 MOVE destination orientation", () => {
@@ -102,10 +102,10 @@ describe("R1 MOVE destination orientation", () => {
       command: "MOVE",
       arguments: { direction: "east" },
     };
-    const first = await applyWorldCommand(w, p, envl, async () => true);
+    const first = await applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
     expect(first.ok).toBe(true);
     const beforeReplay = { sequence: w.sequence, budgets: { ...w.players[p.player_id].budgets } };
-    const replay = await applyWorldCommand(w, p, envl, async () => { throw new Error("replay must not settle"); });
+    const replay = await applyWorldCommand(w, p, envl, async () => { throw new Error("replay must not settle"); }, { admission: "developer" });
     expect(replay).toEqual(first);
     expect(replay.observation?.play_text).toMatch(/HAPPENED\nYou move east\.\nok/);
     expect(w.sequence).toBe(beforeReplay.sequence);
@@ -146,7 +146,7 @@ describe("R1 MOVE destination orientation", () => {
       command: "MOVE",
       arguments: { line: "move east" },
     };
-    const moved = await applyWorldCommand(w, p, envl, async () => { settlements += 1; return true; });
+    const moved = await applyWorldCommand(w, p, envl, async () => { settlements += 1; return true; }, { admission: "developer" });
     expect(moved.ok).toBe(true);
     expect(moved.observation?.play_text).toMatch(/HAPPENED\nYou move east\.\nok\nYou arrive at Coldline\. Energy −1\./);
     expect(moved.observation?.location?.name).toBe("Coldline");
@@ -154,7 +154,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.players[p.player_id].budgets.attention).toBe(before.attention);
     expect(settlements).toBe(1);
     expect(moved.events?.some((e) => e.event_type === "LOOK")).toBe(false);
-    const replay = await applyWorldCommand(w, p, envl, async () => { throw new Error("replay must not settle"); });
+    const replay = await applyWorldCommand(w, p, envl, async () => { throw new Error("replay must not settle"); }, { admission: "developer" });
     expect(replay).toEqual(moved);
     expect(settlements).toBe(1);
   });
@@ -524,7 +524,7 @@ describe("R1 MOVE destination orientation", () => {
       request_id: `r.carrier.${nonce}`,
       idempotency_key: `i.carrier.${nonce}`,
       command, arguments: line ? { line } : {},
-    }, async () => true);
+    }, async () => true, { admission: "developer" });
     expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
     expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
     expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
@@ -548,7 +548,7 @@ describe("R1 MOVE destination orientation", () => {
     const r = await applyWorldCommand(w, p, {
       request_id: `r.entity.${nonce}`, idempotency_key: `i.entity.${nonce}`,
       command, arguments: line ? { line } : {},
-    }, async () => true);
+    }, async () => true, { admission: "developer" });
     expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
     expect(r.observation?.play_text).toContain(`HAPPENED\nYou try to ${attempted}.\nfail\nYou do not see that here. Nothing changes.`);
     expect(JSON.stringify(r)).not.toContain("entity.private-guess");
@@ -804,7 +804,7 @@ describe("R1 MOVE destination orientation", () => {
       command: "MESSAGE",
       arguments: { recipient_id: b.player_id, text: "private-immediate-sentinel" },
     };
-    const r = await applyWorldCommand(w, a, envl, async () => true);
+    const r = await applyWorldCommand(w, a, envl, async () => true, { admission: "developer" });
     expect(r.ok).toBe(true);
     expect(r.events?.map((e) => e.event_type)).toEqual(["MESSAGE", "MESSAGE_DELIVERED"]);
     expect(w.players[a.player_id].budgets.compute).toBe(beforeCompute - 1);
@@ -813,7 +813,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.observation?.play_text).toMatch(/\ninspect scarred-conduit$/);
     expect(JSON.stringify(r.observation)).not.toContain("private-immediate-sentinel");
     const beforeReplay = { sequence: w.sequence, budgets: { ...w.players[a.player_id].budgets } };
-    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); });
+    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); }, { admission: "developer" });
     expect(replay).toEqual(r);
     expect(w.sequence).toBe(beforeReplay.sequence);
     expect(w.players[a.player_id].budgets).toEqual(beforeReplay.budgets);
@@ -883,7 +883,7 @@ describe("R1 MOVE destination orientation", () => {
       command: "MESSAGE",
       arguments: { recipient_id: b.player_id, text: "secret-sentinel" },
     };
-    const r = await applyWorldCommand(w, a, envl, async () => true);
+    const r = await applyWorldCommand(w, a, envl, async () => true, { admission: "developer" });
     expect(r.ok).toBe(true);
     expect(r.observation?.play_text).toMatch(/HAPPENED\nYou message\.\npartial\nMessage sent\. Delivery is delayed\./);
     expect(JSON.stringify(r.observation)).not.toMatch(/secret-sentinel|Message delivered/);
@@ -891,7 +891,7 @@ describe("R1 MOVE destination orientation", () => {
     expect(r.events?.some((e) => e.event_type === "MESSAGE_DELIVERED")).toBe(false);
     expect(w.pending_messages?.length).toBe(1);
     const beforeReplay = { sequence: w.sequence, budgets: { ...w.players[a.player_id].budgets } };
-    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); });
+    const replay = await applyWorldCommand(w, a, envl, async () => { throw new Error("replay must not settle"); }, { admission: "developer" });
     expect(replay).toEqual(r);
     expect(w.pending_messages).toHaveLength(1);
     expect(w.sequence).toBe(beforeReplay.sequence);

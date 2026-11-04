@@ -66,7 +66,7 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: R
     command,
     arguments: args,
   };
-  return applyWorldCommand(w, p, envl, async () => true);
+  return applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
 }
 
 async function seatGrant(w: WorldRuntime, founder: PlayerPrincipal): Promise<string> {

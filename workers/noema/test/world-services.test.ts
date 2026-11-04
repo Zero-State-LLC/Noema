@@ -97,7 +97,7 @@ describe("World Service consult is non-mutating", () => {
       request_id: "r1",
       command: "talk relay keeper",
       arguments: { line: "talk relay keeper" },
-    }, async () => true);
+    }, async () => true, { admission: "developer" });
     expect(res.ok).toBe(true);
     expect(res.events || []).toHaveLength(0);
     expect(w.sequence).toBe(seq);
