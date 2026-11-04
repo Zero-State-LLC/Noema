@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8667,
-    "edgeCount": 19048,
+    "nodeCount": 8679,
+    "edgeCount": 19075,
     "languages": [
       "javascript",
       "python",
@@ -92920,6 +92920,133 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "name": "agent-hosted-ingress-isolation.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L1-L202",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "34002ba53bda86dbe2f0f47abf0c2fed7c49ee997931ad327daaddb7a7c10473",
+      "chars": 11273,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#op",
+      "name": "op",
+      "kind": "function",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L107-L109",
+      "signature": "op = (request_id: string, command: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0cef2b7f334df7be5585bc29e60607b303359beafe591bf80d3bdb29d0a9e785",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "name": "protocolSocket",
+      "kind": "function",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L42-L67",
+      "signature": "function protocolSocket()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "94d72ec8017c0aa6149dace7945efb29cca1340e182ae579dd1ba9cf5848f064",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.accept",
+      "name": "accept",
+      "kind": "method",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L46-L46",
+      "signature": "accept()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a4e3e3298cd2f6207a63f02017180e7582e0a9dde28010a0df5dc0fa5fb387a4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.addEventListener",
+      "name": "addEventListener",
+      "kind": "method",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L47-L47",
+      "signature": "addEventListener(type: string, fn: (evt: { data: string }) => void)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "740fe2e221bf1c7c6ae356d1b8ba8fcb52234b9343e87e895e0ad77b3026fefa",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.constructor",
+      "name": "constructor",
+      "kind": "method",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L53-L56",
+      "signature": "constructor(body: BodyInit | null, init?: ResponseInit & { webSocket?: unknown })",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e7214dee8ded2fda53eddb3da13d5bbd313c31f522bfc1e1fffd4214156d15d5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.frame",
+      "name": "frame",
+      "kind": "function",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L58-L65",
+      "signature": "async function frame(msg: Record<string, unknown>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9edd4529d0be2dd8b7c97a35390b2134de9eaa4b0cf5db4270cbeb0d5a1b0175",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.send",
+      "name": "send",
+      "kind": "method",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L48-L48",
+      "signature": "send(message: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7b885bb8bbf02ea10e3195bcb958544428bcda547bd0d33585cb67ed687ce965",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#retainedWorld",
+      "name": "retainedWorld",
+      "kind": "function",
+      "path": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "span": "L27-L39",
+      "signature": "async function retainedWorld(aliases: Record<string, string>, worldId = WORLD, extraPlayers: string[] = []): Promise<WorldRuntime>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2fe687fe5da8881d313f8a61d311e0b4828e2049d41dd9f61a97ba88c5118651",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/agent-http-do-boundary.test.ts",
       "name": "agent-http-do-boundary.test.ts",
       "kind": "file",
@@ -92967,12 +93094,12 @@
       "name": "agent-http-do-fixture.ts",
       "kind": "file",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L1-L97",
+      "span": "L1-L106",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "06e00cb1fcbb64eced51fb6727f46d794270b810e636aae6714e8c1986d789bb",
-      "chars": 5452,
+      "body_hash": "13c68a359e8d9a91ff1b00a68d9b56041861739d8e041fe39c9d9cc002ccf4ee",
+      "chars": 5915,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92996,11 +93123,11 @@
       "name": "harness",
       "kind": "function",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L30-L96",
+      "span": "L30-L105",
       "signature": "function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime, publicTarget?: string)",
       "exported": true,
       "origin": "ast",
-      "body_hash": "506a45a72716fa51b45ca53452b63c16a5b94750b99e30fd5c70e34f734e5fcb",
+      "body_hash": "a385de187add29762a68110cf2a15e0b5b459216671d43af7ce812ef8aa7f44c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -93010,7 +93137,7 @@
       "name": "agent",
       "kind": "function",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L92-L92",
+      "span": "L96-L96",
       "signature": "agent = ()",
       "exported": true,
       "origin": "ast",
@@ -93024,7 +93151,7 @@
       "name": "command",
       "kind": "function",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L90-L91",
+      "span": "L94-L95",
       "signature": "command = (token: string, command: string, args: Record<string, unknown> = {}, extra: Record<string, unknown> = {})",
       "exported": true,
       "origin": "ast",
@@ -93038,11 +93165,11 @@
       "name": "fetch",
       "kind": "method",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L44-L77",
+      "span": "L45-L81",
       "signature": "async fetch(input: string | Request, init?: RequestInit)",
       "exported": true,
       "origin": "ast",
-      "body_hash": "6b99ee0d0b3688b21a13263f5038b2a8f9639bfcd682c03b89ee6db45d668aeb",
+      "body_hash": "f0c9103aa84354477406107b471c8f5aff810dc651b97827650c8302ca93728b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -93052,7 +93179,7 @@
       "name": "acceptWebSocket",
       "kind": "method",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L70-L70",
+      "span": "L74-L74",
       "signature": "acceptWebSocket(ws: WebSocket)",
       "exported": true,
       "origin": "ast",
@@ -93062,11 +93189,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.deleteAlarm",
+      "name": "deleteAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/agent-http-do-fixture.ts",
+      "span": "L72-L72",
+      "signature": "async deleteAlarm()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "1894048dee7df37028c60b40ed763c8e3332d3119b3bfa7e0299d190dffddf91",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.get",
       "name": "get",
       "kind": "method",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L60-L60",
+      "span": "L61-L61",
       "signature": "async get(key: string)",
       "exported": true,
       "origin": "ast",
@@ -93076,11 +93217,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.getAlarm",
+      "name": "getAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/agent-http-do-fixture.ts",
+      "span": "L73-L73",
+      "signature": "async getAlarm()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "1255cd69f3fc971353c4e4e9253a19e8e71e905c2d441888bede2893e98d96be",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.put",
       "name": "put",
       "kind": "method",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L61-L69",
+      "span": "L62-L70",
       "signature": "async put(key: string | Record<string, unknown>, value?: unknown)",
       "exported": true,
       "origin": "ast",
@@ -93090,11 +93245,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.setAlarm",
+      "name": "setAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/agent-http-do-fixture.ts",
+      "span": "L71-L71",
+      "signature": "async setAlarm(at: number)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "391bbb50f182a2580929dddfc6ff859f896c911ed8caf2574d1013423141a719",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/agent-http-do-fixture.ts#harness.hit",
       "name": "hit",
       "kind": "function",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L81-L88",
+      "span": "L85-L92",
       "signature": "async function hit(path: string, body?: Record<string, unknown>, token?: string, seal = ACCEPTED_SEALS[0], extraHeaders: Record<string, string> = {})",
       "exported": true,
       "origin": "ast",
@@ -204296,6 +204465,150 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/admin-auth.ts#mintAdminSession",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/player-tempo.ts#pinPlayerTempo",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#op",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#retainedWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#op",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#retainedWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/admin-auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/player-tempo.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/seal.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.accept",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.addEventListener",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.constructor",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.frame",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket",
+      "target": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#protocolSocket.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#retainedWorld",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-hosted-ingress-isolation.test.ts#retainedWorld",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/test/agent-http-do-boundary.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -204459,13 +204772,31 @@
     },
     {
       "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.deleteAlarm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
       "target": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.get",
       "relation": "contains",
       "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.getAlarm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
       "target": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.put",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch.setAlarm",
       "relation": "contains",
       "confidence": "extracted"
     },
