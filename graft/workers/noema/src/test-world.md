@@ -11,3 +11,4 @@
 - lifecycleRequestedWorldId · function · L99-L102 — function lifecycleRequestedWorldId(raw: unknown): string | null
 - RecoverBind · type · L104-L106 — type RecoverBind = | { ok: true; world_id: string } | { ok: false; code: "WORLD_FORBIDDEN"; message: string };
 - recoverBoundWorldId · function · L109-L127 — function recoverBoundWorldId( requested: string | null | undefined, storedWorldId: string | null | undefined, currentWorldId: string | null | undefined, ): RecoverBind
+- parseSeedAliases · function · L134-L145 — function parseSeedAliases(raw: unknown): Record<string, string> | null
