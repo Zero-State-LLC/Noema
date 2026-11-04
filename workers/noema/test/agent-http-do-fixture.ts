@@ -31,6 +31,7 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActive
   const calls: Array<{ name: string; path: string }> = [];
   const writes: Array<{ name: string; key: string }> = [];
   const accepted: Array<{ name: string; socket: WebSocket }> = [];
+  const alarms: Array<{ name: string; at: number | null }> = [];
   const instances = new Map<string, NoemaWorldDO>();
   const stores = new Map<string, DurableObjectState>();
   // Deliberately partial Cloudflare platform fakes. All application handlers are real.
@@ -67,6 +68,9 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActive
                     bag.set(k, structuredClone(v));
                   }
                 },
+                async setAlarm(at: number) { alarms.push({ name, at }); },
+                async deleteAlarm() { alarms.push({ name, at: null }); },
+                async getAlarm() { return null; },
               }, acceptWebSocket(ws: WebSocket) { accepted.push({ name, socket: ws }); } } as unknown as DurableObjectState;
               stores.set(name, state);
             }
@@ -90,7 +94,12 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActive
   const command = (token: string, command: string, args: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) =>
     hit("/v1/command", { request_id: `http.${++requestId}`, command, arguments: args, ...extra }, token);
   const agent = () => mintControllerToken(env, { handle: "Boundary", controllerType: "agent", playerId: "player.boundary" });
-  return { env, calls, writes, accepted, hit, command, agent, restart: () => instances.clear(),
+  return { env, calls, writes, accepted, alarms, hit, command, agent, restart: () => instances.clear(),
+    runAlarm: async (name = WORLD) => {
+      const instance = instances.get(name);
+      if (!instance) throw new Error(`DO ${name} not instantiated`);
+      await instance.alarm();
+    },
     persistedWorld: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<WorldRuntime>("world")),
     persistedMeta: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<Record<string, unknown>>("world_meta")) };
 }
