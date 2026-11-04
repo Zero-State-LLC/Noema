@@ -767,8 +767,9 @@ function deriveGates(s) {
   const g3 = s.g3_watch_home;
   let g3State = "pending";
   if (g3 && g3.status === "recorded") {
+    // Every boolean browser check must be present and true; a missing check is a failure, never a vacuous pass.
     const flags = Object.entries(G3_SHAPE).filter(([, t]) => t === "boolean").map(([k]) => g3[k]);
-    g3State = g3.passed === true && flags.every((v) => v === undefined || v === true) ? "passed" : "failed";
+    g3State = flags.every((v) => v === true) ? "passed" : "failed";
   }
   const c9 = s.c9_checklist && typeof s.c9_checklist === "object" && "passed" in s.c9_checklist ? (s.c9_checklist.passed === true ? "passed" : "failed") : "not_covered";
   return { g1: phase(s.g1_isolation), g2: phase(s.g2_s3_readback), g3: g3State, r0: phase(s.r0_presentation), c9 };

@@ -663,6 +663,11 @@ describe("acceptance-733 aggregate gates (advisory 7)", () => {
     return JSON.parse(c.out.join("\n"));
   }
 
+  const ALL_G3_CHECKS_TRUE = {
+    passed: true, keyboard_ok: true, skip_link_ok: true, pause_refresh_ok: true, reduced_motion_ok: true,
+    aria_live_bounded: true, contrast_ok: true, home_degradation_ok: true, sentinel_absent: true,
+  };
+
   it("pending g3 (and not-yet-run phases) never count as passed", async () => {
     const r = await receiptAfter(["g1", "g2", "r0"]);
     expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "pending", r0: "passed", c9: "not_covered" });
@@ -670,9 +675,21 @@ describe("acceptance-733 aggregate gates (advisory 7)", () => {
   });
 
   it("all_required_passed is true only when g1, g2, g3 and r0 passed; c9 is optional", async () => {
-    const r = await receiptAfter(["g1", "g2", "r0"], { passed: true, sentinel_absent: true });
+    const r = await receiptAfter(["g1", "g2", "r0"], ALL_G3_CHECKS_TRUE);
     expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "passed", r0: "passed", c9: "not_covered" });
     expect(r.all_required_passed).toBe(true);
+  });
+
+  it("a recorded g3 missing any required browser check is failed, never vacuously passed", async () => {
+    const bare = await receiptAfter(["g1", "g2", "r0"], { passed: true });
+    expect(bare.gates.g3).toBe("failed");
+    expect(bare.all_required_passed).toBe(false);
+    for (const key of Object.keys(ALL_G3_CHECKS_TRUE).filter((k) => k !== "passed")) {
+      const partial: Record<string, boolean> = { ...ALL_G3_CHECKS_TRUE };
+      delete partial[key];
+      const r = await receiptAfter(["g1", "g2", "r0"], partial);
+      expect({ key, g3: r.gates.g3 }).toEqual({ key, g3: "failed" });
+    }
   });
 
   it("a recorded g3 with passed:false or a false check is failed; an unrun phase is pending", async () => {

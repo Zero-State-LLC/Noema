@@ -28,7 +28,7 @@ Run from `workers/noema`. After `deploy`, pass `--run <id>` (printed by deploy).
 
 `--g3 g3.json` is validated against an allowlist (booleans: `passed`, `keyboard_ok`, `skip_link_ok`, `pause_refresh_ok`, `reduced_motion_ok`, `aria_live_bounded`, `contrast_ok`, `home_degradation_ok`, `sentinel_absent`; number: `min_contrast`; strings: `notes`, `browser`); unknown keys are dropped, wrong types are refused, and the file can never set `status` or any non-G3 receipt field.
 
-The receipt carries `gates: { g1, g2, g3, r0, c9 }`, each `passed | failed | pending | not_covered`, and `all_required_passed` (true only when g1, g2, g3 and r0 are all `passed`; c9 is optional). A missing/unrun phase is `pending` and a G3 never recorded stays `pending`; neither counts as passed.
+The receipt carries `gates: { g1, g2, g3, r0, c9 }`, each `passed | failed | pending | not_covered`, and `all_required_passed` (true only when g1, g2, g3 and r0 are all `passed`; c9 is optional). A missing/unrun phase is `pending` and a G3 never recorded stays `pending`; neither counts as passed. A recorded G3 is `passed` only when **every** boolean check above is present and `true`; a missing check makes it `failed`.
 
 A failing check stops that phase and records `false`; exit is non-zero. Fix or report, do not hand-edit state.
 
