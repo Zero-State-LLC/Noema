@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8793,
-    "edgeCount": 19399,
+    "nodeCount": 8796,
+    "edgeCount": 19407,
     "languages": [
       "javascript",
       "python",
@@ -77971,12 +77971,12 @@
       "name": "landing.ts",
       "kind": "file",
       "path": "workers/noema/src/landing.ts",
-      "span": "L1-L297",
+      "span": "L1-L303",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "30c6a0af27fc6d4adfc3cb439b05d7603b244efa4296b81c60b3628699c51546",
-      "chars": 12467,
+      "body_hash": "c8536784894be6c9f65a2c8807f1acad269634e547d884f9e38d7d63d8b54d99",
+      "chars": 12909,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -77986,7 +77986,7 @@
       "name": "homeExcerptFromLive",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L129-L209",
+      "span": "L135-L215",
       "signature": "function homeExcerptFromLive(data: unknown): string[]",
       "exported": true,
       "origin": "ast",
@@ -78000,7 +78000,7 @@
       "name": "publicLine",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L133-L137",
+      "span": "L139-L143",
       "signature": "publicLine = (value: unknown): string",
       "exported": true,
       "origin": "ast",
@@ -78014,7 +78014,7 @@
       "name": "quiet",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L138-L138",
+      "span": "L144-L144",
       "signature": "quiet = (line: string): boolean",
       "exported": true,
       "origin": "ast",
@@ -78028,7 +78028,7 @@
       "name": "landingHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L211-L277",
+      "span": "L217-L283",
       "signature": "function landingHtml(): string",
       "exported": true,
       "origin": "ast",
@@ -78042,7 +78042,7 @@
       "name": "notFoundHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L279-L296",
+      "span": "L285-L302",
       "signature": "function notFoundHtml(): string",
       "exported": true,
       "origin": "ast",
@@ -85349,8 +85349,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "8b65058c0b22fd9dc80251dbe9075f4eb67484112e38904c678ccf6e2ceb9287",
-      "chars": 14564,
+      "body_hash": "28e62de2c45957eef2d80d6c88241f617b11074eaf0136ec83182cadcef7a1e7",
+      "chars": 14612,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -101943,6 +101943,49 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "be0afe090c59fff1e73a4f4f26ae84e53e85333a74e354759020cdbd6173dc4b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/home-hero-legibility.test.ts",
+      "name": "home-hero-legibility.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/home-hero-legibility.test.ts",
+      "span": "L1-L55",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "74e648d15b8be0372def6f59c35122d16d02b8cce70431bad6532dca97ce4ca4",
+      "chars": 2578,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/home-hero-legibility.test.ts#mediaBlock",
+      "name": "mediaBlock",
+      "kind": "function",
+      "path": "workers/noema/test/home-hero-legibility.test.ts",
+      "span": "L15-L24",
+      "signature": "function mediaBlock(px: number): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3d6fad0935df802f93f4699de0fab09ddfb663709bac2e5003b09f7b7fd9e17e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/home-hero-legibility.test.ts#rule",
+      "name": "rule",
+      "kind": "function",
+      "path": "workers/noema/test/home-hero-legibility.test.ts",
+      "span": "L27-L31",
+      "signature": "function rule(scope: string, selector: string): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fdd3d9a9ddb0fd5542c94fd948a54256e49528fb5be961e1203cc777bd33b026",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -221598,6 +221641,54 @@
       "source": "workers/noema/test/head-sequence-sot.test.ts#skewedHead",
       "target": "workers/noema/test/head-sequence-sot.test.ts#fixtureWorld",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/src/landing.ts#landingHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/test/home-hero-legibility.test.ts#mediaBlock",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/test/home-hero-legibility.test.ts#rule",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/test/home-hero-legibility.test.ts#mediaBlock",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/test/home-hero-legibility.test.ts#rule",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/home-hero-legibility.test.ts",
+      "target": "workers/noema/src/landing.ts",
+      "relation": "imports",
       "confidence": "extracted"
     },
     {
