@@ -30,9 +30,11 @@ export const MAP_GL_CSS = `
   max-width:9.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   color:var(--ink);font:550 .68rem/1.2 var(--font-mono);
   text-shadow:0 1px 2px var(--void);
+  /* #773: labels sit on the WebGL room blocks, not the page void; a void chip keeps them >= 4.5:1 on any face */
+  padding:.06rem .32rem;border-radius:2px;background:color-mix(in srgb,var(--void) 88%,transparent);
 }
 .map-room-label.is-focus{color:var(--color-state-active);font-weight:650}
-.map-labels.is-held .map-room-label{opacity:.72}
+.map-labels.is-held .map-room-label{color:var(--muted)}
 .map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
 .map-parity[hidden]{display:none}
 .map-node.is-follow{outline:2px solid var(--color-state-active)}
