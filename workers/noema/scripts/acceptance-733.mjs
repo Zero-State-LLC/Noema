@@ -517,10 +517,12 @@ async function cmdDeploy(ctx) {
   return 0;
 }
 
+// Each phase mints its own Agent handles: a later phase must not inherit an earlier phase's player
+// position or inventory (G1 moves its Agent east, out of the room that holds G2's relay).
 async function cmdG1(ctx, flags) {
   const state = loadRun(ctx, flags.run);
   const S = state.sentinel;
-  const sessions = await mintSessions(ctx, state, ["acc-a", "acc-b"]);
+  const sessions = await mintSessions(ctx, state, ["acc-g1-a", "acc-g1-b"]);
   const aliasValue = `do look; wait ${S}`;
   const clean = (r) => !r.text.includes(S);
   const canonical = (r) => okBody(r) && r.body.request_id === r.request_id && !/\.m\d/.test(JSON.stringify(r.body)) && clean(r);
@@ -528,18 +530,18 @@ async function cmdG1(ctx, flags) {
   let headMark = null;
   const wsHolder = {};
   const result = await runChecks([
-    ["enter_a_ok", async () => okBody(await operator(ctx, state, sessions, "acc-a", "ENTER_WORLD", {}, "g1-enter"))],
+    ["enter_a_ok", async () => okBody(await operator(ctx, state, sessions, "acc-g1-a", "ENTER_WORLD", {}, "g1-enter"))],
     ["seed_ok", async () => {
       const r = await http(ctx, state, "POST", "/v1/operator/test-world/seed", {
-        headers: authHeaders(sessions, "acc-a"),
+        headers: authHeaders(sessions, "acc-g1-a"),
         body: { world_id: state.isolated_world, aliases: { join: aliasValue, move: aliasValue } },
       });
       return r.status === 200 && r.body?.ok === true && r.body?.alias_count === 2 && clean(r);
     }],
-    ["structured_join_canonical", async () => canonical(await operator(ctx, state, sessions, "acc-a", "JOIN", {}, "g1-join"))],
+    ["structured_join_canonical", async () => canonical(await operator(ctx, state, sessions, "acc-g1-a", "JOIN", {}, "g1-join"))],
     ["structured_move_canonical", async () => {
       const before = await sbHead(ctx, state);
-      const r = await operator(ctx, state, sessions, "acc-a", "MOVE", { direction: "east" }, "g1-move");
+      const r = await operator(ctx, state, sessions, "acc-g1-a", "MOVE", { direction: "east" }, "g1-move");
       headMark = { before, after: await sbHead(ctx, state) };
       return canonical(r);
     }],
@@ -548,26 +550,26 @@ async function cmdG1(ctx, flags) {
     // stripped, not rejected. The command then runs as a plain structured JOIN, never as text.
     ["text_line_stripped_canonical", async () => {
       const before = await sbHead(ctx, state);
-      const r = await operator(ctx, state, sessions, "acc-a", "JOIN", { line: aliasValue }, "g1-line");
+      const r = await operator(ctx, state, sessions, "acc-g1-a", "JOIN", { line: aliasValue }, "g1-line");
       const after = await sbHead(ctx, state);
       return canonical(r) && !!before && !!after && before.revision === after.revision && before.sequence === after.sequence;
     }],
-    ["text_command_refused", async () => refused(await operator(ctx, state, sessions, "acc-a", `alias set ii look ${S}`, {}, "g1-text"))],
-    ["macro_step_stripped_canonical", async () => canonical(await operator(ctx, state, sessions, "acc-a", "JOIN", { _macro_step: `look ${S}` }, "g1-macro"))],
+    ["text_command_refused", async () => refused(await operator(ctx, state, sessions, "acc-g1-a", `alias set ii look ${S}`, {}, "g1-text"))],
+    ["macro_step_stripped_canonical", async () => canonical(await operator(ctx, state, sessions, "acc-g1-a", "JOIN", { _macro_step: `look ${S}` }, "g1-macro"))],
     // /v1/command targets the isolated world only when the envelope names it AND carries the admin
     // header (src/protocol-ws.ts:169-181); without them it hits the default world and the seal gate.
     ["command_endpoint_structured_join_canonical", async () => {
       const request_id = rid(state, "g1-cmdjoin");
-      const r = await http(ctx, state, "POST", "/v1/command", { headers: authHeaders(sessions, "acc-a"), body: { request_id, command: "JOIN", arguments: {}, world_id: state.isolated_world } });
+      const r = await http(ctx, state, "POST", "/v1/command", { headers: authHeaders(sessions, "acc-g1-a"), body: { request_id, command: "JOIN", arguments: {}, world_id: state.isolated_world } });
       return canonical({ ...r, request_id });
     }],
     ["command_endpoint_text_refused", async () => refused(await http(ctx, state, "POST", "/v1/command", {
-      headers: authHeaders(sessions, "acc-a"),
+      headers: authHeaders(sessions, "acc-g1-a"),
       body: { request_id: rid(state, "g1-cmd"), command: `alias set ii look ${S}`, arguments: {}, world_id: state.isolated_world },
     }))],
     ...(typeof ctx.wsFactory === "function" ? [
       ["ws_act_structured_join_canonical", async () => {
-        wsHolder.ws = await openProtocolSocket(ctx, state, sessions, "acc-a");
+        wsHolder.ws = await openProtocolSocket(ctx, state, sessions, "acc-g1-a");
         if (!wsHolder.ws?.authOk) return false;
         const request_id = rid(state, "g1-ws-join");
         const reply = await wsHolder.ws.frame({ type: "ACT", request_id, world_id: state.isolated_world, body: { world_id: state.isolated_world, action: { verb: "JOIN" } } });
@@ -586,7 +588,7 @@ async function cmdG1(ctx, flags) {
     }],
     ["agent_tempo_refused", async () => {
       const r = await http(ctx, state, "POST", "/v1/admin/tempo", {
-        headers: { Authorization: `Bearer ${sessions.agents["acc-a"]}` },
+        headers: { Authorization: `Bearer ${sessions.agents["acc-g1-a"]}` },
         body: { action: "step", reason: "agent must not step" },
       });
       return r.status === 401 || r.status === 403;
@@ -597,14 +599,14 @@ async function cmdG1(ctx, flags) {
 
 async function cmdG2(ctx, flags) {
   const state = loadRun(ctx, flags.run);
-  const sessions = await mintSessions(ctx, state, ["acc-a", "acc-b"]);
-  const probe = async () => (await http(ctx, state, "POST", "/v1/operator/test-world/instance", { headers: authHeaders(sessions, "acc-a"), body: { world_id: state.isolated_world, action: "probe" } })).body?.instance_id;
+  const sessions = await mintSessions(ctx, state, ["acc-g2-a", "acc-g2-b"]);
+  const probe = async () => (await http(ctx, state, "POST", "/v1/operator/test-world/instance", { headers: authHeaders(sessions, "acc-g2-a"), body: { world_id: state.isolated_world, action: "probe" } })).body?.instance_id;
   const version = async () => (await http(ctx, state, "GET", "/version")).body?.worker_version_id;
   const ctxv = {};
   const result = await runChecks([
     ["repairable_entity_found", async () => {
-      await operator(ctx, state, sessions, "acc-a", "ENTER_WORLD", {}, "g2-enter");
-      const look = await operator(ctx, state, sessions, "acc-a", "LOOK", {}, "g2-look");
+      await operator(ctx, state, sessions, "acc-g2-a", "ENTER_WORLD", {}, "g2-enter");
+      const look = await operator(ctx, state, sessions, "acc-g2-a", "LOOK", {}, "g2-look");
       ctxv.entity = findAll(look.body, (o) => o.repairable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
       ctxv.source = findAll(look.body, (o) => o.harvestable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
       ctxv.head0 = await sbHead(ctx, state);
@@ -615,7 +617,7 @@ async function cmdG2(ctx, flags) {
     ["harvest_source_found", async () => typeof ctxv.source === "string"],
     ["harvest_accepted", async () => {
       if (typeof ctxv.source !== "string") return false;
-      const r = await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "HARVEST", entity_id: ctxv.source, amount: 1 }, "g2-harvest");
+      const r = await operator(ctx, state, sessions, "acc-g2-a", "COMMIT", { operation: "HARVEST", entity_id: ctxv.source, amount: 1 }, "g2-harvest");
       if (!okBody(r)) ctxv.harvest_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
       return okBody(r);
     }],
@@ -624,12 +626,12 @@ async function cmdG2(ctx, flags) {
       return events.some((e) => e.event_type === "ENTITY_UPDATE" && e.payload?.operation === "HARVEST" && e.payload?.entity_id === ctxv.source);
     }],
     ["repair_accepted", async () => {
-      const r = await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "g2-repair");
+      const r = await operator(ctx, state, sessions, "acc-g2-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "g2-repair");
       // Real rejection shape: { ok:false, error:{ code, message } } (e.g. BUDGET_EXCEEDED "...materials in hold").
       if (!okBody(r)) ctxv.repair_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
       return okBody(r);
     }],
-    ["leave_accepted", async () => okBody(await operator(ctx, state, sessions, "acc-a", "LEAVE_WORLD", {}, "g2-leave"))],
+    ["leave_accepted", async () => okBody(await operator(ctx, state, sessions, "acc-g2-a", "LEAVE_WORLD", {}, "g2-leave"))],
     // Real settled rows (src/settle.ts RPC): { event_type, payload, ... }. REPAIR is an ENTITY_UPDATE with
     // payload.operation "REPAIR"; leaving is AGENT_LEFT_WORLD (there is no LEAVE_*/DEPART* event type).
     ["repair_committed_in_sql", async () => {
@@ -648,14 +650,14 @@ async function cmdG2(ctx, flags) {
     }],
     ["instance_id_changed_after_evict", async () => {
       ctxv.v0 = await version();
-      await http(ctx, state, "POST", "/v1/operator/test-world/instance", { headers: authHeaders(sessions, "acc-a"), body: { world_id: state.isolated_world, action: "evict" } });
+      await http(ctx, state, "POST", "/v1/operator/test-world/instance", { headers: authHeaders(sessions, "acc-g2-a"), body: { world_id: state.isolated_world, action: "evict" } });
       const c = await probe();
       return typeof c === "string" && c !== ctxv.id;
     }],
     ["same_worker_version_after_evict", async () => !!ctxv.v0 && (await version()) === ctxv.v0],
     ["second_principal_sees_construction_trace", async () => {
-      await operator(ctx, state, sessions, "acc-b", "ENTER_WORLD", {}, "g2-b-enter");
-      const look = await operator(ctx, state, sessions, "acc-b", "LOOK", {}, "g2-b-look");
+      await operator(ctx, state, sessions, "acc-g2-b", "ENTER_WORLD", {}, "g2-b-enter");
+      const look = await operator(ctx, state, sessions, "acc-g2-b", "LOOK", {}, "g2-b-look");
       ctxv.traces = (look.body?.observation?.location?.traces ?? findAll(look.body, (o) => Array.isArray(o.traces)).flatMap((o) => o.traces));
       return Array.isArray(ctxv.traces) && ctxv.traces.some((t) => t?.kind === "construction" && /repair/i.test(String(t.text)));
     }],
@@ -699,15 +701,15 @@ const R0_FIELDS = {
 
 async function cmdR0(ctx, flags) {
   const state = loadRun(ctx, flags.run);
-  const sessions = await mintSessions(ctx, state, ["acc-a"]);
+  const sessions = await mintSessions(ctx, state, ["acc-r0-a"]);
   const blob = {};
   const list = [
     ["enter_ok", async () => {
-      const r = await operator(ctx, state, sessions, "acc-a", "ENTER_WORLD", {}, "r0-enter");
+      const r = await operator(ctx, state, sessions, "acc-r0-a", "ENTER_WORLD", {}, "r0-enter");
       return okBody(r);
     }],
     ["look_ok", async () => {
-      const r = await operator(ctx, state, sessions, "acc-a", "LOOK", {}, "r0-look");
+      const r = await operator(ctx, state, sessions, "acc-r0-a", "LOOK", {}, "r0-look");
       blob.look = r.body?.observation;
       return okBody(r) && !!blob.look;
     }],
@@ -715,7 +717,7 @@ async function cmdR0(ctx, flags) {
     ["move_orientation_present", async () => {
       // Orientation after MOVE: the new room name leads, then EXITS and HAPPENED (HERE only when occupied).
       for (const direction of (blob.look?.location?.exits || []).map((x) => x.direction)) {
-        const r = await operator(ctx, state, sessions, "acc-a", "MOVE", { direction }, "r0-move");
+        const r = await operator(ctx, state, sessions, "acc-r0-a", "MOVE", { direction }, "r0-move");
         if (!okBody(r)) continue;
         const o = r.body.observation;
         return !!o && o.location?.name !== blob.look.location.name && R0_FIELDS.WHERE(o) && R0_FIELDS.EXITS(o) && R0_FIELDS.HAPPENED(o);

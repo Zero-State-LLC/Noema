@@ -201,7 +201,7 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
         return jsonRes({ rooms: [{ traces: left ? [{ kind: "construction", text: "A maintenance plate names Sable as the last repairer.", visibility: "public" }] : [] }] });
       case "/v1/operator/test-world/command": {
         const auth = headers.authorization || headers.Authorization || "";
-        const who = auth.includes("agent-acc-b") ? "b" : "a";
+        const who = /agent-acc-[a-z0-9]+-b\./.test(auth) ? "b" : "a";
         const args = body.arguments || {};
         const text = JSON.stringify(body);
         if (/;|^alias /.test(String(body.command))) {
