@@ -31,8 +31,26 @@ validate_ref() {
   fi
 }
 
+# Print the ref of an existing acceptance project (empty if none). Read-only: `projects list` only.
+find_project() {
+  supabase projects list -o json 2>/dev/null | PROJECT_NAME="$PROJECT_NAME" node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const k=JSON.parse(s).find(x=>x&&x.name===process.env.PROJECT_NAME);process.stdout.write(k?String(k.id||k.ref||""):"")}catch{}})' || true
+}
+
+# Resolve reuse vs create without prompting: prints "reuse <ref>" or "create". Refuses the production ref.
+resolve_project() {
+  local found
+  found="$(find_project)"
+  if [ -n "$found" ]; then
+    validate_ref "$found" || return 1
+    echo "reuse $found"
+  else
+    echo "create"
+  fi
+}
+
 case "${1:-}" in
   --validate-ref) validate_ref "${2:-}"; exit $? ;;
+  --resolve-project) resolve_project; exit $? ;;
   --dry-run) DRY=1 ;;
   "") ;;
   *) echo "usage: $0 [--dry-run]" >&2; exit 2 ;;
@@ -84,21 +102,27 @@ fi
 stage "Acceptance Supabase project (separate from production)"
 REF=""
 if [ "$DRY" = 1 ]; then
-  say "+ supabase projects create $PROJECT_NAME --org-id <prompt> --region <prompt> --db-password <generated, hidden>"
+  say "+ supabase projects list -o json   (reuse a project already named $PROJECT_NAME; refused if it is the production ref)"
+  say "+ supabase projects create $PROJECT_NAME --org-id <prompt> --region <prompt>   (only if absent; the CLI prompts for the database password, hidden; never passed on the command line)"
   say "  or link an existing non-production project ref (refused: the production ref)"
 else
-  mode="$(ask 'create a new project (c) or link an existing one (l)')"
-  if [ "$mode" = c ]; then
-    org="$(ask 'Supabase org id')"
-    region="$(ask 'region (e.g. us-west-1)')"
-    dbpw="$(openssl rand -base64 24 | tr -d '/+=')"
-    say "Generated a database password (kept in this shell only; reset it in the dashboard if you need it later)."
-    supabase projects create "$PROJECT_NAME" --org-id "$org" --region "$region" --db-password "$dbpw"
-    export SUPABASE_DB_PASSWORD="$dbpw"
-    REF="$(ask 'project ref of the project just created')"
-  else
-    REF="$(ask 'project ref to link (not production)')"
+  plan="$(resolve_project)" || exit 1
+  if [ "${plan#reuse }" != "$plan" ]; then
+    REF="${plan#reuse }"
+    say "Reusing existing project $PROJECT_NAME ($REF); nothing is created."
     SUPABASE_DB_PASSWORD="$(ask_secret 'database password for that project')"; export SUPABASE_DB_PASSWORD
+  else
+    mode="$(ask 'create a new project (c) or link an existing one (l)')"
+    if [ "$mode" = c ]; then
+      org="$(ask 'Supabase org id')"
+      region="$(ask 'region (e.g. us-west-1)')"
+      say "The Supabase CLI will now prompt for a database password (hidden). It is never put on a command line; link/push will prompt for it again."
+      supabase projects create "$PROJECT_NAME" --org-id "$org" --region "$region"
+      REF="$(ask 'project ref of the project just created')"
+    else
+      REF="$(ask 'project ref to link (not production)')"
+      SUPABASE_DB_PASSWORD="$(ask_secret 'database password for that project')"; export SUPABASE_DB_PASSWORD
+    fi
   fi
   validate_ref "$REF"
 fi

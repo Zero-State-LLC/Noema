@@ -243,7 +243,7 @@ function mkEnv(opts: { mode?: number; supabaseUrl?: string } = {}) {
   return { home, envFile, runsDir };
 }
 
-function mkCtx(h: ReturnType<typeof fakeHosted>, e: ReturnType<typeof mkEnv>, extra: { execCalls?: Array<{ cmd: string; args: string[]; env?: Record<string, string | undefined> }>; secretsSeen?: string[] } = {}) {
+function mkCtx(h: ReturnType<typeof fakeHosted>, e: ReturnType<typeof mkEnv>, extra: { execCalls?: Array<{ cmd: string; args: string[]; env?: Record<string, string | undefined> }>; secretsSeen?: string[]; dirty?: boolean; gitFails?: boolean; proc?: unknown; tmpdir?: string } = {}) {
   const out: string[] = [];
   const err: string[] = [];
   const ctx = {
@@ -257,9 +257,15 @@ function mkCtx(h: ReturnType<typeof fakeHosted>, e: ReturnType<typeof mkEnv>, ex
         extra.secretsSeen?.push(`${(fs.statSync(file).mode & 0o777).toString(8)}:${fs.readFileSync(file, "utf8")}`);
       }
       if (args[1] === "deploy") return { status: 0, stdout: `Deployed ${BASE}\nCurrent Version ID: ${ACC_V}\n`, stderr: "" };
+      if (cmd === "git" && args[0] === "status") {
+        if (extra.gitFails) return { status: 128, stdout: "", stderr: "fatal" };
+        return { status: 0, stdout: extra.dirty ? " M workers/noema/src/x.ts\n" : "", stderr: "" };
+      }
       if (cmd === "git") return { status: 0, stdout: "4fc76251abcdef\n", stderr: "" };
       return { status: 0, stdout: "", stderr: "" };
     },
+    ...(extra.proc ? { proc: extra.proc } : {}),
+    ...(extra.tmpdir ? { tmpdir: extra.tmpdir } : {}),
     now: () => new Date("2026-11-04T12:00:00Z"),
     sleep: async () => {},
     out: (s: string) => out.push(String(s)),
@@ -458,7 +464,7 @@ describe("acceptance-733 receipt and teardown", () => {
     expect(await main(["teardown", "--run", RUN], c.ctx)).toBe(0);
     const del = execCalls.find((x) => x.args[1] === "delete")!;
     expect(del.cmd).toBe("npx");
-    expect(del.args).toEqual(["wrangler", "delete", "--name", WORKER, "--force"]);
+    expect(del.args).toEqual(["wrangler", "delete", "--config", "wrangler.acceptance.jsonc", "--name", WORKER, "--force"]);
     const st = readState(e);
     expect(st.admin_operator_token).toBeUndefined();
     expect(st.sections.teardown).toMatchObject({ deleted: true, secrets_scrubbed: true });
@@ -473,5 +479,210 @@ describe("acceptance-733 receipt and teardown", () => {
     execCalls.length = 0;
     expect(await main(["teardown", "--run", RUN], c.ctx)).not.toBe(0);
     expect(execCalls).toEqual([]);
+  });
+});
+
+
+// ---------------------------------------------------------------- review hardening (#733 advisories)
+
+type ExecCall = { cmd: string; args: string[]; env?: Record<string, string | undefined> };
+
+describe("acceptance-733 run-state identity (advisory 1)", () => {
+  it("refuses every state-loading subcommand when the worker name is valid but differs from the run id", async () => {
+    const { e, c, execCalls, h } = await deployed();
+    const other = "20261104t120001z";
+    const file = path.join(e.runsDir, `${RUN}.json`);
+    const st = readState(e);
+    st.worker = `noema-733-acc-${other}`;
+    st.base = `https://${st.worker}.zer0state-noema.workers.dev`;
+    fs.writeFileSync(file, JSON.stringify(st), { mode: 0o600 });
+    for (const cmd of ["teardown", "g1", "g2", "r0", "g3-urls", "receipt"]) {
+      execCalls.length = 0;
+      const seen = h.seen.length;
+      c.err.length = 0;
+      expect(await main([cmd, "--run", RUN], c.ctx), cmd).not.toBe(0);
+      expect(c.err.join("\n"), cmd).toContain("run state does not match run id");
+      expect(execCalls, cmd).toEqual([]);
+      expect(h.seen.length, cmd).toBe(seen);
+    }
+  });
+});
+
+describe("acceptance-733 secrets file lifecycle (advisory 2)", () => {
+  function fakeProc() {
+    const handlers = new Map<string, Array<() => void>>();
+    const killed: string[] = [];
+    return {
+      handlers, killed, pid: 4242,
+      on(ev: string, fn: () => void) { handlers.set(ev, [...(handlers.get(ev) || []), fn]); return this; },
+      off(ev: string, fn: () => void) { handlers.set(ev, (handlers.get(ev) || []).filter((f) => f !== fn)); return this; },
+      kill(_pid: number, sig: string) { killed.push(sig); return true; },
+      emit(ev: string) { for (const fn of [...(handlers.get(ev) || [])]) fn(); },
+      count() { return [...handlers.values()].reduce((n, l) => n + l.length, 0); },
+    };
+  }
+
+  it("unlinks the secrets file synchronously on SIGTERM/SIGINT/SIGHUP, re-raises, and removes handlers after deploy", async () => {
+    for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+      const h = fakeHosted();
+      const e = mkEnv();
+      const proc = fakeProc();
+      const c = mkCtx(h, e, { proc });
+      let secretsFile = "";
+      let existedAtSignal = true;
+      const inner = c.ctx.exec;
+      c.ctx.exec = (cmd: string, args: string[], opts: { env?: Record<string, string | undefined> } = {}) => {
+        if (args[1] === "deploy") {
+          secretsFile = args[args.indexOf("--secrets-file") + 1];
+          expect(fs.existsSync(secretsFile)).toBe(true);
+          proc.emit(sig);
+          existedAtSignal = fs.existsSync(secretsFile);
+        }
+        return inner(cmd, args, opts);
+      };
+      await main(["deploy"], c.ctx);
+      expect(existedAtSignal, sig).toBe(false);
+      expect(proc.killed, sig).toEqual([sig]);
+      expect(fs.existsSync(secretsFile), sig).toBe(false);
+      expect(proc.count(), sig).toBe(0);
+    }
+  });
+
+  it("unlinks on process exit during the deploy window and leaves no handlers after a normal deploy", async () => {
+    const h = fakeHosted();
+    const e = mkEnv();
+    const proc = fakeProc();
+    const c = mkCtx(h, e, { proc });
+    let during = 0;
+    const inner = c.ctx.exec;
+    c.ctx.exec = (cmd: string, args: string[], opts: { env?: Record<string, string | undefined> } = {}) => {
+      if (args[1] === "deploy") {
+        during = proc.count();
+        const f = args[args.indexOf("--secrets-file") + 1];
+        proc.emit("exit");
+        expect(fs.existsSync(f)).toBe(false);
+      }
+      return inner(cmd, args, opts);
+    };
+    expect(await main(["deploy"], c.ctx)).toBe(0);
+    expect(during).toBeGreaterThanOrEqual(4);
+    expect(proc.count()).toBe(0);
+  });
+
+  it("creates the secrets file exclusively: a pre-existing file is refused, left untouched, and wrangler never runs", async () => {
+    const h = fakeHosted();
+    const e = mkEnv();
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "acc-tmp-"));
+    const execCalls: ExecCall[] = [];
+    const c = mkCtx(h, e, { execCalls, tmpdir: tmp });
+    const squat = path.join(tmp, `.noema-733-acc-${RUN}-${process.pid}.json`);
+    fs.writeFileSync(squat, "PRE-EXISTING", { mode: 0o644 });
+    expect(await main(["deploy"], c.ctx)).not.toBe(0);
+    expect(fs.readFileSync(squat, "utf8")).toBe("PRE-EXISTING");
+    expect(execCalls.some((x) => x.args[1] === "deploy")).toBe(false);
+  });
+});
+
+describe("acceptance-733 clean source tree (advisory 5)", () => {
+  it("refuses to deploy a dirty working tree before any wrangler call or state write", async () => {
+    const h = fakeHosted();
+    const e = mkEnv();
+    const execCalls: ExecCall[] = [];
+    const c = mkCtx(h, e, { execCalls, dirty: true });
+    expect(await main(["deploy"], c.ctx)).not.toBe(0);
+    expect(c.err.join("\n")).toMatch(/dirty|uncommitted/i);
+    expect(execCalls.some((x) => x.args[1] === "deploy")).toBe(false);
+    expect(fs.existsSync(e.runsDir)).toBe(false);
+    expect(execCalls.some((x) => x.cmd === "git" && x.args.join(" ") === "status --porcelain")).toBe(true);
+  });
+
+  it("refuses when git status itself fails", async () => {
+    const h = fakeHosted();
+    const e = mkEnv();
+    const execCalls: ExecCall[] = [];
+    const c = mkCtx(h, e, { execCalls, gitFails: true });
+    expect(await main(["deploy"], c.ctx)).not.toBe(0);
+    expect(execCalls.some((x) => x.args[1] === "deploy")).toBe(false);
+  });
+
+  it("records source_tree_clean: true in state and receipt for a clean tree", async () => {
+    const { e, c } = await deployed();
+    expect(readState(e).source_tree_clean).toBe(true);
+    c.out.length = 0;
+    await main(["receipt", "--run", RUN], c.ctx);
+    expect(JSON.parse(c.out.join("\n")).source_tree_clean).toBe(true);
+  });
+});
+
+describe("acceptance-733 --g3 file validation (advisory 6)", () => {
+  async function receiptWithG3(content: unknown) {
+    const { e, c } = await deployed();
+    const f = path.join(e.home, "g3.json");
+    fs.writeFileSync(f, typeof content === "string" ? content : JSON.stringify(content));
+    c.out.length = 0;
+    const code = await main(["receipt", "--run", RUN, "--g3", f], c.ctx);
+    return { code, receipt: code === 0 ? JSON.parse(c.out.join("\n")) : null, c, e };
+  }
+
+  it("keeps allowlisted keys, drops unknown keys, and cannot override status or other receipt fields", async () => {
+    const { receipt } = await receiptWithG3({
+      passed: true, keyboard_ok: true, sentinel_absent: true, min_contrast: 4.7, notes: "ok",
+      status: "pending_browser_phase", worker: "noema-gateway", production_worker_version_control: { unchanged: false },
+      schema: "evil", evil_extra: { a: 1 }, teardown: { deleted: true },
+    });
+    const g3 = receipt.g3_watch_home;
+    expect(g3.status).toBe("recorded");
+    expect(g3).toMatchObject({ passed: true, keyboard_ok: true, sentinel_absent: true, min_contrast: 4.7, notes: "ok" });
+    for (const k of ["worker", "production_worker_version_control", "schema", "evil_extra", "teardown"]) expect(g3, k).not.toHaveProperty(k);
+    expect(receipt.worker).toBe(WORKER);
+    expect(receipt.schema).toBe("noema-733-hosted-gates/1");
+    expect(receipt.production_worker_version_control.unchanged).toBe(true);
+    expect(receipt.teardown).toEqual({ status: "not_run" });
+  });
+
+  it("rejects wrongly typed values for allowlisted keys and non-object files", async () => {
+    expect((await receiptWithG3({ passed: "yes" })).code).not.toBe(0);
+    expect((await receiptWithG3({ min_contrast: "high" })).code).not.toBe(0);
+    expect((await receiptWithG3([1, 2])).code).not.toBe(0);
+    expect((await receiptWithG3("not json")).code).not.toBe(0);
+  });
+});
+
+describe("acceptance-733 aggregate gates (advisory 7)", () => {
+  async function receiptAfter(phases: string[], g3?: unknown) {
+    const { e, c } = await deployed();
+    for (const p of phases) await main([p, "--run", RUN], c.ctx);
+    const args = ["receipt", "--run", RUN];
+    if (g3 !== undefined) {
+      const f = path.join(e.home, "g3.json");
+      fs.writeFileSync(f, JSON.stringify(g3));
+      args.push("--g3", f);
+    }
+    c.out.length = 0;
+    await main(args, c.ctx);
+    return JSON.parse(c.out.join("\n"));
+  }
+
+  it("pending g3 (and not-yet-run phases) never count as passed", async () => {
+    const r = await receiptAfter(["g1", "g2", "r0"]);
+    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "pending", r0: "passed", c9: "not_covered" });
+    expect(r.all_required_passed).toBe(false);
+  });
+
+  it("all_required_passed is true only when g1, g2, g3 and r0 passed; c9 is optional", async () => {
+    const r = await receiptAfter(["g1", "g2", "r0"], { passed: true, sentinel_absent: true });
+    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "passed", r0: "passed", c9: "not_covered" });
+    expect(r.all_required_passed).toBe(true);
+  });
+
+  it("a recorded g3 with passed:false or a false check is failed; an unrun phase is pending", async () => {
+    const failed = await receiptAfter(["g1", "g2", "r0"], { passed: false });
+    expect(failed.gates.g3).toBe("failed");
+    expect(failed.all_required_passed).toBe(false);
+    const falseCheck = await receiptAfter(["g1", "g2", "r0"], { passed: true, keyboard_ok: false });
+    expect(falseCheck.gates.g3).toBe("failed");
+    const none = await receiptAfter([]);
+    expect(none.gates).toEqual({ g1: "pending", g2: "pending", g3: "pending", r0: "pending", c9: "not_covered" });
+    expect(none.all_required_passed).toBe(false);
   });
 });

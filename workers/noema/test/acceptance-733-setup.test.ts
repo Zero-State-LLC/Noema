@@ -47,6 +47,44 @@ describe("acceptance-733-setup.sh", () => {
     expect(fs.existsSync(r.log)).toBe(false);
     expect(fs.existsSync(path.join(r.home, ".config"))).toBe(false);
     expect(r.out).not.toContain(PROD_REF + " ");
+    expect(r.out).not.toContain("--db-password");
+    expect(r.out).toContain("supabase projects list -o json");
+    expect(r.out).toMatch(/reuse/i);
+  });
+
+  describe("--resolve-project (existing-project reuse)", () => {
+    /** supabase stub answers `projects list -o json` with a fixed body and logs every call; node is the real binary. */
+    function withProjects(json: string) {
+      const s = stubbed();
+      fs.writeFileSync(path.join(s.bin, "supabase"), `#!/bin/sh\necho "supabase $*" >> "${s.log}"\nif [ "$1 $2" = "projects list" ]; then cat <<'EOF'\n${json}\nEOF\nfi\nexit 0\n`, { mode: 0o755 });
+      fs.rmSync(path.join(s.bin, "node"));
+      fs.symlinkSync(process.execPath, path.join(s.bin, "node"));
+      return s;
+    }
+    const calls = (log: string) => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean) : []);
+
+    it("reuses a project already named noema-733-acceptance: no create call", () => {
+      const r = run(["--resolve-project"], withProjects(JSON.stringify([
+        { id: "zzzzzzzzzzzzzzzzzzzz", name: "other" }, { id: "abcdefghijklmnopqrst", name: "noema-733-acceptance" }])));
+      expect(r.status).toBe(0);
+      expect(r.out).toContain("reuse abcdefghijklmnopqrst");
+      expect(calls(r.log).some((l) => l.includes("projects create"))).toBe(false);
+      expect(calls(r.log)).toContain("supabase projects list -o json");
+    });
+
+    it("reports create when absent, and still never calls create itself", () => {
+      const r = run(["--resolve-project"], withProjects(JSON.stringify([{ id: "zzzzzzzzzzzzzzzzzzzz", name: "other" }])));
+      expect(r.status).toBe(0);
+      expect(r.out).toContain("create");
+      expect(r.out).not.toContain("reuse");
+      expect(calls(r.log).some((l) => l.includes("projects create"))).toBe(false);
+    });
+
+    it("refuses a project of that name whose ref is the production ref", () => {
+      const r = run(["--resolve-project"], withProjects(JSON.stringify([{ id: PROD_REF, name: "noema-733-acceptance" }])));
+      expect(r.status).not.toBe(0);
+      expect(r.out).toMatch(/production/i);
+    });
   });
 
   it("refuses the production Supabase project ref", () => {
@@ -55,6 +93,11 @@ describe("acceptance-733-setup.sh", () => {
     expect(bad.out).toMatch(/production/i);
     expect(run(["--validate-ref", "Not-A-Ref"]).status).not.toBe(0);
     expect(run(["--validate-ref", "abcdefghijklmnopqrst"]).status).toBe(0);
+  });
+
+  it("never passes a database password on any command line (script source)", () => {
+    const src = fs.readFileSync(SCRIPT, "utf8").split("\n").filter((l) => !l.trim().startsWith("#") && !/^\s*say /.test(l)).join("\n");
+    expect(src).not.toContain("--db-password");
   });
 
   it("rejects unknown arguments", () => {

@@ -190,6 +190,7 @@ function defaultCtx() {
     randomHex: (n) => crypto.randomBytes(n).toString("hex"),
     pkgDir: PKG_DIR,
     tmpdir: os.tmpdir(),
+    proc: process,
   };
 }
 
@@ -400,6 +401,8 @@ function saveSection(ctx, state, name, section) {
 
 // ---------------------------------------------------------------- commands
 
+const SECRET_SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
+
 const PLAN_LINES = [
   "#733 hosted-gates acceptance plan (no network, no process spawned)",
   "  deploy    npx wrangler deploy --config wrangler.acceptance.jsonc --name noema-733-acc-<utc> --var NOEMA_ENV:test --var NOEMA_PROTOCOL_VERSION:1 --var DEFAULT_WORLD_ID:... --var ISOLATED_WATCH_WORLD_ID:... --secrets-file <ephemeral 0600>",
@@ -430,6 +433,10 @@ async function cmdDeploy(ctx) {
   const cfg = assertConfigSafe(configText, ["NOEMA_ENV:test", "NOEMA_PROTOCOL_VERSION:1"]);
   if (!cfg.ok) fail(cfg.message);
   const supabase = acceptanceSupabase(ctx);
+  // source_commit is only honest when HEAD is what gets deployed: refuse a dirty (or unknowable) working tree.
+  const tree = ctx.exec("git", ["status", "--porcelain"], { cwd: ctx.pkgDir || PKG_DIR, env: ctx.env });
+  if (tree.status !== 0) fail("git status failed; cannot prove the working tree is clean; refusing to deploy");
+  if (String(tree.stdout || "").trim() !== "") fail("working tree is dirty (uncommitted changes); commit or stash so source_commit is honest; refusing to deploy");
   const prodBefore = await productionVersion(ctx);
   if (!prodBefore) fail("could not read the production noema-gateway version (control); refusing to deploy");
 
@@ -450,6 +457,7 @@ async function cmdDeploy(ctx) {
     sentinel: `PRIVATE_733_ACC_SENTINEL_${runId}`,
     admin_operator_token: secrets.ADMIN_OPERATOR_TOKEN,
     source_commit: sha.status === 0 ? sha.stdout.trim() : null,
+    source_tree_clean: true,
     no_production_routes: true,
     production: { before: prodBefore, after: null },
     created_at: ctx.now().toISOString(),
@@ -458,16 +466,37 @@ async function cmdDeploy(ctx) {
   writeState(ctx, state);
 
   const secretsFile = path.join(ctx.tmpdir || os.tmpdir(), `.noema-733-acc-${runId}-${process.pid}.json`);
-  fs.writeFileSync(secretsFile, JSON.stringify(secrets), { mode: 0o600 });
-  fs.chmodSync(secretsFile, 0o600);
+  const proc = ctx.proc || process;
+  // 'wx': fail if the path already exists (no symlink/squat reuse); only a file we created is ever unlinked.
+  const fd = fs.openSync(secretsFile, "wx", 0o600);
+  const unlinkSecrets = () => { try { fs.rmSync(secretsFile, { force: true }); } catch { /* best effort */ } };
+  const signalHandlers = SECRET_SIGNALS.map((sig) => [sig, () => {
+    unlinkSecrets();
+    detach();
+    proc.kill(proc.pid, sig);
+  }]);
+  const exitHandler = () => unlinkSecrets();
+  function detach() {
+    for (const [sig, fn] of signalHandlers) proc.off(sig, fn);
+    proc.off("exit", exitHandler);
+  }
+  for (const [sig, fn] of signalHandlers) proc.on(sig, fn);
+  proc.on("exit", exitHandler);
   let output;
   try {
+    try {
+      fs.writeSync(fd, JSON.stringify(secrets));
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.chmodSync(secretsFile, 0o600);
     const args = buildDeployArgs({ worker, defaultWorld, isolatedWorld, secretsFile });
     const res = ctx.exec("npx", args, { cwd: ctx.pkgDir || PKG_DIR, env: wranglerEnv(ctx) });
     output = `${res.stdout || ""}${res.stderr || ""}`;
     if (res.status !== 0) fail(`wrangler deploy failed (${res.status}): ${redact(output).slice(-400)}`);
   } finally {
-    fs.rmSync(secretsFile, { force: true });
+    unlinkSecrets();
+    detach();
   }
   const urls = [...output.matchAll(/https:\/\/[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev/gi)].map((m) => m[0]);
   if (urls.length && !urls.includes(base)) fail("wrangler reported a workers.dev URL that does not match the guarded base");
@@ -710,6 +739,41 @@ async function cmdG3Urls(ctx, flags) {
   return 0;
 }
 
+const G3_SHAPE = {
+  passed: "boolean", keyboard_ok: "boolean", skip_link_ok: "boolean", pause_refresh_ok: "boolean", reduced_motion_ok: "boolean",
+  aria_live_bounded: "boolean", contrast_ok: "boolean", home_degradation_ok: "boolean", sentinel_absent: "boolean",
+  min_contrast: "number", notes: "string", browser: "string",
+};
+const G3_MAX_STRING = 500;
+
+/** Allowlisted g3 record: known keys with the right primitive type only; everything else is dropped. */
+function sanitizeG3(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) fail("--g3 file must be a JSON object");
+  const out = {};
+  for (const [key, type] of Object.entries(G3_SHAPE)) {
+    if (!(key in input)) continue;
+    const v = input[key];
+    if (typeof v !== type || (type === "number" && !Number.isFinite(v))) fail(`--g3 key ${key} must be a ${type}`);
+    out[key] = type === "string" ? v.slice(0, G3_MAX_STRING) : v;
+  }
+  return out;
+}
+
+const REQUIRED_GATES = ["g1", "g2", "g3", "r0"];
+
+/** passed | failed | pending | not_covered, strictly: only an explicit passed:true counts as passed. */
+function deriveGates(s) {
+  const phase = (section) => (section && typeof section === "object" && "passed" in section ? (section.passed === true ? "passed" : "failed") : "pending");
+  const g3 = s.g3_watch_home;
+  let g3State = "pending";
+  if (g3 && g3.status === "recorded") {
+    const flags = Object.entries(G3_SHAPE).filter(([, t]) => t === "boolean").map(([k]) => g3[k]);
+    g3State = g3.passed === true && flags.every((v) => v === undefined || v === true) ? "passed" : "failed";
+  }
+  const c9 = s.c9_checklist && typeof s.c9_checklist === "object" && "passed" in s.c9_checklist ? (s.c9_checklist.passed === true ? "passed" : "failed") : "not_covered";
+  return { g1: phase(s.g1_isolation), g2: phase(s.g2_s3_readback), g3: g3State, r0: phase(s.r0_presentation), c9 };
+}
+
 async function cmdReceipt(ctx, flags) {
   const state = loadRun(ctx, flags.run);
   if (state.production.after == null) {
@@ -718,11 +782,12 @@ async function cmdReceipt(ctx, flags) {
   }
   let g3 = state.sections.g3_watch_home || { status: "pending_browser_phase" };
   if (flags.g3) {
-    g3 = { status: "recorded", ...JSON.parse(fs.readFileSync(flags.g3, "utf8")) };
+    g3 = { ...sanitizeG3(JSON.parse(fs.readFileSync(flags.g3, "utf8"))), status: "recorded" };
     state.sections.g3_watch_home = g3;
     writeState(ctx, state);
   }
   const s = state.sections;
+  const gates = deriveGates({ ...s, g3_watch_home: g3 });
   const receipt = redactDeep({
     schema: RECEIPT_SCHEMA,
     extends: "noema-733-same-world-hosted/1",
@@ -730,12 +795,15 @@ async function cmdReceipt(ctx, flags) {
     observed_date_utc: ctx.now().toISOString().slice(0, 10),
     run_id: state.run_id,
     source_commit: state.source_commit,
+    source_tree_clean: state.source_tree_clean === true,
     worker: state.worker,
     worker_version: state.version ?? null,
     worker_url: state.base,
     no_production_routes: state.no_production_routes === true,
     target_world: state.isolated_world,
     configured_default_world: state.default_world,
+    gates,
+    all_required_passed: REQUIRED_GATES.every((k) => gates[k] === "passed"),
     g1_isolation: s.g1_isolation || { status: "not_run" },
     g2_s3_readback: s.g2_s3_readback || { status: "not_run" },
     g3_watch_home: g3,
@@ -757,7 +825,7 @@ async function cmdReceipt(ctx, flags) {
 
 async function cmdTeardown(ctx, flags) {
   const state = loadRun(ctx, flags.run);
-  const res = ctx.exec("npx", ["wrangler", "delete", "--name", state.worker, "--force"], { cwd: ctx.pkgDir || PKG_DIR, env: wranglerEnv(ctx) });
+  const res = ctx.exec("npx", ["wrangler", "delete", "--config", CONFIG_NAME, "--name", state.worker, "--force"], { cwd: ctx.pkgDir || PKG_DIR, env: wranglerEnv(ctx) });
   const deleted = res.status === 0;
   state.production.after = await productionVersion(ctx);
   if (deleted) delete state.admin_operator_token;
