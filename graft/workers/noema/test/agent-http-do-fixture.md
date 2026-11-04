@@ -1,7 +1,7 @@
 # workers/noema/test/agent-http-do-fixture.ts
 
 - fixtureWorld · function · L13-L28 — function fixtureWorld(): WorldRuntime
-- harness · function · L30-L105 — function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime, publicTarget?: string)
+- harness · function · L30-L114 — function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime, publicTarget?: string)
 - fetch · method · L45-L81 — async fetch(input: string | Request, init?: RequestInit)
 - get · method · L61-L61 — async get(key: string)
 - put · method · L62-L70 — async put(key: string | Record<string, unknown>, value?: unknown)

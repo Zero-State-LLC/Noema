@@ -146,9 +146,19 @@ function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
+/** Mirrors the real Observation shape (play_text headings, structured actions); see acceptance-733-runner-fixture.test.ts. */
+function obs(name: string, exit: string, consequence: string, entities: Array<Record<string, unknown>>, traces: unknown[] = []) {
+  const here = entities.length ? `HERE\n${entities.map((e) => e.label).join("\n")}\n` : "";
+  return {
+    location: { name, exits: [{ direction: exit }], entities, traces }, consequence,
+    play_text: `${name}\nA room.\n${here}EXITS\n${exit}\nSTATUS\nEnergy 80\nHAPPENED\n${consequence}`,
+    available_actions: ["LOOK", "MOVE"], affordances: [{ action: "LOOK", verb: "LOOK", cmd: "look" }],
+  };
+}
+
 function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?: () => string } = {}) {
   const head = { revision: 1, sequence: 0 };
-  const events: string[] = [];
+  const events: Array<{ event_type: string; payload: Record<string, unknown> }> = [];
   let left = false;
   let evicted = false;
   const seen: Array<{ url: string; method: string }> = [];
@@ -165,8 +175,8 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
     if (u.host === "acceptanceprojectref.supabase.co") {
       if (method !== "GET") return jsonRes({ error: "read-only" }, 405);
       if (u.pathname.endsWith("noema_world_heads")) return jsonRes([{ world_id: ISO_WORLD, ...head }]);
-      if (u.pathname.endsWith("noema_settled_events")) return jsonRes(events.map((e, i) => ({ sequence: i, event_type: e })));
-      if (u.pathname.endsWith("noema_canonical_settlements")) return jsonRes(events.map((e, i) => ({ revision: i + 1, note: e })));
+      if (u.pathname.endsWith("noema_settled_events")) return jsonRes(events.map((e, i) => ({ sequence: i, ...e })));
+      if (u.pathname.endsWith("noema_canonical_settlements")) return jsonRes(events.map((e, i) => ({ revision: i + 1, settlement_id: `s${i}` })));
     }
     if (u.host !== `${WORKER}.zer0state-noema.workers.dev`) return jsonRes({ error: "unexpected host" }, 599);
     switch (u.pathname) {
@@ -175,7 +185,9 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
       case "/v1/admin/session": return jsonRes({ access_token: ADMIN_JWT });
       case "/v1/admin/controller-token": return jsonRes({ access_token: `eyJhbGciOiJIUzI1NiJ9.agent-${body.handle}.sig` });
       case "/v1/admin/tempo": return jsonRes({ error: { code: "FORBIDDEN" } }, 403);
-      case "/v1/command": return jsonRes({ error: { code: "INVALID_REQUEST" } }, 400);
+      case "/v1/command": return body.world_id === ISO_WORLD && headers["X-Noema-Admin-Token"]
+        ? (/^alias /.test(String(body.command)) ? jsonRes({ error: { code: "INVALID_REQUEST" } }, 400) : jsonRes({ ok: true, request_id: body.request_id }))
+        : jsonRes({ error: { code: "SEAL_REQUIRED" } }, 401);
       case "/v1/operator/test-world/seed": {
         if (!headers["X-Noema-Admin-Token"]) return jsonRes({ error: {} }, 401);
         return opts.seedStatus && opts.seedStatus !== 200 ? jsonRes({ error: { code: "NOT_FOUND" } }, opts.seedStatus)
@@ -192,29 +204,26 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
         const who = auth.includes("agent-acc-b") ? "b" : "a";
         const args = body.arguments || {};
         const text = JSON.stringify(body);
-        if (args.line || args._macro_step || /;|^alias /.test(String(body.command))) {
+        if (/;|^alias /.test(String(body.command))) {
           return jsonRes({ ok: false, error: { code: "INVALID_REQUEST", message: "text carriers are not accepted" } }, 400);
         }
         if (body.command === "MOVE") {
-          head.revision += 1; head.sequence += 1; events.push("MOVE");
-          return jsonRes({ ok: true, request_id: body.request_id, events: [{ type: "MOVE" }], observation: { text: "WHERE HERE EXITS STATUS HAPPENED AVAILABLE ACTIONS" } });
+          head.revision += 1; head.sequence += 1; events.push({ event_type: "MOVE", payload: {} });
+          return jsonRes({ ok: true, request_id: body.request_id, events: [{ type: "MOVE" }], observation: obs("Hall", "west", "You arrive at Hall.", []) });
         }
         if (body.command === "COMMIT") {
-          head.revision += 1; head.sequence += 1; events.push("ENTITY_UPDATE REPAIR");
+          head.revision += 1; head.sequence += 1; events.push({ event_type: "ENTITY_UPDATE", payload: { operation: "REPAIR", entity_id: "entity.relay-7" } });
           return jsonRes({ ok: true, request_id: body.request_id, events: [{ type: "ENTITY_UPDATE" }] });
         }
         if (body.command === "LEAVE_WORLD") {
-          left = true; head.revision += 1; head.sequence += 1; events.push("LEAVE_WORLD");
+          left = true; head.revision += 1; head.sequence += 1; events.push({ event_type: "AGENT_LEFT_WORLD", payload: {} });
           return jsonRes({ ok: true, request_id: body.request_id });
         }
         if (body.command === "LOOK" || body.command === "ENTER_WORLD" || body.command === "JOIN") {
           const traces = who === "b" && left ? [{ kind: "construction", text: "A maintenance plate names Sable as the last repairer.", visibility: "public" }] : [];
           return jsonRes({
             ok: true, request_id: body.request_id,
-            observation: {
-              text: "WHERE: Relay\nHERE: you\nEXITS: east\nSTATUS: ok\nHAPPENED: nothing\nAVAILABLE ACTIONS: LOOK",
-              location: { traces, entities: [{ entity_id: "entity.relay-7", repairable: true }] },
-            },
+            observation: obs("Anchor", "east", "You take in Anchor.", [{ entity_id: "entity.relay-7", label: "scarred-conduit", repairable: true }], traces),
           });
         }
         return jsonRes({ ok: true, request_id: body.request_id, echo_len: text.length });
@@ -348,8 +357,8 @@ describe("acceptance-733 g1", () => {
     expect(await main(["g1", "--run", RUN], c.ctx)).toBe(0);
     const g1 = readState(e).sections.g1_isolation;
     expect(g1.passed).toBe(true);
-    for (const k of ["seed_ok", "structured_join_canonical", "structured_move_canonical", "text_line_refused",
-      "text_command_refused", "macro_step_refused", "refusals_left_head_unchanged", "move_advanced_head", "agent_tempo_refused"]) {
+    for (const k of ["seed_ok", "structured_join_canonical", "structured_move_canonical", "text_line_stripped_canonical",
+      "text_command_refused", "macro_step_stripped_canonical", "command_endpoint_structured_join_canonical", "command_endpoint_text_refused", "refusals_left_head_unchanged", "move_advanced_head", "agent_tempo_refused"]) {
       expect(g1.checks[k], k).toBe(true);
     }
     const dump = JSON.stringify(readState(e).sections) + c.out.join("\n");

@@ -182,6 +182,7 @@ function defaultCtx() {
       const r = spawnSync(cmd, args, { cwd: opts.cwd || PKG_DIR, env: opts.env || process.env, encoding: "utf8", maxBuffer: 20 * 1024 * 1024 });
       return { status: r.status ?? 1, stdout: r.stdout || "", stderr: r.stderr || "" };
     },
+    wsFactory: typeof WebSocket === "function" ? (url) => new WebSocket(url) : undefined,
     now: () => new Date(),
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
     out: (s) => console.log(s),
@@ -327,6 +328,38 @@ async function mintSessions(ctx, state, handles) {
   return { admin, agents };
 }
 
+
+/**
+ * Agent protocol WebSocket (src/protocol-ws.ts). The isolated world is selected by `world_id` on every frame and
+ * the admin JWT rides in AUTH `body.admin_token` (a WebSocket client cannot set headers). Returns null when no
+ * WebSocket implementation was injected, so unit contexts never open a socket.
+ */
+async function openProtocolSocket(ctx, state, sessions, handle) {
+  if (typeof ctx.wsFactory !== "function") return null;
+  if (!admitBaseUrl(state.base).ok) fail("base URL guard failed");
+  const ws = ctx.wsFactory(`${state.base.replace(/^https:/, "wss:")}/protocol/v1/ws`);
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("ws open timeout")), 15000);
+    ws.addEventListener("open", () => { clearTimeout(timer); resolve(); });
+    ws.addEventListener("error", () => { clearTimeout(timer); reject(new Error("ws error")); });
+  });
+  const waiting = new Map();
+  ws.addEventListener("message", (evt) => {
+    let msg;
+    try { msg = JSON.parse(String(evt.data)); } catch { return; }
+    const resolve = waiting.get(msg.request_id);
+    if (resolve) { waiting.delete(msg.request_id); resolve(msg); }
+  });
+  const frame = (msg) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { waiting.delete(msg.request_id); reject(new Error("ws frame timeout")); }, 15000);
+    waiting.set(msg.request_id, (m) => { clearTimeout(timer); resolve(m); });
+    ws.send(JSON.stringify(msg));
+  });
+  const auth = await frame({ type: "AUTH", request_id: rid(state, "g1-ws-auth"), world_id: state.isolated_world,
+    body: { access_token: sessions.agents[handle], admin_token: sessions.admin, world_id: state.isolated_world } });
+  return { frame, close: () => { try { ws.close(); } catch { /* already closed */ } }, authOk: auth.type === "AUTH_ACK" };
+}
+
 let seq = 0;
 const rid = (state, tag) => `${tag}-${state.run_id}-${(seq += 1)}`;
 
@@ -464,6 +497,7 @@ async function cmdG1(ctx, flags) {
   const canonical = (r) => okBody(r) && r.body.request_id === r.request_id && !/\.m\d/.test(JSON.stringify(r.body)) && clean(r);
   const refused = (r) => r.status === 400 && r.body?.error?.code === "INVALID_REQUEST" && clean(r);
   let headMark = null;
+  const wsHolder = {};
   const result = await runChecks([
     ["enter_a_ok", async () => okBody(await operator(ctx, state, sessions, "acc-a", "ENTER_WORLD", {}, "g1-enter"))],
     ["seed_ok", async () => {
@@ -481,13 +515,42 @@ async function cmdG1(ctx, flags) {
       return canonical(r);
     }],
     ["move_advanced_head", async () => headMark?.before && headMark?.after && headMark.after.revision > headMark.before.revision],
-    ["text_line_refused", async () => refused(await operator(ctx, state, sessions, "acc-a", "JOIN", { line: aliasValue }, "g1-line"))],
+    // Real shape (stripHumanPlayLine, src/protocol-ws.ts:29): `arguments.line` / `_macro_step` are
+    // stripped, not rejected. The command then runs as a plain structured JOIN, never as text.
+    ["text_line_stripped_canonical", async () => {
+      const before = await sbHead(ctx, state);
+      const r = await operator(ctx, state, sessions, "acc-a", "JOIN", { line: aliasValue }, "g1-line");
+      const after = await sbHead(ctx, state);
+      return canonical(r) && !!before && !!after && before.revision === after.revision && before.sequence === after.sequence;
+    }],
     ["text_command_refused", async () => refused(await operator(ctx, state, sessions, "acc-a", `alias set ii look ${S}`, {}, "g1-text"))],
-    ["macro_step_refused", async () => refused(await operator(ctx, state, sessions, "acc-a", "JOIN", { _macro_step: `look ${S}` }, "g1-macro"))],
+    ["macro_step_stripped_canonical", async () => canonical(await operator(ctx, state, sessions, "acc-a", "JOIN", { _macro_step: `look ${S}` }, "g1-macro"))],
+    // /v1/command targets the isolated world only when the envelope names it AND carries the admin
+    // header (src/protocol-ws.ts:169-181); without them it hits the default world and the seal gate.
+    ["command_endpoint_structured_join_canonical", async () => {
+      const request_id = rid(state, "g1-cmdjoin");
+      const r = await http(ctx, state, "POST", "/v1/command", { headers: authHeaders(sessions, "acc-a"), body: { request_id, command: "JOIN", arguments: {}, world_id: state.isolated_world } });
+      return canonical({ ...r, request_id });
+    }],
     ["command_endpoint_text_refused", async () => refused(await http(ctx, state, "POST", "/v1/command", {
-      headers: { Authorization: `Bearer ${sessions.agents["acc-a"]}` },
-      body: { request_id: rid(state, "g1-cmd"), command: `alias set ii look ${S}`, arguments: {} },
+      headers: authHeaders(sessions, "acc-a"),
+      body: { request_id: rid(state, "g1-cmd"), command: `alias set ii look ${S}`, arguments: {}, world_id: state.isolated_world },
     }))],
+    ...(typeof ctx.wsFactory === "function" ? [
+      ["ws_act_structured_join_canonical", async () => {
+        wsHolder.ws = await openProtocolSocket(ctx, state, sessions, "acc-a");
+        if (!wsHolder.ws?.authOk) return false;
+        const request_id = rid(state, "g1-ws-join");
+        const reply = await wsHolder.ws.frame({ type: "ACT", request_id, world_id: state.isolated_world, body: { world_id: state.isolated_world, action: { verb: "JOIN" } } });
+        return reply.type === "ACT_RESULT" && reply.body?.ok === true && reply.body?.request_id === request_id && !JSON.stringify(reply).includes(S) && !/\.m\d/.test(JSON.stringify(reply));
+      }],
+      ["ws_act_text_carrier_refused", async () => {
+        const request_id = rid(state, "g1-ws-text");
+        const reply = await wsHolder.ws.frame({ type: "ACT", request_id, world_id: state.isolated_world, body: { world_id: state.isolated_world, command: `alias set ii look ${S}` } });
+        wsHolder.ws.close();
+        return reply.type === "ERROR" && reply.error?.code === "INVALID_REQUEST" && !JSON.stringify(reply).includes(S);
+      }],
+    ] : []),
     ["refusals_left_head_unchanged", async () => {
       const after = await sbHead(ctx, state);
       return !!after && !!headMark?.after && after.revision === headMark.after.revision && after.sequence === headMark.after.sequence;
@@ -500,7 +563,7 @@ async function cmdG1(ctx, flags) {
       return r.status === 401 || r.status === 403;
     }],
   ]);
-  return saveSection(ctx, state, "g1_isolation", { ...result, informational: { ws_act: "not_run_by_runner" } });
+  return saveSection(ctx, state, "g1_isolation", { ...result, informational: { ws_act: typeof ctx.wsFactory === "function" ? "run_by_runner" : "not_run_by_runner" } });
 }
 
 async function cmdG2(ctx, flags) {
@@ -517,16 +580,23 @@ async function cmdG2(ctx, flags) {
       ctxv.head0 = await sbHead(ctx, state);
       return typeof ctxv.entity === "string" && !!ctxv.head0;
     }],
-    ["repair_accepted", async () => okBody(await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "g2-repair"))],
+    ["repair_accepted", async () => {
+      const r = await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "g2-repair");
+      // Real rejection shape: { ok:false, error:{ code, message } } (e.g. BUDGET_EXCEEDED "...materials in hold").
+      if (!okBody(r)) ctxv.repair_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
+      return okBody(r);
+    }],
     ["leave_accepted", async () => okBody(await operator(ctx, state, sessions, "acc-a", "LEAVE_WORLD", {}, "g2-leave"))],
+    // Real settled rows (src/settle.ts RPC): { event_type, payload, ... }. REPAIR is an ENTITY_UPDATE with
+    // payload.operation "REPAIR"; leaving is AGENT_LEFT_WORLD (there is no LEAVE_*/DEPART* event type).
     ["repair_committed_in_sql", async () => {
       ctxv.head1 = await sbHead(ctx, state);
-      const events = JSON.stringify(await sbRows(ctx, state, "noema_settled_events"));
+      ctxv.events = await sbRows(ctx, state, "noema_settled_events");
       const settlements = await sbRows(ctx, state, "noema_canonical_settlements");
-      ctxv.eventsText = events;
-      return /REPAIR/.test(events) && settlements.length >= 2 && ctxv.head1.revision >= ctxv.head0.revision + 2;
+      return ctxv.events.some((e) => e.event_type === "ENTITY_UPDATE" && e.payload?.operation === "REPAIR" && e.payload?.entity_id === ctxv.entity) &&
+        settlements.length >= 2 && ctxv.head1.revision >= ctxv.head0.revision + 2;
     }],
-    ["leave_committed_in_sql", async () => /LEAVE|DEPART/i.test(ctxv.eventsText || "")],
+    ["leave_committed_in_sql", async () => (ctxv.events || []).some((e) => e.event_type === "AGENT_LEFT_WORLD")],
     ["probe_ids_equal_before_evict", async () => {
       const a = await probe();
       const b = await probe();
@@ -554,10 +624,32 @@ async function cmdG2(ctx, flags) {
       return live.status === 200 && lists.every((t) => t.length <= 3) && lists.some((t) => t.some((x) => x?.kind === "construction"));
     }],
   ]);
-  return saveSection(ctx, state, "g2_s3_readback", { ...result, ac17_stale_trace: "not_covered" });
+  // The stock `test.hosted-canonical.*` seed (src/mini-chamber.ts miniChamberState) holds only a PROP
+  // (way-lamp) and no INFRASTRUCTURE below 100% condition, so REPAIR is `FORBIDDEN` there; only the
+  // fixed `test.hosted-canonical.attest-s0` seed has a repairable relay. Report the gap, never fake it.
+  const gap = result.checks.repairable_entity_found === false
+    ? { seed_gap: "isolated world seed exposes no repairable entity (observation.location.entities[].repairable); G2 cannot commit a REPAIR trace on this world" }
+    : {};
+  if (ctxv.repair_rejection) gap.repair_rejection = ctxv.repair_rejection;
+  return saveSection(ctx, state, "g2_s3_readback", { ...result, ...gap, ac17_stale_trace: "not_covered" });
 }
 
-const R0_FIELDS = { WHERE: /\bWHERE\b/, HERE: /\bHERE\b/, EXITS: /\bEXITS\b/, STATUS: /\bSTATUS\b/, HAPPENED: /\bHAPPENED\b/, AVAILABLE_ACTIONS: /AVAILABLE ACTIONS/ };
+/**
+ * Real hosted shape (src/types.ts Observation; src/play-ui.ts lowNoiseRoomText): the A3 stack lives in
+ * `observation.play_text` as a room-name line (WHERE), description, then the bare section headings
+ * PRESSURE / HERE / EXITS / STATUS / HAPPENED. HERE is omitted for an empty room and there is no literal
+ * "WHERE" or "AVAILABLE ACTIONS" heading: WHERE is `location.name` as the first line, and available
+ * actions are the structured `available_actions` + `affordances` arrays.
+ */
+const heading = (text, name) => new RegExp(`^${name}$`, "m").test(text);
+const R0_FIELDS = {
+  WHERE: (o) => !!o?.location?.name && String(o.play_text || "").split("\n")[0] === o.location.name,
+  HERE: (o) => heading(o?.play_text || "", "HERE") && (o.location?.entities || []).every((e) => o.play_text.includes(e.label)),
+  EXITS: (o) => heading(o?.play_text || "", "EXITS") && (o.location?.exits || []).every((x) => o.play_text.includes(x.direction)),
+  STATUS: (o) => heading(o?.play_text || "", "STATUS") && /^Energy \d+$/m.test(o.play_text),
+  HAPPENED: (o) => heading(o?.play_text || "", "HAPPENED") && typeof o.consequence === "string" && o.consequence.length > 0,
+  AVAILABLE_ACTIONS: (o) => Array.isArray(o?.available_actions) && o.available_actions.length > 0 && Array.isArray(o.affordances) && o.affordances.length > 0 && o.affordances.every((a) => typeof a.cmd === "string" || typeof a.verb === "string"),
+};
 
 async function cmdR0(ctx, flags) {
   const state = loadRun(ctx, flags.run);
@@ -570,17 +662,17 @@ async function cmdR0(ctx, flags) {
     }],
     ["look_ok", async () => {
       const r = await operator(ctx, state, sessions, "acc-a", "LOOK", {}, "r0-look");
-      blob.look = strings(r.body).join("\n");
-      return okBody(r);
+      blob.look = r.body?.observation;
+      return okBody(r) && !!blob.look;
     }],
-    ...Object.entries(R0_FIELDS).map(([name, re]) => [`field_${name}`, async () => re.test(blob.look)]),
+    ...Object.entries(R0_FIELDS).map(([name, test]) => [`field_${name}`, async () => test(blob.look)]),
     ["move_orientation_present", async () => {
-      for (const direction of ["east", "west"]) {
+      // Orientation after MOVE: the new room name leads, then EXITS and HAPPENED (HERE only when occupied).
+      for (const direction of (blob.look?.location?.exits || []).map((x) => x.direction)) {
         const r = await operator(ctx, state, sessions, "acc-a", "MOVE", { direction }, "r0-move");
-        if (okBody(r)) {
-          const text = strings(r.body).join("\n");
-          return R0_FIELDS.WHERE.test(text) && R0_FIELDS.EXITS.test(text) && R0_FIELDS.HAPPENED.test(text);
-        }
+        if (!okBody(r)) continue;
+        const o = r.body.observation;
+        return !!o && o.location?.name !== blob.look.location.name && R0_FIELDS.WHERE(o) && R0_FIELDS.EXITS(o) && R0_FIELDS.HAPPENED(o);
       }
       return false;
     }],

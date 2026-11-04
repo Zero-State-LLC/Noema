@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8756,
-    "edgeCount": 19323,
+    "nodeCount": 8776,
+    "edgeCount": 19367,
     "languages": [
       "javascript",
       "python",
@@ -67856,12 +67856,12 @@
       "name": "acceptance-733.mjs",
       "kind": "file",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L1-L695",
+      "span": "L1-L787",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "e575678ff409c5820e108c30e21c4c7df4489da8d5fde3ab23c4e8b040130da3",
-      "chars": 33150,
+      "body_hash": "d520d746eed740977adc273a232097d09a8e42d955f59dd7164d6f820f532dab",
+      "chars": 39915,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -67871,7 +67871,7 @@
       "name": "acceptanceSupabase",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L271-L277",
+      "span": "L272-L278",
       "signature": "function acceptanceSupabase(ctx)",
       "exported": false,
       "origin": "ast",
@@ -67969,7 +67969,7 @@
       "name": "authHeaders",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L333-L333",
+      "span": "L366-L366",
       "signature": "authHeaders = (sessions, handle)",
       "exported": false,
       "origin": "ast",
@@ -67997,7 +67997,7 @@
       "name": "cmdDeploy",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L388-L456",
+      "span": "L421-L489",
       "signature": "async function cmdDeploy(ctx)",
       "exported": false,
       "origin": "ast",
@@ -68011,11 +68011,11 @@
       "name": "cmdG1",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L458-L504",
+      "span": "L491-L567",
       "signature": "async function cmdG1(ctx, flags)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "50f70b3fe35837af2e653d8c61a28e8ef158db79fde4dfa1823a41d912b0e8f9",
+      "body_hash": "a5d370233b8b6fb6ce8d43f863bb600cde84c09487b54f527933a173a61eb4a5",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68025,7 +68025,7 @@
       "name": "canonical",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L464-L464",
+      "span": "L497-L497",
       "signature": "canonical = (r)",
       "exported": false,
       "origin": "ast",
@@ -68039,7 +68039,7 @@
       "name": "clean",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L463-L463",
+      "span": "L496-L496",
       "signature": "clean = (r)",
       "exported": false,
       "origin": "ast",
@@ -68053,7 +68053,7 @@
       "name": "refused",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L465-L465",
+      "span": "L498-L498",
       "signature": "refused = (r)",
       "exported": false,
       "origin": "ast",
@@ -68067,11 +68067,11 @@
       "name": "cmdG2",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L506-L558",
+      "span": "L569-L635",
       "signature": "async function cmdG2(ctx, flags)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "72478b968bb3440e7b381231162b749e4763130ca95d2406edeb07225759a49e",
+      "body_hash": "494ef5425eb97d6e35047f65df4b195d697c0e269950eaf2f1f72af16be8947a",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68081,7 +68081,7 @@
       "name": "probe",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L509-L509",
+      "span": "L572-L572",
       "signature": "probe = async ()",
       "exported": false,
       "origin": "ast",
@@ -68095,7 +68095,7 @@
       "name": "version",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L510-L510",
+      "span": "L573-L573",
       "signature": "version = async ()",
       "exported": false,
       "origin": "ast",
@@ -68109,7 +68109,7 @@
       "name": "cmdG3Urls",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L592-L602",
+      "span": "L684-L694",
       "signature": "async function cmdG3Urls(ctx, flags)",
       "exported": false,
       "origin": "ast",
@@ -68123,7 +68123,7 @@
       "name": "cmdPlan",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L383-L386",
+      "span": "L416-L419",
       "signature": "async function cmdPlan(ctx)",
       "exported": false,
       "origin": "ast",
@@ -68137,11 +68137,11 @@
       "name": "cmdR0",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L562-L590",
+      "span": "L654-L682",
       "signature": "async function cmdR0(ctx, flags)",
       "exported": false,
       "origin": "ast",
-      "body_hash": "bbee3aab8e2ea01b16326c8d8911e5a5d59de6cd8e534decce7f6e4686920cd7",
+      "body_hash": "0b7a6edf39333f9222281e75865066f9602fff90e8dffa8e5b36d23f9a4c0fc8",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68151,7 +68151,7 @@
       "name": "cmdReceipt",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L604-L647",
+      "span": "L696-L739",
       "signature": "async function cmdReceipt(ctx, flags)",
       "exported": false,
       "origin": "ast",
@@ -68165,7 +68165,7 @@
       "name": "cmdTeardown",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L649-L659",
+      "span": "L741-L751",
       "signature": "async function cmdTeardown(ctx, flags)",
       "exported": false,
       "origin": "ast",
@@ -68179,11 +68179,11 @@
       "name": "defaultCtx",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L177-L193",
+      "span": "L177-L194",
       "signature": "function defaultCtx()",
       "exported": false,
       "origin": "ast",
-      "body_hash": "21987e1575ecdd8d41ca15d7b3b13df624ddbb9eb2ff6d9e35bde890b7c00087",
+      "body_hash": "7e3e06f17bd6e702dbdee45e96779f006e2640a3f88b832089abde52bffe7b65",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68193,7 +68193,7 @@
       "name": "envFilePath",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L196-L196",
+      "span": "L197-L197",
       "signature": "envFilePath = (ctx)",
       "exported": false,
       "origin": "ast",
@@ -68207,7 +68207,7 @@
       "name": "fail",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L205-L207",
+      "span": "L206-L208",
       "signature": "function fail(message)",
       "exported": false,
       "origin": "ast",
@@ -68221,7 +68221,7 @@
       "name": "findAll",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L302-L309",
+      "span": "L303-L310",
       "signature": "function findAll(value, pred, acc = [])",
       "exported": false,
       "origin": "ast",
@@ -68231,11 +68231,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/scripts/acceptance-733.mjs#heading",
+      "name": "heading",
+      "kind": "function",
+      "path": "workers/noema/scripts/acceptance-733.mjs",
+      "span": "L644-L644",
+      "signature": "heading = (text, name)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8ce44cffc4ea26c7cfb4cab8f61124772506563326f49f1f741803c7c9a58d4c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/scripts/acceptance-733.mjs#home",
       "name": "home",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L195-L195",
+      "span": "L196-L196",
       "signature": "home = (ctx)",
       "exported": false,
       "origin": "ast",
@@ -68249,7 +68263,7 @@
       "name": "http",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L244-L259",
+      "span": "L245-L260",
       "signature": "async function http(ctx, state, method, pathname, { headers = {}, body } = {})",
       "exported": false,
       "origin": "ast",
@@ -68277,7 +68291,7 @@
       "name": "loadRun",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L224-L242",
+      "span": "L225-L243",
       "signature": "function loadRun(ctx, runId)",
       "exported": false,
       "origin": "ast",
@@ -68291,7 +68305,7 @@
       "name": "main",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L676-L689",
+      "span": "L768-L781",
       "signature": "async function main(argv, ctx = defaultCtx())",
       "exported": true,
       "origin": "ast",
@@ -68305,7 +68319,7 @@
       "name": "mintSessions",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L313-L328",
+      "span": "L314-L329",
       "signature": "async function mintSessions(ctx, state, handles)",
       "exported": false,
       "origin": "ast",
@@ -68319,7 +68333,7 @@
       "name": "okBody",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L343-L343",
+      "span": "L376-L376",
       "signature": "okBody = (r)",
       "exported": false,
       "origin": "ast",
@@ -68329,11 +68343,39 @@
       "crux": null
     },
     {
+      "id": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "name": "openProtocolSocket",
+      "kind": "function",
+      "path": "workers/noema/scripts/acceptance-733.mjs",
+      "span": "L337-L361",
+      "signature": "async function openProtocolSocket(ctx, state, sessions, handle)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fb130cc107bc1044eaba19fc65ecd740e5d7263b399385916ba2811591cd74d2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket.frame",
+      "name": "frame",
+      "kind": "function",
+      "path": "workers/noema/scripts/acceptance-733.mjs",
+      "span": "L353-L357",
+      "signature": "frame = (msg)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "977c271dd53310c7034f738d6e253ecbdf106f395db435841fbf9d8c726334cb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/scripts/acceptance-733.mjs#operator",
       "name": "operator",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L335-L341",
+      "span": "L368-L374",
       "signature": "function operator(ctx, state, sessions, handle, command, args = {}, tag = \"acc\", extra = {})",
       "exported": false,
       "origin": "ast",
@@ -68347,7 +68389,7 @@
       "name": "parseFlags",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L663-L669",
+      "span": "L755-L761",
       "signature": "function parseFlags(argv)",
       "exported": false,
       "origin": "ast",
@@ -68361,7 +68403,7 @@
       "name": "productionVersion",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L261-L269",
+      "span": "L262-L270",
       "signature": "async function productionVersion(ctx)",
       "exported": false,
       "origin": "ast",
@@ -68403,7 +68445,7 @@
       "name": "rid",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L331-L331",
+      "span": "L364-L364",
       "signature": "rid = (state, tag)",
       "exported": false,
       "origin": "ast",
@@ -68417,7 +68459,7 @@
       "name": "runChecks",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L346-L360",
+      "span": "L379-L393",
       "signature": "async function runChecks(list)",
       "exported": false,
       "origin": "ast",
@@ -68459,7 +68501,7 @@
       "name": "runsDir",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L197-L197",
+      "span": "L198-L198",
       "signature": "runsDir = (ctx)",
       "exported": false,
       "origin": "ast",
@@ -68473,7 +68515,7 @@
       "name": "saveSection",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L362-L366",
+      "span": "L395-L399",
       "signature": "function saveSection(ctx, state, name, section)",
       "exported": false,
       "origin": "ast",
@@ -68487,7 +68529,7 @@
       "name": "sbHead",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L290-L293",
+      "span": "L291-L294",
       "signature": "async function sbHead(ctx, state)",
       "exported": false,
       "origin": "ast",
@@ -68501,7 +68543,7 @@
       "name": "sbRows",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L280-L288",
+      "span": "L281-L289",
       "signature": "async function sbRows(ctx, state, table)",
       "exported": false,
       "origin": "ast",
@@ -68515,7 +68557,7 @@
       "name": "statePath",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L209-L212",
+      "span": "L210-L213",
       "signature": "function statePath(ctx, runId)",
       "exported": false,
       "origin": "ast",
@@ -68529,7 +68571,7 @@
       "name": "strings",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L295-L300",
+      "span": "L296-L301",
       "signature": "strings = (value, acc = [])",
       "exported": false,
       "origin": "ast",
@@ -68557,7 +68599,7 @@
       "name": "wranglerEnv",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L198-L203",
+      "span": "L199-L204",
       "signature": "wranglerEnv = (ctx)",
       "exported": false,
       "origin": "ast",
@@ -68571,7 +68613,7 @@
       "name": "writeState",
       "kind": "function",
       "path": "workers/noema/scripts/acceptance-733.mjs",
-      "span": "L214-L221",
+      "span": "L215-L222",
       "signature": "function writeState(ctx, state)",
       "exported": false,
       "origin": "ast",
@@ -92739,6 +92781,231 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "name": "acceptance-733-runner-fixture.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L1-L237",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "2b27cee631a47a65a321532c79d792748b8ffb715327d6a280bff0a63201e698",
+      "chars": 14579,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase",
+      "name": "fakeSupabase",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L31-L71",
+      "signature": "function fakeSupabase()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ffbd48cb0d7c92440f16ea9d84a67001d3e98d0e8c042eaf4fcb375c88589679",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase.handler",
+      "name": "handler",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L36-L69",
+      "signature": "handler = async (url: string, init: RequestInit = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5d03b7ad7b389e1b25440cb07336603ece8ac22221b4a9357c9018346f829d4b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#falseChecks",
+      "name": "falseChecks",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L156-L156",
+      "signature": "falseChecks = (section: { checks: Record<string, boolean> })",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bc84bc2b5e2a7ce05ebaaa10eda923f8a9f116cad4cfba90b68a609f54649bfc",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#json",
+      "name": "json",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L28-L28",
+      "signature": "json = (body: unknown, status = 200)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "37103b0d95e6bbc942b7833e2e99dc6eb00d84facf3c858f371418fe1c083973",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rand",
+      "name": "rand",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L25-L25",
+      "signature": "rand = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9220e65bd76abab9c789d35a881e52cad4f4fce7dfc3c83aa943780c998b1a8e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "name": "rig",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L75-L154",
+      "signature": "async function rig(opts: { isolated?: string; afterRunnerRequest?: (h: ReturnType<typeof harness>, requestId: string) => Promise<void> } = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1cc73b19634d2606ceb815c76484fe8591158cbe61942d025f1d73d469b05049",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#Rig",
+      "name": "Rig",
+      "kind": "type",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L73-L73",
+      "signature": "type Rig = Awaited<ReturnType<typeof rig>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ee7f19144207c0c3244ea25f8eed939802f3864628b11ad5c4c0a744c6535278",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.accept",
+      "name": "accept",
+      "kind": "method",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L128-L128",
+      "signature": "accept()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a4e3e3298cd2f6207a63f02017180e7582e0a9dde28010a0df5dc0fa5fb387a4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.addEventListener",
+      "name": "addEventListener",
+      "kind": "method",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L128-L128",
+      "signature": "addEventListener(type: string, fn: (evt: { data: string }) => void)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7f5e5e6429b00f398101c43e98f6a846d37d60e6244ef960f90ae3e2a4cae70e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.close",
+      "name": "close",
+      "kind": "method",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L144-L144",
+      "signature": "close()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "69479e222a11c5d52bf1d3d2f7b3fe00b01b3db77deee89a0faa6d0c95d6d416",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.constructor",
+      "name": "constructor",
+      "kind": "method",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L134-L137",
+      "signature": "constructor(body: BodyInit | null, init?: ResponseInit & { webSocket?: unknown })",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f3e20899938329f986bb0d6b14be50be524990f43787db8622d1482cb34e522e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.emit",
+      "name": "emit",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L125-L125",
+      "signature": "emit = (type: string, e: unknown)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "828ad33b52311e11934eddd0e63b7c192cdd78d3776d793441bdeeee36012e37",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.readSection",
+      "name": "readSection",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L152-L152",
+      "signature": "readSection = (name: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "39cb1b3e503e1d3144c4a181d0ec0cec1c28b51e7484073554e81ced4b21ae5f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.send",
+      "name": "send",
+      "kind": "method",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L129-L129",
+      "signature": "send(message: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5e43991accaad7696fbdbb7ff38468b6a3eee87d6f3f72e472d29f8b7aa2f368",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/acceptance-733-runner-fixture.test.ts#Row",
+      "name": "Row",
+      "kind": "type",
+      "path": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "span": "L27-L27",
+      "signature": "type Row = Record<string, unknown>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "228cd751420adb30afddb42faca2cefd0265a23c5ce3671abb3c1898b7e30344",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/acceptance-733-setup.test.ts",
       "name": "acceptance-733-setup.test.ts",
       "kind": "file",
@@ -92786,12 +93053,12 @@
       "name": "acceptance-733.test.ts",
       "kind": "file",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L1-L469",
+      "span": "L1-L478",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "d019f9b57510863967e805adc332c858040abecba085e6146d25f431e62d147b",
-      "chars": 24662,
+      "body_hash": "80b2e4642a801237d3531742008d6e09e01cda6325e58f80efb3e0fc64b8d675",
+      "chars": 25697,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92801,7 +93068,7 @@
       "name": "deployed",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L265-L273",
+      "span": "L274-L282",
       "signature": "async function deployed(opts: Parameters<typeof fakeHosted>[0] = {})",
       "exported": false,
       "origin": "ast",
@@ -92815,11 +93082,11 @@
       "name": "fakeHosted",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L149-L226",
+      "span": "L159-L235",
       "signature": "function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?: () => string } = {})",
       "exported": false,
       "origin": "ast",
-      "body_hash": "74cba245d186321a5fd7957c2946a96c19b859d0c8b1355df8c0b4e12dc43f25",
+      "body_hash": "a91c9c2f5af9e0b022e5f4f5bf6af814007d55a3e56fa7a11d3b2ff6c3281655",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92829,11 +93096,11 @@
       "name": "handler",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L155-L224",
+      "span": "L165-L233",
       "signature": "handler = async (url: string, init: RequestInit = {})",
       "exported": false,
       "origin": "ast",
-      "body_hash": "d459b474796eb5026dbeb832f99804e8b722aa26ebcd8aaa87767823480b70ac",
+      "body_hash": "8b5862f27df7f8e60e1c3cee4d8e53fa12ad47438d93e4e85ae38de7f5e68e88",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92857,7 +93124,7 @@
       "name": "mkCtx",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L237-L261",
+      "span": "L246-L270",
       "signature": "function mkCtx(h: ReturnType<typeof fakeHosted>, e: ReturnType<typeof mkEnv>, extra: { execCalls?: Array<{ cmd: string; args: string[]; env?: Record<string, string | undefined> }>; secretsSeen?: string[] } = {})",
       "exported": false,
       "origin": "ast",
@@ -92871,7 +93138,7 @@
       "name": "mkEnv",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L228-L235",
+      "span": "L237-L244",
       "signature": "function mkEnv(opts: { mode?: number; supabaseUrl?: string } = {})",
       "exported": false,
       "origin": "ast",
@@ -92881,11 +93148,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/acceptance-733.test.ts#obs",
+      "name": "obs",
+      "kind": "function",
+      "path": "workers/noema/test/acceptance-733.test.ts",
+      "span": "L150-L157",
+      "signature": "function obs(name: string, exit: string, consequence: string, entities: Array<Record<string, unknown>>, traces: unknown[] = [])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c74087afcd3d24d0dc6cb5500e5a48125f1594da2d0d9098b7ef3268cb0ef527",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/acceptance-733.test.ts#readState",
       "name": "readState",
       "kind": "function",
       "path": "workers/noema/test/acceptance-733.test.ts",
-      "span": "L263-L263",
+      "span": "L272-L272",
       "signature": "readState = (e: ReturnType<typeof mkEnv>)",
       "exported": false,
       "origin": "ast",
@@ -94050,12 +94331,12 @@
       "name": "agent-http-do-fixture.ts",
       "kind": "file",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L1-L106",
+      "span": "L1-L115",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "13c68a359e8d9a91ff1b00a68d9b56041861739d8e041fe39c9d9cc002ccf4ee",
-      "chars": 5915,
+      "body_hash": "0a9881d594036bdc4005387321940488ff0c95be549f52aa62e3c33c5a28350c",
+      "chars": 6398,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -94079,11 +94360,11 @@
       "name": "harness",
       "kind": "function",
       "path": "workers/noema/test/agent-http-do-fixture.ts",
-      "span": "L30-L105",
+      "span": "L30-L114",
       "signature": "function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActiveWorldId?: string, storedAtIsolate?: WorldRuntime, publicTarget?: string)",
       "exported": true,
       "origin": "ast",
-      "body_hash": "a385de187add29762a68110cf2a15e0b5b459216671d43af7ce812ef8aa7f44c",
+      "body_hash": "a51a0b6f4d472adaf1b33010eac49893d7323975ef8aae4d8393bf3f9a6e48f3",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -180037,6 +180318,12 @@
     },
     {
       "source": "workers/noema/scripts/acceptance-733.mjs",
+      "target": "workers/noema/scripts/acceptance-733.mjs#heading",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs",
       "target": "workers/noema/scripts/acceptance-733.mjs#main",
       "relation": "calls",
       "confidence": "extracted"
@@ -180169,6 +180456,12 @@
     },
     {
       "source": "workers/noema/scripts/acceptance-733.mjs",
+      "target": "workers/noema/scripts/acceptance-733.mjs#heading",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs",
       "target": "workers/noema/scripts/acceptance-733.mjs#home",
       "relation": "contains",
       "confidence": "extracted"
@@ -180206,6 +180499,12 @@
     {
       "source": "workers/noema/scripts/acceptance-733.mjs",
       "target": "workers/noema/scripts/acceptance-733.mjs#okBody",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs",
+      "target": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -180529,6 +180828,12 @@
     },
     {
       "source": "workers/noema/scripts/acceptance-733.mjs#cmdG1",
+      "target": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#cmdG1",
       "target": "workers/noema/scripts/acceptance-733.mjs#operator",
       "relation": "calls",
       "confidence": "extracted"
@@ -180649,6 +180954,12 @@
     },
     {
       "source": "workers/noema/scripts/acceptance-733.mjs#cmdG2",
+      "target": "workers/noema/scripts/acceptance-733.mjs#redact",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#cmdG2",
       "target": "workers/noema/scripts/acceptance-733.mjs#runChecks",
       "relation": "calls",
       "confidence": "extracted"
@@ -180740,12 +181051,6 @@
     {
       "source": "workers/noema/scripts/acceptance-733.mjs#cmdR0",
       "target": "workers/noema/scripts/acceptance-733.mjs#saveSection",
-      "relation": "calls",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/scripts/acceptance-733.mjs#cmdR0",
-      "target": "workers/noema/scripts/acceptance-733.mjs#strings",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -180885,6 +181190,36 @@
       "source": "workers/noema/scripts/acceptance-733.mjs#mintSessions",
       "target": "workers/noema/scripts/acceptance-733.mjs#http",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "target": "workers/noema/scripts/acceptance-733.mjs#admitBaseUrl",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "target": "workers/noema/scripts/acceptance-733.mjs#fail",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "target": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket.frame",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "target": "workers/noema/scripts/acceptance-733.mjs#rid",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket",
+      "target": "workers/noema/scripts/acceptance-733.mjs#openProtocolSocket.frame",
+      "relation": "contains",
       "confidence": "extracted"
     },
     {
@@ -204846,6 +205181,210 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/scripts/acceptance-733.mjs#redactDeep",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#falseChecks",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#falseChecks",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#json",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rand",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#Rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#Row",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "node:fs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "node:os",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "node:path",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/scripts/acceptance-733.mjs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/src/index.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/src/mini-chamber.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase.handler",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase.handler",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#json",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#fakeSupabase",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rand",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.emit",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.accept",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.addEventListener",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.close",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.constructor",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.emit",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.readSection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.send",
+      "target": "workers/noema/test/acceptance-733-runner-fixture.test.ts#rig.emit",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/acceptance-733-setup.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -205033,6 +205572,12 @@
     },
     {
       "source": "workers/noema/test/acceptance-733.test.ts",
+      "target": "workers/noema/test/acceptance-733.test.ts#obs",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733.test.ts",
       "target": "workers/noema/test/acceptance-733.test.ts#readState",
       "relation": "contains",
       "confidence": "extracted"
@@ -205100,6 +205645,12 @@
     {
       "source": "workers/noema/test/acceptance-733.test.ts#fakeHosted.handler",
       "target": "workers/noema/test/acceptance-733.test.ts#jsonRes",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/acceptance-733.test.ts#fakeHosted.handler",
+      "target": "workers/noema/test/acceptance-733.test.ts#obs",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -225400,12 +225951,6 @@
       "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
       "relation": "references",
       "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/test/rate-limit.test.ts#durableNs",
-      "target": "workers/noema/test/acceptance-733.test.ts#fakeHosted.handler",
-      "relation": "calls",
-      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/reconstruct-canonical-state.test.ts",
