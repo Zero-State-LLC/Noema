@@ -8,25 +8,25 @@
 - cycle0ToWorld · function · L182-L235 — function cycle0ToWorld(c0: Cycle0World): WorldState
 - rec · function · L214-L215 — rec = (v: unknown): Record<string, number>
 - locateInstitutionWatchPulse · function · L237-L256 — function locateInstitutionWatchPulse( world: WorldRuntime, text: string, ): string | { text: string; room_id: string }
-- NoemaWorldDO · class · L258-L1629 — class NoemaWorldDO
+- NoemaWorldDO · class · L258-L1643 — class NoemaWorldDO
 - constructor · method · L270-L273 — constructor(state: DurableObjectState, env: Env)
 - bindAdminGenesisWorld · method · L276-L279 — private bindAdminGenesisWorld(request: Request): void
 - bindIsolatedWatch · method · L281-L294 — private async bindIsolatedWatch(request: Request): Promise<Response | null>
 - watchSnapshot · method · L296-L381 — private async watchSnapshot()
 - operatorWatchSnapshot · method · L383-L395 — private async operatorWatchSnapshot(operatorId?: string)
 - webSocketMessage · method · L397-L420 — async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void>
-- fetch · method · L422-L1114 — async fetch(request: Request): Promise<Response>
-- publicMeta · method · L1116-L1134 — private publicMeta(): Record<string, unknown>
-- loadMeta · method · L1136-L1140 — private async loadMeta(): Promise<void>
-- load · method · L1142-L1167 — private async load(): Promise<void>
-- dropDisposableSystemActors · method · L1169-L1185 — private dropDisposableSystemActors(): number
-- save · method · L1187-L1209 — private async save(): Promise<boolean>
-- put · function · L1189-L1189 — put = ()
-- applyCommand · method · L1211-L1448 — private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>
-- scheduleTempoAlarm · method · L1450-L1458 — private async scheduleTempoAlarm(now: number): Promise<void>
-- commitTempoResolution · method · L1460-L1505 — private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean>
-- alarm · method · L1507-L1540 — async alarm(): Promise<void>
-- loadDigestConfig · method · L1542-L1544 — private async loadDigestConfig(): Promise<DigestConfig>
-- recordDigestEvents · method · L1546-L1571 — private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult["events"]>, cycle: number, ): Promise<void>
-- recordOperatorWatch · method · L1573-L1599 — private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>
-- tickDigests · method · L1601-L1628 — private async tickDigests(now: number): Promise<OperatorDigest[]>
+- fetch · method · L422-L1126 — async fetch(request: Request): Promise<Response>
+- publicMeta · method · L1128-L1146 — private publicMeta(): Record<string, unknown>
+- loadMeta · method · L1148-L1152 — private async loadMeta(): Promise<void>
+- load · method · L1154-L1179 — private async load(): Promise<void>
+- dropDisposableSystemActors · method · L1181-L1197 — private dropDisposableSystemActors(): number
+- save · method · L1199-L1221 — private async save(): Promise<boolean>
+- put · function · L1201-L1201 — put = ()
+- applyCommand · method · L1223-L1461 — private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>
+- scheduleTempoAlarm · method · L1463-L1471 — private async scheduleTempoAlarm(now: number): Promise<void>
+- commitTempoResolution · method · L1473-L1518 — private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean>
+- alarm · method · L1520-L1554 — async alarm(): Promise<void>
+- loadDigestConfig · method · L1556-L1558 — private async loadDigestConfig(): Promise<DigestConfig>
+- recordDigestEvents · method · L1560-L1585 — private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult["events"]>, cycle: number, ): Promise<void>
+- recordOperatorWatch · method · L1587-L1613 — private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>
+- tickDigests · method · L1615-L1642 — private async tickDigests(now: number): Promise<OperatorDigest[]>
