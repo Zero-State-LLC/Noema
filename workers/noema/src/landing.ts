@@ -40,6 +40,12 @@ body.hero-bleed .foot{
   position:relative;z-index:1;width:min(68rem,calc(100% - 2*var(--pad)));
   margin:0 auto;padding:0 0 4.25rem;text-align:center;min-width:0;
 }
+/* #771: the copy sits on its own scrim so worst-case photo pixels keep text >= 4.5:1; 3rem feather keeps the photo above it */
+.hero-copy::before{
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  inset:-3rem -50vw 0 -50vw;
+  background:linear-gradient(to bottom,transparent 0,color-mix(in srgb,var(--void) 86%,transparent) 3rem,color-mix(in srgb,var(--void) 90%,transparent) 100%);
+}
 .hero-copy .place{margin:0 0 .55rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
 .hero-lines{
   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
@@ -110,7 +116,7 @@ body.hero-bleed .foot{
 .miss h1{max-width:none;min-width:0;overflow-wrap:anywhere}
 .miss .place{margin:0 0 .35rem;color:var(--faint);font:.85rem var(--font-body)}
 @media(max-width:760px){
-  body.hero-bleed .top{flex-wrap:wrap;padding-bottom:1rem}
+  body.hero-bleed .top{position:relative;flex-wrap:wrap;padding-bottom:1rem;background:var(--void)}
   body.hero-bleed .nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:.1rem .75rem}
   body.hero-bleed .nav a{min-height:44px;display:flex;align-items:center}
   body.hero-bleed .foot{position:relative;background:var(--void);padding-top:var(--space-md);padding-bottom:var(--space-md)}

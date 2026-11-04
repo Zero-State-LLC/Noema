@@ -169,7 +169,7 @@ code{color:var(--color-text-machine);font-size:.88em}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 body.is-low-noise .hero-art,body.is-low-noise .glyph{display:none!important}
-body.is-low-noise.hero-bleed .hero::after{display:none}
+body.is-low-noise.hero-bleed .hero::after,body.is-low-noise.hero-bleed .hero-copy::before{display:none}
 body.is-low-noise.hero-bleed .top{
   position:relative;background:var(--void);border-bottom:1px solid var(--line);
 }
