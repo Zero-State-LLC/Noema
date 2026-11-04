@@ -198,4 +198,49 @@ describe("hosted ingress isolation from developer text tooling", () => {
     expect(after.players["player.boundary"].room_id).toBe("room.b");
     expect(after.cycle).toBe(retained.cycle + 1);
   });
+
+  it("keeps WS OBSERVE and LOOK canonical despite retained aliases on those verbs", async () => {
+    const seeded = await retainedWorld({ observe: `do look; wait ${SENTINEL}`, look: `do look; wait ${SENTINEL}` });
+    const h = harness(seeded);
+    const token = (await h.agent()).access_token;
+    const ws = protocolSocket();
+    expect((await h.hit("/protocol/v1/ws", undefined, undefined, "", { Upgrade: "websocket" })).status).toBe(101);
+    expect((await ws.frame({ type: "AUTH", request_id: "ws.auth",
+      body: { access_token: token, prompt_version_hash: ACCEPTED_SEALS[0] } })).type).toBe("AUTH_ACK");
+
+    const observe = await ws.frame({ type: "OBSERVE", request_id: "ws.observe" });
+    expect(JSON.stringify(observe)).not.toContain(SENTINEL);
+    expect(observe).toMatchObject({ type: "OBSERVE", request_id: "ws.observe",
+      body: { ok: true, request_id: "ws.observe", observation: { location: { room_id: "room.a" } } } });
+    const look = await ws.frame({ type: "ACT", request_id: "ws.look", body: { action: { verb: "LOOK" } } });
+    expect(JSON.stringify(look)).not.toContain(SENTINEL);
+    expect(look).toMatchObject({ type: "ACT_RESULT", request_id: "ws.look",
+      body: { ok: true, request_id: "ws.look", observation: { location: { room_id: "room.a" } } } });
+
+    const after = (await h.persistedWorld())!;
+    expect(after.sequence).toBe(seeded.sequence);
+    expect(after.players["player.boundary"].command_aliases).toEqual(seeded.players["player.boundary"].command_aliases);
+  });
+
+  it("resolves an admin batch_close of a pinned FAST_TEST MOVE canonically despite a retained move alias", async () => {
+    const retained = await retainedWorld({ move: `do look; wait ${SENTINEL}` }, WORLD, ["player.second"]);
+    expect(pinPlayerTempo(retained, { mode: "FAST_TEST", now: Date.now(), reason: "ingress isolation batch close" }).ok).toBe(true);
+    expect(retained.player_tempo?.active_participant_ids).toEqual(["player.boundary", "player.second"]);
+    const h = harness(retained);
+    h.env.ADMIN_OPERATOR_TOKEN = "fixture-only-operator-token";
+    const admin = await mintAdminSession(h.env, h.env.ADMIN_OPERATOR_TOKEN);
+    if (admin instanceof Response) throw new Error("fixture admin session failed");
+    const token = (await h.agent()).access_token;
+    const accepted = await h.command(token, "MOVE", { direction: "east" }, { request_id: "tempo.batch.move" });
+    expect(accepted.status).toBe(200);
+    expect(await accepted.text()).not.toContain(SENTINEL);
+    expect((await h.persistedWorld())!.players["player.boundary"].room_id).toBe("room.a");
+
+    const closed = await h.hit("/v1/admin/tempo", { action: "batch_close", reason: "ingress isolation" }, admin.access_token, "");
+    expect(closed.status).toBe(200);
+    expect(await closed.text()).not.toContain(SENTINEL);
+    const after = (await h.persistedWorld())!;
+    expect(after.players["player.boundary"].room_id).toBe("room.b");
+    expect(after.cycle).toBe(retained.cycle + 1);
+  });
 });
