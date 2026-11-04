@@ -212,7 +212,7 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
           return jsonRes({ ok: true, request_id: body.request_id, events: [{ type: "MOVE" }], observation: obs("Hall", "west", "You arrive at Hall.", []) });
         }
         if (body.command === "COMMIT") {
-          head.revision += 1; head.sequence += 1; events.push({ event_type: "ENTITY_UPDATE", payload: { operation: "REPAIR", entity_id: "entity.relay-7" } });
+          head.revision += 1; head.sequence += 1; events.push({ event_type: "ENTITY_UPDATE", payload: args.operation === "HARVEST" ? { operation: "HARVEST", entity_id: args.entity_id } : { operation: "REPAIR", entity_id: "entity.relay-7" } });
           return jsonRes({ ok: true, request_id: body.request_id, events: [{ type: "ENTITY_UPDATE" }] });
         }
         if (body.command === "LEAVE_WORLD") {
@@ -223,7 +223,7 @@ function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?:
           const traces = who === "b" && left ? [{ kind: "construction", text: "A maintenance plate names Sable as the last repairer.", visibility: "public" }] : [];
           return jsonRes({
             ok: true, request_id: body.request_id,
-            observation: obs("Anchor", "east", "You take in Anchor.", [{ entity_id: "entity.relay-7", label: "scarred-conduit", repairable: true }], traces),
+            observation: obs("Anchor", "east", "You take in Anchor.", [{ entity_id: "entity.relay-7", label: "scarred-conduit", repairable: true }, { entity_id: "entity.acceptance-source", label: "parts-cache", harvestable: true }], traces),
           });
         }
         return jsonRes({ ok: true, request_id: body.request_id, echo_len: text.length });

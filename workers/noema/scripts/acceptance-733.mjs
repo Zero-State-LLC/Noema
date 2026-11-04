@@ -405,7 +405,7 @@ const PLAN_LINES = [
   "  deploy    npx wrangler deploy --config wrangler.acceptance.jsonc --name noema-733-acc-<utc> --var NOEMA_ENV:test --var NOEMA_PROTOCOL_VERSION:1 --var DEFAULT_WORLD_ID:... --var ISOLATED_WATCH_WORLD_ID:... --secrets-file <ephemeral 0600>",
   "            reads noema-gateway /version before (production control); writes ~/.config/noema/acceptance-runs/<run-id>.json (0600)",
   "  g1        admin session + Agent A/B; seed colliding aliases; structured JOIN/MOVE canonical; text carriers refused; /v1/admin/tempo refused for Agents",
-  "  g2        A: ENTER -> REPAIR -> LEAVE_WORLD; read-only PostgREST GETs; probe x2, evict, probe; B: ENTER/LOOK sees construction trace; /v1/watch/live",
+  "  g2        A: ENTER -> HARVEST -> REPAIR -> LEAVE_WORLD; read-only PostgREST GETs; probe x2, evict, probe; B: ENTER/LOOK sees construction trace; /v1/watch/live",
   "  g3-urls   print public WATCH/Home URLs + viewports for the operator's browser agent (no network)",
   "  r0        Agent observation room stack (WHERE/HERE/EXITS/STATUS/HAPPENED/AVAILABLE ACTIONS) + MOVE orientation on a hosted response",
   "  receipt   print the redacted noema-733-hosted-gates/1 receipt (optionally --out FILE, --g3 FILE)",
@@ -577,8 +577,22 @@ async function cmdG2(ctx, flags) {
       await operator(ctx, state, sessions, "acc-a", "ENTER_WORLD", {}, "g2-enter");
       const look = await operator(ctx, state, sessions, "acc-a", "LOOK", {}, "g2-look");
       ctxv.entity = findAll(look.body, (o) => o.repairable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
+      ctxv.source = findAll(look.body, (o) => o.harvestable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
       ctxv.head0 = await sbHead(ctx, state);
       return typeof ctxv.entity === "string" && !!ctxv.head0;
+    }],
+    // REPAIR consumes one unit of cargo (src/world-actions.ts COSTS.REPAIR storage 1); a fresh Agent holds none, so
+    // the real verb HARVEST fills the hold first. No harvestable source is reported as a seed gap, never faked.
+    ["harvest_source_found", async () => typeof ctxv.source === "string"],
+    ["harvest_accepted", async () => {
+      if (typeof ctxv.source !== "string") return false;
+      const r = await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "HARVEST", entity_id: ctxv.source, amount: 1 }, "g2-harvest");
+      if (!okBody(r)) ctxv.harvest_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
+      return okBody(r);
+    }],
+    ["harvest_committed_in_sql", async () => {
+      const events = await sbRows(ctx, state, "noema_settled_events");
+      return events.some((e) => e.event_type === "ENTITY_UPDATE" && e.payload?.operation === "HARVEST" && e.payload?.entity_id === ctxv.source);
     }],
     ["repair_accepted", async () => {
       const r = await operator(ctx, state, sessions, "acc-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "g2-repair");
@@ -594,7 +608,7 @@ async function cmdG2(ctx, flags) {
       ctxv.events = await sbRows(ctx, state, "noema_settled_events");
       const settlements = await sbRows(ctx, state, "noema_canonical_settlements");
       return ctxv.events.some((e) => e.event_type === "ENTITY_UPDATE" && e.payload?.operation === "REPAIR" && e.payload?.entity_id === ctxv.entity) &&
-        settlements.length >= 2 && ctxv.head1.revision >= ctxv.head0.revision + 2;
+        settlements.length >= 3 && ctxv.head1.revision >= ctxv.head0.revision + 3;
     }],
     ["leave_committed_in_sql", async () => (ctxv.events || []).some((e) => e.event_type === "AGENT_LEFT_WORLD")],
     ["probe_ids_equal_before_evict", async () => {
@@ -625,11 +639,14 @@ async function cmdG2(ctx, flags) {
     }],
   ]);
   // The stock `test.hosted-canonical.*` seed (src/mini-chamber.ts miniChamberState) holds only a PROP
-  // (way-lamp) and no INFRASTRUCTURE below 100% condition, so REPAIR is `FORBIDDEN` there; only the
-  // fixed `test.hosted-canonical.attest-s0` seed has a repairable relay. Report the gap, never fake it.
+  // (way-lamp) plus, since D5, a harvestable source and a worn relay. A world without them (older seed)
+  // reports the gap below; never fake it.
   const gap = result.checks.repairable_entity_found === false
     ? { seed_gap: "isolated world seed exposes no repairable entity (observation.location.entities[].repairable); G2 cannot commit a REPAIR trace on this world" }
-    : {};
+    : result.checks.harvest_source_found === false
+      ? { seed_gap: "isolated world seed exposes no harvestable source (observation.location.entities[].harvestable); G2 cannot fund a REPAIR with real verbs" }
+      : {};
+  if (ctxv.harvest_rejection) gap.harvest_rejection = ctxv.harvest_rejection;
   if (ctxv.repair_rejection) gap.repair_rejection = ctxv.repair_rejection;
   return saveSection(ctx, state, "g2_s3_readback", { ...result, ...gap, ac17_stale_trace: "not_covered" });
 }

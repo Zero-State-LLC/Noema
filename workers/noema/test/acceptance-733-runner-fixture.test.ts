@@ -168,40 +168,38 @@ describe("acceptance-733 runner against the mounted Worker + DO", () => {
       "command_endpoint_text_refused", "refusals_left_head_unchanged", "agent_tempo_refused"]));
   });
 
-  it("g2 on the stock isolated seed reports the missing repairable entity instead of passing", async () => {
+  it("g2: real verbs only on the stock isolated seed (ENTER, HARVEST, REPAIR, LEAVE_WORLD, evict, observer sees the trace)", async () => {
+    // D5: the isolated mini seed carries a harvestable source (1 materials) and a repairable relay. REPAIR costs
+    // energy 3 / compute 2 / 1 cargo (COSTS.REPAIR) and HARVEST costs energy 2 / compute 1 (COSTS.HARVEST), so one
+    // harvest funds exactly one repair. No DO storage is mutated: only public verbs move state.
     const r = await rig();
-    expect(await main(["g2", "--run", RUN], r.ctx)).toBe(1);
-    const g2 = r.readSection("g2_s3_readback");
-    expect(g2.checks).toEqual({ repairable_entity_found: false });
-    expect(g2.seed_gap).toMatch(/no repairable entity/);
-    expect(r.sb.heads.size).toBe(1); // only ENTER_WORLD was settled; nothing was repaired
-  });
-
-  it("g2 on the attest seed still reports the missing repair materials from the real rejection", async () => {
-    const r = await rig({ isolated: ATTEST_WORLD_ID });
-    expect(await main(["g2", "--run", RUN], r.ctx)).toBe(1);
-    const g2 = r.readSection("g2_s3_readback");
-    expect(g2.checks).toEqual({ repairable_entity_found: true, repair_accepted: false });
-    expect(g2.repair_rejection).toBe("You do not have materials in hold.");
-  });
-
-  it("g2: every check is true once the Agent holds repair materials (harness precondition the hosted runner cannot create)", async () => {
-    // A fresh Player has storage 16 = an empty hold, and REPAIR consumes 1 unit of cargo
-    // (src/cargo.ts canConsumeCargo; src/world-actions.ts "You do not have materials in hold").
-    // Neither isolated seed has a harvestable source, so provision the cargo directly in retained DO storage.
-    const r = await rig({ isolated: ATTEST_WORLD_ID, afterRunnerRequest: async (h, id) => {
-      if (id.startsWith("g2-enter")) await h.mutatePersistedWorld(ATTEST_WORLD_ID, (w) => { w.players["player.acc-a"].budgets.storage = 15; });
-    } });
     const code = await main(["g2", "--run", RUN], r.ctx);
     const g2 = r.readSection("g2_s3_readback");
     expect({ code, errs: r.errs, falseChecks: falseChecks(g2), checks: g2.checks }).toMatchObject({ code: 0, errs: [], falseChecks: [] });
     expect(g2.seed_gap).toBeUndefined();
-    // Independent of the runner's regexes: what the real DO committed into the fake SQL tables.
+    expect(g2.repair_rejection).toBeUndefined();
+    expect(Object.keys(g2.checks)).toEqual(expect.arrayContaining(["harvest_accepted", "harvest_committed_in_sql", "repair_accepted"]));
+    // Independent of the runner's regexes: what the real DO committed into the fake SQL tables, in order.
     const types = r.sb.events.map((e) => e.event_type);
     expect(types).toContain("AGENT_LEFT_WORLD");
     expect(types.join(" ")).not.toMatch(/LEAVE|DEPART/i); // the guessed leave event name does not exist
-    expect(r.sb.events.find((e) => e.event_type === "ENTITY_UPDATE")?.payload).toMatchObject({ operation: "REPAIR", entity_id: "entity.relay-7" });
-    expect(r.sb.settlements.length).toBeGreaterThanOrEqual(3);
+    const harvest = r.sb.events.find((e) => e.event_type === "ENTITY_UPDATE" && (e.payload as Row).operation === "HARVEST");
+    const repair = r.sb.events.find((e) => e.event_type === "ENTITY_UPDATE" && (e.payload as Row).operation === "REPAIR");
+    expect(harvest?.payload).toMatchObject({ operation: "HARVEST", entity_id: "entity.acceptance-source", to: 0 });
+    expect(repair?.payload).toMatchObject({ operation: "REPAIR", entity_id: "entity.acceptance-relay" });
+    expect(Number(harvest?.sequence)).toBeLessThan(Number(repair?.sequence));
+    expect(Number(repair?.sequence)).toBeLessThan(Number(r.sb.events.find((e) => e.event_type === "AGENT_LEFT_WORLD")?.sequence));
+    expect(r.sb.settlements.length).toBeGreaterThanOrEqual(4);
+    const relay = (await r.h.persistedWorld(ISO_WORLD))?.rooms["room.anchor"].entities.find((e) => e.entity_id === "entity.acceptance-relay");
+    expect(relay).toMatchObject({ last_repair_cycle: expect.any(Number), last_repair_handle: expect.any(String) });
+  });
+
+  it("g2 on the attest seed (no harvest source) reports the seed gap instead of faking cargo", async () => {
+    const r = await rig({ isolated: ATTEST_WORLD_ID });
+    expect(await main(["g2", "--run", RUN], r.ctx)).toBe(1);
+    const g2 = r.readSection("g2_s3_readback");
+    expect(g2.checks).toEqual({ repairable_entity_found: true, harvest_source_found: false });
+    expect(g2.seed_gap).toMatch(/no harvestable source/);
   });
 
   it("r0: every check is true (observation stack fields + MOVE orientation)", async () => {

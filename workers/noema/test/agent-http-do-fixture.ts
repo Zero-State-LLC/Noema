@@ -100,15 +100,6 @@ export function harness(initialWorld: WorldRuntime = fixtureWorld(), emptyActive
       if (!instance) throw new Error(`DO ${name} not instantiated`);
       await instance.alarm();
     },
-    /** Test-only: rewrite retained DO storage, then drop the instance so the next request reloads it. */
-    mutatePersistedWorld: async (name: string, edit: (world: WorldRuntime) => void) => {
-      const state = stores.get(name);
-      const world = await state?.storage.get<WorldRuntime>("world");
-      if (!state || !world) throw new Error(`no retained world for ${name}`);
-      edit(world);
-      await state.storage.put("world", world);
-      instances.delete(name);
-    },
     persistedWorld: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<WorldRuntime>("world")),
     persistedMeta: async (name = WORLD) => structuredClone(await stores.get(name)?.storage.get<Record<string, unknown>>("world_meta")) };
 }

@@ -47,12 +47,16 @@ export const MINI_ROOMS: Record<string, RoomState> = {
   },
 };
 
+const ACCEPTANCE_ENTITY_IDS = ["entity.acceptance-source", "entity.acceptance-relay"];
+
 export const ATTEST_WORLD_ID = "test.hosted-canonical.attest-s0";
 
 /** Isolated ATTEST seed. Not Perihelion. Mini chamber plus a colocated archive pair. */
 export function attestChamberState(world_id: string = ATTEST_WORLD_ID): WorldRuntime {
   const w = miniChamberState(world_id);
   const entry = w.rooms[MINI_ENTRY_ROOM_ID];
+  // ATTEST seed stays byte-identical to its pre-D5 contents: drop the #733 G2 acceptance additions.
+  entry.entities = entry.entities.filter((e) => !ACCEPTANCE_ENTITY_IDS.includes(e.entity_id));
   entry.entities.push(
     enrichEntity({
       entity_id: "entity.archive-ledger",
@@ -74,6 +78,24 @@ export function miniChamberState(world_id: string): WorldRuntime {
   for (const room of Object.values(rooms)) {
     room.entities = room.entities.map((e) => enrichEntity(e));
   }
+  // Acceptance (#733 G2) seed: one harvest source holding exactly one unit of materials (HARVEST costs
+  // energy 2 / compute 1 and fills one unit of hold) and one worn relay. REPAIR costs energy 3 / compute 2
+  // / 1 unit of cargo (COSTS.REPAIR), so one harvest funds exactly one repair. No regen: it cannot refill.
+  rooms[MINI_ENTRY_ROOM_ID].entities.push(
+    enrichEntity({
+      entity_id: "entity.acceptance-source",
+      label: "parts-cache",
+      entity_type: "NODE",
+      stock_resource: "materials",
+      stock_amount: 1,
+    }),
+    enrichEntity({
+      entity_id: "entity.acceptance-relay",
+      label: "worn-relay",
+      entity_type: "INFRASTRUCTURE",
+      condition: 40,
+    }),
+  );
   return {
     world_id,
     world_name: "Mini Chamber",
