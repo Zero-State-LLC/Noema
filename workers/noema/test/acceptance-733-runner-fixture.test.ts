@@ -219,6 +219,14 @@ describe("acceptance-733 runner against the mounted Worker + DO", () => {
     expect(r.outbound).toContain("WS /protocol/v1/ws");
   });
 
+  it("g1, g2 and r0 all pass when run in sequence on one deployment (the real operator order)", async () => {
+    const r = await rig();
+    const codes: Record<string, number> = {};
+    for (const phase of ["g1", "g2", "r0"]) codes[phase] = await main([phase, "--run", RUN], r.ctx);
+    const failed = Object.fromEntries(["g1_isolation", "g2_s3_readback", "r0_presentation"].map((k) => [k, falseChecks(r.readSection(k))]));
+    expect({ codes, failed }).toEqual({ codes: { g1: 0, g2: 0, r0: 0 }, failed: { g1_isolation: [], g2_s3_readback: [], r0_presentation: [] } });
+  });
+
   it("only the guarded base and the acceptance Supabase were contacted; receipts redact cleanly", async () => {
     const r = await rig();
     for (const phase of ["g1", "g2", "r0"]) await main([phase, "--run", RUN], r.ctx);
