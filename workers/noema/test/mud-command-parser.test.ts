@@ -833,7 +833,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "inspect relay" },
       },
       async () => true,
-    { admission: "developer" },);
+    { admission: "developer" });
     expect(amb.ok).toBe(false);
     expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(w.players[agent.player_id]?.pending_clarify?.choices?.length).toBe(2);
@@ -848,7 +848,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "1" },
       },
       async () => true,
-    { admission: "developer" },);
+    { admission: "developer" });
     expect(picked.ok).toBe(true);
     expect(picked.events?.some((e) => e.event_type === "INSPECT")).toBe(true);
     expect(w.players[agent.player_id]?.pending_clarify).toBeUndefined();
@@ -904,7 +904,7 @@ describe("T0.6 ambiguity lifecycle", () => {
           agent,
           { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
           async () => true,
-        { admission: "developer" },)
+        { admission: "developer" })
       ).ok,
     ).toBe(true);
     await applyWorldCommand(
@@ -917,7 +917,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "inspect relay" },
       },
       async () => true,
-    { admission: "developer" },);
+    { admission: "developer" });
     expect(
       (
         await applyWorldCommand(
@@ -930,7 +930,7 @@ describe("T0.6 ambiguity lifecycle", () => {
             arguments: { line: "walk east" },
           },
           async () => true,
-        { admission: "developer" },)
+        { admission: "developer" })
       ).ok,
     ).toBe(true);
     const stale = await applyWorldCommand(
@@ -938,7 +938,7 @@ describe("T0.6 ambiguity lifecycle", () => {
       agent,
       { request_id: "p", idempotency_key: "p", command: "LOOK", arguments: { line: "1" } },
       async () => true,
-    { admission: "developer" },);
+    { admission: "developer" });
     expect(stale.ok).toBe(false);
     expect(stale.error?.code).toBe("STALE_CLARIFICATION");
   });
@@ -1104,7 +1104,7 @@ describe("T0.8 structured protocol does not fall into the text adapter", () => {
           agent,
           { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
           async () => true,
-        { admission: "developer" },)
+        { admission: "developer" })
       ).ok,
     ).toBe(true);
     const miss = await applyWorldCommand(
@@ -1112,7 +1112,7 @@ describe("T0.8 structured protocol does not fall into the text adapter", () => {
       agent,
       { request_id: "m", idempotency_key: "m", command: "MOVE", arguments: {} },
       async () => true,
-    { admission: "developer" },);
+    { admission: "developer" });
     expect(miss.ok).toBe(false);
     expect(miss.error?.code).toBe("INVALID_REQUEST");
     expect(miss.error?.message).toMatch(/direction/i);

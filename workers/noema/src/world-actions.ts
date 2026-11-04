@@ -1661,6 +1661,9 @@ const PROTOCOL_VERBS = new Set([
   "FOCUS",
 ]);
 
+/** Admission mode (see GLOSSARY.md). "hosted" is the default; only "developer" enables developer text tooling. */
+export type AdmissionMode = "hosted" | "developer";
+
 export type ApplyWorldCommandOptions = {
   /** Replay an admitted envelope during RESOLVE. Skip admission and apply verb effects. */
   tempoResolve?: boolean;
@@ -1673,7 +1676,7 @@ export type ApplyWorldCommandOptions = {
    * (aliases, macros, numeric clarify picks, free-text fallback) runs only when
    * this is "developer".
    */
-  admission?: "hosted" | "developer";
+  admission?: AdmissionMode;
 };
 
 type SettleFn = (ev: {
@@ -1849,7 +1852,8 @@ export async function runPinnedTempoResolve(
   settle: SettleFn,
   now: number,
   commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>,
-  opts: { admission?: "hosted" | "developer" } = {},
+  /** Admission mode forwarded to every replayed command. Absent means "hosted". */
+  opts: Pick<ApplyWorldCommandOptions, "admission"> = {},
 ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }> {
   const snapshot = structuredClone(w);
   markTempoResolveOpen(w, now, "freeze");

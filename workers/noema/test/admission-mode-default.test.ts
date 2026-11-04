@@ -92,6 +92,17 @@ describe("admission mode default (#766)", () => {
     expect(w.players[agent.player_id].room_id).toBe("room.b");
   });
 
+  it("fails safe to hosted dispatch for an unrecognized admission value", async () => {
+    const w = world();
+    await enter(w);
+    w.players[agent.player_id].command_aliases = { join: `do look; wait ${SENTINEL}` };
+    const envl: CommandEnvelope = { request_id: "adm.typo", idempotency_key: "adm.typo", command: "JOIN" };
+    const untyped = { admission: "Developer" } as unknown as Parameters<typeof applyWorldCommand>[4];
+    const result = await applyWorldCommand(w, agent, envl, async () => true, untyped);
+    expect(result.request_id).toBe("adm.typo");
+    expect(result.ok).toBe(true);
+  });
+
   it("expands a retained alias only when admission is explicitly developer", async () => {
     const w = world();
     await enter(w);
