@@ -1667,6 +1667,8 @@ export type ApplyWorldCommandOptions = {
   /** Admission clock only. Never a reducer input. */
   now?: number;
   worldPaused?: boolean;
+  /** Hosted Agent dispatch bypasses retained developer text aliases, macros and picks. */
+  hostedStructured?: boolean;
 };
 
 type SettleFn = (ev: {
@@ -1842,6 +1844,7 @@ export async function runPinnedTempoResolve(
   settle: SettleFn,
   now: number,
   commit?: (events: NonNullable<CommandResult["events"]>) => Promise<boolean>,
+  hostedStructured = false,
 ): Promise<{ ok: true; events: NonNullable<CommandResult["events"]> } | { ok: false; result: CommandResult }> {
   const snapshot = structuredClone(w);
   markTempoResolveOpen(w, now, "freeze");
@@ -1873,7 +1876,7 @@ export async function runPinnedTempoResolve(
           }
           return true;
         },
-        { tempoResolve: true, now },
+        { tempoResolve: true, now, hostedStructured },
       );
       allEvents.push(...(result.events || []));
       const idem = `${slot.principal.player_id}::${slot.idempotency_key}`;
@@ -1946,7 +1949,7 @@ async function admitPinnedTempoIfNeeded(
   const now = opts.now ?? Date.now();
   let adv = advanceTempoAdmissionClock(w, now);
   if (adv.should_resolve) {
-    const resolved = await runPinnedTempoResolve(w, settle, now);
+    const resolved = await runPinnedTempoResolve(w, settle, now, undefined, opts.hostedStructured);
     if (!resolved.ok) return resolved.result;
     adv = advanceTempoAdmissionClock(w, now);
   }
@@ -1965,7 +1968,7 @@ async function admitPinnedTempoIfNeeded(
   const pending = success(w, principal, request_id, [], "Action accepted for this cycle.", false);
   w.seen_idempotency[idem] = pending;
   if (!shouldFreezeTempo(w, now)) return pending;
-  const resolved = await runPinnedTempoResolve(w, settle, now);
+  const resolved = await runPinnedTempoResolve(w, settle, now, undefined, opts.hostedStructured);
   if (!resolved.ok) return resolved.result;
   const applied = w.seen_idempotency[idem] || pending;
   return { ...applied, events: resolved.events };
@@ -2011,80 +2014,82 @@ export async function applyWorldCommand(
       ? String((envl.arguments as { line?: string }).line)
       : envl.command;
   let textLine = rawLine;
-  const aliasCmd = parseAliasCommand(textLine);
-  if (aliasCmd) {
-    const plA = ensurePlayer(w, principal, w.entry_room_id);
-    if (!plA.command_aliases) plA.command_aliases = {};
-    const applied = applyAliasCommand(plA.command_aliases, aliasCmd);
-    plA.command_aliases = applied.aliases;
-    const result = success(w, principal, request_id, [], applied.text, false);
-    result.observation = { ...buildObservation(w, principal, applied.text), consequence: applied.text };
-    w.seen_idempotency[idem] = result;
-    return result;
-  }
-  const expanded = expandAliases(textLine, w.players[principal.player_id]?.command_aliases || {});
-  if (expanded.error) {
-    return fail(request_id, "ALIAS_DEPTH", expanded.error);
-  }
-  textLine = expanded.line;
-  const macro = macroStepsFromLine(textLine);
-  if (macro.error) {
-    return fail(request_id, "MACRO_REJECTED", macro.error);
-  }
-  const macroFlag = Boolean((envl.arguments || {} as { _macro_step?: boolean })._macro_step);
-  if (macro.steps.length > 1) {
-    if (macroFlag) return fail(request_id, "MACRO_REJECTED", "Macros cannot nest.");
-    if (isPlayerTempoPinned(w) && !opts?.tempoResolve) {
-      return fail(request_id, "MACRO_REJECTED", "Pinned player-tempo admits one action per cycle.");
-    }
-    let last: CommandResult | undefined;
-    for (let i = 0; i < macro.steps.length; i++) {
-      last = await applyWorldCommand(
-        w,
-        principal,
-        {
-          request_id: `${request_id}.m${i}`,
-          idempotency_key: `${envl.idempotency_key || request_id}.m${i}`,
-          command: "LOOK",
-          arguments: { line: macro.steps[i], _macro_step: true },
-        },
-        settle,
-        opts,
-      );
-      if (!last.ok) return last;
-    }
-    const done = last || fail(request_id, "MACRO_REJECTED", "Empty macro.");
-    w.seen_idempotency[idem] = done;
-    return done;
-  }
-  if (macro.steps.length === 1) textLine = macro.steps[0];
-  const askLine = textLine.trim();
-  const askVerb = ["ask", "talk", "use", "consult", "service"].find((v) => {
-    const low = askLine.toLowerCase();
-    return low === v || low.startsWith(v + " ");
-  });
-  const askRest = askVerb ? askLine.slice(askVerb.length).trim() : "";
-  const askM = askVerb && askRest ? ([askVerb, askRest] as const) : null;
-  if (askM && (isServiceConsultLine(textLine) || /^ask\b/i.test(textLine))) {
-    const pl0 = w.players[principal.player_id];
-    const room0 = w.rooms[pl0?.room_id || w.entry_room_id];
-    const present0 = servicesAtRoom({
-      room_id: room0?.room_id || "",
-      name: room0?.name || "",
-      description: room0?.description || "",
-      entities: room0 ? roomEntities(room0) : [],
-    });
-    const svc0 = resolveService(askM[1].replace(/^["']|["']$/g, ""), present0);
-    if (svc0 || isServiceConsultLine(rawLine)) {
-      const text = svc0
-        ? consultLine(svc0)
-        : present0.length
-          ? `Desks here: ${present0.map((s) => s.display_name).join(", ")}.`
-          : "No World Service desk is reachable here.";
-      const result = success(w, principal, request_id, [], text, false);
-      result.observation = { ...buildObservation(w, principal, text), consequence: text };
+  if (!opts?.hostedStructured) {
+    const aliasCmd = parseAliasCommand(textLine);
+    if (aliasCmd) {
+      const plA = ensurePlayer(w, principal, w.entry_room_id);
+      if (!plA.command_aliases) plA.command_aliases = {};
+      const applied = applyAliasCommand(plA.command_aliases, aliasCmd);
+      plA.command_aliases = applied.aliases;
+      const result = success(w, principal, request_id, [], applied.text, false);
+      result.observation = { ...buildObservation(w, principal, applied.text), consequence: applied.text };
       w.seen_idempotency[idem] = result;
       return result;
+    }
+    const expanded = expandAliases(textLine, w.players[principal.player_id]?.command_aliases || {});
+    if (expanded.error) {
+      return fail(request_id, "ALIAS_DEPTH", expanded.error);
+    }
+    textLine = expanded.line;
+    const macro = macroStepsFromLine(textLine);
+    if (macro.error) {
+      return fail(request_id, "MACRO_REJECTED", macro.error);
+    }
+    const macroFlag = Boolean((envl.arguments || {} as { _macro_step?: boolean })._macro_step);
+    if (macro.steps.length > 1) {
+      if (macroFlag) return fail(request_id, "MACRO_REJECTED", "Macros cannot nest.");
+      if (isPlayerTempoPinned(w) && !opts?.tempoResolve) {
+        return fail(request_id, "MACRO_REJECTED", "Pinned player-tempo admits one action per cycle.");
+      }
+      let last: CommandResult | undefined;
+      for (let i = 0; i < macro.steps.length; i++) {
+        last = await applyWorldCommand(
+          w,
+          principal,
+          {
+            request_id: `${request_id}.m${i}`,
+            idempotency_key: `${envl.idempotency_key || request_id}.m${i}`,
+            command: "LOOK",
+            arguments: { line: macro.steps[i], _macro_step: true },
+          },
+          settle,
+          opts,
+        );
+        if (!last.ok) return last;
+      }
+      const done = last || fail(request_id, "MACRO_REJECTED", "Empty macro.");
+      w.seen_idempotency[idem] = done;
+      return done;
+    }
+    if (macro.steps.length === 1) textLine = macro.steps[0];
+    const askLine = textLine.trim();
+    const askVerb = ["ask", "talk", "use", "consult", "service"].find((v) => {
+      const low = askLine.toLowerCase();
+      return low === v || low.startsWith(v + " ");
+    });
+    const askRest = askVerb ? askLine.slice(askVerb.length).trim() : "";
+    const askM = askVerb && askRest ? ([askVerb, askRest] as const) : null;
+    if (askM && (isServiceConsultLine(textLine) || /^ask\b/i.test(textLine))) {
+      const pl0 = w.players[principal.player_id];
+      const room0 = w.rooms[pl0?.room_id || w.entry_room_id];
+      const present0 = servicesAtRoom({
+        room_id: room0?.room_id || "",
+        name: room0?.name || "",
+        description: room0?.description || "",
+        entities: room0 ? roomEntities(room0) : [],
+      });
+      const svc0 = resolveService(askM[1].replace(/^["']|["']$/g, ""), present0);
+      if (svc0 || isServiceConsultLine(rawLine)) {
+        const text = svc0
+          ? consultLine(svc0)
+          : present0.length
+            ? `Desks here: ${present0.map((s) => s.display_name).join(", ")}.`
+            : "No World Service desk is reachable here.";
+        const result = success(w, principal, request_id, [], text, false);
+        result.observation = { ...buildObservation(w, principal, text), consequence: text };
+        w.seen_idempotency[idem] = result;
+        return result;
+      }
     }
   }
 
@@ -2099,11 +2104,49 @@ export async function applyWorldCommand(
     })),
     selfId: principal.player_id,
     openTrades: Object.values(w.trades || {}),
-    exits: playRoom?.exits || [],
+    exits: playRoom ? publicExits(w, playRoom) : [],
+    hintCommands: () => {
+      const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
+      const presenceDisabled = w.players[principal.player_id]?.disabled_until_cycle;
+      const move = available.find((aff) => {
+        if (aff.action !== "MOVE" || !aff.cmd || !aff.target_id || !playRoom ||
+            (presenceDisabled != null && w.cycle < presenceDisabled) ||
+            isAccessDenied(w, principal.player_id, playRoom.room_id, aff.target_id)) return false;
+        const parsedHint = parseHumanCommand(aff.cmd, { exits: parseCtx.exits });
+        if (!parsedHint.ok || parsedHint.action.verb !== "MOVE") return false;
+        const direction = parsedHint.action.arguments.direction;
+        return direction === aff.target_id &&
+          parseCtx.exits.some((exit) => exit.direction === direction);
+      });
+      const inspect = available.find((aff) => {
+        if (aff.action !== "INSPECT" || !aff.cmd || !aff.target_id) return false;
+        const entity = parseCtx.entities.find((e) => e.entity_id === aff.target_id);
+        if (!entity || (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until)) return false;
+        const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
+        return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
+          parsedHint.action.arguments.entity_id === aff.target_id;
+      });
+      return [move?.cmd, inspect?.cmd].filter((cmd): cmd is string => Boolean(cmd));
+    },
   };
-  const fp = observationFingerprint(playRoom?.room_id || "", parseCtx.entities);
+  const fp = observationFingerprint(
+    playRoom?.room_id || "",
+    parseCtx.entities,
+    parseCtx.exits.map((exit) => ({
+      direction: exit.direction,
+      to_room_id: exit.to_room_id,
+      to_room_name: w.rooms[exit.to_room_id]?.name,
+      two_way: hasPublicReverse(w.rooms[exit.to_room_id], playRoom?.room_id || ""),
+    })),
+    playRoom ? {
+      name: playRoom.name,
+      description: playRoom.description,
+      harvest_pressure: w.co_evolution?.harvest_pressure?.[playRoom.room_id] || 0,
+    } : undefined,
+    w.players[principal.player_id]?.budgets,
+  );
   const plClarify = w.players[principal.player_id];
-  const pickLabel = matchClarifyPick(rawLine, plClarify?.pending_clarify);
+  const pickLabel = opts?.hostedStructured ? null : matchClarifyPick(rawLine, plClarify?.pending_clarify);
   let parsed: ReturnType<typeof parseHumanCommand>;
   if (pickLabel && plClarify?.pending_clarify) {
     if (plClarify.pending_clarify.fingerprint !== fp) {
@@ -2129,7 +2172,7 @@ export async function applyWorldCommand(
       return result;
     }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
-  } else if (typeof rawArgs.line === "string" || textLine !== rawLine) {
+  } else if (!opts?.hostedStructured && (typeof rawArgs.line === "string" || textLine !== rawLine)) {
     parsed = parseHumanCommand(textLine, parseCtx);
   } else {
     parsed = normalizeStructuredCommand(envl.command, rawArgs);
@@ -2138,7 +2181,7 @@ export async function applyWorldCommand(
   // Text-line fallback: never for protocol verbs (T0.8). Human lines have spaces or are not verbs.
   const protocolCmd = String(envl.command || "").toUpperCase();
   const looksLikeTextLine = /\s/.test(String(envl.command || "")) || !PROTOCOL_VERBS.has(protocolCmd);
-  if (!parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
+  if (!opts?.hostedStructured && !parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
     parsed = parseHumanCommand(envl.command, parseCtx);
   }
 

@@ -1,4 +1,4 @@
-import { enrichEntity } from "./actions";
+import { enrichEntity, normalizeStructuredCommand } from "./actions";
 import { isHiddenRoom } from "./construction";
 import { persistDeepTime } from "./deep-time";
 import type { Cycle0World, GenesisResult } from "./genesis";
@@ -795,6 +795,7 @@ export class NoemaWorldDO {
             async () => true,
             now,
             (events) => this.commitTempoResolution(events),
+            true,
           );
           if (!resolved.ok) {
             await this.save();
@@ -1054,6 +1055,17 @@ export class NoemaWorldDO {
 
     const agent = requireAgentPlayer(body.principal);
     if (agent instanceof Response) return agent;
+    const command = body.envelope;
+    const parsed = normalizeStructuredCommand(command.command, command.arguments || {});
+    if (
+      typeof command.arguments?.line === "string" ||
+      command.arguments?._macro_step !== undefined ||
+      (!parsed.ok && parsed.code === "UNKNOWN_COMMAND")
+    ) {
+      return Response.json({ error: {
+        code: "INVALID_REQUEST", message: "Hosted Agent commands must be structured.",
+      } }, { status: 400 });
+    }
 
     const headerWorld = url.searchParams.get("world_id") || request.headers.get("x-noema-world-id");
     const requested = String(body.world_id || headerWorld || "").trim();
@@ -1283,6 +1295,7 @@ export class NoemaWorldDO {
       }, {
         now: Date.now(),
         worldPaused: this.meta!.status === "PAUSED",
+        hostedStructured: true,
       });
     } catch (e) {
       console.error("applyWorldCommand", e instanceof Error ? e.stack || e.message : e);
@@ -1515,6 +1528,7 @@ export class NoemaWorldDO {
         async () => true,
         now,
         (events) => this.commitTempoResolution(events),
+        true,
       );
       if (!resolved.ok) {
         await this.save();

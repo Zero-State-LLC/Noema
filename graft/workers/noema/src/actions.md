@@ -26,7 +26,7 @@
 - enrichEntity · function · L676-L735 — function enrichEntity(e: { entity_id: string; label: string; entity_type: string; condition?: number; stock_resource?: string; stock_amount?: number; archive_subject_entity_id?: string; archive_claim?: "DESTROYED" | "OPERATING"; owner_id?: string; co_owner_id?: string; co_owner_2_id?: string; co_owner_3_id?: string; co_owner_4_id?: string; co_owner_5_id?: string; dest_room_id?: string; infra_type?: ConstructibleClass; hidden?: boolean; inspect_restricted_until?: number; scar?: boolean; upgrade_tier?: number; unclaimed?: boolean; last_steward_cycle?: number; last_repair_cycle?: number; last_repair_handle?: string; in_progress?: boolean; regen_rate?: number; max_stock?: number; }): EntityRuntime
 - isRepairable · function · L737-L749 — function isRepairable(e: EntityRuntime): boolean
 - officeTrackFor · function · L751-L753 — function officeTrackFor(req: NonNullable<OfficeRecord["requires_track"]>)
-- isHarvestable · function · L755-L760 — function isHarvestable(e: EntityRuntime): boolean
+- isHarvestable · function · L755-L760 — function isHarvestable(e: Pick<EntityRuntime, "stock_amount" | "regen_rate" | "stock_resource">): boolean
 - ResolveResult · type · L762-L764 — type ResolveResult = | { ok: true; entity: EntityRuntime } | { ok: false; code: "NOT_FOUND" | "AMBIGUOUS_TARGET"; message: string; choices?: string[] };
 - resolveVisibleEntity · function · L766-L799 — function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): ResolveResult
 - resolvePlayerTarget · function · L801-L836 — function resolvePlayerTarget( raw: string, players: Array<{ player_id: string; handle?: string }>, selfId: string, ): { ok: true; player_id: string } | { ok: false; code: string; message: string; choices?: string[] }
@@ -39,22 +39,22 @@
 - parseAgreementTerminateLine · function · L969-L995 — function parseAgreementTerminateLine(parts: string[]): ParseResult
 - canonicalizeDirection · function · L1009-L1013 — function canonicalizeDirection(raw: string): string | null
 - stripInspectNoun · function · L1016-L1023 — function stripInspectNoun(raw: string): string
-- parseHumanCommand · function · L1030-L2172 — function parseHumanCommand( line: string, ctx: { entities?: EntityRuntime[]; players?: Array<{ player_id: string; handle?: string }>; selfId?: string; openTrades?: OpenTrade[]; exits?: Array<{ direction: string }>; } = {}, ): ParseResult
-- unknownCommandHint · function · L2174-L2187 — function unknownCommandHint( verb: string, ctx: { entities?: EntityRuntime[]; exits?: Array<{ direction: string }>; }, ): string
-- formatAmbiguous · function · L2189-L2194 — function formatAmbiguous(r: ResolveResult & { ok: false }): string
-- ClarifyPending · type · L2196-L2200 — type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; };
-- observationFingerprint · function · L2202-L2204 — function observationFingerprint(roomId: string, entities: Array<{ entity_id: string }>): string
-- matchClarifyPick · function · L2207-L2223 — function matchClarifyPick(line: string, pending?: ClarifyPending | null): string | null
-- normalizeStructuredCommand · function · L2226-L3054 — function normalizeStructuredCommand( command: string, args: Record<string, unknown> = {}, ): ParseResult
-- deriveAffordances · function · L3056-L4266 — function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: "EXIT" | "ROOM"; mode: "DENY" | "ALLOW_ONLY"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]
-- stakeLine · function · L3626-L3629 — stakeLine = (stake: Record<string, number>)
-- mergeCost · function · L3630-L3636 — mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets>
-- payStake · function · L3637-L3637 — payStake = (cost: Partial<Budgets>, stake: Record<string, number>)
-- pushDeclare · function · L3688-L3725 — pushDeclare = ( form: ContestForm, target: ContestTarget, label: string, cmdTarget: string, target_id?: string, )
-- pushAccess · function · L3855-L3885 — pushAccess = ( scope: "EXIT" | "ROOM", mode: "DENY" | "CLEAR" | "ALLOW_ONLY", applies_to: string, direction?: string, label?: string, )
-- holdsNamed · function · L3983-L3989 — holdsNamed = (orgId?: string)
-- stewardOf · function · L3990-L3997 — stewardOf = (e: EntityRuntime)
-- coOwnersOf · function · L3998-L4001 — coOwnersOf = (e: EntityRuntime)
-- cargoOk · function · L4002-L4003 — cargoOk = (need: number)
-- helpText · function · L4268-L4402 — function helpText(topic?: string, available?: Affordance[]): string
-- humanizeActionError · function · L4404-L4431 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }
+- parseHumanCommand · function · L1030-L2173 — function parseHumanCommand( line: string, ctx: { entities?: EntityRuntime[]; players?: Array<{ player_id: string; handle?: string }>; selfId?: string; openTrades?: OpenTrade[]; exits?: Array<{ direction: string }>; hintCommands?: () => string[]; } = {}, ): ParseResult
+- unknownCommandHint · function · L2175-L2193 — function unknownCommandHint( verb: string, ctx: { entities?: EntityRuntime[]; exits?: Array<{ direction: string }>; hintCommands?: () => string[]; }, ): string
+- formatAmbiguous · function · L2195-L2200 — function formatAmbiguous(r: ResolveResult & { ok: false }): string
+- ClarifyPending · type · L2202-L2206 — type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; };
+- observationFingerprint · function · L2208-L2245 — function observationFingerprint( roomId: string, entities: Array<{ entity_id: string; label?: string; entity_type?: string; condition?: number; stock_resource?: string; stock_amount?: number; regen_rate?: number; scar?: boolean; }>, exits: Array<{ direction: string; to_room_id: string; to_room_name?: string; two_way?: boolean }> = [], room?: { name?: string; description?: string; harvest_pressure?: number }, budgets?: Budgets, ): string
+- matchClarifyPick · function · L2248-L2264 — function matchClarifyPick(line: string, pending?: ClarifyPending | null): string | null
+- normalizeStructuredCommand · function · L2267-L3095 — function normalizeStructuredCommand( command: string, args: Record<string, unknown> = {}, ): ParseResult
+- deriveAffordances · function · L3097-L4307 — function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: "EXIT" | "ROOM"; mode: "DENY" | "ALLOW_ONLY"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]
+- stakeLine · function · L3667-L3670 — stakeLine = (stake: Record<string, number>)
+- mergeCost · function · L3671-L3677 — mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets>
+- payStake · function · L3678-L3678 — payStake = (cost: Partial<Budgets>, stake: Record<string, number>)
+- pushDeclare · function · L3729-L3766 — pushDeclare = ( form: ContestForm, target: ContestTarget, label: string, cmdTarget: string, target_id?: string, )
+- pushAccess · function · L3896-L3926 — pushAccess = ( scope: "EXIT" | "ROOM", mode: "DENY" | "CLEAR" | "ALLOW_ONLY", applies_to: string, direction?: string, label?: string, )
+- holdsNamed · function · L4024-L4030 — holdsNamed = (orgId?: string)
+- stewardOf · function · L4031-L4038 — stewardOf = (e: EntityRuntime)
+- coOwnersOf · function · L4039-L4042 — coOwnersOf = (e: EntityRuntime)
+- cargoOk · function · L4043-L4044 — cargoOk = (need: number)
+- helpText · function · L4309-L4443 — function helpText(topic?: string, available?: Affordance[]): string
+- humanizeActionError · function · L4445-L4472 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }
