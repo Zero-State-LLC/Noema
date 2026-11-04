@@ -75,6 +75,7 @@ import {
   admitTestWorldId,
   isolatedWatchWorldId,
   lifecycleRequestedWorldId,
+  parseSeedAliases,
   recoverBoundWorldId,
   resolveLoadWorldId,
   withIsolatedBootstrapEvent,
@@ -441,6 +442,28 @@ export class NoemaWorldDO {
         throw new Error("DO abort unexpectedly returned");
       }
       return Response.json({ world_id: admitted, instance_id: this.instanceId });
+    }
+
+    if (request.method === "POST" && path === "/admin-seed-aliases") {
+      const body = (await request.json().catch(() => ({}))) as { world_id?: string; player_id?: string; aliases?: unknown };
+      // Test-only: re-check independently of the gateway before any load or write.
+      const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, body.world_id, this.env.DEFAULT_WORLD_ID);
+      if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID || request.headers.get("x-noema-world-id") !== admitted) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const aliases = parseSeedAliases(body.aliases);
+      if (!aliases) return Response.json({ error: { code: "INVALID_REQUEST", message: "invalid aliases" } }, { status: 400 });
+      this.requestedWorldId = admitted;
+      await this.load();
+      const stored = await this.state.storage.get<WorldState>("world");
+      if ((stored && stored.world_id !== admitted) || this.world!.world_id !== admitted) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const player = this.world!.players[String(body.player_id || "")];
+      if (!player) return Response.json({ error: { code: "PLAYER_NOT_FOUND", message: "player not entered" } }, { status: 404 });
+      player.command_aliases = aliases;
+      await this.save();
+      return Response.json({ ok: true, world_id: this.world!.world_id, alias_count: Object.keys(player.command_aliases).length });
     }
 
     if (path.endsWith("/ratelimit") || path === "/ratelimit") {
