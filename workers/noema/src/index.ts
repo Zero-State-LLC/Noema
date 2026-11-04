@@ -63,7 +63,7 @@ import { studyHtml } from "./study";
 import type { CommandEnvelope, Env } from "./types";
 import { watchHtml } from "./watch";
 import { parseWatchMode } from "./watch-mode";
-import { admitTestWorldId, isolatedWatchWorldId } from "./test-world";
+import { admitTestWorldId, isolatedWatchWorldId, parseSeedAliases } from "./test-world";
 import { hasPrivateCognition } from "./cognition";
 import { applyPlayerCommand, stripHumanPlayLine } from "./protocol-ws";
 import { acceptProtocolWebSocket, protocolHello } from "./protocol-ws";
@@ -1065,6 +1065,34 @@ export default {
         const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName(worldId));
         const res = await stub.fetch(`https://do/isolated-instance/${body.action}`, {
           method: "POST", headers: { "x-noema-world-id": worldId },
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
+      // Test-only: seed the calling Agent's retained command_aliases in an isolated test world.
+      if (request.method === "POST" && path === "/v1/operator/test-world/seed") {
+        if (env.NOEMA_ENV !== "test") return cors(err("NOT_FOUND", "not found", 404));
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(agent, "noema.action.submit");
+        if (denied) return cors(denied);
+        const body = (await request.json().catch(() => ({}))) as { world_id?: string; aliases?: Record<string, string> };
+        const admitted = admitTestWorldId(body.world_id, env.DEFAULT_WORLD_ID);
+        if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
+        if (admitted.world_id !== env.ISOLATED_WATCH_WORLD_ID) {
+          return cors(err("WORLD_FORBIDDEN", "test world not configured", 403));
+        }
+        const aliases = parseSeedAliases(body.aliases);
+        if (!aliases) return cors(err("INVALID_REQUEST", "aliases must be 1-8 valid name/value entries", 400));
+        const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName(admitted.world_id));
+        const res = await stub.fetch("https://do/admin-seed-aliases", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-noema-world-id": admitted.world_id },
+          body: JSON.stringify({ world_id: admitted.world_id, player_id: agent.player_id, aliases }),
         });
         return cors(json(await res.json(), res.status));
       }

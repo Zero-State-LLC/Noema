@@ -125,3 +125,21 @@ export function recoverBoundWorldId(
   }
   return { ok: true, world_id: stored || current };
 }
+
+const SEED_ALIAS_NAME = /^[a-z][a-z0-9_-]{0,15}$/;
+// eslint-disable-next-line no-control-regex
+const SEED_CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+
+/** Bounds for the test-only operator alias seed: 1-8 entries, short names, 1-200 char control-free values. */
+export function parseSeedAliases(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const entries = Object.entries(raw as Record<string, unknown>);
+  if (entries.length < 1 || entries.length > 8) return null;
+  const out: Record<string, string> = {};
+  for (const [name, value] of entries) {
+    if (!SEED_ALIAS_NAME.test(name)) return null;
+    if (typeof value !== "string" || value.length < 1 || value.length > 200 || SEED_CONTROL_CHARS.test(value)) return null;
+    out[name] = value;
+  }
+  return out;
+}
