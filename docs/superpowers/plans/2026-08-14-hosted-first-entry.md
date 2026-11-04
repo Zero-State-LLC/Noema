@@ -1,5 +1,12 @@
 # Hosted First-Entry Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The world-door landing shipped. The signed-out PLAY card from Task 4 was later removed when `/play` began redirecting to `/connect`.
+>
+> **PRs:** [#102](https://github.com/Zero-State-LLC/Noema/pull/102); CONNECT rework [#353](https://github.com/Zero-State-LLC/Noema/pull/353).
+>
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the hosted product door at `/` a game-first Perihelion Reach entry (Player email only) and keep first Chamber as a text-first world screen.

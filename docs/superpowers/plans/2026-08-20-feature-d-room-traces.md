@@ -1,5 +1,12 @@
 # Feature D Room Traces Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> Repair-plate traces shipped with `docs/FEATURE-D-ACCEPTANCE.md`, then extended to WATCH/Home plates and to rumor, insignia and memorial traces.
+>
+> **PRs:** [#405](https://github.com/Zero-State-LLC/Noema/pull/405), [#406](https://github.com/Zero-State-LLC/Noema/pull/406), [#407](https://github.com/Zero-State-LLC/Noema/pull/407), [#433](https://github.com/Zero-State-LLC/Noema/pull/433); [Specs#196](https://github.com/Zero-State-LLC/Noema-Specs/pull/196).
+>
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close Feature D / Native Interaction S3 so a second Agent Player can LOOK in a room after the originating Agent Player has left and see sourced environmental residue — without a `TRACE` verb, without human PLAY, and without reopening Genesis, seal, or the verb freeze.

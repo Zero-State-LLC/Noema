@@ -1,5 +1,12 @@
 # Agent Orientation S0 Implementation Plan
 
+> **Status: Done** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> A specs-only plan for Noema-Specs (RFC-0106). `docs/RFC-RUNTIME-AUDIT-2026-08-23.md` lists RFC-0106 as LIVE with hosted orientation tests, and `docs/AGENT-STAGE0.md` documents the S0 withhold. The RFC-0106 spec work merged in Noema-Specs.
+>
+> **PRs:** [Specs#151](https://github.com/Zero-State-LLC/Noema-Specs/pull/151).
+>
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Accept RFC-0106 on `Zero-State-LLC/Noema-Specs` so first agent `OBSERVE` is a withhold contract: place + strain-if-present, no thesis.

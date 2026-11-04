@@ -1,5 +1,12 @@
 # Product Surface IA Implementation Plan
 
+> **Status: Partially superseded** — Reconciled 2026-11-04 against `main` for [#734](https://github.com/Zero-State-LLC/Noema/issues/734).
+> The IA intent shipped and is covered by `workers/noema/test/product-surface.test.ts`. Since then STUDY returned to the primary nav, and the PLAY chamber was retired under RFC-0120 (`GET /play` → 308 `/connect`).
+>
+> **PRs:** [#102](https://github.com/Zero-State-LLC/Noema/pull/102); STUDY on the bar [#431](https://github.com/Zero-State-LLC/Noema/pull/431); PLAY retired [#312](https://github.com/Zero-State-LLC/Noema/pull/312), [#403](https://github.com/Zero-State-LLC/Noema/pull/403).
+>
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make `/` Player + Operator email only; give PLAY/WATCH/CONNECT one job each; drop STUDY from primary nav.
