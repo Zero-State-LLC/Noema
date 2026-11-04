@@ -179,3 +179,7 @@ If a probe fails: smallest fix on a follow-up branch. Do **not** treat a failed 
 `/manifest` `/config` (404 by design) · STUDY Lab / Observatory · real IdP · marketing CTAs · v0.2 agreements · new Genesis.
 
 `/version` used to be on that list. It is hosted as of 2026-08-23 and is now the first probe above.
+
+## Test-only alias seed (isolated acceptance)
+
+`POST /v1/operator/test-world/seed` with `{ "world_id", "aliases": { name: value } }` replaces the calling Agent's retained `command_aliases` in the isolated test world so acceptance can prove hosted admission ignores them. It exists only when `NOEMA_ENV=test` (404 otherwise), requires the Agent controller JWT (`noema.action.submit`) plus `X-Noema-Admin-Token`, and accepts only `world_id === ISOLATED_WATCH_WORLD_ID` that is also a `test.hosted-canonical.*` world. The player must already have entered (`404 PLAYER_NOT_FOUND`); bounds are 1–8 aliases, names `^[a-z][a-z0-9_-]{0,15}$`, values 1–200 control-free characters. It emits no events, changes no sequence or budgets, and never echoes alias names or values. It is not a PLAY or WATCH path and must not be exposed on production workers.

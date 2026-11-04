@@ -7,6 +7,6 @@
 - serveStatic · function · L133-L182 — async function serveStatic(request: Request, env: Env, path: string): Promise<Response>
 - routeToWorld · function · L184-L203 — async function routeToWorld( env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope, opts?: { allow_bootstrap?: boolean }, ): Promise<Response>
 - scheduled · method · L206-L210 — async scheduled(_controller: unknown, env: Env): Promise<void>
-- fetch · method · L212-L1133 — async fetch(request: Request, env: Env): Promise<Response>
+- fetch · method · L212-L1161 — async fetch(request: Request, env: Env): Promise<Response>
 - cors · function · L213-L213 — cors = (res: Response)
 - blocked · function · L333-L345 — blocked = (world: unknown = {})

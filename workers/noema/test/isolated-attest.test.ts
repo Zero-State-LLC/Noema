@@ -42,7 +42,10 @@ describe("isolated attest-s0", () => {
     expect(ids).toContain("entity.archive-ledger");
     expect(ids).toContain("entity.relay-7");
     const mini = miniChamberState("test.hosted-canonical.c04");
-    expect(mini.rooms["room.anchor"].entities.map((e) => e.entity_id)).toEqual(["entity.way-lamp"]);
+    expect(mini.rooms["room.anchor"].entities.map((e) => e.entity_id)).toEqual(["entity.way-lamp", "entity.acceptance-source", "entity.acceptance-relay"]);
+    // D5: the attest seed does not inherit the acceptance additions.
+    expect(ids).not.toContain("entity.acceptance-relay");
+    expect(ids).not.toContain("entity.acceptance-source");
   });
 
   it("LOOK advertises ATTEST; structured COMMIT stamps a public claim", async () => {

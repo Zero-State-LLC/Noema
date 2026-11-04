@@ -1,0 +1,19 @@
+# workers/noema/test/acceptance-733.test.ts
+
+- jsonRes · function · L145-L147 — function jsonRes(body: unknown, status = 200)
+- obs · function · L150-L157 — function obs(name: string, exit: string, consequence: string, entities: Array<Record<string, unknown>>, traces: unknown[] = [])
+- fakeHosted · function · L159-L235 — function fakeHosted(opts: { seedStatus?: number; calls?: string[]; prodVersion?: () => string } = {})
+- handler · function · L165-L233 — handler = async (url: string, init: RequestInit = {})
+- mkEnv · function · L237-L244 — function mkEnv(opts: { mode?: number; supabaseUrl?: string } = {})
+- mkCtx · function · L246-L276 — function mkCtx(h: ReturnType<typeof fakeHosted>, e: ReturnType<typeof mkEnv>, extra: { execCalls?: Array<{ cmd: string; args: string[]; env?: Record<string, string | undefined> }>; secretsSeen?: string[]; dirty?: boolean; gitFails?: boolean; proc?: unknown; tmpdir?: string } = {})
+- readState · function · L278-L278 — readState = (e: ReturnType<typeof mkEnv>)
+- deployed · function · L280-L288 — async function deployed(opts: Parameters<typeof fakeHosted>[0] = {})
+- ExecCall · type · L488-L488 — type ExecCall = { cmd: string; args: string[]; env?: Record<string, string | undefined> };
+- fakeProc · function · L512-L523 — function fakeProc()
+- on · method · L517-L517 — on(ev: string, fn: () => void)
+- off · method · L518-L518 — off(ev: string, fn: () => void)
+- kill · method · L519-L519 — kill(_pid: number, sig: string)
+- emit · method · L520-L520 — emit(ev: string)
+- count · method · L521-L521 — count()
+- receiptWithG3 · function · L618-L625 — async function receiptWithG3(content: unknown)
+- receiptAfter · function · L652-L664 — async function receiptAfter(phases: string[], g3?: unknown)
