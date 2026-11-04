@@ -80,7 +80,7 @@ describe("S4 inhabit path", () => {
       command: "LOOK",
       arguments: { line },
     };
-    return applyWorldCommand(w, agent, envl, async () => true);
+    return applyWorldCommand(w, agent, envl, async () => true, { admission: "developer" });
   }
 
   it("stores aliases off-ledger and expands them to ordinary LOOK", async () => {

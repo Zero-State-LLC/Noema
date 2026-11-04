@@ -63,10 +63,10 @@ describe("#733 R4 retained text-command safety", () => {
       enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
     ];
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.exit.enter", idempotency_key: "r4.exit.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const ambiguous = await command("r4.exit.amb", "inspect relay");
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
@@ -92,9 +92,9 @@ describe("#733 R4 retained text-command safety", () => {
         enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
       ];
       const command = (id: string, line: string) => applyWorldCommand(world, agent,
-        { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+        { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
       expect((await applyWorldCommand(world, agent,
-        { request_id: "room.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+        { request_id: "room.enter", command: "ENTER_WORLD", arguments: {} }, async () => true, { admission: "developer" })).ok).toBe(true);
       expect((await command("room.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
       world.rooms["room.hub"][field] = `Changed ${field}`;
       const beforeSequence = world.sequence;
@@ -116,9 +116,9 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     world.co_evolution = { harvest_pressure: { "room.hub": 0 }, regen_mod: {}, protocol_strength: {} };
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     expect((await applyWorldCommand(world, agent,
-      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true, { admission: "developer" })).ok).toBe(true);
     expect((await command("pressure.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
     world.co_evolution.harvest_pressure["room.hub"] = 7;
     const beforeSequence = world.sequence;
@@ -138,9 +138,9 @@ describe("#733 R4 retained text-command safety", () => {
       enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
     ];
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     expect((await applyWorldCommand(world, agent,
-      { request_id: "budget.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      { request_id: "budget.enter", command: "ENTER_WORLD", arguments: {} }, async () => true, { admission: "developer" })).ok).toBe(true);
     expect((await command("budget.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
     world.players[agent.player_id].budgets.attention = 0;
     const beforeSequence = world.sequence;
@@ -161,14 +161,14 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.same.enter", idempotency_key: "r4.same.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const ambiguous = await applyWorldCommand(world, agent,
       { request_id: "r4.same.amb", idempotency_key: "r4.same.amb", command: "LOOK", arguments: { line: "inspect relay" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
     const picked = await applyWorldCommand(world, agent,
       { request_id: "r4.same.pick", idempotency_key: "r4.same.pick", command: "LOOK", arguments: { line: "1" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(picked.ok).toBe(true);
     expect(picked.events?.some((event) => event.event_type === "INSPECT")).toBe(true);
     expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
@@ -178,12 +178,12 @@ describe("#733 R4 retained text-command safety", () => {
     const { world, agent } = r4CommandFixture();
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.enter", idempotency_key: "r4.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const result = await applyWorldCommand(world, agent,
       { request_id: "r4.unknown", idempotency_key: "r4.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(result.ok).toBe(false);
     expect(result.error?.code).toBe("UNKNOWN_COMMAND");
     expect(JSON.stringify(result).toLowerCase()).not.toContain("north");
@@ -201,7 +201,7 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.hint.enter", idempotency_key: "r4.hint.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const player = world.players[agent.player_id];
     player.budgets.energy = 0;
     player.budgets.attention = 0;
@@ -209,7 +209,7 @@ describe("#733 R4 retained text-command safety", () => {
     const beforeBudgets = structuredClone(player.budgets);
     const result = await applyWorldCommand(world, agent,
       { request_id: "r4.hint.unknown", idempotency_key: "r4.hint.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(result.error?.code).toBe("UNKNOWN_COMMAND");
     expect(result.error?.message).not.toContain("move east");
     expect(result.error?.message).not.toContain("inspect scarred-conduit");
@@ -227,10 +227,10 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(fresh.world, fresh.agent,
       { request_id: "r4.hint.fresh.enter", idempotency_key: "r4.hint.fresh.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const available = await applyWorldCommand(fresh.world, fresh.agent,
       { request_id: "r4.hint.fresh.unknown", idempotency_key: "r4.hint.fresh.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(available.error?.code).toBe("UNKNOWN_COMMAND");
     expect(available.error?.message).toContain("move east");
     expect(available.error?.message).toContain("inspect scarred-conduit");
@@ -238,7 +238,7 @@ describe("#733 R4 retained text-command safety", () => {
     fresh.world.players[fresh.agent.player_id].budgets.energy = 0;
     const inspectOnly = await applyWorldCommand(fresh.world, fresh.agent,
       { request_id: "r4.hint.inspect", idempotency_key: "r4.hint.inspect", command: "LOOK", arguments: { line: "frobnicate" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(inspectOnly.error?.message).not.toContain("move east");
     expect(inspectOnly.error?.message).toContain("inspect scarred-conduit");
 
@@ -246,7 +246,7 @@ describe("#733 R4 retained text-command safety", () => {
     fresh.world.players[fresh.agent.player_id].budgets.attention = 0;
     const moveOnly = await applyWorldCommand(fresh.world, fresh.agent,
       { request_id: "r4.hint.move", idempotency_key: "r4.hint.move", command: "LOOK", arguments: { line: "frobnicate" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(moveOnly.error?.message).toContain("move east");
     expect(moveOnly.error?.message).not.toContain("inspect scarred-conduit");
   });
@@ -254,24 +254,24 @@ describe("#733 R4 retained text-command safety", () => {
   it("does not suggest MOVE under presence pressure", async () => {
     const { world, agent } = r4CommandFixture();
     expect((await applyWorldCommand(world, agent,
-      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      { request_id: "pressure.enter", command: "ENTER_WORLD", arguments: {} }, async () => true, { admission: "developer" })).ok).toBe(true);
     world.players[agent.player_id].disabled_until_cycle = world.cycle + 3;
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const unknown = await applyWorldCommand(world, agent,
-      { request_id: "pressure.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+      { request_id: "pressure.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true, { admission: "developer" });
     expect(unknown.error?.code).toBe("UNKNOWN_COMMAND");
     expect(unknown.error?.message).not.toContain("move east");
     expect(unknown.events ?? []).toEqual([]);
     expect(world.sequence).toBe(beforeSequence);
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
     const move = await applyWorldCommand(world, agent,
-      { request_id: "pressure.move", command: "LOOK", arguments: { line: "move east" } }, async () => true);
+      { request_id: "pressure.move", command: "LOOK", arguments: { line: "move east" } }, async () => true, { admission: "developer" });
     expect(move.error?.code).toBe("FORBIDDEN");
     expect(world.players[agent.player_id].room_id).toBe("room.hub");
     world.players[agent.player_id].disabled_until_cycle = world.cycle;
     const restored = await applyWorldCommand(world, agent,
-      { request_id: "pressure.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+      { request_id: "pressure.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true, { admission: "developer" });
     expect(restored.error?.message).toContain("move east");
   });
 
@@ -279,25 +279,25 @@ describe("#733 R4 retained text-command safety", () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].exits = [{ direction: "e", to_room_id: "room.east" }];
     expect((await applyWorldCommand(world, agent,
-      { request_id: "direction.enter", command: "ENTER_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      { request_id: "direction.enter", command: "ENTER_WORLD", arguments: {} }, async () => true, { admission: "developer" })).ok).toBe(true);
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const unknown = await applyWorldCommand(world, agent,
-      { request_id: "direction.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+      { request_id: "direction.unknown", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true, { admission: "developer" });
     expect(unknown.error?.code).toBe("UNKNOWN_COMMAND");
     expect(unknown.error?.message).not.toContain("move e");
     expect(unknown.events ?? []).toEqual([]);
     expect(world.sequence).toBe(beforeSequence);
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
     const followed = await applyWorldCommand(world, agent,
-      { request_id: "direction.follow", command: "LOOK", arguments: { line: "move e" } }, async () => true);
+      { request_id: "direction.follow", command: "LOOK", arguments: { line: "move e" } }, async () => true, { admission: "developer" });
     expect(followed.error?.code).toBe("MOVE_REJECTED");
     world.rooms["room.hub"].exits = [{ direction: "east", to_room_id: "room.east" }];
     const restored = await applyWorldCommand(world, agent,
-      { request_id: "direction.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true);
+      { request_id: "direction.restored", command: "LOOK", arguments: { line: "frobnicate" } }, async () => true, { admission: "developer" });
     expect(restored.error?.message).toContain("move east");
     const moved = await applyWorldCommand(world, agent,
-      { request_id: "direction.moved", command: "LOOK", arguments: { line: "move east" } }, async () => true);
+      { request_id: "direction.moved", command: "LOOK", arguments: { line: "move east" } }, async () => true, { admission: "developer" });
     expect(moved.ok).toBe(true);
     expect(world.players[agent.player_id].room_id).toBe("room.east");
   });
@@ -309,10 +309,10 @@ describe("#733 R4 retained text-command safety", () => {
       enrichEntity({ entity_id: "b", label: "relay", entity_type: "INFRASTRUCTURE" }),
     ];
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.duplicate.enter", idempotency_key: "r4.duplicate.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const result = await command("r4.duplicate.unknown", "frobnicate");
@@ -334,10 +334,10 @@ describe("#733 R4 retained text-command safety", () => {
       enrichEntity({ entity_id: "entity.plain", label: "relay", entity_type: "INFRASTRUCTURE" }),
     ];
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.article.enter", idempotency_key: "r4.article.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const hint = await command("r4.article.unknown", "frobnicate");
@@ -359,13 +359,13 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.legal.enter", idempotency_key: "r4.legal.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     world.access_restrictions = [{
       restriction_id: "restr.east", scope: "EXIT", mode: "DENY", applies_to: "*",
       room_id: "room.hub", exit_id: "east", expires_cycle: 10,
     }];
     const command = (id: string, line: string) => applyWorldCommand(world, agent,
-      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true);
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
     const beforeSequence = world.sequence;
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const hint = await command("r4.legal.unknown", "frobnicate");
@@ -397,10 +397,10 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.stock.enter", idempotency_key: "r4.stock.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const ambiguous = await applyWorldCommand(world, agent,
       { request_id: "r4.stock.amb", idempotency_key: "r4.stock.amb", command: "LOOK", arguments: { line: "harvest ore" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
     world.rooms["room.hub"].entities[0].stock_amount = 1;
@@ -408,7 +408,7 @@ describe("#733 R4 retained text-command safety", () => {
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const picked = await applyWorldCommand(world, agent,
       { request_id: "r4.stock.pick", idempotency_key: "r4.stock.pick", command: "LOOK", arguments: { line: "1" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(picked.error?.code).toBe("STALE_CLARIFICATION");
     expect(picked.events ?? []).toEqual([]);
     expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
@@ -424,10 +424,10 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.regen.enter", idempotency_key: "r4.regen.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const ambiguous = await applyWorldCommand(world, agent,
       { request_id: "r4.regen.amb", idempotency_key: "r4.regen.amb", command: "LOOK", arguments: { line: "inspect ore" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
     world.rooms["room.hub"].entities[0].regen_rate = 1;
@@ -435,7 +435,7 @@ describe("#733 R4 retained text-command safety", () => {
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const picked = await applyWorldCommand(world, agent,
       { request_id: "r4.regen.pick", idempotency_key: "r4.regen.pick", command: "LOOK", arguments: { line: "1" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(picked.error?.code).toBe("STALE_CLARIFICATION");
     expect(picked.events ?? []).toEqual([]);
     expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
@@ -451,10 +451,10 @@ describe("#733 R4 retained text-command safety", () => {
     ];
     expect((await applyWorldCommand(world, agent,
       { request_id: "r4.pick.enter", idempotency_key: "r4.pick.enter", command: "ENTER_WORLD", arguments: {} },
-      async () => true)).ok).toBe(true);
+      async () => true, { admission: "developer" })).ok).toBe(true);
     const ambiguous = await applyWorldCommand(world, agent,
       { request_id: "r4.pick.amb", idempotency_key: "r4.pick.amb", command: "LOOK", arguments: { line: "inspect relay" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(world.players[agent.player_id].pending_clarify?.choices).toHaveLength(2);
     world.rooms["room.hub"].entities[0].label = "renamed-conduit";
@@ -462,7 +462,7 @@ describe("#733 R4 retained text-command safety", () => {
     const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
     const pick = await applyWorldCommand(world, agent,
       { request_id: "r4.pick.stale", idempotency_key: "r4.pick.stale", command: "LOOK", arguments: { line: "1" } },
-      async () => true);
+      async () => true, { admission: "developer" });
     expect(pick.ok).toBe(false);
     expect(pick.error?.code).toBe("STALE_CLARIFICATION");
     expect(pick.events ?? []).toEqual([]);
@@ -594,7 +594,7 @@ describe("GB-NOEMA-101 text-line inhabit (agent)", () => {
       command: "ENTER_WORLD",
       arguments: {},
     };
-    const entered = await applyWorldCommand(w, agent, enter, async () => true);
+    const entered = await applyWorldCommand(w, agent, enter, async () => true, { admission: "developer" });
     expect(entered.ok).toBe(true);
 
     const walk: CommandEnvelope = {
@@ -603,7 +603,7 @@ describe("GB-NOEMA-101 text-line inhabit (agent)", () => {
       command: "LOOK",
       arguments: { line: "walk east" },
     };
-    const moved = await applyWorldCommand(w, agent, walk, async () => true);
+    const moved = await applyWorldCommand(w, agent, walk, async () => true, { admission: "developer" });
     expect(moved.ok).toBe(true);
     expect(w.players[agent.player_id]?.room_id).toBe("room.east");
   });
@@ -821,7 +821,7 @@ describe("T0.6 ambiguity lifecycle", () => {
       command: "ENTER_WORLD",
       arguments: {},
     };
-    expect((await applyWorldCommand(w, agent, enter, async () => true)).ok).toBe(true);
+    expect((await applyWorldCommand(w, agent, enter, async () => true, { admission: "developer" })).ok).toBe(true);
 
     const amb = await applyWorldCommand(
       w,
@@ -833,7 +833,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "inspect relay" },
       },
       async () => true,
-    );
+    { admission: "developer" },);
     expect(amb.ok).toBe(false);
     expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
     expect(w.players[agent.player_id]?.pending_clarify?.choices?.length).toBe(2);
@@ -848,7 +848,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "1" },
       },
       async () => true,
-    );
+    { admission: "developer" },);
     expect(picked.ok).toBe(true);
     expect(picked.events?.some((e) => e.event_type === "INSPECT")).toBe(true);
     expect(w.players[agent.player_id]?.pending_clarify).toBeUndefined();
@@ -904,7 +904,7 @@ describe("T0.6 ambiguity lifecycle", () => {
           agent,
           { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
           async () => true,
-        )
+        { admission: "developer" },)
       ).ok,
     ).toBe(true);
     await applyWorldCommand(
@@ -917,7 +917,7 @@ describe("T0.6 ambiguity lifecycle", () => {
         arguments: { line: "inspect relay" },
       },
       async () => true,
-    );
+    { admission: "developer" },);
     expect(
       (
         await applyWorldCommand(
@@ -930,7 +930,7 @@ describe("T0.6 ambiguity lifecycle", () => {
             arguments: { line: "walk east" },
           },
           async () => true,
-        )
+        { admission: "developer" },)
       ).ok,
     ).toBe(true);
     const stale = await applyWorldCommand(
@@ -938,7 +938,7 @@ describe("T0.6 ambiguity lifecycle", () => {
       agent,
       { request_id: "p", idempotency_key: "p", command: "LOOK", arguments: { line: "1" } },
       async () => true,
-    );
+    { admission: "developer" },);
     expect(stale.ok).toBe(false);
     expect(stale.error?.code).toBe("STALE_CLARIFICATION");
   });
@@ -1104,7 +1104,7 @@ describe("T0.8 structured protocol does not fall into the text adapter", () => {
           agent,
           { request_id: "e", idempotency_key: "e", command: "ENTER_WORLD", arguments: {} },
           async () => true,
-        )
+        { admission: "developer" },)
       ).ok,
     ).toBe(true);
     const miss = await applyWorldCommand(
@@ -1112,7 +1112,7 @@ describe("T0.8 structured protocol does not fall into the text adapter", () => {
       agent,
       { request_id: "m", idempotency_key: "m", command: "MOVE", arguments: {} },
       async () => true,
-    );
+    { admission: "developer" },);
     expect(miss.ok).toBe(false);
     expect(miss.error?.code).toBe("INVALID_REQUEST");
     expect(miss.error?.message).toMatch(/direction/i);

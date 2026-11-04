@@ -61,7 +61,7 @@ async function run(w: WorldRuntime, p: PlayerPrincipal, line: string) {
     command: "LOOK",
     arguments: { line },
   };
-  return applyWorldCommand(w, p, envl, async () => true);
+  return applyWorldCommand(w, p, envl, async () => true, { admission: "developer" });
 }
 
 describe("leave parse", () => {

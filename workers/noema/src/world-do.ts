@@ -795,7 +795,7 @@ export class NoemaWorldDO {
             async () => true,
             now,
             (events) => this.commitTempoResolution(events),
-            true,
+            { admission: "hosted" },
           );
           if (!resolved.ok) {
             await this.save();
@@ -1295,7 +1295,7 @@ export class NoemaWorldDO {
       }, {
         now: Date.now(),
         worldPaused: this.meta!.status === "PAUSED",
-        hostedStructured: true,
+        admission: "hosted",
       });
     } catch (e) {
       console.error("applyWorldCommand", e instanceof Error ? e.stack || e.message : e);
@@ -1528,7 +1528,7 @@ export class NoemaWorldDO {
         async () => true,
         now,
         (events) => this.commitTempoResolution(events),
-        true,
+        { admission: "hosted" },
       );
       if (!resolved.ok) {
         await this.save();
