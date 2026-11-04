@@ -5,6 +5,6 @@
 >
 > **PRs:** shipped [#275](https://github.com/Zero-State-LLC/Noema/pull/275); removed [#312](https://github.com/Zero-State-LLC/Noema/pull/312), [#403](https://github.com/Zero-State-LLC/Noema/pull/403).
 >
-> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
 
 See session plan and spec `docs/superpowers/specs/2026-08-18-play-first-ninety-design.md`.

@@ -5,7 +5,7 @@
 >
 > **PRs:** [#160](https://github.com/Zero-State-LLC/Noema/pull/160).
 >
-> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
 
 > **For agentic workers:** Inline execution. Isolated worktrees from `origin/main`. Specs first, then Worker. Admin-squash from `--repo`. Deploy Worker only.
 

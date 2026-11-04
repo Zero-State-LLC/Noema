@@ -5,7 +5,7 @@
 >
 > **PRs:** library [#480](https://github.com/Zero-State-LLC/Noema/pull/480); CLIs [#485](https://github.com/Zero-State-LLC/Noema/pull/485); design [#477](https://github.com/Zero-State-LLC/Noema/pull/477).
 >
-> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

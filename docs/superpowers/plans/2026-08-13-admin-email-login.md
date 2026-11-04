@@ -5,7 +5,7 @@
 >
 > **PRs:** [#55](https://github.com/Zero-State-LLC/Noema/pull/55), [#64](https://github.com/Zero-State-LLC/Noema/pull/64), [#114](https://github.com/Zero-State-LLC/Noema/pull/114), [#448](https://github.com/Zero-State-LLC/Noema/pull/448); acceptance receipt [#645](https://github.com/Zero-State-LLC/Noema/pull/645) (`docs/evidence/C6-ADMIN-EMAIL-ACCEPTANCE-2026-09-07.md`).
 >
-> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

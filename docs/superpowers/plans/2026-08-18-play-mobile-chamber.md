@@ -5,7 +5,7 @@
 >
 > **PRs:** shipped [#272](https://github.com/Zero-State-LLC/Noema/pull/272); removed [#312](https://github.com/Zero-State-LLC/Noema/pull/312), [#403](https://github.com/Zero-State-LLC/Noema/pull/403).
 >
-> The checkboxes below are the original plan and were never ticked; this status is authoritative.
+> The checkboxes below are the original plan and were not kept up to date; this status is authoritative.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
