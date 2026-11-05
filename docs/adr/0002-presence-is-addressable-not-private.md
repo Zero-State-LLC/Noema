@@ -4,6 +4,8 @@ Anyone who holds a Player's id or public handle may learn whether that Player is
 
 ## Consequences
 
-- An absent recipient is refused the same way whether they never existed or have left. The refusal never distinguishes the two on any path, including developer text tooling.
-- Developer text tooling resolves a recipient by partial name only among co-located Players. Anyone else must be named by exact handle or id, so name matching never lists handles the sender did not already hold.
+These consequences are required of every path. Hosted structured dispatch already meets them. Developer text tooling does not yet: it still answers "not found" for a never-seen handle, and it matches partial names over every Player the world has seen. #791 brings it into line.
+
+- An absent recipient must be refused the same way whether they never existed or have left. No path may distinguish the two.
+- A recipient may be resolved by partial name only among co-located Players. Anyone else must be named by exact handle or id, so name matching never lists handles the sender did not already hold.
 - Revisit this if Players gain a way to hide presence (for example, an invisible mode). That is the point where absent-recipient acceptance becomes worth its cost.

@@ -16,7 +16,7 @@ _Avoid_: expired trace, old trace
 _Avoid_: online status, connected
 
 **Addressable recipient** — a Player who is present and can therefore be sent a message; one who never existed and one who has left are equally not addressable.
-_Avoid_: reachable recipient (reach is a relay band, not a property of the recipient)
+_Avoid_: reachable recipient
 
 **Public handle** — the name a Player chose that may appear on WATCH; a default or operator handle is not public, and such a Player is only counted there.
 _Avoid_: display name, username
