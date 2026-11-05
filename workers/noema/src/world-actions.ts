@@ -2023,6 +2023,13 @@ export async function applyWorldCommand(
       ? String((envl.arguments as { line?: string }).line)
       : envl.command;
   let textLine = rawLine;
+  // A clarification lives for exactly one command (#778; Inform's "which do you mean" convention): any
+  // command that is not a pick of the pending choices, including free ones (HELP, WAIT, unknown text),
+  // drops it before anything else runs.
+  const plPending = w.players[principal.player_id];
+  if (plPending?.pending_clarify && !(opts?.admission === "developer" && matchClarifyPick(rawLine, plPending.pending_clarify))) {
+    delete plPending.pending_clarify;
+  }
   if (opts?.admission === "developer") {
     const aliasCmd = parseAliasCommand(textLine);
     if (aliasCmd) {

@@ -294,6 +294,70 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.sequence).toBe(beforeSequence);
   });
 
+  for (const between of [
+    { name: "HELP", line: "help" },
+    { name: "unknown text", line: "frobnicate" },
+    { name: "WAIT", line: "wait" },
+  ]) {
+    it(`#778 bounded: a pick lives one command — ${between.name} in between clears it`, async () => {
+      const { world, agent } = r4CommandFixture();
+      world.rooms["room.hub"].entities = [
+        enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+        enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      ];
+      const line = (id: string, text: string) => applyWorldCommand(world, agent,
+        { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line: text } }, async () => true, { admission: "developer" });
+      expect((await applyWorldCommand(world, agent,
+        { request_id: "b.enter", idempotency_key: "b.enter", command: "ENTER_WORLD", arguments: {} },
+        async () => true, { admission: "developer" })).ok).toBe(true);
+      expect((await line("b.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+      await line("b.between", between.line);
+      expect(world.players[agent.player_id].pending_clarify ?? null).toBeNull();
+      const beforeSequence = world.sequence;
+      const picked = await line("b.pick", "1");
+      expect(picked.ok).toBe(false);
+      expect(picked.error?.code).toBe("UNKNOWN_COMMAND");
+      expect(world.sequence).toBe(beforeSequence);
+    });
+  }
+
+  it("#778 bounded: a clarification lists at most 9 numbered choices and asks for more detail beyond that", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = Array.from({ length: 12 }, (_, i) =>
+      enrichEntity({ entity_id: `r${i + 1}`, label: `relay-${String(i + 1).padStart(2, "0")}`, entity_type: "INFRASTRUCTURE", condition: 40 }));
+    const line = (id: string, text: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line: text } }, async () => true, { admission: "developer" });
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "c.enter", idempotency_key: "c.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    const amb = await line("c.amb", "inspect relay");
+    expect(amb.error?.code).toBe("AMBIGUOUS_TARGET");
+    const pending = world.players[agent.player_id].pending_clarify;
+    expect(pending?.choices).toHaveLength(9);
+    const msg = String(amb.error?.message ?? "");
+    expect(msg).toMatch(/^9\. /m);
+    expect(msg).not.toMatch(/^10\. /m);
+    expect(msg).toMatch(/more specific/i);
+    // Every listed number is pickable; the tenth is not a pick at all.
+    expect(world.players[agent.player_id].pending_clarify?.choices[8]).toBe("Relay 09");
+  });
+
+  it("#778 bounded: with 12 matches, choice 10 is not a pick", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = Array.from({ length: 12 }, (_, i) =>
+      enrichEntity({ entity_id: `r${i + 1}`, label: `relay-${String(i + 1).padStart(2, "0")}`, entity_type: "INFRASTRUCTURE", condition: 40 }));
+    const line = (id: string, text: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line: text } }, async () => true, { admission: "developer" });
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "d.enter", idempotency_key: "d.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    expect((await line("d.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+    const beforeSequence = world.sequence;
+    const ten = await line("d.ten", "10");
+    expect(ten.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(world.sequence).toBe(beforeSequence);
+  });
+
   it("suggests only affordable public actions", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [
@@ -1040,7 +1104,10 @@ describe("T0.6 ambiguity lifecycle", () => {
       async () => true,
     { admission: "developer" });
     expect(stale.ok).toBe(false);
-    expect(stale.error?.code).toBe("STALE_CLARIFICATION");
+    // #778: the Player's own intervening command ("walk east") already dropped the clarification (one-command
+    // lifetime), so "1" is no longer a pick at all. STALE_CLARIFICATION remains for a world that changes under
+    // a pending pick without the Player acting (see "#733 R4 retained text-command safety").
+    expect(stale.error?.code).toBe("UNKNOWN_COMMAND");
   });
 });
 
