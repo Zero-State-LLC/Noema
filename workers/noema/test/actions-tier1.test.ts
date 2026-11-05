@@ -345,18 +345,27 @@ describe("Tier 1 world mutations", () => {
         stock_amount: 8,
       }),
     ];
-    const aff = deriveAffordances({
+    const input = {
       entities: ents,
       exits: [{ direction: "east", to_room_name: "Coldline" }],
       budgets: cloneBudgets({ ...DEFAULT_BUDGETS, storage: 15 }),
-      otherPlayers: [{ player_id: "player.other", handle: "other" }],
+      otherPlayers: [{ player_id: "player.other", handle: "other", room_id: "room.hub" }],
       openTrades: [],
       selfId: "player.self",
-    });
+      roomId: "room.hub",
+    };
+    const aff = deriveAffordances(input);
     expect(aff.some((a) => a.action === "REPAIR" && a.available)).toBe(true);
     expect(aff.some((a) => a.action === "HARVEST" && a.available)).toBe(true);
     expect(aff.some((a) => a.action === "MESSAGE" && a.available)).toBe(true);
     expect(aff.some((a) => a.action === "TRADE" && a.available)).toBe(true);
+    for (const candidate of [
+      { ...input, roomId: undefined },
+      { ...input, otherPlayers: [{ ...input.otherPlayers[0], room_id: undefined }] },
+      { ...input, otherPlayers: [{ ...input.otherPlayers[0], room_id: "room.east" }] },
+    ]) {
+      expect(deriveAffordances(candidate).filter((a) => a.action === "MESSAGE" || a.action === "TRADE")).toEqual([]);
+    }
   });
 
   it("help is non-mutating", () => {
