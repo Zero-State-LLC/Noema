@@ -74,7 +74,7 @@ async function n10HeldClaim(w: WorldRuntime): Promise<string> {
     recipient_id: n10Sender.player_id, text: "N10_HELD_REPORT", as_claim: true,
   });
   expect(r.ok).toBe(true);
-  const id = (r.events ?? []).find(e => e.event_type === "MESSAGE")?.payload.claim_id;
+  const id = (r.events ?? []).find(e => e.event_type === "MESSAGE")?.payload?.claim_id;
   expect(typeof id).toBe("string");
   expect(String(id)).toMatch(/^claim\./);
   w.players[n10Sender.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
@@ -93,4 +93,13 @@ it("[N10.1] canonical control delivers to the named far recipient", async () => 
   const near = await n10Run(w, n10Near, "LOOK");
   expect(JSON.stringify(far.observation?.messages)).toContain("N10_CONTROL");
   expect(JSON.stringify(near.observation?.messages)).not.toContain("N10_CONTROL");
+});
+
+it("[N10.2] report never-existed and left recipients have one refusal", async () => {
+  const unknown = await n10Scene();
+  const absent = await n10Refused(unknown, 'report player.never-n10 "N10_PRIVATE_BODY"');
+  const left = await n10Scene();
+  expect((await n10Run(left, n10Far, "LEAVE_WORLD")).ok).toBe(true);
+  const gone = await n10Refused(left, 'report player.far "N10_PRIVATE_BODY"');
+  expect(gone.error).toEqual(absent.error);
 });
