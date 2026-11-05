@@ -956,8 +956,11 @@ export type ParseResult =
   | { ok: true; action: CanonicalAction; display: string }
   | { ok: false; error: string; code?: string; choices?: string[]; reason?: "MOVE_DIRECTION_REQUIRED" };
 
+/** Per-call offline text-parser result; sourceInput is never retained in world state. */
+export type HumanParseResult = ParseResult & { sourceInput: string };
+
 /** Spec T0.2 mapping. Does not replace ParseResult.ok. */
-export function parseShape(r: ParseResult): ParseShape {
+export function classifyParseResult(r: ParseResult): ParseShape {
   if (r.ok) return "resolved";
   const c = String(r.code || "");
   if (c === "AMBIGUOUS_TARGET") return "ambiguous";
@@ -1075,7 +1078,7 @@ export function stripInspectNoun(raw: string): string {
  * Legacy name: not a human-player inhabit path.
  * Target resolution uses visible entities/players when provided.
  */
-export function parseHumanCommand(
+function parseHumanCommandCore(
   line: string,
   ctx: {
     entities?: EntityRuntime[];
@@ -2231,6 +2234,14 @@ export function parseHumanCommand(
     error: unknownCommandHint(v, ctx),
     code: "UNKNOWN_COMMAND",
   };
+}
+
+/** Exact input to this invocation; aliases/macros supply their expanded step, not the outer envelope. */
+export function parseHumanCommand(
+  line: string,
+  ctx: Parameters<typeof parseHumanCommandCore>[1] = {},
+): HumanParseResult {
+  return { ...parseHumanCommandCore(line, ctx), sourceInput: line };
 }
 
 function unknownCommandHint(

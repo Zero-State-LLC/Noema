@@ -124,4 +124,16 @@ describe("#778 T0.8 hosted admission never hands Player text to the parser", () 
     expect(r.ok).toBe(true);
     expect(w.players[agent.player_id].room_id).toBe("room.b");
   });
+
+  it("developer aliases give the parser the expanded step rather than the outer envelope", async () => {
+    const w = world();
+    expect((await run(w, "enter.alias", "ENTER_WORLD", {}, { admission: "developer" })).ok).toBe(true);
+    expect((await run(w, "alias", "alias set toward move east", {}, { admission: "developer" })).ok).toBe(true);
+    parserCalls.length = 0;
+    const result = await run(w, "expanded", "LOOK", { line: "toward" }, { admission: "developer" });
+    expect(result.ok).toBe(true);
+    expect(parserCalls).toContain("move east");
+    expect(parserCalls).not.toContain("toward");
+    expect(JSON.stringify(result)).not.toContain("sourceInput");
+  });
 });

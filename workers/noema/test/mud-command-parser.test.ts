@@ -8,10 +8,11 @@ import {
   matchClarifyPick,
   observationFingerprint,
   helpText,
-  parseShape,
+  classifyParseResult,
   type Affordance,
 } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import { parsePlayCommand } from "../src/play-ui";
 import type { CommandEnvelope, PlayerPrincipal } from "../src/types";
 
 function eastMove(r: ReturnType<typeof parseHumanCommand>) {
@@ -1181,11 +1182,64 @@ describe("S2 contextual help", () => {
   });
 });
 
-describe("T0.2 parseShape (does not replace ParseResult.ok)", () => {
+describe("T0.2 classifyParseResult (does not replace ParseResult.ok)", () => {
+  it("projects explicit play fields, not the private-bearing full source line", () => {
+    const line = "  message player.other \"PRIVATE_SOURCE_T02\"  ";
+    const parsed = parsePlayCommand(line);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) expect(parsed.arguments.text).toBe("PRIVATE_SOURCE_T02"); // Canonical text is allowed.
+    expect(JSON.stringify(parsed)).not.toContain(line);
+    expect(JSON.stringify(parsed)).not.toContain("sourceInput");
+  });
+
+  it("keeps rejected private text out of reducer result and retained state", async () => {
+    const { world, agent } = r4CommandFixture();
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "t02.enter", idempotency_key: "t02.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const source = '  message nobody "PRIVATE_SOURCE_T02_REJECTED"  ';
+    const rejected = await applyWorldCommand(world, agent,
+      { request_id: "t02.reject", idempotency_key: "t02.reject", command: "LOOK", arguments: { line: source } },
+      async () => { throw new Error("rejected message must not settle"); }, { admission: "developer" });
+    expect(rejected.ok).toBe(false);
+    expect(rejected.error?.code).toBe("FORBIDDEN");
+    expect(rejected.events ?? []).toEqual([]);
+    expect(JSON.stringify(rejected)).not.toContain("PRIVATE_SOURCE_T02_REJECTED");
+    expect(JSON.stringify(world)).not.toContain("PRIVATE_SOURCE_T02_REJECTED");
+    expect(JSON.stringify(world)).not.toContain("sourceInput");
+    expect(world.players[agent.player_id].pending_clarify).toBeUndefined();
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+  it("keeps the exact human parser input on every outcome, including empty and private text", () => {
+    const cases = [
+      { line: "  EaSt  ", shape: "resolved", ctx: {} },
+      { line: " inspect relay ", shape: "ambiguous", ctx: { entities: [
+        enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" }),
+        enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE" }),
+      ] } },
+      { line: "  bLoRbLe  ", shape: "unsupported", ctx: {} },
+      { line: "  inspect  ", shape: "invalid", ctx: {} },
+      { line: "", shape: "invalid", ctx: {} },
+      { line: "  message nobody \"PRIVATE_SOURCE_T02\"  ", shape: "resolved", ctx: {} },
+    ];
+    for (const { line, shape, ctx } of cases) {
+      const result = parseHumanCommand(line, ctx);
+      expect(result.sourceInput).toBe(line);
+      expect(classifyParseResult(result)).toBe(shape);
+    }
+    const canonical = parseHumanCommand("  EaSt  ");
+    expect(canonical.ok && canonical.action).toEqual({ verb: "MOVE", arguments: { direction: "east" } });
+    const structured = normalizeStructuredCommand("MESSAGE", { recipient_id: "player.a", text: "PRIVATE_SOURCE_T02" });
+    expect(structured.ok && structured.action).toMatchObject({ verb: "MESSAGE", arguments: { text: "PRIVATE_SOURCE_T02" } });
+    expect(structured).not.toHaveProperty("sourceInput");
+  });
   it("maps resolved / ambiguous / unsupported / invalid without changing ok", () => {
     const east = parseHumanCommand("east");
     expect(east.ok).toBe(true);
-    expect(parseShape(east)).toBe("resolved");
+    expect(classifyParseResult(east)).toBe("resolved");
 
     const amb = parseHumanCommand("inspect relay", {
       entities: [
@@ -1195,23 +1249,23 @@ describe("T0.2 parseShape (does not replace ParseResult.ok)", () => {
     });
     expect(amb.ok).toBe(false);
     if (!amb.ok) expect(amb.code).toBe("AMBIGUOUS_TARGET");
-    expect(parseShape(amb)).toBe("ambiguous");
+    expect(classifyParseResult(amb)).toBe("ambiguous");
 
     const unk = parseHumanCommand("blorble");
     expect(unk.ok).toBe(false);
     if (!unk.ok) expect(unk.code).toBe("UNKNOWN_COMMAND");
-    expect(parseShape(unk)).toBe("unsupported");
+    expect(classifyParseResult(unk)).toBe("unsupported");
 
     const help = parseHumanCommand("help");
     expect(help.ok).toBe(false);
     if (!help.ok) expect(help.code).toBe("HELP");
-    expect(parseShape(help)).toBe("unsupported");
+    expect(classifyParseResult(help)).toBe("unsupported");
 
     const missing = parseHumanCommand("inspect", {
       entities: [enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE" })],
     });
     expect(missing.ok).toBe(false);
-    expect(parseShape(missing)).toBe("invalid");
+    expect(classifyParseResult(missing)).toBe("invalid");
   });
 
   it("keeps structured MOVE-without-direction as invalid, not a text-line parse", () => {
@@ -1221,7 +1275,7 @@ describe("T0.2 parseShape (does not replace ParseResult.ok)", () => {
       expect(r.code).toBe("INVALID_REQUEST");
       expect(r.error).toMatch(/direction/i);
     }
-    expect(parseShape(r)).toBe("invalid");
+    expect(classifyParseResult(r)).toBe("invalid");
   });
 });
 

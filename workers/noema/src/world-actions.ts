@@ -29,6 +29,7 @@ import {
   type EntityRuntime,
   type InboxMessage,
   type OpenTrade,
+  type ParseResult,
   type Organization,
   type OrgRole,
   type PlayerRuntime,
@@ -2170,7 +2171,7 @@ export async function applyWorldCommand(
   );
   const plClarify = w.players[principal.player_id];
   const pickLabel = opts?.admission === "developer" ? matchClarifyPick(rawLine, plClarify?.pending_clarify) : null;
-  let parsed: ReturnType<typeof parseHumanCommand>;
+  let parsed: ParseResult;
   if (pickLabel && plClarify?.pending_clarify) {
     if (plClarify.pending_clarify.fingerprint !== fp || plClarify.pending_clarify.session_id !== principal.session_id) {
       delete plClarify.pending_clarify;

@@ -6,6 +6,35 @@ import { fixtureWorld, harness, WORLD } from "./agent-http-do-fixture";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Agent HTTP to DO repair trace", () => {
+  it("rejects a private MESSAGE without retaining or returning source text after fixture restart", async () => {
+    const h = harness();
+    const agent = await h.agent();
+    const enter = await h.command(agent.access_token, "ENTER_WORLD");
+    expect((await enter.json() as { ok: boolean }).ok).toBe(true);
+    const before = await h.persistedWorld();
+    const body = "PRIVATE_SOURCE_T02_MOUNTED";
+    const envelope = { request_id: "private.t02", idempotency_key: "private.idem.t02" };
+    const first = await h.command(agent.access_token, "MESSAGE", { recipient_id: "player.absent", text: body }, envelope);
+    const result = await first.json() as { ok: boolean; error?: { code: string }; events?: unknown[] };
+    expect(result.ok).toBe(false);
+    expect(result.error?.code).toBe("FORBIDDEN");
+    expect(result.events ?? []).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain(body);
+    expect(JSON.stringify(result)).not.toContain("sourceInput");
+    const retained = await h.persistedWorld();
+    expect(JSON.stringify(retained)).not.toContain(body);
+    expect(JSON.stringify(retained)).not.toContain("sourceInput");
+    expect(retained?.sequence).toBe(before?.sequence);
+    expect(retained?.players[agent.player_id]?.budgets).toEqual(before?.players[agent.player_id]?.budgets);
+    expect(retained?.players[agent.player_id]?.pending_clarify).toBeUndefined();
+    expect(retained?.seen_idempotency).toEqual(before?.seen_idempotency);
+    h.restart(); // Retained fixture storage, not hosted eviction.
+    const replay = await h.command(agent.access_token, "MESSAGE", { recipient_id: "player.absent", text: body }, envelope);
+    const replayResult = await replay.json() as typeof result;
+    expect(replayResult).toEqual(result);
+    expect(JSON.stringify(replayResult)).not.toContain(body);
+    expect(JSON.stringify(await h.persistedWorld())).not.toContain(body);
+  });
   it("binds the public isolated WATCH target on its first mounted load without trusting visitor headers", async () => {
     const target = "test.hosted-canonical.watch-mounted";
     const h = harness(fixtureWorld(), target, undefined, target);
