@@ -194,6 +194,106 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
   });
 
+  it("#778 T0.7: does not suggest or reveal a hidden entity on unknown text", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.secret", label: "sealed-cache", entity_type: "INFRASTRUCTURE", hidden: true }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "778.enter", idempotency_key: "778.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const beforeBudgets = structuredClone(world.players[agent.player_id].budgets);
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "778.unknown", idempotency_key: "778.unknown", command: "LOOK", arguments: { line: "frobnicate" } },
+      async () => true, { admission: "developer" });
+    expect(result.error?.code).toBe("UNKNOWN_COMMAND");
+    const wire = JSON.stringify(result).toLowerCase();
+    expect(wire).not.toContain("sealed-cache");
+    expect(wire).not.toContain("entity.secret");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+    expect(world.players[agent.player_id].budgets).toEqual(beforeBudgets);
+  });
+
+  it("#778 T0.7: naming a hidden entity in text neither resolves nor reveals it", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "entity.secret", label: "sealed-cache", entity_type: "INFRASTRUCTURE", hidden: true }),
+    ];
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "778.h.enter", idempotency_key: "778.h.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    const beforeSequence = world.sequence;
+    const result = await applyWorldCommand(world, agent,
+      { request_id: "778.h.inspect", idempotency_key: "778.h.inspect", command: "LOOK", arguments: { line: "inspect sealed-cache" } },
+      async () => true, { admission: "developer" });
+    expect(result.ok).toBe(false);
+    expect(JSON.stringify(result)).not.toContain("entity.secret");
+    expect(result.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+  });
+
+  it("#778 T0.6: rejects a pending pick after a same-ID entity is relabelled", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const command = (id: string, line: string) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: "LOOK", arguments: { line } }, async () => true, { admission: "developer" });
+    expect((await applyWorldCommand(world, agent,
+      { request_id: "778.l.enter", idempotency_key: "778.l.enter", command: "ENTER_WORLD", arguments: {} },
+      async () => true, { admission: "developer" })).ok).toBe(true);
+    expect((await command("778.l.amb", "inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+    // Same entity IDs, materially different public labels: choice "1" no longer means what the Player saw.
+    world.rooms["room.hub"].entities[0].label = "relay-decoy";
+    const beforeSequence = world.sequence;
+    const picked = await command("778.l.pick", "1");
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(world.sequence).toBe(beforeSequence);
+  });
+
+  it("#778 T0.6: a pending pick does not survive leaving and re-entering the world", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const run = (id: string, commandName: string, args: Record<string, unknown> = {}) => applyWorldCommand(world, agent,
+      { request_id: id, idempotency_key: id, command: commandName, arguments: args }, async () => true, { admission: "developer" });
+    expect((await run("778.s.enter", "ENTER_WORLD")).ok).toBe(true);
+    expect((await run("778.s.amb", "LOOK", { line: "inspect relay" })).error?.code).toBe("AMBIGUOUS_TARGET");
+    expect((await run("778.s.leave", "LEAVE_WORLD")).ok).toBe(true);
+    expect((await run("778.s.reenter", "ENTER_WORLD")).ok).toBe(true);
+    expect(world.players[agent.player_id].pending_clarify ?? null).toBeNull();
+    const beforeSequence = world.sequence;
+    const picked = await run("778.s.pick", "LOOK", { line: "1" });
+    // A new session must not execute a choice offered in the previous one: "1" is no longer a pick, so it is
+    // an unknown command (visible labels may still appear in its public hint), and nothing settles.
+    expect(picked.ok).toBe(false);
+    expect(picked.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(picked.events ?? []).toEqual([]);
+    expect(world.sequence).toBe(beforeSequence);
+  });
+
+  it("#778 T0.6: a pending pick is bound to the session that was offered it", async () => {
+    const { world, agent } = r4CommandFixture();
+    world.rooms["room.hub"].entities = [
+      enrichEntity({ entity_id: "a", label: "relay-east", entity_type: "INFRASTRUCTURE", condition: 40 }),
+      enrichEntity({ entity_id: "b", label: "relay-west", entity_type: "INFRASTRUCTURE", condition: 40 }),
+    ];
+    const run = (who: PlayerPrincipal, id: string, commandName: string, args: Record<string, unknown> = {}) => applyWorldCommand(world, who,
+      { request_id: id, idempotency_key: id, command: commandName, arguments: args }, async () => true, { admission: "developer" });
+    expect((await run(agent, "778.t.enter", "ENTER_WORLD")).ok).toBe(true);
+    expect((await run(agent, "778.t.amb", "LOOK", { line: "inspect relay" })).error?.code).toBe("AMBIGUOUS_TARGET");
+    const otherSession = { ...agent, session_id: "sess.other" };
+    const beforeSequence = world.sequence;
+    const picked = await run(otherSession, "778.t.pick", "LOOK", { line: "1" });
+    expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+    expect(world.sequence).toBe(beforeSequence);
+  });
+
   it("suggests only affordable public actions", async () => {
     const { world, agent } = r4CommandFixture();
     world.rooms["room.hub"].entities = [

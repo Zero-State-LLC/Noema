@@ -2203,6 +2203,8 @@ export type ClarifyPending = {
   fingerprint: string;
   verb: string;
   choices: string[];
+  /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE…:102, T0.6). */
+  session_id?: string;
 };
 
 export function observationFingerprint(
