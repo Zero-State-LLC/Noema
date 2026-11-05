@@ -166,3 +166,38 @@ it("[N10.6] sibling ambiguity lists local names without retaining body or claim 
     expect(w.players[n10Sender.player_id].pending_clarify).toBeUndefined();
   }
 });
+
+it("[N10.7] forwarding preserves a held report and refused replay settles nothing", async () => {
+  for (const verb of ["pass", "share"]) {
+    const w = await n10Scene();
+    const claim = await n10HeldClaim(w);
+    const sent = await n10Run(w, n10Sender, "LOOK", {
+      line: `${verb} player.far ${claim}`,
+    }, true);
+    expect(sent.ok).toBe(true);
+    const event = sent.events?.find(e => e.event_type === "MESSAGE");
+    expect(event?.payload?.recipient_id).toBe(n10Far.player_id);
+    expect(event?.payload?.claim_id).toBe(claim);
+    expect(w.messages.at(-1)?.text).toBe("N10_HELD_REPORT");
+    expect(w.messages.at(-1)?.recipient_id).toBe(n10Far.player_id);
+    const far = await n10Run(w, n10Far, "LOOK");
+    const near = await n10Run(w, n10Near, "LOOK");
+    expect(JSON.stringify(far.observation?.messages)).toContain("N10_HELD_REPORT");
+    expect(JSON.stringify(near.observation?.messages)).not.toContain("N10_HELD_REPORT");
+  }
+  const w = await n10Scene();
+  const envelope = { request_id: "n10.replay", idempotency_key: "n10.replay",
+    command: "LOOK", arguments: { line: 'report player.never-n10 "N10_PRIVATE_BODY"' } };
+  const before = n10Effects(w);
+  for (let i = 0; i < 2; i++) {
+    const r = await applyWorldCommand(w, n10Sender, envelope,
+      async () => { throw new Error("rejected message must never settle"); },
+      { admission: "developer" });
+    expect(r.error?.code).toBe("FORBIDDEN");
+    expect(r.events ?? []).toEqual([]);
+    expect(n10Effects(w)).toEqual(before);
+    expect(JSON.stringify(r)).not.toContain("N10_PRIVATE_BODY");
+    expect(JSON.stringify(w.players)).not.toContain("sourceInput");
+    expect(JSON.stringify(w.seen_idempotency)).not.toContain("N10_PRIVATE_BODY");
+  }
+});
