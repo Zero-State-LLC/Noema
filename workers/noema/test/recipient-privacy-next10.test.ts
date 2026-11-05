@@ -113,3 +113,30 @@ it("[N10.4] pass and claim-share uniformly refuse absent recipients", async () =
     await n10Refused(await n10Scene(), `${verb} player.never-n10 claim.N10_PRIVATE_BODY`);
   }
 });
+
+it("[N10.5] sibling recipient selection preserves literal addresses and local partial boundaries", async () => {
+  for (const verb of ["report", "repeat", "pass", "share"]) {
+    const w = await n10Scene();
+    w.players[n10Far.player_id].handle = "remote-agent";
+    w.players[n10Near.player_id].handle = "remote_agent";
+    const claim = await n10HeldClaim(w);
+    const line = (target: string) => verb === "pass" || verb === "share"
+      ? `${verb} ${target} ${claim}`
+      : `${verb} ${target} "N10_HELD_REPORT"`;
+    const before = w.messages.length;
+    const exact = await n10Run(w, n10Sender, "LOOK", { line: line("remote-agent") }, true);
+    expect(exact.ok).toBe(true);
+    expect(w.messages).toHaveLength(before + 1);
+    expect(w.messages.at(-1)?.recipient_id).toBe(n10Far.player_id);
+    const event = exact.events?.find(e => e.event_type === "MESSAGE");
+    expect(event?.payload?.recipient_id).toBe(n10Far.player_id);
+    const far = await n10Run(w, n10Far, "LOOK");
+    const near = await n10Run(w, n10Near, "LOOK");
+    expect(JSON.stringify(far.observation?.messages)).toContain("N10_HELD_REPORT");
+    expect(JSON.stringify(near.observation?.messages)).not.toContain("N10_HELD_REPORT");
+    // A short ID is not the distant Player's renamed handle or full ID.
+    const short = await n10Run(w, n10Sender, "LOOK", { line: line("far") }, true);
+    expect(short.ok).toBe(false);
+    expect(short.error?.code).toBe("FORBIDDEN");
+  }
+});
