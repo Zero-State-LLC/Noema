@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8854,
-    "edgeCount": 19569,
+    "nodeCount": 8857,
+    "edgeCount": 19579,
     "languages": [
       "javascript",
       "python",
@@ -94925,6 +94925,49 @@
       "exported": true,
       "origin": "ast",
       "body_hash": "f6c31175dae7afa1fc9273195d8b2b7fe8c40cf7b068f0279fdf8d8e7d48eddd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "name": "agent-http-do-mounted-social.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "span": "L1-L83",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "876b225c163c59dd12f32c4cecbbdb770df17f8eda7753a1df9030dfff76be62",
+      "chars": 4750,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-mounted-social.test.ts#readSender",
+      "name": "readSender",
+      "kind": "function",
+      "path": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "span": "L40-L54",
+      "signature": "readSender = async ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cd299b5468155d2a1504291725d053d7d206ea2e522c5afc62690607a78b909a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-mounted-social.test.ts#View",
+      "name": "View",
+      "kind": "type",
+      "path": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "span": "L35-L39",
+      "signature": "type View = { ok: boolean; observation?: { location?: { room_id: string }; players_here?: Array<{ player_id: string }>; affordances?: Array<{ action: string; target_id?: string; target_label?: string; label: string }>; messages?: Array<{ sender_id: string; text: string }>; } };",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fdda4ec1337ff636080159cb133ab3b60f34c4260d969e42f092c001492b6445",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -209270,6 +209313,66 @@
       "source": "workers/noema/test/agent-http-do-fixture.ts#harness.fetch",
       "target": "workers/noema/src/world-do.ts#NoemaWorldDO",
       "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/test/agent-http-do-mounted-social.test.ts#readSender",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/test/agent-http-do-mounted-social.test.ts#readSender",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/test/agent-http-do-mounted-social.test.ts#View",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
       "confidence": "extracted"
     },
     {
