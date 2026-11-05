@@ -185,7 +185,7 @@ describe("acceptance-733 runner against the mounted Worker + DO", () => {
     expect(types.join(" ")).not.toMatch(/LEAVE|DEPART/i); // the guessed leave event name does not exist
     const harvest = r.sb.events.find((e) => e.event_type === "ENTITY_UPDATE" && (e.payload as Row).operation === "HARVEST");
     const repair = r.sb.events.find((e) => e.event_type === "ENTITY_UPDATE" && (e.payload as Row).operation === "REPAIR");
-    expect(harvest?.payload).toMatchObject({ operation: "HARVEST", entity_id: "entity.acceptance-source", to: 0 });
+    expect(harvest?.payload).toMatchObject({ operation: "HARVEST", entity_id: "entity.acceptance-source", to: 1 });
     expect(repair?.payload).toMatchObject({ operation: "REPAIR", entity_id: "entity.acceptance-relay" });
     expect(Number(harvest?.sequence)).toBeLessThan(Number(repair?.sequence));
     expect(Number(repair?.sequence)).toBeLessThan(Number(r.sb.events.find((e) => e.event_type === "AGENT_LEFT_WORLD")?.sequence));
@@ -225,6 +225,24 @@ describe("acceptance-733 runner against the mounted Worker + DO", () => {
     for (const phase of ["g1", "g2", "r0"]) codes[phase] = await main([phase, "--run", RUN], r.ctx);
     const failed = Object.fromEntries(["g1_isolation", "g2_s3_readback", "r0_presentation"].map((k) => [k, falseChecks(r.readSection(k))]));
     expect({ codes, failed }).toEqual({ codes: { g1: 0, g2: 0, r0: 0 }, failed: { g1_isolation: [], g2_s3_readback: [], r0_presentation: [] } });
+  });
+
+  it("ac17: a second repairer replaces the plate deterministically (no duplicate, first name gone), after g1 and g2", async () => {
+    const r = await rig();
+    const codes: Record<string, number> = {};
+    for (const phase of ["g1", "g2", "ac17", "r0"]) codes[phase] = await main([phase, "--run", RUN], r.ctx);
+    const ac17 = r.readSection("ac17_stale_trace");
+    expect({ codes, failed: falseChecks(ac17), passed: ac17?.passed }).toEqual({ codes: { g1: 0, g2: 0, ac17: 0, r0: 0 }, failed: [], passed: true });
+    expect(Object.keys(ac17.checks)).toEqual([
+      "prior_plate_names_g2_repairer", "second_harvest_accepted", "second_repair_accepted", "second_repair_committed_in_sql",
+      "plate_names_second_repairer", "first_repairer_no_longer_named", "exactly_one_plate", "watch_live_updated",
+    ]);
+  });
+
+  it("ac17 run before g2 fails its precondition instead of passing on an empty plate", async () => {
+    const r = await rig();
+    expect(await main(["ac17", "--run", RUN], r.ctx)).toBe(1);
+    expect(r.readSection("ac17_stale_trace").checks.prior_plate_names_g2_repairer).toBe(false);
   });
 
   it("only the guarded base and the acceptance Supabase were contacted; receipts redact cleanly", async () => {

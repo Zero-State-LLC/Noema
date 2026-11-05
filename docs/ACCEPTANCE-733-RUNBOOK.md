@@ -21,6 +21,7 @@ Run from `workers/noema`. After `deploy`, pass `--run <id>` (printed by deploy).
 | Deploy | `node scripts/acceptance-733.mjs deploy` | `{"ok":true,"run_id":…,"version":…}`; refuses a dirty git working tree (`git status --porcelain` must be empty) so `source_commit` is honest; the ephemeral secrets file is created exclusively (0600) and removed on exit/SIGINT/SIGTERM/SIGHUP |
 | G1 | `… g1 --run <id>` | exit 0; `g1_isolation.passed: true` in state |
 | G2 | `… g2 --run <id>` | exit 0; `g2_s3_readback.passed: true` |
+| AC17 (required, after G2) | `… ac17 --run <id>` | exit 0; a second Player's REPAIR **replaces** the maintenance plate (names `acc-ac17-a`, no longer `acc-g2-a`, exactly one plate), settled in SQL and on WATCH live. Run it **after** G2: it fails its precondition without G2's plate |
 | G3 | `… g3-urls --run <id>` | URLs, viewports, sentinel; the browser agent drives them, saves JSON |
 | R0 | `… r0 --run <id>` | exit 0; room-stack fields true |
 | Receipt | `… receipt --run <id> [--g3 g3.json] [--out FILE]` | `noema-733-hosted-gates/1`, redacted, `production_worker_version_control.unchanged: true`, `source_tree_clean: true` |
@@ -28,7 +29,7 @@ Run from `workers/noema`. After `deploy`, pass `--run <id>` (printed by deploy).
 
 `--g3 g3.json` is validated against an allowlist (booleans: `passed`, `keyboard_ok`, `skip_link_ok`, `pause_refresh_ok`, `reduced_motion_ok`, `aria_live_bounded`, `contrast_ok`, `home_degradation_ok`, `sentinel_absent`; number: `min_contrast`; strings: `notes`, `browser`); unknown keys are dropped, wrong types are refused, and the file can never set `status` or any non-G3 receipt field.
 
-The receipt carries `gates: { g1, g2, g3, r0, c9 }`, each `passed | failed | pending | not_covered`, and `all_required_passed` (true only when g1, g2, g3 and r0 are all `passed`; c9 is optional). A missing/unrun phase is `pending` and a G3 never recorded stays `pending`; neither counts as passed. A recorded G3 is `passed` only when **every** boolean check above is present and `true`; a missing check makes it `failed`.
+The receipt carries `gates: { g1, g2, g3, r0, c9, ac17 }`, each `passed | failed | pending | not_covered`, and `all_required_passed` (true only when g1, g2, g3, r0 and ac17 are all `passed`; c9 is optional). An unrun AC17 is `pending`. A missing/unrun phase is `pending` and a G3 never recorded stays `pending`; neither counts as passed. A recorded G3 is `passed` only when **every** boolean check above is present and `true`; a missing check makes it `failed`.
 
 A failing check stops that phase and records `false`; exit is non-zero. Fix or report, do not hand-edit state.
 
@@ -36,7 +37,7 @@ State and generated secrets: `~/.config/noema/acceptance-runs/<run-id>.json` (mo
 
 ## Not covered by the runner
 
-AC17 (stale traces), WS ACT hosted frames, human comprehension (T6.5), C9 ticks: recorded as `not_covered` / `not_run_by_runner`.
+Human comprehension (T6.5) and C9 ticks: recorded as `not_covered` / `not_run_by_runner`. (WS ACT over a real WebSocket is part of G1, and AC17 has its own phase above.)
 
 ## Never
 

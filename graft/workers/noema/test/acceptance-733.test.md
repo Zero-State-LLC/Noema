@@ -16,4 +16,5 @@
 - emit · method · L520-L520 — emit(ev: string)
 - count · method · L521-L521 — count()
 - receiptWithG3 · function · L618-L625 — async function receiptWithG3(content: unknown)
-- receiptAfter · function · L652-L664 — async function receiptAfter(phases: string[], g3?: unknown)
+- receiptAfter · function · L652-L670 — async function receiptAfter(phases: string[], g3?: unknown, sections?: Record<string, unknown>)
+- receiptWith · function · L673-L682 — async function receiptWith(sections: Record<string, unknown>)
