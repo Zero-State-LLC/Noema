@@ -201,3 +201,93 @@ it("[N10.7] forwarding preserves a held report and refused replay settles nothin
     expect(JSON.stringify(w.seen_idempotency)).not.toContain("N10_PRIVATE_BODY");
   }
 });
+
+it("[N10.8] expanded sibling aliases preserve local ambiguity through both developer carriers", async () => {
+  for (const verb of ["report", "repeat", "pass", "share"]) {
+    for (const carrier of ["line", "outer"] as const) {
+      const w = await n10Scene();
+      w.players[n10Near.player_id].handle = "local-a";
+      w.players[n10Far.player_id].handle = "local-distant";
+      const localB = n10Principal("local-b");
+      expect((await n10Run(w, localB, "ENTER_WORLD")).ok).toBe(true);
+      w.players[n10Sender.player_id].command_aliases = { brief: verb };
+      const privatePart = verb === "pass" || verb === "share"
+        ? "claim.N10_PRIVATE_BODY" : '"N10_PRIVATE_BODY"';
+      const input = `brief local ${privatePart}`;
+      const before = n10Effects(w);
+      const r = carrier === "line"
+        ? await n10Run(w, n10Sender, "LOOK", { line: input }, true)
+        : await n10Run(w, n10Sender, input, {}, true);
+      expect(r.ok).toBe(false);
+      expect(r.error?.code).toBe("AMBIGUOUS_TARGET");
+      expect(r.events ?? []).toEqual([]);
+      expect(n10Effects(w)).toEqual(before);
+      const pending = w.players[n10Sender.player_id].pending_clarify;
+      expect([...(pending?.choices ?? [])].sort()).toEqual(["local-a", "local-b"]);
+      expect(JSON.stringify({ error: r.error, pending })).not.toContain("local-distant");
+      expect(JSON.stringify(r)).not.toContain("N10_PRIVATE_BODY");
+      expect(JSON.stringify(pending)).not.toContain("N10_PRIVATE_BODY");
+      const pick = await n10Run(w, n10Sender, "1", {}, true);
+      expect(pick.error?.code).toBe("INVALID_REQUEST");
+      expect(pick.error?.message).toBe("Write the message again to the chosen Player.");
+      expect(pick.events ?? []).toEqual([]);
+      expect(n10Effects(w)).toEqual(before);
+      expect(w.players[n10Sender.player_id].pending_clarify).toBeUndefined();
+    }
+  }
+});
+
+it("[N10.8b] expanded and raw sibling refusals keep the semantic recipient code", async () => {
+  for (const verb of ["report", "repeat", "pass", "share"]) {
+    for (const carrier of ["line", "outer"] as const) {
+      for (const aliased of [true, false]) {
+        const w = await n10Scene();
+        w.players[n10Sender.player_id].command_aliases = { brief: verb };
+        const privatePart = verb === "pass" || verb === "share"
+          ? "claim.N10_PRIVATE_BODY" : '"N10_PRIVATE_BODY"';
+        const input = `${aliased ? "brief" : verb} player.never-n10 ${privatePart}`;
+        const before = n10Effects(w);
+        const r = carrier === "line"
+          ? await n10Run(w, n10Sender, "LOOK", { line: input }, true)
+          : await n10Run(w, n10Sender, input, {}, true);
+        expect(r.ok).toBe(false);
+        expect(r.error?.code).toBe("FORBIDDEN");
+        expect(r.error?.message).toBe("Recipient is not addressable in this world.");
+        expect(r.events ?? []).toEqual([]);
+        expect(n10Effects(w)).toEqual(before);
+        expect(w.players[n10Sender.player_id].pending_clarify).toBeUndefined();
+        expect(JSON.stringify(r)).not.toContain("N10_PRIVATE_BODY");
+        expect(JSON.stringify(r)).not.toContain("player.never-n10");
+      }
+    }
+  }
+});
+
+it("[N10.9] sibling distant-only handle partials refuse without effect; exact handles deliver", async () => {
+  for (const verb of ["report", "repeat", "pass", "share"]) {
+    const w = await n10Scene();
+    w.players[n10Near.player_id].handle = "neighbor";
+    w.players[n10Far.player_id].handle = "tamsin";
+    const claim = await n10HeldClaim(w);
+    const line = (target: string) => verb === "pass" || verb === "share"
+      ? `${verb} ${target} ${claim}` : `${verb} ${target} "N10_DISTANT_BODY"`;
+    const before = n10Effects(w);
+    const refused = await n10Run(w, n10Sender, "LOOK", { line: line("tam") }, true);
+    expect(refused.ok).toBe(false);
+    expect(refused.error?.code).toBe("FORBIDDEN");
+    expect(refused.error?.message).toBe("Recipient is not addressable in this world.");
+    expect(refused.events ?? []).toEqual([]);
+    expect(n10Effects(w)).toEqual(before);
+    expect(JSON.stringify(refused)).not.toContain("N10_DISTANT_BODY");
+    expect(JSON.stringify(refused)).not.toContain(claim);
+    const sent = await n10Run(w, n10Sender, "LOOK", { line: line("tamsin") }, true);
+    expect(sent.ok).toBe(true);
+    expect(sent.events?.find(e => e.event_type === "MESSAGE")?.payload?.recipient_id).toBe(n10Far.player_id);
+    expect(w.messages.at(-1)?.recipient_id).toBe(n10Far.player_id);
+    const far = await n10Run(w, n10Far, "LOOK");
+    const near = await n10Run(w, n10Near, "LOOK");
+    const deliveredText = verb === "pass" || verb === "share" ? "N10_HELD_REPORT" : "N10_DISTANT_BODY";
+    expect(JSON.stringify(far.observation?.messages)).toContain(deliveredText);
+    expect(JSON.stringify(near.observation?.messages)).not.toContain(deliveredText);
+  }
+});
