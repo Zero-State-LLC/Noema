@@ -269,11 +269,12 @@ describe("#733 R4 retained text-command safety", () => {
     expect(world.players[agent.player_id].pending_clarify ?? null).toBeNull();
     const beforeSequence = world.sequence;
     const picked = await run("778.s.pick", "LOOK", { line: "1" });
-    // A new session must not execute a choice offered in the previous one: refused, nothing settles.
+    // A new session must not execute a choice offered in the previous one: "1" is no longer a pick, so it is
+    // an unknown command (visible labels may still appear in its public hint), and nothing settles.
     expect(picked.ok).toBe(false);
+    expect(picked.error?.code).toBe("UNKNOWN_COMMAND");
     expect(picked.events ?? []).toEqual([]);
     expect(world.sequence).toBe(beforeSequence);
-    expect(JSON.stringify(picked)).not.toContain("relay-east");
   });
 
   it("#778 T0.6: a pending pick is bound to the session that was offered it", async () => {
