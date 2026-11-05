@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8816,
-    "edgeCount": 19459,
+    "nodeCount": 8824,
+    "edgeCount": 19488,
     "languages": [
       "javascript",
       "python",
@@ -104635,6 +104635,119 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "name": "r4-phrase-effect-equivalence.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L1-L166",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "0bfac248c4725f8c7e7d859b4c9727a2e5d07cd8af10a8c8076afdce1fc2538c",
+      "chars": 7955,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#entered",
+      "name": "entered",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L70-L77",
+      "signature": "async function entered(): Promise<WorldRuntime>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a3cb90051e7b1b6dde69f49b22adc49ea4e511bf29fe0cd3c4a8712703470d53",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L20-L29",
+      "signature": "principal = (id: string, session: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a75c02bd49ad8218a4245c5cde89b2a11503789d4a39d835b4fccd7ff864a237",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "name": "settle",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L89-L103",
+      "signature": "async function settle(command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Settled>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "85b75be2280de169d75b12d7698592f52e6762a23f556f66fd364b1732994b94",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#Settled",
+      "name": "Settled",
+      "kind": "type",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L88-L88",
+      "signature": "type Settled = { ok: boolean; code?: string; projection: unknown };",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e5ef427a5cd60f831b821c22344d3365d3cd14f4750712d7235d8b79800bc3fd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "name": "strip",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L80-L86",
+      "signature": "function strip(v: unknown): unknown",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8e215bc404a8739f3747642ab5a493981bee5c7f1149813603260a9a1ae18482",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#text",
+      "name": "text",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L104-L104",
+      "signature": "text = (line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3385d518d4f5bd53e230ffcbf30af6b3e8126799c65687fb070ccfceea4f8155",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#world",
+      "name": "world",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L34-L67",
+      "signature": "function world(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "aca25e0e13e637863bde426162eced5eca747e3df655d267842f8b252b372986",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/rate-limit.test.ts",
       "name": "rate-limit.test.ts",
       "kind": "file",
@@ -197668,6 +197781,12 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/src/watch-fluid-map.js#mountStage.dispose",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/src/watch-fluid-map.js#mountStage.fit",
       "target": "workers/noema/src/watch-fluid-map.js#mountStage.pose",
       "relation": "calls",
@@ -197708,6 +197827,12 @@
       "target": "workers/noema/src/watch-fluid-map.js#mountStage.render",
       "relation": "calls",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/watch-fluid-map.js#mountStage.morphTo",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/src/watch-fluid-map.js#mountStage.morphTo",
@@ -203572,6 +203697,12 @@
       "confidence": "inferred"
     },
     {
+      "source": "workers/noema/src/world-actions.ts#applyWorldCommand.settleEv",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/src/world-actions.ts#buildObservation",
       "target": "workers/noema/src/actions.ts#cloneBudgets",
       "relation": "calls",
@@ -204551,6 +204682,12 @@
     },
     {
       "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve",
       "target": "workers/noema/src/world-actions.ts#runPinnedTempoResolve.failClosed",
       "relation": "contains",
       "confidence": "extracted"
@@ -204572,6 +204709,12 @@
       "target": "workers/noema/src/world-actions.ts#restoreWorldRuntime",
       "relation": "calls",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve.settleEv",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/src/world-actions.ts#settleEmergencyHandoff",
@@ -226102,6 +226245,12 @@
       "confidence": "inferred"
     },
     {
+      "source": "workers/noema/test/player-tempo.test.ts#run",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/test/practice.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -226913,6 +227062,144 @@
     },
     {
       "source": "workers/noema/test/r1-move-orientation.test.ts#world",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#text",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#entered",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#Settled",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#text",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#world",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#entered",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#entered",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#world",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#entered",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#text",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#world",
       "target": "workers/noema/src/actions.ts#enrichEntity",
       "relation": "calls",
       "confidence": "inferred"
