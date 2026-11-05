@@ -140,3 +140,29 @@ it("[N10.5] sibling recipient selection preserves literal addresses and local pa
     expect(short.error?.code).toBe("FORBIDDEN");
   }
 });
+
+it("[N10.6] sibling ambiguity lists local names without retaining body or claim token", async () => {
+  for (const verb of ["report", "repeat", "pass", "share"]) {
+    const w = await n10Scene();
+    w.players[n10Near.player_id].handle = "local-a";
+    w.players[n10Far.player_id].handle = "local-distant";
+    const extra = n10Principal("local-b");
+    expect((await n10Run(w, extra, "ENTER_WORLD")).ok).toBe(true);
+    const privatePart = verb === "pass" || verb === "share"
+      ? "claim.N10_PRIVATE_BODY" : '"N10_PRIVATE_BODY"';
+    const r = await n10Run(w, n10Sender, "LOOK", { line: `${verb} local ${privatePart}` }, true);
+    expect(r.error?.code).toBe("AMBIGUOUS_TARGET");
+    const pending = w.players[n10Sender.player_id].pending_clarify;
+    expect([...(pending?.choices ?? [])].sort()).toEqual(["local-a", "local-b"]);
+    expect(JSON.stringify({ error: r.error, pending })).not.toContain("local-distant");
+    expect(JSON.stringify(r)).not.toContain("N10_PRIVATE_BODY");
+    expect(JSON.stringify(pending)).not.toContain("N10_PRIVATE_BODY");
+    const before = n10Effects(w);
+    const pick = await n10Run(w, n10Sender, "LOOK", { line: "1" }, true);
+    expect(pick.error?.code).toBe("INVALID_REQUEST");
+    expect(pick.error?.message).toBe("Write the message again to the chosen Player.");
+    expect(pick.events ?? []).toEqual([]);
+    expect(n10Effects(w)).toEqual(before);
+    expect(w.players[n10Sender.player_id].pending_clarify).toBeUndefined();
+  }
+});

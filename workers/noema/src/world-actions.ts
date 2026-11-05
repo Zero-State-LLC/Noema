@@ -2233,7 +2233,8 @@ export async function applyWorldCommand(
     }
     if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
       const pl = ensurePlayer(w, principal, w.entry_room_id);
-      const verb = (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
+      // Preserve MESSAGE intent for claim-share without treating BUILD share as a private message.
+      const verb = isMessageIntent(textLine) ? "message" : (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
       pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices, session_id: principal.session_id };
       return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }
