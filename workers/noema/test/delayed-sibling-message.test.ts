@@ -244,3 +244,7 @@ delayedSiblingCase("[D8] pass outer command retains the held claim across delaye
 delayedSiblingCase("[D9] claim share line retains the held claim across delayed delivery", async () => {
   await scenario("share", "line");
 });
+
+delayedSiblingCase("[D10] claim share outer command retains the held claim across delayed delivery", async () => {
+  await scenario("share", "outer");
+});
