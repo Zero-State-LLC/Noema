@@ -205,3 +205,14 @@ delayedSiblingCase("[D1] structured report queues once and replay cannot debit t
   expect(q.receipt.computeDebit).toBe(1);
   await replay(q);
 });
+
+delayedSiblingCase("[D2] structured claim arrives once at due cycle with recipient-only lineage", async () => {
+  const q = await queue("report", "line", true);
+  await arrive(q);
+  await replay(q);
+  const next = await advance(q.w, q.w.cycle + 1);
+  expect(next.events?.filter(e => e.event_type === "MESSAGE_DELIVERED"
+    && e.payload?.message_id === q.pending.message_id) ?? []).toEqual([]);
+  expect(q.w.messages.filter(m => m.message_id === q.pending.message_id)).toHaveLength(1);
+  expect(q.w.rumor?.transmissions.filter(t => t.message_id === q.pending.message_id)).toHaveLength(1);
+});
