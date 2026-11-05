@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8805,
-    "edgeCount": 19438,
+    "nodeCount": 8812,
+    "edgeCount": 19450,
     "languages": [
       "javascript",
       "python",
@@ -103216,12 +103216,12 @@
       "name": "mud-command-parser.test.ts",
       "kind": "file",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L1-L1217",
+      "span": "L1-L1222",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "6bffc500d9f52a6391b13674bb822b05e564dbe28950248979506c42d715e69a",
-      "chars": 56555,
+      "body_hash": "ea4372eef23193ecc878fa9d77ec90299f8846ac6fd2f464e844bcdc6afa086d",
+      "chars": 56834,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -103301,7 +103301,7 @@
       "name": "command",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L406-L407",
+      "span": "L411-L412",
       "signature": "command = (id: string, line: string)",
       "exported": false,
       "origin": "ast",
@@ -103315,7 +103315,7 @@
       "name": "command",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L431-L432",
+      "span": "L436-L437",
       "signature": "command = (id: string, line: string)",
       "exported": false,
       "origin": "ast",
@@ -103329,7 +103329,7 @@
       "name": "command",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L462-L463",
+      "span": "L467-L468",
       "signature": "command = (id: string, line: string)",
       "exported": false,
       "origin": "ast",
@@ -103357,7 +103357,7 @@
       "name": "inspectRelay",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L817-L822",
+      "span": "L822-L827",
       "signature": "function inspectRelay(r: ReturnType<typeof parseHumanCommand>)",
       "exported": false,
       "origin": "ast",
@@ -103399,7 +103399,7 @@
       "name": "run",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L281-L282",
+      "span": "L286-L287",
       "signature": "run = (who: PlayerPrincipal, id: string, commandName: string, args: Record<string, unknown> = {})",
       "exported": false,
       "origin": "ast",
@@ -103413,7 +103413,7 @@
       "name": "toRhea",
       "kind": "function",
       "path": "workers/noema/test/mud-command-parser.test.ts",
-      "span": "L1049-L1057",
+      "span": "L1054-L1062",
       "signature": "function toRhea(r: ReturnType<typeof parseHumanCommand>, text: string)",
       "exported": false,
       "origin": "ast",
@@ -106148,6 +106148,105 @@
       "origin": "ast",
       "body_hash": "8a022ceff3c3d5d1a3a44ed5ab88d7a6472824777cc439467f6dfd50613a1efe",
       "chars": 3188,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts",
+      "name": "t08-parser-boundary.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L1-L128",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4e8a4decac02f6030436fb5ea9abe6c8cfea0474e4562a4849afed04322eca38",
+      "chars": 5304,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#Mode",
+      "name": "Mode",
+      "kind": "type",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L62-L62",
+      "signature": "type Mode = { admission: \"developer\" } | undefined;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "10364ae8a55d20f15ec80851ecc8c0e3f2a1a71a2190ae4a92f60dc66cdcd669",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#PlayerPrincipal",
+      "name": "PlayerPrincipal",
+      "kind": "type",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L29-L29",
+      "signature": "type PlayerPrincipal = import(\"../src/types\").PlayerPrincipal;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "50b202253231964b48597bf4cb194f79bc2c04369b67919ab95dc8667c22dd12",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#reachedParser",
+      "name": "reachedParser",
+      "kind": "function",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L76-L76",
+      "signature": "reachedParser = (text: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7246131c85b16809283d06c12f058625862b1d9058d377d7cc37e9fb0596d954",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#run",
+      "name": "run",
+      "kind": "function",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L63-L65",
+      "signature": "async function run(w: WorldRuntime, id: string, command: string, args: Record<string, unknown> = {}, mode?: Mode)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "29d0c31076499c86b7dc34ebc52b987712693bfccf0850a16f4a6258cc8c4db7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#world",
+      "name": "world",
+      "kind": "function",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L42-L60",
+      "signature": "function world(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "728b8375a91a9314e8d20ab9c26109b08e32ccbbb047a83caf492d4e72ffc0d3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/t08-parser-boundary.test.ts#WorldRuntime",
+      "name": "WorldRuntime",
+      "kind": "type",
+      "path": "workers/noema/test/t08-parser-boundary.test.ts",
+      "span": "L28-L28",
+      "signature": "type WorldRuntime = import(\"../src/world-actions\").WorldRuntime;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0aaea1fe3597f7096130990dddbe8c3958ee8eb2eea13e5c41d77ef0b4b12399",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -229701,6 +229800,78 @@
       "target": "vitest",
       "relation": "imports",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#reachedParser",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#world",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#Mode",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#PlayerPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#reachedParser",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#run",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#world",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "workers/noema/test/t08-parser-boundary.test.ts#WorldRuntime",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/t08-parser-boundary.test.ts#run",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/test-world.test.ts",
