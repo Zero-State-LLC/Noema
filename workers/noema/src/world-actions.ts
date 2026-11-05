@@ -2158,7 +2158,7 @@ export async function applyWorldCommand(
   const pickLabel = opts?.admission === "developer" ? matchClarifyPick(rawLine, plClarify?.pending_clarify) : null;
   let parsed: ReturnType<typeof parseHumanCommand>;
   if (pickLabel && plClarify?.pending_clarify) {
-    if (plClarify.pending_clarify.fingerprint !== fp) {
+    if (plClarify.pending_clarify.fingerprint !== fp || plClarify.pending_clarify.session_id !== principal.session_id) {
       delete plClarify.pending_clarify;
       return fail(request_id, "STALE_CLARIFICATION", "That choice is no longer valid here.");
     }
@@ -2219,7 +2219,7 @@ export async function applyWorldCommand(
     if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
       const pl = ensurePlayer(w, principal, w.entry_room_id);
       const verb = (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
-      pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices };
+      pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices, session_id: principal.session_id };
       return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }
     if (parsed.code === "HELP") {
@@ -2394,6 +2394,8 @@ export async function applyWorldCommand(
       }
     }
     const pl = ensurePlayer(w, principal, entry);
+    // A new world session never inherits a clarification offered in an earlier one (session-local, T0.6).
+    delete pl.pending_clarify;
     pl.lifecycle_status = "ACTIVE";
     pl.controlling_session_id = principal.session_id;
     pl.room_id = entry;
@@ -2424,6 +2426,7 @@ export async function applyWorldCommand(
     }
     const fromRoom = leaving.room_id;
     leaving.entered = false;
+    delete leaving.pending_clarify;
     const ev = pushEvent("AGENT_LEFT_WORLD", {
       player_id: principal.player_id,
       room_id: fromRoom,
