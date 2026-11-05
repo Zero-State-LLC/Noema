@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, test as n10Test } from "vitest";
 import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { PlayerPrincipal } from "../src/types";
@@ -49,39 +49,7 @@ async function n10Scene(): Promise<WorldRuntime> {
   w.players[n10Sender.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
   return w;
 }
-function n10Effects(w: WorldRuntime) {
-  return structuredClone({
-    sequence: w.sequence, rooms: w.rooms, messages: w.messages,
-    budgets: Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.budgets])),
-    pendingMessages: w.pending_messages ?? [], rumor: w.rumor,
-    unsettled: w.unsettled,
-  });
-}
-async function n10Refused(w: WorldRuntime, line: string) {
-  const before = n10Effects(w);
-  const r = await n10Run(w, n10Sender, "LOOK", { line }, true);
-  expect(r.ok).toBe(false);
-  expect(r.error?.code).toBe("FORBIDDEN");
-  expect(r.error?.message).toBe("Recipient is not addressable in this world.");
-  expect(r.events ?? []).toEqual([]);
-  expect(n10Effects(w)).toEqual(before);
-  expect(JSON.stringify(r)).not.toContain("N10_PRIVATE_BODY");
-  expect(JSON.stringify(r)).not.toContain("player.never-n10");
-  return r;
-}
-async function n10HeldClaim(w: WorldRuntime): Promise<string> {
-  const r = await n10Run(w, n10Sender, "MESSAGE", {
-    recipient_id: n10Sender.player_id, text: "N10_HELD_REPORT", as_claim: true,
-  });
-  expect(r.ok).toBe(true);
-  const id = (r.events ?? []).find(e => e.event_type === "MESSAGE")?.payload?.claim_id;
-  expect(typeof id).toBe("string");
-  expect(String(id)).toMatch(/^claim\./);
-  w.players[n10Sender.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
-  return String(id);
-}
-
-it("[N10.9] MESSAGE and TRADE suggestions name only co-located Players", async () => {
+n10Test("[N10.9] MESSAGE and TRADE suggestions name only co-located Players", async () => {
   const w = await n10Scene();
   const r = await n10Run(w, n10Sender, "LOOK");
   expect(r.ok).toBe(true);
