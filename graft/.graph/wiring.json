@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8850,
-    "edgeCount": 19555,
+    "nodeCount": 8854,
+    "edgeCount": 19569,
     "languages": [
       "javascript",
       "python",
@@ -70697,8 +70697,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "fc6080e695cfd1067c87be14ac5ad10fcf5b89273548931cab0d0dfc05505020",
-      "chars": 172538,
+      "body_hash": "db0dec9af5f1432012da10e7ea441f3148358927a9aae03b3f4d2d7ffee2525f",
+      "chars": 172585,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70894,7 +70894,7 @@
       "signature": "function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: \"EXIT\" | \"ROOM\"; mode: \"DENY\" | \"ALLOW_ONLY\"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "a25b452bbd5914c8dec7b256c41f65ec3a5b53993ba0bf41635845d5f653614c",
+      "body_hash": "729700b3b7afecbe9a19902416dd4d86896c417595876d8d0712cb1f3205aa8b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -93671,12 +93671,12 @@
       "name": "actions-tier1.test.ts",
       "kind": "file",
       "path": "workers/noema/test/actions-tier1.test.ts",
-      "span": "L1-L463",
+      "span": "L1-L472",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "6cbcef9188f3acb990372d138dc9728d76717d243d10d75bd09296e1b9cc1001",
-      "chars": 17051,
+      "body_hash": "e5f618900075cb2026e8f167fe98906f317ac18df04fd10db2aaabb3c72c0e95",
+      "chars": 17499,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -103586,6 +103586,63 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "438b1d3c7ae772dd4de929d0080331c8d8bd950f1e2f319f4961ccfdbc9c68cb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/observation-identity-next10.test.ts",
+      "name": "observation-identity-next10.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/observation-identity-next10.test.ts",
+      "span": "L1-L69",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "dbabf9b997d5783d67926f08d447911a98db0613053b15993af70f41690bcbd9",
+      "chars": 3176,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/observation-identity-next10.test.ts#n10Principal",
+      "name": "n10Principal",
+      "kind": "function",
+      "path": "workers/noema/test/observation-identity-next10.test.ts",
+      "span": "L6-L14",
+      "signature": "function n10Principal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a99962528f7896aa1e59209d79876b56f23f4abc5628b06ea6f57f647caaa51e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/observation-identity-next10.test.ts#n10Run",
+      "name": "n10Run",
+      "kind": "function",
+      "path": "workers/noema/test/observation-identity-next10.test.ts",
+      "span": "L19-L27",
+      "signature": "async function n10Run( w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false, )",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5c71f3e15bf9517c4f57bdcebe904999115291f34203a6fae0d89ad7ff8fab4c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "name": "n10Scene",
+      "kind": "function",
+      "path": "workers/noema/test/observation-identity-next10.test.ts",
+      "span": "L28-L51",
+      "signature": "async function n10Scene(): Promise<WorldRuntime>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a8b1bf8f0e3cb8d53ae4bbdbc588411351077095449e62a4ec2eb7c3b5b80586",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -224717,6 +224774,90 @@
       "source": "workers/noema/test/mud-command-parser.test.ts#toRhea",
       "target": "workers/noema/src/actions.ts#parseHumanCommand",
       "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Run",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts#n10Run",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/observation-identity-next10.test.ts#n10Scene",
+      "target": "workers/noema/test/observation-identity-next10.test.ts#n10Run",
+      "relation": "calls",
       "confidence": "extracted"
     },
     {
