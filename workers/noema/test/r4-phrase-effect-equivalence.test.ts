@@ -13,7 +13,7 @@
  * Local reducer evidence only.
  */
 import { describe, expect, it } from "vitest";
-import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import { applyWorldCommand, buildObservation, type WorldRuntime } from "../src/world-actions";
 import { enrichEntity } from "../src/actions";
 import type { PlayerPrincipal } from "../src/types";
 
@@ -347,14 +347,17 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     }
   });
 
-  it("short-ID collision never sends to the distant ID; a local normalized handle is local", async () => {
-    // Review repro: east player.remote-agent renamed public-friend, hub player.beta named remote agent.
-    // "remote-agent" is neither a full ID nor a literal handle; normalization is local only.
+  it("short-ID collision does not substitute punctuation; explicit distant ID and handle still work", async () => {
+    // East player.remote-agent is renamed public-friend; local beta is named remote agent.
+    // A short ID is not an address, and a space cannot stand in for a hyphen.
     const cast = { "remote-agent": "east", beta: "hub" } as const;
     const handles = { "remote-agent": "public-friend", beta: "remote agent" };
-    const o = await both(cast, 60, "tell remote-agent hi", "player.beta", handles);
-    expect(o.structured.ok).toBe(true);
-    same(o);
+    const w = await scene(cast, 60, handles);
+    const refused = await send(w, "LOOK", { line: "tell remote-agent hi" }, DEV);
+    const absent = await send(await scene(cast, 60, handles), "MESSAGE", { recipient_id: "player.ghost", text: "hi" });
+    expect(refused.ok).toBe(false);
+    expect(refused.code).toBe(absent.code);
+    expect(refused.projection).toEqual(absent.projection);
     for (const line of ["tell player.remote-agent hi", "tell public-friend hi"]) {
       const exact = await both(cast, 60, line, "player.remote-agent", handles);
       expect(exact.structured.ok).toBe(true);
@@ -363,6 +366,33 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     const explicit = await both(cast, 60, "tell remote-agent hi", "player.remote-agent", { ...handles, "remote-agent": "remote-agent" });
     expect(explicit.structured.ok).toBe(true);
     same(explicit);
+  });
+
+  it("punctuation substitutions never address a co-located alternative without a literal target", async () => {
+    // Hyphen, underscore, and space are distinct handle characters, not interchangeable separators.
+    // The text grammar accepts a single-token recipient; space handles are tested as alternatives.
+    for (const [typed, alternative] of [
+      ["remote-agent", "remote_agent"], ["remote_agent", "remote-agent"],
+      ["remote-agent", "remote agent"], ["remote_agent", "remote agent"],
+    ] as const) {
+      const cast = { alpha: "hub", beta: "hub" } as const;
+      const handles = { alpha: alternative, beta: "witness" };
+      const w = await scene(cast, 60, handles);
+      const line = `tell ${typed} hi`;
+      const actual = await send(w, "LOOK", { line }, DEV);
+      const absent = await send(await scene(cast, 60, handles), "MESSAGE", { recipient_id: "player.ghost", text: "hi" });
+      expect(actual.ok, line).toBe(false);
+      expect(actual.code, line).toBe(absent.code);
+      expect(actual.projection, line).toEqual(absent.projection);
+      const projection = actual.projection as { events: unknown[]; sequence: number; actor: { budgets: unknown }; messages: unknown[] };
+      expect(projection.events, line).toEqual([]);
+      expect(projection.messages, line).toEqual([]);
+      const before = await scene(cast, 60, handles);
+      expect(projection.sequence, line).toBe(before.sequence);
+      expect(projection.actor.budgets, line).toEqual(before.players[self.player_id].budgets);
+      expect(buildObservation(w, principal("alpha", "sess.alpha")).messages, line).toEqual([]);
+      expect(buildObservation(w, principal("beta", "sess.beta")).messages, line).toEqual([]);
+    }
   });
 
   it("literal ids and handles win over normalization collisions, with private delivery only to the intended inbox", async () => {

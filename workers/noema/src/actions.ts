@@ -857,14 +857,11 @@ export function resolveMessageRecipient(
   raw: string,
   set: MessageRecipientSet,
 ): { ok: true; player_id: string } | { ok: false; code: "AMBIGUOUS_TARGET"; message: string; choices?: string[] } | { ok: false; code: "UNRESOLVED" } {
-  const t = normalizeKey(raw);
-  if (!t) return { ok: false, code: "UNRESOLVED" };
-  // Ids are compared literally (lowercased, never normalised): normalising "player.remote-agent" to
-  // "player.remote agent" would miss the id and let a partial match deliver to someone else.
   const literal = raw.trim().toLowerCase();
+  if (!literal) return { ok: false, code: "UNRESOLVED" };
   const near = set.present.filter((p) => p.room_id === set.selfRoomId);
-  // Precedence: literal full ID, then literal handle (both anywhere), then local normalized handle,
-  // then local partial handle. A short ID is never a MESSAGE address, even when a Player is nearby.
+  // Precedence: literal full ID, then literal handle (both anywhere), then local literal substring.
+  // A short ID is never a MESSAGE address, even when a Player is nearby.
   const choose = (matches: typeof set.present) => {
     if (matches.length === 1) return { ok: true as const, player_id: matches[0].player_id };
     const local = matches.filter((p) => p.room_id === set.selfRoomId);
@@ -879,10 +876,9 @@ export function resolveMessageRecipient(
   if (handles.length) return choose(handles);
   // An id-shaped name is exact or nothing: never normalize or partially match it.
   if (literal.startsWith("player.")) return { ok: false, code: "UNRESOLVED" };
-  const normalized = near.filter((p) => p.handle && normalizeKey(p.handle) === t);
-  if (normalized.length) return choose(normalized);
   // Partial names are confined to co-located public handles, not ID suffixes or distant handles.
-  const partial = near.filter((p) => p.handle && normalizeKey(p.handle).includes(t));
+  // Preserve punctuation: hyphen, underscore, and space are different addresses.
+  const partial = near.filter((p) => p.handle && p.handle.toLowerCase().includes(literal));
   if (partial.length) return choose(partial);
   return { ok: false, code: "UNRESOLVED" };
 }
