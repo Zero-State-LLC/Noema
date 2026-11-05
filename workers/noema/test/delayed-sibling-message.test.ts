@@ -224,3 +224,7 @@ delayedSiblingCase("[D3] report line matches delayed structured claim delivery",
 delayedSiblingCase("[D4] report outer command matches delayed structured claim delivery", async () => {
   await scenario("report", "outer");
 });
+
+delayedSiblingCase("[D5] repeat line matches delayed structured claim delivery", async () => {
+  await scenario("repeat", "line");
+});
