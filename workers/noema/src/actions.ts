@@ -863,31 +863,27 @@ export function resolveMessageRecipient(
   // "player.remote agent" would miss the id and let a partial match deliver to someone else.
   const literal = raw.trim().toLowerCase();
   const near = set.present.filter((p) => p.room_id === set.selfRoomId);
-  // Never let a normalized handle displace a literal full id or handle. In particular, hyphens,
-  // underscores and spaces normalize alike but may name different Players in different rooms.
+  // Precedence: literal full ID, then literal handle (both anywhere), then local normalized handle,
+  // then local partial handle. A short ID is never a MESSAGE address, even when a Player is nearby.
+  const choose = (matches: typeof set.present) => {
+    if (matches.length === 1) return { ok: true as const, player_id: matches[0].player_id };
+    const local = matches.filter((p) => p.room_id === set.selfRoomId);
+    if (local.length === 1) return { ok: true as const, player_id: local[0].player_id };
+    if (local.length > 1) return { ok: false as const, code: "AMBIGUOUS_TARGET" as const,
+      ...boundedAmbiguity("More than one Player matches.", local.map((p) => p.handle || p.player_id)) };
+    return { ok: false as const, code: "UNRESOLVED" as const };
+  };
   const fullIds = set.present.filter((p) => p.player_id.toLowerCase() === literal);
+  if (fullIds.length) return choose(fullIds);
   const handles = set.present.filter((p) => (p.handle || "").toLowerCase() === literal);
-  const exact = fullIds.length ? fullIds : handles.length ? handles :
-    set.present.filter((p) => p.player_id.toLowerCase().endsWith("." + literal) ||
-      (p.room_id === set.selfRoomId && normalizeKey(p.handle || "") === t));
-  if (exact.length === 1) return { ok: true, player_id: exact[0].player_id };
-  if (exact.length > 1) {
-    const nearExact = exact.filter((p) => near.includes(p));
-    if (nearExact.length === 1) return { ok: true, player_id: nearExact[0].player_id };
-    if (nearExact.length > 1) {
-      return { ok: false, code: "AMBIGUOUS_TARGET", ...boundedAmbiguity("More than one Player matches.", nearExact.map((p) => p.handle || p.player_id)) };
-    }
-    return { ok: false, code: "UNRESOLVED" };
-  }
-  // An id-shaped name is exact or nothing. A partial name must be part of a co-located handle; a typed name
-  // that merely contains a handle ("agentsmith" vs "agent") is someone else, and a private message must not
-  // reach them.
+  if (handles.length) return choose(handles);
+  // An id-shaped name is exact or nothing: never normalize or partially match it.
   if (literal.startsWith("player.")) return { ok: false, code: "UNRESOLVED" };
-  const partial = near.filter((p) => normalizeKey(p.handle || p.player_id.replace(/^player\./, "")).includes(t));
-  if (partial.length === 1) return { ok: true, player_id: partial[0].player_id };
-  if (partial.length > 1) {
-    return { ok: false, code: "AMBIGUOUS_TARGET", ...boundedAmbiguity("More than one Player matches.", partial.map((p) => p.handle || p.player_id)) };
-  }
+  const normalized = near.filter((p) => p.handle && normalizeKey(p.handle) === t);
+  if (normalized.length) return choose(normalized);
+  // Partial names are confined to co-located public handles, not ID suffixes or distant handles.
+  const partial = near.filter((p) => p.handle && normalizeKey(p.handle).includes(t));
+  if (partial.length) return choose(partial);
   return { ok: false, code: "UNRESOLVED" };
 }
 

@@ -322,11 +322,47 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
   it("an exact hyphenated id elsewhere reaches that Player, never a co-located Player whose handle it contains", async () => {
     // Codex review on #795: normalisation turned "player.remote-agent" into "player.remote agent", missed the
     // exact id, and the partial rule delivered the private message to the co-located "agent".
-    for (const line of ["msg player.remote-agent hi", "tell remote-agent hi"]) {
+    for (const line of ["msg player.remote-agent hi"]) {
       const o = await both({ "remote-agent": "east", agent: "hub" }, 60, line, "player.remote-agent");
       expect(o.structured.ok).toBe(true);
       same(o);
     }
+  });
+
+  it("a distant short ID with a renamed public handle is not a recipient name", async () => {
+    const cast = { alpha: "east" } as const;
+    const handles = { alpha: "public-friend" };
+    const absent = await send(await scene({}, 60), "MESSAGE", { recipient_id: "player.ghost", text: "hi" });
+    const short = await send(await scene(cast, 60, handles), "LOOK", { line: "tell alpha hi" }, DEV);
+    expect({ ok: short.ok, code: short.code, message: short.message }).toEqual({ ok: absent.ok, code: absent.code, message: absent.message });
+    expect((short.projection as { events: unknown[]; messages: unknown[] }).events).toEqual([]);
+    expect((short.projection as { messages: unknown[] }).messages).toEqual([]);
+    const localShort = await send(await scene({ alpha: "hub" }, 60, handles), "LOOK", { line: "tell alpha hi" }, DEV);
+    expect({ ok: localShort.ok, code: localShort.code, message: localShort.message }).toEqual({ ok: absent.ok, code: absent.code, message: absent.message });
+    expect((localShort.projection as { messages: unknown[] }).messages).toEqual([]);
+    for (const line of ["tell player.alpha hi", "tell public-friend hi"]) {
+      const o = await both(cast, 60, line, "player.alpha", handles);
+      expect(o.structured.ok).toBe(true);
+      same(o);
+    }
+  });
+
+  it("short-ID collision never sends to the distant ID; a local normalized handle is local", async () => {
+    // Review repro: east player.remote-agent renamed public-friend, hub player.beta named remote agent.
+    // "remote-agent" is neither a full ID nor a literal handle; normalization is local only.
+    const cast = { "remote-agent": "east", beta: "hub" } as const;
+    const handles = { "remote-agent": "public-friend", beta: "remote agent" };
+    const o = await both(cast, 60, "tell remote-agent hi", "player.beta", handles);
+    expect(o.structured.ok).toBe(true);
+    same(o);
+    for (const line of ["tell player.remote-agent hi", "tell public-friend hi"]) {
+      const exact = await both(cast, 60, line, "player.remote-agent", handles);
+      expect(exact.structured.ok).toBe(true);
+      same(exact);
+    }
+    const explicit = await both(cast, 60, "tell remote-agent hi", "player.remote-agent", { ...handles, "remote-agent": "remote-agent" });
+    expect(explicit.structured.ok).toBe(true);
+    same(explicit);
   });
 
   it("literal ids and handles win over normalization collisions, with private delivery only to the intended inbox", async () => {
