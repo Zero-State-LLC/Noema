@@ -763,6 +763,16 @@ export type ResolveResult =
   | { ok: true; entity: EntityRuntime }
   | { ok: false; code: "NOT_FOUND" | "AMBIGUOUS_TARGET"; message: string; choices?: string[] };
 
+/** Clarification is bounded (Specs MUD-NATIVE…:102): one-digit numbered choices only (#778). */
+export const CLARIFY_CHOICE_CAP = 9;
+const MORE_SPECIFIC = "Be more specific to reach the others.";
+
+/** Cap a clarification list; when matches exceed the cap, the message asks for more detail. */
+function boundedAmbiguity(message: string, all: string[]): { message: string; choices: string[] } {
+  if (all.length <= CLARIFY_CHOICE_CAP) return { message, choices: all };
+  return { message: `${message} ${MORE_SPECIFIC}`, choices: all.slice(0, CLARIFY_CHOICE_CAP) };
+}
+
 export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): ResolveResult {
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Choose something visible." };
@@ -775,8 +785,7 @@ export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): Re
     return {
       ok: false,
       code: "AMBIGUOUS_TARGET",
-      message: "More than one match.",
-      choices: exactLabel.map((e) => titleCaseLabel(e.label)),
+      ...boundedAmbiguity("More than one match.", exactLabel.map((e) => titleCaseLabel(e.label))),
     };
   }
 
@@ -791,8 +800,7 @@ export function resolveVisibleEntity(raw: string, entities: EntityRuntime[]): Re
     return {
       ok: false,
       code: "AMBIGUOUS_TARGET",
-      message: "More than one match.",
-      choices: partial.map((e) => titleCaseLabel(e.label)),
+      ...boundedAmbiguity("More than one match.", partial.map((e) => titleCaseLabel(e.label))),
     };
   }
   return { ok: false, code: "NOT_FOUND", message: `You do not see “${raw}” here.` };
@@ -814,8 +822,7 @@ export function resolvePlayerTarget(
     return {
       ok: false,
       code: "AMBIGUOUS_TARGET",
-      message: "More than one Player matches.",
-      choices: byHandle.map((p) => p.handle || p.player_id),
+      ...boundedAmbiguity("More than one Player matches.", byHandle.map((p) => p.handle || p.player_id)),
     };
   }
   // partial handle
@@ -828,8 +835,7 @@ export function resolvePlayerTarget(
     return {
       ok: false,
       code: "AMBIGUOUS_TARGET",
-      message: "More than one Player matches.",
-      choices: partial.map((p) => p.handle || p.player_id),
+      ...boundedAmbiguity("More than one Player matches.", partial.map((p) => p.handle || p.player_id)),
     };
   }
   return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
@@ -2194,7 +2200,8 @@ function unknownCommandHint(
 
 function formatAmbiguous(r: ResolveResult & { ok: false }): string {
   if (r.code === "AMBIGUOUS_TARGET" && r.choices?.length) {
-    return `Which one?\n${r.choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
+    const list = `Which one?\n${r.choices.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
+    return r.message.endsWith(MORE_SPECIFIC) ? `${list}\n${MORE_SPECIFIC}` : list;
   }
   return r.message;
 }
