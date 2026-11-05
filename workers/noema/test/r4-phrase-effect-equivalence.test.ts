@@ -319,6 +319,41 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     expect(far.response).not.toMatch(/dupe-/);
   });
 
+  it("an exact hyphenated id elsewhere reaches that Player, never a co-located Player whose handle it contains", async () => {
+    // Codex review on #795: normalisation turned "player.remote-agent" into "player.remote agent", missed the
+    // exact id, and the partial rule delivered the private message to the co-located "agent".
+    for (const line of ["msg player.remote-agent hi", "tell remote-agent hi"]) {
+      const o = await both({ "remote-agent": "east", agent: "hub" }, 60, line, "player.remote-agent");
+      expect(o.structured.ok).toBe(true);
+      same(o);
+    }
+  });
+
+  it("a typed name that merely contains a co-located handle is not that Player", async () => {
+    // "agentsmith" is absent; the co-located "agent" must not receive a message meant for someone else.
+    for (const [line, id] of [["tell agentsmith hi", "player.agentsmith"], ["msg player.agentsmith hi", "player.agentsmith"], ["tell agent-x hi", "player.agent-x"]] as const) {
+      const o = await both({ agent: "hub" }, 60, line, id);
+      expect({ line, ok: o.text.ok }).toEqual({ line, ok: false });
+      same(o);
+    }
+  });
+
+  it("a hyphenated id typed in another case still reaches exactly that Player (literal id match)", async () => {
+    // Only the literal, case-insensitive id comparison resolves this: admission's own lookup is exact-case.
+    const w = await scene({ "remote-agent": "east", agent: "hub" }, 60);
+    const r = await send(w, "LOOK", { line: "msg Player.Remote-Agent hi" }, DEV);
+    expect(r.ok).toBe(true);
+    expect(w.messages.map((m) => m.recipient_id)).toEqual(["player.remote-agent"]);
+  });
+
+  it("an id-shaped name is exact or nothing: it never partial-matches a co-located handle", async () => {
+    // "player.help" is absent; a co-located Player whose handle happens to contain it must not receive it.
+    const handles = { helper: "player.helper-bot" };
+    const o = await both({ helper: "hub" }, 60, "msg player.help hi", "player.help", handles);
+    expect(o.text.ok).toBe(false);
+    same(o);
+  });
+
   it("messaging yourself behaves exactly like structured MESSAGE to yourself", async () => {
     const o = await both({}, 60, "msg player.self hi", "player.self");
     same(o);

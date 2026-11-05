@@ -859,10 +859,13 @@ export function resolveMessageRecipient(
 ): { ok: true; player_id: string } | { ok: false; code: "AMBIGUOUS_TARGET"; message: string; choices?: string[] } | { ok: false; code: "UNRESOLVED" } {
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "UNRESOLVED" };
+  // Ids are compared literally (lowercased, never normalised): normalising "player.remote-agent" to
+  // "player.remote agent" would miss the id and let a partial match deliver to someone else.
+  const literal = raw.trim().toLowerCase();
   const near = set.present.filter((p) => p.room_id === set.selfRoomId);
   const exact = set.present.filter((p) => {
     const id = p.player_id.toLowerCase();
-    return id === t || id.endsWith("." + t) || normalizeKey(p.handle || "") === t;
+    return id === literal || id.endsWith("." + literal) || normalizeKey(p.handle || "") === t;
   });
   if (exact.length === 1) return { ok: true, player_id: exact[0].player_id };
   if (exact.length > 1) {
@@ -873,10 +876,11 @@ export function resolveMessageRecipient(
     }
     return { ok: false, code: "UNRESOLVED" };
   }
-  const partial = near.filter((p) => {
-    const h = normalizeKey(p.handle || p.player_id.replace(/^player\./, ""));
-    return h.includes(t) || t.includes(h);
-  });
+  // An id-shaped name is exact or nothing. A partial name must be part of a co-located handle; a typed name
+  // that merely contains a handle ("agentsmith" vs "agent") is someone else, and a private message must not
+  // reach them.
+  if (literal.startsWith("player.")) return { ok: false, code: "UNRESOLVED" };
+  const partial = near.filter((p) => normalizeKey(p.handle || p.player_id.replace(/^player\./, "")).includes(t));
   if (partial.length === 1) return { ok: true, player_id: partial[0].player_id };
   if (partial.length > 1) {
     return { ok: false, code: "AMBIGUOUS_TARGET", ...boundedAmbiguity("More than one Player matches.", partial.map((p) => p.handle || p.player_id)) };
