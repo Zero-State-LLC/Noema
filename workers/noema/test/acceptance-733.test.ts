@@ -401,7 +401,7 @@ describe("acceptance-733 g2 / r0 / g3-urls", () => {
       "trace_count_within_3", "no_hidden_refs", "watch_live_shows_trace"]) {
       expect(g2.checks[k], k).toBe(true);
     }
-    expect(g2.ac17_stale_trace).toBe("not_covered");
+    expect(g2).not.toHaveProperty("ac17_stale_trace"); // AC17 is its own phase and gate now, never a G2 claim
     expect(JSON.stringify(g2)).not.toContain("inst-");
   });
 
@@ -649,9 +649,15 @@ describe("acceptance-733 --g3 file validation (advisory 6)", () => {
 });
 
 describe("acceptance-733 aggregate gates (advisory 7)", () => {
-  async function receiptAfter(phases: string[], g3?: unknown) {
+  async function receiptAfter(phases: string[], g3?: unknown, sections?: Record<string, unknown>) {
     const { e, c } = await deployed();
     for (const p of phases) await main([p, "--run", RUN], c.ctx);
+    if (sections) {
+      const f = path.join(e.runsDir, `${RUN}.json`);
+      const st = JSON.parse(fs.readFileSync(f, "utf8"));
+      st.sections = { ...(st.sections || {}), ...sections };
+      fs.writeFileSync(f, JSON.stringify(st));
+    }
     const args = ["receipt", "--run", RUN];
     if (g3 !== undefined) {
       const f = path.join(e.home, "g3.json");
@@ -663,6 +669,18 @@ describe("acceptance-733 aggregate gates (advisory 7)", () => {
     return JSON.parse(c.out.join("\n"));
   }
 
+  /** Receipt over a run whose state file carries `sections` as recorded by an earlier phase. */
+  async function receiptWith(sections: Record<string, unknown>) {
+    const { e, c } = await deployed();
+    const f = path.join(e.runsDir, `${RUN}.json`);
+    const st = JSON.parse(fs.readFileSync(f, "utf8"));
+    st.sections = { ...(st.sections || {}), ...sections };
+    fs.writeFileSync(f, JSON.stringify(st));
+    c.out.length = 0;
+    await main(["receipt", "--run", RUN], c.ctx);
+    return JSON.parse(c.out.join("\n"));
+  }
+
   const ALL_G3_CHECKS_TRUE = {
     passed: true, keyboard_ok: true, skip_link_ok: true, pause_refresh_ok: true, reduced_motion_ok: true,
     aria_live_bounded: true, contrast_ok: true, home_degradation_ok: true, sentinel_absent: true,
@@ -670,13 +688,31 @@ describe("acceptance-733 aggregate gates (advisory 7)", () => {
 
   it("pending g3 (and not-yet-run phases) never count as passed", async () => {
     const r = await receiptAfter(["g1", "g2", "r0"]);
-    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "pending", r0: "passed", c9: "not_covered" });
+    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "pending", r0: "passed", c9: "not_covered", ac17: "pending" });
     expect(r.all_required_passed).toBe(false);
   });
 
-  it("all_required_passed is true only when g1, g2, g3 and r0 passed; c9 is optional", async () => {
-    const r = await receiptAfter(["g1", "g2", "r0"], ALL_G3_CHECKS_TRUE);
-    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "passed", r0: "passed", c9: "not_covered" });
+  const AC17_PASSED = { ac17_stale_trace: { passed: true, checks: { exactly_one_plate: true } } };
+
+  it("ac17 is a required gate (#775): recorded passed/failed from its section; never run is pending", async () => {
+    for (const [passed, gate] of [[true, "passed"], [false, "failed"]] as const) {
+      const r = await receiptWith({ ac17_stale_trace: { passed, checks: { exactly_one_plate: passed } } });
+      expect(r.gates.ac17).toBe(gate);
+      expect(r.ac17_stale_trace.passed).toBe(passed);
+      expect(r.all_required_passed).toBe(false); // g1..r0 never ran here; ac17 alone cannot satisfy it
+    }
+    expect((await receiptAfter([])).gates.ac17).toBe("pending");
+  });
+
+  it("g1, g2, g3 and r0 all passed but ac17 missing or failed is never all_required_passed (#775)", async () => {
+    expect((await receiptAfter(["g1", "g2", "r0"], ALL_G3_CHECKS_TRUE)).all_required_passed).toBe(false);
+    const failed = await receiptAfter(["g1", "g2", "r0"], ALL_G3_CHECKS_TRUE, { ac17_stale_trace: { passed: false, checks: { exactly_one_plate: false } } });
+    expect(failed.all_required_passed).toBe(false);
+  });
+
+  it("all_required_passed is true only when g1, g2, g3, r0 and ac17 passed; c9 is optional", async () => {
+    const r = await receiptAfter(["g1", "g2", "r0"], ALL_G3_CHECKS_TRUE, AC17_PASSED);
+    expect(r.gates).toEqual({ g1: "passed", g2: "passed", g3: "passed", r0: "passed", c9: "not_covered", ac17: "passed" });
     expect(r.all_required_passed).toBe(true);
   });
 
@@ -699,7 +735,7 @@ describe("acceptance-733 aggregate gates (advisory 7)", () => {
     const falseCheck = await receiptAfter(["g1", "g2", "r0"], { passed: true, keyboard_ok: false });
     expect(falseCheck.gates.g3).toBe("failed");
     const none = await receiptAfter([]);
-    expect(none.gates).toEqual({ g1: "pending", g2: "pending", g3: "pending", r0: "pending", c9: "not_covered" });
+    expect(none.gates).toEqual({ g1: "pending", g2: "pending", g3: "pending", r0: "pending", c9: "not_covered", ac17: "pending" });
     expect(none.all_required_passed).toBe(false);
   });
 });

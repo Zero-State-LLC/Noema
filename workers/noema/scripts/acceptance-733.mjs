@@ -679,7 +679,69 @@ async function cmdG2(ctx, flags) {
       : {};
   if (ctxv.harvest_rejection) gap.harvest_rejection = ctxv.harvest_rejection;
   if (ctxv.repair_rejection) gap.repair_rejection = ctxv.repair_rejection;
-  return saveSection(ctx, state, "g2_s3_readback", { ...result, ...gap, ac17_stale_trace: "not_covered" });
+  return saveSection(ctx, state, "g2_s3_readback", { ...result, ...gap });
+}
+
+/**
+ * AC17 (Specs MUD-NATIVE-INTERACTION-AND-WORLD-PRESENCE.md "17. Invalid/stale traces update or disappear
+ * deterministically"). Traces are projected from current entity state on every observation
+ * (src/play-traces.ts projectRoomTraces), so a second REPAIR by a different Player must REPLACE the plate's
+ * name, never add a second plate or leave the first name behind. Runs after g2 (it needs g2's plate) on its
+ * own handles; the seed's second materials unit funds the second repair with real verbs only.
+ */
+const PLATE = /^A maintenance plate names (.+) as the last repairer\.$/;
+const plateNames = (traces) => (traces || []).map((t) => PLATE.exec(String(t?.text || ""))).filter(Boolean).map((m) => m[1]);
+async function cmdAc17(ctx, flags) {
+  const state = loadRun(ctx, flags.run);
+  const sessions = await mintSessions(ctx, state, ["acc-ac17-a", "acc-ac17-b"]);
+  const ctxv = {};
+  const observe = async (handle, tag) => {
+    const look = await operator(ctx, state, sessions, handle, "LOOK", {}, tag);
+    return look.body?.observation?.location?.traces ?? findAll(look.body, (o) => Array.isArray(o.traces)).flatMap((o) => o.traces);
+  };
+  const result = await runChecks([
+    ["prior_plate_names_g2_repairer", async () => {
+      await operator(ctx, state, sessions, "acc-ac17-b", "ENTER_WORLD", {}, "ac17-b-enter");
+      ctxv.before = plateNames(await observe("acc-ac17-b", "ac17-b-look0"));
+      return ctxv.before.length === 1 && ctxv.before[0] === "acc-g2-a";
+    }],
+    ["second_harvest_accepted", async () => {
+      await operator(ctx, state, sessions, "acc-ac17-a", "ENTER_WORLD", {}, "ac17-a-enter");
+      const look = await operator(ctx, state, sessions, "acc-ac17-a", "LOOK", {}, "ac17-a-look");
+      ctxv.entity = findAll(look.body, (o) => o.repairable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
+      ctxv.source = findAll(look.body, (o) => o.harvestable === true && (o.entity_id || o.id)).map((o) => o.entity_id || o.id)[0];
+      if (typeof ctxv.source !== "string") return false;
+      const r = await operator(ctx, state, sessions, "acc-ac17-a", "COMMIT", { operation: "HARVEST", entity_id: ctxv.source, amount: 1 }, "ac17-harvest");
+      if (!okBody(r)) ctxv.harvest_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
+      return okBody(r);
+    }],
+    ["second_repair_accepted", async () => {
+      if (typeof ctxv.entity !== "string") return false;
+      const r = await operator(ctx, state, sessions, "acc-ac17-a", "COMMIT", { operation: "REPAIR", entity_id: ctxv.entity }, "ac17-repair");
+      if (!okBody(r)) ctxv.repair_rejection = redact(String(r.body?.error?.message ?? r.status)).slice(0, 120);
+      return okBody(r);
+    }],
+    ["second_repair_committed_in_sql", async () => {
+      const events = await sbRows(ctx, state, "noema_settled_events");
+      return events.filter((e) => e.event_type === "ENTITY_UPDATE" && e.payload?.operation === "REPAIR" && e.payload?.entity_id === ctxv.entity).length >= 2;
+    }],
+    ["plate_names_second_repairer", async () => {
+      ctxv.traces = await observe("acc-ac17-b", "ac17-b-look1");
+      ctxv.after = plateNames(ctxv.traces);
+      return ctxv.after.includes("acc-ac17-a");
+    }],
+    ["first_repairer_no_longer_named", async () => !JSON.stringify(ctxv.traces || []).includes("acc-g2-a")],
+    ["exactly_one_plate", async () => (ctxv.after || []).length === 1],
+    ["watch_live_updated", async () => {
+      const live = await http(ctx, state, "GET", "/v1/watch/live");
+      const text = JSON.stringify(findAll(live.body, (o) => Array.isArray(o.traces)).map((o) => o.traces));
+      return live.status === 200 && text.includes("acc-ac17-a") && !text.includes("acc-g2-a");
+    }],
+  ]);
+  const extra = { plate_before: ctxv.before ?? null, plate_after: ctxv.after ?? null };
+  if (ctxv.harvest_rejection) extra.harvest_rejection = ctxv.harvest_rejection;
+  if (ctxv.repair_rejection) extra.repair_rejection = ctxv.repair_rejection;
+  return saveSection(ctx, state, "ac17_stale_trace", { ...result, ...extra });
 }
 
 /**
@@ -761,7 +823,7 @@ function sanitizeG3(input) {
   return out;
 }
 
-const REQUIRED_GATES = ["g1", "g2", "g3", "r0"];
+const REQUIRED_GATES = ["g1", "g2", "g3", "r0", "ac17"];
 
 /** passed | failed | pending | not_covered, strictly: only an explicit passed:true counts as passed. */
 function deriveGates(s) {
@@ -774,7 +836,8 @@ function deriveGates(s) {
     g3State = flags.every((v) => v === true) ? "passed" : "failed";
   }
   const c9 = s.c9_checklist && typeof s.c9_checklist === "object" && "passed" in s.c9_checklist ? (s.c9_checklist.passed === true ? "passed" : "failed") : "not_covered";
-  return { g1: phase(s.g1_isolation), g2: phase(s.g2_s3_readback), g3: g3State, r0: phase(s.r0_presentation), c9 };
+  // AC17 is a required gate (#775): pending until its phase runs, like g1/g2/r0.
+  return { g1: phase(s.g1_isolation), g2: phase(s.g2_s3_readback), g3: g3State, r0: phase(s.r0_presentation), c9, ac17: phase(s.ac17_stale_trace) };
 }
 
 async function cmdReceipt(ctx, flags) {
@@ -812,6 +875,7 @@ async function cmdReceipt(ctx, flags) {
     g3_watch_home: g3,
     r0_presentation: s.r0_presentation || { status: "not_run" },
     c9_checklist: s.c9_checklist || { status: "not_run_by_runner" },
+    ac17_stale_trace: s.ac17_stale_trace || { status: "not_run" },
     teardown: s.teardown || { status: "not_run" },
     production_worker_version_control: {
       production_version_before: state.production.before,
@@ -838,7 +902,7 @@ async function cmdTeardown(ctx, flags) {
   return deleted ? 0 : 1;
 }
 
-const COMMANDS = { plan: cmdPlan, deploy: cmdDeploy, g1: cmdG1, g2: cmdG2, "g3-urls": cmdG3Urls, r0: cmdR0, receipt: cmdReceipt, teardown: cmdTeardown };
+const COMMANDS = { plan: cmdPlan, deploy: cmdDeploy, g1: cmdG1, g2: cmdG2, ac17: cmdAc17, "g3-urls": cmdG3Urls, r0: cmdR0, receipt: cmdReceipt, teardown: cmdTeardown };
 
 function parseFlags(argv) {
   const flags = {};

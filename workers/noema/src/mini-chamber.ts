@@ -78,16 +78,17 @@ export function miniChamberState(world_id: string): WorldRuntime {
   for (const room of Object.values(rooms)) {
     room.entities = room.entities.map((e) => enrichEntity(e));
   }
-  // Acceptance (#733 G2) seed: one harvest source holding exactly one unit of materials (HARVEST costs
-  // energy 2 / compute 1 and fills one unit of hold) and one worn relay. REPAIR costs energy 3 / compute 2
-  // / 1 unit of cargo (COSTS.REPAIR), so one harvest funds exactly one repair. No regen: it cannot refill.
+  // Acceptance (#733 G2 + AC17) seed: one harvest source holding exactly two units of materials (HARVEST
+  // costs energy 2 / compute 1 and fills one unit of hold) and one worn relay. REPAIR costs energy 3 /
+  // compute 2 / 1 unit of cargo (COSTS.REPAIR), so each harvest funds one repair: G2's first repairer, then
+  // AC17's second repairer, whose name must replace the first on the plate. No regen: it cannot refill.
   rooms[MINI_ENTRY_ROOM_ID].entities.push(
     enrichEntity({
       entity_id: "entity.acceptance-source",
       label: "parts-cache",
       entity_type: "NODE",
       stock_resource: "materials",
-      stock_amount: 1,
+      stock_amount: 2,
     }),
     enrichEntity({
       entity_id: "entity.acceptance-relay",
