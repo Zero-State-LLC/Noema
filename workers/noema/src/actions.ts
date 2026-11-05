@@ -863,10 +863,13 @@ export function resolveMessageRecipient(
   // "player.remote agent" would miss the id and let a partial match deliver to someone else.
   const literal = raw.trim().toLowerCase();
   const near = set.present.filter((p) => p.room_id === set.selfRoomId);
-  const exact = set.present.filter((p) => {
-    const id = p.player_id.toLowerCase();
-    return id === literal || id.endsWith("." + literal) || normalizeKey(p.handle || "") === t;
-  });
+  // Never let a normalized handle displace a literal full id or handle. In particular, hyphens,
+  // underscores and spaces normalize alike but may name different Players in different rooms.
+  const fullIds = set.present.filter((p) => p.player_id.toLowerCase() === literal);
+  const handles = set.present.filter((p) => (p.handle || "").toLowerCase() === literal);
+  const exact = fullIds.length ? fullIds : handles.length ? handles :
+    set.present.filter((p) => p.player_id.toLowerCase().endsWith("." + literal) ||
+      (p.room_id === set.selfRoomId && normalizeKey(p.handle || "") === t));
   if (exact.length === 1) return { ok: true, player_id: exact[0].player_id };
   if (exact.length > 1) {
     const nearExact = exact.filter((p) => near.includes(p));

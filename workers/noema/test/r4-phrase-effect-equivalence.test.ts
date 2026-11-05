@@ -329,6 +329,42 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     }
   });
 
+  it("literal ids and handles win over normalization collisions, with private delivery only to the intended inbox", async () => {
+    const cases = [
+      { target: "remote-agent", other: "remote_agent", address: "remote-agent", spot: "east" },
+      { target: "remote_agent", other: "remote-agent", address: "remote_agent", spot: "east" },
+      { target: "remote-agent", other: "remote_agent", address: "remote-agent", spot: "hub" },
+      { target: "remote_agent", other: "remote-agent", address: "remote_agent", spot: "hub" },
+      { target: "remote-agent", other: "remote agent", address: "remote-agent", spot: "east" },
+    ] as const;
+    for (const { target, other, address, spot } of cases) {
+      // Stable ids are separate from public handles, including handles with spaces and id-like spelling.
+      const cast = { alpha: spot, beta: spot === "east" ? "hub" : "east" } as const;
+      const w = await scene(cast, 60, { alpha: target, beta: other });
+      const line = `tell ${address} hi`;
+      const r = await applyWorldCommand(w, self, { request_id: `collision.${address}.${spot}`, idempotency_key: `collision.${address}.${spot}`, command: "LOOK", arguments: { line } }, async () => true, DEV);
+      expect(r.ok, line).toBe(true);
+      expect(r.events?.find((e) => e.event_type === "MESSAGE")?.payload).toMatchObject({ recipient_id: "player.alpha", text: "hi" });
+      expect(w.messages).toMatchObject([{ recipient_id: "player.alpha", text: "hi", status: "DELIVERED" }]);
+      for (const [id, expected] of [["alpha", ["hi"]], ["beta", []]] as const) {
+        const observation = await applyWorldCommand(w, principal(id, `sess.${id}`), { request_id: `inbox.${id}`, idempotency_key: `inbox.${id}`, command: "LOOK", arguments: {} }, async () => true);
+        expect(observation.observation?.messages?.map((m) => m.text), `${line} -> ${id}`).toEqual(expected);
+      }
+    }
+    // An id-looking public handle cannot displace either literal full player id, even when co-located.
+    for (const [target, other] of [["remote-agent", "remote_agent"], ["remote_agent", "remote-agent"]] as const) {
+      const w = await scene({ [target]: "east", [other]: "hub" }, 60, { [other]: `player.${target}` });
+      const r = await applyWorldCommand(w, self, { request_id: `id.${target}`, idempotency_key: `id.${target}`, command: "LOOK", arguments: { line: `msg player.${target} hi` } }, async () => true, DEV);
+      expect(r.ok).toBe(true);
+      expect(r.events?.find((e) => e.event_type === "MESSAGE")?.payload).toMatchObject({ recipient_id: `player.${target}`, text: "hi" });
+      expect(w.messages.map((m) => [m.recipient_id, m.text])).toEqual([[`player.${target}`, "hi"]]);
+      for (const [id, expected] of [[target, ["hi"]], [other, []]] as const) {
+        const observation = await applyWorldCommand(w, principal(id, `sess.${id}`), { request_id: `id-inbox.${id}`, idempotency_key: `id-inbox.${id}`, command: "LOOK", arguments: {} }, async () => true);
+        expect(observation.observation?.messages?.map((m) => m.text)).toEqual(expected);
+      }
+    }
+  });
+
   it("a typed name that merely contains a co-located handle is not that Player", async () => {
     // "agentsmith" is absent; the co-located "agent" must not receive a message meant for someone else.
     for (const [line, id] of [["tell agentsmith hi", "player.agentsmith"], ["msg player.agentsmith hi", "player.agentsmith"], ["tell agent-x hi", "player.agent-x"]] as const) {
