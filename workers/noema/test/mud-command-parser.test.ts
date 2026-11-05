@@ -338,7 +338,7 @@ describe("#733 R4 retained text-command safety", () => {
     expect(msg).toMatch(/^9\. /m);
     expect(msg).not.toMatch(/^10\. /m);
     expect(msg).toMatch(/more specific/i);
-    // Every listed number is pickable; the tenth is not a pick at all.
+    // The stored list ends at the ninth match; that "10" is not a pick is asserted in the next test.
     expect(world.players[agent.player_id].pending_clarify?.choices[8]).toBe("Relay 09");
   });
 
