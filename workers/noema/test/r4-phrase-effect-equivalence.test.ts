@@ -29,6 +29,7 @@ const principal = (id: string, session: string): PlayerPrincipal => ({
 });
 const self = principal("self", "sess.self");
 const rhea = principal("rhea", "sess.rhea");
+const tamsin = principal("tamsin", "sess.tamsin");
 const DEV = { admission: "developer" as const };
 
 function world(): WorldRuntime {
@@ -69,14 +70,15 @@ function world(): WorldRuntime {
 /** A world where both Players have entered the hub; built the same way for every run. */
 async function entered(): Promise<WorldRuntime> {
   const w = world();
-  for (const p of [self, rhea]) {
+  for (const p of [self, rhea, tamsin]) {
     const r = await applyWorldCommand(w, p, { request_id: `enter.${p.player_id}`, idempotency_key: `enter.${p.player_id}`, command: "ENTER_WORLD", arguments: {} }, async () => true);
     expect(r.ok).toBe(true);
   }
   return w;
 }
 
-const VOLATILE = new Set(["event_id", "message_id", "source_event_id"]);
+// Per-request random ids, and the wall-clock presence stamp (`last_seen_ms`), are the only dropped fields.
+const VOLATILE = new Set(["event_id", "message_id", "source_event_id", "last_seen_ms"]);
 function strip(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(strip);
   if (v && typeof v === "object") {
@@ -97,7 +99,12 @@ async function settle(command: string, args: Record<string, unknown>, mode?: typ
       events: r.events ?? [],
       sequence: w.sequence,
       actor: { room_id: me.room_id, budgets: me.budgets, practice: me.practice, discovery: me.discovery },
+      // Every other channel the command could touch: the other Players (incl. inboxes), rooms and their
+      // entities (condition, stock, pressure), stored messages and unsettled work.
+      others: Object.fromEntries(Object.entries(w.players).filter(([id]) => id !== self.player_id)),
+      rooms: w.rooms,
       messages: w.messages,
+      unsettled: w.unsettled,
     }),
   };
 }
@@ -109,8 +116,12 @@ describe("#778 T0.3–T0.5 phrases settle exactly like their structured command"
     const inspect = await settle("INSPECT", { entity_id: "ent.relay" });
     const hello = await settle("MESSAGE", { recipient_id: "player.rhea", text: "hello" });
     const hullo = await settle("MESSAGE", { recipient_id: "player.rhea", text: "hullo" });
+    const annex = await settle("INSPECT", { entity_id: "ent.annex" });
+    const toTamsin = await settle("MESSAGE", { recipient_id: "player.tamsin", text: "hello" });
     expect(east.projection).not.toEqual(inspect.projection);
     expect(hello.projection).not.toEqual(hullo.projection);
+    expect(inspect.projection).not.toEqual(annex.projection);
+    expect(hello.projection).not.toEqual(toTamsin.projection);
   });
 
   it("T0.3: e / east / go east / walk east / move east settle as structured MOVE east", async () => {
@@ -129,6 +140,7 @@ describe("#778 T0.3–T0.5 phrases settle exactly like their structured command"
     for (const line of ["n", "north", "go north", "walk north", "move north"]) {
       const r = await text(line);
       expect({ line, ok: r.ok }).toEqual({ line, ok: false });
+      expect((r.projection as { events: unknown[] }).events).toEqual([]);
       expect((r.projection as { actor: { room_id: string } }).actor.room_id).toBe("room.hub");
       expect((r.projection as { sequence: number }).sequence).toBe((baseline as { sequence: number }).sequence);
       expect((r.projection as { actor: unknown }).actor).toEqual((canonical.projection as { actor: unknown }).actor);
@@ -154,12 +166,21 @@ describe("#778 T0.3–T0.5 phrases settle exactly like their structured command"
   });
 
   it("T0.5: an unobservable recipient is refused with no effect and no identity lookup", async () => {
-    const baseline = (await settle("WAIT", {})).projection;
+    const baseline = (await settle("WAIT", {})).projection as { sequence: number };
+    const structured = await settle("MESSAGE", { recipient_id: "player.ghost", text: "hi" });
+    expect(structured.ok).toBe(false);
     for (const line of ["tell ghost hi", "msg player.ghost hi"]) {
       const r = await text(line);
+      // Refusal codes are deliberately NOT compared: text says NOT_FOUND where structured says FORBIDDEN, and
+      // the codes themselves can disclose whether a handle exists or is online. Tracked as a separate finding
+      // (#790); this test pins only that the refusal has no effect at all.
       expect({ line, ok: r.ok }).toEqual({ line, ok: false });
-      expect((r.projection as { messages: unknown[] }).messages).toEqual([]);
-      expect((r.projection as { actor: unknown }).actor).toEqual((baseline as { actor: unknown }).actor);
+      const pr = r.projection as { events: unknown[]; sequence: number; messages: unknown[] };
+      expect(pr.events).toEqual([]);
+      expect(pr.sequence).toBe(baseline.sequence);
+      expect(pr.messages).toEqual([]);
+      // Nothing about anyone changed: the whole settled world equals a no-op.
+      expect({ ...pr, events: [] }).toEqual({ ...(baseline as object), events: [] });
     }
   });
 });
