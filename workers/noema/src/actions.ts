@@ -1166,24 +1166,13 @@ function parseHumanCommandCore(
     const who = repeatM[1];
     const text = repeatM[2];
     const parent_claim_id = repeatM[3];
-    if (!ctx.players || !ctx.selfId) {
-      return {
-        ok: true,
-        action: {
-          verb: "MESSAGE",
-          arguments: { recipient_id: who, text, as_claim: true, parent_claim_id },
-        },
-        display: `You repeat a report to ${who}.`,
-      };
-    }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    const r = resolveMessageTextRecipient(who, ctx);
+    if (!r.ok) return r;
     return {
       ok: true,
-      action: {
-        verb: "MESSAGE",
-        arguments: { recipient_id: r.player_id, text, as_claim: true, parent_claim_id },
-      },
+      action: { verb: "MESSAGE", arguments: {
+        recipient_id: r.recipient_id, text, as_claim: true, parent_claim_id,
+      } },
       display: `You repeat a report to ${who}.`,
     };
   }

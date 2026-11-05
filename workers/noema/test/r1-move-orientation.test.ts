@@ -491,7 +491,7 @@ describe("R1 MOVE destination orientation", () => {
     ["report player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
     ["pass player.private-guess claim.private-body-sentinel", undefined, "NOT_FOUND"],
     ["share player.private-guess claim.private-body-sentinel", undefined, "NOT_FOUND"],
-    ["repeat player.private-guess \"private-body-sentinel\"", undefined, "NOT_FOUND"],
+    ["repeat player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
     ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }, "FORBIDDEN"],
   ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases, code) => {
     const w = world(); const p = principal();

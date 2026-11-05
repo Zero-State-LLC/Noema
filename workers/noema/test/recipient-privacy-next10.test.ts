@@ -103,3 +103,7 @@ it("[N10.2] report never-existed and left recipients have one refusal", async ()
   const gone = await n10Refused(left, 'report player.far "N10_PRIVATE_BODY"');
   expect(gone.error).toEqual(absent.error);
 });
+
+it("[N10.3] repeat unknown recipient is uniformly refused", async () => {
+  await n10Refused(await n10Scene(), 'repeat player.never-n10 "N10_PRIVATE_BODY"');
+});
