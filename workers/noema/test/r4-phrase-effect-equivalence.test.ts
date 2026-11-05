@@ -269,10 +269,10 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     }
   });
 
-  it("degraded relay (25–49) delays text and structured MESSAGE equally without immediate delivery", async () => {
+  it("degraded relay (25–49) delivers text and structured MESSAGE equivalently at the due cycle, to the recipient only", async () => {
     for (const condition of [25, 49]) {
-      const textWorld = await scene({ tamsin: "east" }, condition);
-      const structuredWorld = await scene({ tamsin: "east" }, condition);
+      const textWorld = await scene({ tamsin: "east", rhea: "hub" }, condition);
+      const structuredWorld = await scene({ tamsin: "east", rhea: "hub" }, condition);
       const o = {
         text: await send(textWorld, "LOOK", { line: "tell tamsin hi" }, DEV),
         structured: await send(structuredWorld, "MESSAGE", { recipient_id: "player.tamsin", text: "hi" }),
@@ -294,6 +294,32 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
       }
       for (const w of [textWorld, structuredWorld]) {
         expect(buildObservation(w, principal("tamsin", "sess.tamsin")).messages).toEqual([]);
+        // The distant recipient waits; the sender's real WAIT drives the normal due-cycle processor.
+        w.players[tamsin.player_id].wait_until_cycle = w.cycle + 1;
+        w.players[rhea.player_id].wait_until_cycle = w.cycle + 1;
+      }
+      const delivered = [];
+      for (const w of [textWorld, structuredWorld]) {
+        const r = await applyWorldCommand(w, self, { request_id: "wait.1", idempotency_key: "wait.1", command: "WAIT", arguments: {} }, async () => true);
+        expect(r.ok).toBe(true);
+        expect(r.events?.filter((e) => e.event_type === "MESSAGE_DELIVERED").map((e) => e.payload))
+          .toMatchObject([{ recipient_id: tamsin.player_id, delivered_cycle: w.cycle }]);
+        expect(w.pending_messages).toEqual([]);
+        expect(w.messages).toMatchObject([{ sender_id: self.player_id, recipient_id: tamsin.player_id, text: "hi", status: "DELIVERED" }]);
+        expect(buildObservation(w, tamsin).messages).toMatchObject([{ sender_id: self.player_id, text: "hi" }]);
+        expect(buildObservation(w, self).messages).toEqual([]);
+        expect(buildObservation(w, rhea).messages).toEqual([]);
+        delivered.push(project(w, r.events ?? []));
+      }
+      expect(delivered[0]).toEqual(delivered[1]);
+      for (const w of [textWorld, structuredWorld]) {
+        w.players[tamsin.player_id].wait_until_cycle = w.cycle + 1;
+        w.players[rhea.player_id].wait_until_cycle = w.cycle + 1;
+        const r = await applyWorldCommand(w, self, { request_id: "wait.2", idempotency_key: "wait.2", command: "WAIT", arguments: {} }, async () => true);
+        expect(r.ok).toBe(true);
+        expect(r.events?.filter((e) => e.event_type === "MESSAGE_DELIVERED")).toEqual([]);
+        expect(w.pending_messages).toEqual([]);
+        expect(buildObservation(w, tamsin).messages).toHaveLength(1);
       }
     }
   });
