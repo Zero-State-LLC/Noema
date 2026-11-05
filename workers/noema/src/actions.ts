@@ -3323,7 +3323,7 @@ export function deriveAffordances(input: {
   }
 
   for (const p of otherPlayers) {
-    if (p.player_id === selfId) continue;
+    if (!input.roomId || p.room_id !== input.roomId || p.player_id === selfId) continue;
     const handle = p.handle || p.player_id.replace(/^player\./, "");
     const msgOk = canPay(budgets, COSTS.MESSAGE);
     out.push({

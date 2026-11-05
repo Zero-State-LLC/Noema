@@ -1,6 +1,6 @@
 # Observation identity contract — #793 implementation gate
 
-Status: local proposal for bounded MESSAGE/TRADE projection; not authority to change hosted behavior, deploy, publish, or redact organizations.
+Status: approved bounded MESSAGE/TRADE rule implemented on local branch `fix/793-colocated-social-suggestions`; not deployed, published, merged, or authority to redact organizations.
 Source pin: Noema `b7289b2a64731052ba00715dbdf5275223146c02`. The source spans below are at that pin; policy decisions are distinguished from observed current behavior.
 
 ## Settled scope and precise fields contract
@@ -37,4 +37,8 @@ The indexed `otherPlayers` loops are MESSAGE/TRADE `actions.ts:3325`, invite `:3
 
 ## Acceptance boundary and Hosted limits
 
-Only the MESSAGE/TRADE first-loop predicate and explicitly evidenced fixture opt-ins are next-step ready, contingent on measured blast radius. No global privacy verdict until the above consumers are classified; no org schema, roster, office, invite, succession, public descriptor, BUILD/SHARE or unrelated Player-target loop change without its own decision. Local reducer and full-suite checks establish local behavior only. Hosted proof requires a separately authorized isolated no-route Worker, a distinct non-production persistence project, independent canonical readback, and teardown verification; none is provided by this contract. No deploy, push, merge or tracker update is authorized here.
+Only the MESSAGE/TRADE first-loop predicate and explicitly evidenced fixture opt-ins were authorized and implemented locally after the measured blast radius. No global privacy verdict until the above consumers are classified; no org schema, roster, office, invite, succession, public descriptor, BUILD/SHARE or unrelated Player-target loop change without its own decision. Local reducer and full-suite checks establish local behavior only. Hosted proof requires a separately authorized isolated no-route Worker, a distinct non-production persistence project, independent canonical readback, and teardown verification; none is provided by this contract. No deploy, push, merge or tracker update is authorized here.
+
+## Local slice-9 implementation evidence (not hosted acceptance)
+
+On the branch above, the first `otherPlayers` loop in `deriveAffordances` now requires an observer `roomId` matching the candidate `room_id` before emitting new MESSAGE/TRADE suggestions. The existing direct `actions-tier1` fixture explicitly supplies matching `room.hub` identities; absent observer/candidate room and a distant-room variant produce no such suggestions. A two-room `applyWorldCommand` LOOK regression failed first because a distant Player was advertised, then passed after the guard while local MESSAGE/TRADE suggestions remained and an explicitly addressed distant MESSAGE succeeded. Temporarily removing only the guard made that same negative assertion fail again; the source was restored byte-for-byte. `npx tsc --noEmit` and the repo-native Worker suite passed locally: 2116 passed, 21 skipped across 258 files (256 passed, 2 skipped). `trail check --base b7289b2a64731052ba00715dbdf5275223146c02 --json` returned zero findings; generated graph/cache edits were removed from the authored diff. This does not establish absence of distant names in other observation fields, HELP parity beyond the shared guard, hosted persistence, or settled policy for other identity projections.
