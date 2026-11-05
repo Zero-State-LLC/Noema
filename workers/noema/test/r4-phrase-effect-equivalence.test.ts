@@ -88,24 +88,27 @@ function strip(v: unknown): unknown {
 }
 
 type Settled = { ok: boolean; code?: string; projection: unknown };
+// Shared whole-world effect projection for both phrase matrices.
+function project(w: WorldRuntime, events: unknown[]): unknown {
+  const me = w.players[self.player_id];
+  return strip({
+    events,
+    sequence: w.sequence,
+    actor: { room_id: me.room_id, budgets: me.budgets, practice: me.practice, discovery: me.discovery },
+    others: Object.fromEntries(Object.entries(w.players).filter(([id]) => id !== self.player_id)),
+    rooms: w.rooms,
+    messages: w.messages,
+    unsettled: w.unsettled,
+    pending_messages: w.pending_messages,
+  });
+}
 async function settle(command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Settled> {
   const w = await entered();
   const r = await applyWorldCommand(w, self, { request_id: "act", idempotency_key: "act", command, arguments: args }, async () => true, mode);
-  const me = w.players[self.player_id];
   return {
     ok: r.ok,
     code: r.error?.code,
-    projection: strip({
-      events: r.events ?? [],
-      sequence: w.sequence,
-      actor: { room_id: me.room_id, budgets: me.budgets, practice: me.practice, discovery: me.discovery },
-      // Every other channel the command could touch: the other Players (incl. inboxes), rooms and their
-      // entities (condition, stock, pressure), stored messages and unsettled work.
-      others: Object.fromEntries(Object.entries(w.players).filter(([id]) => id !== self.player_id)),
-      rooms: w.rooms,
-      messages: w.messages,
-      unsettled: w.unsettled,
-    }),
+    projection: project(w, r.events ?? []),
   };
 }
 const text = (line: string) => settle("LOOK", { line }, DEV);
@@ -222,7 +225,6 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
   type Outcome = { ok: boolean; code?: string; message?: string; response: string; projection: unknown };
   async function send(w: WorldRuntime, command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Outcome> {
     const r = await applyWorldCommand(w, self, { request_id: "send", idempotency_key: "send", command, arguments: args }, async () => true, mode);
-    const me = w.players[self.player_id];
     return {
       ok: r.ok,
       code: r.error?.code,
@@ -230,13 +232,7 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
       // What this path itself says: the refusal or clarification, and any stored pick. The observation's
       // affordance list is excluded here because it currently names every present Player on both paths (#793).
       response: JSON.stringify({ error: r.error, pending: w.players[self.player_id]?.pending_clarify ?? null }),
-      projection: strip({
-        events: r.events ?? [],
-        sequence: w.sequence,
-        actor: { room_id: me.room_id, budgets: me.budgets },
-        others: Object.fromEntries(Object.entries(w.players).filter(([id]) => id !== self.player_id)),
-        messages: w.messages,
-      }),
+      projection: project(w, r.events ?? []),
     };
   }
   /** Text phrase vs structured MESSAGE, each in its own copy of the same scene. */
@@ -249,6 +245,16 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     expect({ ok: o.text.ok, code: o.text.code, message: o.text.message, projection: o.text.projection })
       .toEqual({ ok: o.structured.ok, code: o.structured.code, message: o.structured.message, projection: o.structured.projection });
 
+  it("whole-world projection detects rooms and unsettled work independently", async () => {
+    const a = await scene({ rhea: "hub" }, 60);
+    const b = structuredClone(a);
+    b.rooms["room.east"].description = "Changed far away.";
+    expect(project(a, [])).not.toEqual(project(b, []));
+    b.rooms["room.east"].description = a.rooms["room.east"].description;
+    b.unsettled = [{ event_id: "precanonical.control", payload: { note: "not a ledger fact" } }];
+    expect(project(a, [])).not.toEqual(project(b, []));
+  });
+
   it("present and co-located, by exact handle: delivered exactly like structured", async () => {
     const o = await both({ rhea: "hub" }, 60, "tell rhea hi", "player.rhea");
     expect(o.structured.ok).toBe(true);
@@ -260,6 +266,35 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
       const o = await both({ tamsin: "east" }, 60, line, "player.tamsin");
       expect(o.structured.ok).toBe(true);
       same(o);
+    }
+  });
+
+  it("degraded relay (25–49) delays text and structured MESSAGE equally without immediate delivery", async () => {
+    for (const condition of [25, 49]) {
+      const textWorld = await scene({ tamsin: "east" }, condition);
+      const structuredWorld = await scene({ tamsin: "east" }, condition);
+      const o = {
+        text: await send(textWorld, "LOOK", { line: "tell tamsin hi" }, DEV),
+        structured: await send(structuredWorld, "MESSAGE", { recipient_id: "player.tamsin", text: "hi" }),
+      };
+      expect(o.text.ok).toBe(true);
+      expect(o.structured.ok).toBe(true);
+      same(o);
+      for (const result of [o.text, o.structured]) {
+        const p = result.projection as {
+          events: Array<{ event_type: string; payload: Record<string, unknown> }>;
+          actor: { budgets: unknown };
+          messages: unknown[];
+          pending_messages: Array<{ recipient_id: string; text: string; sent_cycle: number; deliver_at_cycle: number }>;
+        };
+        expect(p.events.map((e) => e.event_type)).toEqual(["MESSAGE"]);
+        expect(p.events[0].payload).toMatchObject({ sender_id: self.player_id, recipient_id: "player.tamsin", text: "hi", delayed: true });
+        expect(p.pending_messages).toMatchObject([{ recipient_id: "player.tamsin", text: "hi", deliver_at_cycle: p.pending_messages[0].sent_cycle + 1 }]);
+        expect(p.messages).toEqual([]);
+      }
+      for (const w of [textWorld, structuredWorld]) {
+        expect(buildObservation(w, principal("tamsin", "sess.tamsin")).messages).toEqual([]);
+      }
     }
   });
 
@@ -300,6 +335,44 @@ describe("#791 MESSAGE recipients: text path equals structured; no existence ora
     expect([...(w.players[self.player_id].pending_clarify?.choices ?? [])].sort()).toEqual(["rhea", "rhys"]);
     expect(r.response).not.toMatch(/rhona/i);
     expect((r.projection as { messages: unknown[] }).messages).toEqual([]);
+  });
+
+  it("more than nine co-located MESSAGE matches expose only nine choices; 10 cannot replay a private body", async () => {
+    const cast: Cast = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`near${String(i + 1).padStart(2, "0")}`, "hub"]));
+    cast.near13 = "east";
+    const w = await scene(cast, 60);
+    const secret = "private-body-sentinel";
+    const r = await applyWorldCommand(w, self, { request_id: "many", idempotency_key: "many", command: "LOOK", arguments: { line: `tell near ${secret}` } }, async () => true, DEV);
+    expect(r.error?.code).toBe("AMBIGUOUS_TARGET");
+    const pending = w.players[self.player_id].pending_clarify;
+    const listed = Array.from({ length: 9 }, (_, i) => `near${String(i + 1).padStart(2, "0")}`);
+    expect(r.error?.choices).toEqual(listed);
+    expect(pending?.choices).toEqual(listed);
+    expect(r.error?.message).toMatch(/more specific/i);
+    expect(JSON.stringify({ error: r.error, pending })).not.toContain("near13");
+    expect(JSON.stringify({ error: r.error, pending })).not.toContain(secret);
+    const sequence = w.sequence;
+    const budgets = structuredClone(w.players[self.player_id].budgets);
+    const ten = await applyWorldCommand(w, self, { request_id: "ten", idempotency_key: "ten", command: "LOOK", arguments: { line: "10" } }, async () => true, DEV);
+    expect(ten.error?.code).toBe("UNKNOWN_COMMAND");
+    expect(ten.events ?? []).toEqual([]);
+    expect(w.messages).toEqual([]);
+    expect(w.pending_messages ?? []).toEqual([]);
+    expect(w.players[self.player_id].pending_clarify).toBeUndefined();
+    expect(JSON.stringify({ result: ten, pending: w.players[self.player_id].pending_clarify })).not.toContain(secret);
+    expect(w.sequence).toBe(sequence);
+    expect(w.players[self.player_id].budgets).toEqual(budgets);
+
+    const retryWorld = await scene(cast, 60);
+    const ambiguous = await applyWorldCommand(retryWorld, self, { request_id: "retry.amb", idempotency_key: "retry.amb", command: "LOOK", arguments: { line: `tell near ${secret}` } }, async () => true, DEV);
+    expect(ambiguous.error?.code).toBe("AMBIGUOUS_TARGET");
+    const pick = await applyWorldCommand(retryWorld, self, { request_id: "retry.pick", idempotency_key: "retry.pick", command: "LOOK", arguments: { line: "1" } }, async () => true, DEV);
+    expect(pick.error?.code).toBe("INVALID_REQUEST");
+    expect(pick.error?.message).toMatch(/write the message again/i);
+    expect(pick.events ?? []).toEqual([]);
+    expect(retryWorld.messages).toEqual([]);
+    expect(retryWorld.players[self.player_id].pending_clarify).toBeUndefined();
+    expect(JSON.stringify(pick)).not.toContain(secret);
   });
 
   it("a partial name matching exactly one co-located Player is delivered to them", async () => {

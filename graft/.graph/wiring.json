@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8835,
-    "edgeCount": 19515,
+    "nodeCount": 8836,
+    "edgeCount": 19518,
     "languages": [
       "javascript",
       "python",
@@ -104681,12 +104681,12 @@
       "name": "r4-phrase-effect-equivalence.test.ts",
       "kind": "file",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L1-L464",
+      "span": "L1-L537",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "f1221fee77a5be9fe54552f2fd84d60d7c2988420d8b92e934e57583f44f3e15",
-      "chars": 26509,
+      "body_hash": "f4ced1d89d93111dcf65a9f39f8ee77d02a1949d7bb0caff0fab5ca252cd6225",
+      "chars": 30960,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104696,7 +104696,7 @@
       "name": "both",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L243-L247",
+      "span": "L239-L243",
       "signature": "async function both(cast: Cast, relay: number | null, line: string, recipient_id: string, handles?: Record<string, string>)",
       "exported": false,
       "origin": "ast",
@@ -104710,7 +104710,7 @@
       "name": "Cast",
       "kind": "type",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L195-L195",
+      "span": "L198-L198",
       "signature": "type Cast = Record<string, Spot>;",
       "exported": false,
       "origin": "ast",
@@ -104738,7 +104738,7 @@
       "name": "Outcome",
       "kind": "type",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L222-L222",
+      "span": "L225-L225",
       "signature": "type Outcome = { ok: boolean; code?: string; message?: string; response: string; projection: unknown };",
       "exported": false,
       "origin": "ast",
@@ -104762,11 +104762,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
+      "name": "project",
+      "kind": "function",
+      "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "span": "L92-L104",
+      "signature": "function project(w: WorldRuntime, events: unknown[]): unknown",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "30237fa6b17f9e5cae2860381df3efb2d929debda0aef684d6f348c66910a1a2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#same",
       "name": "same",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L248-L250",
+      "span": "L244-L246",
       "signature": "same = (o: { text: Outcome; structured: Outcome })",
       "exported": false,
       "origin": "ast",
@@ -104780,7 +104794,7 @@
       "name": "scene",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L197-L221",
+      "span": "L200-L224",
       "signature": "async function scene(cast: Cast, relay: number | null, handles: Record<string, string> = {}): Promise<WorldRuntime>",
       "exported": false,
       "origin": "ast",
@@ -104794,7 +104808,7 @@
       "name": "enter",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L203-L206",
+      "span": "L206-L209",
       "signature": "enter = async (p: PlayerPrincipal)",
       "exported": false,
       "origin": "ast",
@@ -104808,11 +104822,11 @@
       "name": "send",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L223-L241",
+      "span": "L226-L237",
       "signature": "async function send(w: WorldRuntime, command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Outcome>",
       "exported": false,
       "origin": "ast",
-      "body_hash": "6117af6c6e7a0da8f9363b59f6630cc76a2ae938f201cc5cee0da44052160fbe",
+      "body_hash": "76875e86faf7425312667713962dfeec277523b3a038e93406a1f9cf03f3b636",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104822,11 +104836,11 @@
       "name": "settle",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L91-L110",
+      "span": "L105-L113",
       "signature": "async function settle(command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Settled>",
       "exported": false,
       "origin": "ast",
-      "body_hash": "c442229970ad2244b9a33248b8286e82c0806d0b7ecba6aa0f576a6d37712b2c",
+      "body_hash": "e94ee753834c8e1aadfc749524083a58e00433080b75416fe8d48cd80d820b4c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -104850,7 +104864,7 @@
       "name": "Spot",
       "kind": "type",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L194-L194",
+      "span": "L197-L197",
       "signature": "type Spot = \"hub\" | \"east\" | \"left\" | \"never\";",
       "exported": false,
       "origin": "ast",
@@ -104878,7 +104892,7 @@
       "name": "text",
       "kind": "function",
       "path": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
-      "span": "L111-L111",
+      "span": "L114-L114",
       "signature": "text = (line: string)",
       "exported": false,
       "origin": "ast",
@@ -227270,6 +227284,12 @@
     },
     {
       "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
       "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#same",
       "relation": "calls",
       "confidence": "extracted"
@@ -227325,6 +227345,12 @@
     {
       "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
       "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -227431,6 +227457,12 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#scene",
       "target": "workers/noema/src/actions.ts#enrichEntity",
       "relation": "calls",
@@ -227480,7 +227512,7 @@
     },
     {
       "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#send",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -227498,7 +227530,7 @@
     },
     {
       "source": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#strip",
+      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#project",
       "relation": "calls",
       "confidence": "extracted"
     },
