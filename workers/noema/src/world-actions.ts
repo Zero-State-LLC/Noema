@@ -2172,6 +2172,8 @@ export async function applyWorldCommand(
   const plClarify = w.players[principal.player_id];
   const pickLabel = opts?.admission === "developer" ? matchClarifyPick(rawLine, plClarify?.pending_clarify) : null;
   let parsed: ParseResult;
+  // Raw-envelope fallback is only for a failed structured attempt, never an expanded text parse.
+  let parsedFromText = false;
   if (pickLabel && plClarify?.pending_clarify) {
     if (plClarify.pending_clarify.fingerprint !== fp || plClarify.pending_clarify.session_id !== principal.session_id) {
       delete plClarify.pending_clarify;
@@ -2196,16 +2198,19 @@ export async function applyWorldCommand(
       return result;
     }
     parsed = parseHumanCommand(`${verb} ${pickLabel}`, parseCtx);
+    parsedFromText = true;
   } else if (opts?.admission === "developer" && (typeof rawArgs.line === "string" || textLine !== rawLine)) {
     parsed = parseHumanCommand(textLine, parseCtx);
+    parsedFromText = true;
   } else {
     parsed = normalizeStructuredCommand(envl.command, rawArgs);
   }
 
-  // Text-line fallback: never for protocol verbs (T0.8). Human lines have spaces or are not verbs.
+  // Text-line fallback applies only when the first attempt was structured (T0.8).
+  // Expanded aliases and clarification picks already have their semantic text result.
   const protocolCmd = String(envl.command || "").toUpperCase();
   const looksLikeTextLine = /\s/.test(String(envl.command || "")) || !PROTOCOL_VERBS.has(protocolCmd);
-  if (opts?.admission === "developer" && !parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
+  if (opts?.admission === "developer" && !parsedFromText && !parsed.ok && envl.command && looksLikeTextLine && typeof rawArgs.line !== "string") {
     parsed = parseHumanCommand(envl.command, parseCtx);
   }
 
@@ -2233,7 +2238,8 @@ export async function applyWorldCommand(
     }
     if (parsed.code === "AMBIGUOUS_TARGET" && parsed.choices?.length) {
       const pl = ensurePlayer(w, principal, w.entry_room_id);
-      const verb = (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
+      // Preserve MESSAGE intent for claim-share without treating BUILD share as a private message.
+      const verb = isMessageIntent(textLine) ? "message" : (textLine.trim().split(/\s+/)[0] || "inspect").toLowerCase();
       pl.pending_clarify = { fingerprint: fp, verb, choices: parsed.choices, session_id: principal.session_id };
       return fail(request_id, parsed.code, parsed.error, parsed.choices);
     }

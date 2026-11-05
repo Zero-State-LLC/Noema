@@ -488,18 +488,18 @@ describe("R1 MOVE destination orientation", () => {
   });
 
   it.each([
-    ["report player.private-guess \"private-body-sentinel\"", undefined],
-    ["pass player.private-guess claim.private-body-sentinel", undefined],
-    ["share player.private-guess claim.private-body-sentinel", undefined],
-    ["repeat player.private-guess \"private-body-sentinel\"", undefined],
-    ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }],
-  ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases) => {
+    ["report player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
+    ["pass player.private-guess claim.private-body-sentinel", undefined, "FORBIDDEN"],
+    ["share player.private-guess claim.private-body-sentinel", undefined, "FORBIDDEN"],
+    ["repeat player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
+    ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }, "FORBIDDEN"],
+  ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases, code) => {
     const w = world(); const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
     if (aliases) w.players[p.player_id].command_aliases = aliases;
     const before = { ...w.players[p.player_id].budgets }; const seq = w.sequence;
     const r = await run(w, p, "MESSAGE", { line });
-    expect(r.ok).toBe(false); expect(r.error?.code).toBe("NOT_FOUND");
+    expect(r.ok).toBe(false); expect(r.error?.code).toBe(code);
     expect(r.observation?.play_text).toContain("HAPPENED\nYou try to message.\nfail\nRecipient is not addressable in this world. Nothing changes.");
     expect(JSON.stringify(r)).not.toMatch(/private-guess|private-body-sentinel/);
     expect(r.events?.length ?? 0).toBe(0); expect(w.sequence).toBe(seq);
@@ -507,15 +507,14 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.messages).toHaveLength(0);
   });
 
-  // MESSAGE carriers are refused at admission like structured MESSAGE (#791, FORBIDDEN); report/pass keep
-  // their own recipient resolution (out of #791's scope) and still answer NOT_FOUND.
+  // MESSAGE text carriers use uniform recipient admission.
   it.each([
     ["LOOK", "message player.private-guess private-body-sentinel", undefined, "FORBIDDEN"],
-    ["COMMIT", "report player.private-guess \"private-body-sentinel\"", undefined, "NOT_FOUND"],
+    ["COMMIT", "report player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
     ["LOOK", "whisper player.private-guess private-body-sentinel", { whisper: "message" }, "FORBIDDEN"],
     ["message player.private-guess private-body-sentinel", undefined, undefined, "FORBIDDEN"],
-    ["report player.private-guess \"private-body-sentinel\"", undefined, undefined, "NOT_FOUND"],
-    ["pass player.private-guess claim.private-body-sentinel", undefined, undefined, "NOT_FOUND"],
+    ["report player.private-guess \"private-body-sentinel\"", undefined, undefined, "FORBIDDEN"],
+    ["pass player.private-guess claim.private-body-sentinel", undefined, undefined, "FORBIDDEN"],
     ["say to player.private-guess private-body-sentinel", undefined, undefined, "FORBIDDEN"],
   ])("MESSAGE rejection through %s carrier stays private", async (command, line, aliases, code) => {
     const w = world(); const p = principal();

@@ -959,6 +959,33 @@ export type ParseResult =
 /** Per-call offline text-parser result; sourceInput is never retained in world state. */
 export type HumanParseResult = ParseResult & { sourceInput: string };
 
+type MessageTextRecipientContext = {
+  players?: Array<{ player_id: string; handle?: string }>;
+  selfId?: string;
+  messageRecipients?: MessageRecipientSet;
+};
+type MessageTextRecipientResult =
+  | { ok: true; recipient_id: string }
+  | Extract<ParseResult, { ok: false }>;
+function resolveMessageTextRecipient(
+  who: string, ctx: MessageTextRecipientContext,
+): MessageTextRecipientResult {
+  if (ctx.messageRecipients) {
+    const r = resolveMessageRecipient(who, ctx.messageRecipients);
+    if (r.ok) return { ok: true, recipient_id: r.player_id };
+    if (r.code === "AMBIGUOUS_TARGET") {
+      return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    }
+    return { ok: true, recipient_id: who };
+  }
+  if (!ctx.players || !ctx.selfId) return { ok: true, recipient_id: who };
+  // Compatibility for pure/offline parser callers without world recipient context.
+  const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+  if (r.ok) return { ok: true, recipient_id: r.player_id };
+  if (r.code === "NOT_FOUND") return { ok: true, recipient_id: who };
+  return { ok: false, error: r.message, code: r.code, choices: r.choices };
+}
+
 /** Spec T0.2 mapping. Does not replace ParseResult.ok. */
 export function classifyParseResult(r: ParseResult): ParseShape {
   if (r.ok) return "resolved";
@@ -1099,21 +1126,13 @@ function parseHumanCommandCore(
     const who = reportM[1];
     const text = reportM[2];
     const subject_ref = reportM[3];
-    if (!ctx.players || !ctx.selfId) {
-      return {
-        ok: true,
-        action: { verb: "MESSAGE", arguments: { recipient_id: who, text, as_claim: true, subject_ref } },
-        display: `You report to ${who}.`,
-      };
-    }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    const r = resolveMessageTextRecipient(who, ctx);
+    if (!r.ok) return r;
     return {
       ok: true,
-      action: {
-        verb: "MESSAGE",
-        arguments: { recipient_id: r.player_id, text, as_claim: true, subject_ref },
-      },
+      action: { verb: "MESSAGE", arguments: {
+        recipient_id: r.recipient_id, text, as_claim: true, subject_ref,
+      } },
       display: `You report to ${who}.`,
     };
   }
@@ -1121,24 +1140,14 @@ function parseHumanCommandCore(
   if (passM) {
     const who = passM[1];
     const parent_claim_id = passM[2];
-    if (!ctx.players || !ctx.selfId) {
-      return {
-        ok: true,
-        action: {
-          verb: "MESSAGE",
-          arguments: { recipient_id: who, text: parent_claim_id, as_claim: true, parent_claim_id },
-        },
-        display: `You pass a report to ${who}.`,
-      };
-    }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    const r = resolveMessageTextRecipient(who, ctx);
+    if (!r.ok) return r;
     return {
       ok: true,
-      action: {
-        verb: "MESSAGE",
-        arguments: { recipient_id: r.player_id, text: parent_claim_id, as_claim: true, parent_claim_id },
-      },
+      action: { verb: "MESSAGE", arguments: {
+        recipient_id: r.recipient_id, text: parent_claim_id,
+        as_claim: true, parent_claim_id,
+      } },
       display: `You pass a report to ${who}.`,
     };
   }
@@ -1147,24 +1156,13 @@ function parseHumanCommandCore(
     const who = repeatM[1];
     const text = repeatM[2];
     const parent_claim_id = repeatM[3];
-    if (!ctx.players || !ctx.selfId) {
-      return {
-        ok: true,
-        action: {
-          verb: "MESSAGE",
-          arguments: { recipient_id: who, text, as_claim: true, parent_claim_id },
-        },
-        display: `You repeat a report to ${who}.`,
-      };
-    }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    const r = resolveMessageTextRecipient(who, ctx);
+    if (!r.ok) return r;
     return {
       ok: true,
-      action: {
-        verb: "MESSAGE",
-        arguments: { recipient_id: r.player_id, text, as_claim: true, parent_claim_id },
-      },
+      action: { verb: "MESSAGE", arguments: {
+        recipient_id: r.recipient_id, text, as_claim: true, parent_claim_id,
+      } },
       display: `You repeat a report to ${who}.`,
     };
   }
@@ -1223,19 +1221,9 @@ function parseHumanCommandCore(
         display: `You message ${who}.`,
       };
     }
-    // #791: MESSAGE resolves only among present Players (partial names among co-located ones); anything
-    // unresolved goes to admission as typed, which refuses it exactly like structured MESSAGE.
-    let recipient_id = who;
-    if (ctx.messageRecipients) {
-      const r = resolveMessageRecipient(who, ctx.messageRecipients);
-      if (r.ok) recipient_id = r.player_id;
-      else if (r.code === "AMBIGUOUS_TARGET") return { ok: false, error: r.message, code: r.code, choices: r.choices };
-    } else {
-      // Parser used without a world (no recipient set): still never answers NOT_FOUND for a recipient.
-      const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-      if (r.ok) recipient_id = r.player_id;
-      else if (r.code !== "NOT_FOUND") return { ok: false, error: r.message, code: r.code, choices: r.choices };
-    }
+    const resolvedRecipient = resolveMessageTextRecipient(who, ctx);
+    if (!resolvedRecipient.ok) return resolvedRecipient;
+    const recipient_id = resolvedRecipient.recipient_id;
     return {
       ok: true,
       action: { verb: "MESSAGE", arguments: { recipient_id, text } },
