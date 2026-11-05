@@ -220,3 +220,7 @@ delayedSiblingCase("[D2] structured claim arrives once at due cycle with recipie
 delayedSiblingCase("[D3] report line matches delayed structured claim delivery", async () => {
   await scenario("report", "line");
 });
+
+delayedSiblingCase("[D4] report outer command matches delayed structured claim delivery", async () => {
+  await scenario("report", "outer");
+});
