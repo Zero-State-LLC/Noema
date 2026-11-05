@@ -489,8 +489,8 @@ describe("R1 MOVE destination orientation", () => {
 
   it.each([
     ["report player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
-    ["pass player.private-guess claim.private-body-sentinel", undefined, "NOT_FOUND"],
-    ["share player.private-guess claim.private-body-sentinel", undefined, "NOT_FOUND"],
+    ["pass player.private-guess claim.private-body-sentinel", undefined, "FORBIDDEN"],
+    ["share player.private-guess claim.private-body-sentinel", undefined, "FORBIDDEN"],
     ["repeat player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
     ["brief player.private-guess \"private-body-sentinel\"", { brief: "report" }, "FORBIDDEN"],
   ])("MESSAGE text-line %s hides unknown recipient", async (line, aliases, code) => {
@@ -507,14 +507,14 @@ describe("R1 MOVE destination orientation", () => {
     expect(w.messages).toHaveLength(0);
   });
 
-  // MESSAGE text carriers use uniform recipient admission; unmigrated pass remains parser-resolved.
+  // MESSAGE text carriers use uniform recipient admission.
   it.each([
     ["LOOK", "message player.private-guess private-body-sentinel", undefined, "FORBIDDEN"],
     ["COMMIT", "report player.private-guess \"private-body-sentinel\"", undefined, "FORBIDDEN"],
     ["LOOK", "whisper player.private-guess private-body-sentinel", { whisper: "message" }, "FORBIDDEN"],
     ["message player.private-guess private-body-sentinel", undefined, undefined, "FORBIDDEN"],
     ["report player.private-guess \"private-body-sentinel\"", undefined, undefined, "FORBIDDEN"],
-    ["pass player.private-guess claim.private-body-sentinel", undefined, undefined, "NOT_FOUND"],
+    ["pass player.private-guess claim.private-body-sentinel", undefined, undefined, "FORBIDDEN"],
     ["say to player.private-guess private-body-sentinel", undefined, undefined, "FORBIDDEN"],
   ])("MESSAGE rejection through %s carrier stays private", async (command, line, aliases, code) => {
     const w = world(); const p = principal();

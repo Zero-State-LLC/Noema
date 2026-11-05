@@ -1140,24 +1140,14 @@ function parseHumanCommandCore(
   if (passM) {
     const who = passM[1];
     const parent_claim_id = passM[2];
-    if (!ctx.players || !ctx.selfId) {
-      return {
-        ok: true,
-        action: {
-          verb: "MESSAGE",
-          arguments: { recipient_id: who, text: parent_claim_id, as_claim: true, parent_claim_id },
-        },
-        display: `You pass a report to ${who}.`,
-      };
-    }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    const r = resolveMessageTextRecipient(who, ctx);
+    if (!r.ok) return r;
     return {
       ok: true,
-      action: {
-        verb: "MESSAGE",
-        arguments: { recipient_id: r.player_id, text: parent_claim_id, as_claim: true, parent_claim_id },
-      },
+      action: { verb: "MESSAGE", arguments: {
+        recipient_id: r.recipient_id, text: parent_claim_id,
+        as_claim: true, parent_claim_id,
+      } },
       display: `You pass a report to ${who}.`,
     };
   }

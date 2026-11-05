@@ -107,3 +107,9 @@ it("[N10.2] report never-existed and left recipients have one refusal", async ()
 it("[N10.3] repeat unknown recipient is uniformly refused", async () => {
   await n10Refused(await n10Scene(), 'repeat player.never-n10 "N10_PRIVATE_BODY"');
 });
+
+it("[N10.4] pass and claim-share uniformly refuse absent recipients", async () => {
+  for (const verb of ["pass", "share"]) {
+    await n10Refused(await n10Scene(), `${verb} player.never-n10 claim.N10_PRIVATE_BODY`);
+  }
+});
