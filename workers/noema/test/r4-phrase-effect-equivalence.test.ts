@@ -184,3 +184,143 @@ describe("#778 T0.3–T0.5 phrases settle exactly like their structured command"
     }
   });
 });
+
+/**
+ * #791 (ADR 0002): MESSAGE recipients on the text path refuse absent Players exactly like structured
+ * MESSAGE, and name matching runs only among co-located Players; anyone elsewhere needs an exact handle or id.
+ * Each case builds the same world twice and runs the text phrase in one and structured MESSAGE in the other.
+ */
+describe("#791 MESSAGE recipients: text path equals structured; no existence oracle, no roster", () => {
+  type Spot = "hub" | "east" | "left" | "never";
+  type Cast = Record<string, Spot>;
+  /** relay: condition of the one relay (null = none, so long range is UNREACHABLE). */
+  async function scene(cast: Cast, relay: number | null, handles: Record<string, string> = {}): Promise<WorldRuntime> {
+    const w = world();
+    w.rooms["room.hub"].exits = [{ direction: "east", to_room_id: "room.east" }];
+    w.rooms["room.east"].exits = [{ direction: "west", to_room_id: "room.hub" }];
+    w.rooms["room.hub"].entities = relay === null ? [] :
+      [enrichEntity({ entity_id: "ent.comms-relay", label: "comms-relay", entity_type: "INFRASTRUCTURE", condition: relay })];
+    const enter = async (p: PlayerPrincipal) => {
+      const r = await applyWorldCommand(w, p, { request_id: `in.${p.player_id}`, idempotency_key: `in.${p.player_id}`, command: "ENTER_WORLD", arguments: {} }, async () => true);
+      expect(r.ok).toBe(true);
+    };
+    await enter(self);
+    for (const [id, spot] of Object.entries(cast)) {
+      if (spot === "never") continue;
+      const p = principal(id, `sess.${id}`);
+      await enter(p);
+      if (handles[id]) w.players[p.player_id].handle = handles[id];
+      if (spot === "east") {
+        expect((await applyWorldCommand(w, p, { request_id: `mv.${id}`, idempotency_key: `mv.${id}`, command: "MOVE", arguments: { direction: "east" } }, async () => true)).ok).toBe(true);
+      }
+      if (spot === "left") {
+        expect((await applyWorldCommand(w, p, { request_id: `out.${id}`, idempotency_key: `out.${id}`, command: "LEAVE_WORLD", arguments: {} }, async () => true)).ok).toBe(true);
+      }
+    }
+    return w;
+  }
+  type Outcome = { ok: boolean; code?: string; message?: string; response: string; projection: unknown };
+  async function send(w: WorldRuntime, command: string, args: Record<string, unknown>, mode?: typeof DEV): Promise<Outcome> {
+    const r = await applyWorldCommand(w, self, { request_id: "send", idempotency_key: "send", command, arguments: args }, async () => true, mode);
+    const me = w.players[self.player_id];
+    return {
+      ok: r.ok,
+      code: r.error?.code,
+      message: r.error?.message,
+      // What this path itself says: the refusal or clarification, and any stored pick. The observation's
+      // affordance list is excluded here because it currently names every present Player on both paths (#793).
+      response: JSON.stringify({ error: r.error, pending: w.players[self.player_id]?.pending_clarify ?? null }),
+      projection: strip({
+        events: r.events ?? [],
+        sequence: w.sequence,
+        actor: { room_id: me.room_id, budgets: me.budgets },
+        others: Object.fromEntries(Object.entries(w.players).filter(([id]) => id !== self.player_id)),
+        messages: w.messages,
+      }),
+    };
+  }
+  /** Text phrase vs structured MESSAGE, each in its own copy of the same scene. */
+  async function both(cast: Cast, relay: number | null, line: string, recipient_id: string, handles?: Record<string, string>) {
+    const text = await send(await scene(cast, relay, handles), "LOOK", { line }, DEV);
+    const structured = await send(await scene(cast, relay, handles), "MESSAGE", { recipient_id, text: "hi" });
+    return { text, structured };
+  }
+  const same = (o: { text: Outcome; structured: Outcome }) =>
+    expect({ ok: o.text.ok, code: o.text.code, message: o.text.message, projection: o.text.projection })
+      .toEqual({ ok: o.structured.ok, code: o.structured.code, message: o.structured.message, projection: o.structured.projection });
+
+  it("present and co-located, by exact handle: delivered exactly like structured", async () => {
+    const o = await both({ rhea: "hub" }, 60, "tell rhea hi", "player.rhea");
+    expect(o.structured.ok).toBe(true);
+    same(o);
+  });
+
+  it("present elsewhere, relays healthy, by exact handle or exact id: delivered exactly like structured", async () => {
+    for (const line of ["tell tamsin hi", "msg player.tamsin hi"]) {
+      const o = await both({ tamsin: "east" }, 60, line, "player.tamsin");
+      expect(o.structured.ok).toBe(true);
+      same(o);
+    }
+  });
+
+  it("present elsewhere, relays down: UNREACHABLE exactly like structured", async () => {
+    const o = await both({ tamsin: "east" }, null, "tell tamsin hi", "player.tamsin");
+    expect(o.structured.code).toBe("UNREACHABLE");
+    same(o);
+  });
+
+  it("left the world: refused exactly like structured", async () => {
+    for (const line of ["tell gone hi", "msg player.gone hi"]) {
+      const o = await both({ gone: "left" }, 60, line, "player.gone");
+      expect(o.structured.ok).toBe(false);
+      same(o);
+    }
+  });
+
+  it("never existed: refused exactly like structured, and exactly like a Player who left", async () => {
+    for (const line of ["tell ghost hi", "msg player.ghost hi"]) {
+      const o = await both({}, 60, line, "player.ghost");
+      expect(o.structured.ok).toBe(false);
+      same(o);
+      const left = await send(await scene({ ghost: "left" }, 60), "LOOK", { line }, DEV);
+      expect({ code: o.text.code, message: o.text.message }).toEqual({ code: left.code, message: left.message });
+    }
+  });
+
+  it("a partial name that matches only a distant Player is refused like an absent one and names nobody", async () => {
+    const o = await both({ tamsin: "east" }, 60, "tell tam hi", "player.ghost");
+    same(o);
+    expect(o.text.response).not.toMatch(/tamsin/i);
+  });
+
+  it("a partial name matching several co-located Players lists only them, never a distant match", async () => {
+    const w = await scene({ rhea: "hub", rhys: "hub", rhona: "east" }, 60);
+    const r = await send(w, "LOOK", { line: "tell rh hi" }, DEV);
+    expect(r.code).toBe("AMBIGUOUS_TARGET");
+    expect([...(w.players[self.player_id].pending_clarify?.choices ?? [])].sort()).toEqual(["rhea", "rhys"]);
+    expect(r.response).not.toMatch(/rhona/i);
+    expect((r.projection as { messages: unknown[] }).messages).toEqual([]);
+  });
+
+  it("a partial name matching exactly one co-located Player is delivered to them", async () => {
+    const o = await both({ rhea: "hub", rhona: "east" }, 60, "tell rhe hi", "player.rhea");
+    expect(o.structured.ok).toBe(true);
+    same(o);
+  });
+
+  it("a shared exact handle: one co-located holder is the recipient; distant holders are never listed", async () => {
+    const handles = { "dupe-a": "dupe", "dupe-b": "dupe" };
+    const near = await both({ "dupe-a": "hub", "dupe-b": "east" }, 60, "tell dupe hi", "player.dupe-a", handles);
+    expect(near.structured.ok).toBe(true);
+    same(near);
+    const far = await send(await scene({ "dupe-a": "east", "dupe-b": "east" }, 60, handles), "LOOK", { line: "tell dupe hi" }, DEV);
+    const absent = await send(await scene({}, 60), "MESSAGE", { recipient_id: "player.ghost", text: "hi" });
+    expect({ ok: far.ok, code: far.code, message: far.message }).toEqual({ ok: absent.ok, code: absent.code, message: absent.message });
+    expect(far.response).not.toMatch(/dupe-/);
+  });
+
+  it("messaging yourself behaves exactly like structured MESSAGE to yourself", async () => {
+    const o = await both({}, 60, "msg player.self hi", "player.self");
+    same(o);
+  });
+});

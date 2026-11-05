@@ -2119,6 +2119,13 @@ export async function applyWorldCommand(
       handle: p.handle,
     })),
     selfId: principal.player_id,
+    // #791 / ADR 0002: MESSAGE names only present Players; partial names only co-located ones.
+    messageRecipients: {
+      present: Object.entries(w.players)
+        .filter(([, p]) => p.entered)
+        .map(([id, p]) => ({ player_id: id, handle: p.handle, room_id: p.room_id })),
+      selfRoomId: w.players[principal.player_id]?.room_id,
+    },
     openTrades: Object.values(w.trades || {}),
     exits: playRoom ? publicExits(w, playRoom) : [],
     hintCommands: () => {

@@ -1136,10 +1136,12 @@ describe("T0.5 message phrases", () => {
     toRhea(parseHumanCommand("msg rhea hello", ctx), "hello");
   });
 
-  it("does not resolve an unobservable recipient", () => {
+  it("does not resolve an unobservable recipient: it passes the typed name to admission unresolved (#791)", () => {
+    // The parser never answers NOT_FOUND for a message recipient: that would distinguish a never-seen name
+    // from a Player who left. World admission refuses both identically (see r4-phrase-effect-equivalence).
     const r = parseHumanCommand("tell ghost hi", ctx);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.code).toBe("NOT_FOUND");
+    expect(r.ok).toBe(true);
+    if (r.ok && r.action.verb === "MESSAGE") expect(r.action.arguments.recipient_id).toBe("ghost");
   });
 
   it("keeps structured MESSAGE off the text adapter", () => {

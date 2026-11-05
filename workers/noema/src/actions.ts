@@ -841,6 +841,49 @@ export function resolvePlayerTarget(
   return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
 }
 
+/** Present Players a text MESSAGE may name, with the sender's room (#791, ADR 0002). */
+export type MessageRecipientSet = {
+  present: Array<{ player_id: string; handle?: string; room_id?: string }>;
+  selfRoomId?: string;
+};
+
+/**
+ * Text-path MESSAGE recipient (#791, ADR 0002). An exact handle or id reaches any present Player; a partial
+ * name matches only co-located Players, so matching never lists a handle the sender did not already hold.
+ * `unresolved` means the typed recipient goes to world admission unchanged, which refuses an absent
+ * recipient exactly like structured MESSAGE: never existed and left are indistinguishable.
+ */
+export function resolveMessageRecipient(
+  raw: string,
+  set: MessageRecipientSet,
+): { ok: true; player_id: string } | { ok: false; code: "AMBIGUOUS_TARGET"; message: string; choices?: string[] } | { ok: false; code: "UNRESOLVED" } {
+  const t = normalizeKey(raw);
+  if (!t) return { ok: false, code: "UNRESOLVED" };
+  const near = set.present.filter((p) => p.room_id === set.selfRoomId);
+  const exact = set.present.filter((p) => {
+    const id = p.player_id.toLowerCase();
+    return id === t || id.endsWith("." + t) || normalizeKey(p.handle || "") === t;
+  });
+  if (exact.length === 1) return { ok: true, player_id: exact[0].player_id };
+  if (exact.length > 1) {
+    const nearExact = exact.filter((p) => near.includes(p));
+    if (nearExact.length === 1) return { ok: true, player_id: nearExact[0].player_id };
+    if (nearExact.length > 1) {
+      return { ok: false, code: "AMBIGUOUS_TARGET", ...boundedAmbiguity("More than one Player matches.", nearExact.map((p) => p.handle || p.player_id)) };
+    }
+    return { ok: false, code: "UNRESOLVED" };
+  }
+  const partial = near.filter((p) => {
+    const h = normalizeKey(p.handle || p.player_id.replace(/^player\./, ""));
+    return h.includes(t) || t.includes(h);
+  });
+  if (partial.length === 1) return { ok: true, player_id: partial[0].player_id };
+  if (partial.length > 1) {
+    return { ok: false, code: "AMBIGUOUS_TARGET", ...boundedAmbiguity("More than one Player matches.", partial.map((p) => p.handle || p.player_id)) };
+  }
+  return { ok: false, code: "UNRESOLVED" };
+}
+
 function resolveContestTarget(
   form: ContestForm,
   raw: string,
@@ -1039,6 +1082,8 @@ export function parseHumanCommand(
     entities?: EntityRuntime[];
     players?: Array<{ player_id: string; handle?: string }>;
     selfId?: string;
+    /** MESSAGE only (#791): present Players and the sender's room. Other verbs keep `players`. */
+    messageRecipients?: MessageRecipientSet;
     openTrades?: OpenTrade[];
     exits?: Array<{ direction: string }>;
     hintCommands?: () => string[];
@@ -1176,11 +1221,22 @@ export function parseHumanCommand(
         display: `You message ${who}.`,
       };
     }
-    const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
-    if (!r.ok) return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    // #791: MESSAGE resolves only among present Players (partial names among co-located ones); anything
+    // unresolved goes to admission as typed, which refuses it exactly like structured MESSAGE.
+    let recipient_id = who;
+    if (ctx.messageRecipients) {
+      const r = resolveMessageRecipient(who, ctx.messageRecipients);
+      if (r.ok) recipient_id = r.player_id;
+      else if (r.code === "AMBIGUOUS_TARGET") return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    } else {
+      // Parser used without a world (no recipient set): still never answers NOT_FOUND for a recipient.
+      const r = resolvePlayerTarget(who, ctx.players, ctx.selfId);
+      if (r.ok) recipient_id = r.player_id;
+      else if (r.code !== "NOT_FOUND") return { ok: false, error: r.message, code: r.code, choices: r.choices };
+    }
     return {
       ok: true,
-      action: { verb: "MESSAGE", arguments: { recipient_id: r.player_id, text } },
+      action: { verb: "MESSAGE", arguments: { recipient_id, text } },
       display: `You message ${who}.`,
     };
   }
