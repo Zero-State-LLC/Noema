@@ -216,3 +216,7 @@ delayedSiblingCase("[D2] structured claim arrives once at due cycle with recipie
   expect(q.w.messages.filter(m => m.message_id === q.pending.message_id)).toHaveLength(1);
   expect(q.w.rumor?.transmissions.filter(t => t.message_id === q.pending.message_id)).toHaveLength(1);
 });
+
+delayedSiblingCase("[D3] report line matches delayed structured claim delivery", async () => {
+  await scenario("report", "line");
+});
