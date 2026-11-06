@@ -273,3 +273,16 @@ helpCase("T23-boundary 03 inspection seal releases exactly at its cycle boundary
   expect(followed.ok).toBe(true);
   expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.seal-boundary")).toBe(true);
 });
+
+
+helpCase("T23-boundary 04 exit DENY remains active at its expires cycle", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.access_restrictions = [{ restriction_id: "help.deny.boundary", scope: "EXIT", mode: "DENY", applies_to: "*", room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  s.w.cycle = 10;
+  expect((await s.ask("move east")).error?.code).toBe("MOVE_REJECTED");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move east$/m);
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  expect((await s.ask("inspect open-conduit")).ok).toBe(true);
+});
