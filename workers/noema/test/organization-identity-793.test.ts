@@ -77,6 +77,45 @@ identityCase("entered outsider sees verified holder handle but no holder ID or s
   expect(JSON.stringify({ office, lines: r.observation?.office_lines, text: r.observation?.play_text })).not.toMatch(/player\.(?:outsider|founder)|designated successor|successor — founder/);
 });
 
+identityCase("public LOOK office projections reject raw and compatibility-spoofed private labels", async () => {
+  const { w, observer, outsider, founder } = await scene();
+  w.organizations["org.other"].offices = {
+    "office.other": { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id, succession: { successors: [founder.player_id], rule_id: "MEMBER_ORDER", designated_by: founder.player_id, designated_cycle: 0 } },
+  };
+  const forbidden = [
+    outsider.player_id, "PLAYER.outsider", "ｐｌａｙｅｒ．holder", "player . holder", "player_ . holder",
+    "entity.ledger", "ctrl.session", "ｅｎｔｉｔｙ．ledger", "ｃｔｒｌ．session",
+    "abcdef123456", "ＡＢＣＤＥＦ１２３４５６", "operator-test", "OPERATOR_test", "ｏｐｅｒａｔｏｒ－test",
+    "op.test", "ｏｐ．test", "smoke-test", "ＳＭＯＫＥ＿test",
+    "room.hub", "ROOM.HUB", "ｒｏｏｍ．hub", "room . hub", "Hub", "Ｈｕｂ", "East", "east",
+    "bad\nINJECTED", "bad\u2028INJECTED", "bad\u001b[31mINJECTED", "bad\u202eINJECTED", "bad\u200bINJECTED",
+  ];
+  for (const handle of forbidden) {
+    w.players[outsider.player_id].handle = handle;
+    w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const r = await run(w, observer, "LOOK");
+    expect(r.ok, handle).toBe(true);
+    const office = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+    expect(office, handle).toMatchObject({ display_name: "Treasurer", status: "OCCUPIED" });
+    expect(office, handle).not.toHaveProperty("holder_player_id");
+    expect(office, handle).not.toHaveProperty("holder_handle");
+    expect(office, handle).not.toHaveProperty("successor_handle");
+    expect(r.observation?.office_lines, handle).toContain("Other Compact: Offices: Treasurer — occupied");
+    expect(r.observation?.play_text, handle).toContain("Other Compact: Offices: Treasurer — occupied");
+    // Room titles and exits legitimately occur earlier in PLAY; inspect the
+    // office section rather than forbidding a room name across the whole view.
+    expect(JSON.stringify({ office, lines: r.observation?.office_lines, text: r.observation?.play_text?.split("\nOFFICES\n").at(-1) }), handle).not.toContain(handle);
+  }
+  for (const handle of ["Vesper", "Ｖｅｓｐｅｒ"]) {
+    w.players[outsider.player_id].handle = handle;
+    w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const valid = await run(w, observer, "LOOK");
+    expect(valid.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0]?.holder_handle).toBe(handle);
+    expect(valid.observation?.office_lines).toContain(`Other Compact: Offices: Treasurer — ${handle}`);
+    expect(valid.observation?.play_text).toContain(`Other Compact: Offices: Treasurer — ${handle}`);
+  }
+});
+
 identityCase("public office handle requires entered, safe source name; vacant seats remain generic", async () => {
   const { w, observer, outsider } = await scene();
   const office: OfficeRecord = { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id };

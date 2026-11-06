@@ -910,7 +910,16 @@ export function buildObservation(
   const roomRefs = Object.values(w.rooms);
   const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => {
     const raw = p.entered ? p.handle : undefined;
-    const safe = raw && safePlateHandle(raw) === raw.trim()
+    // Check the comparison spelling as well as the actual display spelling.
+    // Compatibility glyphs and padding around namespace separators must not
+    // turn a private identifier into a published office holder handle.
+    const comparison = raw?.normalize("NFKC")
+      .replace(/\s*([._-])\s*/g, "$1")
+      .replace(/[._-]+/g, (separators) => separators.includes(".") ? "." : separators[0]);
+    const safe = raw && comparison
+      && safePlateHandle(raw) === raw.trim()
+      && safePlateHandle(comparison) === comparison.trim()
+      && publicOccupantLabel({ handle: comparison, player_id: id }, roomRefs)
       ? publicOccupantLabel({ handle: raw, player_id: id }, roomRefs)
       : null;
     return [id, safe || undefined];
