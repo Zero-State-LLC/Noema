@@ -80,3 +80,11 @@ helpCase("T23-next10 01 contextual help is free and bounded", async () => {
   expect(text).toContain("help all");
   expect(text.split("\n").filter((x) => x.startsWith("  ")).length).toBeLessThanOrEqual(3);
 });
+
+helpCase("T23-next10 02 help all does not execute listed verbs", async () => {
+  const s = await helpScene();
+  const r = await readonlyHelp(s, "help all");
+  expect(r.observation?.consequence).toContain("KNOWN COMMANDS");
+  expect(r.observation?.consequence).toContain("move <dir>");
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.hub");
+});
