@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8880,
-    "edgeCount": 19655,
+    "nodeCount": 8887,
+    "edgeCount": 19675,
     "languages": [
       "javascript",
       "python",
@@ -95941,6 +95941,105 @@
       "origin": "ast",
       "body_hash": "15c0fa19856f4d8932961e1ca395e19fbcbbf40999f161a5b4db9add7c284928",
       "chars": 3108,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "name": "claim-phrase-lineage-variants.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L1-L170",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "b1ecee48a9ca1f5521e42b612b1f3267d78d4324777befb0e9067c527fd895cd",
+      "chars": 9445,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
+      "name": "act",
+      "kind": "function",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L21-L27",
+      "signature": "async function act(w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7516f53c09acd2550585253f9a33df9e8ca5a95f8490ae193fe469bd9c88e2dd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#Carrier",
+      "name": "Carrier",
+      "kind": "type",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L51-L51",
+      "signature": "type Carrier = \"line\" | \"outer\";",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "33ec73a90e2ceadc4083fcbc0baa34e81df01539b026b97a1f14de7a3346b91e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "name": "exercise",
+      "kind": "function",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L52-L160",
+      "signature": "async function exercise(variant: Variant, carrier: Carrier, structured: boolean)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bfdc1729f5bc0fb125355f0eedce4be14672c500e9eebb369efc945178d26340",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#person",
+      "name": "person",
+      "kind": "function",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L11-L16",
+      "signature": "person = (handle: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1caef75b28c725bbf6c6fd1281d4bf5708e97e77599611e188c1886c168db16e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L28-L49",
+      "signature": "async function scene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d699a79eda5f35925fb55bbfa321c08935dac8dad42e65603956f3af0b201d63",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/claim-phrase-lineage-variants.test.ts#Variant",
+      "name": "Variant",
+      "kind": "type",
+      "path": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "span": "L50-L50",
+      "signature": "type Variant = \"report-about\" | \"repeat-same\" | \"repeat-changed\";",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "205d113ef5ec1208daf10bf1421938011de2ddadcfbf4aa91570a183fe23210e",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -211642,6 +211741,126 @@
       "source": "workers/noema/test/cargo.test.ts",
       "target": "workers/noema/src/construction.ts",
       "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#person",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#Carrier",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#person",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#Variant",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#exercise",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/claim-phrase-lineage-variants.test.ts#scene",
+      "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
+      "relation": "calls",
       "confidence": "extracted"
     },
     {
