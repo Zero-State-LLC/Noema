@@ -50,5 +50,5 @@
 - readinessFrame · function · L1758-L1769 — function readinessFrame(sequence = 20, roomId = "room.market")
 - bootReadinessMap · function · L1771-L1775 — async function bootReadinessMap(reduce = false)
 - release · function · L1779-L1779 — release: (value: ReturnType<typeof okResponse>) => void = ()
-- calm · function · L1977-L1982 — calm = (seq: number)
-- preventDefault · method · L2066-L2066 — preventDefault()
+- calm · function · L1978-L1983 — calm = (seq: number)
+- preventDefault · method · L2067-L2067 — preventDefault()

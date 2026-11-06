@@ -1862,6 +1862,7 @@ describe("driven watch client (§11/§13)", () => {
   it("R806-next10 05 MAP live-fetch failure clears the previous feed", async () => {
     const { client } = await bootReadinessMap();
     try {
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 20");
       client.setFetch(() => { throw new Error("synthetic public feed failure"); });
       await client.refresh();
       expect(textOf(client.$("watch-feed"))).not.toContain("Public signal 20");
