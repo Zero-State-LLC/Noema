@@ -907,6 +907,15 @@ export function buildObservation(
       (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
   );
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
+  const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
+  const officesForObserver = (org: Organization) => {
+    const offices = publicOffices(org.offices, playerNames);
+    // The Specs' institution view does not establish global outsider entitlement
+    // to holder handles; keep seat metadata, but do not infer identity from IDs.
+    return isOrgMember(org, principal.player_id) ? offices : offices.map(({ office_id, display_name, status, authority_profile }) => ({
+      office_id, display_name, status, authority_profile,
+    }));
+  };
   const cautionToward: Record<string, boolean> = {};
   for (const p of otherPlayers) {
     const hostile = liveHostileToward(
@@ -1045,14 +1054,13 @@ export function buildObservation(
         name: o.name,
         charter: o.charter,
         status: o.status,
-        creator_id: o.creator_id,
-        members: (o.members || []).map((m) => ({ agent_id: m.agent_id, role: m.role })),
+        ...(isOrgMember(o, principal.player_id) ? { creator_id: o.creator_id } : {}),
+        members: isOrgMember(o, principal.player_id)
+          ? (o.members || []).map((m) => ({ agent_id: m.agent_id, role: m.role }))
+          : [],
         my_role: (o.members || []).find((m) => m.agent_id === principal.player_id)?.role || null,
         created_cycle: o.created_cycle,
-        offices: publicOffices(
-          o.offices,
-          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
-        ),
+        offices: officesForObserver(o),
         public_notice: o.public_notice,
         treasury: occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length
           ? { ...ensureTreasury(o) }
@@ -1235,8 +1243,7 @@ export function buildObservation(
     ),
     discovery_lines: discoveryLines(pl.discovery),
     office_lines: orgs.flatMap((o) => {
-      const names = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
-      const pub = publicOffices(o.offices, names);
+      const pub = officesForObserver(o);
       const base = officeLines(pub).map((line) => `${o.name}: ${line}`);
       // INSTITUTIONAL-AUTHORITY "Evidence": the published order that decides
       // AUTHORITY_CONFLICT shows on the same PLAY surface as the offices.
@@ -2256,7 +2263,7 @@ export async function applyWorldCommand(
           two_way: hasPublicReverse(w.rooms[e.to_room_id], room?.room_id || ""),
         })),
         budgets: pl.budgets,
-        otherPlayers: Object.entries(w.players).map(([id, p]) => ({
+        otherPlayers: Object.entries(w.players).filter(([, p]) => p.entered).map(([id, p]) => ({
           player_id: id,
           handle: p.handle,
           room_id: p.room_id,

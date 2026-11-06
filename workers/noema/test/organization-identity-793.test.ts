@@ -1,0 +1,122 @@
+import { expect, test as identityCase } from "vitest";
+import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
+import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import type { PlayerPrincipal } from "../src/types";
+
+const principal = (name: string): PlayerPrincipal => ({
+  player_id: `player.${name}`, agent_id: `agent.${name}`,
+  session_id: `session.${name}`, controller_id: `controller.${name}`,
+  controller_type: "agent", scopes: ["noema.player.read", "noema.world.observe", "noema.action.submit"],
+  protocol_version: "1", authentication_context: "test",
+});
+let request = 0;
+const run = (w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false) => {
+  const key = `identity793.${++request}`;
+  return applyWorldCommand(w, p, { request_id: key, idempotency_key: key, command, arguments: args }, async () => true, developer ? { admission: "developer" } : undefined);
+};
+async function scene() {
+  const w: WorldRuntime = {
+    world_id: "test.organization.identity", world_name: "Identity", cycle: 0, sequence: 0,
+    entry_room_id: "room.hub", rooms: {
+      "room.hub": { room_id: "room.hub", name: "Hub", description: "Open hub.", exits: [{ direction: "east", to_room_id: "room.east" }], entities: [enrichEntity({ entity_id: "entity.793", label: "relay", entity_type: "INFRASTRUCTURE", condition: 60, owner_id: "player.observer", infra_type: "generator" })] },
+      "room.east": { room_id: "room.east", name: "East", description: "East room.", exits: [{ direction: "west", to_room_id: "room.hub" }], entities: [] },
+    }, players: {}, trades: {}, messages: [], organizations: {}, seen_idempotency: {}, unsettled: [],
+  };
+  const observer = principal("observer"), near = principal("near"), far = principal("far"), outsider = principal("outsider"), founder = principal("founder");
+  for (const p of [observer, near, far, outsider, founder]) expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
+  for (const p of [far, outsider, founder]) expect((await run(w, p, "MOVE", { direction: "east" })).ok).toBe(true);
+  w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+  w.organizations = {
+    "org.own": { org_id: "org.own", name: "Own Compact", charter: "coordination", status: "ACTIVE", creator_id: observer.player_id, created_cycle: 0, members: [{ agent_id: observer.player_id, role: "founder" }, { agent_id: far.player_id, role: "member" }], offices: {} },
+    "org.other": { org_id: "org.other", name: "Other Compact", charter: "coordination", status: "ACTIVE", creator_id: founder.player_id, created_cycle: 0, members: [{ agent_id: founder.player_id, role: "founder" }, { agent_id: outsider.player_id, role: "member" }], offices: {} },
+  };
+  return { w, observer, near, far, outsider, founder };
+}
+
+identityCase("outsider LOOK keeps summary but withholds entire roster and creator in structured and PLAY text", async () => {
+  const { w, observer, far, outsider, founder, near } = await scene();
+  const r = await run(w, observer, "LOOK");
+  expect(r.ok).toBe(true);
+  const own = r.observation?.organizations?.find(o => o.org_id === "org.own");
+  const other = r.observation?.organizations?.find(o => o.org_id === "org.other");
+  expect(own?.members).toEqual([{ agent_id: observer.player_id, role: "founder" }, { agent_id: far.player_id, role: "member" }]);
+  expect(own?.creator_id).toBe(observer.player_id);
+  expect(other).toMatchObject({ name: "Other Compact", members: [], my_role: null });
+  expect(other).not.toHaveProperty("creator_id");
+  expect(JSON.stringify({ organizations: r.observation?.organizations, office_lines: r.observation?.office_lines, affordances: r.observation?.affordances, play_text: r.observation?.play_text })).not.toMatch(/player\.(?:founder|outsider)/);
+  expect(r.observation?.players_here?.some(p => p.player_id === near.player_id)).toBe(true);
+  expect(r.observation?.players_here?.some(p => p.player_id === outsider.player_id)).toBe(false);
+});
+
+identityCase("own roster survives a distant room; removed creator is an outsider", async () => {
+  const { w, observer, far } = await scene();
+  w.players[observer.player_id].room_id = "room.east";
+  let r = await run(w, observer, "LOOK");
+  expect(r.observation?.organizations?.find(o => o.org_id === "org.own")?.members.map(m => m.agent_id)).toEqual([observer.player_id, far.player_id]);
+  w.organizations["org.own"].members = [{ agent_id: far.player_id, role: "member" }];
+  r = await run(w, observer, "LOOK");
+  const former = r.observation?.organizations?.find(o => o.org_id === "org.own");
+  expect(former?.members).toEqual([]);
+  expect(former).not.toHaveProperty("creator_id");
+});
+
+identityCase("office outside member view cannot derive a holder or successor from IDs", async () => {
+  const { w, observer, outsider, founder } = await scene();
+  w.organizations["org.other"].offices = {
+    "office.other": { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id, succession: { successors: [founder.player_id], rule_id: "MEMBER_ORDER", designated_by: founder.player_id, designated_cycle: 0 } },
+  };
+  delete w.players[outsider.player_id].handle;
+  const r = await run(w, observer, "LOOK");
+  expect(r.ok).toBe(true);
+  const office = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+  expect(office).toMatchObject({ display_name: "Treasurer", status: "OCCUPIED" });
+  expect(office).not.toHaveProperty("holder_player_id");
+  expect(office).not.toHaveProperty("holder_handle");
+  expect(JSON.stringify({ office, lines: r.observation?.office_lines, text: r.observation?.play_text })).not.toMatch(/player\.(?:outsider|founder)|successor| — outsider/);
+});
+
+identityCase("LOOK and HELP suggestions admit only near or own-roster targets", async () => {
+  const { w, observer, near, far, outsider, founder } = await scene();
+  w.organizations["org.own"].offices = {
+    "office.own": { office_id: "office.own", institution_id: "org.own", display_name: "Notice", status: "VACANT", authority_profile: "PUBLISH_NOTICE", created_cycle: 0, history: [] },
+  };
+  for (const command of ["LOOK", "HELP"]) {
+    const r = command === "HELP" ? await run(w, observer, "LOOK", { line: "help" }, true) : await run(w, observer, command);
+    expect(r.ok).toBe(true);
+    const suggested = r.observation?.affordances ?? [];
+    const targetRows = suggested.filter(a => a.action === "ORG_INVITE" || a.action === "ORG_OFFICE_ASSIGN" || a.action === "ORG_SUCCESSION_DESIGNATE" || a.action === "ORG_SUCCESSION_CONSENT" || (a.action === "BUILD" && a.operation === "SHARE"));
+    expect(JSON.stringify({ targetRows, text: command === "HELP" ? r.observation?.consequence : "" })).not.toMatch(/player\.(?:outsider|founder)|(?:Invite|Share|Assign|Designate|Consent to) (?:outsider|founder)/i);
+    expect(targetRows.some(a => a.action === "ORG_INVITE" && a.target_label === "near")).toBe(true);
+    expect(targetRows.some(a => a.action === "ORG_OFFICE_ASSIGN" && a.target_label === "far")).toBe(true);
+    expect(targetRows.some(a => a.action === "BUILD" && a.operation === "SHARE" && a.player_id === far.player_id)).toBe(true);
+    expect(targetRows.some(a => a.action === "BUILD" && a.operation === "SHARE" && a.player_id === near.player_id)).toBe(true);
+  }
+});
+
+identityCase("missing candidate room never qualifies a distant nonmember, while own roster remains eligible", async () => {
+  const { w, observer, near, far, outsider } = await scene();
+  w.players[outsider.player_id].room_id = "";
+  w.players[near.player_id].room_id = "";
+  const r = await run(w, observer, "LOOK");
+  const invites = r.observation?.affordances?.filter(a => a.action === "ORG_INVITE") ?? [];
+  expect(invites.some(a => a.target_label === "outsider" || a.target_label === "near")).toBe(false);
+  const shares = r.observation?.affordances?.filter(a => a.action === "BUILD" && a.operation === "SHARE") ?? [];
+  expect(shares.some(a => a.player_id === far.player_id)).toBe(true);
+  expect(shares.some(a => a.player_id === outsider.player_id)).toBe(false);
+});
+
+identityCase("own office retains authorized holder and published seat; explicit distant MESSAGE remains", async () => {
+  const { w, observer, far } = await scene();
+  w.organizations["org.own"].offices = {
+    "office.own": { office_id: "office.own", institution_id: "org.own", display_name: "Notice", status: "OCCUPIED", authority_profile: "PUBLISH_NOTICE", created_cycle: 0, history: [], holder_player_id: far.player_id },
+  };
+  const r = await run(w, observer, "LOOK");
+  expect(r.observation?.organizations?.find(o => o.org_id === "org.own")?.offices?.[0]).toMatchObject({ holder_player_id: far.player_id, holder_handle: "far", display_name: "Notice" });
+  expect(r.observation?.office_lines?.join(" ")).toContain("Notice — far");
+  const sent = await run(w, observer, "MESSAGE", { recipient_id: far.player_id, text: "EXPLICIT_793" });
+  expect(sent.ok).toBe(true);
+  expect(w.messages.at(-1)?.recipient_id).toBe(far.player_id);
+  const again = await run(w, observer, "LOOK");
+  expect(again.observation?.messages?.some(m => m.text === "EXPLICIT_793")).toBe(false);
+  expect((await run(w, far, "LOOK")).observation?.messages?.some(m => m.text === "EXPLICIT_793")).toBe(true);
+});

@@ -55,15 +55,16 @@
 - observationFingerprint · function · L2271-L2308 — function observationFingerprint( roomId: string, entities: Array<{ entity_id: string; label?: string; entity_type?: string; condition?: number; stock_resource?: string; stock_amount?: number; regen_rate?: number; scar?: boolean; }>, exits: Array<{ direction: string; to_room_id: string; to_room_name?: string; two_way?: boolean }> = [], room?: { name?: string; description?: string; harvest_pressure?: number }, budgets?: Budgets, ): string
 - matchClarifyPick · function · L2311-L2327 — function matchClarifyPick(line: string, pending?: ClarifyPending | null): string | null
 - normalizeStructuredCommand · function · L2330-L3158 — function normalizeStructuredCommand( command: string, args: Record<string, unknown> = {}, ): ParseResult
-- deriveAffordances · function · L3160-L4370 — function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: "EXIT" | "ROOM"; mode: "DENY" | "ALLOW_ONLY"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]
-- stakeLine · function · L3730-L3733 — stakeLine = (stake: Record<string, number>)
-- mergeCost · function · L3734-L3740 — mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets>
-- payStake · function · L3741-L3741 — payStake = (cost: Partial<Budgets>, stake: Record<string, number>)
-- pushDeclare · function · L3792-L3829 — pushDeclare = ( form: ContestForm, target: ContestTarget, label: string, cmdTarget: string, target_id?: string, )
-- pushAccess · function · L3959-L3989 — pushAccess = ( scope: "EXIT" | "ROOM", mode: "DENY" | "CLEAR" | "ALLOW_ONLY", applies_to: string, direction?: string, label?: string, )
-- holdsNamed · function · L4087-L4093 — holdsNamed = (orgId?: string)
-- stewardOf · function · L4094-L4101 — stewardOf = (e: EntityRuntime)
-- coOwnersOf · function · L4102-L4105 — coOwnersOf = (e: EntityRuntime)
-- cargoOk · function · L4106-L4107 — cargoOk = (need: number)
-- helpText · function · L4372-L4506 — function helpText(topic?: string, available?: Affordance[]): string
-- humanizeActionError · function · L4508-L4535 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }
+- deriveAffordances · function · L3160-L4375 — function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: "EXIT" | "ROOM"; mode: "DENY" | "ALLOW_ONLY"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]
+- suggestionTarget · function · L3202-L3204 — suggestionTarget = (p: (typeof otherPlayers)[number])
+- stakeLine · function · L3735-L3738 — stakeLine = (stake: Record<string, number>)
+- mergeCost · function · L3739-L3745 — mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets>
+- payStake · function · L3746-L3746 — payStake = (cost: Partial<Budgets>, stake: Record<string, number>)
+- pushDeclare · function · L3797-L3834 — pushDeclare = ( form: ContestForm, target: ContestTarget, label: string, cmdTarget: string, target_id?: string, )
+- pushAccess · function · L3964-L3994 — pushAccess = ( scope: "EXIT" | "ROOM", mode: "DENY" | "CLEAR" | "ALLOW_ONLY", applies_to: string, direction?: string, label?: string, )
+- holdsNamed · function · L4092-L4098 — holdsNamed = (orgId?: string)
+- stewardOf · function · L4099-L4106 — stewardOf = (e: EntityRuntime)
+- coOwnersOf · function · L4107-L4110 — coOwnersOf = (e: EntityRuntime)
+- cargoOk · function · L4111-L4112 — cargoOk = (need: number)
+- helpText · function · L4377-L4511 — function helpText(topic?: string, available?: Affordance[]): string
+- humanizeActionError · function · L4513-L4540 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }

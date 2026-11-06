@@ -291,13 +291,13 @@ export interface Observation {
     status: string;
     role: "proposer" | "counterparty";
   }>;
-  /** Active organizations (public membership projection). */
+  /** Active organization summaries; roster and creator are visible only to actual members. */
   organizations?: Array<{
     org_id: string;
     name: string;
     charter: string;
     status: string;
-    creator_id: string;
+    creator_id?: string;
     members: Array<{ agent_id: string; role: string }>;
     my_role: string | null;
     offices?: Array<{
