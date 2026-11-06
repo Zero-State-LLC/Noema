@@ -1755,7 +1755,37 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
+function readinessFrame(sequence = 20, roomId = "room.market") {
+  const room = {
+    room_id: roomId, name: roomId === "room.east" ? "East Gallery" : "Chamber Market",
+    description: "Public test site.", players_present: 1, active: true,
+    exits: [], entities: [],
+  };
+  const event = {
+    sequence, cycle: 4, tier: "MAJOR", projection_id: "discovery",
+    line: `Public signal ${sequence}`, room_id: roomId,
+  };
+  return snapshot({ sequence, rooms: [room], recent_events: [event], notable_event: event });
+}
+
+async function bootReadinessMap(reduce = false) {
+  const focus: Array<[string, number]> = [];
+  const client = await bootWatchClient(() => okResponse(readinessFrame()), { reduce, focus });
+  return { client, focus };
+}
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 01 normal Refresh records a new focus call", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21)));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.market", 560]);
+      expect(client.$("watch-seq").textContent).toBe("21");
+      expect(client.$("watch-state").textContent).toBe("live");
+    } finally { client.restore(); }
+  });
+
   it.each([false, true])("keeps healthy MAP feed and focuses its camera after refresh (reduced motion=%s)", async (reduce) => {
     const focus: Array<[string, number]> = [];
     const notable = { sequence: 20, cycle: 4, tier: "NOTABLE", projection_id: "trade", line: "A trade at Chamber Market", room_id: "room.market" };
