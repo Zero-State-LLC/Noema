@@ -1774,6 +1774,21 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 07 pause blocks manual Refresh requests and focus", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return okResponse(readinessFrame(21)); });
+      client.$("watch-pause").fire("click");
+      focus.length = 0;
+      await client.refresh();
+      expect(calls).toBe(0);
+      expect(focus).toEqual([]);
+      expect(client.$("watch-state").textContent).toBe("paused");
+      expect(client.$("watch-pause").getAttribute("aria-pressed")).toBe("true");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 06 MAP feed and camera recover after a failed Refresh", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
