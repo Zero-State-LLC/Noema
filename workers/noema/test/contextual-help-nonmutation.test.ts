@@ -129,3 +129,17 @@ helpCase("T23-next10 07 zero budgets do not prevent free contextual help", async
   expect(r.observation?.consequence).toContain("help all");
   expect(Object.values(s.w.players[s.observer.player_id].budgets).every((n) => n === 0)).toBe(true);
 });
+
+helpCase("T23-next10 08 contextual help omits a hidden route but retains a public one", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.secret"] = {
+    room_id: "room.secret", name: "Quiet Annex", description: "Not public.",
+    hidden: true, exits: [], entities: [],
+  };
+  s.w.rooms["room.hub"].exits.push({ direction: "north", to_room_id: "room.secret" });
+  const r = await readonlyHelp(s, "help");
+  const text = r.observation!.consequence!;
+  expect(text).not.toMatch(/north|Quiet Annex|room\.secret/i);
+  expect(text).toMatch(/move east/i);
+});
