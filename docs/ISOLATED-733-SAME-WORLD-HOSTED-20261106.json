@@ -1,0 +1,133 @@
+{
+  "schema": "noema-733-hosted-gates/1",
+  "extends": "noema-733-same-world-hosted/1",
+  "evidence_kind": "isolated-hosted-gates",
+  "observed_date_utc": "2026-11-06",
+  "run_id": "20261106t083808z",
+  "source_commit": "5cebeca42dc745dca9ff3942eb4dc8515d4ad5ba",
+  "source_tree_clean": true,
+  "worker": "noema-733-acc-20261106t083808z",
+  "worker_version": "aa693ac2-c059-4388-9ce8-d25a90d7f975",
+  "worker_url": "https://noema-733-acc-20261106t083808z.zer0state-noema.workers.dev",
+  "no_production_routes": true,
+  "target_world": "test.hosted-canonical.733-acc-20261106t083808z",
+  "configured_default_world": "test.hosted-canonical.733-default-20261106t083808z",
+  "gates": {
+    "g1": "passed",
+    "g2": "passed",
+    "g3": "passed",
+    "r0": "passed",
+    "c9": "not_covered",
+    "ac17": "passed"
+  },
+  "all_required_passed": true,
+  "g1_isolation": {
+    "passed": true,
+    "checks": {
+      "enter_a_ok": true,
+      "seed_ok": true,
+      "structured_join_canonical": true,
+      "structured_move_canonical": true,
+      "move_advanced_head": true,
+      "text_line_stripped_canonical": true,
+      "text_command_refused": true,
+      "macro_step_stripped_canonical": true,
+      "command_endpoint_structured_join_canonical": true,
+      "command_endpoint_text_refused": true,
+      "ws_act_structured_join_canonical": true,
+      "ws_act_text_carrier_refused": true,
+      "refusals_left_head_unchanged": true,
+      "agent_tempo_refused": true
+    },
+    "informational": {
+      "ws_act": "run_by_runner"
+    },
+    "finished_at": "2026-11-06T08:38:34.660Z"
+  },
+  "g2_s3_readback": {
+    "passed": true,
+    "checks": {
+      "repairable_entity_found": true,
+      "harvest_source_found": true,
+      "harvest_accepted": true,
+      "harvest_committed_in_sql": true,
+      "repair_accepted": true,
+      "leave_accepted": true,
+      "repair_committed_in_sql": true,
+      "leave_committed_in_sql": true,
+      "probe_ids_equal_before_evict": true,
+      "instance_id_changed_after_evict": true,
+      "same_worker_version_after_evict": true,
+      "second_principal_sees_construction_trace": true,
+      "trace_count_within_3": true,
+      "no_hidden_refs": true,
+      "watch_live_shows_trace": true
+    },
+    "finished_at": "2026-11-06T08:38:37.990Z"
+  },
+  "g3_watch_home": {
+    "passed": true,
+    "keyboard_ok": true,
+    "skip_link_ok": true,
+    "pause_refresh_ok": true,
+    "reduced_motion_ok": true,
+    "aria_live_bounded": true,
+    "contrast_ok": true,
+    "home_degradation_ok": true,
+    "sentinel_absent": true,
+    "min_contrast": 7.04,
+    "notes": "Fresh source-pinned run; 20 viewport combinations; 799 visible glyph runs; minimum p10 7.04:1; zero AA/layout/privacy/uncaught-runtime failures. Actual real-stage focus handoff after keyboard Refresh: normal 560 ms and reduced 0 ms. Manual WebSocket poll observed once per resumed activation and zero while paused. 142 browser requests/messages counted within 400 reserved. First-viewport pixel sampling only; no new whole-issue or broader #793 certification.",
+    "browser": "Owned disposable-profile Google Chrome headless with real WebGL and raw CDP",
+    "status": "recorded"
+  },
+  "r0_presentation": {
+    "passed": true,
+    "checks": {
+      "enter_ok": true,
+      "look_ok": true,
+      "field_WHERE": true,
+      "field_HERE": true,
+      "field_EXITS": true,
+      "field_STATUS": true,
+      "field_HAPPENED": true,
+      "field_AVAILABLE_ACTIONS": true,
+      "move_orientation_present": true
+    },
+    "basis": "Specs MUD-PLAY-CRAFT-CLOSEOUT A3 Agent observation contract (decision D3a)",
+    "finished_at": "2026-11-06T08:38:41.467Z"
+  },
+  "c9_checklist": {
+    "status": "not_run_by_runner"
+  },
+  "ac17_stale_trace": {
+    "passed": true,
+    "checks": {
+      "prior_plate_names_g2_repairer": true,
+      "second_harvest_accepted": true,
+      "second_repair_accepted": true,
+      "second_repair_committed_in_sql": true,
+      "plate_names_second_repairer": true,
+      "first_repairer_no_longer_named": true,
+      "exactly_one_plate": true,
+      "watch_live_updated": true
+    },
+    "plate_before": [
+      "acc-g2-a"
+    ],
+    "plate_after": [
+      "acc-ac17-a"
+    ],
+    "finished_at": "2026-11-06T08:38:40.203Z"
+  },
+  "teardown": {
+    "deleted": true,
+    "secrets_scrubbed": true,
+    "finished_at": "2026-11-06T08:48:19.303Z"
+  },
+  "production_worker_version_control": {
+    "production_version_before": "86978241-3983-4075-b289-fa28f9e75c46",
+    "production_version_after": "86978241-3983-4075-b289-fa28f9e75c46",
+    "unchanged": true,
+    "method": "GET /version of noema-gateway before deploy and again at receipt/teardown"
+  }
+}
