@@ -225,3 +225,145 @@ helpCase("T23-executable presence-blocked MOVE is suppressed until restored", as
   expect((await s.ask("move east")).ok).toBe(true);
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
 });
+
+
+helpCase("T23-boundary 01 MOVE affordability recovers after energy restoration", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.players[s.observer.player_id].budgets.energy = 0;
+  expect((await s.ask("move east")).error?.code).toBe("BUDGET_EXCEEDED");
+  const denied = await readonlyHelp(s, "help");
+  expect(denied.observation?.consequence).not.toMatch(/^  move east$/m);
+  s.w.players[s.observer.player_id].budgets.energy = DEFAULT_BUDGETS.energy;
+  const restored = await readonlyHelp(s, "help");
+  expect(restored.observation?.consequence).toMatch(/^  move east$/m);
+  expect((await s.ask("move east")).ok).toBe(true);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+});
+
+
+helpCase("T23-boundary 02 INSPECT affordability recovers after attention restoration", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.players[s.observer.player_id].budgets.attention = 0;
+  expect((await s.ask("inspect open-conduit")).error?.code).toBe("BUDGET_EXCEEDED");
+  const denied = await readonlyHelp(s, "help");
+  expect(denied.observation?.consequence).not.toContain("inspect open-conduit");
+  expect(denied.observation?.consequence).toMatch(/^  move east$/m);
+  s.w.players[s.observer.player_id].budgets.attention = DEFAULT_BUDGETS.attention;
+  const restored = await readonlyHelp(s, "help");
+  expect(restored.observation?.consequence).toContain("inspect open-conduit");
+  const followed = await s.ask("inspect open-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.open")).toBe(true);
+});
+
+
+helpCase("T23-boundary 03 inspection seal releases exactly at its cycle boundary", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.seal-boundary", label: "sealed-conduit", entity_type: "INFRASTRUCTURE", condition: 100, inspect_restricted_until: 10 })];
+  s.w.cycle = 9;
+  expect((await s.ask("inspect sealed-conduit")).error?.code).toBe("FORBIDDEN");
+  const sealed = await readonlyHelp(s, "help");
+  expect(sealed.observation?.consequence).not.toContain("inspect sealed-conduit");
+  s.w.cycle = 10;
+  const released = await readonlyHelp(s, "help");
+  expect(released.observation?.consequence).toContain("inspect sealed-conduit");
+  const followed = await s.ask("inspect sealed-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.seal-boundary")).toBe(true);
+});
+
+
+helpCase("T23-boundary 04 exit DENY remains active at its expires cycle", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.access_restrictions = [{ restriction_id: "help.deny.boundary", scope: "EXIT", mode: "DENY", applies_to: "*", room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  s.w.cycle = 10;
+  expect((await s.ask("move east")).error?.code).toBe("MOVE_REJECTED");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move east$/m);
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  expect((await s.ask("inspect open-conduit")).ok).toBe(true);
+});
+
+
+helpCase("T23-boundary 05 exit DENY expires only after its expires cycle", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.access_restrictions = [{ restriction_id: "help.deny.expired", scope: "EXIT", mode: "DENY", applies_to: "*", room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  s.w.cycle = 11;
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
+
+
+helpCase("T23-boundary 06 ALLOW_ONLY excludes an unlisted observer", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.access_restrictions = [{ restriction_id: "help.allow.other", scope: "EXIT", mode: "ALLOW_ONLY", applies_to: s.near.player_id, room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  expect((await s.ask("move east")).error?.code).toBe("MOVE_REJECTED");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move east$/m);
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  expect((await s.ask("inspect open-conduit")).ok).toBe(true);
+});
+
+
+helpCase("T23-boundary 07 ALLOW_ONLY admits its listed observer", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.access_restrictions = [{ restriction_id: "help.allow.self", scope: "EXIT", mode: "ALLOW_ONLY", applies_to: s.observer.player_id, room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
+
+
+helpCase("T23-boundary 08 Player-specific DENY does not exclude a different observer", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.access_restrictions = [{ restriction_id: "help.deny.other", scope: "EXIT", mode: "DENY", applies_to: s.near.player_id, room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
+
+
+helpCase("T23-boundary 09 direction aliases cannot advertise a different route", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.alias"] = { room_id: "room.alias", name: "Alias annex", description: "Public alias destination.", exits: [], entities: [] };
+  s.w.rooms["room.hub"].exits = [{ direction: "e", to_room_id: "room.alias" }, { direction: "east", to_room_id: "room.east" }];
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move e$/m);
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
+
+
+helpCase("T23-boundary 10 ineligible candidates are removed before the three-command cap", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.sealed", label: "sealed-conduit", entity_type: "INFRASTRUCTURE", condition: 100, inspect_restricted_until: 10 }),
+    ...["a", "b", "c"].map((x) => enrichEntity({ entity_id: `entity.open-${x}`, label: `open-${x}`, entity_type: "INFRASTRUCTURE", condition: 100 })),
+  ];
+  const r = await readonlyHelp(s, "help");
+  const commands = r.observation!.consequence!.split("\n").filter((line) => line.startsWith("  ")).map((line) => line.trim());
+  expect(commands).toEqual(["inspect open-a", "inspect open-b", "inspect open-c"]);
+  for (const x of ["a", "b", "c"]) {
+    const followed = await s.ask(`inspect open-${x}`);
+    expect(followed.ok).toBe(true);
+    expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === `entity.open-${x}`)).toBe(true);
+  }
+});
