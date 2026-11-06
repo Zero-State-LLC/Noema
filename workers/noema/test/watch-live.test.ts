@@ -1774,6 +1774,21 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 08 resume immediately restores public MAP updates", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      client.$("watch-pause").fire("click");
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21, "room.east")));
+      client.$("watch-pause").fire("click");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(focus).toContainEqual(["room.east", 560]);
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(client.$("watch-pause").getAttribute("aria-pressed")).toBe("false");
+      expect(client.$("watch-seq").textContent).toBe("21");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 07 pause blocks manual Refresh requests and focus", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
