@@ -1,5 +1,5 @@
 import { expect, test as helpCase, vi } from "vitest";
-import { cloneBudgets, COSTS, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
+import { cloneBudgets, COSTS, DEFAULT_BUDGETS, enrichEntity, resolveVisibleEntity } from "../src/actions";
 import { STORAGE_CAPACITY } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { PlayerPrincipal } from "../src/types";
@@ -435,4 +435,29 @@ helpCase("T23-audit advertised trade reaches its canonical target", async () => 
   expect(offers[0].proposer_id).toBe(s.observer.player_id);
   expect(offers[0].counterparty_id).toBe(s.near.player_id);
   expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
+
+
+helpCase("T25-audit hidden chosen entity invalidates numeric inspect pick", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.audit-a", label: "relay-a", entity_type: "INFRASTRUCTURE", condition: 100 }),
+    enrichEntity({ entity_id: "entity.audit-b", label: "relay-b", entity_type: "INFRASTRUCTURE", condition: 100 }),
+  ];
+  const offered = await s.ask("inspect relay");
+  expect(offered.error?.code).toBe("AMBIGUOUS_TARGET");
+  const pending = s.w.players[s.observer.player_id].pending_clarify!;
+  expect(pending.choices).toHaveLength(2);
+  // Pending choices use title-cased display labels, not raw entity labels.
+  const resolved = resolveVisibleEntity(pending.choices[0], s.w.rooms["room.hub"].entities!);
+  expect(resolved.ok).toBe(true);
+  if (!resolved.ok) throw new Error("Fixture cannot resolve the offered first choice");
+  resolved.entity.hidden = true;
+  const before = helpCanonical(s);
+  const calls = s.settle.mock.calls.length;
+  const picked = await s.ask("1");
+  expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+  expect(picked.events ?? []).toEqual([]);
+  expect(s.settle.mock.calls.length).toBe(calls);
+  expect(helpCanonical(s)).toEqual(before);
 });
