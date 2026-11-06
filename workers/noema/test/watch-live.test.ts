@@ -1774,6 +1774,18 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 02 reduced-motion Refresh records a new zero-duration focus", async () => {
+    const { client, focus } = await bootReadinessMap(true);
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21)));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.market", 0]);
+      expect(focus.every(([, ms]) => ms === 0)).toBe(true);
+      expect(client.$("watch-state").textContent).toBe("live");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 01 normal Refresh records a new focus call", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
