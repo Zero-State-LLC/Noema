@@ -143,3 +143,12 @@ helpCase("T23-next10 08 contextual help omits a hidden route but retains a publi
   expect(text).not.toMatch(/north|Quiet Annex|room\.secret/i);
   expect(text).toMatch(/move east/i);
 });
+
+helpCase("T23-next10 09 same-envelope help replay creates no new canonical effect", async () => {
+  const s = await helpScene();
+  const key = "help.replay.exact-envelope";
+  const first = await readonlyHelp(s, "help all", key);
+  const replay = await readonlyHelp(s, "help all", key);
+  expect(replay).toEqual(first);
+  expect(s.settle).not.toHaveBeenCalled();
+});
