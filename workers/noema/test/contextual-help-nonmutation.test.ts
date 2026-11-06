@@ -225,3 +225,18 @@ helpCase("T23-executable presence-blocked MOVE is suppressed until restored", as
   expect((await s.ask("move east")).ok).toBe(true);
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
 });
+
+
+helpCase("T23-boundary 01 MOVE affordability recovers after energy restoration", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.players[s.observer.player_id].budgets.energy = 0;
+  expect((await s.ask("move east")).error?.code).toBe("BUDGET_EXCEEDED");
+  const denied = await readonlyHelp(s, "help");
+  expect(denied.observation?.consequence).not.toMatch(/^  move east$/m);
+  s.w.players[s.observer.player_id].budgets.energy = DEFAULT_BUDGETS.energy;
+  const restored = await readonlyHelp(s, "help");
+  expect(restored.observation?.consequence).toMatch(/^  move east$/m);
+  expect((await s.ask("move east")).ok).toBe(true);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+});
