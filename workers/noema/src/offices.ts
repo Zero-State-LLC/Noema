@@ -152,12 +152,10 @@ export function publicOffices(
       display_name: o.display_name,
       status: o.status,
       holder_player_id: o.holder_player_id,
-      holder_handle: o.holder_player_id
-        ? names[o.holder_player_id] || o.holder_player_id.replace(/^player\./, "")
-        : undefined,
+      holder_handle: o.holder_player_id ? names[o.holder_player_id] || undefined : undefined,
       authority_profile: o.authority_profile,
       successor_handle: o.succession?.successors?.[0]
-        ? names[o.succession.successors[0]] || o.succession.successors[0].replace(/^player\./, "")
+        ? names[o.succession.successors[0]] || undefined
         : undefined,
     }));
 }
@@ -165,7 +163,7 @@ export function publicOffices(
 export function officeLines(offices: OfficePublic[]): string[] {
   if (!offices.length) return [];
   const rows = offices.map((o) => {
-    const who = o.status === "VACANT" ? "vacant" : o.holder_handle || o.holder_player_id || "occupied";
+    const who = o.status === "VACANT" ? "vacant" : o.holder_handle || "occupied";
     const designated = o.successor_handle ? `; designated successor — ${o.successor_handle}` : "";
     return `${o.display_name} — ${who}${designated}`;
   });

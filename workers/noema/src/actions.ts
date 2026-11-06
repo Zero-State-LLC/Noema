@@ -3177,6 +3177,8 @@ export function deriveAffordances(input: {
   focus?: FocusState | null;
   hiddenRoom?: boolean;
   roomId?: string;
+  /** Retained occupancy, never a display-room fallback. */
+  observerRoomId?: string;
   openContests?: OpenContest[];
   agreements?: FormalAgreement[];
   accessRestrictions?: Array<{
@@ -3197,6 +3199,11 @@ export function deriveAffordances(input: {
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
+  // Only unsolicited organization/share candidates use roster entitlement; MESSAGE
+  // and TRADE retain their stricter current-room rule and explicit actions are unchanged.
+  const suggestionTarget = (p: (typeof otherPlayers)[number]) =>
+    (Boolean(input.observerRoomId) && p.room_id === input.observerRoomId) ||
+    organizations.some((org) => org.status === "ACTIVE" && isOrgMember(org, selfId) && isOrgMember(org, p.player_id));
 
   for (const e of entities) {
     const name = titleCaseLabel(e.label);
@@ -3311,7 +3318,7 @@ export function deriveAffordances(input: {
   }
 
   for (const p of otherPlayers) {
-    if (!input.roomId || p.room_id !== input.roomId || p.player_id === selfId) continue;
+    if (!input.observerRoomId || p.room_id !== input.observerRoomId || p.player_id === selfId) continue;
     const handle = p.handle || p.player_id.replace(/^player\./, "");
     const msgOk = canPay(budgets, COSTS.MESSAGE);
     out.push({
@@ -3414,7 +3421,7 @@ export function deriveAffordances(input: {
     }
     if (officer) {
       for (const p of otherPlayers) {
-        if (p.player_id === selfId || isOrgMember(org, p.player_id)) continue;
+        if (p.player_id === selfId || isOrgMember(org, p.player_id) || !suggestionTarget(p)) continue;
         const handle = p.handle || p.player_id.replace(/^player\./, "");
         const invOk = canPay(budgets, COSTS.ORG_MEMBER_ADD);
         out.push({
@@ -4235,7 +4242,7 @@ export function deriveAffordances(input: {
         partners.length < SHARE_MAX_CO_OWNERS
       ) {
         for (const p of otherPlayers) {
-          if (p.player_id === selfId || p.player_id === e.owner_id || partners.includes(p.player_id)) continue;
+          if (p.player_id === selfId || p.player_id === e.owner_id || partners.includes(p.player_id) || !suggestionTarget(p)) continue;
           const handle = p.handle || p.player_id.replace(/^player\./, "");
           const ok = canPay(budgets, SHARE_COST);
           out.push({

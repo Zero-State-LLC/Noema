@@ -280,9 +280,10 @@ export function playTextFromObservation(obs: {
     storage?: number;
   };
   practice_lines?: string[];
+  office_lines?: string[];
 } | null | undefined, happenedBeats?: HappenedBeat): string {
   if (!obs?.location) return "";
-  return lowNoiseRoomText(
+  const roomText = lowNoiseRoomText(
     roomPresentationModel({
       location: obs.location,
       consequence: obs.consequence,
@@ -291,6 +292,7 @@ export function playTextFromObservation(obs: {
       happenedBeats,
     }),
   );
+  return obs.office_lines?.length ? `${roomText}\nOFFICES\n${obs.office_lines.join("\n")}` : roomText;
 }
 
 /** Spectator text. Canvas is never required. */
