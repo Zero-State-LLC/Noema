@@ -112,3 +112,11 @@ helpCase("T23-next10 05 build help creates no asset or co-owner", async () => {
   expect(r.observation?.consequence).toContain("share <thing> <player>");
   expect(s.w.rooms["room.hub"].entities).toHaveLength(1);
 });
+
+helpCase("T23-next10 06 organization help grants no membership or authority", async () => {
+  const s = await helpScene();
+  const r = await readonlyHelp(s, "help org");
+  expect(r.observation?.consequence).toContain("ORGANIZATIONS");
+  expect(r.observation?.consequence).toContain("officers invite");
+  expect(s.w.organizations).toEqual({});
+});
