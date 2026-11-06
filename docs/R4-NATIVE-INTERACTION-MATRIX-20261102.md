@@ -4,13 +4,21 @@
 
 **Disposition:** R4 **IMPLEMENTING**, #733 **OPEN / In Progress**. RFC-0120 retires S0 human parser, contextual HELP, human alias/macro preference and human Player screen-reader requirements from hosted human PLAY; their legacy helper/dispatch code still exists. Merged source and local tests bound Agent admission to structured dispatch; #733's isolated hosted G1 checkpoint (issue comment, 2026-11-04 rerun, source `4b9df2bc`) passed 14/14 for its scoped structured-command isolation, **not** global auth/revocation or whole-slice verification. Agent structured observations/actions, world-true room grammar, traces, spectator WATCH and Home remain in scope. `N/A-PROD` records this RFC-0120 retirement alongside, not instead of, the four TX.2 states (`NOT_STARTED`, `IMPLEMENTING`, `IMPLEMENTED_UNVERIFIED`, `VERIFIED`). No whole slice is marked `VERIFIED` on a source or fixture assertion alone. `N/A-PROD` retires a human-production requirement; the bounded hosted G1 result does not prove every bypass or future deployment. `NOT_STARTED/unknown` below means no substantiated evidence in this scoped search, not proof that code is absent.
 
-## Executed verification at this baseline
+## Latest hosted evidence — 2026-11-06
+
+The [new companion receipt](ISOLATED-733-SAME-WORLD-HOSTED-20261106.md) and [runner JSON](ISOLATED-733-SAME-WORLD-HOSTED-20261106.json), source `5cebeca42dc745dca9ff3942eb4dc8515d4ad5ba`, establish G1/G2/G3/G4-R0/AC17 together. Their aggregate is `all_required_passed: true`; C9 stays optional/not_covered. The old absence statements below are historical at their named pins, not assertions that this new receipt is missing.
+
+The current 49-row projection below retains every original state and every existing follow-up. Scoped hosted evidence may discharge a named evidence gap without verifying its entire task or slice. In particular, G1 is not global revocation/role escalation; G2/AC17 cover one repair-plate family; G3 covers the measured pages/viewports, not assistive-tech, human comprehension, arbitrary authored text or all private data. #793's broader variants and #777's G5 remainder remain separate. #733 remains OPEN by operator instruction, as do #775/#793/#806 pending separate disposition.
+
+The original aggregate row states remain unchanged; their historical gap wording is contextualized by this section and the refreshed row projection. Historical receipts remain historical even where the new receipt now supplies a scoped observation.
+
+## Historical executed verification at the original baseline
 
 - In an isolated worktree at the merge SHA, `vitest run test/play-ui.test.ts test/play-traces.test.ts test/low-noise.test.ts --reporter=dot` returned **2 files / 56 passed**; the specified low-noise file did not contribute a third test file. This is local model/trace evidence only.
 - `npm test -- --reporter=dot` built the WATCH assets and reported **244 files / 1,946 passed, 1 timed out, 2 files / 21 tests skipped**. The timeout was the LCA-1 integrated test (`test/lca1-acceptance.test.ts:135`), at 5 seconds. A separate `vitest run test/lca1-acceptance.test.ts --reporter=dot` returned **1 passed**. **Do not label the full suite green** from that isolated rerun.
 - `npm run typecheck` completed with exit 0 at the baseline. Generated `workers/noema/worker-configuration.d.ts` churn from Wrangler types was restored; the doc worktree was clean before this matrix. Tests and typecheck do not prove real-browser accessibility, hosted identity/privacy, external PostgreSQL settlement for S3, or production behavior.
 
-## TX.2 aggregate slice states
+## TX.2 aggregate slice states — unchanged; historical gap wording
 
 | Slice | Current state | Boundary to verify |
 |---|---|---|
@@ -25,7 +33,7 @@
 
 All 45 task rows below carry one of the four TX.2 states. `N/A-PROD` is a separate RFC-0120 policy overlay, not a runtime isolation verdict. No whole slice is `VERIFIED`.
 
-## Task matrix S0–S3
+## Historical task evidence S0–S3 — original pins retained
 
 ## S0 — parser / offline tooling
 
@@ -74,7 +82,7 @@ All 45 task rows below carry one of the four TX.2 states. `N/A-PROD` is a separa
 | **T3.5** `docs/MUD-NATIVE-INTERACTION-TASKS.md:142-143`; security `docs/MUD-NATIVE-INTERACTION-AND-WORLD-PRESENCE.md:338-344` | **TX.2: IMPLEMENTING.** **IMPLEMENTED_UNVERIFIED**. Hidden room/entity gate and cap `workers/noema/src/play-traces.ts:141-152`; private rumor filter `:79-96`; handle sanitation `:123-132`; `workers/noema/test/play-traces.test.ts:82-104,215-245,301-373` asserts hidden/ID/private-rumor omission. Public WATCH subset `workers/noema/src/watch-live.ts:905-924`; synthetic privacy assertions `workers/noema/test/rfc0120-traces.test.ts:225-267`. | `publicText` only whitespace-normalizes/truncates (`play-traces.ts:119-120`); board/shout/institution/trade text is copied (`:201-207`), so source-surface sanitization and output escaping require independent verification. WATCH fixture test is not a malicious authored-text browser/XSS test. |
 | **T3.6** `docs/MUD-NATIVE-INTERACTION-TASKS.md:145-147` | **TX.2: IMPLEMENTED_UNVERIFIED.** **OBSERVED source/test, bounded**. Trace cap 3/text dedupe `workers/noema/src/play-traces.ts:68,141-150`; observation integration `workers/noema/src/world-actions.ts:987-1006`; room text renders TRACES `workers/noema/src/play-ui.ts:207-210,254-257`; `workers/noema/test/play-traces.test.ts:106-117,119-170,247-259` tests cap/LOOK/model. | Separate TRACES section, not necessarily integration into HERE/prose; dedupe is exact text only. No browser flood/legibility QA or production public-readback. |
 
-## Task matrix S4–S7 and cross-cutting gates
+## Historical task evidence S4–S7 and cross-cutting gates
 
 | Task | Classification; observed source/test evidence | Missing verification / boundary |
 |---|---|---|
@@ -97,7 +105,7 @@ All 45 task rows below carry one of the four TX.2 states. `N/A-PROD` is a separa
 | **T7.3** | **TX.2: IMPLEMENTING.** **IMPLEMENTING.** Public WATCH source, ID filtering and safe DOM text, no authenticated fetch (`workers/noema/src/landing.ts:129-208,244-265`); fixture excludes ID-shaped lines/private descriptor wordings (`workers/noema/test/watch-live.test.ts:1198-1270`). | No human first-read, privacy-sensitive hosted QA or research-metric injection test; homepage still includes a human email gate (`workers/noema/src/landing.ts:238-241`)—its RFC-0120 meaning needs independent admission review, not assumed human Player. |
 | **T7.4** | **TX.2: IMPLEMENTED_UNVERIFIED.** **IMPLEMENTED_UNVERIFIED** for local HTML size ceilings: gzip Home and WATCH <180 KiB tests (`workers/noema/test/brand-baseline.test.ts:185-195`; `workers/noema/test/brand-visual-qa.test.ts:261-268`). | No current run or hosted transfer/asset measurements; constant assertions for JS/asset budgets do not measure downloaded payload, latency or a production page. |
 
-## Cross-cutting disposition
+## Historical cross-cutting disposition
 
 | Task | Classification and evidence | Open gate |
 |---|---|---|
