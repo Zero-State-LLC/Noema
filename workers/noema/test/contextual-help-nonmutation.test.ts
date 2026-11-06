@@ -104,3 +104,11 @@ helpCase("T23-next10 04 repair help leaves infrastructure condition untouched", 
   expect(r.observation?.consequence).toContain("Condition +15");
   expect(s.w.rooms["room.hub"].entities?.[0].condition).toBe(60);
 });
+
+helpCase("T23-next10 05 build help creates no asset or co-owner", async () => {
+  const s = await helpScene();
+  const r = await readonlyHelp(s, "help build");
+  expect(r.observation?.consequence).toContain("BUILD");
+  expect(r.observation?.consequence).toContain("share <thing> <player>");
+  expect(s.w.rooms["room.hub"].entities).toHaveLength(1);
+});
