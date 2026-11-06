@@ -335,3 +335,18 @@ helpCase("T23-boundary 08 Player-specific DENY does not exclude a different obse
   expect(followed.ok).toBe(true);
   expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
 });
+
+
+helpCase("T23-boundary 09 direction aliases cannot advertise a different route", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.alias"] = { room_id: "room.alias", name: "Alias annex", description: "Public alias destination.", exits: [], entities: [] };
+  s.w.rooms["room.hub"].exits = [{ direction: "e", to_room_id: "room.alias" }, { direction: "east", to_room_id: "room.east" }];
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move e$/m);
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
