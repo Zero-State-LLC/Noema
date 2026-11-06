@@ -1774,6 +1774,28 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 10 overlapping Refresh admits only one pending live request", async () => {
+    const { client, focus } = await bootReadinessMap();
+    let release: (value: ReturnType<typeof okResponse>) => void = () => {};
+    const pending = new Promise<ReturnType<typeof okResponse>>((resolve) => { release = resolve; });
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return pending; });
+      focus.length = 0;
+      await Promise.all([client.refresh(), client.refresh()]);
+      expect(calls).toBe(1);
+      expect(focus).toEqual([]);
+      release(okResponse(readinessFrame(21)));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(focus).toContainEqual(["room.market", 560]);
+      expect(client.$("watch-seq").textContent).toBe("21");
+    } finally {
+      release(okResponse(readinessFrame(21)));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      client.restore();
+    }
+  });
+
   it("R806-next10 09 hidden document blocks Refresh until visible", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
