@@ -1,6 +1,7 @@
 import { expect, test as identityCase } from "vitest";
 import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
+import type { OfficeRecord } from "../src/offices";
 import type { PlayerPrincipal } from "../src/types";
 
 const principal = (name: string): PlayerPrincipal => ({
@@ -60,6 +61,47 @@ identityCase("own roster survives a distant room; removed creator is an outsider
   expect(former).not.toHaveProperty("creator_id");
 });
 
+identityCase("entered outsider sees verified holder handle but no holder ID or successor", async () => {
+  const { w, observer, outsider, founder } = await scene();
+  w.organizations["org.other"].offices = {
+    "office.other": { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id, succession: { successors: [founder.player_id], rule_id: "MEMBER_ORDER", designated_by: founder.player_id, designated_cycle: 0 } },
+  };
+  const r = await run(w, observer, "LOOK");
+  expect(r.ok).toBe(true);
+  const office = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+  expect(office).toMatchObject({ display_name: "Treasurer", status: "OCCUPIED", holder_handle: "outsider" });
+  expect(office).not.toHaveProperty("holder_player_id");
+  expect(office).not.toHaveProperty("successor_handle");
+  expect(r.observation?.office_lines?.join(" ")).toContain("Treasurer — outsider");
+  expect(r.observation?.play_text).toContain("Treasurer — outsider");
+  expect(JSON.stringify({ office, lines: r.observation?.office_lines, text: r.observation?.play_text })).not.toMatch(/player\.(?:outsider|founder)|designated successor|successor — founder/);
+});
+
+identityCase("public office handle requires entered, safe source name; vacant seats remain generic", async () => {
+  const { w, observer, outsider } = await scene();
+  const office: OfficeRecord = { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id };
+  w.organizations["org.other"].offices = { "office.other": office };
+  for (const handle of [undefined, outsider.player_id, "abcdef123456", "operator-test", "room.hub", "Hub", "bad\nINJECTED", "smoke-test"]) {
+    w.players[outsider.player_id].handle = handle;
+    w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const r = await run(w, observer, "LOOK");
+    const visible = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+    expect(visible).not.toHaveProperty("holder_player_id");
+    expect(visible).not.toHaveProperty("holder_handle");
+    expect(r.observation?.office_lines?.join(" ")).toContain("Treasurer — occupied");
+    expect(r.observation?.play_text).toContain("Treasurer — occupied");
+    expect(JSON.stringify({ visible, lines: r.observation?.office_lines, text: r.observation?.play_text })).not.toMatch(/INJECTED|player\.outsider|abcdef123456|operator-test|room\.hub|smoke-test/);
+  }
+  w.players[outsider.player_id].handle = "Vesper";
+  w.players[outsider.player_id].entered = false;
+  w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+  expect((await run(w, observer, "LOOK")).observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0]).not.toHaveProperty("holder_handle");
+  w.players[outsider.player_id].entered = true;
+  office.status = "VACANT";
+  w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+  expect((await run(w, observer, "LOOK")).observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0]).not.toHaveProperty("holder_handle");
+});
+
 identityCase("office outside member view cannot derive a holder or successor from IDs", async () => {
   const { w, observer, outsider, founder } = await scene();
   w.organizations["org.other"].offices = {
@@ -103,6 +145,21 @@ identityCase("missing candidate room never qualifies a distant nonmember, while 
   const shares = r.observation?.affordances?.filter(a => a.action === "BUILD" && a.operation === "SHARE") ?? [];
   expect(shares.some(a => a.player_id === far.player_id)).toBe(true);
   expect(shares.some(a => a.player_id === outsider.player_id)).toBe(false);
+});
+
+identityCase("own office keeps canonical ID in member view but never narrates an ID-derived holder or successor", async () => {
+  const { w, observer, far, founder } = await scene();
+  w.organizations["org.own"].offices = {
+    "office.own": { office_id: "office.own", institution_id: "org.own", display_name: "Notice", status: "OCCUPIED", authority_profile: "PUBLISH_NOTICE", created_cycle: 0, history: [], holder_player_id: far.player_id, succession: { successors: [founder.player_id], rule_id: "MEMBER_ORDER", designated_by: observer.player_id, designated_cycle: 0 } },
+  };
+  delete w.players[far.player_id].handle;
+  delete w.players[founder.player_id].handle;
+  const r = await run(w, observer, "LOOK");
+  const office = r.observation?.organizations?.find(o => o.org_id === "org.own")?.offices?.[0];
+  expect(office?.holder_player_id).toBe(far.player_id);
+  expect(office?.holder_handle).toBeUndefined();
+  expect(r.observation?.office_lines?.join(" ")).toContain("Notice — occupied");
+  expect(JSON.stringify({ lines: r.observation?.office_lines, text: r.observation?.play_text })).not.toMatch(/player\.(?:far|founder)|designated successor/);
 });
 
 identityCase("own office retains authorized holder and published seat; explicit distant MESSAGE remains", async () => {

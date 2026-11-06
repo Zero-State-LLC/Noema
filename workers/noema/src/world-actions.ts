@@ -907,14 +907,23 @@ export function buildObservation(
       (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
   );
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
-  const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
+  const roomRefs = Object.values(w.rooms);
+  const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => {
+    const raw = p.entered ? p.handle : undefined;
+    const safe = raw && safePlateHandle(raw) === raw.trim()
+      ? publicOccupantLabel({ handle: raw, player_id: id }, roomRefs)
+      : null;
+    return [id, safe || undefined];
+  }));
   const officesForObserver = (org: Organization) => {
     const offices = publicOffices(org.offices, playerNames);
-    // The Specs' institution view does not establish global outsider entitlement
-    // to holder handles; keep seat metadata, but do not infer identity from IDs.
-    return isOrgMember(org, principal.player_id) ? offices : offices.map(({ office_id, display_name, status, authority_profile }) => ({
-      office_id, display_name, status, authority_profile,
-    }));
+    if (isOrgMember(org, principal.player_id)) return offices;
+    // Entered Players can see published holder handles, never raw holder IDs or
+    // unverified successor identities. Do not turn an ID-derived fallback into a name.
+    return offices.map(({ office_id, display_name, status, authority_profile, holder_player_id }) => {
+      const safe = holder_player_id ? playerNames[holder_player_id] : undefined;
+      return { office_id, display_name, status, authority_profile, ...(status === "OCCUPIED" && safe ? { holder_handle: safe } : {}) };
+    });
   };
   const cautionToward: Record<string, boolean> = {};
   for (const p of otherPlayers) {
