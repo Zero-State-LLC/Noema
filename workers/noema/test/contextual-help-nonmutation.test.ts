@@ -88,3 +88,11 @@ helpCase("T23-next10 02 help all does not execute listed verbs", async () => {
   expect(r.observation?.consequence).toContain("move <dir>");
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.hub");
 });
+
+helpCase("T23-next10 03 trade help creates no reservations or trade", async () => {
+  const s = await helpScene();
+  const r = await readonlyHelp(s, "help trade");
+  expect(r.observation?.consequence).toContain("TRADE");
+  expect(r.observation?.consequence).toContain("reserved until accept/reject");
+  expect(s.w.trades).toEqual({});
+});
