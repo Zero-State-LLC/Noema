@@ -299,3 +299,15 @@ helpCase("T23-boundary 05 exit DENY expires only after its expires cycle", async
   expect(followed.ok).toBe(true);
   expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
 });
+
+
+helpCase("T23-boundary 06 ALLOW_ONLY excludes an unlisted observer", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.access_restrictions = [{ restriction_id: "help.allow.other", scope: "EXIT", mode: "ALLOW_ONLY", applies_to: s.near.player_id, room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  expect((await s.ask("move east")).error?.code).toBe("MOVE_REJECTED");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  move east$/m);
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  expect((await s.ask("inspect open-conduit")).ok).toBe(true);
+});
