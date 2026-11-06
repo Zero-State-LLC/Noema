@@ -1774,6 +1774,19 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 04 absent public site never receives camera focus", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      const frame = readinessFrame(21, "room.east");
+      client.setFetch(() => okResponse({ ...frame, rooms: [] }));
+      await client.refresh();
+      expect(focus).toEqual([]);
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 21");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 03 new public major event retargets camera after Refresh", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
