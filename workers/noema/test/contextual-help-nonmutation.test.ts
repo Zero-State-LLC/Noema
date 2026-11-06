@@ -286,3 +286,16 @@ helpCase("T23-boundary 04 exit DENY remains active at its expires cycle", async 
   expect(r.observation?.consequence).toContain("inspect open-conduit");
   expect((await s.ask("inspect open-conduit")).ok).toBe(true);
 });
+
+
+helpCase("T23-boundary 05 exit DENY expires only after its expires cycle", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.access_restrictions = [{ restriction_id: "help.deny.expired", scope: "EXIT", mode: "DENY", applies_to: "*", room_id: "room.hub", exit_id: "east", expires_cycle: 10 }];
+  s.w.cycle = 11;
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).toMatch(/^  move east$/m);
+  const followed = await s.ask("move east");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
+});
