@@ -152,3 +152,16 @@ helpCase("T23-next10 09 same-envelope help replay creates no new canonical effec
   expect(replay).toEqual(first);
   expect(s.settle).not.toHaveBeenCalled();
 });
+
+helpCase("T23-next10 10 a real MOVE after help reaches the same settlement recorder", async () => {
+  const s = await helpScene();
+  await readonlyHelp(s, "help");
+  expect(s.settle).not.toHaveBeenCalled();
+  const sequence = s.w.sequence;
+  const moved = await s.command(s.observer, "MOVE", { direction: "east" });
+  expect(moved.ok).toBe(true);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(0);
+  expect(s.w.sequence).toBeGreaterThan(sequence);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+  expect((moved.events ?? []).length).toBeGreaterThan(0);
+});
