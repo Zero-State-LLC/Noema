@@ -417,3 +417,22 @@ helpCase("T23-audit advertised message reaches its canonical target", async () =
   expect(result.events?.some((e) => e.event_type === "MESSAGE" && e.payload?.recipient_id === s.far.player_id)).toBe(false);
   expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
 });
+
+
+helpCase("T23-audit advertised trade reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.hub"].exits = [];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "TRADE" && x.available && x.target_id === s.near.player_id);
+  expect(a?.cmd).toBe("trade help-near offer=energy:1 want=energy:1");
+  expect(help.observation?.consequence!.split("\n")).toContain("  trade help-near offer=energy:1 want=energy:1");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  const offers = Object.values(s.w.trades).filter((t) => t.status === "OPEN");
+  expect(offers).toHaveLength(1);
+  expect(offers[0].proposer_id).toBe(s.observer.player_id);
+  expect(offers[0].counterparty_id).toBe(s.near.player_id);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
