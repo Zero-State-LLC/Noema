@@ -257,3 +257,19 @@ helpCase("T23-boundary 02 INSPECT affordability recovers after attention restora
   expect(followed.ok).toBe(true);
   expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.open")).toBe(true);
 });
+
+
+helpCase("T23-boundary 03 inspection seal releases exactly at its cycle boundary", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.seal-boundary", label: "sealed-conduit", entity_type: "INFRASTRUCTURE", condition: 100, inspect_restricted_until: 10 })];
+  s.w.cycle = 9;
+  expect((await s.ask("inspect sealed-conduit")).error?.code).toBe("FORBIDDEN");
+  const sealed = await readonlyHelp(s, "help");
+  expect(sealed.observation?.consequence).not.toContain("inspect sealed-conduit");
+  s.w.cycle = 10;
+  const released = await readonlyHelp(s, "help");
+  expect(released.observation?.consequence).toContain("inspect sealed-conduit");
+  const followed = await s.ask("inspect sealed-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.seal-boundary")).toBe(true);
+});
