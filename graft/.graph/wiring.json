@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8878,
-    "edgeCount": 19647,
+    "nodeCount": 8880,
+    "edgeCount": 19655,
     "languages": [
       "javascript",
       "python",
@@ -95010,6 +95010,35 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "fdda4ec1337ff636080159cb133ab3b60f34c4260d969e42f092c001492b6445",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "name": "agent-http-do-org-identity.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "span": "L1-L106",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4e2e6a7a534bc093ced1d7d0b321c342f60d5efae73357314d0b2c0bb99e4fc4",
+      "chars": 6851,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/agent-http-do-org-identity.test.ts#read",
+      "name": "read",
+      "kind": "function",
+      "path": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "span": "L55-L93",
+      "signature": "read = async ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f3d005bcef11b08fdbb7309592acd1a031a9dfc037a1a042782f5921b29a0d1d",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -209729,6 +209758,54 @@
       "source": "workers/noema/test/agent-http-do-mounted-social.test.ts",
       "target": "workers/noema/test/agent-http-do-fixture.ts",
       "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/test/agent-http-do-org-identity.test.ts#read",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/test/agent-http-do-org-identity.test.ts#read",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-org-identity.test.ts",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "references",
       "confidence": "extracted"
     },
     {
