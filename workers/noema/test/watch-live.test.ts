@@ -1774,6 +1774,18 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 03 new public major event retargets camera after Refresh", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21, "room.east")));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.east", 560]);
+      expect(focus.some(([id]) => id === "room.market")).toBe(false);
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 21");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 02 reduced-motion Refresh records a new zero-duration focus", async () => {
     const { client, focus } = await bootReadinessMap(true);
     try {
