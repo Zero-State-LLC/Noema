@@ -812,7 +812,8 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
     p.budgets = cloneBudgets(p.budgets);
   }
   if (!p.handle) p.handle = handleFromPrincipal(principal);
-  if (!p.room_id) p.room_id = room_id;
+  // Do not manufacture physical presence for an already-entered Player.
+  if (!p.room_id && !p.entered) p.room_id = room_id;
   p.actor_kind = actorKind;
   p.last_seen_ms = Date.now();
   if (principal.controller_type) p.controller_type = principal.controller_type;
@@ -907,6 +908,41 @@ export function buildObservation(
       (t.proposer_id === principal.player_id || t.counterparty_id === principal.player_id),
   );
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
+  const roomRefs = Object.values(w.rooms);
+  // Office labels have a stricter publication boundary than WATCH labels.
+  // Compare canonical spellings on BOTH sides without changing room state or
+  // the original, permitted handle that is ultimately displayed.
+  const officeComparison = (value: string) => value.normalize("NFKC").trim().toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/[._-]+/g, (separators) => separators.includes(".") ? "." : "-");
+  const comparisonRooms = roomRefs.map(({ name, room_id }) => ({
+    name: officeComparison(name || ""), room_id: officeComparison(room_id || ""),
+  }));
+  const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => {
+    const raw = p.entered ? p.handle : undefined;
+    // The raw spelling must pass the existing public policy; the canonical
+    // spelling must pass that policy and every canonical room name/id/slug.
+    const comparison = raw && officeComparison(raw);
+    const safe = raw && comparison
+      && safePlateHandle(raw) === raw.trim()
+      && safePlateHandle(comparison) === comparison.trim()
+      && publicOccupantLabel({ handle: raw, player_id: id }, roomRefs)
+      && publicOccupantLabel({ handle: comparison, player_id: id }, comparisonRooms)
+      ? raw.trim()
+      : null;
+    return [id, safe || undefined];
+  }));
+  const officesForObserver = (org: Organization) => {
+    const offices = publicOffices(org.offices, playerNames);
+    if (isOrgMember(org, principal.player_id)) return offices;
+    // Entered Players can see published holder handles, never raw holder IDs or
+    // unverified successor identities. Do not turn an ID-derived fallback into a name.
+    return offices.map(({ office_id, display_name, status, authority_profile, holder_player_id }) => {
+      const safe = holder_player_id ? playerNames[holder_player_id] : undefined;
+      return { office_id, display_name, status, authority_profile, ...(status === "OCCUPIED" && safe ? { holder_handle: safe } : {}) };
+    });
+  };
   const cautionToward: Record<string, boolean> = {};
   for (const p of otherPlayers) {
     const hostile = liveHostileToward(
@@ -933,6 +969,9 @@ export function buildObservation(
     focus: pl.focus,
     hiddenRoom: isHiddenRoom(room),
     roomId: room.room_id,
+    // The displayed room may be a fallback; only retained, valid occupancy grants presence.
+    observerRoomId: existing?.entered && existing.room_id && w.rooms[existing.room_id]?.room_id === existing.room_id
+      ? existing.room_id : undefined,
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
     agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
     accessRestrictions: w.access_restrictions || [],
@@ -1045,14 +1084,13 @@ export function buildObservation(
         name: o.name,
         charter: o.charter,
         status: o.status,
-        creator_id: o.creator_id,
-        members: (o.members || []).map((m) => ({ agent_id: m.agent_id, role: m.role })),
+        ...(isOrgMember(o, principal.player_id) ? { creator_id: o.creator_id } : {}),
+        members: isOrgMember(o, principal.player_id)
+          ? (o.members || []).map((m) => ({ agent_id: m.agent_id, role: m.role }))
+          : [],
         my_role: (o.members || []).find((m) => m.agent_id === principal.player_id)?.role || null,
         created_cycle: o.created_cycle,
-        offices: publicOffices(
-          o.offices,
-          Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle])),
-        ),
+        offices: officesForObserver(o),
         public_notice: o.public_notice,
         treasury: occupiedOfficesFor(o, principal.player_id, TRADE_PROFILE).length
           ? { ...ensureTreasury(o) }
@@ -1235,8 +1273,7 @@ export function buildObservation(
     ),
     discovery_lines: discoveryLines(pl.discovery),
     office_lines: orgs.flatMap((o) => {
-      const names = Object.fromEntries(Object.entries(w.players).map(([id, p]) => [id, p.handle]));
-      const pub = publicOffices(o.offices, names);
+      const pub = officesForObserver(o);
       const base = officeLines(pub).map((line) => `${o.name}: ${line}`);
       // INSTITUTIONAL-AUTHORITY "Evidence": the published order that decides
       // AUTHORITY_CONFLICT shows on the same PLAY surface as the offices.
@@ -2256,7 +2293,7 @@ export async function applyWorldCommand(
           two_way: hasPublicReverse(w.rooms[e.to_room_id], room?.room_id || ""),
         })),
         budgets: pl.budgets,
-        otherPlayers: Object.entries(w.players).map(([id, p]) => ({
+        otherPlayers: Object.entries(w.players).filter(([, p]) => p.entered).map(([id, p]) => ({
           player_id: id,
           handle: p.handle,
           room_id: p.room_id,
@@ -2270,6 +2307,8 @@ export async function applyWorldCommand(
         focus: pl.focus,
         hiddenRoom: room ? isHiddenRoom(room) : false,
         roomId: room?.room_id,
+        observerRoomId: pl.entered && pl.room_id && w.rooms[pl.room_id]?.room_id === pl.room_id
+          ? pl.room_id : undefined,
         openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
         agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
         accessRestrictions: w.access_restrictions || [],

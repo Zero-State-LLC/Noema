@@ -353,6 +353,7 @@ describe("Tier 1 world mutations", () => {
       openTrades: [],
       selfId: "player.self",
       roomId: "room.hub",
+      observerRoomId: "room.hub",
     };
     const aff = deriveAffordances(input);
     expect(aff.some((a) => a.action === "REPAIR" && a.available)).toBe(true);
@@ -360,7 +361,7 @@ describe("Tier 1 world mutations", () => {
     expect(aff.some((a) => a.action === "MESSAGE" && a.available)).toBe(true);
     expect(aff.some((a) => a.action === "TRADE" && a.available)).toBe(true);
     for (const candidate of [
-      { ...input, roomId: undefined },
+      { ...input, observerRoomId: undefined },
       { ...input, otherPlayers: [{ ...input.otherPlayers[0], room_id: undefined }] },
       { ...input, otherPlayers: [{ ...input.otherPlayers[0], room_id: "room.east" }] },
     ]) {
