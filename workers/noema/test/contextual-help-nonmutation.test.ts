@@ -165,3 +165,63 @@ helpCase("T23-next10 10 a real MOVE after help reaches the same settlement recor
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
   expect((moved.events ?? []).length).toBeGreaterThan(0);
 });
+
+helpCase("T23-executable sealed inspection is not advertised by HELP", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.sealed", label: "sealed-relay", entity_type: "INFRASTRUCTURE", condition: 100, inspect_restricted_until: 10 }),
+    enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 }),
+  ];
+  const blocked = await s.ask("inspect sealed-relay");
+  expect(blocked.error?.code).toBe("FORBIDDEN");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toContain("inspect sealed-relay");
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  const followed = await s.ask("inspect open-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.open")).toBe(true);
+});
+
+helpCase("T23-executable duplicate entity labels do not advertise ambiguous inspection", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.duplicate-a", label: "relay", entity_type: "INFRASTRUCTURE", condition: 100 }),
+    enrichEntity({ entity_id: "entity.duplicate-b", label: "relay", entity_type: "INFRASTRUCTURE", condition: 100 }),
+    enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 }),
+  ];
+  expect((await s.ask("inspect relay")).error?.code).toBe("AMBIGUOUS_TARGET");
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toMatch(/^  inspect relay$/m);
+  expect(r.observation?.consequence).toContain("inspect open-conduit");
+  const followed = await s.ask("inspect open-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.open")).toBe(true);
+});
+
+helpCase("T23-executable article normalization cannot advertise the wrong inspection target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.article", label: "the relay", entity_type: "INFRASTRUCTURE", condition: 100 }),
+    enrichEntity({ entity_id: "entity.plain", label: "relay", entity_type: "INFRASTRUCTURE", condition: 100 }),
+  ];
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).not.toContain("inspect the relay");
+  expect(r.observation?.consequence).toMatch(/^  inspect relay$/m);
+  const followed = await s.ask("inspect relay");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.plain")).toBe(true);
+});
+
+helpCase("T23-executable presence-blocked MOVE is suppressed until restored", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.players[s.observer.player_id].disabled_until_cycle = s.w.cycle + 10;
+  expect((await s.ask("move east")).ok).toBe(false);
+  const blocked = await readonlyHelp(s, "help");
+  expect(blocked.observation?.consequence).not.toContain("move east");
+  s.w.players[s.observer.player_id].disabled_until_cycle = s.w.cycle;
+  const restored = await readonlyHelp(s, "help");
+  expect(restored.observation?.consequence).toContain("move east");
+  expect((await s.ask("move east")).ok).toBe(true);
+  expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
+});

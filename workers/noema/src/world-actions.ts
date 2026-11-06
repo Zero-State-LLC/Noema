@@ -2150,6 +2150,30 @@ export async function applyWorldCommand(
   // Client may send human line or structured command
   const rawArgs = (envl.arguments || {}) as Record<string, unknown>;
   const playRoom = resolvePlayRoom(w, w.players[principal.player_id]?.room_id || w.entry_room_id);
+  // Contextual HELP and unknown-command recovery must share the same MOVE/INSPECT
+  // text round-trip and executor gates. Other affordance families retain their policy.
+  const executableSuggestion = (aff: Pick<ReturnType<typeof deriveAffordances>[number], "available" | "action" | "cmd" | "target_id">): boolean => {
+    if (!aff.available) return false;
+    if (aff.action === "MOVE") {
+      const presenceDisabled = w.players[principal.player_id]?.disabled_until_cycle;
+      if (!aff.cmd || !aff.target_id || !playRoom ||
+          (presenceDisabled != null && w.cycle < presenceDisabled) ||
+          isAccessDenied(w, principal.player_id, playRoom.room_id, aff.target_id)) return false;
+      const parsedHint = parseHumanCommand(aff.cmd, { exits: parseCtx.exits });
+      if (!parsedHint.ok || parsedHint.action.verb !== "MOVE") return false;
+      const direction = parsedHint.action.arguments.direction;
+      return direction === aff.target_id && parseCtx.exits.some((exit) => exit.direction === direction);
+    }
+    if (aff.action === "INSPECT") {
+      if (!aff.cmd || !aff.target_id) return false;
+      const entity = parseCtx.entities.find((e) => e.entity_id === aff.target_id);
+      if (!entity || (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until)) return false;
+      const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
+      return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
+        parsedHint.action.arguments.entity_id === aff.target_id;
+    }
+    return true;
+  };
   const parseCtx = {
     entities: roomEntities(playRoom),
     players: Object.entries(w.players).map(([id, p]) => ({
@@ -2167,26 +2191,9 @@ export async function applyWorldCommand(
     openTrades: Object.values(w.trades || {}),
     exits: playRoom ? publicExits(w, playRoom) : [],
     hintCommands: () => {
-      const available = (buildObservation(w, principal).affordances || []).filter((aff) => aff.available);
-      const presenceDisabled = w.players[principal.player_id]?.disabled_until_cycle;
-      const move = available.find((aff) => {
-        if (aff.action !== "MOVE" || !aff.cmd || !aff.target_id || !playRoom ||
-            (presenceDisabled != null && w.cycle < presenceDisabled) ||
-            isAccessDenied(w, principal.player_id, playRoom.room_id, aff.target_id)) return false;
-        const parsedHint = parseHumanCommand(aff.cmd, { exits: parseCtx.exits });
-        if (!parsedHint.ok || parsedHint.action.verb !== "MOVE") return false;
-        const direction = parsedHint.action.arguments.direction;
-        return direction === aff.target_id &&
-          parseCtx.exits.some((exit) => exit.direction === direction);
-      });
-      const inspect = available.find((aff) => {
-        if (aff.action !== "INSPECT" || !aff.cmd || !aff.target_id) return false;
-        const entity = parseCtx.entities.find((e) => e.entity_id === aff.target_id);
-        if (!entity || (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until)) return false;
-        const parsedHint = parseHumanCommand(aff.cmd, { entities: parseCtx.entities });
-        return parsedHint.ok && parsedHint.action.verb === "INSPECT" &&
-          parsedHint.action.arguments.entity_id === aff.target_id;
-      });
+      const available = (buildObservation(w, principal).affordances || []).filter(executableSuggestion);
+      const move = available.find((aff) => aff.action === "MOVE");
+      const inspect = available.find((aff) => aff.action === "INSPECT");
       return [move?.cmd, inspect?.cmd].filter((cmd): cmd is string => Boolean(cmd));
     },
   };
@@ -2319,7 +2326,7 @@ export async function applyWorldCommand(
           .flatMap((r) => roomEntities(r))
           .filter((e) => (e.entity_type || "").toUpperCase() === "INFRASTRUCTURE"),
       });
-      const text = helpText(topic, aff);
+      const text = helpText(topic, aff.filter(executableSuggestion));
       const result = success(w, principal, request_id, [], text, false);
       // HELP does not mutate — still return ok observation
       result.observation = {
