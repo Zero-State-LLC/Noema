@@ -120,3 +120,12 @@ helpCase("T23-next10 06 organization help grants no membership or authority", as
   expect(r.observation?.consequence).toContain("officers invite");
   expect(s.w.organizations).toEqual({});
 });
+
+helpCase("T23-next10 07 zero budgets do not prevent free contextual help", async () => {
+  const s = await helpScene();
+  const budgets = s.w.players[s.observer.player_id].budgets;
+  for (const k of Object.keys(budgets) as Array<keyof typeof budgets>) budgets[k] = 0;
+  const r = await readonlyHelp(s, "help");
+  expect(r.observation?.consequence).toContain("help all");
+  expect(Object.values(s.w.players[s.observer.player_id].budgets).every((n) => n === 0)).toBe(true);
+});
