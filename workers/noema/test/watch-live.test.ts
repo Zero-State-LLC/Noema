@@ -1502,6 +1502,7 @@ type FakeNode = {
   tagName: string;
   children: FakeNode[];
   attrs: Record<string, string>;
+  dataset: Record<string, string>;
   handlers: Record<string, Array<(ev: unknown) => void>>;
   className: string;
   textContent: string;
@@ -1544,6 +1545,7 @@ function makeWatchDom() {
       tagName: String(tag).toLowerCase(),
       children: [],
       attrs: {},
+      dataset: {},
       handlers: {},
       className: "",
       textContent: "",
@@ -1654,9 +1656,9 @@ function textOf(n: FakeNode | null | undefined): string {
   return s;
 }
 
-async function bootWatchClient(initial: () => unknown) {
+async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; focus: Array<[string, number]> }) {
   const dom = makeWatchDom();
-  const chunks = watchHtml().split("<script>").map((s) => s.split("</script>")[0]);
+  const chunks = watchHtml(map ? { mode: "map" } : undefined).split("<script>").map((s) => s.split("</script>")[0]);
   const main = chunks.find((s) => s.includes("POLL_MS"));
   expect(main).toBeTruthy();
   const g = globalThis as Record<string, unknown>;
@@ -1676,9 +1678,17 @@ async function bootWatchClient(initial: () => unknown) {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, String(v)),
   };
-  g.location = { search: "", protocol: "https:", host: "noema.test" };
-  g.window = { matchMedia: () => ({ matches: false }) }; // no WebSocket → HTTP path
-  g.fetch = async () => fetcher();
+  g.location = { search: map ? "?mode=map" : "", protocol: "https:", host: "noema.test" };
+  if (map) {
+    (dom.doc.getElementById("watch-map-gl") as FakeNode & { getContext: (id: string) => object }).getContext = () => ({});
+  }
+  g.window = {
+    matchMedia: () => ({ matches: map?.reduce ?? false }),
+    ...(map ? { NoemaWatchMapGl: { mount: () => ({ update() {}, focus(id: string, ms: number) { map.focus.push([id, ms]); }, dispose() {} }) } } : {}),
+  }; // no WebSocket → HTTP path; only map canvas/stage primitives are stubbed
+  g.fetch = async (url: string) => map && url === "/v1/watch/map"
+    ? okResponse({ world_id: "world.test", cycle: 4, sequence: 20, freshness: "live", layers: [], base: { rooms: [] } })
+    : fetcher();
   g.setInterval = () => 0;
   g.CSS = { escape: (s: string) => s };
   const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -1746,6 +1756,26 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
 }
 
 describe("driven watch client (§11/§13)", () => {
+  it.each([false, true])("keeps healthy MAP feed and focuses its camera after refresh (reduced motion=%s)", async (reduce) => {
+    const focus: Array<[string, number]> = [];
+    const notable = { sequence: 20, cycle: 4, tier: "NOTABLE", projection_id: "trade", line: "A trade at Chamber Market", room_id: "room.market" };
+    const client = await bootWatchClient(() => okResponse(snapshot({ recent_events: [notable], notable_event: notable })), { reduce, focus });
+    try {
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(client.$("watch-headline").textContent).not.toBe("Projection unavailable.");
+      expect(textOf(client.$("watch-feed"))).toContain("A trade at Chamber Market");
+      expect(focus).toContainEqual(["room.market", reduce ? 0 : 560]);
+      const refreshed = { ...notable, sequence: 21, line: "A second trade at Chamber Market" };
+      client.setFetch(() => okResponse(snapshot({ sequence: 21, recent_events: [refreshed], notable_event: refreshed })));
+      await client.refresh();
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(textOf(client.$("watch-feed"))).toContain("A second trade at Chamber Market");
+      expect(focus).toContainEqual(["room.market", reduce ? 0 : 560]);
+    } finally {
+      client.restore();
+    }
+  });
+
   it("keeps the last snapshot under freshness=stale, then fails closed offline", async () => {
     const client = await bootWatchClient(() => okResponse(snapshot({ freshness: "stale" })));
     try {
