@@ -29,3 +29,13 @@ Rendered-background pixel contrast sampled 799 first-viewport glyph runs: 253 te
 The actual Home live fetch was observed, then blocked with CDP; the visible fallback became `The public record is at Watch.`. No planted private marker, token-shaped or UUID-shaped text was found in the 20 page observations; no horizontal overflow or header/main-text overlap was found. This is not universal authored-payload/XSS, private LOOK/research or all-identity privacy proof.
 
 Browser request/message observations totaled 142 (122 main audit plus 20 focus probe), within the 400-request browser reservation. The cost preflight estimate was $8.101 under operating bounds, not an invoice measurement or provider-enforced dollar cap. A prior prorated estimate was withdrawn before deployment because billing-unit rounding had been omitted; actual current included Durable Objects allowance was checked before execution.
+
+## Cleanup and production control
+
+After the receipt's required phases, the campaign Worker was deleted. An independent provider deployment query returned missing-resource, and the isolated version endpoint returned HTTP 404. The runner stored `teardown.deleted: true` and `teardown.secrets_scrubbed: true`; the stored ephemeral admin token was absent.
+
+The parent executed the target-guarded dedicated database pause procedure, whose authenticated read-back reached terminal `INACTIVE`. This DB status is a supplemental parent observation: the runner's teardown JSON does not itself certify database pause. Operator exclusive-use and final-pause authority were confirmed before cleanup. Older 733 Workers were not modified or removed.
+
+A fresh production version read after teardown matched the recorded before-deployment version. This establishes version non-impact for the controlled endpoint; it is not a claim that every production account resource was exhaustively audited. No production database or route mutation was performed.
+
+The first parent version check incorrectly compared the configured default world returned by `/version` to the separate WATCH override world. It stopped before aggregation. Corrected independent read-backs matched `/version` to the configured default and WATCH live/MAP to the isolated target. That was a verifier assumption error, not a product gate failure or a different deployment. The final aggregate was regenerated after cleanup. Raw identifiers and private readbacks remain withheld.
