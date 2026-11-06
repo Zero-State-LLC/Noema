@@ -240,3 +240,20 @@ helpCase("T23-boundary 01 MOVE affordability recovers after energy restoration",
   expect((await s.ask("move east")).ok).toBe(true);
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
 });
+
+
+helpCase("T23-boundary 02 INSPECT affordability recovers after attention restoration", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.open", label: "open-conduit", entity_type: "INFRASTRUCTURE", condition: 100 })];
+  s.w.players[s.observer.player_id].budgets.attention = 0;
+  expect((await s.ask("inspect open-conduit")).error?.code).toBe("BUDGET_EXCEEDED");
+  const denied = await readonlyHelp(s, "help");
+  expect(denied.observation?.consequence).not.toContain("inspect open-conduit");
+  expect(denied.observation?.consequence).toMatch(/^  move east$/m);
+  s.w.players[s.observer.player_id].budgets.attention = DEFAULT_BUDGETS.attention;
+  const restored = await readonlyHelp(s, "help");
+  expect(restored.observation?.consequence).toContain("inspect open-conduit");
+  const followed = await s.ask("inspect open-conduit");
+  expect(followed.ok).toBe(true);
+  expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === "entity.open")).toBe(true);
+});
