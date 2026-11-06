@@ -350,3 +350,20 @@ helpCase("T23-boundary 09 direction aliases cannot advertise a different route",
   expect(s.w.players[s.observer.player_id].room_id).toBe("room.east");
   expect(followed.events?.some((e) => e.event_type === "MOVE" && e.payload?.to === "room.east")).toBe(true);
 });
+
+
+helpCase("T23-boundary 10 ineligible candidates are removed before the three-command cap", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.sealed", label: "sealed-conduit", entity_type: "INFRASTRUCTURE", condition: 100, inspect_restricted_until: 10 }),
+    ...["a", "b", "c"].map((x) => enrichEntity({ entity_id: `entity.open-${x}`, label: `open-${x}`, entity_type: "INFRASTRUCTURE", condition: 100 })),
+  ];
+  const r = await readonlyHelp(s, "help");
+  const commands = r.observation!.consequence!.split("\n").filter((line) => line.startsWith("  ")).map((line) => line.trim());
+  expect(commands).toEqual(["inspect open-a", "inspect open-b", "inspect open-c"]);
+  for (const x of ["a", "b", "c"]) {
+    const followed = await s.ask(`inspect open-${x}`);
+    expect(followed.ok).toBe(true);
+    expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === `entity.open-${x}`)).toBe(true);
+  }
+});
