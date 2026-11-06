@@ -1,5 +1,6 @@
 import { expect, test as helpCase, vi } from "vitest";
-import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
+import { cloneBudgets, COSTS, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
+import { STORAGE_CAPACITY } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { PlayerPrincipal } from "../src/types";
 
@@ -366,4 +367,21 @@ helpCase("T23-boundary 10 ineligible candidates are removed before the three-com
     expect(followed.ok).toBe(true);
     expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === `entity.open-${x}`)).toBe(true);
   }
+});
+
+
+helpCase("T23-audit advertised repair reaches its canonical target", async () => {
+  const s = await helpScene();
+  // storage is free hold capacity; carry exactly the canonical repair cargo.
+  s.w.players[s.observer.player_id].budgets.storage = STORAGE_CAPACITY - (COSTS.REPAIR.storage || 0);
+  const before = s.w.rooms["room.hub"].entities![0].condition!;
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "REPAIR" && x.cmd === "repair relay" && x.available);
+  expect(a?.target_id).toBe("entity.help.relay");
+  expect(help.observation?.consequence!.split("\n")).toContain("  repair relay");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(s.w.rooms["room.hub"].entities!.find((e) => e.entity_id === "entity.help.relay")!.condition).toBeGreaterThan(before);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
 });
