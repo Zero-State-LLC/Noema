@@ -96,3 +96,11 @@ helpCase("T23-next10 03 trade help creates no reservations or trade", async () =
   expect(r.observation?.consequence).toContain("reserved until accept/reject");
   expect(s.w.trades).toEqual({});
 });
+
+helpCase("T23-next10 04 repair help leaves infrastructure condition untouched", async () => {
+  const s = await helpScene();
+  const r = await readonlyHelp(s, "help repair");
+  expect(r.observation?.consequence).toContain("REPAIR");
+  expect(r.observation?.consequence).toContain("Condition +15");
+  expect(s.w.rooms["room.hub"].entities?.[0].condition).toBe(60);
+});
