@@ -116,6 +116,71 @@ identityCase("public LOOK office projections reject raw and compatibility-spoofe
   }
 });
 
+identityCase("outsider LOOK with fullwidth room title and ASCII holder uses generic occupied", async () => {
+  // An independently seeded world preserves the exact reported room.main
+  // shape; ENTER/MOVE fixture preparation can canonicalize a room reference.
+  const w = {
+    world_id: "office.compat", world_name: "Office compat", cycle: 0, sequence: 0, entry_room_id: "room.main",
+    rooms: { "room.main": { room_id: "room.main", name: "Ｈｕｂ", description: "Hub", exits: [], entities: [] } },
+    players: {
+      "player.viewer": { entered: true, room_id: "room.main", handle: "Viewer", budgets: cloneBudgets(DEFAULT_BUDGETS) },
+      "player.holder": { entered: true, room_id: "room.main", handle: "Hub", budgets: cloneBudgets(DEFAULT_BUDGETS) },
+    },
+    trades: {}, messages: [], seen_idempotency: {}, unsettled: [],
+    organizations: { "org.other": { org_id: "org.other", name: "Other", charter: "co-op", status: "ACTIVE", creator_id: "player.holder", created_cycle: 0,
+      members: [{ agent_id: "player.holder", role: "founder" }],
+      offices: { "office.other": { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: "player.holder" } },
+    } },
+  } as unknown as WorldRuntime;
+  const r = await run(w, principal("viewer"), "LOOK");
+  expect(r.ok).toBe(true);
+  const office = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+  expect(office).not.toHaveProperty("holder_handle");
+  expect(r.observation?.office_lines).toContain("Other: Offices: Treasurer — occupied");
+  expect(r.observation?.play_text?.split("\nOFFICES\n").at(-1)).toContain("Treasurer — occupied");
+});
+
+identityCase("public office labels cannot impersonate either spelling of any room reference", async () => {
+  const { w, observer, outsider } = await scene();
+  w.organizations["org.other"].offices = {
+    "office.other": { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id },
+  };
+  const cases = [
+    { name: "Ｈｕｂ", id: "room.main", handle: "Hub" }, // exact reported title/reference mismatch
+    { name: "Hub", id: "room.main", handle: "Ｈｕｂ" },
+    { name: "Hｕb", id: "room.main", handle: "Ｈub" },
+    { name: "East", id: "room.Ｍａｉｎ", handle: "main" },
+    { name: "East", id: "room.Ｍａｉｎ", handle: "Ｍａｉｎ" },
+    { name: "East", id: "room.Ｍａｉｎ", handle: "room . main" },
+    { name: "East", id: "room.Ｍａｉｎ", handle: "ＲＯＯＭ．ＭＡＩＮ" },
+    { name: "East", id: "room.main", handle: "east" }, // another room, not only the current room
+    { name: "Civic   Exchange", id: "room.main", handle: "Civic Exchange" },
+    { name: "Civic-Exchange", id: "room.main", handle: "Civic_Exchange" },
+    { name: "East", id: "room.main", handle: "Far Landing", otherName: "Ｆａｒ　Landing" },
+  ];
+  for (const { name, id, handle, otherName } of cases) {
+    w.rooms["room.hub"].name = name;
+    w.rooms["room.east"].name = otherName || "East";
+    w.rooms["room.east"].room_id = id;
+    w.players[outsider.player_id].handle = handle;
+    w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const r = await run(w, observer, "LOOK");
+    expect(r.ok, handle).toBe(true);
+    const office = r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0];
+    expect(office, `${name}/${id}: ${handle}`).not.toHaveProperty("holder_handle");
+    expect(r.observation?.office_lines, handle).toContain("Other Compact: Offices: Treasurer — occupied");
+    expect(r.observation?.play_text?.split("\nOFFICES\n").at(-1), handle).toContain("Treasurer — occupied");
+  }
+  w.rooms["room.hub"].name = "Ｈｕｂ";
+  for (const handle of ["Vesper", "Ｖｅｓｐｅｒ"]) {
+    w.players[outsider.player_id].handle = handle;
+    w.players[observer.player_id].budgets = cloneBudgets(DEFAULT_BUDGETS);
+    const r = await run(w, observer, "LOOK");
+    expect(r.observation?.organizations?.find(o => o.org_id === "org.other")?.offices?.[0]?.holder_handle).toBe(handle);
+    expect(r.observation?.office_lines).toContain(`Other Compact: Offices: Treasurer — ${handle}`);
+  }
+});
+
 identityCase("public office handle requires entered, safe source name; vacant seats remain generic", async () => {
   const { w, observer, outsider } = await scene();
   const office: OfficeRecord = { office_id: "office.other", institution_id: "org.other", display_name: "Treasurer", status: "OCCUPIED", authority_profile: "OPERATE_RESOURCE_ACCOUNT", created_cycle: 0, history: [], holder_player_id: outsider.player_id };

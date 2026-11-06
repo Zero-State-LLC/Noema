@@ -908,19 +908,27 @@ export function buildObservation(
   );
   const orgs = Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE");
   const roomRefs = Object.values(w.rooms);
+  // Office labels have a stricter publication boundary than WATCH labels.
+  // Compare canonical spellings on BOTH sides without changing room state or
+  // the original, permitted handle that is ultimately displayed.
+  const officeComparison = (value: string) => value.normalize("NFKC").trim().toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\s*([._-])\s*/g, "$1")
+    .replace(/[._-]+/g, (separators) => separators.includes(".") ? "." : "-");
+  const comparisonRooms = roomRefs.map(({ name, room_id }) => ({
+    name: officeComparison(name || ""), room_id: officeComparison(room_id || ""),
+  }));
   const playerNames = Object.fromEntries(Object.entries(w.players).map(([id, p]) => {
     const raw = p.entered ? p.handle : undefined;
-    // Check the comparison spelling as well as the actual display spelling.
-    // Compatibility glyphs and padding around namespace separators must not
-    // turn a private identifier into a published office holder handle.
-    const comparison = raw?.normalize("NFKC")
-      .replace(/\s*([._-])\s*/g, "$1")
-      .replace(/[._-]+/g, (separators) => separators.includes(".") ? "." : separators[0]);
+    // The raw spelling must pass the existing public policy; the canonical
+    // spelling must pass that policy and every canonical room name/id/slug.
+    const comparison = raw && officeComparison(raw);
     const safe = raw && comparison
       && safePlateHandle(raw) === raw.trim()
       && safePlateHandle(comparison) === comparison.trim()
-      && publicOccupantLabel({ handle: comparison, player_id: id }, roomRefs)
-      ? publicOccupantLabel({ handle: raw, player_id: id }, roomRefs)
+      && publicOccupantLabel({ handle: raw, player_id: id }, roomRefs)
+      && publicOccupantLabel({ handle: comparison, player_id: id }, comparisonRooms)
+      ? raw.trim()
       : null;
     return [id, safe || undefined];
   }));
