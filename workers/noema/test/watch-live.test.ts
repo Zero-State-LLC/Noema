@@ -1774,6 +1774,17 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 05 MAP live-fetch failure clears the previous feed", async () => {
+    const { client } = await bootReadinessMap();
+    try {
+      client.setFetch(() => { throw new Error("synthetic public feed failure"); });
+      await client.refresh();
+      expect(textOf(client.$("watch-feed"))).not.toContain("Public signal 20");
+      expect(client.$("watch-state").textContent).toBe("unavailable");
+      expect(client.$("watch-headline").textContent).toBe("Projection unavailable.");
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 04 absent public site never receives camera focus", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
