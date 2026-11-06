@@ -180,7 +180,15 @@ Evidence tiers: **source/local citation** = historical source or local fixture m
 
 Every row has an existing follow-up and bounded evidence reference; these citations do not confer `VERIFIED` status. Human parser/HELP/macros retire from production only under RFC-0120, not from the recorded source behavior or a security boundary test.
 
-## Decision boundaries and next checks
+## Current residual gates and ownership
+
+The current projection contains 49 unique IDs and preserves all prior states: 31 IMPLEMENTED_UNVERIFIED, 17 IMPLEMENTING, 1 NOT_STARTED, 0 VERIFIED. The 45 ordinary rows map to the existing slice issues: S0 #778 (8 rows), S1 #779 (8), S2 #780 (5), S3 #781 (6), S4 #782 (5), S5 #783 (4), S6 #784 (5), S7 #785 (4). TX.2–TX.5 retain their cross-cutting links. No new duplicate issue is required.
+
+The same-run required hosted receipt now exists. Remaining R4 work stays in those slice follow-ups; actual human comprehension stays in S6 #784, G5 tempo alarms/WebSocket hibernation in #777, and broader identity projection variants in #793. C9 remains optional/not_covered. The local #808/#809 regressions and fresh campaign do not certify every parser, discovery, alias, authored-text or surface criterion.
+
+#733 stays OPEN by explicit instruction. #775 requires its own final documentation/follow-up reconciliation; #806 now has merged repair and scoped hosted evidence available for a separately authorized disposition. This matrix performs neither transition. Production is unchanged; there is no authorization here to restart a hosted campaign.
+
+## Historical decision boundaries and next checks
 
 1. Preserve RFC-0120: do not elevate parser/HELP/alias/macros to hosted human Player requirements. For any retained dev tool, audit the Agent boundary and no macro/auth bypass; alias preferences currently sit on mutable `w.players`, despite being off-ledger (see T4.1 and TX.3).
 2. **Security first:** retain the merged hidden-exit/hidden-entity suggestion and same-ID material-change fingerprint regressions for dev parsing; close the still-uncovered observation/recipient and auth-role/revocation gates independently. Audit trace authored-text escaping, WATCH/Home public-only fields and private message/LOOK/research inputs. The matrix identifies potential gaps, not observed hosted exploitation.
