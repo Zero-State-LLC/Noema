@@ -47,5 +47,8 @@
 - refresh · method · L1717-L1720 — async refresh()
 - okResponse · function · L1725-L1727 — function okResponse(data: unknown)
 - snapshot · function · L1729-L1756 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
-- calm · function · L1814-L1819 — calm = (seq: number)
-- preventDefault · method · L1903-L1903 — preventDefault()
+- readinessFrame · function · L1758-L1769 — function readinessFrame(sequence = 20, roomId = "room.market")
+- bootReadinessMap · function · L1771-L1775 — async function bootReadinessMap(reduce = false)
+- release · function · L1779-L1779 — release: (value: ReturnType<typeof okResponse>) => void = ()
+- calm · function · L1978-L1983 — calm = (seq: number)
+- preventDefault · method · L2067-L2067 — preventDefault()

@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8890,
-    "edgeCount": 19679,
+    "nodeCount": 8893,
+    "edgeCount": 19689,
     "languages": [
       "javascript",
       "python",
@@ -108713,12 +108713,12 @@
       "name": "watch-live.test.ts",
       "kind": "file",
       "path": "workers/noema/test/watch-live.test.ts",
-      "span": "L1-L2236",
+      "span": "L1-L2400",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "740201975cb9edd28d7e7b7a6c791b249391fa2fc5fb420d9aa1397d02ee389d",
-      "chars": 87582,
+      "body_hash": "b28adc46e251c1ffee816ae8dff7c0d14e9d236b4b8a141ebcd450a5ec167f1a",
+      "chars": 94645,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -108733,6 +108733,20 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "0fb1e3366f65d30d69a5d9e633ca33425d3eb81a900a3467bb293042ca2c9b98",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
+      "name": "bootReadinessMap",
+      "kind": "function",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L1771-L1775",
+      "signature": "async function bootReadinessMap(reduce = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9b2bbe2b79a146b8f53cbf57fdc1976f0e0032e68b1e7059a348fe82392e4791",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -108854,7 +108868,7 @@
       "name": "calm",
       "kind": "function",
       "path": "workers/noema/test/watch-live.test.ts",
-      "span": "L1814-L1819",
+      "span": "L1978-L1983",
       "signature": "calm = (seq: number)",
       "exported": false,
       "origin": "ast",
@@ -109316,11 +109330,25 @@
       "name": "preventDefault",
       "kind": "method",
       "path": "workers/noema/test/watch-live.test.ts",
-      "span": "L1903-L1903",
+      "span": "L2067-L2067",
       "signature": "preventDefault()",
       "exported": false,
       "origin": "ast",
       "body_hash": "0725c20ea4404b94911bd307e1eb7ee7695593651faff281bd00921e538d259f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#readinessFrame",
+      "name": "readinessFrame",
+      "kind": "function",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L1758-L1769",
+      "signature": "function readinessFrame(sequence = 20, roomId = \"room.market\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "03b4fc1825245beb27e38d51dc7d3b20ef0d716dad4dede6a730dd303e843f02",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -109335,6 +109363,20 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "a6bd0f24d03e9f3f3b9b471fd175f5073aa5b994ddd2ede9025f4077f0adb1c1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#release",
+      "name": "release",
+      "kind": "function",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L1779-L1779",
+      "signature": "release: (value: ReturnType<typeof okResponse>) => void = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e39b155e1f7bdada72f3ab5ccc43565bc2ffd3911e611a9efc574e629990a1de",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -234113,6 +234155,12 @@
     },
     {
       "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#bootWatchClient",
       "relation": "calls",
       "confidence": "extracted"
@@ -234149,7 +234197,19 @@
     },
     {
       "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#readinessFrame",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#recent",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#release",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -234186,6 +234246,12 @@
     {
       "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#bareLine",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -234245,7 +234311,19 @@
     },
     {
       "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#readinessFrame",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#recent",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#release",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -234343,6 +234421,24 @@
       "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/src/watch.ts",
       "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
+      "target": "workers/noema/test/watch-live.test.ts#bootWatchClient",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
+      "target": "workers/noema/test/watch-live.test.ts#okResponse",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#bootReadinessMap",
+      "target": "workers/noema/test/watch-live.test.ts#readinessFrame",
+      "relation": "calls",
       "confidence": "extracted"
     },
     {
@@ -234666,6 +234762,12 @@
     {
       "source": "workers/noema/test/watch-live.test.ts#makeWatchDom.text",
       "target": "workers/noema/test/watch-live.test.ts#makeWatchDom.node",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#readinessFrame",
+      "target": "workers/noema/test/watch-live.test.ts#snapshot",
       "relation": "calls",
       "confidence": "extracted"
     },

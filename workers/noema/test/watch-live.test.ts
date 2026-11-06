@@ -1755,7 +1755,171 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
+function readinessFrame(sequence = 20, roomId = "room.market") {
+  const room = {
+    room_id: roomId, name: roomId === "room.east" ? "East Gallery" : "Chamber Market",
+    description: "Public test site.", players_present: 1, active: true,
+    exits: [], entities: [],
+  };
+  const event = {
+    sequence, cycle: 4, tier: "MAJOR", projection_id: "discovery",
+    line: `Public signal ${sequence}`, room_id: roomId,
+  };
+  return snapshot({ sequence, rooms: [room], recent_events: [event], notable_event: event });
+}
+
+async function bootReadinessMap(reduce = false) {
+  const focus: Array<[string, number]> = [];
+  const client = await bootWatchClient(() => okResponse(readinessFrame()), { reduce, focus });
+  return { client, focus };
+}
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 10 overlapping Refresh admits only one pending live request", async () => {
+    const { client, focus } = await bootReadinessMap();
+    let release: (value: ReturnType<typeof okResponse>) => void = () => {};
+    const pending = new Promise<ReturnType<typeof okResponse>>((resolve) => { release = resolve; });
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return pending; });
+      focus.length = 0;
+      await Promise.all([client.refresh(), client.refresh()]);
+      expect(calls).toBe(1);
+      expect(focus).toEqual([]);
+      release(okResponse(readinessFrame(21)));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(focus).toContainEqual(["room.market", 560]);
+      expect(client.$("watch-seq").textContent).toBe("21");
+    } finally {
+      release(okResponse(readinessFrame(21)));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      client.restore();
+    }
+  });
+
+  it("R806-next10 09 hidden document blocks Refresh until visible", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return okResponse(readinessFrame(21)); });
+      client.dom.doc.hidden = true;
+      focus.length = 0;
+      await client.refresh();
+      expect(calls).toBe(0);
+      expect(focus).toEqual([]);
+      client.dom.doc.hidden = false;
+      await client.refresh();
+      expect(calls).toBe(1);
+      expect(focus).toContainEqual(["room.market", 560]);
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 08 resume immediately restores public MAP updates", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      client.$("watch-pause").fire("click");
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21, "room.east")));
+      client.$("watch-pause").fire("click");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(focus).toContainEqual(["room.east", 560]);
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(client.$("watch-pause").getAttribute("aria-pressed")).toBe("false");
+      expect(client.$("watch-seq").textContent).toBe("21");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 07 pause blocks manual Refresh requests and focus", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return okResponse(readinessFrame(21)); });
+      client.$("watch-pause").fire("click");
+      focus.length = 0;
+      await client.refresh();
+      expect(calls).toBe(0);
+      expect(focus).toEqual([]);
+      expect(client.$("watch-state").textContent).toBe("paused");
+      expect(client.$("watch-pause").getAttribute("aria-pressed")).toBe("true");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 06 MAP feed and camera recover after a failed Refresh", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      client.setFetch(() => { throw new Error("synthetic public feed failure"); });
+      await client.refresh();
+      expect(client.$("watch-state").textContent).toBe("unavailable");
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21, "room.east")));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.east", 560]);
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 21");
+      expect(textOf(client.$("watch-feed"))).not.toContain("Projection unavailable.");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 05 MAP live-fetch failure clears the previous feed", async () => {
+    const { client } = await bootReadinessMap();
+    try {
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 20");
+      client.setFetch(() => { throw new Error("synthetic public feed failure"); });
+      await client.refresh();
+      expect(textOf(client.$("watch-feed"))).not.toContain("Public signal 20");
+      expect(client.$("watch-state").textContent).toBe("unavailable");
+      expect(client.$("watch-headline").textContent).toBe("Projection unavailable.");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 04 absent public site never receives camera focus", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      const frame = readinessFrame(21, "room.east");
+      client.setFetch(() => okResponse({ ...frame, rooms: [] }));
+      await client.refresh();
+      expect(focus).toEqual([]);
+      expect(client.$("watch-state").textContent).toBe("live");
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 21");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 03 new public major event retargets camera after Refresh", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21, "room.east")));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.east", 560]);
+      expect(focus.some(([id]) => id === "room.market")).toBe(false);
+      expect(textOf(client.$("watch-feed"))).toContain("Public signal 21");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 02 reduced-motion Refresh records a new zero-duration focus", async () => {
+    const { client, focus } = await bootReadinessMap(true);
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21)));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.market", 0]);
+      expect(focus.every(([, ms]) => ms === 0)).toBe(true);
+      expect(client.$("watch-state").textContent).toBe("live");
+    } finally { client.restore(); }
+  });
+
+  it("R806-next10 01 normal Refresh records a new focus call", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      focus.length = 0;
+      client.setFetch(() => okResponse(readinessFrame(21)));
+      await client.refresh();
+      expect(focus).toContainEqual(["room.market", 560]);
+      expect(client.$("watch-seq").textContent).toBe("21");
+      expect(client.$("watch-state").textContent).toBe("live");
+    } finally { client.restore(); }
+  });
+
   it.each([false, true])("keeps healthy MAP feed and focuses its camera after refresh (reduced motion=%s)", async (reduce) => {
     const focus: Array<[string, number]> = [];
     const notable = { sequence: 20, cycle: 4, tier: "NOTABLE", projection_id: "trade", line: "A trade at Chamber Market", room_id: "room.market" };
