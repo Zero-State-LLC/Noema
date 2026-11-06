@@ -385,3 +385,18 @@ helpCase("T23-audit advertised repair reaches its canonical target", async () =>
   expect(s.w.rooms["room.hub"].entities!.find((e) => e.entity_id === "entity.help.relay")!.condition).toBeGreaterThan(before);
   expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
 });
+
+
+helpCase("T23-audit advertised harvest reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.audit-node", label: "audit-node", entity_type: "RESOURCE", stock_resource: "energy", stock_amount: 2, max_stock: 2, regen_rate: 0 })];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "HARVEST" && x.cmd === "harvest audit-node 1" && x.available);
+  expect(a?.target_id).toBe("entity.audit-node");
+  expect(help.observation?.consequence!.split("\n")).toContain("  harvest audit-node 1");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(s.w.rooms["room.hub"].entities![0].stock_amount).toBe(1);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
