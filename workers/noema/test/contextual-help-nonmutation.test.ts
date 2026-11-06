@@ -400,3 +400,20 @@ helpCase("T23-audit advertised harvest reaches its canonical target", async () =
   expect(s.w.rooms["room.hub"].entities![0].stock_amount).toBe(1);
   expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
 });
+
+
+helpCase("T23-audit advertised message reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.hub"].exits = [];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "MESSAGE" && x.available && x.target_id === s.near.player_id);
+  expect(a?.cmd).toBe('message help-near "hello"');
+  expect(help.observation?.consequence!.split("\n")).toContain('  message help-near "hello"');
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(result.events?.some((e) => e.event_type === "MESSAGE" && e.payload?.recipient_id === s.near.player_id && e.payload?.text === "hello")).toBe(true);
+  expect(result.events?.some((e) => e.event_type === "MESSAGE" && e.payload?.recipient_id === s.far.player_id)).toBe(false);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
