@@ -1774,6 +1774,23 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("R806-next10 09 hidden document blocks Refresh until visible", async () => {
+    const { client, focus } = await bootReadinessMap();
+    try {
+      let calls = 0;
+      client.setFetch(() => { calls++; return okResponse(readinessFrame(21)); });
+      client.dom.doc.hidden = true;
+      focus.length = 0;
+      await client.refresh();
+      expect(calls).toBe(0);
+      expect(focus).toEqual([]);
+      client.dom.doc.hidden = false;
+      await client.refresh();
+      expect(calls).toBe(1);
+      expect(focus).toContainEqual(["room.market", 560]);
+    } finally { client.restore(); }
+  });
+
   it("R806-next10 08 resume immediately restores public MAP updates", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
