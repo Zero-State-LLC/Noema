@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8857,
-    "edgeCount": 19579,
+    "nodeCount": 8871,
+    "edgeCount": 19620,
     "languages": [
       "javascript",
       "python",
@@ -97257,6 +97257,203 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "b93c08cc52caa7d122dd8c1013aa45dfce6cb33da63855d26be277ac444ca2dc",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts",
+      "name": "delayed-sibling-message.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L1-L251",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "a36906a62a82488e95952bb10039039dd86b7f81a51f01aeb9fbfd91c2c921f8",
+      "chars": 12222,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#action",
+      "name": "action",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L60-L73",
+      "signature": "function action(verb: Verb, carrier: Carrier, held: string, structured: boolean): CommandEnvelope",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5c29b339e7edc23369a4aaa5e7aa0c04bdff9246d821b532d21c75c2de266273",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "name": "advance",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L129-L135",
+      "signature": "async function advance(w: WorldRuntime, target: number)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b15f1714998d10ce55a9029ddd84da7b57d2c8a236cd32dbe77f53da7e24c05f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "name": "arrive",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L136-L171",
+      "signature": "async function arrive(q: Queued)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a6ba3cd9af7b90871c32a5b6c8f8608e87ca1bc3cd48ad4e338cd3a3b300cfe2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#Carrier",
+      "name": "Carrier",
+      "kind": "type",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L8-L8",
+      "signature": "type Carrier = \"line\" | \"outer\";",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "33ec73a90e2ceadc4083fcbc0baa34e81df01539b026b97a1f14de7a3346b91e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#effects",
+      "name": "effects",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L74-L81",
+      "signature": "function effects(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "850376f432e6cfa43e2168ffa016002c6a554a307fbefa936c8f4dd2bf1789cc",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L10-L15",
+      "signature": "principal = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "80f9845fa3dc5a718dfbc1a01732062b1ae873c5f9972e98f8acfec45b5f1749",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "name": "queue",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L82-L127",
+      "signature": "async function queue(verb: Verb, carrier: Carrier, structured: boolean)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d897d7084d4ae64b9b87d1d4f2926d8bf70cae80023dac19652d6a1cb5826cb7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#Queued",
+      "name": "Queued",
+      "kind": "type",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L128-L128",
+      "signature": "type Queued = Awaited<ReturnType<typeof queue>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a0087e88be2ffe15c9bf5fceef158549dfe3799c4a4387460d20a01a5c63d732",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "name": "replay",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L172-L183",
+      "signature": "async function replay(q: Queued)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "afe0e674dcc4f4f9735b1faedd6cd80ce953d5c7e40ff5fca73d274c3c40dfbd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "name": "run",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L20-L26",
+      "signature": "async function run(w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2a7307fc58599522d56bcc055242820989c07bf95b36bc018f531aa900d021d6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "name": "scenario",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L184-L200",
+      "signature": "async function scenario(verb: Verb, carrier: Carrier)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bc6538b61bf3ea1d582cf17d76b1c0cf538a22de5b45232f77fd93dead7e65a1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L27-L59",
+      "signature": "async function scene(): Promise<{ w: WorldRuntime; held: string }>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "77a035cc685aeaabad548d6a47640d8f39255cd8897426f7203713be866e0553",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/delayed-sibling-message.test.ts#Verb",
+      "name": "Verb",
+      "kind": "type",
+      "path": "workers/noema/test/delayed-sibling-message.test.ts",
+      "span": "L7-L7",
+      "signature": "type Verb = \"report\" | \"repeat\" | \"pass\" | \"share\";",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "eee14b9eaa69d0d5e8e8237d71b5f7028cdcf6bd3669fb27fb26463e877e7a3e",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -213586,6 +213783,252 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#action",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#Carrier",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#effects",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#Queued",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#Verb",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/src/communication.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#action",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#effects",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#advance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#arrive",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#queue",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scenario",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#replay",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/delayed-sibling-message.test.ts#scene",
+      "target": "workers/noema/test/delayed-sibling-message.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/deploy-worker-pin-workflow.test.ts",
