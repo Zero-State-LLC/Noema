@@ -3177,6 +3177,8 @@ export function deriveAffordances(input: {
   focus?: FocusState | null;
   hiddenRoom?: boolean;
   roomId?: string;
+  /** Retained occupancy, never a display-room fallback. */
+  observerRoomId?: string;
   openContests?: OpenContest[];
   agreements?: FormalAgreement[];
   accessRestrictions?: Array<{
@@ -3200,7 +3202,7 @@ export function deriveAffordances(input: {
   // Only unsolicited organization/share candidates use roster entitlement; MESSAGE
   // and TRADE retain their stricter current-room rule and explicit actions are unchanged.
   const suggestionTarget = (p: (typeof otherPlayers)[number]) =>
-    (Boolean(input.roomId) && p.room_id === input.roomId) ||
+    (Boolean(input.observerRoomId) && p.room_id === input.observerRoomId) ||
     organizations.some((org) => org.status === "ACTIVE" && isOrgMember(org, selfId) && isOrgMember(org, p.player_id));
 
   for (const e of entities) {
@@ -3316,7 +3318,7 @@ export function deriveAffordances(input: {
   }
 
   for (const p of otherPlayers) {
-    if (!input.roomId || p.room_id !== input.roomId || p.player_id === selfId) continue;
+    if (!input.observerRoomId || p.room_id !== input.observerRoomId || p.player_id === selfId) continue;
     const handle = p.handle || p.player_id.replace(/^player\./, "");
     const msgOk = canPay(budgets, COSTS.MESSAGE);
     out.push({

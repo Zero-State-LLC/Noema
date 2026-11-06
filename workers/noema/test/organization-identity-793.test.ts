@@ -251,6 +251,41 @@ identityCase("missing candidate room never qualifies a distant nonmember, while 
   expect(shares.some(a => a.player_id === outsider.player_id)).toBe(false);
 });
 
+identityCase("missing observer room cannot turn a display fallback into physical presence for LOOK or HELP", async () => {
+  for (const missingRoom of ["", undefined, "room.unknown"] as const) {
+    for (const carrier of ["LOOK", "developer HELP"] as const) {
+      const { w, observer, near, far, outsider } = await scene();
+      w.players[observer.player_id].room_id = missingRoom as string;
+      if (carrier === "developer HELP") {
+        // Remove earlier entity/exit commands so HELP's bounded HERE list
+        // exposes a forged co-location (MESSAGE/TRADE) if its own path regresses.
+        w.rooms["room.hub"].entities = [];
+        w.rooms["room.hub"].exits = [];
+      }
+      const r = carrier === "developer HELP"
+        ? await run(w, observer, "LOOK", { line: "help" }, true)
+        : await run(w, observer, carrier);
+      expect(r.ok, `${carrier}/${String(missingRoom)}`).toBe(true);
+      expect(w.players[observer.player_id].room_id, `${carrier}/${String(missingRoom)}`).toBe(missingRoom);
+      // The entry-room display remains useful even when occupancy is unknown.
+      expect(r.observation?.location?.room_id, carrier).toBe("room.hub");
+      const rows = r.observation?.affordances ?? [];
+      const targets = rows.filter(a => a.action === "ORG_INVITE" || (a.action === "BUILD" && a.operation === "SHARE"));
+      expect(targets.some(a => a.action === "ORG_INVITE" && a.target_label === "near"), `${carrier}/${String(missingRoom)}`).toBe(false);
+      expect(targets.some(a => a.action === "BUILD" && a.operation === "SHARE" && a.player_id === near.player_id), `${carrier}/${String(missingRoom)}`).toBe(false);
+      if (carrier === "LOOK") {
+        expect(targets.some(a => a.action === "BUILD" && a.operation === "SHARE" && a.player_id === far.player_id), `${carrier}/${String(missingRoom)}`).toBe(true);
+      }
+      expect(targets.some(a => a.player_id === outsider.player_id), `${carrier}/${String(missingRoom)}`).toBe(false);
+      expect(rows.some(a => (a.action === "MESSAGE" || a.action === "TRADE") && a.target_id === near.player_id), `${carrier}/${String(missingRoom)}`).toBe(false);
+      if (carrier !== "LOOK") {
+        expect(r.observation?.consequence, `${carrier}/${String(missingRoom)}`).toContain("HERE");
+        expect(r.observation?.consequence, `${carrier}/${String(missingRoom)}`).not.toMatch(/(?:invite|message|trade) near/i);
+      }
+    }
+  }
+});
+
 identityCase("own office keeps canonical ID in member view but never narrates an ID-derived holder or successor", async () => {
   const { w, observer, far, founder } = await scene();
   w.organizations["org.own"].offices = {

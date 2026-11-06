@@ -812,7 +812,8 @@ function ensurePlayer(w: WorldRuntime, principal: PlayerPrincipal, room_id: stri
     p.budgets = cloneBudgets(p.budgets);
   }
   if (!p.handle) p.handle = handleFromPrincipal(principal);
-  if (!p.room_id) p.room_id = room_id;
+  // Do not manufacture physical presence for an already-entered Player.
+  if (!p.room_id && !p.entered) p.room_id = room_id;
   p.actor_kind = actorKind;
   p.last_seen_ms = Date.now();
   if (principal.controller_type) p.controller_type = principal.controller_type;
@@ -968,6 +969,9 @@ export function buildObservation(
     focus: pl.focus,
     hiddenRoom: isHiddenRoom(room),
     roomId: room.room_id,
+    // The displayed room may be a fallback; only retained, valid occupancy grants presence.
+    observerRoomId: existing?.entered && existing.room_id && w.rooms[existing.room_id]?.room_id === existing.room_id
+      ? existing.room_id : undefined,
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
     agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
     accessRestrictions: w.access_restrictions || [],
@@ -2303,6 +2307,8 @@ export async function applyWorldCommand(
         focus: pl.focus,
         hiddenRoom: room ? isHiddenRoom(room) : false,
         roomId: room?.room_id,
+        observerRoomId: pl.entered && pl.room_id && w.rooms[pl.room_id]?.room_id === pl.room_id
+          ? pl.room_id : undefined,
         openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
         agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
         accessRestrictions: w.access_restrictions || [],
