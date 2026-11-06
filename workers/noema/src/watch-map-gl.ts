@@ -518,7 +518,7 @@ const MAP_GL_INLINE_FNS = [
 ] as const;
 
 export function watchMapGlInlineSource(): string {
-  return MAP_GL_INLINE_FNS.map((fn) => {
+  return `const MAP_CAM_EASE_MS = ${MAP_CAM_EASE_MS};\n` + MAP_GL_INLINE_FNS.map((fn) => {
     const src = fn.toString();
     if (src.includes("__name")) {
       throw new Error("watch map-gl helper leaked bundler keepNames");
