@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8893,
-    "edgeCount": 19689,
+    "nodeCount": 8901,
+    "edgeCount": 19710,
     "languages": [
       "javascript",
       "python",
@@ -96998,6 +96998,119 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "5ab485bfa1692214a7defd3073d10c9861718ec284b3971ef1a3ce2f52a01912",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "name": "contextual-help-nonmutation.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L1-L168",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "6daa3c9b9b924f2cd73c5017601107ff4a4bdd006cb83b9c790af58a967117de",
+      "chars": 7778,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#helpCanonical",
+      "name": "helpCanonical",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L52-L62",
+      "signature": "function helpCanonical(s: HelpScene)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ee5fde5ecafe350d7c5dc56f2b310cf16da0c6956469d1dbbe0b873ccadc5af7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#helpPrincipal",
+      "name": "helpPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L6-L12",
+      "signature": "helpPrincipal = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "24d2a3d8e8e488b5b6ff0797648eee004ce1c643e24e29d5268c30a101f00522",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "name": "helpScene",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L15-L49",
+      "signature": "async function helpScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dd385b200df1d9a417faf7939836f7ce93f2bb01e00d5a032c3a7b03f50838a8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#HelpScene",
+      "name": "HelpScene",
+      "kind": "type",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L51-L51",
+      "signature": "type HelpScene = Awaited<ReturnType<typeof helpScene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "270265b2c540c759afb2660158fb72544783e7eeddd0ee7c2c8b0bf17fe702c0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.ask",
+      "name": "ask",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L42-L47",
+      "signature": "ask = (line: string, fixedKey?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dedbfaaf4b9c86bce3d2a42f1f349fe00e9958ac8edcc6d20c829d9f59135a4f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.command",
+      "name": "command",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L31-L35",
+      "signature": "command = (p: PlayerPrincipal, verb: string, args: Record<string, unknown> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c5f23f45ff36bd292c7182aa8dda29074bdd4469f6fd1e1d2cf1706d801506a0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/contextual-help-nonmutation.test.ts#readonlyHelp",
+      "name": "readonlyHelp",
+      "kind": "function",
+      "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "span": "L63-L73",
+      "signature": "async function readonlyHelp(s: HelpScene, line: string, fixedKey?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fc85882bec954ea0b68ea25c93a730e97d4abe3d46fbb3bfb4717b4342eddb96",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -213548,6 +213661,132 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#readonlyHelp",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpCanonical",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#HelpScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#readonlyHelp",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.command",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.ask",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.command",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.ask",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene.command",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts#readonlyHelp",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpCanonical",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/cors.test.ts",
