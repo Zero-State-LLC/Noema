@@ -17,3 +17,15 @@ C9 is optional and `not_covered`. T6.5 human comprehension was not measured. G5 
 ## Disposition
 
 This receipt establishes the named hosted gates, not whole-R4 completion. [#733](https://github.com/Zero-State-LLC/Noema/issues/733), [#775](https://github.com/Zero-State-LLC/Noema/issues/775), [#793](https://github.com/Zero-State-LLC/Noema/issues/793) and [#806](https://github.com/Zero-State-LLC/Noema/issues/806) remain open at this documentation checkpoint. The explicit keep-open instruction for #733 remains in force. No matrix state is promoted. Production was not deployed.
+
+## Browser measurements and limits
+
+The owned disposable-profile Chrome audit used real WebGL and CDP, not the local fake DOM. Home and WATCH text/pixel/map were loaded at 360, 390, 768, 1280 and 1440 CSS px: 20 combinations. All 15 WATCH loads were live and matched the isolated target before deliberate screenshot pausing; a paused screenshot badge is not a feed failure.
+
+Actual Tab/Enter verified skip-to-main, focus and pause/resume. A pass-through observer around the real loaded GL stage recorded fresh focus calls after keyboard Refresh: 560 ms normally and 0 ms under reduced motion. The real WebSocket send observer attributed one poll to each resumed manual activation and zero while paused. These are actual browser stage handoffs, not a quantitative measurement of camera pose travel. Both polite live regions stayed bounded; the observed mutation sample had no churn. Reduced-motion canvas samples were stable. No uncaught runtime error was observed.
+
+Rendered-background pixel contrast sampled 799 first-viewport glyph runs: 253 text, 213 pixel, 213 map, 120 Home; no sampled AA failure and a minimum worst-decile 7.04:1 ratio. Glyph-hidden backgrounds were checked for zero remaining visible text fills. These are sampled visible-text measurements, not every scrolled element, canvas glyph or assistive-tech experience.
+
+The actual Home live fetch was observed, then blocked with CDP; the visible fallback became `The public record is at Watch.`. No planted private marker, token-shaped or UUID-shaped text was found in the 20 page observations; no horizontal overflow or header/main-text overlap was found. This is not universal authored-payload/XSS, private LOOK/research or all-identity privacy proof.
+
+Browser request/message observations totaled 142 (122 main audit plus 20 focus probe), within the 400-request browser reservation. The cost preflight estimate was $8.101 under operating bounds, not an invoice measurement or provider-enforced dollar cap. A prior prorated estimate was withdrawn before deployment because billing-unit rounding had been omitted; actual current included Durable Objects allowance was checked before execution.
