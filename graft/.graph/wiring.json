@@ -2,7 +2,7 @@
   "meta": {
     "version": 1,
     "nodeCount": 8902,
-    "edgeCount": 19715,
+    "edgeCount": 19718,
     "languages": [
       "javascript",
       "python",
@@ -97021,12 +97021,12 @@
       "name": "contextual-help-nonmutation.test.ts",
       "kind": "file",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L1-L370",
+      "span": "L1-L464",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "6d4ec7fca3442c925cfa820373e107e7126c190ef8559d6239b7abe4077183f5",
-      "chars": 19378,
+      "body_hash": "42ae8f6350ce61e528733d09c416e6d36ac5ee49774a9375611d3f4c465d5d7f",
+      "chars": 24508,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -97036,7 +97036,7 @@
       "name": "helpCanonical",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L52-L62",
+      "span": "L53-L63",
       "signature": "function helpCanonical(s: HelpScene)",
       "exported": false,
       "origin": "ast",
@@ -97050,7 +97050,7 @@
       "name": "helpPrincipal",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L6-L12",
+      "span": "L7-L13",
       "signature": "helpPrincipal = (name: string): PlayerPrincipal",
       "exported": false,
       "origin": "ast",
@@ -97064,7 +97064,7 @@
       "name": "helpScene",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L15-L49",
+      "span": "L16-L50",
       "signature": "async function helpScene()",
       "exported": false,
       "origin": "ast",
@@ -97078,7 +97078,7 @@
       "name": "HelpScene",
       "kind": "type",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L51-L51",
+      "span": "L52-L52",
       "signature": "type HelpScene = Awaited<ReturnType<typeof helpScene>>;",
       "exported": false,
       "origin": "ast",
@@ -97092,7 +97092,7 @@
       "name": "ask",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L42-L47",
+      "span": "L43-L48",
       "signature": "ask = (line: string, fixedKey?: string)",
       "exported": false,
       "origin": "ast",
@@ -97106,7 +97106,7 @@
       "name": "command",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L31-L35",
+      "span": "L32-L36",
       "signature": "command = (p: PlayerPrincipal, verb: string, args: Record<string, unknown> = {})",
       "exported": false,
       "origin": "ast",
@@ -97120,7 +97120,7 @@
       "name": "readonlyHelp",
       "kind": "function",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L63-L73",
+      "span": "L64-L74",
       "signature": "async function readonlyHelp(s: HelpScene, line: string, fixedKey?: string)",
       "exported": false,
       "origin": "ast",
@@ -213708,6 +213708,18 @@
     },
     {
       "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/src/actions.ts#resolveVisibleEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpCanonical",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
       "target": "workers/noema/test/contextual-help-nonmutation.test.ts#helpScene",
       "relation": "calls",
       "confidence": "extracted"
@@ -213757,6 +213769,12 @@
     {
       "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
       "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/contextual-help-nonmutation.test.ts",
+      "target": "workers/noema/src/construction.ts",
       "relation": "imports",
       "confidence": "extracted"
     },
