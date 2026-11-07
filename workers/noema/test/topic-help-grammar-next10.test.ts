@@ -130,3 +130,14 @@ it("G10.06 ACCESS topic remains nonmutating with zero personal and institutional
   const s = await scene();
   await nonmutatingTopic(s, "access");
 });
+
+it("G10.07 rendered room allow command settles the listed player scope", async () => {
+  const s = await scene();
+  const line = fill(roomForm(copy(await s.help("access")), "allow"), { org: s.org, player: s.peer.player_id });
+  s.settled.length = 0;
+  const r = await s.send(s.gate, "LOOK", { line });
+  expect(r.ok).toBe(true);
+  expect(s.w.access_restrictions).toEqual([expect.objectContaining({ scope: "ROOM", room_id: "room.hub", mode: "ALLOW_ONLY", applies_to: s.peer.player_id })]);
+  expect(s.settled).toHaveLength(1);
+  expect(s.settled[0]).toEqual(expect.objectContaining({ event_type: "ACCESS_RESTRICTED", payload: expect.objectContaining({ authorized_by: s.org, scope: "ROOM", mode: "ALLOW_ONLY", applies_to: s.peer.player_id }) }));
+});
