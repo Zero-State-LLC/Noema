@@ -123,3 +123,21 @@ it("N10.06 one below base price is unavailable and refuses without mutation", as
   expect(r.events || []).toEqual([]);
   expect(projection(s.w)).toEqual(before);
 });
+
+it("N10.07 stale command cannot overwrite a first successful claim", async () => {
+  const s = await scene();
+  const hit = pick(await s.send("OBSERVE"));
+  let settlements = 0;
+  const settle: Settle = async () => { settlements++; return true; };
+  expect((await follow(s, hit.cmd, settle)).ok).toBe(true);
+  expect(settlements).toBe(1);
+  const before = projection(s.w);
+  const callsBefore = settlements;
+  const r = await follow(s, hit.cmd, settle); // Fresh envelope: not an idempotent retry.
+  expect(r.ok).toBe(false);
+  expect(r.error?.code).toBe("FORBIDDEN");
+  expect(r.events || []).toEqual([]);
+  expect(settlements).toBe(callsBefore);
+  expect(projection(s.w)).toEqual(before);
+  expect(rows(await s.send("OBSERVE")).some((a) => a.target_id === "entity.ledger")).toBe(false);
+});
