@@ -78,3 +78,19 @@ traceCase("N03 hidden owned work does not create an org mark; visible twin does"
   expect(s3TraceTexts(await readS3TraceSnapshot(s3InstitutionWorld())))
     .toEqual(["Marks of Line remain here."]);
 });
+
+traceCase("N04 occupied office has no vacant memorial; vacancy does", async () => {
+  const vacant = s3InstitutionWorld();
+  vacant.organizations["org.line"].offices = {
+    "office.line.steward": {
+      office_id: "office.line.steward", institution_id: "org.line", display_name: "Steward",
+      status: "VACANT", authority_profile: "PUBLISH_NOTICE", created_cycle: 0, history: [],
+    },
+  };
+  const occupied = structuredClone(vacant);
+  occupied.organizations["org.line"].offices!["office.line.steward"].status = "OCCUPIED";
+  occupied.organizations["org.line"].offices!["office.line.steward"].holder_player_id = "player.source";
+  expect(s3TraceTexts(await readS3TraceSnapshot(occupied))).toEqual(["Marks of Line remain here."]);
+  expect(s3TraceTexts(await readS3TraceSnapshot(vacant)))
+    .toEqual(["Marks of Line remain here.", "Steward of Line stands vacant."]);
+});
