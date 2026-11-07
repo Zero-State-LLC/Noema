@@ -151,3 +151,16 @@ it("B10.03 a fresh-key duplicate SHARE refuses without a second stamp or charge"
   effect(s, await s.text(s.owner, next), "CONNECT", { dest_room_id: "room.quay" });
   expect(s.asset.dest_room_id).toBe("room.quay");
 });
+
+it("B10.04 exact-envelope SHARE replay returns the cached result without another effect", async () => {
+  const s = await scene();
+  const line = await topic(s, "share", { thing: s.asset.label, player: s.peer.player_id });
+  const envelope: Envelope = { request_id: "build-follow-replay", idempotency_key: "build-follow-replay",
+    command: "LOOK", arguments: { line } };
+  s.settled.length = 0;
+  const first = await s.dispatch(s.owner, envelope, true);
+  effect(s, first, "SHARE", { co_owner_id: s.peer.player_id });
+  const cached = structuredClone(first), before = projection(s.w); s.settled.length = 0;
+  expect(await s.dispatch(s.owner, envelope, true)).toEqual(cached);
+  expect(s.settled).toEqual([]); expect(projection(s.w)).toEqual(before);
+});
