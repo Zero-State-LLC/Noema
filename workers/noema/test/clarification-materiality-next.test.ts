@@ -139,3 +139,12 @@ it("C25S02 sealing the selected same-ID entity blocks numeric inspection without
   delete entity(s, "entity.relay-a").inspect_restricted_until;
   await inspected(s, await offerInspect(s));
 });
+
+it("C25S03 inspection seal blocks before expiry and permits a fresh pick at expiry", async () => {
+  const s = await scene(); s.w.cycle = 9;
+  const pick = await offerInspect(s);
+  entity(s, "entity.relay-a").inspect_restricted_until = 10;
+  await sealedPick(s, pick);
+  s.w.cycle = 10;
+  await inspected(s, await offerInspect(s));
+});
