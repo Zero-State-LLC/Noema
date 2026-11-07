@@ -167,3 +167,18 @@ it("N10.09 outer-command carrier follows the advertised artifact and subject", a
   expect(art?.archive_subject_entity_id).toBe("entity.local");
   expect(art?.archive_claim).toBe("OPERATING");
 });
+
+it("N10.10 hidden observer room suppresses hints and direct attestation", async () => {
+  const s = await scene();
+  const old = pick(await s.send("OBSERVE"));
+  s.w.rooms["room.a"].hidden = true;
+  s.w.rooms["room.a"].tags = ["hidden"];
+  const observed = await s.send("OBSERVE");
+  expect(rows(observed)).toEqual([]);
+  const before = projection(s.w);
+  const r = await follow(s, old.cmd, async () => { throw new Error("hidden room must not settle"); });
+  expect(r.ok).toBe(false);
+  expect(r.error?.code).toBe("NOT_OBSERVABLE");
+  expect(r.events || []).toEqual([]);
+  expect(projection(s.w)).toEqual(before);
+});
