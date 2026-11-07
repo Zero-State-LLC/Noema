@@ -116,3 +116,13 @@ it("C25R02 selected recipient leaving cannot replay the discarded private body",
   expect(s.w.players[s.actor.player_id].pending_clarify).toBeDefined();
   await safeMessagePick(s, offered.pick);
 });
+
+it("C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAGE", async () => {
+  const s = await scene(), offered = await offerMessage(s);
+  s.w.players[offered.selected.player_id].handle = "renamed-original";
+  const replacement = principal("replacement");
+  expect((await s.send(replacement, "ENTER_WORLD")).ok).toBe(true);
+  s.w.players[replacement.player_id].handle = offered.label;
+  expect((await s.send(replacement, "OBSERVE")).ok).toBe(true);
+  await safeMessagePick(s, offered.pick);
+});
