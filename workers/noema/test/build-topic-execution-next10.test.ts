@@ -176,3 +176,15 @@ it("B10.05 VEST copy grants no vacant-office authority but executes after genuin
   expect(s.asset.owner_id).toBe(org.org);
   expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
 });
+
+it("B10.06 VEST selects the specified institution among two legitimately held offices", async () => {
+  const s = await scene(), first = await institution(s, "First Works"), second = await institution(s, "Second Works");
+  expect(first.org).not.toBe(second.org);
+  const line = await topic(s, "vest", { thing: s.asset.label, org: second.org });
+  const institutions = structuredClone(s.w.organizations), compute = s.w.players[s.owner.player_id].budgets.compute;
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "VEST", { owner_id: second.org });
+  expect(s.asset.owner_id).toBe(second.org); expect(s.asset.owner_id).not.toBe(first.org);
+  expect(s.w.organizations).toEqual(institutions);
+  expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
+});
