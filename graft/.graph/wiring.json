@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8989,
-    "edgeCount": 19960,
+    "nodeCount": 8998,
+    "edgeCount": 19989,
     "languages": [
       "javascript",
       "python",
@@ -99136,6 +99136,133 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "003b162e7ab3f35d62a91d33ddf06cad5b3b8184657bc879977374265a73b7ba",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "name": "discovery-social-repair-trade.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L1-L268",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "15ffc18bbae9be1ae5c130965f058792720caee1a74c81cf346059f0c02b5698",
+      "chars": 19020,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "name": "socialPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L9-L14",
+      "signature": "socialPrincipal = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cce60103c773fb18dbf922d351a94ff5991e593d366309910ed458ecf7896c6f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "name": "socialScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L15-L55",
+      "signature": "async function socialScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b6a7fe674e44a288bf5b018cf0015b3ad4e553f193a52cd2fb770845a29d6ebb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "name": "affordance",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L38-L43",
+      "signature": "affordance = async (p: PlayerPrincipal, action: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4944e627ef4b127d2218ad84fa5d522b739bc39aabe0951fb167df57c5583ff5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "name": "dispatch",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L28-L32",
+      "signature": "dispatch = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c32668acae9c33dda6a9fd053009ab7802b3b90ba99d7f7e9237f4f611eacfc5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "name": "line",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L37-L37",
+      "signature": "line = (p: PlayerPrincipal, text: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "335aa10720a81013ee443afd467a2ab279ecf4d017fcfe1a7a0825c963f8587b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L44-L44",
+      "signature": "projection = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fba556c358485f26939b29d3d0c504bc27038404532377c20c09052f36c3b3d7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "name": "refused",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L45-L53",
+      "signature": "refused = async (p: PlayerPrincipal, text: string, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "321753267c802058687c871f3c21f8c70d22a72f154f94bf7f354a967ded006b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "name": "stock",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L215-L215",
+      "signature": "stock = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9f2cc133aa85457b51f428468826fc0c969dade04793a76e40a9cfd52a7e6a66",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -218075,6 +218202,180 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts#applyPracticeCredits",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts#emptyPractice",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/construction.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/discovery.test.ts",
