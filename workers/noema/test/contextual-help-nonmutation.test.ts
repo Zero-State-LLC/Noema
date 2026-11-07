@@ -1,5 +1,6 @@
 import { expect, test as helpCase, vi } from "vitest";
-import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
+import { cloneBudgets, COSTS, DEFAULT_BUDGETS, enrichEntity, resolveVisibleEntity } from "../src/actions";
+import { STORAGE_CAPACITY } from "../src/construction";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { PlayerPrincipal } from "../src/types";
 
@@ -366,4 +367,97 @@ helpCase("T23-boundary 10 ineligible candidates are removed before the three-com
     expect(followed.ok).toBe(true);
     expect(followed.events?.some((e) => e.event_type === "INSPECT" && e.payload?.entity_id === `entity.open-${x}`)).toBe(true);
   }
+});
+
+
+helpCase("T23-audit advertised repair reaches its canonical target", async () => {
+  const s = await helpScene();
+  // storage is free hold capacity; carry exactly the canonical repair cargo.
+  s.w.players[s.observer.player_id].budgets.storage = STORAGE_CAPACITY - (COSTS.REPAIR.storage || 0);
+  const before = s.w.rooms["room.hub"].entities![0].condition!;
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "REPAIR" && x.cmd === "repair relay" && x.available);
+  expect(a?.target_id).toBe("entity.help.relay");
+  expect(help.observation?.consequence!.split("\n")).toContain("  repair relay");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(s.w.rooms["room.hub"].entities!.find((e) => e.entity_id === "entity.help.relay")!.condition).toBeGreaterThan(before);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
+
+
+helpCase("T23-audit advertised harvest reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [enrichEntity({ entity_id: "entity.audit-node", label: "audit-node", entity_type: "RESOURCE", stock_resource: "energy", stock_amount: 2, max_stock: 2, regen_rate: 0 })];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "HARVEST" && x.cmd === "harvest audit-node 1" && x.available);
+  expect(a?.target_id).toBe("entity.audit-node");
+  expect(help.observation?.consequence!.split("\n")).toContain("  harvest audit-node 1");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(s.w.rooms["room.hub"].entities![0].stock_amount).toBe(1);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
+
+
+helpCase("T23-audit advertised message reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.hub"].exits = [];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "MESSAGE" && x.available && x.target_id === s.near.player_id);
+  expect(a?.cmd).toBe('message help-near "hello"');
+  expect(help.observation?.consequence!.split("\n")).toContain('  message help-near "hello"');
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  expect(result.events?.some((e) => e.event_type === "MESSAGE" && e.payload?.recipient_id === s.near.player_id && e.payload?.text === "hello")).toBe(true);
+  expect(result.events?.some((e) => e.event_type === "MESSAGE" && e.payload?.recipient_id === s.far.player_id)).toBe(false);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
+
+
+helpCase("T23-audit advertised trade reaches its canonical target", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [];
+  s.w.rooms["room.hub"].exits = [];
+  const help = await readonlyHelp(s, "help");
+  const a = help.observation?.affordances?.find((x) => x.action === "TRADE" && x.available && x.target_id === s.near.player_id);
+  expect(a?.cmd).toBe("trade help-near offer=energy:1 want=energy:1");
+  expect(help.observation?.consequence!.split("\n")).toContain("  trade help-near offer=energy:1 want=energy:1");
+  const calls = s.settle.mock.calls.length;
+  const result = await s.ask(a!.cmd!);
+  expect(result.ok).toBe(true);
+  const offers = Object.values(s.w.trades).filter((t) => t.status === "OPEN");
+  expect(offers).toHaveLength(1);
+  expect(offers[0].proposer_id).toBe(s.observer.player_id);
+  expect(offers[0].counterparty_id).toBe(s.near.player_id);
+  expect(s.settle.mock.calls.length).toBeGreaterThan(calls);
+});
+
+
+helpCase("T25-audit hidden chosen entity invalidates numeric inspect pick", async () => {
+  const s = await helpScene();
+  s.w.rooms["room.hub"].entities = [
+    enrichEntity({ entity_id: "entity.audit-a", label: "relay-a", entity_type: "INFRASTRUCTURE", condition: 100 }),
+    enrichEntity({ entity_id: "entity.audit-b", label: "relay-b", entity_type: "INFRASTRUCTURE", condition: 100 }),
+  ];
+  const offered = await s.ask("inspect relay");
+  expect(offered.error?.code).toBe("AMBIGUOUS_TARGET");
+  const pending = s.w.players[s.observer.player_id].pending_clarify!;
+  expect(pending.choices).toHaveLength(2);
+  // Pending choices use title-cased display labels, not raw entity labels.
+  const resolved = resolveVisibleEntity(pending.choices[0], s.w.rooms["room.hub"].entities!);
+  expect(resolved.ok).toBe(true);
+  if (!resolved.ok) throw new Error("Fixture cannot resolve the offered first choice");
+  resolved.entity.hidden = true;
+  const before = helpCanonical(s);
+  const calls = s.settle.mock.calls.length;
+  const picked = await s.ask("1");
+  expect(picked.error?.code).toBe("STALE_CLARIFICATION");
+  expect(picked.events ?? []).toEqual([]);
+  expect(s.settle.mock.calls.length).toBe(calls);
+  expect(helpCanonical(s)).toEqual(before);
 });

@@ -1,0 +1,2988 @@
+{
+  "schema": "noema-780-contextual-discovery-audit/1",
+  "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+  "inventory_kind": "46 syntactic producer templates including indirect declareRows; not full behavioral/state-space coverage",
+  "source_review_heads": [
+    "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6"
+  ],
+  "test_graph_head_before_report": "71c41f7fd756ecea033735abb85bfa93e8065338",
+  "counts": {
+    "producers": 46,
+    "producer_results": {
+      "SOURCE_ONLY": 2,
+      "PROBE_PASS": 4,
+      "FIXTURE_GATE": 40
+    },
+    "topics": 15,
+    "surfaces": 3,
+    "clarification_classes": 4,
+    "new_runtime_probes": 5
+  },
+  "producer_rows": [
+    {
+      "id": "aff-L3211",
+      "line": 3211,
+      "action": "\"INSPECT\"",
+      "verb": "\"INSPECT\"",
+      "operation": null,
+      "cmd": "`inspect ${e.label}`",
+      "target": "e.entity_id",
+      "available": "canPay(budgets, inspectCost)",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1338-1353",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L2681-2702",
+      "authority_preconditions": "visible entity in current room; inspect restriction deadline",
+      "cost_source": "annex-adjusted COSTS.INSPECT; player attention",
+      "target_mapping": "entity_id resolved from label, matching advertised entity",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `inspect ${e.label}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id resolved from label, matching advertised entity and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate visible entity in current room; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "SOURCE_ONLY",
+      "remaining_gate": "Existing bounded #813/#814 MOVE/INSPECT evidence only; this lane executed no tests or fresh probe. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3233",
+      "line": 3233,
+      "action": "\"REPAIR\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"REPAIR\"",
+      "cmd": "`repair ${e.label}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "isRepairable(e)"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1356-1395",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3839-3950",
+      "authority_preconditions": "visible repairable infrastructure; personal budget/cargo; institutional branch only with acting_for",
+      "cost_source": "workshop-adjusted COSTS.REPAIR, reserved cargo; player purse for this command",
+      "target_mapping": "entity_id from visible label; no acting_for",
+      "positive_test": {
+        "status": "EXECUTED_PASS",
+        "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+        "title": "T23-audit advertised repair reaches its canonical target",
+        "head": "421797412848ff081ca1fa5ffd5fe18a80e51b6b",
+        "scope": "one concrete positively admitted advertised text command and its actual local target; not family-wide authority certification",
+        "log": "780-audit-probe-01-fixture-corrected.log"
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate visible repairable infrastructure; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "421797412848ff081ca1fa5ffd5fe18a80e51b6b",
+      "result": "PROBE_PASS",
+      "remaining_gate": "Concrete advertised positive target is proven locally. Negative authority, affordability/alias/label variants and all other producer variants remain unverified; require variant-specific public fixtures. No canonical SQL or hosted certification.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3253",
+      "line": 3253,
+      "action": "\"REPAIR\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"REPAIR\"",
+      "cmd": "`repair ${e.label} overhaul`",
+      "target": "e.entity_id",
+      "available": "overhaulOk",
+      "guards": [
+        "canOverhaul(input.practice, input.cycle || 0)",
+        "isRepairable(e)"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1356-1395",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3849-3950",
+      "authority_preconditions": "repairable visible infrastructure and practiced Engineer canOverhaul at current cycle",
+      "cost_source": "COSTS.REPAIR plus OVERHAUL_ENERGY_EXTRA, workshop storage adjustment and cargo",
+      "target_mapping": "entity_id from label, extent=overhaul",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `repair ${e.label} overhaul` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label, extent=overhaul and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate repairable visible infrastructure and practiced Engineer canOverhaul at current cycle; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3285",
+      "line": 3285,
+      "action": "\"HARVEST\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"HARVEST\"",
+      "cmd": "`harvest ${e.label} 1`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "e.stock_resource"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1397-1423",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4013-4062",
+      "authority_preconditions": "visible stocked node, stock availability and storage capacity",
+      "cost_source": "COSTS.HARVEST, amount 1; stock and free storage",
+      "target_mapping": "entity_id from label; amount=1",
+      "positive_test": {
+        "status": "EXECUTED_PASS",
+        "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+        "title": "T23-audit advertised harvest reaches its canonical target",
+        "head": "70fc9e15711ea50d2713b4a015c4f14be6ad5056",
+        "scope": "one concrete positively admitted advertised text command and its actual local target; not family-wide authority certification",
+        "log": "780-audit-probe-02-fixture-corrected.log"
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate visible stocked node, stock availability and storage capacity; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "70fc9e15711ea50d2713b4a015c4f14be6ad5056",
+      "result": "PROBE_PASS",
+      "remaining_gate": "Concrete advertised positive target is proven locally. Negative authority, affordability/alias/label variants and all other producer variants remain unverified; require variant-specific public fixtures. No canonical SQL or hosted certification.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3307",
+      "line": 3307,
+      "action": "\"MOVE\"",
+      "verb": "\"MOVE\"",
+      "operation": null,
+      "cmd": "`move ${x.direction}`",
+      "target": "x.direction",
+      "available": "ok",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1320-1335",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L2623-2679",
+      "authority_preconditions": "current-room exit, energy, access policy checked at move",
+      "cost_source": "moveCost from exit/room, debited to player",
+      "target_mapping": "direction matches current-room exit; not entity ID",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `move ${x.direction}` in eligible fixture; parse line, settle via command consumer, assert intended direction matches current-room exit; not entity ID and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate current-room exit, energy, access policy checked at move; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "SOURCE_ONLY",
+      "remaining_gate": "Existing bounded #813/#814 MOVE/INSPECT evidence only; this lane executed no tests or fresh probe. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3324",
+      "line": 3324,
+      "action": "\"MESSAGE\"",
+      "verb": "\"MESSAGE\"",
+      "operation": null,
+      "cmd": "`message ${handle} \"hello\"`",
+      "target": "p.player_id",
+      "available": "msgOk",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1206-1231",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L2752-3042",
+      "authority_preconditions": "present same-room recipient; parser resolves player; delivery/relay checks at executor",
+      "cost_source": "COSTS.MESSAGE from player compute",
+      "target_mapping": "recipient_id from handle; target_id is player_id",
+      "positive_test": {
+        "status": "EXECUTED_PASS",
+        "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+        "title": "T23-audit advertised message reaches its canonical target",
+        "head": "c0b4ceea1cef631350bbeb0437f4e78ee52fc122",
+        "scope": "one concrete positively admitted advertised text command and its actual local target; not family-wide authority certification",
+        "log": "780-audit-probe-03.log"
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate present same-room recipient; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "c0b4ceea1cef631350bbeb0437f4e78ee52fc122",
+      "result": "PROBE_PASS",
+      "remaining_gate": "Concrete advertised positive target is proven locally. Negative authority, affordability/alias/label variants and all other producer variants remain unverified; require variant-specific public fixtures. No canonical SQL or hosted certification.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3339",
+      "line": 3339,
+      "action": "\"TRADE\"",
+      "verb": "\"TRADE\"",
+      "operation": null,
+      "cmd": "`trade ${handle} offer=energy:1 want=energy:1`",
+      "target": "p.player_id",
+      "available": "true",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1267-1297",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3112-3283",
+      "authority_preconditions": "active counterparty, offered/requested resources and reservations; candidate is same-room",
+      "cost_source": "COSTS.TRADE plus caution compute; advertised available=true even if tradeOk false (L3337-3349)",
+      "target_mapping": "counterparty_id from handle; target player_id",
+      "positive_test": {
+        "status": "EXECUTED_PASS",
+        "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
+        "title": "T23-audit advertised trade reaches its canonical target",
+        "head": "e86e92fcb3460c64a600a6cf50a298d2ebb8c738",
+        "scope": "one concrete positively admitted advertised text command and its actual local target; not family-wide authority certification",
+        "log": "780-audit-probe-04.log"
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate active counterparty, offered/requested resources and reservations; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "e86e92fcb3460c64a600a6cf50a298d2ebb8c738",
+      "result": "PROBE_PASS",
+      "remaining_gate": "Concrete advertised positive target is proven locally. Negative authority, affordability/alias/label variants and all other producer variants remain unverified; require variant-specific public fixtures. No canonical SQL or hosted certification.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3357",
+      "line": 3357,
+      "action": "\"TRADE_ACCEPT\"",
+      "verb": "\"TRADE\"",
+      "operation": null,
+      "cmd": "`accept ${t.trade_id}`",
+      "target": "t.trade_id",
+      "available": "canPay(budgets, COSTS.TRADE)",
+      "guards": [
+        "t.counterparty_id === selfId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1425-1434",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3285-3459",
+      "authority_preconditions": "OPEN trade; principal counterparty; valid requested lots/storage; no dual-side authorization",
+      "cost_source": "COSTS.TRADE from accepting player",
+      "target_mapping": "trade_id, not counterparty ID",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `accept ${t.trade_id}` in eligible fixture; parse line, settle via command consumer, assert intended trade_id, not counterparty ID and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate OPEN trade; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3368",
+      "line": 3368,
+      "action": "\"TRADE_REJECT\"",
+      "verb": "\"TRADE\"",
+      "operation": null,
+      "cmd": "`reject ${t.trade_id}`",
+      "target": "t.trade_id",
+      "available": "true",
+      "guards": [
+        "t.counterparty_id === selfId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1435-1446",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3461-3500",
+      "authority_preconditions": "OPEN trade and principal is counterparty",
+      "cost_source": "no normal debit; observed-grounded refusal may charge influence",
+      "target_mapping": "trade_id; reject phase",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `reject ${t.trade_id}` in eligible fixture; parse line, settle via command consumer, assert intended trade_id; reject phase and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate OPEN trade and principal is counterparty; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3379",
+      "line": 3379,
+      "action": "\"TRADE_CANCEL\"",
+      "verb": "\"TRADE\"",
+      "operation": null,
+      "cmd": "`cancel ${t.trade_id}`",
+      "target": "t.trade_id",
+      "available": "true",
+      "guards": [
+        "t.proposer_id === selfId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1447-1460",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3461-3500",
+      "authority_preconditions": "OPEN trade and principal is proposer",
+      "cost_source": "no normal debit",
+      "target_mapping": "trade_id; cancel phase",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `cancel ${t.trade_id}` in eligible fixture; parse line, settle via command consumer, assert intended trade_id; cancel phase and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate OPEN trade and principal is proposer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3393",
+      "line": 3393,
+      "action": "\"ORG_CREATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_CREATE\"",
+      "cmd": "'form My Compact charter=\"local coordination\"'",
+      "target": null,
+      "available": "true",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1462-1489",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3611-3704",
+      "authority_preconditions": "entered actor; valid charter/name and uniqueness constraints",
+      "cost_source": "COSTS.ORG_CREATE plus dynamic extra influence; advertised available=true despite formOk false",
+      "target_mapping": "new world-allocated org ID, no target_id in suggestion",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised 'form My Compact charter=\"local coordination\"' in eligible fixture; parse line, settle via command consumer, assert intended new world-allocated org ID, no target_id in suggestion and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate entered actor; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": "Producer available=true despite formOk false (actions.ts:L3392-3403); dynamic formation premium may exceed advertised base. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3409",
+      "line": 3409,
+      "action": "\"ORG_LEAVE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_MEMBER_REMOVE\"",
+      "cmd": "`leave ${org.org_id}`",
+      "target": "org.org_id",
+      "available": "canPay(budgets, COSTS.ORG_MEMBER_REMOVE)",
+      "guards": [
+        "mine"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1546-1570",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3762-3841",
+      "authority_preconditions": "ACTIVE org membership; leave removes self, not arbitrary member",
+      "cost_source": "COSTS.ORG_MEMBER_REMOVE from player",
+      "target_mapping": "org_id plus implicit self player_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `leave ${org.org_id}` in eligible fixture; parse line, settle via command consumer, assert intended org_id plus implicit self player_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org membership; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3427",
+      "line": 3427,
+      "action": "\"ORG_INVITE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_MEMBER_ADD\"",
+      "cmd": "`invite ${handle} to ${org.org_id} role=member`",
+      "target": "org.org_id",
+      "available": "invOk",
+      "guards": [
+        "officer"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1517-1545",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L3705-3761",
+      "authority_preconditions": "ACTIVE org; officer/founder; target is eligible nonmember and addressable",
+      "cost_source": "COSTS.ORG_MEMBER_ADD from player",
+      "target_mapping": "org_id plus invited player_id parsed from handle; advertised target_id is org",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `invite ${handle} to ${org.org_id} role=member` in eligible fixture; parse line, settle via command consumer, assert intended org_id plus invited player_id parsed from handle; advertised target_id is org and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3442",
+      "line": 3442,
+      "action": "\"ORG_OFFICE_CREATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_OFFICE_CREATE\"",
+      "cmd": "`office create ${org.org_id} name=\"Notice\" profile=PUBLISH_NOTICE`",
+      "target": "org.org_id",
+      "available": "createOk",
+      "guards": [
+        "officer"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1602-1659",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6450-6523",
+      "authority_preconditions": "ACTIVE org officer; valid PUBLISH_NOTICE profile/name; conflict/office policy checks",
+      "cost_source": "COSTS.ORG_OFFICE_CREATE from player",
+      "target_mapping": "org_id; newly allocated office_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `office create ${org.org_id} name=\"Notice\" profile=PUBLISH_NOTICE` in eligible fixture; parse line, settle via command consumer, assert intended org_id; newly allocated office_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org officer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3460",
+      "line": 3460,
+      "action": "\"ORG_OFFICE_ASSIGN\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_OFFICE_ASSIGN\"",
+      "cmd": "`office assign ${office.office_id} ${handle}`",
+      "target": "office.office_id",
+      "available": "canPay(budgets, COSTS.ORG_OFFICE_ASSIGN)",
+      "guards": [
+        "officer && office.status === \"VACANT\""
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1660-1681",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6524-6590",
+      "authority_preconditions": "ACTIVE org officer; VACANT office; nominated member meets required track",
+      "cost_source": "COSTS.ORG_OFFICE_ASSIGN from player",
+      "target_mapping": "office_id and nominated agent_id from handle",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `office assign ${office.office_id} ${handle}` in eligible fixture; parse line, settle via command consumer, assert intended office_id and nominated agent_id from handle and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org officer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3475",
+      "line": 3475,
+      "action": "\"ORG_OFFICE_VACATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_OFFICE_VACATE\"",
+      "cmd": "`resign ${office.office_id}`",
+      "target": "office.office_id",
+      "available": "canPay(budgets, COSTS.ORG_OFFICE_VACATE)",
+      "guards": [
+        "office.status === \"OCCUPIED\" && office.holder_player_id === selfId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1712-1723",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6591-6647",
+      "authority_preconditions": "OCCUPIED office; current holder (parser resign); executor also permits officer",
+      "cost_source": "COSTS.ORG_OFFICE_VACATE from player",
+      "target_mapping": "office_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `resign ${office.office_id}` in eligible fixture; parse line, settle via command consumer, assert intended office_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate OCCUPIED office; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3487",
+      "line": 3487,
+      "action": "\"ORG_OFFICE_ACT\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_OFFICE_ACT\"",
+      "cmd": "`notice ${org.org_id} \"posted\"`",
+      "target": "org.org_id",
+      "available": "canPay(budgets, COSTS.ORG_OFFICE_ACT)",
+      "guards": [
+        "office.authority_profile === \"PUBLISH_NOTICE\"",
+        "office.status === \"OCCUPIED\" && office.holder_player_id === selfId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1724-1738",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6697-6881",
+      "authority_preconditions": "ACTIVE org; occupied holder with hosted act profile PUBLISH_NOTICE; notice text",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "org_id selects holder office; advertised target is org, not office",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `notice ${org.org_id} \"posted\"` in eligible fixture; parse line, settle via command consumer, assert intended org_id selects holder office; advertised target is org, not office and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3502",
+      "line": 3502,
+      "action": "\"ORG_OFFICE_RETIRE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_OFFICE_RETIRE\"",
+      "cmd": "`office retire ${office.office_id}`",
+      "target": "office.office_id",
+      "available": "retireOk",
+      "guards": [
+        "officer"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1691-1710",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6648-6696",
+      "authority_preconditions": "ACTIVE org officer; nonretired office",
+      "cost_source": "COSTS.ORG_OFFICE_RETIRE from player",
+      "target_mapping": "office_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `office retire ${office.office_id}` in eligible fixture; parse line, settle via command consumer, assert intended office_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org officer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3517",
+      "line": 3517,
+      "action": "\"ORG_SUCCESSION_RULE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_SUCCESSION_RULE\"",
+      "cmd": "`succession rule ${office.office_id} member_order`",
+      "target": "office.office_id",
+      "available": "ruleOk",
+      "guards": [
+        "officer"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1777-1803",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5083-5149",
+      "authority_preconditions": "ACTIVE org officer; nonretired office; allowed member_order rule",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "office_id and succession rule",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `succession rule ${office.office_id} member_order` in eligible fixture; parse line, settle via command consumer, assert intended office_id and succession rule and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org officer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3534",
+      "line": 3534,
+      "action": "\"ORG_SUCCESSION_DESIGNATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_SUCCESSION_DESIGNATE\"",
+      "cmd": "`succession designate ${office.office_id} ${handle}`",
+      "target": "office.office_id",
+      "available": "ruleOk",
+      "guards": [
+        "heir",
+        "officer"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1804-1837",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4992-5082",
+      "authority_preconditions": "ACTIVE org officer; nominated member/heir meets office requires_track",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "office_id and successor player_id parsed from handle",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `succession designate ${office.office_id} ${handle}` in eligible fixture; parse line, settle via command consumer, assert intended office_id and successor player_id parsed from handle and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org officer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3566",
+      "line": 3566,
+      "action": "\"ORG_SUCCESSION_CONSENT\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_SUCCESSION_CONSENT\"",
+      "cmd": "`consent ${office.office_id} ${handle}`",
+      "target": "office.office_id",
+      "available": "ok",
+      "guards": [
+        "office.status === \"VACANT\" && mine"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1838-1859",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5150-5233",
+      "authority_preconditions": "ACTIVE org; VACANT office; member voter and eligible member candidate",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "office_id and candidate agent_id from handle",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `consent ${office.office_id} ${handle}` in eligible fixture; parse line, settle via command consumer, assert intended office_id and candidate agent_id from handle and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3596",
+      "line": 3596,
+      "action": "\"ORG_EMERGENCY_ACTIVATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_EMERGENCY_ACTIVATE\"",
+      "cmd": "`emergency activate ${org.org_id} ${template.template_id} ${e.entity_id}`",
+      "target": null,
+      "available": "actOk",
+      "guards": [
+        "template.capability === \"REPAIR\""
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1739-1762",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6298-6388",
+      "authority_preconditions": "ACTIVE org predeclared REPAIR template; canActivate; in-scope entity meets condition; holder member",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "org_id + template_id + entity target_ref; no target_id field",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `emergency activate ${org.org_id} ${template.template_id} ${e.entity_id}` in eligible fixture; parse line, settle via command consumer, assert intended org_id + template_id + entity target_ref; no target_id field and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org predeclared REPAIR template; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3614",
+      "line": 3614,
+      "action": "\"ORG_EMERGENCY_ACTIVATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_EMERGENCY_ACTIVATE\"",
+      "cmd": "`emergency activate ${org.org_id} ${template.template_id} treasury`",
+      "target": null,
+      "available": "actOk",
+      "guards": [
+        "conditionHolds(template, { treasury: org.treasury })",
+        "template.capability === \"REPAIR\""
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1739-1762",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6298-6388",
+      "authority_preconditions": "ACTIVE org non-REPAIR trade template; canActivate; treasury condition; holder member",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "org_id + template_id + literal treasury target_ref; no target_id field",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `emergency activate ${org.org_id} ${template.template_id} treasury` in eligible fixture; parse line, settle via command consumer, assert intended org_id + template_id + literal treasury target_ref; no target_id field and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE org non-REPAIR trade template; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3643",
+      "line": 3643,
+      "action": "\"ORG_EMERGENCY_REVOKE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ORG_EMERGENCY_REVOKE\"",
+      "cmd": "`emergency revoke ${scope.scope_id}`",
+      "target": null,
+      "available": "actOk",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1763-1775",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6389-6435",
+      "authority_preconditions": "ACTIVE scope; founder/officer or source-office holder may revoke",
+      "cost_source": "COSTS.ORG_OFFICE_ACT from player",
+      "target_mapping": "emergency_scope_id identifies scope; org_id metadata not parsed from cmd",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `emergency revoke ${scope.scope_id}` in eligible fixture; parse line, settle via command consumer, assert intended emergency_scope_id identifies scope; org_id metadata not parsed from cmd and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate ACTIVE scope; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3660",
+      "line": 3660,
+      "action": "\"LOOK\"",
+      "verb": "\"LOOK\"",
+      "operation": null,
+      "cmd": "\"look\"",
+      "target": null,
+      "available": "canPay(budgets, COSTS.LOOK)",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1304-1310",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L2519-2565",
+      "authority_preconditions": "entered world, current room and attention",
+      "cost_source": "COSTS.LOOK from player",
+      "target_mapping": "no target",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised \"look\" in eligible fixture; parse line, settle via command consumer, assert intended no target and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate entered world, current room and attention; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3669",
+      "line": 3669,
+      "action": "\"WAIT\"",
+      "verb": "\"WAIT\"",
+      "operation": null,
+      "cmd": "\"wait\"",
+      "target": null,
+      "available": "true",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1311-1313",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L2573-2622",
+      "authority_preconditions": "entered world; wait may advance cycle/regen; no target authority",
+      "cost_source": "no explicit action cost; wait mechanics may alter cargo/energy",
+      "target_mapping": "no target",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised \"wait\" in eligible fixture; parse line, settle via command consumer, assert intended no target and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate entered world; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3681",
+      "line": 3681,
+      "action": "\"FOCUS\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"FOCUS\"",
+      "cmd": "`focus ${spec.id}`",
+      "target": null,
+      "available": "true",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1500-1514",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5575-5598",
+      "authority_preconditions": "entered actor; valid track; producer excludes current track",
+      "cost_source": "no advertised requires; no budget debit in applyFocus",
+      "target_mapping": "track=spec.id; no target_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `focus ${spec.id}` in eligible fixture; parse line, settle via command consumer, assert intended track=spec.id; no target_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate entered actor; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3693",
+      "line": 3693,
+      "action": "\"FOCUS\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"FOCUS\"",
+      "cmd": "\"focus clear\"",
+      "target": null,
+      "available": "true",
+      "guards": [
+        "current"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1500-1514",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5575-5598",
+      "authority_preconditions": "entered actor; current focus present in producer; parser clear=true",
+      "cost_source": "no advertised requires; no budget debit in applyFocus",
+      "target_mapping": "clear=true, no target_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised \"focus clear\" in eligible fixture; parse line, settle via command consumer, assert intended clear=true, no target_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate entered actor; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3717",
+      "line": 3717,
+      "action": "\"AGREEMENT_TERMINATE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"AGREEMENT_TERMINATE\"",
+      "cmd": "`terminate agreement ${agr.agreement_id} reason=mutual`",
+      "target": "agr.agreement_id",
+      "available": "agrTermOk",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1493-1496",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5505-5574",
+      "authority_preconditions": "actor party; ACTIVE or own OFFERED agreement; catalog reason mutual",
+      "cost_source": "AGREEMENT_TERMINATE_COST from player",
+      "target_mapping": "agreement_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `terminate agreement ${agr.agreement_id} reason=mutual` in eligible fixture; parse line, settle via command consumer, assert intended agreement_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate actor party; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3757",
+      "line": 3757,
+      "action": "\"CONTEST_WITHDRAW\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"CONTEST_WITHDRAW\"",
+      "cmd": "`withdraw ${c.contest_id}`",
+      "target": null,
+      "available": "true",
+      "guards": [
+        "participant && !expired",
+        "!input.hiddenRoom && roomId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2031-2044",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5961-6022",
+      "authority_preconditions": "public-room producer; OPEN nonexpired contest; declarer/defender only",
+      "cost_source": "no advertised requires and withdrawal handler has no action debit",
+      "target_mapping": "contest_id argument; producer target_id absent",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `withdraw ${c.contest_id}` in eligible fixture; parse line, settle via command consumer, assert intended contest_id argument; producer target_id absent and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public-room producer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3777",
+      "line": 3777,
+      "action": "\"CONTEST_DEFEND\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"CONTEST_DEFEND\"",
+      "cmd": "`defend ${c.contest_id} stake=${stakeLine(stake)}`",
+      "target": null,
+      "available": "ok",
+      "guards": [
+        "canDefend",
+        "!input.hiddenRoom && roomId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2009-2030",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5881-5960",
+      "authority_preconditions": "public-room producer; OPEN before deadline; nondeclarer co-located, no prior defender",
+      "cost_source": "DEFEND_COST plus minimum form stake from personal purse",
+      "target_mapping": "contest_id and minimum stake; producer target_id absent",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `defend ${c.contest_id} stake=${stakeLine(stake)}` in eligible fixture; parse line, settle via command consumer, assert intended contest_id and minimum stake; producer target_id absent and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public-room producer; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3820",
+      "line": 3820,
+      "action": "\"CONTEST_DECLARE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"CONTEST_DECLARE\"",
+      "cmd": "`contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}`",
+      "target": null,
+      "available": "ok",
+      "guards": [
+        "ownOpen < MAX_OPEN_PER_AGENT && roomOpen < MAX_OPEN_PER_ROOM",
+        "!input.hiddenRoom && roomId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1972-2008",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5749-5880",
+      "authority_preconditions": "public room; valid form/target, minimum stake, caps; entity/room/exit/agent targets differ",
+      "cost_source": "DECLARE_COST plus FORM_SPECS[form].minimum_stake",
+      "target_mapping": "pushDeclare emits ENTITY entity_id, ROOM room_id, EXIT direction, AGENT player_id; target field is typed; up to eight indirect rows",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}` in eligible fixture; parse line, settle via command consumer, assert intended pushDeclare emits ENTITY entity_id, ROOM room_id, EXIT direction, AGENT player_id; target field is typed; up to eight indirect rows and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public room; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": "Indirect pushDeclare rows (actions.ts:L3798-3890), not a single target kind; test each form and target class. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3934",
+      "line": 3934,
+      "action": "\"AGREEMENT_FORM\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"AGREEMENT_FORM\"",
+      "cmd": "`form agreement ${typeCmd} with ${handle}`",
+      "target": "p.player_id",
+      "available": "agrFormOk",
+      "guards": [
+        "!input.hiddenRoom && roomId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1462-1467",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5384-5504",
+      "authority_preconditions": "public room, other party entered/co-located; accepted form; no duplicate active/own offer",
+      "cost_source": "AGREEMENT_FORM_COST from player",
+      "target_mapping": "player_id from handle; incoming offer changes semantics to accept",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `form agreement ${typeCmd} with ${handle}` in eligible fixture; parse line, settle via command consumer, assert intended player_id from handle; incoming offer changes semantics to accept and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public room, other party entered/co-located; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L3977",
+      "line": 3977,
+      "action": "\"ACCESS_POLICY\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ACCESS_POLICY\"",
+      "cmd": "`access ${where} ${modeCmd} for ${org.org_id}${appliesCmd}`",
+      "target": null,
+      "available": "ok",
+      "guards": [
+        "!input.hiddenRoom && roomId"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; organization/office member context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1497-1499",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L5599-5748",
+      "authority_preconditions": "public room; ACTIVE org occupied GRANT_ACCESS office and resolved authority; target scope/exit/room",
+      "cost_source": "ACCESS_POLICY_COST from org treasury; producer checks purse, not personal budget",
+      "target_mapping": "org_id + ROOM here or EXIT direction + mode/applies_to; no target_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `access ${where} ${modeCmd} for ${org.org_id}${appliesCmd}` in eligible fixture; parse line, settle via command consumer, assert intended org_id + ROOM here or EXIT direction + mode/applies_to; no target_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public room; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4035",
+      "line": 4035,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"CONSTRUCT\"",
+      "cmd": "`construct ${pretty}`",
+      "target": null,
+      "available": "ok",
+      "guards": [
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2048-2062",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4118-4214",
+      "authority_preconditions": "public current room; constructible class with no live same-class slot",
+      "cost_source": "CONSTRUCT_COSTS[class] with workshop/storage/cargo adjustments from player",
+      "target_mapping": "class argument, newly allocated entity_id; no target_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `construct ${pretty}` in eligible fixture; parse line, settle via command consumer, assert intended class argument, newly allocated entity_id; no target_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public current room; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": "Class string is pretty-printed; parser parseConstructibleClass must normalize it (actions.ts:L2048-2059). Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4073",
+      "line": 4073,
+      "action": "\"ATTEST\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"ATTEST\"",
+      "cmd": "`attest ${art.label} subject=${sub.entity_id} claim=${claim}`",
+      "target": "art.entity_id",
+      "available": "ok",
+      "guards": [
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1919-1961",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6885-6970",
+      "authority_preconditions": "public room; visible unclaimed artifact; subject local or attestSubjects candidate but executor requires colocated subject",
+      "cost_source": "annex-adjusted COSTS.ATTEST from player",
+      "target_mapping": "artifact entity_id from label; subject_entity_id explicit; target_id refers artifact",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `attest ${art.label} subject=${sub.entity_id} claim=${claim}` in eligible fixture; parse line, settle via command consumer, assert intended artifact entity_id from label; subject_entity_id explicit; target_id refers artifact and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public room; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": "SOURCE-ONLY RISK: producer includes attestSubjects beyond local room (actions.ts:L4057-4063), while handler rejects non-colocated subject (world-actions.ts:L6940-6948); probe distant candidate against local positive. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4120",
+      "line": 4120,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"DISMANTLE\"",
+      "cmd": "`dismantle ${e.label}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId && (e.unclaimed || stewardOf(e))",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2063-2081",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4215-4289",
+      "authority_preconditions": "visible constructible infra; unclaimed or construct steward; executor checks ownership for claimed",
+      "cost_source": "DISMANTLE_COST; salvage storage",
+      "target_mapping": "entity_id from label",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `dismantle ${e.label}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate visible constructible infra; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4140",
+      "line": 4140,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"UPGRADE\"",
+      "cmd": "`upgrade ${e.label}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "!e.unclaimed && (e.upgrade_tier || 0) < 1",
+        "classId === \"workshop\" && stewardOf(e) && !isInProgress(e)",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2082-2100",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4290-4350",
+      "authority_preconditions": "public workshop; steward, live, claimed, tier below one",
+      "cost_source": "UPGRADE_COST adjusted by storage grade/cargo from player",
+      "target_mapping": "entity_id from label",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `upgrade ${e.label}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public workshop; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4163",
+      "line": 4163,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"REPURPOSE\"",
+      "cmd": "`repurpose ${e.label}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId === REPURPOSE_FROM_CLASS",
+        "classId === \"workshop\" && stewardOf(e) && !isInProgress(e)",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2101-2119",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4351-4415",
+      "authority_preconditions": "public live workshop, construct steward; repurpose into storage bay",
+      "cost_source": "REPURPOSE_COST adjusted by storage grade/cargo from player",
+      "target_mapping": "entity_id from label; class changes",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `repurpose ${e.label}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label; class changes and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public live workshop, construct steward; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4194",
+      "line": 4194,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"RESTORE\"",
+      "cmd": "`restore ${e.label}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId &&\n        e.unclaimed &&\n        stewardOf(e) &&\n        !e.scar &&\n        (e.entity_type || \"\").toUpperCase() !== \"RUIN\"",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2120-2138",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4416-4484",
+      "authority_preconditions": "public unclaimed constructible infrastructure, no scar/ruin, construct steward",
+      "cost_source": "CONSTRUCT_COSTS[class] adjusted by storage grade/cargo from player",
+      "target_mapping": "entity_id from label",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `restore ${e.label}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public unclaimed constructible infrastructure, no scar/ruin, construct steward; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4221",
+      "line": 4221,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"VEST\"",
+      "cmd": "`vest ${e.label} to ${org.org_id}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId && !frozen && e.owner_id === selfId && !orgOwned && partners.length === 0",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2139-2160",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4485-4550",
+      "authority_preconditions": "public owned personal constructible, no frozen/shared; ACTIVE org and held named-asset REPAIR office",
+      "cost_source": "VEST_COST from player",
+      "target_mapping": "entity_id from label plus org_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `vest ${e.label} to ${org.org_id}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label plus org_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public owned personal constructible, no frozen/shared; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4248",
+      "line": 4248,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"SHARE\"",
+      "cmd": "`share ${e.label} with ${handle}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId &&\n        !frozen &&\n        e.owner_id === selfId &&\n        !orgOwned &&\n        partners.length < SHARE_MAX_CO_OWNERS",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2161-2188",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4551-4637",
+      "authority_preconditions": "public owned personal live constructible; free co-owner slot; recipient addressable",
+      "cost_source": "SHARE_COST from player",
+      "target_mapping": "entity_id from label plus player_id from handle",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `share ${e.label} with ${handle}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label plus player_id from handle and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public owned personal live constructible; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4270",
+      "line": 4270,
+      "action": "\"BUILD\"",
+      "verb": "\"BUILD\"",
+      "operation": "\"CONNECT\"",
+      "cmd": "`connect ${e.label} to ${dest}`",
+      "target": "e.entity_id",
+      "available": "ok",
+      "guards": [
+        "classId === \"route_link\" && !frozen && stewardOf(e)",
+        "!input.hiddenRoom"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L2189-2210",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L4638-4689",
+      "authority_preconditions": "public live route_link construct steward; two-way public neighbor destination",
+      "cost_source": "CONNECT_COST from player",
+      "target_mapping": "entity_id from label plus dest room/direction",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `connect ${e.label} to ${dest}` in eligible fixture; parse line, settle via command consumer, assert intended entity_id from label plus dest room/direction and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate public live route_link construct steward; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4309",
+      "line": 4309,
+      "action": "\"RECONSTRUCT\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"RECONSTRUCT\"",
+      "cmd": "`reconstruct ${ent?.label || subject} \"${claim}\" evidence=${evCmd} private`",
+      "target": "subject",
+      "available": "reconOk",
+      "guards": [],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1860-1898",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6094-6240",
+      "authority_preconditions": "accessible inspect/archive evidence, subject known; private reconstruction",
+      "cost_source": "COSTS.RECONSTRUCT from player",
+      "target_mapping": "subject_ref from label/id and explicit evidence; advertised target_id subject",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `reconstruct ${ent?.label || subject} \"${claim}\" evidence=${evCmd} private` in eligible fixture; parse line, settle via command consumer, assert intended subject_ref from label/id and explicit evidence; advertised target_id subject and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate accessible inspect/archive evidence, subject known; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4331",
+      "line": 4331,
+      "action": "\"RECONSTRUCT_PUBLISH\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"RECONSTRUCT_PUBLISH\"",
+      "cmd": "`reconstruct ${rec.subject_ref} \"${rec.claim}\" public`",
+      "target": null,
+      "available": "reconOk",
+      "guards": [
+        "rec.visibility !== \"PUBLIC\""
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1860-1898",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6094-6240",
+      "authority_preconditions": "producer author of nonPUBLIC RECORDED reconstruction; text command parses RECONSTRUCT not RECONSTRUCT_PUBLISH (L1888); handler publish branch unreachable via text",
+      "cost_source": "COSTS.RECONSTRUCT; text path may create new record instead of changing old",
+      "target_mapping": "reconstruction_id only in suggestion metadata; cmd carries subject_ref/claim/public, not reconstruction_id",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `reconstruct ${rec.subject_ref} \"${rec.claim}\" public` in eligible fixture; parse line, settle via command consumer, assert intended reconstruction_id only in suggestion metadata; cmd carries subject_ref/claim/public, not reconstruction_id and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: replay advertised text and assert no extra reconstruction and same reconstruction_id becomes PUBLIC; compare structured PUBLISH separately."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": "SOURCE-ONLY RISK: advertised publish command routes to RECONSTRUCT (actions.ts:L1888), not RECONSTRUCT_PUBLISH handler (world-actions.ts:L6108); probe retained record ID/status and new record count before claiming effect. Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    },
+    {
+      "id": "aff-L4351",
+      "line": 4351,
+      "action": "\"RECONSTRUCT_SUPERSEDE\"",
+      "verb": "\"COMMIT\"",
+      "operation": "\"RECONSTRUCT_SUPERSEDE\"",
+      "cmd": "`revise ${rec.reconstruction_id} \"${claim}\"`",
+      "target": null,
+      "available": "reconOk",
+      "guards": [
+        "kinds.length"
+      ],
+      "audience": "entered actor contextual observation, not universal authority; current actor context",
+      "parser_anchor": "workers/noema/src/actions.ts:L1899-1915",
+      "executor_anchor": "workers/noema/src/world-actions.ts:L6145-6240",
+      "authority_preconditions": "author RECORDED reconstruction, accessible evidence, subject known",
+      "cost_source": "COSTS.RECONSTRUCT from player",
+      "target_mapping": "reconstruction_id and new claim; parser does not attach evidence list from affordance",
+      "positive_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: derive advertised `revise ${rec.reconstruction_id} \"${claim}\"` in eligible fixture; parse line, settle via command consumer, assert intended reconstruction_id and new claim; parser does not attach evidence list from affordance and canonical effect."
+      },
+      "negative_test": {
+        "status": "NOT_EXECUTED",
+        "candidate": "Candidate only, not executed: negate author RECORDED reconstruction, accessible evidence, subject known; assert refusal/no unintended events, unchanged budgets and target."
+      },
+      "observed_head": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "result": "FIXTURE_GATE",
+      "remaining_gate": " Fresh exact-head positive and negative fixture execution plus local command-result/target-state verification required; source review does not prove advertised availability or authorization.",
+      "source_pin": "2fbf0d6dcc70dddf185b5e5ed8138587bca660d6",
+      "source_review_evidence_kind": "source inspection only; child executed no application tests"
+    }
+  ],
+  "indirect_pushes": [
+    {
+      "line": 3890,
+      "expression": "...declareRows"
+    }
+  ],
+  "topics": [
+    {
+      "name": "access",
+      "alias_group": "access",
+      "source_anchor": "workers/noema/src/actions.ts:4415-4420",
+      "command_forms": [
+        {
+          "line": 4415,
+          "copy": "ACCESS"
+        },
+        {
+          "line": 4416,
+          "copy": "  access <dir> deny for <org>"
+        },
+        {
+          "line": 4417,
+          "copy": "  access <dir> clear for <org>"
+        },
+        {
+          "line": 4418,
+          "copy": "  access <dir> allow for <org> applies_to=<player>"
+        },
+        {
+          "line": 4419,
+          "copy": "  access here deny|clear|allow for <org>"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4415,
+          "copy": "ACCESS"
+        },
+        {
+          "line": 4416,
+          "copy": "  access <dir> deny for <org>"
+        },
+        {
+          "line": 4417,
+          "copy": "  access <dir> clear for <org>"
+        },
+        {
+          "line": 4418,
+          "copy": "  access <dir> allow for <org> applies_to=<player>"
+        },
+        {
+          "line": 4419,
+          "copy": "  access here deny|clear|allow for <org>"
+        },
+        {
+          "line": 4420,
+          "copy": "  Occupied GRANT_ACCESS office. Public rooms only."
+        }
+      ],
+      "parser_anchor": "actions.ts:1497-1498 -> access-policy.ts:14-113 -> world-actions.ts:3552-3553 (COMMIT ACCESS_POLICY)",
+      "executor_prerequisite": "COMMIT ACCESS_POLICY: active organization, occupied GRANT_ACCESS office and holder authority, public room/exit, cost; ALLOW maps to ALLOW_ONLY and requires applies_to=<player>. Copy line 4419 is shorthand alternatives, not one literal command.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane. ALLOW_ONLY requires applies_to even for here; actions.ts:4419 shorthand lacks it (access-policy.ts:14-18,67-79). Reconcile precise grammar with a fixture before a wording verdict."
+    },
+    {
+      "name": "agreement",
+      "alias_group": "agreement",
+      "source_anchor": "workers/noema/src/actions.ts:4422-4426",
+      "command_forms": [
+        {
+          "line": 4423,
+          "copy": "  form agreement <type> with <player>"
+        },
+        {
+          "line": 4424,
+          "copy": "  terminate agreement <id> reason=mutual"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4422,
+          "copy": "AGREEMENT"
+        },
+        {
+          "line": 4423,
+          "copy": "  form agreement <type> with <player>"
+        },
+        {
+          "line": 4424,
+          "copy": "  terminate agreement <id> reason=mutual"
+        },
+        {
+          "line": 4425,
+          "copy": "  Types: trade \u00b7 non_aggression \u00b7 access \u00b7 commitment \u00b7 defense"
+        },
+        {
+          "line": 4426,
+          "copy": "  Both parties must be here. Public rooms only."
+        }
+      ],
+      "parser_anchor": "actions.ts:1462-1467,1493-1495 -> diplomacy.ts:88-99; world-actions.ts:3546-3550 (COMMIT AGREEMENT_FORM/TERMINATE)",
+      "executor_prerequisite": "COMMIT AGREEMENT_FORM/TERMINATE: permitted agreement type, co-located parties/public room for formation, party authority/termination reason and cost; type names map through parseAgreementType.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "alias",
+      "alias_group": "alias",
+      "source_anchor": "workers/noema/src/actions.ts:4503-4508",
+      "command_forms": [
+        {
+          "line": 4503,
+          "copy": "ALIAS"
+        },
+        {
+          "line": 4504,
+          "copy": "  alias list"
+        },
+        {
+          "line": 4505,
+          "copy": "  alias set <name> <command>"
+        },
+        {
+          "line": 4506,
+          "copy": "  alias rm <name>"
+        },
+        {
+          "line": 4507,
+          "copy": "  do <cmd>; <cmd>     at most 5 steps; each settles on its own"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4503,
+          "copy": "ALIAS"
+        },
+        {
+          "line": 4504,
+          "copy": "  alias list"
+        },
+        {
+          "line": 4505,
+          "copy": "  alias set <name> <command>"
+        },
+        {
+          "line": 4506,
+          "copy": "  alias rm <name>"
+        },
+        {
+          "line": 4507,
+          "copy": "  do <cmd>; <cmd>     at most 5 steps; each settles on its own"
+        },
+        {
+          "line": 4508,
+          "copy": "  Preference only. Not world truth. Cannot replace reserved commands."
+        }
+      ],
+      "parser_anchor": "command-aliases.ts:44-95 -> world-actions.ts:2072-2120 (developer admission alias/macro expansion)",
+      "executor_prerequisite": "Developer admission only: alias preference list/set/rm and bounded do macro; reserved names, depth and step limits; each expanded action separately admitted, no world authority from alias.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "all",
+      "alias_group": "all",
+      "source_anchor": "workers/noema/src/actions.ts:4392-4408",
+      "command_forms": [
+        {
+          "line": 4394,
+          "copy": "  look \u00b7 move <dir> \u00b7 inspect <thing> \u00b7 wait"
+        },
+        {
+          "line": 4395,
+          "copy": "  message <player> \"text\""
+        },
+        {
+          "line": 4396,
+          "copy": "  repair <infrastructure> \u00b7 harvest <node> [amount]"
+        },
+        {
+          "line": 4397,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4398,
+          "copy": "  accept <trade> \u00b7 reject <trade> \u00b7 cancel <trade>"
+        },
+        {
+          "line": 4399,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4400,
+          "copy": "  invite <player> to <org> role=member"
+        },
+        {
+          "line": 4401,
+          "copy": "  leave <org> \u00b7 remove <player> from <org>"
+        },
+        {
+          "line": 4402,
+          "copy": "  talk <desk>     World Service (not a Player)"
+        },
+        {
+          "line": 4404,
+          "copy": "  CONTEST             help contest"
+        },
+        {
+          "line": 4406,
+          "copy": "  ACCESS              help access"
+        },
+        {
+          "line": 4407,
+          "copy": "  FOCUS               help focus"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4393,
+          "copy": "KNOWN COMMANDS"
+        },
+        {
+          "line": 4394,
+          "copy": "  look \u00b7 move <dir> \u00b7 inspect <thing> \u00b7 wait"
+        },
+        {
+          "line": 4395,
+          "copy": "  message <player> \"text\""
+        },
+        {
+          "line": 4396,
+          "copy": "  repair <infrastructure> \u00b7 harvest <node> [amount]"
+        },
+        {
+          "line": 4397,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4398,
+          "copy": "  accept <trade> \u00b7 reject <trade> \u00b7 cancel <trade>"
+        },
+        {
+          "line": 4399,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4400,
+          "copy": "  invite <player> to <org> role=member"
+        },
+        {
+          "line": 4401,
+          "copy": "  leave <org> \u00b7 remove <player> from <org>"
+        },
+        {
+          "line": 4402,
+          "copy": "  talk <desk>     World Service (not a Player)"
+        },
+        {
+          "line": 4403,
+          "copy": "  BUILD               help build"
+        },
+        {
+          "line": 4404,
+          "copy": "  CONTEST             help contest"
+        },
+        {
+          "line": 4405,
+          "copy": "  AGREEMENT           help agreement"
+        },
+        {
+          "line": 4406,
+          "copy": "  ACCESS              help access"
+        },
+        {
+          "line": 4407,
+          "copy": "  FOCUS               help focus"
+        },
+        {
+          "line": 4408,
+          "copy": "  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus|alias]"
+        }
+      ],
+      "parser_anchor": "actions.ts:1108-2225; command-aliases.ts:76-95; access-policy.ts:29-113; diplomacy.ts:88-99; world-actions.ts:2217-2259",
+      "executor_prerequisite": "Mixed dictionary: LOOK/MOVE/INSPECT/WAIT, MESSAGE present Player/relay, REPAIR/HARVEST budgets/target, TRADE actor/escrow, ORG founder/officer, World Service desk for talk; no present-availability promise. Hosted structured admission does not accept human-line HELP grammar.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "build",
+      "alias_group": "build",
+      "source_anchor": "workers/noema/src/actions.ts:4439-4450",
+      "command_forms": [
+        {
+          "line": 4440,
+          "copy": "  construct <class>     relay \u00b7 generator \u00b7 storage_bay \u00b7 production_node"
+        },
+        {
+          "line": 4442,
+          "copy": "  dismantle <thing>"
+        },
+        {
+          "line": 4443,
+          "copy": "  upgrade <thing>       owned public workshop, once"
+        },
+        {
+          "line": 4444,
+          "copy": "  repurpose <thing>     owned public workshop \u2192 storage_bay"
+        },
+        {
+          "line": 4445,
+          "copy": "  restore <thing>       owned UNCLAIMED"
+        },
+        {
+          "line": 4446,
+          "copy": "  vest <thing> <org>    personal constructible to occupied office"
+        },
+        {
+          "line": 4447,
+          "copy": "  share <thing> <player>  up to five co-owners"
+        },
+        {
+          "line": 4448,
+          "copy": "  connect <link> <dest> public two-way neighbor only"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4439,
+          "copy": "BUILD"
+        },
+        {
+          "line": 4440,
+          "copy": "  construct <class>     relay \u00b7 generator \u00b7 storage_bay \u00b7 production_node"
+        },
+        {
+          "line": 4441,
+          "copy": "                        route_link \u00b7 workshop \u00b7 defensive_work \u00b7 archive_annex"
+        },
+        {
+          "line": 4442,
+          "copy": "  dismantle <thing>"
+        },
+        {
+          "line": 4443,
+          "copy": "  upgrade <thing>       owned public workshop, once"
+        },
+        {
+          "line": 4444,
+          "copy": "  repurpose <thing>     owned public workshop \u2192 storage_bay"
+        },
+        {
+          "line": 4445,
+          "copy": "  restore <thing>       owned UNCLAIMED"
+        },
+        {
+          "line": 4446,
+          "copy": "  vest <thing> <org>    personal constructible to occupied office"
+        },
+        {
+          "line": 4447,
+          "copy": "  share <thing> <player>  up to five co-owners"
+        },
+        {
+          "line": 4448,
+          "copy": "  connect <link> <dest> public two-way neighbor only"
+        },
+        {
+          "line": 4449,
+          "copy": "  Public rooms only. Hidden rooms cannot be built."
+        },
+        {
+          "line": 4450,
+          "copy": "  Construct, upgrade, repurpose, and restore consume cargo (free storage)."
+        }
+      ],
+      "parser_anchor": "actions.ts:2046-2206 -> world-actions.ts:4118-4695 (BUILD CONSTRUCT/DISMANTLE/UPGRADE/REPURPOSE/RESTORE/VEST/SHARE/CONNECT)",
+      "executor_prerequisite": "BUILD operations: public room, constructible class, cargo/budget, ownership/stewardship/office grant, compatible target and route where applicable. Help copy omits parser-required to/with in vest/share/connect; grammar mismatch is source-only until concrete public reproduction.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane. Source copy at actions.ts:4446-4448 omits required to/with/to delimiters (parser actions.ts:2139-2192); do not claim runtime defect without public fixture."
+    },
+    {
+      "name": "commands",
+      "alias_group": "all",
+      "source_anchor": "workers/noema/src/actions.ts:4392-4408",
+      "command_forms": [
+        {
+          "line": 4394,
+          "copy": "  look \u00b7 move <dir> \u00b7 inspect <thing> \u00b7 wait"
+        },
+        {
+          "line": 4395,
+          "copy": "  message <player> \"text\""
+        },
+        {
+          "line": 4396,
+          "copy": "  repair <infrastructure> \u00b7 harvest <node> [amount]"
+        },
+        {
+          "line": 4397,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4398,
+          "copy": "  accept <trade> \u00b7 reject <trade> \u00b7 cancel <trade>"
+        },
+        {
+          "line": 4399,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4400,
+          "copy": "  invite <player> to <org> role=member"
+        },
+        {
+          "line": 4401,
+          "copy": "  leave <org> \u00b7 remove <player> from <org>"
+        },
+        {
+          "line": 4402,
+          "copy": "  talk <desk>     World Service (not a Player)"
+        },
+        {
+          "line": 4404,
+          "copy": "  CONTEST             help contest"
+        },
+        {
+          "line": 4406,
+          "copy": "  ACCESS              help access"
+        },
+        {
+          "line": 4407,
+          "copy": "  FOCUS               help focus"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4393,
+          "copy": "KNOWN COMMANDS"
+        },
+        {
+          "line": 4394,
+          "copy": "  look \u00b7 move <dir> \u00b7 inspect <thing> \u00b7 wait"
+        },
+        {
+          "line": 4395,
+          "copy": "  message <player> \"text\""
+        },
+        {
+          "line": 4396,
+          "copy": "  repair <infrastructure> \u00b7 harvest <node> [amount]"
+        },
+        {
+          "line": 4397,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4398,
+          "copy": "  accept <trade> \u00b7 reject <trade> \u00b7 cancel <trade>"
+        },
+        {
+          "line": 4399,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4400,
+          "copy": "  invite <player> to <org> role=member"
+        },
+        {
+          "line": 4401,
+          "copy": "  leave <org> \u00b7 remove <player> from <org>"
+        },
+        {
+          "line": 4402,
+          "copy": "  talk <desk>     World Service (not a Player)"
+        },
+        {
+          "line": 4403,
+          "copy": "  BUILD               help build"
+        },
+        {
+          "line": 4404,
+          "copy": "  CONTEST             help contest"
+        },
+        {
+          "line": 4405,
+          "copy": "  AGREEMENT           help agreement"
+        },
+        {
+          "line": 4406,
+          "copy": "  ACCESS              help access"
+        },
+        {
+          "line": 4407,
+          "copy": "  FOCUS               help focus"
+        },
+        {
+          "line": 4408,
+          "copy": "  help [trade|repair|harvest|message|org|build|contest|agreement|access|focus|alias]"
+        }
+      ],
+      "parser_anchor": "actions.ts:1108-2225; command-aliases.ts:76-95; access-policy.ts:29-113; diplomacy.ts:88-99; world-actions.ts:2217-2259",
+      "executor_prerequisite": "Mixed dictionary: LOOK/MOVE/INSPECT/WAIT, MESSAGE present Player/relay, REPAIR/HARVEST budgets/target, TRADE actor/escrow, ORG founder/officer, World Service desk for talk; no present-availability promise. Hosted structured admission does not accept human-line HELP grammar.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "contest",
+      "alias_group": "contest",
+      "source_anchor": "workers/noema/src/actions.ts:4428-4437",
+      "command_forms": [
+        {
+          "line": 4428,
+          "copy": "CONTEST"
+        },
+        {
+          "line": 4429,
+          "copy": "  contest <form> <target> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4430,
+          "copy": "  defend <contest_id> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4431,
+          "copy": "  withdraw <contest_id>"
+        },
+        {
+          "line": 4432,
+          "copy": "  contest for <org> <form> <target> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4433,
+          "copy": "  defend <contest_id> for <org> stake=energy:10,influence:6"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4428,
+          "copy": "CONTEST"
+        },
+        {
+          "line": 4429,
+          "copy": "  contest <form> <target> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4430,
+          "copy": "  defend <contest_id> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4431,
+          "copy": "  withdraw <contest_id>"
+        },
+        {
+          "line": 4432,
+          "copy": "  contest for <org> <form> <target> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4433,
+          "copy": "  defend <contest_id> for <org> stake=energy:10,influence:6"
+        },
+        {
+          "line": 4434,
+          "copy": "  Forms: resource_seizure \u00b7 infrastructure_disruption \u00b7 access"
+        },
+        {
+          "line": 4435,
+          "copy": "         presence_pressure \u00b7 information"
+        },
+        {
+          "line": 4436,
+          "copy": "  Public rooms only. Hidden rooms cannot be contested."
+        },
+        {
+          "line": 4437,
+          "copy": "  No HP. No scan or attack."
+        }
+      ],
+      "parser_anchor": "actions.ts:1970-2043 -> world-actions.ts:3504-3541 (COMMIT CONTEST_DECLARE/DEFEND/WITHDRAW)",
+      "executor_prerequisite": "COMMIT CONTEST_DECLARE/DEFEND/WITHDRAW: parsed form/target/stake, public room, open/expiry/participation limits, budget and institutional authorization if acting_for; forms list is alternatives.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "focus",
+      "alias_group": "focus",
+      "source_anchor": "workers/noema/src/actions.ts:4410-4413",
+      "command_forms": [
+        {
+          "line": 4410,
+          "copy": "FOCUS"
+        },
+        {
+          "line": 4411,
+          "copy": "  focus explorer|surveyor|broker|engineer"
+        },
+        {
+          "line": 4412,
+          "copy": "  focus clear"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4410,
+          "copy": "FOCUS"
+        },
+        {
+          "line": 4411,
+          "copy": "  focus explorer|surveyor|broker|engineer"
+        },
+        {
+          "line": 4412,
+          "copy": "  focus clear"
+        },
+        {
+          "line": 4413,
+          "copy": "  One track. Not a class. Grants no verbs."
+        }
+      ],
+      "parser_anchor": "actions.ts:1500-1513 -> world-actions.ts:3555-3556 (COMMIT FOCUS)",
+      "executor_prerequisite": "COMMIT FOCUS with valid track or clear; one track does not grant verbs; executor applies current cycle/budget constraints.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "harvest",
+      "alias_group": "harvest",
+      "source_anchor": "workers/noema/src/actions.ts:4489-4496",
+      "command_forms": [
+        {
+          "line": 4489,
+          "copy": "HARVEST"
+        },
+        {
+          "line": 4490,
+          "copy": "  harvest <resource-node> [amount]"
+        },
+        {
+          "line": 4496,
+          "copy": "  Talk first: message <player> \"text\" (same room, this cycle). Not a chat."
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4489,
+          "copy": "HARVEST"
+        },
+        {
+          "line": 4490,
+          "copy": "  harvest <resource-node> [amount]"
+        },
+        {
+          "line": 4491,
+          "copy": "  Costs: energy 2, compute 1 \u00b7 fills hold \u00b7 needs free storage"
+        },
+        {
+          "line": 4492,
+          "copy": "  Stock is finite. First accepted take wins. Empty: Not enough stock available."
+        },
+        {
+          "line": 4493,
+          "copy": "  Empty stock recovers when world time advances (wait)."
+        },
+        {
+          "line": 4494,
+          "copy": "  Waiting can burn cargo for energy."
+        },
+        {
+          "line": 4495,
+          "copy": "  If you have no energy and no free storage, wait."
+        },
+        {
+          "line": 4496,
+          "copy": "  Talk first: message <player> \"text\" (same room, this cycle). Not a chat."
+        }
+      ],
+      "parser_anchor": "actions.ts:1397-1424 -> world-actions.ts:4013-4117 (COMMIT HARVEST); WAIT actions.ts:1311-1313",
+      "executor_prerequisite": "COMMIT HARVEST: visible resource node, finite stock, energy/compute and free storage; WAIT separately admitted.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "message",
+      "alias_group": "message",
+      "source_anchor": "workers/noema/src/actions.ts:4498-4501",
+      "command_forms": [
+        {
+          "line": 4498,
+          "copy": "MESSAGE"
+        },
+        {
+          "line": 4499,
+          "copy": "  message <player> \"text\""
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4498,
+          "copy": "MESSAGE"
+        },
+        {
+          "line": 4499,
+          "copy": "  message <player> \"text\""
+        },
+        {
+          "line": 4500,
+          "copy": "  Costs: compute 1 \u00b7 private (not on WATCH)"
+        },
+        {
+          "line": 4501,
+          "copy": "  Same room delivers this cycle. Far rooms need a live relay. Mail, not a chat."
+        }
+      ],
+      "parser_anchor": "actions.ts:1207-1233 -> world-actions.ts:2752-3111 (MESSAGE); world-actions.ts:2228-2243 clarification re-entry",
+      "executor_prerequisite": "MESSAGE: present resolvable Player recipient, private body, compute and delivery/relay conditions; ambiguous recipient requires body re-entry, not retained replay.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "org",
+      "alias_group": "org",
+      "source_anchor": "workers/noema/src/actions.ts:4452-4473",
+      "command_forms": [
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4452,
+          "copy": "ORGANIZATIONS"
+        },
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4457,
+          "copy": "  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1"
+        },
+        {
+          "line": 4458,
+          "copy": "  org_id is assigned by the world (org.<slug>.<id>) \u2014 do not invent free IDs."
+        },
+        {
+          "line": 4459,
+          "copy": "  No self-join; officers invite. Founder/officer may remove."
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4463,
+          "copy": "  Institution lots come from that org's treasury. A vacant office cannot act."
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4469,
+          "copy": "  Designation is explicit. Vacancy without a successor is allowed."
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        },
+        {
+          "line": 4473,
+          "copy": "  Overlapping offices fail closed unless a narrower object_set or office_precedence is published."
+        }
+      ],
+      "parser_anchor": "actions.ts:1460-1489,1516-1598,1601-1835 -> world-actions.ts:3558-3592,3610-3795 (COMMIT ORG_*)",
+      "executor_prerequisite": "COMMIT ORG operations: world-assigned org ID, active membership and founder/officer as appropriate, occupied office/profile for institutional acts; emergency needs predeclared temporary grant. Succession/office copy names syntax but does not grant authority.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane. Three literal comparisons reach one shared branch; copy includes institutional authority caveats and syntax examples, not a grant."
+    },
+    {
+      "name": "organization",
+      "alias_group": "org",
+      "source_anchor": "workers/noema/src/actions.ts:4452-4473",
+      "command_forms": [
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4452,
+          "copy": "ORGANIZATIONS"
+        },
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4457,
+          "copy": "  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1"
+        },
+        {
+          "line": 4458,
+          "copy": "  org_id is assigned by the world (org.<slug>.<id>) \u2014 do not invent free IDs."
+        },
+        {
+          "line": 4459,
+          "copy": "  No self-join; officers invite. Founder/officer may remove."
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4463,
+          "copy": "  Institution lots come from that org's treasury. A vacant office cannot act."
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4469,
+          "copy": "  Designation is explicit. Vacancy without a successor is allowed."
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        },
+        {
+          "line": 4473,
+          "copy": "  Overlapping offices fail closed unless a narrower object_set or office_precedence is published."
+        }
+      ],
+      "parser_anchor": "actions.ts:1460-1489,1516-1598,1601-1835 -> world-actions.ts:3558-3592,3610-3795 (COMMIT ORG_*)",
+      "executor_prerequisite": "COMMIT ORG operations: world-assigned org ID, active membership and founder/officer as appropriate, occupied office/profile for institutional acts; emergency needs predeclared temporary grant. Succession/office copy names syntax but does not grant authority.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane. Three literal comparisons reach one shared branch; copy includes institutional authority caveats and syntax examples, not a grant."
+    },
+    {
+      "name": "organizations",
+      "alias_group": "org",
+      "source_anchor": "workers/noema/src/actions.ts:4452-4473",
+      "command_forms": [
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4452,
+          "copy": "ORGANIZATIONS"
+        },
+        {
+          "line": 4453,
+          "copy": "  form <name> charter=\"purpose\""
+        },
+        {
+          "line": 4454,
+          "copy": "  invite <player> to <org_id> role=member|officer|advisor"
+        },
+        {
+          "line": 4455,
+          "copy": "  leave <org_id>"
+        },
+        {
+          "line": 4456,
+          "copy": "  remove <player> from <org_id> reason=\"cause\""
+        },
+        {
+          "line": 4457,
+          "copy": "  Costs: form influence 5 + compute 2; invite influence 1 + compute 2; leave/remove compute 1"
+        },
+        {
+          "line": 4458,
+          "copy": "  org_id is assigned by the world (org.<slug>.<id>) \u2014 do not invent free IDs."
+        },
+        {
+          "line": 4459,
+          "copy": "  No self-join; officers invite. Founder/officer may remove."
+        },
+        {
+          "line": 4460,
+          "copy": "  trade for <org> <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4461,
+          "copy": "  accept <trade> for <org>"
+        },
+        {
+          "line": 4462,
+          "copy": "  repair <infrastructure> for <org>"
+        },
+        {
+          "line": 4463,
+          "copy": "  Institution lots come from that org's treasury. A vacant office cannot act."
+        },
+        {
+          "line": 4464,
+          "copy": "  emergency activate <org> <template> <target>"
+        },
+        {
+          "line": 4465,
+          "copy": "  emergency revoke <scope>"
+        },
+        {
+          "line": 4466,
+          "copy": "  Emergency authority is temporary and predeclared. Saying emergency is not a grant."
+        },
+        {
+          "line": 4467,
+          "copy": "  succession <office> <player> [player2]"
+        },
+        {
+          "line": 4468,
+          "copy": "  succession scope <scope> <player> [player2]"
+        },
+        {
+          "line": 4469,
+          "copy": "  Designation is explicit. Vacancy without a successor is allowed."
+        },
+        {
+          "line": 4470,
+          "copy": "  office create <org> name=\"Treasurer\" profile=PUBLISH_NOTICE [object_set=id,id] [precedence=append|lead]"
+        },
+        {
+          "line": 4473,
+          "copy": "  Overlapping offices fail closed unless a narrower object_set or office_precedence is published."
+        }
+      ],
+      "parser_anchor": "actions.ts:1460-1489,1516-1598,1601-1835 -> world-actions.ts:3558-3592,3610-3795 (COMMIT ORG_*)",
+      "executor_prerequisite": "COMMIT ORG operations: world-assigned org ID, active membership and founder/officer as appropriate, occupied office/profile for institutional acts; emergency needs predeclared temporary grant. Succession/office copy names syntax but does not grant authority.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane. Three literal comparisons reach one shared branch; copy includes institutional authority caveats and syntax examples, not a grant."
+    },
+    {
+      "name": "repair",
+      "alias_group": "repair",
+      "source_anchor": "workers/noema/src/actions.ts:4482-4487",
+      "command_forms": [
+        {
+          "line": 4482,
+          "copy": "REPAIR"
+        },
+        {
+          "line": 4483,
+          "copy": "  repair <visible infrastructure>"
+        },
+        {
+          "line": 4484,
+          "copy": "  repair <visible infrastructure> overhaul"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4482,
+          "copy": "REPAIR"
+        },
+        {
+          "line": 4483,
+          "copy": "  repair <visible infrastructure>"
+        },
+        {
+          "line": 4484,
+          "copy": "  repair <visible infrastructure> overhaul"
+        },
+        {
+          "line": 4485,
+          "copy": "  Costs: energy 3, compute 2, and cargo 1 (frees storage)."
+        },
+        {
+          "line": 4486,
+          "copy": "  Overhaul: +1 energy, practiced Engineer only"
+        },
+        {
+          "line": 4487,
+          "copy": "  Condition +15 (max 100). No debit on failure."
+        }
+      ],
+      "parser_anchor": "actions.ts:1356-1396 -> world-actions.ts:3849-4012 (COMMIT REPAIR)",
+      "executor_prerequisite": "COMMIT REPAIR: visible repairable infrastructure, energy/compute/cargo and ownership/acting_for where relevant; overhaul additionally practiced Engineer.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    },
+    {
+      "name": "trade",
+      "alias_group": "trade",
+      "source_anchor": "workers/noema/src/actions.ts:4475-4480",
+      "command_forms": [
+        {
+          "line": 4475,
+          "copy": "TRADE"
+        },
+        {
+          "line": 4476,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4477,
+          "copy": "  accept <trade_id> \u00b7 reject <trade_id> \u00b7 cancel <trade_id>"
+        }
+      ],
+      "topic_copy": [
+        {
+          "line": 4475,
+          "copy": "TRADE"
+        },
+        {
+          "line": 4476,
+          "copy": "  trade <player> offer=energy:3 want=storage:1"
+        },
+        {
+          "line": 4477,
+          "copy": "  accept <trade_id> \u00b7 reject <trade_id> \u00b7 cancel <trade_id>"
+        },
+        {
+          "line": 4478,
+          "copy": "  Offered resources are reserved until accept/reject."
+        },
+        {
+          "line": 4479,
+          "copy": "  storage: on an offer is cargo. Giver frees hold; receiver must have free storage."
+        },
+        {
+          "line": 4480,
+          "copy": "  A live danger or deceptive edge adds +1 compute (TRADE_CAUTION) unless you have found them reliable."
+        }
+      ],
+      "parser_anchor": "actions.ts:1235-1295,1425-1458 -> world-actions.ts:3112-3500 (TRADE proposal/accept/reject/cancel)",
+      "executor_prerequisite": "TRADE proposal/accept/reject/cancel: resolved Player/trade, payer resources/cargo, counterpart/proposer authority and live offer; institutional variants need occupied office/treasury.",
+      "tested_example": null,
+      "remaining_gate": "Instantiate each materially distinct advertised form in an existing public developer-admission fixture; assert parsed operation, permitted/forbidden authority and canonical target/event. For syntax-copy discrepancies obtain concrete reproduction before editing.",
+      "result": "SOURCE_ONLY",
+      "review_note": "Source-only dictionary comparison, not availability; no instantiated command or executor probe run in this lane."
+    }
+  ],
+  "surfaces": [
+    {
+      "helper": "firstSessionActs",
+      "audience": "Retained human PLAY helper; directly tested and string-serialized into unconsumed bundle, not demonstrated on current served Agent surface.",
+      "call_chain": "play-ui.ts:1520-1562 -> playUiRuntimeSource():1638-1704 list entry 1697 -> no tracked runtime caller of playUiRuntimeSource; direct calls play-ui.test.ts:233-250. index.ts:247-250 redirects GET/HEAD /play to /connect; connectHtml served at index.ts:274-278. Agent-facing world-actions imports fourBeatFromResult/playTextFromObservation, not this helper.",
+      "anchors": [
+        "workers/noema/src/play-ui.ts:1520-1562",
+        "workers/noema/src/play-ui.ts:1638-1704",
+        "workers/noema/src/index.ts:247-278",
+        "workers/noema/test/play-ui.test.ts:231-251",
+        "workers/noema/src/world-actions.ts:38"
+      ],
+      "result": "APPLICABILITY_GATE",
+      "remaining_gate": "Owner decide RFC-0120 N/A-PROD for retired human first-paint vs identify maintained served caller/bundle injection and test at that surface; no browser acceptance claimed.",
+      "review_note": "first-session ranking remains tested/serialized, but no active production invocation was found in tracked source. talk <handle> suggestion is not MESSAGE; actual talk is World Service grammar."
+    },
+    {
+      "helper": "contextualActionsForEntity",
+      "audience": "Exported legacy human contextual helper, no direct indexed callers and not in playUiRuntimeSource serialization list.",
+      "call_chain": "play-ui.ts:508-520 export -> no tracked runtime call, no string bundle entry; parsePlayCommand:581-605 is another retained wrapper, not proof this helper is used. Current /play -> /connect; Agent world-action affordances originate deriveAffordances in actions.ts:~3180-4370.",
+      "anchors": [
+        "workers/noema/src/play-ui.ts:508-520",
+        "workers/noema/src/play-ui.ts:1638-1704",
+        "workers/noema/src/play-ui.ts:581-605",
+        "workers/noema/src/index.ts:247-278",
+        "workers/noema/src/actions.ts:~3180-4370"
+      ],
+      "result": "APPLICABILITY_GATE",
+      "remaining_gate": "Owner identify a maintained consumer or approve N/A-PROD retired-helper classification; do not promote helper-derived eligibility to runtime authority.",
+      "review_note": "source copy derives inspect/repair/harvest from entity fields; no maintained served caller established; cannot equate it to Agent affordances."
+    },
+    {
+      "helper": "contextualActionsForLocation",
+      "audience": "Exported legacy human contextual helper, no direct indexed callers and not in playUiRuntimeSource serialization list.",
+      "call_chain": "play-ui.ts:522-552 export -> no tracked runtime call or bundle entry; index.ts /play redirect and /connect served independently. Agent observation affordances are produced by actions.ts deriveAffordances through world-actions.ts buildObservation, not this helper.",
+      "anchors": [
+        "workers/noema/src/play-ui.ts:522-552",
+        "workers/noema/src/play-ui.ts:1638-1704",
+        "workers/noema/src/index.ts:247-278",
+        "workers/noema/src/world-actions.ts:2290-2308"
+      ],
+      "result": "APPLICABILITY_GATE",
+      "remaining_gate": "Owner identify maintained consumer or approve N/A-PROD; if maintained, test actual served eligibility/identity, not just helper output.",
+      "review_note": "naive first-three inspect/exits/utility suggestions remain source-only and no served first-paint call is established."
+    }
+  ],
+  "clarification": [
+    {
+      "class": "visibility",
+      "source/testanchors": [
+        "workers/noema/src/actions.ts:2271-2308",
+        "workers/noema/src/world-actions.ts:2177-2215,2221-2244",
+        "workers/noema/test/mud-command-parser.test.ts:238-255,570-634"
+      ],
+      "materiality": "A chosen same-ID entity becoming hidden or sealed can change the public candidate set/inspect legality. Fingerprint hashes parseCtx.entities fields but not a hidden flag directly; parseCtx roomEntities and normal executor visibility must be observed before alleging an unintended pick. Existing same-ID relabel, harvestability, stock, budgets and visible exits stale-pick controls are distinct.",
+      "remaining_gate": "Hidden chosen entity is tested locally. Seal/authority/roster changes and complete materiality remain separate gates; no universal fingerprint certificate.",
+      "result": "PROBE_PASS",
+      "review_note": "no execution in this lane; supplied visibility probe in plan is proposed, not run.",
+      "runtime_evidence": {
+        "title": "T25-audit hidden chosen entity invalidates numeric inspect pick",
+        "head": "f3d86cfb60fb4d1a1f961e03e6b53f1186c12b48",
+        "log": "780-audit-probe-05-fixture-corrected.log",
+        "outcome": "STALE_CLARIFICATION, empty events, unchanged bounded projection and no settlement after chosen entity becomes hidden"
+      }
+    },
+    {
+      "class": "Player roster/presence",
+      "source/testanchors": [
+        "workers/noema/src/world-actions.ts:2177-2190,2200-2244",
+        "workers/noema/src/actions.ts:2271-2308",
+        "workers/noema/test/recipient-privacy-next10.test.ts:155-166,225-258",
+        "workers/noema/test/r4-phrase-effect-equivalence.test.ts:361-400"
+      ],
+      "materiality": "A changed candidate Player presence/handle may alter ambiguous recipient resolution; an unrelated Player moving is not inherently material to an entity pick. MESSAGE pending choice deliberately discards private body and prompts re-entry (world-actions.ts:2228-2243).",
+      "remaining_gate": "Use ambiguous public Player-target choice, move/remove/rename the selected present Player then numeric pick; assert no wrong-target act and no private-body replay, recording refusal/stale distinction and budgets/events. Retain unrelated-roster unchanged-choice control.",
+      "result": "FIXTURE_GATE",
+      "review_note": "existing privacy tests are candidate evidence, not proof of this exact changed-roster pick flow."
+    },
+    {
+      "class": "organization membership/office authority",
+      "source/testanchors": [
+        "workers/noema/src/actions.ts:2271-2308",
+        "workers/noema/src/world-actions.ts:2200-2251,3705-3795",
+        "workers/noema/src/world-actions.ts:3558-3592",
+        "workers/noema/test/organization-identity-793.test.ts"
+      ],
+      "materiality": "Membership revocation or occupied-office/profile change may invalidate an ambiguous institution-target act, but cannot justify hashing all private organization fields. Executor authorization refusal after revocation is not an unauthorized execution or automatically a clarification defect.",
+      "remaining_gate": "Existing/complete fixture must offer ambiguous authorized target, revoke relevant membership or office holder/profile, choose numeral; assert actual event/target and budgets/sequence, compare unchanged authority control and normal executor refusal to governing clarification contract.",
+      "result": "FIXTURE_GATE",
+      "review_note": "source shows fingerprint omits org records; no exact public stale-pick regression or unauthorized execution observed."
+    },
+    {
+      "class": "access-policy/seal availability",
+      "source/testanchors": [
+        "workers/noema/src/actions.ts:2271-2308",
+        "workers/noema/src/world-actions.ts:2168-2174,2192-2215,2221-2251",
+        "workers/noema/src/access-policy.ts:14-113",
+        "workers/noema/test/mud-command-parser.test.ts:60-154,157-175"
+      ],
+      "materiality": "Exit seal/policy change can remove a route or prohibit movement/inspect; publicExits is fingerprinted, but policy authority and inspect seal state are not explicit fingerprint fields. Existing exit and budget stale-pick controls cover only their own changed-state cases.",
+      "remaining_gate": "Construct ambiguous actionable selection with policy/seal change while labels/IDs stay fixed; numeric pick through developer seam, observe stale vs executor refusal, target/events and budgets/sequence; unchanged-choice control. Do not infer bug from omitted hash field.",
+      "result": "FIXTURE_GATE",
+      "review_note": "no exact policy/seal numeric-pick flow run."
+    }
+  ],
+  "runtime_probes": [
+    {
+      "probe": 1,
+      "title": "T23-audit advertised repair reaches its canonical target",
+      "initial": "FIXTURE_RED_THEN_GREEN",
+      "log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-01.log",
+      "head": "421797412848ff081ca1fa5ffd5fe18a80e51b6b",
+      "corrected_log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-01-fixture-corrected.log",
+      "cause": "Free hold16 means zero cargo. Carry COSTS.REPAIR.storage using STORAGE_CAPACITY in probe only."
+    },
+    {
+      "probe": 2,
+      "title": "T23-audit advertised harvest reaches its canonical target",
+      "initial": "FIXTURE_RED_THEN_GREEN",
+      "log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-02.log",
+      "head": "70fc9e15711ea50d2713b4a015c4f14be6ad5056",
+      "corrected_log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-02-fixture-corrected.log",
+      "cause": "Injected resource omitted max_stock; generic migration normalized it to18 before HELP. Explicit fixture max_stock2 removes setup normalization."
+    },
+    {
+      "probe": 3,
+      "title": "T23-audit advertised message reaches its canonical target",
+      "initial": "GREEN",
+      "head": "c0b4ceea1cef631350bbeb0437f4e78ee52fc122",
+      "log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-03.log"
+    },
+    {
+      "probe": 4,
+      "title": "T23-audit advertised trade reaches its canonical target",
+      "initial": "GREEN",
+      "head": "e86e92fcb3460c64a600a6cf50a298d2ebb8c738",
+      "log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-04.log"
+    },
+    {
+      "probe": 5,
+      "title": "T25-audit hidden chosen entity invalidates numeric inspect pick",
+      "initial": "FIXTURE_RED_THEN_GREEN",
+      "log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-05.log",
+      "head": "f3d86cfb60fb4d1a1f961e03e6b53f1186c12b48",
+      "corrected_log": "/Users/appliedalchemylabs/.hermes/cache/scratch/780-audit-probe-05-fixture-corrected.log",
+      "cause": "Pending choices are title-cased display labels; use actual exported resolver for fixture lookup, preserving stale-pick assertion."
+    }
+  ],
+  "verification": {
+    "source_head": "71c41f7fd756ecea033735abb85bfa93e8065338",
+    "affected_tests": 149,
+    "affected_files": [
+      "contextual-help-nonmutation.test.ts",
+      "mud-command-parser.test.ts",
+      "organization-identity-793.test.ts",
+      "play-ui.test.ts",
+      "t08-parser-boundary.test.ts"
+    ],
+    "native_full_passed": 2198,
+    "native_full_skipped": 21,
+    "native_full_log": "780-audit-full-source.log",
+    "typecheck": "exit 0",
+    "graph": "fresh; three test-origin edges added, zero removed",
+    "final_report_head_review": "pending exact committed report head review"
+  },
+  "limits": [
+    "No production-source edits",
+    "No source-only risk classified as demonstrated runtime defect",
+    "Only four exact advertised positive command fixtures and one hidden-target pick flow executed as new probes",
+    "Local callback/target-state evidence is not canonical SQL, hosted scheduler or browser acceptance",
+    "All49 matrix states and followups preserved; #733/#780 remain open; no external writes authorized"
+  ],
+  "source_only_probe_candidates": [
+    {
+      "id": "reconstruct-publish",
+      "producer": "aff-L4331",
+      "observation": "Text producer carries subject/claim/public, parser emits RECONSTRUCT, whereas explicit publish handler uses RECONSTRUCT_PUBLISH and retained reconstruction_id.",
+      "gate": "Follow actual advertised command in an author-owned retained non-public reconstruction fixture; compare retained ID/status and record count. No runtime failure demonstrated."
+    },
+    {
+      "id": "attest-distant-subject",
+      "producer": "aff-L4073",
+      "observation": "Producer can include extra attestSubjects; executor requires subject in current room.",
+      "gate": "Force the distant-subject candidate into actual HERE list alongside valid local control, then follow exact advertised text and inspect result. No runtime failure demonstrated."
+    },
+    {
+      "id": "build-copy",
+      "topics": [
+        "build"
+      ],
+      "observation": "Source copy omits some parser delimiters; compare precise instantiated grammar before changing copy.",
+      "gate": "Validate owned/authorized BUILD fixture for each copied form; classify shorthand vs invalid syntax; no runtime failure demonstrated."
+    },
+    {
+      "id": "access-copy",
+      "topics": [
+        "access"
+      ],
+      "observation": "Static here allow shorthand does not repeat applies_to, while ALLOW_ONLY parser requires it.",
+      "gate": "Instantiate allowed office/actor fixture and exact expanded text before wording verdict; no runtime failure demonstrated."
+    }
+  ]
+}
