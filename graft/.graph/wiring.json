@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8982,
-    "edgeCount": 19939,
+    "nodeCount": 8989,
+    "edgeCount": 19960,
     "languages": [
       "javascript",
       "python",
@@ -98938,6 +98938,105 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "9ca66e79b5d6893aa1002139a950cb3999e35b27efc7c0995220ff17089839fc",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "name": "discovery-contest-matrix.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L1-L305",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "774923fb2cd0e2b5d65bc8d9ad356e8fd82e517af8ef4ecf7522bc293560b787",
+      "chars": 23003,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryEnter",
+      "name": "contestDiscoveryEnter",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L32-L37",
+      "signature": "async function contestDiscoveryEnter(w: WorldRuntime, ...principals: PlayerPrincipal[])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4043c4f01b99646b4cb8aeafe5a8c29b2701cdc458630cd3cf470f86c9f1e838",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryPrincipal",
+      "name": "contestDiscoveryPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L7-L12",
+      "signature": "function contestDiscoveryPrincipal(id: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4baf6015bff054654616a28ba0a0a630168b5c8a4a351ee6d7d8bb25cd7c36f4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryProjection",
+      "name": "contestDiscoveryProjection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L38-L42",
+      "signature": "function contestDiscoveryProjection(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "54ed5e2a509dc2c7267c32dfad3fabd70ef7ccb7ef0ae2dd7eda4f434260047d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySend",
+      "name": "contestDiscoverySend",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L26-L31",
+      "signature": "async function contestDiscoverySend(w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, settled: string[] = [])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9f407e4d682469945673c15348183e8ecba491b26867929f0730e194826d7a3d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySpent",
+      "name": "contestDiscoverySpent",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L43-L47",
+      "signature": "function contestDiscoverySpent(before: Record<string, number>, after: Record<string, number>, stake: Record<string, number>, cost: Record<string, number>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0cbe0a973aa4283c6c9793829bce0f939720ae88e946127157a663cb09eb43c2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryWorld",
+      "name": "contestDiscoveryWorld",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "span": "L13-L24",
+      "signature": "function contestDiscoveryWorld(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "99575ee8b0cd3be91b878e23354891d51bb9b91e825c9dac5cf7f37f893287f1",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -217706,6 +217805,132 @@
       "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
       "relation": "calls",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryEnter",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryProjection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySend",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySpent",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryEnter",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryProjection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySend",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySpent",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/contest.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryEnter",
+      "target": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySend",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoverySend",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts#contestDiscoveryWorld",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/discovery-org-affordability.test.ts",
