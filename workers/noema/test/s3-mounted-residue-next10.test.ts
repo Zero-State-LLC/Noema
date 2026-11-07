@@ -122,3 +122,12 @@ traceCase("N07 cleared shout has no retained notice after fixture reconstruction
   delete before.retained.rooms["room.a"].shout;
   expect(s3TraceTexts(await readS3TraceSnapshot(before.retained))).toEqual([]);
 });
+
+traceCase("N08 cleared institution notice has no retained projection", async () => {
+  const w = fixtureWorld();
+  w.rooms["room.a"].institution_notice = { text: "Institution residue", cycle: 0, org_id: "org.line", org_name: "Line" };
+  const before = await readS3TraceSnapshot(w);
+  expect(s3TraceTexts(before)).toEqual(["Institution residue"]);
+  delete before.retained.rooms["room.a"].institution_notice;
+  expect(s3TraceTexts(await readS3TraceSnapshot(before.retained))).toEqual([]);
+});
