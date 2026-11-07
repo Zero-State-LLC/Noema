@@ -120,3 +120,8 @@ it("G10.04 ACCESS room allow copy includes the required listed player", async ()
   if (!r.ok) throw new Error(r.error);
   expect(r.action).toEqual({ verb: "COMMIT", arguments: expect.objectContaining({ operation: "ACCESS_POLICY", scope: "ROOM", mode: "ALLOW_ONLY", applies_to: "player.peer", acting_for: "org.fixture" }) });
 });
+
+it("G10.05 BUILD topic remains nonmutating with zero personal and institutional funds", async () => {
+  const s = await scene();
+  await nonmutatingTopic(s, "build");
+});
