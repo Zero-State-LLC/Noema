@@ -811,19 +811,32 @@ export function resolvePlayerTarget(
   players: Array<{ player_id: string; handle?: string }>,
   selfId: string,
 ): { ok: true; player_id: string } | { ok: false; code: string; message: string; choices?: string[] } {
+  const literal = raw.trim().toLowerCase();
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Name a Player." };
+  // Recognize a canonical self reference before excluding self from recipient
+  // candidates; it must not be reinterpreted as another Player's handle.
+  if (selfId.toLowerCase() === literal && players.some((p) => p.player_id === selfId)) {
+    return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
+  }
   const others = players.filter((p) => p.player_id !== selfId);
-  const byId = others.filter((p) => p.player_id.toLowerCase() === t || p.player_id.toLowerCase().endsWith("." + t));
-  if (byId.length === 1) return { ok: true, player_id: byId[0].player_id };
-  const byHandle = others.filter((p) => normalizeKey(p.handle || "") === t || normalizeKey(p.player_id.replace(/^player\./, "")) === t);
-  if (byHandle.length === 1) return { ok: true, player_id: byHandle[0].player_id };
-  if (byHandle.length > 1) {
-    return {
-      ok: false,
-      code: "AMBIGUOUS_TARGET",
-      ...boundedAmbiguity("More than one Player matches.", byHandle.map((p) => p.handle || p.player_id)),
+  // Canonical IDs outrank even an ID-shaped handle. Literal handles outrank
+  // legacy short ID aliases; do not fold punctuation when comparing identities.
+  const fullId = others.filter((p) => p.player_id.toLowerCase() === literal);
+  const literalHandle = others.filter((p) => p.handle?.trim().toLowerCase() === literal);
+  const alias = others.filter((p) => p.player_id.toLowerCase().endsWith("." + literal) ||
+    p.player_id.replace(/^player\./, "").toLowerCase() === literal);
+  for (const matches of [fullId, literalHandle, alias]) {
+    if (matches.length === 1) return { ok: true, player_id: matches[0].player_id };
+    if (matches.length > 1) return {
+      ok: false, code: "AMBIGUOUS_TARGET",
+      ...boundedAmbiguity("More than one Player matches.", matches.map((p) => p.handle || p.player_id)),
     };
+  }
+  // An unresolved canonical-shaped address is not a partial display name.
+  // Use the existing Player namespace recognition, not punctuation folding.
+  if (literal.startsWith("player.")) {
+    return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
   }
   // partial handle
   const partial = others.filter((p) => {
