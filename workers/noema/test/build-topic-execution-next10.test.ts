@@ -127,3 +127,13 @@ it("B10.01 rendered SHARE stamps its retained asset and named recipient, not MES
   expect(s.w.messages).toEqual(messages);
   expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
 });
+
+it("B10.02 rendered SHARE refuses a non-owner without settlement and still works for the owner", async () => {
+  const s = await scene();
+  const line = await topic(s, "share", { thing: s.asset.label, player: s.other.player_id }, s.peer);
+  const before = projection(s.w); s.settled.length = 0;
+  rejected(s, await s.text(s.peer, line), before, "NOT_OWNER");
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "SHARE", { co_owner_id: s.other.player_id });
+  expect(s.asset.co_owner_id).toBe(s.other.player_id);
+});
