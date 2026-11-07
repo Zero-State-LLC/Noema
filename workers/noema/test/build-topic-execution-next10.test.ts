@@ -164,3 +164,15 @@ it("B10.04 exact-envelope SHARE replay returns the cached result without another
   expect(await s.dispatch(s.owner, envelope, true)).toEqual(cached);
   expect(s.settled).toEqual([]); expect(projection(s.w)).toEqual(before);
 });
+
+it("B10.05 VEST copy grants no vacant-office authority but executes after genuine assignment", async () => {
+  const s = await scene(), org = await institution(s, "Vacant Works", false);
+  const line = await topic(s, "vest", { thing: s.asset.label, org: org.org });
+  const before = projection(s.w); s.settled.length = 0;
+  rejected(s, await s.text(s.owner, line), before, "FORBIDDEN");
+  await seat(s, org.office); s.settled.length = 0;
+  const compute = s.w.players[s.owner.player_id].budgets.compute;
+  effect(s, await s.text(s.owner, line), "VEST", { owner_id: org.org });
+  expect(s.asset.owner_id).toBe(org.org);
+  expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
+});
