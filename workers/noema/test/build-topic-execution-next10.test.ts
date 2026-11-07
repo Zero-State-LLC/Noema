@@ -224,3 +224,13 @@ it("B10.09 CONNECT hidden and one-way refusals have the same bounded code and no
   }
   expect(errors[0]).toEqual(errors[1]);
 });
+
+it("B10.10 CONNECT refuses a non-steward without effects and still works for the owner", async () => {
+  const s = await scene("route_link");
+  const line = await topic(s, "connect", { link: s.asset.label, dest: "south" }, s.peer);
+  const before = projection(s.w); s.settled.length = 0;
+  rejected(s, await s.text(s.peer, line), before, "NOT_OWNER");
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "CONNECT", { dest_room_id: "room.quay" });
+  expect(s.asset.dest_room_id).toBe("room.quay");
+});
