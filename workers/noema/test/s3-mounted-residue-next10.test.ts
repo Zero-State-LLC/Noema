@@ -131,3 +131,12 @@ traceCase("N08 cleared institution notice has no retained projection", async () 
   delete before.retained.rooms["room.a"].institution_notice;
   expect(s3TraceTexts(await readS3TraceSnapshot(before.retained))).toEqual([]);
 });
+
+traceCase("N09 cleared trade notice has no retained projection", async () => {
+  const w = fixtureWorld();
+  w.rooms["room.a"].trade_notice = { text: "Trade residue", cycle: 0 };
+  const before = await readS3TraceSnapshot(w);
+  expect(s3TraceTexts(before)).toEqual(["Trade residue"]);
+  delete before.retained.rooms["room.a"].trade_notice;
+  expect(s3TraceTexts(await readS3TraceSnapshot(before.retained))).toEqual([]);
+});
