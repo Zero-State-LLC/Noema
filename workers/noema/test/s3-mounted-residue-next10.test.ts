@@ -140,3 +140,22 @@ traceCase("N09 cleared trade notice has no retained projection", async () => {
   delete before.retained.rooms["room.a"].trade_notice;
   expect(s3TraceTexts(await readS3TraceSnapshot(before.retained))).toEqual([]);
 });
+
+traceCase("N10 trace wire is capped deduplicated and provenance-free", async () => {
+  const w = fixtureWorld();
+  w.rooms["room.a"].board = [{ text: "Board one", cycle: 0 }];
+  w.rooms["room.a"].shout = { text: "Shout two", cycle: 0 };
+  w.rooms["room.a"].institution_notice = { text: "Institution three", cycle: 0, org_id: "org.line", org_name: "Line" };
+  w.rooms["room.a"].trade_notice = { text: "Trade four", cycle: 0 };
+  const bounded = await readS3TraceSnapshot(w);
+  expect(bounded.traces).toHaveLength(3);
+  expect(s3TraceTexts(bounded)).toEqual(["Board one", "Shout two", "Institution three"]);
+  for (const trace of bounded.traces) {
+    expect(Object.keys(trace).sort()).toEqual(["kind", "text", "visibility"]);
+    expect(trace.visibility).toBe("public");
+  }
+  const duplicate = fixtureWorld();
+  duplicate.rooms["room.a"].board = [{ text: "Same notice", cycle: 0 }];
+  duplicate.rooms["room.a"].shout = { text: "Same notice", cycle: 0 };
+  expect(s3TraceTexts(await readS3TraceSnapshot(duplicate))).toEqual(["Same notice"]);
+});
