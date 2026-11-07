@@ -109,3 +109,17 @@ it("N10.05 exact base attention price permits one local ATTEST", async () => {
   expect(settled[0]).toEqual(expect.objectContaining({ event_type: "ENTITY_UPDATE", payload: expect.objectContaining({
     entity_id: "entity.ledger", subject_entity_id: "entity.local", archive_claim: "OPERATING" }) }));
 });
+
+it("N10.06 one below base price is unavailable and refuses without mutation", async () => {
+  const s = await scene();
+  s.w.players[s.p.player_id].budgets.attention = 1;
+  const hit = pick(await s.send("OBSERVE"));
+  expect(hit.available).toBe(false);
+  expect(hit.reason).toBe("You do not have enough attention.");
+  const before = projection(s.w);
+  const r = await follow(s, hit.cmd, async () => { throw new Error("budget refusal must not settle"); });
+  expect(r.ok).toBe(false);
+  expect(r.error?.code).toBe("BUDGET_EXCEEDED");
+  expect(r.events || []).toEqual([]);
+  expect(projection(s.w)).toEqual(before);
+});
