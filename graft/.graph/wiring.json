@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8932,
-    "edgeCount": 19796,
+    "nodeCount": 8951,
+    "edgeCount": 19842,
     "languages": [
       "javascript",
       "python",
@@ -96122,6 +96122,273 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "dfc265b7090fb8d46aa181c574b89e025b920a6f9fd6732f1f4e9fcd371309bb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "name": "build-topic-execution-next10.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L1-L237",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "fa87f3ece7555085f75d949e5b8948c43d258960792978563daec94fd5423d16",
+      "chars": 14344,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#effect",
+      "name": "effect",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L87-L96",
+      "signature": "function effect(s: Rig, r: Result, operation: \"SHARE\" | \"VEST\" | \"CONNECT\", set: Record<string, unknown>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cd3f8fc1cc763c0df9209f848544677f99bd57618f76e955bb4e1b248153d745",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#Envelope",
+      "name": "Envelope",
+      "kind": "type",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L7-L7",
+      "signature": "type Envelope = Parameters<typeof applyWorldCommand>[2];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cb1a0bd85460f8124333eec4bd2f52380a30f3361b9034da9ab7eacb700e55d2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#exits",
+      "name": "exits",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L115-L117",
+      "signature": "function exits(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "91e323d5c7fa745950766845663d290fdc6a37034f2b8425d679a907eb722d78",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#institution",
+      "name": "institution",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L97-L110",
+      "signature": "async function institution(s: Rig, name: string, occupied = true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "01e98e79362ddbb89278b477e0a8c0c2b8ef8083f39cc77c3ac73cd3eeeb1b70",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L9-L13",
+      "signature": "function principal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3354dbe4fb2b446ddd8d20ecbfd50ff7b214be0f7d1cc0e2989777342c3a63c7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L74-L82",
+      "signature": "function projection(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fbb6b5d7bb08a91ec876b25d1cf03a03854497e8cd6357ddb8a2d9090f92d0f6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#rejected",
+      "name": "rejected",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L83-L86",
+      "signature": "function rejected(s: Rig, r: Result, before: ReturnType<typeof projection>, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "83fc5cac2b2aeac28795ca0f8dbc44c63ce4e28e75fb76b461654b85cb25ab17",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L6-L6",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#Rig",
+      "name": "Rig",
+      "kind": "type",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L63-L63",
+      "signature": "type Rig = Awaited<ReturnType<typeof scene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dda810659e1e61eac3ce43eb4b747034be1734286b6aba749db37a12893aa632",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L28-L62",
+      "signature": "async function scene(kind: \"workshop\" | \"route_link\" = \"workshop\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a42294e545d0f7c1140dccd076798a62b5c85a98d6c0ca25c8927386846949c8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#scene.asset",
+      "name": "asset",
+      "kind": "method",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L58-L61",
+      "signature": "get asset()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "442c00236c9520d02792f6aedafb8f9a3d5666022b9d779ff6d496c4b3e2cf84",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#scene.dispatch",
+      "name": "dispatch",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L31-L33",
+      "signature": "dispatch = (p: PlayerPrincipal, envelope: Envelope, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "09018ea6c1cc903479d79229ea4bc302ab5cc13adfed05f2398a899e63d47136",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#scene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L34-L37",
+      "signature": "send = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e2f280b509af44fa1a56a4ff2ca8d50220ed098c93d5dfb652df81eaa5fea749",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#scene.text",
+      "name": "text",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L38-L38",
+      "signature": "text = (p: PlayerPrincipal, line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e54a9c5465e28e352540e22f6aa3211851d678ea15ec2481385956264b3efb3d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#seat",
+      "name": "seat",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L111-L114",
+      "signature": "async function seat(s: Rig, office: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ee398cece4b8669560ddd2ac40ee1f9aa4e66c1d91650b71942aa926f0affb6f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#Settled",
+      "name": "Settled",
+      "kind": "type",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L8-L8",
+      "signature": "type Settled = Parameters<Parameters<typeof applyWorldCommand>[3]>[0];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0260e81c11e5ea6d95d00f3c4ed17e2a89eada9953711ccb1d566b8fef87bca7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#topic",
+      "name": "topic",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L64-L73",
+      "signature": "async function topic(s: Rig, verb: \"share\" | \"vest\" | \"connect\", values: Record<string, string>, p = s.owner)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f1bdce036eabb0bccbf51a1105c273c02fcce18c3974f3e4022cdd9eca5c0ab6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/build-topic-execution-next10.test.ts#world",
+      "name": "world",
+      "kind": "function",
+      "path": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "span": "L14-L27",
+      "signature": "function world(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "090efc1052c75dc451b8ada593d7d4a9e31084eb0ff2254744d8fc4810e86617",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -212488,6 +212755,282 @@
       "source": "workers/noema/test/brand-visual-qa.test.ts#luminance",
       "target": "workers/noema/test/brand-visual-qa.test.ts#lin",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#effect",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#exits",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#institution",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#rejected",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#seat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#topic",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#effect",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#Envelope",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#exits",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#institution",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#rejected",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#Rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#seat",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#Settled",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#topic",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#world",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/src/construction.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#Envelope",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#institution",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#institution",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#seat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#rejected",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#world",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.asset",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.dispatch",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.text",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene.dispatch",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene.send",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.dispatch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#scene.text",
+      "target": "workers/noema/test/build-topic-execution-next10.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#seat",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/build-topic-execution-next10.test.ts#Settled",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
       "confidence": "extracted"
     },
     {
