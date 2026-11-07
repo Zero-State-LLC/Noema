@@ -12,6 +12,7 @@ afterEach(() => {
   finally { vi.unstubAllGlobals(); }
 });
 
+let s3ReadRequest = 0;
 async function readS3TraceSnapshot(seed: WorldRuntime) {
   const h = harness(structuredClone(seed));
   const token = (await h.agent()).access_token;
@@ -21,7 +22,7 @@ async function readS3TraceSnapshot(seed: WorldRuntime) {
     expect((await entered.json() as CommandResult).ok).toBe(true);
   }
   h.restart(); // Local fixture reconstruction, never hosted eviction.
-  const res = await h.command(token, "LOOK");
+  const res = await h.command(token, "LOOK", {}, { request_id: `s3.look.${++s3ReadRequest}` });
   expect(res.status).toBe(200);
   const result = await res.json() as CommandResult;
   expect(result.ok).toBe(true);
@@ -101,4 +102,14 @@ traceCase("N05 only the current last board entry becomes a notice", async () => 
   const snapshot = await readS3TraceSnapshot(w);
   expect(s3TraceTexts(snapshot)).toEqual(["Current board note"]);
   expect(snapshot.retained.rooms["room.a"].board).toEqual(w.rooms["room.a"].board);
+});
+
+traceCase("N06 cleared board has no retained notice after fixture reconstruction", async () => {
+  const w = fixtureWorld();
+  w.rooms["room.a"].board = [{ text: "Board residue", cycle: 0 }];
+  const before = await readS3TraceSnapshot(w);
+  expect(s3TraceTexts(before)).toEqual(["Board residue"]);
+  before.retained.rooms["room.a"].board = [];
+  const after = await readS3TraceSnapshot(before.retained);
+  expect(s3TraceTexts(after)).toEqual([]);
 });
