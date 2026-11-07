@@ -1,5 +1,7 @@
 # #780 contextual discovery — scoped evidence reconciliation and audit
 
+> **Historical snapshot:** This report and its machine ledger retain the original inventory pin and verdicts. Later landed #816–#820 and draft #821 evidence are recorded separately in [the follow-up report](780-followup-evidence.md) and [scoped kanban](../KANBAN.md); no census or acceptance states are upgraded here.
+
 ## Source, scope and verdict
 
 The [machine-readable ledger](780-contextual-discovery-audit.json) contains the exact per-producer, topic, surface and clarification records behind this report.
