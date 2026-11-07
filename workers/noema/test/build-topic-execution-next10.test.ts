@@ -188,3 +188,13 @@ it("B10.06 VEST selects the specified institution among two legitimately held of
   expect(s.w.organizations).toEqual(institutions);
   expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
 });
+
+it("B10.07 VEST refuses a non-owner before transfer and the actual owner remains eligible", async () => {
+  const s = await scene(), org = await institution(s, "Owner Works");
+  const line = await topic(s, "vest", { thing: s.asset.label, org: org.org }, s.peer);
+  const before = projection(s.w); s.settled.length = 0;
+  rejected(s, await s.text(s.peer, line), before, "NOT_OWNER");
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "VEST", { owner_id: org.org });
+  expect(s.asset.owner_id).toBe(org.org);
+});
