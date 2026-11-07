@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9108,
-    "edgeCount": 20271,
+    "nodeCount": 9113,
+    "edgeCount": 20286,
     "languages": [
       "javascript",
       "python",
@@ -109320,6 +109320,77 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "5721276b534f1ee4f830105d783bc191cbc96225eb75b2b043eb261bc3663e9f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "name": "s3-mounted-residue-next10.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "span": "L1-L162",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "c7ce890375aecfaa2ff5ebce217d8dc00afd4a807f7cd41aeecbf91621c34109",
+      "chars": 7758,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s3-mounted-residue-next10.test.ts#readS3TraceSnapshot",
+      "name": "readS3TraceSnapshot",
+      "kind": "function",
+      "path": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "span": "L16-L34",
+      "signature": "async function readS3TraceSnapshot(seed: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "772db443986c50f066a44145fb6fe602e04db6a86d7130c80d469205030c452f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3InstitutionWorld",
+      "name": "s3InstitutionWorld",
+      "kind": "function",
+      "path": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "span": "L49-L58",
+      "signature": "function s3InstitutionWorld()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e758a82ee52d7f74b0951b8187a0c35bb4acdcea2f60d6c60e5b15753742833f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3RumorWorld",
+      "name": "s3RumorWorld",
+      "kind": "function",
+      "path": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "span": "L39-L48",
+      "signature": "function s3RumorWorld(visibility: ClaimRecord[\"visibility\"], subject = \"room.a\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "afb8abf62bb7f6f8115f089ae410ca0bcf7111753fedd2865271a0a0a5225e8e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3TraceTexts",
+      "name": "s3TraceTexts",
+      "kind": "function",
+      "path": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "span": "L36-L38",
+      "signature": "function s3TraceTexts(snapshot: Awaited<ReturnType<typeof readS3TraceSnapshot>>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b6ead7d321c1b4b5640742f86f3bdfea5b5846ad8d1d5244618963f004f2345b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -237261,6 +237332,96 @@
     {
       "source": "workers/noema/test/s-mark-10.test.ts#run",
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#readS3TraceSnapshot",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3InstitutionWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3RumorWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3TraceTexts",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#readS3TraceSnapshot",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3InstitutionWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3RumorWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3TraceTexts",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/src/rumor.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts#readS3TraceSnapshot",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/s3-mounted-residue-next10.test.ts#s3RumorWorld",
+      "target": "workers/noema/src/rumor.ts#emptyRumor",
       "relation": "calls",
       "confidence": "inferred"
     },
