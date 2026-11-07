@@ -125,3 +125,8 @@ it("G10.05 BUILD topic remains nonmutating with zero personal and institutional 
   const s = await scene();
   await nonmutatingTopic(s, "build");
 });
+
+it("G10.06 ACCESS topic remains nonmutating with zero personal and institutional funds", async () => {
+  const s = await scene();
+  await nonmutatingTopic(s, "access");
+});
