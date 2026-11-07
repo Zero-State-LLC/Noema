@@ -1,6 +1,6 @@
 {
   "schema": "780-public-finite-assertion-evidence-v1",
-  "status": "CANDIDATE_NOT_MERGED",
+  "status": "LANDED_IMPLEMENTATION_ACCEPTANCE_GATED",
   "pins": {
     "runtime_commit": "6ce8d1b85f44ff23fcde823ca49e5c8d4ba540bd",
     "runtime_tree": "26eb0f624f8571cd5c71bb3f95135cb2eeedbde5",
@@ -48,7 +48,7 @@
     },
     "specs_enabled_receipt": "780-integration-final-code-with-specs-receipt.json",
     "local_node": "v22.23.1",
-    "hosted_ci_node_target": "24 (combined-head result pending)",
+    "hosted_ci_node_target": "24",
     "native_ci_offline_python311": {
       "passed": 589,
       "failed": 0,
@@ -2548,15 +2548,18 @@
   "remaining_gates": [
     {
       "id": "both independent final combined reviews",
-      "status": "UNVERIFIED"
+      "status": "VERIFIED_ON_REVIEWED_CANDIDATE",
+      "head": "540350d04ead1466c9c5f219d4ab759e38416d2f"
     },
     {
       "id": "exact-head hosted CI and code-owner approval",
-      "status": "UNVERIFIED"
+      "status": "CI_PASS_REVIEW_RULE_EXCEPTION",
+      "note": "Candidate and main CI passed; submitted approval absent; scoped operator exception recorded for PR835."
     },
     {
       "id": "PR landing and docs publication",
-      "status": "UNVERIFIED"
+      "status": "IMPLEMENTATION_LANDED_DOC_SEAL_PENDING",
+      "note": "PR835 landed; this postmerge documentation seal requires its own review and CI."
     },
     {
       "id": "hosted SQL persistence and Worker restart",
@@ -2586,5 +2589,19 @@
     "No universal available flag policy inferred",
     "Compatibility helpers are remnants; maintained Agent obligations persist; hosted human PLAY retired",
     "Case names are row anchors. assertion_lines can also cite shared helpers and corroborating same-producer cases in that file; only the described bounded local predicates are claimed."
-  ]
+  ],
+  "landing": {
+    "pr": 835,
+    "reviewed_head": "540350d04ead1466c9c5f219d4ab759e38416d2f",
+    "merge_commit": "e8773b18482b69cad39ca1519df49d41f6c59223",
+    "merged_at": "2026-11-07T20:23:00Z",
+    "reviewed_and_merged_tree": "3a3bbee67399214eee594e48b51b49761f2bf63f",
+    "postmerge_ci": {
+      "id": 42410795790,
+      "conclusion": "success",
+      "url": "https://github.com/Zero-State-LLC/Noema/actions/runs/42410795790"
+    },
+    "review_rule": "operator-authorized exception for835 only; not submitted approval",
+    "scope": "implementation landed; hosted acceptance and issues remain gated"
+  }
 }
