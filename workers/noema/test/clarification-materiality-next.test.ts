@@ -108,3 +108,11 @@ it("C25R01 unchanged recipient choices request body re-entry without replay", as
   const s = await scene(), offered = await offerMessage(s);
   await safeMessagePick(s, offered.pick);
 });
+
+it("C25R02 selected recipient leaving cannot replay the discarded private body", async () => {
+  const s = await scene(), offered = await offerMessage(s);
+  expect((await s.send(offered.selected, "LEAVE_WORLD")).ok).toBe(true);
+  expect(s.w.players[offered.selected.player_id].entered).toBe(false);
+  expect(s.w.players[s.actor.player_id].pending_clarify).toBeDefined();
+  await safeMessagePick(s, offered.pick);
+});
