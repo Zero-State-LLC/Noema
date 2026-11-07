@@ -4,3 +4,5 @@
 - world · function · L19-L56 — function world(): WorldRuntime
 - run · function · L58-L71 — async function run( w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, )
 - gatherEvidence · function · L73-L89 — async function gatherEvidence(w: WorldRuntime, p: PlayerPrincipal)
+- publicationScene · function · L174-L194 — async function publicationScene()
+- publicationProjection · function · L197-L204 — function publicationProjection(w: WorldRuntime)

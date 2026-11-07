@@ -1,5 +1,11 @@
 # #778 T0.1 — pinned text-parser inventory and merged #796 policy
 
+## Current additive #780 reconstruction-publication repair
+
+The developer-only adapters `reconstruct publish <reconstruction_id> public` and `assemble publish <reconstruction_id> public` map to the existing `COMMIT.RECONSTRUCT_PUBLISH` operation with that literal retained ID and `PUBLIC` visibility. The publication affordance advertises the first spelling, not a subject/claim creation command. Quoted `reconstruct`/`assemble` creation and `revise` retain their existing meanings. This bounded public-publication spelling does not add institutional/private publication syntax or advertise reconstruction in Chamber topic help.
+
+Authority: Noema-Specs `6e169df1607a33b1c65d976bf05f225e7bae5fce`, RFC-0024:21–27 and GC6-S1-RECONSTRUCTION:83–109. Publication updates visibility on an existing record and retains author/cost checks. No new frozen wire verb, hosted text admission or grant of underlying source access. Tests in `workers/noema/test/agent-reconstruct.test.ts` cover exact-ID publication, duplicate-subject discrimination, replay, refusals, malformed text, legacy creation and hosted text nonexecution at the local reducer seam. These are not hosted SQL or whole-family acceptance. Historical inventory and line pins below remain historical.
+
 **Historical inventory base:** `ebdb5be489a90435788c2104a251cfb8dcf3a435`. **Specs reference:** `Zero-State-LLC/Noema-Specs` `6e169df1607a33b1c65d976bf05f225e7bae5fce`, `docs/MUD-NATIVE-INTERACTION-TASKS.md:9-21`. Relative `file:line` citations below refer to the pinned Noema base; inspect that revision when lines drift. **OBSERVED (source read):** this inventory covers text parser branches, immediate helpers and bounded admission routing. Successful parse is not proof of legal world action, canonical settlement, hosted Agent admission or protocol-wide validation. **TEST EVIDENCE:** pre-existing test locations are identified below, but this artifact does not claim those tests exercise every branch or establish hosted behavior.
 
 ## Merged #796 policy (#799, `4726948`; current main `633323a`)

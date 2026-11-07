@@ -1859,6 +1859,22 @@ function parseHumanCommandCore(
   // RFC-0024: reconstruct / revise — not listed in Chamber help.
   if (v === "reconstruct" || v === "assemble") {
     const rest = parts.join(" ");
+    // Publication addresses a retained record, never the subject/claim creation path.
+    const publication = rest.match(/^publish\s+(\S+)\s+public$/i);
+    if (publication) {
+      return {
+        ok: true,
+        action: {
+          verb: "COMMIT",
+          arguments: {
+            operation: "RECONSTRUCT_PUBLISH",
+            reconstruction_id: publication[1],
+            visibility: "PUBLIC",
+          },
+        },
+        display: `You publish reconstruction ${publication[1]}.`,
+      };
+    }
     const quoted = rest.match(/["'](.+)["']/);
     const claim = quoted?.[1]?.trim() || "";
     const visM = rest.match(/\b(public|private|institutional)\b/i);
@@ -4333,7 +4349,7 @@ export function deriveAffordances(input: {
         verb: "COMMIT",
         operation: "RECONSTRUCT_PUBLISH",
         label: `Publish reconstruction of ${rec.subject_ref.replace(/^entity\./, "")}`,
-        cmd: `reconstruct ${rec.subject_ref} "${rec.claim}" public`,
+        cmd: `reconstruct publish ${rec.reconstruction_id} public`,
         reconstruction_id: rec.reconstruction_id,
         subject_ref: rec.subject_ref,
         visibility: "PUBLIC",
