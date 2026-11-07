@@ -83,3 +83,14 @@ it("N10.03 hidden-room infrastructure is absent from subject suggestions", async
   expect(JSON.stringify(rows(r))).not.toContain("remote-relay");
   expect(pick(r).available).toBe(true);
 });
+
+it("N10.04 ATTEST cap stays six without promoting distant subjects", async () => {
+  const s = await scene();
+  for (const n of [2, 3]) s.w.rooms["room.a"].entities.push(enrichEntity({
+    entity_id: `entity.ledger-${n}`, label: `ledger-${n}`, entity_type: "ARTIFACT" }));
+  const r = await s.send("OBSERVE");
+  expect(rows(r)).toHaveLength(6);
+  expect(rows(r).some((a) => a.subject_id === "entity.remote")).toBe(true);
+  expect(rows(r).filter((a) => a.subject_id === "entity.remote").every((a) => !a.available)).toBe(true);
+  expect(pick(r).available).toBe(true);
+});
