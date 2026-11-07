@@ -103,3 +103,11 @@ it("G10.02 BUILD SHARE topic cannot become claim forwarding", async () => {
   if (!r.ok) throw new Error(r.error);
   expect(r.action).toEqual({ verb: "BUILD", arguments: { operation: "SHARE", entity_id: "entity.workshop", player_id: "player.peer" } });
 });
+
+it("G10.03 BUILD CONNECT topic preserves the link and destination", async () => {
+  const line = fill(example(helpText("build"), "connect"), { link: "route-link", dest: "east" });
+  const r = parseHumanCommand(line, ctx);
+  expect(r.ok).toBe(true);
+  if (!r.ok) throw new Error(r.error);
+  expect(r.action).toEqual({ verb: "BUILD", arguments: { operation: "CONNECT", entity_id: "entity.link", dest: "east" } });
+});

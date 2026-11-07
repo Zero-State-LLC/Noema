@@ -4464,7 +4464,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  restore <thing>       owned UNCLAIMED");
     lines.push("  vest <thing> to <org>    personal constructible to occupied office");
     lines.push("  share <thing> with <player>  up to five co-owners");
-    lines.push("  connect <link> <dest> public two-way neighbor only");
+    lines.push("  connect <link> to <dest>  public two-way neighbor only");
     lines.push("  Public rooms only. Hidden rooms cannot be built.");
     lines.push("  Construct, upgrade, repurpose, and restore consume cargo (free storage).");
   } else if (t === "org" || t === "organization" || t === "organizations") {
