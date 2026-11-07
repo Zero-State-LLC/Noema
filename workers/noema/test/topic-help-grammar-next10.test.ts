@@ -166,3 +166,12 @@ it("G10.09 rendered deny and clear forms change the retained matching restrictio
   expect(s.settled).toHaveLength(1);
   expect(s.settled[0]).toEqual(expect.objectContaining({ event_type: "ACCESS_RESTRICTED", payload: expect.objectContaining({ mode: "CLEAR", scope: "ROOM", room_id: "room.hub", applies_to: "*" }) }));
 });
+
+it("G10.10 topic dictionary remains readable without implying current authority", async () => {
+  const granted = await scene(true), ungranted = await scene(false);
+  const a = copy(await granted.help("access")), b = copy(await ungranted.help("access"));
+  expect(a).toBe(helpText("access")); expect(b).toBe(a);
+  expect(a).toContain("Occupied GRANT_ACCESS office. Public rooms only.");
+  expect(a).not.toContain("ACCESS_POLICY");
+  expect(a).not.toMatch(/\bWED\b|\bATTEST\b/);
+});
