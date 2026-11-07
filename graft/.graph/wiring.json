@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9033,
-    "edgeCount": 20075,
+    "nodeCount": 9044,
+    "edgeCount": 20105,
     "languages": [
       "javascript",
       "python",
@@ -99628,6 +99628,161 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "003b162e7ab3f35d62a91d33ddf06cad5b3b8184657bc879977374265a73b7ba",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "name": "discovery-reconstruction-variants.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L1-L274",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "f83f863d3ba52c5ea262736eaf3519f75b933ab40c980355d3d503c6282541ac",
+      "chars": 18194,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionEvidence",
+      "name": "reconstructionEvidence",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L55-L68",
+      "signature": "async function reconstructionEvidence(s: ReconstructionScene, kind: \"inspect\" | \"archive\" | \"both\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c24340ac21b4f28175f865277ac72d9cdd96c2ac9ec966b1e779e67afc7a3064",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionOffer",
+      "name": "reconstructionOffer",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L48-L54",
+      "signature": "function reconstructionOffer(s: ReconstructionScene, result: Awaited<ReturnType<ReconstructionScene[\"observe\"]>>, operation: string, id?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e7fce0e46054c0b4dd850d6b8365854fd3e0c492c24f10a5fbe1659f1cef15fd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionPrincipal",
+      "name": "reconstructionPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L6-L10",
+      "signature": "function reconstructionPrincipal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8b84bd5a137c7c0a4cf86f38462c8dd778a9b6903d05feb3ca350d6247027f64",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionProjection",
+      "name": "reconstructionProjection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L41-L47",
+      "signature": "function reconstructionProjection(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "678cc05f23be969c88fc2761789eb3443555a190d614274321e6b610d0e8795b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "name": "reconstructionScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L20-L39",
+      "signature": "async function reconstructionScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d26337c3c8eb511f857b516f8149de0f2b636bdb32b927ac4ab1892a096ed617",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#ReconstructionScene",
+      "name": "ReconstructionScene",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L40-L40",
+      "signature": "type ReconstructionScene = Awaited<ReturnType<typeof reconstructionScene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "480141a21a0295e5cda71b7f16a835c12f2e337a9bba20ade3bc81b49a55e780",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.follow",
+      "name": "follow",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L36-L37",
+      "signature": "follow = (p: PlayerPrincipal, cmd: string, settle?: Parameters<typeof applyWorldCommand>[3])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9de7c03861eede50509a4ee9be72c06684748cfb874c22af7501682841f360e8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "name": "invoke",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L25-L30",
+      "signature": "invoke = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, settle: Parameters<typeof applyWorldCommand>[3] = async () => true, admission: \"developer\" | \"hosted\" = \"hosted\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9bd207747d0b9946bbc29f7836d6d2f350eb147986248c49aeba9ff316e13c6e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.observe",
+      "name": "observe",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L35-L35",
+      "signature": "observe = (p: PlayerPrincipal)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f45e6a6a77d2defb1ea3fe66ac9f3269b1652f3eb89b298e7f002a6efbd4b6d6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionWorld",
+      "name": "reconstructionWorld",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "span": "L11-L19",
+      "signature": "function reconstructionWorld(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fc9e64adfa81dd0889c5f8762752b963f70d274816a6bf75ef1c0db64f4be7e7",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -219208,6 +219363,186 @@
     {
       "source": "workers/noema/test/discovery-org-affordability.test.ts#send",
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionEvidence",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionOffer",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionProjection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionEvidence",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionOffer",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionProjection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#ReconstructionScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionEvidence",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.follow",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.observe",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.follow",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.follow",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.observe",
+      "target": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionScene.invoke",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-reconstruction-variants.test.ts#reconstructionWorld",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
       "relation": "calls",
       "confidence": "inferred"
     },
