@@ -185,6 +185,12 @@ export function resolveEmergencyUse(
   if (!(org.members || []).some((m) => m.agent_id === actorId)) {
     return { ok: false, code: "FORBIDDEN", message: "You are not a member of that institution." };
   }
+  if (scope.source_office_id) {
+    const office = org.offices?.[scope.source_office_id];
+    if (!office || office.status !== "OCCUPIED" || office.holder_player_id !== actorId) {
+      return { ok: false, code: "FORBIDDEN", message: "The bound office is not held by you." };
+    }
+  }
   if (scope.capability !== capability || scope.target_ref !== targetRef) {
     return { ok: false, code: "FORBIDDEN", message: "That emergency scope does not cover this act." };
   }
