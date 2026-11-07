@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8951,
-    "edgeCount": 19842,
+    "nodeCount": 8960,
+    "edgeCount": 19871,
     "languages": [
       "javascript",
       "python",
@@ -70821,7 +70821,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L2279-L2285",
-      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE…:102, T0.6). */ session_id?: string; };",
+      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE\u2026:102, T0.6). */ session_id?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "f9c33da8ab58f7e55c7f491e21a5acf87b316b0ac56801a3df56decc7d33a3aa",
@@ -71059,7 +71059,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L132-L179",
-      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0–100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
+      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0\u2013100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e21c2250152607483502a4959fad2b42ce435217eddd816b98a7142dfa52e2f",
@@ -71129,7 +71129,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L266-L275",
-      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC §3.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
+      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC \u00a73.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "79d759dba49ec1731d5cf8b0044982d48ad8abcecd32333eab65db004fc04b2c",
@@ -71325,7 +71325,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L335-L359",
-      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution→player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
+      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution\u2192player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "09d4882c08c65b82f7ffb90407d78fd79206fff940405d57ea0b476f5ef8e655",
@@ -72382,7 +72382,7 @@
       "kind": "type",
       "path": "workers/noema/src/auth.ts",
       "span": "L215-L229",
-      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 … 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
+      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 \u2026 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "bcc044564e0af779899d1e62e09ceea7d5ddf8bd8502ae7a29cdfb60e4dfe35e",
@@ -75060,7 +75060,7 @@
       "kind": "type",
       "path": "workers/noema/src/device-enrollment.ts",
       "span": "L26-L54",
-      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, …). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
+      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, \u2026). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "6afc122f36264a4df601c2b74ce7e88d20fe43ebb8f48f126d1974dd09b233a1",
@@ -85839,7 +85839,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L44-L49",
-      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id → distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
+      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "92378cc9eeea472b13ae9f54110699b9f378cad0a4fa99eae9bbeee334fd837e",
@@ -86217,7 +86217,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L36-L42",
-      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id → distinct accepted trade_ids */ edges: Record<string, string[]>; /** object → evidence id → cycle credited */ at?: Record<string, Record<string, number>>; };",
+      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct accepted trade_ids */ edges: Record<string, string[]>; /** object \u2192 evidence id \u2192 cycle credited */ at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "7b2924418e787e5e4aa77061fa27eba3a749939a8c8b34e97c0c911189dbf17b",
@@ -88413,7 +88413,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-live.ts",
       "span": "L30-L44",
-      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** §6: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
+      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** \u00a76: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** \u00a74.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d54830e2e8af898dc269459fec2211ab687a7408ed112392e4701dea0824f191",
@@ -90505,7 +90505,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L163-L172",
-      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */ sequence?: number; /** Public agent_move — lights public edges touching the room (exit_active). */ move?: boolean; };",
+      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence \u2014 caps keep the newest across polls (\u00a718.6 rule 3). */ sequence?: number; /** Public agent_move \u2014 lights public edges touching the room (exit_active). */ move?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e959c4362f2f9c211d2ce7c2fd5edba07da8c9c819f9aa698e0d6b2ca02d40a",
@@ -90533,7 +90533,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L1028-L1043",
-      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
+      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** \u00a74.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d46f8296447a56cf44e40bd7dc48d0f75e603556248f650553f7a802e2e433b5",
@@ -98599,6 +98599,133 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "46361582dbe6d093fa12a1b24d641e394a26e0f79b6ab9b9e605d4f9a64a8bab",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "name": "discovery-social-repair-trade.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L1-L268",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "15ffc18bbae9be1ae5c130965f058792720caee1a74c81cf346059f0c02b5698",
+      "chars": 19020,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "name": "socialPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L9-L14",
+      "signature": "socialPrincipal = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cce60103c773fb18dbf922d351a94ff5991e593d366309910ed458ecf7896c6f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "name": "socialScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L15-L55",
+      "signature": "async function socialScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b6a7fe674e44a288bf5b018cf0015b3ad4e553f193a52cd2fb770845a29d6ebb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "name": "affordance",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L38-L43",
+      "signature": "affordance = async (p: PlayerPrincipal, action: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4944e627ef4b127d2218ad84fa5d522b739bc39aabe0951fb167df57c5583ff5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "name": "dispatch",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L28-L32",
+      "signature": "dispatch = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c32668acae9c33dda6a9fd053009ab7802b3b90ba99d7f7e9237f4f611eacfc5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "name": "line",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L37-L37",
+      "signature": "line = (p: PlayerPrincipal, text: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "335aa10720a81013ee443afd467a2ab279ecf4d017fcfe1a7a0825c963f8587b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L44-L44",
+      "signature": "projection = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fba556c358485f26939b29d3d0c504bc27038404532377c20c09052f36c3b3d7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "name": "refused",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L45-L53",
+      "signature": "refused = async (p: PlayerPrincipal, text: string, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "321753267c802058687c871f3c21f8c70d22a72f154f94bf7f354a967ded006b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "name": "stock",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "span": "L215-L215",
+      "signature": "stock = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9f2cc133aa85457b51f428468826fc0c969dade04793a76e40a9cfd52a7e6a66",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -216830,6 +216957,180 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts#applyPracticeCredits",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts#emptyPractice",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#stock",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/construction.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/practice.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.affordance",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.dispatch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.line",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
+      "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/discovery.test.ts",
