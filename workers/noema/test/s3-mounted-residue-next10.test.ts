@@ -94,3 +94,11 @@ traceCase("N04 occupied office has no vacant memorial; vacancy does", async () =
   expect(s3TraceTexts(await readS3TraceSnapshot(vacant)))
     .toEqual(["Marks of Line remain here.", "Steward of Line stands vacant."]);
 });
+
+traceCase("N05 only the current last board entry becomes a notice", async () => {
+  const w = fixtureWorld();
+  w.rooms["room.a"].board = [{ text: "Earlier board note", cycle: 0 }, { text: "Current board note", cycle: 0 }];
+  const snapshot = await readS3TraceSnapshot(w);
+  expect(s3TraceTexts(snapshot)).toEqual(["Current board note"]);
+  expect(snapshot.retained.rooms["room.a"].board).toEqual(w.rooms["room.a"].board);
+});
