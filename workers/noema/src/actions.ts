@@ -4435,7 +4435,8 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  access <dir> deny for <org>");
     lines.push("  access <dir> clear for <org>");
     lines.push("  access <dir> allow for <org> applies_to=<player>");
-    lines.push("  access here deny|clear|allow for <org>");
+    lines.push("  access here deny|clear for <org>");
+    lines.push("  access here allow for <org> applies_to=<player>");
     lines.push("  Occupied GRANT_ACCESS office. Public rooms only.");
   } else if (t === "agreement") {
     lines.push("AGREEMENT");

@@ -111,3 +111,12 @@ it("G10.03 BUILD CONNECT topic preserves the link and destination", async () => 
   if (!r.ok) throw new Error(r.error);
   expect(r.action).toEqual({ verb: "BUILD", arguments: { operation: "CONNECT", entity_id: "entity.link", dest: "east" } });
 });
+
+it("G10.04 ACCESS room allow copy includes the required listed player", async () => {
+  const template = roomForm(helpText("access"), "allow");
+  expect(template).toContain("applies_to=<player>");
+  const r = parseHumanCommand(fill(template, { org: "org.fixture", player: "player.peer" }), ctx);
+  expect(r.ok).toBe(true);
+  if (!r.ok) throw new Error(r.error);
+  expect(r.action).toEqual({ verb: "COMMIT", arguments: expect.objectContaining({ operation: "ACCESS_POLICY", scope: "ROOM", mode: "ALLOW_ONLY", applies_to: "player.peer", acting_for: "org.fixture" }) });
+});
