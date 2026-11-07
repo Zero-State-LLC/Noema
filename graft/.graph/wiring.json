@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9092,
-    "edgeCount": 20228,
+    "nodeCount": 9108,
+    "edgeCount": 20269,
     "languages": [
       "javascript",
       "python",
@@ -96744,6 +96744,231 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "d444b0b0ad30f9e35c895e7b888cad2afcd140fe26d082dfe64c00318ce154d1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts",
+      "name": "clarification-materiality-next.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L1-L151",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "6bf078bb006e9ed671212e48b724d2925f4c586298914eb91c6de27644a2e25a",
+      "chars": 8769,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#entity",
+      "name": "entity",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L77-L80",
+      "signature": "function entity(s: Rig, id: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "45486f7bdb3b00a2d6e33353c245ea7d3d1f97d10087066ee6c6514432a5a5e8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#inspected",
+      "name": "inspected",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L91-L97",
+      "signature": "async function inspected(s: Rig, pick: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1f893d14a1eddd308eefec9031a3b8c2582ed88ca2c872860988cfa2a2970dae",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#messageControl",
+      "name": "messageControl",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L46-L52",
+      "signature": "async function messageControl(s: Rig, recipient = s.b.player_id)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8d7900c26f49dab69e4a59f3e91894e52bf469956295ad47aa8a2ab541417cc8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#offerInspect",
+      "name": "offerInspect",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L81-L90",
+      "signature": "async function offerInspect(s: Rig)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c26c8f734a055d95011628358d328633990b64c631155a90bdac98016874157d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#offerMessage",
+      "name": "offerMessage",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L53-L64",
+      "signature": "async function offerMessage(s: Rig)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1f9d4eb1c56709cd3b42a24e619addef047766bcff03c7098975e3ce27da0ac8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L8-L12",
+      "signature": "function principal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3354dbe4fb2b446ddd8d20ecbfd50ff7b214be0f7d1cc0e2989777342c3a63c7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L37-L45",
+      "signature": "function projection(s: Rig)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bc9cb68f408ea321c01c76ba020f952a9e9cfc891548b091caadc7cb1870b3ac",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L5-L5",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#Rig",
+      "name": "Rig",
+      "kind": "type",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L36-L36",
+      "signature": "type Rig = Awaited<ReturnType<typeof scene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dda810659e1e61eac3ce43eb4b747034be1734286b6aba749db37a12893aa632",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#safeMessagePick",
+      "name": "safeMessagePick",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L65-L76",
+      "signature": "async function safeMessagePick(s: Rig, pick: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "04b38e1da9c3b1831375ba3bc06226faadc22fc9b6bc8092eb2852ec8c51e498",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L13-L35",
+      "signature": "async function scene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b9b95de24fa5f58ed796b4fa97d04ca67dcf36491b9fa366e8dd40d48a305348",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#scene.ask",
+      "name": "ask",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L26-L26",
+      "signature": "ask = (line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "739ac863b158ce3de93ae0910273fb3b6e5dc320bfbfcafeec97a8c3bc0cb60f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#scene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L21-L25",
+      "signature": "send = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3a0615e652a539bd346753f7c19b26cba429c1ec9b59b7b77036beacb82dc762",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#sealedPick",
+      "name": "sealedPick",
+      "kind": "function",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L98-L105",
+      "signature": "async function sealedPick(s: Rig, pick: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4641c6a51f3c700d9b613e43e51e60901ddc8d5e01fbdd4c1c9a666273a7fae5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/clarification-materiality-next.test.ts#Settled",
+      "name": "Settled",
+      "kind": "type",
+      "path": "workers/noema/test/clarification-materiality-next.test.ts",
+      "span": "L6-L6",
+      "signature": "type Settled = Parameters<Parameters<typeof applyWorldCommand>[3]>[0];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0260e81c11e5ea6d95d00f3c4ed17e2a89eada9953711ccb1d566b8fef87bca7",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -215546,6 +215771,252 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#entity",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#inspected",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#offerInspect",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#offerMessage",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#safeMessagePick",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#sealedPick",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#entity",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#inspected",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#messageControl",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#offerInspect",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#offerMessage",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#Rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#safeMessagePick",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#sealedPick",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#Settled",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#offerInspect",
+      "target": "workers/noema/src/actions.ts#resolveVisibleEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#offerMessage",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#messageControl",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#offerMessage",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#safeMessagePick",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#messageControl",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#safeMessagePick",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene.ask",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene.ask",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#scene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#sealedPick",
+      "target": "workers/noema/test/clarification-materiality-next.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/clarification-materiality-next.test.ts#Settled",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/client-pin.test.ts",
