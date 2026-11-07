@@ -1524,11 +1524,13 @@ type FakeNode = {
   querySelectorAll(sel: string): FakeNode[];
   focus(): void;
   scrollIntoView(): void;
+  insertAdjacentHTML(position: string, html: string): void;
   fire(type: string, ev?: unknown): void;
 };
 
 function makeWatchDom() {
   let focused: FakeNode | null = null;
+  const htmlWrites: Array<{ tag: string; sink: string; value: string }> = [];
   function findAll(root: FakeNode, sel: string): FakeNode[] {
     const out: FakeNode[] = [];
     const walk = (m: FakeNode) => {
@@ -1599,10 +1601,24 @@ function makeWatchDom() {
         focused = n;
       },
       scrollIntoView() {},
+      insertAdjacentHTML(position, html) {
+        htmlWrites.push({ tag: n.tagName, sink: `insertAdjacentHTML:${position}`, value: String(html) });
+      },
       fire(type, ev) {
         for (const fn of n.handlers[type] || []) fn(ev);
       },
     };
+    for (const sink of ["innerHTML", "outerHTML"] as const) {
+      let current = "";
+      Object.defineProperty(n, sink, {
+        configurable: true,
+        get: () => current,
+        set: (value: string) => {
+          current = String(value);
+          htmlWrites.push({ tag: n.tagName, sink, value: current });
+        },
+      });
+    }
     return n;
   }
   function text(s: string): FakeNode {
@@ -1643,6 +1659,7 @@ function makeWatchDom() {
   return {
     doc,
     byId,
+    htmlWrites,
     get focused() {
       return focused;
     },
@@ -1774,6 +1791,39 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  it("T35 generated WATCH uses fresh text nodes, never HTML sinks, for scar on startup and Refresh", async () => {
+    const projection = (label: string, sequence: number) => buildWatchLive({
+      world_id: "world.test", cycle: 4, sequence, players: [], events: [],
+      rooms: { "room.market": {
+        room_id: "room.market", name: "Market", description: "Public site", exits: [],
+        entities: [{ entity_id: "entity.scar", label, entity_type: "RUIN", scar: true }],
+      } },
+    });
+    const first = "A scar remains (Scar <em>first</em>).";
+    const second = "A scar remains (Scar <strong>second</strong>).";
+    const initial = projection("Scar <em>first</em>", 20);
+    const later = projection("Scar <strong>second</strong>", 21);
+    expect((initial.rooms as Array<{ traces: Array<{ text: string }> }>)[0].traces[0].text).toBe(first);
+    expect((later.rooms as Array<{ traces: Array<{ text: string }> }>)[0].traces[0].text).toBe(second);
+    const client = await bootWatchClient(() => okResponse(initial));
+    try {
+      const traceNodes = () => client.$("watch-map").querySelectorAll("p")
+        .filter((n) => n.className === "watch-traces")
+        .flatMap((n) => n.querySelectorAll("span"))
+        .flatMap((n) => n.children.filter((c) => c.tagName === "#text"));
+      expect(client.dom.htmlWrites, "startup HTML sink writes").toEqual([]);
+      const startupNodes = traceNodes();
+      expect(startupNodes.map((n) => n.textContent)).toContain(first);
+      const oldNodeSet = new Set(startupNodes);
+      const sinkBoundary = client.dom.htmlWrites.length;
+      client.setFetch(() => okResponse(later));
+      await client.refresh();
+      expect(client.dom.htmlWrites.slice(sinkBoundary), "Refresh HTML sink writes").toEqual([]);
+      const newNodes = traceNodes().filter((n) => !oldNodeSet.has(n));
+      expect(newNodes.map((n) => n.textContent)).toContain(second);
+      expect(newNodes.map((n) => n.textContent)).not.toContain(first);
+    } finally { client.restore(); }
+  });
   it("R806-next10 10 overlapping Refresh admits only one pending live request", async () => {
     const { client, focus } = await bootReadinessMap();
     let release: (value: ReturnType<typeof okResponse>) => void = () => {};
