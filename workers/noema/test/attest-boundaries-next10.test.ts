@@ -141,3 +141,17 @@ it("N10.07 stale command cannot overwrite a first successful claim", async () =>
   expect(projection(s.w)).toEqual(before);
   expect(rows(await s.send("OBSERVE")).some((a) => a.target_id === "entity.ledger")).toBe(false);
 });
+
+it("N10.08 same-envelope replay has no new publication effect", async () => {
+  const s = await scene();
+  const hit = pick(await s.send("OBSERVE"));
+  const envelope = s.envelope("LOOK", { line: hit.cmd });
+  let settlements = 0;
+  const first = await applyWorldCommand(s.w, s.p, envelope, async () => { settlements++; return true; }, { admission: "developer" });
+  expect(first.ok).toBe(true);
+  expect(settlements).toBe(1);
+  const before = projection(s.w);
+  const replay = await applyWorldCommand(s.w, s.p, envelope, async () => { throw new Error("replay must not settle"); }, { admission: "developer" });
+  expect(replay).toEqual(first);
+  expect(projection(s.w)).toEqual(before);
+});
