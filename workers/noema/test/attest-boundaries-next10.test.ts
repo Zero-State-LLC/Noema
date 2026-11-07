@@ -60,3 +60,16 @@ it("N10.01 distant-only available_actions excludes ATTEST", async () => {
   expect(hit.reason).toBe("You must be in the same room to attest.");
   expect(r.observation?.available_actions || []).not.toContain("ATTEST");
 });
+
+it("N10.02 mixed subjects preserve the executable local choice", async () => {
+  const s = await scene();
+  const r = await s.send("OBSERVE");
+  expect(pick(r, "entity.remote").available).toBe(false);
+  const local = pick(r);
+  expect(local.available).toBe(true);
+  expect(r.observation?.available_actions).toContain("ATTEST");
+  const out = await follow(s, local.cmd);
+  expect(out.ok).toBe(true);
+  expect(s.w.rooms["room.a"].entities.find((e) => e.entity_id === "entity.ledger")?.archive_subject_entity_id).toBe("entity.local");
+  expect(out.events?.find((e) => e.event_type === "ENTITY_UPDATE")?.payload?.subject_entity_id).toBe("entity.local");
+});
