@@ -1,0 +1,2590 @@
+{
+  "schema": "780-public-finite-assertion-evidence-v1",
+  "status": "CANDIDATE_NOT_MERGED",
+  "pins": {
+    "runtime_commit": "6ce8d1b85f44ff23fcde823ca49e5c8d4ba540bd",
+    "runtime_tree": "26eb0f624f8571cd5c71bb3f95135cb2eeedbde5",
+    "normative_compatibility": "b86c4b09cf75b3027d87998eff0952c2421bf52d",
+    "normative_reference": "6e169df1607a33b1c65d976bf05f225e7bae5fce",
+    "companion_commit": "8572559a21903b1101691341afbeccdeacc4a146",
+    "p07_copy_commit": "93a95e482ca856eb0ed2b27225112ab341af3c5e"
+  },
+  "validation": {
+    "producer_ids": 46,
+    "topic_groups": 12,
+    "companion_cases": 6,
+    "historical_census_unchanged": {
+      "SOURCE_ONLY": 2,
+      "PROBE_PASS": 4,
+      "FIXTURE_GATE": 40
+    },
+    "assignments_by_task": {
+      "P02": 6,
+      "P03": 8,
+      "P01": 1,
+      "P04": 7,
+      "P05": 6,
+      "P06": 3,
+      "P07": 3,
+      "P08": 5,
+      "P10": 4,
+      "P09": 3
+    },
+    "focused_coverage": {
+      "modules": 38,
+      "meaning": "expanded focused selection, not newly authored tests",
+      "tests": 412
+    },
+    "final_local_full": {
+      "numPassedTests": 2406,
+      "numFailedTests": 0,
+      "numPendingTests": 21
+    },
+    "final_local_full_pending_class": "21 missing-Specs gated cases (closed/slice catalogs, RFC129 crime, GC4-S8, specs pin, WATCH census); not SQL skips",
+    "specs_enabled_full": {
+      "numPassedTests": 2427,
+      "numFailedTests": 0,
+      "numPendingTests": 0
+    },
+    "specs_enabled_receipt": "780-integration-final-code-with-specs-receipt.json",
+    "local_node": "v22.23.1",
+    "hosted_ci_node_target": "24 (combined-head result pending)",
+    "native_ci_offline_python311": {
+      "passed": 589,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 3,
+      "python": "Python 3.11.15",
+      "platform": "local macOS; CI-command equivalent, not hosted Linux",
+      "skipped_scope": "three PostgreSQL-service tests; no external database provisioned",
+      "official_client_pin": "0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3",
+      "agents_contract": "PASS"
+    },
+    "component_prs": [
+      821,
+      822,
+      823,
+      824,
+      825,
+      826,
+      827,
+      828,
+      829,
+      830,
+      831,
+      832,
+      833,
+      834
+    ],
+    "gate_status_scope": "Evidence snapshot at candidate creation; final combined reviews and live PR gates are recorded separately, not granted by this map."
+  },
+  "producers": [
+    {
+      "id": "aff-L3211",
+      "task": "P02",
+      "operation": "INSPECT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3248
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 advertised INSPECT follows exact text to the selected entity, player cost, and settled events",
+        "case_line": 284,
+        "assertion_lines": [
+          284,
+          287,
+          288,
+          291,
+          292,
+          293,
+          295,
+          296,
+          297,
+          299,
+          301,
+          332
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "The offered target_id is the selected visible entity ID, not the matching-prefix entity.",
+        "payer_cost": "Annex-adjusted attention requires payer affordability; this fixture asserts attention:2 and debits the inspecting player.",
+        "authority_refusal_replay": "Exact label resolves uniquely; duplicate label clarifies, inspection restriction refuses, missing entity fails (case 284 plus 325-339).",
+        "event_retained_state": "Returned and fake-settled INSPECT and OBSERVATION_GENERATED; player attention decreases, room/entities and canonical sequence unchanged."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "SOURCE_ONLY"
+    },
+    {
+      "id": "aff-L3233",
+      "task": "P03",
+      "operation": "REPAIR",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3272
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 advertised overhaul requires practiced Engineer, held cargo and exact energy",
+        "case_line": 141,
+        "assertion_lines": [
+          141,
+          153,
+          156,
+          161,
+          163,
+          164,
+          199,
+          201,
+          202,
+          203
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Visible infrastructure resolves to entity.social-relay; ordinary command has no acting_for.",
+        "payer_cost": "Personal energy:3, compute:2, held cargo:1 (storage increases on use); workshop discount is a source rule, not exercised in this no-workshop fixture.",
+        "authority_refusal_replay": "Ordinary personal repair succeeds even on another owner\u2019s visible infrastructure; no institutional authorization is exercised.",
+        "event_retained_state": "Returns BUDGET_CONSUMED then ENTITY_UPDATE; only ENTITY_UPDATE passed to fake settler; condition and personal budgets change."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "PROBE_PASS"
+    },
+    {
+      "id": "aff-L3253",
+      "task": "P03",
+      "operation": "REPAIR",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3292
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 advertised overhaul requires practiced Engineer, held cargo and exact energy",
+        "case_line": 141,
+        "assertion_lines": [
+          141,
+          154,
+          157,
+          168,
+          170,
+          174,
+          182,
+          186
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Exact infrastructure label resolves entity.social-relay with extent overhaul.",
+        "payer_cost": "Ordinary repair price plus one energy, personal compute and held cargo; no workshop in fixture. Short energy or empty hold refuses.",
+        "authority_refusal_replay": "Practiced Engineer is needed; unpracticed command FORBIDDEN, then recognized practice and sufficient funds/cargo succeed.",
+        "event_retained_state": "ENTITY_UPDATE on same entity and increased condition; player energy/compute debit and held cargo use; only ENTITY_UPDATE fake-settled."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3285",
+      "task": "P03",
+      "operation": "HARVEST",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3324
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 harvest topic default/amount and message topic reach actual target with refusal controls",
+        "case_line": 209,
+        "assertion_lines": [
+          209,
+          213,
+          217,
+          220,
+          223,
+          224,
+          225,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          240
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Visible node ID entity.social-node; offer command explicitly requests amount 1, topic also tests omitted default and amount 2.",
+        "payer_cost": "Personal energy:2, compute:1 per harvest; amount consumes free storage and finite node stock, not a charge of storage as fuel.",
+        "authority_refusal_replay": "Zero free storage BUDGET_EXCEEDED; subsequent amount exceeding stock FORBIDDEN in this case. Duplicate label ambiguity is a separate case 192-207.",
+        "event_retained_state": "RESOURCE_TRANSFER plus stock ENTITY_UPDATE (and BUDGET_CONSUMED for two-unit case); node stock and actor hold change; only stock update fake-settled."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "PROBE_PASS"
+    },
+    {
+      "id": "aff-L3307",
+      "task": "P02",
+      "operation": "MOVE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3344
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 advertised MOVE follows exact text to its direction and destination with player debit",
+        "case_line": 304,
+        "assertion_lines": [
+          304,
+          307,
+          308,
+          310,
+          313,
+          314,
+          315,
+          317,
+          319,
+          321,
+          355
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "target_id is east direction, resolved via current-room exit to destination room.east; not entity or destination ID.",
+        "payer_cost": "Offered move energy:1 in this fixture; actual dynamic moveEnergyCost depends on carried storage and ready route_link; player pays.",
+        "authority_refusal_replay": "No energy BUDGET_EXCEEDED; blocked or absent exit MOVE_REJECTED (case 341-358); denied route omitted from HERE, even if raw affordance remains.",
+        "event_retained_state": "Returned and fake-settled MOVE; player room and energy change, canonical sequence increments; rooms unchanged."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "SOURCE_ONLY"
+    },
+    {
+      "id": "aff-L3324",
+      "task": "P03",
+      "operation": "MESSAGE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3361
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 harvest topic default/amount and message topic reach actual target with refusal controls",
+        "case_line": 209,
+        "assertion_lines": [
+          209,
+          246,
+          247,
+          248,
+          249,
+          254,
+          255,
+          257,
+          258,
+          263,
+          264,
+          266
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Exact same-room handle selects recipient player ID, not observer or bystander.",
+        "payer_cost": "Sender pays COSTS.MESSAGE.compute; test checks decrement, not a remote-relay charge.",
+        "authority_refusal_replay": "Current-room recipient and affordability checked here; zero compute BUDGET_EXCEEDED. Far-room relay/due-cycle is source behavior, not exercised by this case.",
+        "event_retained_state": "MESSAGE and MESSAGE_DELIVERED in same cycle, one retained DELIVERED message; receiver sees text, bystander does not; no pending delivery in this case."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "PROBE_PASS"
+    },
+    {
+      "id": "aff-L3339",
+      "task": "P03",
+      "operation": "TRADE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3376
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 trade offer and exact phase advertisements select the same trade and enforce roles",
+        "case_line": 57,
+        "assertion_lines": [
+          57,
+          61,
+          62,
+          65,
+          67,
+          68,
+          69,
+          109,
+          111,
+          129,
+          130,
+          136,
+          137
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Offered handle resolves current-room counterparty player ID; proposer and recipient differ.",
+        "payer_cost": "TRADE requires caution-adjusted compute but advertises available:true even below cost; direct command BUDGET_EXCEEDED; after replenishment charges proposer compute and reserves offered energy.",
+        "authority_refusal_replay": "Proposer to same-room player; controlled danger-memory fixture raises required compute and reports TRADE_CAUTION, not permission to create danger evidence.",
+        "event_retained_state": "TRADE_PROPOSED and OPEN trade with reserved lot; proposer energy and compute decrease, fake settlement observed by fixture."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "PROBE_PASS"
+    },
+    {
+      "id": "aff-L3357",
+      "task": "P03",
+      "operation": "TRADE_ACCEPT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3394
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 trade offer and exact phase advertisements select the same trade and enforce roles",
+        "case_line": 57,
+        "assertion_lines": [
+          57,
+          75,
+          77,
+          83,
+          104,
+          115,
+          116,
+          117
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Target is OPEN trade_id, accepting principal is counterparty, not proposer or outsider.",
+        "payer_cost": "Accepting player pays COSTS.TRADE compute; requested storage cargo and reserved offer separately bounded; zero compute refuses.",
+        "authority_refusal_replay": "Wrong role/outsider FORBIDDEN, spent trade TRADE_FAILED; accept requires available requested lots, tested storage control in case 98-119.",
+        "event_retained_state": "TRADE_ACCEPTED among returned events; trade SETTLED, reservation cleared and resources transferred; test asserts three fake settlements and counterparty compute debit."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3368",
+      "task": "P03",
+      "operation": "TRADE_REJECT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3405
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 trade offer and exact phase advertisements select the same trade and enforce roles",
+        "case_line": 57,
+        "assertion_lines": [
+          57,
+          75,
+          77,
+          83,
+          88,
+          91
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Target OPEN trade_id; counterparty is authorized rejector.",
+        "payer_cost": "No normal compute debit on reject in this cited phase case; no influence debit or consequence asserted here.",
+        "authority_refusal_replay": "Proposer/outsider FORBIDDEN, replay of finished trade TRADE_FAILED.",
+        "event_retained_state": "TRADE_REJECTED returned and fake-settled once; status REJECTED and reservation cleared; counterparty compute unchanged."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3379",
+      "task": "P03",
+      "operation": "TRADE_CANCEL",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3416
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 trade offer and exact phase advertisements select the same trade and enforce roles",
+        "case_line": 57,
+        "assertion_lines": [
+          57,
+          75,
+          77,
+          83,
+          88,
+          91
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Target OPEN trade_id; proposer is authorized canceller.",
+        "payer_cost": "No normal compute debit on cancel in this cited phase case.",
+        "authority_refusal_replay": "Counterparty/outsider FORBIDDEN, replay of finished trade TRADE_FAILED.",
+        "event_retained_state": "TRADE_CANCELLED returned and fake-settled once; status CANCELLED and reservation cleared; counterparty compute unchanged."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3393",
+      "task": "P01",
+      "operation": "ORG_CREATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3433
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-org-affordability.test.ts",
+        "case": "P01 base funds below ratcheted price: follow exact advertised form and retain refusal",
+        "case_line": 70,
+        "assertion_lines": [
+          70,
+          76,
+          77,
+          78,
+          79,
+          81,
+          85,
+          88,
+          107,
+          108,
+          110,
+          111,
+          113,
+          115,
+          119,
+          146,
+          152,
+          153,
+          155,
+          199,
+          200,
+          206,
+          207,
+          232,
+          233,
+          238,
+          253,
+          254
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "No offered target_id: form uses supplied name/charter; world assigns new org ID on success.",
+        "payer_cost": "Advertised full COSTS.ORG_CREATE plus current orgCreateExtraInfluence. At base-only funds available:false, absent from available_actions and contextual HERE; direct command BUDGET_EXCEEDED without effects. At full price available:true, founder pays exact dynamic compute/influence.",
+        "authority_refusal_replay": "Affordability rechecked at execution; fresh world has zero premium, subsequent formation increases premium. Case does not prove every charter/name uniqueness branch.",
+        "event_retained_state": "At full price returns BUDGET_CONSUMED and ORG_CREATE, fake-settles ORG_CREATE once, creates exactly one org and debits player; same idempotency key replays without new mutation."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3409",
+      "task": "P04",
+      "operation": "ORG_MEMBER_REMOVE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3449
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised invite/leave bind org and nominated member, personal payer and replay",
+        "case_line": 90,
+        "assertion_lines": [
+          90,
+          99,
+          102,
+          103,
+          108,
+          111,
+          248
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised org_id with implicit actor as leaving member; this offer is self-leave, not arbitrary removal.",
+        "payer_cost": "COSTS.ORG_MEMBER_REMOVE paid personally; org treasury unchanged in cited case.",
+        "authority_refusal_replay": "Active member may leave; second leave NOT_FOUND; zero-compute leave refusal exercised in case 167-205, not the assigned case 90.",
+        "event_retained_state": "ORG_MEMBER_REMOVE with SELF_LEAVE removes actor membership; paid helper checks settled event; replay protection explicitly tested for invite, not leave."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3427",
+      "task": "P04",
+      "operation": "ORG_MEMBER_ADD",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3467
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised invite/leave bind org and nominated member, personal payer and replay",
+        "case_line": 90,
+        "assertion_lines": [
+          90,
+          93,
+          96,
+          103,
+          111,
+          247,
+          254,
+          255,
+          272
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Org target_id plus nominated player resolved from handle; role=member in advertised offer.",
+        "payer_cost": "COSTS.ORG_MEMBER_ADD paid by founder, not org treasury.",
+        "authority_refusal_replay": "Founder invitation in assigned case; officer permission and role alternatives separately exercised in same file, not proof of all remote-addressability branches.",
+        "event_retained_state": "ORG_MEMBER_ADD for selected org and recipient with member role; invitation replay on same key returns same result and causes no extra settlement."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3442",
+      "task": "P04",
+      "operation": "ORG_OFFICE_CREATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3482
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised office create/assign/notice/resign/retire bind exact seat and office authority",
+        "case_line": 114,
+        "assertion_lines": [
+          114,
+          118,
+          120,
+          125,
+          200,
+          277,
+          348
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised org_id; execution allocates one new office ID within that org.",
+        "payer_cost": "Founder personally pays COSTS.ORG_OFFICE_CREATE, checked by paid helper.",
+        "authority_refusal_replay": "Founder officer authority and PUBLISH_NOTICE profile in this case; conflict/object_set alternatives not proved by this exact case.",
+        "event_retained_state": "ENTITY_CREATE for office ID with org owner, VACANT seat; fake settlement and retained office tested."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3460",
+      "task": "P04",
+      "operation": "ORG_OFFICE_ASSIGN",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3500
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised office create/assign/notice/resign/retire bind exact seat and office authority",
+        "case_line": 114,
+        "assertion_lines": [
+          114,
+          127,
+          130,
+          181,
+          187,
+          281,
+          284,
+          303,
+          307,
+          313,
+          355
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised office_id and nominated handle resolve exact officer player ID.",
+        "payer_cost": "Founder personally pays COSTS.ORG_OFFICE_ASSIGN.",
+        "authority_refusal_replay": "Selected vacant seat assigned to org member; recognized-track/occupied refusals are separate cases 167-205, not automatic proof of this case.",
+        "event_retained_state": "ENTITY_UPDATE on office with holder_player_id and institution_id, retained holder and paid settlement."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3475",
+      "task": "P04",
+      "operation": "ORG_OFFICE_VACATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3515
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised office create/assign/notice/resign/retire bind exact seat and office authority",
+        "case_line": 114,
+        "assertion_lines": [
+          114,
+          140,
+          142,
+          295,
+          315,
+          319
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised office_id identifies holder\u2019s occupied seat.",
+        "payer_cost": "Current holder personally pays COSTS.ORG_OFFICE_VACATE.",
+        "authority_refusal_replay": "This advertised resign is holder-only; executor refusal of nonholder is separately asserted in case 167-205.",
+        "event_retained_state": "ENTITY_UPDATE sets office VACANT and removes holder; paid fake settlement asserted."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3487",
+      "task": "P04",
+      "operation": "ORG_OFFICE_ACT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3527
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised office create/assign/notice/resign/retire bind exact seat and office authority",
+        "case_line": 114,
+        "assertion_lines": [
+          114,
+          132,
+          140,
+          142,
+          164,
+          224
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised org_id selects a current occupied PUBLISH_NOTICE office held by actor; event identifies chosen office ID.",
+        "payer_cost": "Office holder personally pays COSTS.ORG_OFFICE_ACT, not treasury.",
+        "authority_refusal_replay": "Same-org occupied holder and PUBLISH_NOTICE authority required; post-resignation notice FORBIDDEN; cross-org/wrong-profile controls elsewhere in file.",
+        "event_retained_state": "ENTITY_UPDATE on office with institution_id and public_notice; org public_notice retained; paid fake settlement."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3502",
+      "task": "P04",
+      "operation": "ORG_OFFICE_RETIRE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3542
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 advertised office create/assign/notice/resign/retire bind exact seat and office authority",
+        "case_line": 114,
+        "assertion_lines": [
+          114,
+          286,
+          289
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised office_id identifies selected nonretired seat.",
+        "payer_cost": "Founder personally pays COSTS.ORG_OFFICE_RETIRE (not ORG_OFFICE_ACT).",
+        "authority_refusal_replay": "Officer role required; nonretired office; member refusal and budget refusal in separate cases.",
+        "event_retained_state": "ENTITY_UPDATE sets selected seat RETIRED in org; paid fake settlement."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3517",
+      "task": "P05",
+      "operation": "ORG_SUCCESSION_RULE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3557
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 advertised member-order and designation bind office and candidate, not just structured metadata",
+        "case_line": 94,
+        "assertion_lines": [
+          94,
+          97,
+          100,
+          150,
+          156
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised office_id and literal member_order rule; retained rule ID MEMBER_ORDER.",
+        "payer_cost": "COSTS.ORG_OFFICE_ACT debited personally; zero compute BUDGET_EXCEEDED.",
+        "authority_refusal_replay": "Founder officer succeeds; nonofficer designation refusal is tested, not a separate rule nonofficer predicate in assigned case.",
+        "event_retained_state": "ENTITY_UPDATE on office with designated_by and rule_id; succession rule retained and fake-settled."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3534",
+      "task": "P05",
+      "operation": "ORG_SUCCESSION_DESIGNATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3574
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 advertised member-order and designation bind office and candidate, not just structured metadata",
+        "case_line": 94,
+        "assertion_lines": [
+          94,
+          102,
+          105,
+          151,
+          156,
+          165
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Advertised office_id and selected org-member successor player ID from handle.",
+        "payer_cost": "COSTS.ORG_OFFICE_ACT debited personally by founder.",
+        "authority_refusal_replay": "Nonofficer and outsider target FORBIDDEN in assigned case; required-track eligibility exists in executor but not established by this case.",
+        "event_retained_state": "ENTITY_UPDATE on office with successors array and designated_by; retained designated successor and fake settlement."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3566",
+      "task": "P05",
+      "operation": "ORG_SUCCESSION_CONSENT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3606
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 vacant consent follows every eligible candidate",
+        "case_line": 112,
+        "assertion_lines": [
+          112,
+          119,
+          120,
+          126,
+          131,
+          135,
+          136,
+          137
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Office_id plus each eligible nominated member player_id; actor is consenting voter, not necessarily candidate.",
+        "payer_cost": "COSTS.ORG_OFFICE_ACT personal compute debited for each successful consent (paid helper on first).",
+        "authority_refusal_replay": "Only vacant office, org member voter and recognized-track candidate in fixture; nonmember/unqualified and occupied reuse FORBIDDEN.",
+        "event_retained_state": "First ENTITY_UPDATE records consent voter/candidate; second distinct member vote fills office, sets holder to candidate; fake settlement checked."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3596",
+      "task": "P05",
+      "operation": "ORG_EMERGENCY_ACTIVATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3636
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 exact entity and treasury emergency commands retain source, target, payer and revoke",
+        "case_line": 170,
+        "assertion_lines": [
+          170,
+          177,
+          182,
+          191,
+          254,
+          265,
+          283,
+          284,
+          285,
+          321,
+          322
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Command binds org_id, repair template_id and entity target_ref; no advertised target_id. Result creates a new scope ID.",
+        "payer_cost": "Activating officer personally pays COSTS.ORG_OFFICE_ACT; treasury unchanged in assigned case.",
+        "authority_refusal_replay": "Owned/in-scope damaged entity and canActivate evaluated at read and execution; active holder grant at later use is exercised in separate case 245+, not by activation alone.",
+        "event_retained_state": "ENTITY_CREATE for bound REPAIR scope, target_ref and holder retained; fake-settled. Source office undefined for officer\u2019s office-free grant in this fixture."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3614",
+      "task": "P05",
+      "operation": "ORG_EMERGENCY_ACTIVATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3654
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 exact entity and treasury emergency commands retain source, target, payer and revoke",
+        "case_line": 170,
+        "assertion_lines": [
+          170,
+          185,
+          189,
+          191,
+          333,
+          335,
+          341,
+          342,
+          343,
+          344
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Command binds org_id, trade template_id and literal treasury target_ref; no advertised target_id. Result creates new scope ID.",
+        "payer_cost": "Activating officer personally pays COSTS.ORG_OFFICE_ACT; treasury unchanged on activation.",
+        "authority_refusal_replay": "Predeclared trade template and current treasury condition authorize activation in fixture; no trade execution or use-time authority is asserted in assigned case.",
+        "event_retained_state": "ENTITY_CREATE for TRADE emergency scope with treasury target_ref and holder, fake-settled; does not spend org treasury here."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3643",
+      "task": "P05",
+      "operation": "ORG_EMERGENCY_REVOKE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3683
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-succession-emergency.test.ts",
+        "case": "P05 exact entity and treasury emergency commands retain source, target, payer and revoke",
+        "case_line": 170,
+        "assertion_lines": [
+          170,
+          194,
+          223,
+          260,
+          265,
+          283,
+          285
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "emergency_scope_id is the exact revoked scope; org_id/template_id are metadata; command contains scope ID only",
+        "payer_cost": "Personal COSTS.ORG_OFFICE_ACT (compute 1); institution treasury is unchanged in the cited revoke",
+        "authority_refusal_replay": "Officer on the selected active scope may revoke; member without authority is refused. Separate source-office vacancy/use fixtures prove use-time authority, not this revocation itself.",
+        "event_retained_state": "ENTITY_UPDATE marks selected scope REVOKED; other scope remains ACTIVE; fake settlement and personal debit checked."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3660",
+      "task": "P02",
+      "operation": "LOOK",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3698
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 LOOK exact observation command spends attention and settles only observation events",
+        "case_line": 66,
+        "assertion_lines": [
+          66,
+          69,
+          70,
+          73,
+          74,
+          75,
+          76,
+          77,
+          89,
+          93,
+          94,
+          95,
+          96
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Targetless look in room.hub; LOOK payload has player_id and room_id, no entity_id",
+        "payer_cost": "Personal attention 1, refused at zero with BUDGET_EXCEEDED and no debit",
+        "authority_refusal_replay": "Observed command look; zero-attention refusal preserves projected state and makes no settlement call.",
+        "event_retained_state": "LOOK and OBSERVATION_GENERATED passed to fake settlement twice, but observation events are off-ledger: sequence unchanged; player attention decreases and room stays fixed."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3669",
+      "task": "P02",
+      "operation": "WAIT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3707
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 WAIT follows exact observation command: targetless rest, not a free no-op",
+        "case_line": 99,
+        "assertion_lines": [
+          99,
+          102,
+          103,
+          108,
+          109,
+          110,
+          111,
+          112,
+          115,
+          119
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Targetless wait; WAIT event names player and cycles=1, not target_id",
+        "payer_cost": "No separate advertised action cost; in this zero-attention/compute scene wait replenishes both; cargo/energy changes are not asserted",
+        "authority_refusal_replay": "Available even when LOOK is unavailable; actual wait advances cycle and sequence in this fixture.",
+        "event_retained_state": "WAIT event present, wait_until_cycle retained, attention/compute rise and room unchanged; external fake settlement calls remain unchanged (a sole-player cycle can commit without settleEv)."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3681",
+      "task": "P02",
+      "operation": "FOCUS",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3721
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 each focus track and clear follows observation and rendered topic alternatives without grants",
+        "case_line": 123,
+        "assertion_lines": [
+          123,
+          127,
+          132,
+          136,
+          137,
+          140,
+          145,
+          157,
+          168,
+          170
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "track=one of explorer/surveyor/broker/engineer; no target_id",
+        "payer_cost": "No advertised requires or debit; full player budget remains unchanged",
+        "authority_refusal_replay": "Producer excludes current track; invalid track is INVALID_REQUEST with no state/settlement change; focus does not grant unaffordable LOOK.",
+        "event_retained_state": "Focus {track,declared_cycle} retained on actor; zero events, zero fake settlement, unchanged sequence."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3693",
+      "task": "P02",
+      "operation": "FOCUS",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3733
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 each focus track and clear follows observation and rendered topic alternatives without grants",
+        "case_line": 123,
+        "assertion_lines": [
+          123,
+          128,
+          137,
+          145,
+          157,
+          159,
+          170
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "clear=true on current actor focus; no target_id",
+        "payer_cost": "No advertised requires or debit; full player budget remains unchanged",
+        "authority_refusal_replay": "Clear is offered while current focus exists; same case tests clearing each selected track, not a general replay contract.",
+        "event_retained_state": "Clears actor focus; zero events and fake settlement, unchanged sequence and budget."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3717",
+      "task": "P06",
+      "operation": "AGREEMENT_TERMINATE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3757
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-agreement-access.test.ts",
+        "case": "P06 terminate rendered own OFFERED withdrawal and ACTIVE break; foreign missing ended and remote forms refuse",
+        "case_line": 110,
+        "assertion_lines": [
+          110,
+          116,
+          120,
+          121,
+          122,
+          125,
+          133,
+          136,
+          175,
+          181
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "agreement_id identifies selected agreement; party_ids and MUTUAL reason are offer metadata",
+        "payer_cost": "Actor pays AGREEMENT_TERMINATE_COST (compute) in both cited phases",
+        "authority_refusal_replay": "Only offered-by actor can withdraw OFFERED; participant can break ACTIVE; outsider/incoming offered, missing, ended, remote/hidden form controls refuse in this case.",
+        "event_retained_state": "OFFERED withdrawal deletes retained offer, charges actor, emits no AGREEMENT_BROKEN settlement; ACTIVE termination retains BROKEN and fake-settles AGREEMENT_BROKEN for selected ID."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3757",
+      "task": "P07",
+      "operation": "CONTEST_WITHDRAW",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3793
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-contest-matrix.test.ts",
+        "case": "follows actual defend and withdraw offers with participant, cost and expiry controls",
+        "case_line": 115,
+        "assertion_lines": [
+          119,
+          128,
+          129,
+          130,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          148,
+          270,
+          274,
+          275,
+          277,
+          278
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "contest_id is parsed from withdraw command; no target_id in offer",
+        "payer_cost": "No advertised requires or separate action debit on withdraw; prior declaration/defense costs are not this action cost",
+        "authority_refusal_replay": "Offered to participant of OPEN unexpired local contest; outsider refusal, expiry refusal and closed replay leave projection unchanged.",
+        "event_retained_state": "CONTEST_RESOLVED for selected contest, fake settlement contains it; retained contest becomes CLOSED."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3777",
+      "task": "P07",
+      "operation": "CONTEST_DEFEND",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3813
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-contest-matrix.test.ts",
+        "case": "follows actual defend and withdraw offers with participant, cost and expiry controls",
+        "case_line": 115,
+        "assertion_lines": [
+          119,
+          122,
+          123,
+          125,
+          126,
+          129,
+          130,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          147,
+          148,
+          270,
+          274,
+          275,
+          277,
+          278
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "contest_id and form minimum stake, not a target_id",
+        "payer_cost": "Personal DEFEND_COST plus defender stake escrow; BUDGET_CONSUMED event carries DEFEND_COST only, not the entire escrow",
+        "authority_refusal_replay": "Nondeclarer co-located in public room, OPEN/unexpired contest without prior defender stake; declarer and expired attempt refuse with no effects.",
+        "event_retained_state": "BUDGET_CONSUMED emitted; no fake settlement for the defend event in this case; defender_id/stake retained on still-OPEN contest."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3820",
+      "task": "P07",
+      "operation": "CONTEST_DECLARE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3856
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-contest-matrix.test.ts",
+        "case": "follows %s %j actual command to typed target and charged declaration",
+        "case_line": 58,
+        "assertion_lines": [
+          64,
+          65,
+          66,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          89,
+          90,
+          93,
+          94,
+          95,
+          96,
+          211,
+          212,
+          215,
+          216,
+          217,
+          218,
+          219,
+          220,
+          222,
+          224,
+          229
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "Six form/target pairs across five forms exercised: ENTITY entity_id, ROOM room_id, EXIT exit_id, AGENT agent_id; target_id is metadata alongside typed target",
+        "payer_cost": "Personal DECLARE_COST plus exact FORM_SPECS[form].minimum_stake escrow; BUDGET_CONSUMED payload records DECLARE_COST",
+        "authority_refusal_replay": "Public-room offer with typed target and affordability; below-minimum/incompatible targets refuse without effects. Literal HELP execution is proved separately by the five literal-case assertions, not by the older substituted-minimum control.",
+        "event_retained_state": "BUDGET_CONSUMED and CONTEST_DECLARED emitted; only CONTEST_DECLARED fake-settled; one OPEN contest retains typed target, form, stake and declarer, with other payer budget unchanged in literal cases."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3934",
+      "task": "P06",
+      "operation": "AGREEMENT_FORM",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 3970
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-agreement-access.test.ts",
+        "case": "P06 agreement catalog: all five rendered type alternatives offer and activate the intended pair",
+        "case_line": 73,
+        "assertion_lines": [
+          73,
+          79,
+          82,
+          83,
+          85,
+          86,
+          87,
+          89,
+          95,
+          99,
+          104,
+          147,
+          150,
+          154,
+          156,
+          157
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "player_id is counterpart from handle; offer and acceptance identify same pair; party_ids in offer metadata is not complete persisted pair",
+        "payer_cost": "Each acting Player separately pays AGREEMENT_FORM_COST (compute and influence)",
+        "authority_refusal_replay": "Co-located other Player in public room; incoming OFFERED command accepts rather than creating a second agreement. Shortfall refusal is tested separately.",
+        "event_retained_state": "Initial OFFERED agreement retains pair and proposer but no settled AGREEMENT_FORMED; acceptance changes same ID to ACTIVE and fake-settles AGREEMENT_FORMED with accepting payer."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L3977",
+      "task": "P06",
+      "operation": "ACCESS_POLICY",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4013
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-agreement-access.test.ts",
+        "case": "P06 ACCESS directional topic and observed variants retain only the intended exit, player and treasury debit",
+        "case_line": 190,
+        "assertion_lines": [
+          190,
+          201,
+          202,
+          204,
+          205,
+          206,
+          207,
+          208,
+          209,
+          216,
+          217,
+          218,
+          219,
+          221,
+          222,
+          223,
+          226,
+          240,
+          242,
+          243,
+          244,
+          246,
+          252,
+          287,
+          292,
+          296,
+          297
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "org_id acting_for; EXIT east or ROOM here; mode DENY/CLEAR and directional ALLOW_ONLY recipient; ROOM ALLOW_ONLY is topic-only, not a contextual offer",
+        "payer_cost": "ACCESS_POLICY_COST debited from selected org treasury; personal budgets unchanged in cited success cases",
+        "authority_refusal_replay": "Public room and occupied GRANT_ACCESS office; vacant office and hidden-room attempts refuse, depleted treasury BUDGET_EXCEEDED.",
+        "event_retained_state": "ACCESS_RESTRICTED fake-settled; EXIT east DENY/CLEAR/ALLOW_ONLY affect east only; ROOM DENY/CLEAR affect room only. No room ALLOW_ONLY contextual execution proved."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4035",
+      "task": "P08",
+      "operation": "CONSTRUCT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4071
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 construct $id follows rendered HELP and contextual class to a ready owned entity",
+        "case_line": 117,
+        "assertion_lines": [
+          117,
+          120,
+          122,
+          126,
+          132,
+          135,
+          136,
+          138,
+          139,
+          140,
+          141,
+          259,
+          269,
+          271,
+          272,
+          273,
+          279,
+          281
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "class argument selects relay/generator/storage_bay/production_node; successful BUILD allocates a fresh entity_id in room.hub, not a preexisting target_id",
+        "payer_cost": "CONSTRUCT_COSTS[class] with personal fuel and held cargo (storage representation); zero free storage can mean full cargo, not insufficient materials",
+        "authority_refusal_replay": "Public current-room constructible class and free slot; empty hold and hidden room refuse in controlled fixtures.",
+        "event_retained_state": "ENTITY_CREATE fake-settled with owner/class and in_progress=true; only subsequent WAIT clears in_progress; construction alone does NOT produce a ready asset."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4073",
+      "task": "P10",
+      "operation": "ATTEST",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4111
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+        "case": "parameterized ATTEST",
+        "case_line": 202,
+        "assertion_lines": [
+          202,
+          212,
+          213,
+          214,
+          215,
+          226,
+          227,
+          229,
+          230,
+          231,
+          233,
+          236,
+          237,
+          238,
+          249,
+          254,
+          255,
+          257,
+          268,
+          269,
+          272
+        ]
+      },
+      "carrier": "structured_canonical_ID_plus_ambiguous_text_control",
+      "dimensions": {
+        "canonical_target_parties": "Offer target_id is artifact entity_id and subject_id is subject; canonical-ID COMMIT supplies entity_id and subject_entity_id, unlike identical ambiguous label commands",
+        "payer_cost": "Personal annex-adjusted COSTS.ATTEST; cited canonical-ID fixture debits selected requires.attention",
+        "authority_refusal_replay": "Unclaimed artifact and local infrastructure subject in exercised case; duplicate-label text ambiguity does not prove text can choose one. Distant subjects may be suggested unavailable until co-located.",
+        "event_retained_state": "Canonical-ID structured success updates only selected artifact and fake-settles ENTITY_UPDATE; sibling unchanged. Separate unambiguous text success has same target/subject fields, but duplicate text is not equivalent."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4120",
+      "task": "P08",
+      "operation": "DISMANTLE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4159
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 advertised DISMANTLE removes the ready asset, salvages and leaves a nonrestorable scar",
+        "case_line": 181,
+        "assertion_lines": [
+          181,
+          186,
+          191,
+          192,
+          193,
+          195,
+          196,
+          306,
+          308
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "target_id/entity_id of selected visible generator fixture",
+        "payer_cost": "Personal DISMANTLE_COST; salvage_storage=2 and overflow=0 asserted for this fixture, not a second payer",
+        "authority_refusal_replay": "Ready generator with ownership; nonsteward, hidden-room and later scar restoration refuse in controlled fixtures.",
+        "event_retained_state": "ENTITY_DESTROY of selected ID plus ENTITY_CREATE of scar fake-settled; old entity absent, new RUIN scar retained and salvage asserted."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4140",
+      "task": "P08",
+      "operation": "UPGRADE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4179
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 ready workshop follows advertised UPGRADE once with retained ID and tier",
+        "case_line": 146,
+        "assertion_lines": [
+          146,
+          151,
+          154,
+          155,
+          157,
+          159,
+          161,
+          284
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "target_id/entity_id of existing ready workshop, unchanged after upgrade",
+        "payer_cost": "Personal UPGRADE_COST with held cargo; cited fixture checks energy 4, compute 2, storage 2, influence 1",
+        "authority_refusal_replay": "Owned, ready workshop below tier 1; second upgrade FORBIDDEN; in-progress or cargo-short fixtures refuse.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled for same ID; upgrade_tier=1 retained; next offer absent."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4163",
+      "task": "P08",
+      "operation": "REPURPOSE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4202
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 advertised REPURPOSE changes the ready workshop",
+        "case_line": 164,
+        "assertion_lines": [
+          164,
+          169,
+          173,
+          175,
+          284
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "target_id/entity_id of ready workshop stays fixed while class changes to storage_bay",
+        "payer_cost": "Personal REPURPOSE_COST with held cargo; cited fixture checks energy 4, compute 2, storage 2, influence 1",
+        "authority_refusal_replay": "Steward of ready workshop; repeated old-label command NOT_FOUND; in-progress/cargo-short controls refuse.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled with infra_type storage_bay and label storage-bay; same entity ID/owner retained."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4194",
+      "task": "P08",
+      "operation": "RESTORE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4233
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 RESTORE follows eligible unclaimed/no-scar offer and retains ID with capped condition",
+        "case_line": 201,
+        "assertion_lines": [
+          201,
+          211,
+          215,
+          217,
+          228,
+          230,
+          234,
+          246,
+          250,
+          306,
+          308,
+          318,
+          338
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "target_id/entity_id is the abandoned workshop fixture; restoration retains that ID",
+        "payer_cost": "Personal CONSTRUCT_COSTS[workshop] adjusted for cargo; cited fixture checks energy 6, compute 3, storage 5",
+        "authority_refusal_replay": "Fixture directly marks unclaimed; original owner may restore, outsider NOT_OWNER; no-scar/ruin and public-room constraints; no live scheduler abandonment proved.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled; unclaimed cleared, condition capped to 50 and owner preserved; second restore FORBIDDEN."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4221",
+      "task": "P09",
+      "operation": "VEST",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4260
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-partner-route.test.ts",
+        "case": "P09 VEST contextual org identity transfers personal asset only with occupied named office",
+        "case_line": 266,
+        "assertion_lines": [
+          266,
+          269,
+          274,
+          275,
+          277,
+          288,
+          291,
+          298
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "selected asset entity_id and canonical org_id; VEST moves owner_id to this org",
+        "payer_cost": "Personal VEST_COST (compute 1); not an org-treasury debit",
+        "authority_refusal_replay": "Owned, nonshared ready asset, active org with occupied named-asset REPAIR-profile office; joint ownership and vacant/wrong-profile office refuse.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled; selected asset owner becomes org, personal compute decreases and same VEST offer disappears; replay NOT_OWNER."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4248",
+      "task": "P09",
+      "operation": "SHARE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4287
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-partner-route.test.ts",
+        "case": "P09 SHARE exact contextual command selects the named partner and retains its asset",
+        "case_line": 98,
+        "assertion_lines": [
+          98,
+          101,
+          105,
+          106,
+          107,
+          108,
+          117,
+          125,
+          126,
+          128,
+          138,
+          142,
+          143,
+          144,
+          145,
+          146,
+          169,
+          178,
+          179,
+          180,
+          181,
+          182,
+          211,
+          213,
+          214,
+          242,
+          248,
+          259
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "selected asset entity_id and resolved recipient player_id; literal handle takes precedence over another ID suffix in cited fixture",
+        "payer_cost": "Personal SHARE_COST (compute 1); recipient and wrong Player budgets unchanged in identity control",
+        "authority_refusal_replay": "Owned, ready personal asset with free co-owner slot; duplicate recipient labels refuse ambiguous text without effects; canonical-ID structured positive and exact-handle precedence are separate bounded controls.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled; selected co-owner ID retained; no MESSAGE side effect or wrong-recipient mutation in cited controls."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4270",
+      "task": "P09",
+      "operation": "CONNECT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4309
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-partner-route.test.ts",
+        "case": "P09 CONNECT contextual direction and structured room ID select one public two-way destination",
+        "case_line": 304,
+        "assertion_lines": [
+          304,
+          307,
+          313,
+          314,
+          315,
+          321,
+          322,
+          324,
+          334,
+          340,
+          342,
+          343,
+          344,
+          359,
+          360,
+          361,
+          363,
+          364,
+          377,
+          382,
+          384,
+          393,
+          406,
+          407
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "selected route_link entity_id plus public two-way destination; text south/room.quay resolves dest_room_id=room.quay",
+        "payer_cost": "Personal CONNECT_COST (compute 1), including co-owner actor case; owner unchanged",
+        "authority_refusal_replay": "Steward of ready link (owner, co-owner, or qualifying org office); nonsteward/hidden/one-way destinations refuse; same-idempotency replay is cached without new settlement.",
+        "event_retained_state": "ENTITY_UPDATE fake-settled with destination on same asset; exits unchanged (CONNECT does not create an exit); replay keeps bounded state unchanged."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4309",
+      "task": "P10",
+      "operation": "RECONSTRUCT",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4348
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+        "case": "inspect",
+        "case_line": 70,
+        "assertion_lines": [
+          70,
+          75,
+          76,
+          77,
+          78,
+          83,
+          85,
+          86,
+          88,
+          90,
+          91,
+          92,
+          94,
+          95,
+          148,
+          149,
+          151,
+          152,
+          153,
+          163,
+          164,
+          165,
+          166,
+          167,
+          176,
+          177,
+          180,
+          181
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "subject_ref is selected known entity; creation has no preexisting reconstruction_id",
+        "payer_cost": "Personal COSTS.RECONSTRUCT attention; tested delta equals advertised requires",
+        "authority_refusal_replay": "Evidence kind(s) accessible to author; creation remains PRIVATE/RECORDED; outsider cannot borrow private evidence or see author claim in cited controls.",
+        "event_retained_state": "ENTITY_CREATE fake-settled for newly allocated reconstruction_id; selected subject, evidence refs, author and claim retained in private record, not publication."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4331",
+      "task": "P10",
+      "operation": "RECONSTRUCT_PUBLISH",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4370
+      },
+      "case": {
+        "file": "workers/noema/test/agent-reconstruct.test.ts",
+        "case": "#780 publication selects the advertised ID among identical subject/claim records",
+        "case_line": 235,
+        "assertion_lines": [
+          235,
+          246,
+          249,
+          250,
+          251,
+          252,
+          253,
+          269,
+          270,
+          271,
+          272,
+          282,
+          283,
+          284,
+          295,
+          296,
+          297,
+          298,
+          303,
+          304,
+          305
+        ]
+      },
+      "carrier": "developer_text_current_publication_grammar",
+      "dimensions": {
+        "canonical_target_parties": "Advertised cmd `reconstruct publish ${rec.reconstruction_id} public` carries exact retained reconstruction_id; subject_ref is metadata, not a creation operand",
+        "payer_cost": "Personal COSTS.RECONSTRUCT attention; handler checks ability to pay and debits publisher before ENTITY_UPDATE",
+        "authority_refusal_replay": "Author of RECORDED nonPUBLIC record gets offer; text parser selects RECONSTRUCT_PUBLISH. Nonauthor FORBIDDEN, missing ID NOT_FOUND, insufficient budget BUDGET_EXCEEDED; malformed publication does not create; hosted text carrier is not admitted as developer publication.",
+        "event_retained_state": "Handler changes visibility on selected existing record to PUBLIC and emits ENTITY_UPDATE for its ID; identical subject/claim sibling unchanged, no new ID. Fake settlement is local, not SQL persistence."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    },
+    {
+      "id": "aff-L4351",
+      "task": "P10",
+      "operation": "RECONSTRUCT_SUPERSEDE",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "operation_line": 4390
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-reconstruction-variants.test.ts",
+        "case": "P10 advertised revision supersedes exactly its author-owned ID, not publication or an identical sibling",
+        "case_line": 98,
+        "assertion_lines": [
+          98,
+          102,
+          104,
+          106,
+          111,
+          112,
+          116,
+          118,
+          120,
+          121,
+          122,
+          124,
+          125,
+          126,
+          128
+        ]
+      },
+      "carrier": "developer_text_exact_observed",
+      "dimensions": {
+        "canonical_target_parties": "reconstruction_id selects one author-owned RECORDED record; quoted new claim travels in cmd; evidence list in metadata, not literal revise cmd",
+        "payer_cost": "Personal COSTS.RECONSTRUCT attention",
+        "authority_refusal_replay": "Author and accessible prior evidence; nonauthor/budget failures leave bounded projection unchanged in cited controls.",
+        "event_retained_state": "New successor ENTITY_CREATE plus original selected ENTITY_UPDATE to SUPERSEDED, both fake-settled; identical sibling untouched; successor references selected ID and inherits prior evidence kinds."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "historical_verdict": "FIXTURE_GATE"
+    }
+  ],
+  "topics": [
+    {
+      "group": "access",
+      "aliases": [
+        "access"
+      ],
+      "task": "P06",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4454
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-agreement-access.test.ts",
+        "case": "P06 ACCESS directional topic and observed variants retain only the intended exit, player and treasury debit",
+        "case_line": 190,
+        "assertion_lines": [
+          190,
+          201,
+          202,
+          204,
+          205,
+          206,
+          208,
+          216,
+          217,
+          219,
+          223,
+          226,
+          240,
+          243,
+          252,
+          287
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Directional east EXIT target and org acting_for; DENY/CLEAR apply to all, ALLOW_ONLY to named player. ROOM deny/clear contextual; ROOM allow is topic-only.",
+        "payer_cost": "ACCESS_POLICY_COST charged to org treasury; personal budgets unchanged in directional and room tests.",
+        "event_retained_state": "ACCESS_RESTRICTED fake-settled; retained exit restriction set/cleared or room restriction via topic; west exit unaffected.",
+        "authority_refusal_replay": "Occupied GRANT_ACCESS office in public room; vacancy, hidden exit/room, insufficient treasury refuse. ROOM allow was executed from topic only, not contextual offer."
+      }
+    },
+    {
+      "group": "agreement",
+      "aliases": [
+        "agreement"
+      ],
+      "task": "P06",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4462
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-agreement-access.test.ts",
+        "case": "P06 agreement catalog: all five rendered type alternatives offer and activate the intended pair",
+        "case_line": 73,
+        "assertion_lines": [
+          73,
+          79,
+          82,
+          83,
+          85,
+          87,
+          89,
+          95,
+          116,
+          120,
+          121,
+          150,
+          154,
+          156,
+          157
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Five rendered type names map to canonical agreement types; offer and acceptance bind same sorted pair and retained agreement ID.",
+        "payer_cost": "Both offerer and acceptor pay AGREEMENT_FORM_COST personally; no treasury payer in assigned case.",
+        "event_retained_state": "Offer retained as OFFERED without settled formed event; acceptance sets ACTIVE and fake-settles AGREEMENT_FORMED with pair and payer.",
+        "authority_refusal_replay": "Same-room pair, active or offered phase; shortfall/form refusal controls in case 143-188, but not within assigned five-alternative loop."
+      }
+    },
+    {
+      "group": "alias",
+      "aliases": [
+        "alias"
+      ],
+      "task": "P02",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4553
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 rendered alias dictionary list/set/rm and do execute mapped commands only in developer mode",
+        "case_line": 194,
+        "assertion_lines": [
+          194,
+          197,
+          198,
+          200,
+          201,
+          202,
+          203,
+          204,
+          223,
+          225,
+          234,
+          241,
+          242,
+          244,
+          245
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Developer-scoped alias name maps to command string, not a world target; `do` runs component commands, not a party ID.",
+        "payer_cost": "list/set/rm do not spend canonical world budgets or settle; expanded LOOK and macro steps can incur their own action costs.",
+        "event_retained_state": "Alias map retained on player, not canonical world projection; expanded LOOK returns LOOK/OBSERVATION_GENERATED and fake-settles two events; rm removes mapping.",
+        "authority_refusal_replay": "Reserved name, alias depth and nested macro refuse in separate same-file case; ordinary structured LOOK text does not install alias."
+      }
+    },
+    {
+      "group": "all",
+      "aliases": [
+        "all",
+        "commands"
+      ],
+      "task": "P02",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4432
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 help all and commands are equal, and ten named topic branches route without mutation",
+        "case_line": 174,
+        "assertion_lines": [
+          174,
+          177,
+          178,
+          179,
+          186,
+          187,
+          189,
+          190
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "help all and help commands render identical dictionary; org/organization/organizations topic alias equality separately asserted; these are not action targets.",
+        "payer_cost": "HELP dictionary read has no asserted debit or world mutation; listed costs are descriptions, not affordability proof.",
+        "event_retained_state": "Read-only HELP text comparison, no target mutation; freeRead helper checks no effects.",
+        "authority_refusal_replay": "Ten named topic headings route; enumeration does not establish executability or permission of all listed commands."
+      }
+    },
+    {
+      "group": "build",
+      "aliases": [
+        "build"
+      ],
+      "task": "P08",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4489
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-build-lifecycle.test.ts",
+        "case": "P08 construct $id follows rendered HELP and contextual class to a ready owned entity",
+        "case_line": 117,
+        "assertion_lines": [
+          117,
+          120,
+          122,
+          126,
+          132,
+          135,
+          136,
+          138,
+          140,
+          141,
+          151,
+          157,
+          169,
+          175,
+          186,
+          192,
+          211,
+          215
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Rendered construct class alternatives bind specific canonical class; world allocates owner\u2019s new entity ID, not an existing target.",
+        "payer_cost": "Actor pays class-specific energy/compute/influence and held cargo; fixture checks required prices and debit for each class.",
+        "event_retained_state": "ENTITY_CREATE, initially in_progress entity; WAIT advances it to ready owned infrastructure in local fixture.",
+        "authority_refusal_replay": "Only contextually available classes in public room tested for construction; no blanket ownership of every build operation."
+      }
+    },
+    {
+      "group": "contest",
+      "aliases": [
+        "contest"
+      ],
+      "task": "P07",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4468
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-contest-matrix.test.ts",
+        "case": "executes literal rendered HELP stake for %s with own payer, settlement and retained target",
+        "case_line": 191,
+        "assertion_lines": [
+          195,
+          198,
+          200,
+          202,
+          211,
+          212,
+          215,
+          216,
+          217,
+          218,
+          219,
+          220,
+          222,
+          224,
+          229
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Five literal HELP forms substitute target only and bind canonical form/target, not an arbitrary invented stake.",
+        "payer_cost": "Actor personally pays declaration fee compute:2/influence:1 PLUS form-specific minimum escrow stake; other player unchanged.",
+        "event_retained_state": "BUDGET_CONSUMED plus CONTEST_DECLARED returned, only declaration fake-settled; OPEN contest retained with exact target/form/stake.",
+        "authority_refusal_replay": "Public-room literal declarations tested; ambiguity/hidden/insufficient budget refusals in separate case 232+, not the assigned loop."
+      },
+      "nonliteral_control": {
+        "file": "workers/noema/test/discovery-contest-matrix.test.ts",
+        "case_line": 152,
+        "assertion_lines": [
+          156,
+          158,
+          160,
+          167,
+          172,
+          173,
+          175,
+          179,
+          180
+        ],
+        "scope": "minimum-stake substituted control; NOT literal HELP-example proof"
+      }
+    },
+    {
+      "group": "focus",
+      "aliases": [
+        "focus"
+      ],
+      "task": "P02",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4449
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+        "case": "P02 each focus track and clear follows observation and rendered topic alternatives without grants",
+        "case_line": 123,
+        "assertion_lines": [
+          123,
+          127,
+          128,
+          129,
+          132,
+          136,
+          137,
+          145,
+          157,
+          159
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "One actor, one of four track names or clear; no entity target",
+        "payer_cost": "No debit in cited focus/clear cases",
+        "event_retained_state": "Actor focus set or cleared; no events, no fake settlement, unchanged sequence/budgets.",
+        "authority_refusal_replay": "Rendered topic alternatives executed as contextual commands; invalid track refused; focus does not grant LOOK budget."
+      }
+    },
+    {
+      "group": "harvest",
+      "aliases": [
+        "harvest"
+      ],
+      "task": "P03",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4539
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 harvest topic default/amount and message topic reach actual target with refusal controls",
+        "case_line": 209,
+        "assertion_lines": [
+          209,
+          213,
+          217,
+          220,
+          223,
+          224,
+          225,
+          228,
+          229,
+          230,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          240
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Visible social-node; default amount 1 or explicit 2; from_id is node and to_id actor",
+        "payer_cost": "Actor pays energy 2/compute 1 and occupied cargo/free storage changes with amount",
+        "event_retained_state": "RESOURCE_TRANSFER and stock ENTITY_UPDATE; explicit-2 path also BUDGET_CONSUMED, fake-settles stock update; stock 4\u21923\u21921.",
+        "authority_refusal_replay": "Empty hold BUDGET_EXCEEDED and later insufficient stock FORBIDDEN in cited fixture; no claim for all nodes or live regrowth."
+      }
+    },
+    {
+      "group": "message",
+      "aliases": [
+        "message"
+      ],
+      "task": "P03",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4548
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 harvest topic default/amount and message topic reach actual target with refusal controls",
+        "case_line": 209,
+        "assertion_lines": [
+          209,
+          246,
+          247,
+          248,
+          254,
+          255,
+          257,
+          258,
+          263,
+          264,
+          266
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Recipient resolves social-counter to canonical player_id, sender is actor; text body stays scoped to recipient",
+        "payer_cost": "Personal COSTS.MESSAGE.compute charged in case; zero-compute send refuses",
+        "event_retained_state": "MESSAGE and MESSAGE_DELIVERED with matching ID; retained message DELIVERED and no pending entry; recipient sees it, bystander does not.",
+        "authority_refusal_replay": "Same-room case delivers this cycle; bystander observation lacks message. Far-room/relay and universal WATCH privacy are not executed by this case."
+      }
+    },
+    {
+      "group": "org",
+      "aliases": [
+        "org",
+        "organization",
+        "organizations"
+      ],
+      "task": "P04",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4502
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-office-member.test.ts",
+        "case": "P04 rendered help org alternatives/remove reason/optional scope and precedence execute",
+        "case_line": 228,
+        "assertion_lines": [
+          228,
+          230,
+          233,
+          247,
+          248,
+          254,
+          255,
+          257,
+          277,
+          281,
+          284,
+          286,
+          289,
+          334,
+          348,
+          350,
+          355,
+          358
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Org ID and targeted invited/removed Player IDs; office create uses assigned office ID, object_set and precedence",
+        "payer_cost": "Personal actor COSTS.ORG_MEMBER_ADD on invite and COSTS.ORG_OFFICE_CREATE on office creation; no single cost for all org commands",
+        "event_retained_state": "Member role/removal retained with ORG_MEMBER_ADD/REMOVE; office creation retains object_set and precedence; do not infer all org topic alternatives were run.",
+        "authority_refusal_replay": "Member invite refused; founder role variants and officer removal/office operations succeed in cited fixture; optional object_set/precedence are syntax, not blanket authority."
+      }
+    },
+    {
+      "group": "repair",
+      "aliases": [
+        "repair"
+      ],
+      "task": "P03",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4532
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 advertised overhaul requires practiced Engineer, held cargo and exact energy",
+        "case_line": 141,
+        "assertion_lines": [
+          141,
+          153,
+          154,
+          156,
+          157,
+          161,
+          163,
+          164,
+          168,
+          170,
+          174,
+          182,
+          186
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Visible entity.social-relay; ordinary and overhaul target same entity in fixture",
+        "payer_cost": "Actor personal ordinary energy 3/compute 2/cargo 1; overhaul requires extra energy, practiced Engineer, held cargo",
+        "event_retained_state": "BUDGET_CONSUMED and ENTITY_UPDATE; only ENTITY_UPDATE fake-settled; condition rises for each cited repair.",
+        "authority_refusal_replay": "Before practice overhaul FORBIDDEN; low energy or empty hold BUDGET_EXCEEDED; fixture allows repair of other Player owned asset."
+      }
+    },
+    {
+      "group": "trade",
+      "aliases": [
+        "trade"
+      ],
+      "task": "P03",
+      "source": {
+        "file": "workers/noema/src/actions.ts",
+        "branch_line": 4525
+      },
+      "case": {
+        "file": "workers/noema/test/discovery-social-repair-trade.test.ts",
+        "case": "P03 trade offer and exact phase advertisements select the same trade and enforce roles",
+        "case_line": 57,
+        "assertion_lines": [
+          57,
+          61,
+          62,
+          65,
+          67,
+          68,
+          69,
+          75,
+          77,
+          83,
+          104,
+          109,
+          115,
+          116,
+          117,
+          129,
+          130,
+          136
+        ]
+      },
+      "carrier": "developer_text_HELP_rendered_branch",
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": {
+        "canonical_target_parties": "Trade offer binds proposer and social-counter; later accept/reject/cancel target the same trade_id",
+        "payer_cost": "Offer reserves energy 1 and costs proposer compute 1; acceptance costs counterparty compute 1; reject/cancel no compute debit in cited phase cases",
+        "event_retained_state": "OPEN reserved trade becomes SETTLED/REJECTED/CANCELLED and reservation clears; phase events emitted with fake-settlement count 3 for accept, 1 for reject/cancel.",
+        "authority_refusal_replay": "Counterparty may accept/reject and proposer may cancel; opposite actor/outsider and replay after terminal state refuse; storage case tests free-storage gate."
+      }
+    }
+  ],
+  "companion_cases": [
+    {
+      "id": "C25R01",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25R01 unchanged recipient choices request body re-entry without replay",
+        "case_line": 107,
+        "assertion_lines": [
+          56,
+          59,
+          60,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          109
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Numeric pick selects a pending recipient label, but does not send a MESSAGE or bind a body to any selected recipient.",
+        "payer_cost": "Refused pick makes no debit; fresh unrelated MESSAGE control is allowed and has its own effects.",
+        "event_retained_state": "Pick emits no events/settlement, canonical projection unchanged and private body absent from inspected response/player/message/replay state; subsequent fresh control message is separate.",
+        "authority_refusal_replay": "Even unchanged choices return INVALID_REQUEST and prompt body re-entry; pending choice cleared."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    },
+    {
+      "id": "C25R02",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25R02 selected recipient leaving cannot replay the discarded private body",
+        "case_line": 112,
+        "assertion_lines": [
+          56,
+          60,
+          68,
+          69,
+          70,
+          71,
+          72,
+          114,
+          115,
+          116,
+          117
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Pending selected recipient leaves before numeric pick; no message target is committed by pick.",
+        "payer_cost": "No pick debit; LEAVE_WORLD and subsequent fresh MESSAGE control are distinct actions.",
+        "event_retained_state": "Pick emits no events/settlement, canonical projection unchanged relative to post-leave state and private body absent; departure already changed world.",
+        "authority_refusal_replay": "Departure does not rescue body replay: numeric pick INVALID_REQUEST, asks to write again, clears pending."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    },
+    {
+      "id": "C25R03",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAGE",
+        "case_line": 120,
+        "assertion_lines": [
+          56,
+          60,
+          68,
+          69,
+          70,
+          71,
+          72,
+          124,
+          126,
+          127
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Original recipient handle renamed and replacement takes old label; numeric pick must not redirect private body to replacement.",
+        "payer_cost": "No pick debit; replacement ENTER_WORLD/OBSERVE and fresh MESSAGE control are distinct actions.",
+        "event_retained_state": "Pick has no events/settlement, unchanged post-replacement canonical projection and private body absent from inspected state; does not prove generic recipient targeting.",
+        "authority_refusal_replay": "Recycled label still yields INVALID_REQUEST and body re-entry, clearing pending."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    },
+    {
+      "id": "C25S01",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25S01 unchanged entity choice inspects the actual selected canonical entity",
+        "case_line": 130,
+        "assertion_lines": [
+          82,
+          84,
+          92,
+          93,
+          95,
+          132
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Numeric choice resolves selected canonical entity.relay-a, not a recipient or message body",
+        "payer_cost": "INSPECT success payer/cost is not asserted by this helper; no cost claim",
+        "event_retained_state": "Successful INSPECT event and fake settlement name entity.relay-a; retained selection/state delta beyond that is not asserted.",
+        "authority_refusal_replay": "Unchanged choice after AMBIGUOUS_TARGET; no materiality mutation in this case."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    },
+    {
+      "id": "C25S02",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25S02 sealing the selected same-ID entity blocks numeric inspection without effects",
+        "case_line": 135,
+        "assertion_lines": [
+          82,
+          84,
+          100,
+          102,
+          103,
+          104,
+          137,
+          138,
+          140
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Numeric choice names the same selected canonical entity.relay-a; seal directly set on entity",
+        "payer_cost": "Refused pick has zero events/settlement and unchanged bounded projection; successful fresh pick cost is not asserted",
+        "event_retained_state": "No INSPECT effect on sealed pick; fresh unsealed pick emits and fake-settles INSPECT for entity.relay-a.",
+        "authority_refusal_replay": "Direct fixture seal inspect_restricted_until=cycle+2 refuses with either FORBIDDEN or STALE_CLARIFICATION; removing seal and fresh offer succeeds. No live authority for seal creation demonstrated."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    },
+    {
+      "id": "C25S03",
+      "task": "T25-recipient-inspect",
+      "case": {
+        "file": "workers/noema/test/clarification-materiality-next.test.ts",
+        "case": "C25S03 inspection seal blocks before expiry and permits a fresh pick at expiry",
+        "case_line": 143,
+        "assertion_lines": [
+          82,
+          84,
+          100,
+          102,
+          103,
+          104,
+          146,
+          147,
+          149
+        ]
+      },
+      "carrier": "developer_text_clarification_pick",
+      "dimensions": {
+        "canonical_target_parties": "Numeric choice selects same canonical entity.relay-a; clock and seal are directly changed fixture state",
+        "payer_cost": "Before-expiry refusal emits no events, no settlement and leaves bounded projection unchanged; fresh successful pick cost not asserted",
+        "event_retained_state": "Before expiry no INSPECT effect; at expiry fresh pick emits and fake-settles INSPECT for entity.relay-a.",
+        "authority_refusal_replay": "Clock set to 9, direct seal until 10; refusal may be FORBIDDEN or STALE_CLARIFICATION; clock set to 10 and fresh offer/pick succeeds; not live clock/seal authority."
+      },
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE"
+    }
+  ],
+  "additional_requirements": [
+    {
+      "id": "A1",
+      "case_file": "workers/noema/test/agent-discovery-visibility.test.ts",
+      "assertion_spans": [
+        "38-90 distinct principals, serialized offer/available_actions privacy and restricted route",
+        "92-134 hidden INSPECT sanitized error/no effect",
+        "135-194 structured observed INSPECT/MOVE canonical targets, payer debit, stale and below-cost refusal"
+      ],
+      "tier": "LOCAL_MOUNTED_FAKE_HTTP_NOT_HOSTED_SQL",
+      "dimensions": "See case spans for carrier, target, payer, events, retained effects and authority; no hosted inference"
+    },
+    {
+      "id": "T25-authority-policy",
+      "case_file": "workers/noema/test/clarification-authority-policy.test.ts",
+      "assertion_spans": [
+        "80-119 compound REPAIR pick loses acting_for and cannot authorize post-vacancy institutional act",
+        "120-194 text and structured GRANT_ACCESS vacancy refusal and reassignment positive",
+        "195-245 numeric INSPECT canonical target survives unrelated office/policy change; own HELP clears",
+        "246-308 explicit outbound MOVE deny/clear/room/allow-only current authorization and debit",
+        "309-332 unsupported compound numeric office/MOVE no effect"
+      ],
+      "tier": "LOCAL_REDUCER_EXECUTOR",
+      "dimensions": "See case spans for carrier, target, payer, events, retained effects and authority; no hosted inference"
+    },
+    {
+      "id": "T25-recipient-inspect",
+      "case_file": "workers/noema/test/clarification-materiality-next.test.ts",
+      "assertion_spans": [],
+      "tier": "LOCAL_REDUCER_FAKE_SETTLEMENT_AND_RETAINED_STATE",
+      "dimensions": "See case spans for carrier, target, payer, events, retained effects and authority; no hosted inference",
+      "status": "INTEGRATED_LOCAL",
+      "case_ids": [
+        "C25R01",
+        "C25R02",
+        "C25R03",
+        "C25S01",
+        "C25S02",
+        "C25S03"
+      ]
+    },
+    {
+      "id": "docs-currency",
+      "case_file": null,
+      "assertion_spans": [],
+      "tier": "EXTERNAL_UNMERGED_DOCS_GATE",
+      "dimensions": "See case spans for carrier, target, payer, events, retained effects and authority; no hosted inference",
+      "status": "OPEN_UNMERGED_PR_822"
+    }
+  ],
+  "remaining_gates": [
+    {
+      "id": "both independent final combined reviews",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "exact-head hosted CI and code-owner approval",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "PR landing and docs publication",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "hosted SQL persistence and Worker restart",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "real browser and WATCH projection",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "live authority and scheduler transitions",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "human comprehension and eligible approval",
+      "status": "UNVERIFIED"
+    },
+    {
+      "id": "remote acceptance",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "evidence_bounds": [
+    "LOCAL integration full test/typecheck/graph/diff gates passed; no hosted acceptance",
+    "ROOM ALLOW_ONLY is topic-only, not an emitted producer",
+    "Duplicate-label clarification is bounded refusal; canonical ID positives separately asserted",
+    "No universal available flag policy inferred",
+    "Compatibility helpers are remnants; maintained Agent obligations persist; hosted human PLAY retired",
+    "Case names are row anchors. assertion_lines can also cite shared helpers and corroborating same-producer cases in that file; only the described bounded local predicates are claimed."
+  ]
+}
