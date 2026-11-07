@@ -19,6 +19,7 @@ import {
   isOrgOfficer,
   isRepairable,
   normalizeStructuredCommand,
+  orgCreateCost,
   matchClarifyPick,
   observationFingerprint,
   parseHumanCommand,
@@ -962,6 +963,7 @@ export function buildObservation(
     otherPlayers,
     openTrades,
     organizations: orgs,
+    orgCreateExtraInfluence: orgCreateExtraInfluence(w),
     selfId: principal.player_id,
     cautionToward,
     practice: pl.practice,
@@ -2308,6 +2310,7 @@ export async function applyWorldCommand(
         })),
         openTrades: Object.values(w.trades || {}).filter((t) => t.status === "OPEN"),
         organizations: Object.values(w.organizations || {}).filter((o) => o.status === "ACTIVE"),
+        orgCreateExtraInfluence: orgCreateExtraInfluence(w),
         selfId: principal.player_id,
         practice: pl.practice,
         cycle: w.cycle,
@@ -3610,10 +3613,7 @@ export async function applyWorldCommand(
     // ——— ORG_CREATE ———
     if (action.arguments.operation === "ORG_CREATE") {
       const extra = orgCreateExtraInfluence(w);
-      const orgCost = {
-        ...COSTS.ORG_CREATE,
-        influence: (COSTS.ORG_CREATE.influence || 5) + extra,
-      };
+      const orgCost = orgCreateCost(extra);
       if (!canPay(pl.budgets, orgCost)) {
         return fail(
           request_id,
