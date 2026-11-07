@@ -141,3 +141,16 @@ it("G10.07 rendered room allow command settles the listed player scope", async (
   expect(s.settled).toHaveLength(1);
   expect(s.settled[0]).toEqual(expect.objectContaining({ event_type: "ACCESS_RESTRICTED", payload: expect.objectContaining({ authorized_by: s.org, scope: "ROOM", mode: "ALLOW_ONLY", applies_to: s.peer.player_id }) }));
 });
+
+it("G10.08 valid topic syntax does not grant an unoccupied office authority", async () => {
+  const s = await scene(false);
+  const line = fill(roomForm(copy(await s.help("access")), "allow"), { org: s.org, player: s.peer.player_id });
+  const before = projection(s.w); s.settled.length = 0;
+  const r = await s.send(s.gate, "LOOK", { line });
+  expect(r.ok).toBe(false); expect(r.error?.code).toBe("FORBIDDEN");
+  expect(r.events || []).toEqual([]); expect(s.settled).toEqual([]);
+  expect(projection(s.w)).toEqual(before);
+  await seat(s); s.settled.length = 0;
+  expect((await s.send(s.gate, "LOOK", { line })).ok).toBe(true);
+  expect(s.settled).toHaveLength(1);
+});
