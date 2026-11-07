@@ -91,7 +91,7 @@ describe("GC10-S2 mapper", () => {
 });
 
 describe("GC10-S2 world path", () => {
-  it("leaves a public scar after dismantle and none in a hidden room", async () => {
+  it("leaves a public scar after dismantle and refuses hidden-room teardown without effects", async () => {
     const w = world();
     const p = principal("player.nacre");
     await run(w, p, "ENTER_WORLD");
@@ -114,10 +114,17 @@ describe("GC10-S2 world path", () => {
     expect(repair.ok).toBe(false);
     expect(repair.error?.code).toBe("FORBIDDEN");
 
+    // Compatibility with the chosen hidden-room evaluator: even an owned ready asset
+    // placed in a hidden room is not observable for DISMANTLE. Placement is controlled.
     w.players[p.player_id].room_id = "room.vault";
+    const before = structuredClone({ sequence: w.sequence, cycle: w.cycle,
+      budgets: w.players[p.player_id].budgets, rooms: w.rooms, unsettled: w.unsettled });
     const hidden = await run(w, p, "BUILD", { operation: "DISMANTLE", entity_id: "entity.relay-hidden" });
-    expect(hidden.ok).toBe(true);
-    expect(w.rooms["room.vault"].entities).toHaveLength(0);
-    expect(String(hidden.observation?.consequence || "")).not.toMatch(/A scar remains/);
+    expect(hidden.ok).toBe(false);
+    expect(hidden.error?.code).toBe("NOT_OBSERVABLE");
+    expect(hidden.events || []).toEqual([]);
+    expect({ sequence: w.sequence, cycle: w.cycle,
+      budgets: w.players[p.player_id].budgets, rooms: w.rooms, unsettled: w.unsettled }).toEqual(before);
+    expect(w.rooms["room.vault"].entities).toHaveLength(1);
   });
 });

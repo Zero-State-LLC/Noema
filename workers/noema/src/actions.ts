@@ -382,6 +382,11 @@ export const COSTS = {
   WAIT: {} as Partial<Budgets>,
 };
 
+/** Shared executor/observation ORG_CREATE price; the world supplies its live ratchet premium. */
+export function orgCreateCost(extraInfluence = 0): Partial<Budgets> {
+  return { ...COSTS.ORG_CREATE, influence: (COSTS.ORG_CREATE.influence || 5) + extraInfluence };
+}
+
 export type CanonicalAction =
   | { verb: "LOOK"; arguments: Record<string, never> }
   | { verb: "WAIT"; arguments: Record<string, never> }
@@ -811,19 +816,32 @@ export function resolvePlayerTarget(
   players: Array<{ player_id: string; handle?: string }>,
   selfId: string,
 ): { ok: true; player_id: string } | { ok: false; code: string; message: string; choices?: string[] } {
+  const literal = raw.trim().toLowerCase();
   const t = normalizeKey(raw);
   if (!t) return { ok: false, code: "NOT_FOUND", message: "Name a Player." };
+  // Recognize a canonical self reference before excluding self from recipient
+  // candidates; it must not be reinterpreted as another Player's handle.
+  if (selfId.toLowerCase() === literal && players.some((p) => p.player_id === selfId)) {
+    return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
+  }
   const others = players.filter((p) => p.player_id !== selfId);
-  const byId = others.filter((p) => p.player_id.toLowerCase() === t || p.player_id.toLowerCase().endsWith("." + t));
-  if (byId.length === 1) return { ok: true, player_id: byId[0].player_id };
-  const byHandle = others.filter((p) => normalizeKey(p.handle || "") === t || normalizeKey(p.player_id.replace(/^player\./, "")) === t);
-  if (byHandle.length === 1) return { ok: true, player_id: byHandle[0].player_id };
-  if (byHandle.length > 1) {
-    return {
-      ok: false,
-      code: "AMBIGUOUS_TARGET",
-      ...boundedAmbiguity("More than one Player matches.", byHandle.map((p) => p.handle || p.player_id)),
+  // Canonical IDs outrank even an ID-shaped handle. Literal handles outrank
+  // legacy short ID aliases; do not fold punctuation when comparing identities.
+  const fullId = others.filter((p) => p.player_id.toLowerCase() === literal);
+  const literalHandle = others.filter((p) => p.handle?.trim().toLowerCase() === literal);
+  const alias = others.filter((p) => p.player_id.toLowerCase().endsWith("." + literal) ||
+    p.player_id.replace(/^player\./, "").toLowerCase() === literal);
+  for (const matches of [fullId, literalHandle, alias]) {
+    if (matches.length === 1) return { ok: true, player_id: matches[0].player_id };
+    if (matches.length > 1) return {
+      ok: false, code: "AMBIGUOUS_TARGET",
+      ...boundedAmbiguity("More than one Player matches.", matches.map((p) => p.handle || p.player_id)),
     };
+  }
+  // An unresolved canonical-shaped address is not a partial display name.
+  // Use the existing Player namespace recognition, not punctuation folding.
+  if (literal.startsWith("player.")) {
+    return { ok: false, code: "NOT_FOUND", message: `No addressable Player “${raw}”.` };
   }
   // partial handle
   const partial = others.filter((p) => {
@@ -3212,6 +3230,8 @@ export function deriveAffordances(input: {
   proposerImage?: Record<string, number>;
   harvestPressure?: number;
   hearsayBlockedThisCycle?: boolean;
+  /** Current world ratchet premium; omitted by standalone callers for an unratcheted world. */
+  orgCreateExtraInfluence?: number;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3405,16 +3425,17 @@ export function deriveAffordances(input: {
   }
 
   // Organization affordances (role-gated; never a permanent global panel)
-  const formOk = canPay(budgets, COSTS.ORG_CREATE);
+  const formCost = orgCreateCost(input.orgCreateExtraInfluence);
+  const formOk = canPay(budgets, formCost);
   out.push({
     action: "ORG_CREATE",
     verb: "COMMIT",
     operation: "ORG_CREATE",
     label: "Form organization",
     cmd: 'form My Compact charter="local coordination"',
-    requires: COSTS.ORG_CREATE,
-    available: true,  // P0: always advertise; budget in reason only
-    reason: formOk ? undefined : "You need influence 5 and compute 2 to form an organization.",
+    requires: formCost,
+    available: formOk,
+    reason: formOk ? undefined : `You need influence ${formCost.influence} and compute ${formCost.compute} to form an organization.`,
     kind: "org",
   });
   for (const org of organizations) {
@@ -3552,7 +3573,7 @@ export function deriveAffordances(input: {
             verb: "COMMIT",
             operation: "ORG_SUCCESSION_DESIGNATE",
             label: `Designate ${handle} for ${office.display_name}`,
-            cmd: `succession designate ${office.office_id} ${handle}`,
+            cmd: `succession ${office.office_id} ${handle}`,
             target_id: office.office_id,
             office_id: office.office_id,
             player_id: heir.player_id,
@@ -3750,10 +3771,6 @@ export function deriveAffordances(input: {
 
   const roomId = input.roomId;
   const nowCycle = input.cycle || 0;
-  const stakeLine = (stake: Record<string, number>) =>
-    Object.entries(stake)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(",");
   const mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets> => {
     const merged: Partial<Budgets> = { ...cost };
     for (const [k, amt] of Object.entries(stake)) {
@@ -3795,7 +3812,7 @@ export function deriveAffordances(input: {
           verb: "COMMIT",
           operation: "CONTEST_DEFEND",
           label: `Defend ${c.contest_id}`,
-          cmd: `defend ${c.contest_id} stake=${stakeLine(stake)}`,
+          cmd: `defend ${c.contest_id} stake=${contestStakeLine(stake)}`,
           contest_id: c.contest_id,
           contest_form: c.contest_form,
           stake,
@@ -3838,7 +3855,7 @@ export function deriveAffordances(input: {
           verb: "COMMIT",
           operation: "CONTEST_DECLARE",
           label: `Contest ${pretty} · ${label}`,
-          cmd: `contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}`,
+          cmd: `contest ${formCmd} ${cmdTarget} stake=${contestStakeLine(stake)}`,
           target_id,
           target_label: label,
           contest_form: form,
@@ -4395,6 +4412,10 @@ export function deriveAffordances(input: {
   return out;
 }
 
+function contestStakeLine(stake: Record<string, number>): string {
+  return Object.entries(stake).map(([key, amount]) => `${key}:${amount}`).join(",");
+}
+
 export function helpText(topic?: string, available?: Affordance[]): string {
   const lines: string[] = [];
   let t = (topic || "").toLowerCase();
@@ -4446,13 +4467,23 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  Both parties must be here. Public rooms only.");
   } else if (t === "contest") {
     lines.push("CONTEST");
-    lines.push("  contest <form> <target> stake=energy:10,influence:6");
-    lines.push("  defend <contest_id> stake=energy:10,influence:6");
+    lines.push("  contest <form> <target> stake=<resources>");
+    lines.push("  defend <contest_id> stake=<resources>");
     lines.push("  withdraw <contest_id>");
-    lines.push("  contest for <org> <form> <target> stake=energy:10,influence:6");
-    lines.push("  defend <contest_id> for <org> stake=energy:10,influence:6");
+    lines.push("  contest for <org> <form> <target> stake=<resources>");
+    lines.push("  defend <contest_id> for <org> stake=<resources>");
     lines.push("  Forms: resource_seizure · infrastructure_disruption · access");
     lines.push("         presence_pressure · information");
+    for (const [form, name] of [
+      ["RESOURCE_SEIZURE", "resource_seizure"],
+      ["INFRASTRUCTURE_DISRUPTION", "infrastructure_disruption"],
+      ["ACCESS_CONTEST", "access"],
+      ["PRESENCE_PRESSURE", "presence_pressure"],
+      ["INFORMATION_CONTEST", "information"],
+    ] as const) {
+      lines.push(`  contest ${name} <target> stake=${contestStakeLine(FORM_SPECS[form].minimum_stake)}`);
+    }
+    lines.push("  Declaration fee: compute:2,influence:1 in addition to the escrowed stake; defense fee: compute:1.");
     lines.push("  Public rooms only. Hidden rooms cannot be contested.");
     lines.push("  No HP. No scan or attack.");
   } else if (t === "build") {
