@@ -63,3 +63,10 @@ traceCase("N01 private rumor does not become a trace; public twin does", async (
   const allowed = await readS3TraceSnapshot(s3RumorWorld("PUBLIC"));
   expect(s3TraceTexts(allowed)).toEqual(["A public report concerns this site."]);
 });
+
+traceCase("N02 public rumor must concern this room or a visible entity here", async () => {
+  const elsewhere = await readS3TraceSnapshot(s3RumorWorld("PUBLIC", "room.b"));
+  expect(s3TraceTexts(elsewhere)).toEqual([]);
+  const local = await readS3TraceSnapshot(s3RumorWorld("PUBLIC", "entity.box"));
+  expect(s3TraceTexts(local)).toEqual(["A public report concerns this site."]);
+});
