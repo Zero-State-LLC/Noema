@@ -1,6 +1,12 @@
-# #780 whole-spec completion evidence — CANDIDATE_NOT_MERGED
+# #780 whole-spec evidence — IMPLEMENTATION_LANDED_ACCEPTANCE_GATED
 
-**Scope:** local integration at `6ce8d1b85f44ff23fcde823ca49e5c8d4ba540bd` (tree `26eb0f624f8571cd5c71bb3f95135cb2eeedbde5`), not technical clearance, canonical publication, or hosted acceptance. Compatibility `b86c4b09cf75b3027d87998eff0952c2421bf52d`; reference `6e169df1607a33b1c65d976bf05f225e7bae5fce`. The [finite assertion map](780-whole-spec-assertions.json) assigns **46 producer IDs once** and separately maps **12 topic branches**; syntactic templates/branches do not enumerate runtime variants. Six companion clarification cases are separate rows. Historical census remains 2 SOURCE_ONLY / 4 PROBE_PASS / 40 FIXTURE_GATE, not retrospectively recast.
+**Evidence cohort:** local integration at `6ce8d1b85f44ff23fcde823ca49e5c8d4ba540bd` (tree `26eb0f624f8571cd5c71bb3f95135cb2eeedbde5`), a historical tested-code cohort, not a claim of hosted acceptance. Compatibility `b86c4b09cf75b3027d87998eff0952c2421bf52d`; reference `6e169df1607a33b1c65d976bf05f225e7bae5fce`. The [finite assertion map](780-whole-spec-assertions.json) assigns **46 producer IDs once** and separately maps **12 topic branches**; syntactic templates/branches do not enumerate runtime variants. Six companion clarification cases are separate rows. Historical census remains 2 SOURCE_ONLY / 4 PROBE_PASS / 40 FIXTURE_GATE, not retrospectively recast.
+
+## Verified implementation landing
+
+PR [#835](https://github.com/Zero-State-LLC/Noema/pull/835) landed at `e8773b18482b69cad39ca1519df49d41f6c59223` on `2026-11-07T20:23:00Z`. The reviewed candidate `540350d04ead1466c9c5f219d4ab759e38416d2f` and squash commit have the identical tree `3a3bbee67399214eee594e48b51b49761f2bf63f`. The aggregate source branch was deleted. [Post-merge main CI](https://github.com/Zero-State-LLC/Noema/actions/runs/42410795790) passed both `build` and `Worker regression` on that merge commit.
+
+The operator authorized the [PR-specific review-rule exception](https://github.com/Zero-State-LLC/Noema/pull/835#issuecomment-6712560587); this was not a submitted approving review and does not authorize any other PR, deployment or issue closure. Final technical reviews passed on the reviewed bytes. This documentation follow-up has its own pending review and CI. #733 and #780 remain OPEN; hosted product acceptance is still gated.
 
 ## Evidence at the frozen code
 
@@ -11,10 +17,10 @@
 
 ## Publication and unresolved gates
 
-The **14 component PRs** are 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834: code/evidence slices 821 and 823–834, with 822 as the unmerged docs lane. This evidence packet is `docs/780-whole-spec-completion.md` with its machine-readable map; it describes an unmerged candidate and does not publish runtime changes to main. #733 and #780 remain OPEN; no closing keywords are proposed. Committed P07 copy reviews passed on its own head, but final combined technical/spec reviews are pending.
+The **14 component PRs** are 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834: code/evidence slices 821 and 823–834, with 822 as the unmerged docs lane. This evidence packet is `docs/780-whole-spec-completion.md` with its machine-readable map; it preserves the reviewed candidate evidence and records the verified implementation landing separately. #733 and #780 remain OPEN; no closing keywords are proposed. Committed P07 copy and final combined technical/Spec reviews passed on their stated heads; the merge preserves the reviewed tree.
 
 Owner decisions: compatibility helper exports have no maintained acceptance promise while Agent surfaces remain obligated; clarification revalidates the specific target/action rather than unrelated office or MOVE policy; ORG_CREATE advertises full dynamic premium; hidden DISMANTLE refuses; action-specific INSPECT and supported institutional authority retain their separate controls; RFC-0120 retires hosted human PLAY. These decisions do not edit the normative repository.
 
-**Not established by this evidence snapshot:** final combined reviews, exact-head CI, code-owner approval and PR landing; hosted SQL readback and Worker restart, real browser/WATCH, live authority and scheduler, human comprehension, eligible approval, and remote acceptance. Local fake settlement, mounted fake HTTP and fixture mutation do not satisfy those gates. No new CODE or DECISION gap is asserted by this finite local reconciliation.
+**Still gated:** eligible approval and CI for this documentation follow-up; submitted approval was absent for the recorded PR835 exception. The implementation landing and main CI are verified above. Remaining product acceptance includes hosted SQL readback and Worker restart, real browser/WATCH, live authority and scheduler, human comprehension, eligible approval, and remote acceptance. Local fake settlement, mounted fake HTTP and fixture mutation do not satisfy those gates. No new CODE or DECISION gap is asserted by this finite local reconciliation.
 
 Validation before publication: parse the JSON; verify 46 unique producer IDs / 12 unique topic groups and every case/source citation against frozen `git show 6ce8d1b85f44ff23fcde823ca49e5c8d4ba540bd:<path>`; compare companion blob identity; screen both drafts for private values; check intended docs paths against open PR files; run final same-head independent reviews and requested gates. Preserve the prior proposed ledger as historical evidence.
