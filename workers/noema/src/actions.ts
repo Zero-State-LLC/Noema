@@ -4462,7 +4462,7 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  upgrade <thing>       owned public workshop, once");
     lines.push("  repurpose <thing>     owned public workshop → storage_bay");
     lines.push("  restore <thing>       owned UNCLAIMED");
-    lines.push("  vest <thing> <org>    personal constructible to occupied office");
+    lines.push("  vest <thing> to <org>    personal constructible to occupied office");
     lines.push("  share <thing> <player>  up to five co-owners");
     lines.push("  connect <link> <dest> public two-way neighbor only");
     lines.push("  Public rooms only. Hidden rooms cannot be built.");
