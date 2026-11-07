@@ -154,3 +154,15 @@ it("G10.08 valid topic syntax does not grant an unoccupied office authority", as
   expect((await s.send(s.gate, "LOOK", { line })).ok).toBe(true);
   expect(s.settled).toHaveLength(1);
 });
+
+it("G10.09 rendered deny and clear forms change the retained matching restriction", async () => {
+  const s = await scene(); const text = copy(await s.help("access"));
+  const deny = fill(roomForm(text, "deny"), { org: s.org });
+  expect((await s.send(s.gate, "LOOK", { line: deny })).ok).toBe(true);
+  expect(s.w.access_restrictions).toHaveLength(1); s.settled.length = 0;
+  const clear = fill(roomForm(text, "clear"), { org: s.org });
+  const r = await s.send(s.gate, "LOOK", { line: clear });
+  expect(r.ok).toBe(true); expect(s.w.access_restrictions).toEqual([]);
+  expect(s.settled).toHaveLength(1);
+  expect(s.settled[0]).toEqual(expect.objectContaining({ event_type: "ACCESS_RESTRICTED", payload: expect.objectContaining({ mode: "CLEAR", scope: "ROOM", room_id: "room.hub", applies_to: "*" }) }));
+});
