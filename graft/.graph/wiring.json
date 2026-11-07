@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8905,
-    "edgeCount": 19730,
+    "nodeCount": 8918,
+    "edgeCount": 19757,
     "languages": [
       "javascript",
       "python",
@@ -95668,6 +95668,189 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "8cb9ba8128abe67077d126f47a8dce8f1fbd8165ee493d48684f873501c4b2ec",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "name": "attest-boundaries-next10.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L1-L185",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "15fa951f98ee73ca0734ed655a80490823d091400f11b8599acd4892a023fb6d",
+      "chars": 9565,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#follow",
+      "name": "follow",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L50-L52",
+      "signature": "async function follow(s: Scene, cmd: string, settle: Settle = async () => true, outer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3dc5e96480270f3d22b06f00d7050d32b572d787b3271d5017b7b26175119330",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#pick",
+      "name": "pick",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L38-L42",
+      "signature": "function pick(r: Result, subject = \"entity.local\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3952e8264860765679a1429d00b256c532195d186375e66f36da827b9d1d3ca7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L43-L48",
+      "signature": "function projection(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "99d7240f10312f1a26f2a5ce3311c3cb07d97818d6f7f5ea2511534a1717bc54",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L7-L7",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#rows",
+      "name": "rows",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L37-L37",
+      "signature": "function rows(r: Result)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "37b671a7af8bd803e6088e3d2cb2c8063f85dc0e337d42f51a0eed9aec75e521",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L21-L36",
+      "signature": "async function scene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5b695b13a8cd9344dd45d3d4f5e8873cd201d97b4b502a1a0a56de48be97e3ca",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#Scene",
+      "name": "Scene",
+      "kind": "type",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L49-L49",
+      "signature": "type Scene = Awaited<ReturnType<typeof scene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7fcc3eaa5bb57c62b77868452239e72f757adc781bc73caf82c8fee17443487c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#scene.envelope",
+      "name": "envelope",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L27-L30",
+      "signature": "envelope = (command: string, args: Record<string, unknown> = {}): CommandEnvelope",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1e276b192f84655fb5801b25e43f6370e07bb0e27e84ad91157d84d9263ae2a5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#scene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L31-L32",
+      "signature": "send = (command: string, args: Record<string, unknown> = {}, settle: Settle = async () => true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "48cb34fcb47f70f965448ce24bbc0b21b263db6eebe075ba717a90fc2bc1525a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#settle",
+      "name": "settle",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L131-L131",
+      "signature": "settle: Settle = async ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ca726a15c715601e854722ac7c2ac2246415814c8975d2bea9dff6397fe03729",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#Settle",
+      "name": "Settle",
+      "kind": "type",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L6-L6",
+      "signature": "type Settle = Parameters<typeof applyWorldCommand>[3];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "471c0c3346293eea4ca2dc91fc252374cd449e5891cc27ada2f2301a1e34551e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/attest-boundaries-next10.test.ts#world",
+      "name": "world",
+      "kind": "function",
+      "path": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "span": "L8-L20",
+      "signature": "function world(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "37edb40886ab3c44108c85cc5da24befb0d3b6f72d515dc7c2e981ed8e1c6f5e",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -199007,12 +199190,6 @@
       "confidence": "extracted"
     },
     {
-      "source": "workers/noema/src/watch-fluid-map.js#mountStage.dispose",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
       "source": "workers/noema/src/watch-fluid-map.js#mountStage.fit",
       "target": "workers/noema/src/watch-fluid-map.js#mountStage.pose",
       "relation": "calls",
@@ -199053,12 +199230,6 @@
       "target": "workers/noema/src/watch-fluid-map.js#mountStage.render",
       "relation": "calls",
       "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/watch-fluid-map.js#mountStage.morphTo",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "relation": "calls",
-      "confidence": "inferred"
     },
     {
       "source": "workers/noema/src/watch-fluid-map.js#mountStage.morphTo",
@@ -204941,12 +205112,6 @@
       "confidence": "inferred"
     },
     {
-      "source": "workers/noema/src/world-actions.ts#applyWorldCommand.settleEv",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
       "source": "workers/noema/src/world-actions.ts#buildObservation",
       "target": "workers/noema/src/actions.ts#cloneBudgets",
       "relation": "calls",
@@ -205968,12 +206133,6 @@
     },
     {
       "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve",
       "target": "workers/noema/src/world-actions.ts#runPinnedTempoResolve.failClosed",
       "relation": "contains",
       "confidence": "extracted"
@@ -205995,12 +206154,6 @@
       "target": "workers/noema/src/world-actions.ts#restoreWorldRuntime",
       "relation": "calls",
       "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/world-actions.ts#runPinnedTempoResolve.settleEv",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
-      "relation": "calls",
-      "confidence": "inferred"
     },
     {
       "source": "workers/noema/src/world-actions.ts#settleEmergencyHandoff",
@@ -211251,6 +211404,204 @@
       "target": "workers/noema/src/offices.ts",
       "relation": "imports",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#follow",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#pick",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#rows",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#follow",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#pick",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#rows",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#Scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#settle",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#Settle",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#world",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#follow",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#pick",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#rows",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#world",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene.envelope",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#scene.send",
+      "target": "workers/noema/test/attest-boundaries-next10.test.ts#scene.envelope",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#Settle",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/attest-boundaries-next10.test.ts#world",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/attest.test.ts",
@@ -228421,12 +228772,6 @@
     {
       "source": "workers/noema/test/player-tempo.test.ts#run",
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/player-tempo.test.ts#run",
-      "target": "workers/noema/test/r4-phrase-effect-equivalence.test.ts#settle",
       "relation": "calls",
       "confidence": "inferred"
     },
