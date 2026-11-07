@@ -2685,8 +2685,9 @@ export async function applyWorldCommand(
     const room = w.rooms[pl.room_id];
     const entity = findEntity(room, action.arguments.entity_id);
     if (!entity) {
+      // A hidden or unknown structured target must not echo its identifier in the public error.
       return failedAction(w, principal, request_id, "INSPECT_FAILED",
-        `You do not see “${action.arguments.entity_id}” here.`,
+        "You do not see that here.",
         "You do not see that here.", "inspect");
     }
     if (entity.inspect_restricted_until != null && w.cycle < entity.inspect_restricted_until) {
