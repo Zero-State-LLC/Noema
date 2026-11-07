@@ -126,3 +126,8 @@ it("C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAG
   expect((await s.send(replacement, "OBSERVE")).ok).toBe(true);
   await safeMessagePick(s, offered.pick);
 });
+
+it("C25S01 unchanged entity choice inspects the actual selected canonical entity", async () => {
+  const s = await scene(), pick = await offerInspect(s);
+  await inspected(s, pick);
+});
