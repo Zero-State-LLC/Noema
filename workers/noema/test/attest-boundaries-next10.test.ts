@@ -73,3 +73,13 @@ it("N10.02 mixed subjects preserve the executable local choice", async () => {
   expect(s.w.rooms["room.a"].entities.find((e) => e.entity_id === "entity.ledger")?.archive_subject_entity_id).toBe("entity.local");
   expect(out.events?.find((e) => e.event_type === "ENTITY_UPDATE")?.payload?.subject_entity_id).toBe("entity.local");
 });
+
+it("N10.03 hidden-room infrastructure is absent from subject suggestions", async () => {
+  const s = await scene();
+  s.w.rooms["room.b"].hidden = true;
+  s.w.rooms["room.b"].tags = ["hidden"];
+  const r = await s.send("OBSERVE");
+  expect(rows(r).some((a) => a.subject_id === "entity.remote")).toBe(false);
+  expect(JSON.stringify(rows(r))).not.toContain("remote-relay");
+  expect(pick(r).available).toBe(true);
+});
