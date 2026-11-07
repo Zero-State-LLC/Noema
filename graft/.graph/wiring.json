@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9044,
-    "edgeCount": 20105,
+    "nodeCount": 9061,
+    "edgeCount": 20152,
     "languages": [
       "javascript",
       "python",
@@ -70697,8 +70697,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "3d161949d6d8e60c377aa28769f96a1e6fb44ba8a97504cf26909a6371e8cb6e",
-      "chars": 174475,
+      "body_hash": "73c8589dffaa48a85bfac43292709066d3cc3d5ef3a2e711289edff80ecd490e",
+      "chars": 174465,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70894,7 +70894,7 @@
       "signature": "function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; /** Retained occupancy, never a display-room fallback. */ observerRoomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: \"EXIT\" | \"ROOM\"; mode: \"DENY\" | \"ALLOW_ONLY\"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; /** Current world ratchet premium; omitted by standalone callers for an unratcheted world. */ orgCreateExtraInfluence?: number; }): Affordance[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "e84e570d9a4e93997c0fe8659f706f96d5ad091861ce13262ab9bf85306492b9",
+      "body_hash": "dec220d64cf25c05d15b10ed6ba6e3ea853cbf54fb9afd7331a826f22492b191",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -76182,12 +76182,12 @@
       "name": "emergency.ts",
       "kind": "file",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L1-L282",
+      "span": "L1-L288",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "42d6f89ce3bdfcb6081e5c2bee528abe914ca29eee7b091daeb7b99d7411947c",
-      "chars": 9990,
+      "body_hash": "4330a34465fcc12151eef4dc1f388a7bdd4ab55cd1edaa3c1443ebe9d948ccc6",
+      "chars": 10276,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -76281,7 +76281,7 @@
       "name": "emergencyLines",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L227-L231",
+      "span": "L233-L237",
       "signature": "function emergencyLines(scopes: EmergencyScope[] | undefined, playerId: string, cycle: number): string[]",
       "exported": true,
       "origin": "ast",
@@ -76393,7 +76393,7 @@
       "name": "publicEmergencyPulseRoom",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L265-L281",
+      "span": "L271-L287",
       "signature": "function publicEmergencyPulseRoom( orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined, cycle: number, rooms?: Record<string, PulseRoomIn>, players?: Array<{ player_id?: string; room_id?: string }>, ): string | undefined",
       "exported": true,
       "origin": "ast",
@@ -76407,7 +76407,7 @@
       "name": "publicEmergencyPulses",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L233-L240",
+      "span": "L239-L246",
       "signature": "function publicEmergencyPulses(orgs: Record<string, { emergency_scopes?: EmergencyScope[] }> | undefined, cycle: number): string[]",
       "exported": true,
       "origin": "ast",
@@ -76421,7 +76421,7 @@
       "name": "PulseRoomIn",
       "kind": "type",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L242-L245",
+      "span": "L248-L251",
       "signature": "type PulseRoomIn = { room_id?: string; entities?: Array<{ entity_id?: string; label?: string }>; };",
       "exported": false,
       "origin": "ast",
@@ -76435,7 +76435,7 @@
       "name": "resolveEmergencyFor",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L194-L225",
+      "span": "L200-L231",
       "signature": "function resolveEmergencyFor( org: { org_id?: string; status?: string; offices?: Record<string, OfficeRecord>; members?: Array<{ agent_id: string }>; emergency_scopes?: EmergencyScope[]; }, actorId: string, capability: EmergencyCapability, targetRef: string, cycle: number, scopeId?: string, ): | { ok: true; scope: EmergencyScope } | { ok: false; code: \"NOT_FOUND\" | \"FORBIDDEN\"; message: string }",
       "exported": true,
       "origin": "ast",
@@ -76449,11 +76449,11 @@
       "name": "resolveEmergencyUse",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L158-L192",
+      "span": "L158-L198",
       "signature": "function resolveEmergencyUse( org: { org_id?: string; status?: string; offices?: Record<string, OfficeRecord>; members?: Array<{ agent_id: string }>; emergency_scopes?: EmergencyScope[]; }, actorId: string, scopeId: string, capability: EmergencyCapability, targetRef: string, cycle: number, ): | { ok: true; scope: EmergencyScope } | { ok: false; code: \"NOT_FOUND\" | \"FORBIDDEN\"; message: string }",
       "exported": true,
       "origin": "ast",
-      "body_hash": "c981f9560aab7c73517b9d238edf45be52e26856b9f54207a5e0c0666386ba56",
+      "body_hash": "ee08802aa07d9a4a5f4db9aee82258d6cfd5e1dd7f2ef5070af2fb7864cdbd4e",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -76463,7 +76463,7 @@
       "name": "roomIdForEmergencyTarget",
       "kind": "function",
       "path": "workers/noema/src/emergency.ts",
-      "span": "L247-L258",
+      "span": "L253-L264",
       "signature": "function roomIdForEmergencyTarget( target: string | undefined, rooms?: Record<string, PulseRoomIn>, ): string | undefined",
       "exported": false,
       "origin": "ast",
@@ -99910,6 +99910,245 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "9f2cc133aa85457b51f428468826fc0c969dade04793a76e40a9cfd52a7e6a66",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "name": "discovery-succession-emergency.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L1-L373",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "8fd18d1a714f2a4b9e7cb8433a39b6990703def4049978735246f49d5d913665",
+      "chars": 26044,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#createSeat",
+      "name": "createSeat",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L86-L92",
+      "signature": "async function createSeat(s: Scene, profile = \"PUBLISH_NOTICE\", required = \"\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "fbe39bf5d6b3380400a13a5e8ff6b8685f7efb66842bb180be54c0be8221c033",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#denied",
+      "name": "denied",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L60-L63",
+      "signature": "function denied(s: Scene, r: Result, before: ReturnType<typeof projection>, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1f69f07c4b5292020876e7b100bfa0f86145026580d7f7e983473903a474ec5b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#follow",
+      "name": "follow",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L79-L85",
+      "signature": "async function follow(s: Scene, p: PlayerPrincipal, operation: string, predicate?: (a: ObservationAffordance) => boolean)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4ffd3f5e052e56eb1fe03d7b11662982c0e4e8f740bce89ae31c6015ac06e64c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#paid",
+      "name": "paid",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L69-L78",
+      "signature": "function paid(s: Scene, r: Result, p: PlayerPrincipal, before: number, eventType: string, eventPayload: Record<string, unknown>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "74ffeaf8336abc1a592c177f3f522c84f5cdc7bd7f9215e22f124e166b8d1c77",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#person",
+      "name": "person",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L11-L15",
+      "signature": "person = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9ec48a0f2e5cdbeed75404182ec4fea0e61de47daa1452cea067645a23c6ed3e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L53-L59",
+      "signature": "function projection(s: Scene)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3b09722d431a25ac06b38149dd544a77994648442b939d94a065feac11fa87d2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#refuse",
+      "name": "refuse",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L64-L68",
+      "signature": "async function refuse(s: Scene, p: PlayerPrincipal, line: string, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0c54eb80ce7c359b7864e4bbaf1fb956757c0e211092c2e713733600bcbe723e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L9-L9",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#Scene",
+      "name": "Scene",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L52-L52",
+      "signature": "type Scene = Awaited<ReturnType<typeof successionEmergencyScene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3c7a8dca2276acb3defd2bf361a7ff2cc7b7a5192a4f1d3c14a7d1f965122f71",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#Settled",
+      "name": "Settled",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L10-L10",
+      "signature": "type Settled = Parameters<Parameters<typeof applyWorldCommand>[3]>[0];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0260e81c11e5ea6d95d00f3c4ed17e2a89eada9953711ccb1d566b8fef87bca7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "name": "successionEmergencyScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L16-L51",
+      "signature": "async function successionEmergencyScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b98b801b0107288f7766d2236094f98a3c1d8434aedfe6b0b65f04e49003688c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.affordance",
+      "name": "affordance",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L33-L37",
+      "signature": "affordance = async (p: PlayerPrincipal, operation: string, predicate: (a: ObservationAffordance) => boolean = () => true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cdd96cb4de2fb10501b14979e0bd43442d9b6748fde2a1967bfacf472186dc93",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.org",
+      "name": "org",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L48-L48",
+      "signature": "org = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "eba2a9f1c0d9abc47822bbc76f84d9ed787bc723d7dbe9cc56e9a9bd488d3c48",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L27-L31",
+      "signature": "send = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, developer = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cce5be885995b014bf50c137730c1b946894d199320b006b1a4892bb574d9bb0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.text",
+      "name": "text",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L32-L32",
+      "signature": "text = (p: PlayerPrincipal, line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e54a9c5465e28e352540e22f6aa3211851d678ea15ec2481385956264b3efb3d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-succession-emergency.test.ts#trade",
+      "name": "trade",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "span": "L336-L338",
+      "signature": "trade = (energy: number)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "157a3dec1f59056470a4d4adfe473f1045aeef75cffde066bb8736d05391395d",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -219717,6 +219956,288 @@
     {
       "source": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.refused",
       "target": "workers/noema/test/discovery-social-repair-trade.test.ts#socialScene.projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/actions.ts#helpText",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/offices.ts#emptyTreasury",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/practice.ts#emptyPractice",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#createSeat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#denied",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#follow",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#paid",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#refuse",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#trade",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#createSeat",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#denied",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#follow",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#paid",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#person",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#refuse",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#Scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#Settled",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#trade",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/emergency.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/offices.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/practice.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#denied",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#refuse",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#denied",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#refuse",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#Settled",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#person",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.text",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.affordance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.org",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.text",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.affordance",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.text",
+      "target": "workers/noema/test/discovery-succession-emergency.test.ts#successionEmergencyScene.send",
       "relation": "calls",
       "confidence": "extracted"
     },
