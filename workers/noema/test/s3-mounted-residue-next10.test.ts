@@ -70,3 +70,11 @@ traceCase("N02 public rumor must concern this room or a visible entity here", as
   const local = await readS3TraceSnapshot(s3RumorWorld("PUBLIC", "entity.box"));
   expect(s3TraceTexts(local)).toEqual(["A public report concerns this site."]);
 });
+
+traceCase("N03 hidden owned work does not create an org mark; visible twin does", async () => {
+  const hidden = s3InstitutionWorld();
+  hidden.rooms["room.a"].entities[0].hidden = true;
+  expect(s3TraceTexts(await readS3TraceSnapshot(hidden))).toEqual([]);
+  expect(s3TraceTexts(await readS3TraceSnapshot(s3InstitutionWorld())))
+    .toEqual(["Marks of Line remain here."]);
+});
