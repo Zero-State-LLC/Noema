@@ -208,3 +208,19 @@ it("B10.08 CONNECT pins the retained link to a two-way public neighbor without c
   expect(s.asset.dest_room_id).toBe("room.quay"); expect(exits(s.w)).toEqual(before);
   expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
 });
+
+it("B10.09 CONNECT hidden and one-way refusals have the same bounded code and no effects", async () => {
+  const errors: unknown[] = [];
+  for (const dest of ["down", "east"]) {
+    const s = await scene("route_link");
+    const line = await topic(s, "connect", { link: s.asset.label, dest });
+    const before = projection(s.w); s.settled.length = 0;
+    const r = await s.text(s.owner, line);
+    rejected(s, r, before, "NOT_OBSERVABLE"); errors.push(r.error);
+    const permitted = await topic(s, "connect", { link: s.asset.label, dest: "south" });
+    s.settled.length = 0;
+    effect(s, await s.text(s.owner, permitted), "CONNECT", { dest_room_id: "room.quay" });
+    expect(s.asset.dest_room_id).toBe("room.quay");
+  }
+  expect(errors[0]).toEqual(errors[1]);
+});
