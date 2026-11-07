@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8951,
-    "edgeCount": 19842,
+    "nodeCount": 8965,
+    "edgeCount": 19877,
     "languages": [
       "javascript",
       "python",
@@ -70821,7 +70821,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L2279-L2285",
-      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE…:102, T0.6). */ session_id?: string; };",
+      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE\u2026:102, T0.6). */ session_id?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "f9c33da8ab58f7e55c7f491e21a5acf87b316b0ac56801a3df56decc7d33a3aa",
@@ -71059,7 +71059,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L132-L179",
-      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0–100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
+      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0\u2013100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e21c2250152607483502a4959fad2b42ce435217eddd816b98a7142dfa52e2f",
@@ -71129,7 +71129,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L266-L275",
-      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC §3.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
+      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC \u00a73.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "79d759dba49ec1731d5cf8b0044982d48ad8abcecd32333eab65db004fc04b2c",
@@ -71325,7 +71325,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L335-L359",
-      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution→player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
+      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution\u2192player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "09d4882c08c65b82f7ffb90407d78fd79206fff940405d57ea0b476f5ef8e655",
@@ -72382,7 +72382,7 @@
       "kind": "type",
       "path": "workers/noema/src/auth.ts",
       "span": "L215-L229",
-      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 … 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
+      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 \u2026 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "bcc044564e0af779899d1e62e09ceea7d5ddf8bd8502ae7a29cdfb60e4dfe35e",
@@ -75060,7 +75060,7 @@
       "kind": "type",
       "path": "workers/noema/src/device-enrollment.ts",
       "span": "L26-L54",
-      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, …). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
+      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, \u2026). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "6afc122f36264a4df601c2b74ce7e88d20fe43ebb8f48f126d1974dd09b233a1",
@@ -85839,7 +85839,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L44-L49",
-      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id → distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
+      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "92378cc9eeea472b13ae9f54110699b9f378cad0a4fa99eae9bbeee334fd837e",
@@ -86217,7 +86217,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L36-L42",
-      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id → distinct accepted trade_ids */ edges: Record<string, string[]>; /** object → evidence id → cycle credited */ at?: Record<string, Record<string, number>>; };",
+      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct accepted trade_ids */ edges: Record<string, string[]>; /** object \u2192 evidence id \u2192 cycle credited */ at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "7b2924418e787e5e4aa77061fa27eba3a749939a8c8b34e97c0c911189dbf17b",
@@ -88413,7 +88413,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-live.ts",
       "span": "L30-L44",
-      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** §6: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
+      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** \u00a76: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** \u00a74.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d54830e2e8af898dc269459fec2211ab687a7408ed112392e4701dea0824f191",
@@ -90505,7 +90505,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L163-L172",
-      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */ sequence?: number; /** Public agent_move — lights public edges touching the room (exit_active). */ move?: boolean; };",
+      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence \u2014 caps keep the newest across polls (\u00a718.6 rule 3). */ sequence?: number; /** Public agent_move \u2014 lights public edges touching the room (exit_active). */ move?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e959c4362f2f9c211d2ce7c2fd5edba07da8c9c819f9aa698e0d6b2ca02d40a",
@@ -90533,7 +90533,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L1028-L1043",
-      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
+      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** \u00a74.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d46f8296447a56cf44e40bd7dc48d0f75e603556248f650553f7a802e2e433b5",
@@ -98599,6 +98599,203 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "46361582dbe6d093fa12a1b24d641e394a26e0f79b6ab9b9e605d4f9a64a8bab",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts",
+      "name": "discovery-agreement-access.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L1-L299",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "5795e1663b290b46a8a60203a761e63a6166ae5abb9b94779a810002eaa9c30e",
+      "chars": 23023,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#accessSeat",
+      "name": "accessSeat",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L63-L71",
+      "signature": "async function accessSeat(s: Rig): Promise<string>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8e7c9d51ad28241beb19103a114795129b5280072fd868654dd3267af3d20b48",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryPrincipal",
+      "name": "discoveryPrincipal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L9-L13",
+      "signature": "function discoveryPrincipal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "649bd45ad4ee70406ce307c86eaa789d28a7174735256c98c425d273f334c44a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryProjection",
+      "name": "discoveryProjection",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L51-L56",
+      "signature": "function discoveryProjection(s: Rig)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b9eb1144ef8c56caf2ccf16c1c33f1e4c3af923cd4cce01f1310f27d1ea5b268",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "name": "discoveryRig",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L27-L42",
+      "signature": "async function discoveryRig(): Promise<Rig>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7774ea1e9f4709629d0b6d4a2167a61377d6ad16898e990c429d140d685e8f33",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L30-L34",
+      "signature": "send: Rig[\"send\"] = (p, command, args = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "17d8e705180d9d97c2440c853c99d17ce6b8c8163ce26e17da86f4012d6db249",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.text",
+      "name": "text",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L36-L36",
+      "signature": "text = (p: PlayerPrincipal, line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "733cd580f578c05262798e9d9f75836f3804eea6b9e3710ba2808fc27c824eef",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.topic",
+      "name": "topic",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L37-L40",
+      "signature": "topic = async (p: PlayerPrincipal, name: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "63f8a7b768c952308d35fd8d21affc49fd0aacb27784eac349ff3c4c1b162998",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#discoveryWorld",
+      "name": "discoveryWorld",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L14-L22",
+      "signature": "function discoveryWorld(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "810381234270e878d85e057da456e1470a451351805e24d8f3d233930d3597b6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#fillTemplate",
+      "name": "fillTemplate",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L47-L50",
+      "signature": "function fillTemplate(text: string, fields: Record<string, string>): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dcad64ca82fdf99de4cb363a4076bf2fd8a32eeb5d87a079896ce90c2990210e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#refusal",
+      "name": "refusal",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L57-L62",
+      "signature": "async function refusal(s: Rig, p: PlayerPrincipal, line: string, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "28b9dcfa1fabf58f52a7e3ea4d4343b2ad22c75d9821e4bc7e9967a386cd4550",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L8-L8",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#Rig",
+      "name": "Rig",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L23-L26",
+      "signature": "type Rig = { w: WorldRuntime; a: PlayerPrincipal; b: PlayerPrincipal; c: PlayerPrincipal; settled: Array<{ event_type: string; payload: Record<string, unknown> }>; send: (p: PlayerPrincipal, command: string, args?: Record<string, unknown>) => Promise<Result>; text: (p: PlayerPrincipal, line: string) => Promise<Result>; topic: (p: PlayerPrincipal, name: string) => Promise<string> };",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1cb657143587548c9a2e29901870ff09a7c61e261f1b9b3e77d8fab780029934",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-agreement-access.test.ts#template",
+      "name": "template",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-agreement-access.test.ts",
+      "span": "L43-L46",
+      "signature": "function template(text: string, prefix: string): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2627c3af9fd78031ab870285bd8771225efa8cae33e3ec93ca3d526a31e160c2",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -216830,6 +217027,216 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#accessSeat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#fillTemplate",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#refusal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#template",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#accessSeat",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryPrincipal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryProjection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#fillTemplate",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#refusal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#Rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#template",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/src/access-policy.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/src/diplomacy.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#accessSeat",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryPrincipal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.text",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.topic",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.text",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.topic",
+      "target": "workers/noema/src/actions.ts#helpText",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.topic",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryRig.text",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#refusal",
+      "target": "workers/noema/test/discovery-agreement-access.test.ts#discoveryProjection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-agreement-access.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/discovery.test.ts",
