@@ -155,3 +155,15 @@ it("N10.08 same-envelope replay has no new publication effect", async () => {
   expect(replay).toEqual(first);
   expect(projection(s.w)).toEqual(before);
 });
+
+it("N10.09 outer-command carrier follows the advertised artifact and subject", async () => {
+  const s = await scene();
+  const hit = pick(await s.send("OBSERVE"));
+  const r = await follow(s, hit.cmd, async () => true, true);
+  expect(r.ok).toBe(true);
+  expect(r.events?.find((e) => e.event_type === "ENTITY_UPDATE")?.payload).toEqual(expect.objectContaining({
+    entity_id: "entity.ledger", subject_entity_id: "entity.local", archive_claim: "OPERATING" }));
+  const art = s.w.rooms["room.a"].entities.find((e) => e.entity_id === "entity.ledger");
+  expect(art?.archive_subject_entity_id).toBe("entity.local");
+  expect(art?.archive_claim).toBe("OPERATING");
+});
