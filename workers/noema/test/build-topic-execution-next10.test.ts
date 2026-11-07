@@ -137,3 +137,17 @@ it("B10.02 rendered SHARE refuses a non-owner without settlement and still works
   effect(s, await s.text(s.owner, line), "SHARE", { co_owner_id: s.other.player_id });
   expect(s.asset.co_owner_id).toBe(s.other.player_id);
 });
+
+it("B10.03 a fresh-key duplicate SHARE refuses without a second stamp or charge", async () => {
+  const s = await scene("route_link");
+  const line = await topic(s, "share", { thing: s.asset.label, player: s.peer.player_id });
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "SHARE", { co_owner_id: s.peer.player_id });
+  const before = projection(s.w); s.settled.length = 0;
+  rejected(s, await s.text(s.owner, line), before, "NOT_ADDRESSABLE");
+  // Later successful mutation proves the recorder is still connected, without expanding SHARE capacity.
+  const next = await topic(s, "connect", { link: s.asset.label, dest: "south" });
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, next), "CONNECT", { dest_room_id: "room.quay" });
+  expect(s.asset.dest_room_id).toBe("room.quay");
+});
