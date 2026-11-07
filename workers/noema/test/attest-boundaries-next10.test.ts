@@ -94,3 +94,18 @@ it("N10.04 ATTEST cap stays six without promoting distant subjects", async () =>
   expect(rows(r).filter((a) => a.subject_id === "entity.remote").every((a) => !a.available)).toBe(true);
   expect(pick(r).available).toBe(true);
 });
+
+it("N10.05 exact base attention price permits one local ATTEST", async () => {
+  const s = await scene();
+  s.w.players[s.p.player_id].budgets.attention = 2; // RFC-0020 base price, no annex.
+  const hit = pick(await s.send("OBSERVE"));
+  expect(hit.requires?.attention).toBe(2);
+  expect(hit.available).toBe(true);
+  const settled: unknown[] = [];
+  const r = await follow(s, hit.cmd, async (e) => { settled.push(e); return true; });
+  expect(r.ok).toBe(true);
+  expect(s.w.players[s.p.player_id].budgets.attention).toBe(0);
+  expect(settled).toHaveLength(1);
+  expect(settled[0]).toEqual(expect.objectContaining({ event_type: "ENTITY_UPDATE", payload: expect.objectContaining({
+    entity_id: "entity.ledger", subject_entity_id: "entity.local", archive_claim: "OPERATING" }) }));
+});
