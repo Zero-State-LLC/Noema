@@ -2,7 +2,7 @@
 
 This board tracks the #780 follow-up frontier and its #733 parent, not the entire repository backlog. Snapshot base/main: `642d71bc8423e2533c4c4a9f55becff7c2a2e551`. **Local complete, published draft, merged and hosted accepted are different states.** This document does not change the canonical matrix or GitHub issue states.
 
-External board: [Zero-State-LLC Project #18](https://github.com/orgs/Zero-State-LLC/projects/18), configured by [project-collaboration.yml](.github/workflows/project-collaboration.yml). Current operator CLI lacks Projects read permission; external cards were not read or moved. This file is an explicit repository fallback, not a verified Projects mirror. Collaboration automation may pass while warning that board access failed.
+External board: [Zero-State-LLC Project #18](https://github.com/orgs/Zero-State-LLC/projects/18), configured by [project-collaboration.yml](.github/workflows/project-collaboration.yml). The existing authenticated browser can read and update it. **#780 → In Progress; #821 → Review**, each independently reloaded and read back after the update. The CLI credential alone lacks Projects scope; this is not an account-permission blocker. This document is a scoped evidence overview, not a complete mirror of every external card. Collaboration automation alone still does not prove board insertion.
 
 ## In review — not shipped
 
@@ -27,7 +27,7 @@ The combined six-case module is independently reviewed; 142 affected and 2,256 f
 | Retained first-paint and mapping helpers | Owner applicability decision or maintained served caller; no retired human PLAY reconstruction. |
 | Office revocation / movement-access clarification | Complete ambiguity→material-change→pick fixture and contract decision before any shared fingerprint change. |
 | Broad producer/topic certification | Historical source census remains 4 PROBE_PASS/40 FIXTURE_GATE/2 SOURCE_ONLY, not whole-family behavioral acceptance. |
-| External Projects card synchronization | Missing Projects read permission; scope expansion or an authorized existing board session needed. No interactive credential refresh was attempted. |
+| CLI-only Projects automation | Current CLI credential lacks read:project; authenticated browser access works and the two scoped card updates are verified. No credential changes or interactive refresh were needed. |
 
 ## Merged — bounded evidence, not hosted acceptance
 
