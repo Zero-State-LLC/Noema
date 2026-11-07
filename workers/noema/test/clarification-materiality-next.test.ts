@@ -131,3 +131,11 @@ it("C25S01 unchanged entity choice inspects the actual selected canonical entity
   const s = await scene(), pick = await offerInspect(s);
   await inspected(s, pick);
 });
+
+it("C25S02 sealing the selected same-ID entity blocks numeric inspection without effects", async () => {
+  const s = await scene(), pick = await offerInspect(s);
+  entity(s, "entity.relay-a").inspect_restricted_until = s.w.cycle + 2;
+  await sealedPick(s, pick);
+  delete entity(s, "entity.relay-a").inspect_restricted_until;
+  await inspected(s, await offerInspect(s));
+});
