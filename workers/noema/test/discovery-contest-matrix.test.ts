@@ -148,13 +148,14 @@ describe("P07 exact advertised contest discovery", () => {
     expect(contestDiscoveryProjection(w)).toEqual(closed);
   });
 
-  contestDiscoveryCase("instantiates five rendered HELP form alternatives at their actual minimum stake", async () => {
+  // This existing control substitutes each form's minimum stake; it is not a literal HELP-example execution.
+  contestDiscoveryCase("instantiates five rendered HELP form alternatives with substituted minimum stakes", async () => {
     const w = contestDiscoveryWorld(), a = contestDiscoveryPrincipal("nacre"), b = contestDiscoveryPrincipal("sable");
     await contestDiscoveryEnter(w, a, b);
     const help = await contestDiscoverySend(w, a, "LOOK", { line: "help contest" });
     expect(help.ok).toBe(true);
     const copy = String(help.observation?.consequence || "");
-    expect(copy).toContain("contest <form> <target> stake=energy:10,influence:6");
+    expect(copy).toContain("contest <form> <target> stake=<resources>");
     for (const token of ["resource_seizure", "infrastructure_disruption", "access", "presence_pressure", "information"]) {
       expect(copy).toContain(token);
     }
@@ -162,10 +163,10 @@ describe("P07 exact advertised contest discovery", () => {
     for (const [token, target] of Object.entries(targets)) {
       const form = CONTEST_FORMS.find((f) => f.toLowerCase() === token || (token === "access" && f === "ACCESS_CONTEST") || (token === "information" && f === "INFORMATION_CONTEST"))!;
       const stake = FORM_SPECS[form].minimum_stake;
-      const template = copy.split("\n").map((s) => s.trim()).find((s) => s.startsWith("contest <form> <target> stake="))!;
+      const template = copy.split("\n").map((s) => s.trim()).find((s) => s.startsWith(`contest ${token} <target> stake=`))!;
       expect(template).toBeTruthy();
-      const line = template.replace("<form>", token).replace("<target>", target)
-        .replace("energy:10,influence:6", Object.entries(stake).map(([k, v]) => `${k}:${v}`).join(","));
+      const line = template.replace("<target>", target)
+        .replace(/stake=\S+/, `stake=${Object.entries(stake).map(([k, v]) => `${k}:${v}`).join(",")}`);
       const fresh = contestDiscoveryWorld();
       await contestDiscoveryEnter(fresh, a, b);
       const result = await contestDiscoverySend(fresh, a, "LOOK", { line });
@@ -178,6 +179,54 @@ describe("P07 exact advertised contest discovery", () => {
       expect(declaredEvent?.payload?.target).toEqual(expectedTarget);
       expect(Object.values(fresh.contests || {})).toHaveLength(1);
     }
+  });
+
+  const literalHelpForms: Array<[string, string, ContestForm, ContestTarget]> = [
+    ["resource_seizure", "scarred-conduit", "RESOURCE_SEIZURE", { kind: "ENTITY", entity_id: "entity.relay" }],
+    ["infrastructure_disruption", "scarred-conduit", "INFRASTRUCTURE_DISRUPTION", { kind: "ENTITY", entity_id: "entity.relay" }],
+    ["access", "here", "ACCESS_CONTEST", { kind: "ROOM", room_id: "room.hub" }],
+    ["presence_pressure", "sable", "PRESENCE_PRESSURE", { kind: "AGENT", agent_id: "player.sable" }],
+    ["information", "amber-tablet", "INFORMATION_CONTEST", { kind: "ENTITY", entity_id: "entity.tablet" }],
+  ];
+  contestDiscoveryCase.each(literalHelpForms)("executes literal rendered HELP stake for %s with own payer, settlement and retained target", async (token, targetText, form, target) => {
+    const w = contestDiscoveryWorld(), actor = contestDiscoveryPrincipal("nacre"), other = contestDiscoveryPrincipal("sable");
+    await contestDiscoveryEnter(w, actor, other);
+    const help = await contestDiscoverySend(w, actor, "LOOK", { line: "help contest" });
+    expect(help.ok).toBe(true);
+    const copy = String(help.observation?.consequence || "");
+    const template = copy.split("\n").map((s) => s.trim()).find((s) => s.startsWith(`contest ${token} <target> stake=`));
+    expect(template, `${token} must have a published form-specific command`).toBeTruthy();
+    expect(copy).toContain(token);
+    const line = template!.replace("<target>", targetText);
+    const publishedStake = Object.fromEntries([...line.matchAll(/(?:stake=|,)([a-z]+):([0-9]+)/g)].map((m) => [m[1], Number(m[2])]));
+    expect(publishedStake).toEqual(FORM_SPECS[form].minimum_stake);
+    const before = structuredClone(w.players[actor.player_id].budgets);
+    const otherBefore = structuredClone(w.players[other.player_id].budgets);
+    const sequenceBefore = w.sequence;
+    const settled: Array<{ event_type: string; payload: Record<string, unknown> }> = [];
+    const n = ++contestDiscoveryNonce;
+    const declared = await applyWorldCommand(w, actor, {
+      request_id: `contest-request.${n}`, idempotency_key: `contest-idem.${n}`, command: "LOOK", arguments: { line },
+    }, async (event) => { settled.push({ event_type: event.event_type, payload: event.payload }); return true; }, { admission: "developer" });
+    expect(declared.ok, `${line}: ${declared.error?.code}: ${declared.error?.message}`).toBe(true);
+    expect(declared.events?.map((event) => event.event_type)).toEqual(["BUDGET_CONSUMED", "CONTEST_DECLARED"]);
+    const [paid, event] = declared.events!;
+    const payload = event.payload!;
+    expect(paid.payload).toMatchObject({ player_id: actor.player_id, cost_paid: { compute: 2, influence: 1 }, reason: "CONTEST_DECLARE", acting_for: null });
+    expect(payload).toMatchObject({ declarer_id: actor.player_id, contest_form: form, target, room_id: "room.hub", stake: publishedStake, acting_for: null });
+    expect(settled).toEqual([{ event_type: "CONTEST_DECLARED", payload }]);
+    expect(w.sequence).toBe(sequenceBefore + 2);
+    expect(Object.keys(w.contests || {})).toEqual([payload.contest_id]);
+    expect(w.contests?.[String(payload.contest_id)]).toMatchObject({
+      contest_id: payload.contest_id, declarer_id: actor.player_id, contest_form: form,
+      target, room_id: "room.hub", stake: publishedStake, status: "OPEN",
+    });
+    expect(w.players[actor.player_id].budgets).toEqual({
+      attention: before.attention - (publishedStake.attention || 0), compute: before.compute - 2 - (publishedStake.compute || 0),
+      energy: before.energy - (publishedStake.energy || 0), influence: before.influence - 1 - (publishedStake.influence || 0),
+      storage: before.storage - (publishedStake.storage || 0),
+    });
+    expect(w.players[other.player_id].budgets).toEqual(otherBefore);
   });
 
   contestDiscoveryCase("rejects ambiguous entity labels, hidden declarations and insufficient personal funds without effects", async () => {
@@ -250,7 +299,7 @@ describe("P07 exact advertised contest discovery", () => {
     const stake = FORM_SPECS.INFRASTRUCTURE_DISRUPTION.minimum_stake;
     const stakeText = Object.entries(stake).map(([k, v]) => `${k}:${v}`).join(",");
     const line = formTemplate.replace("<org>", org).replace("<form>", "infrastructure_disruption")
-      .replace("<target>", "scarred-conduit").replace("energy:10,influence:6", stakeText);
+      .replace("<target>", "scarred-conduit").replace("stake=<resources>", `stake=${stakeText}`);
     const refusalBefore = contestDiscoveryProjection(w), settled: string[] = [];
     const vacant = await contestDiscoverySend(w, founder, "LOOK", { line }, settled);
     expect(vacant.error?.code).toBe("FORBIDDEN");
@@ -286,7 +335,7 @@ describe("P07 exact advertised contest discovery", () => {
     const defenseSeat = Object.keys(w.organizations[otherOrg].offices || {})[0];
     expect((await contestDiscoverySend(w, founder, "ORG_OFFICE_ASSIGN", { office_id: defenseSeat, agent_id: founder.player_id })).ok).toBe(true);
     Object.assign(w.organizations[otherOrg].treasury!, { energy: 60, influence: 60, compute: 60 });
-    const defendLine = defendTemplate.replace("<contest_id>", id).replace("<org>", otherOrg).replace("energy:10,influence:6", stakeText);
+    const defendLine = defendTemplate.replace("<contest_id>", id).replace("<org>", otherOrg).replace("stake=<resources>", `stake=${stakeText}`);
     w.organizations[otherOrg].treasury!.energy = 1;
     const lowDefenseBefore = contestDiscoveryProjection(w);
     const lowDefense = await contestDiscoverySend(w, founder, "LOOK", { line: defendLine }, settled);

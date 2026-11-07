@@ -2,7 +2,7 @@
   "meta": {
     "version": 1,
     "nodeCount": 9108,
-    "edgeCount": 20269,
+    "edgeCount": 20271,
     "languages": [
       "javascript",
       "python",
@@ -70693,12 +70693,12 @@
       "name": "actions.ts",
       "kind": "file",
       "path": "workers/noema/src/actions.ts",
-      "span": "L1-L4584",
+      "span": "L1-L4594",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "bce7dbcc84ae775f2ff62bd3aaa4752ac62cdad28d5bfda89775b8df3add834e",
-      "chars": 175329,
+      "body_hash": "9ecaba2f7b79d144303c18f3ebead417ec5161f35913e7cef93606de365efc23",
+      "chars": 175851,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70872,6 +70872,20 @@
       "crux": null
     },
     {
+      "id": "workers/noema/src/actions.ts#contestStakeLine",
+      "name": "contestStakeLine",
+      "kind": "function",
+      "path": "workers/noema/src/actions.ts",
+      "span": "L4415-L4417",
+      "signature": "function contestStakeLine(stake: Record<string, number>): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e26d3ad0c1daced74b1cce5fc24bb2c71929828404f679ab88a715953d1f39eb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/src/actions.ts#debit",
       "name": "debit",
       "kind": "function",
@@ -70890,11 +70904,11 @@
       "name": "deriveAffordances",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L3194-L4417",
+      "span": "L3194-L4413",
       "signature": "function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; /** Retained occupancy, never a display-room fallback. */ observerRoomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: \"EXIT\" | \"ROOM\"; mode: \"DENY\" | \"ALLOW_ONLY\"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; /** Current world ratchet premium; omitted by standalone callers for an unratcheted world. */ orgCreateExtraInfluence?: number; }): Affordance[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "dec220d64cf25c05d15b10ed6ba6e3ea853cbf54fb9afd7331a826f22492b191",
+      "body_hash": "ba61d03cc014511a096c2a2dd5647c62187619a87f122602016082c4e25e8b47",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70904,7 +70918,7 @@
       "name": "cargoOk",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4153-L4154",
+      "span": "L4149-L4150",
       "signature": "cargoOk = (need: number)",
       "exported": true,
       "origin": "ast",
@@ -70918,7 +70932,7 @@
       "name": "coOwnersOf",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4149-L4152",
+      "span": "L4145-L4148",
       "signature": "coOwnersOf = (e: EntityRuntime)",
       "exported": true,
       "origin": "ast",
@@ -70932,7 +70946,7 @@
       "name": "holdsNamed",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4134-L4140",
+      "span": "L4130-L4136",
       "signature": "holdsNamed = (orgId?: string)",
       "exported": true,
       "origin": "ast",
@@ -70946,7 +70960,7 @@
       "name": "mergeCost",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L3778-L3784",
+      "span": "L3774-L3780",
       "signature": "mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets>",
       "exported": true,
       "origin": "ast",
@@ -70960,7 +70974,7 @@
       "name": "payStake",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L3785-L3785",
+      "span": "L3781-L3781",
       "signature": "payStake = (cost: Partial<Budgets>, stake: Record<string, number>)",
       "exported": true,
       "origin": "ast",
@@ -70974,7 +70988,7 @@
       "name": "pushAccess",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4003-L4033",
+      "span": "L3999-L4029",
       "signature": "pushAccess = ( scope: \"EXIT\" | \"ROOM\", mode: \"DENY\" | \"CLEAR\" | \"ALLOW_ONLY\", applies_to: string, direction?: string, label?: string, )",
       "exported": true,
       "origin": "ast",
@@ -70988,25 +71002,11 @@
       "name": "pushDeclare",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L3836-L3873",
+      "span": "L3832-L3869",
       "signature": "pushDeclare = ( form: ContestForm, target: ContestTarget, label: string, cmdTarget: string, target_id?: string, )",
       "exported": true,
       "origin": "ast",
-      "body_hash": "80a99ceca46a6fc8118788ba040640e2a1c53db9c90ef875d3bcf523a49eb7dd",
-      "summary_state": "pending",
-      "summary": null,
-      "crux": null
-    },
-    {
-      "id": "workers/noema/src/actions.ts#deriveAffordances.stakeLine",
-      "name": "stakeLine",
-      "kind": "function",
-      "path": "workers/noema/src/actions.ts",
-      "span": "L3774-L3777",
-      "signature": "stakeLine = (stake: Record<string, number>)",
-      "exported": true,
-      "origin": "ast",
-      "body_hash": "e75d218ec071d99b7d181218ff12876f186f5fb8c39587d52d4f32da9949b801",
+      "body_hash": "3f45c08dbcd4713099e33df8d8ba3c5046e869653f01a912c1156aa4e899bded",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -71016,7 +71016,7 @@
       "name": "stewardOf",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4141-L4148",
+      "span": "L4137-L4144",
       "signature": "stewardOf = (e: EntityRuntime)",
       "exported": true,
       "origin": "ast",
@@ -71086,11 +71086,11 @@
       "name": "helpText",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4419-L4554",
+      "span": "L4419-L4564",
       "signature": "function helpText(topic?: string, available?: Affordance[]): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "710f330cd8483c47d84ce25eb6c155539ae5625c58f94334e741c23db5c74817",
+      "body_hash": "72fba64e3a787daaa5090a2358321f44540f4769a6b6ddf6a2ba0fec244da185",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -71100,7 +71100,7 @@
       "name": "humanizeActionError",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4556-L4583",
+      "span": "L4566-L4593",
       "signature": "function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }",
       "exported": true,
       "origin": "ast",
@@ -99861,12 +99861,12 @@
       "name": "discovery-contest-matrix.test.ts",
       "kind": "file",
       "path": "workers/noema/test/discovery-contest-matrix.test.ts",
-      "span": "L1-L305",
+      "span": "L1-L354",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "774923fb2cd0e2b5d65bc8d9ad356e8fd82e517af8ef4ecf7522bc293560b787",
-      "chars": 23003,
+      "body_hash": "568265c3a9d5500f418a830bd86c575f4981e48f200918a90e6e444714473f95",
+      "chars": 26911,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -188324,6 +188324,12 @@
     },
     {
       "source": "workers/noema/src/actions.ts",
+      "target": "workers/noema/src/actions.ts#contestStakeLine",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/actions.ts",
       "target": "workers/noema/src/actions.ts#debit",
       "relation": "contains",
       "confidence": "extracted"
@@ -188696,6 +188702,12 @@
     },
     {
       "source": "workers/noema/src/actions.ts#deriveAffordances",
+      "target": "workers/noema/src/actions.ts#contestStakeLine",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/actions.ts#deriveAffordances",
       "target": "workers/noema/src/actions.ts#deriveAffordances.cargoOk",
       "relation": "calls",
       "confidence": "extracted"
@@ -188727,12 +188739,6 @@
     {
       "source": "workers/noema/src/actions.ts#deriveAffordances",
       "target": "workers/noema/src/actions.ts#deriveAffordances.pushDeclare",
-      "relation": "calls",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/actions.ts#deriveAffordances",
-      "target": "workers/noema/src/actions.ts#deriveAffordances.stakeLine",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -188942,12 +188948,6 @@
     },
     {
       "source": "workers/noema/src/actions.ts#deriveAffordances",
-      "target": "workers/noema/src/actions.ts#deriveAffordances.stakeLine",
-      "relation": "contains",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/actions.ts#deriveAffordances",
       "target": "workers/noema/src/actions.ts#deriveAffordances.stewardOf",
       "relation": "contains",
       "confidence": "extracted"
@@ -188990,6 +188990,12 @@
     },
     {
       "source": "workers/noema/src/actions.ts#deriveAffordances.pushDeclare",
+      "target": "workers/noema/src/actions.ts#contestStakeLine",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/actions.ts#deriveAffordances.pushDeclare",
       "target": "workers/noema/src/actions.ts#deriveAffordances.mergeCost",
       "relation": "calls",
       "confidence": "extracted"
@@ -188997,12 +189003,6 @@
     {
       "source": "workers/noema/src/actions.ts#deriveAffordances.pushDeclare",
       "target": "workers/noema/src/actions.ts#deriveAffordances.payStake",
-      "relation": "calls",
-      "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/src/actions.ts#deriveAffordances.pushDeclare",
-      "target": "workers/noema/src/actions.ts#deriveAffordances.stakeLine",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -189021,6 +189021,12 @@
     {
       "source": "workers/noema/src/actions.ts#enrichEntity",
       "target": "workers/noema/src/actions.ts#classifyResourceNode",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/actions.ts#helpText",
+      "target": "workers/noema/src/actions.ts#contestStakeLine",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -220437,6 +220443,12 @@
     {
       "source": "workers/noema/test/discovery-contest-matrix.test.ts",
       "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-contest-matrix.test.ts",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
     },

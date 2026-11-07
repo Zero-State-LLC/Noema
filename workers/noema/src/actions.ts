@@ -3771,10 +3771,6 @@ export function deriveAffordances(input: {
 
   const roomId = input.roomId;
   const nowCycle = input.cycle || 0;
-  const stakeLine = (stake: Record<string, number>) =>
-    Object.entries(stake)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(",");
   const mergeCost = (cost: Partial<Budgets>, stake: Record<string, number>): Partial<Budgets> => {
     const merged: Partial<Budgets> = { ...cost };
     for (const [k, amt] of Object.entries(stake)) {
@@ -3816,7 +3812,7 @@ export function deriveAffordances(input: {
           verb: "COMMIT",
           operation: "CONTEST_DEFEND",
           label: `Defend ${c.contest_id}`,
-          cmd: `defend ${c.contest_id} stake=${stakeLine(stake)}`,
+          cmd: `defend ${c.contest_id} stake=${contestStakeLine(stake)}`,
           contest_id: c.contest_id,
           contest_form: c.contest_form,
           stake,
@@ -3859,7 +3855,7 @@ export function deriveAffordances(input: {
           verb: "COMMIT",
           operation: "CONTEST_DECLARE",
           label: `Contest ${pretty} · ${label}`,
-          cmd: `contest ${formCmd} ${cmdTarget} stake=${stakeLine(stake)}`,
+          cmd: `contest ${formCmd} ${cmdTarget} stake=${contestStakeLine(stake)}`,
           target_id,
           target_label: label,
           contest_form: form,
@@ -4416,6 +4412,10 @@ export function deriveAffordances(input: {
   return out;
 }
 
+function contestStakeLine(stake: Record<string, number>): string {
+  return Object.entries(stake).map(([key, amount]) => `${key}:${amount}`).join(",");
+}
+
 export function helpText(topic?: string, available?: Affordance[]): string {
   const lines: string[] = [];
   let t = (topic || "").toLowerCase();
@@ -4467,13 +4467,23 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  Both parties must be here. Public rooms only.");
   } else if (t === "contest") {
     lines.push("CONTEST");
-    lines.push("  contest <form> <target> stake=energy:10,influence:6");
-    lines.push("  defend <contest_id> stake=energy:10,influence:6");
+    lines.push("  contest <form> <target> stake=<resources>");
+    lines.push("  defend <contest_id> stake=<resources>");
     lines.push("  withdraw <contest_id>");
-    lines.push("  contest for <org> <form> <target> stake=energy:10,influence:6");
-    lines.push("  defend <contest_id> for <org> stake=energy:10,influence:6");
+    lines.push("  contest for <org> <form> <target> stake=<resources>");
+    lines.push("  defend <contest_id> for <org> stake=<resources>");
     lines.push("  Forms: resource_seizure · infrastructure_disruption · access");
     lines.push("         presence_pressure · information");
+    for (const [form, name] of [
+      ["RESOURCE_SEIZURE", "resource_seizure"],
+      ["INFRASTRUCTURE_DISRUPTION", "infrastructure_disruption"],
+      ["ACCESS_CONTEST", "access"],
+      ["PRESENCE_PRESSURE", "presence_pressure"],
+      ["INFORMATION_CONTEST", "information"],
+    ] as const) {
+      lines.push(`  contest ${name} <target> stake=${contestStakeLine(FORM_SPECS[form].minimum_stake)}`);
+    }
+    lines.push("  Declaration fee: compute:2,influence:1 in addition to the escrowed stake; defense fee: compute:1.");
     lines.push("  Public rooms only. Hidden rooms cannot be contested.");
     lines.push("  No HP. No scan or attack.");
   } else if (t === "build") {
