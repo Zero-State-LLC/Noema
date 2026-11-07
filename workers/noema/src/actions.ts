@@ -4435,7 +4435,8 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  access <dir> deny for <org>");
     lines.push("  access <dir> clear for <org>");
     lines.push("  access <dir> allow for <org> applies_to=<player>");
-    lines.push("  access here deny|clear|allow for <org>");
+    lines.push("  access here deny|clear for <org>");
+    lines.push("  access here allow for <org> applies_to=<player>");
     lines.push("  Occupied GRANT_ACCESS office. Public rooms only.");
   } else if (t === "agreement") {
     lines.push("AGREEMENT");
@@ -4462,9 +4463,9 @@ export function helpText(topic?: string, available?: Affordance[]): string {
     lines.push("  upgrade <thing>       owned public workshop, once");
     lines.push("  repurpose <thing>     owned public workshop → storage_bay");
     lines.push("  restore <thing>       owned UNCLAIMED");
-    lines.push("  vest <thing> <org>    personal constructible to occupied office");
-    lines.push("  share <thing> <player>  up to five co-owners");
-    lines.push("  connect <link> <dest> public two-way neighbor only");
+    lines.push("  vest <thing> to <org>    personal constructible to occupied office");
+    lines.push("  share <thing> with <player>  up to five co-owners");
+    lines.push("  connect <link> to <dest>  public two-way neighbor only");
     lines.push("  Public rooms only. Hidden rooms cannot be built.");
     lines.push("  Construct, upgrade, repurpose, and restore consume cargo (free storage).");
   } else if (t === "org" || t === "organization" || t === "organizations") {
