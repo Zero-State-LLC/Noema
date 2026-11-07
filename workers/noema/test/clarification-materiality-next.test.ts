@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it as clarificationMaterialityCase } from "vitest";
 import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity, resolveVisibleEntity } from "../src/actions";
 import { applyWorldCommand, type WorldRuntime } from "../src/world-actions";
 import type { PlayerPrincipal } from "../src/types";
@@ -104,12 +104,12 @@ async function sealedPick(s: Rig, pick: string) {
   expect(projection(s)).toEqual(before); return r.error!.code;
 }
 
-it("C25R01 unchanged recipient choices request body re-entry without replay", async () => {
+clarificationMaterialityCase("C25R01 unchanged recipient choices request body re-entry without replay", async () => {
   const s = await scene(), offered = await offerMessage(s);
   await safeMessagePick(s, offered.pick);
 });
 
-it("C25R02 selected recipient leaving cannot replay the discarded private body", async () => {
+clarificationMaterialityCase("C25R02 selected recipient leaving cannot replay the discarded private body", async () => {
   const s = await scene(), offered = await offerMessage(s);
   expect((await s.send(offered.selected, "LEAVE_WORLD")).ok).toBe(true);
   expect(s.w.players[offered.selected.player_id].entered).toBe(false);
@@ -117,7 +117,7 @@ it("C25R02 selected recipient leaving cannot replay the discarded private body",
   await safeMessagePick(s, offered.pick);
 });
 
-it("C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAGE", async () => {
+clarificationMaterialityCase("C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAGE", async () => {
   const s = await scene(), offered = await offerMessage(s);
   s.w.players[offered.selected.player_id].handle = "renamed-original";
   const replacement = principal("replacement");
@@ -127,12 +127,12 @@ it("C25R03 recycled recipient label cannot redirect a numeric pick into a MESSAG
   await safeMessagePick(s, offered.pick);
 });
 
-it("C25S01 unchanged entity choice inspects the actual selected canonical entity", async () => {
+clarificationMaterialityCase("C25S01 unchanged entity choice inspects the actual selected canonical entity", async () => {
   const s = await scene(), pick = await offerInspect(s);
   await inspected(s, pick);
 });
 
-it("C25S02 sealing the selected same-ID entity blocks numeric inspection without effects", async () => {
+clarificationMaterialityCase("C25S02 sealing the selected same-ID entity blocks numeric inspection without effects", async () => {
   const s = await scene(), pick = await offerInspect(s);
   entity(s, "entity.relay-a").inspect_restricted_until = s.w.cycle + 2;
   await sealedPick(s, pick);
@@ -140,7 +140,7 @@ it("C25S02 sealing the selected same-ID entity blocks numeric inspection without
   await inspected(s, await offerInspect(s));
 });
 
-it("C25S03 inspection seal blocks before expiry and permits a fresh pick at expiry", async () => {
+clarificationMaterialityCase("C25S03 inspection seal blocks before expiry and permits a fresh pick at expiry", async () => {
   const s = await scene(); s.w.cycle = 9;
   const pick = await offerInspect(s);
   entity(s, "entity.relay-a").inspect_restricted_until = 10;

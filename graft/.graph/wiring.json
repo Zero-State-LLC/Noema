@@ -2,7 +2,7 @@
   "meta": {
     "version": 1,
     "nodeCount": 8967,
-    "edgeCount": 19884,
+    "edgeCount": 19883,
     "languages": [
       "javascript",
       "python",
@@ -96545,8 +96545,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "3b58e16c555f0db77524c518aa7f13bca8b1d8bcbc2cc728d04d1c820f054565",
-      "chars": 8581,
+      "body_hash": "6bf078bb006e9ed671212e48b724d2925f4c586298914eb91c6de27644a2e25a",
+      "chars": 8769,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -213509,12 +213509,6 @@
       "target": "workers/noema/test/claim-phrase-lineage-variants.test.ts#act",
       "relation": "calls",
       "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/test/clarification-materiality-next.test.ts",
-      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
-      "relation": "calls",
-      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/clarification-materiality-next.test.ts",
