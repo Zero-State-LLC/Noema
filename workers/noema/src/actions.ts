@@ -3552,7 +3552,7 @@ export function deriveAffordances(input: {
             verb: "COMMIT",
             operation: "ORG_SUCCESSION_DESIGNATE",
             label: `Designate ${handle} for ${office.display_name}`,
-            cmd: `succession designate ${office.office_id} ${handle}`,
+            cmd: `succession ${office.office_id} ${handle}`,
             target_id: office.office_id,
             office_id: office.office_id,
             player_id: heir.player_id,
