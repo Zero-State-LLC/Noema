@@ -66,5 +66,5 @@
 - stewardOf · function · L4120-L4127 — stewardOf = (e: EntityRuntime)
 - coOwnersOf · function · L4128-L4131 — coOwnersOf = (e: EntityRuntime)
 - cargoOk · function · L4132-L4133 — cargoOk = (need: number)
-- helpText · function · L4398-L4532 — function helpText(topic?: string, available?: Affordance[]): string
-- humanizeActionError · function · L4534-L4561 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }
+- helpText · function · L4398-L4533 — function helpText(topic?: string, available?: Affordance[]): string
+- humanizeActionError · function · L4535-L4562 — function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }

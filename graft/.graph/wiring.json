@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8918,
-    "edgeCount": 19757,
+    "nodeCount": 8932,
+    "edgeCount": 19796,
     "languages": [
       "javascript",
       "python",
@@ -70693,12 +70693,12 @@
       "name": "actions.ts",
       "kind": "file",
       "path": "workers/noema/src/actions.ts",
-      "span": "L1-L4562",
+      "span": "L1-L4563",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "61c7988587a1475354a3e49fe48fd99378c1e4bf2e16e28ac432417c49b5c473",
-      "chars": 173959,
+      "body_hash": "98f100dd80b7cdbe0e38de045020cb40d58c1bb2c91b09235e2bf964ca9b8e8a",
+      "chars": 174034,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -71086,11 +71086,11 @@
       "name": "helpText",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4398-L4532",
+      "span": "L4398-L4533",
       "signature": "function helpText(topic?: string, available?: Affordance[]): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "c04c3d1a15b4b1d189361971225212484826a9661bb8881b29fd2821eca19312",
+      "body_hash": "710f330cd8483c47d84ce25eb6c155539ae5625c58f94334e741c23db5c74817",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -71100,7 +71100,7 @@
       "name": "humanizeActionError",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4534-L4561",
+      "span": "L4535-L4562",
       "signature": "function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }",
       "exported": true,
       "origin": "ast",
@@ -97232,12 +97232,12 @@
       "name": "contextual-help-nonmutation.test.ts",
       "kind": "file",
       "path": "workers/noema/test/contextual-help-nonmutation.test.ts",
-      "span": "L1-L464",
+      "span": "L1-L465",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "42ae8f6350ce61e528733d09c416e6d36ac5ee49774a9375611d3f4c465d5d7f",
-      "chars": 24508,
+      "body_hash": "7622a951a9f5365b062e4bd04a916f0dda3b5c2bfb8985e254abbefbdd2a87ed",
+      "chars": 24592,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -107826,6 +107826,203 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "f1ff61126b49f27a2b3ca11c822fe86ff9b0d55ffb89cfd24c99563a62fd8f9e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "name": "topic-help-grammar-next10.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L1-L178",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "51928c31d51a8ded360dbfbd38ad230eb6558ec614bc91d8d706f69d091dec0d",
+      "chars": 10748,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#copy",
+      "name": "copy",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L73-L73",
+      "signature": "function copy(r: Result)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e202e721ef8ac1c394d979a4ee19da025b68507c57c27f0391f0051444d55529",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#example",
+      "name": "example",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L10-L14",
+      "signature": "function example(text: string, verb: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "609026a13695a0f325ee79e8a42aec5691d4657d8ceff400e200aa72e53751b4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#fill",
+      "name": "fill",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L20-L24",
+      "signature": "function fill(text: string, values: Record<string, string>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a50d73ab14bb41be9bf131c55e7c0761f55fc3ad69f26f183e1476981efaa091",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "name": "nonmutatingTopic",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L74-L89",
+      "signature": "async function nonmutatingTopic(s: Rig, topic: \"build\" | \"access\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "566da2f191b8f99af5ad3cef409ee28034b496c78c0f6a163ae6e0ff60c20bb1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L25-L29",
+      "signature": "function principal(name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "be273e74a89b8848da8a6237405a19649b9fc37a76e6940f7628109586cfb716",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#projection",
+      "name": "projection",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L66-L72",
+      "signature": "function projection(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8c7c911d9d036591f5c0ef51442e099ec39bd427282f4b533f40237b3ed703f3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#Result",
+      "name": "Result",
+      "kind": "type",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L5-L5",
+      "signature": "type Result = Awaited<ReturnType<typeof applyWorldCommand>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "3358e6d57ffae7860449a11b7db12c77d9eadb453fd18b6fe44db01642853699",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#Rig",
+      "name": "Rig",
+      "kind": "type",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L37-L39",
+      "signature": "type Rig = { w: WorldRuntime; gate: PlayerPrincipal; peer: PlayerPrincipal; org: string; settled: unknown[]; send: (p: PlayerPrincipal, command: string, args?: Record<string, unknown>) => Promise<Result>; help: (topic: string) => Promise<Result> };",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bbf4aea21ed0e80b9a95d56fc72c53883c4adc66a50f268e8ee10302495272cc",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#roomForm",
+      "name": "roomForm",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L15-L19",
+      "signature": "function roomForm(text: string, mode: \"deny\" | \"clear\" | \"allow\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b95250f866dfcf342e6cc86e0a1d9c06968faa3d44fbb40c57850c0a89776834",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L47-L65",
+      "signature": "async function scene(granted = true): Promise<Rig>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cf870752abbe3b6e433104bdca1dba91d84b392ee9168f37d59259338e90df06",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#scene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L50-L54",
+      "signature": "send: Rig[\"send\"] = (p, command, args = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2b354714324908dc8fc760f3258baa3f9938dd55da2cdc133540fef6689628fe",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#seat",
+      "name": "seat",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L40-L46",
+      "signature": "async function seat(s: Rig)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8ae5631a4cee5b275c07f4314c923f253e8e3598f0e8cedd8157ed1e89553e48",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/topic-help-grammar-next10.test.ts#world",
+      "name": "world",
+      "kind": "function",
+      "path": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "span": "L30-L36",
+      "signature": "function world(): WorldRuntime",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7d944792fde5649acf36cd38a8c071b3aeb16300e434cd3d9bc8f03074680fc7",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -233388,6 +233585,240 @@
       "target": "workers/noema/test/test-world.test.ts#env",
       "relation": "calls",
       "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/actions.ts#helpText",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/actions.ts#parseHumanCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#copy",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#example",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#fill",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#roomForm",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#seat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#copy",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#example",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#fill",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#projection",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#Result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#Rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#roomForm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#seat",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#world",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "target": "workers/noema/src/actions.ts#helpText",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#copy",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#nonmutatingTopic",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#projection",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#Result",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#seat",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#world",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene",
+      "target": "workers/noema/test/topic-help-grammar-next10.test.ts#scene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#scene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/topic-help-grammar-next10.test.ts#seat",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/trade-idempotency-security.test.ts",
