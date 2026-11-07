@@ -382,6 +382,11 @@ export const COSTS = {
   WAIT: {} as Partial<Budgets>,
 };
 
+/** Shared executor/observation ORG_CREATE price; the world supplies its live ratchet premium. */
+export function orgCreateCost(extraInfluence = 0): Partial<Budgets> {
+  return { ...COSTS.ORG_CREATE, influence: (COSTS.ORG_CREATE.influence || 5) + extraInfluence };
+}
+
 export type CanonicalAction =
   | { verb: "LOOK"; arguments: Record<string, never> }
   | { verb: "WAIT"; arguments: Record<string, never> }
@@ -3212,6 +3217,8 @@ export function deriveAffordances(input: {
   proposerImage?: Record<string, number>;
   harvestPressure?: number;
   hearsayBlockedThisCycle?: boolean;
+  /** Current world ratchet premium; omitted by standalone callers for an unratcheted world. */
+  orgCreateExtraInfluence?: number;
 }): Affordance[] {
   const out: Affordance[] = [];
   const { entities, exits, budgets, otherPlayers, openTrades, organizations = [], selfId } = input;
@@ -3405,16 +3412,17 @@ export function deriveAffordances(input: {
   }
 
   // Organization affordances (role-gated; never a permanent global panel)
-  const formOk = canPay(budgets, COSTS.ORG_CREATE);
+  const formCost = orgCreateCost(input.orgCreateExtraInfluence);
+  const formOk = canPay(budgets, formCost);
   out.push({
     action: "ORG_CREATE",
     verb: "COMMIT",
     operation: "ORG_CREATE",
     label: "Form organization",
     cmd: 'form My Compact charter="local coordination"',
-    requires: COSTS.ORG_CREATE,
-    available: true,  // P0: always advertise; budget in reason only
-    reason: formOk ? undefined : "You need influence 5 and compute 2 to form an organization.",
+    requires: formCost,
+    available: formOk,
+    reason: formOk ? undefined : `You need influence ${formCost.influence} and compute ${formCost.compute} to form an organization.`,
     kind: "org",
   });
   for (const org of organizations) {
