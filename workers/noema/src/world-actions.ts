@@ -4214,6 +4214,9 @@ export async function applyWorldCommand(
     }
 
     if (action.arguments.operation === "DISMANTLE") {
+      if (isHiddenRoom(room)) {
+        return fail(request_id, "NOT_OBSERVABLE", "There is nothing to dismantle here.");
+      }
       const rawId = action.arguments.entity_id;
       const here = findEntity(room, rawId);
       if (!here) {
