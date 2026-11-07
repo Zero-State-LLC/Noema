@@ -95,3 +95,11 @@ it("G10.01 BUILD VEST topic maps to canonical entity and institution", async () 
   if (!r.ok) throw new Error(r.error);
   expect(r.action).toEqual({ verb: "BUILD", arguments: { operation: "VEST", entity_id: "entity.workshop", org_id: "org.fixture" } });
 });
+
+it("G10.02 BUILD SHARE topic cannot become claim forwarding", async () => {
+  const line = fill(example(helpText("build"), "share"), { thing: "workshop", player: "peer" });
+  const r = parseHumanCommand(line, ctx);
+  expect(r.ok).toBe(true);
+  if (!r.ok) throw new Error(r.error);
+  expect(r.action).toEqual({ verb: "BUILD", arguments: { operation: "SHARE", entity_id: "entity.workshop", player_id: "player.peer" } });
+});
