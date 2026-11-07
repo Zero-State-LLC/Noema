@@ -198,3 +198,13 @@ it("B10.07 VEST refuses a non-owner before transfer and the actual owner remains
   effect(s, await s.text(s.owner, line), "VEST", { owner_id: org.org });
   expect(s.asset.owner_id).toBe(org.org);
 });
+
+it("B10.08 CONNECT pins the retained link to a two-way public neighbor without creating exits", async () => {
+  const s = await scene("route_link");
+  const line = await topic(s, "connect", { link: s.asset.label, dest: "south" });
+  const before = exits(s.w), compute = s.w.players[s.owner.player_id].budgets.compute;
+  s.settled.length = 0;
+  effect(s, await s.text(s.owner, line), "CONNECT", { dest_room_id: "room.quay" });
+  expect(s.asset.dest_room_id).toBe("room.quay"); expect(exits(s.w)).toEqual(before);
+  expect(s.w.players[s.owner.player_id].budgets.compute).toBe(compute - 1);
+});
