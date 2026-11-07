@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8904,
-    "edgeCount": 19727,
+    "nodeCount": 8905,
+    "edgeCount": 19730,
     "languages": [
       "javascript",
       "python",
@@ -70693,12 +70693,12 @@
       "name": "actions.ts",
       "kind": "file",
       "path": "workers/noema/src/actions.ts",
-      "span": "L1-L4559",
+      "span": "L1-L4562",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "0112a851669fb32238636e8cc9d71a54ec7cb6b23d4a2df4aff98412ff74c9e5",
-      "chars": 173680,
+      "body_hash": "61c7988587a1475354a3e49fe48fd99378c1e4bf2e16e28ac432417c49b5c473",
+      "chars": 173959,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70890,11 +70890,11 @@
       "name": "deriveAffordances",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L3176-L4393",
+      "span": "L3176-L4396",
       "signature": "function deriveAffordances(input: { entities: EntityRuntime[]; exits: Array<{ direction: string; to_room_name?: string; to_room_id?: string; two_way?: boolean }>; budgets: Budgets; otherPlayers: Array<{ player_id: string; handle?: string; room_id?: string; /** GC1-S5: needed to tell whether a consent candidate meets requires_track. */ practice?: PracticeState | null; }>; openTrades: OpenTrade[]; organizations?: Organization[]; selfId: string; cautionToward?: Record<string, boolean>; practice?: PracticeState | null; cycle?: number; focus?: FocusState | null; hiddenRoom?: boolean; roomId?: string; /** Retained occupancy, never a display-room fallback. */ observerRoomId?: string; openContests?: OpenContest[]; agreements?: FormalAgreement[]; accessRestrictions?: Array<{ scope: \"EXIT\" | \"ROOM\"; mode: \"DENY\" | \"ALLOW_ONLY\"; applies_to: string; room_id?: string; exit_id?: string; expires_cycle: number; }>; discovery?: DiscoveryState; reconstructions?: ReconstructionRecord[]; /** Public infrastructure that may be named as an ATTEST subject even if not in this room. */ attestSubjects?: EntityRuntime[]; proposerImage?: Record<string, number>; harvestPressure?: number; hearsayBlockedThisCycle?: boolean; }): Affordance[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "d53abd9dcc0cba28ee79a16da6ec91c7b8fc7af22bfdb430c4453e8236f5935e",
+      "body_hash": "57ec14222c8d4a31190e9a9d96fcda51141a4dd5b9b08c5d8a0dc6b5d3473867",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -70904,7 +70904,7 @@
       "name": "cargoOk",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4129-L4130",
+      "span": "L4132-L4133",
       "signature": "cargoOk = (need: number)",
       "exported": true,
       "origin": "ast",
@@ -70918,7 +70918,7 @@
       "name": "coOwnersOf",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4125-L4128",
+      "span": "L4128-L4131",
       "signature": "coOwnersOf = (e: EntityRuntime)",
       "exported": true,
       "origin": "ast",
@@ -70932,7 +70932,7 @@
       "name": "holdsNamed",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4110-L4116",
+      "span": "L4113-L4119",
       "signature": "holdsNamed = (orgId?: string)",
       "exported": true,
       "origin": "ast",
@@ -71016,7 +71016,7 @@
       "name": "stewardOf",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4117-L4124",
+      "span": "L4120-L4127",
       "signature": "stewardOf = (e: EntityRuntime)",
       "exported": true,
       "origin": "ast",
@@ -71086,7 +71086,7 @@
       "name": "helpText",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4395-L4529",
+      "span": "L4398-L4532",
       "signature": "function helpText(topic?: string, available?: Affordance[]): string",
       "exported": true,
       "origin": "ast",
@@ -71100,7 +71100,7 @@
       "name": "humanizeActionError",
       "kind": "function",
       "path": "workers/noema/src/actions.ts",
-      "span": "L4531-L4558",
+      "span": "L4534-L4561",
       "signature": "function humanizeActionError(code?: string, message?: string): { primary: string; advanced?: string }",
       "exported": true,
       "origin": "ast",
@@ -103056,12 +103056,12 @@
       "name": "isolated-attest.test.ts",
       "kind": "file",
       "path": "workers/noema/test/isolated-attest.test.ts",
-      "span": "L1-L97",
+      "span": "L1-L171",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "743e7756b414690a57c0a00badec688a10784c0d0e70721c37346b5245e42cfc",
-      "chars": 3874,
+      "body_hash": "23c7ff65a9fd5496013151a951ce72f0c5d77d331fbe405a2bb8ebcfffeb2c08",
+      "chars": 8397,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -103076,6 +103076,20 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "6d8e5fb820f1c5b29213a22f1445d690883fdc82e7fa7aa077ea7237068bd48a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-attest.test.ts#project",
+      "name": "project",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-attest.test.ts",
+      "span": "L123-L125",
+      "signature": "project = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f8f0423514139a4889e6f7b288f62db9914484e7f67dc3a5a850564770fa7d85",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -224842,6 +224856,12 @@
     },
     {
       "source": "workers/noema/test/isolated-attest.test.ts",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-attest.test.ts",
       "target": "workers/noema/src/world-do.ts#bootstrapWorldState",
       "relation": "calls",
       "confidence": "inferred"
@@ -224854,6 +224874,12 @@
     },
     {
       "source": "workers/noema/test/isolated-attest.test.ts",
+      "target": "workers/noema/test/isolated-attest.test.ts#project",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-attest.test.ts",
       "target": "workers/noema/test/isolated-attest.test.ts#run",
       "relation": "calls",
       "confidence": "extracted"
@@ -224861,6 +224887,12 @@
     {
       "source": "workers/noema/test/isolated-attest.test.ts",
       "target": "workers/noema/test/isolated-attest.test.ts#agent",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-attest.test.ts",
+      "target": "workers/noema/test/isolated-attest.test.ts#project",
       "relation": "contains",
       "confidence": "extracted"
     },

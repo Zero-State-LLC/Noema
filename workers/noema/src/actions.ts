@@ -4085,7 +4085,9 @@ export function deriveAffordances(input: {
         for (const claim of ["OPERATING", "DESTROYED"] as const) {
           if (attestN >= 6) break;
           const attestCost = withAnnexAttention({ ...COSTS.ATTEST }, readyClassInRoom(entities, "archive_annex"));
-          const ok = canPay(budgets, attestCost);
+          // Public distant subjects remain discoverable, but the executor requires co-location.
+          const subjectIsLocal = localInfra.some((e) => e.entity_id === sub.entity_id);
+          const ok = subjectIsLocal && canPay(budgets, attestCost);
           out.push({
             action: "ATTEST",
             verb: "COMMIT",
@@ -4098,7 +4100,8 @@ export function deriveAffordances(input: {
             archive_claim: claim,
             requires: attestCost,
             available: ok,
-            reason: ok ? undefined : "You do not have enough attention.",
+            reason: !subjectIsLocal ? "You must be in the same room to attest."
+              : ok ? undefined : "You do not have enough attention.",
             hint: input.hearsayBlockedThisCycle ? "ungrounded claims will not land" : undefined,
             kind: "utility",
           });
