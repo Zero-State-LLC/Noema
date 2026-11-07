@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8959,
-    "edgeCount": 19870,
+    "nodeCount": 8968,
+    "edgeCount": 19897,
     "languages": [
       "javascript",
       "python",
@@ -98613,6 +98613,133 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "46361582dbe6d093fa12a1b24d641e394a26e0f79b6ab9b9e605d4f9a64a8bab",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "name": "discovery-baseline-dictionary.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L1-L360",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4c8a1637b472842550835e4fc5bb0239a884869c36da710d54f24d2e6d43a933",
+      "chars": 20144,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#advertised",
+      "name": "advertised",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L56-L64",
+      "signature": "function advertised(s: Scene, action: string, cmd?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "20bf6d6b998c8b125014815c52a7e59fd2643d0712e977c132c2beac1acb75b5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#canonical",
+      "name": "canonical",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L38-L46",
+      "signature": "function canonical(s: Scene)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "53584bf122e11591f7803ad2c700d3d79097addcaebf05eda98f0e3ef0c57642",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "name": "dictionaryScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L8-L35",
+      "signature": "async function dictionaryScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "19e34c0fb3843e8f2b931094054d1a17038b2f09ecf3694c58d44239eee5daa5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L22-L26",
+      "signature": "send = (line: string, developer = true)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a734a4a010b7a48a90f312c4fb992870cf03f9eefca088214728c166b6a29815",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#freeRead",
+      "name": "freeRead",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L47-L55",
+      "signature": "async function freeRead(s: Scene, line: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c18292eed6b14c2e90b72197a1d33cc75af1c47ab5079a6b4a1a4dbf8caf656e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#refusedTarget",
+      "name": "refusedTarget",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L273-L282",
+      "signature": "async function refusedTarget(s: Scene, line: string, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5dc615775ab063a7bd00f148fa09c2258055dd2879be39c103793f034516fd41",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#Scene",
+      "name": "Scene",
+      "kind": "type",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L36-L36",
+      "signature": "type Scene = Awaited<ReturnType<typeof dictionaryScene>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "18ed840a4d93de432973bcb239a16fda2fc4ad6095273bc8e602f16aeeb5c743",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/discovery-baseline-dictionary.test.ts#targetScene",
+      "name": "targetScene",
+      "kind": "function",
+      "path": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "span": "L262-L271",
+      "signature": "async function targetScene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9ca66e79b5d6893aa1002139a950cb3999e35b27efc7c0995220ff17089839fc",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -216967,6 +217094,168 @@
       "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#advertised",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#canonical",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#freeRead",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#refusedTarget",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#targetScene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#advertised",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#canonical",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#freeRead",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#refusedTarget",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#Scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#targetScene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#freeRead",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#canonical",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#refusedTarget",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#canonical",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#targetScene",
+      "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/discovery-baseline-dictionary.test.ts#targetScene",
+      "target": "workers/noema/test/discovery-baseline-dictionary.test.ts#dictionaryScene",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/discovery-org-affordability.test.ts",
