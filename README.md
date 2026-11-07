@@ -96,6 +96,8 @@ curl -sX POST localhost:8080/auth/device -H 'content-type: application/json' -d 
 
 See [`spec-compat.json`](spec-compat.json), [`docs/CORE-LOOP-RUNTIME.md`](docs/CORE-LOOP-RUNTIME.md), the hosted Worker audit [`docs/RUNTIME-READINESS-2026-08-13.md`](docs/RUNTIME-READINESS-2026-08-13.md), and the production closeout [`docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md`](docs/PRODUCTION-CONFORMANCE-CLOSEOUT.md).
 
+**Work tracking:** [Scoped R4 evidence kanban](KANBAN.md) · [#780 follow-up evidence](docs/780-followup-evidence.md). Published drafts are distinct from merged work and hosted acceptance.
+
 **Genesis runbook:** [`docs/GENESIS-RUNBOOK.md`](docs/GENESIS-RUNBOOK.md) — first hosted world activation.
 
 **LCA-2 Gate B cohort runner:** [`docs/LCA2-GATE-B-COHORT-RUNNER.md`](docs/LCA2-GATE-B-COHORT-RUNNER.md) — safe exactly-three-process orchestration through the official `noema` CLI. Isolated runs never claim completion; live runs require explicit human approval and acknowledgement.
