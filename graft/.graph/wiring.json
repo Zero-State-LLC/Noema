@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9137,
-    "edgeCount": 20371,
+    "nodeCount": 9142,
+    "edgeCount": 20379,
     "languages": [
       "javascript",
       "python",
@@ -90940,12 +90940,12 @@
       "name": "watch.ts",
       "kind": "file",
       "path": "workers/noema/src/watch.ts",
-      "span": "L1-L1425",
+      "span": "L1-L1452",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "22a7f49518f0ef1e48063463640c623ef3945c76e07027d59b121f32d28e2ef4",
-      "chars": 67911,
+      "body_hash": "91810911ccda31ec0152117d3e7cda048d82e4ff70dafa865aabaf6b633d780a",
+      "chars": 69373,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -90955,11 +90955,11 @@
       "name": "watchHtml",
       "kind": "function",
       "path": "workers/noema/src/watch.ts",
-      "span": "L282-L1424",
+      "span": "L282-L1451",
       "signature": "function watchHtml(opts?: { mode?: string }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "2d382dbdc67184bf5f5bbaa0d4e20b5ad4dd47a5b03d306d20acf13ade573f14",
+      "body_hash": "98c3f5d20bf57872c93a51fe80b01d5500c502ad4fcc06891d9e1fe9983e134a",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -111940,12 +111940,12 @@
       "name": "watch-live.test.ts",
       "kind": "file",
       "path": "workers/noema/test/watch-live.test.ts",
-      "span": "L1-L2450",
+      "span": "L1-L2647",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "734df79549782ef624c67c80ffcf6a21ec11a647b0edf086ef663f827cfcae97",
-      "chars": 97316,
+      "body_hash": "8f894381ab9dc2b5b5d28ba85db1fddde7e8acab7fd6c15ea72a0612d745813c",
+      "chars": 107132,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -112131,6 +112131,79 @@
       "summary_state": "pending",
       "summary": null,
       "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "name": "h7PublicFrame",
+      "kind": "function",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2467-L2482",
+      "signature": "function h7PublicFrame(offset = 0, hostile = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2c42c5ca9df0e780150693c64171f8a727882b1678f28ba504a4db03ecabbe9a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "name": "H7Socket",
+      "kind": "class",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2601-L2609",
+      "signature": "class H7Socket",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dafaa144aae6da3e0a976f03702dbd1fb2ac28a7153bae68f9bd96d6eaf513a0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.close",
+      "name": "close",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2608-L2608",
+      "signature": "close()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ff4d02a78ae203d6cb688e806d96a6bea51abaa97735bb673ccf453827d0a9a1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.constructor",
+      "name": "constructor",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2606-L2606",
+      "signature": "constructor()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "132d7919a2c8d235b7195aa5e93d877031cebaa1365c4ee650a087c0fcc1cc1b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.send",
+      "name": "send",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2607-L2607",
+      "signature": "send()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "758af76bb747d959f4a3489e1b9dc416e986507c106d989220db74996a411a7b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
     },
     {
       "id": "workers/noema/test/watch-live.test.ts#liveOf",
@@ -241373,6 +241446,12 @@
     },
     {
       "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#liveOf",
       "relation": "calls",
       "confidence": "extracted"
@@ -241482,6 +241561,18 @@
     {
       "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#FakeNode",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -241741,6 +241832,36 @@
       "source": "workers/noema/test/watch-live.test.ts#calm",
       "target": "workers/noema/test/watch-live.test.ts#snapshot",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "target": "workers/noema/src/watch-live.ts#buildWatchLive",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "target": "workers/noema/test/watch-live.test.ts#src",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.close",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.constructor",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.send",
+      "relation": "contains",
       "confidence": "extracted"
     },
     {

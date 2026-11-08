@@ -55,3 +55,8 @@
 - release · function · L1829-L1829 — release: (value: ReturnType<typeof okResponse>) => void = ()
 - calm · function · L2028-L2033 — calm = (seq: number)
 - preventDefault · method · L2117-L2117 — preventDefault()
+- h7PublicFrame · function · L2467-L2482 — function h7PublicFrame(offset = 0, hostile = false)
+- H7Socket · class · L2601-L2609 — class H7Socket
+- constructor · method · L2606-L2606 — constructor()
+- send · method · L2607-L2607 — send()
+- close · method · L2608-L2608 — close()
