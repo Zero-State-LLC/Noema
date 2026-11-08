@@ -72,7 +72,12 @@ describe("HTML CSP allows exactly the pinned font hosts", () => {
     // connect-src keeps its pre-existing localhost port wildcards for dev.
     expect(directive(csp, "style-src")).not.toContain("*");
     expect(directive(csp, "font-src")).not.toContain("*");
-    expect(directive(csp, "script-src")).not.toContain("https://");
+    // One third-party script origin only: the zone-injected Cloudflare Web
+    // Analytics beacon (owner request 2026-11-08). Nothing else, no wildcard.
+    expect(directive(csp, "script-src").split(/\s+/).filter((s) => s.startsWith("https://"))).toEqual([
+      "https://static.cloudflareinsights.com",
+    ]);
+    expect(directive(csp, "script-src")).not.toContain("*");
     expect(directive(csp, "img-src")).not.toContain("https://");
   });
 

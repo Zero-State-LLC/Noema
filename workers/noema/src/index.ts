@@ -90,8 +90,13 @@ export { NoemaWorldDO };
 // fonts.gstatic.com serves the woff2 files it references (font-src). font-src
 // was absent entirely and inherited default-src 'self', so allowing only the
 // stylesheet host would still have blocked every font file.
+//
+// Cloudflare Web Analytics is injected by the zone (automatic setup). Its
+// beacon script loads from static.cloudflareinsights.com (script-src) and
+// reports to this origin's /cdn-cgi/rum, which connect-src 'self' already
+// covers. Without the script host the beacon was blocked on every page.
 const HTML_CSP =
-  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {
