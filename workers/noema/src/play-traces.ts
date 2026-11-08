@@ -61,8 +61,8 @@ export type TraceRoom = {
   institution_notice?: { text: string; cycle: number; org_name?: string };
   trade_notice?: { text: string; cycle: number };
   public_rumor?: { contested?: boolean };
-  org_marks?: Array<{ name: string }>;
-  vacant_offices?: Array<{ org_name: string; office_name: string }>;
+  org_marks?: Array<{ org_id: string; name: string }>;
+  vacant_offices?: Array<{ org_id: string; org_name: string; office_name: string }>;
 };
 
 const MAX_TRACES = 3;
@@ -95,18 +95,18 @@ export function laterTraceInputs(input: LaterTraceInput): Pick<
     public_rumor = { contested: roots.size >= 2 };
   }
   const orgIds = new Set(ents.map((e) => e.owner_id).filter((id): id is string => Boolean(id)));
-  const org_marks: Array<{ name: string }> = [];
-  const vacant_offices: Array<{ org_name: string; office_name: string }> = [];
+  const org_marks: NonNullable<TraceRoom["org_marks"]> = [];
+  const vacant_offices: NonNullable<TraceRoom["vacant_offices"]> = [];
   for (const org of input.orgs || []) {
     if (!orgIds.has(org.org_id)) continue;
     const name = publicOrgName(org.name || org.org_id);
     if (!name) continue;
-    if (!org_marks.some((m) => m.name === name)) org_marks.push({ name });
+    if (!org_marks.some((m) => m.name === name)) org_marks.push({ org_id: org.org_id, name });
     for (const office of Object.values(org.offices || {})) {
       if (String(office.status || "").toUpperCase() !== "VACANT") continue;
       const office_name = String(office.display_name || "").trim().slice(0, 48);
       if (!office_name) continue;
-      vacant_offices.push({ org_name: name, office_name });
+      vacant_offices.push({ org_id: org.org_id, org_name: name, office_name });
     }
   }
   return {
@@ -215,7 +215,7 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
   for (const mark of room.org_marks || []) {
     const name = publicOrgName(mark.name);
     if (!name) continue;
-    add("notice", `Marks of ${name} remain here.`, { kind: "org", org_id: name, field: "insignia" });
+    add("notice", `Marks of ${name} remain here.`, { kind: "org", org_id: mark.org_id, field: "insignia" });
   }
   for (const seat of room.vacant_offices || []) {
     const org_name = publicOrgName(seat.org_name);
@@ -223,7 +223,7 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
     if (!org_name || !office_name) continue;
     add("notice", `${office_name} of ${org_name} stands vacant.`, {
       kind: "org",
-      org_id: org_name,
+      org_id: seat.org_id,
       field: "memorial",
     });
   }
