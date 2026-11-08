@@ -61,7 +61,7 @@ The assertion JSON is intentionally immutable. Consumers must use its explicit s
 
 ## Parent and other-slice obligations
 
-#780's stated scope excludes other slices and parent R0/R3/C9/G5 work. The [matrix residual ownership](R4-NATIVE-INTERACTION-MATRIX-20261102.md#current-residual-gates-and-ownership) assigns human comprehension to S6 #784, G5 alarms/hibernation to #777, broader identity projection to #793, and parent reconciliation to #733/#775. Browser/WATCH, canonical SQL/restart and scheduler evidence remain unverified for the new product wherever not measured; list an item as an S2 prerequisite only with an applicable governing source. C9's existing recorded classification is not changed here. No old hosted receipt is transferred to the newly merged source.
+#780's stated scope excludes other slices and parent R0/R3/C9/G5 work. The [matrix residual ownership](R4-NATIVE-INTERACTION-MATRIX-20261102.md#current-residual-gates-and-ownership) assigns the unrun Q8 agent-cohort proxy to S6 #784, with actual human comprehension still unverified, G5 alarms/hibernation to #777, broader identity projection to #793, and parent reconciliation to #733/#775. Browser/WATCH, canonical SQL/restart and scheduler evidence remain unverified for the new product wherever not measured; list an item as an S2 prerequisite only with an applicable governing source. C9's existing recorded classification is not changed here. No old hosted receipt is transferred to the newly merged source.
 
 ## Validation and delivery boundary
 
