@@ -69,3 +69,25 @@ Packet840's first hidden-filter-only perturbation was inert because the downstre
 Local fixture reconstruction is not genuine hosted eviction. Seeded fields are not source-authoring authorization, canonical SQL persistence or independent hosted participant delivery. Source clearing is not live scheduler or expiry proof. Fake-DOM text insertion is not real-browser XSS prevention, browser legibility, assistive-technology QA, or WATCH/Home parity. No deployment or hosted campaign was run for these packets.
 
 The matrix's hosted all-family provenance/readback, browser/security, expiry and broader product gates remain separate. This document changes no issue disposition, frozen gate state, canonical world, Genesis data or production policy. Future hosted actions, acceptance decisions and review-rule exceptions require their own applicable authority and evidence.
+
+## Supplement — bounded localhost real-browser trace observation
+
+The original seal above is retained verbatim as the historical record of PR839/PR840. A separately authorized localhost browser probe subsequently exercised source `6227eafd774ecff7148ffeb0fd472f67559dccf4` (the PR841 documentation merge). This supplement and its [scrubbed machine-readable receipt](781-local-browser-trace-receipt.json) add an evidence layer; they do not relabel the earlier fake-DOM tests as browser runs or replace their source pins.
+
+**OBSERVED:** actual headless Chrome/156.0.8078.80, 1365×900 desktop viewport, shipped `watchHtml()` text renderer and actual `buildWatchLive` projections over synthetic inputs. Four isolated cases populated board, shout, institution notice and trade notice respectively, each paired with a permitted visible scar and hidden control. Every credited case displayed exactly the permitted trace as a fresh native text node (DOM node type 3), with no trace image/script element and no benign handler execution. A fresh local HTTP read was observed; changed values appeared in new nodes through the actual manual Refresh handler. Exclusion assertions are trace-scoped, not a certification of every other public field.
+
+| Observation | Result and boundary |
+|---|---|
+| Four clean source-family controls | PASS: required permitted trace present; forbidden notice and hidden-source text absent from traces |
+| Manual Refresh | PASS: changed permitted value, fresh node identity and a new local read; not untouched polling or WebSocket proof |
+| One private generated-HTML sink fault | EXPECTED DETECTION: replacing one text-node insertion with HTML insertion created an image and executed only the benign boolean control |
+| Exact clean restoration | PASS: byte-verified clean HTML again produced literal text, no trace image/script and no control execution |
+| Teardown | Owned Node process exited and listener rejected a new connection; isolated browser acknowledged closure. Browser OS-PID exit was not separately verified |
+
+The control affected only an outside-repository generated HTML copy, never production source. Clean and faulty pages used the same local network/CSP policy, explicitly permitting the benign handler; its observed execution establishes that this policy did not silently rescue this particular control. The private control is sensitivity evidence, not a shipped defect or an independently mutated proof of every exclusion predicate. Its raw payload and local target identifiers are omitted from the public receipt.
+
+Setup findings remain separate from product behavior: native hidden-tab visibility initially suppressed reads, corrected by activating the owned tab; native Pause also suppresses manual Refresh. Credited checks ran visibly and unpaused, with only the observed 10000ms WATCH polling interval stopped by test-owned instrumentation. An initial expected-value prefix was corrected against the explicit fixture input before that case was credited.
+
+**Limits:** localhost HTTP fixture only, not a deployed Worker or live WebSocket; synthetic read-time projection, not canonical SQL, source-authoring permission, sequence/settlement progression or expiry. The harness had a local network-containment CSP rather than production response headers, blocked external fonts, and omitted `/ready`, leaving the separate shell readiness badge at “not ready.” No availability or layout-quality verdict follows from that badge or these screenshots. A single benign payload and WATCH text view do not establish production-wide XSS prevention, all injection classes, other modes, mobile, accessibility, Home parity or full T3.5/S3/R4 acceptance.
+
+Repository HEAD and renderer/projector source hashes were unchanged by the probe. This two-file documentation supplement preserves the original 20-test/23-probe inventory, historical matrix and frozen assertion map without changing their task states. The browser control is counted separately from those earlier source-fault probes. No issue closure, deployment, spending or new merge-rule exception follows from the browser result.

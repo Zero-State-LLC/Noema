@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "kind": "bounded_local_browser_observation",
+  "source_head": "6227eafd774ecff7148ffeb0fd472f67559dccf4",
+  "source_hashes": {
+    "workers/noema/src/watch.ts": "22a7f49518f0ef1e48063463640c623ef3945c76e07027d59b121f32d28e2ef4",
+    "workers/noema/src/watch-live.ts": "70ab9bbbe4c3cabb4bd82298704efa1221c5abcfeb56e11566dbbaa92950dff2",
+    "workers/noema/src/play-traces.ts": "8036d6191f9210ef33c264df1261a6b9a74a5ede361cf6b04f50c38587abb00e"
+  },
+  "renderer_mode": "WATCH text",
+  "browser_product": "Chrome/156.0.8078.80",
+  "headless": true,
+  "viewport": {
+    "width": 1365,
+    "height": 900,
+    "mobile": false
+  },
+  "input_scope": "synthetic public-projection inputs; one forbidden notice source per case, permitted visible scar and hidden control",
+  "clean_html_sha256": "eb1f418caf87ced7c43d5345afc604445bdb99ff5f5b13197320a91c81a31ab4",
+  "fault_html_sha256": "fca1604892f4a4746b8c59ad3c594c9218ab8bce631b0a83ff8e6083e7f4e6a4",
+  "clean_family_controls": [
+    {
+      "source_family": "board",
+      "phase": "initial",
+      "result": "PASS",
+      "permitted_trace_count": 1,
+      "native_node_types": [
+        3
+      ],
+      "all_trace_nodes_fresh": true,
+      "trace_image_count": 0,
+      "trace_script_count": 0,
+      "benign_execution_observed": false,
+      "fresh_local_http_read": true,
+      "trace_visible": true
+    },
+    {
+      "source_family": "shout",
+      "phase": "updated",
+      "result": "PASS",
+      "permitted_trace_count": 1,
+      "native_node_types": [
+        3
+      ],
+      "all_trace_nodes_fresh": true,
+      "trace_image_count": 0,
+      "trace_script_count": 0,
+      "benign_execution_observed": false,
+      "fresh_local_http_read": true,
+      "trace_visible": true
+    },
+    {
+      "source_family": "institution_notice",
+      "phase": "initial",
+      "result": "PASS",
+      "permitted_trace_count": 1,
+      "native_node_types": [
+        3
+      ],
+      "all_trace_nodes_fresh": true,
+      "trace_image_count": 0,
+      "trace_script_count": 0,
+      "benign_execution_observed": false,
+      "fresh_local_http_read": true,
+      "trace_visible": true
+    },
+    {
+      "source_family": "trade_notice",
+      "phase": "updated",
+      "result": "PASS",
+      "permitted_trace_count": 1,
+      "native_node_types": [
+        3
+      ],
+      "all_trace_nodes_fresh": true,
+      "trace_image_count": 0,
+      "trace_script_count": 0,
+      "benign_execution_observed": false,
+      "fresh_local_http_read": true,
+      "trace_visible": true
+    }
+  ],
+  "private_control": {
+    "scope": "one generated HTML copy outside repository",
+    "change": "one uniquely anchored text-node insertion replaced with HTML insertion",
+    "clean_rule_passed": false,
+    "trace_image_count": 1,
+    "benign_execution_observed": true,
+    "classification": "expected sensitivity, not a shipped defect"
+  },
+  "restoration": {
+    "result": "RESTORED_GREEN",
+    "served_html_sha256": "eb1f418caf87ced7c43d5345afc604445bdb99ff5f5b13197320a91c81a31ab4",
+    "native_node_types": [
+      3
+    ],
+    "trace_image_count": 0,
+    "trace_script_count": 0,
+    "benign_execution_observed": false
+  },
+  "instrumentation": {
+    "native_tab_visible": true,
+    "watch_manual_pause": false,
+    "watch_polling_interval_ms_cleared": 10000,
+    "manual_refresh_handler": "unmodified",
+    "network_and_csp": "local network containment; inline benign control permitted in both variants; not production headers"
+  },
+  "setup_corrections": [
+    "Initial hidden native tab caused skipped reads; corrected via Page.bringToFront",
+    "Native Pause also suppresses manual Refresh; corrected by unpaused timer isolation",
+    "Initial updated-phase expected prefix was wrong; corrected to literal Refresh from fixture input before crediting that case"
+  ],
+  "limitations": [
+    "not a deployed Worker or live WebSocket test",
+    "synthetic public projection, not canonical SQL/source-authoring authority",
+    "local harness CSP/network policy, not production response headers",
+    "external fonts blocked; health badge lacks /ready fixture",
+    "not mobile, accessibility, all-WATCH-modes or full XSS acceptance",
+    "single specific benign payload; not all injection classes",
+    "trace-field assertions, not every public field",
+    "no issue or matrix-state disposition"
+  ],
+  "teardown": {
+    "owned_server_process_exited": true,
+    "owned_port_refuses_connections": true,
+    "isolated_browser_close": "protocol acknowledged, not separately OS-PID verified",
+    "repository_clean": true,
+    "source_hashes_unchanged": true
+  },
+  "raw_payloads_and_target_identifiers_omitted": true
+}
