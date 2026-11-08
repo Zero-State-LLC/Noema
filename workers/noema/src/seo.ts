@@ -30,7 +30,7 @@ export const OG_IMAGE = {
 
 /**
  * Favicon set served from public/ by the Worker's static fallthrough.
- * The "N" is a placeholder mark (Syne 700, --ink on --void) pending a real one.
+ * The mark is Zero State's Noema glyph (assets/glyphs.svg#g-noema on zer0state.com): --ink on --void, nodes in --teal.
  */
 export const ICON_LINKS = `<link rel="icon" href="/favicon.ico" sizes="32x32"/>
 <link rel="icon" href="/assets/icon.svg" type="image/svg+xml"/>
