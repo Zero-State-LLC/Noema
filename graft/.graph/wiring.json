@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9134,
-    "edgeCount": 20362,
+    "nodeCount": 9137,
+    "edgeCount": 20371,
     "languages": [
       "javascript",
       "python",
@@ -80215,8 +80215,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "8036d6191f9210ef33c264df1261a6b9a74a5ede361cf6b04f50c38587abb00e",
-      "chars": 8292,
+      "body_hash": "f5318ae902afae13fef14abad2e99665babbd89d4a167e4c704c08d3b7f3a166",
+      "chars": 8378,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -80244,7 +80244,7 @@
       "signature": "function laterTraceInputs(input: LaterTraceInput): Pick< TraceRoom, \"public_rumor\" | \"org_marks\" | \"vacant_offices\" >",
       "exported": true,
       "origin": "ast",
-      "body_hash": "ef6db187c75268b4a4a9d0f0c6be32d8b378bae7e2cc26375bf4df3fe30bf30a",
+      "body_hash": "96fb35fd3732bcc6cd6615b2e76721d813d813c0e2c65bafb183ffaa85f34500",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -80342,7 +80342,7 @@
       "signature": "function projectRoomTraces(room: TraceRoom | null | undefined): ProjectedTrace[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "252608f48d50bc0339cbaad00e790972511ffab17c49ccb8e85068e0b2abac1e",
+      "body_hash": "c736e34fcbb7868c1ddf060c1dd538845cb84f0920f123100fce536106d8b7ff",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -80437,10 +80437,10 @@
       "kind": "type",
       "path": "workers/noema/src/play-traces.ts",
       "span": "L45-L66",
-      "signature": "type TraceRoom = { hidden?: boolean; entities?: Array<{ entity_id?: string; label?: string; entity_type?: string; scar?: boolean; hidden?: boolean; in_progress?: boolean; unclaimed?: boolean; last_repair_cycle?: number; last_repair_handle?: string; owner_id?: string; }>; board?: Array<{ text: string; cycle: number }>; shout?: { text: string; cycle: number }; institution_notice?: { text: string; cycle: number; org_name?: string }; trade_notice?: { text: string; cycle: number }; public_rumor?: { contested?: boolean }; org_marks?: Array<{ name: string }>; vacant_offices?: Array<{ org_name: string; office_name: string }>; };",
+      "signature": "type TraceRoom = { hidden?: boolean; entities?: Array<{ entity_id?: string; label?: string; entity_type?: string; scar?: boolean; hidden?: boolean; in_progress?: boolean; unclaimed?: boolean; last_repair_cycle?: number; last_repair_handle?: string; owner_id?: string; }>; board?: Array<{ text: string; cycle: number }>; shout?: { text: string; cycle: number }; institution_notice?: { text: string; cycle: number; org_name?: string }; trade_notice?: { text: string; cycle: number }; public_rumor?: { contested?: boolean }; org_marks?: Array<{ org_id: string; name: string }>; vacant_offices?: Array<{ org_id: string; org_name: string; office_name: string }>; };",
       "exported": true,
       "origin": "ast",
-      "body_hash": "354ad18127f00edbce90c0bc38e7c5082c847f4854b0fa89a914ed1775addc0e",
+      "body_hash": "17111ba5cc598914be29b4d5b3ac5ba8c021c0c2eb39341aa96027e314b4c0bb",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -107360,6 +107360,49 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "name": "org-trace-provenance-781.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "span": "L1-L80",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4876b26c06a1482d3fdab05ec0e207ca79290c4395c1b0c9012f711fac97ee5f",
+      "chars": 3709,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/org-trace-provenance-781.test.ts#projectedOrgTraces",
+      "name": "projectedOrgTraces",
+      "kind": "function",
+      "path": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "span": "L22-L24",
+      "signature": "function projectedOrgTraces(input: ReturnType<typeof provenanceFixture>[\"input\"])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0ab1bf2bcaf7e3173c3e9dcc6e27c35754c27e567b6d4f47c894a4b12c5139f4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/org-trace-provenance-781.test.ts#provenanceFixture",
+      "name": "provenanceFixture",
+      "kind": "function",
+      "path": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "span": "L5-L20",
+      "signature": "function provenanceFixture()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f79e8efa7f4ce484beff6e967ce66d08135ee1fd3e62fad7dfec64ab8a34bcc0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/organization-identity-793.test.ts",
       "name": "organization-identity-793.test.ts",
       "kind": "file",
@@ -107651,8 +107694,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "3932e79d32b98248df9b7c307fb14c59f445dcd5c7607581a194d45545683ee8",
-      "chars": 14274,
+      "body_hash": "e1f74b19f69795998c283e124fff632695fa402ea444c67d4a1ecdff1c216c29",
+      "chars": 14374,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -233507,6 +233550,60 @@
     {
       "source": "workers/noema/test/org-actions.test.ts#world",
       "target": "workers/noema/src/actions.ts#enrichEntity",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/src/play-traces.ts#publicTraces",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/test/org-trace-provenance-781.test.ts#projectedOrgTraces",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/test/org-trace-provenance-781.test.ts#provenanceFixture",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/test/org-trace-provenance-781.test.ts#projectedOrgTraces",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/test/org-trace-provenance-781.test.ts#provenanceFixture",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts",
+      "target": "workers/noema/src/play-traces.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts#projectedOrgTraces",
+      "target": "workers/noema/src/play-traces.ts#laterTraceInputs",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/org-trace-provenance-781.test.ts#projectedOrgTraces",
+      "target": "workers/noema/src/play-traces.ts#projectRoomTraces",
       "relation": "calls",
       "confidence": "inferred"
     },
