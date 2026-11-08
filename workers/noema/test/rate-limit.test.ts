@@ -34,6 +34,28 @@ describe("SlidingWindowThrottle", () => {
     expect(t.hit("k", 50)).toBe(false);
     expect(t.hit("k", 101)).toBe(true);
   });
+
+  it("forgets keys whose hits have all left the window", () => {
+    const t = new SlidingWindowThrottle(5, 100);
+    expect(t.hit("login-email:old@example.com", 0)).toBe(true);
+    expect(t.hit("login-email:live@example.com", 50)).toBe(true);
+    expect(t.size).toBe(2);
+    expect(t.hit("login-email:new@example.com", 120)).toBe(true);
+    expect(t.size).toBe(2);
+    expect(t.hit("login-email:live@example.com", 121)).toBe(true);
+    expect(t.size).toBe(2);
+    t.reset();
+    expect(t.size).toBe(0);
+  });
+
+  it("still refuses a key at its limit after other keys are pruned", () => {
+    const t = new SlidingWindowThrottle(2, 100);
+    expect(t.hit("other", 0)).toBe(true);
+    expect(t.hit("k", 95)).toBe(true);
+    expect(t.hit("k", 100)).toBe(true); // this call prunes "other"
+    expect(t.size).toBe(1);
+    expect(t.hit("k", 101)).toBe(false);
+  });
 });
 
 function durableNs(handler: (url: string, init?: RequestInit) => Promise<Response>): DurableObjectNamespace {
@@ -234,18 +256,17 @@ describe("__noema_rate_limits__ Durable Object rows", () => {
     expect(storage.alarm).toBeNull();
   });
 
-  it("sweeps raw-key rows written before hashing once their hour has passed", async () => {
+  it("deletes raw-key rows written before hashing on the first sweep, however recent", async () => {
     const { env, storage, fire } = limiter();
     storage.rows.set("rl:login-email:legacy@example.com", [T0 - 10]);
     storage.rows.set("rl:login-ip:192.0.2.1", [T0 - 20, T0 - 5]);
-    storage.rows.set("rl:login-email:recent@example.com", [T0 + 600_000]);
-    expect(await allowThrottled(isolate(), env, "player:player.one", 120, 60_000, T0)).toBe(true);
-    vi.setSystemTime(T0 + LOGIN_WINDOW_MS);
+    storage.rows.set("rl:login-email:recent@example.com", [T0]);
+    expect(await allowLoginThrottled(isolate(), env, "192.0.2.1", "recent@example.com", T0)).toBe(true);
     await fire();
-    expect(storage.rows.has("rl:login-email:legacy@example.com")).toBe(false);
-    expect(storage.rows.has("rl:login-ip:192.0.2.1")).toBe(false);
-    expect(storage.rows.has("rl:login-email:recent@example.com")).toBe(true);
-    expect(storage.rows.has(await rateLimitRowKey("player:player.one"))).toBe(false);
+    expect(Date.now()).toBe(T0 + RATE_LIMIT_SWEEP_INTERVAL_MS);
+    expect([...storage.rows.keys()].filter((k) => k.startsWith("rl:") && !ROW.test(k))).toEqual([]);
+    expect(storage.rows.has(await rateLimitRowKey("login-email:recent@example.com"))).toBe(true);
+    expect(storage.rows.has(await rateLimitRowKey("login-ip:192.0.2.1"))).toBe(true);
   });
 
   it("deletes at most one batch per alarm and carries on from a cursor", async () => {

@@ -4,6 +4,7 @@ import { sha256Hex } from "./genesis";
 
 export class SlidingWindowThrottle {
   private hits = new Map<string, number[]>();
+  private pruneAt = 0;
   constructor(
     private limit: number,
     private windowMs: number,
@@ -11,6 +12,11 @@ export class SlidingWindowThrottle {
 
   hit(key: string, now = Date.now()): boolean {
     const cut = now - this.windowMs;
+    if (now >= this.pruneAt) {
+      // Once per window, forget keys with no hit left in it, so raw keys do not live as long as the isolate.
+      for (const [k, ts] of this.hits) if (!ts.some((t) => t > cut)) this.hits.delete(k);
+      this.pruneAt = now + this.windowMs;
+    }
     const prev = (this.hits.get(key) || []).filter((t) => t > cut);
     if (prev.length >= this.limit) {
       this.hits.set(key, prev);
@@ -21,8 +27,14 @@ export class SlidingWindowThrottle {
     return true;
   }
 
+  /** Keys currently held. */
+  get size(): number {
+    return this.hits.size;
+  }
+
   reset(): void {
     this.hits.clear();
+    this.pruneAt = 0;
   }
 }
 
@@ -104,8 +116,6 @@ export const RATE_LIMIT_SWEEP_INTERVAL_MS = 300_000;
 export const RATE_LIMIT_SWEEP_BATCH = 128;
 /** Delay before a sweep that stopped at the batch cap carries on. */
 export const RATE_LIMIT_SWEEP_CONTINUE_MS = 1_000;
-/** Older rows are bare timestamp arrays with no window. No caller used a window over an hour. */
-const LEGACY_ROW_WINDOW_MS = 3_600_000;
 
 export type RateLimitRow = { hits: number[]; expires_at: number };
 
@@ -116,16 +126,16 @@ export async function rateLimitRowKey(key: string): Promise<string> {
 }
 
 function rowHits(value: unknown): number[] {
-  const raw = Array.isArray(value) ? value : (value as Partial<RateLimitRow> | undefined)?.hits;
-  return Array.isArray(raw) ? raw.filter((t): t is number => typeof t === "number" && Number.isFinite(t)) : [];
+  const hits = (value as Partial<RateLimitRow> | undefined)?.hits;
+  return Array.isArray(hits) ? hits.filter((t): t is number => typeof t === "number" && Number.isFinite(t)) : [];
 }
 
-/** When the newest hit leaves its window; the row is empty from then on. Unreadable rows count as expired. */
+/**
+ * When the newest hit leaves its window; the row is empty from then on. Rows without
+ * `expires_at` count as expired: that covers raw-key rows from before hashing (bare
+ * timestamp arrays), which nothing reads any more.
+ */
 export function rateLimitRowExpiresAt(value: unknown): number {
-  if (Array.isArray(value)) {
-    const hits = rowHits(value);
-    return hits.length ? Math.max(...hits) + LEGACY_ROW_WINDOW_MS : 0;
-  }
   const at = (value as Partial<RateLimitRow> | undefined)?.expires_at;
   return typeof at === "number" && Number.isFinite(at) ? at : 0;
 }
