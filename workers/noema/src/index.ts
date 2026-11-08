@@ -210,7 +210,37 @@ async function routeToWorld(
   });
 }
 
-export default {
+/**
+ * Product HTML pages answer HEAD exactly as GET, minus the body (RFC 9110
+ * §9.3.2). Crawlers and link checkers probe with HEAD, and a GET-only route
+ * would otherwise fall through to serveStatic and answer 404.
+ *
+ * Each path must be a `request.method === "GET" && path === …` route in the
+ * router that returns html(). Those declarations stay GET-only so
+ * scripts/deployed-route-drift.mjs keeps reading them as `GET <path>`.
+ *
+ * API, WebSocket (/protocol/v1/ws) and stream (/v1/watch/stream,
+ * /watch/stream) paths are deliberately absent: HEAD must never be replayed
+ * as a GET that opens a stream, upgrades a socket, or reaches a Player.
+ */
+const HTML_PAGE_PATHS: ReadonlySet<string> = new Set([
+  "/",
+  "/index.html",
+  "/memo",
+  "/memo.html",
+  "/manifesto",
+  "/privacy",
+  "/play/callback",
+  "/watch",
+  "/study",
+  "/connect",
+  "/connect/enroll",
+  "/admin/login",
+  "/admin/callback",
+  "/admin",
+]);
+
+const worker = {
   async scheduled(_controller: unknown, env: Env): Promise<void> {
     const id = env.WORLD_DO.idFromName(env.DEFAULT_WORLD_ID || "world-01");
     const stub = env.WORLD_DO.get(id);
@@ -225,6 +255,11 @@ export default {
 
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (request.method === "HEAD" && HTML_PAGE_PATHS.has(path)) {
+      const res = await worker.fetch(new Request(request, { method: "GET" }), env);
+      return new Response(null, { status: res.status, headers: res.headers });
+    }
 
     if (
       url.hostname === "www.noema.guru" &&
@@ -1171,3 +1206,5 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
+
+export default worker;

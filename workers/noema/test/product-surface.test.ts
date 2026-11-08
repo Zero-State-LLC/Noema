@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { extractRoutes } from "../scripts/deployed-route-drift.mjs";
 import { connectHtml, enrollHtml } from "../src/connect";
 import worker from "../src/index";
 import { landingHtml } from "../src/landing";
@@ -435,5 +439,114 @@ describe("public SEO surfaces", () => {
       expect(html).toContain(`<link rel="canonical" href="${loc}"/>`);
       expect(html).toContain(`property="og:url" content="${loc}"`);
     }
+  });
+});
+
+describe("HEAD on product HTML pages", () => {
+  const env = { NOEMA_ENV: "production" } as unknown as Env;
+  const INDEX_TS = join(dirname(fileURLToPath(import.meta.url)), "../src/index.ts");
+  const PAGES = [
+    "/",
+    "/index.html",
+    "/memo",
+    "/memo.html",
+    "/manifesto",
+    "/privacy",
+    "/watch",
+    "/study",
+    "/connect",
+    "/connect/enroll",
+    "/play/callback",
+    "/admin",
+    "/admin/login",
+    "/admin/callback",
+  ];
+
+  async function getAndHead(url: string, init: RequestInit = {}, e: Env = env) {
+    const get = await worker.fetch(new Request(url, { ...init, method: "GET" }), e);
+    const head = await worker.fetch(new Request(url, { ...init, method: "HEAD" }), e);
+    return { get, head };
+  }
+
+  it("answers HEAD with GET's status and headers and an empty body", async () => {
+    for (const path of PAGES) {
+      const { get, head } = await getAndHead(`https://noema.guru${path}`);
+      expect(head.status, `HEAD ${path}`).toBe(200);
+      expect(head.headers.get("content-type"), `HEAD ${path}`).toMatch(/^text\/html/);
+      expect([...head.headers], `HEAD ${path}`).toEqual([...get.headers]);
+      expect(head.body, `HEAD ${path}`).toBeNull();
+      expect((await get.text()).length, `GET ${path}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("covers every html GET route the router declares", async () => {
+    // The allowlist in index.ts must not drift from the router. Every
+    // `request.method === "GET" && path === …` page (as the deployed-route
+    // drift extractor reads them) that serves HTML must answer HEAD too.
+    // /v1/* is the JSON API and stays out of this sweep.
+    const getPaths = extractRoutes(readFileSync(INDEX_TS, "utf8"))
+      .filter((r: string) => r.startsWith("GET /") && !r.startsWith("GET /v1/"))
+      .map((r: string) => r.slice("GET ".length));
+    const htmlPages: string[] = [];
+    for (const path of getPaths) {
+      const { get, head } = await getAndHead(`https://noema.guru${path}`);
+      await get.text();
+      if (get.status !== 200 || !/^text\/html/.test(get.headers.get("content-type") || "")) continue;
+      htmlPages.push(path);
+      expect(head.status, `HEAD ${path}`).toBe(200);
+      expect([...head.headers], `HEAD ${path}`).toEqual([...get.headers]);
+    }
+    expect(htmlPages.length).toBeGreaterThan(0);
+    expect(PAGES).toEqual(expect.arrayContaining(htmlPages));
+  });
+
+  it("still serves the branded 404 for HEAD on an unknown path", async () => {
+    const res = await worker.fetch(new Request("https://noema.guru/no-such-page", { method: "HEAD" }), env);
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toMatch(/^text\/html/);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("follows the www redirect for HEAD exactly as for GET", async () => {
+    const { get, head } = await getAndHead("https://www.noema.guru/manifesto", {
+      headers: { accept: "text/html" },
+    });
+    expect(get.status).toBe(308);
+    expect(head.status).toBe(308);
+    expect(head.headers.get("location")).toBe("https://noema.guru/manifesto");
+  });
+
+  it("does not replay HEAD as GET on stream, WebSocket, or API paths", async () => {
+    const seen: string[] = [];
+    const doEnv = {
+      NOEMA_ENV: "production",
+      WORLD_DO: {
+        idFromName: () => "id",
+        get: () => ({
+          fetch: async (input: Request | string, init?: RequestInit) => {
+            seen.push(input instanceof Request ? input.method : (init?.method ?? "GET"));
+            return new Response("{}", { status: 200, headers: { "content-type": "application/json" } });
+          },
+        }),
+      },
+    } as unknown as Env;
+
+    // Stream paths reach the Durable Object with the caller's method, untouched.
+    for (const path of ["/v1/watch/stream", "/watch/stream"]) {
+      seen.length = 0;
+      await worker.fetch(new Request(`https://noema.guru${path}`, { method: "HEAD" }), doEnv);
+      expect(seen, `HEAD ${path}`).toEqual(["HEAD"]);
+    }
+
+    // GET-only API routes are not run for HEAD.
+    seen.length = 0;
+    const live = await worker.fetch(new Request("https://noema.guru/v1/watch/live", { method: "HEAD" }), doEnv);
+    expect(live.status).toBe(404);
+    expect(seen).toEqual([]);
+
+    // The WebSocket door still demands an upgrade; it is not served as a page.
+    const ws = await worker.fetch(new Request("https://noema.guru/protocol/v1/ws", { method: "HEAD" }), doEnv);
+    expect(ws.status).toBe(426);
+    expect(seen).toEqual([]);
   });
 });
