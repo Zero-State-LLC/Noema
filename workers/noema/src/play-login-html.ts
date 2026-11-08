@@ -25,8 +25,12 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
   ${continueToPlay ? `const cont = document.getElementById("play-continue");
   if (cont && sessionStorage.getItem("noema.play.token")) cont.hidden = false;` : ""}
   if (!form || !notice || !email) return;
+  const submit = form.querySelector('button[type="submit"]');
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (submit && submit.disabled) return;
+    if (submit) submit.disabled = true;
+    form.setAttribute("aria-busy", "true");
     notice.className = "notice";
     notice.textContent = "Requesting watch link…";
     try {
@@ -43,6 +47,9 @@ ${operatorLink ? `<p class="empty operator-link"><a href="/admin/login">Operator
     } catch (err) {
       notice.className = "notice bad";
       notice.textContent = err.message || "Could not send watch link";
+    } finally {
+      if (submit) submit.disabled = false;
+      form.removeAttribute("aria-busy");
     }
   });
 })();

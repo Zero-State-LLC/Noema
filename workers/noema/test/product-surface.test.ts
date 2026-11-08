@@ -59,12 +59,15 @@ describe("product chrome", () => {
   });
 
   it("social preview uses the table still, not the legacy OG crop", () => {
-    expect(shell).toContain('property="og:image" content="https://noema.guru/assets/hero-table.jpg"');
+    // og-table.jpg is the 1200x630 crop of hero-table.jpg (owner request 2026-11-08).
+    expect(shell).toContain('property="og:image" content="https://noema.guru/assets/og-table.jpg"');
+    expect(shell).toContain('property="og:image:width" content="1200"');
+    expect(shell).toContain('property="og:image:height" content="630"');
     expect(shell).toContain('name="twitter:card" content="summary_large_image"');
-    expect(shell).toContain('name="twitter:image" content="https://noema.guru/assets/hero-table.jpg"');
+    expect(shell).toContain('name="twitter:image" content="https://noema.guru/assets/og-table.jpg"');
     expect(shell).toContain('property="og:type" content="website"');
     expect(shell).not.toContain("/assets/og-social.jpg");
-    expect(landingHtml()).toContain('property="og:image" content="https://noema.guru/assets/hero-table.jpg"');
+    expect(landingHtml()).toContain('property="og:image" content="https://noema.guru/assets/og-table.jpg"');
   });
   it("footer does not list STUDY as a plane", () => {
     expect(shell).not.toMatch(/PLAY · WATCH · STUDY/);

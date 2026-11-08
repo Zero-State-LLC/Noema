@@ -54,6 +54,7 @@ import {
 import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId, resolveAdminOperatorWorldId } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
+import { privacyHtml } from "./privacy";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
 import { canonicalConnectCode } from "./play-mail";
@@ -180,10 +181,12 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
     }
   }
 
-  if (wantsHtml(request) || method === "GET" || method === "HEAD") {
-    return html(notFoundHtml(), 404, "no-store");
+  // API callers get a JSON error; people (and anything else) get the branded page.
+  const apiPath = /^\/(?:v1|protocol)(?:\/|$)/.test(path);
+  if (apiPath && !wantsHtml(request)) {
+    return applyCors(err("NOT_FOUND", path, 404), request, env);
   }
-  return applyCors(err("NOT_FOUND", path, 404), request, env);
+  return html(notFoundHtml(), 404, "no-store");
 }
 
 async function routeToWorld(
@@ -242,6 +245,9 @@ export default {
       }
       if (request.method === "GET" && path === "/manifesto") {
         return html(manifestoHtml(), 200, "public, max-age=30");
+      }
+      if (request.method === "GET" && path === "/privacy") {
+        return html(privacyHtml(), 200, "public, max-age=300");
       }
       if ((request.method === "GET" || request.method === "HEAD") && path === "/robots.txt") {
         return publicText(robotsTxt(), "text/plain; charset=utf-8");

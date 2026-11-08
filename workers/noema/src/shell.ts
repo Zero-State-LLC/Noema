@@ -4,6 +4,7 @@
  */
 
 import { lowNoiseBootScript } from "./low-noise";
+import { ICON_LINKS, OG_IMAGE } from "./seo";
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 
 export const PRODUCT_CSS = `
@@ -222,6 +223,8 @@ export function productShell(opts: {
   extraCss?: string;
   description?: string;
   bleed?: boolean;
+  /** Canonical path for pages outside the primary nav (e.g. /privacy). */
+  canonicalPath?: string;
 }): string {
   const nav = (href: string, label: string, key: ProductNav) =>
     `<a href="${href}"${opts.active === key ? ' aria-current="page"' : ""}>${label}</a>`;
@@ -235,10 +238,10 @@ export function productShell(opts: {
       ? ``
       : `<div class="runtime" title="Runtime status"><span class="dot" id="dot"></span><span id="rt-label">checking</span></div>`;
   const canonical =
-    !opts.active || opts.active === "home" ? "/" : "/" + opts.active;
+    opts.canonicalPath || (!opts.active || opts.active === "home" ? "/" : "/" + opts.active);
   const canonicalUrl = `https://noema.guru${canonical}`;
   const ogTitle = `${opts.title} · NOEMA`;
-  const ogImage = "https://noema.guru/assets/hero-table.jpg";
+  const ogImage = OG_IMAGE.url;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -253,14 +256,16 @@ export function productShell(opts: {
 <meta property="og:title" content="${ogTitle}"/>
 <meta property="og:description" content="${desc}"/>
 <meta property="og:image" content="${ogImage}"/>
-<meta property="og:image:alt" content="Perihelion Reach"/>
-<meta property="og:image:width" content="1248"/>
-<meta property="og:image:height" content="832"/>
+<meta property="og:image:alt" content="${OG_IMAGE.alt}"/>
+<meta property="og:image:width" content="${OG_IMAGE.width}"/>
+<meta property="og:image:height" content="${OG_IMAGE.height}"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${ogTitle}"/>
 <meta name="twitter:description" content="${desc}"/>
 <meta name="twitter:image" content="${ogImage}"/>
+<meta name="twitter:image:alt" content="${OG_IMAGE.alt}"/>
 <link rel="canonical" href="${canonicalUrl}"/>
+${ICON_LINKS}
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
 </head>
@@ -288,6 +293,7 @@ ${opts.body}
   <span class="foot-contact">
     <a href="https://zer0state.com">Zero State</a>
     <a href="mailto:zer0state@zer0state.com">zer0state@zer0state.com</a>
+    <a href="/privacy">Privacy</a>
     <span>·</span>
     <a class="foot-operator" href="/admin/login">operator</a>
   </span>

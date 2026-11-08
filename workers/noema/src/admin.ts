@@ -3,6 +3,7 @@
  * Specs: PLATFORM (admin ≠ player) · GENESIS (admin-only) · UI-HANDOFF.
  */
 
+import { ICON_LINKS } from "./seo";
 import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { glyphCatalog, legendHtml } from "./presentation/glyphs";
@@ -147,6 +148,7 @@ function adminChrome(title: string, body: string): string {
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <meta name="theme-color" content="#070a10"/><meta name="robots" content="noindex"/>
 <title>${title} · NOEMA ADMIN</title>
+${ICON_LINKS}
 ${FONTS}<style>${CSS}</style>
 </head>
 <body>
@@ -229,8 +231,11 @@ export function adminLoginHtml(): string {
     notice.className = "notice bad";
     notice.textContent = "That login link is expired or invalid. Request a new one.";
   }
+  const submit = form.querySelector('button[type="submit"]');
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (submit && submit.disabled) return;
+    if (submit) submit.disabled = true;
     notice.className = "notice";
     notice.textContent = "Requesting login link…";
     try {
@@ -246,6 +251,8 @@ export function adminLoginHtml(): string {
     } catch (err) {
       notice.className = "notice bad";
       notice.textContent = err.message || "ADMIN unavailable";
+    } finally {
+      if (submit) submit.disabled = false;
     }
   });
 })();

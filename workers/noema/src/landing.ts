@@ -251,6 +251,10 @@ export function landingHtml(): string {
   (() => {
     const __name = function(fn) { return fn; };
     const homeExcerptFromLive = ${homeExcerptFromLive.toString()};
+    // Pending state: the card keeps its pointer text (never stale world lines)
+    // and is marked busy until /v1/watch/live answers, fails, or times out.
+    const card = document.getElementById("home-now-card");
+    if (card) card.setAttribute("aria-busy", "true");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     fetch("/v1/watch/live", { credentials: "omit", signal: controller.signal })
@@ -268,7 +272,10 @@ export function landingHtml(): string {
           live.className = "tag ok";
           live.textContent = "live";
         }
-      }).catch(() => {}).finally(() => clearTimeout(timeout));
+      }).catch(() => {}).finally(() => {
+        clearTimeout(timeout);
+        if (card) card.removeAttribute("aria-busy");
+      });
   })();
   </script>`;
 
