@@ -1,7 +1,7 @@
 # workers/noema/src/admin.ts
 
-- adminChrome · function · L143-L166 — function adminChrome(title: string, body: string): string
-- adminEmailGateMarkup · function · L169-L205 — function adminEmailGateMarkup(): string
-- adminLoginHtml · function · L207-L254 — function adminLoginHtml(): string
-- adminCallbackHtml · function · L256-L293 — function adminCallbackHtml(): string
-- adminHtml · function · L295-L1480 — function adminHtml(): string
+- adminChrome · function · L144-L168 — function adminChrome(title: string, body: string): string
+- adminEmailGateMarkup · function · L171-L207 — function adminEmailGateMarkup(): string
+- adminLoginHtml · function · L209-L261 — function adminLoginHtml(): string
+- adminCallbackHtml · function · L263-L300 — function adminCallbackHtml(): string
+- adminHtml · function · L302-L1487 — function adminHtml(): string
