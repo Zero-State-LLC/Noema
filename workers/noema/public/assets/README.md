@@ -4,7 +4,9 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 
 | File | Use |
 |------|-----|
-| `hero-table.jpg` | Home full-bleed still and Open Graph / Twitter card |
+| `hero-table.jpg` | Home full-bleed still (source of `og-table.jpg`) |
+| `og-table.jpg` | Open Graph / Twitter card: 1200x630 crop of `hero-table.jpg` (hero's 38% vertical bias) |
+| `icon.svg`, `icon-192.png`, `icon-512.png` | Placeholder "N" mark (Syne 700, `--ink` on `--void`) for the favicon set and `site.webmanifest`; `favicon.ico` and `apple-touch-icon.png` sit at the public root |
 | `hero-phosphor.jpg` | Legacy Home still |
 | `play-chamber.jpg` | PLAY door atmosphere (not the Chamber) |
 | `study-traces.jpg` | STUDY still |
