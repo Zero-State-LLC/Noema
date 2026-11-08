@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9134,
-    "edgeCount": 20362,
+    "nodeCount": 9153,
+    "edgeCount": 20406,
     "languages": [
       "javascript",
       "python",
@@ -83401,8 +83401,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "283f49c9ae5689ed91f987e986cf786f7adb945c59e9bc3cc52c46a9d44d4e05",
-      "chars": 5829,
+      "body_hash": "9a4a0a76a43aa4364f45b7af689719b83e1ef1244ae8f397efc444bc27e7b8c4",
+      "chars": 5946,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -83416,7 +83416,7 @@
       "signature": "function privacyHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "1126a8183ec30eb654e46800243a27e8be35aed606fd3e83849edbcc2ef66384",
+      "body_hash": "60371915ba41d02e30d28b98f174175704e1cb89b9daff510abf82850d3a0b13",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -83750,12 +83750,12 @@
       "name": "rate-limit.ts",
       "kind": "file",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L1-L90",
+      "span": "L1-L184",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "2351908efa291e531d7ad578d2a17410b16c1af4114b7e421c8c194206c9c46f",
-      "chars": 2633,
+      "body_hash": "802eb6847dc690a62c0758abb8a64effbd5537f6d910cf5679de098e7b5bf7da",
+      "chars": 6953,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -83765,7 +83765,7 @@
       "name": "allowLoginThrottled",
       "kind": "function",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L41-L52",
+      "span": "L43-L54",
       "signature": "async function allowLoginThrottled( local: SlidingWindowThrottle, env: RateLimitEnv, ip: string, email: string, now = Date.now(), ): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -83779,7 +83779,7 @@
       "name": "allowThrottled",
       "kind": "function",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L64-L89",
+      "span": "L66-L91",
       "signature": "async function allowThrottled( local: SlidingWindowThrottle, env: RateLimitEnv, key: string, limit: number, windowMs: number, now = Date.now(), ): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -83789,11 +83789,39 @@
       "crux": null
     },
     {
+      "id": "workers/noema/src/rate-limit.ts#armRateLimitSweep",
+      "name": "armRateLimitSweep",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L156-L160",
+      "signature": "async function armRateLimitSweep(storage: RateLimitStorage, now: number): Promise<void>",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "acc2dd14365424d2d00e239cd09b04aa74625cb758fec9a9031371005da69b69",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#durableRateLimitHit",
+      "name": "durableRateLimitHit",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L134-L153",
+      "signature": "async function durableRateLimitHit( storage: RateLimitStorage, key: string, limit: number, windowMs: number, now: number, ): Promise<boolean>",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "481c6602258cb35ce651e113921cf2bec41e574e4f7fa0b6082354e809e751b3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/src/rate-limit.ts#RateLimitEnv",
       "name": "RateLimitEnv",
       "kind": "type",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L56-L58",
+      "span": "L58-L60",
       "signature": "type RateLimitEnv = { WORLD_DO?: DurableObjectNamespace; };",
       "exported": false,
       "origin": "ast",
@@ -83803,11 +83831,81 @@
       "crux": null
     },
     {
+      "id": "workers/noema/src/rate-limit.ts#RateLimitRow",
+      "name": "RateLimitRow",
+      "kind": "type",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L110-L110",
+      "signature": "type RateLimitRow = { hits: number[]; expires_at: number };",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "f33a93a09325a7f52d3e27331edd6bd982250fb2cc0d5c561c806df3263990d9",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#rateLimitRowExpiresAt",
+      "name": "rateLimitRowExpiresAt",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L124-L131",
+      "signature": "function rateLimitRowExpiresAt(value: unknown): number",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4dfdd714921272bd63a3eb1db345d4e23614bd5c51a338b094fa4f811b546dfa",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#rateLimitRowKey",
+      "name": "rateLimitRowKey",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L114-L116",
+      "signature": "async function rateLimitRowKey(key: string): Promise<string>",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "c4ad8fa15d2338c916496a02c6caa36d1969ced6f074ea3ba6258153697bb300",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#RateLimitStorage",
+      "name": "RateLimitStorage",
+      "kind": "type",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L112-L112",
+      "signature": "type RateLimitStorage = Pick<DurableObjectStorage, \"get\" | \"put\" | \"delete\" | \"list\" | \"getAlarm\" | \"setAlarm\">;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9591e3e9e35f1b774fa194c8f6093c8374335310e4ea51c7ef47d689fee4795e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#rowHits",
+      "name": "rowHits",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L118-L121",
+      "signature": "function rowHits(value: unknown): number[]",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5c0a68c345c4cecfa60a5c09481849f9c52e934f0f4b0ba1beb45ef4210bdbf3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
       "name": "SlidingWindowThrottle",
       "kind": "class",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L3-L25",
+      "span": "L5-L27",
       "signature": "class SlidingWindowThrottle",
       "exported": true,
       "origin": "ast",
@@ -83821,7 +83919,7 @@
       "name": "constructor",
       "kind": "method",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L5-L8",
+      "span": "L7-L10",
       "signature": "constructor( private limit: number, private windowMs: number, )",
       "exported": true,
       "origin": "ast",
@@ -83836,7 +83934,7 @@
       "name": "hit",
       "kind": "method",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L10-L20",
+      "span": "L12-L22",
       "signature": "hit(key: string, now = Date.now()): boolean",
       "exported": true,
       "origin": "ast",
@@ -83851,7 +83949,7 @@
       "name": "reset",
       "kind": "method",
       "path": "workers/noema/src/rate-limit.ts",
-      "span": "L22-L24",
+      "span": "L24-L26",
       "signature": "reset(): void",
       "exported": true,
       "origin": "ast",
@@ -83860,6 +83958,20 @@
       "summary": null,
       "crux": null,
       "owner": "SlidingWindowThrottle"
+    },
+    {
+      "id": "workers/noema/src/rate-limit.ts#sweepRateLimitRows",
+      "name": "sweepRateLimitRows",
+      "kind": "function",
+      "path": "workers/noema/src/rate-limit.ts",
+      "span": "L166-L183",
+      "signature": "async function sweepRateLimitRows(storage: RateLimitStorage, now: number): Promise<void>",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "254c7b9591594640b09c9f99253bb73d7a63eb20b7f9756fd1ad66023c3c1a7d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
     },
     {
       "id": "workers/noema/src/reconstruction.ts",
@@ -92384,12 +92496,12 @@
       "name": "world-do.ts",
       "kind": "file",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1-L1667",
+      "span": "L1-L1681",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "4421f8a4166afa896d554ac7fe150757430f9ef248bb40d5ab1c41852a441669",
-      "chars": 68370,
+      "body_hash": "aaa3e65451f0b832abcd533a581b18484dfee4cdd7576cadc632b41f35aafc92",
+      "chars": 68904,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92399,7 +92511,7 @@
       "name": "bootstrapWorldState",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L177-L181",
+      "span": "L183-L187",
       "signature": "function bootstrapWorldState(world_id: string): WorldState",
       "exported": true,
       "origin": "ast",
@@ -92413,7 +92525,7 @@
       "name": "cycle0ToWorld",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L183-L236",
+      "span": "L189-L242",
       "signature": "function cycle0ToWorld(c0: Cycle0World): WorldState",
       "exported": true,
       "origin": "ast",
@@ -92427,7 +92539,7 @@
       "name": "rec",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L215-L216",
+      "span": "L221-L222",
       "signature": "rec = (v: unknown): Record<string, number>",
       "exported": true,
       "origin": "ast",
@@ -92441,7 +92553,7 @@
       "name": "demoState",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L154-L174",
+      "span": "L160-L180",
       "signature": "function demoState(world_id: string): WorldState",
       "exported": false,
       "origin": "ast",
@@ -92455,7 +92567,7 @@
       "name": "locateInstitutionWatchPulse",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L238-L257",
+      "span": "L244-L263",
       "signature": "function locateInstitutionWatchPulse( world: WorldRuntime, text: string, ): string | { text: string; room_id: string }",
       "exported": false,
       "origin": "ast",
@@ -92469,11 +92581,11 @@
       "name": "NoemaWorldDO",
       "kind": "class",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L259-L1666",
+      "span": "L265-L1680",
       "signature": "class NoemaWorldDO",
       "exported": true,
       "origin": "ast",
-      "body_hash": "f649f9df21a4e7e6403d1aa80a9c974c32a9373a8a7e2fb3dc3ff6c4d4a8b673",
+      "body_hash": "5a97358d2f29f15523651a6ea8a28373591cf844ba4ef9709eb04b9386248f83",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92483,11 +92595,11 @@
       "name": "alarm",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1543-L1577",
+      "span": "L1551-L1591",
       "signature": "async alarm(): Promise<void>",
       "exported": true,
       "origin": "ast",
-      "body_hash": "10512e6927fb193a59aab905f850ff0e825c8a3da59a19dc9964367f0bee3bfb",
+      "body_hash": "ee0f2dc8ac25d5b378e19bd25e3e9e3142a9577dc4c5a7cb01040820ae1c19f3",
       "summary_state": "pending",
       "summary": null,
       "crux": null,
@@ -92498,7 +92610,7 @@
       "name": "applyCommand",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1246-L1484",
+      "span": "L1254-L1492",
       "signature": "private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>",
       "exported": true,
       "origin": "ast",
@@ -92513,7 +92625,7 @@
       "name": "bindAdminGenesisWorld",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L277-L280",
+      "span": "L285-L288",
       "signature": "private bindAdminGenesisWorld(request: Request): void",
       "exported": true,
       "origin": "ast",
@@ -92528,7 +92640,7 @@
       "name": "bindIsolatedWatch",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L282-L295",
+      "span": "L290-L303",
       "signature": "private async bindIsolatedWatch(request: Request): Promise<Response | null>",
       "exported": true,
       "origin": "ast",
@@ -92543,7 +92655,7 @@
       "name": "commitTempoResolution",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1496-L1541",
+      "span": "L1504-L1549",
       "signature": "private async commitTempoResolution(events: NonNullable<CommandResult[\"events\"]>): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -92558,7 +92670,7 @@
       "name": "constructor",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L271-L274",
+      "span": "L279-L282",
       "signature": "constructor(state: DurableObjectState, env: Env)",
       "exported": true,
       "origin": "ast",
@@ -92573,7 +92685,7 @@
       "name": "dropDisposableSystemActors",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1204-L1220",
+      "span": "L1212-L1228",
       "signature": "private dropDisposableSystemActors(): number",
       "exported": true,
       "origin": "ast",
@@ -92588,11 +92700,11 @@
       "name": "fetch",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L423-L1149",
+      "span": "L431-L1157",
       "signature": "async fetch(request: Request): Promise<Response>",
       "exported": true,
       "origin": "ast",
-      "body_hash": "8c77b8cc53e4151218d08a11da351e1e450c13bf55548d5f8266ba98fdec3d0a",
+      "body_hash": "31ea550306dc99519af84f8b8ed60ca9eef407ad2ef4214eb6ffe244f82c914f",
       "summary_state": "pending",
       "summary": null,
       "crux": null,
@@ -92603,7 +92715,7 @@
       "name": "load",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1177-L1202",
+      "span": "L1185-L1210",
       "signature": "private async load(): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92618,7 +92730,7 @@
       "name": "loadDigestConfig",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1579-L1581",
+      "span": "L1593-L1595",
       "signature": "private async loadDigestConfig(): Promise<DigestConfig>",
       "exported": true,
       "origin": "ast",
@@ -92633,7 +92745,7 @@
       "name": "loadMeta",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1171-L1175",
+      "span": "L1179-L1183",
       "signature": "private async loadMeta(): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92648,7 +92760,7 @@
       "name": "operatorWatchSnapshot",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L384-L396",
+      "span": "L392-L404",
       "signature": "private async operatorWatchSnapshot(operatorId?: string)",
       "exported": true,
       "origin": "ast",
@@ -92663,7 +92775,7 @@
       "name": "publicMeta",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1151-L1169",
+      "span": "L1159-L1177",
       "signature": "private publicMeta(): Record<string, unknown>",
       "exported": true,
       "origin": "ast",
@@ -92678,7 +92790,7 @@
       "name": "recordDigestEvents",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1583-L1608",
+      "span": "L1597-L1622",
       "signature": "private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult[\"events\"]>, cycle: number, ): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92693,7 +92805,7 @@
       "name": "recordOperatorWatch",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1610-L1636",
+      "span": "L1624-L1650",
       "signature": "private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92708,7 +92820,7 @@
       "name": "save",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1222-L1244",
+      "span": "L1230-L1252",
       "signature": "private async save(): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -92723,7 +92835,7 @@
       "name": "put",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1224-L1224",
+      "span": "L1232-L1232",
       "signature": "put = ()",
       "exported": true,
       "origin": "ast",
@@ -92737,7 +92849,7 @@
       "name": "scheduleTempoAlarm",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1486-L1494",
+      "span": "L1494-L1502",
       "signature": "private async scheduleTempoAlarm(now: number): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92752,7 +92864,7 @@
       "name": "tickDigests",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1638-L1665",
+      "span": "L1652-L1679",
       "signature": "private async tickDigests(now: number): Promise<OperatorDigest[]>",
       "exported": true,
       "origin": "ast",
@@ -92767,7 +92879,7 @@
       "name": "watchSnapshot",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L297-L382",
+      "span": "L305-L390",
       "signature": "private async watchSnapshot()",
       "exported": true,
       "origin": "ast",
@@ -92782,7 +92894,7 @@
       "name": "webSocketMessage",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L398-L421",
+      "span": "L406-L429",
       "signature": "async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92797,7 +92909,7 @@
       "name": "Room",
       "kind": "type",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L107-L107",
+      "span": "L113-L113",
       "signature": "type Room = RoomState;",
       "exported": false,
       "origin": "ast",
@@ -92811,7 +92923,7 @@
       "name": "WorldMeta",
       "kind": "interface",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L109-L124",
+      "span": "L115-L130",
       "signature": "interface WorldMeta",
       "exported": false,
       "origin": "ast",
@@ -92825,7 +92937,7 @@
       "name": "WorldState",
       "kind": "type",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L106-L106",
+      "span": "L112-L112",
       "signature": "type WorldState = WorldRuntime;",
       "exported": false,
       "origin": "ast",
@@ -94864,12 +94976,12 @@
       "name": "agent-http-do-boundary.test.ts",
       "kind": "file",
       "path": "workers/noema/test/agent-http-do-boundary.test.ts",
-      "span": "L1-L365",
+      "span": "L1-L366",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "289c39440296d7d589a7d952d7fd444a877da562c21ddb0fd6035cfab0416c82",
-      "chars": 21166,
+      "body_hash": "22e75e16d406912016f8c7c505a9a01363a5b5b918abb46f63a62be9324475c5",
+      "chars": 21259,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -94879,7 +94991,7 @@
       "name": "Observation",
       "kind": "type",
       "path": "workers/noema/test/agent-http-do-boundary.test.ts",
-      "span": "L13-L18",
+      "span": "L14-L19",
       "signature": "type Observation = { player_id: string; location: { room_id: string }; available_actions: string[]; affordances: Array<{ action: string; verb: string; target_id?: string; available: boolean }>; };",
       "exported": false,
       "origin": "ast",
@@ -94893,7 +95005,7 @@
       "name": "Result",
       "kind": "type",
       "path": "workers/noema/test/agent-http-do-boundary.test.ts",
-      "span": "L19-L19",
+      "span": "L20-L20",
       "signature": "type Result = { ok: boolean; error?: { code: string; message: string }; observation: Observation };",
       "exported": false,
       "origin": "ast",
@@ -108373,12 +108485,12 @@
       "name": "rate-limit.test.ts",
       "kind": "file",
       "path": "workers/noema/test/rate-limit.test.ts",
-      "span": "L1-L60",
+      "span": "L1-L307",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "dbf36ef52e02fd9d638822386343cf3f41646956a8a4c92e3ead3e300586f24e",
-      "chars": 2136,
+      "body_hash": "b13548ba89c2f14257c38d737cebb5ac0ecc01af9fb4e6fa04665441899b47c8",
+      "chars": 14430,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -108388,7 +108500,7 @@
       "name": "durableNs",
       "kind": "function",
       "path": "workers/noema/test/rate-limit.test.ts",
-      "span": "L20-L27",
+      "span": "L39-L46",
       "signature": "function durableNs(handler: (url: string, init?: RequestInit) => Promise<Response>): DurableObjectNamespace",
       "exported": false,
       "origin": "ast",
@@ -108396,6 +108508,167 @@
       "summary_state": "pending",
       "summary": null,
       "crux": null
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#isolate",
+      "name": "isolate",
+      "kind": "function",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L143-L143",
+      "signature": "isolate = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8bd2ac8cc7b5374d4f92dcf575f900ca2409c38c6cbae84a4a5d38e910bd9012",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#limiter",
+      "name": "limiter",
+      "kind": "function",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L118-L140",
+      "signature": "function limiter()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "194fbfb5126521a66f2947704e05a7caf48057623ceea7edd5518faaf93bc752",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#limiter.fire",
+      "name": "fire",
+      "kind": "function",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L132-L138",
+      "signature": "async function fire(): Promise<void>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0cb27b8a6177cf39d2cc996b9d483c7c23d32db702e2676cf8a2314ac859f9b8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "name": "MemoryStorage",
+      "kind": "class",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L81-L115",
+      "signature": "class MemoryStorage",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dc1a4835fd347c3f89ae96a5edb257b2895ed0c0f5b8fe93b1f87df71855f5b7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.delete",
+      "name": "delete",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L92-L98",
+      "signature": "async delete(keys: string | string[]): Promise<number | boolean>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "601b6a9df8f7ddd432037f9fb5760f98e228768e2338dc5096339b39f7d934be",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.deleteAlarm",
+      "name": "deleteAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L112-L114",
+      "signature": "async deleteAlarm(): Promise<void>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "50ba5acbcac5857533f486366065431eda2eea2495f0b451d6d8a212a1d2f811",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.get",
+      "name": "get",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L86-L88",
+      "signature": "async get<T>(key: string): Promise<T | undefined>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f2e54c017a42e71a8f0199cde6168ba7688fac6841733c51dc5719420e1726ae",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.getAlarm",
+      "name": "getAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L105-L107",
+      "signature": "async getAlarm(): Promise<number | null>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "70a478056e230c6aa91358eb4d7be57ff63df040031141389374a41c885818ab",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.list",
+      "name": "list",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L99-L104",
+      "signature": "async list(opts: { prefix?: string; startAfter?: string; limit?: number } = {}): Promise<Map<string, unknown>>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7cf1796cc082fa2eae1357add4b5bfcd9b1edae7faf04d00b9b2267f215aa9ac",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.put",
+      "name": "put",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L89-L91",
+      "signature": "async put(key: string, value: unknown): Promise<void>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "bfd4f5092f7348393e72b9cfd913eef9562cb8a3926314b5f0c9985975b1130c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
+    },
+    {
+      "id": "workers/noema/test/rate-limit.test.ts#MemoryStorage.setAlarm",
+      "name": "setAlarm",
+      "kind": "method",
+      "path": "workers/noema/test/rate-limit.test.ts",
+      "span": "L108-L111",
+      "signature": "async setAlarm(at: number): Promise<void>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d2d39aa2183bfc476762f0ed04c16dbd010b159f9bf8ab607ca52ddaf2e681a2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "MemoryStorage"
     },
     {
       "id": "workers/noema/test/recipient-privacy-next10.test.ts",
@@ -199822,7 +200095,49 @@
     },
     {
       "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#armRateLimitSweep",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#durableRateLimitHit",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
       "target": "workers/noema/src/rate-limit.ts#RateLimitEnv",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#RateLimitRow",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowExpiresAt",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowKey",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#RateLimitStorage",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#rowHits",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -199830,6 +200145,18 @@
       "source": "workers/noema/src/rate-limit.ts",
       "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
       "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/rate-limit.ts#sweepRateLimitRows",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts",
+      "target": "workers/noema/src/genesis.ts",
+      "relation": "imports",
       "confidence": "extracted"
     },
     {
@@ -199841,6 +200168,24 @@
     {
       "source": "workers/noema/src/rate-limit.ts#allowThrottled",
       "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle.hit",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts#durableRateLimitHit",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowKey",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts#durableRateLimitHit",
+      "target": "workers/noema/src/rate-limit.ts#rowHits",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts#rateLimitRowExpiresAt",
+      "target": "workers/noema/src/rate-limit.ts#rowHits",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -199860,6 +200205,12 @@
       "source": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
       "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle.reset",
       "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/rate-limit.ts#sweepRateLimitRows",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowExpiresAt",
+      "relation": "calls",
       "confidence": "extracted"
     },
     {
@@ -209512,6 +209863,12 @@
     },
     {
       "source": "workers/noema/src/world-do.ts",
+      "target": "workers/noema/src/rate-limit.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/world-do.ts",
       "target": "workers/noema/src/rollback-evidence.ts",
       "relation": "imports",
       "confidence": "extracted"
@@ -209753,6 +210110,12 @@
     {
       "source": "workers/noema/src/world-do.ts#NoemaWorldDO.alarm",
       "target": "workers/noema/src/player-tempo.ts#isPlayerTempoPinned",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/world-do.ts#NoemaWorldDO.alarm",
+      "target": "workers/noema/src/rate-limit.ts#sweepRateLimitRows",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -210071,6 +210434,18 @@
     {
       "source": "workers/noema/src/world-do.ts#NoemaWorldDO.fetch",
       "target": "workers/noema/src/pressure.ts#adminPressureView",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/world-do.ts#NoemaWorldDO.fetch",
+      "target": "workers/noema/src/rate-limit.ts#armRateLimitSweep",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/world-do.ts#NoemaWorldDO.fetch",
+      "target": "workers/noema/src/rate-limit.ts#durableRateLimitHit",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -213232,6 +213607,12 @@
     },
     {
       "source": "workers/noema/test/agent-http-do-boundary.test.ts",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowKey",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-boundary.test.ts",
       "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
       "relation": "calls",
       "confidence": "inferred"
@@ -213263,6 +213644,12 @@
     {
       "source": "workers/noema/test/agent-http-do-boundary.test.ts",
       "target": "workers/noema/src/jwt.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/agent-http-do-boundary.test.ts",
+      "target": "workers/noema/src/rate-limit.ts",
       "relation": "imports",
       "confidence": "extracted"
     },
@@ -235834,7 +236221,19 @@
     },
     {
       "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/src/rate-limit.ts#allowLoginThrottled",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
       "target": "workers/noema/src/rate-limit.ts#allowThrottled",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/src/rate-limit.ts#rateLimitRowKey",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -235846,7 +236245,31 @@
     },
     {
       "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
       "target": "workers/noema/test/rate-limit.test.ts#durableNs",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#isolate",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#limiter",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#limiter.fire",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -235854,6 +236277,30 @@
       "source": "workers/noema/test/rate-limit.test.ts",
       "target": "workers/noema/test/rate-limit.test.ts#durableNs",
       "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#isolate",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#limiter",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "node:crypto",
+      "relation": "imports",
       "confidence": "extracted"
     },
     {
@@ -235870,8 +236317,98 @@
     },
     {
       "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/src/world-do.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts",
       "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
       "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#isolate",
+      "target": "workers/noema/src/rate-limit.ts#SlidingWindowThrottle",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#limiter",
+      "target": "workers/noema/src/world-do.ts#NoemaWorldDO.fetch",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#limiter",
+      "target": "workers/noema/test/rate-limit.test.ts#limiter.fire",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#limiter",
+      "target": "workers/noema/src/world-do.ts#NoemaWorldDO",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#limiter.fire",
+      "target": "workers/noema/src/world-do.ts#NoemaWorldDO.alarm",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.delete",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.deleteAlarm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.get",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.getAlarm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.list",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.put",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/rate-limit.test.ts#MemoryStorage",
+      "target": "workers/noema/test/rate-limit.test.ts#MemoryStorage.setAlarm",
+      "relation": "contains",
       "confidence": "extracted"
     },
     {

@@ -83,6 +83,12 @@ import {
 import { ATTEST_WORLD_ID, MINI_ENTRY_ROOM_ID, attestChamberState, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
+  armRateLimitSweep,
+  durableRateLimitHit,
+  RATE_LIMIT_SWEEP_MARKER,
+  sweepRateLimitRows,
+} from "./rate-limit";
+import {
   applyWorldCommand,
   buildObservation,
   ensureSuccessorMaterialsCache,
@@ -267,6 +273,8 @@ export class NoemaWorldDO {
   private allowCanonicalBootstrap = false;
   /** §4A hold: last served headline, presentation-only. WATCH stays non-mutating (no storage write). */
   private watchHeld: HeldHeadline | null = null;
+  /** Limiter instance only: a sweep alarm is known to be pending, so hits skip the alarm read. */
+  private rateLimitSweepArmed = false;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -481,16 +489,16 @@ export class NoemaWorldDO {
       if (!key || !Number.isFinite(limit) || !Number.isFinite(windowMs) || limit < 1 || windowMs < 1) {
         return Response.json({ error: "invalid ratelimit" }, { status: 400 });
       }
-      const storageKey = `rl:${key}`;
-      const prev = (await this.state.storage.get<number[]>(storageKey)) || [];
-      const hits = prev.filter((t) => t > now - windowMs);
-      if (hits.length >= limit) {
-        await this.state.storage.put(storageKey, hits);
-        return Response.json({ allowed: false });
+      const allowed = await durableRateLimitHit(this.state.storage, key, limit, windowMs, now);
+      if (!this.rateLimitSweepArmed) {
+        try {
+          await armRateLimitSweep(this.state.storage, Date.now());
+          this.rateLimitSweepArmed = true;
+        } catch {
+          // Cleanup is best-effort and never changes the answer; the next hit retries.
+        }
       }
-      hits.push(now);
-      await this.state.storage.put(storageKey, hits);
-      return Response.json({ allowed: true });
+      return Response.json({ allowed });
     }
 
     if (path.endsWith("/enroll") || path === "/enroll") {
@@ -1541,6 +1549,12 @@ export class NoemaWorldDO {
   }
 
   async alarm(): Promise<void> {
+    // Only `__noema_rate_limits__` carries the marker; world instances fall through to tempo unchanged.
+    if (await this.state.storage.get(RATE_LIMIT_SWEEP_MARKER)) {
+      this.rateLimitSweepArmed = false;
+      await sweepRateLimitRows(this.state.storage, Date.now());
+      return;
+    }
     await this.load();
     if (!this.world || !isPlayerTempoPinned(this.world)) return;
     const now = Date.now();
