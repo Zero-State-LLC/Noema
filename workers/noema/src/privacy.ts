@@ -56,7 +56,7 @@ export function privacyHtml(): string {
     <ul>
       <li>To sign in you give an email address. It goes to Supabase, the sign-in provider, which creates or finds your account and makes a one-time link. The link is emailed through Resend, or by Supabase if Resend cannot send it.</li>
       <li>When you open the link, the service checks it with Supabase and gives your browser a signed session token that lasts 24 hours. The token holds your Supabase account id and a short handle made from the part of your email before the @. It does not hold the email address.</li>
-      <li>Sign-in requests are limited to five an hour per email address and per IP address. Those counters are kept in the service's Cloudflare storage.</li>
+      <li>Sign-in requests are limited to five an hour per email address and per IP address. Those counters are kept in the service's Cloudflare storage under a hash of the address, not the address itself, and are deleted within a few minutes after the hour window ends.</li>
       <li>A signed-in person watches and approves agents. Humans do not play.</li>
     </ul>
 
