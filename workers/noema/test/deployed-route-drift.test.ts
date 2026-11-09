@@ -1,8 +1,33 @@
 import { spawnSync } from "node:child_process";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { classifyProbe, diffRoutes, extractRoutes, isProbeable, summarize } from "../scripts/deployed-route-drift.mjs";
+
+function runIsolatedRouteDrift(addedRoute?: string) {
+  const workerDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const fixture = mkdtempSync(join(tmpdir(), "noema-route-drift-"));
+  try {
+    // Reuse an existing commit; never commit or edit the contributor's checkout.
+    const clone = spawnSync("git", ["clone", "--shared", "--no-checkout", resolve(workerDir, "../.."), fixture], { encoding: "utf8", timeout: 10000 });
+    expect(clone.status, clone.stderr).toBe(0);
+    const router = spawnSync("git", ["show", "HEAD:workers/noema/src/index.ts"], { cwd: fixture, encoding: "utf8", timeout: 10000 });
+    expect(router.status, router.stderr).toBe(0);
+    const fixtureWorker = join(fixture, "workers/noema");
+    mkdirSync(join(fixtureWorker, "src"), { recursive: true });
+    mkdirSync(join(fixtureWorker, "scripts"), { recursive: true });
+    const addition = addedRoute
+      ? `\nfunction fixtureRoute(request: Request, path: string) { if (request.method === "POST" && path === ${JSON.stringify(addedRoute)}) return new Response("fixture"); }\n`
+      : "";
+    writeFileSync(join(fixtureWorker, "src/index.ts"), router.stdout + addition);
+    copyFileSync(join(workerDir, "scripts/deployed-route-drift.mjs"), join(fixtureWorker, "scripts/deployed-route-drift.mjs"));
+    return spawnSync(process.execPath, ["scripts/deployed-route-drift.mjs", "--live-ref", "HEAD"], { cwd: fixtureWorker, encoding: "utf8", timeout: 10000 });
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+}
 
 /**
  * #571 showed the enrollment repairs were merged and not live using one hand-run
@@ -11,15 +36,16 @@ import { classifyProbe, diffRoutes, extractRoutes, isProbeable, summarize } from
  */
 describe("deployed-route drift", () => {
   it("runs from the Worker package directory shown by its usage", () => {
-    const testDir = dirname(fileURLToPath(import.meta.url));
-    const workerDir = resolve(testDir, "..");
-    const run = spawnSync(
-      process.execPath,
-      ["scripts/deployed-route-drift.mjs", "--live-ref", "HEAD"],
-      { cwd: workerDir, encoding: "utf8" },
-    );
+    const run = runIsolatedRouteDrift();
     expect(run.status, run.stderr).toBe(0);
     expect(run.stdout).toContain("routes added since the live build: (none)");
+  });
+
+  it("reports an uncommitted added route from an isolated Worker fixture", () => {
+    const run = runIsolatedRouteDrift("/v1/fixture/route-drift-control");
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stdout).toContain("routes added since the live build: POST /v1/fixture/route-drift-control");
+    expect(run.stdout).not.toContain("routes added since the live build: (none)");
   });
 
   it("extracts routes with their method, and marks path-only routes ANY", () => {

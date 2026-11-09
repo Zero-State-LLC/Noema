@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9157,
-    "edgeCount": 20416,
+    "nodeCount": 9164,
+    "edgeCount": 20447,
     "languages": [
       "javascript",
       "python",
@@ -77646,12 +77646,12 @@
       "name": "index.ts",
       "kind": "file",
       "path": "workers/noema/src/index.ts",
-      "span": "L1-L1174",
+      "span": "L1-L1205",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "29c3619365bfb728d8fbdf3495ad244223e4d23df5b488adbb3f0f773c99fd5e",
-      "chars": 52540,
+      "body_hash": "aa6758cb3500eb0921c1840d542ddc86196ca5fba71e90228681b3ac0c0cef67",
+      "chars": 54394,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -77675,11 +77675,11 @@
       "name": "fetch",
       "kind": "method",
       "path": "workers/noema/src/index.ts",
-      "span": "L220-L1172",
+      "span": "L220-L1203",
       "signature": "async fetch(request: Request, env: Env): Promise<Response>",
       "exported": true,
       "origin": "ast",
-      "body_hash": "d1a91feeecda0ea32305429b2b7e52f0e1777496a6f8dbac7797f03c2826efa1",
+      "body_hash": "bf082e943a2d9240cc5c2490d5ec166e8067bcd86ff525161755141aed0a8504",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92511,12 +92511,12 @@
       "name": "world-do.ts",
       "kind": "file",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1-L1681",
+      "span": "L1-L1718",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "aaa3e65451f0b832abcd533a581b18484dfee4cdd7576cadc632b41f35aafc92",
-      "chars": 68904,
+      "body_hash": "416e2971b389d240dc24b8867799a05359b66e7c9781ce7c08c9b9f66b680553",
+      "chars": 71151,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92596,11 +92596,11 @@
       "name": "NoemaWorldDO",
       "kind": "class",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L265-L1680",
+      "span": "L265-L1717",
       "signature": "class NoemaWorldDO",
       "exported": true,
       "origin": "ast",
-      "body_hash": "5a97358d2f29f15523651a6ea8a28373591cf844ba4ef9709eb04b9386248f83",
+      "body_hash": "eeb69968a34d89150e233803e00520fbd72affaacb228c59b6a13e11870a86e5",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -92610,7 +92610,7 @@
       "name": "alarm",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1551-L1591",
+      "span": "L1588-L1628",
       "signature": "async alarm(): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92625,7 +92625,7 @@
       "name": "applyCommand",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1254-L1492",
+      "span": "L1291-L1529",
       "signature": "private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>",
       "exported": true,
       "origin": "ast",
@@ -92670,7 +92670,7 @@
       "name": "commitTempoResolution",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1504-L1549",
+      "span": "L1541-L1586",
       "signature": "private async commitTempoResolution(events: NonNullable<CommandResult[\"events\"]>): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -92700,7 +92700,7 @@
       "name": "dropDisposableSystemActors",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1212-L1228",
+      "span": "L1249-L1265",
       "signature": "private dropDisposableSystemActors(): number",
       "exported": true,
       "origin": "ast",
@@ -92715,11 +92715,11 @@
       "name": "fetch",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L431-L1157",
+      "span": "L431-L1194",
       "signature": "async fetch(request: Request): Promise<Response>",
       "exported": true,
       "origin": "ast",
-      "body_hash": "31ea550306dc99519af84f8b8ed60ca9eef407ad2ef4214eb6ffe244f82c914f",
+      "body_hash": "30f8a3b3bcad73f499ee8fe5fc5fb48db83e331b5752597c29f53c8e0e1af3ae",
       "summary_state": "pending",
       "summary": null,
       "crux": null,
@@ -92730,7 +92730,7 @@
       "name": "load",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1185-L1210",
+      "span": "L1222-L1247",
       "signature": "private async load(): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92745,7 +92745,7 @@
       "name": "loadDigestConfig",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1593-L1595",
+      "span": "L1630-L1632",
       "signature": "private async loadDigestConfig(): Promise<DigestConfig>",
       "exported": true,
       "origin": "ast",
@@ -92760,7 +92760,7 @@
       "name": "loadMeta",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1179-L1183",
+      "span": "L1216-L1220",
       "signature": "private async loadMeta(): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92790,7 +92790,7 @@
       "name": "publicMeta",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1159-L1177",
+      "span": "L1196-L1214",
       "signature": "private publicMeta(): Record<string, unknown>",
       "exported": true,
       "origin": "ast",
@@ -92805,7 +92805,7 @@
       "name": "recordDigestEvents",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1597-L1622",
+      "span": "L1634-L1659",
       "signature": "private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult[\"events\"]>, cycle: number, ): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92820,7 +92820,7 @@
       "name": "recordOperatorWatch",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1624-L1650",
+      "span": "L1661-L1687",
       "signature": "private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92835,7 +92835,7 @@
       "name": "save",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1230-L1252",
+      "span": "L1267-L1289",
       "signature": "private async save(): Promise<boolean>",
       "exported": true,
       "origin": "ast",
@@ -92850,7 +92850,7 @@
       "name": "put",
       "kind": "function",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1232-L1232",
+      "span": "L1269-L1269",
       "signature": "put = ()",
       "exported": true,
       "origin": "ast",
@@ -92864,7 +92864,7 @@
       "name": "scheduleTempoAlarm",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1494-L1502",
+      "span": "L1531-L1539",
       "signature": "private async scheduleTempoAlarm(now: number): Promise<void>",
       "exported": true,
       "origin": "ast",
@@ -92879,7 +92879,7 @@
       "name": "tickDigests",
       "kind": "method",
       "path": "workers/noema/src/world-do.ts",
-      "span": "L1652-L1679",
+      "span": "L1689-L1716",
       "signature": "private async tickDigests(now: number): Promise<OperatorDigest[]>",
       "exported": true,
       "origin": "ast",
@@ -98846,12 +98846,26 @@
       "name": "deployed-route-drift.test.ts",
       "kind": "file",
       "path": "workers/noema/test/deployed-route-drift.test.ts",
-      "span": "L1-L112",
+      "span": "L1-L138",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "01c26a28f2a08b39dbddc73cc48e874ff023addf00875c658207ba1299a1edce",
-      "chars": 5435,
+      "body_hash": "20b8033d42fccdb04442e951324ddcf4cfd7d35622d737d7061fe019a16bf6bc",
+      "chars": 7256,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/deployed-route-drift.test.ts#runIsolatedRouteDrift",
+      "name": "runIsolatedRouteDrift",
+      "kind": "function",
+      "path": "workers/noema/test/deployed-route-drift.test.ts",
+      "span": "L9-L30",
+      "signature": "function runIsolatedRouteDrift(addedRoute?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f3dc52bf24e0a48ffa8fa49204747a87c6240e317aed71a70a5d62cd60550c20",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -106191,6 +106205,91 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "62cd833c38962db29eab7ca7815a7fc7ea0b72d6f92da29e03c5ee765867ea4a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "name": "isolated-tempo-pin-777.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L1-L207",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "a899ef551cb34fedd4a25c1ea3ec7b95b43c8f6b153a1da669275f8a27e99b3c",
+      "chars": 17525,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope",
+      "name": "onlyObserveScope",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L39-L48",
+      "signature": "async function onlyObserveScope(token: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1ed2686a31615dd216e835aaa3cfef289e2209a91c37457de317c5b079800115",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope.b64",
+      "name": "b64",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L43-L43",
+      "signature": "b64 = (s: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5299797b1d729640bea280d0a57adfa422df29e3f281ba633d19db4592cc37b6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts#request",
+      "name": "request",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L180-L180",
+      "signature": "request=()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "903d1c9118118e1e01eccd82afe3247efe48e8441fb8f7bf51fce139d7d2fb12",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "name": "setupIsolatedTempoPin",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L20-L37",
+      "signature": "async function setupIsolatedTempoPin()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e1f2a2cce7a9fc9c72dfbee3fdf0b8e859d0f68864e3cb68749c42274e5f94d1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/isolated-tempo-pin-777.test.ts#targetWrites",
+      "name": "targetWrites",
+      "kind": "function",
+      "path": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "span": "L38-L38",
+      "signature": "function targetWrites(h: ReturnType<typeof harness>)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f7134035f7eee9d84880fea662fdee83a85ca845df420380728cfd67bd689348",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -219719,7 +219818,31 @@
     },
     {
       "source": "workers/noema/test/deployed-route-drift.test.ts",
+      "target": "workers/noema/test/deployed-route-drift.test.ts#runIsolatedRouteDrift",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/deployed-route-drift.test.ts",
+      "target": "workers/noema/test/deployed-route-drift.test.ts#runIsolatedRouteDrift",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/deployed-route-drift.test.ts",
       "target": "node:child_process",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/deployed-route-drift.test.ts",
+      "target": "node:fs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/deployed-route-drift.test.ts",
+      "target": "node:os",
       "relation": "imports",
       "confidence": "extracted"
     },
@@ -231991,6 +232114,168 @@
       "source": "workers/noema/test/isolated-settlement-proof.test.ts#settleInput",
       "target": "workers/noema/test/isolated-settlement-proof.test.ts#principal",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/admin-auth.ts#mintAdminSession",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/auth.ts#mintHumanPlatformToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/world-do.ts#NoemaWorldDO.fetch",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#targetWrites",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#request",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#targetWrites",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/admin-auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/index.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/seal.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/world-do.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/test/agent-http-do-fixture.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts",
+      "target": "workers/noema/src/world-do.ts#NoemaWorldDO",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope.b64",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope",
+      "target": "workers/noema/test/isolated-tempo-pin-777.test.ts#onlyObserveScope.b64",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "target": "workers/noema/src/admin-auth.ts#mintAdminSession",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#setupIsolatedTempoPin",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/isolated-tempo-pin-777.test.ts#targetWrites",
+      "target": "workers/noema/test/agent-http-do-fixture.ts#harness",
+      "relation": "references",
       "confidence": "extracted"
     },
     {
