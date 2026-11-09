@@ -1081,6 +1081,37 @@ export default {
       }
 
       // Test-only: seed the calling Agent's retained command_aliases in an isolated test world.
+      if (request.method === "POST" && path === "/v1/operator/test-world/tempo-pin") {
+        if (env.NOEMA_ENV !== "test") return cors(err("NOT_FOUND", "not found", 404));
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(agent, "noema.action.submit");
+        if (denied) return cors(denied);
+        const body: unknown = await request.json().catch(() => null);
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            Object.keys(body).some((key) => key !== "world_id")) {
+          return cors(err("INVALID_REQUEST", "only world_id is permitted", 400));
+        }
+        const raw = (body as { world_id?: unknown }).world_id;
+        if (typeof raw !== "string") return cors(err("WORLD_FORBIDDEN", "world_id must be a string", 403));
+        const admitted = admitTestWorldId(raw, env.DEFAULT_WORLD_ID);
+        if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
+        if (admitted.world_id !== env.ISOLATED_WATCH_WORLD_ID) {
+          return cors(err("WORLD_FORBIDDEN", "test world not configured", 403));
+        }
+        const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName(admitted.world_id));
+        const res = await stub.fetch("https://do/isolated-tempo/pin", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-noema-world-id": admitted.world_id },
+          body: JSON.stringify({ world_id: admitted.world_id }),
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
       if (request.method === "POST" && path === "/v1/operator/test-world/seed") {
         if (env.NOEMA_ENV !== "test") return cors(err("NOT_FOUND", "not found", 404));
         const principal = await resolvePrincipal(request, env);

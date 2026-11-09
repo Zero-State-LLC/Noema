@@ -452,6 +452,43 @@ export class NoemaWorldDO {
       return Response.json({ world_id: admitted, instance_id: this.instanceId });
     }
 
+    if (request.method === "POST" && path === "/isolated-tempo/pin") {
+      if (this.env.NOEMA_ENV !== "test") return Response.json({ ok: false }, { status: 404 });
+      const body: unknown = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).some((key) => key !== "world_id")) {
+        return Response.json({ error: { code: "INVALID_REQUEST" } }, { status: 400 });
+      }
+      const raw = (body as { world_id?: unknown }).world_id;
+      const admitted = typeof raw === "string" ? isolatedWatchWorldId(this.env.NOEMA_ENV, raw, this.env.DEFAULT_WORLD_ID) : null;
+      if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID ||
+          request.headers.get("x-noema-world-id") !== admitted) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const stored = await this.state.storage.get<WorldState>("world");
+      if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      if (!stored) return Response.json({ error: { code: "CONFLICT", message: "test world must be initialized" } }, { status: 409 });
+      this.requestedWorldId = admitted;
+      await this.load();
+      if (this.world!.world_id !== admitted) return Response.json({ ok: false }, { status: 403 });
+      const beforePin = structuredClone(this.world!);
+      const now = Date.now();
+      const pinned = pinPlayerTempo(this.world!, {
+        mode: "OBSERVED_LIVE", now, reason: "isolated alarm proof", defaultWorldId: this.env.DEFAULT_WORLD_ID,
+      });
+      if (!pinned.ok) return Response.json({ error: { code: pinned.code, message: pinned.message } }, { status: 409 });
+      let persisted = false;
+      try { persisted = await this.save(); } catch { persisted = false; }
+      if (!persisted) {
+        this.world = beforePin;
+        return Response.json({ error: { code: "CONFLICT", message: "isolated tempo pin was not persisted" } }, { status: 503 });
+      }
+      await this.scheduleTempoAlarm(now);
+      return Response.json({ ok: true, world_id: admitted, player_tempo: publicTempoProjection(this.world!, now) });
+    }
+
     if (request.method === "POST" && path === "/admin-seed-aliases") {
       const body = (await request.json().catch(() => ({}))) as { world_id?: string; player_id?: string; aliases?: unknown };
       // Test-only: re-check independently of the gateway before any load or write.
