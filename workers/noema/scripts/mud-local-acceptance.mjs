@@ -124,6 +124,18 @@ function bounded(value, maxBytes = 32_768) {
   return json?.length > maxBytes ? { omitted: true, bytes: json.length } : value;
 }
 
+export function abortable(pending, signal) {
+  // Transport cancellation alone may not settle fetch/read/cancel. Keep the
+  // runner's await bounded so its existing finally can always stop owned groups.
+  return new Promise((resolve, reject) => {
+    const interrupted = () => { signal.removeEventListener("abort", interrupted); reject(signal.reason); };
+    const finish = settle => value => { signal.removeEventListener("abort", interrupted); settle(value); };
+    signal.addEventListener("abort", interrupted, { once: true });
+    Promise.resolve(pending).then(finish(resolve), finish(reject));
+    if (signal.aborted) interrupted();
+  });
+}
+
 export function assertBudgetDelta(before, after, delta) {
   for (const key of ["attention", "compute", "energy", "influence", "storage"]) {
     assert.ok(Number.isFinite(before?.[key]) && Number.isFinite(after?.[key]), `${key} must be finite`);
@@ -163,24 +175,25 @@ export async function runLocalAcceptance(options) {
   const request = async (path, body, token) => {
     controller.signal.throwIfAborted();
     assert.ok(["/health", "/v1/auth/dev-token", "/v1/command", "/v1/watch/live"].includes(path));
-    const response = await fetch(`http://127.0.0.1:${receipt.port}${path}`, {
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]);
+    const response = await abortable(fetch(`http://127.0.0.1:${receipt.port}${path}`, {
       method: body ? "POST" : "GET", redirect: "error",
       headers: { "content-type": "application/json", ...(token ? { Authorization: `Bearer ${token}`, "X-Noema-Seal": SEAL } : {}) },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]),
-    });
+      signal,
+    }), signal);
     const reader = response.body.getReader();
     const chunks = [];
     let bytes = 0;
     try {
       for (;;) {
-        const { done, value } = await reader.read();
+        const { done, value } = await abortable(reader.read(), signal);
         if (done) break;
         bytes += value.length;
         assert.ok(bytes <= 524_288, "local response exceeds bound");
         chunks.push(Buffer.from(value));
       }
-    } finally { await reader.cancel(); }
+    } finally { await abortable(reader.cancel(), signal); }
     assert.equal(response.status, 200, `${path} HTTP status`);
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
   };
@@ -370,9 +383,9 @@ export async function runLocalAcceptance(options) {
     await watch("after expiry and LEAVE");
     receipt.status = "passed";
   } catch (e) {
-    failure = e;
+    failure = controller.signal.aborted ? controller.signal.reason : e;
     receipt.status = "failed";
-    receipt.error = redact(e.message, sensitive).slice(0, 2_000);
+    receipt.error = redact(failure.message, sensitive).slice(0, 2_000);
   } finally {
     try {
       // Every cleanup action is attempted even when another cleanup action fails.
