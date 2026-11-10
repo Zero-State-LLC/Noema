@@ -124,6 +124,13 @@ function bounded(value, maxBytes = 32_768) {
   return json?.length > maxBytes ? { omitted: true, bytes: json.length } : value;
 }
 
+export function assertBudgetDelta(before, after, delta) {
+  for (const key of ["attention", "compute", "energy", "influence", "storage"]) {
+    assert.ok(Number.isFinite(before?.[key]) && Number.isFinite(after?.[key]), `${key} must be finite`);
+    assert.equal(after[key], before[key] + (delta[key] ?? 0), `${key} exact delta`);
+  }
+}
+
 export async function runLocalAcceptance(options) {
   assert.notEqual(process.platform, "win32", "This runner requires POSIX process groups");
   const runId = randomBytes(8).toString("hex");
@@ -177,13 +184,12 @@ export async function runLocalAcceptance(options) {
     assert.equal(response.status, 200, `${path} HTTP status`);
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
   };
-  const command = async (agent, command, args = {}) => {
-    const id = `mud-${runId}-${++requestId}`;
+  const command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {}) => {
     const result = await request("/v1/command", { request_id: id, idempotency_key: id, command, arguments: args }, agent.token);
     assert.ok(receipt.records.length < 80, "receipt command bound");
-    receipt.records.push({ actor: agent.handle, command, arguments: args, ok: result.ok,
+    receipt.records.push({ actor: agent.handle, phase, request_id: id, idempotency_key: id, command, arguments: args, ok: result.ok,
       error: bounded(result.error), settled: result.settled, events: bounded(result.events), observation: bounded(result.observation) });
-    assert.equal(result.ok, true, `${command}: ${JSON.stringify(result.error)}`);
+    assert.equal(result.ok, expectedOk, `${command}: ${JSON.stringify(result.error)}`);
     return result;
   };
   const start = async phase => {
@@ -254,7 +260,35 @@ export async function runLocalAcceptance(options) {
     const builder = await mint("builder");
     const witness = await mint("witness");
     await command(builder, "ENTER_WORLD");
-    await command(witness, "ENTER_WORLD");
+    const entered = await command(witness, "ENTER_WORLD");
+    // Actual Mini Chamber route. Storage 16 is free capacity, an empty hold, so MOVE costs energy 1 only.
+    // Round-trip before the initial WAIT keeps the later notice/plate lifecycle intact.
+    const origin = entered.observation;
+    check("MOVE witness starts at actual Mini Chamber Anchor", origin.location.room_id === "room.anchor"
+      && origin.location.exits.some(e => e.direction === "east" && e.to_room_id === "room.hall") && origin.budgets.storage === 16);
+    const rejected = await command(witness, "MOVE", { direction: "down" }, { expectedOk: false, phase: "move rejection" });
+    check("nonexistent down MOVE canonically rejected without events", rejected.error?.code === "MOVE_REJECTED"
+      && rejected.error?.message === "There is no exit down from here." && (rejected.events ?? []).length === 0);
+    assert.deepEqual(rejected.observation.location, origin.location);
+    assertBudgetDelta(origin.budgets, rejected.observation.budgets, {});
+    check("rejected MOVE preserves location and all five budgets", true);
+    const moveId = `mud-${runId}-move-witness`;
+    const moved = await command(witness, "MOVE", { direction: "east" }, { id: moveId, phase: "move original" });
+    check("legal MOVE has exactly one MOVE event and no hidden LOOK", moved.events?.length === 1
+      && moved.events[0].event_type === "MOVE" && moved.events[0].payload?.from === "room.anchor"
+      && moved.events[0].payload?.to === "room.hall" && moved.events[0].payload?.direction === "east");
+    assert.deepEqual(moved.events[0].payload.cost_paid, { energy: 1 });
+    assertBudgetDelta(origin.budgets, moved.observation.budgets, { energy: -1 });
+    check("legal MOVE exact all-five budget deltas", true);
+    check("MOVE destination orientation and legal return hint", moved.observation.location.room_id === "room.hall"
+      && moved.observation.location.name === "Hall"
+      && moved.observation.location.exits.some(e => e.direction === "west" && e.to_room_id === "room.anchor")
+      && moved.observation.affordances.some(a => a.cmd === "move west" && a.available)
+      && moved.observation.play_text.includes("Hall"));
+    const returned = await command(witness, "MOVE", { direction: "west" }, { phase: "move return" });
+    assertBudgetDelta(moved.observation.budgets, returned.observation.budgets, { energy: -1 });
+    check("MOVE round-trip restores origin before initial WAIT", returned.observation.location.room_id === origin.location.room_id
+      && returned.events?.length === 1 && returned.events[0].event_type === "MOVE");
     const formed = await command(builder, "ORG_CREATE", { name: `Local Compact ${runId}`, charter: "Local reproducible MUD acceptance." });
     const orgId = formed.events?.find(e => e.event_type === "ORG_CREATE")?.payload?.org_id;
     assert.ok(orgId, "canonical ORG_CREATE must identify org");
@@ -303,6 +337,15 @@ export async function runLocalAcceptance(options) {
     check("first real process stopped before restart", !(await isListening(receipt.port)) && !(await isListening(receipt.inspector_port)));
     await start("retained-storage restart"); // SAME name, config, local signing binding and storage.
     check("restart is a different process", receipt.processes[0].pid !== receipt.processes[1].pid);
+    const preReplay = await command(witness, "LOOK", {}, { phase: "move replay fresh before" });
+    check("restart witness independently remains at origin", preReplay.observation.location.room_id === origin.location.room_id);
+    const replay = await command(witness, "MOVE", { direction: "east" }, { id: moveId, phase: "move retained-storage replay" });
+    assert.deepEqual(replay, moved, "retained-storage MOVE replay exact original result including observation");
+    check("retained-storage MOVE replay exact original result and observation", true);
+    const postReplay = await command(witness, "LOOK", {}, { phase: "move replay fresh after" });
+    assert.deepEqual(postReplay.observation.location, preReplay.observation.location);
+    assertBudgetDelta(preReplay.observation.budgets, postReplay.observation.budgets, { attention: -1 });
+    check("independent fresh LOOK proves replay no movement or debit except LOOK attention 1", true);
     const retained = await command(builder, "LOOK");
     assertNotices(retained.observation, "after real restart");
     check("restart did not advance cycle", retained.observation.cycle === before.observation.cycle);
