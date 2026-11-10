@@ -95,6 +95,15 @@ publicly hosted or owner-accepted execution:
 | `http-restart.json` | `63093a072fad62d7042ebb4a2e441c8ef1816793d3036db8747395272b11c333` |
 | `http-expiry.json` | `fd86a1b5ebcaf2d6d10d389fa56bb92f9d5fc9726ecc463fd7c00a0da8e6e69a` |
 
+## Repository-native local follow-up
+
+The subsequent ops follow-up exposes `npm run acceptance:mud:local` for a fresh,
+self-owned local world, canonical four-surface writers, a real retained-storage
+process restart, committed-cycle expiry and independent post-LEAVE readback.
+See [Local MUD acceptance](MUD-LOCAL-ACCEPTANCE.md) for the command, safety
+boundaries and receipt interpretation. It does not turn the historical receipts
+above into hosted acceptance or resolve the decisions below.
+
 ## Still open
 
 - #850/#851 WAIT contract decision and normal review.

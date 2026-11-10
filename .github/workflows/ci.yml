@@ -100,3 +100,7 @@ jobs:
       # Preserve independent typecheck diagnostics even when tests fail.
       if: ${{ !cancelled() }}
       run: npm run typecheck
+    - name: Exercise real local MUD lifecycle and restart
+      # Fresh loopback-only workerd, generated local bindings, no hosted credentials.
+      timeout-minutes: 3
+      run: npm run acceptance:mud:local -- --artifacts "$RUNNER_TEMP/noema-mud-local"

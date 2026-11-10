@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9184,
-    "edgeCount": 20512,
+    "nodeCount": 9214,
+    "edgeCount": 20591,
     "languages": [
       "javascript",
       "python",
@@ -69815,6 +69815,399 @@
       "crux": null
     },
     {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "name": "mud-local-acceptance.mjs",
+      "kind": "file",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L1-L376",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "fb139017f3a98cbef143420aa39c52df5a399056984a717c56ed1c74827a3e05",
+      "chars": 21152,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#admitArgs",
+      "name": "admitArgs",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L21-L34",
+      "signature": "function admitArgs(argv, env = {})",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "a336bb9e366af00329246bb3612f36fa178cb0a02b33649a9d5ac5d873ad5a57",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#bounded",
+      "name": "bounded",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L122-L125",
+      "signature": "function bounded(value, maxBytes = 32_768)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b6b7f1aba977752f8089514eb31cd463eefa51c0cfe16128cbb4c162e500e2dd",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#childEnvironment",
+      "name": "childEnvironment",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L52-L62",
+      "signature": "function childEnvironment(runDir, nodePath = process.execPath)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "e854dd5038403c58271d7aeb70e1aa59fdc1ef841006a6b188ba5b5f1fef82de",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#gitMetadata",
+      "name": "gitMetadata",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L72-L84",
+      "signature": "function gitMetadata(root, run = args => { const result = spawnSync(\"git\", args, { cwd: root, env: { PATH: \"/usr/bin:/bin\" }, encoding: \"utf8\", timeout: 2_000, maxBuffer: 65_536 }); return { status: result.status, stdout: String(result.stdout ?? \"\"), error: Boolean(result.error) }; })",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "8e3cc5615da2ca4fa127e0866f8b50f5a7f452d91a4d236cbeeee5a6bc7738d8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#groupAlive",
+      "name": "groupAlive",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L103-L106",
+      "signature": "function groupAlive(pid)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d994b2363c3be36cbffac2d55aa6155e356a2a0de73f5a3bc40da75c989e5ba6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#isListening",
+      "name": "isListening",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L93-L101",
+      "signature": "async function isListening(port)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a61c93e0aea117830ccfdda12ccc61e7632db6872f8c7d3c979900fb79d9e337",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#isListening.finish",
+      "name": "finish",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L96-L96",
+      "signature": "finish = value",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "88504630847c034369b390ecfc4161e5c0d5cc0ae0762875c8ad554f056b9582",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#localConfig",
+      "name": "localConfig",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L37-L49",
+      "signature": "function localConfig(workerRoot, runId)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "cd6d84fd640e1c11c54f3f4135996d44f3f589c70bd89837d32c2205f84c4895",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#redact",
+      "name": "redact",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L64-L69",
+      "signature": "function redact(text, sensitive = [])",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "910c138bcd05e361c63383cd4298ca2642a9e64f6cb3349de464cbd6acdc55c3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#reservePort",
+      "name": "reservePort",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L86-L91",
+      "signature": "async function reservePort()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c694c7d4ea88f228500f62ea0d4f27e5371ac706858bf8faaaba779a23c19081",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "name": "runLocalAcceptance",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L127-L364",
+      "signature": "async function runLocalAcceptance(options)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4d33c5fb6a07935d5e21754a108698b8099ee78dae72f0553b15c60fbb64f9b9",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.assertNotices",
+      "name": "assertNotices",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L286-L289",
+      "signature": "assertNotices = (obs, phase)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "1287a7715822e3571b2d70eff23ce3fd693be2a1c6a0418acb79f720adac5c4c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.check",
+      "name": "check",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L155-L155",
+      "signature": "check = (name, predicate)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "5303982d018ff6ca1760c36af30b7a627fc74120ed297dcb4cdf0a96d8026ef5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.command",
+      "name": "command",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L180-L188",
+      "signature": "command = async (agent, command, args = {})",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "4a052775f6cdada81fa5c39fb38e9c1d851581e1cba9216bd843216a2b377de3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.hasPlate",
+      "name": "hasPlate",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L276-L276",
+      "signature": "hasPlate = observation",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "2804158e604ad71929ddfaf723963e9839b77398b8bfcecb32106bdf80957676",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.interrupt",
+      "name": "interrupt",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L139-L139",
+      "signature": "interrupt = signal",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "2980c62c393121373290b370bc155a5503a438090b73c611ec2952fc0b2f7fd9",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.mint",
+      "name": "mint",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L245-L253",
+      "signature": "mint = async role",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "9cfb04e1a7bf059c9a356cc81d1e095aa000c49907f6d10c6484a58d4558d5d6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onHup",
+      "name": "onHup",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L142-L142",
+      "signature": "onHup = ()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "5131627ef92dbdeb84abb0d2b0440bb7c3104ed4568d89653945e984d84ad3a8",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onInt",
+      "name": "onInt",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L140-L140",
+      "signature": "onInt = ()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "959c7add61bc2b1f628e41e8cf3dfc8ecf9626629fc6ca33f937bc4180ed8b76",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onTerm",
+      "name": "onTerm",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L141-L141",
+      "signature": "onTerm = ()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "1258793cdfde542fe853ac5aab446e5418d594f8d9efbfb8ea9e8a747b32cf21",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "name": "request",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L156-L179",
+      "signature": "request = async (path, body, token)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "0fdd86dc0cc552206f4137c3c39b6a6e021bd1f94c48a157e6c2757e32c15e0f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "name": "start",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L189-L224",
+      "signature": "start = async phase",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "887f7616ee279b40616db1c714c30a265ecf627b8bed9c4552e50574a8348dc9",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start.capture",
+      "name": "capture",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L200-L200",
+      "signature": "capture = chunk",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "58357474439a799a23218f7dbfb25605f14a34e7a95e16f0a6ff6bd2a8fe7c2e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.stop",
+      "name": "stop",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L225-L231",
+      "signature": "stop = async ()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "6fa6d02a3fee22dd9fc2668e0c046265923e01ffb69457eb4321fea473f98d2e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "name": "watch",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L290-L298",
+      "signature": "watch = async phase",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "c3d523ec39853d0d8e52b029d0faf4d4937995f46150ae7742ce17376f816b0c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "name": "stopOwned",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L108-L120",
+      "signature": "async function stopOwned(child)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4cdf85df95897483a74f80ab6e3b62455e666376261f802987cfb58904d05eb1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned.signal",
+      "name": "signal",
+      "kind": "function",
+      "path": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "span": "L111-L114",
+      "signature": "signal = name",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4a36a868dc2a2e232ce88b1f81483dcef2d356b1ac188045f650bc5310994857",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/scripts/operator-env.mjs",
       "name": "operator-env.mjs",
       "kind": "file",
@@ -107180,6 +107573,35 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "438b1d3c7ae772dd4de929d0080331c8d8bd950f1e2f319f4961ccfdbc9c68cb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-local-acceptance.test.ts",
+      "name": "mud-local-acceptance.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/mud-local-acceptance.test.ts",
+      "span": "L1-L137",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "102d71a9744c05a10c825f567edfb0ca5cda0a192d60489e3773e20260eac916",
+      "chars": 7835,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-local-acceptance.test.ts#result",
+      "name": "result",
+      "kind": "function",
+      "path": "workers/noema/test/mud-local-acceptance.test.ts",
+      "span": "L16-L16",
+      "signature": "result = (stdout: string, status: number | null = 0, error = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c4b1e21bc6cbebeb7375ea6bde488cc27b03ddaaa681e02bc951ef872332deed",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -188492,6 +188914,420 @@
       "confidence": "inferred"
     },
     {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#admitArgs",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#admitArgs",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#bounded",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#childEnvironment",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#gitMetadata",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#groupAlive",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#isListening",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#localConfig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#redact",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#reservePort",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:assert/strict",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:child_process",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:crypto",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:fs/promises",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:net",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:path",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:timers/promises",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "target": "node:url",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#isListening",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#isListening.finish",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#isListening",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#isListening.finish",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#childEnvironment",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#gitMetadata",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#isListening",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#localConfig",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#redact",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#reservePort",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.assertNotices",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.check",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.command",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.hasPlate",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.mint",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.stop",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.assertNotices",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.check",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.command",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.hasPlate",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.interrupt",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.mint",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onHup",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onInt",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onTerm",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.stop",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.assertNotices",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.check",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.assertNotices",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.hasPlate",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.command",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#bounded",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.command",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.mint",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onHup",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.interrupt",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onInt",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.interrupt",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.onTerm",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.interrupt",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#bounded",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#redact",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.start.capture",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.stop",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#bounded",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.check",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.watch",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#groupAlive",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned.signal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#stopOwned.signal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/scripts/operator-env.mjs",
       "target": "workers/noema/scripts/operator-env.mjs#classifyAdminMaterial",
       "relation": "contains",
@@ -211959,12 +212795,6 @@
     },
     {
       "source": "workers/noema/test/acceptance-733.test.ts",
-      "target": "workers/noema/scripts/acceptance-733.mjs#redact",
-      "relation": "calls",
-      "confidence": "inferred"
-    },
-    {
-      "source": "workers/noema/test/acceptance-733.test.ts",
       "target": "workers/noema/scripts/acceptance-733.mjs#redactDeep",
       "relation": "calls",
       "confidence": "inferred"
@@ -233741,6 +234571,72 @@
       "source": "workers/noema/test/mud-command-parser.test.ts#toRhea",
       "target": "workers/noema/src/actions.ts#parseHumanCommand",
       "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#admitArgs",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#childEnvironment",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#gitMetadata",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs#localConfig",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/test/mud-local-acceptance.test.ts#result",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/test/mud-local-acceptance.test.ts#result",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "node:child_process",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "node:url",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-local-acceptance.test.ts",
+      "target": "workers/noema/scripts/mud-local-acceptance.mjs",
+      "relation": "imports",
       "confidence": "extracted"
     },
     {

@@ -1,0 +1,29 @@
+# workers/noema/scripts/mud-local-acceptance.mjs
+
+- admitArgs · function · L21-L34 — function admitArgs(argv, env = {})
+- localConfig · function · L37-L49 — function localConfig(workerRoot, runId)
+- childEnvironment · function · L52-L62 — function childEnvironment(runDir, nodePath = process.execPath)
+- redact · function · L64-L69 — function redact(text, sensitive = [])
+- gitMetadata · function · L72-L84 — function gitMetadata(root, run = args => { const result = spawnSync("git", args, { cwd: root, env: { PATH: "/usr/bin:/bin" }, encoding: "utf8", timeout: 2_000, maxBuffer: 65_536 }); return { status: result.status, stdout: String(result.stdout ?? ""), error: Boolean(result.error) }; })
+- reservePort · function · L86-L91 — async function reservePort()
+- isListening · function · L93-L101 — async function isListening(port)
+- finish · function · L96-L96 — finish = value
+- groupAlive · function · L103-L106 — function groupAlive(pid)
+- stopOwned · function · L108-L120 — async function stopOwned(child)
+- signal · function · L111-L114 — signal = name
+- bounded · function · L122-L125 — function bounded(value, maxBytes = 32_768)
+- runLocalAcceptance · function · L127-L364 — async function runLocalAcceptance(options)
+- interrupt · function · L139-L139 — interrupt = signal
+- onInt · function · L140-L140 — onInt = ()
+- onTerm · function · L141-L141 — onTerm = ()
+- onHup · function · L142-L142 — onHup = ()
+- check · function · L155-L155 — check = (name, predicate)
+- request · function · L156-L179 — request = async (path, body, token)
+- command · function · L180-L188 — command = async (agent, command, args = {})
+- start · function · L189-L224 — start = async phase
+- capture · function · L200-L200 — capture = chunk
+- stop · function · L225-L231 — stop = async ()
+- mint · function · L245-L253 — mint = async role
+- hasPlate · function · L276-L276 — hasPlate = observation
+- assertNotices · function · L286-L289 — assertNotices = (obs, phase)
+- watch · function · L290-L298 — watch = async phase

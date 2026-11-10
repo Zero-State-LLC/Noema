@@ -12,6 +12,7 @@
     "build:watch-fluid": "node ./scripts/build-watch-fluid.mjs",
     "test": "npm run build:map-gl && vitest run",
     "smoke": "node ./scripts/smoke.mjs",
+    "acceptance:mud:local": "node ./scripts/mud-local-acceptance.mjs",
     "smoke:hosted": "node ./scripts/hosted-conformance.mjs",
     "rehearse:rollback": "node ./scripts/rollback-rehearsal.mjs",
     "secrets:push": "bash ./scripts/push-secrets-from-env.sh",
