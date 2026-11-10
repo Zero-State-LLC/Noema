@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9253,
-    "edgeCount": 20696,
+    "nodeCount": 9263,
+    "edgeCount": 20724,
     "languages": [
       "javascript",
       "python",
@@ -84269,12 +84269,12 @@
       "name": "protocol-ws.ts",
       "kind": "file",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L1-L364",
+      "span": "L1-L373",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "d146b32f167375b08333d16fe57bc49ef8e0256e901c20c9b45bff3fe371e38e",
-      "chars": 13710,
+      "body_hash": "b420d6e73001996c14b30def772fafb851ce1fcc21dad226f6a64c5699132654",
+      "chars": 14226,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -84284,7 +84284,7 @@
       "name": "acceptProtocolWebSocket",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L326-L363",
+      "span": "L335-L372",
       "signature": "function acceptProtocolWebSocket( request: Request, env: Env, route: ( env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope, opts?: { allow_bootstrap?: boolean }, ) => Promise<Response>, ): Response",
       "exported": true,
       "origin": "ast",
@@ -84298,7 +84298,7 @@
       "name": "applyPlayerCommand",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L135-L183",
+      "span": "L136-L184",
       "signature": "async function applyPlayerCommand( env: Env, request: Request, principal: Principal, envelope: CommandEnvelope & { world_id?: string }, route: ( env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope, opts?: { allow_bootstrap?: boolean }, ) => Promise<Response>, ): Promise<Response>",
       "exported": true,
       "origin": "ast",
@@ -84312,7 +84312,7 @@
       "name": "commandFromFrame",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L185-L203",
+      "span": "L186-L204",
       "signature": "function commandFromFrame(msg: Frame): CommandEnvelope & { world_id?: string }",
       "exported": false,
       "origin": "ast",
@@ -84326,7 +84326,7 @@
       "name": "Frame",
       "kind": "type",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L17-L26",
+      "span": "L18-L27",
       "signature": "type Frame = { type?: string; request_id?: string; protocol?: string; world_id?: string; idempotency_key?: string; body?: Record<string, unknown>; command?: string; arguments?: Record<string, unknown>; };",
       "exported": false,
       "origin": "ast",
@@ -84340,11 +84340,11 @@
       "name": "handleProtocolFrame",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L205-L324",
+      "span": "L206-L333",
       "signature": "async function handleProtocolFrame( env: Env, request: Request, state: ProtocolState, msg: Frame, route: ( env: Env, worldId: string, principal: unknown, envelope: CommandEnvelope, opts?: { allow_bootstrap?: boolean }, ) => Promise<Response>, ): Promise<{ reply: Record<string, unknown>; state: ProtocolState }>",
       "exported": true,
       "origin": "ast",
-      "body_hash": "6b15a488cf2b9c25d968b59398dd77895ba6871aca533512941dcb8a83c33032",
+      "body_hash": "8c496116c049d45398606e25a01f93776111229cccc4cd97ce0fcdc7b3f5b306",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -84354,7 +84354,7 @@
       "name": "mintResumeToken",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L88-L107",
+      "span": "L89-L108",
       "signature": "async function mintResumeToken( env: Env, principal: PlayerPrincipal, seal?: string | null, ): Promise<string>",
       "exported": true,
       "origin": "ast",
@@ -84368,7 +84368,7 @@
       "name": "principalFromResume",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L109-L133",
+      "span": "L110-L134",
       "signature": "async function principalFromResume( env: Env, token: string, ): Promise<{ principal: PlayerPrincipal; seal: string | null } | null>",
       "exported": true,
       "origin": "ast",
@@ -84382,7 +84382,7 @@
       "name": "protocolAuthMethods",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L48-L50",
+      "span": "L49-L51",
       "signature": "function protocolAuthMethods(env?: { NOEMA_ENV?: string }): string[]",
       "exported": true,
       "origin": "ast",
@@ -84396,7 +84396,7 @@
       "name": "protocolHello",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L72-L86",
+      "span": "L73-L87",
       "signature": "function protocolHello( body: Frame, env?: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string }, ): Record<string, unknown>",
       "exported": true,
       "origin": "ast",
@@ -84410,7 +84410,7 @@
       "name": "protocolHelloAck",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L52-L70",
+      "span": "L53-L71",
       "signature": "function protocolHelloAck( requestId: string | undefined, extra?: Record<string, unknown>, env?: { NOEMA_ENV?: string; DEFAULT_WORLD_ID?: string }, )",
       "exported": true,
       "origin": "ast",
@@ -84424,7 +84424,7 @@
       "name": "ProtocolState",
       "kind": "type",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L11-L15",
+      "span": "L12-L16",
       "signature": "type ProtocolState = { principal: PlayerPrincipal | null; adminToken: string; seal?: string | null; };",
       "exported": true,
       "origin": "ast",
@@ -84438,7 +84438,7 @@
       "name": "protoErr",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L38-L46",
+      "span": "L39-L47",
       "signature": "function protoErr(requestId: string | undefined, code: string, message: string, statusHint = 400)",
       "exported": false,
       "origin": "ast",
@@ -84452,7 +84452,7 @@
       "name": "stripHumanPlayLine",
       "kind": "function",
       "path": "workers/noema/src/protocol-ws.ts",
-      "span": "L29-L36",
+      "span": "L30-L37",
       "signature": "function stripHumanPlayLine(envelope: CommandEnvelope): CommandEnvelope",
       "exported": true,
       "origin": "ast",
@@ -99039,6 +99039,147 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "fc85882bec954ea0b68ea25c93a730e97d4abe3d46fbb3bfb4717b4342eddb96",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "name": "controller-ws-revocation-778.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L1-L109",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "c69d7e2cb7ce251e9cea621c701e3df61c7292ac62cae3245cbb72dcc9bd21f2",
+      "chars": 5469,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#act",
+      "name": "act",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L10-L12",
+      "signature": "act = (request_id: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b5b9a5fb8dea73573897b75b8ea312aa2e40b33b985d189119375214a0c077ce",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#blank",
+      "name": "blank",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L9-L9",
+      "signature": "blank = (): ProtocolState",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d350f0f41becb805a7fa6055d814cbf0aaf1c970b4399df159134012038f20e5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#get",
+      "name": "get",
+      "kind": "method",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L90-L98",
+      "signature": "get(target, key, receiver)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "5d54712ad2c1f7bbd81135a376d1ab1ff9ee48dc0eb4519a7b3e71edb573bff4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#get.get",
+      "name": "get",
+      "kind": "method",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L92-L95",
+      "signature": "get(stub, field, r)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "30901b97875d6271b4bba3f16baeed8c9e8b58fc3957afd6e1e1be00052588d1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#hello",
+      "name": "hello",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L71-L75",
+      "signature": "hello = async (request_id: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9d1582c8624b92930fbcd9e9bc1ad116562d870b1d231aca1638e85727ba95a5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#Route",
+      "name": "Route",
+      "kind": "type",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L7-L7",
+      "signature": "type Route = Parameters<typeof handleProtocolFrame>[4];",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0d4dda4c3aa09148686862b4ea4cf3a3d1809a13b0cbf7c6f22d986126414d63",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "name": "setup",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L13-L41",
+      "signature": "async function setup()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b738f1333e965d7bdddccce16a0bbd70a76ce975c1b6c38c0d058f2eb793deb7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#setup.revoke",
+      "name": "revoke",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L31-L39",
+      "signature": "revoke = async ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "842c68c690246e7ea77bdff1e8cf5c8516f77875df87250a31be47b17478cc03",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/controller-ws-revocation-778.test.ts#setup.route",
+      "name": "route",
+      "kind": "function",
+      "path": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "span": "L18-L23",
+      "signature": "route: Route = async (_env, world, principal, envelope)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "54a98953310d23d76abcfb753b91e7a6072e1fbf6a3ebbb518f63aefb988d203",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -202131,6 +202272,12 @@
     },
     {
       "source": "workers/noema/src/protocol-ws.ts",
+      "target": "workers/noema/src/controller-revocation.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/src/protocol-ws.ts",
       "target": "workers/noema/src/jwt.ts",
       "relation": "imports",
       "confidence": "extracted"
@@ -202220,6 +202367,12 @@
       "confidence": "inferred"
     },
     {
+      "source": "workers/noema/src/protocol-ws.ts#applyPlayerCommand",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#setup.route",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
       "target": "workers/noema/src/auth.ts#requireAgentPlayer",
       "relation": "calls",
@@ -202246,6 +202399,18 @@
     {
       "source": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
       "target": "workers/noema/src/command-world.ts#resolvePlayWorld",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "target": "workers/noema/src/controller-revocation.ts#durableRevocationStore",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "target": "workers/noema/src/controller-revocation.ts#isControllerRevoked",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -220934,6 +221099,156 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#act",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#hello",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#act",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#blank",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#get",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#hello",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#Route",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/src/auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/src/protocol-ws.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/src/seal.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts",
+      "target": "workers/noema/test/conformance/harness.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#get",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#get.get",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#hello",
+      "target": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#hello",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#blank",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#Route",
+      "target": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "target": "workers/noema/src/auth.ts#mintControllerToken",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "target": "workers/noema/src/protocol-ws.ts#handleProtocolFrame",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#blank",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#setup.revoke",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/controller-ws-revocation-778.test.ts#setup",
+      "target": "workers/noema/test/controller-ws-revocation-778.test.ts#setup.route",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/cors.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -236526,12 +236841,6 @@
       "target": "workers/noema/test/operator-test-world-seed.test.ts#seedHarnessWith",
       "relation": "calls",
       "confidence": "extracted"
-    },
-    {
-      "source": "workers/noema/test/operator-test-world-seed.test.ts",
-      "target": "workers/noema/test/test-world.test.ts#setup",
-      "relation": "calls",
-      "confidence": "inferred"
     },
     {
       "source": "workers/noema/test/operator-test-world-seed.test.ts",
