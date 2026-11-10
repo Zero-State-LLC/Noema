@@ -141,5 +141,5 @@ This section is my standing authorization. Do not ask me to approve anything lis
 
 ### Where things are
 - Keys: never in the tree, chat or logs. CI secrets are GitHub Actions secrets; Worker secrets are set with `wrangler secret put`; local values live in gitignored `.dev.vars` or `.env`. Variable names are listed in `.env.example` (root) and `workers/noema/.env.example`. If a value is missing, ask where it is stored; never ask for a paste.
-- Board: `STATUS.md`. Live plan: `plans/POST-RFC0120-NEXT-10-STEPS-PLAN.md`. Facts: `FACTS.md`. Hand-offs: `docs/handoff/NEXT.md`.
+- Board: `STATUS.md`. Live plan: `docs/POST-RFC0120-NEXT-10-STEPS-PLAN.md`. Facts: `FACTS.md`. Hand-offs: `docs/handoff/NEXT.md`.
 - Hosting: Cloudflare Worker (`workers/noema/wrangler.toml`; production deploy only via `deploy-worker-pin-pr.yml`, dispatch-only) and GitHub Pages (`pages.yml`, static `site/`). (hosted, not local)
