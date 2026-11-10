@@ -12,18 +12,19 @@
 - stopOwned · function · L108-L120 — async function stopOwned(child)
 - signal · function · L111-L114 — signal = name
 - bounded · function · L122-L125 — function bounded(value, maxBytes = 32_768)
-- runLocalAcceptance · function · L127-L364 — async function runLocalAcceptance(options)
-- interrupt · function · L139-L139 — interrupt = signal
-- onInt · function · L140-L140 — onInt = ()
-- onTerm · function · L141-L141 — onTerm = ()
-- onHup · function · L142-L142 — onHup = ()
-- check · function · L155-L155 — check = (name, predicate)
-- request · function · L156-L179 — request = async (path, body, token)
-- command · function · L180-L188 — command = async (agent, command, args = {})
-- start · function · L189-L224 — start = async phase
-- capture · function · L200-L200 — capture = chunk
-- stop · function · L225-L231 — stop = async ()
-- mint · function · L245-L253 — mint = async role
-- hasPlate · function · L276-L276 — hasPlate = observation
-- assertNotices · function · L286-L289 — assertNotices = (obs, phase)
-- watch · function · L290-L298 — watch = async phase
+- assertBudgetDelta · function · L127-L132 — function assertBudgetDelta(before, after, delta)
+- runLocalAcceptance · function · L134-L407 — async function runLocalAcceptance(options)
+- interrupt · function · L146-L146 — interrupt = signal
+- onInt · function · L147-L147 — onInt = ()
+- onTerm · function · L148-L148 — onTerm = ()
+- onHup · function · L149-L149 — onHup = ()
+- check · function · L162-L162 — check = (name, predicate)
+- request · function · L163-L186 — request = async (path, body, token)
+- command · function · L187-L194 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
+- start · function · L195-L230 — start = async phase
+- capture · function · L206-L206 — capture = chunk
+- stop · function · L231-L237 — stop = async ()
+- mint · function · L251-L259 — mint = async role
+- hasPlate · function · L310-L310 — hasPlate = observation
+- assertNotices · function · L320-L323 — assertNotices = (obs, phase)
+- watch · function · L324-L332 — watch = async phase

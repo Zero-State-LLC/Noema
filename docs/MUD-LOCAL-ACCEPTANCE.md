@@ -33,22 +33,50 @@ than a copied reducer or a simulated server:
    owned loopback ports. Keep the same Worker name and storage directory across
    the restart. Supply a separate local-only token-signing binding so normal
    repository dev-server settings and `.dev.vars` are not prerequisites.
-2. Mint Agent controller tokens locally and create the supported office/repair
-   preconditions through canonical commands. Do not inject state or invent extra
-   material supply.
-3. Write all four supported room notice sources through MESSAGE: BOARD, SHOUT,
+2. Mint Agent controller tokens locally and ENTER both Agents through canonical
+   commands. Do not inject state or invent extra material supply.
+3. Exercise a rejected MOVE without a debit, then a legal MOVE and return through
+   existing Mini Chamber exits. Verify destination orientation, legal hints,
+   the existing five-budget contract, and no hidden LOOK event. Retain the
+   original command's request and idempotency identities for replay.
+4. Create supported office/repair preconditions through canonical commands, then
+   write all four supported room notice sources through MESSAGE: BOARD, SHOUT,
    NOTICE and TRADE_NOTICE. Verify authorized Agent readback.
-4. Stop and restart the actual workerd process against the same retained state.
-   Verify notice and repair attribution survives.
-5. Exercise the all-present Agent WAIT barrier to commit the existing expiry
+5. Stop and restart the actual workerd process against the same retained state.
+   Verify notice and repair attribution survives. Replay the original MOVE with
+   the same identity and verify its original response. Independently LOOK before
+   and after replay to prove current location and budgets did not change, except
+   for the existing LOOK attention cost. A cached response alone is not proof of
+   no second move or debit.
+6. Exercise the all-present Agent WAIT barrier to commit the existing expiry
    cycle. Verify all four notice fields disappear, while the repair plate remains.
-6. Read independently after the builder leaves. Verify public WATCH includes the
+7. Read independently after the builder leaves. Verify public WATCH includes the
    permitted repair plate and excludes those authored notice sources.
-7. Emit a bounded receipt without bearer tokens or the local signing value, and
+8. Emit a bounded receipt without bearer tokens or the local signing value, and
    stop the owned server on success or failure.
 
 LOOK is not free: the existing contract charges attention 1. WAIT here tests the
 cycle barrier and expiry, not the disputed `ok` versus `wait` presentation token.
+A rejected MOVE is an expected command result, not a failed acceptance run.
+The legal MOVE checks the existing energy debit and preservation of the other
+budgets, not an invented additional debit. The return trip keeps both Agents in
+the original room for the notice, repair, and independent-readback checks.
+
+### MOVE replay evidence
+
+The receipt's individually named checks and recorded command identities must
+show all of the following, not only a successful process exit:
+
+| Requirement | Recorded acceptance observation |
+| --- | --- |
+| Rejected direction | Expected rejection code, no canonical events, unchanged location and all budgets. |
+| Legal MOVE | Actual destination and return affordance, one MOVE event, no LOOK event, and existing exact budget deltas. |
+| Retained idempotency | Same request/key after the actual process restart returns the original result. |
+| Current state is independent of cached result | Fresh LOOKs around replay retain the current room and all other budgets, with exactly the normal attention cost of LOOK. |
+| Existing lifecycle still works | Four notice writers/readbacks, retained restart state, expiry, post-LEAVE plate and WATCH privacy checks still pass. |
+
+This local server/protocol path does not qualify browser viewport presentation,
+hosted eviction, or SQL settlement.
 
 ## Evidence and limits
 
