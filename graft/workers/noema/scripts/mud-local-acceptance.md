@@ -12,19 +12,22 @@
 - stopOwned · function · L108-L120 — async function stopOwned(child)
 - signal · function · L111-L114 — signal = name
 - bounded · function · L122-L125 — function bounded(value, maxBytes = 32_768)
-- assertBudgetDelta · function · L127-L132 — function assertBudgetDelta(before, after, delta)
-- runLocalAcceptance · function · L134-L407 — async function runLocalAcceptance(options)
-- interrupt · function · L146-L146 — interrupt = signal
-- onInt · function · L147-L147 — onInt = ()
-- onTerm · function · L148-L148 — onTerm = ()
-- onHup · function · L149-L149 — onHup = ()
-- check · function · L162-L162 — check = (name, predicate)
-- request · function · L163-L186 — request = async (path, body, token)
-- command · function · L187-L194 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
-- start · function · L195-L230 — start = async phase
-- capture · function · L206-L206 — capture = chunk
-- stop · function · L231-L237 — stop = async ()
-- mint · function · L251-L259 — mint = async role
-- hasPlate · function · L310-L310 — hasPlate = observation
-- assertNotices · function · L320-L323 — assertNotices = (obs, phase)
-- watch · function · L324-L332 — watch = async phase
+- abortable · function · L127-L137 — function abortable(pending, signal)
+- interrupted · function · L131-L131 — interrupted = ()
+- finish · function · L132-L132 — finish = settle
+- assertBudgetDelta · function · L139-L144 — function assertBudgetDelta(before, after, delta)
+- runLocalAcceptance · function · L146-L420 — async function runLocalAcceptance(options)
+- interrupt · function · L158-L158 — interrupt = signal
+- onInt · function · L159-L159 — onInt = ()
+- onTerm · function · L160-L160 — onTerm = ()
+- onHup · function · L161-L161 — onHup = ()
+- check · function · L174-L174 — check = (name, predicate)
+- request · function · L175-L199 — request = async (path, body, token)
+- command · function · L200-L207 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
+- start · function · L208-L243 — start = async phase
+- capture · function · L219-L219 — capture = chunk
+- stop · function · L244-L250 — stop = async ()
+- mint · function · L264-L272 — mint = async role
+- hasPlate · function · L323-L323 — hasPlate = observation
+- assertNotices · function · L333-L336 — assertNotices = (obs, phase)
+- watch · function · L337-L345 — watch = async phase

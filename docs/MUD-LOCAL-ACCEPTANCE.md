@@ -83,6 +83,13 @@ hosted eviction, or SQL settlement.
 Keep the command's receipt with the tested Git head and native test/CI results.
 The receipt records available Git HEAD and dirty-state metadata. A dirty run is
 not evidence for a clean published commit; rerun after committing for that claim.
+The HTTP fetch, body reads and cancellation await the same ten-second request
+deadline and interruption signal. A transport that fails to settle its own
+cancellation must not prevent the runner from reaching owned-process cleanup.
+An interrupted run exits unsuccessfully and records the interruption reason and
+cleanup results in its receipt. That expected failure receipt is not a successful
+MUD conformance run. SIGKILL cannot provide this graceful-cleanup guarantee.
+
 Generated local state is local test material, not a hosted ledger or SQL row
 proof. The fresh signing file is removed on cleanup, but the retained run
 directory still contains local world state. Do not publish that directory,
