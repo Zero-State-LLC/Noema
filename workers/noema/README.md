@@ -82,9 +82,13 @@ npm run dev          # wrangler dev → http://127.0.0.1:8787
 NOEMA_ENV=production npm run deploy   # production must set env explicitly
 npm test             # unit (JWT)
 npm run smoke        # loopback wrangler dev only; uses local dev-token
+npm run acceptance:mud:local -- --artifacts "$HOME/.cache/noema-mud-acceptance"
+                     # fresh local workerd, supported writers, real restart and expiry
 BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smoke:hosted
                      # isolated preview verification; refuses noema.guru
 ```
+
+See [Local MUD acceptance](../../docs/MUD-LOCAL-ACCEPTANCE.md) for the isolated server-conformance workflow and its limits. It does not deploy or qualify a product client or hosted settlement.
 
 ## Endpoints
 
