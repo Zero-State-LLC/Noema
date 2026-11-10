@@ -69,7 +69,7 @@ export type StatusGlanceRow = { label: string; value: string };
 
 export type HappenedBeat = {
   tried: string;
-  outcome: "ok" | "fail" | "partial";
+  outcome: "ok" | "fail" | "partial" | "wait";
   changed?: string;
   next?: string;
   advanced?: string;
@@ -156,7 +156,7 @@ export function fourBeatFromResult(opts: {
   if (opts.ok) {
     return {
       tried,
-      outcome: opts.partial ? "partial" : "ok",
+      outcome: opts.partial ? "partial" : verb === "wait" ? "wait" : "ok",
       changed: String(opts.consequence || "").trim() || undefined,
       next,
     };
