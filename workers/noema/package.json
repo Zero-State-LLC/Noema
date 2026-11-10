@@ -13,6 +13,7 @@
     "test": "npm run build:map-gl && vitest run",
     "smoke": "node ./scripts/smoke.mjs",
     "acceptance:mud:local": "node ./scripts/mud-local-acceptance.mjs",
+    "acceptance:mud:interrupt": "node ./scripts/mud-local-interruption-acceptance.mjs",
     "smoke:hosted": "node ./scripts/hosted-conformance.mjs",
     "rehearse:rollback": "node ./scripts/rollback-rehearsal.mjs",
     "secrets:push": "bash ./scripts/push-secrets-from-env.sh",

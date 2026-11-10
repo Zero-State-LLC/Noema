@@ -17,7 +17,8 @@ npm run acceptance:mud:local -- --artifacts "$HOME/.cache/noema-mud-acceptance"
 For Jcode runs, place artifacts under the provided scratch directory instead of
 inside a repository or an existing acceptance campaign. Each invocation owns a
 fresh run directory. The Worker CI job invokes the same public npm command with
-its runner-temporary artifact directory.
+its runner-temporary artifact directory, then separately exercises actual
+SIGTERM cleanup through the interruption command below.
 
 No already-running dev server, hosted URL, operator token, Supabase credentials,
 production signing secret, reseed, or global reset is required. The command does
@@ -77,6 +78,36 @@ show all of the following, not only a successful process exit:
 
 This local server/protocol path does not qualify browser viewport presentation,
 hosted eviction, or SQL settlement.
+
+## Reproduce interruption cleanup
+
+```sh
+npm run acceptance:mud:interrupt -- --artifacts "$HOME/.cache/noema-mud-interruption"
+```
+
+This separate POSIX smoke check starts the actual public
+`npm run acceptance:mud:local` command in a fresh owned artifact directory. It
+observes the generated world's real loopback `/health` response before sending
+SIGTERM to its own npm process group. It requires a nonzero inner exit and an
+inner receipt with `status: "failed"` and `Interrupted by SIGTERM`, then
+independently checks owned process groups, both ports and signing-file removal.
+A successful smoke result proves this bounded failure-and-cleanup path, not
+successful MUD conformance. The normal 49-check command remains a separate run.
+
+The observer has bounded startup and shutdown deadlines and accepts no external
+URL, existing run, caller PID or hosted credentials. Missing readiness, a normal
+success before interruption, missing receipts or incomplete cleanup must fail the
+smoke rather than being credited as interruption coverage. SIGKILL is outside the
+graceful-cleanup guarantee. Both commands run in the Linux Worker CI job.
+
+The smoke emits `interruption-receipt.json` with eight individually named checks,
+the npm exit result and a reference to the failed inner `receipt.json`. Its
+fresh directory and files are private. A per-invocation random nonce binds the
+runner's private `ownership.json` to the observer that launched it. That file
+contains only local identities, ports and owned process groups, not signing
+material. The observer does not discover kill targets by process-name scans,
+listen-port scans or a caller-supplied receipt. The ordinary conformance command
+does not emit this ownership file unless launched by the observer.
 
 ## Evidence and limits
 

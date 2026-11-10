@@ -99,6 +99,9 @@ describe("synthetic negative interruption receipt controls, not runtime acceptan
       expect(() => assertInterruptionReceipt(value, ownership())).toThrow();
     });
   }
+  it("rejects inner cleanup errors even with optimistic cleanup flags", () => {
+    expect(() => assertInterruptionReceipt({ ...receipt(), cleanup_error: "owned stop failed" }, ownership())).toThrow("inner cleanup failure");
+  });
   it("rejects missing, unrelated or not-cleaned process evidence", () => {
     for (const processes of [[], [{ phase: "initial", pid: 3, cleaned_up: true }],
       [{ phase: "initial", pid: 2_000_003, cleaned_up: false }]]) {

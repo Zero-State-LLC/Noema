@@ -16,7 +16,7 @@
 - interrupted · function · L131-L131 — interrupted = ()
 - finish · function · L132-L132 — finish = settle
 - assertBudgetDelta · function · L139-L144 — function assertBudgetDelta(before, after, delta)
-- runLocalAcceptance · function · L146-L420 — async function runLocalAcceptance(options)
+- runLocalAcceptance · function · L146-L430 — async function runLocalAcceptance(options)
 - interrupt · function · L158-L158 — interrupt = signal
 - onInt · function · L159-L159 — onInt = ()
 - onTerm · function · L160-L160 — onTerm = ()
@@ -24,10 +24,10 @@
 - check · function · L174-L174 — check = (name, predicate)
 - request · function · L175-L199 — request = async (path, body, token)
 - command · function · L200-L207 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
-- start · function · L208-L243 — start = async phase
+- start · function · L208-L253 — start = async phase
 - capture · function · L219-L219 — capture = chunk
-- stop · function · L244-L250 — stop = async ()
-- mint · function · L264-L272 — mint = async role
-- hasPlate · function · L323-L323 — hasPlate = observation
-- assertNotices · function · L333-L336 — assertNotices = (obs, phase)
-- watch · function · L337-L345 — watch = async phase
+- stop · function · L254-L260 — stop = async ()
+- mint · function · L274-L282 — mint = async role
+- hasPlate · function · L333-L333 — hasPlate = observation
+- assertNotices · function · L343-L346 — assertNotices = (obs, phase)
+- watch · function · L347-L355 — watch = async phase

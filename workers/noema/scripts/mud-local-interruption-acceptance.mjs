@@ -48,6 +48,7 @@ export function assertInterruptionReceipt(receipt, owner) {
   assert.equal(receipt.inspector_port, owner.inspector_port);
   assert.equal(receipt.status, "failed", "normal success is not interruption acceptance");
   assert.equal(receipt.error, "Interrupted by SIGTERM");
+  assert.equal(receipt.cleanup_error, undefined, "inner cleanup failure is not acceptance");
   assert.ok(Array.isArray(receipt.processes) && receipt.processes.length === owner.processes.length);
   receipt.processes.forEach((p, i) => {
     assert.equal(p.pid, owner.processes[i].pid);
@@ -146,7 +147,7 @@ export async function runInterruptionAcceptance(options) {
   const controller = new AbortController();
   const handlers = Object.fromEntries(["SIGINT", "SIGTERM", "SIGHUP"].map(signal => [signal, () => controller.abort(new Error(`Observer interrupted by ${signal}`))]));
   for (const [signal, handler] of Object.entries(handlers)) process.on(signal, handler);
-  const report = { local_only: true, status: "running", checks: [], cleanup: {}, limits: ["Actual local npm/workerd SIGTERM only, not hosted acceptance"] };
+  const report = { local_only: true, status: "running", started_at: new Date().toISOString(), checks: [], cleanup: {}, limits: ["Actual local npm/workerd SIGTERM only, not hosted acceptance"] };
   const knownGroups = new Set();
   let child, exit, runDir, owner, failure;
   let output = "", outputBytes = 0;
@@ -279,6 +280,8 @@ export async function runInterruptionAcceptance(options) {
       child?.stderr?.destroy();
       child?.unref();
     }
+    report.npm_pid = child?.pid ?? null;
+    report.finished_at = new Date().toISOString();
     report.npm_exit = exit;
     report.output_bytes = outputBytes;
     report.runner_receipt = runDir ? join(runDir, "receipt.json") : null;

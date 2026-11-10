@@ -104,3 +104,7 @@ jobs:
       # Fresh loopback-only workerd, generated local bindings, no hosted credentials.
       timeout-minutes: 3
       run: npm run acceptance:mud:local -- --artifacts "$RUNNER_TEMP/noema-mud-local"
+    - name: Exercise real local MUD interruption cleanup
+      # Expected failed inner receipt, successful independently verified SIGTERM smoke.
+      timeout-minutes: 3
+      run: npm run acceptance:mud:interrupt -- --artifacts "$RUNNER_TEMP/noema-mud-interrupt"
