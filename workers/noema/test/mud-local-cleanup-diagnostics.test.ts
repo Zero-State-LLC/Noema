@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { stopOwned } from "../scripts/mud-local-acceptance.mjs";
 
-type Diagnostic = { pid: number; process_group: number; phase: string; operation: string; signal: string | number | null; code?: string; errno?: number };
+type Diagnostic = { pid: number; process_group: number; stage: string; operation: string; signal: string | number | null; code?: string; errno?: number };
 type Record = { phase: string; pid: number; cleanup_diagnostics?: Diagnostic[] };
 const owned = { pid: 12345 }; // Synthetic only: every test using this pid injects kill.
 const absent = () => Object.assign(new Error("synthetic absent"), { code: "ESRCH" });
@@ -19,7 +19,7 @@ describe("owned cleanup failure diagnostics (synthetic OS failures)", () => {
     };
     await expect(stopOwned(owned, entry, { kill })).rejects.toBe(error);
     expect(calls).toEqual(operation === "signal" ? [[-owned.pid, "SIGTERM"]] : [[-owned.pid, "SIGTERM"], [-owned.pid, 0]]);
-    expect(entry.cleanup_diagnostics).toEqual([{ pid: owned.pid, process_group: owned.pid, phase: "terminate", operation, signal: operation === "signal" ? "SIGTERM" : 0, code: "EPERM", errno: -1 }]);
+    expect(entry.cleanup_diagnostics).toEqual([{ pid: owned.pid, process_group: owned.pid, stage: "terminate", operation, signal: operation === "signal" ? "SIGTERM" : 0, code: "EPERM", errno: -1 }]);
     expect(JSON.stringify(entry)).not.toContain("SECRET");
     expect(entry.phase).toBe("retained-storage restart");
     expect(entry).not.toHaveProperty("cleaned_up");
@@ -38,7 +38,7 @@ describe("owned cleanup failure diagnostics (synthetic OS failures)", () => {
     expect(signals.filter(s => s !== 0)).toEqual(["SIGTERM", "SIGKILL"]);
     expect(signals.filter(s => s === 0)).toHaveLength(72);
     expect(waits).toEqual(Array(70).fill(100));
-    expect(entry.cleanup_diagnostics).toEqual([{ pid: owned.pid, process_group: owned.pid, phase: "kill-wait", operation: "wait", signal: null, code: "ERR_ASSERTION" }]);
+    expect(entry.cleanup_diagnostics).toEqual([{ pid: owned.pid, process_group: owned.pid, stage: "verify", operation: "wait", signal: null, code: "ERR_ASSERTION" }]);
   });
 
   it("permits ordinary successful SIGKILL escalation without failure evidence", async () => {
@@ -59,7 +59,7 @@ describe("owned cleanup failure diagnostics (synthetic OS failures)", () => {
     const entry = record(), error = permission(), calls: unknown[] = [];
     await expect(stopOwned(owned, entry, { kill: (_pid: number, signal: unknown) => { calls.push(signal); if (signal === "SIGKILL") throw error; }, wait: async () => {} })).rejects.toBe(error);
     expect(calls).toHaveLength(43);
-    expect(entry.cleanup_diagnostics?.[0]).toMatchObject({ phase: "escalate", operation: "signal", signal: "SIGKILL", code: "EPERM" });
+    expect(entry.cleanup_diagnostics?.[0]).toMatchObject({ stage: "escalate", operation: "signal", signal: "SIGKILL", code: "EPERM" });
   });
 
   it("bounds records and excludes unsafe code, errno and accessor properties", async () => {

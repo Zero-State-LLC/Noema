@@ -113,6 +113,27 @@ does not emit this ownership file unless launched by the observer.
 
 ## Evidence and limits
 
+### Owned-process cleanup diagnostics
+
+A failed owned-process stop can add `cleanup_diagnostics` to its existing
+`processes` entry. The enclosing entry identifies the run phase. Each diagnostic
+records only the owned process/group IDs, cleanup stage, attempted signal or
+existence probe, and a recognized error code or bounded numeric errno when
+available. At most four failed attempts are retained per process. Raw error
+stacks, paths, arbitrary properties and credentials are not copied into these
+structured fields. Ordinary successful stops omit the optional diagnostics.
+
+Diagnostics do not change the original `error` / `cleanup_error` failure text,
+turn a permission error into successful cleanup, change signal deadlines, or
+expand which processes can be stopped. If the existing final cleanup succeeds
+after an earlier stop failed, the original failed run and its diagnostic remain
+failed evidence. Injected permission failures in tests are synthetic controls,
+not proof of an actual OS permission failure or its root cause. A prior real
+`kill EPERM` observation remains unexplained even when later normal and SIGTERM
+runs pass.
+
+### Receipt provenance and remaining boundaries
+
 Keep the command's receipt with the tested Git head and native test/CI results.
 The receipt records available Git HEAD and dirty-state metadata. A dirty run is
 not evidence for a clean published commit; rerun after committing for that claim.

@@ -108,7 +108,7 @@ async function isListening(port) {
  */
 export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); } } = {}) {
   if (!child?.pid) return;
-  let phase = "terminate", operation = "signal", attemptedSignal = "SIGTERM";
+  let stage = "terminate", operation = "signal", attemptedSignal = "SIGTERM";
   const signal = name => {
     operation = "signal";
     attemptedSignal = name;
@@ -125,8 +125,8 @@ export async function stopOwned(child, record, { kill = (pid, signal) => { proce
   try {
     signal("SIGTERM");
     for (let i = 0; i < 40 && alive(); i++) await pause();
-    if (alive()) { phase = "escalate"; signal("SIGKILL"); }
-    phase = "kill-wait";
+    if (alive()) { stage = "escalate"; signal("SIGKILL"); }
+    stage = "verify";
     for (let i = 0; i < 30 && alive(); i++) await pause();
     const live = alive();
     operation = "wait";
@@ -138,7 +138,7 @@ export async function stopOwned(child, record, { kill = (pid, signal) => { proce
     // Diagnostics must not replace the exact original thrown value.
     try {
       if (record) {
-        const diagnostic = { pid: child.pid, process_group: child.pid, phase, operation, signal: attemptedSignal };
+        const diagnostic = { pid: child.pid, process_group: child.pid, stage, operation, signal: attemptedSignal };
         const data = key => Object.getOwnPropertyDescriptor(error, key)?.value;
         const code = data("code"), errno = data("errno");
         if (["EPERM", "EACCES", "EINVAL", "ESRCH", "EIO", "ENOSYS", "ERR_ASSERTION"].includes(code)) diagnostic.code = code;
