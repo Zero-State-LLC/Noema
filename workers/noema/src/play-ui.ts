@@ -281,6 +281,9 @@ export function playTextFromObservation(obs: {
   };
   practice_lines?: string[];
   office_lines?: string[];
+  /** Forward only flags already known by the caller. Never infer floor or readiness. */
+  energy_floor_risk?: boolean;
+  play_blocked?: boolean;
 } | null | undefined, happenedBeats?: HappenedBeat): string {
   if (!obs?.location) return "";
   const roomText = lowNoiseRoomText(
@@ -289,6 +292,8 @@ export function playTextFromObservation(obs: {
       consequence: obs.consequence,
       budgets: obs.budgets,
       practice_lines: obs.practice_lines,
+      energy_floor_risk: obs.energy_floor_risk,
+      play_blocked: obs.play_blocked,
       happenedBeats,
     }),
   );

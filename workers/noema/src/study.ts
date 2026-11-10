@@ -27,11 +27,15 @@ export function studyHtml(): string {
   (() => {
     const __name = function(fn) { return fn; };
     const homeExcerptFromLive = ${homeExcerptFromLive.toString()};
+    const pending = document.getElementById("study-now");
+    if (pending) pending.setAttribute("aria-busy", "true");
     fetch("/v1/watch/live", { credentials: "omit" }).then((r) => r.ok ? r.json() : null).then((d) => {
       const el = document.getElementById("study-now");
       if (!el) return;
       el.textContent = homeExcerptFromLive(d).join("\\n");
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      if (pending) pending.removeAttribute("aria-busy");
+    });
   })();
   </script>`;
   return productShell({

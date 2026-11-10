@@ -54,6 +54,7 @@ import {
 import { catalog, GenesisError, previewGenesis, resolveAdminGenesisWorldId, resolveAdminOperatorWorldId } from "./genesis";
 import { landingHtml, notFoundHtml } from "./landing";
 import { manifestoHtml } from "./manifesto";
+import { privacyHtml } from "./privacy";
 import { consumePlayMagicLink, requestPlayMagicLink } from "./play-auth";
 import { playCallbackHtml } from "./play-login-html";
 import { canonicalConnectCode } from "./play-mail";
@@ -90,8 +91,13 @@ export { NoemaWorldDO };
 // fonts.gstatic.com serves the woff2 files it references (font-src). font-src
 // was absent entirely and inherited default-src 'self', so allowing only the
 // stylesheet host would still have blocked every font file.
+//
+// Cloudflare Web Analytics is injected by the zone (automatic setup). Its
+// beacon script loads from static.cloudflareinsights.com (script-src) and
+// reports to this origin's /cdn-cgi/rum, which connect-src 'self' already
+// covers. Without the script host the beacon was blocked on every page.
 const HTML_CSP =
-  "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {
@@ -175,10 +181,12 @@ async function serveStatic(request: Request, env: Env, path: string): Promise<Re
     }
   }
 
-  if (wantsHtml(request) || method === "GET" || method === "HEAD") {
-    return html(notFoundHtml(), 404, "no-store");
+  // API callers get a JSON error; people (and anything else) get the branded page.
+  const apiPath = /^\/(?:v1|protocol)(?:\/|$)/.test(path);
+  if (apiPath && !wantsHtml(request)) {
+    return applyCors(err("NOT_FOUND", path, 404), request, env);
   }
-  return applyCors(err("NOT_FOUND", path, 404), request, env);
+  return html(notFoundHtml(), 404, "no-store");
 }
 
 async function routeToWorld(
@@ -237,6 +245,9 @@ export default {
       }
       if (request.method === "GET" && path === "/manifesto") {
         return html(manifestoHtml(), 200, "public, max-age=30");
+      }
+      if (request.method === "GET" && path === "/privacy") {
+        return html(privacyHtml(), 200, "public, max-age=300");
       }
       if ((request.method === "GET" || request.method === "HEAD") && path === "/robots.txt") {
         return publicText(robotsTxt(), "text/plain; charset=utf-8");
@@ -1070,6 +1081,37 @@ export default {
       }
 
       // Test-only: seed the calling Agent's retained command_aliases in an isolated test world.
+      if (request.method === "POST" && path === "/v1/operator/test-world/tempo-pin") {
+        if (env.NOEMA_ENV !== "test") return cors(err("NOT_FOUND", "not found", 404));
+        const principal = await resolvePrincipal(request, env);
+        if (principal instanceof Response) return cors(principal);
+        const agent = requireAgentPlayer(principal);
+        if (agent instanceof Response) return cors(agent);
+        const admin = await resolveSignedAdminHeader(request, env);
+        if (admin instanceof Response) return cors(admin);
+        const denied = requireScope(agent, "noema.action.submit");
+        if (denied) return cors(denied);
+        const body: unknown = await request.json().catch(() => null);
+        if (!body || typeof body !== "object" || Array.isArray(body) ||
+            Object.keys(body).some((key) => key !== "world_id")) {
+          return cors(err("INVALID_REQUEST", "only world_id is permitted", 400));
+        }
+        const raw = (body as { world_id?: unknown }).world_id;
+        if (typeof raw !== "string") return cors(err("WORLD_FORBIDDEN", "world_id must be a string", 403));
+        const admitted = admitTestWorldId(raw, env.DEFAULT_WORLD_ID);
+        if (!admitted.ok) return cors(err(admitted.code, admitted.message, 403));
+        if (admitted.world_id !== env.ISOLATED_WATCH_WORLD_ID) {
+          return cors(err("WORLD_FORBIDDEN", "test world not configured", 403));
+        }
+        const stub = env.WORLD_DO.get(env.WORLD_DO.idFromName(admitted.world_id));
+        const res = await stub.fetch("https://do/isolated-tempo/pin", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-noema-world-id": admitted.world_id },
+          body: JSON.stringify({ world_id: admitted.world_id }),
+        });
+        return cors(json(await res.json(), res.status));
+      }
+
       if (request.method === "POST" && path === "/v1/operator/test-world/seed") {
         if (env.NOEMA_ENV !== "test") return cors(err("NOT_FOUND", "not found", 404));
         const principal = await resolvePrincipal(request, env);

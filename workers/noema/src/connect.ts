@@ -222,6 +222,8 @@ export function connectHtml(
         notice.textContent = "Need a handle.";
         return;
       }
+      if (mintBtn.disabled) return;
+      mintBtn.disabled = true;
       notice.className = "notice";
       notice.textContent = "Minting…";
       try {
@@ -242,6 +244,8 @@ export function connectHtml(
         notice.textContent = /dev-token disabled|NOT_AUTHORIZED/i.test(e.message || "")
           ? "Public mint is off. Paste an operator token (Admin → Players)."
           : (e.message || "mint failed");
+      } finally {
+        mintBtn.disabled = false;
       }
     });
     const playTok = (() => { try { return sessionStorage.getItem("noema.play.token") || ""; } catch(_) { return ""; } })();
@@ -269,8 +273,12 @@ export function connectHtml(
     }
     syncPlaySession();
     if (login && cEmail && loginNotice) {
+      const sendLink = document.getElementById("c-send-link");
       login.addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (sendLink && sendLink.disabled) return;
+        if (sendLink) sendLink.disabled = true;
+        login.setAttribute("aria-busy", "true");
         loginNotice.className = "notice";
         loginNotice.textContent = "Sending watch link…";
         try {
@@ -286,6 +294,9 @@ export function connectHtml(
         } catch (err) {
           loginNotice.className = "notice bad";
           loginNotice.textContent = err.message || "Could not send watch link";
+        } finally {
+          if (sendLink) sendLink.disabled = false;
+          login.removeAttribute("aria-busy");
         }
       });
     }
@@ -448,7 +459,9 @@ export function connectHtml(
     } else if (saved) {
       showSavedPrompt(saved);
     }
+    let deciding = false;
     async function decide(path){
+      if (deciding) return;
       const code = currentCode();
       if (!code) {
         dNotice.className = "notice";
@@ -466,6 +479,9 @@ export function connectHtml(
         return;
       }
       dNotice.className = "notice"; dNotice.textContent = "Sending…";
+      deciding = true;
+      const decideButtons = [approveButton, document.getElementById("d-deny")];
+      decideButtons.forEach((b) => { if (b) b.disabled = true; });
       try {
         const r = await fetch(path, {
           method: "POST",
@@ -484,6 +500,9 @@ export function connectHtml(
         document.getElementById("d-deny").hidden = true;
       } catch(e) {
         dNotice.className = "notice bad"; dNotice.textContent = e.message || "failed";
+      } finally {
+        deciding = false;
+        decideButtons.forEach((b) => { if (b) b.disabled = false; });
       }
     }
     document.getElementById("d-approve").addEventListener("click", () => decide("/v1/auth/device/approve"));
@@ -553,6 +572,9 @@ export function enrollHtml(): string {
       }
     }
     async function decide(decision){
+      const buttons = [document.getElementById("e-approve"), document.getElementById("e-deny")];
+      if (buttons.some((b) => b && b.disabled)) return;
+      buttons.forEach((b) => { if (b) b.disabled = true; });
       notice.className="notice"; notice.textContent=decision==="approve"?"Approving…":"Denying…";
       try {
         const r = await fetch("/v1/admin/agent/enroll/decide", {
@@ -583,6 +605,8 @@ export function enrollHtml(): string {
         notice.className="notice bad";
         notice.textContent=e.message || "decide failed";
         if (/not authorized|Bearer/i.test(e.message||"")) login.hidden=false;
+      } finally {
+        buttons.forEach((b) => { if (b) b.disabled = false; });
       }
     }
     document.getElementById("e-approve").addEventListener("click", () => decide("approve"));

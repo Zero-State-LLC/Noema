@@ -7,6 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mintControllerToken, mintHumanPlatformToken, HUMAN_WATCH_MESSAGE } from "../src/auth";
 import { mintHs256 } from "../src/jwt";
+import { rateLimitRowKey } from "../src/rate-limit";
 
 import { harness, SIGNING, WORLD } from "./agent-http-do-fixture";
 
@@ -158,7 +159,7 @@ describe("Agent HTTP -> real World DO boundary", () => {
     const text = await response.text();
     expect(text).not.toContain("PRIVATE_ALIAS_SENTINEL");
     expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
-    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: "rl:player:player.boundary" }]);
+    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: await rateLimitRowKey("player:player.boundary") }]);
     expect(await h.persistedWorld()).toEqual(before);
   });
 
@@ -174,7 +175,7 @@ describe("Agent HTTP -> real World DO boundary", () => {
     const text = await response.text();
     expect(text).not.toContain("PRIVATE_MACRO_SENTINEL");
     expect(JSON.parse(text)).toMatchObject({ error: { code: "INVALID_REQUEST" } });
-    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: "rl:player:player.boundary" }]);
+    expect(h.writes.slice(writes)).toEqual([{ name: "__noema_rate_limits__", key: await rateLimitRowKey("player:player.boundary") }]);
     expect(await h.persistedWorld()).toEqual(before);
   });
 

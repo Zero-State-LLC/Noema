@@ -317,8 +317,8 @@ describe("S3 play traces", () => {
     const traces = projectRoomTraces({
       entities: [{ entity_id: "entity.relay-7", label: "scarred-conduit", owner_id: "org.line" }],
       public_rumor: { contested: true },
-      org_marks: [{ name: "Line" }],
-      vacant_offices: [{ org_name: "Line", office_name: "Treasurer" }],
+      org_marks: [{ org_id: "org.line", name: "Line" }],
+      vacant_offices: [{ org_id: "org.line", org_name: "Line", office_name: "Treasurer" }],
     });
     expect(publicTraces(traces).map((t) => t.text)).toEqual([
       "A public report concerns this site.",
@@ -330,7 +330,7 @@ describe("S3 play traces", () => {
       projectRoomTraces({
         hidden: true,
         public_rumor: { contested: true },
-        org_marks: [{ name: "Line" }],
+        org_marks: [{ org_id: "org.line", name: "Line" }],
       }),
     ).toEqual([]);
   });
@@ -360,8 +360,8 @@ describe("S3 play traces", () => {
       ],
     });
     expect(later.public_rumor).toEqual({ contested: true });
-    expect(later.org_marks).toEqual([{ name: "Line" }]);
-    expect(later.vacant_offices).toEqual([{ org_name: "Line", office_name: "Treasurer" }]);
+    expect(later.org_marks).toEqual([{ org_id: "org.line", name: "Line" }]);
+    expect(later.vacant_offices).toEqual([{ org_id: "org.line", org_name: "Line", office_name: "Treasurer" }]);
     expect(
       laterTraceInputs({
         room_id: "room.hub",

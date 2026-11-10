@@ -1,32 +1,32 @@
 # workers/noema/src/world-do.ts
 
-- WorldState · type · L106-L106 — type WorldState = WorldRuntime;
-- Room · type · L107-L107 — type Room = RoomState;
-- WorldMeta · interface · L109-L124 — interface WorldMeta
-- demoState · function · L154-L174 — function demoState(world_id: string): WorldState
-- bootstrapWorldState · function · L177-L181 — function bootstrapWorldState(world_id: string): WorldState
-- cycle0ToWorld · function · L183-L236 — function cycle0ToWorld(c0: Cycle0World): WorldState
-- rec · function · L215-L216 — rec = (v: unknown): Record<string, number>
-- locateInstitutionWatchPulse · function · L238-L257 — function locateInstitutionWatchPulse( world: WorldRuntime, text: string, ): string | { text: string; room_id: string }
-- NoemaWorldDO · class · L259-L1666 — class NoemaWorldDO
-- constructor · method · L271-L274 — constructor(state: DurableObjectState, env: Env)
-- bindAdminGenesisWorld · method · L277-L280 — private bindAdminGenesisWorld(request: Request): void
-- bindIsolatedWatch · method · L282-L295 — private async bindIsolatedWatch(request: Request): Promise<Response | null>
-- watchSnapshot · method · L297-L382 — private async watchSnapshot()
-- operatorWatchSnapshot · method · L384-L396 — private async operatorWatchSnapshot(operatorId?: string)
-- webSocketMessage · method · L398-L421 — async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void>
-- fetch · method · L423-L1149 — async fetch(request: Request): Promise<Response>
-- publicMeta · method · L1151-L1169 — private publicMeta(): Record<string, unknown>
-- loadMeta · method · L1171-L1175 — private async loadMeta(): Promise<void>
-- load · method · L1177-L1202 — private async load(): Promise<void>
-- dropDisposableSystemActors · method · L1204-L1220 — private dropDisposableSystemActors(): number
-- save · method · L1222-L1244 — private async save(): Promise<boolean>
-- put · function · L1224-L1224 — put = ()
-- applyCommand · method · L1246-L1484 — private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>
-- scheduleTempoAlarm · method · L1486-L1494 — private async scheduleTempoAlarm(now: number): Promise<void>
-- commitTempoResolution · method · L1496-L1541 — private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean>
-- alarm · method · L1543-L1577 — async alarm(): Promise<void>
-- loadDigestConfig · method · L1579-L1581 — private async loadDigestConfig(): Promise<DigestConfig>
-- recordDigestEvents · method · L1583-L1608 — private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult["events"]>, cycle: number, ): Promise<void>
-- recordOperatorWatch · method · L1610-L1636 — private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>
-- tickDigests · method · L1638-L1665 — private async tickDigests(now: number): Promise<OperatorDigest[]>
+- WorldState · type · L112-L112 — type WorldState = WorldRuntime;
+- Room · type · L113-L113 — type Room = RoomState;
+- WorldMeta · interface · L115-L130 — interface WorldMeta
+- demoState · function · L160-L180 — function demoState(world_id: string): WorldState
+- bootstrapWorldState · function · L183-L187 — function bootstrapWorldState(world_id: string): WorldState
+- cycle0ToWorld · function · L189-L242 — function cycle0ToWorld(c0: Cycle0World): WorldState
+- rec · function · L221-L222 — rec = (v: unknown): Record<string, number>
+- locateInstitutionWatchPulse · function · L244-L263 — function locateInstitutionWatchPulse( world: WorldRuntime, text: string, ): string | { text: string; room_id: string }
+- NoemaWorldDO · class · L265-L1717 — class NoemaWorldDO
+- constructor · method · L279-L282 — constructor(state: DurableObjectState, env: Env)
+- bindAdminGenesisWorld · method · L285-L288 — private bindAdminGenesisWorld(request: Request): void
+- bindIsolatedWatch · method · L290-L303 — private async bindIsolatedWatch(request: Request): Promise<Response | null>
+- watchSnapshot · method · L305-L390 — private async watchSnapshot()
+- operatorWatchSnapshot · method · L392-L404 — private async operatorWatchSnapshot(operatorId?: string)
+- webSocketMessage · method · L406-L429 — async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void>
+- fetch · method · L431-L1194 — async fetch(request: Request): Promise<Response>
+- publicMeta · method · L1196-L1214 — private publicMeta(): Record<string, unknown>
+- loadMeta · method · L1216-L1220 — private async loadMeta(): Promise<void>
+- load · method · L1222-L1247 — private async load(): Promise<void>
+- dropDisposableSystemActors · method · L1249-L1265 — private dropDisposableSystemActors(): number
+- save · method · L1267-L1289 — private async save(): Promise<boolean>
+- put · function · L1269-L1269 — put = ()
+- applyCommand · method · L1291-L1529 — private async applyCommand(principal: PlayerPrincipal, envl: CommandEnvelope): Promise<CommandResult>
+- scheduleTempoAlarm · method · L1531-L1539 — private async scheduleTempoAlarm(now: number): Promise<void>
+- commitTempoResolution · method · L1541-L1586 — private async commitTempoResolution(events: NonNullable<CommandResult["events"]>): Promise<boolean>
+- alarm · method · L1588-L1628 — async alarm(): Promise<void>
+- loadDigestConfig · method · L1630-L1632 — private async loadDigestConfig(): Promise<DigestConfig>
+- recordDigestEvents · method · L1634-L1659 — private async recordDigestEvents( principal: PlayerPrincipal, events: NonNullable<CommandResult["events"]>, cycle: number, ): Promise<void>
+- recordOperatorWatch · method · L1661-L1687 — private async recordOperatorWatch( principal: PlayerPrincipal, envl: CommandEnvelope, result: CommandResult, ): Promise<void>
+- tickDigests · method · L1689-L1716 — private async tickDigests(now: number): Promise<OperatorDigest[]>

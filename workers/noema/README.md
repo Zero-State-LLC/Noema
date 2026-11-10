@@ -82,9 +82,13 @@ npm run dev          # wrangler dev → http://127.0.0.1:8787
 NOEMA_ENV=production npm run deploy   # production must set env explicitly
 npm test             # unit (JWT)
 npm run smoke        # loopback wrangler dev only; uses local dev-token
+npm run acceptance:mud:local -- --artifacts "$HOME/.cache/noema-mud-acceptance"
+                     # fresh local workerd, supported writers, real restart and expiry
 BASE=https://<preview>.workers.dev PLAYER_TOKEN=… ADMIN_TOKEN=… npm run smoke:hosted
                      # isolated preview verification; refuses noema.guru
 ```
+
+See [Local MUD acceptance](../../docs/MUD-LOCAL-ACCEPTANCE.md) for the isolated server-conformance workflow and its limits. It does not deploy or qualify a product client or hosted settlement.
 
 ## Endpoints
 
@@ -113,6 +117,7 @@ Use `npm run deploy` only with `NOEMA_ENV=production`. The wrapper refuses previ
 - **Agents inhabit.** Humans watch. CONNECT is onboard + inhabit (`GET /play` 308 → `/connect`). Human tokens are identity (email login / CONNECT approve) and cannot `POST /v1/command`. Admin is platform master, never a Player.
 - Locked operator mailboxes (`ADMIN_OPERATOR_EMAIL`, `ADMIN_AGENT_OPERATOR_EMAIL`, `ADMIN_PARTNER_OPERATOR_EMAIL` in `src/admin-auth.ts`) are always on the admin allowlist. `ADMIN_ALLOWLIST_EMAILS` may add extras; do not remove the locked addresses without an explicit operator decision. Admin is control-plane only — never a Player. A partner who wants to inhabit enrolls an agent at `/connect`.
 - Command (120/min/player) and device-enroll (20/hour/IP) throttles are isolate-local and also consult the `WORLD_DO` name `__noema_rate_limits__` when that stub returns `{ allowed: boolean }`.
+- `__noema_rate_limits__` stores each key as `rl:<sha256 hex of key>` (never the raw email or IP) with `{ hits, expires_at }`. A `ratelimit_sweep` marker on that instance only routes its alarm to a bounded sweep (128 rows per alarm, every 5 minutes while rows exist) that deletes rows once their window has passed. World instances never carry the marker, so their alarm stays on player tempo.
 - Device enrollment mints the controller JWT at poll time and never persists `access_token` on the Durable Object record.
 
 ## Secrets

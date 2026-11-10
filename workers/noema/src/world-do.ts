@@ -83,6 +83,12 @@ import {
 import { ATTEST_WORLD_ID, MINI_ENTRY_ROOM_ID, attestChamberState, miniChamberState } from "./mini-chamber";
 import type { CommandEnvelope, CommandResult, Env, PlayerPrincipal } from "./types";
 import {
+  armRateLimitSweep,
+  durableRateLimitHit,
+  RATE_LIMIT_SWEEP_MARKER,
+  sweepRateLimitRows,
+} from "./rate-limit";
+import {
   applyWorldCommand,
   buildObservation,
   ensureSuccessorMaterialsCache,
@@ -267,6 +273,8 @@ export class NoemaWorldDO {
   private allowCanonicalBootstrap = false;
   /** §4A hold: last served headline, presentation-only. WATCH stays non-mutating (no storage write). */
   private watchHeld: HeldHeadline | null = null;
+  /** Limiter instance only: a sweep alarm is known to be pending, so hits skip the alarm read. */
+  private rateLimitSweepArmed = false;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -444,6 +452,43 @@ export class NoemaWorldDO {
       return Response.json({ world_id: admitted, instance_id: this.instanceId });
     }
 
+    if (request.method === "POST" && path === "/isolated-tempo/pin") {
+      if (this.env.NOEMA_ENV !== "test") return Response.json({ ok: false }, { status: 404 });
+      const body: unknown = await request.json().catch(() => null);
+      if (!body || typeof body !== "object" || Array.isArray(body) ||
+          Object.keys(body).some((key) => key !== "world_id")) {
+        return Response.json({ error: { code: "INVALID_REQUEST" } }, { status: 400 });
+      }
+      const raw = (body as { world_id?: unknown }).world_id;
+      const admitted = typeof raw === "string" ? isolatedWatchWorldId(this.env.NOEMA_ENV, raw, this.env.DEFAULT_WORLD_ID) : null;
+      if (!admitted || admitted !== this.env.ISOLATED_WATCH_WORLD_ID ||
+          request.headers.get("x-noema-world-id") !== admitted) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      const stored = await this.state.storage.get<WorldState>("world");
+      if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+        return Response.json({ ok: false }, { status: 403 });
+      }
+      if (!stored) return Response.json({ error: { code: "CONFLICT", message: "test world must be initialized" } }, { status: 409 });
+      this.requestedWorldId = admitted;
+      await this.load();
+      if (this.world!.world_id !== admitted) return Response.json({ ok: false }, { status: 403 });
+      const beforePin = structuredClone(this.world!);
+      const now = Date.now();
+      const pinned = pinPlayerTempo(this.world!, {
+        mode: "OBSERVED_LIVE", now, reason: "isolated alarm proof", defaultWorldId: this.env.DEFAULT_WORLD_ID,
+      });
+      if (!pinned.ok) return Response.json({ error: { code: pinned.code, message: pinned.message } }, { status: 409 });
+      let persisted = false;
+      try { persisted = await this.save(); } catch { persisted = false; }
+      if (!persisted) {
+        this.world = beforePin;
+        return Response.json({ error: { code: "CONFLICT", message: "isolated tempo pin was not persisted" } }, { status: 503 });
+      }
+      await this.scheduleTempoAlarm(now);
+      return Response.json({ ok: true, world_id: admitted, player_tempo: publicTempoProjection(this.world!, now) });
+    }
+
     if (request.method === "POST" && path === "/admin-seed-aliases") {
       const body = (await request.json().catch(() => ({}))) as { world_id?: string; player_id?: string; aliases?: unknown };
       // Test-only: re-check independently of the gateway before any load or write.
@@ -481,16 +526,16 @@ export class NoemaWorldDO {
       if (!key || !Number.isFinite(limit) || !Number.isFinite(windowMs) || limit < 1 || windowMs < 1) {
         return Response.json({ error: "invalid ratelimit" }, { status: 400 });
       }
-      const storageKey = `rl:${key}`;
-      const prev = (await this.state.storage.get<number[]>(storageKey)) || [];
-      const hits = prev.filter((t) => t > now - windowMs);
-      if (hits.length >= limit) {
-        await this.state.storage.put(storageKey, hits);
-        return Response.json({ allowed: false });
+      const allowed = await durableRateLimitHit(this.state.storage, key, limit, windowMs, now);
+      if (!this.rateLimitSweepArmed) {
+        try {
+          await armRateLimitSweep(this.state.storage, Date.now());
+          this.rateLimitSweepArmed = true;
+        } catch {
+          // Cleanup is best-effort and never changes the answer; the next hit retries.
+        }
       }
-      hits.push(now);
-      await this.state.storage.put(storageKey, hits);
-      return Response.json({ allowed: true });
+      return Response.json({ allowed });
     }
 
     if (path.endsWith("/enroll") || path === "/enroll") {
@@ -1541,6 +1586,12 @@ export class NoemaWorldDO {
   }
 
   async alarm(): Promise<void> {
+    // Only `__noema_rate_limits__` carries the marker; world instances fall through to tempo unchanged.
+    if (await this.state.storage.get(RATE_LIMIT_SWEEP_MARKER)) {
+      this.rateLimitSweepArmed = false;
+      await sweepRateLimitRows(this.state.storage, Date.now());
+      return;
+    }
     await this.load();
     if (!this.world || !isPlayerTempoPinned(this.world)) return;
     const now = Date.now();
