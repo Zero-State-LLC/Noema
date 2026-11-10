@@ -88,7 +88,8 @@ npm run acceptance:mud:interrupt -- --artifacts "$HOME/.cache/noema-mud-interrup
 This separate POSIX smoke check starts the actual public
 `npm run acceptance:mud:local` command in a fresh owned artifact directory. It
 observes the generated world's real loopback `/health` response before sending
-SIGTERM to its own npm process group. It requires a nonzero inner exit and an
+SIGTERM to its own npm process group. It requires npm to terminate with a
+positive failure exit code or Node's `{code:null, signal:"SIGTERM"}` result, and an
 inner receipt with `status: "failed"` and `Interrupted by SIGTERM`, then
 independently checks owned process groups, both ports and signing-file removal.
 A successful smoke result proves this bounded failure-and-cleanup path, not
@@ -101,8 +102,9 @@ smoke rather than being credited as interruption coverage. SIGKILL is outside th
 graceful-cleanup guarantee. Both commands run in the Linux Worker CI job.
 
 The smoke emits `interruption-receipt.json` with eight individually named checks,
-the npm exit result and a reference to the failed inner `receipt.json`. Its
-fresh directory and files are private. A per-invocation random nonce binds the
+the npm exit result and a reference to the failed inner `receipt.json`. The
+one-line public CLI summary also reports `npm_exit`, so CI records the observed
+termination representation. Its fresh directory and files are private. A per-invocation random nonce binds the
 runner's private `ownership.json` to the observer that launched it. That file
 contains only local identities, ports and owned process groups, not signing
 material. The observer does not discover kill targets by process-name scans,

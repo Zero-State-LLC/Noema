@@ -108,9 +108,12 @@ describe("synthetic negative interruption receipt controls, not runtime acceptan
       expect(() => assertInterruptionReceipt({ ...receipt(), processes }, ownership())).toThrow();
     }
   });
-  it("rejects successful exit, missing exit and externally killed npm as substitutes", () => {
+  it("accepts both Node failure representations but rejects successful or unrelated termination", () => {
     expect(() => assertInterruptedExit({ code: 1, signal: null })).not.toThrow();
-    for (const exit of [undefined, { code: 0, signal: null }, { code: null, signal: "SIGKILL" }, { code: 1, signal: "SIGTERM" }]) {
+    expect(() => assertInterruptedExit({ code: null, signal: "SIGTERM" })).not.toThrow();
+    for (const exit of [undefined, { code: 0, signal: null }, { code: -1, signal: null },
+      { code: null, signal: null }, { code: null, signal: "SIGINT" },
+      { code: null, signal: "SIGKILL" }, { code: 0, signal: "SIGTERM" }, { code: 1, signal: "SIGTERM" }]) {
       expect(() => assertInterruptedExit(exit)).toThrow();
     }
   });

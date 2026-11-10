@@ -66,8 +66,12 @@ export function assertLocalHealth(health, worldId) {
 }
 
 export function assertInterruptedExit(exit) {
-  assert.ok(Number.isInteger(exit?.code) && exit.code !== 0 && exit.signal === null,
-    "npm reports nonzero runner exit, not observer-induced SIGKILL");
+  // Node reports signal termination as { code: null, signal }, not an exit code.
+  // The exact failed inner receipt and independent cleanup are checked separately.
+  const failedCode = Number.isInteger(exit?.code) && exit.code > 0 && exit.signal === null;
+  const expectedSignal = exit?.code === null && exit.signal === "SIGTERM";
+  assert.ok(failedCode || expectedSignal,
+    `npm must fail or terminate by SIGTERM, never succeed or require SIGKILL: ${JSON.stringify(exit)}`);
 }
 
 export function assertNoCredentials(text) {
@@ -224,7 +228,7 @@ export async function runInterruptionAcceptance(options) {
     assertInterruptionReceipt(receipt, owner);
     check("failed Interrupted by SIGTERM receipt matches authenticated run");
     assertInterruptedExit(exit);
-    check("public npm runner exits nonzero after interruption");
+    check("public npm runner terminates unsuccessfully after interruption");
     const untilGroupsClose = Date.now() + 3000;
     while ([child.pid, ...knownGroups].some(groupAlive) && Date.now() < untilGroupsClose) await delay(25, undefined, { signal: controller.signal });
     for (const pid of [child.pid, ...knownGroups]) assert.equal(groupAlive(pid), false, "independent process-group closure");
@@ -291,7 +295,7 @@ export async function runInterruptionAcceptance(options) {
   }
   const receipt = join(root, "interruption-receipt.json");
   if (failure) throw new Error(`Local interruption acceptance failed. Receipt: ${receipt} (${redact(failure.message).slice(0, 500)})`);
-  return { status: report.status, checks: report.checks.length, receipt };
+  return { status: report.status, checks: report.checks.length, receipt, npm_exit: report.npm_exit };
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
