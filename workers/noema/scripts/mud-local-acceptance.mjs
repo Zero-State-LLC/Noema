@@ -100,23 +100,56 @@ async function isListening(port) {
   });
 }
 
-function groupAlive(pid) {
-  try { process.kill(-pid, 0); return true; }
-  catch (e) { if (e.code === "ESRCH") return false; throw e; }
-}
-
-async function stopOwned(child) {
+// Exported only for native tests, not exposed by CLI admission. Production retains
+// exactly the same own-group authority, probes, signals and wait budget.
+/** @param {{ pid?: number }} child
+ * @param {{ pid: number, phase: string, cleanup_diagnostics?: object[] }} record
+ * @param {{ kill?: (pid: number, signal: string | number) => void, wait?: (ms: number) => Promise<void> }} [io]
+ */
+export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); } } = {}) {
   if (!child?.pid) return;
-  // Only the detached process group created by THIS runner, never name/port scans.
+  let phase = "terminate", operation = "signal", attemptedSignal = "SIGTERM";
   const signal = name => {
-    try { process.kill(-child.pid, name); }
+    operation = "signal";
+    attemptedSignal = name;
+    try { kill(-child.pid, name); }
     catch (e) { if (e.code !== "ESRCH") throw e; }
   };
-  signal("SIGTERM");
-  for (let i = 0; i < 40 && groupAlive(child.pid); i++) await delay(100);
-  if (groupAlive(child.pid)) signal("SIGKILL");
-  for (let i = 0; i < 30 && groupAlive(child.pid); i++) await delay(100);
-  assert.equal(groupAlive(child.pid), false, "owned Wrangler/workerd process group must stop");
+  const alive = () => {
+    operation = "probe";
+    attemptedSignal = 0;
+    try { kill(-child.pid, 0); return true; }
+    catch (e) { if (e.code === "ESRCH") return false; throw e; }
+  };
+  const pause = async () => { operation = "wait"; attemptedSignal = null; await wait(100); };
+  try {
+    signal("SIGTERM");
+    for (let i = 0; i < 40 && alive(); i++) await pause();
+    if (alive()) { phase = "escalate"; signal("SIGKILL"); }
+    phase = "kill-wait";
+    for (let i = 0; i < 30 && alive(); i++) await pause();
+    const live = alive();
+    operation = "wait";
+    attemptedSignal = null;
+    assert.equal(live, false, "owned Wrangler/workerd process group must stop");
+  } catch (error) {
+    // Error properties are untrusted: never invoke accessors or copy arbitrary
+    // strings, messages, stacks, paths or environment into structured evidence.
+    // Diagnostics must not replace the exact original thrown value.
+    try {
+      if (record) {
+        const diagnostic = { pid: child.pid, process_group: child.pid, phase, operation, signal: attemptedSignal };
+        const data = key => Object.getOwnPropertyDescriptor(error, key)?.value;
+        const code = data("code"), errno = data("errno");
+        if (["EPERM", "EACCES", "EINVAL", "ESRCH", "EIO", "ENOSYS", "ERR_ASSERTION"].includes(code)) diagnostic.code = code;
+        if (Number.isSafeInteger(errno) && Math.abs(errno) <= 4096) diagnostic.errno = errno;
+        // At most four failed attempts per owned process, including final cleanup.
+        record.cleanup_diagnostics ??= [];
+        if (record.cleanup_diagnostics.length < 4) record.cleanup_diagnostics.push(diagnostic);
+      }
+    } catch { /* Recording must never mask or suppress cleanup failure. */ }
+    throw error;
+  }
 }
 
 function bounded(value, maxBytes = 32_768) {
@@ -254,8 +287,9 @@ export async function runLocalAcceptance(options) {
   const stop = async () => {
     const child = current;
     if (!child) return;
-    await stopOwned(child);
-    receipt.processes.find(p => p.pid === child.pid).cleaned_up = true;
+    const record = receipt.processes.find(p => p.pid === child.pid);
+    await stopOwned(child, record);
+    record.cleaned_up = true;
     current = undefined;
   };
   try {
