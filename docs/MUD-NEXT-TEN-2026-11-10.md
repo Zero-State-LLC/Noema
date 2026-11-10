@@ -31,7 +31,7 @@ The pinned Specs checkout's preexisting dirty PR template was preserved.
 | --- | --- | --- |
 | 1. WAIT contract | Issue #850 re-read after implementation. It is OPEN with no owner resolution. Prior #851 CI reproduced the unchanged `ok` assertion versus proposed `wait` outcome conflict. | BLOCKED on owner decision. This branch preserves green main and does not resolve the contract by editing tests. WAIT used below only exercises existing cycle/expiry mechanics. |
 | 2. Deterministic room presentation | `mud-room-contract.test.ts`: actual exported Worker/DO handlers produce identical presentation for permuted entity/exit/room insertion order, exclude hidden/private data, and retain the latest chronological board entry. Full suite passes. | Existing stable sorting needed no rewrite. Current additive TRACES placement is preserved, not a new section-policy decision. |
-| 3. Optional STATUS | New true/false/absent wrapper cases pass. `e43ac08` forwards already-known `energy_floor_risk` and `play_blocked` values that the wrapper previously dropped. Actual mounted observations have neither field. | Helper compatibility fix only. No authoritative runtime producer was found, and no low-energy threshold/readiness guess was added. |
+| 3. Optional STATUS | New true/false/absent wrapper cases pass. `e43ac08` forwards already-known `energy_floor_risk` and `play_blocked` values that the wrapper previously dropped. Actual mounted observations have neither field. | Helper compatibility fix only. No authoritative Agent-observation flag producer was found, and no low-energy threshold/readiness guess was added. Operational `/ready` already produces `play_blocked` for the configured default world; that separate surface is not automatically an authorized observation for another target. See the [decision brief](MUD-DECISIONS-2026-11-10.md). |
 | 4. MOVE orientation and costs | Native mounted tests check destination, legal hints, all five budgets, hidden-route rejection, no extra LOOK event, replay and retained storage restart. Actual local `/v1/command` rejects down without debit, moves east with energy -1 and compute unchanged, and returns the original MOVE observation after a real workerd restart without moving/debiting again. | Real local HTTP/restart evidence, not hosted SQL. Energy plus a second budget is observed, not a newly invented second debit. |
 | 5. C1 seed examples | Twelve new native pytest cases pass against the actual linked `examples/chamber-world/world-seed.json`: three room descriptions, local entities, exits/targets, budget vocabulary/defaults and real offline entry/projection. Input bytes remain unchanged. | Non-normative prose, condition bands, arrival balances and HAPPENED are not treated as golden reducer output. Not the hosted miniChamber or a Genesis change. |
 | 6. Maintained consumer | Actual `/play` responds 308 to `/connect`. RFC-0120 and `837-s2-acceptance-contract.md` retire human PLAY and do not maintain the legacy first-paint room helper as a browser product. The maintained `/watch?mode=text` consumer was exercised below. | Applicability research complete. T1.5 room 375x812/desktop acceptance is NOT claimed. Owner must identify the maintained Agent room consumer or explicitly retire that criterion. No fake room page was built. |
@@ -104,12 +104,17 @@ See [Local MUD acceptance](MUD-LOCAL-ACCEPTANCE.md) for the command, safety
 boundaries and receipt interpretation. It does not turn the historical receipts
 above into hosted acceptance or resolve the decisions below.
 
+## Decision research follow-up
+
+The [November 10 decision brief](MUD-DECISIONS-2026-11-10.md) separates settled policy from remaining owner choices. In particular, #733 already has a bounded November 6 same-run hosted required-gate receipt at source `5cebeca4`; #733 remains operator-held, and whole-R4 acceptance is separate. The remaining hosted/all-family gaps below are not a claim that this historical receipt is missing. Neither historical evidence nor this local branch silently certifies a later runtime.
+
 ## Still open
 
 - #850/#851 WAIT contract decision and normal review.
 - Owner disposition for retired T1.5 room-browser acceptance and any intended
   change to current TRACES section policy.
-- An authoritative runtime source for optional flags, if product behavior needs
-  them, rather than this wrapper-only compatibility seam.
+- An authoritative Agent-observation source for optional flags, if product behavior
+  needs them, rather than this wrapper-only compatibility seam or an unqualified
+  default-world `/ready` value.
 - Hosted campaigns, principal/SQL/post-eviction proof, broader hostile authored
   trace sources and parent R4 acceptance. None is silently promoted by this work.
