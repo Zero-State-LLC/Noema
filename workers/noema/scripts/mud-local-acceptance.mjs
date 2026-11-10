@@ -4,7 +4,7 @@
  * Usage: node scripts/mud-local-acceptance.mjs --artifacts /absolute/parent
  */
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdir, mkdtemp, chmod, writeFile, unlink } from "node:fs/promises";
 import { createServer, connect } from "node:net";
@@ -68,6 +68,21 @@ export function redact(text, sensitive = []) {
     .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[REDACTED_JWT]");
 }
 
+/** Read-only, bounded provenance. Never retain status paths or Git diagnostics. */
+export function gitMetadata(root, run = args => {
+  const result = spawnSync("git", args, { cwd: root, env: { PATH: "/usr/bin:/bin" },
+    encoding: "utf8", timeout: 2_000, maxBuffer: 65_536 });
+  return { status: result.status, stdout: String(result.stdout ?? ""), error: Boolean(result.error) };
+}) {
+  try {
+    const head = run(["rev-parse", "--verify", "HEAD"]);
+    if (head.error || head.status !== 0 || !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(head.stdout.trim())) return null;
+    const status = run(["status", "--porcelain", "--untracked-files=normal"]);
+    if (status.error || status.status !== 0) return null;
+    return { head: head.stdout.trim(), dirty: status.stdout.length !== 0 };
+  } catch { return null; }
+}
+
 async function reservePort() {
   const server = createServer();
   await new Promise((ok, bad) => { server.once("error", bad); server.listen(0, "127.0.0.1", ok); });
@@ -127,7 +142,7 @@ export async function runLocalAcceptance(options) {
   const onHup = () => interrupt("SIGHUP");
   const receipt = {
     local_only: true, status: "running", run_id: runId, world_id: config.vars.DEFAULT_WORLD_ID,
-    worker_name: config.name, started_at: new Date().toISOString(), checks: [], records: [], processes: [],
+    worker_name: config.name, started_at: new Date().toISOString(), git: gitMetadata(WORKER_ROOT), checks: [], records: [], processes: [],
     limits: ["Actual local workerd only, not hosted SQL/settlement or production acceptance", "WAIT checks only committed cycle/barrier, not disputed outcome tokens", "No seed mutation, global reset, org-owned asset or public rumor fabricated"],
   };
   let current, reservation, inspectorReservation;
@@ -298,6 +313,14 @@ export async function runLocalAcceptance(options) {
     for (const [surface, field] of Object.entries(SURFACES)) check(`${surface} existing cycle expiry`, Array.isArray(expired.observation?.[field]) && expired.observation[field].length === 0);
     await command(builder, "LEAVE_WORLD");
     const independent = await command(witness, "LOOK");
+    for (const [surface, field] of Object.entries(SURFACES)) check(`${surface} independent LOOK field empty after LEAVE`,
+      Array.isArray(independent.observation?.[field]) && independent.observation[field].length === 0);
+    const { attention: beforeAttention, ...beforeOtherBudgets } = expired.observation.budgets;
+    const { attention: afterAttention, ...afterOtherBudgets } = independent.observation.budgets;
+    check("independent LOOK costs exactly one attention since witness WAIT",
+      Number.isFinite(beforeAttention) && Number.isFinite(afterAttention) && afterAttention === beforeAttention - 1);
+    assert.deepEqual(afterOtherBudgets, beforeOtherBudgets, "independent LOOK preserves all other witness budgets");
+    receipt.checks.push("independent LOOK preserves all other witness budgets");
     check("independent witness sees plate after builder LEAVE", hasPlate(independent.observation));
     check("expired notices absent from independent traces", Object.keys(notices).every(surface =>
       !JSON.stringify(independent.observation.location.traces).includes(`${surface}_${runId}`)));

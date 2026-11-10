@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, URL } from "node:url";
 // Native ESM CLI helpers can be imported without executing the runner.
-import { admitArgs, localConfig, childEnvironment, redact } from "../scripts/mud-local-acceptance.mjs";
+import { admitArgs, localConfig, childEnvironment, redact, gitMetadata } from "../scripts/mud-local-acceptance.mjs";
 
 // Generated Worker types augment ProcessEnv with required Worker bindings.
 // These import/admission-only Node children intentionally receive none of them.
@@ -10,6 +10,36 @@ const importOnlyEnv = { PATH: "/usr/bin:/bin" } as unknown as NodeJS.ProcessEnv;
 const root = "/isolated/worker";
 const run = "/isolated/artifacts/mud-local-owned";
 const runId = "0123456789abcdef";
+
+describe("bounded Git receipt provenance", () => {
+  const head = "a".repeat(40);
+  const result = (stdout: string, status: number | null = 0, error = false) => ({ stdout, status, error });
+
+  it("records only HEAD and dirty status, never private status paths", () => {
+    const read = vi.fn().mockReturnValueOnce(result(`${head}\n`)).mockReturnValueOnce(result(" M private/path\n?? secret-name\n"));
+    const metadata = gitMetadata(root, read);
+    expect(metadata).toEqual({ head, dirty: true });
+    expect(JSON.stringify(metadata)).not.toMatch(/private|secret|path/);
+    expect(read.mock.calls).toEqual([
+      [["rev-parse", "--verify", "HEAD"]],
+      [["status", "--porcelain", "--untracked-files=normal"]],
+    ]);
+  });
+
+  it("distinguishes a clean checkout", () => {
+    const read = vi.fn().mockReturnValueOnce(result(head)).mockReturnValueOnce(result(""));
+    expect(gitMetadata(root, read)).toEqual({ head, dirty: false });
+  });
+
+  it("returns null for unavailable, timed-out, malformed or failed Git reads", () => {
+    for (const first of [result("", null, true), result("fatal: unavailable", 128), result("not-a-head")]) {
+      expect(gitMetadata(root, () => first)).toBeNull();
+    }
+    const failedStatus = vi.fn().mockReturnValueOnce(result(head)).mockReturnValueOnce(result("", null, true));
+    expect(gitMetadata(root, failedStatus)).toBeNull();
+    expect(gitMetadata(root, () => { throw new Error("unavailable"); })).toBeNull();
+  });
+});
 
 describe("MUD local acceptance admission", () => {
   it("requires an artifact parent or the explicit scratch default", () => {
