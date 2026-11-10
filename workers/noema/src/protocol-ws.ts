@@ -2,6 +2,7 @@
 
 import { mintHs256, verifyHs256 } from "./jwt";
 import { err, json, requireScope, resolvePrincipal, isExplicitLocalDev, requireAgentPlayer, requireLivePlayer } from "./auth";
+import { durableRevocationStore, isControllerRevoked } from "./controller-revocation";
 import { resolveSignedAdminHeader } from "./admin-auth";
 import { hasPrivateCognition } from "./cognition";
 import { resolvePlayWorld } from "./command-world";
@@ -297,6 +298,14 @@ export async function handleProtocolFrame(
   }
   if (hasPrivateCognition(msg)) {
     return { reply: protoErr(msg.request_id, "PRIVATE_COGNITION_FORBIDDEN", "private cognition fields are not accepted", 400), state };
+  }
+  try {
+    if (!env.WORLD_DO) throw new Error("revocation store unavailable");
+    if (await isControllerRevoked(durableRevocationStore(env), state.principal.controller_id, state.principal.jti)) {
+      return { reply: protoErr(msg.request_id, "NOT_AUTHORIZED", "controller revoked", 401), state };
+    }
+  } catch {
+    return { reply: protoErr(msg.request_id, "UNAVAILABLE", "revocation store unavailable", 503), state };
   }
   const envelope = commandFromFrame(msg);
   const headers: Record<string, string> = { Authorization: "Bearer session" };
