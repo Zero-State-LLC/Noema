@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir, mkdtemp, chmod, writeFile, unlink } from "node:fs/promises";
+import { mkdir, mkdtemp, chmod, writeFile, unlink, rename } from "node:fs/promises";
 import { createServer, connect } from "node:net";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -221,6 +221,16 @@ export async function runLocalAcceptance(options) {
     child.stderr.on("data", capture);
     logs.push(() => ({ phase, tail: redact(tail, sensitive) }));
     receipt.processes.push({ phase, pid: child.pid });
+    // Private, credential-free attestation for the real interruption observer.
+    // The nonce is supplied only to this runner, never to Wrangler/workerd.
+    const observer = process.env.NOEMA_LOCAL_ACCEPTANCE_OBSERVER;
+    if (/^[a-f0-9]{32}$/.test(observer ?? "") && child.pid) {
+      const ownership = { observer, runner_pid: process.pid, run_id: runId, world_id: receipt.world_id,
+        port: receipt.port, inspector_port: receipt.inspector_port,
+        processes: receipt.processes.map(({ phase, pid }) => ({ phase, pid })) };
+      await writeFile(join(runDir, "ownership.json.next"), JSON.stringify(ownership) + "\n", { mode: 0o600 });
+      await rename(join(runDir, "ownership.json.next"), join(runDir, "ownership.json"));
+    }
     const until = Date.now() + 60_000;
     while (Date.now() < until) {
       controller.signal.throwIfAborted();
