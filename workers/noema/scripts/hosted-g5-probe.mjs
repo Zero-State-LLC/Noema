@@ -74,7 +74,7 @@ export async function main({ env = process.env, transport = globalThis.fetch, sl
   }
   async function watch() {
     const { status, json } = await request("/v1/watch/live");
-    if (!object(json) || json.world_id !== world_id || json.freshness !== "live" || json.pin !== "watch-live/1.0" || !head(json.sequence) || !head(json.cycle)) throw new Error();
+    if (!object(json) || json.world_id !== world_id || json.freshness !== "live" || json.watch_live !== "watch-live/1.0" || !head(json.sequence) || !head(json.cycle)) throw new Error();
     return { status, world_id, sequence: json.sequence, cycle: json.cycle };
   }
   try {

@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main } from "../scripts/hosted-g5-probe.mjs";
+import { buildWatchLive } from "../src/watch-live";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const world_id = "test.hosted-canonical.g5-control";
@@ -20,7 +21,7 @@ const cleanEnv: NodeJS.ProcessEnv = {
   SEAL: "synthetic-seal",
   G5_WAIT_MS: "0",
 };
-const live = { world_id, freshness: "live", pin: "watch-live/1.0", sequence: 1, cycle: 0 };
+const live = { world_id, freshness: "live", watch_live: "watch-live/1.0", sequence: 1, cycle: 0 };
 const pin = { ok: true, world_id, player_tempo: {} };
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const servers: Server[] = [];
@@ -102,7 +103,7 @@ describe("#777 G5 admission and raw observations, not hosted proof", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
-  it.each([{ world_id: "wrong" }, { freshness: "stale" }, { pin: "wrong" }, { sequence: -1 }, { cycle: 0.5 }, { sequence: Number.MAX_SAFE_INTEGER + 1 }, { cycle: null }])("synthetic pre/after WATCH validation %j", async (patch) => {
+  it.each([{ world_id: "wrong" }, { freshness: "stale" }, { watch_live: "wrong" }, { sequence: -1 }, { cycle: 0.5 }, { sequence: Number.MAX_SAFE_INTEGER + 1 }, { cycle: null }])("synthetic pre/after WATCH validation %j", async (patch) => {
     for (const after of [false, true]) {
       const transport = vi.fn().mockResolvedValueOnce(response(after ? live : { ...live, ...patch }));
       if (after) transport.mockResolvedValueOnce(response(pin)).mockResolvedValueOnce(response({ ...live, ...patch }));
@@ -128,6 +129,50 @@ describe("#777 G5 admission and raw observations, not hosted proof", () => {
     expect(result.report.alarm_reason).toContain("Causal attribution unavailable");
     expect(transport).toHaveBeenCalledTimes(3);
     expect(transport.mock.calls.every(([, init]) => init.redirect === "error")).toBe(true);
+  });
+
+  it("accepts the actual public WATCH projection schema, not a fabricated pin field", async () => {
+    const before = buildWatchLive({ world_id, cycle: 0, sequence: 1, rooms: {}, players: [], events: [] });
+    const after = buildWatchLive({ world_id, cycle: 1, sequence: 2, rooms: {}, players: [], events: [] });
+    expect(before).not.toHaveProperty("pin");
+    const transport = vi.fn().mockResolvedValueOnce(response(before)).mockResolvedValueOnce(response(pin)).mockResolvedValueOnce(response(after));
+    const result = await main({ env: cleanEnv, transport, sleep: vi.fn() });
+    expect(result).toMatchObject({ code: 0, report: { status: "RAW_OBSERVATIONS_ONLY", watch_advanced: true, alarm: "not_observed" } });
+    expect(transport).toHaveBeenCalledTimes(3);
+  });
+
+  it("real CLI reports only raw observations after a synthetic loopback pin", async () => {
+    const calls: Array<{ method: string; path: string; body: string; authorization?: string; seal?: string; admin?: string }> = [];
+    let reads = 0;
+    const BASE = await loopback((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => { body += chunk; });
+      req.on("end", () => {
+        calls.push({ method: req.method || "", path: req.url || "", body,
+          authorization: req.headers.authorization, seal: String(req.headers["x-noema-seal"] || ""), admin: String(req.headers["x-noema-admin-token"] || "") });
+        res.end(JSON.stringify(req.method === "POST" ? pin : { ...live, sequence: ++reads }));
+      });
+    });
+    const result = await cli({ ...cleanEnv, BASE });
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ status: "RAW_OBSERVATIONS_ONLY", world_id, watch_advanced: true, alarm: "not_observed", alarm_after_evict: "not_run", hibernated: "not_run" });
+    expect(calls.map(({ method, path }) => `${method} ${path}`)).toEqual(["GET /v1/watch/live", "POST /v1/operator/test-world/tempo-pin", "GET /v1/watch/live"]);
+    expect(calls[1]).toMatchObject({ body: JSON.stringify({ world_id }), authorization: "Bearer synthetic-player", seal: "synthetic-seal", admin: "synthetic-admin" });
+    expect(calls[0].authorization).toBeUndefined();
+    expect(result.stdout).not.toContain("synthetic-");
+    expect(result.stderr).toBe("");
+  });
+
+  it("real CLI stops after a synthetic loopback rejected pin without after-read or eviction", async () => {
+    const calls: string[] = [];
+    const BASE = await loopback((req, res) => {
+      calls.push(`${req.method} ${req.url}`);
+      res.end(JSON.stringify(req.method === "POST" ? { ...pin, ok: false } : live));
+    });
+    const result = await cli({ ...cleanEnv, BASE });
+    expect(result.code).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({ status: "NOT_COMPUTABLE", alarm: "not_observed", alarm_after_evict: "not_run", hibernated: "not_run" });
+    expect(calls).toEqual(["GET /v1/watch/live", "POST /v1/operator/test-world/tempo-pin"]);
   });
 
   it("real CLI admission matrix never reaches loopback sentinel", async () => {

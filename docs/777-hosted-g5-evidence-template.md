@@ -6,7 +6,7 @@ Runner: `workers/noema/scripts/hosted-g5-probe.mjs`. Supply explicit nonblank `B
 
 `WS_URL` or `G5_HIBERNATION_WAIT_MS`, even empty/zero, refuse before requests. There is no WebSocket or instance eviction/probe branch. `G5_WAIT_MS` defaults to 25000 and must be an integer from 0 through 60000. Each request, including body consumption, has a 5000 ms deadline and 64 KiB body cap. Redirects are forbidden.
 
-Before pinning, WATCH must be HTTP-successful with `freshness: live`, `pin: watch-live/1.0`, the requested world, and nonnegative safe-integer sequence/cycle. Pin must be HTTP-successful with `ok: true`, the requested world and an object `player_tempo`. Failure stops before wait or further mutation. After WATCH must satisfy the same validation. The only mutation attempted is this admitted tempo pin.
+Before pinning, WATCH must be HTTP-successful with `freshness: live`, `watch_live: watch-live/1.0`, the requested world, and nonnegative safe-integer sequence/cycle. Pin must be HTTP-successful with `ok: true`, the requested world and an object `player_tempo`. Failure stops before wait or further mutation. After WATCH must satisfy the same validation. The only mutation attempted is this admitted tempo pin.
 
 A completed read/pin/wait/read returns `RAW_OBSERVATIONS_ONLY` (exit 0), **not overall G5 success**. `watch_advanced` reports raw sequence or cycle growth. Such activity cannot causally attribute an alarm fire or settlement. The report always records `alarm: not_observed` with that limitation, `alarm_after_evict: not_run`, and `hibernated: not_run`. Refused/failed observations return `NOT_COMPUTABLE` (exit 2).
 
