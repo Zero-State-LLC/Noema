@@ -39,7 +39,7 @@ const EXPECTED = [
 
 function staticExcerpt(): (data: unknown) => string[] {
   const start = PAGES.indexOf("function homeExcerptFromLive(data) {");
-  const end = PAGES.indexOf("const controller = new AbortController();", start);
+  const end = PAGES.indexOf('const card = document.getElementById("home-now-card");', start);
   if (start < 0 || end < 0) throw new Error("static homeExcerptFromLive missing");
   return runInNewContext(`(${PAGES.slice(start, end).trim()})`) as (data: unknown) => string[];
 }
@@ -51,6 +51,21 @@ describe("Now feed shows each public line once", () => {
 
   it("static Pages door matches the Worker", () => {
     expect(staticExcerpt()(REPEATED)).toEqual(EXPECTED);
+  });
+});
+
+describe("static Pages door mirrors the hosted first read", () => {
+  const nav = PAGES.slice(PAGES.indexOf('<nav class="nav"'), PAGES.indexOf("</nav>"));
+
+  it("carries the hosted tabs, Study included, and no Play", () => {
+    for (const tab of ["Home", "Manifesto", "Watch", "Connect", "Study"]) expect(nav).toContain(`>${tab}</a>`);
+    expect(nav).not.toMatch(/>Play</);
+  });
+
+  it("keeps Watch as its only cyan control and marks live arrival once", () => {
+    expect(PAGES.match(/<a class="btn primary"/g) || []).toHaveLength(1);
+    expect(PAGES).toContain('card.setAttribute("data-state", "live")');
+    expect(PAGES).toMatch(/<figure class="hero-art" aria-hidden="true">\s*<img [^>]*alt=""/);
   });
 });
 
