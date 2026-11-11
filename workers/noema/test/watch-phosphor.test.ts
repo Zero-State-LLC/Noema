@@ -750,17 +750,16 @@ describe("slice 3 — event-driven pulses", () => {
 describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
   const html = watchHtml();
 
-  it("keeps the semantic graph and TEXT/PIXEL toggle", () => {
+  // Public /watch no longer mounts the PIXEL canvas or its toggle (Noema-Specs
+  // watch-single-3d-stage.md D2). The Phosphor client still ships: it supplies
+  // the shared-layout cartogram for the text map. Admin Watch keeps PIXEL.
+  it("keeps the semantic graph; ships the Phosphor client without a public canvas", () => {
     expect(html).toContain('id="watch-map"');
     expect(html).toContain('id="watch-headline"');
     expect(html).toContain('id="watch-players"');
     expect(html).toContain('createElement("details")');
-    expect(html).toContain('id="watch-mode-text"');
-    expect(html).toContain('id="watch-mode-pixel"');
-    expect(html).toContain('id="watch-phosphor"');
-    expect(html).toContain("image-rendering:pixelated");
-    expect(html).toContain('width="320"');
-    expect(html).toContain('height="180"');
+    expect(html).not.toMatch(/id="watch-mode-(text|pixel)"/);
+    expect(html).not.toContain('id="watch-phosphor"');
     expect(html).toContain("createPhosphorSession");
     expect(html).toContain("NoemaPhosphor.update");
     expect(html).toContain("NoemaPhosphorPick");
@@ -862,9 +861,9 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
     g.window = g;
     try {
       (0, eval)(src);
-      // §18: default is PIXEL when Canvas 2D is available.
-      expect(g.NoemaPhosphor?.mode).toBe("pixel");
-      expect(wrap.hidden).toBe(false);
+      // D2: the public page never runs the PIXEL sketch; the client stays in text mode.
+      expect(g.NoemaPhosphor?.mode).toBe("text");
+      expect(wrap.hidden).toBe(true);
       g.NoemaPhosphor?.update({
         sequence: 1,
         rooms: [{ room_id: "room.a", name: "Alpha", description: "A" }],
@@ -987,7 +986,7 @@ describe("slice 5 — budgets, idle, regressions", () => {
     expect(studyHtml()).not.toMatch(/not open/i);
     expect(adminHtml()).toContain("ADMIN / operations");
     expect(watchHtml()).not.toContain("ADMIN / operations");
-    expect(watchHtml()).toContain("/assets/watch-map-gl.js");
+    expect(watchHtml()).toContain("/assets/watch-stage.js");
     expect(connectHtml()).not.toMatch(/WebSocket/i);
     expect(studyHtml()).not.toMatch(/WebSocket/i);
   });
@@ -1016,12 +1015,14 @@ describe("§18 legibility — labels never overdrawn; adjacent map key", () => {
     expect(lastText).toBeGreaterThan(lastStroke);
   });
 
-  it("ships the adjacent HTML map key inside the phosphor wrap", () => {
+  // §18's adjacent HTML key now binds the 3D stage that replaced the public sketch (WS3-06).
+  it("ships an adjacent HTML map key beside the public stage", () => {
     const html = watchHtml();
-    expect(html).toContain('id="watch-phos-key"');
-    expect(html).toContain('aria-label="Map key"');
-    expect(html).toContain("pulse = new public event");
-    expect(html).toContain('<span class="km major">');
+    expect(html).toContain('class="stage3d-key"');
+    expect(html).toContain("<summary>Map key</summary>");
+    for (const mark of ["site", "active", "agent", "route", "uncertain", "major"]) {
+      expect(html).toContain(`data-mark="${mark}"`);
+    }
   });
 });
 
