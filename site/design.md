@@ -43,4 +43,20 @@ Authority for hosted tokens: Noema-Specs `VISUAL-DESIGN.md` via `workers/noema/s
 | Pages `index.html` | Same door as hosted `/` (pointer, no email form) |
 | `memo.html` | Long Document (for builders who click through) |
 
-Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Every product surface uses Home · Manifesto · Watch · Connect. Home overlays that bar on the table still; other surfaces keep the solid bar. The thesis lives on `/manifesto`, not on the Home first-read. Pages share tokens, tabs, and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. Inhabit lives on `/connect`, hidden on signed-out first-read until Advanced token opens or a chamber session starts.
+## 2026-11 surface refresh (hosted)
+
+Two CSS layers in `workers/noema/src/shell.ts`:
+
+- `PRODUCT_CSS`: tokens, chrome and base components. Every product page, WATCH included.
+- `SURFACE_CSS`: opt-in layer for Home, Manifesto, Connect, Study, Privacy, 404 and the login callback. WATCH does not take it, so its layout and controls stay with the WATCH owners.
+
+Rules the refresh follows:
+
+- **Chrome.** Brand lockup (N glyph + `NOEMA`), nav with an active-tab rule in signal cyan. At 700px and below the tabs become one swipeable row instead of a stacked grid. The bar stays solid and is sticky on non-door pages.
+- **One cyan control per surface.** Home: Watch. Connect: Approve. Secondary actions use the ink outline. The door's watch-link field is an inline field-plus-button group.
+- **Door.** Left-weighted headline stack (no three equal columns), scrim weighted to the copy side so the table still stays visible, Now card at right. World lines use the interface face, not mono (VISUAL-DESIGN.md §10.1).
+- **Motion carries meaning only (§6).** 160ms cross-document fade (`@view-transition`), a one-shot cyan edge when live Now lines arrive, a scroll-driven reading bar on the Manifesto. All off under `prefers-reduced-motion`.
+- **Scale.** Spacing and type sit on the 4/8/12/16/24/32/48/64 and 12/14/16/18/20/24/30 steps. Radii: `--r-md` 8px controls, `--r-lg` 12px code, `--r-xl` 16px panels.
+- **Redundancy.** Each public line appears once in the Now and Study feeds. Connect states "Opening this page does not approve" once, in the lede. The Manifesto ends on one panel (whitepaper + Watch).
+
+Public chrome is N9 edge-aligned (solid bar, no frost, no glow). Every product surface uses Home · Manifesto · Watch · Connect · Study (the hosted bar; Pages mirrors it). Home overlays that bar on the table still; other surfaces keep the solid bar. The thesis lives on `/manifesto`, not on the Home first-read. Pages share tokens, tabs, and CTA voice; they must not share one hero+card template. PLAY Chamber layout is out of this system. Inhabit lives on `/connect`, hidden on signed-out first-read until Advanced token opens or a chamber session starts.

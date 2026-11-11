@@ -1,3 +1,3 @@
 # workers/noema/src/manifesto.ts
 
-- manifestoHtml · function · L37-L218 — function manifestoHtml(): string
+- manifestoHtml · function · L78-L302 — function manifestoHtml(): string

@@ -26,28 +26,45 @@ button:disabled{opacity:.42;cursor:not-allowed}
 }
 .skip:focus{transform:none}
 
-/* —— chrome · N9 edge-aligned —— */
+/* —— chrome · N9 edge-aligned (solid bar, no frost, no glow) —— */
 .top{
   position:relative;z-index:var(--z-nav);
-  display:flex;flex-wrap:wrap;gap:.65rem 1.5rem;align-items:baseline;justify-content:space-between;
-  padding:1rem var(--pad) .85rem;
+  display:flex;flex-wrap:wrap;gap:.75rem 2rem;align-items:center;justify-content:space-between;
+  padding:1rem var(--pad);
   border-bottom:1px solid var(--line);
   background:var(--void);
 }
-.brand{display:flex;flex-direction:column;gap:.12rem;min-width:0;text-decoration:none;color:inherit}
+.brand{display:flex;align-items:center;gap:.75rem;min-width:0;text-decoration:none;color:inherit}
+.brand-glyph{
+  display:grid;place-items:center;flex:0 0 auto;width:2rem;height:2rem;
+  border:1px solid var(--line-hot);border-radius:var(--r-md);color:var(--ink);
+  transition:border-color .3s var(--ease-spring),color .3s var(--ease-spring);
+}
+.brand-glyph svg{display:block;width:.875rem;height:.875rem}
+.brand:hover .brand-glyph{border-color:var(--color-state-active);color:var(--color-state-active)}
+.brand-text{display:flex;flex-direction:column;gap:.25rem;min-width:0}
 .brand-mark{
-  font:700 1.05rem/1 var(--font-display);letter-spacing:.18em;
+  font:700 1rem/1 var(--font-display);letter-spacing:.24em;
   color:var(--ink);
 }
-.brand-sub{color:var(--faint);font:.7rem/1.2 var(--font-body)}
-.nav{display:flex;flex-wrap:wrap;gap:.15rem .95rem;justify-content:flex-end;margin-left:auto}
+.brand-sub{color:var(--faint);font:.75rem/1 var(--font-body)}
+.nav{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;justify-content:flex-end;margin-left:auto}
 .nav a{
-  color:var(--ink);text-decoration:none;white-space:nowrap;
+  position:relative;padding:.5rem 0;
+  color:var(--muted);text-decoration:none;white-space:nowrap;
   text-transform:uppercase;letter-spacing:.14em;
-  font:600 .72rem/1.2 var(--font-interface);
-  transition:color .15s var(--ease);
+  font:600 .75rem/1 var(--font-interface);
+  transition:color .2s var(--ease);
 }
-.nav a:hover,.nav a[aria-current=page]{color:var(--color-state-active)}
+.nav a::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:currentColor;transform:scaleX(0);transform-origin:left center;
+  transition:transform .5s var(--ease-spring);
+}
+.nav a:hover{color:var(--ink)}
+.nav a:hover::after{transform:scaleX(1)}
+.nav a[aria-current=page]{color:var(--ink)}
+.nav a[aria-current=page]::after{height:2px;background:var(--color-state-active);transform:scaleX(1)}
 .runtime{
   display:inline-flex;align-items:center;gap:.45rem;
   color:var(--faint);font:.7rem/1 var(--font-mono);
@@ -139,19 +156,24 @@ code{color:var(--color-text-machine);font-size:.88em}
 
 .foot{
   width:min(var(--max),calc(100% - 2*var(--pad)));margin:0 auto;
-  padding:var(--space-md) 0 var(--space-lg);color:var(--faint);font:.7rem/1.5 var(--font-body);
-  display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between;
+  padding:1.5rem 0 2rem;color:var(--faint);font:.75rem/1.25rem var(--font-body);
+  display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:center;justify-content:space-between;
   border-top:1px solid var(--line);
 }
 
-.foot a{color:inherit;text-underline-offset:.18em}
-.foot a:hover{color:var(--color-state-active)}
-.foot-contact{display:inline-flex;flex-wrap:wrap;gap:.35rem .65rem;align-items:center}
+.foot a{color:inherit;text-decoration:none;transition:color .2s var(--ease)}
+.foot a:hover{color:var(--ink)}
+.foot-contact{display:inline-flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center}
 .foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 @media(max-width:700px){
-  .top{flex-direction:column;align-items:flex-start}
-  .nav{margin-left:0;justify-content:flex-start}
+  .top{flex-direction:column;align-items:stretch;gap:.5rem}
+  .nav{
+    flex-wrap:nowrap;justify-content:flex-start;gap:1.25rem;margin:0 calc(-1*var(--pad));
+    padding:0 var(--pad);overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;
+    mask-image:linear-gradient(to right,#000 85%,transparent);
+  }
+  .nav::-webkit-scrollbar{display:none}
 }
 @media(max-width:640px){
   .btn{min-height:44px}
@@ -211,6 +233,97 @@ body.is-low-noise.hero-bleed .hero-gate{justify-content:start;justify-items:stre
 .key-row .glyph{width:1.15rem;height:1.15rem}
 .key-row strong{font-weight:600}
 `;
+
+/** Phosphor arrow-right (MIT), used as a mask so it takes the button's color. */
+const ARROW_MASK =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z'/%3E%3C/svg%3E\")";
+
+/**
+ * Surface layer for the door, letter and workbench pages (Home, Manifesto,
+ * Connect, Study, Privacy, 404). WATCH keeps PRODUCT_CSS only.
+ * Motion follows VISUAL-DESIGN.md §6: 160ms route fade, state feedback, nothing ambient.
+ */
+export const SURFACE_CSS = `
+@view-transition{navigation:auto}
+::view-transition-old(root),::view-transition-new(root){animation-duration:160ms;animation-timing-function:var(--ease)}
+:root{interpolate-size:allow-keywords}
+body:not(.hero-bleed) .top{position:sticky;top:0}
+h1,h2,h3{text-wrap:balance}
+p,li,dd{text-wrap:pretty}
+h1{
+  margin:0 0 1.5rem;max-width:20ch;
+  font:600 clamp(2.25rem,1.4rem + 3.4vw,3.75rem)/1.05 var(--font-display);letter-spacing:-.03em;
+}
+h2{font-weight:600;letter-spacing:-.02em}
+.place{
+  display:inline-flex;align-items:center;gap:.75rem;margin:0 0 1rem;
+  color:var(--faint);font:600 .75rem/1rem var(--font-display);letter-spacing:.28em;text-transform:uppercase;
+}
+.place::before{content:"";width:1.5rem;height:1px;background:currentColor;opacity:.7}
+.lead,.lede{color:var(--muted);font-size:1.125rem;line-height:1.75rem}
+
+.panel{
+  border:1px solid var(--line);border-radius:var(--r-xl);background:var(--panel);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 5%,transparent),0 24px 48px -32px rgb(0 0 0/.65);
+}
+
+.btn{
+  --glyph-arrow:${ARROW_MASK};
+  min-height:2.75rem;padding:.5rem 1rem;border-radius:var(--r-md);
+  font:600 .875rem/1.25rem var(--font-body);
+  transition:background-color .3s var(--ease-spring),border-color .3s var(--ease-spring),color .3s var(--ease-spring),transform .3s var(--ease-spring);
+}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn.primary{background:var(--color-state-active);border-color:var(--color-state-active);color:var(--color-text-inverse)}
+.btn.primary:hover{
+  background:color-mix(in srgb,var(--color-state-active) 84%,var(--ink));
+  border-color:color-mix(in srgb,var(--color-state-active) 84%,var(--ink));color:var(--color-text-inverse);
+}
+a.btn.primary::after{
+  content:"";flex:0 0 auto;width:1rem;height:1rem;background:currentColor;
+  -webkit-mask:var(--glyph-arrow) center/contain no-repeat;mask:var(--glyph-arrow) center/contain no-repeat;
+  transition:transform .3s var(--ease-spring);
+}
+a.btn.primary:hover::after{transform:translateX(3px)}
+.btn.quiet{min-height:0;padding:.25rem 0;color:var(--faint);border:0;text-decoration:underline;text-decoration-color:var(--line-hot);text-underline-offset:.25em}
+.btn.quiet:hover{color:var(--ink);background:none;text-decoration-color:currentColor}
+.btn.quiet[aria-pressed=true]{color:var(--ink)}
+
+label{margin:1rem 0 .5rem;color:var(--faint);font:600 .75rem/1rem var(--font-interface);letter-spacing:.12em;text-transform:uppercase}
+input,select{
+  min-height:2.75rem;padding:.5rem .75rem;border-radius:var(--r-md);
+  transition:border-color .2s var(--ease),box-shadow .2s var(--ease);
+}
+input:hover,select:hover{border-color:color-mix(in srgb,var(--line-hot) 55%,var(--ink))}
+input:focus-visible,select:focus-visible{
+  outline:none;border-color:var(--color-state-active);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--color-state-active) 26%,transparent);
+}
+input:user-invalid{border-color:var(--color-state-critical)}
+.tag{border-radius:999px;padding:.25rem .5rem}
+pre{border-radius:var(--r-lg)}
+
+details>summary{
+  display:flex;align-items:center;gap:.75rem;min-height:2.75rem;cursor:pointer;list-style:none;
+  color:var(--muted);font:600 .875rem/1.25rem var(--font-body);transition:color .2s var(--ease);
+}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{
+  content:"";flex:0 0 auto;width:.4rem;height:.4rem;margin:0 .1rem;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(-45deg);transition:transform .3s var(--ease-spring);
+}
+details>summary:hover,details[open]>summary{color:var(--ink)}
+details[open]>summary::before{transform:rotate(45deg)}
+details::details-content{block-size:0;overflow-y:clip;transition:block-size .4s var(--ease-spring),content-visibility .4s allow-discrete}
+details[open]::details-content{block-size:auto}
+
+@media(prefers-reduced-motion:reduce){
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
+`;
+
+const BRAND_GLYPH = `<svg viewBox="12 15 40 34" focusable="false"><path fill="currentColor" d="M46.85 42.06 44.64 42.96V15H51.63V49H44.64L17.15 22.15L19.36 21.25V49H12.37V15H19.36Z"/></svg>`;
 
 export type ProductNav = "home" | "manifesto" | "play" | "watch" | "study" | "connect";
 
@@ -273,8 +386,11 @@ ${FONTS}
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <a class="brand" href="/" aria-label="NOEMA home">
-    <span class="brand-mark">NOEMA</span>
-    <span class="brand-sub">Perihelion Reach</span>
+    <span class="brand-glyph" aria-hidden="true">${BRAND_GLYPH}</span>
+    <span class="brand-text">
+      <span class="brand-mark">NOEMA</span>
+      <span class="brand-sub">Perihelion Reach</span>
+    </span>
   </a>
   <nav class="nav" aria-label="Primary">
     ${nav("/", "Home", "home")}

@@ -75,6 +75,9 @@ export const TOKEN_CSS = `:root{
   --paper:var(--color-surface-panel);
   --paper-2:var(--color-surface-band);
   --r:2px;
+  --r-md:.5rem;
+  --r-lg:.75rem;
+  --r-xl:1rem;
   --max:68rem;
   --pad:clamp(1rem,3.5vw,2.25rem);
   --space-2xs:.35rem;
@@ -89,6 +92,7 @@ export const TOKEN_CSS = `:root{
   --text-body:.86rem;
   --text-hero-line:clamp(1.35rem,3.4vw,2.35rem);
   --ease:cubic-bezier(.22,1,.36,1);
+  --ease-spring:cubic-bezier(.32,.72,0,1);
   --z-skip:6;
   --z-nav:4;
 }`;

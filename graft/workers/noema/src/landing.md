@@ -1,7 +1,7 @@
 # workers/noema/src/landing.ts
 
-- homeExcerptFromLive · function · L135-L215 — function homeExcerptFromLive(data: unknown): string[]
-- publicLine · function · L139-L143 — publicLine = (value: unknown): string
-- quiet · function · L144-L144 — quiet = (line: string): boolean
-- landingHtml · function · L217-L290 — function landingHtml(): string
-- notFoundHtml · function · L292-L309 — function notFoundHtml(): string
+- homeExcerptFromLive · function · L158-L238 — function homeExcerptFromLive(data: unknown): string[]
+- publicLine · function · L162-L166 — publicLine = (value: unknown): string
+- quiet · function · L167-L167 — quiet = (line: string): boolean
+- landingHtml · function · L240-L316 — function landingHtml(): string
+- notFoundHtml · function · L318-L335 — function notFoundHtml(): string
