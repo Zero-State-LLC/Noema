@@ -11,5 +11,5 @@ graph, not in these files: `trail callers <symbol>` is the only way to read them
 
 ## Files
 
-660 per-file wiring cards mirror the source tree under `graft/` (582 carry extracted symbols). They are deliberately not enumerated here —
+662 per-file wiring cards mirror the source tree under `graft/` (584 carry extracted symbols). They are deliberately not enumerated here —
 `grep` a symbol or `find`/`ls` a filename under `graft/` to land on the card for that file.

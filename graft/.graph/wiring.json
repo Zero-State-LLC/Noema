@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9263,
-    "edgeCount": 20724,
+    "nodeCount": 9282,
+    "edgeCount": 20778,
     "languages": [
       "javascript",
       "python",
@@ -91910,12 +91910,12 @@
       "name": "watch.ts",
       "kind": "file",
       "path": "workers/noema/src/watch.ts",
-      "span": "L1-L1425",
+      "span": "L1-L1452",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "22a7f49518f0ef1e48063463640c623ef3945c76e07027d59b121f32d28e2ef4",
-      "chars": 67911,
+      "body_hash": "91810911ccda31ec0152117d3e7cda048d82e4ff70dafa865aabaf6b633d780a",
+      "chars": 69373,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -91925,11 +91925,11 @@
       "name": "watchHtml",
       "kind": "function",
       "path": "workers/noema/src/watch.ts",
-      "span": "L282-L1424",
+      "span": "L282-L1451",
       "signature": "function watchHtml(opts?: { mode?: string }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "2d382dbdc67184bf5f5bbaa0d4e20b5ad4dd47a5b03d306d20acf13ade573f14",
+      "body_hash": "98c3f5d20bf57872c93a51fe80b01d5500c502ad4fcc06891d9e1fe9983e134a",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -108298,6 +108298,147 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "name": "mud-presence-remaining-variants.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L1-L174",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "559d9e21b21cb3922410d83f305ed5c7bac2d4c05dc6fcafaea73d7185ead62b",
+      "chars": 11415,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#partners",
+      "name": "partners",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L157-L157",
+      "signature": "partners = async ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "716208e8fc830a4c7c92997aa1ad5b8ecfa4f1b6ca550706999394a2f242c057",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#principal",
+      "name": "principal",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L9-L13",
+      "signature": "principal = (name: string): PlayerPrincipal",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e21f55b2081e94ef4309322d28a4b8115b7b761f4a621bd954f633008f0a7f24",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "name": "scene",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L14-L72",
+      "signature": "async function scene()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "4a474c5d43c2eaff9e161b3390ea4984e1e658d1c512d413cd6400ccd97a9e63",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset",
+      "name": "asset",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L47-L47",
+      "signature": "asset = ()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "af869da15ac4279a201d61fcdbc55306579f7b089086b78aa78170fa6187cd9f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset~2",
+      "name": "asset",
+      "kind": "method",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L71-L71",
+      "signature": "get asset()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "b5a5c09bd4a00fa83a3f42f43097ee32a6fd76b7fdaebd4800f1efa83b4d74a3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "name": "ok",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L31-L35",
+      "signature": "ok = async (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "6ef64e191fe4c029e761f4b24b1543179f83cc446f6fcbac6656a269e23a9477",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.read",
+      "name": "read",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L66-L70",
+      "signature": "read = async (carrier: \"LOOK\" | \"HELP\" = \"LOOK\")",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7745a7920ca58956a6845ae11721e2be0fb2141ecb51037567452513ed1ce260",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L27-L29",
+      "signature": "send = (p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, key = `remaining793.${++n}`)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ef7cc123df75f0d525c2ed572cb625b78179ebbee307c73b4f2b5e42c8235ec7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.text",
+      "name": "text",
+      "kind": "function",
+      "path": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "span": "L30-L30",
+      "signature": "text = (p: PlayerPrincipal, line: string, key?: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f3be1c434c6ee4ae778c48e735d52b307a245861fc72703558d63a7e23580075",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/mud-room-contract.test.ts",
       "name": "mud-room-contract.test.ts",
       "kind": "file",
@@ -108477,6 +108618,63 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "7e49ad1fc1e48f4b97f006bf5b789687f635ba06bfb8130ab9d0c5093b578d89",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "name": "mud-trace-supported-lifecycle.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "span": "L1-L165",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "f25d33ac89687b5cc6ea89e72a1b8e7e072e8f2e855e56397bf63cecf782c56c",
+      "chars": 10149,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "name": "rig",
+      "kind": "function",
+      "path": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "span": "L40-L84",
+      "signature": "async function rig()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "8f5bc22529b5a45c92e562e0c26a0b7d821f96686649d1f35f18c075281e5c13",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig.send",
+      "name": "send",
+      "kind": "function",
+      "path": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "span": "L50-L57",
+      "signature": "async function send(command: string, args: Record<string, unknown> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d7c08f9aaee5bb23790c86a9daf637e64566030f8a16d1d553ea1088ab5b12c3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#traceTexts",
+      "name": "traceTexts",
+      "kind": "function",
+      "path": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "span": "L30-L36",
+      "signature": "function traceTexts(result: CommandResult)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d5cd43f36c5da0d18ffa6e2ac68f048f20f9705e2d2ee25426a4c2e865a8424b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -113723,12 +113921,12 @@
       "name": "watch-live.test.ts",
       "kind": "file",
       "path": "workers/noema/test/watch-live.test.ts",
-      "span": "L1-L2450",
+      "span": "L1-L2643",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "734df79549782ef624c67c80ffcf6a21ec11a647b0edf086ef663f827cfcae97",
-      "chars": 97316,
+      "body_hash": "efb85fef6f07c5c714125d0045999b07d211b9f8e56c7b8b52ff24d8eed64ca8",
+      "chars": 107128,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -113914,6 +114112,79 @@
       "summary_state": "pending",
       "summary": null,
       "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "name": "h7PublicFrame",
+      "kind": "function",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2465-L2480",
+      "signature": "function h7PublicFrame(offset = 0, hostile = false)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "2c42c5ca9df0e780150693c64171f8a727882b1678f28ba504a4db03ecabbe9a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "name": "H7Socket",
+      "kind": "class",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2597-L2605",
+      "signature": "class H7Socket",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "dafaa144aae6da3e0a976f03702dbd1fb2ac28a7153bae68f9bd96d6eaf513a0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.close",
+      "name": "close",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2604-L2604",
+      "signature": "close()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ff4d02a78ae203d6cb688e806d96a6bea51abaa97735bb673ccf453827d0a9a1",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.constructor",
+      "name": "constructor",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2602-L2602",
+      "signature": "constructor()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "132d7919a2c8d235b7195aa5e93d877031cebaa1365c4ee650a087c0fcc1cc1b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
+    },
+    {
+      "id": "workers/noema/test/watch-live.test.ts#H7Socket.send",
+      "name": "send",
+      "kind": "method",
+      "path": "workers/noema/test/watch-live.test.ts",
+      "span": "L2603-L2603",
+      "signature": "send()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "758af76bb747d959f4a3489e1b9dc416e986507c106d989220db74996a411a7b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null,
+      "owner": "H7Socket"
     },
     {
       "id": "workers/noema/test/watch-live.test.ts#liveOf",
@@ -189761,6 +190032,18 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#isListening.finish",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/scripts/mud-local-acceptance.mjs#reservePort",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/scripts/mud-local-acceptance.mjs#runLocalAcceptance",
       "target": "workers/noema/scripts/mud-local-acceptance.mjs#assertBudgetDelta",
       "relation": "calls",
@@ -236135,6 +236418,168 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#partners",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#partners",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/src/actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/src/construction.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/src/actions.ts#cloneBudgets",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset~2",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.read",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.text",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "references",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset~2",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.asset",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.read",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.ok",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.read",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.text",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.text",
+      "target": "workers/noema/test/mud-presence-remaining-variants.test.ts#scene.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/mud-room-contract.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -236353,6 +236798,108 @@
     {
       "source": "workers/noema/test/mud-trace-lifecycle.test.ts#read~2",
       "target": "workers/noema/src/world-actions.ts#buildObservation",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#traceTexts",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#traceTexts",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/src/construction.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/src/genesis.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/src/world-actions.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts",
+      "target": "workers/noema/src/world-do.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "target": "workers/noema/src/genesis.ts#previewGenesis",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "target": "workers/noema/src/world-do.ts#cycle0ToWorld",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig.send",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#traceTexts",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig",
+      "target": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig.send",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/mud-trace-supported-lifecycle.test.ts#rig.send",
+      "target": "workers/noema/src/world-actions.ts#applyWorldCommand",
       "relation": "calls",
       "confidence": "inferred"
     },
@@ -245274,6 +245821,12 @@
     },
     {
       "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#liveOf",
       "relation": "calls",
       "confidence": "extracted"
@@ -245383,6 +245936,18 @@
     {
       "source": "workers/noema/test/watch-live.test.ts",
       "target": "workers/noema/test/watch-live.test.ts#FakeNode",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -245642,6 +246207,36 @@
       "source": "workers/noema/test/watch-live.test.ts#calm",
       "target": "workers/noema/test/watch-live.test.ts#snapshot",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "target": "workers/noema/src/watch-live.ts#buildWatchLive",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#h7PublicFrame",
+      "target": "workers/noema/test/watch-live.test.ts#src",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.close",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.constructor",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-live.test.ts#H7Socket",
+      "target": "workers/noema/test/watch-live.test.ts#H7Socket.send",
+      "relation": "contains",
       "confidence": "extracted"
     },
     {
