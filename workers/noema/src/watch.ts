@@ -337,8 +337,8 @@ export function watchHtml(opts?: { mode?: string }): string {
         <div class="watch-banner" id="watch-banner" hidden></div>
         <div class="watch-follow-bar" id="watch-follow-bar">
           <span class="watch-following" id="watch-following" hidden></span>
-          <button type="button" class="btn quiet" id="watch-follow-actor" hidden></button>
-          <button type="button" class="btn quiet" id="watch-follow-site" hidden></button>
+          <button type="button" class="btn quiet" id="watch-follow-actor" hidden aria-label="Follow this actor"></button>
+          <button type="button" class="btn quiet" id="watch-follow-site" hidden aria-label="Follow this site"></button>
           <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
         </div>
         <div class="watch-summary" id="watch-summary" hidden></div>
@@ -722,10 +722,16 @@ export function watchHtml(opts?: { mode?: string }): string {
       const showActorBtn = headActor && !(f && f.kind === "agent" && f.id === headActor);
       const showSiteBtn = head && head.room_id && !(f && f.kind === "site" && f.id === head.room_id);
       actorBtn.hidden = !showActorBtn;
-      if (showActorBtn) actorBtn.textContent = "Follow " + headActor;
+      if (showActorBtn) {
+        actorBtn.textContent = "Follow " + headActor;
+        actorBtn.setAttribute("aria-label", actorBtn.textContent);
+      }
       actorBtn.onclick = showActorBtn ? (() => setFollow({ kind: "agent", id: headActor })) : null;
       siteBtn.hidden = !showSiteBtn;
-      if (showSiteBtn) siteBtn.textContent = "Follow " + (headSite || "this site");
+      if (showSiteBtn) {
+        siteBtn.textContent = "Follow " + (headSite || "this site");
+        siteBtn.setAttribute("aria-label", siteBtn.textContent);
+      }
       siteBtn.onclick = showSiteBtn ? (() => setFollow({ kind: "site", id: head.room_id })) : null;
       chip.hidden = !f;
       clearBtn.hidden = !f;
