@@ -33,6 +33,7 @@ import urllib.request
 
 import noema_client
 from noema_client.client import NoemaClient
+from noema_client.errors import NoemaActionRejected
 from noema_client.types import ActionProposal
 
 cfg = json.load(sys.stdin)
@@ -52,6 +53,7 @@ secrets.append(admin)
 clients = []
 ids = []
 checks = []
+pressure_observations = []
 def equivalent(client):
     obs = client.observation
     raw = obs.raw
@@ -63,6 +65,9 @@ def equivalent(client):
     assert canonical["entities"] == loc["entities"]
     if "pressure" in raw:
         assert loc["condition"] == raw["pressure"]
+        if raw["pressure"]:
+            assert isinstance(loc["condition"], str) and loc["condition"].strip()
+            pressure_observations.append(loc["room_id"])
     assert set(canonical["resources"]) == {"attention", "compute", "energy", "influence", "storage"}
     assert canonical["resources"] == raw["budgets"]
     assert canonical["players_here"] == raw["players_here"]
@@ -103,7 +108,7 @@ try:
     assert initial["canonical"]["entities"], "entry seed must expose real entities"
     equivalent(b)
     assert {p["player_id"] for p in initial["canonical"]["players_here"]} == {ids[1]}
-    checks.append("place/pressure/entities/exits/five budgets/actions/raw affordance arguments/secret exclusion")
+    checks.append("place/entities/exits/five budgets/actions/raw affordance arguments/secret exclusion")
     marker = "private-semantic-message-" + Path(cfg["root"]).name
     sent = a.act(ActionProposal(action="MESSAGE", target_id=ids[0], arguments={"text": marker}))
     assert sent.ok, "self MESSAGE rejected"
@@ -112,11 +117,12 @@ try:
     b.observe()
     assert marker not in json.dumps(equivalent(b))
     with urllib.request.urlopen(cfg["base"] + "/v1/watch/live", timeout=10) as response:
-        watch = response.read().decode()
-    assert marker not in watch
-    assert all(secret not in watch for secret in secrets)
-    checks.append("self MESSAGE in private model context, absent other principal and public WATCH")
-    checks.append("NOTCOVERED: same-world public WATCH, local isolated worlds cannot be WATCH targets")
+        watch = json.load(response)
+    assert watch["world_id"] == cfg["watch_world"] != cfg["world"]
+    assert all(secret not in json.dumps(watch) for secret in secrets)
+    checks.append("self MESSAGE in private model context, absent other same-world principal")
+    # A different world's missing marker is not evidence of message privacy.
+    checks.append("NOTCOVERED: same-world public WATCH privacy; observed WATCH world differs from isolated agent world")
     a.observe()
     old_room = a.observation.location["room_id"]
     moves = [aff for aff in a.observation.raw["affordances"] if aff["action"] == "MOVE"]
@@ -129,21 +135,43 @@ try:
     assert moved_context["canonical"]["location"]["room_id"] != old_room
     assert moved_context["canonical"]["last_consequence"] == moved.observation["consequence"]
     assert moved_context["canonical"]["last_consequence"]
-    # Replay through the public client after observing the old room again would
-    # change state. Instead use the same legal direction if it remains visible.
+    # Always exercise the public API, including its deterministic rejection of
+    # a direction no longer visible after MOVE. Never silently skip the call.
     exits = a.observation.location["exits"]
-    if direction in exits or any(isinstance(e, dict) and direction in e.values() for e in exits):
+    still_visible = direction in {exit["direction"] for exit in exits}
+    before_replay = a.observe()
+    try:
         replay = a.act(proposal, idempotency_key="semantic-move", request_id="semantic-move")
-        assert replay.ok and replay.observation == moved.observation
-        checks.append("public client idempotent MOVE replay")
+    except NoemaActionRejected as exc:
+        assert not still_visible
+        assert exc.code == "INVALID_PROPOSAL"
+        replay_outcome = "client_rejected_INVALID_PROPOSAL"
+        checks.append("public client MOVE replay deterministically rejected: INVALID_PROPOSAL (direction no longer visible)")
+        checks.append("NOTCOVERED: server idempotent MOVE replay; public client rejected before transport")
     else:
-        checks.append("NOTCOVERED: MOVE replay, original direction not visible after move for client validation")
+        assert still_visible
+        assert replay.ok and replay.observation == moved.observation
+        replay_outcome = "server_replayed_identical_observation"
+        checks.append("public client idempotent MOVE replay")
     a.observe()
+    assert a.observation.location["room_id"] == before_replay.location["room_id"]
+    assert a.observation.sequence == before_replay.sequence
+    assert a.observation.resources == before_replay.resources
+    checks.append("replay/rejection leaves room, sequence and all budgets unchanged")
     b.observe()
     assert ids[1] not in {p["player_id"] for p in equivalent(a)["canonical"]["players_here"]}
     assert ids[0] not in {p["player_id"] for p in equivalent(b)["canonical"]["players_here"]}
     checks.append("legal MOVE updates place and structured consequence, remote presence excluded")
-    print(json.dumps({"checks": checks, "local_only": True}))
+    if pressure_observations:
+        checks.append("positive nonempty raw pressure equals canonical nested location.condition")
+    else:
+        checks.append("NOTCOVERED: positive pressure equivalence; public canonical seed observations expose no nonempty raw pressure")
+    print(json.dumps({
+        "checks": checks, "local_only": True,
+        "positive_pressure_observations": len(pressure_observations),
+        "watch_same_world": watch["world_id"] == cfg["world"],
+        "replay_outcome": replay_outcome,
+    }))
 finally:
     for client in clients:
         client.close()
@@ -160,6 +188,42 @@ def _listening(port: int) -> bool:
     with socket.socket() as sock:
         sock.settimeout(0.2)
         return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def _group_exists(pgid: int) -> bool:
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def _stop_owned_worker(worker: subprocess.Popen, ports: tuple[int, int]) -> None:
+    """Only the new session/group we created is within cleanup authority."""
+    try:
+        os.killpg(worker.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        worker.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        pass
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline and _group_exists(worker.pid):
+        time.sleep(0.1)
+    if _group_exists(worker.pid):
+        try:
+            os.killpg(worker.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    worker.wait(timeout=10)
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline and (
+        _group_exists(worker.pid) or any(_listening(p) for p in ports)
+    ):
+        time.sleep(0.1)
+    assert not _group_exists(worker.pid), "owned Worker process group remains"
+    assert not any(_listening(p) for p in ports), "owned Worker ports remain open"
 
 
 def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
@@ -231,37 +295,38 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
         inspector = _port()
     base = f"http://127.0.0.1:{port}"
     log_path = tmp_path / "worker.log"
-    with log_path.open("wb") as log:
-        worker = subprocess.Popen(
-            [
-                node,
-                str(wrangler),
-                "dev",
-                "--config",
-                str(config_path),
-                "--local",
-                "--ip",
-                "127.0.0.1",
-                "--port",
-                str(port),
-                "--inspector-ip",
-                "127.0.0.1",
-                "--inspector-port",
-                str(inspector),
-                "--persist-to",
-                str(tmp_path / "storage"),
-                "--no-show-interactive-dev-session",
-                "--log-level",
-                "error",
-            ],
-            cwd=tmp_path,
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+    worker = None
     try:
+        with log_path.open("wb") as log:
+            worker = subprocess.Popen(
+                [
+                    node,
+                    str(wrangler),
+                    "dev",
+                    "--config",
+                    str(config_path),
+                    "--local",
+                    "--ip",
+                    "127.0.0.1",
+                    "--port",
+                    str(port),
+                    "--inspector-ip",
+                    "127.0.0.1",
+                    "--inspector-port",
+                    str(inspector),
+                    "--persist-to",
+                    str(tmp_path / "storage"),
+                    "--no-show-interactive-dev-session",
+                    "--log-level",
+                    "error",
+                ],
+                cwd=tmp_path,
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
         deadline = time.monotonic() + 60
         ready = False
         while time.monotonic() < deadline and worker.poll() is None:
@@ -285,6 +350,7 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
                     "base": base,
                     "root": str(tmp_path),
                     "world": world,
+                    "watch_world": config["vars"]["DEFAULT_WORLD_ID"],
                     "admin_secret": admin_secret,
                     "signing": signing,
                 }
@@ -315,19 +381,24 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
         (tmp_path / "checks.json").write_text(json.dumps(receipt, indent=2))
     finally:
         try:
-            os.killpg(worker.pid, signal.SIGTERM)
-        except ProcessLookupError:
-            pass
-        try:
-            worker.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            os.killpg(worker.pid, signal.SIGKILL)
-            worker.wait(timeout=10)
-        deadline = time.monotonic() + 10
-        while time.monotonic() < deadline and any(
-            _listening(p) for p in (port, inspector)
-        ):
-            time.sleep(0.1)
-        assert not any(_listening(p) for p in (port, inspector)), (
-            "owned Worker ports remain open"
+            if worker is not None:
+                _stop_owned_worker(worker, (port, inspector))
+        finally:
+            dev_vars.unlink(missing_ok=True)
+            assert not dev_vars.exists(), "private signing file remains"
+            for suffix in ("a", "b"):
+                credential_path = tmp_path / suffix / "credential.json"
+                credential_path.unlink(missing_ok=True)
+                assert not credential_path.exists(), "private credential file remains"
+        (tmp_path / "cleanup.json").write_text(
+            json.dumps(
+                {
+                    "process_group_gone": True,
+                    "application_port_closed": True,
+                    "inspector_port_closed": True,
+                    "signing_file_removed": True,
+                    "credential_files_removed": True,
+                },
+                indent=2,
+            )
         )
