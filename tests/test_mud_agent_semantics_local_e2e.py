@@ -59,6 +59,7 @@ def equivalent(client):
     raw = obs.raw
     ctx = client.model_context()
     canonical = ctx["canonical"]
+    assert "play_text" not in ctx and "play_text" not in canonical
     loc = canonical["location"]
     assert loc == raw["location"]
     assert loc["name"] and loc["description"] and loc["exits"]
@@ -96,10 +97,12 @@ try:
         path = home / "credential.json"
         path.write_text(json.dumps(credential))
         path.chmod(0o600)
-        client = NoemaClient(server=cfg["base"], isolated=True, world_id=cfg["world"],
-                             config_home=home, admin_token=admin, transport="http")
+        client = NoemaClient(server=cfg["base"], isolated=cfg["isolated"], world_id=cfg["world"],
+                             config_home=home, admin_token=admin if cfg["isolated"] else None, transport="http")
         clients.append(client)
         client.connect()
+        assert client.session.transport == "http"
+        assert client.session.seal_sent is (not cfg["isolated"])
         client.observe()
     assert ids[0] != ids[1]
     a, b = clients
@@ -108,7 +111,7 @@ try:
     assert initial["canonical"]["entities"], "entry seed must expose real entities"
     equivalent(b)
     assert {p["player_id"] for p in initial["canonical"]["players_here"]} == {ids[1]}
-    checks.append("place/entities/exits/five budgets/actions/raw affordance arguments/secret exclusion")
+    checks.append("place/entities/exits/five budgets/actions/raw structured affordances/secret exclusion")
     marker = "private-semantic-message-" + Path(cfg["root"]).name
     sent = a.act(ActionProposal(action="MESSAGE", target_id=ids[0], arguments={"text": marker}))
     assert sent.ok, "self MESSAGE rejected"
@@ -118,11 +121,15 @@ try:
     assert marker not in json.dumps(equivalent(b))
     with urllib.request.urlopen(cfg["base"] + "/v1/watch/live", timeout=10) as response:
         watch = json.load(response)
-    assert watch["world_id"] == cfg["watch_world"] != cfg["world"]
+    if cfg["isolated"]:
+        assert watch["world_id"] == cfg["watch_world"] != cfg["world"]
+        checks.append("NOTCOVERED: same-world public WATCH privacy on isolated route; WATCH uses a different world")
+    else:
+        assert watch["world_id"] == cfg["world"]
+        assert marker not in json.dumps(watch)
+        checks.append("same-world public WATCH excludes the private message")
     assert all(secret not in json.dumps(watch) for secret in secrets)
     checks.append("self MESSAGE in private model context, absent other same-world principal")
-    # A different world's missing marker is not evidence of message privacy.
-    checks.append("NOTCOVERED: same-world public WATCH privacy; observed WATCH world differs from isolated agent world")
     a.observe()
     old_room = a.observation.location["room_id"]
     moves = [aff for aff in a.observation.raw["affordances"] if aff["action"] == "MOVE"]
@@ -162,12 +169,11 @@ try:
     assert ids[1] not in {p["player_id"] for p in equivalent(a)["canonical"]["players_here"]}
     assert ids[0] not in {p["player_id"] for p in equivalent(b)["canonical"]["players_here"]}
     checks.append("legal MOVE updates place and structured consequence, remote presence excluded")
-    if pressure_observations:
-        checks.append("positive nonempty raw pressure equals canonical nested location.condition")
-    else:
-        checks.append("NOTCOVERED: positive pressure equivalence; public canonical seed observations expose no nonempty raw pressure")
+    assert pressure_observations, "canonical seed must exercise a positive pressure band"
+    checks.append("positive nonempty raw pressure equals canonical nested location.condition")
     print(json.dumps({
-        "checks": checks, "local_only": True,
+        "checks": checks, "local_only": True, "isolated": cfg["isolated"],
+        "normal_seal_sent": not cfg["isolated"],
         "positive_pressure_observations": len(pressure_observations),
         "watch_same_world": watch["world_id"] == cfg["world"],
         "replay_outcome": replay_outcome,
@@ -226,7 +232,12 @@ def _stop_owned_worker(worker: subprocess.Popen, ports: tuple[int, int]) -> None
     assert not any(_listening(p) for p in ports), "owned Worker ports remain open"
 
 
-def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "isolated", [False, True], ids=["default-agent-http", "isolated-agent-http"]
+)
+def test_s2_agent_semantics_with_pinned_official_client(
+    tmp_path: Path, isolated: bool
+) -> None:
     raw = os.environ.get("NOEMA_OFFICIAL_CLIENT_REPO")
     if not raw:
         pytest.skip(
@@ -239,6 +250,13 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
         ["git", "rev-parse", "HEAD"], cwd=checkout, text=True
     ).strip()
     assert head == CLIENT_PIN, "official client must use the exact CI pin"
+    assert not subprocess.check_output(
+        ["git", "diff", "HEAD", "--", "src/noema_client", "pyproject.toml"],
+        cwd=checkout,
+        text=True,
+    ).strip(), (
+        "official consumer source must match the pin, not a dirty editable install"
+    )
     worker_dir = Path(__file__).resolve().parents[1] / "workers/noema"
     wrangler = worker_dir / "node_modules/wrangler/bin/wrangler.js"
     node = shutil.which("node")
@@ -247,7 +265,11 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
     )
     tmp_path.chmod(0o700)
     run_id = secrets.token_hex(8)
-    world = f"test.hosted-canonical.semantic-{run_id}"
+    world = (
+        f"test.hosted-canonical.semantic-{run_id}"
+        if isolated
+        else f"world.semantic-local-{run_id}"
+    )
     signing, admin_secret = secrets.token_hex(32), secrets.token_hex(32)
     config = {
         "name": f"noema-semantic-{run_id}",
@@ -257,7 +279,9 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
         "vars": {
             "NOEMA_ENV": "local",
             "NOEMA_PROTOCOL_VERSION": "1",
-            "DEFAULT_WORLD_ID": f"test.hosted-canonical.watch-{run_id}",
+            "DEFAULT_WORLD_ID": f"test.hosted-canonical.watch-{run_id}"
+            if isolated
+            else world,
         },
         "durable_objects": {
             "bindings": [{"name": "WORLD_DO", "class_name": "NoemaWorldDO"}]
@@ -350,6 +374,7 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
                     "base": base,
                     "root": str(tmp_path),
                     "world": world,
+                    "isolated": isolated,
                     "watch_world": config["vars"]["DEFAULT_WORLD_ID"],
                     "admin_secret": admin_secret,
                     "signing": signing,
@@ -393,6 +418,10 @@ def test_s2_agent_semantics_with_pinned_official_client(tmp_path: Path) -> None:
         (tmp_path / "cleanup.json").write_text(
             json.dumps(
                 {
+                    "pid": worker.pid if worker is not None else None,
+                    "process_group": worker.pid if worker is not None else None,
+                    "port": port,
+                    "inspector_port": inspector,
                     "process_group_gone": True,
                     "application_port_closed": True,
                     "inspector_port_closed": True,
