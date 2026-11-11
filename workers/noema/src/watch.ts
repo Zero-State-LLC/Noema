@@ -426,9 +426,9 @@ export function watchHtml(opts?: { mode?: string }): string {
     const STAGE_FALLBACK_LINE = ${JSON.stringify(STAGE_FALLBACK_LINE)};
     const STAGE_LOW_NOISE_LINE = ${JSON.stringify(STAGE_LOW_NOISE_LINE)};
 
-    // D3: the view is per visit. Clear the legacy mode key; Low noise is the
-    // lasting text-only preference. The URL keeps ?mode=text for sharing.
-    try { localStorage.removeItem("noema.watch.mode"); } catch (e) { /* preference only */ }
+    // D3: the view is per visit and Low noise is the lasting text-only
+    // preference. The noema.watch.mode key is left alone: Admin Watch still
+    // keeps its TEXT / PIXEL choice there. The URL keeps ?mode=text for sharing.
     function persistWatchMode(next) {
       try {
         const u = new URL(location.href);
@@ -1330,7 +1330,7 @@ export function watchHtml(opts?: { mode?: string }): string {
   })();
   </script>
   <script>
-  ${phosphorInlineScript()}
+  ${phosphorInlineScript({ textOnly: true })}
   </script>
   `;
   return productShell({

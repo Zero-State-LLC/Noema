@@ -376,12 +376,12 @@ describe("driven WATCH client with the 3D stage", () => {
     } finally { c.restore(); }
   });
 
-  it("ignores and clears a stored legacy mode key", async () => {
+  it("ignores a stored mode key and leaves it for Admin Watch", async () => {
     const c = await boot({ stored: "text" });
     try {
       expect(c.stage.getAttribute("data-mode")).toBe("3d");
       expect(c.stageScripts()).toHaveLength(1);
-      expect(c.store.has("noema.watch.mode")).toBe(false);
+      expect(c.store.get("noema.watch.mode")).toBe("text");
     } finally {
       c.restore();
     }

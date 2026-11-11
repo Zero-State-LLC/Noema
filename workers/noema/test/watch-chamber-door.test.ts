@@ -51,7 +51,8 @@ describe("the stage is the Chamber door", () => {
     const src = mainScript(DOOR);
     expect(src).toContain('searchParams.set("mode", "text")');
     expect(src).toContain('searchParams.delete("mode")');
-    expect(src).toContain('localStorage.removeItem("noema.watch.mode")');
+    // Admin Watch still keeps its TEXT / PIXEL choice in noema.watch.mode; /watch leaves it alone.
+    expect(src).not.toContain('localStorage.removeItem("noema.watch.mode")');
     expect(src).toContain("parseWatchMode");
     expect(src).toContain("location.hash");
   });

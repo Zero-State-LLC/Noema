@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
 import { adminHtml } from "../src/admin";
 import { connectHtml } from "../src/connect";
@@ -20,6 +21,7 @@ import {
   collectPulses,
   collectSiteMarks,
   createPhosphorSession,
+  parsePhosphorMode,
   canvasPointFromEvent,
   drawCatalogMark,
   drawExit,
@@ -1053,5 +1055,89 @@ describe("public reconstruction inputs in phosphor draw commands", () => {
   it("uses public corroboration in the known-room glyph intensity", () => {
     expect(paintedRoom(1, 1)).toEqual(["#3DDCFF"]);
     expect(paintedRoom(1, 3)).toEqual(["#FFB020"]);
+  });
+});
+
+// Admin Watch keeps PIXEL (Noema-Specs watch-single-3d-stage.md D2). Its mode
+// stays separate from public /watch, which retired the TEXT / PIXEL rail.
+describe("Admin Watch keeps its own TEXT / PIXEL mode", () => {
+  it("parsePhosphorMode: query, then hash, then stored, else PIXEL; public 3D/MAP values never apply", () => {
+    expect(parsePhosphorMode("", "", null)).toBe("pixel");
+    expect(parsePhosphorMode("", "", "text")).toBe("text");
+    expect(parsePhosphorMode("", "", "pixel")).toBe("pixel");
+    expect(parsePhosphorMode("?mode=text", "", "pixel")).toBe("text");
+    expect(parsePhosphorMode("", "#text", "pixel")).toBe("text");
+    expect(parsePhosphorMode("?mode=3d", "#map", "text")).toBe("text");
+    expect(parsePhosphorMode("?mode=3d", "", null)).toBe("pixel");
+  });
+
+  it("parsePhosphorMode stays __name-free under wrangler's keepNames transform", () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../src/watch-phosphor.ts"), "utf8");
+    const out = transformSync(src, { loader: "ts", keepNames: true, format: "esm" }).code;
+    const start = out.indexOf("function parsePhosphorMode(");
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(out.slice(start, out.indexOf("\n}\n", start))).not.toContain("__name(");
+  });
+
+  // The exact bootstrap admin.ts embeds for Admin Watch.
+  const ADMIN_BIND = {
+    canvasId: "awatch-phosphor",
+    wrapId: "awatch-phos-wrap",
+    textBtnId: "awatch-mode-text",
+    pixelBtnId: "awatch-mode-pixel",
+    globalName: "NoemaAdminPhosphor",
+  };
+
+  it("Admin Watch embeds the PIXEL-capable bootstrap, not the public text-only one", () => {
+    expect(adminHtml()).toContain(phosphorInlineScript(ADMIN_BIND));
+    expect(phosphorInlineScript(ADMIN_BIND)).toContain("parsePhosphorMode(search, hash, stored)");
+    expect(watchHtml()).toContain(phosphorInlineScript({ textOnly: true }));
+  });
+
+  function bootAdmin(opts: { stored?: string | null; search?: string }) {
+    const src = phosphorInlineScript(ADMIN_BIND);
+    const ctx = new Proxy({}, { get: (_t, k) => (k === "globalAlpha" ? 1 : () => {}), set: () => true });
+    const canvas = { width: 0, height: 0, style: {}, getContext: () => ctx, addEventListener() {} };
+    const wrap = { hidden: true };
+    const pressed: Record<string, string> = {};
+    const btn = (id: string) => ({ setAttribute: (_k: string, v: string) => { pressed[id] = v; }, addEventListener() {} });
+    const ids: Record<string, unknown> = {
+      "awatch-phosphor": canvas, "awatch-phos-wrap": wrap,
+      "awatch-mode-text": btn("text"), "awatch-mode-pixel": btn("pixel"),
+    };
+    const store = new Map<string, string>();
+    if (opts.stored != null) store.set("noema.watch.mode", opts.stored);
+    const g = globalThis as Record<string, unknown>;
+    const keys = ["document", "window", "localStorage", "location", "NoemaAdminPhosphor"];
+    const saved = Object.fromEntries(keys.map((k) => [k, g[k]]));
+    g.document = { hidden: false, getElementById: (id: string) => ids[id] ?? null, addEventListener() {} };
+    g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
+    g.location = { search: opts.search || "", hash: "" };
+    g.window = g;
+    g.matchMedia = () => ({ matches: false });
+    try {
+      (0, eval)(src);
+      return { mode: (g.NoemaAdminPhosphor as { mode: string }).mode, wrapHidden: wrap.hidden, pressed };
+    } finally {
+      for (const k of keys) g[k] = saved[k];
+      delete g.matchMedia;
+    }
+  }
+
+  it("boots the Admin sketch in PIXEL by default and when PIXEL is stored", () => {
+    for (const stored of [null, "pixel", "3d", "map"]) {
+      const a = bootAdmin({ stored });
+      expect(a.mode, String(stored)).toBe("pixel");
+      expect(a.wrapHidden, String(stored)).toBe(false);
+      expect(a.pressed.pixel, String(stored)).toBe("true");
+    }
+  });
+
+  it("honours a stored TEXT preference and ignores a public ?mode=3d link", () => {
+    const text = bootAdmin({ stored: "text" });
+    expect(text.mode).toBe("text");
+    expect(text.wrapHidden).toBe(true);
+    expect(text.pressed.text).toBe("true");
+    expect(bootAdmin({ stored: "pixel", search: "?mode=3d" }).mode).toBe("pixel");
   });
 });
