@@ -7,7 +7,8 @@ import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMap
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
-import { FLUID_FALLBACK_LINE, FLUID_SRC, FLUID_STAGE_CSS, fluidStageHtml } from "./watch-fluid-view";
+import { STAGE_FALLBACK_LINE, STAGE_SRC } from "./watch-stage-model";
+import { STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
 import {
   NOT_PROJECTED_PUBLICLY,
   WITHHELD_LEDE,
@@ -276,7 +277,7 @@ body.is-low-noise #watch-low-noise{display:block}
 }
 ${MAP_STAGE_CSS}
 ${MAP_GL_CSS}
-${FLUID_STAGE_CSS}
+${STAGE_VIEW_CSS}
 `;
 
 export function watchHtml(opts?: { mode?: string }): string {
@@ -291,7 +292,7 @@ export function watchHtml(opts?: { mode?: string }): string {
         <button type="button" class="btn quiet" id="watch-mode-text" aria-pressed="${mode === "text" ? "true" : "false"}">TEXT</button>
         <button type="button" class="btn quiet" id="watch-mode-pixel" aria-pressed="${mode === "pixel" ? "true" : "false"}">PIXEL</button>
         <button type="button" class="btn quiet" id="watch-mode-map" aria-pressed="${mode === "map" ? "true" : "false"}">MAP</button>
-        <button type="button" class="btn quiet" id="watch-mode-3d" aria-pressed="${mode === "3d" ? "true" : "false"}" title="Opt-in Three.js view of the public map">3D</button>
+        <button type="button" class="btn quiet" id="watch-mode-3d" aria-pressed="${mode === "3d" ? "true" : "false"}" title="3D view of the public map">3D</button>
       </div>
       <span id="watch-fresh" class="sr">freshness —</span>
       <span id="watch-updated" class="sr">waiting</span>
@@ -323,8 +324,8 @@ export function watchHtml(opts?: { mode?: string }): string {
         <p class="watch-stage-line" id="watch-stage-line">Connecting…</p>
         <p class="watch-stage-honest">A public sketch — not the world.</p>
       </div>
-      ${fluidStageHtml()}
-      <div id="watch-stage-places"${mode === "map" || mode === "3d" ? " hidden" : ""}>
+      ${stageViewHtml()}
+      <div id="watch-stage-places"${mode === "map" ? " hidden" : ""}>
       <h2 id="watch-graph-label">Places</h2>
       <p class="lede">Public sites. Glyphs mark rooms, Players, exits, and visible works.</p>
       <div class="watch-phos" id="watch-phos-wrap" hidden>
@@ -409,6 +410,8 @@ export function watchHtml(opts?: { mode?: string }): string {
       const ln = $("watch-low-noise");
       if (ln) ln.hidden = !on;
       try { localStorage.setItem(LOW_NOISE_KEY, on ? "1" : "0"); } catch (e) {}
+      // D2: Low noise unmounts the 3D stage; the Places list carries the page.
+      if (state.mode === "3d") tryStage();
     }
     (function bootLowNoise() {
       let stored = null;
@@ -431,8 +434,8 @@ export function watchHtml(opts?: { mode?: string }): string {
     const MAP_GL_SRC = ${JSON.stringify(MAP_GL_SRC)};
     const MAP_PARITY_LINE = ${JSON.stringify(MAP_PARITY_LINE)};
     const MAP_PARITY_HOLD_LINE = ${JSON.stringify(MAP_PARITY_HOLD_LINE)};
-    const FLUID_SRC = ${JSON.stringify(FLUID_SRC)};
-    const FLUID_FALLBACK_LINE = ${JSON.stringify(FLUID_FALLBACK_LINE)};
+    const STAGE_SRC = ${JSON.stringify(STAGE_SRC)};
+    const STAGE_FALLBACK_LINE = ${JSON.stringify(STAGE_FALLBACK_LINE)};
 
     function readStoredMode() {
       try { return localStorage.getItem("noema.watch.mode"); } catch (e) { return null; }
@@ -579,7 +582,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     function applyMapFocus(head, rooms, events) {
       state.mapCamId = mapCameraTarget({ head: head, rooms: rooms, events: events, follow: state.follow });
       state.mapFollowId = mapFollowedRoomId(state.follow, rooms);
-      if (fluid.stage && state.mapCamId) fluid.stage.focus(state.mapCamId);
+      syncStage();
       syncMapGl();
     }
     function tryMapGl() {
@@ -606,31 +609,32 @@ export function watchHtml(opts?: { mode?: string }): string {
       s.addEventListener("error", function() { state.mapGlBusy = false; fallbackMapDom(); });
       document.head.appendChild(s);
     }
-    // Opt-in 3D (Three.js) view. Its script is fetched only after 3D is chosen;
-    // any failure drops back to the existing MAP stage with a status line.
-    const fluid = { stage: null, loading: false, failed: false };
-    function paintFluidFallback(msg) {
-      const note = $("watch-fluid-fallback");
+    // 3D Chamber stage (Noema-Specs specify/watch-single-3d-stage.md). Its chunk
+    // is fetched only after 3D is chosen. Any failure, or Low noise, shows the
+    // text map: the Places list stays beside the stage in 3D (D2, WS3-07).
+    const stage3d = { api: null, loading: false, failed: false };
+    function paintStageFallback(msg) {
+      const note = $("watch-stage3d-fallback");
       if (!note) return;
       note.textContent = msg || "";
       note.hidden = !msg;
     }
-    function disposeFluid() {
-      if (fluid.stage) {
-        try { fluid.stage.dispose(); } catch (e) { /* stage is display-only */ }
+    function disposeStage() {
+      if (stage3d.api) {
+        try { stage3d.api.dispose(); } catch (e) { /* stage is display-only */ }
       }
-      fluid.stage = null;
-      const root = $("watch-fluid");
+      stage3d.api = null;
+      const root = $("watch-stage3d");
       if (root) root.hidden = true;
     }
-    function fluidFallback() {
-      fluid.failed = true;
-      fluid.loading = false;
-      disposeFluid();
-      if (state.mode === "3d") applyWatchMode("map", false);
-      paintFluidFallback(FLUID_FALLBACK_LINE);
+    function stageFallback() {
+      stage3d.failed = true;
+      stage3d.loading = false;
+      disposeStage();
+      if (state.mode === "3d") applyWatchMode("text", false);
+      paintStageFallback(STAGE_FALLBACK_LINE);
     }
-    function fluidGlUsable() {
+    function stageGlUsable() {
       try {
         const c = document.createElement("canvas");
         return !!(c && c.getContext && c.getContext("webgl2"));
@@ -638,46 +642,64 @@ export function watchHtml(opts?: { mode?: string }): string {
         return false;
       }
     }
-    function mountFluid() {
-      if (state.mode !== "3d" || fluid.stage) return;
-      const api = window.NoemaWatchFluid;
-      if (!api || !api.mount) { fluidFallback(); return; }
+    function lowNoiseOn() {
+      return !!(document.body && document.body.classList && document.body.classList.contains("is-low-noise"));
+    }
+    function stageContext() {
+      const head = state.held || {};
+      return {
+        selectedId: state.focusRoomId || "",
+        followRoomId: state.mapFollowId || "",
+        majorRoomId: head.tier === "MAJOR" ? (state.mapCamId || "") : "",
+      };
+    }
+    function syncStage() {
+      if (!stage3d.api || state.mode !== "3d") return;
+      if (state.last && state.last.projection === "public") stage3d.api.update(state.last, stageContext());
+    }
+    function mountStage() {
+      if (state.mode !== "3d" || stage3d.api || lowNoiseOn()) return;
+      const api = window.NoemaWatchStage;
+      if (!api || !api.mount) { stageFallback(); return; }
+      const root = $("watch-stage3d");
       try {
-        fluid.stage = api.mount($("watch-fluid"), {
-          onMode: function(next) { if (next !== "map") fluidFallback(); },
+        if (root) root.hidden = false;
+        stage3d.api = api.mount($("watch-stage3d-frame"), {
+          canvas: $("watch-stage3d-gl"),
+          labels: $("watch-stage3d-labels"),
+          reset: $("watch-stage3d-reset"),
+          reduce: state.reduce,
+          onSelect: function(id) { if (window.NoemaPhosphorPick) window.NoemaPhosphorPick(id); },
+          onLost: stageFallback,
         });
-        if (state.last && state.last.projection === "public") fluid.stage.update(state.last);
-        fluid.stage.setMode("map");
-        if (fluid.stage && state.mapCamId) fluid.stage.focus(state.mapCamId);
+        syncStage();
       } catch (e) {
-        fluidFallback();
+        stageFallback();
       }
     }
-    function tryFluid() {
+    function tryStage() {
       if (state.mode !== "3d") return;
-      if (fluid.failed || !fluidGlUsable()) { fluidFallback(); return; }
-      if (fluid.stage) { if (state.last && state.last.projection === "public") fluid.stage.update(state.last); return; }
-      if (window.NoemaWatchFluid) { mountFluid(); return; }
-      if (fluid.loading) return;
-      if (!document.head || !document.head.appendChild) { fluidFallback(); return; }
-      fluid.loading = true;
+      if (lowNoiseOn()) { disposeStage(); return; }
+      if (stage3d.failed || !stageGlUsable()) { stageFallback(); return; }
+      if (stage3d.api) { syncStage(); return; }
+      if (window.NoemaWatchStage) { mountStage(); return; }
+      if (stage3d.loading) return;
+      if (!document.head || !document.head.appendChild) { stageFallback(); return; }
+      stage3d.loading = true;
       const s = document.createElement("script");
       s.type = "module";
-      s.src = FLUID_SRC;
-      s.addEventListener("load", function() { fluid.loading = false; mountFluid(); });
-      s.addEventListener("error", fluidFallback);
+      s.src = STAGE_SRC;
+      s.addEventListener("load", function() { stage3d.loading = false; mountStage(); });
+      s.addEventListener("error", stageFallback);
       document.head.appendChild(s);
-    }
-    if (typeof window.addEventListener === "function") {
-      window.addEventListener("noema-watch-fluid-unavailable", fluidFallback);
     }
     function applyWatchMode(next, persist) {
       const mode = parseWatchMode("", "", next) || "pixel";
       state.mode = mode;
-      paintFluidFallback("");
+      paintStageFallback("");
       const places = $("watch-stage-places");
       const map = $("watch-stage-map");
-      if (places) places.hidden = mode === "map" || mode === "3d";
+      if (places) places.hidden = mode === "map";
       if (map) map.hidden = mode !== "map";
       const stage = document.querySelector(".watch-stage");
       if (stage) stage.setAttribute("data-mode", mode);
@@ -692,11 +714,11 @@ export function watchHtml(opts?: { mode?: string }): string {
       }
       if (persist !== false) persistWatchMode(mode);
       if (mode === "3d") {
-        tryFluid();
-        // A synchronous fallback already re-applied MAP; do not undo it here.
+        tryStage();
+        // A synchronous fallback already re-applied TEXT; do not undo it here.
         if (state.mode !== "3d") return;
       } else {
-        disposeFluid();
+        disposeStage();
       }
       if (mode === "map") tryMapGl();
       else fallbackMapDom();
@@ -1237,7 +1259,9 @@ export function watchHtml(opts?: { mode?: string }): string {
       const pre = $("watch-pre");
       // §18 / §4.B.1: one map at a time — the ASCII cartogram is the TEXT-mode /
       // no-canvas fallback and never renders alongside the live PIXEL sketch.
-      const pixelOn = !!(window.NoemaPhosphor && window.NoemaPhosphor.mode === "pixel");
+      // A mounted 3D stage is the map too; its failure path shows the cartogram (D2).
+      const pixelOn = !!(window.NoemaPhosphor && window.NoemaPhosphor.mode === "pixel") ||
+        (state.mode === "3d" && !!stage3d.api);
       let art = "";
       if (!pixelOn && window.NoemaPhosphor && window.NoemaPhosphor.ascii) {
         art = window.NoemaPhosphor.ascii({
@@ -1273,7 +1297,6 @@ export function watchHtml(opts?: { mode?: string }): string {
 
     function applyLive(data) {
       render(data);
-      if (fluid.stage && data && data.projection === "public") fluid.stage.update(data);
       if (state.mode === "map") refreshMap();
       if (state.paused) {
         setTag("paused", "tag warn");
