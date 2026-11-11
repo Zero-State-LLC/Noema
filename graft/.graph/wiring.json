@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9283,
-    "edgeCount": 20779,
+    "nodeCount": 9289,
+    "edgeCount": 20801,
     "languages": [
       "javascript",
       "python",
@@ -23826,6 +23826,91 @@
       "exported": true,
       "origin": "ast",
       "body_hash": "72efd7eb8992c041e55ae04cd4bfa19460524f910bfc91ff57b2768ea3c6a565",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py",
+      "name": "test_mud_agent_semantics_local_e2e.py",
+      "kind": "file",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L1-L434",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "902ac2f5614bf778cc1f2d23a0e0b1fb57fc839c94af3f6d1dadb1e9c9d82501",
+      "chars": 17620,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py#_group_exists",
+      "name": "_group_exists",
+      "kind": "function",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L199-L204",
+      "signature": "def _group_exists(pgid: int) -> bool",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0f4cf2202f8dcffc3419eda4b78acab9318d82b5054693d2b424793c0a356876",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py#_listening",
+      "name": "_listening",
+      "kind": "function",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L193-L196",
+      "signature": "def _listening(port: int) -> bool",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "33338f2adb33cc19e5c48731087940617f660f199e1a018fde35f692bd532dba",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py#_port",
+      "name": "_port",
+      "kind": "function",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L187-L190",
+      "signature": "def _port() -> int",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ca6799da0290048d0ce2666497dc74f4ddcdca337f113a8214d95c193c54b66b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py#_stop_owned_worker",
+      "name": "_stop_owned_worker",
+      "kind": "function",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L207-L232",
+      "signature": "def _stop_owned_worker(worker: subprocess.Popen, ports: tuple[int, int]) -> None",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "c77f73482d9bbc2d365314b54414120e9440cc76b1183745dd913b26f66c763d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "tests/test_mud_agent_semantics_local_e2e.py#test_s2_agent_semantics_with_pinned_official_client",
+      "name": "test_s2_agent_semantics_with_pinned_official_client",
+      "kind": "function",
+      "path": "tests/test_mud_agent_semantics_local_e2e.py",
+      "span": "L238-L433",
+      "signature": "def test_s2_agent_semantics_with_pinned_official_client( tmp_path: Path, isolated: bool ) -> None",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "a5b6b4f0545700efae8f709fa61f5ff244ac5670e5bf1159d67c312fe7d98d3a",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -158482,6 +158567,138 @@
     {
       "source": "tests/test_llm_agent.py#test_l18_orientation_s0",
       "target": "tests/test_llm_agent.py#_obs",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_group_exists",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_listening",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_port",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_stop_owned_worker",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#test_s2_agent_semantics_with_pinned_official_client",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "json",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "os",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "pathlib",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "pytest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "re",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "secrets",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "shutil",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "signal",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "socket",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "subprocess",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "time",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "urllib.error",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py",
+      "target": "urllib.request",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py#_stop_owned_worker",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_group_exists",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py#_stop_owned_worker",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_listening",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py#test_s2_agent_semantics_with_pinned_official_client",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_port",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "tests/test_mud_agent_semantics_local_e2e.py#test_s2_agent_semantics_with_pinned_official_client",
+      "target": "tests/test_mud_agent_semantics_local_e2e.py#_stop_owned_worker",
       "relation": "calls",
       "confidence": "extracted"
     },

@@ -134,4 +134,37 @@ Bear owns only `tests/test_mud_agent_semantics_local_e2e.py`. The coordinator ow
 | Privacy | Self inbox and public projection -> two independent official contexts / actual WATCH | Private message reaches its recipient only, not the other context or public WATCH. Credentials remain outside every model context and diagnostic output. |
 | Isolation and cleanup | Owned loopback Worker, unique local storage and ports | No hosted/operator campaign or model provider. Stop only the spawned process group and verify both ports close. |
 
-Results are pending. Missing seed affordances or external authority remain explicit limits rather than fabricated fixture state or passed requirements.
+### Observed qualification, November 11, 2026, 01:10 UTC
+
+The predeclared map above is retained as the original test intent. Final maintained test source is `dadc003ab59a3bdd2ba79dfaa26ffd1a9ed83d88`, `tests/test_mud_agent_semantics_local_e2e.py`. Bear committed the first isolated-route case and froze. The coordinator reviewed its full source and follow-up diff, added normal sealed admission and stronger privacy/cleanup controls, then reran the whole Python suite. No Worker runtime source changed in this continuation.
+
+| Requirement / changed output | Concrete check and observed result |
+|---|---|
+| Public producer / consumer boundary | Two maintained actual `NoemaClient` cases passed against owned local Wrangler/workerd: normal sealed `/v1/command` and isolated operator HTTP. The official source and revision match the CI pin above. The normal route confirmed seal transmission; the isolated route explicitly did not claim it. No transport stubs or model provider. |
+| Place, pressure and exits | Both cases compared actual room name, description, entities and exits with canonical context, followed an advertised legal MOVE, and observed 7 nonempty matching pressure bands each. `play_text` is absent from model context; no human-prose parsing supplies these fields. |
+| Presence and status | Independent principals initially observed only the other co-located principal, excluded self, then excluded the remote principal after MOVE in both directions. All five budget fields matched the actual raw observation. |
+| Happened and actions | Actual structured consequence reached `last_consequence`; available actions and argument-bearing affordances matched raw observation. Public `act` executed the legal advertised MOVE. No disputed WAIT wording or TRACES placement decision was introduced. |
+| Replay boundary | The same-key stale MOVE was rejected by the official client with `INVALID_PROPOSAL` before transport. Subsequent actual observation preserved room, sequence and budgets. This is client rejection evidence, **not server replay proof**. The separate real npm lifecycle runner passed all 49 checks, including retained-storage restart/MOVE replay. |
+| Privacy | Private self MESSAGE appeared only in its recipient's context, not the other principal's. Normal sealed admission supplied a meaningful same-world public WATCH read with no private sentinel or credentials. Isolated-route WATCH read a different world and is explicitly not same-world privacy evidence. |
+| Isolation and cleanup | Each case used fresh local persistence and owned ports/process group. Final receipts and independent group/port probes confirmed both owned groups gone, app/inspector ports closed, signing and credential files removed. No protected clone or user browser profile was used. |
+| Whole integration | Whole Python suite: 603 passed, 3 optional PostgreSQL tests skipped without a DSN. Whole Worker suite: 295 files, 2,692 tests passed. Generated and committed Worker declaration typechecks passed, as did the governing Specs validator. Prior actual browser 8-keyboard/11-public checks remain historical evidence at unchanged Worker source `09cc613`; no fresh browser run is claimed here. |
+| Failure retention | Actual interruption at 00:58 UTC failed with OS `EPERM` probing the owned Worker group during termination. Its failed receipt remains failed. Independent follow-up found the exact groups gone, both ports closed and signing file absent. A separate retry passed 8 actual interruption checks. Neither follow-up nor retry explains the original OS failure. |
+
+This qualifies existing structured semantics locally, not a schema RFC, whole S2/R4 acceptance, hidden-route seed permutations, real device enrollment, hosted SQL, independent admission review, human/AT acceptance or an authorized Q8 campaign. Existing hidden-route fixture coverage stays separately labeled. WAIT owner choice, TRACES policy/review and the other external gates remain open. PR #856 remains draft for independent review; no merge or deployment is part of this continuation.
+
+### S2 source-bound local artifacts
+
+Root: `/Users/appliedalchemylabs/.jcode/scratch/noema-mud-agent-fields-20261111`. These are local receipts, not hosted/public production evidence. The qualification report binds test source `dadc003`; subsequent documentation/graph-only commits preserve that test blob.
+
+| Relative artifact | SHA256 |
+|---|---|
+| `coordinator-qualification.json` | `9a5ffa98d851f84fbf27e3eb334aba8863aba033df0a2f897e5160b8fa52428c` |
+| `python-whole-0108/test_s2_agent_semantics_with_p0/checks.json` | `76ba39e90a42d87a2054fb77398fcdb921bf78b312385e3099d4df83d4189d27` |
+| `python-whole-0108/test_s2_agent_semantics_with_p1/checks.json` | `07b4ee6ce472eaeb7728ef673dd3a4f464ad9980a8df621e8f86090e02948a45` |
+| `python-whole-0108/test_s2_agent_semantics_with_p0/cleanup.json` | `7a768752b4a9e67d9d2ffcd4d14898be79965513d8619ff367b4475fa2f66d20` |
+| `python-whole-0108/test_s2_agent_semantics_with_p1/cleanup.json` | `4f27539cd2f21fc1061daef37494646e77ec8d26f4ab8945a14d0cb28ee622c6` |
+| `public-local/mud-local-WLkRtf/receipt.json` | `32bc403cfa3b7de2857a8c556406bc7a7a08bcf097998cbb189bf2d365d2a59d` |
+| `public-interrupt/mud-interruption-sCA3ny/runner/mud-local-hsvsBK/receipt.json` | `c0886bcd86ae55f6e8aacaff52829c4e1ada0c87390b67dd60b06a2789848d05` |
+| `public-interrupt-retry/mud-interruption-ngRcZJ/interruption-receipt.json` | `0a5435a8fe9ccea355440703eeed7ffb2da9d5b3bf3b14e70f1f996b49daff85` |
+| `interruption-failure-followup.json` | `ff031e0f435e5085908d4869e807a6bfd85311413393640c2f399d48859ddefb` |
+| `python-whole-0108.xml` | `7e695c58263ed70862e242401520da77f2650eff1ca09df5f029a0cbd940e179` |
