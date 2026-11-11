@@ -100,35 +100,43 @@ async function isListening(port) {
   });
 }
 
-// Exported only for native tests, not exposed by CLI admission. Production retains
-// exactly the same own-group authority, probes, signals and wait budget.
+// Exported only for native tests, not exposed by CLI admission. Own-group
+// authority is unchanged. Darwin may need a bounded yield before a group is reaped.
 /** @param {{ pid?: number }} child
- * @param {{ pid: number, phase: string, cleanup_diagnostics?: object[] }} record
- * @param {{ kill?: (pid: number, signal: string | number) => void, wait?: (ms: number) => Promise<void> }} [io]
+ * @param {{ pid: number, phase: string, cleanup_diagnostics?: object[], cleanup_reap_waits?: number }} record
+ * @param {{ kill?: (pid: number, signal: string | number) => void, wait?: (ms: number) => Promise<void>, platform?: string }} [io]
  */
-export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); } } = {}) {
+export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); }, platform = process.platform } = {}) {
   if (!child?.pid) return;
-  let stage = "terminate", operation = "signal", attemptedSignal = "SIGTERM";
-  const signal = name => {
-    operation = "signal";
-    attemptedSignal = name;
-    try { kill(-child.pid, name); }
-    catch (e) { if (e.code !== "ESRCH") throw e; }
-  };
-  const alive = () => {
-    operation = "probe";
-    attemptedSignal = 0;
-    try { kill(-child.pid, 0); return true; }
-    catch (e) { if (e.code === "ESRCH") return false; throw e; }
-  };
+  let stage = "terminate", operation = "signal", attemptedSignal = "SIGTERM", reapWaits = 0;
   const pause = async () => { operation = "wait"; attemptedSignal = null; await wait(100); };
+  const attempt = async name => {
+    let firstDenied;
+    for (;;) {
+      operation = name === 0 ? "probe" : "signal";
+      attemptedSignal = name;
+      try { kill(-child.pid, name); return true; }
+      catch (error) {
+        if (error.code === "ESRCH") return false;
+        // XNU can return EPERM for a group containing only unreaped zombies.
+        // Never call that absence: yield, then retry the exact owned operation.
+        if (platform !== "darwin" || error.code !== "EPERM") throw error;
+        firstDenied ??= error;
+        if (reapWaits === 10) throw firstDenied;
+        reapWaits++;
+        await pause();
+      }
+    }
+  };
+  const signal = name => attempt(name);
+  const alive = () => attempt(0);
   try {
-    signal("SIGTERM");
-    for (let i = 0; i < 40 && alive(); i++) await pause();
-    if (alive()) { stage = "escalate"; signal("SIGKILL"); }
+    await signal("SIGTERM");
+    for (let i = 0; i < 40 && await alive(); i++) await pause();
+    if (await alive()) { stage = "escalate"; await signal("SIGKILL"); }
     stage = "verify";
-    for (let i = 0; i < 30 && alive(); i++) await pause();
-    const live = alive();
+    for (let i = 0; i < 30 && await alive(); i++) await pause();
+    const live = await alive();
     operation = "wait";
     attemptedSignal = null;
     assert.equal(live, false, "owned Wrangler/workerd process group must stop");
@@ -149,6 +157,9 @@ export async function stopOwned(child, record, { kill = (pid, signal) => { proce
       }
     } catch { /* Recording must never mask or suppress cleanup failure. */ }
     throw error;
+  } finally {
+    try { if (record && reapWaits) record.cleanup_reap_waits = reapWaits; }
+    catch { /* Evidence must not replace the cleanup result. */ }
   }
 }
 

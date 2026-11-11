@@ -123,14 +123,24 @@ available. At most four failed attempts are retained per process. Raw error
 stacks, paths, arbitrary properties and credentials are not copied into these
 structured fields. Ordinary successful stops omit the optional diagnostics.
 
-Diagnostics do not change the original `error` / `cleanup_error` failure text,
-turn a permission error into successful cleanup, change signal deadlines, or
-expand which processes can be stopped. If the existing final cleanup succeeds
-after an earlier stop failed, the original failed run and its diagnostic remain
-failed evidence. Injected permission failures in tests are synthetic controls,
-not proof of an actual OS permission failure or its root cause. A prior real
-`kill EPERM` observation remains unexplained even when later normal and SIGTERM
-runs pass.
+Diagnostics do not change the original `error` / `cleanup_error` failure text or
+expand which processes can be stopped. If final cleanup succeeds after an earlier
+stop failed, the original failed run and its diagnostic remain failed evidence.
+Injected permission failures in tests are synthetic controls, not proof of an
+actual OS permission failure or the cause of a historical failure.
+
+On Darwin, an exited but unreaped process group can return `EPERM` rather than
+`ESRCH`. The local runner now permits at most ten shared 100ms reaping waits per
+owned stop, retrying the same signal/probe. This adds at most 1,000ms of requested
+waits to the existing 40+30 shutdown waits. **EPERM never means absence**: the group
+must still reach an actual `ESRCH` probe. Persistent EPERM remains failure with
+the original error identity, and non-Darwin and other error behavior is unchanged.
+Optional `cleanup_reap_waits` (1..10) records attempted reaping waits in that
+process entry, without messages or secrets. The independent interruption
+observer is unchanged and still fail-closed. See `MUD-DARWIN-REAPING-FIX.md` for
+the real-OS reproduction, primary-source research and requirement-to-check map.
+The historical EPERM receipt had no process-state snapshot, so this confirmed
+failure pattern is not retroactive proof of that individual run's cause.
 
 ### Receipt provenance and remaining boundaries
 
