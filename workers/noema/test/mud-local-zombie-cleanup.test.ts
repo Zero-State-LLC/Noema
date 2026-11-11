@@ -33,6 +33,7 @@ async function unreapedGroup(blockMs: number) {
     const deadline = Date.now() + 3000;
     while (!output.includes("\n") && Date.now() < deadline && supervisor.exitCode === null) await delay(5);
     const pid = Number(output.trim());
+    expect(Number.isSafeInteger(pid)).toBe(true);
     expect(pid, `supervisor output: ${output}, stderr: ${stderr}`).toBeGreaterThan(1);
     return { pid, exited };
   } catch (error) {
@@ -62,10 +63,29 @@ describe.skipIf(process.platform === "win32")("real OS owned group cleanup", () 
     const helper = await unreapedGroup(600);
     try {
       if (process.platform === "darwin") await observeZombiePermission(helper.pid);
-      const entry = { phase: "real-node-zombie", pid: helper.pid };
+      const entry: { phase: string; pid: number; cleanup_reap_waits?: number } = { phase: "real-node-zombie", pid: helper.pid };
       await stopOwned({ pid: helper.pid }, entry);
+      if (process.platform === "darwin") {
+        expect(entry.cleanup_reap_waits).toBeGreaterThan(0);
+        expect(entry.cleanup_reap_waits).toBeLessThanOrEqual(10);
+      }
       expect(groupError(helper.pid)?.code).toBe("ESRCH");
       expect(entry).not.toHaveProperty("cleanup_diagnostics");
+    } finally {
+      expect(await helper.exited).toBe(0);
+      expect(groupError(helper.pid)?.code).toBe("ESRCH");
+    }
+  }, 10_000);
+
+  it.runIf(process.platform === "darwin")("rejects a real unreaped group that outlasts the bounded grace", async () => {
+    const helper = await unreapedGroup(3000);
+    try {
+      await observeZombiePermission(helper.pid);
+      const entry: { phase: string; pid: number; cleanup_reap_waits?: number; cleanup_diagnostics?: object[] } = { phase: "real-held-zombie", pid: helper.pid };
+      await expect(stopOwned({ pid: helper.pid }, entry)).rejects.toMatchObject({ code: "EPERM" });
+      expect(entry.cleanup_reap_waits).toBe(10);
+      expect(entry.cleanup_diagnostics).toEqual([expect.objectContaining({ pid: helper.pid, process_group: helper.pid, operation: "signal", signal: "SIGTERM", code: "EPERM" })]);
+      expect(groupError(helper.pid)?.code).toBe("EPERM");
     } finally {
       expect(await helper.exited).toBe(0);
       expect(groupError(helper.pid)?.code).toBe("ESRCH");
