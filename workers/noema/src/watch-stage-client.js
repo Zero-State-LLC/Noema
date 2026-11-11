@@ -364,6 +364,15 @@ function mount(frame, opts) {
     easeTo(v.target, v.position);
   }
 
+  function majorRing(roomId) {
+    const ring = new Mesh(shared.pulse, new MeshBasicMaterial({ color: C.warning, transparent: true, opacity: 0.9 }));
+    ring.rotation.x = -Math.PI / 2;
+    const g = groups.get(roomId);
+    ring.position.set(g.position.x, 0.03, g.position.z);
+    world.add(ring);
+    return ring;
+  }
+
   function update(live, nextCtx) {
     if (disposed) return;
     const prevCtx = ctx;
@@ -385,18 +394,20 @@ function mount(frame, opts) {
       buildCompass(model.radius);
       applyLimits(model.radius);
     }
-    const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), { reduce });
+    // A rebuild drops the old scene; give still-running MAJOR pulses their ring back.
+    for (const p of pulses) {
+      if (p.tier === "MAJOR" && !p.ring && groups.has(p.roomId)) p.ring = majorRing(p.roomId);
+    }
+    const fresh = newStagePulses(live && live.recent_events, lastSeq, groups.keys(), {
+      reduce,
+      snapshotSequence: live && live.sequence,
+    });
     lastSeq = fresh.lastSequence;
     let majorRoom = "";
     for (const p of fresh.pulses) {
       if (p.tier === "MAJOR") {
         majorRoom = p.roomId;
-        const ring = new Mesh(shared.pulse, new MeshBasicMaterial({ color: C.warning, transparent: true, opacity: 0.9 }));
-        ring.rotation.x = -Math.PI / 2;
-        const g = groups.get(p.roomId);
-        ring.position.set(g.position.x, 0.03, g.position.z);
-        world.add(ring);
-        p.ring = ring;
+        p.ring = majorRing(p.roomId);
       }
       pulses.push(p);
     }

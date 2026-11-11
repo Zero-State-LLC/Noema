@@ -37,6 +37,7 @@ type LiveRoom = PhosphorRoom & {
 
 export type StageLive = {
   projection?: string;
+  sequence?: number;
   rooms?: LiveRoom[] | null;
   recent_events?: PhosphorEvent[] | null;
 };
@@ -173,14 +174,16 @@ function tierOf(raw: unknown): PhosphorTier {
 /**
  * Event-born pulses (WS3-05, WS3-08). Only events newer than the last applied
  * sequence pulse. The first snapshot a window sees never pulses: loading the
- * page and refreshing are not events. Reduced motion advances the sequence
+ * page and refreshing are not events. It still sets the baseline, from its
+ * events or else its world sequence, so the first event after load pulses
+ * even when that snapshot listed none. Reduced motion advances the sequence
  * without pulsing.
  */
 export function newStagePulses(
   events: PhosphorEvent[] | null | undefined,
   lastSequence: number | null,
   publicRoomIds: Iterable<string>,
-  opts: { reduce?: boolean } = {},
+  opts: { reduce?: boolean; snapshotSequence?: number } = {},
 ): { pulses: StagePulse[]; lastSequence: number | null } {
   const allowed = new Set(publicRoomIds);
   const fresh: StagePulse[] = [];
@@ -195,7 +198,11 @@ export function newStagePulses(
     const tier = tierOf(ev.tier);
     fresh.push({ roomId, tier, ttl: PULSE_TTL[tier], sequence: seq });
   }
-  if (opts.reduce || lastSequence === null) return { pulses: [], lastSequence: newest };
+  if (lastSequence === null) {
+    const head = Number.isSafeInteger(opts.snapshotSequence) ? (opts.snapshotSequence as number) : 0;
+    return { pulses: [], lastSequence: Math.max(newest ?? head, head) };
+  }
+  if (opts.reduce) return { pulses: [], lastSequence: newest };
   fresh.sort((a, b) => b.sequence - a.sequence);
   const major = fresh.find((p) => p.tier === "MAJOR");
   const minor = fresh.filter((p) => p.tier !== "MAJOR").slice(0, STAGE_MAX_MINOR_PULSES);

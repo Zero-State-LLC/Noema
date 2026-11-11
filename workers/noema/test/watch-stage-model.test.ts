@@ -107,6 +107,21 @@ describe("newStagePulses", () => {
     expect(r.lastSequence).toBe(5);
   });
 
+  it("an empty first snapshot still sets the baseline, so the next event pulses", () => {
+    const first = newStagePulses([], null, ids, { snapshotSequence: 100 });
+    expect(first).toEqual({ pulses: [], lastSequence: 100 });
+    const next = newStagePulses([ev(101, "MAJOR")], first.lastSequence, ids);
+    expect(next.pulses.map((p) => [p.sequence, p.tier])).toEqual([[101, "MAJOR"]]);
+    const bare = newStagePulses([], null, ids);
+    expect(bare.lastSequence).toBe(0);
+    expect(newStagePulses([ev(1)], bare.lastSequence, ids).pulses).toHaveLength(1);
+  });
+
+  it("a first snapshot's events and world sequence both count toward the baseline", () => {
+    expect(newStagePulses([ev(5)], null, ids, { snapshotSequence: 3 }).lastSequence).toBe(5);
+    expect(newStagePulses([ev(5)], null, ids, { snapshotSequence: 9 }).lastSequence).toBe(9);
+  });
+
   it("pulses only events newer than the last applied sequence, at their tier lifetime", () => {
     const r = newStagePulses([ev(5), ev(6, "NOTABLE"), ev(7, "NORMAL", "room.transit-ring")], 5, ids);
     expect(r.pulses.map((p) => p.sequence)).toEqual([7, 6]);
