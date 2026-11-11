@@ -187,6 +187,12 @@ export function assertBudgetDelta(before, after, delta) {
   }
 }
 
+export function assertLatestMaintenancePlate(traces, latest, previous) {
+  assert.ok(Array.isArray(traces), "maintenance traces must be present");
+  assert.equal(traces.filter(t => t.text === latest).length, 1, "exactly one latest maintenance plate");
+  assert.ok(!traces.some(t => t.text === previous), "previous repairer plate must be absent");
+}
+
 export async function runLocalAcceptance(options) {
   assert.notEqual(process.platform, "win32", "This runner requires POSIX process groups");
   const runId = randomBytes(8).toString("hex");
@@ -369,11 +375,13 @@ export async function runLocalAcceptance(options) {
     check("initial first WAIT holds two-agent barrier", firstWait.observation.cycle === initialCycle);
     const restored = await command(witness, "WAIT");
     check("initial second WAIT commits one cycle", restored.observation.cycle === initialCycle + 1);
-    const harvest = await command(builder, "HARVEST", { entity_id: "entity.acceptance-source", amount: 2 });
+    const harvest = await command(builder, "HARVEST", { entity_id: "entity.acceptance-source", amount: 1 });
     check("native bootstrap harvest uses real source", harvest.events?.some(e => e.event_type === "RESOURCE_TRANSFER"
       && e.payload?.kind === "harvest" && e.payload?.from_id === "entity.acceptance-source"
-      && e.payload?.resource === "materials" && e.payload?.amount === 2));
-    const repair = await command(builder, "REPAIR", { entity_id: "entity.acceptance-relay" });
+      && e.payload?.resource === "materials" && e.payload?.amount === 1));
+    const repairId = `mud-${runId}-repair-builder`;
+    const repairArgs = { entity_id: "entity.acceptance-relay" };
+    const repair = await command(builder, "REPAIR", repairArgs, { id: repairId, phase: "builder repair original" });
     const plate = `A maintenance plate names ${builder.handle} as the last repairer.`;
     const hasPlate = observation => observation?.location?.traces?.some(t => t.text === plate);
     check("canonical REPAIR writes mandatory maintenance plate", hasPlate(repair.observation)
@@ -436,6 +444,79 @@ export async function runLocalAcceptance(options) {
     check("expired notices absent from independent traces", Object.keys(notices).every(surface =>
       !JSON.stringify(independent.observation.location.traces).includes(`${surface}_${runId}`)));
     await watch("after expiry and LEAVE");
+    const departed = await command(builder, "LOOK", {}, { expectedOk: false, phase: "departed builder fresh before replay" });
+    check("departed builder fresh LOOK remains legally refused", departed.error?.code === "NOT_IN_WORLD");
+    // Cached responses may describe the old plate. Only fresh reads attest current state.
+    const replayRepair = async phase => {
+      const result = await command(builder, "REPAIR", repairArgs, { id: repairId, phase });
+      assert.deepEqual(result, repair, "departed builder REPAIR replay exact original response");
+      check(`${phase} exact original response including stale observation`, true);
+      const fresh = await command(builder, "LOOK", {}, { expectedOk: false, phase: `${phase} fresh departed budget check` });
+      assert.equal(fresh.error?.code, "NOT_IN_WORLD");
+      assertBudgetDelta(departed.observation.budgets, fresh.observation.budgets, {});
+      check(`${phase} fresh refused LOOK proves no builder budget debit or reentry`, true);
+    };
+    await replayRepair("builder repair replay before replacement");
+    const ready = await command(witness, "LOOK", {}, { phase: "replacement fresh before" });
+    assertBudgetDelta(independent.observation.budgets, ready.observation.budgets, { attention: -1 });
+    const source = obs => obs.location.entities.find(e => e.entity_id === "entity.acceptance-source");
+    check("remaining original source has exactly one material before replacement", source(ready.observation)?.stock_amount === 1);
+    const secondHarvest = await command(witness, "HARVEST", { entity_id: "entity.acceptance-source", amount: 1 }, { phase: "replacement harvest" });
+    check("witness harvest transfers exactly one remaining material", secondHarvest.events?.some(e => e.event_type === "RESOURCE_TRANSFER"
+      && e.payload?.kind === "harvest" && e.payload?.from_id === "entity.acceptance-source"
+      && e.payload?.to_id === witness.player_id && e.payload?.resource === "materials" && e.payload?.amount === 1)
+      && secondHarvest.events?.some(e => e.event_type === "ENTITY_UPDATE" && e.payload?.entity_id === "entity.acceptance-source"
+        && e.payload?.operation === "HARVEST" && e.payload?.field === "stock_amount" && e.payload?.to === 0)
+      && source(secondHarvest.observation)?.stock_amount === 0);
+    assertBudgetDelta(ready.observation.budgets, secondHarvest.observation.budgets, { energy: -2, compute: -1, storage: -1, influence: 0.5 });
+    assert.deepEqual(secondHarvest.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 2, compute: 1 });
+    check("witness harvest exact all-five budget deltas and committed costs", true);
+    const secondRepair = await command(witness, "REPAIR", repairArgs, { phase: "replacement repair" });
+    check("second canonical REPAIR attributes same relay to witness", secondRepair.events?.some(e => e.event_type === "ENTITY_UPDATE"
+      && e.payload?.entity_id === repairArgs.entity_id && e.payload?.operation === "REPAIR"
+      && e.payload?.actor_id === witness.player_id && e.payload?.last_repair_handle === witness.handle
+      && e.payload?.last_repair_cycle === secondRepair.observation.cycle));
+    // HARVEST credits 0.5 influence. The next command's cloneBudgets floors it
+    // (actions.ts), so REPAIR has a -0.5 normalization delta, not an influence cost.
+    assertBudgetDelta(secondHarvest.observation.budgets, secondRepair.observation.budgets, { energy: -3, compute: -2, storage: 1, influence: -0.5 });
+    assert.deepEqual(secondRepair.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 3, compute: 2, storage: 1 });
+    check("witness REPAIR exact all-five budget deltas and committed costs", true);
+    const latestPlate = `A maintenance plate names ${witness.handle} as the last repairer.`;
+    const assertLatest = (obs, phase) => {
+      assertLatestMaintenancePlate(obs.location.traces, latestPlate, plate);
+      check(`${phase} LOOK unique witness plate and no old builder plate`, true);
+      check(`${phase} LOOK excludes authored notice bodies`, Object.entries(SURFACES).every(([surface, field]) =>
+        Array.isArray(obs[field]) && obs[field].length === 0 && !JSON.stringify(obs).includes(`${surface}_${runId}`)));
+      check(`${phase} source remains exhausted and cycle unchanged`, source(obs)?.stock_amount === 0 && obs.cycle === secondRepair.observation.cycle);
+    };
+    const watchLatest = async phase => {
+      const value = await request("/v1/watch/live");
+      assert.equal(value.world_id, receipt.world_id);
+      assertLatestMaintenancePlate((value.rooms ?? []).flatMap(room => room.traces ?? []), latestPlate, plate);
+      check(`${phase} WATCH unique witness plate and no old builder plate`, true);
+      check(`${phase} WATCH excludes authored notice bodies`, Object.keys(notices).every(surface => !JSON.stringify(value).includes(`${surface}_${runId}`)));
+      receipt.records.push({ phase, watch: bounded(value, 65_536) });
+    };
+    const latest = await command(witness, "LOOK", {}, { phase: "replacement fresh after" });
+    assertBudgetDelta(secondRepair.observation.budgets, latest.observation.budgets, { attention: -1 });
+    assertLatest(latest.observation, "after replacement");
+    await watchLatest("after replacement");
+    await replayRepair("builder repair replay after replacement");
+    const afterStale = await command(witness, "LOOK", {}, { phase: "stale repair replay fresh after" });
+    assertBudgetDelta(latest.observation.budgets, afterStale.observation.budgets, { attention: -1 });
+    assert.deepEqual(afterStale.observation.location, latest.observation.location);
+    check("fresh LOOK proves stale REPAIR replay no canonical rollback or debit except LOOK attention 1", true);
+    assertLatest(afterStale.observation, "after stale replay");
+    await watchLatest("after stale replay");
+    await stop();
+    check("second real process stopped before replacement restart", !(await isListening(receipt.port)) && !(await isListening(receipt.inspector_port)));
+    await start("replacement retained-storage restart");
+    check("replacement restart is a third distinct process", new Set(receipt.processes.map(p => p.pid)).size === 3);
+    const persisted = await command(witness, "LOOK", {}, { phase: "replacement restart fresh" });
+    assertBudgetDelta(afterStale.observation.budgets, persisted.observation.budgets, { attention: -1 });
+    check("replacement restart preserves all budgets except fresh LOOK attention 1", true);
+    assertLatest(persisted.observation, "after replacement restart");
+    await watchLatest("after replacement restart");
     receipt.status = "passed";
   } catch (e) {
     failure = controller.signal.aborted ? controller.signal.reason : e;
