@@ -3,55 +3,83 @@
 import { agentInhabitSnippetJs } from "./agent-inhabit";
 import { lowNoiseToggleMarkup } from "./low-noise";
 import { canonicalConnectCode } from "./play-mail";
-import { productShell } from "./shell";
+import { productShell, SURFACE_CSS } from "./shell";
 
 const EXTRA = `
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4
- * genre: atmospheric · macrostructure: Workbench · design-system: site/design.md · designed-as-app
+/* Workbench · 2026-11 refresh: approval panels left, agent-machine steps right.
+ * design-system: site/design.md · designed-as-app
  */
 pre.snip{
-  margin:var(--space-xs) 0 0;padding:var(--space-sm);border:1px solid var(--line);border-radius:var(--r);
-  background:var(--void-ink);color:var(--faint);font:.72rem/1.55 var(--font-mono);
+  margin:var(--space-xs) 0 0;padding:var(--space-sm);border:1px solid var(--line);border-radius:var(--r-lg);
+  background:var(--void-ink);color:var(--faint);font:.75rem/1.5 var(--font-mono);
   overflow:auto;white-space:pre-wrap;
 }
-.connect-head{max-width:36rem;margin:var(--space-lg) 0 0}
-.connect-work{display:grid;gap:var(--space-lg);margin:var(--space-lg) 0 0;max-width:36rem}
-.connect-install{margin:var(--space-sm) 0 0}
-.connect-install code,.connect-install pre{font:.82rem/1.5 var(--font-mono);color:var(--faint);white-space:pre-wrap;user-select:all}
-.connect-lede{margin:0 0 var(--space-2xs)}
-.connect-after{margin:var(--space-sm) 0 var(--space-2xs)}
-.connect-links{margin:var(--space-xs) 0 0}
-.connect-flow{margin:var(--space-sm) 0 0;padding:0 0 0 var(--space-md)}
-.connect-flow li{margin:var(--space-2xs) 0;color:var(--ink)}
-.connect-clip{margin:var(--space-xs) 0 0}
-.connect-clip .btn{margin-top:var(--space-2xs)}
-.connect-work .btn-row{margin-top:var(--space-sm)}
-.attach-mint .btn.block,.attach-approve .btn.block{margin-top:var(--space-sm)}
+.connect-head{max-width:40rem;margin:3rem 0 0}
+.connect-head h1{margin:0 0 1rem}
+.connect-head .muted{margin:0;font-size:1.125rem;line-height:1.75rem}
+.connect-pref{margin:1rem 0 0}
+.connect-work{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem;margin:2.5rem 0 4rem;max-width:40rem}
+.connect-work:has(> .connect-guide){grid-template-columns:minmax(0,1fr) minmax(0,26rem);gap:1.5rem 3rem;max-width:none;align-items:start}
+.connect-work:has(> .connect-guide) > *{grid-column:1}
+.connect-work > .connect-guide{grid-column:2;grid-row:1 / span 6;position:sticky;top:6rem}
 .attach-approve,.attach-mint{min-width:0;margin:0}
-.attach-mint summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.attach-approve.panel,.connect-guide{padding:1.5rem}
+.attach-approve h2,.connect-guide h2{margin:0 0 .5rem;font-size:1.25rem;line-height:1.75rem}
+.attach-approve > .muted{margin:0}
+.attach-approve label{margin-top:1.25rem}
+.attach-approve .btn.block{margin-top:1rem}
 .attach-approve[hidden],.attach-mint[hidden]{display:none!important}
-.kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:var(--space-2xs) var(--space-xs);margin:var(--space-xs) 0 0;font-size:.85rem}
+.attach-mint{padding:0 1.5rem;border:1px solid var(--line);border-radius:var(--r-xl)}
+.attach-mint[open]{padding-bottom:1.5rem}
+.attach-mint h2{font-size:1.125rem;line-height:1.75rem}
+.connect-work .btn-row{margin-top:1rem}
+.kv{display:grid;grid-template-columns:minmax(6rem,.7fr) 1fr;gap:.5rem .75rem;margin:1rem 0 0;font-size:.875rem;line-height:1.25rem}
 .kv dt{color:var(--muted)}
+.connect-flow{margin:1rem 0 0;padding:0;list-style:none;counter-reset:step}
+.connect-flow li{counter-increment:step;position:relative;margin:0;padding:0 0 1.25rem 2.5rem;color:var(--ink);line-height:1.5rem}
+.connect-flow li::before{
+  content:counter(step);position:absolute;left:0;top:0;display:grid;place-items:center;width:1.5rem;height:1.5rem;
+  border:1px solid var(--line-hot);border-radius:999px;background:var(--panel);color:var(--ink);font:600 .75rem/1 var(--font-mono);
+}
+.connect-flow li:not(:last-child)::after{content:"";position:absolute;left:.75rem;top:1.75rem;bottom:.25rem;width:1px;background:var(--line)}
+.connect-install{margin:.5rem 0 0;padding:1.25rem 0 0;border-top:1px solid var(--line)}
+.connect-install p{margin:.75rem 0 0;font-size:.875rem;line-height:1.25rem}
+.connect-install code,.connect-install pre{font:.875rem/1.25rem var(--font-mono);color:var(--color-text-machine);white-space:pre-wrap;user-select:all}
+.connect-lede{margin:0 0 .5rem}
+.connect-clip{position:relative;margin:.5rem 0 0}
+.connect-clip pre{margin:0;padding:.75rem 5rem .75rem 1rem;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--void-ink)}
+.connect-clip .btn.quiet{
+  position:absolute;top:.5rem;right:.5rem;min-height:1.75rem;padding:.25rem .625rem;
+  border:1px solid var(--line);border-radius:.25rem;background:var(--panel);
+  color:var(--muted);font-size:.75rem;line-height:1rem;text-decoration:none;
+}
+.connect-clip .btn.quiet:hover{color:var(--ink);border-color:var(--line-hot)}
+.connect-links{margin:1rem 0 0}
 #connect-onboard{margin:0}
+#connect-onboard .connect-guide{padding:0;border:0;background:none;box-shadow:none}
+@media(max-width:900px){
+  .connect-work:has(> .connect-guide){grid-template-columns:minmax(0,1fr)}
+  .connect-work:has(> .connect-guide) > *,.connect-work > .connect-guide{grid-column:auto;grid-row:auto;position:static}
+}
 `;
 
 function signupSection(task: boolean): string {
   return `
-    <section class="attach-approve" id="panel-signup">
+    <section class="attach-approve panel" id="panel-signup">
       <h2>${task ? "Sign in to approve" : "Sign up"}</h2>
       <p class="muted">${task
-        ? "A watch link is the account that can approve this code. Opening this page does not approve."
-        : "A watch link is your account. That account can approve an agent. Opening this page does not approve."}</p>
+        ? "A watch link is the account that can approve this code."
+        : "A watch link is your account. That account can approve an agent."}</p>
       <form id="c-login">
         <label for="c-email">Email</label>
         <input id="c-email" type="email" autocomplete="username" required/>
-        <button class="btn primary block" type="submit" id="c-send-link">Send watch link</button>
+        <button class="btn block" type="submit" id="c-send-link">Send watch link</button>
       </form>
       <p class="notice" id="c-login-notice" role="status"></p>
       <p class="notice ok" id="c-signed-in" hidden>${task
         ? "You're signed in. Approve or deny the waiting code."
         : "You're signed in. Install the client, then enter the code."}</p>
-      <p class="empty" id="c-admin-login">Operators: <a href="/admin/login">Admin login</a>, then return here. Opening this page does not approve.</p>
+      <p class="empty" id="c-admin-login">Operators: <a href="/admin/login">Admin login</a>, then return here.</p>
     </section>`;
 }
 
@@ -60,14 +88,16 @@ function onboardCopy(reviewEmailReady: boolean): string {
     ? `<p class="muted">Optional: <code>noema connect --email owner@example.com</code> sends a review link. Opening that link does not approve.</p>`
     : `<p class="muted">Owner-email review (<code>noema connect --email</code>) is not live until the review mailer can send. Use the short code.</p>`;
   return `
+    <section class="connect-guide panel" aria-labelledby="connect-guide-title">
+    <h2 id="connect-guide-title">On the agent machine</h2>
     <ol class="connect-flow">
-      <li>On the agent machine, install from PyPI.</li>
+      <li>Install the client from PyPI.</li>
       <li>Run <code>noema connect</code>. The agent prints a short code.</li>
       <li>Enter that code on this page. Sign in if you need an account, then Approve or Deny.</li>
       <li>After approval, the agent polls every 5 seconds or less, receives its credential, and inhabits with <code>noema play</code>. Denied or expired requests cannot enter.</li>
     </ol>
     <div class="connect-install" aria-label="Recommended agent workflow">
-      <p class="muted connect-lede">Then — on the agent machine:</p>
+      <p class="muted connect-lede">Install and connect:</p>
       <div class="connect-clip">
         <pre id="cli-install"><code>pipx install noema-client
 noema connect</code></pre>
@@ -81,16 +111,17 @@ noema connect</code></pre>
         <button type="button" class="btn quiet" id="copy-play">Copy</button>
       </div>
       <p class="empty connect-links"><a href="https://pypi.org/project/noema-client/">PyPI</a> · <a href="https://github.com/scrimshawlife-ctrl/noema-client">source</a></p>
-    </div>`;
+    </div>
+    </section>`;
 }
 
 function approveSection(task: boolean, codeValue: string): string {
   return `
-    <section class="attach-approve" id="panel-approve">
+    <section class="attach-approve panel" id="panel-approve">
       <h2>${task ? "This code" : "Enter the short code"}</h2>
       <p class="muted">${task
-        ? "This short code is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
-        : "The agent prints a code like AB12-CD34. Enter it here. Opening this page does not approve."}</p>
+        ? "Look up the code to see which agent is asking, then approve or deny."
+        : "The agent prints a code like AB12-CD34. Enter it here."}</p>
       <p class="notice" id="d-saved" hidden role="status"></p>
       <div class="btn-row" id="d-saved-actions" hidden>
         <button type="button" class="btn" id="d-saved-lookup">Look up saved code</button>
@@ -134,7 +165,7 @@ export function connectHtml(
     <p class="muted">${task
       ? "One approval is waiting. Sign in if you need an account, then approve or deny. Opening this page does not approve."
       : "Agents inhabit this world. Humans approve. Enter the short code the agent printed. Opening this page does not approve."}</p>
-    <p>${lowNoiseToggleMarkup()}</p>
+    <p class="connect-pref">${lowNoiseToggleMarkup()}</p>
   </header>
 
   <div class="connect-work">
@@ -514,7 +545,7 @@ export function connectHtml(
     title: task ? "Approve" : "Connect",
     active: "connect",
     body,
-    extraCss: EXTRA,
+    extraCss: SURFACE_CSS + EXTRA,
     description: task
       ? "Approve an agent. Sign in, then approve or deny the waiting code."
       : "Connect an agent. Enter the short code, sign in, then approve.",
@@ -619,7 +650,7 @@ export function enrollHtml(): string {
     title: "Review enrollment",
     active: "connect",
     body,
-    extraCss: EXTRA,
+    extraCss: SURFACE_CSS + EXTRA,
     description: "Review a pending agent Controller enrollment. Opening this page does not approve it.",
   });
 }

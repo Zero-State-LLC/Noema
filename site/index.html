@@ -218,7 +218,7 @@
         if (lines.length >= MAX) break;
         if (!ev || typeof ev !== "object") continue;
         const line = publicLine(ev.line);
-        if (!line || quiet(line) || line === nowLine) continue;
+        if (!line || quiet(line) || lines.includes(line)) continue;
         lines.push(line);
       }
       if (!lines.length) return [FALLBACK];

@@ -2,7 +2,7 @@
  * Public human email gate + magic-link callback (admin ≠ player; humans watch).
  */
 
-import { productShell } from "./shell";
+import { productShell, SURFACE_CSS } from "./shell";
 
 export function playEmailGateMarkup(opts: { continueToPlay?: boolean; operatorLink?: boolean } = {}): string {
   const continueToPlay = Boolean(opts.continueToPlay);
@@ -122,6 +122,7 @@ export function playCallbackHtml(): string {
     title: "Connect login",
     active: "connect",
     body,
+    extraCss: SURFACE_CSS,
     description: "Opening the door.",
   });
 }

@@ -6,7 +6,7 @@
  * Owner review required before it changes.
  */
 
-import { productShell } from "./shell";
+import { productShell, SURFACE_CSS } from "./shell";
 
 export const PRIVACY_EFFECTIVE_DATE = "2026-11-08";
 export const PARENT_PRIVACY_URL = "https://zer0state.com/privacy.html";
@@ -86,7 +86,7 @@ export function privacyHtml(): string {
   return productShell({
     title: "Privacy",
     body,
-    extraCss: EXTRA,
+    extraCss: SURFACE_CSS + EXTRA,
     canonicalPath: "/privacy",
     description:
       "How NOEMA (noema.guru) handles data: watch-link sign-in, browser storage, Cloudflare hosting, logs and analytics. Operated by Zero State LLC.",
