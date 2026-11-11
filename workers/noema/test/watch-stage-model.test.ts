@@ -10,6 +10,8 @@ import {
   STAGE_POLAR_MIN,
   buildStageModel,
   newStagePulses,
+  stageBandLine,
+  stageBandsFromMap,
   stageCameraLimits,
   stageCameraTarget,
   stageDefaultView,
@@ -94,6 +96,40 @@ describe("buildStageModel", () => {
   it("handles an empty or non-public snapshot without throwing", () => {
     expect(buildStageModel(null).sites).toEqual([]);
     expect(buildStageModel({ rooms: [] }).routes).toEqual([]);
+  });
+});
+
+describe("map bands (WS3-05)", () => {
+  const MAP = {
+    base: {
+      rooms: [
+        { room_id: "room.civic-exchange", scar_band: "deep", pressure_band: "high", protocol_band: "low" },
+        { room_id: "room.transit-ring", scar_band: 0.73, pressure_band: "extreme", protocol_band: null },
+        { room_id: "room.vault", scar_band: "marked", pressure_band: "moderate" },
+      ],
+    },
+  };
+
+  it("passes only documented band words, never raw numbers or unknown words", () => {
+    const bands = stageBandsFromMap(MAP);
+    expect(bands["room.civic-exchange"]).toEqual({ scar: "deep", pressure: "high", protocol: "low" });
+    expect(bands["room.transit-ring"]).toBeUndefined();
+    expect(stageBandsFromMap(null)).toEqual({});
+    expect(stageBandsFromMap({ base: { rooms: "x" } })).toEqual({});
+  });
+
+  it("attaches bands only to sites the live snapshot makes public", () => {
+    const model = buildStageModel(LIVE, { map: MAP });
+    const civic = model.sites.find((s) => s.id === "room.civic-exchange")!;
+    expect(civic.bands).toEqual({ scar: "deep", pressure: "high", protocol: "low" });
+    expect(model.sites.find((s) => s.id === "room.transit-ring")!.bands).toEqual({ scar: "", pressure: "", protocol: "" });
+    expect(JSON.stringify(model)).not.toContain("room.vault");
+  });
+
+  it("reads bands as plain words for the label", () => {
+    expect(stageBandLine({ scar: "deep", pressure: "high", protocol: "low" })).toBe("scar deep · pressure high · protocol low");
+    expect(stageBandLine({ scar: "", pressure: "moderate", protocol: "" })).toBe("pressure moderate");
+    expect(stageBandLine({ scar: "", pressure: "", protocol: "" })).toBe("");
   });
 });
 

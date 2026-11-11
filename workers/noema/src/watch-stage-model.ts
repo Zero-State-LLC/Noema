@@ -47,7 +47,53 @@ export type StageContext = {
   selectedId?: string;
   followRoomId?: string;
   majorRoomId?: string;
+  /** Optional watch-map/1.0 payload for the same head; bands only (WS3-05). */
+  map?: unknown;
 };
+
+export type ScarBand = "" | "faint" | "marked" | "deep";
+export type LoadBand = "" | "low" | "moderate" | "high";
+export type StageBands = { scar: ScarBand; pressure: LoadBand; protocol: LoadBand };
+
+const SCAR_BANDS: ScarBand[] = ["faint", "marked", "deep"];
+const LOAD_BANDS: LoadBand[] = ["low", "moderate", "high"];
+
+function bandOf<T extends string>(value: unknown, allowed: T[]): T | "" {
+  const v = String(value ?? "").trim().toLowerCase();
+  return (allowed as string[]).includes(v) ? (v as T) : "";
+}
+
+/**
+ * Public bands per site from a watch-map/1.0 payload. Only the documented
+ * band words pass; raw numbers or unknown words are dropped (§7 bands only).
+ */
+export function stageBandsFromMap(map: unknown): Record<string, StageBands> {
+  const out: Record<string, StageBands> = {};
+  const base = map && typeof map === "object" ? (map as { base?: { rooms?: unknown } }).base : null;
+  const rooms = base && Array.isArray(base.rooms) ? base.rooms : [];
+  for (const r of rooms) {
+    if (!r || typeof r !== "object") continue;
+    const row = r as Record<string, unknown>;
+    const id = String(row.room_id || "");
+    if (!id) continue;
+    const bands: StageBands = {
+      scar: bandOf(row.scar_band, SCAR_BANDS),
+      pressure: bandOf(row.pressure_band, LOAD_BANDS),
+      protocol: bandOf(row.protocol_band, LOAD_BANDS),
+    };
+    if (bands.scar || bands.pressure || bands.protocol) out[id] = bands;
+  }
+  return out;
+}
+
+/** Plain-language band line for a site label, e.g. "scar deep · pressure high". */
+export function stageBandLine(b: StageBands): string {
+  const parts: string[] = [];
+  if (b.scar) parts.push("scar " + b.scar);
+  if (b.pressure) parts.push("pressure " + b.pressure);
+  if (b.protocol) parts.push("protocol " + b.protocol);
+  return parts.join(" · ");
+}
 
 export type StageSite = {
   id: string;
@@ -62,6 +108,7 @@ export type StageSite = {
   selected: boolean;
   followed: boolean;
   major: boolean;
+  bands: StageBands;
 };
 
 export type StageRoute = {
@@ -120,6 +167,9 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
   const layout = layoutPublicTopology(rooms, events);
   const byId = new Map<string, LiveRoom>();
   for (const r of rooms) if (isPublicWatchRoom(r)) byId.set(String(r.room_id), r);
+  // Bands attach only to sites the live snapshot already makes public.
+  const bandsById = stageBandsFromMap(ctx.map);
+  const noBands: StageBands = { scar: "", pressure: "", protocol: "" };
 
   const nodes = layout.nodes.filter((n) => byId.has(n.room_id));
   // Grid cells, not 2D canvas pixels: one cell is one STAGE_SPACING on both axes.
@@ -151,6 +201,7 @@ export function buildStageModel(live: StageLive | null | undefined, ctx: StageCo
       selected: !!ctx.selectedId && ctx.selectedId === n.room_id,
       followed: !!ctx.followRoomId && ctx.followRoomId === n.room_id,
       major: !!ctx.majorRoomId && ctx.majorRoomId === n.room_id,
+      bands: bandsById[n.room_id] || noBands,
     });
   }
 

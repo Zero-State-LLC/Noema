@@ -514,13 +514,31 @@ export function watchHtml(opts?: { mode?: string }): string {
       }
     }
     function paintMapParity(kind) {
-      const parity = $("watch-map-parity");
-      if (!parity) return;
-      parity.hidden = !kind;
-      parity.textContent = kind === "hold" ? MAP_PARITY_HOLD_LINE : kind === "behind" ? MAP_PARITY_LINE : "";
+      const text = kind === "hold" ? MAP_PARITY_HOLD_LINE : kind === "behind" ? MAP_PARITY_LINE : "";
+      const ids = ["watch-map-parity", "watch-stage3d-parity"];
+      for (let i = 0; i < ids.length; i++) {
+        const parity = $(ids[i]);
+        if (!parity) continue;
+        parity.hidden = !kind;
+        parity.textContent = text;
+      }
+    }
+    // The 3D stage shows the same world-health bands as MAP (WS3-05), under the stage.
+    function paintStageHealth(d) {
+      const dl = $("watch-stage3d-health");
+      if (!dl) return;
+      dl.replaceChildren();
+      if (!d || !d.health) return;
+      const pairs = mapHealthPairs(d.health);
+      for (let i = 0; i < pairs.length; i++) {
+        const row = el("div", "", "");
+        row.append(el("dt", "", pairs[i][0]));
+        row.append(el("dd", "", pairs[i][1]));
+        dl.append(row);
+      }
     }
     async function refreshMap() {
-      if (state.mode !== "map" || state.mapBusy) return;
+      if ((state.mode !== "map" && state.mode !== "3d") || state.mapBusy) return;
       state.mapBusy = true;
       try {
         const data = await fetch("/v1/watch/map").then(async function(r) {
@@ -532,13 +550,17 @@ export function watchHtml(opts?: { mode?: string }): string {
         const fetchedRooms = data && data.base && Array.isArray(data.base.rooms) ? data.base.rooms : [];
         state.mapCoords = mapHoldCoordRooms(data, state.mapCoords);
         paintMapParity(mapParityState({ live: state.last, map: data, failed: false, holding: !fetchedRooms.length && state.mapCoords.length > 0 }));
-        paintMapStage(data);
+        if (state.mode === "map") paintMapStage(data);
+        else paintStageHealth(data);
         syncMapGl();
+        syncStage();
       } catch (e) {
         // Poll failed: say so, keep the last agreed sketch, never wipe labels.
         paintMapParity(mapParityState({ live: state.last, map: state.mapLast, failed: true, holding: state.mapCoords.length > 0 }));
-        if (state.mapLast) paintMapStage(state.mapLast);
+        if (state.mapLast && state.mode === "map") paintMapStage(state.mapLast);
+        else if (state.mapLast) paintStageHealth(state.mapLast);
         syncMapGl();
+        syncStage();
       } finally {
         state.mapBusy = false;
       }
@@ -656,6 +678,7 @@ export function watchHtml(opts?: { mode?: string }): string {
         selectedId: state.focusRoomId || "",
         followRoomId: state.mapFollowId || "",
         majorRoomId: head.tier === "MAJOR" ? (state.mapCamId || "") : "",
+        map: state.mapLast,
       };
     }
     function syncStage() {
@@ -730,7 +753,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       }
       if (mode === "map") tryMapGl();
       else fallbackMapDom();
-      if (mode === "map") refreshMap();
+      if (mode === "map" || mode === "3d") refreshMap();
       if (state.last) render(state.last);
     }
     state.mode = parseWatchMode(location.search || "", location.hash || "", readStoredMode());
@@ -1305,7 +1328,7 @@ export function watchHtml(opts?: { mode?: string }): string {
 
     function applyLive(data) {
       render(data);
-      if (state.mode === "map") refreshMap();
+      if (state.mode === "map" || state.mode === "3d") refreshMap();
       if (state.paused) {
         setTag("paused", "tag warn");
         return;

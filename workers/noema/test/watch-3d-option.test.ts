@@ -107,7 +107,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean } = {}) {
+async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean; map?: Record<string, unknown> } = {}) {
   const webgl2 = opts.webgl2 !== false;
   const byId = new Map<string, Node>();
   const head = makeNode("head", webgl2);
@@ -151,7 +151,12 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   g.location = { search, hash: "", protocol: "https:", host: "noema.test", href: "https://noema.test/watch" + search };
   g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, String(v)) };
   g.history = { replaceState: (_s: unknown, _t: string, url: string) => void urls.push(url) };
-  g.fetch = async () => ({ ok: true, statusText: "", json: async () => opts.frame || snapshot() });
+  const fetched: string[] = [];
+  g.fetch = async (url: string) => {
+    fetched.push(String(url));
+    const isMap = String(url).includes("/v1/watch/map");
+    return { ok: true, statusText: "", json: async () => (isMap && opts.map ? opts.map : opts.frame || snapshot()) };
+  };
   g.setInterval = () => 0;
   g.CSS = { escape: (s: string) => s };
   const restore = () => { for (const k of keys) g[k] = saved[k]; };
@@ -177,6 +182,7 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
     urls,
     win,
     body: doc.body,
+    fetched,
     stageScripts: () => head.children.filter((c) => c.tagName === "script" && String(c.src || "").includes("watch-stage")),
     async click(id: string) {
       doc.getElementById(id).fire("click");
@@ -309,6 +315,41 @@ describe("driven WATCH client with the 3D stage", () => {
       expect((last.arg as { ctx: { selectedId: string } }).ctx.selectedId).toBe("room.market");
     } finally {
       c.restore();
+    }
+  });
+
+  it("fetches map bands in 3D, hands them to the stage, and shows world health", async () => {
+    const map = {
+      projection: "public", world_id: "world.test", cycle: 4, sequence: 20, freshness: "live",
+      base: { rooms: [{ room_id: "room.market", scar_band: "deep", pressure_band: "high", protocol_band: "low" }] },
+      health: { scar_band: "deep", reconstruction_fidelity: 0.8, players_present: 1 },
+    };
+    const c = await boot({ search: "?mode=3d", map });
+    try {
+      c.installStage();
+      c.stageScripts()[0].fire("load");
+      await c.flush();
+      expect(c.fetched.some((u) => u.includes("/v1/watch/map"))).toBe(true);
+      const last = c.stageCalls.filter((x) => x.kind === "update").at(-1)!;
+      const ctx = (last.arg as { ctx: { map: typeof map } }).ctx;
+      expect(ctx.map.base.rooms[0].pressure_band).toBe("high");
+      const health = c.$("watch-stage3d-health");
+      expect(health.children).toHaveLength(3);
+      const pairs = health.children.map((row) => row.children.map((n) => n.textContent));
+      expect(pairs).toEqual([["Scars", "deep"], ["Reconstruction", "0.8"], ["Players", "1"]]);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("TEXT and PIXEL never fetch map bands", async () => {
+    for (const search of ["?mode=text", "?mode=pixel"]) {
+      const c = await boot({ search });
+      try {
+        expect(c.fetched.some((u) => u.includes("/v1/watch/map")), search).toBe(false);
+      } finally {
+        c.restore();
+      }
     }
   });
 

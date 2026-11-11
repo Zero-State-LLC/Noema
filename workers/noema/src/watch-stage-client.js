@@ -17,12 +17,16 @@ import {
   STAGE_CAMERA_EASE_MS,
   buildStageModel,
   newStagePulses,
+  stageBandLine,
   stageCameraLimits,
   stageCameraTarget,
   stageDefaultView,
 } from "./watch-stage-model";
 
 const LIFT = { NORMAL: 0.25, NOTABLE: 0.45, MAJOR: 0.7 };
+/** Pressure warms the plate toward the warning colour; scar residue strengthens its violet outline. */
+const PRESSURE_MIX = { low: 0.14, moderate: 0.28, high: 0.42 };
+const SCAR_OPACITY = { faint: 0.45, marked: 0.7, deep: 1 };
 const PLATE = 2.4;
 const UP = new Vector3(0, 1, 0);
 const CAMERA_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
@@ -46,6 +50,7 @@ function palette() {
     active: new Color(token("--color-state-active", "#3DDCFF")),
     warning: new Color(token("--color-state-warning", "#FFB020")),
     social: new Color(token("--color-state-social", "#C4A882")),
+    unknown: new Color(token("--color-state-unknown", "#9B6DFF")),
     machine: new Color(token("--color-text-machine", "#9BB8C4")),
     route: new Color("#4a5258"),
   };
@@ -80,6 +85,7 @@ function mount(frame, opts) {
   const shared = {
     plate: new BoxGeometry(PLATE, 0.3, PLATE),
     ring: new BoxGeometry(PLATE + 0.5, 0.04, PLATE + 0.5),
+    scar: new BoxGeometry(PLATE - 0.6, 0.02, PLATE - 0.6),
     pip: new CylinderGeometry(0.13, 0.13, 0.5, 12),
     trace: new BoxGeometry(0.3, 0.08, 0.3),
     arrow: new ConeGeometry(0.22, 0.6, 12),
@@ -203,6 +209,13 @@ function mount(frame, opts) {
       h.textContent = site.players === 1 ? "1 agent" : site.players + " agents";
       el.append(h);
     }
+    const bandLine = stageBandLine(site.bands);
+    if (bandLine) {
+      const b = document.createElement("span");
+      b.className = "stage3d-bands";
+      b.textContent = bandLine;
+      el.append(b);
+    }
     const tag = site.major ? "MAJOR" : site.followed ? "Followed" : site.selected ? "Selected" : "";
     if (tag) {
       const s = document.createElement("span");
@@ -220,8 +233,10 @@ function mount(frame, opts) {
     const g = new Group();
     g.userData.siteId = site.id;
     const partial = site.certainty === "partial" || site.certainty === "unknown";
+    const plateColor = (site.selected || site.active ? C.raised : C.plate).clone();
+    if (site.bands.pressure) plateColor.lerp(C.warning, PRESSURE_MIX[site.bands.pressure]);
     const plateMat = new MeshStandardMaterial({
-      color: site.selected || site.active ? C.raised : C.plate,
+      color: plateColor,
       roughness: 0.9, metalness: 0.05, transparent: partial, opacity: partial ? 0.55 : 1,
     });
     const plate = new Mesh(shared.plate, plateMat);
@@ -243,6 +258,18 @@ function mount(frame, opts) {
       );
       ring.position.y = 0.02;
       g.add(ring);
+    }
+    if (site.bands.scar) {
+      const scar = new LineSegments(
+        new EdgesGeometry(shared.scar),
+        new LineDashedMaterial({
+          color: C.unknown, dashSize: 0.2, gapSize: 0.12,
+          transparent: true, opacity: SCAR_OPACITY[site.bands.scar],
+        }),
+      );
+      scar.position.y = plate.position.y + 0.16;
+      scar.computeLineDistances();
+      g.add(scar);
     }
     const pips = Math.min(site.players, 6);
     for (let i = 0; i < pips; i++) {
