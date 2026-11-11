@@ -1,13 +1,12 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+/**
+ * Direct-Camera, follow, parity and label helpers. The MAP WebGL stage and its
+ * chunk are retired (Noema-Specs watch-single-3d-stage.md); the 3D Chamber
+ * stage and the /watch IIFE keep using these public-only leaves.
+ */
 import { describe, expect, it } from "vitest";
 import { watchHtml } from "../src/watch";
-import { MAP_STAGE_CSS } from "../src/watch-map-page";
 import {
   MAP_CAM_EASE_MS,
-  MAP_GL_CSS,
-  MAP_GL_SRC,
   MAP_PARITY_HOLD_LINE,
   MAP_PARITY_LINE,
   MAP_ROOM_GAP,
@@ -32,9 +31,7 @@ import {
   mapStageNodes,
   watchMapGlInlineSource,
 } from "../src/watch-map-gl";
-import { WITHHELD_LEDE, WITHHELD_NONE } from "../src/watch-theater";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
 const rooms = [
   { room_id: "room.hub", name: "Hub", public_player_labels: ["reach-maint3"], x: 0, y: 0 },
   { room_id: "room.east", name: "East", public_player_labels: [], x: 1, y: 0 },
@@ -214,68 +211,7 @@ describe("stage nodes stay public-only", () => {
   });
 });
 
-describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
-  const map = watchHtml({ mode: "map" });
-  const text = watchHtml({ mode: "text" });
-
-  it("shares NOW Recently Prior/Unknown chrome and does not bury it under the canvas", () => {
-    expect(map).toContain('id="watch-hero-who"');
-    expect(map).toContain('id="watch-hero-where"');
-    expect(map).toContain('id="watch-conseq"');
-    expect(map).toContain('id="watch-now-actors"');
-    expect(map).toContain('id="watch-feed"');
-    expect(map).toContain('id="watch-withheld"');
-    expect(map).toContain(WITHHELD_LEDE);
-    expect(map).toContain(WITHHELD_NONE);
-    expect(map.indexOf('id="watch-hero-who"')).toBeGreaterThan(map.indexOf('id="watch-map-gl"'));
-    expect(map).toContain('id="watch-map-board"');
-    expect(map).toContain('id="watch-map-parity"');
-    expect(map).toMatch(/id="watch-map-gl"[^>]*aria-hidden="true"/);
-    expect(map).toContain('id="watch-headline" aria-live="polite"');
-    expect(map).not.toMatch(/id="watch-map-gl"[^>]*aria-live/);
-  });
-
-  it("lets the GL canvas fill the map column and keeps Gate D on the rail", () => {
-    expect(MAP_GL_CSS).toMatch(/width:\s*100%/);
-    expect(MAP_GL_CSS).toMatch(/max-width:\s*none/);
-    expect(MAP_GL_CSS).toMatch(/aspect-ratio:\s*16\/9/);
-    expect(MAP_GL_CSS).not.toMatch(/max-width:\s*36rem/);
-    expect(MAP_STAGE_CSS).not.toMatch(/max-width:\s*36rem/);
-    expect(MAP_STAGE_CSS).toContain("map-chrome");
-    expect(MAP_STAGE_CSS).toContain("map-chrome-layers");
-    expect(MAP_STAGE_CSS).toContain("map-chrome-health");
-    expect(MAP_STAGE_CSS).toContain("flex-direction:column");
-    expect(MAP_STAGE_CSS).not.toMatch(/\.map-chrome\{[^}]*display:flex;flex-wrap:wrap/);
-    expect(MAP_STAGE_CSS).toContain("is-map-gl");
-    expect(map).toContain("map-stage");
-    expect(map).toContain("map-chrome-layers");
-    expect(map).toContain('aria-label="Map layer toggles"');
-    expect(map).toContain('aria-label="World health metrics"');
-    expect(map).toContain("World health");
-    expect(map).toContain("map-chrome");
-    expect(map).toContain('id="watch-map-board"');
-    expect(map.indexOf('id="watch-map-gl"')).toBeLessThan(map.indexOf('id="watch-map-toggles"'));
-    expect(map.indexOf('id="watch-map-gl"')).toBeLessThan(map.indexOf('id="watch-map-board"'));
-    expect(map).toContain(".watch-stage[data-mode=\"map\"]");
-    expect(map).toContain("is-map-gl");
-    expect(map).toContain("showMapGl");
-    expect(map).toContain('id="watch-hero-who"');
-    expect(map).toContain('id="watch-withheld"');
-  });
-
-  it("does not put Three.js on the TEXT path and only lazy-loads the MAP chunk", () => {
-    expect(map).toContain(MAP_GL_SRC);
-    expect(map).toContain("tryMapGl");
-    expect(map).toContain("fallbackMapDom");
-    expect(map).toContain("mapCameraTarget");
-    expect(text).not.toContain("from \"three\"");
-    expect(map).not.toContain("from \"three\"");
-    expect(map).not.toMatch(/Orbitron/i);
-    expect(map).not.toMatch(/scanline/i);
-    expect(map).not.toMatch(/particle/i);
-    expect(map).not.toMatch(/requestAnimationFrame\(\s*loop/i);
-  });
-
+describe("inlined camera helpers", () => {
   it("keeps inlined camera helpers free of bundler __name", () => {
     const src = watchMapGlInlineSource();
     expect(src).not.toContain("__name");
@@ -300,27 +236,6 @@ describe("MAP chrome keeps Gate D five-slot and lazy GL", () => {
       const body = fn.toString().slice(fn.toString().indexOf("{") + 1, fn.toString().lastIndexOf("}"));
       expect(body, fn.name).not.toMatch(/\bfunction\b/);
     }
-  });
-});
-
-describe("built MAP chunk", () => {
-  it("exists, is MAP-only, and our stage source omits banned brand marks", () => {
-    const chunk = readFileSync(join(HERE, "../public/assets/watch-map-gl.js"), "utf8");
-    const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
-    expect(chunk.length).toBeGreaterThan(1000);
-    expect(chunk).toContain("NoemaWatchMapGl");
-    expect(chunk).not.toMatch(/Orbitron/i);
-    expect(chunk).not.toMatch(/scanline/i);
-    expect(stage).not.toMatch(/Orbitron/i);
-    expect(stage).not.toMatch(/ParticleSystem|FogExp2/);
-    expect(stage).toMatch(/Event-born redraw only/);
-    expect(stage).toContain("ResizeObserver");
-    expect(stage).toContain("updateProjectionMatrix");
-    expect(stage).toContain("mapCameraPose");
-    expect(stage).toContain("mapLabelScreenItems");
-    expect(stage).toContain("map-room-label");
-    expect(stage).toContain("followId: lastFollow");
-    expect(stage).not.toContain("target.x + 3.4");
   });
 });
 
@@ -376,19 +291,6 @@ describe("public room labels", () => {
     expect(look.y).toBeLessThan(240);
     expect(mapLabelScreenItems({ rooms: named, pose: null, width: 640, height: 360 })).toEqual([]);
     expect(mapProjectPoint({ x: 0, y: 0, z: 0, pose: null, width: 640, height: 360 }).visible).toBe(false);
-  });
-
-  it("ships the MAP overlay without inventing KPI rooms", () => {
-    const map = watchHtml({ mode: "map" });
-    expect(map).toContain('id="watch-map-labels"');
-    expect(map).toContain("map-room-label");
-    expect(map).toContain("mapRoomLabelText");
-    expect(map).toContain('labels: $("watch-map-labels")');
-    expect(map).not.toMatch(/WORLD-STATE STRIP|PRESSURE\/RELAY|POPULATION KPI/i);
-    expect(MAP_GL_CSS).toContain("map-labels");
-    expect(MAP_GL_CSS).toContain("map-room-label");
-    expect(MAP_GL_CSS).toMatch(/\.map-room-label\.is-focus\{color:var\(--color-state-active\)/);
-    expect(MAP_STAGE_CSS).not.toMatch(/Orbitron|scanline/i);
   });
 
   it("uses a map public title when the live row has only a room id", () => {
@@ -480,29 +382,12 @@ describe("public room labels", () => {
     expect(items.find((it) => it.name === "Archive")?.focus).toBe(false);
   });
 
-  it("stacks the site-name overlay above the WebGL canvas", () => {
-    expect(MAP_GL_CSS).toMatch(/\.map-gl-frame\{[^}]*isolation:isolate/);
-    expect(MAP_GL_CSS).toMatch(/\.map-gl\{[^}]*z-index:0/);
-    expect(MAP_GL_CSS).toMatch(/\.map-labels\{[^}]*z-index:1/);
-    const html = watchHtml({ mode: "map" });
-    const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
-    expect(html).toMatch(/\.map-labels\{[^}]*z-index:1/);
-    expect(stage).toMatch(/overlay\.hidden\s*=\s*false/);
-  });
-
-  it("holds labels and coords when the map is behind live instead of wiping them", () => {
-    const html = watchHtml({ mode: "map" });
+  it("the 3D page holds coords and says so when the map is behind live", () => {
+    const html = watchHtml();
     expect(html).toContain("mapHoldCoordRooms");
     expect(html).toContain("mapParityState");
     expect(html).toContain(MAP_PARITY_HOLD_LINE);
     expect(html).toContain("state.mapCoords");
-    expect(MAP_GL_CSS).toMatch(/\.map-labels\.is-held/);
-    const stage = readFileSync(join(HERE, "../src/watch-map-gl-stage.ts"), "utf8");
-    expect(stage).toContain("mapHoldStageRooms(frame.rooms, lastRooms)");
-    // Zero-size canvas returns before any replaceChildren on the overlay.
-    const paint = stage.slice(stage.indexOf("function paintLabels"), stage.indexOf("function stopRaf"));
-    expect(paint.indexOf("if (w < 2 || h < 2) return;")).toBeLessThan(paint.indexOf("overlay.replaceChildren()"));
-    expect(paint).toContain('overlay.classList.add("is-held")');
-    expect(stage).not.toMatch(/Orbitron|scanline|particle/i);
+    expect(html).toContain('id="watch-stage3d-parity"');
   });
 });
