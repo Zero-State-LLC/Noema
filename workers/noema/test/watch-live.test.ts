@@ -2447,3 +2447,196 @@ describe("occupant labels are actor handles, never room titles", () => {
     expect(isRoomNameOccupantLabel("tester", civic)).toBe(false);
   });
 });
+
+describe("H7 bounded public recent disclosure", () => {
+  it.each(["text", "pixel", "map", "3d"])("H7 native disclosure is closed and labeled in %s mode", (mode) => {
+    const html = watchHtml({ mode });
+    const disclosure = html.match(/<details\b[^>]*id="watch-public-recent"[^>]*>/)?.[0];
+    expect(disclosure, "Missing adopted H7 disclosure").toBeDefined();
+    expect(disclosure).not.toMatch(/\sopen(?:\s|=|>)/);
+    expect(disclosure).toContain('aria-live="off"');
+    expect(html).toContain('<summary id="watch-public-recent-summary">Recent public events</summary>');
+    expect(html).toContain('<ol class="watch-feed" id="watch-public-recent-list"></ol>');
+    expect(html).toContain('id="watch-public-recent-status"');
+    expect(html).toContain("Bounded public projection, not world truth or complete history.");
+  });
+});
+
+function h7PublicFrame(offset = 0, hostile = false) {
+  const entities = Array.from({ length: 8 }, (_, i) => ({
+    entity_id: `entity.h7-${offset + i + 1}`,
+    label: hostile ? `<em>Relay ${offset + i + 1}</em>` : `Relay ${offset + i + 1}`,
+    entity_type: "INFRASTRUCTURE",
+  }));
+  const events = entities.map((entity, i) => src({
+    event_type: "ENTITY_UPDATE", sequence: offset + i + 1,
+    payload: { entity_id: entity.entity_id, operation: "REPAIR", last_repair_handle: "Wren" },
+  }));
+  return buildWatchLive({
+    world_id: "world.h7", cycle: 4, sequence: offset + 8, now: NOW, players: [],
+    rooms: { "room.h7": { room_id: "room.h7", name: "Public Workshop", description: "Visible works.", exits: [], entities } },
+    events,
+  });
+}
+
+describe("H7 generated public recent disclosure", () => {
+  it.each([false, true])("H7 renders all eight public rows rather than curated six (map=%s)", async (map) => {
+    const frame = h7PublicFrame();
+    expect((frame.recent_events as WatchEvent[])).toHaveLength(8);
+    expect((frame.narrative as { recently: WatchEvent[] }).recently).toHaveLength(6);
+    const client = await bootWatchClient(() => okResponse(frame), map ? { reduce: false, focus: [] } : undefined);
+    try {
+      const list = client.dom.doc.getElementById("watch-public-recent-list")!;
+      expect(list.children.map(textOf), "H7 public window must render").toEqual(
+        Array.from({ length: 8 }, (_, i) => `Wren repaired Relay ${8 - i}`),
+      );
+      expect(client.dom.htmlWrites).toEqual([]);
+    } finally { client.restore(); }
+  });
+});
+
+describe("H7 public disclosure updates and refusal", () => {
+  it("H7 renders literal projected text without HTML sinks", async () => {
+    const frame = h7PublicFrame(0, true);
+    const client = await bootWatchClient(() => okResponse(frame));
+    try {
+      const list = client.$("watch-public-recent-list");
+      expect(client.dom.htmlWrites).toEqual([]);
+      expect(list.children).toHaveLength(8);
+      expect(textOf(list.children[0])).toBe("Wren repaired <em>Relay 8</em>");
+      // Existing el() assigns textContent; the fake DOM does not synthesize native text child nodes.
+      expect(list.children[0].textContent).toBe("Wren repaired <em>Relay 8</em>");
+      expect(list.children[0].querySelector("em")).toBeNull();
+    } finally { client.restore(); }
+  });
+
+  it("H7 sorts and caps oversized transport data using only already-public lines", async () => {
+    const older = h7PublicFrame();
+    const newer = h7PublicFrame(8);
+    const frame = { ...older, recent_events: [
+      ...(newer.recent_events as WatchEvent[]), ...(older.recent_events as WatchEvent[]),
+    ].reverse() }; // Deliberately oversized/reordered transport fixture, not a server acceptance claim.
+    const client = await bootWatchClient(() => okResponse(frame));
+    try {
+      expect(client.$("watch-public-recent-list").children.map(textOf)).toEqual(
+        Array.from({ length: 8 }, (_, i) => `Wren repaired Relay ${16 - i}`),
+      );
+    } finally { client.restore(); }
+  });
+
+  it("H7 preserves summary focus and open state across populated empty and recovered reads", async () => {
+    const client = await bootWatchClient(() => okResponse(h7PublicFrame()));
+    try {
+      const list = client.$("watch-public-recent-list");
+      expect(list.children).toHaveLength(8);
+      const oldRows = new Set(list.children);
+      const panel = client.dom.doc.getElementById("watch-public-recent")!;
+      const summary = client.dom.doc.getElementById("watch-public-recent-summary")!;
+      panel.open = true; summary.focus();
+      client.setFetch(() => okResponse({ ...h7PublicFrame(), recent_events: [] }));
+      await client.refresh();
+      expect(list.children).toEqual([]);
+      expect(client.$("watch-public-recent-status").textContent).toBe("No recent public events.");
+      expect(panel.open).toBe(true); expect(client.dom.focused).toBe(summary);
+      client.setFetch(() => okResponse(h7PublicFrame(8)));
+      await client.refresh();
+      expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
+      expect(list.children.every((node) => !oldRows.has(node))).toBe(true);
+      expect(client.dom.doc.getElementById("watch-public-recent-summary")).toBe(summary);
+      expect(panel.open).toBe(true); expect(client.dom.focused).toBe(summary);
+      expect(client.dom.htmlWrites).toEqual([]);
+    } finally { client.restore(); }
+  });
+
+  it.each(["missing", "not-array", "invalid-row", "empty-line", "bad-sequence", "private", "stale", "incident"])(
+    "H7 clears %s feeds without narrative or unprojected fallback", async (variant) => {
+      const client = await bootWatchClient(() => okResponse(h7PublicFrame()));
+      try {
+        const list = client.$("watch-public-recent-list");
+        expect(list.children).toHaveLength(8);
+        const bad: Record<string, unknown> = { ...h7PublicFrame(), events: [{ line: "Not a public source" }] };
+        if (variant === "missing") delete bad.recent_events;
+        if (variant === "not-array") bad.recent_events = {};
+        if (variant === "invalid-row") bad.recent_events = [null];
+        if (variant === "empty-line") bad.recent_events = [{ sequence: 1, line: "" }];
+        if (variant === "bad-sequence") bad.recent_events = [{ sequence: "1", line: "Not a valid event" }];
+        if (variant === "private") bad.projection = "private";
+        if (variant === "stale" || variant === "incident") bad.freshness = variant;
+        client.setFetch(() => okResponse(bad)); await client.refresh();
+        expect(list.children).toEqual([]);
+        expect(client.$("watch-public-recent-status").textContent).toBe("Public events unavailable.");
+        expect(client.dom.htmlWrites).toEqual([]);
+      } finally { client.restore(); }
+    },
+  );
+
+  it.each(["reject", "non-ok"])("H7 clears last rows on HTTP %s then recovers", async (failure) => {
+    const client = await bootWatchClient(() => okResponse(h7PublicFrame()));
+    try {
+      const list = client.$("watch-public-recent-list");
+      expect(list.children).toHaveLength(8);
+      client.setFetch(() => {
+        if (failure === "reject") throw new Error("offline");
+        return { ok: false, statusText: "Unavailable", json: async () => ({}) };
+      });
+      await client.refresh();
+      expect(list.children, "H7 stale rows must clear on failed HTTP read").toEqual([]);
+      expect(client.$("watch-public-recent-status").textContent).toBe("Public events unavailable.");
+      client.setFetch(() => okResponse(h7PublicFrame(8))); await client.refresh();
+      expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
+    } finally { client.restore(); }
+  });
+});
+
+describe("H7 stream and pause controls", () => {
+  it("H7 clears malformed stream data and recovers without a real socket", async () => {
+    const client = await bootWatchClient(() => okResponse(h7PublicFrame()));
+    const globals = globalThis as Record<string, unknown>;
+    const originalSocket = globals.WebSocket;
+    const sockets: H7Socket[] = [];
+    class H7Socket {
+      readyState = 1;
+      onmessage?: (event: { data: string }) => void;
+      onclose?: () => void;
+      onerror?: () => void;
+      constructor() { sockets.push(this); }
+      send() {}
+      close() { this.readyState = 3; this.onclose?.(); }
+    }
+    try {
+      const list = client.$("watch-public-recent-list");
+      expect(list.children).toHaveLength(8);
+      globals.WebSocket = H7Socket;
+      (globals.window as Record<string, unknown>).WebSocket = H7Socket;
+      await client.refresh();
+      expect(sockets).toHaveLength(1);
+      sockets[0].onmessage!({ data: "{" });
+      expect(list.children, "H7 stale rows must clear on malformed stream frame").toEqual([]);
+      expect(client.$("watch-public-recent-status").textContent).toBe("Public events unavailable.");
+      sockets[0].onmessage!({ data: JSON.stringify(h7PublicFrame(8)) });
+      expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
+      expect(client.dom.htmlWrites).toEqual([]);
+    } finally {
+      for (const socket of sockets) socket.close();
+      globals.WebSocket = originalSocket;
+      client.restore();
+    }
+  });
+
+  it("H7 follows existing paused HTTP refresh and resumes with fresh rows", async () => {
+    const client = await bootWatchClient(() => okResponse(h7PublicFrame()));
+    try {
+      const list = client.$("watch-public-recent-list");
+      expect(textOf(list.children[0])).toBe("Wren repaired Relay 8");
+      const rows = list.children.slice();
+      client.$("watch-pause").fire("click");
+      client.setFetch(() => okResponse(h7PublicFrame(8)));
+      await client.refresh();
+      expect(list.children).toEqual(rows);
+      client.$("watch-pause").fire("click");
+      await client.refresh();
+      expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
+      expect(list.children.every((node) => !rows.includes(node))).toBe(true);
+    } finally { client.restore(); }
+  });
+});
