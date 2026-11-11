@@ -78,6 +78,9 @@ export type PhosphorNode = {
   name: string;
   x: number;
   y: number;
+  /** Layout grid cell before projection to the 2D canvas (shared with the 3D stage). */
+  gx?: number;
+  gy?: number;
   certainty: PhosphorCertainty;
   players: number;
   labels: string[];
@@ -188,7 +191,7 @@ export const PHOSPHOR_DIR: Record<string, [number, number]> = {
   southwest: [-1, 1],
 };
 
-const PULSE_TTL: Record<PhosphorTier, number> = {
+export const PULSE_TTL: Record<PhosphorTier, number> = {
   NORMAL: 280,
   NOTABLE: 560,
   MAJOR: 920,
@@ -438,6 +441,8 @@ export function layoutPublicTopology(
       name,
       x: clamped.x,
       y: clamped.y,
+      gx: p[0],
+      gy: p[1],
       certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,

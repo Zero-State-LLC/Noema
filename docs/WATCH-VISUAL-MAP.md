@@ -18,7 +18,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | World / cycle / seq / players | `#watch-world` `#watch-cycle` `#watch-seq` `#watch-players` · `.watch-state-plate` | required text |
 | Connecting / live / PAUSED / error tag | `#watch-state` | required text |
 | Refresh / Pause | `#watch-refresh` `#watch-pause` | functional chrome |
-| TEXT / PIXEL / MAP mode | `#watch-mode-text` `#watch-mode-pixel` `#watch-mode-map` | functional chrome |
+| TEXT / PIXEL / MAP / 3D mode | `#watch-mode-text` `#watch-mode-pixel` `#watch-mode-map` `#watch-mode-3d` | functional chrome |
 | Headline + copy | `#watch-headline` `#watch-copy` | required text |
 | MAJOR hero flash | `.watch-hero.major` | major-change signal |
 | MAJOR banner (renders on MAJOR headline, clears ≤2 polls) | `#watch-banner` · `.watch-banner.on` | major-change signal |
@@ -28,6 +28,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
 | Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
 | MAP WebGL stage (lazy `/assets/watch-map-gl.js`; DOM board fallback) | `#watch-map-gl` `#watch-map-board` | MAP mode only |
+| 3D Chamber stage (lazy `/assets/watch-stage.js`, at most 160 KiB gzip; Noema-Specs `specify/watch-single-3d-stage.md`). Shared public layout, DOM labels with priority declutter, event-born pulses, bounded orbit with Reset view and an HTML map key. Places stays beside it; failure or Low noise shows TEXT | `#watch-stage3d` `#watch-stage3d-frame` `#watch-stage3d-labels` `#watch-stage3d-reset` | 3D mode only (opt-in until made the default) |
 | ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; TEXT/no-canvas fallback only, never beside the live canvas) | `#watch-pre` | required text (desktop, TEXT mode) |
 | Recent feed | `#watch-feed` | required text |
 | Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |
