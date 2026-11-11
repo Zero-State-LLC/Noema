@@ -1,16 +1,23 @@
-# #777 hosted tempo alarm and WebSocket hibernation
+# #777 hosted G5 evidence template: admission and raw observations only
 
-Status of this file: **NOT_COMPUTABLE**. No isolated Worker was called while writing it.
+Status: **NOT_COMPUTABLE for hosted G5 acceptance**. No hosted Worker was called for this correction. The runner does not execute or prove alarm firing, alarm settlement, eviction recovery, or WebSocket hibernation.
 
-Runner: `workers/noema/scripts/hosted-g5-probe.mjs`. It refuses `noema.guru` and any world id that is not `test.hosted-canonical.*`. Missing `BASE`, `WORLD_ID`, `PLAYER_TOKEN`, `ADMIN_TOKEN`, or `SEAL` exits 2 with `status: NOT_COMPUTABLE`.
+Runner: `workers/noema/scripts/hosted-g5-probe.mjs`. Supply explicit nonblank `BASE`, `WORLD_ID`, `PLAYER_TOKEN`, `ADMIN_TOKEN`, and `SEAL`. BASE must be an isolated HTTP(S) origin, without URL credentials, path beyond `/`, query, or fragment. Production `noema.guru` and subdomains are refused. WORLD_ID must be an explicit nonempty `test.hosted-canonical.<suffix>`, never the helper's default. Missing/invalid configuration exits 2 with `NOT_COMPUTABLE` before network access. Credentials and raw transport errors are not printed.
 
-Local fixture coverage already on main is `workers/noema/test/isolated-tempo-pin-777.test.ts` and `workers/noema/test/isolated-watch-hibernation.test.ts`. Those call `alarm()` and the hibernation handlers directly. They are not a hosted alarm fire and not an observed hibernation.
+`WS_URL` or `G5_HIBERNATION_WAIT_MS`, even empty/zero, refuse before requests. There is no WebSocket or instance eviction/probe branch. `G5_WAIT_MS` defaults to 25000 and must be an integer from 0 through 60000. Each request, including body consumption, has a 5000 ms deadline and 64 KiB body cap. Redirects are forbidden.
 
-| Check | Result (`observed` / `not_observed` / `not_run`) | Notes |
+Before pinning, WATCH must be HTTP-successful with `freshness: live`, `pin: watch-live/1.0`, the requested world, and nonnegative safe-integer sequence/cycle. Pin must be HTTP-successful with `ok: true`, the requested world and an object `player_tempo`. Failure stops before wait or further mutation. After WATCH must satisfy the same validation. The only mutation attempted is this admitted tempo pin.
+
+A completed read/pin/wait/read returns `RAW_OBSERVATIONS_ONLY` (exit 0), **not overall G5 success**. `watch_advanced` reports raw sequence or cycle growth. Such activity cannot causally attribute an alarm fire or settlement. The report always records `alarm: not_observed` with that limitation, `alarm_after_evict: not_run`, and `hibernated: not_run`. Refused/failed observations return `NOT_COMPUTABLE` (exit 2).
+
+| Evidence field | Result | Interpretation |
 |---|---|---|
-| Pin accepted on the isolated world |  |  |
-| Sequence advanced after one cadence with no further command |  |  |
-| Evict between schedule and fire, alarm still ran |  | `evict` uses `retryAlarm: false` (`world-do.ts` isolated reset). This cell is the open question. |
-| WebSocket stayed open across an idle eviction and the next ACT was correct |  | Hibernation is observational. `not_observed` is not a product failure. |
+| Isolated target admitted | not_run | Record only after an authorized isolated campaign. |
+| Tempo pin accepted | not_run | Admission is not alarm evidence. |
+| Valid before/after WATCH counters | not_run | Raw observations only. |
+| watch_advanced | not_run | Counter growth is not causal alarm proof. |
+| Alarm fire/settlement | not_observed | Causal attribution unavailable from WATCH growth. |
+| Alarm after eviction | not_run | No eviction is executed. |
+| WebSocket hibernation | not_run | Required socket/instance/post-idle protocol is not implemented. |
 
-Production tempo and production alarm behavior stay unchanged.
+Maintained tests in `workers/noema/test/hosted-g5-probe.test.ts` cover CLI admission and loopback HTTP transport controls plus injected synthetic evidence checks. These are **not hosted proof**, and loopback HTTP sentinels are not the real Worker runtime. Existing local fixture tests that call `alarm()` or hibernation handlers directly likewise do not prove hosted behavior. The coordinator owns real local Worker acceptance, full-suite and generated-declaration checks, graph refresh and publication. A real #777 campaign still requires a separately scoped isolated target and authorization. Production behavior remains unchanged.
