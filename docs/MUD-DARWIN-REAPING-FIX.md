@@ -86,10 +86,35 @@ processes, real `process.kill` calls and a parent that deliberately delays reapi
 | R2, R4 | Live group after transient error, ordinary owned child and escalation | Live-group negative control remains fatal, ordinary real owned-child cleanup passes, and escalation controls pass. |
 | R4 | Linux EPERM, EACCES/EINVAL/EIO and thrown wait controls | All remain fail-closed. Non-Darwin synthetic controls make no new wait. Wait and later-error identity are preserved. |
 | R5 | Recovery/failure counters, bounded records, secret/accessor exclusion | All 21 diagnostic/control cases pass, including bounded output and original-error preservation. |
-| R6 | Actual npm help and rejected external/relative options; no environment/config switches | Pending corrected-head public admission execution. |
-| Integration | Actual npm lifecycle 49 checks and interruption 8 checks, independent groups/ports/signing-file absence | Pending corrected-head public execution. |
-| Integration | Actual npm with explicitly synthetic transient/persistent signal and probe EPERM | Pending. Recovery must pass after one injected error. Eleven errors must retain failure after ten waits, even if final cleanup succeeds. |
-| Integration | Full Worker suite, generated and committed types, exact-head Linux CI, protected clones | Focused 24 tests and committed types pass. Remaining full-result checks pending. |
+| R6 | Actual npm help and rejected external/relative options; no environment/config switches | Both public CLIs passed 12 help/rejection checks. Product CLI and child environment are unchanged. |
+| Integration | Actual npm lifecycle 49 checks and interruption 8 checks, independent groups/ports/signing-file absence | Both passed at clean `b6553bc`. Independent actual ESRCH, closed-port and signing-file absence checks passed. The interrupted inner receipt correctly remains failed with `Interrupted by SIGTERM`. |
+| Integration | Actual npm with explicitly synthetic transient/persistent signal and probe EPERM | All four cases passed at clean `b6553bc`. One injected error recovered with counter 1 and no diagnostic. Eleven errors retained failure and counter 10 despite subsequent successful cleanup. Each used real workerd, but permission errors were synthetic, not OS-induced. |
+| Integration | Full Worker suite, generated and committed types, exact-head Linux CI, protected clones | Darwin full suite: 296 files / 2,707 tests passed, including all 24 focused cases. Both type paths passed and only generated declaration drift was removed. All nine protected clone baselines were preserved. Exact published-head Linux CI is a separate required readback on draft #856, not inferred from local passes. |
+
+## Reproduction and acceptance entry points
+
+Run from `workers/noema`:
+
+```sh
+npx vitest run test/mud-local-zombie-cleanup.test.ts test/mud-local-cleanup-diagnostics.test.ts
+npm test
+npm run typecheck
+npm run acceptance:mud:local -- --artifacts /absolute/owned/artifact-parent
+npm run acceptance:mud:interrupt -- --artifacts /absolute/owned/artifact-parent
+```
+
+The native regression uses actual OS process groups and no mocked kill results.
+The 3-second held-zombie negative control is Darwin-only. Other POSIX platforms
+exercise the real ordinary-child/reaping path without asserting Darwin behavior.
+The diagnostic tests label injected timing and permission controls as synthetic.
+No external target, PID override, environment toggle or compiler dependency is
+added to either public CLI.
+
+The first complete public readback is bound to clean `b6553bc9ab83c366ce01d264b2982ae8397b8b43`:
+`reaping-public-ZaxErT/verification.json` in the coordinator's owned scratch
+artifacts. It records every actual npm invocation, receipt, counter and independent
+cleanup result. The final published commit receives its own fresh public and CI
+readback before completion. This document alone is not a CI success attestation.
 
 ## Explicit limits
 
