@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { cloneBudgets, DEFAULT_BUDGETS, enrichEntity } from "../src/actions";
 import { mintControllerToken } from "../src/auth";
 import { DELAYED_MESSAGE } from "../src/communication";
-import { fourBeatFromResult } from "../src/play-ui";
+import { fourBeatFromResult, lowNoiseRoomText } from "../src/play-ui";
 import type { CommandResult } from "../src/types";
 import { fixtureWorld, harness } from "./agent-http-do-fixture";
 
@@ -20,6 +20,21 @@ for (const command of ["wait", "WAIT", "  WaIt  "]) {
     });
   });
 }
+
+test("a wait beat keeps the public ok token and the structured wait discriminator", () => {
+  const beat = fourBeatFromResult({ command: "wait", ok: true, consequence: "You wait. Attention +2 · Compute +4." });
+  expect(beat.outcome).toBe("wait");
+  const text = lowNoiseRoomText({
+    name: "Grid Anchor",
+    description: "A frontier anchor.",
+    here: [],
+    exits: [],
+    traces: [],
+    status: [{ label: "Energy", value: "8" }, { label: "Attention", value: "10" }],
+    happenedBeats: beat,
+  });
+  expect(text).toMatch(/STATUS\nEnergy 8\nAttention 10\nHAPPENED\nYou wait\.\nok\n/);
+});
 
 test("failure and partial take precedence over the wait verb", () => {
   expect(fourBeatFromResult({ command: "WAIT", ok: false, partial: true,
@@ -57,6 +72,9 @@ test("authenticated Worker and DO emit actual ok, fail and delayed MESSAGE parti
   const moved = await send(recipient.access_token, "MOVE", { direction: "east" });
   expect(moved.ok).toBe(true);
   expect(happened(moved)[1]).toBe("ok");
+  const status = (moved.observation?.play_text || "").split("HAPPENED")[0];
+  expect(status).toMatch(/Energy /);
+  expect(status).toMatch(/Attention /);
   const before = await h.persistedWorld();
   const partial = await send(sender.access_token, "MESSAGE", { recipient_id: "player.recipient", text: "Delayed body" });
   expect(partial.ok).toBe(true);
@@ -89,7 +107,7 @@ for (const capped of [false, true]) {
     expect(result.settled).toBe(false);
     expect(result.observation?.consequence).toBe("You wait.");
     expect(result.events?.map(e => e.event_type)).toEqual(["WAIT"]);
-    expect(happened(result).slice(0, 3)).toEqual(["You wait.", "wait",
+    expect(happened(result).slice(0, 3)).toEqual(["You wait.", "ok",
       `You wait. Attention +${capped ? 0 : 2} · Compute +${capped ? 0 : 4}.`]);
     const after = (await h.persistedWorld())!;
     expect(after.players["player.boundary"].budgets.attention - budgets.attention).toBe(capped ? 0 : 2);

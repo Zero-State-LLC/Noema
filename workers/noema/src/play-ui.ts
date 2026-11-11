@@ -258,7 +258,10 @@ export function lowNoiseRoomText(model: RoomPresentationModel): string {
   if (model.happenedBeats) {
     lines.push("HAPPENED");
     lines.push(model.happenedBeats.tried);
-    lines.push(model.happenedBeats.outcome);
+    // Craft §5.1's public token for a completed rest is ok. The tried line is
+    // "You wait." The wait discriminator stays on the beat (#779) and does not
+    // replace that public token (#850).
+    lines.push(model.happenedBeats.outcome === "wait" ? "ok" : model.happenedBeats.outcome);
     if (model.happenedBeats.changed) lines.push(model.happenedBeats.changed);
     if (model.happenedBeats.next) lines.push(model.happenedBeats.next);
   } else if (model.happened) {
