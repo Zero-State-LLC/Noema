@@ -1407,7 +1407,8 @@ export function phosphorInlineScript(bind?: {
       hash = String((window.location && window.location.hash) || "");
     } catch (e) { search = ""; hash = ""; }
     let stored = null;
-    try { stored = localStorage.getItem(MODE_KEY); } catch (e) { /* preference only */ }
+    // Public /watch (text only) never reads or writes MODE_KEY: it is Admin Watch's key (D3).
+    ${textOnly ? "" : "try { stored = localStorage.getItem(MODE_KEY); } catch (e) { /* preference only */ }"}
     let viewMode = ${textOnly ? '"text"' : "parsePhosphorMode(search, hash, stored)"};
     const session = createPhosphorSession({
       canvas: canvas,
@@ -1418,7 +1419,7 @@ export function phosphorInlineScript(bind?: {
       caf: function(id) { window.cancelAnimationFrame(id); }
     });
     function storeMode(m) {
-      try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* preference only */ }
+      ${textOnly ? "" : "try { localStorage.setItem(MODE_KEY, m); } catch (e) { /* preference only */ }"}
     }
     function syncMode() {
       const pixel = viewMode === "pixel";

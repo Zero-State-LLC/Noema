@@ -39,3 +39,6 @@
 - addEventListener · method · L1103-L1103 — addEventListener()
 - btn · function · L1103-L1103 — btn = (id: string)
 - addEventListener · method · L1113-L1113 — addEventListener()
+- addEventListener · method · L1139-L1139 — addEventListener()
+- setAttribute · method · L1140-L1140 — setAttribute()
+- addEventListener · method · L1149-L1149 — addEventListener()

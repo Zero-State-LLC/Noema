@@ -1133,6 +1133,37 @@ describe("Admin Watch keeps its own TEXT / PIXEL mode", () => {
     }
   });
 
+  it("the public text-only bootstrap never reads or writes noema.watch.mode", () => {
+    const src = phosphorInlineScript({ textOnly: true });
+    const ctx = new Proxy({}, { get: (_t, k) => (k === "globalAlpha" ? 1 : () => {}), set: () => true });
+    const canvas = { width: 0, height: 0, style: {}, getContext: () => ctx, addEventListener() {} };
+    const btn = { setAttribute() {}, addEventListener: (_e: string, fn: () => void) => fn() };
+    const ids: Record<string, unknown> = {
+      "watch-phosphor": canvas, "watch-phos-wrap": { hidden: true },
+      "watch-mode-text": btn, "watch-mode-pixel": btn,
+    };
+    const touched: string[] = [];
+    const g = globalThis as Record<string, unknown>;
+    const keys = ["document", "window", "localStorage", "location", "NoemaPhosphor"];
+    const saved = Object.fromEntries(keys.map((k) => [k, g[k]]));
+    g.document = { hidden: false, getElementById: (id: string) => ids[id] ?? null, addEventListener() {} };
+    g.localStorage = {
+      getItem: (k: string) => { touched.push(`get:${k}`); return "pixel"; },
+      setItem: (k: string) => void touched.push(`set:${k}`),
+    };
+    g.location = { search: "", hash: "" };
+    g.window = g;
+    g.matchMedia = () => ({ matches: false });
+    try {
+      (0, eval)(src);
+    } finally {
+      for (const k of keys) g[k] = saved[k];
+      delete g.matchMedia;
+    }
+    // Even with both legacy buttons present and clicked, the public page leaves the key alone.
+    expect(touched.filter((t) => t.endsWith("noema.watch.mode"))).toEqual([]);
+  });
+
   it("honours a stored TEXT preference and ignores a public ?mode=3d link", () => {
     const text = bootAdmin({ stored: "text" });
     expect(text.mode).toBe("text");

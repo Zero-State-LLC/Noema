@@ -290,7 +290,7 @@ describe("privacy page", () => {
     const html = await res.text();
     expect(html).toContain('<link rel="canonical" href="https://noema.guru/privacy"/>');
     expect(html).toContain(`Effective date: ${PRIVACY_EFFECTIVE_DATE}`);
-    expect(PRIVACY_EFFECTIVE_DATE).toBe("2026-11-08");
+    expect(PRIVACY_EFFECTIVE_DATE).toBe("2026-11-11");
     expect(html).toContain(`href="${PARENT_PRIVACY_URL}"`);
     expect(PARENT_PRIVACY_URL).toBe("https://zer0state.com/privacy.html");
     expect(html).toContain("Zero State LLC");
