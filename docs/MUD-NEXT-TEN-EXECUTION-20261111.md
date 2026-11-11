@@ -115,3 +115,23 @@ Same local scratch root as above. These source-bound artifacts are local evidenc
 | `chrome-public-FFOEau/receipt.json` (11 browser checks) | `47aa9db7caefa3ae606b6af8425810c7c66b21b5cd794e0fd550db4eceb41cf7` |
 | `focus-fixed-local/mud-local-rntWMS/receipt.json` | `93e0608d58cee82183e28f6cbf0142d2251582e7211634ebbacd27d822a91091` |
 | `focus-fixed-interrupt/mud-interruption-9j5yor/interruption-receipt.json` | `36db642a628588c488c950f931b67ef80d8a5aeb0cb3c8440f051f264908c56c` |
+
+## S2 continuation: official-client field qualification
+
+Requirement map recorded at 00:53 UTC, before the new boundary test. The accepted Craft section3.3 requires equivalent structured semantics, not a fixed human text order. The governing note still calls the field mapping a sketch pending any schema RFC. This work qualifies the existing implementation without changing that status, the wire schema, WAIT outcomes or TRACES placement.
+
+Bear owns only `tests/test_mud_agent_semantics_local_e2e.py`. The coordinator owns this map, graph, integration checks and publication. The official consumer is the CI-pinned `noema-client` revision `0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3` (0.1.21), installed from a new independent checkout, not a protected local clone.
+
+| Existing layer | Actual producer / maintained consumer | Planned concrete acceptance check |
+|---|---|---|
+| Place | Worker `buildObservation.location` -> official `to_observation.location` -> `model_context.canonical.location` | Real local entry and legal MOVE retain current room name, description and structured destination. No human `play_text` parsing. |
+| Pressure | `pressure` and `location.condition` derive from the same room band; the official context retains the nested condition | Compare the actual nested band with the actual raw top-level band when present. Do not invent a mandatory new field. |
+| Presence and exits | Public entities, `players_here`, exits -> official canonical fields | Independent local principals prove co-location/self exclusion and removal after movement. Only advertised exits are used. Hidden-route coverage remains separately identified if the canonical seed does not expose a negative control. |
+| Status | `budgets` -> official `resources` | Compare all five fields exactly after real commands. |
+| Happened | `consequence` -> official `last_consequence` | A legal action's result reaches canonical context without interpreting room prose. Disputed WAIT wording is not asserted. |
+| Actions | `available_actions` / structured `affordances` -> official canonical fields | Preserve advertised actions and argument-bearing affordances, then execute a legal advertised action through public `NoemaClient.act`. |
+| Replay | Worker idempotency -> official client public command API | Replay a legal MOVE with the same key and verify no additional debit or movement. Existing 49-check native runner separately covers retained-storage restart. |
+| Privacy | Self inbox and public projection -> two independent official contexts / actual WATCH | Private message reaches its recipient only, not the other context or public WATCH. Credentials remain outside every model context and diagnostic output. |
+| Isolation and cleanup | Owned loopback Worker, unique local storage and ports | No hosted/operator campaign or model provider. Stop only the spawned process group and verify both ports close. |
+
+Results are pending. Missing seed affordances or external authority remain explicit limits rather than fabricated fixture state or passed requirements.
