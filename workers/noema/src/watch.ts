@@ -367,6 +367,12 @@ export function watchHtml(opts?: { mode?: string }): string {
         <h2 id="watch-feed-label">Recently</h2>
         <p class="lede">Public movement and change. Private LOOK and MESSAGE stay off this window.</p>
         <ol class="watch-feed" id="watch-feed"></ol>
+        <details id="watch-public-recent" aria-live="off">
+          <summary id="watch-public-recent-summary">Recent public events</summary>
+          <p class="lede">Bounded public projection, not world truth or complete history.</p>
+          <p id="watch-public-recent-status">Public events unavailable.</p>
+          <ol class="watch-feed" id="watch-public-recent-list"></ol>
+        </details>
         <section class="watch-withheld" id="watch-withheld" aria-labelledby="watch-withheld-label">
           <h2 id="watch-withheld-label">Withheld</h2>
           <p class="lede">${WITHHELD_LEDE}</p>
@@ -993,7 +999,25 @@ export function watchHtml(opts?: { mode?: string }): string {
       for (let i = 0; i < heldLines.length; i++) heldList.append(el("li", "", heldLines[i]));
       return { whoLine, whereLine, conLine, actorsLine, sitesLine, occupancy, heldLines };
     }
+    function renderPublicRecent(data) {
+      const list = $("watch-public-recent-list");
+      const status = $("watch-public-recent-status");
+      list.replaceChildren();
+      const events = data && data.projection === "public" && Array.isArray(data.recent_events)
+        ? data.recent_events : null;
+      if (!events || data.freshness === "stale" || data.freshness === "incident" ||
+          events.some((event) => !event || typeof event.line !== "string" || !event.line.trim() ||
+            !Number.isSafeInteger(event.sequence))) {
+        status.textContent = "Public events unavailable.";
+        return;
+      }
+      const rows = [...events].sort((a, b) => b.sequence - a.sequence).slice(0, 8);
+      for (const row of rows) list.append(el("li", "", row.line));
+      status.textContent = rows.length ? "Showing " + rows.length + " recent public events." : "No recent public events.";
+    }
+
     function render(data) {
+      renderPublicRecent(data);
       state.last = data;
       const rooms = Array.isArray(data.rooms) ? data.rooms : [];
       const players = data.players_present ?? 0;
@@ -1233,6 +1257,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     }
 
     function showUnavailable(msg) {
+      renderPublicRecent(null);
       setLiveText($("watch-headline"), "Projection unavailable.");
       const stageGone = $("watch-stage-line");
       if (stageGone) stageGone.textContent = "Projection unavailable.";
@@ -1283,7 +1308,9 @@ export function watchHtml(opts?: { mode?: string }): string {
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
         const sock = new WebSocket(proto + "//" + location.host + "/v1/watch/stream");
         sock.onmessage = (ev) => {
-          try { applyLive(JSON.parse(ev.data)); } catch (e) { /* keep last frame */ }
+          try { applyLive(JSON.parse(ev.data)); } catch (e) {
+            renderPublicRecent(null); // Keep the rest of the last frame, never stale disclosure rows.
+          }
         };
         sock.onclose = () => { if (state.sock === sock) state.sock = null; };
         sock.onerror = () => { try { sock.close(); } catch (e) { /* fall back to HTTP */ } };
@@ -1370,6 +1397,9 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (on) {
         const close = $("watch-here-close");
         if (close) close.focus();
+      } else {
+        // Do not leave focus on a control in the dismissed sheet (#857).
+        btn.focus();
       }
     }
     const hereOpen = $("watch-here-open");

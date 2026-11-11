@@ -53,7 +53,12 @@ than a copied reducer or a simulated server:
    cycle. Verify all four notice fields disappear, while the repair plate remains.
 7. Read independently after the builder leaves. Verify public WATCH includes the
    permitted repair plate and excludes those authored notice sources.
-8. Emit a bounded receipt without bearer tokens or the local signing value, and
+8. Let the witness harvest the one remaining existing material unit and repair
+   the same relay. Require a single latest-repairer plate, with no stale builder
+   plate, through fresh LOOK and WATCH. Check retained repair replay against
+   independent current state, then stop/restart the server again and verify the
+   latest attribution persists. No seed refill or ownership injection is used.
+9. Emit a bounded receipt without bearer tokens or the local signing value, and
    stop the owned server on success or failure.
 
 LOOK is not free: the existing contract charges attention 1. WAIT here tests the
@@ -77,7 +82,9 @@ show all of the following, not only a successful process exit:
 | Existing lifecycle still works | Four notice writers/readbacks, retained restart state, expiry, post-LEAVE plate and WATCH privacy checks still pass. |
 
 This local server/protocol path does not qualify browser viewport presentation,
-hosted eviction, or SQL settlement.
+hosted eviction, or SQL settlement. The second-repairer requirements, individually
+mapped observations and remaining limitations are recorded in
+[MUD-SECOND-REPAIRER-ACCEPTANCE.md](MUD-SECOND-REPAIRER-ACCEPTANCE.md).
 
 ## Reproduce interruption cleanup
 
@@ -93,7 +100,7 @@ positive failure exit code or Node's `{code:null, signal:"SIGTERM"}` result, and
 inner receipt with `status: "failed"` and `Interrupted by SIGTERM`, then
 independently checks owned process groups, both ports and signing-file removal.
 A successful smoke result proves this bounded failure-and-cleanup path, not
-successful MUD conformance. The normal 49-check command remains a separate run.
+successful MUD conformance. The normal lifecycle command remains a separate run.
 
 The observer has bounded startup and shutdown deadlines and accepts no external
 URL, existing run, caller PID or hosted credentials. Missing readiness, a normal
@@ -123,14 +130,24 @@ available. At most four failed attempts are retained per process. Raw error
 stacks, paths, arbitrary properties and credentials are not copied into these
 structured fields. Ordinary successful stops omit the optional diagnostics.
 
-Diagnostics do not change the original `error` / `cleanup_error` failure text,
-turn a permission error into successful cleanup, change signal deadlines, or
-expand which processes can be stopped. If the existing final cleanup succeeds
-after an earlier stop failed, the original failed run and its diagnostic remain
-failed evidence. Injected permission failures in tests are synthetic controls,
-not proof of an actual OS permission failure or its root cause. A prior real
-`kill EPERM` observation remains unexplained even when later normal and SIGTERM
-runs pass.
+Diagnostics do not change the original `error` / `cleanup_error` failure text or
+expand which processes can be stopped. If final cleanup succeeds after an earlier
+stop failed, the original failed run and its diagnostic remain failed evidence.
+Injected permission failures in tests are synthetic controls, not proof of an
+actual OS permission failure or the cause of a historical failure.
+
+On Darwin, an exited but unreaped process group can return `EPERM` rather than
+`ESRCH`. The local runner now permits at most ten shared 100ms reaping waits per
+owned stop, retrying the same signal/probe. This adds at most 1,000ms of requested
+waits to the existing 40+30 shutdown waits. **EPERM never means absence**: the group
+must still reach an actual `ESRCH` probe. Persistent EPERM remains failure with
+the original error identity, and non-Darwin and other error behavior is unchanged.
+Optional `cleanup_reap_waits` (1..10) records attempted reaping waits in that
+process entry, without messages or secrets. The independent interruption
+observer is unchanged and still fail-closed. See `MUD-DARWIN-REAPING-FIX.md` for
+the real-OS reproduction, primary-source research and requirement-to-check map.
+The historical EPERM receipt had no process-state snapshot, so this confirmed
+failure pattern is not retroactive proof of that individual run's cause.
 
 ### Receipt provenance and remaining boundaries
 

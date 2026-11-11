@@ -100,35 +100,43 @@ async function isListening(port) {
   });
 }
 
-// Exported only for native tests, not exposed by CLI admission. Production retains
-// exactly the same own-group authority, probes, signals and wait budget.
+// Exported only for native tests, not exposed by CLI admission. Own-group
+// authority is unchanged. Darwin may need a bounded yield before a group is reaped.
 /** @param {{ pid?: number }} child
- * @param {{ pid: number, phase: string, cleanup_diagnostics?: object[] }} record
- * @param {{ kill?: (pid: number, signal: string | number) => void, wait?: (ms: number) => Promise<void> }} [io]
+ * @param {{ pid: number, phase: string, cleanup_diagnostics?: object[], cleanup_reap_waits?: number }} record
+ * @param {{ kill?: (pid: number, signal: string | number) => void, wait?: (ms: number) => Promise<void>, platform?: string }} [io]
  */
-export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); } } = {}) {
+export async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); }, platform = process.platform } = {}) {
   if (!child?.pid) return;
-  let stage = "terminate", operation = "signal", attemptedSignal = "SIGTERM";
-  const signal = name => {
-    operation = "signal";
-    attemptedSignal = name;
-    try { kill(-child.pid, name); }
-    catch (e) { if (e.code !== "ESRCH") throw e; }
-  };
-  const alive = () => {
-    operation = "probe";
-    attemptedSignal = 0;
-    try { kill(-child.pid, 0); return true; }
-    catch (e) { if (e.code === "ESRCH") return false; throw e; }
-  };
+  let stage = "terminate", operation = "signal", attemptedSignal = "SIGTERM", reapWaits = 0;
   const pause = async () => { operation = "wait"; attemptedSignal = null; await wait(100); };
+  const attempt = async name => {
+    let firstDenied;
+    for (;;) {
+      operation = name === 0 ? "probe" : "signal";
+      attemptedSignal = name;
+      try { kill(-child.pid, name); return true; }
+      catch (error) {
+        if (error.code === "ESRCH") return false;
+        // XNU can return EPERM for a group containing only unreaped zombies.
+        // Never call that absence: yield, then retry the exact owned operation.
+        if (platform !== "darwin" || error.code !== "EPERM") throw error;
+        firstDenied ??= error;
+        if (reapWaits === 10) throw firstDenied;
+        reapWaits++;
+        await pause();
+      }
+    }
+  };
+  const signal = name => attempt(name);
+  const alive = () => attempt(0);
   try {
-    signal("SIGTERM");
-    for (let i = 0; i < 40 && alive(); i++) await pause();
-    if (alive()) { stage = "escalate"; signal("SIGKILL"); }
+    await signal("SIGTERM");
+    for (let i = 0; i < 40 && await alive(); i++) await pause();
+    if (await alive()) { stage = "escalate"; await signal("SIGKILL"); }
     stage = "verify";
-    for (let i = 0; i < 30 && alive(); i++) await pause();
-    const live = alive();
+    for (let i = 0; i < 30 && await alive(); i++) await pause();
+    const live = await alive();
     operation = "wait";
     attemptedSignal = null;
     assert.equal(live, false, "owned Wrangler/workerd process group must stop");
@@ -149,6 +157,9 @@ export async function stopOwned(child, record, { kill = (pid, signal) => { proce
       }
     } catch { /* Recording must never mask or suppress cleanup failure. */ }
     throw error;
+  } finally {
+    try { if (record && reapWaits) record.cleanup_reap_waits = reapWaits; }
+    catch { /* Evidence must not replace the cleanup result. */ }
   }
 }
 
@@ -174,6 +185,12 @@ export function assertBudgetDelta(before, after, delta) {
     assert.ok(Number.isFinite(before?.[key]) && Number.isFinite(after?.[key]), `${key} must be finite`);
     assert.equal(after[key], before[key] + (delta[key] ?? 0), `${key} exact delta`);
   }
+}
+
+export function assertLatestMaintenancePlate(traces, latest, previous) {
+  assert.ok(Array.isArray(traces), "maintenance traces must be present");
+  assert.equal(traces.filter(t => t.text === latest).length, 1, "exactly one latest maintenance plate");
+  assert.ok(!traces.some(t => t.text === previous), "previous repairer plate must be absent");
 }
 
 export async function runLocalAcceptance(options) {
@@ -358,11 +375,28 @@ export async function runLocalAcceptance(options) {
     check("initial first WAIT holds two-agent barrier", firstWait.observation.cycle === initialCycle);
     const restored = await command(witness, "WAIT");
     check("initial second WAIT commits one cycle", restored.observation.cycle === initialCycle + 1);
-    const harvest = await command(builder, "HARVEST", { entity_id: "entity.acceptance-source", amount: 2 });
+    const builderReady = await command(builder, "LOOK", {}, { phase: "builder harvest fresh before" });
+    check("initial source contains exactly two original material units", builderReady.observation.location.entities
+      .find(e => e.entity_id === "entity.acceptance-source")?.stock_amount === 2);
+    const harvest = await command(builder, "HARVEST", { entity_id: "entity.acceptance-source", amount: 1 });
     check("native bootstrap harvest uses real source", harvest.events?.some(e => e.event_type === "RESOURCE_TRANSFER"
       && e.payload?.kind === "harvest" && e.payload?.from_id === "entity.acceptance-source"
-      && e.payload?.resource === "materials" && e.payload?.amount === 2));
-    const repair = await command(builder, "REPAIR", { entity_id: "entity.acceptance-relay" });
+      && e.payload?.resource === "materials" && e.payload?.amount === 1));
+    assertBudgetDelta(builderReady.observation.budgets, harvest.observation.budgets, { energy: -2, compute: -1, storage: -1, influence: 0.5 });
+    assert.deepEqual(harvest.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 2, compute: 1 });
+    check("builder harvest exact all-five budget deltas and committed costs", harvest.events.some(e => e.event_type === "RESOURCE_TRANSFER"
+      && e.payload?.to_id === builder.player_id) && harvest.observation.location.entities
+      .find(e => e.entity_id === "entity.acceptance-source")?.stock_amount === 1);
+    const repairId = `mud-${runId}-repair-builder`;
+    const repairArgs = { entity_id: "entity.acceptance-relay" };
+    const repair = await command(builder, "REPAIR", repairArgs, { id: repairId, phase: "builder repair original" });
+    // Existing command-entry cloneBudgets floors HARVEST's fractional influence.
+    assertBudgetDelta(harvest.observation.budgets, repair.observation.budgets, { energy: -3, compute: -2, storage: 1, influence: -0.5 });
+    assert.deepEqual(repair.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 3, compute: 2, storage: 1 });
+    check("builder REPAIR exact all-five budget deltas and canonical provenance", repair.events.some(e => e.event_type === "ENTITY_UPDATE"
+      && e.payload?.entity_id === repairArgs.entity_id && e.payload?.operation === "REPAIR"
+      && e.payload?.actor_id === builder.player_id && e.payload?.last_repair_handle === builder.handle
+      && e.payload?.last_repair_cycle === repair.observation.cycle));
     const plate = `A maintenance plate names ${builder.handle} as the last repairer.`;
     const hasPlate = observation => observation?.location?.traces?.some(t => t.text === plate);
     check("canonical REPAIR writes mandatory maintenance plate", hasPlate(repair.observation)
@@ -425,6 +459,79 @@ export async function runLocalAcceptance(options) {
     check("expired notices absent from independent traces", Object.keys(notices).every(surface =>
       !JSON.stringify(independent.observation.location.traces).includes(`${surface}_${runId}`)));
     await watch("after expiry and LEAVE");
+    const departed = await command(builder, "LOOK", {}, { expectedOk: false, phase: "departed builder fresh before replay" });
+    check("departed builder fresh LOOK remains legally refused", departed.error?.code === "NOT_IN_WORLD");
+    // Cached responses may describe the old plate. Only fresh reads attest current state.
+    const replayRepair = async phase => {
+      const result = await command(builder, "REPAIR", repairArgs, { id: repairId, phase });
+      assert.deepEqual(result, repair, "departed builder REPAIR replay exact original response");
+      check(`${phase} exact original response including stale observation`, true);
+      const fresh = await command(builder, "LOOK", {}, { expectedOk: false, phase: `${phase} fresh departed budget check` });
+      assert.equal(fresh.error?.code, "NOT_IN_WORLD");
+      assertBudgetDelta(departed.observation.budgets, fresh.observation.budgets, {});
+      check(`${phase} fresh refused LOOK proves no builder budget debit or reentry`, true);
+    };
+    await replayRepair("builder repair replay before replacement");
+    const ready = await command(witness, "LOOK", {}, { phase: "replacement fresh before" });
+    assertBudgetDelta(independent.observation.budgets, ready.observation.budgets, { attention: -1 });
+    const source = obs => obs.location.entities.find(e => e.entity_id === "entity.acceptance-source");
+    check("remaining original source has exactly one material before replacement", source(ready.observation)?.stock_amount === 1);
+    const secondHarvest = await command(witness, "HARVEST", { entity_id: "entity.acceptance-source", amount: 1 }, { phase: "replacement harvest" });
+    check("witness harvest transfers exactly one remaining material", secondHarvest.events?.some(e => e.event_type === "RESOURCE_TRANSFER"
+      && e.payload?.kind === "harvest" && e.payload?.from_id === "entity.acceptance-source"
+      && e.payload?.to_id === witness.player_id && e.payload?.resource === "materials" && e.payload?.amount === 1)
+      && secondHarvest.events?.some(e => e.event_type === "ENTITY_UPDATE" && e.payload?.entity_id === "entity.acceptance-source"
+        && e.payload?.operation === "HARVEST" && e.payload?.field === "stock_amount" && e.payload?.to === 0)
+      && source(secondHarvest.observation)?.stock_amount === 0);
+    assertBudgetDelta(ready.observation.budgets, secondHarvest.observation.budgets, { energy: -2, compute: -1, storage: -1, influence: 0.5 });
+    assert.deepEqual(secondHarvest.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 2, compute: 1 });
+    check("witness harvest exact all-five budget deltas and committed costs", true);
+    const secondRepair = await command(witness, "REPAIR", repairArgs, { phase: "replacement repair" });
+    check("second canonical REPAIR attributes same relay to witness", secondRepair.events?.some(e => e.event_type === "ENTITY_UPDATE"
+      && e.payload?.entity_id === repairArgs.entity_id && e.payload?.operation === "REPAIR"
+      && e.payload?.actor_id === witness.player_id && e.payload?.last_repair_handle === witness.handle
+      && e.payload?.last_repair_cycle === secondRepair.observation.cycle));
+    // HARVEST credits 0.5 influence. The next command's cloneBudgets floors it
+    // (actions.ts), so REPAIR has a -0.5 normalization delta, not an influence cost.
+    assertBudgetDelta(secondHarvest.observation.budgets, secondRepair.observation.budgets, { energy: -3, compute: -2, storage: 1, influence: -0.5 });
+    assert.deepEqual(secondRepair.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 3, compute: 2, storage: 1 });
+    check("witness REPAIR exact all-five budget deltas and committed costs", true);
+    const latestPlate = `A maintenance plate names ${witness.handle} as the last repairer.`;
+    const assertLatest = (obs, phase) => {
+      assertLatestMaintenancePlate(obs.location.traces, latestPlate, plate);
+      check(`${phase} LOOK unique witness plate and no old builder plate`, true);
+      check(`${phase} LOOK excludes authored notice bodies`, Object.entries(SURFACES).every(([surface, field]) =>
+        Array.isArray(obs[field]) && obs[field].length === 0 && !JSON.stringify(obs).includes(`${surface}_${runId}`)));
+      check(`${phase} source remains exhausted and cycle unchanged`, source(obs)?.stock_amount === 0 && obs.cycle === secondRepair.observation.cycle);
+    };
+    const watchLatest = async phase => {
+      const value = await request("/v1/watch/live");
+      assert.equal(value.world_id, receipt.world_id);
+      assertLatestMaintenancePlate((value.rooms ?? []).flatMap(room => room.traces ?? []), latestPlate, plate);
+      check(`${phase} WATCH unique witness plate and no old builder plate`, true);
+      check(`${phase} WATCH excludes authored notice bodies`, Object.keys(notices).every(surface => !JSON.stringify(value).includes(`${surface}_${runId}`)));
+      receipt.records.push({ phase, watch: bounded(value, 65_536) });
+    };
+    const latest = await command(witness, "LOOK", {}, { phase: "replacement fresh after" });
+    assertBudgetDelta(secondRepair.observation.budgets, latest.observation.budgets, { attention: -1 });
+    assertLatest(latest.observation, "after replacement");
+    await watchLatest("after replacement");
+    await replayRepair("builder repair replay after replacement");
+    const afterStale = await command(witness, "LOOK", {}, { phase: "stale repair replay fresh after" });
+    assertBudgetDelta(latest.observation.budgets, afterStale.observation.budgets, { attention: -1 });
+    assert.deepEqual(afterStale.observation.location, latest.observation.location);
+    check("fresh LOOK proves stale REPAIR replay no canonical rollback or debit except LOOK attention 1", true);
+    assertLatest(afterStale.observation, "after stale replay");
+    await watchLatest("after stale replay");
+    await stop();
+    check("second real process stopped before replacement restart", !(await isListening(receipt.port)) && !(await isListening(receipt.inspector_port)));
+    await start("replacement retained-storage restart");
+    check("replacement restart is a third distinct process", new Set(receipt.processes.map(p => p.pid)).size === 3);
+    const persisted = await command(witness, "LOOK", {}, { phase: "replacement restart fresh" });
+    assertBudgetDelta(afterStale.observation.budgets, persisted.observation.budgets, { attention: -1 });
+    check("replacement restart preserves all budgets except fresh LOOK attention 1", true);
+    assertLatest(persisted.observation, "after replacement restart");
+    await watchLatest("after replacement restart");
     receipt.status = "passed";
   } catch (e) {
     failure = controller.signal.aborted ? controller.signal.reason : e;

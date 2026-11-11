@@ -9,7 +9,7 @@
 - ev · function · L792-L794 — function ev(partial: Partial<WatchEvent> & Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line">): WatchEvent
 - runHomeScript · function · L1279-L1296 — function runHomeScript(html: string, fetchImpl: typeof fetch)
 - FakeNode · type · L1501-L1529 — type FakeNode = { tagName: string; children: FakeNode[]; attrs: Record<string, string>; dataset: Record<string, string>; handlers: Record<string, Array<(ev: unknown) => void>>; className: string; textContent: string; hidden: boolean; open: boolean; style: Record<string, string>; classList: { add(c: string): void; remove(c: string): void; toggle(c: string, on?: boolean): boolean; contains(c: string): boolean; }; setAttribute(k: string, v: string): void; getAttribute(k: string): string | null; addEventListener(type: string, fn: (ev: unknown) => void): void; append(...kids: Array<FakeNode | string>): void; replaceChildren(...kids: FakeNode[]): void; querySelector(sel: string): FakeNode | null; querySelectorAll(sel: string): FakeNode[]; focus(): void; scrollIntoView(): void; insertAdjacentHTML(position: string, html: string): void; fire(type: string, ev?: unknown): void; };
-- makeWatchDom · function · L1531-L1667 — function makeWatchDom()
+- makeWatchDom · function · L1531-L1669 — function makeWatchDom()
 - findAll · function · L1534-L1544 — function findAll(root: FakeNode, sel: string): FakeNode[]
 - walk · function · L1536-L1541 — walk = (m: FakeNode)
 - node · function · L1545-L1623 — function node(tag: string): FakeNode
@@ -35,23 +35,29 @@
 - createElementNS · method · L1648-L1650 — createElementNS(_ns: string, tag: string)
 - createTextNode · method · L1651-L1653 — createTextNode(s: string)
 - querySelector · method · L1654-L1656 — querySelector()
-- addEventListener · method · L1657-L1657 — addEventListener()
-- focused · method · L1663-L1665 — get focused()
-- textOf · function · L1669-L1674 — function textOf(n: FakeNode | null | undefined): string
-- bootWatchClient · function · L1676-L1740 — async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; focus: Array<[string, number]> })
-- dispose · method · L1704-L1704 — dispose()
-- focus · method · L1704-L1704 — focus(id: string, ms: number)
-- update · method · L1704-L1704 — update()
-- flush · function · L1711-L1711 — flush = ()
-- restore · function · L1712-L1720 — restore = ()
-- setFetch · method · L1731-L1733 — setFetch(fn: () => unknown)
-- refresh · method · L1734-L1737 — async refresh()
-- okResponse · function · L1742-L1744 — function okResponse(data: unknown)
-- snapshot · function · L1746-L1773 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
-- readinessFrame · function · L1775-L1786 — function readinessFrame(sequence = 20, roomId = "room.market")
-- bootReadinessMap · function · L1788-L1792 — async function bootReadinessMap(reduce = false)
-- projection · function · L1795-L1801 — projection = (label: string, sequence: number)
-- traceNodes · function · L1810-L1813 — traceNodes = ()
-- release · function · L1829-L1829 — release: (value: ReturnType<typeof okResponse>) => void = ()
-- calm · function · L2028-L2033 — calm = (seq: number)
-- preventDefault · method · L2117-L2117 — preventDefault()
+- addEventListener · method · L1657-L1659 — addEventListener(type: string, fn: (ev: unknown) => void)
+- focused · method · L1665-L1667 — get focused()
+- textOf · function · L1671-L1676 — function textOf(n: FakeNode | null | undefined): string
+- bootWatchClient · function · L1678-L1742 — async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; focus: Array<[string, number]> })
+- dispose · method · L1706-L1706 — dispose()
+- focus · method · L1706-L1706 — focus(id: string, ms: number)
+- update · method · L1706-L1706 — update()
+- flush · function · L1713-L1713 — flush = ()
+- restore · function · L1714-L1722 — restore = ()
+- setFetch · method · L1733-L1735 — setFetch(fn: () => unknown)
+- refresh · method · L1736-L1739 — async refresh()
+- okResponse · function · L1744-L1746 — function okResponse(data: unknown)
+- snapshot · function · L1748-L1775 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
+- readinessFrame · function · L1777-L1788 — function readinessFrame(sequence = 20, roomId = "room.market")
+- bootReadinessMap · function · L1790-L1794 — async function bootReadinessMap(reduce = false)
+- preventDefault · method · L1813-L1813 — preventDefault()
+- projection · function · L1830-L1836 — projection = (label: string, sequence: number)
+- traceNodes · function · L1845-L1848 — traceNodes = ()
+- release · function · L1864-L1864 — release: (value: ReturnType<typeof okResponse>) => void = ()
+- calm · function · L2063-L2068 — calm = (seq: number)
+- preventDefault · method · L2152-L2152 — preventDefault()
+- h7PublicFrame · function · L2500-L2515 — function h7PublicFrame(offset = 0, hostile = false)
+- H7Socket · class · L2632-L2640 — class H7Socket
+- constructor · method · L2637-L2637 — constructor()
+- send · method · L2638-L2638 — send()
+- close · method · L2639-L2639 — close()
