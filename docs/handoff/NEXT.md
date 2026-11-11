@@ -2,7 +2,16 @@
 
 The current hand-off: latest review verdict and the next work order. Whoever finishes a slice or a review overwrites this file. Read it at the start of a session.
 
-## Latest slice (2026-11-11): WATCH is one 3D Chamber stage, live
+## Latest local slice (2026-11-11): #793 fallback-presence repair
+
+- Branch: `fix/793-fallback-presence-20261111`; base `88e111c5d9fc83203a7f414b0af2dade07cf2bec`.
+- Scope and requirement-to-assertion map: [PRESENCE-FALLBACK-793-LOCAL-REPAIR.md](../PRESENCE-FALLBACK-793-LOCAL-REPAIR.md). The owner authorized this local repair and validation, not a hosted campaign or review-rule bypass.
+- Product delta: reuse the existing valid retained observer-room predicate for `players_here`, preserving useful fallback display and independent own-roster/office/action entitlements.
+- Verified local evidence: actual RED1pass/6intendedfailures, GREEN7pass, exact-source reversal1pass/6failures, restoredGREEN7pass; affected60pass/0fail/0pending with all53inherited cases preserved.
+- Complete local validation: built-asset Worker2,811pass/0fail/0pending across302files; generated declarations typecheck0, exact committed declaration restoration and separate tsc0; wiring-only graph build/check and repeat hash equality; all11new-test incident edges audited and38other graph-delta source paths proven unchanged/already absent at base; post-graph affected60pass. Full execution preserved every earlier2,797registration; seven cases were added by already-landed concurrent work and seven by this repair. Raw receipts are local operator evidence, not hosted acceptance.
+- Publication/landing gates: independent Standards and Spec review, exact committed-byte rechecks, exact-head GitHub CI and eligible code-owner approval. Runtime repository auto-merge is disabled and was not changed. This local source snapshot is unmerged, and #793/#733 remain OPEN. Never infer GitHub approval from local review or owner implementation approval. No deployment or settings change is authorized.
+
+## Previous slice (2026-11-11): WATCH is one 3D Chamber stage, live
 
 - **Spec:** Noema-Specs [`specify/watch-single-3d-stage.md`](https://github.com/Zero-State-LLC/Noema-Specs/blob/main/specify/watch-single-3d-stage.md), decisions D1–D5 (Specs #392). D3 was amended at implementation (Specs #393): the view choice lasts for one visit; public `/watch` neither reads nor writes `noema.watch.mode`; Low noise is the lasting text-only preference.
 - **Runtime:**

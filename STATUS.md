@@ -8,6 +8,10 @@ The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) 
 
 Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876 and the privacy fix #875, and is live as Worker `cf01c793-5e9e-433f-bd05-a4ed9f4ead45` (pinned by #879). Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
 
+## #793 local fallback-presence repair (2026-11-11 UTC)
+
+The bounded [fallback-presence repair](docs/PRESENCE-FALLBACK-793-LOCAL-REPAIR.md) reuses validated retained observer-room identity for `players_here`, without treating the entry-room display fallback as co-location. The new public-seam regression proved RED→GREEN and exact-source reversal; the affected run passed60cases with all53inherited identities preserved. Complete built-asset Worker execution passed2,811cases across302files with0failed/pending; generated and committed typechecks, deterministic graph freshness/repeatability and the post-graph60case rerun passed. Independent technical review, exact-head GitHub CI and eligible code-owner approval are separate gates; runtime auto-merge is disabled and unchanged. This is an unmerged local source snapshot, not new hosted evidence, deployment or whole-issue acceptance; #793 and #733 remain OPEN.
+
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
 - **Recent Completion**:
