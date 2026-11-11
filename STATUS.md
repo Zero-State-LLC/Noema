@@ -6,7 +6,7 @@ The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) 
 
 ## WATCH 3D Chamber stage (2026-11-11 UTC)
 
-Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872 and #876, and is live as Worker `45c610e0-9f18-4657-9963-30a427483d87` (pinned by #877). Open: privacy draft #875 (owner review) and real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
+Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876 and the privacy fix #875, and is live as Worker `cf01c793-5e9e-433f-bd05-a4ed9f4ead45` (pinned by #879). Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
 
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
