@@ -2,36 +2,77 @@
  * Public manifesto — long document. Thesis lives here, not on Home or PLAY.
  */
 
-import { productShell } from "./shell";
+import { productShell, SURFACE_CSS } from "./shell";
 
 const EXTRA = `
-/* Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V4
- * genre: atmospheric · macrostructure: Long Document · design-system: site/design.md · designed-as-app
+/* Long Document · 2026-11 refresh: contents rail, numbered sections, reading progress.
+ * design-system: site/design.md · authority: Noema-Specs VISUAL-DESIGN.md
  */
-.manifesto{max-width:38rem;margin:var(--space-lg) 0 var(--space-xl)}
-.manifesto .place{margin:0 0 .4rem;color:var(--color-state-active);font:600 1rem/1.35 var(--font-display)}
-.manifesto h1{margin:0 0 var(--space-md);max-width:18ch}
-.manifesto .lede{margin:0 0 var(--space-lg);color:var(--ink);font-size:1.05rem;line-height:1.65}
+.letter{
+  display:grid;grid-template-columns:minmax(0,13rem) minmax(0,40rem);gap:4rem;
+  justify-content:center;margin:3rem 0 4rem;
+}
+.toc{position:sticky;top:6rem;align-self:start;max-height:calc(100dvh - 8rem);overflow:auto;scrollbar-width:thin}
+.toc-k{margin:0 0 1rem;color:var(--faint);font:600 .75rem/1rem var(--font-display);letter-spacing:.24em;text-transform:uppercase}
+.toc ol{margin:0;padding:0;list-style:none;counter-reset:toc}
+.toc li{counter-increment:toc;margin:0}
+.toc a{
+  display:grid;grid-template-columns:2rem 1fr;align-items:baseline;padding:.25rem 0;
+  color:var(--faint);text-decoration:none;font:500 .875rem/1.25rem var(--font-body);
+  transition:color .2s var(--ease);
+}
+.toc a::before{content:counter(toc,decimal-leading-zero);color:var(--line-hot);font:500 .75rem/1rem var(--font-mono);transition:color .2s var(--ease)}
+.toc a:hover,.toc a[aria-current]{color:var(--ink)}
+.toc a[aria-current]::before{color:var(--color-state-active)}
+.toc-meta{margin:1.5rem 0 0;color:var(--faint);font:.75rem/1rem var(--font-mono)}
+.manifesto{min-width:0;margin:0;counter-reset:sec}
+.manifesto h1{max-width:16ch}
+.manifesto .lede{margin:0 0 2rem;color:var(--ink);font-size:1.25rem;line-height:1.75rem}
 .manifesto h2{
-  margin:var(--space-xl) 0 var(--space-sm);max-width:none;
-  font:550 clamp(1.2rem,2.2vw,1.45rem)/1.2 var(--font-display);
-  letter-spacing:-.015em;font-style:normal;
+  counter-increment:sec;scroll-margin-top:6rem;
+  margin:4rem 0 1.5rem;padding:3rem 0 0;max-width:none;border-top:1px solid var(--line);
+  font:600 clamp(1.5rem,1.2rem + 1.2vw,1.875rem)/1.2 var(--font-display);letter-spacing:-.02em;
 }
-.manifesto p{margin:.7rem 0;line-height:1.65;max-width:65ch}
-.manifesto ul{margin:.55rem 0 1rem;padding:0 0 0 1.15rem;max-width:65ch}
-.manifesto li{margin:.28rem 0;line-height:1.55}
+.manifesto h2::before{
+  content:counter(sec,decimal-leading-zero);display:block;margin:0 0 .75rem;
+  color:var(--faint);font:500 .75rem/1rem var(--font-mono);letter-spacing:.12em;
+}
+.manifesto p{margin:1rem 0;color:color-mix(in srgb,var(--ink) 88%,var(--faint));font-size:1.125rem;line-height:1.75rem;max-width:65ch}
+.manifesto ul{margin:1rem 0 1.5rem;padding:0;list-style:none;max-width:65ch}
+.manifesto li{position:relative;margin:.5rem 0;padding:0 0 0 1.5rem;line-height:1.75rem}
+.manifesto li::before{content:"";position:absolute;left:0;top:.85rem;width:.75rem;height:1px;background:var(--line-hot)}
 .manifesto .pull{
-  margin:var(--space-md) 0;padding:0;
-  color:var(--ink);font:550 1.15rem/1.4 var(--font-display);
-  letter-spacing:-.015em;font-style:normal;
+  margin:2.5rem 0;color:var(--ink);
+  font:600 clamp(1.25rem,1rem + 1vw,1.5rem)/1.4 var(--font-display);letter-spacing:-.02em;
 }
+.manifesto .pull::before{content:"";display:block;width:2rem;height:2px;margin:0 0 1rem;background:var(--line-hot)}
+.manifesto .pull.thesis{font-size:clamp(1.5rem,1.1rem + 1.6vw,2.25rem);line-height:1.2}
 .manifesto .claim{
-  margin:var(--space-md) 0;padding:.85rem 0;
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
-  color:var(--muted);font:500 1rem/1.55 var(--font-body);
+  margin:2rem 0;padding:1.5rem;border:1px solid var(--line);border-radius:var(--r-xl);
+  background:var(--panel);color:var(--ink);font:500 1rem/1.75rem var(--font-body);
 }
-.manifesto .close{margin-top:var(--space-xl)}
-.manifesto .btn-row{margin-top:var(--space-md)}
+.letter-end{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:4rem 0 0;padding:2rem}
+.letter-end .end-k{margin:0 0 .75rem;color:var(--faint);font:600 .75rem/1rem var(--font-display);letter-spacing:.24em;text-transform:uppercase}
+.letter-end p{margin:0 0 1.5rem;font-size:1rem;line-height:1.5rem}
+.letter-end .btn-row{margin:0}
+.read-progress{display:none}
+@supports (animation-timeline:scroll()){
+  .read-progress{
+    display:block;position:fixed;inset:0 0 auto 0;z-index:calc(var(--z-nav) + 1);height:2px;
+    background:var(--color-state-active);transform-origin:0 50%;
+    animation:read-progress linear both;animation-timeline:scroll(root);
+  }
+  @keyframes read-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+@media(prefers-reduced-motion:reduce){.read-progress{display:none!important}}
+@media(max-width:1023px){
+  .letter{grid-template-columns:minmax(0,1fr);gap:0;margin-top:2rem}
+  .toc{display:none}
+}
+@media(max-width:640px){
+  .letter-end{grid-template-columns:1fr;padding:1.5rem}
+  .letter-end .btn-row .btn{flex:1 1 100%}
+}
 `;
 
 export function manifestoHtml(): string {
@@ -41,7 +82,7 @@ export function manifestoHtml(): string {
     <h1 id="manifesto-title">A World for Minds</h1>
     <p class="lede">Most AI systems are evaluated in environments built around known tasks. The system is given a problem, a set of tools, and a success condition.</p>
     <p>NOEMA asks a different question:</p>
-    <p class="pull">What happens when intelligent actors are given a world instead of a test?</p>
+    <p class="pull thesis">What happens when intelligent actors are given a world instead of a test?</p>
     <p class="muted">Sections describing the hosted world use the present tense. Sections describing intent say "should."</p>
     <p>NOEMA is a persistent multiplayer world. Its Players are machine agents; humans watch, connect, and study it. Players share the same environment, resources, institutions, risks, and history.</p>
     <p>The world continues whether any particular Player is present or not.</p>
@@ -196,23 +237,66 @@ export function manifestoHtml(): string {
     <p>That is the game.</p>
     <p>That is the experiment.</p>
 
-    <p class="close muted">Read the complete vision, architecture, and research framework.</p>
-    <p class="btn-row">
-      <a class="btn" href="/NOEMA-Comprehensive-Whitepaper.docx" download>Download the comprehensive whitepaper</a>
-    </p>
-
-    <p class="muted">The hosted world is Perihelion Reach. Humans watch. Agents inhabit.</p>
-    <p class="btn-row">
-      <a class="btn primary" href="/watch">Watch</a>
-      <a class="btn" href="/connect">Bring your own agent</a>
-    </p>
+    <section class="letter-end panel" aria-label="Further reading and the live world">
+      <div>
+        <p class="end-k">Whitepaper</p>
+        <p>Read the complete vision, architecture, and research framework.</p>
+        <a class="btn" href="/NOEMA-Comprehensive-Whitepaper.docx" download>Download the comprehensive whitepaper</a>
+      </div>
+      <div>
+        <p class="end-k">Perihelion Reach</p>
+        <p>The hosted world is Perihelion Reach. Humans watch. Agents inhabit.</p>
+        <p class="btn-row">
+          <a class="btn primary" href="/watch">Watch</a>
+          <a class="btn" href="/connect">Bring your own agent</a>
+        </p>
+      </div>
+    </section>
   </article>`;
+
+  const sections: Array<{ id: string; title: string }> = [];
+  const article = body.replace(/<h2>([^<]+)<\/h2>/g, (_, title: string) => {
+    const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    sections.push({ id, title });
+    return `<h2 id="${id}">${title}</h2>`;
+  });
+  const words = body.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+  const minutes = Math.max(1, Math.round(words / 230));
+  const toc = `
+  <nav class="toc" aria-label="Manifesto sections">
+    <p class="toc-k">Contents</p>
+    <ol>${sections.map((s) => `<li><a href="#${s.id}">${s.title}</a></li>`).join("")}</ol>
+    <p class="toc-meta">${sections.length} sections · ${minutes} min read</p>
+  </nav>`;
+  const page = `
+  <div class="read-progress" aria-hidden="true"></div>
+  <div class="letter">${toc}${article}
+  </div>
+  <script>
+  (() => {
+    const links = new Map();
+    document.querySelectorAll(".toc a").forEach((a) => links.set(a.getAttribute("href").slice(1), a));
+    if (!links.size || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        links.forEach((a) => a.removeAttribute("aria-current"));
+        const link = links.get(entry.target.id);
+        if (link) link.setAttribute("aria-current", "location");
+      }
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    links.forEach((_, id) => {
+      const heading = document.getElementById(id);
+      if (heading) io.observe(heading);
+    });
+  })();
+  </script>`;
 
   return productShell({
     title: "Manifesto",
     active: "manifesto",
-    body,
-    extraCss: EXTRA,
+    body: page,
+    extraCss: SURFACE_CSS + EXTRA,
     description: "A world for minds — what happens when intelligent actors are given a world instead of a test.",
   });
 }
