@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 7987,
-    "edgeCount": 19030,
+    "nodeCount": 7995,
+    "edgeCount": 19044,
     "languages": [
       "javascript",
       "python",
@@ -73387,12 +73387,12 @@
       "name": "watch.ts",
       "kind": "file",
       "path": "workers/noema/src/watch.ts",
-      "span": "L1-L1344",
+      "span": "L1-L1350",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "48ae1a43421a9fd5b4d224da4335d47218aa9eeb3d4769a68867de9bada359ed",
-      "chars": 63632,
+      "body_hash": "0a2c196428bef318a4cf2aa675aab379ba63edd4179ac133cf17f71c5c5842e8",
+      "chars": 63861,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -73402,11 +73402,11 @@
       "name": "watchHtml",
       "kind": "function",
       "path": "workers/noema/src/watch.ts",
-      "span": "L281-L1343",
+      "span": "L281-L1349",
       "signature": "function watchHtml(opts?: { mode?: string }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "685bd74cf5ed8fa34f314a4ac7761d8f0b8301bbd8b741d7f1624fc944c3e55c",
+      "body_hash": "e5746a660df132f1893aa8d6c4213c9ff0e4f897168a50da7dca931a192ee076",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -89067,6 +89067,91 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/jsdom.d.ts",
+      "name": "jsdom.d.ts",
+      "kind": "file",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L1-L36",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "ec0410bdd4aec29966d92dcd7f39f9ebadce6307d931441bb32fba74c22f97f7",
+      "chars": 975,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/jsdom.d.ts#JSDOM",
+      "name": "JSDOM",
+      "kind": "class",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L31-L34",
+      "signature": "class JSDOM",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "90138d4b45d45999891e026392a13fe45f59d1c97159a9dfcf0b17e0a8b505c6",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/jsdom.d.ts#JSDOMDocument",
+      "name": "JSDOMDocument",
+      "kind": "interface",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L21-L24",
+      "signature": "interface JSDOMDocument",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "cd97fe369d0cf76866d65f5f1346a43f2b84dd9d1d2d0d89f90f73dedcd0f95e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/jsdom.d.ts#JSDOMElement",
+      "name": "JSDOMElement",
+      "kind": "interface",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L16-L19",
+      "signature": "interface JSDOMElement",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "43e499f3be897260e762071a19678cabcaffd371c2f383cfe8c2f9dc076d78a0",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/jsdom.d.ts#JSDOMOptions",
+      "name": "JSDOMOptions",
+      "kind": "interface",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L11-L14",
+      "signature": "interface JSDOMOptions",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0432dc3d1a1a9e57f780de7d6737aeb19cfd5aa13028a7abd2b3de575e7e313a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/jsdom.d.ts#JSDOMWindow",
+      "name": "JSDOMWindow",
+      "kind": "interface",
+      "path": "workers/noema/test/jsdom.d.ts",
+      "span": "L26-L29",
+      "signature": "interface JSDOMWindow",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "abafd4adaef3ed22a710ae9444113494f1bfba4aad2e08ca59b37501903a3aa7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/jwt.test.ts",
       "name": "jwt.test.ts",
       "kind": "file",
@@ -93305,6 +93390,35 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "160bf3eeb069d029738cd28b7a0c3e918b1e415e450a8d3273c68a13d5bebca2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s5-axe-shell.test.ts",
+      "name": "s5-axe-shell.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/s5-axe-shell.test.ts",
+      "span": "L1-L43",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "121f4322f0bbf09470c31f8ed402a9b375809633c63ae68ce1f6add46daa2d37",
+      "chars": 1736,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/s5-axe-shell.test.ts#seriousViolations",
+      "name": "seriousViolations",
+      "kind": "function",
+      "path": "workers/noema/test/s5-axe-shell.test.ts",
+      "span": "L13-L32",
+      "signature": "async function seriousViolations(html: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "df7b6334ba5300099b5269f287a0bde8fd14eba5a3d46f1a092e1c88193a9369",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -206762,6 +206876,36 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/jsdom.d.ts",
+      "target": "workers/noema/test/jsdom.d.ts#JSDOM",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/jsdom.d.ts",
+      "target": "workers/noema/test/jsdom.d.ts#JSDOMDocument",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/jsdom.d.ts",
+      "target": "workers/noema/test/jsdom.d.ts#JSDOMElement",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/jsdom.d.ts",
+      "target": "workers/noema/test/jsdom.d.ts#JSDOMOptions",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/jsdom.d.ts",
+      "target": "workers/noema/test/jsdom.d.ts#JSDOMWindow",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/jwt.test.ts",
       "target": "workers/noema/src/jwt.ts#mintHs256",
       "relation": "calls",
@@ -213852,6 +213996,60 @@
       "target": "workers/noema/src/actions.ts#enrichEntity",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/src/landing.ts#landingHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/src/watch.ts#watchHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/test/s5-axe-shell.test.ts#seriousViolations",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/test/s5-axe-shell.test.ts#seriousViolations",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "axe-core",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "jsdom",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/src/landing.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/s5-axe-shell.test.ts",
+      "target": "workers/noema/src/watch.ts",
+      "relation": "imports",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/s7-home-field-boundary.test.ts",

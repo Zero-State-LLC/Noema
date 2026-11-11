@@ -42,6 +42,13 @@ are retained exactly to preserve failing-first identity.
 
 ## Complete validation and publication gates
 
+### Initial reviewed cohort
+
+The initial candidate `60f3dca423bd1b4950633119336428e710ef5355` used base
+`88e111c5d9fc83203a7f414b0af2dade07cf2bec`. Both independent WIP reviews and
+committed-head identity checks passed with zero findings on that snapshot.
+The following execution and graph figures belong to that initial cohort.
+
 The complete built-asset Worker run passed **2,811 cases across 302 files**, with
 zero failed or pending cases, exit 0 and no process timeout (195.826 seconds).
 Its Worker source, test, script and asset input hashes were unchanged during the
@@ -62,6 +69,33 @@ delta catches up the base's already-stale WATCH and recently landed test index;
 all 38 other affected source paths were verified byte-identical to the base or
 already absent there. No unrelated product source was changed. The post-graph
 affected rerun passed the same 60 cases. The optional LLM meaning tier was not built.
+
+### Current-base integration after #863
+
+Another operator landed #863 at `c2ce9d08650b37cb6ee62f45279aa56eb999261c`.
+It changes dependency inputs, WATCH markup and accessibility test coverage, not
+this repair's product paths. A clean local merge produced integration
+`2fa72dc00616abae4e2de874cd38bad1066bc20f`; all 13 previously cleared candidate
+blobs stayed identical and stable patch IDs matched before graph/doc refresh.
+The shared dependency symlink was removed without touching its target, and an
+owned `npm ci` installed the new main lockfile with unchanged package inputs.
+
+The combined built-asset run passed **2,813 cases across 303 files**, zero failed
+or pending, exit 0/no timeout in 138.89 seconds. All 2,811 prior case identities
+and multiplicities remain; the two additional axe-shell cases are upstream work,
+not extra presence regressions. All Worker execution inputs stayed unchanged.
+Generated typecheck passed, then the incidental declaration delta was preserved
+and exact committed bytes restored; post-graph committed `tsc --noEmit` passed.
+The post-graph affected selection again passed the same 60 cases.
+
+The refreshed native wiring graph passed freshness and identical-repeat hashes.
+Its full delta versus the new base has 1,502 added, 2,822 removed and 352 changed
+nodes; 1,907 added and 3,762 removed edges. All 11 new-test incident edges still
+match actual imports/calls. All 40 other affected source paths are unchanged from
+the new base or already absent there. The extra graph cards index #863's existing
+WATCH/ambient types/axe source; they do not modify that upstream implementation.
+Optional meaning tier remains unbuilt. Earlier CI on `60f3dca` is historical for
+this base-sync gate, not proof of the refreshed PR head.
 
 Independent Standards/Spec review, exact committed-byte follow-through,
 exact-head GitHub CI and eligible code-owner approval are separate publication
