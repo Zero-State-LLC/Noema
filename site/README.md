@@ -10,7 +10,7 @@
 
 | Page | Role |
 |---|---|
-| `index.html` | Same first-read as hosted `/`: table hero, Home · Manifesto · Watch · Connect, pointer (no email) |
+| `index.html` | Same first-read as hosted `/`: left-weighted table hero, Now card, Home · Manifesto · Watch · Connect · Study, pointer (no email) |
 | `memo.html` | Specs map for builders (long document) |
 | `design.md` | Tokens + surface split |
 

@@ -1,57 +1,62 @@
 # workers/noema/test/watch-live.test.ts
 
-- rooms · function · L37-L69 — function rooms()
-- livePlayer · function · L71-L86 — function livePlayer( id: string, handle: string, room_id: string, extra: Record<string, unknown> = {}, )
-- src · function · L88-L98 — function src(partial: Partial<WatchSourceEvent> & Pick<WatchSourceEvent, "event_type" | "sequence">): WatchSourceEvent
-- bareLine · function · L564-L566 — function bareLine(line?: string): string
-- liveOf · function · L568-L579 — function liveOf(over: Partial<Parameters<typeof buildWatchLive>[0]> = {})
-- recent · function · L581-L583 — function recent(snap: Record<string, unknown>): WatchEvent[]
-- ev · function · L792-L794 — function ev(partial: Partial<WatchEvent> & Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line">): WatchEvent
-- runHomeScript · function · L1279-L1296 — function runHomeScript(html: string, fetchImpl: typeof fetch)
-- FakeNode · type · L1501-L1529 — type FakeNode = { tagName: string; children: FakeNode[]; attrs: Record<string, string>; dataset: Record<string, string>; handlers: Record<string, Array<(ev: unknown) => void>>; className: string; textContent: string; hidden: boolean; open: boolean; style: Record<string, string>; classList: { add(c: string): void; remove(c: string): void; toggle(c: string, on?: boolean): boolean; contains(c: string): boolean; }; setAttribute(k: string, v: string): void; getAttribute(k: string): string | null; addEventListener(type: string, fn: (ev: unknown) => void): void; append(...kids: Array<FakeNode | string>): void; replaceChildren(...kids: FakeNode[]): void; querySelector(sel: string): FakeNode | null; querySelectorAll(sel: string): FakeNode[]; focus(): void; scrollIntoView(): void; insertAdjacentHTML(position: string, html: string): void; fire(type: string, ev?: unknown): void; };
-- makeWatchDom · function · L1531-L1667 — function makeWatchDom()
-- findAll · function · L1534-L1544 — function findAll(root: FakeNode, sel: string): FakeNode[]
-- walk · function · L1536-L1541 — walk = (m: FakeNode)
-- node · function · L1545-L1623 — function node(tag: string): FakeNode
-- add · method · L1558-L1562 — add(c)
-- remove · method · L1563-L1567 — remove(c)
-- toggle · method · L1568-L1574 — toggle(c, on)
-- contains · method · L1575-L1577 — contains(c)
-- setAttribute · method · L1579-L1581 — setAttribute(k, v)
-- getAttribute · method · L1582-L1584 — getAttribute(k)
-- addEventListener · method · L1585-L1587 — addEventListener(type, fn)
-- append · method · L1588-L1590 — append(...kids)
-- replaceChildren · method · L1591-L1593 — replaceChildren(...kids)
-- querySelector · method · L1594-L1596 — querySelector(sel)
-- querySelectorAll · method · L1597-L1599 — querySelectorAll(sel)
-- focus · method · L1600-L1602 — focus()
-- scrollIntoView · method · L1603-L1603 — scrollIntoView()
-- insertAdjacentHTML · method · L1604-L1606 — insertAdjacentHTML(position, html)
-- fire · method · L1607-L1609 — fire(type, ev)
-- text · function · L1624-L1628 — function text(s: string): FakeNode
-- activeElement · method · L1634-L1636 — get activeElement()
-- getElementById · method · L1637-L1644 — getElementById(id: string)
-- createElement · method · L1645-L1647 — createElement(tag: string)
-- createElementNS · method · L1648-L1650 — createElementNS(_ns: string, tag: string)
-- createTextNode · method · L1651-L1653 — createTextNode(s: string)
-- querySelector · method · L1654-L1656 — querySelector()
-- addEventListener · method · L1657-L1657 — addEventListener()
-- focused · method · L1663-L1665 — get focused()
-- textOf · function · L1669-L1674 — function textOf(n: FakeNode | null | undefined): string
-- bootWatchClient · function · L1676-L1740 — async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; focus: Array<[string, number]> })
-- dispose · method · L1704-L1704 — dispose()
-- focus · method · L1704-L1704 — focus(id: string, ms: number)
-- update · method · L1704-L1704 — update()
-- flush · function · L1711-L1711 — flush = ()
-- restore · function · L1712-L1720 — restore = ()
-- setFetch · method · L1731-L1733 — setFetch(fn: () => unknown)
-- refresh · method · L1734-L1737 — async refresh()
-- okResponse · function · L1742-L1744 — function okResponse(data: unknown)
-- snapshot · function · L1746-L1773 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
-- readinessFrame · function · L1775-L1786 — function readinessFrame(sequence = 20, roomId = "room.market")
-- bootReadinessMap · function · L1788-L1792 — async function bootReadinessMap(reduce = false)
-- projection · function · L1795-L1801 — projection = (label: string, sequence: number)
-- traceNodes · function · L1810-L1813 — traceNodes = ()
-- release · function · L1829-L1829 — release: (value: ReturnType<typeof okResponse>) => void = ()
-- calm · function · L2028-L2033 — calm = (seq: number)
-- preventDefault · method · L2117-L2117 — preventDefault()
+- rooms · function · L38-L70 — function rooms()
+- livePlayer · function · L72-L87 — function livePlayer( id: string, handle: string, room_id: string, extra: Record<string, unknown> = {}, )
+- src · function · L89-L99 — function src(partial: Partial<WatchSourceEvent> & Pick<WatchSourceEvent, "event_type" | "sequence">): WatchSourceEvent
+- bareLine · function · L565-L567 — function bareLine(line?: string): string
+- liveOf · function · L569-L580 — function liveOf(over: Partial<Parameters<typeof buildWatchLive>[0]> = {})
+- recent · function · L582-L584 — function recent(snap: Record<string, unknown>): WatchEvent[]
+- ev · function · L793-L795 — function ev(partial: Partial<WatchEvent> & Pick<WatchEvent, "sequence" | "tier" | "projection_id" | "line">): WatchEvent
+- runHomeScript · function · L1280-L1297 — function runHomeScript(html: string, fetchImpl: typeof fetch)
+- FakeNode · type · L1504-L1532 — type FakeNode = { tagName: string; children: FakeNode[]; attrs: Record<string, string>; dataset: Record<string, string>; handlers: Record<string, Array<(ev: unknown) => void>>; className: string; textContent: string; hidden: boolean; open: boolean; style: Record<string, string>; classList: { add(c: string): void; remove(c: string): void; toggle(c: string, on?: boolean): boolean; contains(c: string): boolean; }; setAttribute(k: string, v: string): void; getAttribute(k: string): string | null; addEventListener(type: string, fn: (ev: unknown) => void): void; append(...kids: Array<FakeNode | string>): void; replaceChildren(...kids: FakeNode[]): void; querySelector(sel: string): FakeNode | null; querySelectorAll(sel: string): FakeNode[]; focus(): void; scrollIntoView(): void; insertAdjacentHTML(position: string, html: string): void; fire(type: string, ev?: unknown): void; };
+- makeWatchDom · function · L1534-L1672 — function makeWatchDom()
+- findAll · function · L1537-L1547 — function findAll(root: FakeNode, sel: string): FakeNode[]
+- walk · function · L1539-L1544 — walk = (m: FakeNode)
+- node · function · L1548-L1626 — function node(tag: string): FakeNode
+- add · method · L1561-L1565 — add(c)
+- remove · method · L1566-L1570 — remove(c)
+- toggle · method · L1571-L1577 — toggle(c, on)
+- contains · method · L1578-L1580 — contains(c)
+- setAttribute · method · L1582-L1584 — setAttribute(k, v)
+- getAttribute · method · L1585-L1587 — getAttribute(k)
+- addEventListener · method · L1588-L1590 — addEventListener(type, fn)
+- append · method · L1591-L1593 — append(...kids)
+- replaceChildren · method · L1594-L1596 — replaceChildren(...kids)
+- querySelector · method · L1597-L1599 — querySelector(sel)
+- querySelectorAll · method · L1600-L1602 — querySelectorAll(sel)
+- focus · method · L1603-L1605 — focus()
+- scrollIntoView · method · L1606-L1606 — scrollIntoView()
+- insertAdjacentHTML · method · L1607-L1609 — insertAdjacentHTML(position, html)
+- fire · method · L1610-L1612 — fire(type, ev)
+- text · function · L1627-L1631 — function text(s: string): FakeNode
+- activeElement · method · L1637-L1639 — get activeElement()
+- getElementById · method · L1640-L1647 — getElementById(id: string)
+- createElement · method · L1648-L1650 — createElement(tag: string)
+- createElementNS · method · L1651-L1653 — createElementNS(_ns: string, tag: string)
+- createTextNode · method · L1654-L1656 — createTextNode(s: string)
+- querySelector · method · L1657-L1659 — querySelector()
+- addEventListener · method · L1660-L1662 — addEventListener(type: string, fn: (ev: unknown) => void)
+- focused · method · L1668-L1670 — get focused()
+- textOf · function · L1674-L1679 — function textOf(n: FakeNode | null | undefined): string
+- bootWatchClient · function · L1686-L1765 — async function bootWatchClient(initial: () => unknown, stage?: { reduce: boolean; focus: Array<[string, number]> })
+- update · method · L1725-L1727 — update(_live: unknown, ctx: { majorRoomId?: string })
+- dispose · method · L1728-L1728 — dispose()
+- flush · function · L1736-L1736 — flush = ()
+- restore · function · L1737-L1745 — restore = ()
+- setFetch · method · L1756-L1758 — setFetch(fn: () => unknown)
+- refresh · method · L1759-L1762 — async refresh()
+- okResponse · function · L1767-L1769 — function okResponse(data: unknown)
+- snapshot · function · L1771-L1798 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
+- readinessFrame · function · L1800-L1811 — function readinessFrame(sequence = 20, roomId = "room.market")
+- bootReadinessMap · function · L1813-L1817 — async function bootReadinessMap(reduce = false)
+- preventDefault · method · L1836-L1836 — preventDefault()
+- projection · function · L1853-L1859 — projection = (label: string, sequence: number)
+- traceNodes · function · L1868-L1871 — traceNodes = ()
+- release · function · L1887-L1887 — release: (value: ReturnType<typeof okResponse>) => void = ()
+- calm · function · L2087-L2092 — calm = (seq: number)
+- preventDefault · method · L2176-L2176 — preventDefault()
+- h7PublicFrame · function · L2524-L2539 — function h7PublicFrame(offset = 0, hostile = false)
+- H7Socket · class · L2656-L2664 — class H7Socket
+- constructor · method · L2661-L2661 — constructor()
+- send · method · L2662-L2662 — send()
+- close · method · L2663-L2663 — close()
