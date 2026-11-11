@@ -12,6 +12,8 @@ export const STAGE_KEY: Array<[string, string]> = [
   ["selected", "Selected site: bright edge, raised"],
   ["followed", "Followed site: cyan ring"],
   ["major", "MAJOR event: amber ring"],
+  ["pressure", "Pressure band: the plate warms toward amber, low to high"],
+  ["scar", "Scar residue band: dashed violet outline, faint to deep"],
   ["agent", "Agent present: one pip per agent, handles in the label"],
   ["trace", "Trace: a small mark on the site"],
   ["route", "Route: solid line"],
@@ -30,6 +32,8 @@ export function stageViewHtml(): string {
           <button type="button" class="btn stage3d-reset" id="watch-stage3d-reset">Reset view</button>
           <p class="stage3d-help" aria-hidden="true">Drag to turn · scroll to zoom · right-drag to pan</p>
         </div>
+        <dl class="stage3d-health" id="watch-stage3d-health" aria-label="World health"></dl>
+        <p class="map-parity" id="watch-stage3d-parity" role="status" hidden></p>
         <details class="stage3d-key">
           <summary>Map key</summary>
           <ul>${key}</ul>
@@ -59,6 +63,12 @@ body.is-low-noise #watch-stage3d{display:none!important}
 }
 .stage3d-label:hover{border-color:var(--line-hot);background:color-mix(in srgb,var(--panel) 92%,transparent)}
 .stage3d-label .stage3d-handles{display:block;margin-top:.125rem;color:var(--color-state-social);font:400 .6875rem/1.2 var(--font-mono);overflow:hidden;text-overflow:ellipsis}
+.stage3d-label .stage3d-bands{display:block;margin-top:.125rem;color:var(--muted);font:400 .625rem/1.2 var(--font-interface)}
+.stage3d-health{display:flex;flex-wrap:wrap;gap:.25rem 1.25rem;margin:.5rem 0 0;color:var(--muted);font:.75rem/1.4 var(--font-interface)}
+.stage3d-health:empty{display:none}
+.stage3d-health div{display:flex;gap:.375rem;align-items:baseline}
+.stage3d-health dt{color:var(--faint);text-transform:uppercase;letter-spacing:.08em;font-size:.6875rem}
+.stage3d-health dd{margin:0;color:var(--ink)}
 .stage3d-label .stage3d-state{display:block;margin-top:.125rem;color:var(--faint);font:600 .625rem/1.2 var(--font-interface);letter-spacing:.12em;text-transform:uppercase}
 .stage3d-label[data-state~="active"]{border-color:color-mix(in srgb,var(--color-state-active) 55%,var(--line))}
 .stage3d-label[data-state~="followed"]{border-color:var(--color-state-active)}
