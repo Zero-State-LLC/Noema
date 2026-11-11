@@ -1,9 +1,18 @@
 /**
  * WATCH Chamber stage markup and styles (Noema-Specs specify/watch-single-3d-stage.md).
- * The renderer is fetched lazily from STAGE_SRC when the spectator picks 3D.
+ * The renderer is fetched lazily from STAGE_SRC.
  * The canvas and labels are aria-hidden: the Places list beside the stage is
  * the accessible authority and carries every fact the stage draws (WS3-07, WS3-11).
  */
+
+import { STAGE_VERSION } from "./watch-stage-version";
+
+/**
+ * Stage chunk URL. Assets are cached for an hour; the content-hash version
+ * makes each deploy's page load exactly its own chunk. Kept out of the stage
+ * model, which is bundled into the chunk itself.
+ */
+export const STAGE_SRC = "/assets/watch-stage.js?v=" + STAGE_VERSION;
 
 /** Plain-language key for every mark the stage draws (WS3-06). HTML text, not canvas. */
 export const STAGE_KEY: Array<[string, string]> = [
