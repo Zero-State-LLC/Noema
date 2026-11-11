@@ -8,28 +8,29 @@
 - reservePort · function · L86-L91 — async function reservePort()
 - isListening · function · L93-L101 — async function isListening(port)
 - finish · function · L96-L96 — finish = value
-- stopOwned · function · L109-L153 — async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); } } = {})
-- signal · function · L112-L117 — signal = name
-- alive · function · L118-L123 — alive = ()
-- pause · function · L124-L124 — pause = async ()
-- data · function · L142-L142 — data = key
-- bounded · function · L155-L158 — function bounded(value, maxBytes = 32_768)
-- abortable · function · L160-L170 — function abortable(pending, signal)
-- interrupted · function · L164-L164 — interrupted = ()
-- finish · function · L165-L165 — finish = settle
-- assertBudgetDelta · function · L172-L177 — function assertBudgetDelta(before, after, delta)
-- runLocalAcceptance · function · L179-L464 — async function runLocalAcceptance(options)
-- interrupt · function · L191-L191 — interrupt = signal
-- onInt · function · L192-L192 — onInt = ()
-- onTerm · function · L193-L193 — onTerm = ()
-- onHup · function · L194-L194 — onHup = ()
-- check · function · L207-L207 — check = (name, predicate)
-- request · function · L208-L232 — request = async (path, body, token)
-- command · function · L233-L240 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
-- start · function · L241-L286 — start = async phase
-- capture · function · L252-L252 — capture = chunk
-- stop · function · L287-L294 — stop = async ()
-- mint · function · L308-L316 — mint = async role
-- hasPlate · function · L367-L367 — hasPlate = observation
-- assertNotices · function · L377-L380 — assertNotices = (obs, phase)
-- watch · function · L381-L389 — watch = async phase
+- stopOwned · function · L109-L164 — async function stopOwned(child, record, { kill = (pid, signal) => { process.kill(pid, signal); }, wait = async ms => { await delay(ms); }, platform = process.platform } = {})
+- pause · function · L112-L112 — pause = async ()
+- attempt · function · L113-L130 — attempt = async name
+- signal · function · L131-L131 — signal = name
+- alive · function · L132-L132 — alive = ()
+- data · function · L150-L150 — data = key
+- bounded · function · L166-L169 — function bounded(value, maxBytes = 32_768)
+- abortable · function · L171-L181 — function abortable(pending, signal)
+- interrupted · function · L175-L175 — interrupted = ()
+- finish · function · L176-L176 — finish = settle
+- assertBudgetDelta · function · L183-L188 — function assertBudgetDelta(before, after, delta)
+- runLocalAcceptance · function · L190-L475 — async function runLocalAcceptance(options)
+- interrupt · function · L202-L202 — interrupt = signal
+- onInt · function · L203-L203 — onInt = ()
+- onTerm · function · L204-L204 — onTerm = ()
+- onHup · function · L205-L205 — onHup = ()
+- check · function · L218-L218 — check = (name, predicate)
+- request · function · L219-L243 — request = async (path, body, token)
+- command · function · L244-L251 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
+- start · function · L252-L297 — start = async phase
+- capture · function · L263-L263 — capture = chunk
+- stop · function · L298-L305 — stop = async ()
+- mint · function · L319-L327 — mint = async role
+- hasPlate · function · L378-L378 — hasPlate = observation
+- assertNotices · function · L388-L391 — assertNotices = (obs, phase)
+- watch · function · L392-L400 — watch = async phase

@@ -65,24 +65,31 @@ option, or independent outer observer verification changes.
   retries. Existing ordinary ESRCH, live-group timeout, TERM/KILL escalation and
   wait-error behavior remain covered.
 - **R5:** The only new receipt field is optional per-process
-  `cleanup_reap_waits`, an integer 1..10. It records actual waits on both eventual
-  success and failure. No messages, commands, environment or secrets are added.
+  `cleanup_reap_waits`, an integer 1..10. It records attempted reaping waits on both
+  success and failure, including a wait that itself rejects. No messages,
+  commands, environment or secrets are added.
 - **R6:** The platform/kill/wait test seam is programmatic only. CLI admission
   and sanitized child environment remain unchanged.
 
-## Requirement-to-check map, before implementation
+## Requirement-to-check map
 
-| Requirement | Concrete check | Initial result |
+The map was committed before implementation. Initial failures and corrected
+results are distinguished below. The native Node regression uses only owned
+processes, real `process.kill` calls and a parent that deliberately delays reaping.
+
+| Requirement | Concrete check | Observed result |
 | --- | --- | --- |
-| R1, R2 | Real OS held zombie group, release parent to reap within window, call actual `stopOwned`, independently require ESRCH | Old implementation fails EPERM, three consecutive C reproductions |
-| R1, R3 | Inject repeated EPERM at TERM, probe and KILL seams; assert ten total waits, retry target unchanged and original error identity | Existing immediate-failure controls establish fail-closed baseline; new bounded cases pending |
-| R1 | Alternate transient signal/probe EPERM; assert shared budget does not reset | Pending |
-| R2, R4 | Live group after transient error remains fatal until actual ESRCH; existing live-group and escalation controls | Pending full rerun |
-| R4 | Linux EPERM, EACCES/EINVAL/EIO, and thrown wait controls | Pending |
-| R5 | Recovery/failure counters, bounded diagnostic records, secret/accessor exclusion | Pending |
-| R6 | Actual npm help and bad-option admission; no environment/config switches added | Pending |
-| Integration | Actual npm lifecycle 49 checks and interruption 8 checks; independent owned groups, ports and signing-file absence | Pending corrected-head execution |
-| Integration | Full Worker suite, generated and committed types, exact-head Linux CI, protected local clones | Pending corrected-head execution |
+| R1, R2 | Real OS zombie group released inside the grace window, then actual `stopOwned` and independent ESRCH probe | Baseline C reproducer failed three times. Unchanged C repro and maintained Node regression pass after the fix; Node counter is 1..10 and no failure diagnostic is emitted. |
+| R1, R3 | Real owned zombie held for 3 seconds, beyond the grace window | Native regression fails cleanup with actual EPERM after exactly ten waits, retains the owned signal diagnostic, and independently observes EPERM before the parent finally reaps and ESRCH afterward. |
+| R1, R3 | Synthetic repeated EPERM at TERM, probe and KILL, unchanged target and error identity | All three exhaust ten waits and throw the exact first error object for that operation. |
+| R1 | Alternate transient signal/probe EPERM without resetting budget | Shared-budget regression passes with ten total waits across operations. |
+| R2, R4 | Live group after transient error, ordinary owned child and escalation | Live-group negative control remains fatal, ordinary real owned-child cleanup passes, and escalation controls pass. |
+| R4 | Linux EPERM, EACCES/EINVAL/EIO and thrown wait controls | All remain fail-closed. Non-Darwin synthetic controls make no new wait. Wait and later-error identity are preserved. |
+| R5 | Recovery/failure counters, bounded records, secret/accessor exclusion | All 21 diagnostic/control cases pass, including bounded output and original-error preservation. |
+| R6 | Actual npm help and rejected external/relative options; no environment/config switches | Pending corrected-head public admission execution. |
+| Integration | Actual npm lifecycle 49 checks and interruption 8 checks, independent groups/ports/signing-file absence | Pending corrected-head public execution. |
+| Integration | Actual npm with explicitly synthetic transient/persistent signal and probe EPERM | Pending. Recovery must pass after one injected error. Eleven errors must retain failure after ten waits, even if final cleanup succeeds. |
+| Integration | Full Worker suite, generated and committed types, exact-head Linux CI, protected clones | Focused 24 tests and committed types pass. Remaining full-result checks pending. |
 
 ## Explicit limits
 
