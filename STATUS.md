@@ -4,6 +4,10 @@
 
 The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) links a [screened, same-world staging receipt](docs/ISOLATED-733-SAME-WORLD-HOSTED-20261102.md): an isolated no-route Worker at version `9978ab0f-e8f6-40c6-9254-d6ffc4c5f2fb` showed a hosted DO instance replacement, a new post-reset canonical PostgreSQL MOVE settlement (target revision 2/sequence 1), and real-browser public WATCH rendering the same target at sequence 1. These bounded hosted gates are observed; R0/R3/R4 and optional C9 still need separate reconciliation, so #733 stays open. [Runtime PR #756](https://github.com/Zero-State-LLC/Noema/pull/756) merged at `038512f6ca9284522945968cf9f57c23b9a85909` after technical review and exact-head CI, with a documented administrator review-rule bypass **rather than** an eligible submitted GitHub approval. No production action or post-run production version readback is claimed. The older sections below are dated historical snapshots.
 
+## WATCH 3D Chamber stage (2026-11-11 UTC)
+
+Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872 and #876, and is live as Worker `45c610e0-9f18-4657-9963-30a427483d87` (pinned by #877). Open: privacy draft #875 (owner review) and real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
+
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
 - **Recent Completion**:
