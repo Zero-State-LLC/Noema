@@ -1397,6 +1397,9 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (on) {
         const close = $("watch-here-close");
         if (close) close.focus();
+      } else {
+        // Do not leave focus on a control in the dismissed sheet (#857).
+        btn.focus();
       }
     }
     const hereOpen = $("watch-here-open");

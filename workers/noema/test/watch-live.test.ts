@@ -1654,7 +1654,9 @@ function makeWatchDom() {
     querySelector() {
       return null;
     },
-    addEventListener() {},
+    addEventListener(type: string, fn: (ev: unknown) => void) {
+      body.addEventListener(type, fn);
+    },
   };
   return {
     doc,
@@ -1791,6 +1793,39 @@ async function bootReadinessMap(reduce = false) {
   return { client, focus };
 }
 describe("driven watch client (§11/§13)", () => {
+  // Executed-client fixture coverage, not native browser keyboard acceptance (#857).
+  it.each(["Escape", "close", "backdrop"])("#857 restores Here opener focus after %s dismissal", async (dismissal) => {
+    const client = await bootWatchClient(() => okResponse(snapshot()));
+    try {
+      const opener = client.$("watch-here-open");
+      const sheet = client.dom.doc.getElementById("watch-here-sheet")!;
+      const backdrop = client.$("watch-here-backdrop");
+      opener.fire("click");
+      expect(client.dom.doc.activeElement).toBe(client.$("watch-here-close"));
+      expect(opener.getAttribute("aria-expanded")).toBe("true");
+      expect(sheet.classList.contains("is-open")).toBe(true);
+      // Model focus after native Tab to the recent-events summary. The fixture
+      // does not synthesize browser Tab, Enter or Space default actions.
+      const summary = client.dom.doc.getElementById("watch-public-recent-summary")!;
+      summary.focus();
+      if (dismissal === "Escape") {
+        let prevented = false;
+        client.dom.doc.body.fire("keydown", { key: "Escape", target: summary, preventDefault() { prevented = true; } });
+        expect(prevented).toBe(true);
+      } else {
+        client.$(dismissal === "close" ? "watch-here-close" : "watch-here-backdrop").fire("click");
+      }
+      expect(opener.getAttribute("aria-expanded")).toBe("false");
+      expect(sheet.classList.contains("is-open")).toBe(false);
+      expect(backdrop.hidden).toBe(true);
+      expect(client.dom.doc.activeElement).toBe(opener);
+      summary.focus();
+      await client.refresh();
+      expect(client.dom.doc.activeElement).toBe(summary);
+    } finally {
+      client.restore();
+    }
+  });
   it("T35 generated WATCH uses fresh text nodes, never HTML sinks, for scar on startup and Refresh", async () => {
     const projection = (label: string, sequence: number) => buildWatchLive({
       world_id: "world.test", cycle: 4, sequence, players: [], events: [],
