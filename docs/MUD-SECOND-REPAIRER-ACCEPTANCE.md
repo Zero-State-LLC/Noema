@@ -43,10 +43,35 @@ and must not change either runtime behavior to make the check pass.
 
 ## Evidence status
 
-This map was recorded before the second-repairer implementation. Results are
-pending and must be filled from actual receipts, not inferred from inspection.
-Keep failed attempts and identify dirty runs separately from clean committed
-head evidence. Never publish retained signing values or bearer credentials.
+The pre-implementation map was committed as `4a3aba2`, before implementation
+`f27003b` and the coordinator's first-writer strengthening `ad9ec93`. The complete
+public workflow was then executed against clean committed
+`00b383eb9b1bd3401031812dad4bc2ff785947e8` on November 11, 2026.
+
+| ID | Observed result |
+| --- | --- |
+| R1 | Passed. The actual receipt records stock 2, then two different Agents each harvesting 1 and repairing the same relay, leaving stock 0. Both HARVEST and REPAIR cost events and all five observed budget deltas match the existing behavior described above. Canonical ENTITY_UPDATE identifies each actor, latest public handle and repair cycle. |
+| R2 | Passed. Three successful fresh authenticated LOOKs and three anonymous WATCH reads after replacement each contain exactly one witness plate and no builder plate. The four authored notice sources remain absent. These reads occur after replacement, after stale replay and after another real restart. |
+| R3 | Passed. The departed builder's retained repair identity returns the exact original response both before and after replacement. Three separate fresh builder LOOKs remain refused with NOT_IN_WORLD and unchanged budgets. Fresh witness LOOK around stale replay preserves location/traces and all budgets except LOOK attention 1. No actor is re-entered to bypass admission. |
+| R4 | Passed. Three distinct owned process IDs are recorded. The third process opens the same isolated storage and fresh LOOK/WATCH retain only the witness plate, exhausted source and unchanged cycle. Restart changes no budgets except the fresh LOOK attention cost. |
+| R5 | Passed. All 49 original named checks are present within the expanded 81-check workflow, with 45 bounded records. The separate actual npm SIGTERM workflow passes 8 checks and retains its expected failed inner receipt. Coordinator follow-up independently observes ESRCH for recorded groups, refused connections on both ports, and absent signing files for both workflows. |
+| R6 | Full local Worker suite passed: 297 files, 2,712 tests. Focused admission/assertion coverage passed 38 tests, including five explicitly synthetic unique/stale/duplicate/missing-plate controls. Both actual generated-type and committed-declaration typechecks passed. Only the tool-generated declaration drift was restored. Final remote/CI publication attestations are recorded separately in the PR evidence packet. |
+
+Source-bound local artifacts, retained privately under the scratch evidence root:
+
+- Normal: `coordinator-clean/mud-local-7aGtZp/receipt.json`.
+- Interruption: `coordinator-interruption/mud-interruption-Tf1JqI/interruption-receipt.json`.
+- Per-requirement independent readback: `coordinator-provenance-verification.json`.
+- Separate interruption teardown: `coordinator-interruption-verification.json`.
+- Complete local suite: `full-worker.log`.
+
+The root is `noema-mud-second-repair-20261111` in the operator's private scratch
+directory. Retained runtime state and signing values are not public evidence.
+One dirty development attempt failed because the assertion omitted the existing
+fractional influence normalization (`40 !== 40.5`). That failed receipt is retained
+as `worker/mud-local-aak6EE/receipt.json`, not counted as a passing run or recast as
+a runtime defect. The runtime was not changed to satisfy the assertion. Dirty
+worker/coordinator development passes are separate from the clean-head result.
 
 ## Remaining gates
 
