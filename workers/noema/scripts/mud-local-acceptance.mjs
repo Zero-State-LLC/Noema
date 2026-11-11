@@ -375,13 +375,28 @@ export async function runLocalAcceptance(options) {
     check("initial first WAIT holds two-agent barrier", firstWait.observation.cycle === initialCycle);
     const restored = await command(witness, "WAIT");
     check("initial second WAIT commits one cycle", restored.observation.cycle === initialCycle + 1);
+    const builderReady = await command(builder, "LOOK", {}, { phase: "builder harvest fresh before" });
+    check("initial source contains exactly two original material units", builderReady.observation.location.entities
+      .find(e => e.entity_id === "entity.acceptance-source")?.stock_amount === 2);
     const harvest = await command(builder, "HARVEST", { entity_id: "entity.acceptance-source", amount: 1 });
     check("native bootstrap harvest uses real source", harvest.events?.some(e => e.event_type === "RESOURCE_TRANSFER"
       && e.payload?.kind === "harvest" && e.payload?.from_id === "entity.acceptance-source"
       && e.payload?.resource === "materials" && e.payload?.amount === 1));
+    assertBudgetDelta(builderReady.observation.budgets, harvest.observation.budgets, { energy: -2, compute: -1, storage: -1, influence: 0.5 });
+    assert.deepEqual(harvest.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 2, compute: 1 });
+    check("builder harvest exact all-five budget deltas and committed costs", harvest.events.some(e => e.event_type === "RESOURCE_TRANSFER"
+      && e.payload?.to_id === builder.player_id) && harvest.observation.location.entities
+      .find(e => e.entity_id === "entity.acceptance-source")?.stock_amount === 1);
     const repairId = `mud-${runId}-repair-builder`;
     const repairArgs = { entity_id: "entity.acceptance-relay" };
     const repair = await command(builder, "REPAIR", repairArgs, { id: repairId, phase: "builder repair original" });
+    // Existing command-entry cloneBudgets floors HARVEST's fractional influence.
+    assertBudgetDelta(harvest.observation.budgets, repair.observation.budgets, { energy: -3, compute: -2, storage: 1, influence: -0.5 });
+    assert.deepEqual(repair.events.find(e => e.event_type === "BUDGET_CONSUMED").payload.cost_paid, { energy: 3, compute: 2, storage: 1 });
+    check("builder REPAIR exact all-five budget deltas and canonical provenance", repair.events.some(e => e.event_type === "ENTITY_UPDATE"
+      && e.payload?.entity_id === repairArgs.entity_id && e.payload?.operation === "REPAIR"
+      && e.payload?.actor_id === builder.player_id && e.payload?.last_repair_handle === builder.handle
+      && e.payload?.last_repair_cycle === repair.observation.cycle));
     const plate = `A maintenance plate names ${builder.handle} as the last repairer.`;
     const hasPlate = observation => observation?.location?.traces?.some(t => t.text === plate);
     check("canonical REPAIR writes mandatory maintenance plate", hasPlate(repair.observation)

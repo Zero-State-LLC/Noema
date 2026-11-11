@@ -29,6 +29,18 @@ Pure assertion negative controls should reject stale, duplicate and absent plate
 attribution where a small helper makes that invariant reusable. Such controls
 are synthetic and do not substitute for R1-R5's real public command path.
 
+## Budget interpretation
+
+The current material HARVEST consumes energy 2 and compute 1, fills one unit of
+hold (free storage -1), and credits influence 0.5 (`world-actions.ts:4014-4106`).
+The next command's `ensurePlayer` calls `cloneBudgets`, which floors existing
+fractional values (`world-actions.ts:795-823`, `actions.ts:609-617`). Consequently
+the following REPAIR observation includes influence -0.5 normalization, not an
+additional repair cost. Its canonical `BUDGET_CONSUMED.cost_paid` remains energy
+3, compute 2 and storage 1. Consuming that cargo restores free storage by one.
+Acceptance must distinguish observed normalization from the committed cost event
+and must not change either runtime behavior to make the check pass.
+
 ## Evidence status
 
 This map was recorded before the second-repairer implementation. Results are

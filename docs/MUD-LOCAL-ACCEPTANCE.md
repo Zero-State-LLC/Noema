@@ -53,7 +53,12 @@ than a copied reducer or a simulated server:
    cycle. Verify all four notice fields disappear, while the repair plate remains.
 7. Read independently after the builder leaves. Verify public WATCH includes the
    permitted repair plate and excludes those authored notice sources.
-8. Emit a bounded receipt without bearer tokens or the local signing value, and
+8. Let the witness harvest the one remaining existing material unit and repair
+   the same relay. Require a single latest-repairer plate, with no stale builder
+   plate, through fresh LOOK and WATCH. Check retained repair replay against
+   independent current state, then stop/restart the server again and verify the
+   latest attribution persists. No seed refill or ownership injection is used.
+9. Emit a bounded receipt without bearer tokens or the local signing value, and
    stop the owned server on success or failure.
 
 LOOK is not free: the existing contract charges attention 1. WAIT here tests the
@@ -77,7 +82,9 @@ show all of the following, not only a successful process exit:
 | Existing lifecycle still works | Four notice writers/readbacks, retained restart state, expiry, post-LEAVE plate and WATCH privacy checks still pass. |
 
 This local server/protocol path does not qualify browser viewport presentation,
-hosted eviction, or SQL settlement.
+hosted eviction, or SQL settlement. The second-repairer requirements, individually
+mapped observations and remaining limitations are recorded in
+[MUD-SECOND-REPAIRER-ACCEPTANCE.md](MUD-SECOND-REPAIRER-ACCEPTANCE.md).
 
 ## Reproduce interruption cleanup
 
@@ -93,7 +100,7 @@ positive failure exit code or Node's `{code:null, signal:"SIGTERM"}` result, and
 inner receipt with `status: "failed"` and `Interrupted by SIGTERM`, then
 independently checks owned process groups, both ports and signing-file removal.
 A successful smoke result proves this bounded failure-and-cleanup path, not
-successful MUD conformance. The normal 49-check command remains a separate run.
+successful MUD conformance. The normal lifecycle command remains a separate run.
 
 The observer has bounded startup and shutdown deadlines and accepts no external
 URL, existing run, caller PID or hosted credentials. Missing readiness, a normal
