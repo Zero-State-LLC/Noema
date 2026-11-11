@@ -1,7 +1,7 @@
 /**
- * WATCH Chamber stage behind ?mode=3d (Noema-Specs specify/watch-single-3d-stage.md).
- * PIXEL stays the default until the stage is made the default. 3D lazily loads
- * one chunk, keeps the Places list beside the stage, and falls back to TEXT (D2).
+ * WATCH Chamber stage as the default view (Noema-Specs specify/watch-single-3d-stage.md).
+ * D1: the stage is the default and the TEXT / PIXEL / MAP rail is retired.
+ * D2: failure, no WebGL2, and Low noise show the text map. D3: old links resolve.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
@@ -107,7 +107,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean; map?: Record<string, unknown> } = {}) {
+async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean; map?: Record<string, unknown>; reduce?: boolean } = {}) {
   const webgl2 = opts.webgl2 !== false;
   const byId = new Map<string, Node>();
   const head = makeNode("head", webgl2);
@@ -138,7 +138,10 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   const urls: string[] = [];
   const winHandlers: Record<string, Array<(ev?: unknown) => void>> = {};
   const win: Record<string, unknown> = {
-    matchMedia: (q: string) => ({ matches: !!opts.wide && String(q).includes("min-width"), addEventListener() {}, removeEventListener() {} }),
+    matchMedia: (q: string) => ({
+      matches: (!!opts.wide && String(q).includes("min-width")) || (!!opts.reduce && String(q).includes("reduced-motion")),
+      addEventListener() {}, removeEventListener() {},
+    }),
     addEventListener(t: string, fn: (ev?: unknown) => void) { (winHandlers[t] = winHandlers[t] || []).push(fn); },
     dispatchEvent(ev: { type: string }) { for (const fn of winHandlers[ev.type] || []) fn(ev); return true; },
   };
@@ -149,7 +152,11 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   g.document = doc;
   g.window = win;
   g.location = { search, hash: "", protocol: "https:", host: "noema.test", href: "https://noema.test/watch" + search };
-  g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, String(v)) };
+  g.localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, String(v)),
+    removeItem: (k: string) => void store.delete(k),
+  };
   g.history = { replaceState: (_s: unknown, _t: string, url: string) => void urls.push(url) };
   const fetched: string[] = [];
   g.fetch = async (url: string) => {
@@ -211,77 +218,73 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   };
 }
 
-describe("3D is an opt-in WATCH mode", () => {
-  it("parses 3d from query, hash, and storage, but never defaults to it", () => {
-    expect(parseWatchMode("?mode=3d", "", "")).toBe("3d");
-    expect(parseWatchMode("", "#3d", "")).toBe("3d");
-    expect(parseWatchMode("", "", "3d")).toBe("3d");
-    expect(parseWatchMode("?mode=3D", "", "")).toBe("3d");
-    expect(parseWatchMode("", "", null)).toBe("pixel");
-    expect(parseWatchMode("?mode=three", "", "")).toBe("pixel");
-    expect(parseWatchMode("?mode=pixel", "", "3d")).toBe("pixel");
+describe("the 3D stage is the WATCH default (D1, D3)", () => {
+  it("resolves old links: text is the text map; pixel, map and 3d open the stage; default is the stage", () => {
+    expect(parseWatchMode("", "", null)).toBe("3d");
+    expect(parseWatchMode("?mode=text", "", "")).toBe("text");
+    for (const m of ["pixel", "map", "3d", "3D", "three"]) expect(parseWatchMode(`?mode=${m}`, "", ""), m).toBe("3d");
+    expect(parseWatchMode("", "#text", "")).toBe("text");
+    expect(parseWatchMode("", "#map", "")).toBe("3d");
+    expect(parseWatchMode("?mode=text", "#3d", "")).toBe("text");
+    // Stored legacy modes no longer decide the view; Low noise is the lasting text preference.
+    expect(parseWatchMode("", "", "text")).toBe("3d");
     expect(watchModeInlineSource()).not.toContain("__name");
   });
 
-  it("server-renders the default page unchanged with no 3D script tag", () => {
+  it("server-renders the stage by default with no mode rail, no PIXEL canvas, and no MAP stage", () => {
     const html = watchHtml();
-    expect(html).toContain('data-mode="pixel"');
-    expect(html).toContain('id="watch-mode-3d" aria-pressed="false"');
+    expect(html).toContain('data-mode="3d"');
+    expect(html).not.toMatch(/id="watch-mode-(text|pixel|map|3d)"/);
+    expect(html).not.toContain('id="watch-phosphor"');
+    expect(html).not.toContain('id="watch-stage-map"');
     expect(html).toMatch(/id="watch-stage3d" hidden/);
     expect(html).not.toMatch(/id="watch-stage-places"[^>]*hidden/);
+    expect(html).toContain('id="watch-low-noise-btn"');
     expect(html).not.toMatch(/<script[^>]*watch-stage/);
-    for (const mode of ["text", "pixel", "map"]) {
-      expect(watchHtml({ mode })).not.toMatch(/<script[^>]*watch-stage/);
-      expect(watchHtml({ mode })).toContain(`id="watch-mode-${mode}" aria-pressed="true"`);
-    }
+    expect(watchHtml({ mode: "text" })).toContain('data-mode="text"');
+    for (const mode of ["pixel", "map", "3d"]) expect(watchHtml({ mode })).toContain('data-mode="3d"');
   });
 
-  it("server-renders ?mode=3d with Places beside the stage and MAP hidden", async () => {
+  it("server-renders /watch and old ?mode= links through the Worker", async () => {
     const env = { NOEMA_ENV: "production" } as unknown as Env;
-    const res = await worker.fetch(new Request("https://noema.guru/watch?mode=3d"), env);
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('data-mode="3d"');
-    expect(html).toContain('id="watch-mode-3d" aria-pressed="true"');
-    expect(html).not.toMatch(/id="watch-stage-places"[^>]*hidden/);
-    expect(html).toMatch(/id="watch-stage-map"[^>]*hidden/);
-    expect(html).toContain('id="watch-stage3d-reset"');
-    expect(html).toContain("Map key");
-    expect(html).not.toMatch(/<script[^>]*watch-stage/);
+    for (const [search, mode] of [["", "3d"], ["?mode=map", "3d"], ["?mode=pixel", "3d"], ["?mode=text", "text"]]) {
+      const res = await worker.fetch(new Request(`https://noema.guru/watch${search}`), env);
+      expect(res.status, search).toBe(200);
+      const html = await res.text();
+      expect(html, search).toContain(`data-mode="${mode}"`);
+      expect(html, search).toContain('id="watch-stage3d-reset"');
+      expect(html, search).toContain("Map key");
+    }
   });
 });
 
 describe("driven WATCH client with the 3D stage", () => {
-  it("default boot keeps PIXEL and never requests the stage chunk", async () => {
-    const c = await boot();
+  it("?mode=text never requests the stage chunk and keeps the text map", async () => {
+    const c = await boot({ search: "?mode=text" });
     try {
-      expect(c.stage.getAttribute("data-mode")).toBe("pixel");
-      expect(c.$("watch-mode-pixel").getAttribute("aria-pressed")).toBe("true");
+      expect(c.stage.getAttribute("data-mode")).toBe("text");
       expect(c.stageScripts()).toHaveLength(0);
-      for (const id of ["watch-mode-text", "watch-mode-map", "watch-mode-pixel"]) {
-        await c.click(id);
-        expect(c.stageScripts()).toHaveLength(0);
-      }
       expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      // The text view stays shareable in the URL.
+      expect(c.urls.at(-1) ?? "").toContain("mode=text");
     } finally {
       c.restore();
     }
   });
 
-  it("choosing 3D lazily loads the chunk once, mounts it beside Places, and persists", async () => {
+  it("default boot lazily loads the chunk once and mounts the stage beside Places", async () => {
     const c = await boot();
     try {
-      await c.click("watch-mode-3d");
       expect(c.stage.getAttribute("data-mode")).toBe("3d");
-      expect(c.$("watch-mode-3d").getAttribute("aria-pressed")).toBe("true");
       expect(c.$("watch-stage-places").hidden).toBe(false);
-      expect(c.$("watch-stage-map").hidden).toBe(true);
-      expect(c.store.get("noema.watch.mode")).toBe("3d");
-      expect(c.urls.at(-1)).toContain("mode=3d");
       const scripts = c.stageScripts();
       expect(scripts).toHaveLength(1);
       expect(scripts[0].type).toBe("module");
       expect(scripts[0].src).toBe(STAGE_SRC);
+      // The stage view is per visit: no stored mode and no mode in the URL.
+      expect(c.store.has("noema.watch.mode")).toBe(false);
+      expect(c.urls.at(-1) ?? "").not.toContain("mode=");
 
       c.installStage();
       scripts[0].fire("load");
@@ -291,13 +294,20 @@ describe("driven WATCH client with the 3D stage", () => {
       expect(updates.length).toBeGreaterThan(0);
       expect(updates.every((x) => (x.arg as { projection: string }).projection === "public")).toBe(true);
       expect(c.$("watch-stage3d").hidden).toBe(false);
+    } finally {
+      c.restore();
+    }
+  });
 
-      await c.click("watch-mode-pixel");
-      expect(c.stageCalls.at(-1)?.kind).toBe("dispose");
+  it("a reduced-motion visitor's first load does not throw and shows the text map", async () => {
+    const c = await boot({ reduce: true });
+    try {
+      // Reduced motion seeds Low noise (S5), which unmounts the stage (D2).
+      expect(c.body.classList.contains("is-low-noise")).toBe(true);
+      expect(c.stage.getAttribute("data-mode")).toBe("3d");
+      expect(c.stageScripts()).toHaveLength(0);
       expect(c.$("watch-stage3d").hidden).toBe(true);
-      await c.click("watch-mode-3d");
-      expect(c.stageScripts()).toHaveLength(1);
-      expect(c.stageCalls.filter((x) => x.kind === "mount")).toHaveLength(2);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
     } finally {
       c.restore();
     }
@@ -342,23 +352,21 @@ describe("driven WATCH client with the 3D stage", () => {
     }
   });
 
-  it("TEXT and PIXEL never fetch map bands", async () => {
-    for (const search of ["?mode=text", "?mode=pixel"]) {
-      const c = await boot({ search });
-      try {
-        expect(c.fetched.some((u) => u.includes("/v1/watch/map")), search).toBe(false);
-      } finally {
-        c.restore();
-      }
+  it("the text view never fetches map bands", async () => {
+    const c = await boot({ search: "?mode=text" });
+    try {
+      expect(c.fetched.some((u) => u.includes("/v1/watch/map"))).toBe(false);
+    } finally {
+      c.restore();
     }
   });
 
-  it("never hands a non-public last frame to the stage on selection", async () => {
+  it("never hands a non-public last frame to the stage when it mounts", async () => {
     const frame = snapshot();
     const c = await boot({ frame });
     try {
+      // The held frame turns non-public before the chunk arrives.
       frame.projection = "private";
-      await c.click("watch-mode-3d");
       const [script] = c.stageScripts();
       expect(script).toBeTruthy();
       c.installStage();
@@ -368,11 +376,12 @@ describe("driven WATCH client with the 3D stage", () => {
     } finally { c.restore(); }
   });
 
-  it("boots straight into a stored 3D preference", async () => {
-    const c = await boot({ stored: "3d" });
+  it("ignores and clears a stored legacy mode key", async () => {
+    const c = await boot({ stored: "text" });
     try {
       expect(c.stage.getAttribute("data-mode")).toBe("3d");
       expect(c.stageScripts()).toHaveLength(1);
+      expect(c.store.has("noema.watch.mode")).toBe(false);
     } finally {
       c.restore();
     }
@@ -432,14 +441,12 @@ describe("driven WATCH client with the 3D stage", () => {
       script.fire("error");
       await c.flush();
       expect(c.stage.getAttribute("data-mode")).toBe("text");
-      expect(c.$("watch-mode-text").getAttribute("aria-pressed")).toBe("true");
       expect(c.$("watch-stage-places").hidden).toBe(false);
-      expect(c.$("watch-stage-map").hidden).toBe(true);
       expect(c.$("watch-stage3d").hidden).toBe(true);
       expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
       expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_FALLBACK_LINE);
-      // Fallback does not overwrite the spectator's stored choice.
-      expect(c.store.get("noema.watch.mode")).toBe("3d");
+      // Fallback is per visit: nothing is stored.
+      expect(c.store.has("noema.watch.mode")).toBe(false);
     } finally {
       c.restore();
     }
@@ -479,8 +486,7 @@ describe("driven WATCH client with the 3D stage", () => {
       expect(c.stageScripts()).toHaveLength(0);
       expect(c.stage.getAttribute("data-mode")).toBe("text");
       expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_FALLBACK_LINE);
-      await c.click("watch-mode-pixel");
-      expect(c.$("watch-stage3d-fallback").hidden).toBe(true);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
     } finally {
       c.restore();
     }
