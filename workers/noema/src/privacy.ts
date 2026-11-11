@@ -73,7 +73,7 @@ export function privacyHtml(): string {
       <li><code>noema.connect.auth_flow</code> (session storage): links a sign-in finished in another tab back to Connect.</li>
       <li><code>noema.connect.code</code> (session and local storage): a short code you entered, cleared after you approve or deny.</li>
       <li><code>noema.low_noise</code> (local storage): your Low noise display choice.</li>
-      <li><code>noema.watch.mode</code> (local storage): your Watch view.</li>
+      <li><code>noema.watch.mode</code> (local storage): the text or pixel view on operator Watch pages. The public Watch page does not set it.</li>
       <li>Operator pages keep their own <code>noema.admin.*</code> session keys.</li>
     </ul>
     <p>These stay in your browser. The sign-in token is sent only to noema.guru, when a page needs it.</p>
