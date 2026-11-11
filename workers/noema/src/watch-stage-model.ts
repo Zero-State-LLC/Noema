@@ -30,6 +30,7 @@ export const STAGE_CAMERA_EASE_MS = PULSE_TTL.NOTABLE;
 export const STAGE_MAX_MINOR_PULSES = 3;
 
 export const STAGE_FALLBACK_LINE = "3D view is unavailable here. Showing the text map.";
+export const STAGE_LOW_NOISE_LINE = "Low noise is on. Showing the text map.";
 
 type LiveRoom = PhosphorRoom & {
   traces?: Array<{ text?: unknown } | null>;

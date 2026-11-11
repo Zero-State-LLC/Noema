@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { WATCH_LIVE_PIN } from "../src/watch-live";
 import { watchHtml } from "../src/watch";
-import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_SRC } from "../src/watch-stage-model";
+import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_LOW_NOISE_LINE, STAGE_SRC } from "../src/watch-stage-model";
 import { parseWatchMode, watchModeInlineSource } from "../src/watch-mode";
 import type { Env } from "../src/types";
 
@@ -107,7 +107,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown> } = {}) {
+async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean } = {}) {
   const webgl2 = opts.webgl2 !== false;
   const byId = new Map<string, Node>();
   const head = makeNode("head", webgl2);
@@ -138,7 +138,7 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   const urls: string[] = [];
   const winHandlers: Record<string, Array<(ev?: unknown) => void>> = {};
   const win: Record<string, unknown> = {
-    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    matchMedia: (q: string) => ({ matches: !!opts.wide && String(q).includes("min-width"), addEventListener() {}, removeEventListener() {} }),
     addEventListener(t: string, fn: (ev?: unknown) => void) { (winHandlers[t] = winHandlers[t] || []).push(fn); },
     dispatchEvent(ev: { type: string }) { for (const fn of winHandlers[ev.type] || []) fn(ev); return true; },
   };
@@ -345,6 +345,39 @@ describe("driven WATCH client with the 3D stage", () => {
       expect(c.stageScripts()).toHaveLength(0);
       expect(c.$("watch-stage3d").hidden).toBe(true);
       expect(c.$("watch-stage-places").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("turning Low noise on over a mounted stage shows the text map at once, and off remounts it", async () => {
+    const c = await boot({ search: "?mode=3d", wide: true });
+    try {
+      c.installStage();
+      c.stageScripts()[0].fire("load");
+      await c.flush();
+      expect(c.stageCalls.filter((x) => x.kind === "mount")).toHaveLength(1);
+      // While the stage is the map, the ASCII cartogram stays off (one map at a time).
+      expect(c.$("watch-pre").hidden).toBe(true);
+
+      await c.click("watch-low-noise-btn");
+      expect(c.body.classList.contains("is-low-noise")).toBe(true);
+      expect(c.stageCalls.at(-1)?.kind).toBe("dispose");
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
+      // Painted by the toggle itself, not by a later poll.
+      expect(c.$("watch-pre").hidden).toBe(false);
+      expect(c.$("watch-pre").textContent).toContain("Chamber Market");
+
+      await c.click("watch-low-noise-btn");
+      expect(c.body.classList.contains("is-low-noise")).toBe(false);
+      expect(c.stageCalls.filter((x) => x.kind === "mount")).toHaveLength(2);
+      expect(c.$("watch-stage3d").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(true);
+      expect(c.$("watch-pre").hidden).toBe(true);
     } finally {
       c.restore();
     }

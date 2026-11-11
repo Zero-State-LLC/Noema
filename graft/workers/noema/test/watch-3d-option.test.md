@@ -20,7 +20,7 @@
 - fire · method · L83-L83 — fire(type, ev)
 - StageCall · type · L89-L89 — type StageCall = { kind: string; arg?: unknown };
 - snapshot · function · L91-L108 — function snapshot(over: Record<string, unknown> = {}): Record<string, unknown>
-- boot · function · L110-L206 — async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown> } = {})
+- boot · function · L110-L206 — async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean } = {})
 - getElementById · method · L121-L128 — getElementById(id: string)
 - addEventListener · method · L134-L134 — addEventListener()
 - addEventListener · method · L141-L141 — addEventListener()

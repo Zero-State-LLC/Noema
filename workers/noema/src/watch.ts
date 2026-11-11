@@ -7,7 +7,7 @@ import { MAP_GL_CSS, MAP_GL_SRC, MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMap
 import { MAP_STAGE_CSS, mapStageHtml, watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
-import { STAGE_FALLBACK_LINE, STAGE_SRC } from "./watch-stage-model";
+import { STAGE_FALLBACK_LINE, STAGE_LOW_NOISE_LINE, STAGE_SRC } from "./watch-stage-model";
 import { STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
 import {
   NOT_PROJECTED_PUBLICLY,
@@ -410,8 +410,12 @@ export function watchHtml(opts?: { mode?: string }): string {
       const ln = $("watch-low-noise");
       if (ln) ln.hidden = !on;
       try { localStorage.setItem(LOW_NOISE_KEY, on ? "1" : "0"); } catch (e) {}
-      // D2: Low noise unmounts the 3D stage; the Places list carries the page.
-      if (state.mode === "3d") tryStage();
+      // D2: Low noise unmounts the 3D stage; the text map carries the page.
+      // Repaint now so the cartogram replaces the stage without waiting for a poll.
+      if (state.mode === "3d") {
+        tryStage();
+        if (state.last) render(state.last);
+      }
     }
     (function bootLowNoise() {
       let stored = null;
@@ -436,6 +440,7 @@ export function watchHtml(opts?: { mode?: string }): string {
     const MAP_PARITY_HOLD_LINE = ${JSON.stringify(MAP_PARITY_HOLD_LINE)};
     const STAGE_SRC = ${JSON.stringify(STAGE_SRC)};
     const STAGE_FALLBACK_LINE = ${JSON.stringify(STAGE_FALLBACK_LINE)};
+    const STAGE_LOW_NOISE_LINE = ${JSON.stringify(STAGE_LOW_NOISE_LINE)};
 
     function readStoredMode() {
       try { return localStorage.getItem("noema.watch.mode"); } catch (e) { return null; }
@@ -672,14 +677,17 @@ export function watchHtml(opts?: { mode?: string }): string {
           onSelect: function(id) { if (window.NoemaPhosphorPick) window.NoemaPhosphorPick(id); },
           onLost: stageFallback,
         });
-        syncStage();
+        paintStageFallback("");
+        // Repaint so the cartogram painted before mount gives way to the stage.
+        if (state.last) render(state.last);
+        else syncStage();
       } catch (e) {
         stageFallback();
       }
     }
     function tryStage() {
       if (state.mode !== "3d") return;
-      if (lowNoiseOn()) { disposeStage(); return; }
+      if (lowNoiseOn()) { disposeStage(); paintStageFallback(STAGE_LOW_NOISE_LINE); return; }
       if (stage3d.failed || !stageGlUsable()) { stageFallback(); return; }
       if (stage3d.api) { syncStage(); return; }
       if (window.NoemaWatchStage) { mountStage(); return; }
