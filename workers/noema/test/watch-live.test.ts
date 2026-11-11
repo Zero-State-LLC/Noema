@@ -29,6 +29,7 @@ import { connectHtml } from "../src/connect";
 import { studyHtml } from "../src/study";
 import { adminHtml } from "../src/admin";
 import { watchHtml } from "../src/watch";
+import { STAGE_CAMERA_EASE_MS } from "../src/watch-stage-model";
 import { HOME_EXCERPT_FALLBACK, homeExcerptFromLive, landingHtml } from "../src/landing";
 
 const NOW = 1_700_000_000_000;
@@ -1479,9 +1480,11 @@ describe("watch HTML surface", () => {
     expect(html).not.toMatch(/\.innerHTML\s*=/);
     expect(html).not.toContain("Watch the world move");
     expect(html).not.toMatch(/sparkline/i);
-    expect(html).toContain("/assets/watch-map-gl.js");
+    // The 3D Chamber stage replaced the MAP WebGL chunk and the PIXEL canvas (watch-single-3d-stage.md D1, D2).
+    expect(html).toContain("/assets/watch-stage.js");
+    expect(html).not.toContain("/assets/watch-map-gl.js");
     expect(html).toContain("/v1/watch/stream");
-    expect(html).toContain('id="watch-phosphor"');
+    expect(html).not.toContain('id="watch-phosphor"');
     expect(html).toContain("NoemaPhosphorPick");
     expect(html).toContain("watch-phos-caption");
     expect(html).toContain('id="world-key"');
@@ -1675,9 +1678,15 @@ function textOf(n: FakeNode | null | undefined): string {
   return s;
 }
 
-async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; focus: Array<[string, number]> }) {
+/**
+ * `stage` boots the 3D Chamber stage with WebGL2 available and a stub stage.
+ * The stub records each update's Direct-Camera target with the ease implied
+ * by the reduced-motion flag the page passed at mount (STAGE_CAMERA_EASE_MS).
+ */
+async function bootWatchClient(initial: () => unknown, stage?: { reduce: boolean; focus: Array<[string, number]> }) {
+  const map = stage;
   const dom = makeWatchDom();
-  const chunks = watchHtml(map ? { mode: "map" } : undefined).split("<script>").map((s) => s.split("</script>")[0]);
+  const chunks = watchHtml(map ? { mode: "3d" } : undefined).split("<script>").map((s) => s.split("</script>")[0]);
   const main = chunks.find((s) => s.includes("POLL_MS"));
   expect(main).toBeTruthy();
   const g = globalThis as Record<string, unknown>;
@@ -1693,18 +1702,32 @@ async function bootWatchClient(initial: () => unknown, map?: { reduce: boolean; 
   let fetcher = initial;
   const store = new Map<string, string>();
   g.document = dom.doc;
+  // Reduced motion seeds Low noise, which unmounts the stage (D2). Stage boots
+  // model a spectator who switched Low noise off, so reduced-motion rules apply.
+  if (map) store.set("noema.low_noise", "0");
   g.localStorage = {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => void store.set(k, String(v)),
+    removeItem: (k: string) => void store.delete(k),
   };
-  g.location = { search: map ? "?mode=map" : "", protocol: "https:", host: "noema.test" };
+  g.location = { search: map ? "?mode=3d" : "", protocol: "https:", host: "noema.test" };
   if (map) {
-    (dom.doc.getElementById("watch-map-gl") as FakeNode & { getContext: (id: string) => object }).getContext = () => ({});
+    const make = dom.doc.createElement.bind(dom.doc);
+    dom.doc.createElement = (tag: string) => {
+      const n = make(tag);
+      if (tag === "canvas") (n as FakeNode & { getContext: (id: string) => object }).getContext = () => ({});
+      return n;
+    };
   }
   g.window = {
     matchMedia: () => ({ matches: map?.reduce ?? false }),
-    ...(map ? { NoemaWatchMapGl: { mount: () => ({ update() {}, focus(id: string, ms: number) { map.focus.push([id, ms]); }, dispose() {} }) } } : {}),
-  }; // no WebSocket → HTTP path; only map canvas/stage primitives are stubbed
+    ...(map ? { NoemaWatchStage: { mount: (_frame: unknown, opts: { reduce: boolean }) => ({
+      update(_live: unknown, ctx: { majorRoomId?: string }) {
+        if (ctx && ctx.majorRoomId) map.focus.push([ctx.majorRoomId, opts.reduce ? 0 : STAGE_CAMERA_EASE_MS]);
+      },
+      dispose() {},
+    }) } } : {}),
+  }; // no WebSocket → HTTP path; only the 3D stage primitives are stubbed
   g.fetch = async (url: string) => map && url === "/v1/watch/map"
     ? okResponse({ world_id: "world.test", cycle: 4, sequence: 20, freshness: "live", layers: [], base: { rooms: [] } })
     : fetcher();
@@ -1898,7 +1921,7 @@ describe("driven watch client (§11/§13)", () => {
     } finally { client.restore(); }
   });
 
-  it("R806-next10 08 resume immediately restores public MAP updates", async () => {
+  it("R806-next10 08 resume immediately restores public 3D stage updates", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
       client.$("watch-pause").fire("click");
@@ -1928,7 +1951,7 @@ describe("driven watch client (§11/§13)", () => {
     } finally { client.restore(); }
   });
 
-  it("R806-next10 06 MAP feed and camera recover after a failed Refresh", async () => {
+  it("R806-next10 06 3D stage feed and camera recover after a failed Refresh", async () => {
     const { client, focus } = await bootReadinessMap();
     try {
       client.setFetch(() => { throw new Error("synthetic public feed failure"); });
@@ -1944,7 +1967,7 @@ describe("driven watch client (§11/§13)", () => {
     } finally { client.restore(); }
   });
 
-  it("R806-next10 05 MAP live-fetch failure clears the previous feed", async () => {
+  it("R806-next10 05 3D stage live-fetch failure clears the previous feed", async () => {
     const { client } = await bootReadinessMap();
     try {
       expect(textOf(client.$("watch-feed"))).toContain("Public signal 20");
@@ -2005,7 +2028,8 @@ describe("driven watch client (§11/§13)", () => {
     } finally { client.restore(); }
   });
 
-  it.each([false, true])("keeps healthy MAP feed and focuses its camera after refresh (reduced motion=%s)", async (reduce) => {
+  // D4: Direct-Camera moves for a new MAJOR, a selection or Follow, never for a NOTABLE head.
+  it.each([false, true])("keeps healthy 3D stage feed after refresh without moving the camera for NOTABLE (reduced motion=%s)", async (reduce) => {
     const focus: Array<[string, number]> = [];
     const notable = { sequence: 20, cycle: 4, tier: "NOTABLE", projection_id: "trade", line: "A trade at Chamber Market", room_id: "room.market" };
     const client = await bootWatchClient(() => okResponse(snapshot({ recent_events: [notable], notable_event: notable })), { reduce, focus });
@@ -2013,13 +2037,13 @@ describe("driven watch client (§11/§13)", () => {
       expect(client.$("watch-state").textContent).toBe("live");
       expect(client.$("watch-headline").textContent).not.toBe("Projection unavailable.");
       expect(textOf(client.$("watch-feed"))).toContain("A trade at Chamber Market");
-      expect(focus).toContainEqual(["room.market", reduce ? 0 : 560]);
+      expect(focus).toEqual([]);
       const refreshed = { ...notable, sequence: 21, line: "A second trade at Chamber Market" };
       client.setFetch(() => okResponse(snapshot({ sequence: 21, recent_events: [refreshed], notable_event: refreshed })));
       await client.refresh();
       expect(client.$("watch-state").textContent).toBe("live");
       expect(textOf(client.$("watch-feed"))).toContain("A second trade at Chamber Market");
-      expect(focus).toContainEqual(["room.market", reduce ? 0 : 560]);
+      expect(focus).toEqual([]);
     } finally {
       client.restore();
     }
@@ -2619,6 +2643,22 @@ describe("H7 public disclosure updates and refusal", () => {
       expect(client.$("watch-public-recent-status").textContent).toBe("Public events unavailable.");
       client.setFetch(() => okResponse(h7PublicFrame(8))); await client.refresh();
       expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
+    } finally { client.restore(); }
+  });
+
+  it("H7 lists adjacent public rows without inventing a cause", async () => {
+    const frame = h7PublicFrame();
+    const client = await bootWatchClient(() => okResponse(frame));
+    try {
+      const lines = client.$("watch-public-recent-list").children.map(textOf);
+      expect(lines).toHaveLength(8);
+      expect(lines.join("\n")).not.toMatch(/because|caused by|caused_by|parent_event/i);
+      for (const row of frame.recent_events as WatchEvent[]) {
+        expect(explicitWatchCause({
+          sequence: row.sequence,
+          previous_sequence: row.sequence - 1,
+        })).toBeNull();
+      }
     } finally { client.restore(); }
   });
 });

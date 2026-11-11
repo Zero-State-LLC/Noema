@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 9302,
-    "edgeCount": 20846,
+    "nodeCount": 9315,
+    "edgeCount": 20899,
     "languages": [
       "javascript",
       "python",
@@ -69587,6 +69587,105 @@
       "crux": null
     },
     {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "name": "hosted-g5-probe.mjs",
+      "kind": "file",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L1-L104",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "ccc8f077dc519b6e133df05272ce1a9b459f8bd8c8c71df0977d52bb549f2f51",
+      "chars": 5770,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#head",
+      "name": "head",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L10-L10",
+      "signature": "head = (value)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "0483be12f3bf0384e4f8381fe7b44f9b140ee3e964a77a855bfc5c4ad0f3733b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "name": "main",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L13-L92",
+      "signature": "async function main({ env = process.env, transport = globalThis.fetch, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {})",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "57ca4f03ff3897c9330a8fad5c94d76477304aaa8bae8afc60ba7e22f96cb904",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#main.refuse",
+      "name": "refuse",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L21-L21",
+      "signature": "refuse = (reason)",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "df410c4cc9cc52c192c56fbccc4e544561fcaabf267904bad08c4cff6b36ebef",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#main.request",
+      "name": "request",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L42-L74",
+      "signature": "async function request(path, init = {})",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "fca3ba71af16a2f41c84ed780b54728cad62ec33ffd4cf9f2a5049e6546b64f9",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "name": "watch",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L75-L79",
+      "signature": "async function watch()",
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "cc5ab0e895a28cab8ff38865edab45ea0c110483d43afdea510ecd654a3ea732",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/scripts/hosted-g5-probe.mjs#object",
+      "name": "object",
+      "kind": "function",
+      "path": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "span": "L9-L9",
+      "signature": "object = (value)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "15b3626a42abc7e1ca168555d04668266c733c7b01f82172ca3921949485de70",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/scripts/inspect-settlement.mjs",
       "name": "inspect-settlement.mjs",
       "kind": "file",
@@ -74172,12 +74271,12 @@
       "name": "connect.ts",
       "kind": "file",
       "path": "workers/noema/src/connect.ts",
-      "span": "L1-L626",
+      "span": "L1-L657",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "40f63a7c281c1814476d376a6c3c50349c0ba1a23d3966252b8b0494bd371ba8",
-      "chars": 30128,
+      "body_hash": "c3b3233ce543c8667a84da3bf99539eb11f5aad73b299f843f89ad46eb7db62f",
+      "chars": 32129,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -74187,11 +74286,11 @@
       "name": "approveSection",
       "kind": "function",
       "path": "workers/noema/src/connect.ts",
-      "span": "L87-L114",
+      "span": "L118-L145",
       "signature": "function approveSection(task: boolean, codeValue: string): string",
       "exported": false,
       "origin": "ast",
-      "body_hash": "51674dd1149013e471b0e135f1570bf69d07e193a7f1ded2969e60d94e2a3e9d",
+      "body_hash": "a44b67df12fcda1a7621e359ec870f29f91b46147ce62a1e5f41155114ae8ccd",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -74201,11 +74300,11 @@
       "name": "connectHtml",
       "kind": "function",
       "path": "workers/noema/src/connect.ts",
-      "span": "L122-L522",
+      "span": "L153-L553",
       "signature": "function connectHtml( production = false, pendingCode: string | null = null, opts: ConnectHtmlOpts = {}, ): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "a1a20713c854bb96c5a031cf0b027ffcc182adbfa0384635495a811805e6f2b7",
+      "body_hash": "2fc7efc98e774ce39ac8526b2c1ebc01949d1602e5f1d06878e0af05174c836c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -74215,7 +74314,7 @@
       "name": "ConnectHtmlOpts",
       "kind": "type",
       "path": "workers/noema/src/connect.ts",
-      "span": "L116-L119",
+      "span": "L147-L150",
       "signature": "type ConnectHtmlOpts = { /** True only when review mail can report delivery `sent`. */ reviewEmailReady?: boolean; };",
       "exported": true,
       "origin": "ast",
@@ -74229,11 +74328,11 @@
       "name": "enrollHtml",
       "kind": "function",
       "path": "workers/noema/src/connect.ts",
-      "span": "L524-L625",
+      "span": "L555-L656",
       "signature": "function enrollHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "9168d0d35722c20958b88ac14f9bc25c521674471a28fb6d508dfe183df17ca2",
+      "body_hash": "4e771bad65a293c8ced45498ff6f44a9f3bd3da05ef99afc6c5db617dbf59544",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -74243,11 +74342,11 @@
       "name": "onboardCopy",
       "kind": "function",
       "path": "workers/noema/src/connect.ts",
-      "span": "L58-L85",
+      "span": "L86-L116",
       "signature": "function onboardCopy(reviewEmailReady: boolean): string",
       "exported": false,
       "origin": "ast",
-      "body_hash": "871b4cda7d62ae2914103794d69f0ad1bcd029e5301f0508d5d101fbfb1fc450",
+      "body_hash": "53bb195b8bc58abda2120def86f02dd9865462b110ef1e53c3164998f646d4fb",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -74257,11 +74356,11 @@
       "name": "signupSection",
       "kind": "function",
       "path": "workers/noema/src/connect.ts",
-      "span": "L38-L56",
+      "span": "L66-L84",
       "signature": "function signupSection(task: boolean): string",
       "exported": false,
       "origin": "ast",
-      "body_hash": "31cbd84f0659ef21463b2cdc49f18f540ca1c19769ce9007db3fb4f1d985f352",
+      "body_hash": "aea542360b556f52e49a8483443a567eefa74fc568aecba730b118bd0870207b",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79179,12 +79278,12 @@
       "name": "landing.ts",
       "kind": "file",
       "path": "workers/noema/src/landing.ts",
-      "span": "L1-L310",
+      "span": "L1-L336",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "47f7ddf78867dbee298a9e2bc52ecc21f6fe459e2dc58319231b14bda006b6a0",
-      "chars": 13251,
+      "body_hash": "c92bad630a8e66018946ce5c849a2976f7b62f47a706c578bcd40a5bf2059780",
+      "chars": 15472,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79194,11 +79293,11 @@
       "name": "homeExcerptFromLive",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L135-L215",
+      "span": "L158-L238",
       "signature": "function homeExcerptFromLive(data: unknown): string[]",
       "exported": true,
       "origin": "ast",
-      "body_hash": "8d3f7fb417ceae39304808f77e46a5e78bca1685242c2f6d07a7b45dd27a31fd",
+      "body_hash": "866c4bb5387729bb878dd540a3dc1c440d1bca9e4789221eb608be2ccf421637",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79208,7 +79307,7 @@
       "name": "publicLine",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L139-L143",
+      "span": "L162-L166",
       "signature": "publicLine = (value: unknown): string",
       "exported": true,
       "origin": "ast",
@@ -79222,7 +79321,7 @@
       "name": "quiet",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L144-L144",
+      "span": "L167-L167",
       "signature": "quiet = (line: string): boolean",
       "exported": true,
       "origin": "ast",
@@ -79236,11 +79335,11 @@
       "name": "landingHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L217-L290",
+      "span": "L240-L316",
       "signature": "function landingHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "38512eac9b0fe01bb91e31463636b432dbb3265f0120b8e00279892f345e6f62",
+      "body_hash": "1aa020a6a97f20f8c373560cf11b5e3665c6ee93921a3c92e3ba081d042113e1",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79250,11 +79349,11 @@
       "name": "notFoundHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L292-L309",
+      "span": "L318-L335",
       "signature": "function notFoundHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "23cab0ebbe547391f872898b79d35c69b3e8a2d6186f749a8810c8a33ad66be0",
+      "body_hash": "9520db162ea2402857f60f1d4c92796bcb1ed61d96722674194ade5a0c46aa76",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79617,12 +79716,12 @@
       "name": "manifesto.ts",
       "kind": "file",
       "path": "workers/noema/src/manifesto.ts",
-      "span": "L1-L219",
+      "span": "L1-L303",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "95b6a5f22aeab4dcd19a29515ea2d9e9b9c2fe9c812d909ed2d0f3eefdbba5e1",
-      "chars": 14139,
+      "body_hash": "ed94ff286b62326d4a397528d086f42cb7fc9d0611d1c79a7cc92e51fadafa4c",
+      "chars": 18497,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -79632,11 +79731,11 @@
       "name": "manifestoHtml",
       "kind": "function",
       "path": "workers/noema/src/manifesto.ts",
-      "span": "L37-L218",
+      "span": "L78-L302",
       "signature": "function manifestoHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "59ae598c89ae4c6d75c6d5174825af2cdb4e457e80dbd370f6b8c661d582842a",
+      "body_hash": "156a2791f84959cd3a48c8622049978ad4a8024ff359cac9e61b3e7f350b42d8",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -81053,12 +81152,12 @@
       "name": "play-login-html.ts",
       "kind": "file",
       "path": "workers/noema/src/play-login-html.ts",
-      "span": "L1-L128",
+      "span": "L1-L129",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "cd86eb8988a671bbee7fb45bfb4fcaf5a11215e41611d25d6fa0a98a542d93fe",
-      "chars": 5470,
+      "body_hash": "df45df32092bce6caaf6f796b9b86a87de77edfb3d8119293e126a8ec81b4f07",
+      "chars": 5510,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -81068,11 +81167,11 @@
       "name": "playCallbackHtml",
       "kind": "function",
       "path": "workers/noema/src/play-login-html.ts",
-      "span": "L59-L127",
+      "span": "L59-L128",
       "signature": "function playCallbackHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "3f156e1f54eddbc4febf1f387324d5145e0d0a95b5f8c64d6cbeca14dbf96eef",
+      "body_hash": "134c0ca455d3a48471fd23640461821299ecf8bf2d30bb8d38a13c5a9bc42504",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -84413,8 +84512,8 @@
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "9a4a0a76a43aa4364f45b7af689719b83e1ef1244ae8f397efc444bc27e7b8c4",
-      "chars": 5946,
+      "body_hash": "16869ff565eb142cdf3fc4a1e0bf8b151edae36b286d242213a244fc96420f22",
+      "chars": 5973,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -84428,7 +84527,7 @@
       "signature": "function privacyHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "60371915ba41d02e30d28b98f174175704e1cb89b9daff510abf82850d3a0b13",
+      "body_hash": "2118101aa90a0cebd3e75f586d71c525f9ebea2e1321808b7225e9be2ecf0b63",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86709,12 +86808,12 @@
       "name": "shell.ts",
       "kind": "file",
       "path": "workers/noema/src/shell.ts",
-      "span": "L1-L344",
+      "span": "L1-L460",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "ca459ec4765ea680caa942079522a36c4a72acc996222ae9972d3411eecece6a",
-      "chars": 14888,
+      "body_hash": "45da08337e146b807da9caffac2cd565f82373b3cbffd63193a0b339e8f0e9e4",
+      "chars": 20962,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86724,7 +86823,7 @@
       "name": "ProductNav",
       "kind": "type",
       "path": "workers/noema/src/shell.ts",
-      "span": "L215-L215",
+      "span": "L328-L328",
       "signature": "type ProductNav = \"home\" | \"manifesto\" | \"play\" | \"watch\" | \"study\" | \"connect\";",
       "exported": true,
       "origin": "ast",
@@ -86738,11 +86837,11 @@
       "name": "productShell",
       "kind": "function",
       "path": "workers/noema/src/shell.ts",
-      "span": "L219-L343",
+      "span": "L332-L459",
       "signature": "function productShell(opts: { title: string; active?: ProductNav; body: string; extraCss?: string; description?: string; bleed?: boolean; /** Canonical path for pages outside the primary nav (e.g. /privacy). */ canonicalPath?: string; }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "9371b453d2d45e356e4a3cd63c5d101adbc46e5e2c4ad4244e0c4a5ec1197694",
+      "body_hash": "f71e3eff02bd62ce61b7d10c004d5d20dd0eb6d15b1c01ed906831c175e1d15f",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -86752,7 +86851,7 @@
       "name": "nav",
       "kind": "function",
       "path": "workers/noema/src/shell.ts",
-      "span": "L229-L230",
+      "span": "L342-L343",
       "signature": "nav = (href: string, label: string, key: ProductNav)",
       "exported": true,
       "origin": "ast",
@@ -87426,12 +87525,12 @@
       "name": "study.ts",
       "kind": "file",
       "path": "workers/noema/src/study.ts",
-      "span": "L1-L48",
+      "span": "L1-L68",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "9a7ae019d7aa8afee5e3983b046b6f06f101383f1855c91699160fa3a8f02446",
-      "chars": 2164,
+      "body_hash": "1e50df5beeb173a85a7f07c8befa546a4889a39db567fe36e642c6201a9cb053",
+      "chars": 3038,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -87441,11 +87540,11 @@
       "name": "studyHtml",
       "kind": "function",
       "path": "workers/noema/src/study.ts",
-      "span": "L6-L47",
+      "span": "L6-L67",
       "signature": "function studyHtml(): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "707fc4de1e4a2b6b66d4abc7169727017932b83967ed6c4bf26e14662dc15493",
+      "body_hash": "f9ce1b9b7354ff7020d6331be3751f7c1a8d80c986b1a40e0f0e8f21629a8cb7",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -87907,12 +88006,12 @@
       "name": "tokens.ts",
       "kind": "file",
       "path": "workers/noema/src/theme/tokens.ts",
-      "span": "L1-L95",
+      "span": "L1-L99",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "0919b935f36397e95489e51dae08b1e6529a23e4426e6df1c22766906c54f047",
-      "chars": 3531,
+      "body_hash": "352091d231caecf9212bef58189dc16959aef0918304b0fab7169bbca40c64f5",
+      "chars": 3622,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -106737,6 +106836,63 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/hosted-g5-probe.test.ts",
+      "name": "hosted-g5-probe.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/hosted-g5-probe.test.ts",
+      "span": "L1-L228",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "b9311b466beb0e2049e4b21a11f6acf501db903744a73bd3b3c959e8471ee3c8",
+      "chars": 12799,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/hosted-g5-probe.test.ts#cli",
+      "name": "cli",
+      "kind": "function",
+      "path": "workers/noema/test/hosted-g5-probe.test.ts",
+      "span": "L43-L53",
+      "signature": "async function cli(env: NodeJS.ProcessEnv)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7a570b9d03f475fc6c979cbbb3c3449d9c8379863d83b90174a5819257691380",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/hosted-g5-probe.test.ts#loopback",
+      "name": "loopback",
+      "kind": "function",
+      "path": "workers/noema/test/hosted-g5-probe.test.ts",
+      "span": "L35-L42",
+      "signature": "async function loopback(handler: RequestListener)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a814b55a87f26e931d448967e6b61630a2ca01142f5c4c4ef8e65f0b4de96122",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/hosted-g5-probe.test.ts#response",
+      "name": "response",
+      "kind": "function",
+      "path": "workers/noema/test/hosted-g5-probe.test.ts",
+      "span": "L26-L26",
+      "signature": "response = (body: unknown, status = 200)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "e67950ea4ce6ceeba98f62346ae21231c63dbbfdf468c2c7834a533d1a6570f3",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/hosted-mp-contention.test.ts",
       "name": "hosted-mp-contention.test.ts",
       "kind": "file",
@@ -112043,6 +112199,35 @@
       "origin": "ast",
       "body_hash": "3054e2686a1ff8cc2f1813a8fb972c4d4091754b2e23819c98ca0d28415eed8f",
       "chars": 1764,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/site-design-refresh.test.ts",
+      "name": "site-design-refresh.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/site-design-refresh.test.ts",
+      "span": "L1-L123",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "7a7a8ac2163469af08e2cb361f69b80a1e18688593ed7ecec6e2c0a3186a8a97",
+      "chars": 4898,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/site-design-refresh.test.ts#staticExcerpt",
+      "name": "staticExcerpt",
+      "kind": "function",
+      "path": "workers/noema/test/site-design-refresh.test.ts",
+      "span": "L40-L45",
+      "signature": "function staticExcerpt(): (data: unknown) => string[]",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9dd640f38e8391e0c96486fb09f70a1d783e20a515ad1ccf4adf1ef3f989774f",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -189859,6 +190044,114 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#head",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#object",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "node:url",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "target": "workers/noema/scripts/hosted-conformance.mjs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-conformance.mjs#admitConformanceBase",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-conformance.mjs#admitConformanceWorld",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.refuse",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#object",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.refuse",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.request",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#head",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#main.request",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/scripts/hosted-g5-probe.mjs#main.watch",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs#object",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/scripts/inspect-settlement.mjs",
       "target": "workers/noema/scripts/inspect-settlement.mjs#probe",
       "relation": "calls",
@@ -234511,6 +234804,96 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/src/watch-live.ts#buildWatchLive",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#cli",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#loopback",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#response",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#cli",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#loopback",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/test/hosted-g5-probe.test.ts#response",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "node:child_process",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "node:http",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "node:path",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "node:url",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/scripts/hosted-g5-probe.mjs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/hosted-g5-probe.test.ts",
+      "target": "workers/noema/src/watch-live.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/hosted-mp-contention.test.ts",
       "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
       "relation": "calls",
@@ -243639,6 +244022,126 @@
     {
       "source": "workers/noema/test/signal.test.ts",
       "target": "workers/noema/src/signal.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/public/assets/watch-map-gl.js#dm.it",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/connect.ts#connectHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/landing.ts#homeExcerptFromLive",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/landing.ts#landingHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/manifesto.ts#manifestoHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/study.ts#studyHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/watch.ts#watchHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/test/site-design-refresh.test.ts#staticExcerpt",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/test/site-design-refresh.test.ts#staticExcerpt",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "node:fs",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "node:path",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "node:url",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "node:vm",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/connect.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/landing.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/manifesto.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/shell.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/study.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/site-design-refresh.test.ts",
+      "target": "workers/noema/src/watch.ts",
       "relation": "imports",
       "confidence": "extracted"
     },
