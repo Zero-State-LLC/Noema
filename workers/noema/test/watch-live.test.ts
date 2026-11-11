@@ -2621,6 +2621,22 @@ describe("H7 public disclosure updates and refusal", () => {
       expect(textOf(list.children[0])).toBe("Wren repaired Relay 16");
     } finally { client.restore(); }
   });
+
+  it("H7 lists adjacent public rows without inventing a cause", async () => {
+    const frame = h7PublicFrame();
+    const client = await bootWatchClient(() => okResponse(frame));
+    try {
+      const lines = client.$("watch-public-recent-list").children.map(textOf);
+      expect(lines).toHaveLength(8);
+      expect(lines.join("\n")).not.toMatch(/because|caused by|caused_by|parent_event/i);
+      for (const row of frame.recent_events as WatchEvent[]) {
+        expect(explicitWatchCause({
+          sequence: row.sequence,
+          previous_sequence: row.sequence - 1,
+        })).toBeNull();
+      }
+    } finally { client.restore(); }
+  });
 });
 
 describe("H7 stream and pause controls", () => {
