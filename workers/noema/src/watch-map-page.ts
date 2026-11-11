@@ -1,58 +1,8 @@
 /**
- * MAP stage paint helpers for the unified /watch Chamber.
- * Board + Health read watch-map JSON. River/Recently stays on watch-live.
+ * watch-map/1.0 paint helpers for the /watch Chamber stage (world health,
+ * band captions). River/Recently stays on watch-live.
  * Each function is a leaf so the inlined script does not depend on bundler names.
  */
-
-export const MAP_STAGE_CSS = `
-.map-stage{display:flex;flex-direction:column;gap:.75rem;min-width:0}
-.map-stage-head{display:flex;flex-wrap:wrap;gap:.3rem .8rem;align-items:baseline}
-.map-stage-head h2{margin:0;font:550 1.05rem/1.2 var(--font-display)}
-.map-stage-head .lede{margin:0;color:var(--faint);font:.75rem/1.4 var(--font-mono)}
-.map-board{
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.45rem;min-height:16rem;
-  width:100%;padding:.55rem;border:1px solid var(--line-hot);background:var(--panel);
-}
-.map-node{position:relative;padding:.55rem .5rem;border:1px solid var(--line);background:var(--panel-2);min-height:4.2rem;transition:transform .35s ease,box-shadow .35s ease}
-.map-node.is-active{outline:2px solid var(--color-state-active)}
-.map-node .n{font:550 .78rem/1.2 var(--font-mono)}
-.map-node .m{color:var(--faint);font:.62rem/1.3 var(--font-mono)}
-.map-node .scar{position:absolute;inset:auto .3rem .3rem auto;width:.55rem;height:.55rem;border-radius:50%;background:var(--color-state-warning)}
-.map-node[data-scar=""] .scar{display:none}
-.map-node[data-scar="faint"] .scar{opacity:.4}
-.map-node[data-scar="marked"] .scar{opacity:.7}
-.map-chrome{
-  display:flex;flex-direction:column;gap:.55rem;
-  margin:.05rem 0 0;padding:.65rem .75rem .7rem;
-  border:1px solid var(--line);background:var(--void-2);color:var(--faint);
-}
-.map-chrome-row{display:flex;flex-wrap:wrap;gap:.35rem .85rem;align-items:baseline}
-.map-chrome-layers{padding-bottom:.5rem;border-bottom:1px solid var(--line)}
-.map-chrome .now-k{margin:0;color:var(--muted)}
-.layer-toggles{display:flex;flex-wrap:wrap;gap:.4rem;margin:0}
-.layer-toggles .btn{
-  min-height:1.85rem;padding:.28rem .55rem;border:1px solid var(--line);
-  background:var(--void-ink);color:var(--muted);font:.62rem/1.2 var(--font-mono);
-}
-.layer-toggles .btn[aria-pressed="true"]{
-  border-color:color-mix(in srgb,var(--color-state-active) 45%,var(--line));
-  color:var(--color-state-active);
-}
-.map-chrome-health,.health{display:flex;flex-wrap:wrap;gap:.35rem .9rem;align-items:baseline;min-width:0}
-.health dl{
-  display:grid;grid-template-columns:repeat(3,minmax(5rem,auto));
-  gap:.12rem 1.25rem;margin:0;min-height:0;
-}
-.health dt{grid-row:1;color:var(--faint);font:.62rem/1.2 var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
-.health dd{grid-row:2;margin:0;color:var(--ink);font:550 .82rem/1.2 var(--font-mono)}
-@media (max-width:520px){.health dl{grid-template-columns:repeat(2,minmax(5rem,auto))}}
-@media (prefers-reduced-motion:reduce){.map-node{transition:none}}
-body.map-hide-activity .map-node .m.act{display:none}
-body.map-hide-state .map-node .scar{display:none}
-body.map-hide-health .health{display:none}
-#watch-stage-map[hidden],#watch-stage-places[hidden]{display:none}
-#watch-map-board[hidden],#watch-stage-map.is-map-gl .map-board{display:none}
-`;
 
 export type MapNodePaint = {
   name?: string;
@@ -141,30 +91,4 @@ export function watchMapInlineSource(): string {
     }
     return src;
   }).join("\n");
-}
-
-export function mapStageHtml(visible = false): string {
-  return `
-      <div id="watch-stage-map" class="map-stage"${visible ? "" : " hidden"}>
-        <div class="map-stage-head">
-          <h2 id="watch-map-stage-label">Map</h2>
-          <p class="lede">Richer spectator projection. Derived, not world truth.</p>
-        </div>
-        <div class="map-gl-frame" id="watch-map-gl-frame">
-          <canvas id="watch-map-gl" class="map-gl" width="640" height="360" hidden aria-hidden="true"></canvas>
-          <ul id="watch-map-labels" class="map-labels" hidden aria-label="Public sites"></ul>
-        </div>
-        <div class="map-chrome">
-          <div class="map-chrome-row map-chrome-layers">
-            <p class="now-k" id="watch-map-layers-k">Layers</p>
-            <div class="layer-toggles" id="watch-map-toggles" role="group" aria-labelledby="watch-map-layers-k" aria-label="Map layer toggles"></div>
-          </div>
-          <section class="health map-chrome-row map-chrome-health" aria-label="World health metrics">
-            <h2 class="now-k" id="watch-map-health-k">World health</h2>
-            <dl id="watch-map-health"></dl>
-          </section>
-        </div>
-        <p id="watch-map-parity" class="map-parity" hidden></p>
-        <div class="map-board" id="watch-map-board"></div>
-      </div>`;
 }
