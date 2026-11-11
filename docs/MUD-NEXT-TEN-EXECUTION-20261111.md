@@ -80,3 +80,38 @@ Artifacts are under the local scratch directory `noema-mud-execution-20261111`, 
 ## Completion rule
 
 Record each changed output against a named executed check, real interface observations and exact integrated head. Run complete Worker suite, generated/committed typechecks, existing public lifecycle49/interruption8, relevant Specs validation and graph freshness. Missing owner decisions/platforms/campaign authority are blockers, not passed requirements. Historical real OS EPERM remains unexplained. Operator issue acceptance and production release remain separate.
+
+## Follow-up: native keyboard defect and decision research (00:43 UTC)
+
+Source/test head `09cc6136cc7b993a63c053c56d5f8d41b99dac25` adds a three-line WATCH focus fix and three maintained cases after the historical H7 adoption above. Current `watch.ts` therefore no longer equals the original #848 blob. Badger received exclusive ownership of `watch.ts` and `watch-live.test.ts`, reproduced the new fixture failures before fixing them, committed only those two files, and froze. The coordinator read the complete diff and validated the integrated result below. No prior assertion was weakened.
+
+| Requirement / changed output | Concrete check and observed result | Boundary retained |
+|---|---|---|
+| #857: Escape must not leave keyboard focus in a hidden mobile Here sheet | Actual Chrome native Tab reached Here and the recent-events summary. Before the fix, Escape closed the sheet but left `watch-public-recent-summary` focused. After the fix, Escape returned focus to `watch-here-open` in all four modes at width375. | Isolated installed Chrome headless on real local Worker/assets, not a human tester or screen reader. |
+| #857: explicit close returns focus; backdrop uses the same dismissal handler | Native Enter reopened Here, focused its close button, and activated close; focus returned to the visible opener in all four mobile modes. All three maintained executed-client cases, Escape/close/backdrop, passed closed sheet/backdrop/ARIA and opener-focus assertions. | Backdrop dispatch is fixture evidence, not an actual pointer trial. |
+| Stable disclosure and keyboard reachability | Eight native-browser cases passed: widths375/1280 x TEXT/PIXEL/MAP/3D. Native Tab reached all four mode controls, Refresh and the disclosure; Shift+Tab returned to the preceding control; Enter/Space toggled and retained focus/open state. All113 maintained WATCH tests passed, including refresh not stealing focus. | One-second keyboard retention is not a polling proof. A separate real browser refresh check below covers updates. Full keyboard/AT qualification remains open. |
+| All previously changed WATCH/Home outputs still work | The complete actual Chrome public-interface run passed all11 existing checks again: four initialized modes, actual refresh retention, bounds/private-source exclusion, Home375/1280, HTTP failure/recovery, inert hostile text and canvas fallback. No page exceptions were captured. | Hostile response, WebSocket disabling and canvas failure are labeled controls. Ordinary public reads use canonical local writers. |
+| S2 interpretation must match the accepted Agent contract | Read governing Specs `dd1a8f2e7a162b987993a05648dd608562e30d7a`: RFC-0120 sections8-9 retain structured observation and retire human PLAY; Craft sections3/3.3 distinguish literal human room order from equivalent Agent field semantics. #779 still requests a TRACES-placement decision. | Empty Hall HERE omission does not authorize a new mandatory Agent textual grammar or establish full S2 correctness. No renderer, wire or WAIT policy change. Official-client CI pin is `0a20e2e94b087d3cdc6da7e8b46a67f008fe80a3`, not proof of every presentation mapping. |
+| S7 admission research must not overstate provider/privacy proof | Five maintained files passed72 tests: email-login, principal, credential, PLAY/events and Agent HTTP-to-WorldDO boundaries. Named checks cover safe redirects, platform-not-Player identity, invalid/missing scope/type rejection, delivery fallback and private-message exclusion. | Provider/mailer are mocked and storage is a fixture. No actual email submitted, hosted provider/SQL proof or independent admission approval. |
+| S7 historical hosted evidence must not be erased or reused as authority | Fresh #785 readback identifies an already authorized hosted campaign at source `15c697478e8d6b470ecb1272c2723e871d5badd7`, reporting13 fixture checks and12 cold browser navigations. Four inspected Home/login/privacy source files are unchanged from that pin to the execution head. | Equality is only those four files, not whole-runtime/provider/deployment equivalence. Prior grants were consumed. Three consenting unprimed human first-reads remain0/3, independent admission review remains open. |
+
+### Whole integrated result after the focus fix
+
+- `CI=true npm test`: **295 files, 2,692 tests passed**, including all prior presence/trace/H7 cases and the three new dismissal regressions. The fixture document listener now actually dispatches document key events rather than silently ignoring them.
+- `npm run typecheck` passed generated declarations. Only its previously clean generated declaration delta was restored, then `npx tsc --noEmit` passed with committed declarations.
+- Actual public npm lifecycle/restart/MOVE replay passed **49 checks** and interruption passed **8 checks**, all cleanup flags true. Expected interrupted npm exit1 is asserted by the interruption runner, not mistaken for a normal successful termination.
+- The actual native browser matrix and complete11-check public browser run both passed on the fixed source. Independent post-run probes confirmed the exact owned Wrangler process group gone, loopback/inspector ports closed and local signing file absent. Both isolated Chrome processes reported closed. User profiles were not used.
+- Prior scratch errors are retained separately from #857: the first Tab probe tried a disclosure inside an unopened mobile sheet; another used the wrong Shift modifier. Those controls were corrected before the real Escape defect was reproduced. Initial OS EPERM remains unexplained despite later successful cleanup.
+- All nine protected clone branch/HEAD/dirty-path baselines passed again at00:41 UTC. PR856 remains draft, independent review required, with no linked Project item. No merge, deployment, new hosted campaign, issue closure or AT qualification is claimed.
+
+### Follow-up artifact binding
+
+Same local scratch root as above. These source-bound artifacts are local evidence, not public hosted receipts. The keyboard receipt embeds source09cc613. The broader browser and npm runs were executed against that same unchanged source before this documentation/graph-only follow-up.
+
+| Relative artifact | SHA256 |
+|---|---|
+| `chrome-tab-bo38sx/receipt.json` (actual pre-fix failure) | `ef5c87cb665d7461abc4204791036b6ad30921eae7a9b52e672a574c1525cedf` |
+| `chrome-tab-ps8sNK/receipt.json` (8 native cases) | `c9f8c9227e25264c0238542945b83b30731eeb199e52dea1855c2bd24aacb2a2` |
+| `chrome-public-FFOEau/receipt.json` (11 browser checks) | `47aa9db7caefa3ae606b6af8425810c7c66b21b5cd794e0fd550db4eceb41cf7` |
+| `focus-fixed-local/mud-local-rntWMS/receipt.json` | `93e0608d58cee82183e28f6cbf0142d2251582e7211634ebbacd27d822a91091` |
+| `focus-fixed-interrupt/mud-interruption-9j5yor/interruption-receipt.json` | `36db642a628588c488c950f931b67ef80d8a5aeb0cb3c8440f051f264908c56c` |
