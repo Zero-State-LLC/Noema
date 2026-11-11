@@ -5,7 +5,6 @@
  */
 
 import { GLYPH_IDS, glyphMeta, type GlyphId } from "./presentation/glyphs";
-import { watchModeInlineSource } from "./watch-mode";
 
 export const PHOSPHOR_WIDTH = 320;
 export const PHOSPHOR_HEIGHT = 180;
@@ -78,6 +77,9 @@ export type PhosphorNode = {
   name: string;
   x: number;
   y: number;
+  /** Layout grid cell before projection to the 2D canvas (shared with the 3D stage). */
+  gx?: number;
+  gy?: number;
   certainty: PhosphorCertainty;
   players: number;
   labels: string[];
@@ -188,7 +190,7 @@ export const PHOSPHOR_DIR: Record<string, [number, number]> = {
   southwest: [-1, 1],
 };
 
-const PULSE_TTL: Record<PhosphorTier, number> = {
+export const PULSE_TTL: Record<PhosphorTier, number> = {
   NORMAL: 280,
   NOTABLE: 560,
   MAJOR: 920,
@@ -438,6 +440,8 @@ export function layoutPublicTopology(
       name,
       x: clamped.x,
       y: clamped.y,
+      gx: p[0],
+      gy: p[1],
       certainty: roomCertainty(room, recent, focusRoomId),
       players: Math.max(0, Number(room.players_present || 0) || 0),
       labels,
@@ -1278,20 +1282,63 @@ export function createPhosphorSession(opts: {
   return session;
 }
 
+/**
+ * Admin Watch's TEXT / PIXEL mode (§18): query, then hash, then the stored
+ * preference, else PIXEL. Public /watch no longer uses these modes (it runs
+ * the client text-only for the cartogram), so this stays separate from
+ * parseWatchMode. No inner functions: wrangler keepNames would wrap them.
+ */
+export function parsePhosphorMode(
+  search?: string | null,
+  hash?: string | null,
+  stored?: string | null,
+): "text" | "pixel" {
+  let raw = "";
+  const q = String(search || "");
+  const idx = q.indexOf("mode=");
+  if (idx >= 0 && (idx === 0 || q.charAt(idx - 1) === "?" || q.charAt(idx - 1) === "&")) {
+    let rest = q.slice(idx + 5);
+    const amp = rest.indexOf("&");
+    if (amp >= 0) rest = rest.slice(0, amp);
+    const cut = rest.indexOf("#");
+    if (cut >= 0) rest = rest.slice(0, cut);
+    try {
+      raw = decodeURIComponent(rest.replace(/\+/g, " "));
+    } catch (e) {
+      raw = rest;
+    }
+  }
+  const h = String(hash || "");
+  const candidates = [raw, h.charAt(0) === "#" ? h.slice(1) : h, String(stored || "")];
+  for (let i = 0; i < candidates.length; i++) {
+    const m = String(candidates[i] || "").trim().toLowerCase();
+    if (m === "text" || m === "pixel") return m;
+  }
+  return "pixel";
+}
+
+/** Leaf source for the inlined client. Fail if wrangler keepNames leaked. */
+export function phosphorModeInlineSource(): string {
+  const src = parsePhosphorMode.toString();
+  if (src.includes("__name")) throw new Error("phosphor mode helper leaked bundler keepNames");
+  return src;
+}
+
 export function phosphorInlineScript(bind?: {
   canvasId?: string;
   wrapId?: string;
   textBtnId?: string;
   pixelBtnId?: string;
-  mapBtnId?: string;
   globalName?: string;
+  /** Public /watch: never mount the sketch; the client only supplies the cartogram. */
+  textOnly?: boolean;
 }): string {
   const canvasId = bind?.canvasId || "watch-phosphor";
   const wrapId = bind?.wrapId || "watch-phos-wrap";
   const textBtnId = bind?.textBtnId || "watch-mode-text";
   const pixelBtnId = bind?.pixelBtnId || "watch-mode-pixel";
-  const mapBtnId = bind?.mapBtnId || "";
   const globalName = bind?.globalName || "NoemaPhosphor";
+  const textOnly = bind?.textOnly === true;
   return `(() => {
     const __name = function(fn) { return fn; };
     const PHOSPHOR_WIDTH = ${PHOSPHOR_WIDTH};
@@ -1343,16 +1390,15 @@ export function phosphorInlineScript(bind?: {
     const CARTOGRAM_MAX_SITES = ${CARTOGRAM_MAX_SITES};
     const asciiCartogram = ${asciiCartogram.toString()};
     const createPhosphorSession = ${createPhosphorSession.toString()};
-    ${watchModeInlineSource()}
+    ${phosphorModeInlineSource()}
 
     const canvas = document.getElementById(${JSON.stringify(canvasId)});
     const wrap = document.getElementById(${JSON.stringify(wrapId)});
     const textBtn = document.getElementById(${JSON.stringify(textBtnId)});
     const pixelBtn = document.getElementById(${JSON.stringify(pixelBtnId)});
-    const mapBtn = ${JSON.stringify(mapBtnId)} ? document.getElementById(${JSON.stringify(mapBtnId)}) : null;
     let reduce = false;
     try { reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-    // §18: default is PIXEL when Canvas 2D is available. TEXT/MAP persist client-locally.
+    // §18: default is PIXEL when Canvas 2D is available. TEXT persists client-locally.
     const MODE_KEY = "noema.watch.mode";
     let search = "";
     let hash = "";
@@ -1362,8 +1408,7 @@ export function phosphorInlineScript(bind?: {
     } catch (e) { search = ""; hash = ""; }
     let stored = null;
     try { stored = localStorage.getItem(MODE_KEY); } catch (e) { /* preference only */ }
-    let viewMode = parseWatchMode(search, hash, stored);
-    if (viewMode === "map" && !mapBtn) viewMode = stored === "text" ? "text" : "pixel";
+    let viewMode = ${textOnly ? '"text"' : "parsePhosphorMode(search, hash, stored)"};
     const session = createPhosphorSession({
       canvas: canvas,
       reducedMotion: reduce,
@@ -1380,11 +1425,9 @@ export function phosphorInlineScript(bind?: {
       if (wrap) wrap.hidden = !pixel;
       if (textBtn) textBtn.setAttribute("aria-pressed", viewMode === "text" ? "true" : "false");
       if (pixelBtn) pixelBtn.setAttribute("aria-pressed", pixel ? "true" : "false");
-      if (mapBtn) mapBtn.setAttribute("aria-pressed", viewMode === "map" ? "true" : "false");
     }
     if (textBtn) textBtn.addEventListener("click", function() { viewMode = "text"; session.setMode("text"); storeMode("text"); syncMode(); });
     if (pixelBtn) pixelBtn.addEventListener("click", function() { viewMode = "pixel"; session.setMode("pixel"); storeMode("pixel"); syncMode(); });
-    if (mapBtn) mapBtn.addEventListener("click", function() { viewMode = "map"; session.setMode("text"); storeMode("map"); syncMode(); });
     if (canvas && typeof canvas.addEventListener === "function") {
       try { if (canvas.style) canvas.style.cursor = "pointer"; } catch (e) {}
       canvas.addEventListener("click", function(ev) {

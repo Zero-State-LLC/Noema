@@ -87,9 +87,10 @@ describe("ascii cartogram", () => {
     const html = watchHtml();
     expect(html).toContain("NoemaPhosphor.ascii");
     expect(html).toContain("const asciiCartogram =");
-    // §4.B.1 fallback role: cartogram only when the live canvas is not showing.
+    // §4.B.1 fallback role: cartogram only when no live map is showing. The
+    // mounted 3D stage is that map now (watch-single-3d-stage.md D2).
     expect(html).toContain("if (!pixelOn && !art && shouldPre(rooms)) art = drawPre(rooms);");
-    expect(html).toContain('window.NoemaPhosphor.mode === "pixel"');
+    expect(html).toContain('const pixelOn = state.mode === "3d" && !!stage3d.api;');
     expect(html).toContain('aria-hidden="true" hidden></pre>');
   });
 });

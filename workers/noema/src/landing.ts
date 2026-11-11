@@ -268,7 +268,7 @@ export function landingHtml(): string {
           <span class="tag" id="home-live" hidden>live</span>
         </div>
         <p class="home-now-row"><span id="home-now">${HOME_EXCERPT_FALLBACK}</span></p>
-        <p class="modes-kicker">Watch · TEXT · PIXEL · MAP</p>
+        <p class="modes-kicker">Watch · 3D · TEXT</p>
       </aside>
     </section>
   </article>
