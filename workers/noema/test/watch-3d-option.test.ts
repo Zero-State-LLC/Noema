@@ -11,7 +11,10 @@ import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { WATCH_LIVE_PIN } from "../src/watch-live";
 import { watchHtml } from "../src/watch";
-import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_LOW_NOISE_LINE, STAGE_SRC } from "../src/watch-stage-model";
+import { createHash } from "node:crypto";
+import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_LOW_NOISE_LINE } from "../src/watch-stage-model";
+import { STAGE_SRC } from "../src/watch-stage-view";
+import { STAGE_VERSION } from "../src/watch-stage-version";
 import { parseWatchMode, watchModeInlineSource } from "../src/watch-mode";
 import type { Env } from "../src/types";
 
@@ -506,5 +509,13 @@ describe("the stage chunk is built from source, budgeted, and ships the Three.js
     expect(chunk.toString("utf8").startsWith("/*! NOEMA WATCH Chamber stage. Bundles three.js (MIT")).toBe(true);
     expect(chunk.toString("utf8")).toContain("NoemaWatchStage");
     expect(gzipSync(chunk, { level: 9 }).length).toBeLessThanOrEqual(STAGE_GZIP_BUDGET);
+  });
+
+  it("loads the chunk by a content-hash version, so a deploy never serves a stale chunk", () => {
+    const chunk = readFileSync(join(ASSETS, "watch-stage.js"));
+    const hash = createHash("sha256").update(chunk).digest("hex").slice(0, 12);
+    expect(STAGE_VERSION).toBe(hash);
+    expect(STAGE_SRC).toBe(`/assets/watch-stage.js?v=${hash}`);
+    expect(watchHtml()).toContain(JSON.stringify(STAGE_SRC));
   });
 });

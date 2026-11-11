@@ -3,7 +3,8 @@
  * Pure: turns one public watch-live snapshot into what the 3D stage draws.
  * It reuses the Phosphor public layout (WS3-01) and never invents rooms,
  * routes or identities (WS3-02). The browser renderer lives in
- * watch-stage-client.js and is bundled to STAGE_SRC.
+ * watch-stage-client.js and is bundled to /assets/watch-stage.js; the page
+ * loads it through STAGE_SRC (watch-stage-view.ts), which carries its version.
  */
 
 import {
@@ -16,7 +17,6 @@ import {
   type PhosphorTier,
 } from "./watch-phosphor";
 
-export const STAGE_SRC = "/assets/watch-stage.js";
 /** D5: the stage chunk stays at or under this gzip size. */
 export const STAGE_GZIP_BUDGET = 160 * 1024;
 /** World units per Phosphor layout grid step. */
