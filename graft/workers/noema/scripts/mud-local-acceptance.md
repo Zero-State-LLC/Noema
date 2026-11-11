@@ -19,18 +19,23 @@
 - interrupted · function · L175-L175 — interrupted = ()
 - finish · function · L176-L176 — finish = settle
 - assertBudgetDelta · function · L183-L188 — function assertBudgetDelta(before, after, delta)
-- runLocalAcceptance · function · L190-L475 — async function runLocalAcceptance(options)
-- interrupt · function · L202-L202 — interrupt = signal
-- onInt · function · L203-L203 — onInt = ()
-- onTerm · function · L204-L204 — onTerm = ()
-- onHup · function · L205-L205 — onHup = ()
-- check · function · L218-L218 — check = (name, predicate)
-- request · function · L219-L243 — request = async (path, body, token)
-- command · function · L244-L251 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
-- start · function · L252-L297 — start = async phase
-- capture · function · L263-L263 — capture = chunk
-- stop · function · L298-L305 — stop = async ()
-- mint · function · L319-L327 — mint = async role
-- hasPlate · function · L378-L378 — hasPlate = observation
-- assertNotices · function · L388-L391 — assertNotices = (obs, phase)
-- watch · function · L392-L400 — watch = async phase
+- assertLatestMaintenancePlate · function · L190-L194 — function assertLatestMaintenancePlate(traces, latest, previous)
+- runLocalAcceptance · function · L196-L571 — async function runLocalAcceptance(options)
+- interrupt · function · L208-L208 — interrupt = signal
+- onInt · function · L209-L209 — onInt = ()
+- onTerm · function · L210-L210 — onTerm = ()
+- onHup · function · L211-L211 — onHup = ()
+- check · function · L224-L224 — check = (name, predicate)
+- request · function · L225-L249 — request = async (path, body, token)
+- command · function · L250-L257 — command = async (agent, command, args = {}, { id = `mud-${runId}-${++requestId}`, expectedOk = true, phase = "lifecycle" } = {})
+- start · function · L258-L303 — start = async phase
+- capture · function · L269-L269 — capture = chunk
+- stop · function · L304-L311 — stop = async ()
+- mint · function · L325-L333 — mint = async role
+- hasPlate · function · L401-L401 — hasPlate = observation
+- assertNotices · function · L411-L414 — assertNotices = (obs, phase)
+- watch · function · L415-L423 — watch = async phase
+- replayRepair · function · L465-L473 — replayRepair = async phase
+- source · function · L477-L477 — source = obs
+- assertLatest · function · L500-L506 — assertLatest = (obs, phase)
+- watchLatest · function · L507-L514 — watchLatest = async phase
