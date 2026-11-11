@@ -82,4 +82,4 @@
 - ascii · method · L1278-L1280 — ascii(opts?: { majorRoomId?: string; pickedRoomId?: string })
 - parsePhosphorMode · function · L1291-L1318 — function parsePhosphorMode( search?: string | null, hash?: string | null, stored?: string | null, ): "text" | "pixel"
 - phosphorModeInlineSource · function · L1321-L1325 — function phosphorModeInlineSource(): string
-- phosphorInlineScript · function · L1327-L1448 — function phosphorInlineScript(bind?: { canvasId?: string; wrapId?: string; textBtnId?: string; pixelBtnId?: string; globalName?: string; /** Public /watch: never mount the sketch; the client only supplies the cartogram. */ textOnly?: boolean; }): string
+- phosphorInlineScript · function · L1327-L1449 — function phosphorInlineScript(bind?: { canvasId?: string; wrapId?: string; textBtnId?: string; pixelBtnId?: string; globalName?: string; /** Public /watch: never mount the sketch; the client only supplies the cartogram. */ textOnly?: boolean; }): string
