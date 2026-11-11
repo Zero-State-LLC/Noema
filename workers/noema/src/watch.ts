@@ -7,8 +7,8 @@ import { MAP_PARITY_HOLD_LINE, MAP_PARITY_LINE, watchMapGlInlineSource } from ".
 import { watchMapInlineSource } from "./watch-map-page";
 import { parseWatchMode, watchModeInlineSource, type WatchMode } from "./watch-mode";
 import { phosphorInlineScript } from "./watch-phosphor";
-import { STAGE_FALLBACK_LINE, STAGE_LOW_NOISE_LINE, STAGE_SRC } from "./watch-stage-model";
-import { STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
+import { STAGE_FALLBACK_LINE, STAGE_LOW_NOISE_LINE } from "./watch-stage-model";
+import { STAGE_SRC, STAGE_VIEW_CSS, stageViewHtml } from "./watch-stage-view";
 import {
   NOT_PROJECTED_PUBLICLY,
   WITHHELD_LEDE,

@@ -14,7 +14,7 @@ Still photography is atmospheric only. Live WATCH topology is the Phosphor canva
 | `anomaly-signal.jpg` | Isolated signal |
 | `og-social.jpg` | Legacy Open Graph crop — not the live card |
 | `hero-noema.jpg` | Legacy OG alias of `og-social.jpg` |
-| `watch-stage.js` | WATCH Chamber stage, the default `/watch` view: one Three.js chunk, at most 160 KiB gzip (Noema-Specs `specify/watch-single-3d-stage.md`). Built by `npm run build:watch-stage`. Not loaded for the text view (`?mode=text`), Low noise, or without WebGL2. |
+| `watch-stage.js` | WATCH Chamber stage, the default `/watch` view: one Three.js chunk, at most 160 KiB gzip (Noema-Specs `specify/watch-single-3d-stage.md`). Built by `npm run build:watch-stage`, which also writes `src/watch-stage-version.ts` (sha256 of the chunk); the page loads it as `watch-stage.js?v=<version>`, so each deploy fetches its own chunk past the one hour asset cache. Not loaded for the text view (`?mode=text`), Low noise, or without WebGL2. |
 | `THREE-LICENSE.txt` | three.js MIT license for the bundled Three.js chunks. |
 
 `scripts/build-phosphor-assets.py` copies stills only. It does not emit raster glyph sheets or a second key. PLAY, WATCH, and Admin Watch agents use the live SVG catalog.
