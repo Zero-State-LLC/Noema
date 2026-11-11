@@ -18,7 +18,7 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | World / cycle / seq / players | `#watch-world` `#watch-cycle` `#watch-seq` `#watch-players` · `.watch-state-plate` | required text |
 | Connecting / live / PAUSED / error tag | `#watch-state` | required text |
 | Refresh / Pause | `#watch-refresh` `#watch-pause` | functional chrome |
-| TEXT / PIXEL / MAP / 3D mode | `#watch-mode-text` `#watch-mode-pixel` `#watch-mode-map` `#watch-mode-3d` | functional chrome |
+| View (D1, D3): the 3D stage is the default; `?mode=text` or `#text` shows the text map for that visit; `pixel`, `map` and `3d` links open the stage. The mode rail is retired | `.watch-stage[data-mode]` | functional chrome |
 | Headline + copy | `#watch-headline` `#watch-copy` | required text |
 | MAJOR hero flash | `.watch-hero.major` | major-change signal |
 | MAJOR banner (renders on MAJOR headline, clears ≤2 polls) | `#watch-banner` · `.watch-banner.on` | major-change signal |
@@ -26,10 +26,9 @@ Related: [UI-HANDOFF.md](UI-HANDOFF.md) · [BRAND-VISUAL-QA.md](BRAND-VISUAL-QA.
 | Headline mark flash (one-shot ≤400ms, NOTABLE/MAJOR change) | `.watch-line .mark.flash` | functional chrome |
 | Ground field | Phosphor Canvas `--void` fill and semantic HTML surface | non-decorative map ground |
 | Places list (glyph-mapped rooms / exits / entities / Players) | `#watch-map` | required text |
-| Phosphor wrap + canvas | `#watch-phos-wrap` `#watch-phosphor` | major-change signal (load-gated) |
-| MAP WebGL stage (lazy `/assets/watch-map-gl.js`; DOM board fallback) | `#watch-map-gl` `#watch-map-board` | MAP mode only |
-| 3D Chamber stage (lazy `/assets/watch-stage.js`, at most 160 KiB gzip; Noema-Specs `specify/watch-single-3d-stage.md`). Shared public layout, DOM labels with priority declutter, event-born pulses, bounded orbit with Reset view and an HTML map key. Public `watch-map/1.0` bands: pressure warms the plate, scar residue is a dashed violet outline, band words in the label; world health and the map-behind line sit under the stage. Places stays beside it; failure or Low noise shows TEXT | `#watch-stage3d` `#watch-stage3d-frame` `#watch-stage3d-labels` `#watch-stage3d-reset` | 3D mode only (opt-in until made the default) |
-| ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; TEXT/no-canvas fallback only, never beside the live canvas) | `#watch-pre` | required text (desktop, TEXT mode) |
+| Phosphor client (no public canvas; supplies the shared-layout cartogram. Admin Watch keeps the PIXEL canvas) | `window.NoemaPhosphor` | required text support |
+| 3D Chamber stage (lazy `/assets/watch-stage.js`, at most 160 KiB gzip; Noema-Specs `specify/watch-single-3d-stage.md`). Shared public layout, DOM labels with priority declutter, event-born pulses, bounded orbit with Reset view and an HTML map key. Public `watch-map/1.0` bands: pressure warms the plate, scar residue is a dashed violet outline, band words in the label; world health and the map-behind line sit under the stage. Places stays beside it; failure or Low noise shows TEXT | `#watch-stage3d` `#watch-stage3d-frame` `#watch-stage3d-labels` `#watch-stage3d-reset` | default view |
+| ASCII cartogram (2D, shared Phosphor layout, Specs §4.B.1; text map: `?mode=text`, Low noise, or the stage failed; never beside the mounted stage) | `#watch-pre` | required text (desktop, TEXT mode) |
 | Recent feed | `#watch-feed` | required text |
 | Feed tier marks (`·` normal, `>` notable, `!` major + type weight; never color-only, never faded quiet) | `.watch-feed .mark` | required text |
 | Key / legend | `#world-key` live SVG catalog (`legendHtml()`) | required text |
@@ -73,7 +72,7 @@ Motion is **event-born, all tiers** (Living Chamber, Specs §18.6). No ambient l
 | Empty / loading / error | none | Headline copy; feed empty state |
 | `PAUSED` | none | `#watch-state` text |
 
-At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win across polls — `capPulses` at merge time, so a newer event replaces the oldest live pulse instead of being dropped). Events outside the public layout never pulse and never consume a cap slot. Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology, and layout itself never lights an edge from recent events. The canvas paints ground fill, border, topology, occupancy, pulses, then site labels last on ground plates (labels never overdrawn — Specs §18) — no decorative field wash. An adjacent HTML map key (`#watch-phos-key`) names the marks; it is not the catalog legend. PIXEL renders by default when Canvas 2D is available (client preference `noema.watch.mode`); TEXT stays the complete authority, one keystroke away, and is the only mode that shows the §4.B.1 ASCII cartogram — one map at a time.
+At most one live MAJOR pulse and at most three non-MAJOR pulses (newest win across polls — `capPulses` at merge time, so a newer event replaces the oldest live pulse instead of being dropped). Events outside the public layout never pulse and never consume a cap slot. Hidden rooms and hidden edges stay off the public sketch — exit lighting never hints unpublished topology, and layout itself never lights an edge from recent events. The canvas paints ground fill, border, topology, occupancy, pulses, then site labels last on ground plates (labels never overdrawn — Specs §18) — no decorative field wash. An adjacent HTML map key (`#watch-phos-key`) names the marks; it is not the catalog legend. Public `/watch` now opens on the 3D Chamber stage (Noema-Specs `specify/watch-single-3d-stage.md`); these pulse rules govern the stage and Admin Watch PIXEL. The Places list stays the complete authority beside the stage, and the §4.B.1 ASCII cartogram shows only when the stage is not the map (text view, Low noise, or failure) — one map at a time.
 
 ---
 
