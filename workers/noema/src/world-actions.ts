@@ -956,6 +956,9 @@ export function buildObservation(
     const preferred = liveReliableToward(pl.trade_memory, p.player_id, w.cycle);
     cautionToward[p.player_id] = hostile && !preferred;
   }
+  // Display fallback does not establish retained physical co-location.
+  const observerRoomId = existing?.entered && existing.room_id && w.rooms[existing.room_id]?.room_id === existing.room_id
+      ? existing.room_id : undefined;
   const affordances = deriveAffordances({
     entities,
     exits,
@@ -972,8 +975,7 @@ export function buildObservation(
     hiddenRoom: isHiddenRoom(room),
     roomId: room.room_id,
     // The displayed room may be a fallback; only retained, valid occupancy grants presence.
-    observerRoomId: existing?.entered && existing.room_id && w.rooms[existing.room_id]?.room_id === existing.room_id
-      ? existing.room_id : undefined,
+    observerRoomId,
     openContests: Object.values(w.contests || {}).filter((c) => c.status === "OPEN"),
     agreements: Object.values(w.agreements || {}).filter((a) => a.status === "OFFERED" || a.status === "ACTIVE"),
     accessRestrictions: w.access_restrictions || [],
@@ -1129,7 +1131,7 @@ export function buildObservation(
         (p) =>
           p.player_id !== principal.player_id &&
           w.players[p.player_id]?.entered &&
-          w.players[p.player_id]?.room_id === room.room_id,
+          observerRoomId !== undefined && w.players[p.player_id]?.room_id === observerRoomId,
       )
       .map((p) => {
         const other = w.players[p.player_id];

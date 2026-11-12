@@ -8,6 +8,10 @@ The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) 
 
 Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876 and the privacy fix #875, and is live as Worker `cf01c793-5e9e-433f-bd05-a4ed9f4ead45` (pinned by #879). Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
 
+## #793 local fallback-presence repair (current integration 2026-11-12 UTC)
+
+The bounded [repair and execution record](docs/PRESENCE-FALLBACK-793-LOCAL-REPAIR.md) preserves the cleared retained-room predicate and seven-case probe byte-for-byte from b95cbff. Main a3ff91e (parser crosswalk plus local tempo witnesses) integrated conflict-free in d7473e0; the seven fallback cases and native typecheck passed on that integration commit. Prior 2,811/2,813-case cohorts remain historical. Combined-head full-suite, graph, independent technical reviews and exact-head CI are publication/readiness gates recorded separately in PR #881. The owner released only its old readiness hold under conditional previews-OFF/fresh pre/post inventory assurance, not a backend guarantee or new resource/settings/deploy authority. Eligible code-owner approval remains a normal protected-merge gate; disabled queueing was not changed and does not itself prohibit an already-ready normal immediate merge. This repair is not deployed or whole-issue acceptance; #793/#733 remain OPEN, #851 stays draft, #882 stays unmerged and #777 stays source0.
+
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
 - **Recent Completion**:

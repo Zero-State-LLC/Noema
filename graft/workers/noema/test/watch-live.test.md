@@ -56,7 +56,7 @@
 - calm · function · L2087-L2092 — calm = (seq: number)
 - preventDefault · method · L2176-L2176 — preventDefault()
 - h7PublicFrame · function · L2524-L2539 — function h7PublicFrame(offset = 0, hostile = false)
-- H7Socket · class · L2656-L2664 — class H7Socket
-- constructor · method · L2661-L2661 — constructor()
-- send · method · L2662-L2662 — send()
-- close · method · L2663-L2663 — close()
+- H7Socket · class · L2672-L2680 — class H7Socket
+- constructor · method · L2677-L2677 — constructor()
+- send · method · L2678-L2678 — send()
+- close · method · L2679-L2679 — close()
