@@ -169,8 +169,11 @@ configuration files or bearer credentials as evidence.
 The command does not qualify synthetic rumor/ownership transitions as canonical
 writers, prove BUILD.VEST from a fixture-owned asset, exercise a maintained Agent
 room viewport, or establish hostile authored-text safety in every browser mode.
-Owner-held WAIT #850/#851, authoritative optional STATUS flag producers, room
-consumer applicability, hosted all-family/post-eviction provenance and parent R4
-acceptance remain independent decisions.
+The [WAIT compatibility choice](WAIT-OUTCOME-COMPATIBILITY-850.md) for #850/#851
+is adopted; its implementation/current-main verification and independent review
+remain separate. Authoritative optional STATUS flag producers, room-consumer
+applicability, hosted all-family/post-eviction provenance and parent R4 acceptance
+remain independent boundaries. This command does not verify the adopted WAIT
+presentation merely by exercising cycle/expiry mechanics.
 
 Historical handoff and criterion mapping: [MUD next-ten bounded closeout](MUD-NEXT-TEN-2026-11-10.md).
