@@ -2,7 +2,15 @@
 
 The current hand-off: latest review verdict and the next work order. Whoever finishes a slice or a review overwrites this file. Read it at the start of a session.
 
-## Latest local slice (2026-11-11): #793 fallback-presence repair
+## Current #881 integration work order (2026-11-12)
+
+- Owner approved only current-main integration/readiness under conditional previews-OFF plus fresh pre/post inventory assurance. It supersedes #881's older absolute no-create readiness condition, not other holds or provider/resource/deploy/acceptance gates.
+- Owned integration branch `integrate/881-main-20261112`: merge d7473e0a5879cd92eaed7b1d35becfb042ead0b2 combines cleared b95cbff with main a3ff91eed600f176baf5b7a23601cb299f22b6cb without conflicts. Product source and seven-case probe bytes remain exactly cleared. Seven fallback cases and native typecheck passed on d7473e0; declarations restored.
+- Complete combined-head Worker validation, deterministic graph, independent Standards/Spec reviews and exact-head GitHub CI must be verified before readiness. Follow PR #881's exact-head ledger for current results; do not carry old full-suite counts as a new run. Publication remains conditional on fresh OFF/inventory checks, with stop/report on drift. This assurance is not exhaustive backend proof.
+- Normal protected landing needs eligible independent current-head approval and required green checks. No admin bypass or setting change is authorized. Queueing remains disabled; immediate all-green protected merge is a separate capability.
+- Preserve #733 OPEN, #851 draft, #882 unmerged and #777 frozen/source0. No new semantics, hosted campaign, provider resources, deployment or acceptance promotion.
+
+## Historical local slice (2026-11-11): #793 fallback-presence repair
 
 - Branch: `fix/793-fallback-presence-20261111`. Initial reviewed base `88e111c5d9fc83203a7f414b0af2dade07cf2bec` and candidate `60f3dca`; current base after external #863 is `c2ce9d08650b37cb6ee62f45279aa56eb999261c`, clean local integration `2fa72dc00616abae4e2de874cd38bad1066bc20f`. Product source/test blobs remain exactly reviewed; graph/docs are refreshed for the new base.
 - Scope and requirement-to-assertion map: [PRESENCE-FALLBACK-793-LOCAL-REPAIR.md](../PRESENCE-FALLBACK-793-LOCAL-REPAIR.md). The owner authorized this local repair and validation, not a hosted campaign or review-rule bypass.

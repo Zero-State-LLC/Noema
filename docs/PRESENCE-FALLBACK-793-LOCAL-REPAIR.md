@@ -1,5 +1,41 @@
 # #793: display fallback is not physical presence
 
+## Current-main integration (2026-11-12; owner-authorized #881 only)
+
+The owner released only #881's integration/readiness hold under conditional
+previews-OFF plus fresh pre/post inventory assurance. This supersedes that PR's
+older absolute/no-create-or-separate-resource readiness gate, not any other hold.
+It is not a backend no-create guarantee or authority to create resources, change
+settings, deploy, bypass review, or promote acceptance.
+
+Main `a3ff91eed600f176baf5b7a23601cb299f22b6cb` was integrated without conflict in
+`d7473e0a5879cd92eaed7b1d35becfb042ead0b2`. Its two upstream changes are the
+parser-inventory crosswalk and local tempo canonical-comparison tests. Both the
+cleared `world-actions.ts` and seven-case fallback probe remain byte-identical to
+`b95cbff49ac9fc9f463c7acb03a638585213bd1b`; no new semantic fix is included.
+On integration commit d7473e0, all seven fallback cases passed and native generated
+declaration typecheck exited 0. Generated declarations were restored exactly.
+These are local seam/type evidence, not hosted qualification.
+
+Before publication/readiness, require combined-head complete Worker validation,
+deterministic graph freshness/repeatability, independent Standards and Spec
+reviews, and exact-head GitHub CI. The PR's head-bound evidence records those
+results separately from the historical execution cohorts below. Eligible
+independent code-owner approval is still required for normal protected landing;
+owner implementation approval and technical review are not that approval.
+Runtime automatic-merge queueing remains disabled; no settings change or admin
+fallback is authorized. An already-approved, all-green immediate normal protected
+merge remains distinct from enabling queueing.
+
+Keep #733 OPEN, #851 draft, #882 unmerged, and #777 frozen with source allowance 0.
+
+## Historical repair and validation record (through b95cbff)
+
+The remaining sections retain the earlier contract and execution cohorts at their
+stated cutoffs. Their previous publication gates and counts are historical, not
+claims of validation on the newly integrated head.
+
+
 ## Bounded repair and governing contract
 
 This is a local defensive projection repair against runtime base

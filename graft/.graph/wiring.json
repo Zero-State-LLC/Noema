@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 7995,
-    "edgeCount": 19044,
+    "nodeCount": 7999,
+    "edgeCount": 19065,
     "languages": [
       "javascript",
       "python",
@@ -91386,12 +91386,26 @@
       "name": "player-tempo.test.ts",
       "kind": "file",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L1-L768",
+      "span": "L1-L900",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "454c44f0c957f0d1da1220beff134cdbbb326b7d2a9fd934587667b79a97665b",
-      "chars": 28098,
+      "body_hash": "e56203b0d8827c6d075be0fdc6b0b67bdc8eda5cba105c5916037d8fa732a12d",
+      "chars": 34046,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/player-tempo.test.ts#admitLocalCanonicalInputs",
+      "name": "admitLocalCanonicalInputs",
+      "kind": "function",
+      "path": "workers/noema/test/player-tempo.test.ts",
+      "span": "L803-L815",
+      "signature": "function admitLocalCanonicalInputs( w: WorldRuntime, inputs: Array<{ principal: PlayerPrincipal; envelope: CommandEnvelope }>, )",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ea1b5acf123633fcb7f615da4f5e06cc10b4b07e5f83aab9e701ad54e30baf2a",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -91401,7 +91415,7 @@
       "name": "enterThenPin",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L100-L113",
+      "span": "L102-L115",
       "signature": "async function enterThenPin( w: WorldRuntime, players: PlayerPrincipal[], mode: \"OBSERVED_LIVE\" | \"FAST_TEST\" | \"STEP_TEST\" = \"FAST_TEST\", now = CLOCK, )",
       "exported": false,
       "origin": "ast",
@@ -91415,7 +91429,7 @@
       "name": "fingerprintWorld",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L115-L133",
+      "span": "L117-L135",
       "signature": "function fingerprintWorld(w: WorldRuntime)",
       "exported": false,
       "origin": "ast",
@@ -91429,7 +91443,7 @@
       "name": "fixtureWorld",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L43-L79",
+      "span": "L45-L81",
       "signature": "function fixtureWorld(worldId = \"test.hosted-canonical.tempo\"): WorldRuntime",
       "exported": false,
       "origin": "ast",
@@ -91439,11 +91453,39 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
+      "name": "localCanonicalTempoInputs",
+      "kind": "function",
+      "path": "workers/noema/test/player-tempo.test.ts",
+      "span": "L772-L795",
+      "signature": "function localCanonicalTempoInputs()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "32ce3ae86654ea748db27d941e2bcbeb5bf1a0f407b4bdf4251497388e47e48e",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
+      "name": "localCanonicalTempoWorld",
+      "kind": "function",
+      "path": "workers/noema/test/player-tempo.test.ts",
+      "span": "L797-L801",
+      "signature": "async function localCanonicalTempoWorld()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "163cdf7d7496a8690c8b7972195b474e3a91d258f075b1fc0e5c161fb919ec04",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/player-tempo.test.ts#play",
       "name": "play",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L320-L339",
+      "span": "L322-L341",
       "signature": "async function play(order: Array<\"nacre\" | \"vesper\">)",
       "exported": false,
       "origin": "ast",
@@ -91457,7 +91499,7 @@
       "name": "principal",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L29-L41",
+      "span": "L31-L43",
       "signature": "function principal(id: string): PlayerPrincipal",
       "exported": false,
       "origin": "ast",
@@ -91467,11 +91509,25 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "name": "resolveLocalCanonicalTempo",
+      "kind": "function",
+      "path": "workers/noema/test/player-tempo.test.ts",
+      "span": "L817-L847",
+      "signature": "async function resolveLocalCanonicalTempo(w: WorldRuntime)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "713ae67b40fc00373beef3d9761a3176fc223fa589d13660c1c674a709b1ca4f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/player-tempo.test.ts#run",
       "name": "run",
       "kind": "function",
       "path": "workers/noema/test/player-tempo.test.ts",
-      "span": "L81-L98",
+      "span": "L83-L100",
       "signature": "async function run( w: WorldRuntime, p: PlayerPrincipal, command: string, args: Record<string, unknown> = {}, now = CLOCK, settle: () => Promise<boolean> = async () => true, extra: Partial<CommandEnvelope> = {}, )",
       "exported": false,
       "origin": "ast",
@@ -210471,6 +210527,12 @@
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/src/canonical-state.ts#canonicalStateMaterial",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/src/incident-recover.ts#runIncidentRecover",
       "relation": "calls",
       "confidence": "inferred"
@@ -210573,6 +210635,12 @@
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#admitLocalCanonicalInputs",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/test/player-tempo.test.ts#enterThenPin",
       "relation": "calls",
       "confidence": "extracted"
@@ -210580,6 +210648,18 @@
     {
       "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/test/player-tempo.test.ts#fixtureWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -210597,8 +210677,20 @@
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/test/player-tempo.test.ts#run",
       "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#admitLocalCanonicalInputs",
+      "relation": "contains",
       "confidence": "extracted"
     },
     {
@@ -210621,6 +210713,18 @@
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/test/player-tempo.test.ts#play",
       "relation": "contains",
       "confidence": "extracted"
@@ -210628,6 +210732,12 @@
     {
       "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/test/player-tempo.test.ts#principal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -210669,6 +210779,12 @@
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/src/canonical-state.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/src/incident-recover.ts",
       "relation": "imports",
       "confidence": "extracted"
@@ -210676,6 +210792,12 @@
     {
       "source": "workers/noema/test/player-tempo.test.ts",
       "target": "workers/noema/src/player-tempo.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts",
+      "target": "workers/noema/src/settle.ts",
       "relation": "imports",
       "confidence": "extracted"
     },
@@ -210698,6 +210820,12 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/player-tempo.test.ts#admitLocalCanonicalInputs",
+      "target": "workers/noema/src/player-tempo.ts#admitTempoAction",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/test/player-tempo.test.ts#enterThenPin",
       "target": "workers/noema/src/player-tempo.ts#pinPlayerTempo",
       "relation": "calls",
@@ -210714,6 +210842,30 @@
       "target": "workers/noema/src/player-tempo.ts#tempoCanonicalFingerprint",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
+      "target": "workers/noema/test/player-tempo.test.ts#principal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
+      "target": "workers/noema/test/player-tempo.test.ts#enterThenPin",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
+      "target": "workers/noema/test/player-tempo.test.ts#fixtureWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoWorld",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/player-tempo.test.ts#play",
@@ -210742,6 +210894,36 @@
     {
       "source": "workers/noema/test/player-tempo.test.ts#play",
       "target": "workers/noema/test/player-tempo.test.ts#run",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "target": "workers/noema/src/canonical-state.ts#canonicalEventDigest",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "target": "workers/noema/src/canonical-state.ts#canonicalStateMaterial",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "target": "workers/noema/src/settle.ts#canonicalEventsForCommit",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "target": "workers/noema/src/world-actions.ts#runPinnedTempoResolve",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/player-tempo.test.ts#resolveLocalCanonicalTempo",
+      "target": "workers/noema/test/player-tempo.test.ts#localCanonicalTempoInputs",
       "relation": "calls",
       "confidence": "extracted"
     },
