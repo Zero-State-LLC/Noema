@@ -1,3 +1,5 @@
+import { canonicalStateMaterial, canonicalEventDigest } from "../src/canonical-state";
+import { canonicalEventsForCommit } from "../src/settle";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -763,5 +765,135 @@ describe("slot-filling verbs", () => {
       expect(w.player_tempo?.accepted[0]?.verb, verb).toBe(verb);
       expect(w.cycle, verb).toBe(0);
     }
+  });
+});
+
+// Local, fixed-clock reducer witnesses only: no RPC, durable replay or clock-policy claim.
+function localCanonicalTempoInputs() {
+  return [
+    {
+      principal: principal("player.nacre"),
+      envelope: {
+        request_id: "local.canonical.nacre",
+        idempotency_key: "local.canonical.nacre",
+        command: "MOVE",
+        arguments: { direction: "east" },
+        client_action_sequence: 1,
+      } satisfies CommandEnvelope,
+    },
+    {
+      principal: principal("player.vesper"),
+      envelope: {
+        request_id: "local.canonical.vesper",
+        idempotency_key: "local.canonical.vesper",
+        command: "MOVE",
+        arguments: { direction: "east" },
+        client_action_sequence: 1,
+      } satisfies CommandEnvelope,
+    },
+  ];
+}
+
+async function localCanonicalTempoWorld() {
+  const w = fixtureWorld();
+  await enterThenPin(w, localCanonicalTempoInputs().map((input) => input.principal), "OBSERVED_LIVE", CLOCK);
+  return w;
+}
+
+function admitLocalCanonicalInputs(
+  w: WorldRuntime,
+  inputs: Array<{ principal: PlayerPrincipal; envelope: CommandEnvelope }>,
+) {
+  for (const input of inputs) {
+    const admitted = admitTempoAction(w, {
+      ...structuredClone(input),
+      verb: input.envelope.command,
+      now: CLOCK,
+    });
+    expect(admitted.ok, "full action must reach the admitted reducer set").toBe(true);
+  }
+}
+
+async function resolveLocalCanonicalTempo(w: WorldRuntime) {
+  const beforeSequence = w.sequence;
+  // This callback acknowledges only the local fixture, never a durable RPC.
+  const resolved = await runPinnedTempoResolve(w, async () => true, CLOCK);
+  expect(resolved.ok, "native local resolver must succeed").toBe(true);
+  if (!resolved.ok) throw new Error("local canonical resolver refused");
+  const ledger = canonicalEventsForCommit(resolved.events);
+  expect(ledger.length, "order comparison needs multiple actual canonical effects").toBeGreaterThan(1);
+  expect(w.sequence).toBeGreaterThan(beforeSequence);
+  for (const input of localCanonicalTempoInputs()) {
+    expect(w.players[input.principal.player_id].room_id, "each admitted MOVE must execute, not merely admit").toBe("room.east");
+  }
+  expect(w.cycle).toBe(1);
+  const state = await canonicalStateMaterial(w);
+  // Shared explicit unit-test anchor; this is not the world's durable ledger head.
+  let previous: string | null = null;
+  const eventDigests: string[] = [];
+  for (const event of ledger) {
+    previous = await canonicalEventDigest({
+      world_id: w.world_id,
+      sequence: event.sequence,
+      cycle: w.cycle,
+      event_id: event.event_id,
+      event_type: event.event_type,
+      payload: event.payload || {},
+      previous_digest: previous,
+    });
+    eventDigests.push(previous);
+  }
+  return { ledger, state, eventDigests };
+}
+
+describe("local canonical tempo comparisons (not durable replay)", () => {
+  it("opposed admission orders produce identical native state and event digests at a fixed clock", async () => {
+    const left = await localCanonicalTempoWorld();
+    const right = await localCanonicalTempoWorld();
+    expect(right).not.toBe(left);
+    const beforeLeft = await canonicalStateMaterial(left);
+    const beforeRight = await canonicalStateMaterial(right);
+    expect(beforeRight.canonical_json).toBe(beforeLeft.canonical_json);
+    const inputs = localCanonicalTempoInputs();
+    admitLocalCanonicalInputs(left, inputs);
+    admitLocalCanonicalInputs(right, [...inputs].reverse());
+    expect(left.player_tempo?.accepted.map((slot) => slot.player_id))
+      .toEqual([...right.player_tempo!.accepted].reverse().map((slot) => slot.player_id));
+    const a = await resolveLocalCanonicalTempo(left);
+    const b = await resolveLocalCanonicalTempo(right);
+    expect(b.ledger).toEqual(a.ledger);
+    expect(b.state.canonical_json).toBe(a.state.canonical_json);
+    expect(b.state.state_digest).toBe(a.state.state_digest);
+    expect(b.eventDigests).toEqual(a.eventDigests);
+    expect(a.state.state_digest).not.toBe(beforeLeft.state_digest);
+  });
+
+  it("captured full in-memory actions reproduce native canonical effects on an independent prior-state fixture", async () => {
+    const original = await localCanonicalTempoWorld();
+    const prior = structuredClone(original);
+    const priorState = await canonicalStateMaterial(prior);
+    admitLocalCanonicalInputs(original, localCanonicalTempoInputs());
+    // Capture the full admitted inputs BEFORE resolve clears them. The durable
+    // metadata-only last_accepted_snapshot is deliberately not used as replay data.
+    const recorded = structuredClone(original.player_tempo!.accepted);
+    expect(recorded).toHaveLength(2);
+    expect(recorded.every((slot) => slot.envelope.command === "MOVE" && slot.principal.controller_type === "agent"))
+      .toBe(true);
+    const recordedBytes = JSON.stringify(recorded);
+    const a = await resolveLocalCanonicalTempo(original);
+    const reconstructed = structuredClone(prior);
+    expect(reconstructed).not.toBe(original);
+    expect(reconstructed.players).not.toBe(original.players);
+    expect(reconstructed.player_tempo?.accepted).toHaveLength(0);
+    expect((await canonicalStateMaterial(reconstructed)).state_digest).toBe(priorState.state_digest);
+    admitLocalCanonicalInputs(reconstructed, [...recorded].reverse());
+    const b = await resolveLocalCanonicalTempo(reconstructed);
+    expect(b.ledger).toEqual(a.ledger);
+    expect(b.state.canonical_json).toBe(a.state.canonical_json);
+    expect(b.state.state_digest).toBe(a.state.state_digest);
+    expect(b.eventDigests).toEqual(a.eventDigests);
+    expect(a.state.state_digest).not.toBe(priorState.state_digest);
+    expect(JSON.stringify(recorded)).toBe(recordedBytes);
+    expect((await canonicalStateMaterial(prior)).state_digest).toBe(priorState.state_digest);
   });
 });
