@@ -6,7 +6,7 @@ The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) 
 
 ## WATCH 3D Chamber stage (2026-11-11 UTC)
 
-Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876 and the privacy fix #875, and is live as Worker `cf01c793-5e9e-433f-bd05-a4ed9f4ead45` (pinned by #879). Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
+Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876, the privacy fix #875 and the measured accessibility fixes #885. It is live as Worker `9b1a46e0-afbc-494e-ad4d-5d8743aa935c` (pinned by #886), which also carries #881 at the owner's explicit instruction (2026-11-13). Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
 
 ## #793 local fallback-presence repair (current integration 2026-11-12 UTC)
 

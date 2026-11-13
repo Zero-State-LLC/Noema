@@ -26,7 +26,11 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
   - The new tests in `watch-measured-a11y.test.ts` fail before the fix.
   - The full suite passes.
   - The live page re-audited with the patch injected shows 0 violations at both sizes.
-- **Still open:** color-contrast "needs review" on stage labels over the WebGL canvas (axe can't sample the canvas), and real assistive technology: Safari with VoiceOver, NVDA, iPhone. The fix is not deployed.
+- **Live:** merged as #885 and deployed from `main` at `f98145e` as Worker `9b1a46e0-afbc-494e-ad4d-5d8743aa935c`, pinned by #886.
+  - Checked after the deploy on 2026-11-13: axe reports 0 violations at 1440×900 and 375×812, with the stage mounted and 10 labels.
+  - A plain page load logs no console errors.
+- **#881 is live too.** It was on `main`, and the owner explicitly chose to deploy it with this slice (2026-11-13), overriding the "no deployment" line in the #881 work order above. Its Agent observation change (`players_here` only from a valid retained room) was not exercised on the hosted site.
+- **Still open:** color-contrast "needs review" on stage labels over the WebGL canvas (axe can't sample the canvas), and real assistive technology: Safari with VoiceOver, NVDA, iPhone.
 
 ## Historical local slice (2026-11-11): #793 fallback-presence repair
 
