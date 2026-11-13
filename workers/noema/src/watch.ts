@@ -156,7 +156,9 @@ body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(
   color:var(--ink);font:.86rem/1.4 var(--font-mono);
 }
 .watch-feed li .glyph{width:.9rem;height:.9rem;margin-right:0}
-.watch-feed li.quiet{opacity:.58}
+/* Older rows dim by text colour, not opacity: opacity took facts to 4.1:1 and meta to 3.3:1. */
+.watch-feed li.quiet .line{color:var(--muted)}
+.watch-feed li.quiet .facts{color:var(--faint)}
 .watch-feed .mark{color:var(--faint);text-align:center}
 .watch-feed li.notable .mark{color:var(--color-state-active);font-weight:550}
 .watch-feed li.notable .line{color:var(--ink);font-weight:550}
@@ -292,7 +294,7 @@ export function watchHtml(opts?: { mode?: string }): string {
       <button type="button" class="btn quiet" id="watch-pause" aria-pressed="false">Pause</button>
       <button type="button" class="btn quiet" id="watch-low-noise-btn" aria-pressed="false">Low noise</button>
     </div>
-    <div class="watch-state-plate" aria-label="World">
+    <div class="watch-state-plate" role="group" aria-label="World">
       <div><span class="k">World</span><span class="v" id="watch-world">—</span></div>
       <div><span class="k">Cycle</span><span class="v" id="watch-cycle">—</span></div>
       <div><span class="k">Sequence</span><span class="v" id="watch-seq">—</span></div>

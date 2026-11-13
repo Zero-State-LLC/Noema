@@ -10,6 +10,24 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
 - Normal protected landing needs eligible independent current-head approval and required green checks. No admin bypass or setting change is authorized. Queueing remains disabled; immediate all-green protected merge is a separate capability.
 - Preserve #733 OPEN, #851 draft, #882 unmerged and #777 frozen/source0. No new semantics, hosted campaign, provider resources, deployment or acceptance promotion.
 
+## WATCH slice (2026-11-13): measured accessibility fixes, refs #783
+
+- **Measured:** axe-core 4.14.0, the version `main` pins, ran in Chrome 157 headless against live `/watch` (Worker `cf01c793`) at 1440×900 and 375×812, with the 3D stage mounted and 10 labels.
+- **Found:** `button-name` ×2. The follow buttons are `[hidden]` but rendered, because `.btn` display beat `hidden`. Live lacks #863's labels.
+- **Found:** `color-contrast` ×8 on desktop. Older Recently rows used `opacity:.58`: facts 4.12:1, meta 3.29:1.
+- **Found:** `label-content-name-mismatch` ×1. The brand's name "NOEMA home" left out the visible "Perihelion Reach".
+- **Found (needs review):** an `aria-label` on the role-less World plate.
+- **Fix:**
+  - a global `[hidden]{display:none!important}`;
+  - quiet rows dim by text colour (`--muted` / `--faint`, both at least 4.5:1 on the world surface);
+  - the brand label is "NOEMA Perihelion Reach, home";
+  - the World plate is `role="group"`.
+- **Checks:**
+  - The new tests in `watch-measured-a11y.test.ts` fail before the fix.
+  - The full suite passes.
+  - The live page re-audited with the patch injected shows 0 violations at both sizes.
+- **Still open:** color-contrast "needs review" on stage labels over the WebGL canvas (axe can't sample the canvas), and real assistive technology: Safari with VoiceOver, NVDA, iPhone. The fix is not deployed.
+
 ## Historical local slice (2026-11-11): #793 fallback-presence repair
 
 - Branch: `fix/793-fallback-presence-20261111`. Initial reviewed base `88e111c5d9fc83203a7f414b0af2dade07cf2bec` and candidate `60f3dca`; current base after external #863 is `c2ce9d08650b37cb6ee62f45279aa56eb999261c`, clean local integration `2fa72dc00616abae4e2de874cd38bad1066bc20f`. Product source/test blobs remain exactly reviewed; graph/docs are refreshed for the new base.
