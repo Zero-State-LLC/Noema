@@ -10,6 +10,8 @@ import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 export const PRODUCT_CSS = `
 ${TOKEN_CSS}
 *,*::before,*::after{box-sizing:border-box}
+/* hidden always hides: component display rules (.btn is inline-flex) otherwise override it. */
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;overflow-x:clip}
 html,body{margin:0;min-height:100%;overflow-x:clip;background:var(--void);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
 body{background:var(--void);min-height:100vh}
@@ -385,7 +387,7 @@ ${FONTS}
 <body${opts.bleed ? ' class="hero-bleed"' : ""}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
-  <a class="brand" href="/" aria-label="NOEMA home">
+  <a class="brand" href="/" aria-label="NOEMA Perihelion Reach, home">
     <span class="brand-glyph" aria-hidden="true">${BRAND_GLYPH}</span>
     <span class="brand-text">
       <span class="brand-mark">NOEMA</span>
