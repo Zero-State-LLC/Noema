@@ -30,7 +30,19 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
   - Checked after the deploy on 2026-11-13: axe reports 0 violations at 1440×900 and 375×812, with the stage mounted and 10 labels.
   - A plain page load logs no console errors.
 - **#881 is live too.** It was on `main`, and the owner explicitly chose to deploy it with this slice (2026-11-13), overriding the "no deployment" line in the #881 work order above. Its Agent observation change (`players_here` only from a valid retained room) was not exercised on the hosted site.
-- **Still open:** color-contrast "needs review" on stage labels over the WebGL canvas (axe can't sample the canvas), and real assistive technology: Safari with VoiceOver, NVDA, iPhone.
+- **Canvas contrast, measured (2026-11-13):** axe marks stage text "needs review" (`imgNode`) because it can't sample WebGL.
+  - **Method:** in headless Chrome against live `/watch`, hide the overlays, photograph the canvas, and composite each text run's own backgrounds over every pixel behind it.
+  - **Labels pass everywhere:** 11.8:1 or better at 1440×900 and 375×812. Their 88% `--void` chip (#773) holds 8.1:1 even over the brightest pixel the scene draws.
+  - **Compass "N" and help line failed:** they had no chip. They passed only over the empty void (7.55:1). With the camera panned so the active plate sits behind the help line, it fell to 2.95:1 (10th percentile), 1.02:1 at worst.
+  - **Fix:** both get the same chip. With the patch injected into the same panned view, the help line measures 7.03:1 (10th percentile) and 5.98:1 at worst. Tests require every canvas overlay to carry the chip, with ink, muted, faint and social text at 4.5:1 or better even over a white pixel.
+- **Mobile nav, found in the same audit:**
+  - **Defect:** at 375px, on every page, the nav was 399px wide and never scrolled. `.top` wrapped, and a multi-line flex line takes its widest item's size. "Study" ran 8px past the screen under the fade.
+  - **Fix:**
+    - `.top` is single-line on mobile;
+    - the fade sits only in the end padding.
+  - **Measured with the patch:** the nav is exactly the screen width at 320, 375, 414 and 700px, it scrolls where needed, and "Study" is fully opaque once scrolled to.
+- **Ship status:** both fixes are on branch `fix/stage-overlay-contrast`. They go live only with the next owner-approved deploy.
+- **Still open:** real assistive technology, namely Safari with VoiceOver, NVDA and iPhone.
 
 ## Historical local slice (2026-11-11): #793 fallback-presence repair
 

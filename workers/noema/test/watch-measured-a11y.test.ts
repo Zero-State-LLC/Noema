@@ -69,4 +69,24 @@ describe("#783 measured /watch accessibility", () => {
   it("the World state plate is a labelled group, so its aria-label is not prohibited", () => {
     expect(watchHtml()).toContain('<div class="watch-state-plate" role="group" aria-label="World">');
   });
+
+  /*
+   * Measured 2026-11-13 at 375×812 on every page: the mobile nav was 399px wide
+   * and never scrolled (scrollWidth = clientWidth), because .top wrapped. A
+   * multi-line flex line takes its widest item's size, and the nowrap links set
+   * it. "Study" ran 8px past the screen under the fade, clipped by html's
+   * overflow-x:clip. With .top single-line, the nav is exactly the screen width
+   * at 320–700px and scrolls; the fade lives in the end padding, so the last link
+   * is fully opaque once scrolled to.
+   */
+  it("the mobile header is single-line so the nav fits the screen and scrolls", () => {
+    const mobile = PRODUCT_CSS.match(/@media\(max-width:700px\)\{([\s\S]*?)\n\}/);
+    expect(mobile).not.toBeNull();
+    const top = mobile![1].match(/\.top\{([^}]*)\}/);
+    expect(top?.[1]).toContain("flex-direction:column");
+    expect(top?.[1]).toContain("flex-wrap:nowrap");
+    const nav = mobile![1].match(/\.nav\{([^}]*)\}/);
+    expect(nav?.[1]).toContain("overflow-x:auto");
+    expect(nav?.[1]).toContain("mask-image:linear-gradient(to right,#000 calc(100% - var(--pad)),transparent)");
+  });
 });

@@ -169,11 +169,12 @@ code{color:var(--color-text-machine);font-size:.88em}
 .foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 @media(max-width:700px){
-  .top{flex-direction:column;align-items:stretch;gap:.5rem}
+  /* Single-line: a wrapping flex line takes its widest item's size, so the nowrap nav would outgrow the screen and never scroll. */
+  .top{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.5rem}
   .nav{
     flex-wrap:nowrap;justify-content:flex-start;gap:1.25rem;margin:0 calc(-1*var(--pad));
     padding:0 var(--pad);overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;
-    mask-image:linear-gradient(to right,#000 85%,transparent);
+    mask-image:linear-gradient(to right,#000 calc(100% - var(--pad)),transparent);
   }
   .nav::-webkit-scrollbar{display:none}
 }
