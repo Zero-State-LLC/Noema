@@ -41,7 +41,16 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
     - `.top` is single-line on mobile;
     - the fade sits only in the end padding.
   - **Measured with the patch:** the nav is exactly the screen width at 320, 375, 414 and 700px, it scrolls where needed, and "Study" is fully opaque once scrolled to.
-- **Ship status:** both fixes are on branch `fix/stage-overlay-contrast`. They go live only with the next owner-approved deploy.
+- **Live:** both fixes merged as #888 and deployed from `main` at `06069b9` as Worker `b91f4468-d5a7-4956-b118-31ac70f47c07`, pinned by #889.
+  - **Stage, checked live after the deploy (2026-11-14), nothing injected:**
+    - the same pan puts the help line at 7.03:1 (10th percentile) and 5.98:1 at worst;
+    - labels are at 12.87:1 or better;
+    - axe reports 0 violations at 1440×900 and 375×812.
+  - **Mobile nav:** fixed on `/manifesto`, `/watch`, `/connect`, `/study`, `/privacy` and the 404 page.
+  - **Not on the home page:** its `hero-bleed` header re-wraps at ≤760px with a more specific selector (`body.hero-bleed .top`), so the nav stayed 399px wide.
+  - **Home page fix:** a ≤700px rule after that block keeps it single-line. Wrapping still applies at 701–760px, where the header is a row.
+  - **Home page fix, measured with the patch:** the nav is the screen width at 320 to 700px, and the 740px header stays one row.
+  - **Home page fix, ship status:** on branch `fix/hero-nav-scroll`, not deployed.
 - **Still open:** real assistive technology, namely Safari with VoiceOver, NVDA and iPhone.
 
 ## Historical local slice (2026-11-11): #793 fallback-presence repair

@@ -136,6 +136,10 @@ body.hero-bleed .foot{
   .hero-cta{margin-bottom:2.5rem}
   .hero-cta .btn{flex:1 1 100%}
 }
+@media(max-width:700px){
+  /* The shell header is a column here; wrapping would size it from the nowrap nav and stop the nav scrolling (#783). */
+  body.hero-bleed .top{flex-wrap:nowrap}
+}
 @media(max-width:420px){
   .hero-gate{grid-template-columns:minmax(0,1fr);grid-template-areas:"label" "email" "send" "note" "cont" "status"}
   .hero-gate input,.hero-gate button.btn.primary.form-submit{border-radius:var(--r-md);margin:0}
