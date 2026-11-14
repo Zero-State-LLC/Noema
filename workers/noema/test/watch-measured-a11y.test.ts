@@ -8,6 +8,7 @@
  * - the World state plate carried aria-label on a role-less div, which AT ignores.
  */
 import { describe, expect, it } from "vitest";
+import { landingHtml } from "../src/landing";
 import { PRODUCT_CSS } from "../src/shell";
 import { TOKEN } from "../src/theme/tokens";
 import { watchHtml } from "../src/watch";
@@ -88,5 +89,20 @@ describe("#783 measured /watch accessibility", () => {
     const nav = mobile![1].match(/\.nav\{([^}]*)\}/);
     expect(nav?.[1]).toContain("overflow-x:auto");
     expect(nav?.[1]).toContain("mask-image:linear-gradient(to right,#000 calc(100% - var(--pad)),transparent)");
+  });
+
+  /*
+   * Measured live after #888 at 375×812: /watch fixed (nav 375px), but the home
+   * page still 399px. Its hero-bleed header re-wraps at ≤760px with a more
+   * specific selector (body.hero-bleed .top). Wrapping is right for 701–760px,
+   * where the header is still a row; at ≤700px it is a column and must be
+   * single-line, declared after the 760px block so it wins.
+   */
+  it("the home hero header is single-line at ≤700px, after its 760px wrap", () => {
+    const html = landingHtml();
+    const wrap = html.search(/@media\(max-width:760px\)\{[^@]*body\.hero-bleed \.top\{[^}]*flex-wrap:wrap/);
+    const single = html.search(/@media\(max-width:700px\)\{[^@]*body\.hero-bleed \.top\{[^}]*flex-wrap:nowrap/);
+    expect(wrap).toBeGreaterThan(-1);
+    expect(single).toBeGreaterThan(wrap);
   });
 });

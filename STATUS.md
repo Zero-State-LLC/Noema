@@ -6,7 +6,7 @@ The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) 
 
 ## WATCH 3D Chamber stage (2026-11-11 UTC)
 
-Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876, the privacy fix #875 and the measured accessibility fixes #885. It is live as Worker `9b1a46e0-afbc-494e-ad4d-5d8743aa935c` (pinned by #886), which also carries #881 at the owner's explicit instruction (2026-11-13). Canvas contrast was measured on 2026-11-13. The compass and help-line chips and the mobile nav that never scrolled are fixed on `fix/stage-overlay-contrast`, which is not deployed. Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
+Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876, the privacy fix #875 and the measured accessibility fixes #885. It also carries #881, at the owner's explicit instruction (2026-11-13), and the canvas-contrast and mobile-nav fixes #888. It is live as Worker `b91f4468-d5a7-4956-b118-31ac70f47c07` (pin #889). The home page's hero header still re-wrapped its nav. That fix is on `fix/hero-nav-scroll` and not deployed. Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
 
 ## #793 local fallback-presence repair (current integration 2026-11-12 UTC)
 
