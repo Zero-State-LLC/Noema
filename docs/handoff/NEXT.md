@@ -50,7 +50,10 @@ The current hand-off: latest review verdict and the next work order. Whoever fin
   - **Not on the home page:** its `hero-bleed` header re-wraps at ≤760px with a more specific selector (`body.hero-bleed .top`), so the nav stayed 399px wide.
   - **Home page fix:** a ≤700px rule after that block keeps it single-line. Wrapping still applies at 701–760px, where the header is a row.
   - **Home page fix, measured with the patch:** the nav is the screen width at 320 to 700px, and the 740px header stays one row.
-  - **Home page fix, ship status:** on branch `fix/hero-nav-scroll`, not deployed.
+  - **Home page fix, live:** merged as #890 and deployed from `main` at `bf6b12c` as Worker `5205b357-0836-46f9-995f-dfd69fcc6587`, pinned by #891.
+    - Checked after the deploy (2026-11-14), with nothing injected, on `/`, `/manifesto`, `/watch`, `/connect`, `/study`, `/privacy` and the 404 page, at 320 and 375px.
+    - On every one, the nav is the screen width and the page does not overflow. "Study" is fully opaque once scrolled to.
+    - At 740px the home header still wraps as one row.
 - **Still open:** real assistive technology, namely Safari with VoiceOver, NVDA and iPhone.
 
 ## Historical local slice (2026-11-11): #793 fallback-presence repair
