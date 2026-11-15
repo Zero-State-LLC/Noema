@@ -326,3 +326,12 @@ it("AV03 credentials signed by unrelated fixture material refuse", async () => {
   await expectRevalidationRefusal(f, rejectedToken, 401, "bad signature");
   await expectRevalidationSuccess(f);
 });
+
+it("AV04 an unsupported algorithm header refuses before Admin admission", async () => {
+  const f = await createAdminRevalidationFixture();
+  const parts = f.token.split(".");
+  parts[0] = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
+  const rejectedToken = parts.join(".");
+  await expectRevalidationRefusal(f, rejectedToken, 401, "unsupported alg none");
+  await expectRevalidationSuccess(f);
+});
