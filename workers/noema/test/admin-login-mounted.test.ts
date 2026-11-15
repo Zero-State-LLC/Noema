@@ -369,3 +369,12 @@ it("AV08 an already expired signed Admin credential refuses", async () => {
   await expectRevalidationRefusal(f, rejectedToken, 401, "token expired");
   await expectRevalidationSuccess(f);
 });
+
+it("AV09 a signed Admin credential not yet valid refuses", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256({
+    ...f.claims, nbf: REVALIDATION_NOW_S + 60,
+  }, SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 401, "token not yet valid");
+  await expectRevalidationSuccess(f);
+});
