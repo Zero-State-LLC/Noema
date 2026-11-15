@@ -198,3 +198,14 @@ it("AM06 provider server errors become private upstream refusals", async () => {
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(3);
 });
+
+it("AM07 provider transport exceptions are private and do not poison the next login", async () => {
+  const h = harness();
+  h.setReply(() => { throw new Error(PRIVATE_UPSTREAM); });
+  safeRefusal(await h.consume({ token_hash: HASH }), 502, "UPSTREAM");
+  expect(h.calls).toHaveLength(1);
+  expect(h.worldCalls).toEqual([]);
+  h.setReply(providerSuccess);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(2);
+});
