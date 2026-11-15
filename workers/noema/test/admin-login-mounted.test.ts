@@ -319,3 +319,10 @@ it("AV02 payload editing without a new signature cannot rewrite the operator", a
   await expectRevalidationRefusal(f, rejectedToken, 401, "bad signature");
   await expectRevalidationSuccess(f);
 });
+
+it("AV03 credentials signed by unrelated fixture material refuse", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256(f.claims, REVALIDATION_OTHER_SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 401, "bad signature");
+  await expectRevalidationSuccess(f);
+});
