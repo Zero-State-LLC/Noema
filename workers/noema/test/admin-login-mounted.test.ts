@@ -360,3 +360,12 @@ it("AV07 an explicit scope list without world-admin authority refuses", async ()
   await expectRevalidationRefusal(f, rejectedToken, 403, "missing noema.world.admin scope");
   await expectRevalidationSuccess(f);
 });
+
+it("AV08 an already expired signed Admin credential refuses", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256({
+    ...f.claims, exp: REVALIDATION_NOW_S - 60,
+  }, SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 401, "token expired");
+  await expectRevalidationSuccess(f);
+});
