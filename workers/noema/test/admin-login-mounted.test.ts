@@ -234,3 +234,23 @@ it("AM09 a valid legacy Admin bearer cannot become a Human through mounted me", 
   expect(h.calls).toHaveLength(before);
   expect(h.worldCalls).toEqual([]);
 });
+
+it("AM10 caller identity and Account text do not rewrite legacy attribution", async () => {
+  const h = harness();
+  const attacker = "fixture-caller-operator-not-authority";
+  const out = await h.consume({
+    token_hash: HASH,
+    operator_id: attacker,
+    identity_id: "fixture-caller-principal-not-authority",
+    account_id: "fixture-caller-account-not-authority",
+    role: "ADMIN",
+  });
+  const claims = await legacySuccess(h, out);
+  expect(claims.operator_id).toBe(EXPECTED_OPERATOR);
+  expect(claims.operator_id).not.toBe(attacker);
+  expect(claims.account_id).toBeUndefined();
+  expect(claims.identity_id).toBeUndefined();
+  expect(h.calls).toEqual([{
+    url: VERIFY, method: "POST", body: { type: "magiclink", token_hash: HASH },
+  }]);
+});
