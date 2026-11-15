@@ -185,3 +185,16 @@ it("AM05 provider client errors become uniform private 401 refusals", async () =
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(4);
 });
+
+it("AM06 provider server errors become private upstream refusals", async () => {
+  const h = harness();
+  for (const status of [500, 503]) {
+    h.setReply(() => new Response(PRIVATE_UPSTREAM, { status }));
+    safeRefusal(await h.consume({ token_hash: HASH }), 502, "UPSTREAM");
+  }
+  expect(h.calls).toHaveLength(2);
+  expect(h.worldCalls).toEqual([]);
+  h.setReply(providerSuccess);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(3);
+});
