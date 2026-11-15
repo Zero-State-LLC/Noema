@@ -172,3 +172,16 @@ it("AM04 provider role text cannot bypass the Admin mailbox gate", async () => {
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(2);
 });
+
+it("AM05 provider client errors become uniform private 401 refusals", async () => {
+  const h = harness();
+  for (const status of [400, 404, 429]) {
+    h.setReply(() => new Response(PRIVATE_UPSTREAM, { status }));
+    safeRefusal(await h.consume({ token_hash: HASH }), 401, "NOT_AUTHORIZED");
+  }
+  expect(h.calls).toHaveLength(3);
+  expect(h.worldCalls).toEqual([]);
+  h.setReply(providerSuccess);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(4);
+});
