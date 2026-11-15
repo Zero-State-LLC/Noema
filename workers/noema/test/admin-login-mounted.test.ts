@@ -156,3 +156,19 @@ it("AM03 unconfigured provider refuses before traffic and recovers when configur
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(1);
 });
+
+it("AM04 provider role text cannot bypass the Admin mailbox gate", async () => {
+  const h = harness();
+  h.setReply(() => new Response(JSON.stringify({
+    user: { id: SUBJECT, email: "not-allowed@example.com", role: "ADMIN" },
+    access_token: PROVIDER_ACCESS,
+  }), { status: 200 }));
+  const denied = await h.consume({ token_hash: HASH });
+  safeRefusal(denied, 401, "NOT_AUTHORIZED");
+  expect(denied.raw.includes("not-allowed@example.com")).toBe(false);
+  expect(h.calls).toHaveLength(1);
+  expect(h.worldCalls).toEqual([]);
+  h.setReply(providerSuccess);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(2);
+});
