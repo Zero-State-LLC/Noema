@@ -136,3 +136,13 @@ it("AM01 mounted hash login returns only a valid legacy Admin credential", async
     url: VERIFY, method: "POST", body: { type: "email", token_hash: HASH },
   }]);
 });
+
+it("AM02 missing proof refuses before provider traffic", async () => {
+  const h = harness();
+  const out = await h.consume({ token_hash: "   ", code: "   " });
+  safeRefusal(out, 400, "INVALID_REQUEST");
+  expect(h.calls).toHaveLength(0);
+  expect(h.worldCalls).toEqual([]);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(1); // Connected same-recorder positive control.
+});
