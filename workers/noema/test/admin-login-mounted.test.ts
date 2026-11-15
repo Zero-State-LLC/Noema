@@ -308,3 +308,14 @@ it("AV01 malformed compact credentials refuse without poisoning a valid session"
   await expectRevalidationRefusal(f, rejectedToken, 401, "malformed token");
   await expectRevalidationSuccess(f);
 });
+
+it("AV02 payload editing without a new signature cannot rewrite the operator", async () => {
+  const f = await createAdminRevalidationFixture();
+  const parts = f.token.split(".");
+  parts[1] = Buffer.from(JSON.stringify({
+    ...f.claims, operator_id: "op.fixture-tampered",
+  })).toString("base64url");
+  const rejectedToken = parts.join(".");
+  await expectRevalidationRefusal(f, rejectedToken, 401, "bad signature");
+  await expectRevalidationSuccess(f);
+});
