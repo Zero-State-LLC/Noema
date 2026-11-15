@@ -1,5 +1,13 @@
 # Next
 
+## Study issuer preparation — test-only handoff
+
+- Scope: [AM01–AM10 mounted legacy Admin coverage](../../workers/noema/test/admin-login-mounted.test.ts), not the new management-binding producer. The operator requested execution and a task-branch push; private plans/evidence and unrelated work are excluded. Existing work orders below retain their own independent authority.
+- These initially GREEN probes use actual Worker routes, real legacy mint/Admin verification and synthetic non-delegating provider transport. The complete new module has ten cases; the affected auth cohort preserves all 55 inherited cases plus ten, with committed-declaration typecheck. Full-suite/review/remote outcomes require their own exact-head receipts and are not inferred here.
+- `createMountedAdminLoginHarness` avoids an observed graph-name collision that otherwise dropped existing fixture call edges. No assertions or production behavior were changed. Graph refresh includes source-proven already-landed WATCH metadata catch-up, not additional product work; missing semantic enrichment is not a feature result.
+- No live provider/tenant/JWKS/email/resource access, new management protocol, Account binding, role/registry/schema/secret/settings/deploy change or acceptance promotion. A legacy Admin credential remains separate from a Human principal and from the still-unqualified fresh-event issuer witness. Specs396 remains open/not runtime-ready; RFC0131 Draft; preserve733 open/protected scratch,837,851,882/Q6,777 frozen/source0, RFC0128 and research/hosting holds.
+- Next management work still needs its separately scoped concrete event/current-Account/durable/security contract and work order. Do not repurpose these local fixture passes as real provider, browser or persistence evidence; do not reuse the consumed Specs413 missing-review exception for this branch. Publication/readiness/provider-resource gates remain distinct from the explicitly requested branch push.
+
 The current hand-off: latest review verdict and the next work order. Whoever finishes a slice or a review overwrites this file. Read it at the start of a session.
 
 ## Current #881 integration work order (2026-11-12)

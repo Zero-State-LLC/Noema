@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 7999,
-    "edgeCount": 19065,
+    "nodeCount": 8020,
+    "edgeCount": 19113,
     "languages": [
       "javascript",
       "python",
@@ -53337,7 +53337,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L2297-L2303",
-      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE\u2026:102, T0.6). */ session_id?: string; };",
+      "signature": "type ClarifyPending = { fingerprint: string; verb: string; choices: string[]; /** Session that was offered the choices; clarification is session-local (Specs MUD-NATIVE…:102, T0.6). */ session_id?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "f9c33da8ab58f7e55c7f491e21a5acf87b316b0ac56801a3df56decc7d33a3aa",
@@ -53575,7 +53575,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L132-L179",
-      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0\u2013100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
+      "signature": "type EntityRuntime = { entity_id: string; label: string; entity_type: string; /** Infrastructure condition 0–100 when known/observable */ condition?: number; /** Harvest node stock */ stock_resource?: string; stock_amount?: number; max_stock?: number; regen_rate?: number; /** RFC-0015 explicit archive claim. Never inferred. */ archive_subject_entity_id?: string; archive_claim?: \"DESTROYED\" | \"OPERATING\"; /** GC2-S0 constructing Player. Genesis assets have none. */ owner_id?: string; /** GC2-S11. First additional Player steward. Absent = sole owner. */ co_owner_id?: string; /** GC2-S20. Second additional Player steward. */ co_owner_2_id?: string; /** GC2-S21. Third additional Player steward. */ co_owner_3_id?: string; /** GC2-S22. Fourth additional Player steward. */ co_owner_4_id?: string; /** GC2-S23. Fifth additional Player steward. */ co_owner_5_id?: string; /** GC2-S12. Public dest room a route_link faces. Never a new exit. */ dest_room_id?: string; /** GC2-S0 class. Explicit wins over id/label matching. */ infra_type?: ConstructibleClass; /** Spectator / LOOK-hidden. Never inferred. */ hidden?: boolean; /** GC7-S3: further INSPECT sealed until this cycle. */ inspect_restricted_until?: number; /** GC10-S2 irreversible leftover. Not live infrastructure. */ scar?: boolean; /** GC2-S5 workshop UPGRADE. 1 = storage save 2. */ upgrade_tier?: number; /** GC2-S7. Public constructible with no steward work for 12 cycles. */ unclaimed?: boolean; last_steward_cycle?: number; /** Feature D. Cycle of last successful REPAIR. Plate residue; not a new event type. */ last_repair_cycle?: number; /** Feature D. Public handle of last successful REPAIR. Never an id. */ last_repair_handle?: string; /** GC2-S9 multi-cycle. Relay CONSTRUCT starts true; live after 1 committed cycle. */ in_progress?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e21c2250152607483502a4959fad2b42ce435217eddd816b98a7142dfa52e2f",
@@ -53645,7 +53645,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L266-L275",
-      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC \u00a73.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
+      "signature": "type InboxMessage = { message_id: string; sender_id: string; recipient_id: string; text: string; status: \"DELIVERED\"; delivered_cycle: number; /** SEMANTIC §3.4 input for cascading risk. Internal: never projected to a Player. */ grounding?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "79d759dba49ec1731d5cf8b0044982d48ad8abcecd32333eab65db004fc04b2c",
@@ -53841,7 +53841,7 @@
       "kind": "type",
       "path": "workers/noema/src/actions.ts",
       "span": "L335-L359",
-      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution\u2192player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
+      "signature": "type Organization = { org_id: string; name: string; charter: string; status: \"ACTIVE\"; creator_id: string; members: OrgMember[]; created_cycle: number; /** GC4-S1 named seats. Not membership. Not WorldState geography. */ offices?: Record<string, OfficeRecord>; public_notice?: string; /** GC5-S7 last member channel note. Current members only. */ channel?: { text: string; cycle: number }; /** GC4-S2 institution resource account. Not officer personal lots. */ treasury?: import(\"./offices\").Treasury; emergency_templates?: import(\"./emergency\").EmergencyTemplate[]; emergency_scopes?: import(\"./emergency\").EmergencyScope[]; /** Published office_id order. Earlier wins exclusive overlap. */ office_precedence?: string[]; /** GC4-S8 (RFC-0124): published configuration, not a government entity. */ governance_rule?: import(\"./governance\").GovernanceRule; governance_decisions?: import(\"./governance\").GovernanceDecisionRecord[]; /** GC3-S3 institution→player memory. Not WorldState. */ institution_memory?: import(\"./social-memory\").InstitutionMemoryState; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "09d4882c08c65b82f7ffb90407d78fd79206fff940405d57ea0b476f5ef8e655",
@@ -54912,7 +54912,7 @@
       "kind": "type",
       "path": "workers/noema/src/auth.ts",
       "span": "L215-L229",
-      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 \u2026 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
+      "signature": "type MintControllerOptions = { handle: string; controllerType?: ControllerType; /** Seconds until expiry. Default 3600. Clamped 60 … 7d, or 30d when issuedByAdmin. */ expiresIn?: number; /** Set when minted by ADMIN plane (audit claim only). */ issuedByAdmin?: boolean; /** Opaque operator scope. Only stamped when issuedByAdmin is true. Never an email. */ operatorId?: string; playerId?: string; identityId?: string; amr?: string; /** Stable Controller id. Device enroll supplies this; do not take it from the client. */ controllerId?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "bcc044564e0af779899d1e62e09ceea7d5ddf8bd8502ae7a29cdfb60e4dfe35e",
@@ -57590,7 +57590,7 @@
       "kind": "type",
       "path": "workers/noema/src/device-enrollment.ts",
       "span": "L26-L54",
-      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, \u2026). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
+      "signature": "type DeviceRecord = { device_code: string; device_code_hash: string; user_code: string; scopes: string[]; runtime: string; status: DeviceStatus; player_id: string | null; controller_id: string | null; approver_id?: string; /** Observed authentication method of the approver (`email_magic_link`, `admin_session`, …). */ approver_amr?: string; owner_email?: string; review_token_hash?: string; review_token_expires_at?: string; review_world_id?: string; review_runtime?: string; review_scopes?: string[]; review_owner_email?: string; /** Non-secret evidence created only after explicit human approval. */ approval_receipt?: string; /** Non-secret evidence that this Controller had an independent enrollment. */ independent_control_receipt?: string; /** Digest binding the evidence to this opaque Controller id. */ controller_binding_digest?: string; approved_at?: string; issued_at: string; expires_at: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "6afc122f36264a4df601c2b74ce7e88d20fe43ebb8f48f126d1974dd09b233a1",
@@ -60683,12 +60683,12 @@
       "name": "landing.ts",
       "kind": "file",
       "path": "workers/noema/src/landing.ts",
-      "span": "L1-L336",
+      "span": "L1-L340",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "377f31dd7045b55a0573cd88118bbccb5bf88d0a23a6a347e8c6df07609b4460",
-      "chars": 15463,
+      "body_hash": "348ba3249b9c16a7c588a6fa74c924b2a58985c208511cbedc8d480c083e4142",
+      "chars": 15652,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -60698,7 +60698,7 @@
       "name": "homeExcerptFromLive",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L158-L238",
+      "span": "L162-L242",
       "signature": "function homeExcerptFromLive(data: unknown): string[]",
       "exported": true,
       "origin": "ast",
@@ -60712,7 +60712,7 @@
       "name": "publicLine",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L162-L166",
+      "span": "L166-L170",
       "signature": "publicLine = (value: unknown): string",
       "exported": true,
       "origin": "ast",
@@ -60726,7 +60726,7 @@
       "name": "quiet",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L167-L167",
+      "span": "L171-L171",
       "signature": "quiet = (line: string): boolean",
       "exported": true,
       "origin": "ast",
@@ -60740,7 +60740,7 @@
       "name": "landingHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L240-L316",
+      "span": "L244-L320",
       "signature": "function landingHtml(): string",
       "exported": true,
       "origin": "ast",
@@ -60754,7 +60754,7 @@
       "name": "notFoundHtml",
       "kind": "function",
       "path": "workers/noema/src/landing.ts",
-      "span": "L318-L335",
+      "span": "L322-L339",
       "signature": "function notFoundHtml(): string",
       "exported": true,
       "origin": "ast",
@@ -68213,12 +68213,12 @@
       "name": "shell.ts",
       "kind": "file",
       "path": "workers/noema/src/shell.ts",
-      "span": "L1-L460",
+      "span": "L1-L463",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "45da08337e146b807da9caffac2cd565f82373b3cbffd63193a0b339e8f0e9e4",
-      "chars": 20962,
+      "body_hash": "bdfcf065eed97754203d510d7d46993ad893415cdfabb94c9b1771eedbb1a744",
+      "chars": 21279,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68228,7 +68228,7 @@
       "name": "ProductNav",
       "kind": "type",
       "path": "workers/noema/src/shell.ts",
-      "span": "L328-L328",
+      "span": "L331-L331",
       "signature": "type ProductNav = \"home\" | \"manifesto\" | \"play\" | \"watch\" | \"study\" | \"connect\";",
       "exported": true,
       "origin": "ast",
@@ -68242,11 +68242,11 @@
       "name": "productShell",
       "kind": "function",
       "path": "workers/noema/src/shell.ts",
-      "span": "L332-L459",
+      "span": "L335-L462",
       "signature": "function productShell(opts: { title: string; active?: ProductNav; body: string; extraCss?: string; description?: string; bleed?: boolean; /** Canonical path for pages outside the primary nav (e.g. /privacy). */ canonicalPath?: string; }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "f71e3eff02bd62ce61b7d10c004d5d20dd0eb6d15b1c01ed906831c175e1d15f",
+      "body_hash": "0d275fd47c8cb1a3837b8b348bc5b84933fe0d3370a8310d8eadf8472c219293",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -68256,7 +68256,7 @@
       "name": "nav",
       "kind": "function",
       "path": "workers/noema/src/shell.ts",
-      "span": "L342-L343",
+      "span": "L345-L346",
       "signature": "nav = (href: string, label: string, key: ProductNav)",
       "exported": true,
       "origin": "ast",
@@ -68525,7 +68525,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L44-L49",
-      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
+      "signature": "type DangerMemoryState = { catalog_id: typeof DANGER_MEMORY_CATALOG_ID; /** object_player_id → distinct danger evidence ids */ edges: Record<string, string[]>; at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "92378cc9eeea472b13ae9f54110699b9f378cad0a4fa99eae9bbeee334fd837e",
@@ -68903,7 +68903,7 @@
       "kind": "type",
       "path": "workers/noema/src/social-memory.ts",
       "span": "L36-L42",
-      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id \u2192 distinct accepted trade_ids */ edges: Record<string, string[]>; /** object \u2192 evidence id \u2192 cycle credited */ at?: Record<string, Record<string, number>>; };",
+      "signature": "type TradeMemoryState = { catalog_id: typeof SOCIAL_MEMORY_CATALOG_ID; /** object_player_id → distinct accepted trade_ids */ edges: Record<string, string[]>; /** object → evidence id → cycle credited */ at?: Record<string, Record<string, number>>; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "7b2924418e787e5e4aa77061fa27eba3a749939a8c8b34e97c0c911189dbf17b",
@@ -70410,7 +70410,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-live.ts",
       "span": "L30-L44",
-      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** \u00a76: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** \u00a74.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
+      "signature": "type WatchEvent = { sequence: number; cycle: number; tier: WatchTier; projection_id: string; line: string; glyph?: string; room_id?: string; occurred_at?: number; detail?: string; /** §6: public handle of the acting Player; omitted (never \"A player\") when not public. */ actor_label?: string; /** §4.A.1 / Gate D C5: server-derived public consequence; omitted when unprovable. */ consequence?: string; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d54830e2e8af898dc269459fec2211ab687a7408ed112392e4701dea0824f191",
@@ -72207,7 +72207,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L165-L174",
-      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence \u2014 caps keep the newest across polls (\u00a718.6 rule 3). */ sequence?: number; /** Public agent_move \u2014 lights public edges touching the room (exit_active). */ move?: boolean; };",
+      "signature": "type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */ sequence?: number; /** Public agent_move — lights public edges touching the room (exit_active). */ move?: boolean; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "4e959c4362f2f9c211d2ce7c2fd5edba07da8c9c819f9aa698e0d6b2ca02d40a",
@@ -72235,7 +72235,7 @@
       "kind": "type",
       "path": "workers/noema/src/watch-phosphor.ts",
       "span": "L1032-L1047",
-      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** \u00a74.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
+      "signature": "type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };",
       "exported": true,
       "origin": "ast",
       "body_hash": "d46f8296447a56cf44e40bd7dc48d0f75e603556248f650553f7a802e2e433b5",
@@ -73189,12 +73189,12 @@
       "name": "watch-stage-view.ts",
       "kind": "file",
       "path": "workers/noema/src/watch-stage-view.ts",
-      "span": "L1-L106",
+      "span": "L1-L107",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "5d673ac173dcf9aa1f19c5dcdf62ee88e335e95118ec325f4748907ebedf9e7d",
-      "chars": 6848,
+      "body_hash": "d8ae0d1ccbd3ad90723bc8186b577c1da11bf4e51417805a82b39181211aea6c",
+      "chars": 7204,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -73387,12 +73387,12 @@
       "name": "watch.ts",
       "kind": "file",
       "path": "workers/noema/src/watch.ts",
-      "span": "L1-L1350",
+      "span": "L1-L1352",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "0a2c196428bef318a4cf2aa675aab379ba63edd4179ac133cf17f71c5c5842e8",
-      "chars": 63861,
+      "body_hash": "bae51422c03da730bddd4019de736a3800c9d91844487865c6a928ddfe962f42",
+      "chars": 64032,
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -73402,11 +73402,11 @@
       "name": "watchHtml",
       "kind": "function",
       "path": "workers/noema/src/watch.ts",
-      "span": "L281-L1349",
+      "span": "L283-L1351",
       "signature": "function watchHtml(opts?: { mode?: string }): string",
       "exported": true,
       "origin": "ast",
-      "body_hash": "e5746a660df132f1893aa8d6c4213c9ff0e4f897168a50da7dca931a192ee076",
+      "body_hash": "da08b49630f754acf52bf826a3a762935a35b4553bdb5defc47f9e2053a830b6",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -76491,6 +76491,147 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "0efa57d714ed5703909081ee14f79b337d2bff6dea2d1385f7afa9db3339da51",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts",
+      "name": "admin-login-mounted.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L1-L257",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "7c99c7a3b6a282a52bb01c1c0ebe5dc6568afea4583afd7eb3c6c619ea3887c0",
+      "chars": 10946,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "name": "createMountedAdminLoginHarness",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L37-L84",
+      "signature": "function createMountedAdminLoginHarness(overrides: Partial<Env> = {})",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "7b8f0a3b14aa11899e4e33bca43b0a229f7678037adb38a67ff0d85cd72f1468",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.consume",
+      "name": "consume",
+      "kind": "method",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L72-L82",
+      "signature": "async consume(body: Record<string, unknown>): Promise<Output>",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "ac74569549a2a6fb89cf75a029ed324fdbfae19d7735a64692459236c07b8267",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.forbidWorld",
+      "name": "forbidWorld",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L41-L44",
+      "signature": "forbidWorld = (name: string): never",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d9f963388d7963d80a6c72c178f16e92bb07bed7afc6d3264343f66010eb6e1c",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.setReply",
+      "name": "setReply",
+      "kind": "method",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L71-L71",
+      "signature": "setReply(next: Reply)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "df869ca890b1123173b4b1d36936a141c086db1b0b814c3e9939e7064569c9eb",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "name": "legacySuccess",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L98-L126",
+      "signature": "async function legacySuccess(h: ReturnType<typeof createMountedAdminLoginHarness>, out: Output)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a081d166ccd94f757e263436f9639ec4aafddb87aa5a024902eba182511782b7",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#Output",
+      "name": "Output",
+      "kind": "type",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L22-L26",
+      "signature": "type Output = { response: Response; raw: string; body: Record<string, unknown>; };",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "69a6207a5c3efcbbe158e7b4d5fe16adaca7e34227fffbab3eb97f4f26e25422",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#providerSuccess",
+      "name": "providerSuccess",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L29-L35",
+      "signature": "function providerSuccess(): Response",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "77ccccf519d92e6c7dac646ff4a775ca1713ac593bb3d6472881d913bd79430d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#Reply",
+      "name": "Reply",
+      "kind": "type",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L27-L27",
+      "signature": "type Reply = () => Response | Promise<Response>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "311c777e0be1fb91bc1f9cc957123aeb170a3b6c15d6bfe212697f45ca956028",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#safeRefusal",
+      "name": "safeRefusal",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L86-L96",
+      "signature": "function safeRefusal(out: Output, status: number, code: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "33c0fe1e1f8c1d88eac147b2caf7a62101a4061ab7ca8b8f99442e4fb227c158",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -96671,12 +96812,68 @@
       "name": "watch-map-label-legibility.test.ts",
       "kind": "file",
       "path": "workers/noema/test/watch-map-label-legibility.test.ts",
-      "span": "L1-L38",
+      "span": "L1-L94",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "86cae4bfb09ed7cb620c236937480a0ca4a9e81bd5bd401f84ca1ca2dd7df04e",
-      "chars": 1807,
+      "body_hash": "f00c9788bab4996cf0156d9b4edbd6ca679a7d40a8473eecc0f8f6c0a21c97b1",
+      "chars": 4469,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#contrast",
+      "name": "contrast",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L60-L63",
+      "signature": "contrast = (a: number[], b: number[])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "17ff0aec08cc1fa69449cd816631a26c341b0a2169ca54086e1640767689ea06",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#lin",
+      "name": "lin",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L51-L54",
+      "signature": "function lin(channel: number): number",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "475f1d5e175d6f3e1fb077835f778ed9c06504c7c436ef36ce269a4032b9f24d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#luminance",
+      "name": "luminance",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L59-L59",
+      "signature": "luminance = ([r, g, b]: number[])",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "998bb92d360f19d50a3d1c408cb1c80e258a0f99b0975b2eb4b2189790e30d3d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#rgb",
+      "name": "rgb",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L55-L58",
+      "signature": "rgb = (hex: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "69796948e462355831a37db67d6bf4760c868c1d9748f723b854cb15dd6c3133",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -96686,11 +96883,39 @@
       "name": "rule",
       "kind": "function",
       "path": "workers/noema/test/watch-map-label-legibility.test.ts",
-      "span": "L13-L17",
+      "span": "L14-L18",
       "signature": "function rule(selector: string): string",
       "exported": false,
       "origin": "ast",
       "body_hash": "5472725133ed68fd5d3be3e4e0145a664c42bfe757be7cd557d9d997876f395a",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#rules",
+      "name": "rules",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L41-L44",
+      "signature": "function rules(selector: string): string",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a030fca4069f10f55506bccde8d4384196ec1b8ad29eea7941d9dfac1c11907f",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-map-label-legibility.test.ts#voidChip",
+      "name": "voidChip",
+      "kind": "function",
+      "path": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "span": "L46-L49",
+      "signature": "function voidChip(declarations: string): number | null",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "f20af32d6f1636368a71356e8ae6d7841488798fa4822af39fe94c009ef8fefb",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -96734,6 +96959,77 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "48525d801f84c5b01594d7172768c0db373ef8f1954b40f2c1ece7ae6a76b6a5",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-measured-a11y.test.ts",
+      "name": "watch-measured-a11y.test.ts",
+      "kind": "file",
+      "path": "workers/noema/test/watch-measured-a11y.test.ts",
+      "span": "L1-L109",
+      "signature": null,
+      "exported": true,
+      "origin": "ast",
+      "body_hash": "b4b83003e110189eae8614534ba33949bd9bb2ff98cc3f3ce356cc52438ae228",
+      "chars": 5457,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-measured-a11y.test.ts#contrast",
+      "name": "contrast",
+      "kind": "function",
+      "path": "workers/noema/test/watch-measured-a11y.test.ts",
+      "span": "L30-L33",
+      "signature": "function contrast(a: number[], b: number[]): number",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d308fb631403141cb21e3cbebdff1d442fd8ea8c8fdaa2853a8674ad70013406",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-measured-a11y.test.ts#lin",
+      "name": "lin",
+      "kind": "function",
+      "path": "workers/noema/test/watch-measured-a11y.test.ts",
+      "span": "L16-L19",
+      "signature": "function lin(channel: number): number",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "475f1d5e175d6f3e1fb077835f778ed9c06504c7c436ef36ce269a4032b9f24d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-measured-a11y.test.ts#luminance",
+      "name": "luminance",
+      "kind": "function",
+      "path": "workers/noema/test/watch-measured-a11y.test.ts",
+      "span": "L26-L28",
+      "signature": "function luminance([r, g, b]: number[]): number",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "afe68ddf93c0a1f39e81e0105bf9dea0c6001c3fc30cd3c661daf3316dea2631",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/watch-measured-a11y.test.ts#rgb",
+      "name": "rgb",
+      "kind": "function",
+      "path": "workers/noema/test/watch-measured-a11y.test.ts",
+      "span": "L21-L24",
+      "signature": "function rgb(hex: string): number[]",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "d4af0baa6d96a94f627c6b977110f7946c03813062f1683dd4fa8a4d394d542c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -187540,6 +187836,126 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#safeRefusal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#Output",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#providerSuccess",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#Reply",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#safeRefusal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/src/admin-auth.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/src/index.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/src/jwt.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/src/types.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.forbidWorld",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.consume",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.forbidWorld",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.setReply",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "target": "workers/noema/src/admin-auth.ts#resolveAdmin",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "target": "workers/noema/src/jwt.ts#verifyHs256",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
       "source": "workers/noema/test/admission-mode-default.test.ts",
       "target": "workers/noema/src/player-tempo.ts#admitTempoAction",
       "relation": "calls",
@@ -218465,13 +218881,73 @@
     },
     {
       "source": "workers/noema/test/watch-map-label-legibility.test.ts",
-      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rule",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#contrast",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rgb",
       "relation": "calls",
       "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/watch-map-label-legibility.test.ts",
       "target": "workers/noema/test/watch-map-label-legibility.test.ts#rule",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rules",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#voidChip",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#contrast",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#lin",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#luminance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rgb",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rule",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#rules",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#voidChip",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -218483,8 +218959,26 @@
     },
     {
       "source": "workers/noema/test/watch-map-label-legibility.test.ts",
+      "target": "workers/noema/src/theme/tokens.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts",
       "target": "workers/noema/src/watch-stage-view.ts",
       "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts#contrast",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#luminance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-map-label-legibility.test.ts#luminance",
+      "target": "workers/noema/test/watch-map-label-legibility.test.ts#lin",
+      "relation": "calls",
       "confidence": "extracted"
     },
     {
@@ -218624,6 +219118,96 @@
       "target": "workers/noema/src/watch-live.ts#buildWatchLive",
       "relation": "calls",
       "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/landing.ts#landingHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/watch.ts#watchHtml",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#contrast",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#rgb",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#contrast",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#lin",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#luminance",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#rgb",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "vitest",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/landing.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/shell.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/theme/tokens.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts",
+      "target": "workers/noema/src/watch.ts",
+      "relation": "imports",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts#contrast",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#luminance",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/watch-measured-a11y.test.ts#luminance",
+      "target": "workers/noema/test/watch-measured-a11y.test.ts#lin",
+      "relation": "calls",
+      "confidence": "extracted"
     },
     {
       "source": "workers/noema/test/watch-perihelion-subgraph.test.ts",
