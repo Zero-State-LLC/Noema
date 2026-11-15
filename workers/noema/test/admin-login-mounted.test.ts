@@ -343,3 +343,11 @@ it("AV05 a signed non-Admin credential type cannot borrow an Admin role", async 
     "not an ADMIN session — use operator login");
   await expectRevalidationSuccess(f);
 });
+
+it("AV06 the Admin credential type cannot compensate for a non-Admin role", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256({ ...f.claims, role: "HUMAN" }, SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 403,
+    "not an ADMIN session — use operator login");
+  await expectRevalidationSuccess(f);
+});
