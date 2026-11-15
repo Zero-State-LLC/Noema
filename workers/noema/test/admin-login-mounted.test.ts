@@ -34,7 +34,7 @@ function providerSuccess(): Response {
   }), { status: 200 });
 }
 
-function harness(overrides: Partial<Env> = {}) {
+function createMountedAdminLoginHarness(overrides: Partial<Env> = {}) {
   let reply: Reply = providerSuccess;
   const calls: Array<{ url: string; method: string; body: unknown }> = [];
   const worldCalls: string[] = [];
@@ -95,7 +95,7 @@ function safeRefusal(out: Output, status: number, code: string) {
   }
 }
 
-async function legacySuccess(h: ReturnType<typeof harness>, out: Output) {
+async function legacySuccess(h: ReturnType<typeof createMountedAdminLoginHarness>, out: Output) {
   expect(out.response.status).toBe(200);
   expect(Object.keys(out.body).sort()).toEqual(EXPECTED_SUCCESS_KEYS);
   expect(out.body.role).toBe("ADMIN");
@@ -129,7 +129,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 
 
 it("AM01 mounted hash login returns only a valid legacy Admin credential", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   const out = await h.consume({ token_hash: HASH, type: "email" });
   await legacySuccess(h, out);
   expect(h.calls).toEqual([{
@@ -138,7 +138,7 @@ it("AM01 mounted hash login returns only a valid legacy Admin credential", async
 });
 
 it("AM02 missing proof refuses before provider traffic", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   const out = await h.consume({ token_hash: "   ", code: "   " });
   safeRefusal(out, 400, "INVALID_REQUEST");
   expect(h.calls).toHaveLength(0);
@@ -148,7 +148,7 @@ it("AM02 missing proof refuses before provider traffic", async () => {
 });
 
 it("AM03 unconfigured provider refuses before traffic and recovers when configured", async () => {
-  const h = harness({ SUPABASE_SERVICE_ROLE_KEY: "" });
+  const h = createMountedAdminLoginHarness({ SUPABASE_SERVICE_ROLE_KEY: "" });
   safeRefusal(await h.consume({ token_hash: HASH }), 503, "NOT_CONFIGURED");
   expect(h.calls).toHaveLength(0);
   expect(h.worldCalls).toEqual([]);
@@ -158,7 +158,7 @@ it("AM03 unconfigured provider refuses before traffic and recovers when configur
 });
 
 it("AM04 provider role text cannot bypass the Admin mailbox gate", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   h.setReply(() => new Response(JSON.stringify({
     user: { id: SUBJECT, email: "not-allowed@example.com", role: "ADMIN" },
     access_token: PROVIDER_ACCESS,
@@ -174,7 +174,7 @@ it("AM04 provider role text cannot bypass the Admin mailbox gate", async () => {
 });
 
 it("AM05 provider client errors become uniform private 401 refusals", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   for (const status of [400, 404, 429]) {
     h.setReply(() => new Response(PRIVATE_UPSTREAM, { status }));
     safeRefusal(await h.consume({ token_hash: HASH }), 401, "NOT_AUTHORIZED");
@@ -187,7 +187,7 @@ it("AM05 provider client errors become uniform private 401 refusals", async () =
 });
 
 it("AM06 provider server errors become private upstream refusals", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   for (const status of [500, 503]) {
     h.setReply(() => new Response(PRIVATE_UPSTREAM, { status }));
     safeRefusal(await h.consume({ token_hash: HASH }), 502, "UPSTREAM");
@@ -200,7 +200,7 @@ it("AM06 provider server errors become private upstream refusals", async () => {
 });
 
 it("AM07 provider transport exceptions are private and do not poison the next login", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   h.setReply(() => { throw new Error(PRIVATE_UPSTREAM); });
   safeRefusal(await h.consume({ token_hash: HASH }), 502, "UPSTREAM");
   expect(h.calls).toHaveLength(1);
@@ -211,7 +211,7 @@ it("AM07 provider transport exceptions are private and do not poison the next lo
 });
 
 it("AM08 partial confirmation HTTP200 without mailbox is not Admin success", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   h.setReply(() => new Response(JSON.stringify({ msg: PRIVATE_UPSTREAM }), { status: 200 }));
   safeRefusal(await h.consume({ token_hash: HASH }), 401, "NOT_AUTHORIZED");
   expect(h.calls).toHaveLength(1);
@@ -222,7 +222,7 @@ it("AM08 partial confirmation HTTP200 without mailbox is not Admin success", asy
 });
 
 it("AM09 a valid legacy Admin bearer cannot become a Human through mounted me", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   const login = await h.consume({ token_hash: HASH });
   await legacySuccess(h, login);
   const before = h.calls.length;
@@ -236,7 +236,7 @@ it("AM09 a valid legacy Admin bearer cannot become a Human through mounted me", 
 });
 
 it("AM10 caller identity and Account text do not rewrite legacy attribution", async () => {
-  const h = harness();
+  const h = createMountedAdminLoginHarness();
   const attacker = "fixture-caller-operator-not-authority";
   const out = await h.consume({
     token_hash: HASH,
