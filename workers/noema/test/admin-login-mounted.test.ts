@@ -209,3 +209,14 @@ it("AM07 provider transport exceptions are private and do not poison the next lo
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(2);
 });
+
+it("AM08 partial confirmation HTTP200 without mailbox is not Admin success", async () => {
+  const h = harness();
+  h.setReply(() => new Response(JSON.stringify({ msg: PRIVATE_UPSTREAM }), { status: 200 }));
+  safeRefusal(await h.consume({ token_hash: HASH }), 401, "NOT_AUTHORIZED");
+  expect(h.calls).toHaveLength(1);
+  expect(h.worldCalls).toEqual([]);
+  h.setReply(providerSuccess);
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(2);
+});
