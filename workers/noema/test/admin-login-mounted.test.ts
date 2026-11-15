@@ -351,3 +351,12 @@ it("AV06 the Admin credential type cannot compensate for a non-Admin role", asyn
     "not an ADMIN session — use operator login");
   await expectRevalidationSuccess(f);
 });
+
+it("AV07 an explicit scope list without world-admin authority refuses", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256({
+    ...f.claims, scopes: ["noema.simulation.admin"],
+  }, SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 403, "missing noema.world.admin scope");
+  await expectRevalidationSuccess(f);
+});
