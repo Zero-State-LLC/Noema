@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import worker from "../src/index";
 import { resolveAdmin } from "../src/admin-auth";
-import { verifyHs256 } from "../src/jwt";
+import { mintHs256, verifyHs256 } from "../src/jwt";
 import type { Env } from "../src/types";
 
 // Every value here is synthetic. Never substitute a real tenant or credential.
@@ -125,7 +125,7 @@ async function legacySuccess(h: ReturnType<typeof createMountedAdminLoginHarness
   return claims;
 }
 
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 
 it("AM01 mounted hash login returns only a valid legacy Admin credential", async () => {
@@ -253,4 +253,58 @@ it("AM10 caller identity and Account text do not rewrite legacy attribution", as
   expect(h.calls).toEqual([{
     url: VERIFY, method: "POST", body: { type: "magiclink", token_hash: HASH },
   }]);
+});
+
+// Fixed synthetic clock and signing material; never a production rotation.
+const REVALIDATION_NOW_MS = 1_800_000_000_000;
+const REVALIDATION_NOW_S = 1_800_000_000;
+const REVALIDATION_OTHER_SIGNING = "fixture-only-unrelated-revalidation-key";
+
+async function createAdminRevalidationFixture() {
+  vi.spyOn(Date, "now").mockReturnValue(REVALIDATION_NOW_MS);
+  const mounted = createMountedAdminLoginHarness();
+  const login = await mounted.consume({ token_hash: HASH });
+  const claims = await legacySuccess(mounted, login);
+  return { mounted, token: String(login.body.access_token), claims };
+}
+type AdminRevalidationFixture = Awaited<ReturnType<typeof createAdminRevalidationFixture>>;
+
+function readRevalidationAdmin(f: AdminRevalidationFixture, token: string) {
+  return resolveAdmin(new Request("https://admin-fixture.invalid/admin", {
+    headers: { Authorization: ["Bearer", token].join(" ") },
+  }), f.mounted.env);
+}
+
+async function expectRevalidationRefusal(
+  f: AdminRevalidationFixture, token: string, status: number, message: string,
+) {
+  const result = await readRevalidationAdmin(f, token);
+  expect(result, "legacy Admin refusal must be a Response").toBeInstanceOf(Response);
+  if (!(result instanceof Response)) throw new Error("fixture expected refusal");
+  const raw = await result.text();
+  const body = JSON.parse(raw) as Record<string, unknown>;
+  safeRefusal({ response: result, raw, body }, status, "NOT_AUTHORIZED");
+  expect((body.error as Record<string, unknown>).message).toBe(message);
+  expect(f.mounted.calls).toHaveLength(1);
+  expect(f.mounted.worldCalls).toEqual([]);
+}
+
+async function expectRevalidationSuccess(f: AdminRevalidationFixture) {
+  const principal = await readRevalidationAdmin(f, f.token);
+  expect(principal).not.toBeInstanceOf(Response);
+  if (principal instanceof Response) throw new Error("fixture healthy Admin refused");
+  expect(principal).toEqual({
+    role: "ADMIN", session_id: f.claims.session_id,
+    scopes: ["noema.world.admin", "noema.simulation.admin"],
+    authentication_context: "email_magic_link", operator_id: EXPECTED_OPERATOR,
+  });
+  expect(f.mounted.calls).toHaveLength(1);
+  expect(f.mounted.worldCalls).toEqual([]);
+}
+
+it("AV01 malformed compact credentials refuse without poisoning a valid session", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = "fixture-not-a-compact-token";
+  await expectRevalidationRefusal(f, rejectedToken, 401, "malformed token");
+  await expectRevalidationSuccess(f);
 });
