@@ -378,3 +378,15 @@ it("AV09 a signed Admin credential not yet valid refuses", async () => {
   await expectRevalidationRefusal(f, rejectedToken, 401, "token not yet valid");
   await expectRevalidationSuccess(f);
 });
+
+it("AV10 each resolution reads the current synthetic signing configuration", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = f.token;
+  f.mounted.env.TOKEN_SIGNING_SECRET = REVALIDATION_OTHER_SIGNING;
+  try {
+    await expectRevalidationRefusal(f, rejectedToken, 401, "bad signature");
+  } finally {
+    f.mounted.env.TOKEN_SIGNING_SECRET = SIGNING;
+  }
+  await expectRevalidationSuccess(f);
+});
