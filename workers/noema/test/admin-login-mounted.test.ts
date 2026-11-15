@@ -220,3 +220,17 @@ it("AM08 partial confirmation HTTP200 without mailbox is not Admin success", asy
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(2);
 });
+
+it("AM09 a valid legacy Admin bearer cannot become a Human through mounted me", async () => {
+  const h = harness();
+  const login = await h.consume({ token_hash: HASH });
+  await legacySuccess(h, login);
+  const before = h.calls.length;
+  const response = await worker.fetch(new Request("https://admin-fixture.invalid/v1/me", {
+    headers: { Authorization: `Bearer ${String(login.body.access_token)}` },
+  }), h.env);
+  const raw = await response.text();
+  safeRefusal({ response, raw, body: JSON.parse(raw) as Record<string, unknown> }, 401, "NOT_AUTHORIZED");
+  expect(h.calls).toHaveLength(before);
+  expect(h.worldCalls).toEqual([]);
+});
