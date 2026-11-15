@@ -146,3 +146,13 @@ it("AM02 missing proof refuses before provider traffic", async () => {
   await legacySuccess(h, await h.consume({ token_hash: HASH }));
   expect(h.calls).toHaveLength(1); // Connected same-recorder positive control.
 });
+
+it("AM03 unconfigured provider refuses before traffic and recovers when configured", async () => {
+  const h = harness({ SUPABASE_SERVICE_ROLE_KEY: "" });
+  safeRefusal(await h.consume({ token_hash: HASH }), 503, "NOT_CONFIGURED");
+  expect(h.calls).toHaveLength(0);
+  expect(h.worldCalls).toEqual([]);
+  h.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE; // Synthetic fixture intervention only.
+  await legacySuccess(h, await h.consume({ token_hash: HASH }));
+  expect(h.calls).toHaveLength(1);
+});
