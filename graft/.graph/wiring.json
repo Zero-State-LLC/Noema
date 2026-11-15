@@ -1,8 +1,8 @@
 {
   "meta": {
     "version": 1,
-    "nodeCount": 8020,
-    "edgeCount": 19113,
+    "nodeCount": 8025,
+    "edgeCount": 19128,
     "languages": [
       "javascript",
       "python",
@@ -76500,12 +76500,40 @@
       "name": "admin-login-mounted.test.ts",
       "kind": "file",
       "path": "workers/noema/test/admin-login-mounted.test.ts",
-      "span": "L1-L257",
+      "span": "L1-L393",
       "signature": null,
       "exported": true,
       "origin": "ast",
-      "body_hash": "7c99c7a3b6a282a52bb01c1c0ebe5dc6568afea4583afd7eb3c6c619ea3887c0",
-      "chars": 10946,
+      "body_hash": "7309cbf8ced6f57448a36320ee1ce1e2deaa385f7ca33fe800efbcbb25fb6a51",
+      "chars": 17000,
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#AdminRevalidationFixture",
+      "name": "AdminRevalidationFixture",
+      "kind": "type",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L270-L270",
+      "signature": "type AdminRevalidationFixture = Awaited<ReturnType<typeof createAdminRevalidationFixture>>;",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "9a9c46d6e5d890f079aa2cdc367cc33f2494fc7c41bb0c464c60be6168f82d6b",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#createAdminRevalidationFixture",
+      "name": "createAdminRevalidationFixture",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L263-L269",
+      "signature": "async function createAdminRevalidationFixture()",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "10773d373c8c18f3cf23782dff6103d3bc88e1db8dc272277ccce01e79befeb6",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -76567,6 +76595,34 @@
       "crux": null
     },
     {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationRefusal",
+      "name": "expectRevalidationRefusal",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L278-L290",
+      "signature": "async function expectRevalidationRefusal( f: AdminRevalidationFixture, token: string, status: number, message: string, )",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "27ff5f9a8beb39a531f665f344c737ea354dcd577483b91b5e869f726b3045b4",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationSuccess",
+      "name": "expectRevalidationSuccess",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L292-L303",
+      "signature": "async function expectRevalidationSuccess(f: AdminRevalidationFixture)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "1f269b77307c373e97c99e33eed76055c4b6acea862a7f888cd37408786f8bc2",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
       "id": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
       "name": "legacySuccess",
       "kind": "function",
@@ -76604,6 +76660,20 @@
       "exported": false,
       "origin": "ast",
       "body_hash": "77ccccf519d92e6c7dac646ff4a775ca1713ac593bb3d6472881d913bd79430d",
+      "summary_state": "pending",
+      "summary": null,
+      "crux": null
+    },
+    {
+      "id": "workers/noema/test/admin-login-mounted.test.ts#readRevalidationAdmin",
+      "name": "readRevalidationAdmin",
+      "kind": "function",
+      "path": "workers/noema/test/admin-login-mounted.test.ts",
+      "span": "L272-L276",
+      "signature": "function readRevalidationAdmin(f: AdminRevalidationFixture, token: string)",
+      "exported": false,
+      "origin": "ast",
+      "body_hash": "a7e6256287cd0cd18c08dddadd87211b008fe58fcd6ca2b11752bbac262b7a9c",
       "summary_state": "pending",
       "summary": null,
       "crux": null
@@ -187837,7 +187907,31 @@
     },
     {
       "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/src/jwt.ts#mintHs256",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createAdminRevalidationFixture",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
       "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationRefusal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationSuccess",
       "relation": "calls",
       "confidence": "extracted"
     },
@@ -187855,7 +187949,31 @@
     },
     {
       "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#AdminRevalidationFixture",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createAdminRevalidationFixture",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
       "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationRefusal",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationSuccess",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -187874,6 +187992,12 @@
     {
       "source": "workers/noema/test/admin-login-mounted.test.ts",
       "target": "workers/noema/test/admin-login-mounted.test.ts#providerSuccess",
+      "relation": "contains",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#readRevalidationAdmin",
       "relation": "contains",
       "confidence": "extracted"
     },
@@ -187920,6 +188044,18 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createAdminRevalidationFixture",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#createAdminRevalidationFixture",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness",
       "target": "workers/noema/test/admin-login-mounted.test.ts#createMountedAdminLoginHarness.forbidWorld",
       "relation": "calls",
@@ -187944,6 +188080,24 @@
       "confidence": "extracted"
     },
     {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationRefusal",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#readRevalidationAdmin",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationRefusal",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#safeRefusal",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#expectRevalidationSuccess",
+      "target": "workers/noema/test/admin-login-mounted.test.ts#readRevalidationAdmin",
+      "relation": "calls",
+      "confidence": "extracted"
+    },
+    {
       "source": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
       "target": "workers/noema/src/admin-auth.ts#resolveAdmin",
       "relation": "calls",
@@ -187952,6 +188106,12 @@
     {
       "source": "workers/noema/test/admin-login-mounted.test.ts#legacySuccess",
       "target": "workers/noema/src/jwt.ts#verifyHs256",
+      "relation": "calls",
+      "confidence": "inferred"
+    },
+    {
+      "source": "workers/noema/test/admin-login-mounted.test.ts#readRevalidationAdmin",
+      "target": "workers/noema/src/admin-auth.ts#resolveAdmin",
       "relation": "calls",
       "confidence": "inferred"
     },
