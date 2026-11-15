@@ -335,3 +335,11 @@ it("AV04 an unsupported algorithm header refuses before Admin admission", async 
   await expectRevalidationRefusal(f, rejectedToken, 401, "unsupported alg none");
   await expectRevalidationSuccess(f);
 });
+
+it("AV05 a signed non-Admin credential type cannot borrow an Admin role", async () => {
+  const f = await createAdminRevalidationFixture();
+  const rejectedToken = await mintHs256({ ...f.claims, typ: "platform" }, SIGNING);
+  await expectRevalidationRefusal(f, rejectedToken, 403,
+    "not an ADMIN session — use operator login");
+  await expectRevalidationSuccess(f);
+});
