@@ -69,7 +69,7 @@ export type StatusGlanceRow = { label: string; value: string };
 
 export type HappenedBeat = {
   tried: string;
-  outcome: "ok" | "fail" | "partial";
+  outcome: "ok" | "fail" | "partial" | "wait";
   changed?: string;
   next?: string;
   advanced?: string;
@@ -156,7 +156,7 @@ export function fourBeatFromResult(opts: {
   if (opts.ok) {
     return {
       tried,
-      outcome: opts.partial ? "partial" : "ok",
+      outcome: opts.partial ? "partial" : verb === "wait" ? "wait" : "ok",
       changed: String(opts.consequence || "").trim() || undefined,
       next,
     };
@@ -258,7 +258,10 @@ export function lowNoiseRoomText(model: RoomPresentationModel): string {
   if (model.happenedBeats) {
     lines.push("HAPPENED");
     lines.push(model.happenedBeats.tried);
-    lines.push(model.happenedBeats.outcome);
+    // Craft §5.1's public token for a completed rest is ok. The tried line is
+    // "You wait." The wait discriminator stays on the beat (#779) and does not
+    // replace that public token (#850).
+    lines.push(model.happenedBeats.outcome === "wait" ? "ok" : model.happenedBeats.outcome);
     if (model.happenedBeats.changed) lines.push(model.happenedBeats.changed);
     if (model.happenedBeats.next) lines.push(model.happenedBeats.next);
   } else if (model.happened) {
