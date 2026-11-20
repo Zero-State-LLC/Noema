@@ -2,7 +2,8 @@
  * Public privacy notice. Written only from behavior in this repository:
  * play-auth.ts (watch link), auth.ts (24h platform token), rate-limit.ts,
  * device-enrollment.ts, settle.ts, browser storage keys, wrangler.toml
- * observability, the CSP, and the zone-injected Cloudflare Web Analytics beacon.
+ * observability, the CSP, the zone-injected Cloudflare Web Analytics beacon,
+ * and the first-party Google Analytics 4 loader on public product pages.
  * Owner review required before it changes.
  */
 
@@ -44,7 +45,8 @@ export function privacyHtml(): string {
     </ul>
 
     <h2>Analytics</h2>
-    <p>Cloudflare adds Cloudflare Web Analytics to these pages. Its script loads from <code>static.cloudflareinsights.com</code>, does not use cookies, and reports page views and page-load timing to Cloudflare. NOEMA uses no other analytics or advertising tools.</p>
+    <p>Cloudflare adds Cloudflare Web Analytics to these pages. Its script loads from <code>static.cloudflareinsights.com</code>, does not use cookies, and reports page views and page-load timing to Cloudflare.</p>
+    <p>First-party code on public pages loads Google's gtag from <code>googletagmanager.com</code> and sends page-view measurements to Google using measurement ID <code>G-5ZFZWMSG4W</code>, only on noema.guru.</p>
 
     <h2>Hosting and logs</h2>
     <ul>
