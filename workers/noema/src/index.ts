@@ -96,8 +96,14 @@ export { NoemaWorldDO };
 // beacon script loads from static.cloudflareinsights.com (script-src) and
 // reports to this origin's /cdn-cgi/rum, which connect-src 'self' already
 // covers. Without the script host the beacon was blocked on every page.
+//
+// Google Analytics 4 is loaded by first-party code on public product pages
+// (noema.guru only). The loader injects gtag from www.googletagmanager.com
+// (script-src, exact host, no wildcard). Collect uses fetch/beacon to
+// *.google-analytics.com, *.analytics.google.com, and *.googletagmanager.com
+// (connect-src). img-src is not widened; collect does not need image beacons.
 const HTML_CSP =
-  "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' wss: http://127.0.0.1:* http://localhost:* https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
 
 function html(body: string, status = 200, cache = "no-store"): Response {
   return new Response(body, {

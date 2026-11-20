@@ -803,7 +803,11 @@ describe("slice 4 — TEXT / canvas failure leave HTML authority", () => {
   });
 
   it("boots the inlined client without esbuild __name", () => {
-    const src = watchHtml().split("<script>")[2].split("</script>")[0];
+    const src =
+      watchHtml()
+        .split("<script>")
+        .map((s) => s.split("</script>")[0])
+        .find((s) => s.includes("NoemaPhosphor") && s.includes("PHOSPHOR_WIDTH")) || "";
     expect(src).toContain("__name");
     const canvas = {
       width: 0,
