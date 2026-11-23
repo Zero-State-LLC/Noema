@@ -10,6 +10,8 @@ import { FONT_LINKS, TOKEN_CSS } from "./theme/tokens";
 export const PRODUCT_CSS = `
 ${TOKEN_CSS}
 *,*::before,*::after{box-sizing:border-box}
+/* hidden always hides: component display rules (.btn is inline-flex) otherwise override it. */
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;overflow-x:clip}
 html,body{margin:0;min-height:100%;overflow-x:clip;background:var(--void);color:var(--ink);font:16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased}
 body{background:var(--void);min-height:100vh}
@@ -167,11 +169,12 @@ code{color:var(--color-text-machine);font-size:.88em}
 .foot-operator{color:inherit;opacity:.75;white-space:nowrap}
 
 @media(max-width:700px){
-  .top{flex-direction:column;align-items:stretch;gap:.5rem}
+  /* Single-line: a wrapping flex line takes its widest item's size, so the nowrap nav would outgrow the screen and never scroll. */
+  .top{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:.5rem}
   .nav{
     flex-wrap:nowrap;justify-content:flex-start;gap:1.25rem;margin:0 calc(-1*var(--pad));
     padding:0 var(--pad);overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;
-    mask-image:linear-gradient(to right,#000 85%,transparent);
+    mask-image:linear-gradient(to right,#000 calc(100% - var(--pad)),transparent);
   }
   .nav::-webkit-scrollbar{display:none}
 }
@@ -385,7 +388,7 @@ ${FONTS}
 <body${opts.bleed ? ' class="hero-bleed"' : ""}>
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
-  <a class="brand" href="/" aria-label="NOEMA home">
+  <a class="brand" href="/" aria-label="NOEMA Perihelion Reach, home">
     <span class="brand-glyph" aria-hidden="true">${BRAND_GLYPH}</span>
     <span class="brand-text">
       <span class="brand-mark">NOEMA</span>

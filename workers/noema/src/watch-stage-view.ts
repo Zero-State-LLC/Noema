@@ -88,9 +88,10 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-label.is-tucked>*{visibility:hidden}
 .stage3d-label.is-tucked:hover>*{visibility:visible}
 .stage3d-label.is-tucked:hover{max-width:12rem;max-height:none;padding:.25rem .5rem;color:var(--ink);border-radius:4px;background:color-mix(in srgb,var(--panel) 96%,transparent);z-index:1}
-.stage3d-compass{color:var(--faint);font:600 .6875rem/1 var(--font-interface);letter-spacing:.2em}
+/* Text straight over the canvas sits on the labels' --void chip: the camera can put any plate behind it (#783). */
+.stage3d-compass{padding:.125rem .25rem .125rem calc(.25rem + .2em);border-radius:var(--r);background:color-mix(in srgb,var(--void) 88%,transparent);color:var(--faint);font:600 .6875rem/1 var(--font-interface);letter-spacing:.2em}
 .stage3d-reset{position:absolute;top:.5rem;right:.5rem;min-height:44px;background:color-mix(in srgb,var(--void) 80%,transparent)}
-.stage3d-help{position:absolute;left:.75rem;bottom:.5rem;margin:0;color:var(--faint);font:.6875rem/1.4 var(--font-interface);pointer-events:none}
+.stage3d-help{position:absolute;left:.375rem;bottom:.375rem;margin:0;padding:.125rem .375rem;border-radius:var(--r);background:color-mix(in srgb,var(--void) 88%,transparent);color:var(--faint);font:.6875rem/1.4 var(--font-interface);pointer-events:none}
 .stage3d-key{margin:.5rem 0 0}
 .stage3d-key summary{cursor:pointer;color:var(--muted);font:600 .75rem/1.5 var(--font-interface);letter-spacing:.08em;text-transform:uppercase}
 .stage3d-key ul{display:grid;gap:.25rem .75rem;margin:.5rem 0 0;padding:0 0 0 1rem;color:var(--muted);font:.8125rem/1.4 var(--font-interface)}
