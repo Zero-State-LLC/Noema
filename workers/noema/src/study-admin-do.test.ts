@@ -62,7 +62,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
     expect(issued.ok).toBe(true);
 
     const acceptRes = await do1.fetch(
-      new Request(`https://noema.guru/api/admin/studies/study-alpha/invites/${issued.invite.invite_id}/accept`, {
+      new Request(`https://noema.guru/api/study-admin/invites/${issued.invite.invite_id}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
