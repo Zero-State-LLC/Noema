@@ -80,6 +80,7 @@ import {
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 import { StudyAdminDO } from "./study-admin-do";
+import { handleStudyAdminUiRequest } from "./study-admin-ui";
 
 export { NoemaWorldDO, StudyAdminDO };
 
@@ -243,6 +244,11 @@ export default {
     }
 
     try {
+      if (path === "/admin/studies") {
+        const uiRes = handleStudyAdminUiRequest(request, env.STUDY_ADMIN_UI_ENABLED);
+        if (uiRes) return cors(uiRes);
+      }
+
       if (path.startsWith("/api/admin/studies/") || path.startsWith("/api/study-admin/invites/")) {
         if (env.STUDY_ADMIN_UI_ENABLED !== "true" || !env.STUDY_ADMIN_DO) {
           return cors(
