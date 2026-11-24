@@ -39,7 +39,7 @@ binding = "CF_VERSION"
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
 DEFAULT_WORLD_ID = "world.perihelion-reach-3"
-STUDY_ADMIN_UI_ENABLED = "false"
+# STUDY_ADMIN_UI_ENABLED: unset by default (fail-closed; set to "true" to enable StudyAdminDO).
 # NOEMA_ALLOW_PROD_BOOTSTRAP: unset by default (fail-closed). Set to "1" only
 # for a genesis activation window where the canonical head is legitimately
 # empty; a missing head otherwise refuses bootstrap instead of re-emitting a
