@@ -6,6 +6,10 @@ Approved next-ten plan, execution authorized 2026-11-11 00:01 UTC. Source baseli
 
 Governing sources: Noema-Specs `docs/MUD-NATIVE-INTERACTION-AND-WORLD-PRESENCE.md`, `docs/MUD-NATIVE-INTERACTION-TASKS.md`, `docs/MUD-PLAY-CRAFT.md`, Noema `docs/R4-NATIVE-INTERACTION-MATRIX-20261102.md`, issue-specific recorded operator decisions. S6 reuses adopted H7 implementation from draft #848, not a new product intent or widened public projection.
 
+## Current WAIT disposition (2026-11-12 UTC)
+
+The owner adopted the [compatibility reading](WAIT-OUTCOME-COMPATIBILITY-850.md): accepted complete WAIT keeps internal `wait` and public `ok`, truthful observed rest, failure/partial precedence and unchanged timing/budgets. This settles the choice only, not implementation review or whole-S1 acceptance. The time-stamped 00:02/00:23 observations, original requirement maps and subsequent local test/results below remain historical verbatim. Their statements that WAIT was disputed or not asserted describe those executions, not a still-pending owner choice. No old receipt or acceptance state is reinterpreted.
+
 ## Requirement-to-check map (defined before edits)
 
 | Slice | Deliverable and actual acceptance seam | Initial evidence / constraint |
@@ -150,7 +154,7 @@ The predeclared map above is retained as the original test intent. Final maintai
 | Whole integration | Whole Python suite: 603 passed, 3 optional PostgreSQL tests skipped without a DSN. Whole Worker suite: 295 files, 2,692 tests passed. Generated and committed Worker declaration typechecks passed, as did the governing Specs validator. Prior actual browser 8-keyboard/11-public checks remain historical evidence at unchanged Worker source `09cc613`; no fresh browser run is claimed here. |
 | Failure retention | Actual interruption at 00:58 UTC failed with OS `EPERM` probing the owned Worker group during termination. Its failed receipt remains failed. Independent follow-up found the exact groups gone, both ports closed and signing file absent. A separate retry passed 8 actual interruption checks. Neither follow-up nor retry explains the original OS failure. |
 
-This qualifies existing structured semantics locally, not a schema RFC, whole S2/R4 acceptance, hidden-route seed permutations, real device enrollment, hosted SQL, independent admission review, human/AT acceptance or an authorized Q8 campaign. Existing hidden-route fixture coverage stays separately labeled. WAIT owner choice, TRACES policy/review and the other external gates remain open. PR #856 remains draft for independent review; no merge or deployment is part of this continuation.
+This qualifies existing structured semantics locally, not a schema RFC, whole S2/R4 acceptance, hidden-route seed permutations, real device enrollment, hosted SQL, independent admission review, human/AT acceptance or an authorized Q8 campaign. Existing hidden-route fixture coverage stays separately labeled. The WAIT owner choice was subsequently adopted as linked above; WAIT implementation/current-main verification, independent review, TRACES policy/review and the other external gates remain open. PR #856 remains draft for independent review; no merge or deployment is part of this continuation.
 
 ### S2 source-bound local artifacts
 
