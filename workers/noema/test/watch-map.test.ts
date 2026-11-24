@@ -176,17 +176,17 @@ describe("mapping v0.1.1 integration (spec §5.1/§6.1 + de-orphan)", () => {
     expect(count()).toBe(base);
   });
 
-  it("Chamber MAP stage ships working layer toggles and shared pause", () => {
-    const html = watchHtml({ mode: "map" });
+  it("the 3D Chamber stage shares the page pause and never hides the shared feed", () => {
+    const html = watchHtml();
     expect(html).toContain('id="watch-pause"');
     expect(html).toContain("!state.paused && !document.hidden");
-    expect(html).toContain("mapLayerHideable");
-    expect(html).toContain("min-height:16rem");
+    expect(html).toContain('fetch("/v1/watch/map")');
     expect(html).not.toContain("map-hide-event");
   });
 
-  it("/watch exposes MAP as a Chamber mode, not an outbound door", async () => {
-    expect(watchHtml()).toContain('id="watch-mode-map"');
+  it("/watch shows map bands on the stage, not as an outbound door or a separate mode", async () => {
+    expect(watchHtml()).not.toContain('id="watch-mode-map"');
     expect(watchHtml()).not.toContain('href="/watch/map"');
+    expect(watchHtml()).toContain('id="watch-stage3d-health"');
   });
 });

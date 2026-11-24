@@ -4,6 +4,14 @@
 
 The [isolated hosted acceptance status](docs/ISOLATED-733-ACCEPTANCE-STATUS.md) links a [screened, same-world staging receipt](docs/ISOLATED-733-SAME-WORLD-HOSTED-20261102.md): an isolated no-route Worker at version `9978ab0f-e8f6-40c6-9254-d6ffc4c5f2fb` showed a hosted DO instance replacement, a new post-reset canonical PostgreSQL MOVE settlement (target revision 2/sequence 1), and real-browser public WATCH rendering the same target at sequence 1. These bounded hosted gates are observed; R0/R3/R4 and optional C9 still need separate reconciliation, so #733 stays open. [Runtime PR #756](https://github.com/Zero-State-LLC/Noema/pull/756) merged at `038512f6ca9284522945968cf9f57c23b9a85909` after technical review and exact-head CI, with a documented administrator review-rule bypass **rather than** an eligible submitted GitHub approval. No production action or post-run production version readback is claimed. The older sections below are dated historical snapshots.
 
+## WATCH 3D Chamber stage (2026-11-11 UTC)
+
+Public `/watch` is one 3D Chamber stage beside the Places list (Noema-Specs `specify/watch-single-3d-stage.md`, D1–D5). It shipped in #867, #869, #872, #876, the privacy fix #875 and the measured accessibility fixes #885. It also carries #881, at the owner's explicit instruction (2026-11-13), and the canvas-contrast and mobile-nav fixes #888. It also carries the home page's mobile-nav fix #890. It is live as Worker `5205b357-0836-46f9-995f-dfd69fcc6587` (pin #891). The mobile nav is checked on every main page at 320 and 375px. Open: real assistive-technology checks. Hand-off: [docs/handoff/NEXT.md](docs/handoff/NEXT.md).
+
+## #793 local fallback-presence repair (current integration 2026-11-12 UTC)
+
+The bounded [repair and execution record](docs/PRESENCE-FALLBACK-793-LOCAL-REPAIR.md) preserves the cleared retained-room predicate and seven-case probe byte-for-byte from b95cbff. Main a3ff91e (parser crosswalk plus local tempo witnesses) integrated conflict-free in d7473e0; the seven fallback cases and native typecheck passed on that integration commit. Prior 2,811/2,813-case cohorts remain historical. Combined-head full-suite, graph, independent technical reviews and exact-head CI are publication/readiness gates recorded separately in PR #881. The owner released only its old readiness hold under conditional previews-OFF/fresh pre/post inventory assurance, not a backend guarantee or new resource/settings/deploy authority. Eligible code-owner approval remains a normal protected-merge gate; disabled queueing was not changed and does not itself prohibit an already-ready normal immediate merge. This repair is not deployed or whole-issue acceptance; #793/#733 remain OPEN, #851 stays draft, #882 stays unmerged and #777 stays source0.
+
 ## Historical State (as of 2026-08-27)
 - **Active Branch**: feat/hosted-alpha-thaw-rfc0120-completion (created from main)
 - **Recent Completion**:

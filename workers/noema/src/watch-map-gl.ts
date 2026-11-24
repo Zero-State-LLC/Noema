@@ -1,45 +1,15 @@
 /**
- * MAP P0 Direct-Camera + head parity. Leaves for the /watch IIFE.
- * No Three.js here — TEXT/PIXEL never pay the GL chunk.
+ * Direct-Camera + head parity leaves for the /watch IIFE. The MAP WebGL
+ * stage is retired (Noema-Specs watch-single-3d-stage.md); the 3D Chamber
+ * stage reuses these camera, follow and parity rules.
  * Specs: WATCH-REAL-TIME-MAPPING §3.3 after Noema-Specs #336.
  */
 
 /** Match Phosphor NOTABLE pulse (560ms), inside the 400–600ms camera window. */
 export const MAP_CAM_EASE_MS = 560;
-export const MAP_GL_SRC = "/assets/watch-map-gl.js";
 export const MAP_PARITY_LINE = "Map overlay is behind the live window.";
 /** Map poll failed or came back empty; sites stay on the last agreed public map. */
 export const MAP_PARITY_HOLD_LINE = "Map overlay is behind the live window. Sites stay on the last agreed map.";
-
-export const MAP_GL_CSS = `
-.map-gl-frame{position:relative;min-width:0;isolation:isolate}
-.map-gl{
-  display:block;width:100%;max-width:none;height:auto;
-  aspect-ratio:16/9;min-height:min(52vh,28rem);
-  background:var(--panel);border:1px solid var(--line-hot);
-  position:relative;z-index:0; /* WebGL layer otherwise covers sibling labels */
-}
-.map-gl[hidden]{display:none}
-.map-labels{
-  position:absolute;inset:0;z-index:1;margin:0;padding:0;list-style:none;
-  pointer-events:none;overflow:hidden;
-}
-.map-labels[hidden]{display:none}
-.map-room-label{
-  position:absolute;transform:translate(-50%,.28rem);
-  max-width:9.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  color:var(--ink);font:550 .68rem/1.2 var(--font-mono);
-  text-shadow:0 1px 2px var(--void);
-  /* #773: labels sit on the WebGL room blocks, not the page void; a void chip keeps them >= 4.5:1 on any face */
-  padding:.06rem .32rem;border-radius:2px;background:color-mix(in srgb,var(--void) 88%,transparent);
-}
-.map-room-label.is-focus{color:var(--color-state-active);font-weight:650}
-.map-labels.is-held .map-room-label{color:var(--muted)}
-.map-parity{margin:.35rem 0 0;color:var(--color-state-warning);font:.74rem/1.4 var(--font-mono)}
-.map-parity[hidden]{display:none}
-.map-node.is-follow{outline:2px solid var(--color-state-active)}
-.map-node.is-cam{box-shadow:0 0 0 2px color-mix(in srgb,var(--color-state-warning) 55%,transparent)}
-`;
 
 export type MapCamHead = {
   tier?: string;

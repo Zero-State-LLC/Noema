@@ -25,7 +25,7 @@ paths were recorded before work, then checked again at handoff. No merge,
 cherry-pick, branch switch, restore or cleanup was performed in those checkouts.
 The pinned Specs checkout's preexisting dirty PR template was preserved.
 
-## Requirement-to-check map
+## Historical requirement-to-check map (2026-11-10)
 
 | Slice | Concrete check and observed result | Boundary / disposition |
 | --- | --- | --- |
@@ -108,9 +108,13 @@ above into hosted acceptance or resolve the decisions below.
 
 The [November 10 decision brief](MUD-DECISIONS-2026-11-10.md) separates settled policy from remaining owner choices. In particular, #733 already has a bounded November 6 same-run hosted required-gate receipt at source `5cebeca4`; #733 remains operator-held, and whole-R4 acceptance is separate. The remaining hosted/all-family gaps below are not a claim that this historical receipt is missing. Neither historical evidence nor this local branch silently certifies a later runtime.
 
+## Current WAIT decision (2026-11-12 UTC)
+
+The owner adopted internal `wait` / public `ok` for accepted complete WAIT, with truthful rest, failure/partial precedence and unchanged timing/budgets. The original requirement map above and its test/receipt pins remain historical, not a current missing-owner-decision claim. See [WAIT compatibility](WAIT-OUTCOME-COMPATIBILITY-850.md). Draft851 is not merged, the R1 assertion is unchanged, and current-main integration, independent review and remaining S1 acceptance are separate.
+
 ## Still open
 
-- #850/#851 WAIT contract decision and normal review.
+- #850/#851 compatibility implementation/current-main verification, independent review and accountable disposition; the owner contract choice is adopted.
 - Owner disposition for retired T1.5 room-browser acceptance and any intended
   change to current TRACES section policy.
 - An authoritative Agent-observation source for optional flags, if product behavior

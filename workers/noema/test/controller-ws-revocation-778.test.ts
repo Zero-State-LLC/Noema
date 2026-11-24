@@ -14,9 +14,9 @@ async function setup() {
   const calls: DoCall[] = [];
   const e = env(calls);
   const credential = await mintControllerToken(e, { handle: "revocation-probe", controllerType: "agent" });
-  const routed: Array<{ world: string; command: string; principal: unknown }> = [];
+  const routed: Array<{ world: string; command: string; principal: unknown; arguments?: Record<string, unknown> }> = [];
   const route: Route = async (_env, world, principal, envelope) => {
-    routed.push({ world, command: envelope.command, principal });
+    routed.push({ world, command: envelope.command, principal, arguments: envelope.arguments });
     return new Response(JSON.stringify({ ok: true, world_id: world, command: envelope.command }), {
       status: 200, headers: { "content-type": "application/json" },
     });
@@ -41,6 +41,23 @@ async function setup() {
 }
 
 describe("#778 retained WS credential revocation (private local probe)", () => {
+  it("strips a text carrier before routing and refuses it after revocation", async () => {
+    const f = await setup();
+    const frame = (request_id: string) => ({
+      type: "ACT",
+      request_id,
+      body: { action: { verb: "LOOK", parameters: { line: "alias set ii look" } } },
+    });
+    const before = await handleProtocolFrame(f.e, ws, f.auth.state, frame("line-valid"), f.route);
+    expect(before.reply.type).toBe("ACT_RESULT");
+    expect(f.routed).toHaveLength(1);
+    expect(f.routed[0].arguments).not.toHaveProperty("line");
+    await f.revoke();
+    const after = await handleProtocolFrame(f.e, ws, before.state, frame("line-revoked"), f.route);
+    expect(after.reply.type).toBe("ERROR");
+    expect(f.routed).toHaveLength(1);
+  });
+
   it("fresh HTTP command refuses the revoked credential (store-binding control)", async () => {
     const f = await setup();
     await f.revoke();

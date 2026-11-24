@@ -11,7 +11,7 @@ import { manifestoHtml } from "../src/manifesto";
 import { PRODUCT_CSS } from "../src/shell";
 import { TOKEN_CSS } from "../src/theme/tokens";
 import { watchHtml } from "../src/watch";
-import { MAP_STAGE_CSS } from "../src/watch-map-page";
+import { STAGE_VIEW_CSS } from "../src/watch-stage-view";
 import { WITHHELD_LEDE, WITHHELD_NONE } from "../src/watch-theater";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -26,7 +26,7 @@ describe("noema-web-presence-p0 — landing door", () => {
   it("makes Watch the primary CTA and agent inhabit the second", () => {
     expect(door).toContain('href="/watch">Watch</a>');
     expect(door).toContain('href="/connect">Bring your own agent</a>');
-    expect(door).toContain("Watch · TEXT · PIXEL · MAP");
+    expect(door).toContain("Watch · 3D · TEXT");
     expect(door.indexOf('href="/watch">Watch</a>')).toBeLessThan(door.indexOf("Bring your own agent"));
     expect(door.indexOf("hero-cta")).toBeLessThan(door.indexOf("hero-gate"));
     expect(door).toContain("/v1/play/login/request");
@@ -53,7 +53,7 @@ describe("noema-web-presence-p0 — pages pointer", () => {
     expect(PAGES).toContain("https://noema.guru/watch");
     expect(PAGES).toContain("https://noema.guru/connect");
     expect(PAGES).toContain("Bring your own agent");
-    expect(PAGES).toContain("Watch · TEXT · PIXEL · MAP");
+    expect(PAGES).toContain("Watch · 3D · TEXT");
     expect(PAGES).toContain('id="home-live"');
     expect(PAGES).not.toContain("Open the door");
     expect(PAGES).not.toMatch(/type="email"/);
@@ -85,14 +85,12 @@ describe("noema-web-presence-p0 — shared chrome", () => {
 
 describe("noema-web-presence-p0 — watch chrome", () => {
   const watch = watchHtml();
-  const map = watchHtml({ mode: "map" });
   const text = watchHtml({ mode: "text" });
 
-  it("keeps Gate D five-slot readable and MAP on Chamber tokens", () => {
+  it("keeps Gate D five-slot readable and the 3D stage on Chamber tokens", () => {
     expect(watch).toContain('id="watch-state"');
-    expect(watch).toContain('id="watch-mode-text"');
-    expect(watch).toContain('id="watch-mode-pixel"');
-    expect(watch).toContain('id="watch-mode-map"');
+    // D1: the mode rail is retired; the stage is the door.
+    expect(watch).not.toMatch(/id="watch-mode-(text|pixel|map|3d)"/);
     expect(watch).toContain('id="watch-hero-who"');
     expect(watch).toContain('id="watch-hero-where"');
     expect(watch).toContain('id="watch-conseq"');
@@ -102,20 +100,17 @@ describe("noema-web-presence-p0 — watch chrome", () => {
     expect(watch).toContain(WITHHELD_NONE);
     expect(watch).toContain("watch-follow-bar");
     expect(watch).toContain("Clear follow");
-    expect(MAP_STAGE_CSS).toContain("background:var(--panel)");
-    expect(MAP_STAGE_CSS).toContain("background:var(--void-2)");
-    expect(MAP_STAGE_CSS).toContain("map-chrome-layers");
-    expect(MAP_STAGE_CSS).toContain("flex-direction:column");
-    expect(MAP_STAGE_CSS).not.toMatch(/var\(--paper\)/);
-    expect(MAP_STAGE_CSS).not.toMatch(/max-width:\s*36rem/);
+    expect(STAGE_VIEW_CSS).toContain("background:var(--void)");
+    expect(STAGE_VIEW_CSS).toContain(".stage3d-health");
+    expect(STAGE_VIEW_CSS).not.toMatch(/var\(--paper\)/);
     expect(watch).toContain("align-items:start");
     expect(watch).toContain('id="watch-stage-line"');
     expect(watch).toContain("A public sketch — not the world.");
     expect(watch).toContain("Watch the agents play.");
     expect(watch).toContain("min-height:0");
-    expect(watch).toContain('id="watch-map-labels"');
+    expect(watch).toContain('id="watch-stage3d-labels"');
     expect(watch).not.toMatch(/Orbitron|scanline|WORLD-STATE STRIP/i);
-    expect(map.indexOf('id="watch-hero-who"')).toBeGreaterThan(map.indexOf('id="watch-map-gl"'));
+    expect(watch.indexOf('id="watch-hero-who"')).toBeGreaterThan(watch.indexOf('id="watch-stage3d"'));
     expect(text).not.toContain('from "three"');
     expect(watch).not.toMatch(BRAND_BAN);
     expect(watch).not.toMatch(/animation:[^;]*infinite/);

@@ -1,83 +1,85 @@
 # workers/noema/src/watch-phosphor.ts
 
-- PhosphorCertainty · type · L26-L26 — type PhosphorCertainty = "unknown" | "empty" | "partial" | "known" | "active";
-- PhosphorTier · type · L27-L27 — type PhosphorTier = "NORMAL" | "NOTABLE" | "MAJOR";
-- PhosphorMode · type · L28-L28 — type PhosphorMode = "text" | "pixel";
-- PhosphorExit · type · L30-L35 — type PhosphorExit = { direction?: string; to_room_id?: string; to_room_name?: string; hidden?: boolean; };
-- PhosphorRoom · type · L37-L53 — type PhosphorRoom = { room_id?: string; name?: string; description?: string; hidden?: boolean; tags?: string[]; active?: boolean; players_present?: number; public_player_labels?: string[]; entities?: Array<{ hidden?: boolean; label?: string; entity_type?: string; glyph?: string; }>; exits?: PhosphorExit[]; };
-- PhosphorEvent · type · L55-L62 — type PhosphorEvent = { sequence?: number; tier?: string; room_id?: string; line?: string; glyph?: string; projection_id?: string; };
-- PhosphorSnapshot · type · L64-L74 — type PhosphorSnapshot = { rooms?: PhosphorRoom[]; recent_events?: PhosphorEvent[]; sequence?: number; /** Operator follow: light this room without MAJOR pulses. Public WATCH leaves this unset. */ focus_room_id?: string; /** Gate B: reconstruction_fidelity plus a public corroboration count for visual modulation. */ reconstruction_fidelity?: number; /** Public-safe count used by the inlined spectator sketch. Not a name or identity. */ corroboration?: number; };
-- PhosphorNode · type · L76-L85 — type PhosphorNode = { room_id: string; name: string; x: number; y: number; certainty: PhosphorCertainty; players: number; labels: string[]; marks: GlyphId[]; };
-- PhosphorEdge · type · L87-L92 — type PhosphorEdge = { from: string; to: string; direction: string; dashed?: boolean; };
-- PhosphorGlyphId · type · L94-L106 — type PhosphorGlyphId = | "room_empty" | "room_known" | "room_active" | "room_partial" | "player_single" | "player_multi" | "player_cluster" | "exit" | "exit_active" | "pulse_normal" | "pulse_notable" | "pulse_major";
-- PhosphorCatalogMark · type · L128-L128 — type PhosphorCatalogMark = GlyphId;
-- phosphorCatalogMark · function · L130-L136 — function phosphorCatalogMark(id: PhosphorGlyphId): PhosphorCatalogMark | null
-- roomGlyphId · function · L138-L143 — function roomGlyphId(certainty: PhosphorCertainty): PhosphorGlyphId
-- playerGlyphId · function · L145-L150 — function playerGlyphId(count: number): PhosphorGlyphId | null
-- pulseGlyphId · function · L152-L156 — function pulseGlyphId(tier: PhosphorTier): PhosphorGlyphId
-- PhosphorLayout · type · L158-L161 — type PhosphorLayout = { nodes: PhosphorNode[]; edges: PhosphorEdge[]; };
-- PhosphorPulse · type · L163-L172 — type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */ sequence?: number; /** Public agent_move — lights public edges touching the room (exit_active). */ move?: boolean; };
-- isPublicWatchRoom · function · L197-L206 — function isPublicWatchRoom(room: PhosphorRoom | null | undefined): boolean
-- safePhosphorLabel · function · L208-L213 — function safePhosphorLabel(raw: unknown): string
-- occupantLabelsForPhosphor · function · L216-L237 — function occupantLabelsForPhosphor( raw: unknown, roomName?: string, roomId?: string, ): string[]
-- roomCertainty · function · L239-L266 — function roomCertainty( room: PhosphorRoom, recent?: PhosphorEvent[], focusRoomId?: string, ): PhosphorCertainty
-- markFromRaw · function · L268-L273 — function markFromRaw(raw: unknown): GlyphId | null
-- collectSiteMarks · function · L276-L299 — function collectSiteMarks(room: PhosphorRoom, recent?: PhosphorEvent[]): GlyphId[]
-- add · function · L279-L283 — function add(id: GlyphId | null)
-- publicExits · function · L301-L312 — function publicExits(room: PhosphorRoom, allowed: Set<string>): PhosphorExit[]
-- dirVec · function · L314-L322 — function dirVec(direction: string | undefined, salt: number): [number, number]
-- occupyKey · function · L324-L326 — function occupyKey(x: number, y: number): string
-- nudge · function · L328-L340 — function nudge(x: number, y: number, taken: Set<string>): [number, number]
-- layoutPublicTopology · function · L343-L457 — function layoutPublicTopology( rooms: PhosphorRoom[] | undefined | null, recent?: PhosphorEvent[], focusRoomId?: string, ): PhosphorLayout
-- collectPulses · function · L460-L501 — function collectPulses( prevSeq: number, snapshot: PhosphorSnapshot, now: number, reducedMotion: boolean, publicRoomIds?: { has(id: string): boolean } | null, ): PhosphorPulse[]
-- capPulses · function · L504-L523 — function capPulses(pulses: PhosphorPulse[]): PhosphorPulse[]
-- expirePulses · function · L525-L527 — function expirePulses(pulses: PhosphorPulse[], now: number): PhosphorPulse[]
-- asciiCartogram · function · L538-L629 — function asciiCartogram( layout: PhosphorLayout | null | undefined, opts?: { majorRoomId?: string; pickedRoomId?: string }, ): string | null
-- gx · function · L553-L553 — gx = (x: number)
-- gy · function · L554-L554 — gy = (y: number)
-- put · function · L561-L564 — put = (r: number, c: number, ch: string)
-- connectorOnly · function · L616-L616 — connectorOnly = (l: string)
-- DrawCtx · type · L631-L650 — type DrawCtx = { fillStyle: string; strokeStyle: string; globalAlpha: number; lineWidth: number; lineCap: string; font: string; imageSmoothingEnabled?: boolean; fillRect(x: number, y: number, w: number, h: number): void; strokeRect(x: number, y: number, w: number, h: number): void; beginPath(): void; moveTo(x: number, y: number): void; lineTo(x: number, y: number): void; quadraticCurveTo?(cpx: number, cpy: number, x: number, y: number): void; setLineDash?(segments: number[]): void; closePath(): void; stroke(): void; fill(): void; fillText?(text: string, x: number, y: number): void; };
-- inkFor · function · L652-L656 — function inkFor(intensity: number): string
-- locOuterPath · function · L658-L662 — function locOuterPath(): string
-- locInnerPath · function · L664-L668 — function locInnerPath(): string
-- traceSvgPath · function · L671-L765 — function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: number): void
-- isCmd · function · L680-L680 — isCmd = (t: string | undefined): boolean
-- num · function · L681-L685 — num = (): number
-- px · function · L686-L689 — px = (nx: number, ny: number): [number, number]
-- strokeCatalogPath · function · L767-L772 — function strokeCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void
-- fillCatalogPath · function · L774-L779 — function fillCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void
-- drawGlyph · function · L781-L827 — function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: number, intensity = 1): void
-- drawCatalogMark · function · L829-L836 — function drawCatalogMark(ctx: DrawCtx, id: GlyphId, cx: number, cy: number, intensity = 0.55): void
-- drawExit · function · L838-L864 — function drawExit( ctx: DrawCtx, x1: number, y1: number, x2: number, y2: number, active = false, dashed = false, ): void
-- drawRoomLabel · function · L866-L878 — function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void
-- drawOccupantLabel · function · L881-L894 — function drawOccupantLabel(ctx: DrawCtx, x: number, y: number, labels: string[]): void
-- drawPulse · function · L903-L930 — function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void
-- drawPhosphorFrame · function · L932-L1019 — function drawPhosphorFrame( ctx: DrawCtx, layout: PhosphorLayout, pulses: PhosphorPulse[], now: number, reconstruction_fidelity: number = 0.5, corroboration: number = 1, ): void
-- pageIsHidden · function · L1021-L1024 — function pageIsHidden(): boolean
-- PhosphorSession · type · L1028-L1043 — type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };
-- phosphorLabelAnchor · function · L1046-L1051 — function phosphorLabelAnchor(x: number, y: number): { x: number; y: number }
-- clampPhosphorNode · function · L1053-L1058 — function clampPhosphorNode(x: number, y: number): { x: number; y: number }
-- canvasPointFromEvent · function · L1060-L1071 — function canvasPointFromEvent( canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } }, ev: { clientX: number; clientY: number }, ): { x: number; y: number }
-- hitPhosphorNode · function · L1074-L1111 — function hitPhosphorNode( layout: PhosphorLayout | undefined | null, x: number, y: number, radius = PHOSPHOR_HIT_RADIUS, ): PhosphorNode | null
-- CanvasLike · type · L1113-L1117 — type CanvasLike = { width: number; height: number; getContext(type: string): DrawCtx | null; };
-- createPhosphorSession · function · L1119-L1279 — function createPhosphorSession(opts: { canvas?: CanvasLike | null; reducedMotion?: boolean; mode?: PhosphorMode; now?: () => number; raf?: (cb: (t: number) => void) => number; caf?: (id: number) => void; }): PhosphorSession
-- stopRaf · function · L1152-L1155 — function stopRaf()
-- paint · function · L1157-L1160 — function paint(now: number)
-- loop · function · L1162-L1176 — function loop(ts: number)
-- kick · function · L1178-L1184 — function kick()
-- ingest · function · L1186-L1208 — function ingest(snapshot: PhosphorSnapshot)
-- mode · method · L1211-L1213 — get mode()
-- reducedMotion · method · L1214-L1216 — get reducedMotion()
-- idle · method · L1217-L1219 — get idle()
-- rafStarts · method · L1220-L1222 — get rafStarts()
-- lastLayout · method · L1223-L1225 — get lastLayout()
-- pulses · method · L1226-L1228 — get pulses()
-- setMode · method · L1229-L1247 — setMode(next: PhosphorMode)
-- setReducedMotion · method · L1248-L1255 — setReducedMotion(on: boolean)
-- update · method · L1256-L1259 — update(snapshot: PhosphorSnapshot)
-- fail · method · L1260-L1264 — fail()
-- tick · method · L1265-L1270 — tick(now?: number)
-- hit · method · L1271-L1273 — hit(x: number, y: number)
-- ascii · method · L1274-L1276 — ascii(opts?: { majorRoomId?: string; pickedRoomId?: string })
-- phosphorInlineScript · function · L1281-L1405 — function phosphorInlineScript(bind?: { canvasId?: string; wrapId?: string; textBtnId?: string; pixelBtnId?: string; mapBtnId?: string; globalName?: string; }): string
+- PhosphorCertainty · type · L25-L25 — type PhosphorCertainty = "unknown" | "empty" | "partial" | "known" | "active";
+- PhosphorTier · type · L26-L26 — type PhosphorTier = "NORMAL" | "NOTABLE" | "MAJOR";
+- PhosphorMode · type · L27-L27 — type PhosphorMode = "text" | "pixel";
+- PhosphorExit · type · L29-L34 — type PhosphorExit = { direction?: string; to_room_id?: string; to_room_name?: string; hidden?: boolean; };
+- PhosphorRoom · type · L36-L52 — type PhosphorRoom = { room_id?: string; name?: string; description?: string; hidden?: boolean; tags?: string[]; active?: boolean; players_present?: number; public_player_labels?: string[]; entities?: Array<{ hidden?: boolean; label?: string; entity_type?: string; glyph?: string; }>; exits?: PhosphorExit[]; };
+- PhosphorEvent · type · L54-L61 — type PhosphorEvent = { sequence?: number; tier?: string; room_id?: string; line?: string; glyph?: string; projection_id?: string; };
+- PhosphorSnapshot · type · L63-L73 — type PhosphorSnapshot = { rooms?: PhosphorRoom[]; recent_events?: PhosphorEvent[]; sequence?: number; /** Operator follow: light this room without MAJOR pulses. Public WATCH leaves this unset. */ focus_room_id?: string; /** Gate B: reconstruction_fidelity plus a public corroboration count for visual modulation. */ reconstruction_fidelity?: number; /** Public-safe count used by the inlined spectator sketch. Not a name or identity. */ corroboration?: number; };
+- PhosphorNode · type · L75-L87 — type PhosphorNode = { room_id: string; name: string; x: number; y: number; /** Layout grid cell before projection to the 2D canvas (shared with the 3D stage). */ gx?: number; gy?: number; certainty: PhosphorCertainty; players: number; labels: string[]; marks: GlyphId[]; };
+- PhosphorEdge · type · L89-L94 — type PhosphorEdge = { from: string; to: string; direction: string; dashed?: boolean; };
+- PhosphorGlyphId · type · L96-L108 — type PhosphorGlyphId = | "room_empty" | "room_known" | "room_active" | "room_partial" | "player_single" | "player_multi" | "player_cluster" | "exit" | "exit_active" | "pulse_normal" | "pulse_notable" | "pulse_major";
+- PhosphorCatalogMark · type · L130-L130 — type PhosphorCatalogMark = GlyphId;
+- phosphorCatalogMark · function · L132-L138 — function phosphorCatalogMark(id: PhosphorGlyphId): PhosphorCatalogMark | null
+- roomGlyphId · function · L140-L145 — function roomGlyphId(certainty: PhosphorCertainty): PhosphorGlyphId
+- playerGlyphId · function · L147-L152 — function playerGlyphId(count: number): PhosphorGlyphId | null
+- pulseGlyphId · function · L154-L158 — function pulseGlyphId(tier: PhosphorTier): PhosphorGlyphId
+- PhosphorLayout · type · L160-L163 — type PhosphorLayout = { nodes: PhosphorNode[]; edges: PhosphorEdge[]; };
+- PhosphorPulse · type · L165-L174 — type PhosphorPulse = { room_id: string; tier: PhosphorTier; born: number; ttl: number; /** Source recent_events sequence — caps keep the newest across polls (§18.6 rule 3). */ sequence?: number; /** Public agent_move — lights public edges touching the room (exit_active). */ move?: boolean; };
+- isPublicWatchRoom · function · L199-L208 — function isPublicWatchRoom(room: PhosphorRoom | null | undefined): boolean
+- safePhosphorLabel · function · L210-L215 — function safePhosphorLabel(raw: unknown): string
+- occupantLabelsForPhosphor · function · L218-L239 — function occupantLabelsForPhosphor( raw: unknown, roomName?: string, roomId?: string, ): string[]
+- roomCertainty · function · L241-L268 — function roomCertainty( room: PhosphorRoom, recent?: PhosphorEvent[], focusRoomId?: string, ): PhosphorCertainty
+- markFromRaw · function · L270-L275 — function markFromRaw(raw: unknown): GlyphId | null
+- collectSiteMarks · function · L278-L301 — function collectSiteMarks(room: PhosphorRoom, recent?: PhosphorEvent[]): GlyphId[]
+- add · function · L281-L285 — function add(id: GlyphId | null)
+- publicExits · function · L303-L314 — function publicExits(room: PhosphorRoom, allowed: Set<string>): PhosphorExit[]
+- dirVec · function · L316-L324 — function dirVec(direction: string | undefined, salt: number): [number, number]
+- occupyKey · function · L326-L328 — function occupyKey(x: number, y: number): string
+- nudge · function · L330-L342 — function nudge(x: number, y: number, taken: Set<string>): [number, number]
+- layoutPublicTopology · function · L345-L461 — function layoutPublicTopology( rooms: PhosphorRoom[] | undefined | null, recent?: PhosphorEvent[], focusRoomId?: string, ): PhosphorLayout
+- collectPulses · function · L464-L505 — function collectPulses( prevSeq: number, snapshot: PhosphorSnapshot, now: number, reducedMotion: boolean, publicRoomIds?: { has(id: string): boolean } | null, ): PhosphorPulse[]
+- capPulses · function · L508-L527 — function capPulses(pulses: PhosphorPulse[]): PhosphorPulse[]
+- expirePulses · function · L529-L531 — function expirePulses(pulses: PhosphorPulse[], now: number): PhosphorPulse[]
+- asciiCartogram · function · L542-L633 — function asciiCartogram( layout: PhosphorLayout | null | undefined, opts?: { majorRoomId?: string; pickedRoomId?: string }, ): string | null
+- gx · function · L557-L557 — gx = (x: number)
+- gy · function · L558-L558 — gy = (y: number)
+- put · function · L565-L568 — put = (r: number, c: number, ch: string)
+- connectorOnly · function · L620-L620 — connectorOnly = (l: string)
+- DrawCtx · type · L635-L654 — type DrawCtx = { fillStyle: string; strokeStyle: string; globalAlpha: number; lineWidth: number; lineCap: string; font: string; imageSmoothingEnabled?: boolean; fillRect(x: number, y: number, w: number, h: number): void; strokeRect(x: number, y: number, w: number, h: number): void; beginPath(): void; moveTo(x: number, y: number): void; lineTo(x: number, y: number): void; quadraticCurveTo?(cpx: number, cpy: number, x: number, y: number): void; setLineDash?(segments: number[]): void; closePath(): void; stroke(): void; fill(): void; fillText?(text: string, x: number, y: number): void; };
+- inkFor · function · L656-L660 — function inkFor(intensity: number): string
+- locOuterPath · function · L662-L666 — function locOuterPath(): string
+- locInnerPath · function · L668-L672 — function locInnerPath(): string
+- traceSvgPath · function · L675-L769 — function traceSvgPath(ctx: DrawCtx, d: string, ox: number, oy: number, scale: number): void
+- isCmd · function · L684-L684 — isCmd = (t: string | undefined): boolean
+- num · function · L685-L689 — num = (): number
+- px · function · L690-L693 — px = (nx: number, ny: number): [number, number]
+- strokeCatalogPath · function · L771-L776 — function strokeCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void
+- fillCatalogPath · function · L778-L783 — function fillCatalogPath(ctx: DrawCtx, d: string, ox: number, oy: number, size: number): void
+- drawGlyph · function · L785-L831 — function drawGlyph(ctx: DrawCtx, id: PhosphorGlyphId, cx: number, cy: number, intensity = 1): void
+- drawCatalogMark · function · L833-L840 — function drawCatalogMark(ctx: DrawCtx, id: GlyphId, cx: number, cy: number, intensity = 0.55): void
+- drawExit · function · L842-L868 — function drawExit( ctx: DrawCtx, x1: number, y1: number, x2: number, y2: number, active = false, dashed = false, ): void
+- drawRoomLabel · function · L870-L882 — function drawRoomLabel(ctx: DrawCtx, x: number, y: number, name: string): void
+- drawOccupantLabel · function · L885-L898 — function drawOccupantLabel(ctx: DrawCtx, x: number, y: number, labels: string[]): void
+- drawPulse · function · L907-L934 — function drawPulse(ctx: DrawCtx, cx: number, cy: number, tier: PhosphorTier, age: number): void
+- drawPhosphorFrame · function · L936-L1023 — function drawPhosphorFrame( ctx: DrawCtx, layout: PhosphorLayout, pulses: PhosphorPulse[], now: number, reconstruction_fidelity: number = 0.5, corroboration: number = 1, ): void
+- pageIsHidden · function · L1025-L1028 — function pageIsHidden(): boolean
+- PhosphorSession · type · L1032-L1047 — type PhosphorSession = { mode: PhosphorMode; reducedMotion: boolean; idle: boolean; rafStarts: number; lastLayout: PhosphorLayout; pulses: PhosphorPulse[]; setMode(mode: PhosphorMode): void; setReducedMotion(on: boolean): void; update(snapshot: PhosphorSnapshot): void; fail(): void; tick(now?: number): void; hit(x: number, y: number): PhosphorNode | null; /** §4.B.1: ASCII cartogram of lastLayout; null when it will not fit. */ ascii(opts?: { majorRoomId?: string; pickedRoomId?: string }): string | null; };
+- phosphorLabelAnchor · function · L1050-L1055 — function phosphorLabelAnchor(x: number, y: number): { x: number; y: number }
+- clampPhosphorNode · function · L1057-L1062 — function clampPhosphorNode(x: number, y: number): { x: number; y: number }
+- canvasPointFromEvent · function · L1064-L1075 — function canvasPointFromEvent( canvas: { getBoundingClientRect(): { left: number; top: number; width: number; height: number } }, ev: { clientX: number; clientY: number }, ): { x: number; y: number }
+- hitPhosphorNode · function · L1078-L1115 — function hitPhosphorNode( layout: PhosphorLayout | undefined | null, x: number, y: number, radius = PHOSPHOR_HIT_RADIUS, ): PhosphorNode | null
+- CanvasLike · type · L1117-L1121 — type CanvasLike = { width: number; height: number; getContext(type: string): DrawCtx | null; };
+- createPhosphorSession · function · L1123-L1283 — function createPhosphorSession(opts: { canvas?: CanvasLike | null; reducedMotion?: boolean; mode?: PhosphorMode; now?: () => number; raf?: (cb: (t: number) => void) => number; caf?: (id: number) => void; }): PhosphorSession
+- stopRaf · function · L1156-L1159 — function stopRaf()
+- paint · function · L1161-L1164 — function paint(now: number)
+- loop · function · L1166-L1180 — function loop(ts: number)
+- kick · function · L1182-L1188 — function kick()
+- ingest · function · L1190-L1212 — function ingest(snapshot: PhosphorSnapshot)
+- mode · method · L1215-L1217 — get mode()
+- reducedMotion · method · L1218-L1220 — get reducedMotion()
+- idle · method · L1221-L1223 — get idle()
+- rafStarts · method · L1224-L1226 — get rafStarts()
+- lastLayout · method · L1227-L1229 — get lastLayout()
+- pulses · method · L1230-L1232 — get pulses()
+- setMode · method · L1233-L1251 — setMode(next: PhosphorMode)
+- setReducedMotion · method · L1252-L1259 — setReducedMotion(on: boolean)
+- update · method · L1260-L1263 — update(snapshot: PhosphorSnapshot)
+- fail · method · L1264-L1268 — fail()
+- tick · method · L1269-L1274 — tick(now?: number)
+- hit · method · L1275-L1277 — hit(x: number, y: number)
+- ascii · method · L1278-L1280 — ascii(opts?: { majorRoomId?: string; pickedRoomId?: string })
+- parsePhosphorMode · function · L1291-L1318 — function parsePhosphorMode( search?: string | null, hash?: string | null, stored?: string | null, ): "text" | "pixel"
+- phosphorModeInlineSource · function · L1321-L1325 — function phosphorModeInlineSource(): string
+- phosphorInlineScript · function · L1327-L1449 — function phosphorInlineScript(bind?: { canvasId?: string; wrapId?: string; textBtnId?: string; pixelBtnId?: string; globalName?: string; /** Public /watch: never mount the sketch; the client only supplies the cartogram. */ textOnly?: boolean; }): string

@@ -300,7 +300,9 @@ describe("brand slice 9 — contrast, keyboard, performance", () => {
     expect(watch).toContain('id="watch-map"');
     expect(watch).toContain('id="watch-feed"');
     expect(watch).toContain('el("span", "mark", markFor(ev.tier))');
-    expect(watch).toContain('id="watch-phosphor"');
+    // The 3D Chamber stage replaced the public PIXEL canvas (watch-single-3d-stage.md D1, D2).
+    expect(watch).toContain('id="watch-stage3d"');
+    expect(watch).not.toContain('id="watch-phosphor"');
     expect(watch).toContain("prefers-reduced-motion");
     expect(watch).toContain("--color-state-warning");
     expect(watch).not.toMatch(/\.watch-hero\.major\{[^}]*--ember/);

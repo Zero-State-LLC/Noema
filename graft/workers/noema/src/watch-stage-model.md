@@ -1,0 +1,25 @@
+# workers/noema/src/watch-stage-model.ts
+
+- LiveRoom · type · L35-L37 — type LiveRoom = PhosphorRoom & { traces?: Array<{ text?: unknown } | null>; };
+- StageLive · type · L39-L44 — type StageLive = { projection?: string; sequence?: number; rooms?: LiveRoom[] | null; recent_events?: PhosphorEvent[] | null; };
+- StageContext · type · L46-L52 — type StageContext = { selectedId?: string; followRoomId?: string; majorRoomId?: string; /** Optional watch-map/1.0 payload for the same head; bands only (WS3-05). */ map?: unknown; };
+- ScarBand · type · L54-L54 — type ScarBand = "" | "faint" | "marked" | "deep";
+- LoadBand · type · L55-L55 — type LoadBand = "" | "low" | "moderate" | "high";
+- StageBands · type · L56-L56 — type StageBands = { scar: ScarBand; pressure: LoadBand; protocol: LoadBand };
+- bandOf · function · L61-L64 — function bandOf<T extends string>(value: unknown, allowed: T[]): T | ""
+- stageBandsFromMap · function · L70-L87 — function stageBandsFromMap(map: unknown): Record<string, StageBands>
+- stageBandLine · function · L90-L96 — function stageBandLine(b: StageBands): string
+- StageSite · type · L98-L112 — type StageSite = { id: string; name: string; x: number; z: number; certainty: PhosphorCertainty; active: boolean; players: number; handles: string[]; traces: number; selected: boolean; followed: boolean; major: boolean; bands: StageBands; };
+- StageRoute · type · L114-L120 — type StageRoute = { from: string; to: string; direction: string; dashed: boolean; oneWay: boolean; };
+- StageModel · type · L122-L127 — type StageModel = { sites: StageSite[]; routes: StageRoute[]; /** Distance from the layout centre to its farthest site, plus one grid step. */ radius: number; };
+- StagePulse · type · L129-L134 — type StagePulse = { roomId: string; tier: PhosphorTier; ttl: number; sequence: number; };
+- clean · function · L138-L145 — function clean(value: unknown, max: number): string
+- stageLabelText · function · L148-L150 — function stageLabelText(name: unknown): string
+- stageHandles · function · L153-L162 — function stageHandles(room: LiveRoom): string[]
+- buildStageModel · function · L164-L219 — function buildStageModel(live: StageLive | null | undefined, ctx: StageContext = {}): StageModel
+- tierOf · function · L221-L224 — function tierOf(raw: unknown): PhosphorTier
+- newStagePulses · function · L234-L262 — function newStagePulses( events: PhosphorEvent[] | null | undefined, lastSequence: number | null, publicRoomIds: Iterable<string>, opts: { reduce?: boolean; snapshotSequence?: number } = {}, ): { pulses: StagePulse[]; lastSequence: number | null }
+- StageCameraLimits · type · L264-L270 — type StageCameraLimits = { minDistance: number; maxDistance: number; maxTargetRadius: number; minPolarAngle: number; maxPolarAngle: number; };
+- stageCameraLimits · function · L272-L281 — function stageCameraLimits(radius: number): StageCameraLimits
+- stageDefaultView · function · L284-L293 — function stageDefaultView(radius: number): { target: [number, number, number]; position: [number, number, number] }
+- stageCameraTarget · function · L300-L310 — function stageCameraTarget( prev: StageContext, next: StageContext, majorPulseRoomId: string, spectatorMoved: boolean, ): string

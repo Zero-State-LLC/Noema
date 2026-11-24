@@ -1,16 +1,19 @@
 /**
- * Chamber projection mode. Query wins, then hash, then stored preference.
- * Default PIXEL matches the existing phosphor boot. One leaf so the /watch
- * IIFE can embed it without bundler keepNames (`__name`).
- * "3d" is an opt-in Three.js view; it is never the default.
+ * WATCH view (Noema-Specs specify/watch-single-3d-stage.md D1, D3). The 3D
+ * Chamber stage is the default; the TEXT / PIXEL / MAP rail is retired.
+ * Old links keep resolving: `text` is the text map with the stage unmounted;
+ * `pixel`, `map` and `3d` open the stage. Query wins, then hash. The view is
+ * not persisted: Low noise is the lasting text-only preference. One leaf so
+ * the /watch IIFE can embed it without bundler keepNames (`__name`).
  */
 
-export type WatchMode = "text" | "pixel" | "map" | "3d";
+export type WatchMode = "text" | "3d";
 
 export function parseWatchMode(
   search?: string | null,
   hash?: string | null,
-  stored?: string | null,
+  // Accepted for call-site compatibility; stored legacy modes are ignored (D3).
+  _stored?: string | null,
 ): WatchMode {
   let raw = "";
   const q = String(search || "");
@@ -27,14 +30,15 @@ export function parseWatchMode(
       raw = rest;
     }
   }
-  let m = String(raw || "").trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
+  // No inner functions here: wrangler keepNames would wrap them (see watchModeInlineSource).
   const h = String(hash || "");
-  m = (h.charAt(0) === "#" ? h.slice(1) : h).trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
-  m = String(stored || "").trim().toLowerCase();
-  if (m === "text" || m === "pixel" || m === "map" || m === "3d") return m;
-  return "pixel";
+  const candidates = [raw, h.charAt(0) === "#" ? h.slice(1) : h];
+  for (let i = 0; i < candidates.length; i++) {
+    const m = String(candidates[i] || "").trim().toLowerCase();
+    if (m === "text") return "text";
+    if (m === "pixel" || m === "map" || m === "3d") return "3d";
+  }
+  return "3d";
 }
 
 /** Leaf source for the /watch IIFE. Fail if wrangler keepNames leaked. */

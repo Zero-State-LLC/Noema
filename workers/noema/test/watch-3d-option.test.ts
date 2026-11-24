@@ -1,16 +1,20 @@
 /**
- * Opt-in 3D WATCH view (Three.js "fluid" stage, originally Ruffian-L #736).
- * TEXT / PIXEL / MAP stay the default and never fetch the 3D chunks; 3D is
- * selectable, persists like the other modes, and falls back to MAP.
+ * WATCH Chamber stage as the default view (Noema-Specs specify/watch-single-3d-stage.md).
+ * D1: the stage is the default and the TEXT / PIXEL / MAP rail is retired.
+ * D2: failure, no WebGL2, and Low noise show the text map. D3: old links resolve.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
 import { WATCH_LIVE_PIN } from "../src/watch-live";
 import { watchHtml } from "../src/watch";
-import { FLUID_FALLBACK_LINE, FLUID_SRC } from "../src/watch-fluid-view";
+import { createHash } from "node:crypto";
+import { STAGE_FALLBACK_LINE, STAGE_GZIP_BUDGET, STAGE_LOW_NOISE_LINE } from "../src/watch-stage-model";
+import { STAGE_SRC } from "../src/watch-stage-view";
+import { STAGE_VERSION } from "../src/watch-stage-version";
 import { parseWatchMode, watchModeInlineSource } from "../src/watch-mode";
 import type { Env } from "../src/types";
 
@@ -85,7 +89,7 @@ function makeNode(tag: string, webgl2: boolean): Node {
   return n;
 }
 
-type FluidCall = { kind: string; arg?: unknown };
+type StageCall = { kind: string; arg?: unknown };
 
 function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -106,7 +110,7 @@ function snapshot(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
-async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown> } = {}) {
+async function boot(opts: { search?: string; stored?: string | null; webgl2?: boolean; html?: string; frame?: Record<string, unknown>; wide?: boolean; map?: Record<string, unknown>; reduce?: boolean } = {}) {
   const webgl2 = opts.webgl2 !== false;
   const byId = new Map<string, Node>();
   const head = makeNode("head", webgl2);
@@ -137,7 +141,10 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   const urls: string[] = [];
   const winHandlers: Record<string, Array<(ev?: unknown) => void>> = {};
   const win: Record<string, unknown> = {
-    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    matchMedia: (q: string) => ({
+      matches: (!!opts.wide && String(q).includes("min-width")) || (!!opts.reduce && String(q).includes("reduced-motion")),
+      addEventListener() {}, removeEventListener() {},
+    }),
     addEventListener(t: string, fn: (ev?: unknown) => void) { (winHandlers[t] = winHandlers[t] || []).push(fn); },
     dispatchEvent(ev: { type: string }) { for (const fn of winHandlers[ev.type] || []) fn(ev); return true; },
   };
@@ -148,9 +155,18 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
   g.document = doc;
   g.window = win;
   g.location = { search, hash: "", protocol: "https:", host: "noema.test", href: "https://noema.test/watch" + search };
-  g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, String(v)) };
+  g.localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, String(v)),
+    removeItem: (k: string) => void store.delete(k),
+  };
   g.history = { replaceState: (_s: unknown, _t: string, url: string) => void urls.push(url) };
-  g.fetch = async () => ({ ok: true, statusText: "", json: async () => opts.frame || snapshot() });
+  const fetched: string[] = [];
+  g.fetch = async (url: string) => {
+    fetched.push(String(url));
+    const isMap = String(url).includes("/v1/watch/map");
+    return { ok: true, statusText: "", json: async () => (isMap && opts.map ? opts.map : opts.frame || snapshot()) };
+  };
   g.setInterval = () => 0;
   g.CSS = { escape: (s: string) => s };
   const restore = () => { for (const k of keys) g[k] = saved[k]; };
@@ -165,8 +181,9 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
     restore();
     throw e;
   }
-  const fluidCalls: FluidCall[] = [];
-  let onMode: ((next: string) => void) | null = null;
+  const stageCalls: StageCall[] = [];
+  let lost: (() => void) | null = null;
+  let select: ((id: string) => void) | null = null;
   return {
     $: (id: string) => doc.getElementById(id),
     head,
@@ -174,237 +191,331 @@ async function boot(opts: { search?: string; stored?: string | null; webgl2?: bo
     store,
     urls,
     win,
-    fluidScripts: () => head.children.filter((c) => c.tagName === "script" && String(c.src || "").includes("watch-fluid")),
+    body: doc.body,
+    fetched,
+    stageScripts: () => head.children.filter((c) => c.tagName === "script" && String(c.src || "").includes("watch-stage")),
     async click(id: string) {
       doc.getElementById(id).fire("click");
       await new Promise((r) => setTimeout(r, 5));
       await flush();
     },
-    installFluid(failMount = false) {
-      win.NoemaWatchFluid = {
-        mount(root: Node, options: { onMode: (next: string) => void }) {
+    installStage(failMount = false) {
+      win.NoemaWatchStage = {
+        mount(frame: Node, options: { canvas: Node; labels: Node; reset: Node; reduce: boolean; onLost: () => void; onSelect: (id: string) => void }) {
           if (failMount) throw new Error("no module");
-          onMode = options.onMode;
-          root.hidden = false;
-          fluidCalls.push({ kind: "mount" });
+          lost = options.onLost;
+          select = options.onSelect;
+          stageCalls.push({ kind: "mount", arg: { frame: frame.attrs.id, canvas: options.canvas.attrs.id, labels: options.labels.attrs.id, reset: options.reset.attrs.id } });
           return {
-            update(s: Record<string, unknown>) { fluidCalls.push({ kind: "update", arg: s.projection }); },
-            setMode(m: string) { fluidCalls.push({ kind: "setMode", arg: m }); },
-            focus(id: string) { fluidCalls.push({ kind: "focus", arg: id }); },
-            dispose() { fluidCalls.push({ kind: "dispose" }); },
+            update(s: Record<string, unknown>, ctx: Record<string, unknown>) { stageCalls.push({ kind: "update", arg: { projection: s.projection, ctx } }); },
+            dispose() { stageCalls.push({ kind: "dispose" }); },
           };
         },
       };
     },
-    fluidCalls,
-    stageLost() { onMode?.("pixel"); },
+    stageCalls,
+    stageLost() { lost?.(); },
+    stageSelect(id: string) { select?.(id); },
     flush,
     restore,
   };
 }
 
-describe("3D is an opt-in WATCH mode", () => {
-  it("parses 3d from query, hash, and storage, but never defaults to it", () => {
-    expect(parseWatchMode("?mode=3d", "", "")).toBe("3d");
-    expect(parseWatchMode("", "#3d", "")).toBe("3d");
-    expect(parseWatchMode("", "", "3d")).toBe("3d");
-    expect(parseWatchMode("?mode=3D", "", "")).toBe("3d");
-    expect(parseWatchMode("", "", null)).toBe("pixel");
-    expect(parseWatchMode("?mode=three", "", "")).toBe("pixel");
-    expect(parseWatchMode("?mode=pixel", "", "3d")).toBe("pixel");
+describe("the 3D stage is the WATCH default (D1, D3)", () => {
+  it("resolves old links: text is the text map; pixel, map and 3d open the stage; default is the stage", () => {
+    expect(parseWatchMode("", "", null)).toBe("3d");
+    expect(parseWatchMode("?mode=text", "", "")).toBe("text");
+    for (const m of ["pixel", "map", "3d", "3D", "three"]) expect(parseWatchMode(`?mode=${m}`, "", ""), m).toBe("3d");
+    expect(parseWatchMode("", "#text", "")).toBe("text");
+    expect(parseWatchMode("", "#map", "")).toBe("3d");
+    expect(parseWatchMode("?mode=text", "#3d", "")).toBe("text");
+    // Stored legacy modes no longer decide the view; Low noise is the lasting text preference.
+    expect(parseWatchMode("", "", "text")).toBe("3d");
     expect(watchModeInlineSource()).not.toContain("__name");
   });
 
-  it("server-renders the default page unchanged with no 3D script tag", () => {
+  it("server-renders the stage by default with no mode rail, no PIXEL canvas, and no MAP stage", () => {
     const html = watchHtml();
-    expect(html).toContain('data-mode="pixel"');
-    expect(html).toContain('id="watch-mode-3d" aria-pressed="false"');
-    expect(html).toMatch(/id="watch-fluid" hidden/);
+    expect(html).toContain('data-mode="3d"');
+    expect(html).not.toMatch(/id="watch-mode-(text|pixel|map|3d)"/);
+    expect(html).not.toContain('id="watch-phosphor"');
+    expect(html).not.toContain('id="watch-stage-map"');
+    expect(html).toMatch(/id="watch-stage3d" hidden/);
     expect(html).not.toMatch(/id="watch-stage-places"[^>]*hidden/);
-    expect(html).not.toMatch(/<script[^>]*watch-fluid/);
-    expect(html).not.toMatch(/<link[^>]*watch-fluid/);
-    for (const mode of ["text", "pixel", "map"]) {
-      expect(watchHtml({ mode })).not.toMatch(/<script[^>]*watch-fluid/);
-      expect(watchHtml({ mode })).toContain(`id="watch-mode-${mode}" aria-pressed="true"`);
-    }
+    expect(html).toContain('id="watch-low-noise-btn"');
+    expect(html).not.toMatch(/<script[^>]*watch-stage/);
+    expect(watchHtml({ mode: "text" })).toContain('data-mode="text"');
+    for (const mode of ["pixel", "map", "3d"]) expect(watchHtml({ mode })).toContain('data-mode="3d"');
   });
 
-  it("server-renders ?mode=3d with Places and MAP hidden", async () => {
+  it("server-renders /watch and old ?mode= links through the Worker", async () => {
     const env = { NOEMA_ENV: "production" } as unknown as Env;
-    const res = await worker.fetch(new Request("https://noema.guru/watch?mode=3d"), env);
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toContain('data-mode="3d"');
-    expect(html).toContain('id="watch-mode-3d" aria-pressed="true"');
-    expect(html).toMatch(/id="watch-stage-places"[^>]*hidden/);
-    expect(html).toMatch(/id="watch-stage-map"[^>]*hidden/);
-    expect(html).not.toMatch(/<script[^>]*watch-fluid/);
+    for (const [search, mode] of [["", "3d"], ["?mode=map", "3d"], ["?mode=pixel", "3d"], ["?mode=text", "text"]]) {
+      const res = await worker.fetch(new Request(`https://noema.guru/watch${search}`), env);
+      expect(res.status, search).toBe(200);
+      const html = await res.text();
+      expect(html, search).toContain(`data-mode="${mode}"`);
+      expect(html, search).toContain('id="watch-stage3d-reset"');
+      expect(html, search).toContain("Map key");
+    }
   });
 });
 
-describe("driven WATCH client with the 3D option", () => {
-  it("default boot keeps PIXEL and never requests the 3D chunk", async () => {
-    const c = await boot();
+describe("driven WATCH client with the 3D stage", () => {
+  it("?mode=text never requests the stage chunk and keeps the text map", async () => {
+    const c = await boot({ search: "?mode=text" });
     try {
-      expect(c.stage.getAttribute("data-mode")).toBe("pixel");
-      expect(c.$("watch-mode-pixel").getAttribute("aria-pressed")).toBe("true");
-      expect(c.$("watch-mode-3d").getAttribute("aria-pressed")).toBe("false");
-      expect(c.fluidScripts()).toHaveLength(0);
-      for (const id of ["watch-mode-text", "watch-mode-map", "watch-mode-pixel"]) {
-        await c.click(id);
-        expect(c.fluidScripts()).toHaveLength(0);
-      }
-      expect(c.$("watch-fluid").hidden).toBe(true);
+      expect(c.stage.getAttribute("data-mode")).toBe("text");
+      expect(c.stageScripts()).toHaveLength(0);
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      // The text view stays shareable in the URL.
+      expect(c.urls.at(-1) ?? "").toContain("mode=text");
     } finally {
       c.restore();
     }
   });
 
-  it("choosing 3D lazily loads the chunk once, mounts it, and persists", async () => {
+  it("default boot lazily loads the chunk once and mounts the stage beside Places", async () => {
     const c = await boot();
     try {
-      await c.click("watch-mode-3d");
       expect(c.stage.getAttribute("data-mode")).toBe("3d");
-      expect(c.$("watch-mode-3d").getAttribute("aria-pressed")).toBe("true");
-      expect(c.$("watch-mode-pixel").getAttribute("aria-pressed")).toBe("false");
-      expect(c.$("watch-stage-places").hidden).toBe(true);
-      expect(c.$("watch-stage-map").hidden).toBe(true);
-      expect(c.store.get("noema.watch.mode")).toBe("3d");
-      expect(c.urls.at(-1)).toContain("mode=3d");
-      const scripts = c.fluidScripts();
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      const scripts = c.stageScripts();
       expect(scripts).toHaveLength(1);
       expect(scripts[0].type).toBe("module");
-      expect(scripts[0].src).toBe(FLUID_SRC);
+      expect(scripts[0].src).toBe(STAGE_SRC);
+      // The stage view is per visit: no stored mode and no mode in the URL.
+      expect(c.store.has("noema.watch.mode")).toBe(false);
+      expect(c.urls.at(-1) ?? "").not.toContain("mode=");
 
-      c.installFluid();
+      c.installStage();
       scripts[0].fire("load");
       await c.flush();
-      expect(c.fluidCalls.map((x) => x.kind)).toEqual(expect.arrayContaining(["mount", "update", "setMode"]));
-      expect(c.fluidCalls.find((x) => x.kind === "setMode")?.arg).toBe("map");
-      expect(c.fluidCalls.filter((x) => x.kind === "update").every((x) => x.arg === "public")).toBe(true);
-      expect(c.$("watch-fluid").hidden).toBe(false);
-
-      await c.click("watch-mode-pixel");
-      expect(c.fluidCalls.at(-1)?.kind).toBe("dispose");
-      expect(c.$("watch-fluid").hidden).toBe(true);
-      expect(c.stage.getAttribute("data-mode")).toBe("pixel");
-      await c.click("watch-mode-3d");
-      expect(c.fluidScripts()).toHaveLength(1);
-      expect(c.fluidCalls.filter((x) => x.kind === "mount")).toHaveLength(2);
+      expect(c.stageCalls[0]).toEqual({ kind: "mount", arg: { frame: "watch-stage3d-frame", canvas: "watch-stage3d-gl", labels: "watch-stage3d-labels", reset: "watch-stage3d-reset" } });
+      const updates = c.stageCalls.filter((x) => x.kind === "update");
+      expect(updates.length).toBeGreaterThan(0);
+      expect(updates.every((x) => (x.arg as { projection: string }).projection === "public")).toBe(true);
+      expect(c.$("watch-stage3d").hidden).toBe(false);
     } finally {
       c.restore();
     }
   });
 
-  it("never hands a non-public last frame to the 3D stage on selection", async () => {
+  it("a reduced-motion visitor's first load does not throw and shows the text map", async () => {
+    const c = await boot({ reduce: true });
+    try {
+      // Reduced motion seeds Low noise (S5), which unmounts the stage (D2).
+      expect(c.body.classList.contains("is-low-noise")).toBe(true);
+      expect(c.stage.getAttribute("data-mode")).toBe("3d");
+      expect(c.stageScripts()).toHaveLength(0);
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("a site picked on the stage becomes the selected site in its next update", async () => {
+    const c = await boot({ search: "?mode=3d" });
+    try {
+      c.installStage();
+      c.stageScripts()[0].fire("load");
+      await c.flush();
+      c.stageSelect("room.market");
+      await c.flush();
+      const last = c.stageCalls.filter((x) => x.kind === "update").at(-1)!;
+      expect((last.arg as { ctx: { selectedId: string } }).ctx.selectedId).toBe("room.market");
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("fetches map bands in 3D, hands them to the stage, and shows world health", async () => {
+    const map = {
+      projection: "public", world_id: "world.test", cycle: 4, sequence: 20, freshness: "live",
+      base: { rooms: [{ room_id: "room.market", scar_band: "deep", pressure_band: "high", protocol_band: "low" }] },
+      health: { scar_band: "deep", reconstruction_fidelity: 0.8, players_present: 1 },
+    };
+    const c = await boot({ search: "?mode=3d", map });
+    try {
+      c.installStage();
+      c.stageScripts()[0].fire("load");
+      await c.flush();
+      expect(c.fetched.some((u) => u.includes("/v1/watch/map"))).toBe(true);
+      const last = c.stageCalls.filter((x) => x.kind === "update").at(-1)!;
+      const ctx = (last.arg as { ctx: { map: typeof map } }).ctx;
+      expect(ctx.map.base.rooms[0].pressure_band).toBe("high");
+      const health = c.$("watch-stage3d-health");
+      expect(health.children).toHaveLength(3);
+      const pairs = health.children.map((row) => row.children.map((n) => n.textContent));
+      expect(pairs).toEqual([["Scars", "deep"], ["Reconstruction", "0.8"], ["Players", "1"]]);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("the text view never fetches map bands", async () => {
+    const c = await boot({ search: "?mode=text" });
+    try {
+      expect(c.fetched.some((u) => u.includes("/v1/watch/map"))).toBe(false);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("never hands a non-public last frame to the stage when it mounts", async () => {
     const frame = snapshot();
     const c = await boot({ frame });
     try {
+      // The held frame turns non-public before the chunk arrives.
       frame.projection = "private";
-      await c.click("watch-mode-3d");
-      expect(c.stage.getAttribute("data-mode")).toBe("3d");
-      const [script] = c.fluidScripts();
+      const [script] = c.stageScripts();
       expect(script).toBeTruthy();
-      c.installFluid();
+      c.installStage();
       script.fire("load");
       await c.flush();
-      expect(c.fluidCalls.some((call) => call.kind === "update")).toBe(false);
+      expect(c.stageCalls.some((call) => call.kind === "update")).toBe(false);
     } finally { c.restore(); }
   });
 
-  it("boots straight into a stored 3D preference", async () => {
-    const c = await boot({ stored: "3d" });
+  it("ignores a stored mode key and leaves it for Admin Watch", async () => {
+    const c = await boot({ stored: "text" });
     try {
       expect(c.stage.getAttribute("data-mode")).toBe("3d");
-      expect(c.fluidScripts()).toHaveLength(1);
+      expect(c.stageScripts()).toHaveLength(1);
+      expect(c.store.get("noema.watch.mode")).toBe("text");
     } finally {
       c.restore();
     }
   });
 
-  it("falls back to MAP when the 3D chunk fails to load", async () => {
+  it("Low noise never mounts the stage and keeps the text map", async () => {
+    const c = await boot({ search: "?mode=3d&low_noise=1" });
+    try {
+      expect(c.body.classList.contains("is-low-noise")).toBe(true);
+      expect(c.stage.getAttribute("data-mode")).toBe("3d");
+      expect(c.stageScripts()).toHaveLength(0);
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("turning Low noise on over a mounted stage shows the text map at once, and off remounts it", async () => {
+    const c = await boot({ search: "?mode=3d", wide: true });
+    try {
+      c.installStage();
+      c.stageScripts()[0].fire("load");
+      await c.flush();
+      expect(c.stageCalls.filter((x) => x.kind === "mount")).toHaveLength(1);
+      // While the stage is the map, the ASCII cartogram stays off (one map at a time).
+      expect(c.$("watch-pre").hidden).toBe(true);
+
+      await c.click("watch-low-noise-btn");
+      expect(c.body.classList.contains("is-low-noise")).toBe(true);
+      expect(c.stageCalls.at(-1)?.kind).toBe("dispose");
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_LOW_NOISE_LINE);
+      // Painted by the toggle itself, not by a later poll.
+      expect(c.$("watch-pre").hidden).toBe(false);
+      expect(c.$("watch-pre").textContent).toContain("Chamber Market");
+
+      await c.click("watch-low-noise-btn");
+      expect(c.body.classList.contains("is-low-noise")).toBe(false);
+      expect(c.stageCalls.filter((x) => x.kind === "mount")).toHaveLength(2);
+      expect(c.$("watch-stage3d").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(true);
+      expect(c.$("watch-pre").hidden).toBe(true);
+    } finally {
+      c.restore();
+    }
+  });
+
+  it("falls back to TEXT when the stage chunk fails to load", async () => {
     const c = await boot({ search: "?mode=3d" });
     try {
-      const [script] = c.fluidScripts();
+      const [script] = c.stageScripts();
       expect(script).toBeTruthy();
       script.fire("error");
       await c.flush();
-      expect(c.stage.getAttribute("data-mode")).toBe("map");
-      expect(c.$("watch-mode-map").getAttribute("aria-pressed")).toBe("true");
-      expect(c.$("watch-stage-map").hidden).toBe(false);
-      expect(c.$("watch-fluid").hidden).toBe(true);
-      expect(c.$("watch-fluid-fallback").hidden).toBe(false);
-      expect(c.$("watch-fluid-fallback").textContent).toBe(FLUID_FALLBACK_LINE);
-      // Fallback does not overwrite the spectator's stored choice.
-      expect(c.store.get("noema.watch.mode")).toBe("3d");
+      expect(c.stage.getAttribute("data-mode")).toBe("text");
+      expect(c.$("watch-stage-places").hidden).toBe(false);
+      expect(c.$("watch-stage3d").hidden).toBe(true);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_FALLBACK_LINE);
+      // Fallback is per visit: nothing is stored.
+      expect(c.store.has("noema.watch.mode")).toBe(false);
     } finally {
       c.restore();
     }
   });
 
-  it("falls back to MAP on the unavailable event, a mount error, or a lost stage", async () => {
-    const ev = await boot({ search: "?mode=3d" });
-    try {
-      (ev.win.dispatchEvent as (e: { type: string }) => boolean)({ type: "noema-watch-fluid-unavailable" });
-      await ev.flush();
-      expect(ev.stage.getAttribute("data-mode")).toBe("map");
-      expect(ev.$("watch-fluid-fallback").textContent).toBe(FLUID_FALLBACK_LINE);
-    } finally {
-      ev.restore();
-    }
-
+  it("falls back to TEXT on a mount error or a lost WebGL context", async () => {
     const bad = await boot({ search: "?mode=3d" });
     try {
-      bad.installFluid(true);
-      bad.fluidScripts()[0].fire("load");
+      bad.installStage(true);
+      bad.stageScripts()[0].fire("load");
       await bad.flush();
-      expect(bad.stage.getAttribute("data-mode")).toBe("map");
-      expect(bad.$("watch-fluid").hidden).toBe(true);
+      expect(bad.stage.getAttribute("data-mode")).toBe("text");
+      expect(bad.$("watch-stage3d").hidden).toBe(true);
     } finally {
       bad.restore();
     }
 
     const lost = await boot({ search: "?mode=3d" });
     try {
-      lost.installFluid();
-      lost.fluidScripts()[0].fire("load");
+      lost.installStage();
+      lost.stageScripts()[0].fire("load");
       await lost.flush();
       expect(lost.stage.getAttribute("data-mode")).toBe("3d");
       lost.stageLost();
       await lost.flush();
-      expect(lost.stage.getAttribute("data-mode")).toBe("map");
-      expect(lost.fluidCalls.at(-1)?.kind).toBe("dispose");
-      expect(lost.$("watch-fluid-fallback").hidden).toBe(false);
+      expect(lost.stage.getAttribute("data-mode")).toBe("text");
+      expect(lost.stageCalls.at(-1)?.kind).toBe("dispose");
+      expect(lost.$("watch-stage3d-fallback").hidden).toBe(false);
     } finally {
       lost.restore();
     }
   });
 
-  it("without WebGL2 never downloads the chunk and shows MAP", async () => {
+  it("without WebGL2 never downloads the chunk and shows TEXT", async () => {
     const c = await boot({ search: "?mode=3d", webgl2: false });
     try {
-      expect(c.fluidScripts()).toHaveLength(0);
-      expect(c.stage.getAttribute("data-mode")).toBe("map");
-      expect(c.$("watch-fluid-fallback").textContent).toBe(FLUID_FALLBACK_LINE);
-      await c.click("watch-mode-pixel");
-      expect(c.$("watch-fluid-fallback").hidden).toBe(true);
+      expect(c.stageScripts()).toHaveLength(0);
+      expect(c.stage.getAttribute("data-mode")).toBe("text");
+      expect(c.$("watch-stage3d-fallback").textContent).toBe(STAGE_FALLBACK_LINE);
+      expect(c.$("watch-stage3d-fallback").hidden).toBe(false);
     } finally {
       c.restore();
     }
   });
 });
 
-describe("3D chunks are built from source and ship the Three.js license", () => {
-  it("has both lazy chunks, the MIT license, and the notice banner", () => {
-    for (const f of ["watch-fluid.js", "watch-fluid-map.js", "THREE-LICENSE.txt"]) {
+describe("the stage chunk is built from source, budgeted, and ships the Three.js license", () => {
+  it("is one chunk within the D5 budget with the MIT license and notice banner", () => {
+    for (const f of ["watch-stage.js", "THREE-LICENSE.txt"]) {
       expect(existsSync(join(ASSETS, f)), f).toBe(true);
     }
+    for (const gone of ["watch-fluid.js", "watch-fluid-map.js"]) {
+      expect(existsSync(join(ASSETS, gone)), gone).toBe(false);
+    }
     expect(readFileSync(join(ASSETS, "THREE-LICENSE.txt"), "utf8")).toContain("The MIT License");
-    const map = readFileSync(join(ASSETS, "watch-fluid-map.js"), "utf8");
-    expect(map.startsWith("/*! NOEMA WATCH 3D view. Bundles three.js (MIT")).toBe(true);
-    const shell = readFileSync(join(ASSETS, "watch-fluid.js"), "utf8");
-    expect(shell).toContain("/assets/watch-fluid-map.js");
-    expect(shell).toContain('projection!=="public"');
-    expect(shell).not.toContain("WebGLRenderer");
+    const chunk = readFileSync(join(ASSETS, "watch-stage.js"));
+    expect(chunk.toString("utf8").startsWith("/*! NOEMA WATCH Chamber stage. Bundles three.js (MIT")).toBe(true);
+    expect(chunk.toString("utf8")).toContain("NoemaWatchStage");
+    expect(gzipSync(chunk, { level: 9 }).length).toBeLessThanOrEqual(STAGE_GZIP_BUDGET);
+  });
+
+  it("loads the chunk by a content-hash version, so a deploy never serves a stale chunk", () => {
+    const chunk = readFileSync(join(ASSETS, "watch-stage.js"));
+    const hash = createHash("sha256").update(chunk).digest("hex").slice(0, 12);
+    expect(STAGE_VERSION).toBe(hash);
+    expect(STAGE_SRC).toBe(`/assets/watch-stage.js?v=${hash}`);
+    expect(watchHtml()).toContain(JSON.stringify(STAGE_SRC));
   });
 });
