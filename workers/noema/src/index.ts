@@ -243,7 +243,7 @@ export default {
     }
 
     try {
-      if (path.startsWith("/api/study-admin/")) {
+      if (path.startsWith("/api/admin/studies/") || path.startsWith("/api/study-admin/invites/")) {
         if (env.STUDY_ADMIN_UI_ENABLED !== "true" || !env.STUDY_ADMIN_DO) {
           return cors(
             new Response(

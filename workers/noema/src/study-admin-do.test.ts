@@ -21,7 +21,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
     const { state, map } = makeMemoryState();
     const obj = new StudyAdminDO(state, { STUDY_ADMIN_UI_ENABLED: "false" });
     const res = await obj.fetch(
-      new Request("https://noema.guru/api/study-admin/invites", {
+      new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -45,7 +45,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
     // Instance 1: issue and accept invite
     const do1 = new StudyAdminDO(state, { STUDY_ADMIN_UI_ENABLED: "true" });
     const issueRes = await do1.fetch(
-      new Request("https://noema.guru/api/study-admin/invites", {
+      new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -62,7 +62,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
     expect(issued.ok).toBe(true);
 
     const acceptRes = await do1.fetch(
-      new Request(`https://noema.guru/api/study-admin/invites/${issued.invite.invite_id}/accept`, {
+      new Request(`https://noema.guru/api/admin/studies/study-alpha/invites/${issued.invite.invite_id}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,7 +76,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
     // Instance 2 (simulating eviction / fresh DO instance with same durable storage)
     const do2 = new StudyAdminDO(state, { STUDY_ADMIN_UI_ENABLED: "true" });
     const auditRes = await do2.fetch(
-      new Request("https://noema.guru/api/study-admin/audit?study_id=study-alpha"),
+      new Request("https://noema.guru/api/admin/studies/study-alpha/audit"),
     );
     expect(auditRes.status).toBe(200);
     const auditBody = (await auditRes.json()) as { ok: boolean; events: { event_type: string }[] };
@@ -85,7 +85,7 @@ describe("StudyAdminDO (ADR-0004)", () => {
 
     // Issuing a new invite on do2 must not collide with prior invite_id
     const issue2Res = await do2.fetch(
-      new Request("https://noema.guru/api/study-admin/invites", {
+      new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
