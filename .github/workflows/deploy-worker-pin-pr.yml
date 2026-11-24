@@ -188,6 +188,7 @@ jobs:
 
           git config user.name "noema-pin-bot"
           git config user.email "noema-pin-bot@users.noreply.github.com"
+          git config --unset-all http.https://github.com/.extraheader || true
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git fetch origin "$BRANCH:refs/remotes/origin/$BRANCH" || true
           git checkout -B "$BRANCH"
