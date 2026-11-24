@@ -1,6 +1,10 @@
 /** Env bindings for the Noema gateway Worker. */
 export interface Env {
   WORLD_DO: DurableObjectNamespace;
+  /** Dedicated RFC-0131 Study Admin Durable Object (ADR-0004). */
+  STUDY_ADMIN_DO?: DurableObjectNamespace;
+  /** Feature flag for RFC-0131 Study Admin UI. Default "false" (fail-closed). */
+  STUDY_ADMIN_UI_ENABLED?: string;
   NOEMA_ENV: string;
   NOEMA_PROTOCOL_VERSION: string;
   /** Cloudflare version_metadata: the running Worker Version. Read-only. */

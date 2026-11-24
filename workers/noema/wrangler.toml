@@ -39,6 +39,7 @@ binding = "CF_VERSION"
 NOEMA_ENV = "production"
 NOEMA_PROTOCOL_VERSION = "1"
 DEFAULT_WORLD_ID = "world.perihelion-reach-3"
+# STUDY_ADMIN_UI_ENABLED: unset by default (fail-closed; set to "true" to enable StudyAdminDO).
 # NOEMA_ALLOW_PROD_BOOTSTRAP: unset by default (fail-closed). Set to "1" only
 # for a genesis activation window where the canonical head is legitimately
 # empty; a missing head otherwise refuses bootstrap instead of re-emitting a
@@ -48,9 +49,17 @@ DEFAULT_WORLD_ID = "world.perihelion-reach-3"
 name = "WORLD_DO"
 class_name = "NoemaWorldDO"
 
+[[durable_objects.bindings]]
+name = "STUDY_ADMIN_DO"
+class_name = "StudyAdminDO"
+
 [[migrations]]
 tag = "v1"
 new_classes = ["NoemaWorldDO"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["StudyAdminDO"]
 
 # Operator digest tick — cadence gate is inside the DO (min 15m)
 [triggers]
