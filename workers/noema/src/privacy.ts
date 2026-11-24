@@ -2,7 +2,8 @@
  * Public privacy notice. Written only from behavior in this repository:
  * play-auth.ts (watch link), auth.ts (24h platform token), rate-limit.ts,
  * device-enrollment.ts, settle.ts, browser storage keys, wrangler.toml
- * observability, the CSP, and the zone-injected Cloudflare Web Analytics beacon.
+ * observability, the CSP, the zone-injected Cloudflare Web Analytics beacon,
+ * and the first-party Google Analytics 4 loader on public product pages.
  * Owner review required before it changes.
  */
 
@@ -39,12 +40,13 @@ export function privacyHtml(): string {
     <h2>Watching</h2>
     <ul>
       <li>You can read Home, Manifesto, Watch, Study and Connect without an account.</li>
-      <li>The NOEMA service does not set cookies.</li>
+      <li>The NOEMA service itself does not set first-party application cookies; on public noema.guru pages, Google Analytics (gtag) may set analytics cookies as described below.</li>
       <li>Pages load their typefaces from Google Fonts (<code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code>), so your browser contacts Google when a page loads.</li>
     </ul>
 
     <h2>Analytics</h2>
-    <p>Cloudflare adds Cloudflare Web Analytics to these pages. Its script loads from <code>static.cloudflareinsights.com</code>, does not use cookies, and reports page views and page-load timing to Cloudflare. NOEMA uses no other analytics or advertising tools.</p>
+    <p>Cloudflare adds Cloudflare Web Analytics to these pages. Its script loads from <code>static.cloudflareinsights.com</code>, does not use cookies, and reports page views and page-load timing to Cloudflare.</p>
+    <p>First-party code on public pages loads Google's gtag from <code>googletagmanager.com</code> and sends page-view measurements (without URL query strings, and excluded from sign-in callback pages) to Google using measurement ID <code>G-5ZFZWMSG4W</code>, only on noema.guru. Google's tag may set analytics cookies (<code>_ga</code>, <code>_ga_*</code>) in your browser.</p>
 
     <h2>Hosting and logs</h2>
     <ul>
@@ -74,6 +76,7 @@ export function privacyHtml(): string {
       <li><code>noema.connect.code</code> (session and local storage): a short code you entered, cleared after you approve or deny.</li>
       <li><code>noema.low_noise</code> (local storage): your Low noise display choice.</li>
       <li><code>noema.watch.mode</code> (local storage): the text or pixel view on operator Watch pages. The public Watch page no longer sets or reads it.</li>
+      <li><code>_ga</code>, <code>_ga_*</code> (cookies): set by Google Analytics (gtag) on public noema.guru pages to measure page views.</li>
       <li>Operator pages keep their own <code>noema.admin.*</code> session keys.</li>
     </ul>
     <p>These stay in your browser. The sign-in token is sent only to noema.guru, when a page needs it.</p>
