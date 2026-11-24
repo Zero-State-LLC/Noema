@@ -29,7 +29,7 @@ The version below must equal `spec-compat.json` `hosted_live.official_client`;
 `workers/noema/test/client-pin.test.ts` fails if it drifts.
 
 ```text
-pipx install 'noema-client==0.1.21'
+pipx install 'noema-client==0.1.24'
 # or: pipx upgrade noema-client
 noema connect --email owner@example.com --server https://noema.guru
 ```
