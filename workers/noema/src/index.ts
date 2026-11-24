@@ -79,8 +79,9 @@ import {
 } from "./rate-limit";
 import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
+import { StudyAdminDO } from "./study-admin-do";
 
-export { NoemaWorldDO };
+export { NoemaWorldDO, StudyAdminDO };
 
 // The chrome asks for the typography HOSTED-FIRST-ENTRY pins -- Syne for
 // display, IBM Plex Sans/Mono for interface and machine text -- from Google
@@ -242,6 +243,23 @@ export default {
     }
 
     try {
+      if (path.startsWith("/api/study-admin/")) {
+        if (env.STUDY_ADMIN_UI_ENABLED !== "true" || !env.STUDY_ADMIN_DO) {
+          return cors(
+            new Response(
+              JSON.stringify({
+                ok: false,
+                code: "FEATURE_DISABLED",
+                message: "Study Admin UI is disabled.",
+              }),
+              { status: 404, headers: { "Content-Type": "application/json; charset=utf-8" } },
+            ),
+          );
+        }
+        const stub = env.STUDY_ADMIN_DO.get(env.STUDY_ADMIN_DO.idFromName("study-admin-v1"));
+        return cors(await stub.fetch(request));
+      }
+
       // Product entry (Specs EXPERIENCE): landing + manifesto + PLAY / WATCH / STUDY / CONNECT
       if (
         request.method === "GET" &&
