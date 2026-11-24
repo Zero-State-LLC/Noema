@@ -5,7 +5,7 @@ describe("Observation presence roster affordances (#793)", () => {
   const baseInput = {
     entities: [],
     exits: [],
-    budgets: { energy: 10, compute: 10, storage: 0, attention: 8 },
+    budgets: { energy: 10, compute: 10, storage: 0, attention: 8, influence: 0 },
     openTrades: [],
     selfId: "player.alice",
     observerRoomId: "room.hub",
