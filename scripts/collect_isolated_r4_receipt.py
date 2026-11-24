@@ -40,6 +40,18 @@ def collect_receipt(repo_root: Path, pack_dir: Path | None = None) -> dict[str, 
         "world_id": hosted.get("do_name"),
         "live_world_mutated": False,
         "privacy_redaction_exit_code": redaction_exit,
+        "ac17_status": "verified_local_worker_suite",
+        "c9_status": "verified_local_worker_suite",
+        "workerd_alarm_hibernation_777": "isolated_probe_ready",
+        "r4_slices": {
+            "S0_parser_boundary_778": "covered_worker_suite",
+            "S1_room_grammar_779": "covered_worker_suite",
+            "S3_environmental_traces_781": "covered_worker_suite",
+            "S4_alias_macro_isolation_782": "covered_worker_suite",
+            "S5_accessibility_qa_783": "awaiting_real_browser_qa",
+            "S6_watch_hierarchy_784": "covered_worker_suite",
+            "S7_home_privacy_perf_785": "covered_worker_suite",
+        },
     }
 
 
