@@ -23,14 +23,12 @@ describe("StudyAdminDO (ADR-0004)", () => {
     const res = await obj.fetch(
       new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          study_id: "study-1",
-          human_principal_id: "human-1",
-          actor_id: "admin-1",
-          auth_event_id: "auth-1",
-          is_global_admin: true,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Noema-Admin-Actor": "admin-root",
+          "X-Noema-Admin-Auth-Event": "auth-1",
+        },
+        body: JSON.stringify({ human_principal_id: "human-1" }),
       }),
     );
     expect(res.status).toBe(404);
@@ -47,14 +45,12 @@ describe("StudyAdminDO (ADR-0004)", () => {
     const issueRes = await do1.fetch(
       new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          study_id: "study-alpha",
-          human_principal_id: "human-alice",
-          actor_id: "admin-root",
-          auth_event_id: "auth-100",
-          is_global_admin: true,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Noema-Admin-Actor": "admin-root",
+          "X-Noema-Admin-Auth-Event": "auth-100",
+        },
+        body: JSON.stringify({ human_principal_id: "human-alice" }),
       }),
     );
     expect(issueRes.status).toBe(201);
@@ -64,11 +60,11 @@ describe("StudyAdminDO (ADR-0004)", () => {
     const acceptRes = await do1.fetch(
       new Request(`https://noema.guru/api/study-admin/invites/${issued.invite.invite_id}/accept`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          human_principal_id: "human-alice",
-          auth_event_id: "auth-101",
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Noema-Human-Principal": "human-alice",
+          "X-Noema-Auth-Event": "auth-101",
+        },
       }),
     );
     expect(acceptRes.status).toBe(200);
@@ -76,7 +72,9 @@ describe("StudyAdminDO (ADR-0004)", () => {
     // Instance 2 (simulating eviction / fresh DO instance with same durable storage)
     const do2 = new StudyAdminDO(state, { STUDY_ADMIN_UI_ENABLED: "true" });
     const auditRes = await do2.fetch(
-      new Request("https://noema.guru/api/admin/studies/study-alpha/audit"),
+      new Request("https://noema.guru/api/admin/studies/study-alpha/audit", {
+        headers: { "X-Noema-Admin-Auth-Event": "auth-102" },
+      }),
     );
     expect(auditRes.status).toBe(200);
     const auditBody = (await auditRes.json()) as { ok: boolean; events: { event_type: string }[] };
@@ -87,14 +85,12 @@ describe("StudyAdminDO (ADR-0004)", () => {
     const issue2Res = await do2.fetch(
       new Request("https://noema.guru/api/admin/studies/study-alpha/invites", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          study_id: "study-alpha",
-          human_principal_id: "human-bob",
-          actor_id: "admin-root",
-          auth_event_id: "auth-102",
-          is_global_admin: true,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Noema-Admin-Actor": "admin-root",
+          "X-Noema-Admin-Auth-Event": "auth-103",
+        },
+        body: JSON.stringify({ human_principal_id: "human-bob" }),
       }),
     );
     expect(issue2Res.status).toBe(201);
