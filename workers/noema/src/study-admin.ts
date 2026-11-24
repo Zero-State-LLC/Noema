@@ -65,11 +65,35 @@ export function isStudyAdminEnabled(envFlag: string | undefined): boolean {
   return envFlag === "true";
 }
 
+export interface StudyAdminSnapshot {
+  invites: [string, StudyAdminInvite][];
+  grants: [string, StudyAdminGrant][];
+  audit: StudyAdminAuditEvent[];
+  seq: number;
+}
+
 export class StudyAdminStore {
   private invites = new Map<string, StudyAdminInvite>();
   private grants = new Map<string, StudyAdminGrant>();
   private audit: StudyAdminAuditEvent[] = [];
   private seq = 0;
+
+  serialize(): StudyAdminSnapshot {
+    return {
+      invites: Array.from(this.invites.entries()),
+      grants: Array.from(this.grants.entries()),
+      audit: [...this.audit],
+      seq: this.seq,
+    };
+  }
+
+  hydrate(snapshot: StudyAdminSnapshot | undefined): void {
+    if (!snapshot) return;
+    this.invites = new Map(snapshot.invites ?? []);
+    this.grants = new Map(snapshot.grants ?? []);
+    this.audit = [...(snapshot.audit ?? [])];
+    this.seq = typeof snapshot.seq === "number" ? snapshot.seq : 0;
+  }
 
   private nextId(prefix: string): string {
     this.seq += 1;
