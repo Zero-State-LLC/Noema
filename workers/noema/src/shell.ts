@@ -332,6 +332,32 @@ export type ProductNav = "home" | "manifesto" | "play" | "watch" | "study" | "co
 
 const FONTS = FONT_LINKS;
 
+/** GA4 measurement ID. Loaded only on the production hostnames below. */
+const GA4_MEASUREMENT_ID = "G-5ZFZWMSG4W";
+
+/** First-party loader: injects gtag only on public noema.guru / www.noema.guru pages.
+ * Excludes authentication callback paths and strips URL query strings so one-time
+ * tokens, connect_code, and auth_flow parameters are never sent to Google. */
+function ga4LoaderScript(): string {
+  return `<script>
+(() => {
+  var ID = ${JSON.stringify(GA4_MEASUREMENT_ID)};
+  var host = location.hostname;
+  if (host !== "noema.guru" && host !== "www.noema.guru") return;
+  var path = location.pathname || "/";
+  if (path === "/play/callback" || path === "/auth/callback" || path.indexOf("/play/callback/") === 0) return;
+  var s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + ID;
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', ID, { page_location: location.origin + path });
+})();
+</script>`;
+}
+
 export function productShell(opts: {
   title: string;
   active?: ProductNav;
@@ -384,6 +410,7 @@ export function productShell(opts: {
 ${ICON_LINKS}
 ${FONTS}
 <style>${PRODUCT_CSS}${opts.extraCss || ""}</style>
+${ga4LoaderScript()}
 </head>
 <body${opts.bleed ? ' class="hero-bleed"' : ""}>
 <a class="skip" href="#main">Skip to content</a>

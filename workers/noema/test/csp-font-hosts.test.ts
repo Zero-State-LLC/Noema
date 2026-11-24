@@ -68,17 +68,23 @@ describe("HTML CSP allows exactly the pinned font hosts", () => {
     expect(csp).toContain("form-action 'self'");
     expect(directive(csp, "default-src")).toBe("default-src 'self'");
     // Widening for fonts must not become a wildcard in the directives it
-    // touched, and must not admit third-party script or image origins.
-    // connect-src keeps its pre-existing localhost port wildcards for dev.
+    // touched, and must not admit third-party image origins. connect-src
+    // keeps its pre-existing localhost port wildcards for dev, plus the
+    // GA4 collect hosts.
     expect(directive(csp, "style-src")).not.toContain("*");
     expect(directive(csp, "font-src")).not.toContain("*");
-    // One third-party script origin only: the zone-injected Cloudflare Web
-    // Analytics beacon (owner request 2026-11-08). Nothing else, no wildcard.
+    // Third-party script origins: the zone-injected Cloudflare Web Analytics
+    // beacon, and Google's gtag (exact host, no wildcard, no unsafe-eval).
     expect(directive(csp, "script-src").split(/\s+/).filter((s) => s.startsWith("https://"))).toEqual([
       "https://static.cloudflareinsights.com",
+      "https://www.googletagmanager.com",
     ]);
     expect(directive(csp, "script-src")).not.toContain("*");
+    expect(directive(csp, "script-src")).not.toContain("unsafe-eval");
     expect(directive(csp, "img-src")).not.toContain("https://");
+    expect(directive(csp, "connect-src")).toContain("https://*.google-analytics.com");
+    expect(directive(csp, "connect-src")).toContain("https://*.analytics.google.com");
+    expect(directive(csp, "connect-src")).toContain("https://*.googletagmanager.com");
   });
 
   it("applies to every HTML surface, not just /watch", async () => {

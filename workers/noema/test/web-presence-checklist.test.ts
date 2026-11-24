@@ -296,6 +296,9 @@ describe("privacy page", () => {
     expect(html).toContain("Zero State LLC");
     expect(html).toContain("mailto:zer0state@zer0state.com");
     expect(html).toContain("static.cloudflareinsights.com");
+    expect(html).toContain("G-5ZFZWMSG4W");
+    expect(html).toContain("googletagmanager.com");
+    expect(html).not.toContain("NOEMA uses no other analytics or advertising tools.");
     expect(html).toContain("Workers Logs");
     expect(html).toContain("Supabase");
     expect(html).toContain("24 hours");
@@ -325,16 +328,25 @@ describe("privacy page", () => {
 });
 
 describe("analytics", () => {
-  it("the CSP lets the zone-injected Cloudflare beacon load and report", async () => {
+  it("the CSP lets the zone-injected Cloudflare beacon and GA4 gtag load and report", async () => {
     for (const path of ["/", "/watch", "/privacy"]) {
       const res = await worker.fetch(new Request(`https://noema.guru${path}`), env);
       const csp = res.headers.get("content-security-policy") || "";
       const script = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith("script-src ")) || "";
       const connect = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith("connect-src ")) || "";
       expect(script, path).toContain("https://static.cloudflareinsights.com");
+      expect(script, path).toContain("https://www.googletagmanager.com");
+      expect(script, path).not.toContain("*");
+      expect(script, path).not.toContain("unsafe-eval");
       // Automatic setup reports to this origin's /cdn-cgi/rum.
       expect(connect, path).toContain("'self'");
-      await res.text();
+      expect(connect, path).toContain("https://*.google-analytics.com");
+      expect(connect, path).toContain("https://*.analytics.google.com");
+      expect(connect, path).toContain("https://*.googletagmanager.com");
+      const html = await res.text();
+      expect(html, path).toContain("G-5ZFZWMSG4W");
+      expect(html, path).toContain('host !== "noema.guru"');
+      expect(html, path).not.toMatch(/<script[^>]+src="https:\/\/www\.googletagmanager\.com/);
     }
   });
 });
