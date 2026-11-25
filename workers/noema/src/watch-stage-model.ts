@@ -34,6 +34,16 @@ export const STAGE_CAPTION_HOLD_MS = { NORMAL: 2500, NOTABLE: 3500, MAJOR: 4000 
 export const STAGE_PLAYBACK = { MIN_GAP_MS: 400, MAX_GAP_MS: 2500, UNKNOWN_GAP_MS: 600, MAX_TOTAL_MS: 9000 };
 /** D6 route travel: how long a token takes to cross one drawn public route. */
 export const STAGE_TRAVEL_MS = 1100;
+/**
+ * D6 MAJOR moment: how long a MAJOR event holds its site, beyond the 920 ms
+ * §18.6 pulse. Between two and four seconds.
+ */
+export const STAGE_MAJOR_MOMENT_MS = 3000;
+/**
+ * D6 tier director: how long the camera stays on a shot before it may cut,
+ * and how long a MAJOR shot must hold before it may preempt a non-MAJOR one.
+ */
+export const STAGE_DIRECTOR = { DWELL_MS: 4000, MAJOR_PREEMPT_MS: 1500 };
 
 /**
  * D6 paced playback: the order and spacing a burst of fresh pulses and
@@ -582,4 +592,56 @@ export function stageCameraTarget(
   if (next.followRoomId && next.followRoomId !== prev.followRoomId) return next.followRoomId;
   if (spectatorMoved) return "";
   return majorPulseRoomId || "";
+}
+
+/**
+ * D6 tier director: the shot the camera is on, or null when it holds none.
+ * `at` is the performance time the shot was cut.
+ */
+export type StageShot = { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number; at: number } | null;
+
+function directorRank(tier: "NOTABLE" | "MAJOR"): number {
+  return tier === "MAJOR" ? 1 : 0;
+}
+
+/**
+ * D6 tier director. Among candidates only NOTABLE and MAJOR rooms with a room
+ * id count; NORMAL and unknown tiers never move the camera. The best candidate
+ * is the higher tier, then the newer sequence. Nothing is returned when there
+ * is no candidate, when the best is the room already held, before the dwell
+ * ends, or when a MAJOR tries to preempt another MAJOR. A MAJOR may preempt a
+ * non-MAJOR shot once MAJOR_PREEMPT_MS has passed.
+ */
+export function stageDirectorPick(
+  current: StageShot,
+  candidates: Array<{ roomId: string; tier: string; sequence: number }>,
+  now: number,
+): StageShot {
+  let best: { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number } | null = null;
+  for (const raw of Array.isArray(candidates) ? candidates : []) {
+    if (!raw) continue;
+    const roomId = String(raw.roomId || "");
+    if (!roomId) continue;
+    const tier = String(raw.tier || "").toUpperCase();
+    if (tier !== "MAJOR" && tier !== "NOTABLE") continue;
+    const sequence = typeof raw.sequence === "number" && Number.isFinite(raw.sequence) ? raw.sequence : 0;
+    const tier2 = tier as "NOTABLE" | "MAJOR";
+    if (!best || directorRank(tier2) > directorRank(best.tier) ||
+        (directorRank(tier2) === directorRank(best.tier) && sequence > best.sequence)) {
+      best = { roomId, tier: tier2, sequence };
+    }
+  }
+  if (!best) return null;
+  const cut: { roomId: string; tier: "NOTABLE" | "MAJOR"; sequence: number; at: number } = {
+    roomId: best.roomId,
+    tier: best.tier,
+    sequence: best.sequence,
+    at: now,
+  };
+  if (!current) return cut;
+  if (best.roomId === current.roomId) return null;
+  const elapsed = now - current.at;
+  if (elapsed >= STAGE_DIRECTOR.DWELL_MS) return cut;
+  if (best.tier === "MAJOR" && current.tier !== "MAJOR" && elapsed >= STAGE_DIRECTOR.MAJOR_PREEMPT_MS) return cut;
+  return null;
 }
