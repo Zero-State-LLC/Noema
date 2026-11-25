@@ -1213,6 +1213,9 @@ export function watchHtml(opts?: { mode?: string }): string {
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
         const sock = new WebSocket(proto + "//" + location.host + "/v1/watch/stream");
         sock.onmessage = (ev) => {
+          // WS3-12: a paused window shows the last frame; the next resume
+          // calls refresh(), which fetches the current projection.
+          if (state.paused) return;
           try { applyLive(JSON.parse(ev.data)); } catch (e) {
             renderPublicRecent(null); // Keep the rest of the last frame, never stale disclosure rows.
           }
@@ -1274,6 +1277,10 @@ export function watchHtml(opts?: { mode?: string }): string {
       state.paused = !state.paused;
       $("watch-pause").textContent = state.paused ? "Resume updates" : "Pause updates";
       $("watch-pause").setAttribute("aria-pressed", state.paused ? "true" : "false");
+      // D6: the stage holds its paced playback with the page.
+      if (stage3d.api && typeof stage3d.api.pause === "function") {
+        try { stage3d.api.pause(state.paused); } catch (e) { /* stage is display-only */ }
+      }
       if (state.paused) {
         setTag("paused", "tag warn");
       } else {

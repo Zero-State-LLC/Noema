@@ -30,6 +30,82 @@ export const STAGE_CAMERA_EASE_MS = PULSE_TTL.NOTABLE;
 export const STAGE_MAX_MINOR_PULSES = 3;
 /** D6: how long a caption stays on screen, per tier. Never longer than four seconds. */
 export const STAGE_CAPTION_HOLD_MS = { NORMAL: 2500, NOTABLE: 3500, MAJOR: 4000 };
+/** D6: pacing of a fresh burst — one slot per event, never more than MAX_TOTAL_MS overall. */
+export const STAGE_PLAYBACK = { MIN_GAP_MS: 400, MAX_GAP_MS: 2500, UNKNOWN_GAP_MS: 600, MAX_TOTAL_MS: 9000 };
+
+/**
+ * D6 paced playback: the order and spacing a burst of fresh pulses and
+ * captions plays in. Sorted ascending by sequence, equal sequences being one
+ * moment. The first slot is now (0). A gap is the public occurred_at delta
+ * clamped to MIN_GAP_MS..MAX_GAP_MS, or UNKNOWN_GAP_MS when the delta is not
+ * known or time runs backwards. A schedule longer than MAX_TOTAL_MS is scaled
+ * to fit, so a long backlog still reads as a burst and not as a queue.
+ */
+export function stagePlaybackSchedule(
+  items: Array<{ sequence: number; occurredAt?: number }>,
+): Array<{ sequence: number; atMs: number }> {
+  const rows: Array<{ sequence: number; occurredAt: number | null }> = [];
+  for (const item of Array.isArray(items) ? items : []) {
+    const sequence = item?.sequence;
+    if (typeof sequence !== "number" || !Number.isSafeInteger(sequence)) continue;
+    const raw = item?.occurredAt;
+    const occurredAt = typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+    const seen = rows.find((row) => row.sequence === sequence);
+    if (seen) {
+      if (seen.occurredAt === null && occurredAt !== null) seen.occurredAt = occurredAt;
+      continue;
+    }
+    rows.push({ sequence, occurredAt });
+  }
+  rows.sort((a, b) => a.sequence - b.sequence);
+  const out: Array<{ sequence: number; atMs: number }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    let atMs = 0;
+    if (i > 0) {
+      const from = rows[i - 1].occurredAt;
+      const to = rows[i].occurredAt;
+      let gap = STAGE_PLAYBACK.UNKNOWN_GAP_MS;
+      if (from !== null && to !== null) {
+        const delta = to - from;
+        if (delta >= 0) gap = Math.min(STAGE_PLAYBACK.MAX_GAP_MS, Math.max(STAGE_PLAYBACK.MIN_GAP_MS, delta));
+      }
+      atMs = out[i - 1].atMs + gap;
+    }
+    out.push({ sequence: rows[i].sequence, atMs });
+  }
+  const last = out.length ? out[out.length - 1].atMs : 0;
+  if (last > STAGE_PLAYBACK.MAX_TOTAL_MS) {
+    const scale = STAGE_PLAYBACK.MAX_TOTAL_MS / last;
+    for (const row of out) row.atMs = Math.round(row.atMs * scale);
+  }
+  return out;
+}
+
+/**
+ * D6 paced playback: where a snapshot's rows start while older moments are
+ * still pending. `pendingDueMs` are the due times (performance clock) of the
+ * playback entries already queued. With nothing pending later than now a row
+ * keeps its scheduled offset. Otherwise the new schedule starts MIN_GAP_MS
+ * after the last pending moment, so a newer sequence never plays before an
+ * older one. A backlog past MAX_TOTAL_MS is no longer live: `flush` asks the
+ * caller to play every pending moment now, oldest first, which is also why
+ * offsetMs is 0 in that case.
+ */
+export function stagePlaybackOffset(
+  pendingDueMs: number[],
+  now: number,
+): { flush: boolean; offsetMs: number } {
+  const base = typeof now === "number" && Number.isFinite(now) ? now : 0;
+  let maxDue = base;
+  for (const due of Array.isArray(pendingDueMs) ? pendingDueMs : []) {
+    if (typeof due !== "number" || !Number.isFinite(due)) continue;
+    if (due > maxDue) maxDue = due;
+  }
+  const behind = maxDue - base;
+  if (behind > STAGE_PLAYBACK.MAX_TOTAL_MS) return { flush: true, offsetMs: 0 };
+  if (behind <= 0) return { flush: false, offsetMs: 0 };
+  return { flush: false, offsetMs: behind + STAGE_PLAYBACK.MIN_GAP_MS };
+}
 
 export const STAGE_FALLBACK_LINE = "3D view is unavailable here. Showing the text map.";
 export const STAGE_LOW_NOISE_LINE = "Low noise is on. Showing the text map.";

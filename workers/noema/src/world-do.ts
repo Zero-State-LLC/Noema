@@ -11,6 +11,7 @@ import {
   type WatchSourceEvent,
 } from "./watch-live";
 import { buildWatchMap } from "./watch-map";
+import { watchPushDecision } from "./watch-push";
 import {
   appendOperatorWatchLine,
   buildOperatorWatch,
@@ -275,6 +276,10 @@ export class NoemaWorldDO {
   private watchHeld: HeldHeadline | null = null;
   /** Limiter instance only: a sweep alarm is known to be pending, so hits skip the alarm read. */
   private rateLimitSweepArmed = false;
+  /** D6 push pacing: last pushed snapshot, its public sequence, and a pending paced push. */
+  private watchLastPushAt: number | null = null;
+  private watchLastPushedSequence: number | null = null;
+  private watchPushTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
@@ -403,24 +408,82 @@ export class NoemaWorldDO {
     });
   }
 
+  /**
+   * The isolated-world admission rule for one WATCH socket. Hibernation
+   * discards instance fields, so a retained socket must present the exact
+   * binding before this world may serve it. False means "do not serve".
+   */
+  private async watchSocketAdmitted(ws: WebSocket): Promise<boolean> {
+    // Hibernation discards instance fields; never let a retained socket load the default world.
+    const attachment = ws.deserializeAttachment?.() as unknown;
+    if (this.env.ISOLATED_WATCH_WORLD_ID === undefined && attachment == null) return true;
+    const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
+    if (!admitted || !attachment || typeof attachment !== "object" ||
+        (attachment as { kind?: unknown }).kind !== "isolated-watch" ||
+        (attachment as { world_id?: unknown }).world_id !== admitted) {
+      return false;
+    }
+    const stored = await this.state.storage.get<WorldState>("world");
+    if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
+      return false;
+    }
+    this.requestedWorldId = admitted;
+    return true;
+  }
+
+  /**
+   * D6 push and paced playback: after public events are stored, push the same
+   * watch-live/1.0 snapshot the socket already serves — at most one per burst
+   * window, and only when the public sequence moved. Presentation only: no new
+   * fields, and a failure to push never disturbs the caller.
+   */
+  private async pushWatchSnapshot(): Promise<void> {
+    if (typeof this.state.getWebSockets !== "function") return;
+    const sockets = this.state.getWebSockets();
+    if (!sockets || !sockets.length) return;
+    const sequence = this.world?.sequence ?? 0;
+    const decision = watchPushDecision({
+      lastPushAt: this.watchLastPushAt,
+      lastPushedSequence: this.watchLastPushedSequence,
+      now: Date.now(),
+      sequence,
+    });
+    if (!decision.push) return;
+    if (decision.delayMs > 0) {
+      // One pending paced push at a time; the later event joins it.
+      if (this.watchPushTimer === null) {
+        this.watchPushTimer = setTimeout(() => {
+          this.watchPushTimer = null;
+          void this.pushWatchSnapshot().catch(() => {});
+        }, decision.delayMs);
+      }
+      return;
+    }
+    // Build once for every socket: a partial or failed snapshot is never sent.
+    let text: string;
+    try {
+      text = JSON.stringify(await this.watchSnapshot());
+    } catch {
+      return;
+    }
+    for (const ws of sockets) {
+      try {
+        if (!(await this.watchSocketAdmitted(ws))) continue;
+      } catch {
+        continue;
+      }
+      try { ws.send(text); } catch { /* one dead socket must not stop the rest */ }
+    }
+    this.watchLastPushAt = Date.now();
+    this.watchLastPushedSequence = sequence;
+  }
+
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const text = typeof message === "string" ? message : "";
     if (text === "pause") return;
     try {
-      // Hibernation discards instance fields; never let a retained socket load the default world.
-      const attachment = ws.deserializeAttachment?.() as unknown;
-      if (this.env.ISOLATED_WATCH_WORLD_ID !== undefined || attachment != null) {
-        const admitted = isolatedWatchWorldId(this.env.NOEMA_ENV, this.env.ISOLATED_WATCH_WORLD_ID, this.env.DEFAULT_WORLD_ID);
-        if (!admitted || !attachment || typeof attachment !== "object" ||
-            (attachment as { kind?: unknown }).kind !== "isolated-watch" ||
-            (attachment as { world_id?: unknown }).world_id !== admitted) {
-          throw new Error("isolated WATCH socket binding unavailable");
-        }
-        const stored = await this.state.storage.get<WorldState>("world");
-        if ((stored && stored.world_id !== admitted) || (this.world && this.world.world_id !== admitted)) {
-          throw new Error("isolated WATCH world mismatch");
-        }
-        this.requestedWorldId = admitted;
+      if (!(await this.watchSocketAdmitted(ws))) {
+        throw new Error("isolated WATCH socket binding unavailable");
       }
       ws.send(JSON.stringify(await this.watchSnapshot()));
     } catch {
@@ -1492,6 +1555,7 @@ export class NoemaWorldDO {
     }
     if (result.ok && result.events?.length && !idempotentReplay) {
       await this.recordDigestEvents(principal, result.events, w.cycle);
+      await this.pushWatchSnapshot().catch(() => {});
     }
     if (result.ok) {
       const actor = w.players[principal.player_id];
@@ -1621,6 +1685,7 @@ export class NoemaWorldDO {
           authentication_context: "tempo-alarm",
         };
         await this.recordDigestEvents(actor, resolved.events, this.world.cycle);
+        await this.pushWatchSnapshot().catch(() => {});
       }
     }
     await this.save();
