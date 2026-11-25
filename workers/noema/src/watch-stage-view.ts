@@ -73,7 +73,7 @@ body.is-low-noise #watch-stage3d{display:none!important}
 .stage3d-label{
   pointer-events:auto;cursor:pointer;max-width:9.5rem;padding:2px 7px;
   border:1px solid color-mix(in srgb,var(--line) 70%,transparent);border-radius:999px;
-  background:rgba(14,17,20,.58);backdrop-filter:blur(4px);
+  background:color-mix(in srgb,var(--void) 86%,transparent);backdrop-filter:blur(4px);
   color:var(--ink);font:500 .68rem/1.2 var(--font-interface);text-align:center;white-space:nowrap;
   transition:border-color .15s var(--ease),background .15s var(--ease),border-radius .15s var(--ease);
 }
