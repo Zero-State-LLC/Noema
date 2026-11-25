@@ -658,20 +658,27 @@ export function selectNotableEvent(opts: {
     const heldPick = holdHeadline(opts.held, candidates);
     if (heldPick) return heldPick;
   }
-  if (ranked[0]) {
-    const top = ranked[0];
-    if (top.tier === "NOTABLE" && !top.actor_label && !top.room_id && !top.consequence) {
-      const concreteDeed = candidates.find((c) => Boolean(c.actor_label && c.room_id));
-      if (concreteDeed) return concreteDeed;
-    }
-    return top;
-  }
+  if (ranked[0]) return preferDeedOverAmbient(ranked[0], candidates);
   return quietHeadline(opts.players_present);
+}
+
+function isAmbientPulse(ev: WatchEvent): boolean {
+  return ev.tier === "NOTABLE" && !ev.actor_label && !ev.room_id && !ev.consequence && ev.projection_id !== "world_status";
+}
+
+function isConcreteDeed(ev: WatchEvent): boolean {
+  return Boolean(ev.actor_label && ev.room_id);
+}
+
+function preferDeedOverAmbient(top: WatchEvent, window: WatchEvent[]): WatchEvent {
+  if (!isAmbientPulse(top)) return top;
+  const deed = window.find(isConcreteDeed);
+  return deed || top;
 }
 
 export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null {
   const inWindow = window.find((e) => e.sequence === held.sequence && e.projection_id === held.projection_id);
-  const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier]);
+  const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier] && !isAmbientPulse(e));
   // §4A step 5: age by newer PUBLIC candidates, never by raw ledger-sequence
   // arithmetic — private LOOK/MESSAGE traffic must not rotate the headline.
   const aged = window.filter((e) => e.sequence > held.sequence).length > 8;
@@ -679,7 +686,8 @@ export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEve
     return { ...held, ...inWindow };
   }
   const pool = aged && inWindow ? window.filter((e) => e.sequence !== held.sequence) : window;
-  return rankEvents(pool)[0] || rankEvents(window)[0] || null;
+  const top = rankEvents(pool)[0] || rankEvents(window)[0];
+  return top ? preferDeedOverAmbient(top, pool) : null;
 }
 
 /**
@@ -1024,7 +1032,11 @@ export function buildWatchLive(input: {
   );
 
   const latestActionByActor = new Map<string, WatchEvent>();
-  for (const ev of recent) {
+  // Roster last_action uses the pre-truncation candidate window so a deed
+  // dropped by the visible-feed cap or the movement cap is still the agent's
+  // latest public action.
+  const actionWindow = [...candidates].sort((a, b) => b.sequence - a.sequence);
+  for (const ev of actionWindow) {
     if (ev.actor_label && !latestActionByActor.has(ev.actor_label)) {
       latestActionByActor.set(ev.actor_label, ev);
     }
