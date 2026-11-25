@@ -157,7 +157,7 @@ describe("S-MARK-10 isolated Chamber", () => {
     ).toBe(true);
   });
 
-  it("#779 T1.2 equivalent observation renders deterministic section order (Room -> STATUS -> EXITS)", async () => {
+  it("#779 T1.2 equivalent observation renders deterministic section order (Room -> EXITS -> STATUS)", async () => {
     const w = chamberWorld();
     const p = principal();
     expect((await run(w, p, "ENTER_WORLD")).ok).toBe(true);
@@ -176,9 +176,9 @@ describe("S-MARK-10 isolated Chamber", () => {
         : undefined,
     });
     expect(a.indexOf("Relay Quarter")).toBeGreaterThanOrEqual(0);
-    expect(a.indexOf("STATUS")).toBeGreaterThan(a.indexOf("Relay Quarter"));
-    expect(a.indexOf("EXITS")).toBeGreaterThan(a.indexOf("STATUS"));
-    expect(b.indexOf("STATUS")).toBeGreaterThan(b.indexOf("Relay Quarter"));
-    expect(b.indexOf("EXITS")).toBeGreaterThan(b.indexOf("STATUS"));
+    expect(a.indexOf("EXITS")).toBeGreaterThan(a.indexOf("Relay Quarter"));
+    expect(a.indexOf("STATUS")).toBeGreaterThan(a.indexOf("EXITS"));
+    expect(b.indexOf("EXITS")).toBeGreaterThan(b.indexOf("Relay Quarter"));
+    expect(b.indexOf("STATUS")).toBeGreaterThan(b.indexOf("EXITS"));
   });
 });
