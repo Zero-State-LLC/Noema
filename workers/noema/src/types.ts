@@ -35,6 +35,10 @@ export interface Env {
   ADMIN_OPERATOR_TOKEN?: string;
   /** Comma-separated operator mailboxes. Secret — never [vars] or /health. */
   ADMIN_ALLOWLIST_EMAILS?: string;
+  /** Cloudflare Access team domain (e.g. "zero-state.cloudflareaccess.com"). Secret/env — never exposed. */
+  CF_ACCESS_TEAM_DOMAIN?: string;
+  /** Cloudflare Access Application Audience (AUD) tag. Secret — never [vars]. */
+  CF_ACCESS_AUD?: string;
   /**
    * Cloudflare Email Routing send binding.
    * Locked to zer0state@zer0state.com in wrangler.toml.
