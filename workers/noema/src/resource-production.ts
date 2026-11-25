@@ -42,13 +42,24 @@ export function previewStockRegen(
   return Math.min(cap, stock + regen * mod);
 }
 
-/** RFC-0117: cargo-full + zero-energy is not a permanent lock. */
+/** RFC-0117 + #907: zero-energy with full hold OR empty hold is not a permanent lock. */
 export const LOCKOUT_REST_ENERGY = 2;
 export const LOCKOUT_REST_STORAGE = 1;
 
-export function applyLockoutRest<T extends { energy?: number; storage?: number }>(budgets: T): boolean {
-  if ((budgets.energy ?? 0) !== 0 || (budgets.storage ?? 0) !== 0) return false;
+export function applyLockoutRest<
+  T extends { energy?: number; storage?: number; cargo?: Record<string, number> },
+>(budgets: T): boolean {
+  if ((budgets.energy ?? 0) !== 0) return false;
+  const fullHold = (budgets.storage ?? 0) === 0;
+  const cargoUnits = Object.values(budgets.cargo ?? {}).reduce(
+    (sum, n) => sum + (Number.isFinite(n) && n > 0 ? n : 0),
+    0,
+  );
+  const emptyHold = cargoUnits === 0;
+  if (!fullHold && !emptyHold) return false;
   budgets.energy = LOCKOUT_REST_ENERGY;
-  budgets.storage = LOCKOUT_REST_STORAGE;
+  if (fullHold) {
+    budgets.storage = LOCKOUT_REST_STORAGE;
+  }
   return true;
 }
