@@ -245,10 +245,15 @@ export default {
     }
 
     try {
-      if (path === "/admin/studies") {
+      if (path === "/admin/studies" || path.startsWith("/study-admin/invites/")) {
         const uiRes = handleStudyAdminUiRequest(request, env.STUDY_ADMIN_UI_ENABLED);
         if (uiRes) {
-          if (uiRes.status === 200 && env.CF_ACCESS_TEAM_DOMAIN && env.CF_ACCESS_AUD) {
+          if (
+            path === "/admin/studies" &&
+            uiRes.status === 200 &&
+            env.CF_ACCESS_TEAM_DOMAIN &&
+            env.CF_ACCESS_AUD
+          ) {
             const verified = await buildVerifiedAdminRequest(request, env);
             if (!verified.ok) return cors(verified.response);
           }
