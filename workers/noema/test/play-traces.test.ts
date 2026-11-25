@@ -429,4 +429,95 @@ describe("S3 play traces", () => {
       ),
     ).toBe(true);
   });
+
+  it("#781 T3.1/T3.2/T3.4 provenance and deterministic invalidation across board, shout, institution, trade, rumor, insignia, and memorial families", () => {
+    // 1. Board + shout + institution_notice provenance and removal.
+    const tNotices = projectRoomTraces({
+      board: [
+        { text: "older board note", cycle: 1 },
+        { text: "latest board note", cycle: 2 },
+      ],
+      shout: { text: "Relay online", cycle: 2 },
+      institution_notice: { text: "Quartermaster ledger audited", cycle: 2 },
+    });
+    expect(tNotices.map((t) => t.source_state_ref)).toEqual([
+      { kind: "room", field: "board" },
+      { kind: "room", field: "shout" },
+      { kind: "room", field: "institution_notice" },
+    ]);
+    expect(tNotices[0].text).toBe("latest board note");
+    expect(projectRoomTraces({ board: [], shout: undefined, institution_notice: undefined })).toEqual([]);
+
+    // 2. Trade notice + rumor (single & contested) provenance and deterministic removal.
+    const tTradeRumor = projectRoomTraces({
+      trade_notice: { text: "Basalt exchange settled", cycle: 3 },
+      public_rumor: { contested: true },
+    });
+    expect(tTradeRumor.map((t) => t.source_state_ref)).toEqual([
+      { kind: "room", field: "trade_notice" },
+      { kind: "room", field: "rumor" },
+      { kind: "room", field: "rumor" },
+    ]);
+    expect(projectRoomTraces({ trade_notice: undefined, public_rumor: undefined })).toEqual([]);
+
+    // 3. Insignia + vacant-office memorial via laterTraceInputs and removal when office fills or org leaves.
+    const later = laterTraceInputs({
+      room_id: "room.hub",
+      entities: [{ entity_id: "entity.beacon-1", owner_id: "org.anchor_guild" }],
+      rumor: {
+        claims: {
+          c1: { visibility: "PUBLIC", subject_ref: "room.hub", origin_claim_id: "orig-1" },
+          c2: { visibility: "PRIVATE", subject_ref: "room.hub", origin_claim_id: "orig-2" },
+        },
+      },
+      orgs: [
+        {
+          org_id: "org.anchor_guild",
+          name: "Anchor Guild",
+          offices: {
+            qm: { status: "VACANT", display_name: "Quartermaster" },
+            lead: { status: "FILLED", display_name: "Lead" },
+          },
+        },
+      ],
+    });
+    const tOrg = projectRoomTraces(later);
+    expect(tOrg.map((t) => t.source_state_ref)).toEqual([
+      { kind: "room", field: "rumor" },
+      { kind: "org", org_id: "org.anchor_guild", field: "insignia" },
+      { kind: "org", org_id: "org.anchor_guild", field: "memorial" },
+    ]);
+    expect(tOrg.map((t) => t.text)).toEqual([
+      "A public report concerns this site.",
+      "Marks of Anchor Guild remain here.",
+      "Quartermaster of Anchor Guild stands vacant.",
+    ]);
+    // Once rumor claim, org ownership, and vacancy disappear, all three traces disappear deterministically.
+    const cleared = laterTraceInputs({
+      room_id: "room.hub",
+      entities: [{ entity_id: "entity.beacon-1" }],
+      rumor: { claims: {} },
+      orgs: [{ org_id: "org.anchor_guild", name: "Anchor Guild", offices: { qm: { status: "FILLED", display_name: "Quartermaster" } } }],
+    });
+    expect(projectRoomTraces(cleared)).toEqual([]);
+  });
+
+  it("#781 T3.5 hostile authored text (XSS, HTML tags, ANSI escapes, bidi/control chars) is stripped before public projection", () => {
+    const hostile = projectRoomTraces({
+      board: [{ text: "<script>alert(1)</script>Safe\u001b[31m board\u001b[0m\u202e note", cycle: 5 }],
+      shout: { text: '<img src=x onerror="alert(2)">Relay\u0007 clear', cycle: 5 },
+      org_marks: [{ org_id: "org.evil", name: "<b>Iron</b>\u202e Guild" }],
+    });
+    expect(hostile).toHaveLength(3);
+    for (const trace of hostile) {
+      expect(trace.text).not.toMatch(/[<>]/);
+      expect(trace.text).not.toMatch(/\u001b|\u202e|\u0007/);
+    }
+    expect(hostile[0].text).toBe("alert(1)Safe board note");
+    expect(hostile[1].text).toBe("Relay clear");
+    expect(hostile[2].text).toBe("Marks of Iron Guild remain here.");
+
+    // Pure-tag hostile payloads collapse to empty and are omitted entirely.
+    expect(projectRoomTraces({ shout: { text: "<img src=x onerror=alert(1)>", cycle: 5 } })).toEqual([]);
+  });
 });

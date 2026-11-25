@@ -67,8 +67,17 @@ export type TraceRoom = {
 
 const MAX_TRACES = 3;
 
-function publicOrgName(raw: string): string {
+function sanitizeInlineText(raw: string): string {
   return String(raw || "")
+    .replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function publicOrgName(raw: string): string {
+  return sanitizeInlineText(raw)
     .replace(/^org\./i, "")
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
@@ -104,7 +113,7 @@ export function laterTraceInputs(input: LaterTraceInput): Pick<
     if (!org_marks.some((m) => m.name === name)) org_marks.push({ org_id: org.org_id, name });
     for (const office of Object.values(org.offices || {})) {
       if (String(office.status || "").toUpperCase() !== "VACANT") continue;
-      const office_name = String(office.display_name || "").trim().slice(0, 48);
+      const office_name = sanitizeInlineText(office.display_name || "").slice(0, 48);
       if (!office_name) continue;
       vacant_offices.push({ org_id: org.org_id, org_name: name, office_name });
     }
@@ -117,7 +126,7 @@ export function laterTraceInputs(input: LaterTraceInput): Pick<
 }
 
 function publicText(raw: string): string {
-  return String(raw || "").replace(/\s+/g, " ").trim().slice(0, 160);
+  return sanitizeInlineText(raw).slice(0, 160);
 }
 
 export function safePlateHandle(raw: string | undefined): string | null {
@@ -219,7 +228,7 @@ export function projectRoomTraces(room: TraceRoom | null | undefined): Projected
   }
   for (const seat of room.vacant_offices || []) {
     const org_name = publicOrgName(seat.org_name);
-    const office_name = String(seat.office_name || "").trim().slice(0, 48);
+    const office_name = sanitizeInlineText(seat.office_name || "").slice(0, 48);
     if (!org_name || !office_name) continue;
     add("notice", `${office_name} of ${org_name} stands vacant.`, {
       kind: "org",
