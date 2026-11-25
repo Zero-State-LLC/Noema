@@ -343,6 +343,7 @@ export function watchHtml(opts?: { mode?: string }): string {
           <button type="button" class="btn quiet" id="watch-follow-site" hidden aria-label="Follow this site"></button>
           <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
         </div>
+        <section id="watch-live-agents" aria-label="Active agents" style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.35rem"></section>
         <div class="watch-summary" id="watch-summary" hidden></div>
         <pre id="watch-low-noise" hidden></pre>
       </article>
@@ -956,6 +957,18 @@ export function watchHtml(opts?: { mode?: string }): string {
       if (state.mode === "3d") applyMapFocus(head, rooms, events);
       renderFollowChrome(data, rooms, events, head);
       renderStanding(data);
+      const agentsBox = $("watch-live-agents");
+      if (agentsBox) {
+        agentsBox.textContent = "";
+        const roster = Array.isArray(data.agents) ? data.agents : [];
+        for (const ag of roster) {
+          const text = ag.label + " · " + (ag.room_name || ag.room_id || "—") + (ag.last_action ? " — " + ag.last_action : "");
+          const chip = el("span", "btn quiet", text);
+          chip.style.fontSize = "0.78rem";
+          chip.style.cursor = "default";
+          agentsBox.append(chip);
+        }
+      }
       const ln = $("watch-low-noise");
       if (ln) {
         const recent = events.map((e) => {
