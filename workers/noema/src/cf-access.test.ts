@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { verifyCfAccessAdmin } from "./cf-access";
+import { buildVerifiedAdminRequest, verifyCfAccessAdmin } from "./cf-access";
 
 function toBase64Url(bytes: Uint8Array): string {
   let bin = "";
@@ -181,6 +181,60 @@ describe("Cloudflare Access Admin JWT verification (cf-access.ts)", () => {
     if (!res.ok) {
       expect(res.status).toBe(401);
       expect(res.code).toBe("CF_ACCESS_TOKEN_NOT_YET_VALID");
+    }
+  });
+
+  it("buildVerifiedAdminRequest strips spoofed X-Noema-Admin-* headers and injects verified identity", async () => {
+    const pair = (await crypto.subtle.generateKey(
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: "SHA-256",
+      },
+      true,
+      ["sign", "verify"],
+    )) as CryptoKeyPair;
+
+    const publicJwk = (await crypto.subtle.exportKey("jwk", pair.publicKey)) as JsonWebKey;
+    const kid = "test-kid-hdr";
+    const nowSec = 1_700_000_000;
+    const jwt = await makeSignedJwt(pair.privateKey, kid, {
+      iss: "https://zero-state.cloudflareaccess.com",
+      aud: ["aud-noema-admin-123"],
+      email: "admin@zerostate.com",
+      sub: "user-sub-4",
+      iat: nowSec - 5,
+      exp: nowSec + 300,
+      jti: "evt-hdr-1",
+    });
+
+    const req = new Request("https://noema.guru/api/admin/studies/study-1/invites", {
+      method: "POST",
+      headers: {
+        "Cf-Access-Jwt-Assertion": jwt,
+        "X-Noema-Admin-Actor": "spoofed@evil.example",
+        "X-Noema-Admin-Auth-Event": "spoofed-evt",
+      },
+    });
+
+    const res = await buildVerifiedAdminRequest(
+      req,
+      {
+        CF_ACCESS_TEAM_DOMAIN: "zero-state.cloudflareaccess.com",
+        CF_ACCESS_AUD: "aud-noema-admin-123",
+        ADMIN_ALLOWLIST_EMAILS: "admin@zerostate.com",
+      },
+      {
+        nowSec,
+        fetchJwks: async () => ({ keys: [{ ...publicJwk, kid }] }),
+      },
+    );
+
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.request.headers.get("X-Noema-Admin-Actor")).toBe("admin@zerostate.com");
+      expect(res.request.headers.get("X-Noema-Admin-Auth-Event")).toBe("cf-access:evt-hdr-1");
     }
   });
 });
