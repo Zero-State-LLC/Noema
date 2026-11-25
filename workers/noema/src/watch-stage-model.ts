@@ -81,6 +81,32 @@ export function stagePlaybackSchedule(
   return out;
 }
 
+/**
+ * D6 paced playback: where a snapshot's rows start while older moments are
+ * still pending. `pendingDueMs` are the due times (performance clock) of the
+ * playback entries already queued. With nothing pending later than now a row
+ * keeps its scheduled offset. Otherwise the new schedule starts MIN_GAP_MS
+ * after the last pending moment, so a newer sequence never plays before an
+ * older one. A backlog past MAX_TOTAL_MS is no longer live: `flush` asks the
+ * caller to play every pending moment now, oldest first, which is also why
+ * offsetMs is 0 in that case.
+ */
+export function stagePlaybackOffset(
+  pendingDueMs: number[],
+  now: number,
+): { flush: boolean; offsetMs: number } {
+  const base = typeof now === "number" && Number.isFinite(now) ? now : 0;
+  let maxDue = base;
+  for (const due of Array.isArray(pendingDueMs) ? pendingDueMs : []) {
+    if (typeof due !== "number" || !Number.isFinite(due)) continue;
+    if (due > maxDue) maxDue = due;
+  }
+  const behind = maxDue - base;
+  if (behind > STAGE_PLAYBACK.MAX_TOTAL_MS) return { flush: true, offsetMs: 0 };
+  if (behind <= 0) return { flush: false, offsetMs: 0 };
+  return { flush: false, offsetMs: behind + STAGE_PLAYBACK.MIN_GAP_MS };
+}
+
 export const STAGE_FALLBACK_LINE = "3D view is unavailable here. Showing the text map.";
 export const STAGE_LOW_NOISE_LINE = "Low noise is on. Showing the text map.";
 

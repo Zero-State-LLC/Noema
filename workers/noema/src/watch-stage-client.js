@@ -15,6 +15,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import {
   STAGE_CAMERA_EASE_MS,
+  STAGE_PLAYBACK,
   buildStageModel,
   newStageCaptions,
   newStagePulses,
@@ -23,6 +24,7 @@ import {
   stageCameraTarget,
   stageDefaultView,
   stageLitRoutes,
+  stagePlaybackOffset,
   stagePlaybackSchedule,
 } from "./watch-stage-model";
 
@@ -530,6 +532,16 @@ function mount(frame, opts) {
     const at = playback.indexOf(entry);
     if (at >= 0) playback.splice(at, 1);
     entry.timer = 0;
+    // A rebuilt queue can leave a lower sequence waiting behind this one; play
+    // it first, so an older moment can never narrate after a newer one.
+    const lower = playback.filter((e) => e.sequence < entry.sequence).sort((a, b) => a.sequence - b.sequence);
+    for (const e of lower) {
+      const i = playback.indexOf(e);
+      if (i >= 0) playback.splice(i, 1);
+      if (e.timer) clearTimeout(e.timer);
+      e.timer = 0;
+      playSequence(e.slot);
+    }
     playSequence(entry.slot);
   }
 
@@ -621,12 +633,36 @@ function mount(frame, opts) {
     };
     for (const p of fresh.pulses) slotFor(p.sequence).pulses.push(p);
     for (const c of freshCaptions) slotFor(c.sequence).captions.push(c);
+    // A snapshot can arrive while older slots are still waiting. Its rows must
+    // not start before every one of those moments, or a newer event — and a
+    // MAJOR camera move — would narrate ahead of an older sequence.
+    const now = performance.now();
+    let queueEnd = now;
+    for (const entry of playback) {
+      const due = entry.timer ? entry.startedAt + entry.atMs : now + entry.remaining;
+      if (due > queueEnd) queueEnd = due;
+    }
+    const pacing = stagePlaybackOffset([queueEnd], now);
+    // Past STAGE_PLAYBACK.MAX_TOTAL_MS the queue is no longer live: play every
+    // pending moment now, oldest first. The offset is 0 in that case, so the
+    // new rows start from now and a row at 0 still plays in this frame.
+    // Pause holds the queue as it is (WS3-12); nothing is flushed while paused.
+    if (!playbackPaused && (pacing.flush || queueEnd - now > STAGE_PLAYBACK.MAX_TOTAL_MS)) {
+      const pending = playback.slice().sort((a, b) => a.sequence - b.sequence);
+      playback.length = 0;
+      for (const entry of pending) {
+        if (entry.timer) clearTimeout(entry.timer);
+        entry.timer = 0;
+        playSequence(entry.slot);
+      }
+    }
     for (const row of stagePlaybackSchedule(Array.from(slots.values()))) {
       const slot = slots.get(row.sequence);
       if (!slot) continue;
+      const delay = pacing.offsetMs + row.atMs;
       // A slot at 0 plays in this frame, so the first snapshot is unchanged.
-      if (row.atMs <= 0) playSequence(slot);
-      else setPlayTimer(slot, row.atMs);
+      if (delay <= 0) playSequence(slot);
+      else setPlayTimer(slot, delay);
     }
     // Selection and Follow still move the camera in the same frame; a MAJOR
     // pulse moves it when its slot plays (see playSequence).
