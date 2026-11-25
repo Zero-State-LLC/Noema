@@ -658,7 +658,14 @@ export function selectNotableEvent(opts: {
     const heldPick = holdHeadline(opts.held, candidates);
     if (heldPick) return heldPick;
   }
-  if (ranked[0]) return ranked[0];
+  if (ranked[0]) {
+    const top = ranked[0];
+    if (top.tier === "NOTABLE" && !top.actor_label && !top.room_id && !top.consequence) {
+      const concreteDeed = candidates.find((c) => Boolean(c.actor_label && c.room_id));
+      if (concreteDeed) return concreteDeed;
+    }
+    return top;
+  }
   return quietHeadline(opts.players_present);
 }
 
@@ -1016,6 +1023,30 @@ export function buildWatchLive(input: {
     handles,
   );
 
+  const latestActionByActor = new Map<string, WatchEvent>();
+  for (const ev of recent) {
+    if (ev.actor_label && !latestActionByActor.has(ev.actor_label)) {
+      latestActionByActor.set(ev.actor_label, ev);
+    }
+  }
+  const agents = live.flatMap((p) => {
+    if (!p.room_id || !publicRooms[p.room_id]) return [];
+    const label = publicPlayerLabel(p, roomRefs);
+    if (!label) return [];
+    const rid = p.room_id;
+    const lastEv = latestActionByActor.get(label);
+    return [
+      {
+        label,
+        room_id: rid,
+        room_name: publicRooms[rid]?.name || rid,
+        last_action: lastEv?.line || null,
+        last_action_at: lastEv?.occurred_at ?? null,
+        active: true,
+      },
+    ];
+  });
+
   return { reconstruction_fidelity, controllers, corroboration: controllers, 
     watch_live: WATCH_LIVE_PIN,
     projection: "public",
@@ -1023,6 +1054,7 @@ export function buildWatchLive(input: {
     cycle: input.cycle,
     sequence: input.sequence,
     players_present: playersPresent,
+    agents,
     world_status: input.world_status || null,
     freshness,
     public_pulses: pulses,
