@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PUBLIC_EVENT_TYPES, buildWatchLive } from "../src/watch-live";
+import { PUBLIC_EVENT_TYPES, buildWatchLive, explicitWatchCause } from "../src/watch-live";
 import type { WatchSourceEvent } from "../src/watch-live";
 
 const NOW = 1_700_000_000_000;
@@ -110,4 +110,107 @@ describe("redaction sweep — no public event names a hidden room", () => {
       }
     });
   }
+});
+
+describe("#784 R4 S6 WATCH repeatability, causal boundary, and adversarial privacy", () => {
+  it("T6.1 buildWatchLive is repeatable across repeated calls and event-order/sequence-tie permutations", () => {
+    const e1: WatchSourceEvent = {
+      event_type: "ENTITY_UPDATE",
+      sequence: 40,
+      cycle: 4,
+      handle: "Vesper-7",
+      player_id: player.player_id,
+      actor_kind: "live",
+      at: NOW,
+      payload: { room_id: "room.market", entity_id: "entity.node", kind: "repair", condition: 90 },
+    } as WatchSourceEvent;
+    const e2: WatchSourceEvent = {
+      event_type: "RESOURCE_TRANSFER",
+      sequence: 40,
+      cycle: 4,
+      handle: "Vesper-7",
+      player_id: player.player_id,
+      actor_kind: "live",
+      at: NOW,
+      payload: { room_id: "room.market", entity_id: "entity.node", kind: "harvest", amount: 2 },
+    } as WatchSourceEvent;
+    const e3: WatchSourceEvent = {
+      event_type: "PLAYER_MOVED",
+      sequence: 38,
+      cycle: 4,
+      handle: "Vesper-7",
+      player_id: player.player_id,
+      actor_kind: "live",
+      at: NOW - 1000,
+      payload: { room_id: "room.market", to_room_id: "room.market" },
+    } as WatchSourceEvent;
+
+    const first = build([e1, e2, e3]);
+    const repeat = build([e1, e2, e3]);
+    const reversed = build([e3, e2, e1]);
+    expect(repeat).toEqual(first);
+    expect((reversed.narrative as { now?: unknown }).now).toEqual((first.narrative as { now?: unknown }).now);
+    expect(((reversed.recent_events as { line: string }[]) || []).map((x) => x.line).sort()).toEqual(
+      (((first.recent_events as { line: string }[]) || []).map((x) => x.line).sort()),
+    );
+  });
+
+  it("T6.3 / AC24 explicitWatchCause never fabricates causality from temporal adjacency alone", () => {
+    expect(explicitWatchCause(undefined)).toBeNull();
+    expect(explicitWatchCause({})).toBeNull();
+    expect(explicitWatchCause({ room_id: "room.market", condition: 80 })).toBeNull();
+    expect(explicitWatchCause({ cause: "   " })).toBeNull();
+  });
+
+  it("T6.4 adversarial private events, research_private overlays, internal IDs, and smoke/operator handles never leak", () => {
+    const sentinel = "SENTINEL_PRIVATE_OVERLAY_991";
+    const smokePlayer = {
+      player_id: "player.smokeprobe99",
+      handle: "smoke-probe-99",
+      room_id: "room.market",
+      entered: true,
+      last_seen_ms: NOW,
+      actor_kind: "live" as const,
+    };
+    const hiddenPlayer = {
+      player_id: "player.hidden99",
+      handle: "GhostVault",
+      room_id: HIDDEN_ROOM,
+      entered: true,
+      last_seen_ms: NOW,
+      actor_kind: "live" as const,
+    };
+    const privateEvents: WatchSourceEvent[] = [
+      ev("LOOK", { room_id: "room.market", text: sentinel, research_private: sentinel }),
+      ev("MESSAGE", { room_id: "room.market", text: sentinel, private_cognition: sentinel }),
+      ev("PRIVATE_MESSAGE", { room_id: "room.market", text: sentinel, controller_id: "ctrl.secret.1" }),
+      ev("ENTITY_UPDATE", {
+        room_id: "room.market",
+        entity_id: "entity.node",
+        kind: "repair",
+        research_private: sentinel,
+        private_cognition: sentinel,
+        session_id: "sess.secret.1",
+      }),
+    ];
+
+    const payload = buildWatchLive({
+      world_id: "w",
+      cycle: 4,
+      sequence: 40,
+      rooms: rooms() as never,
+      players: [player, smokePlayer, hiddenPlayer] as never,
+      events: privateEvents,
+      now: NOW,
+    });
+    const wire = JSON.stringify(payload);
+    expect(wire).not.toContain(sentinel);
+    expect(wire).not.toContain("smoke-probe-99");
+    expect(wire).not.toContain("GhostVault");
+    expect(wire).not.toContain("player.aaaaaaaaaaaa");
+    expect(wire).not.toContain("ctrl.secret.1");
+    expect(wire).not.toContain("sess.secret.1");
+    expect(wire).not.toContain(HIDDEN_NAME);
+    expect(wire).not.toContain(HIDDEN_ROOM);
+  });
 });
