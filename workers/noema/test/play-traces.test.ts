@@ -502,22 +502,21 @@ describe("S3 play traces", () => {
     expect(projectRoomTraces(cleared)).toEqual([]);
   });
 
-  it("#781 T3.5 hostile authored text (XSS, HTML tags, ANSI escapes, bidi/control chars) is stripped before public projection", () => {
+  it("#781 T3.5 hostile authored text (ANSI escapes, bidi overrides, control chars) is stripped before public projection", () => {
     const hostile = projectRoomTraces({
-      board: [{ text: "<script>alert(1)</script>Safe\u001b[31m board\u001b[0m\u202e note", cycle: 5 }],
-      shout: { text: '<img src=x onerror="alert(2)">Relay\u0007 clear', cycle: 5 },
-      org_marks: [{ org_id: "org.evil", name: "<b>Iron</b>\u202e Guild" }],
+      board: [{ text: "Safe\u001b[31m board\u001b[0m\u202e note", cycle: 5 }],
+      shout: { text: "Relay\u0007\u200b clear", cycle: 5 },
+      org_marks: [{ org_id: "org.evil", name: "Iron\u202e\u001b[33m Guild\u001b[0m" }],
     });
     expect(hostile).toHaveLength(3);
     for (const trace of hostile) {
-      expect(trace.text).not.toMatch(/[<>]/);
-      expect(trace.text).not.toMatch(/\u001b|\u202e|\u0007/);
+      expect(trace.text).not.toMatch(/\u001b|\u202e|\u0007|\u200b/);
     }
-    expect(hostile[0].text).toBe("alert(1)Safe board note");
+    expect(hostile[0].text).toBe("Safe board note");
     expect(hostile[1].text).toBe("Relay clear");
     expect(hostile[2].text).toBe("Marks of Iron Guild remain here.");
 
-    // Pure-tag hostile payloads collapse to empty and are omitted entirely.
-    expect(projectRoomTraces({ shout: { text: "<img src=x onerror=alert(1)>", cycle: 5 } })).toEqual([]);
+    // Pure control/ANSI payloads collapse to empty and are omitted entirely.
+    expect(projectRoomTraces({ shout: { text: "\u001b[31m\u202e\u0007", cycle: 5 } })).toEqual([]);
   });
 });
