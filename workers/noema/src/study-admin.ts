@@ -301,4 +301,23 @@ export class StudyAdminStore {
     );
     return { ok: true, status: 200, grant };
   }
+
+  /** Sweep pending invites whose TTL has elapsed, marking them expired cleanly. */
+  sweepExpiredInvites(nowMs: number): number {
+    let swept = 0;
+    for (const inv of this.invites.values()) {
+      if (inv.status === "pending" && inv.expires_at_ms <= nowMs) {
+        inv.status = "expired";
+        inv.resolved_at_ms = nowMs;
+        swept += 1;
+      }
+    }
+    return swept;
+  }
+
+  /** Check whether a HumanPrincipal holds an active study-scoped StudyAdmin grant. */
+  hasActiveGrant(studyId: string, humanPrincipalId: string): boolean {
+    const grant = this.grants.get(this.grantKey(studyId, humanPrincipalId));
+    return grant?.status === "active";
+  }
 }

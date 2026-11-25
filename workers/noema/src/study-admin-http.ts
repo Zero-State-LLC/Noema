@@ -11,7 +11,10 @@ export interface StudyAdminHttpContext {
   store: StudyAdminStore;
   envFlag: string | undefined;
   nowMs?: () => number;
+  acceptAttempts?: Map<string, number>;
 }
+
+const MAX_ACCEPT_ATTEMPTS_PER_INVITE = 10;
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -32,7 +35,9 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
   const url = new URL(req.url);
   const path = url.pathname;
   const isStudyAdminPath =
-    path.startsWith("/api/admin/studies/") || path.startsWith("/api/study-admin/invites/");
+    path.startsWith("/api/admin/studies/") ||
+    path.startsWith("/api/study-admin/invites/") ||
+    path.startsWith("/api/study-admin/studies/");
   if (!isStudyAdminPath) return null;
 
   const enabled = isStudyAdminEnabled(ctx.envFlag);
@@ -41,6 +46,27 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
   }
 
   const nowMs = ctx.nowMs ? ctx.nowMs() : Date.now();
+  ctx.store.sweepExpiredInvites(nowMs);
+
+  // Study-scoped read-only export readiness check (requires active StudyAdmin grant)
+  const exportMatch = path.match(/^\/api\/study-admin\/studies\/([^/]+)\/export-ready$/);
+  if (exportMatch && req.method === "GET") {
+    const principalId = req.headers.get("X-Noema-Human-Principal") || "";
+    const studyId = decodeURIComponent(exportMatch[1]);
+    if (!principalId || !ctx.store.hasActiveGrant(studyId, principalId)) {
+      return jsonResponse(403, {
+        ok: false,
+        code: "FORBIDDEN",
+        message: "Active study-scoped StudyAdmin grant required.",
+      });
+    }
+    return jsonResponse(200, {
+      ok: true,
+      study_id: studyId,
+      role: "study-admin",
+      export_ready: true,
+    });
+  }
 
   // Read-only audit log inspection
   const auditMatch = path.match(/^\/api\/admin\/studies\/([^/]+)\/audit$/);
@@ -90,6 +116,18 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
   // POST /api/study-admin/invites/:inviteId/accept
   const acceptMatch = path.match(/^\/api\/study-admin\/invites\/([^/]+)\/accept$/);
   if (acceptMatch) {
+    const inviteId = decodeURIComponent(acceptMatch[1]);
+    if (ctx.acceptAttempts) {
+      const prev = ctx.acceptAttempts.get(inviteId) ?? 0;
+      if (prev >= MAX_ACCEPT_ATTEMPTS_PER_INVITE) {
+        return jsonResponse(429, {
+          ok: false,
+          code: "RATE_LIMITED",
+          message: "Too many accept attempts for this invite.",
+        });
+      }
+      ctx.acceptAttempts.set(inviteId, prev + 1);
+    }
     const principalId = req.headers.get("X-Noema-Human-Principal") || "";
     const authEventId = req.headers.get("X-Noema-Auth-Event") || "";
     if (!principalId || !authEventId) {

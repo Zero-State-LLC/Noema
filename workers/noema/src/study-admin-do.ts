@@ -26,6 +26,7 @@ export interface StudyAdminDOEnv {
 
 export class StudyAdminDO {
   private readonly store = new StudyAdminStore();
+  private readonly acceptAttempts = new Map<string, number>();
   private readonly state: StudyAdminDOState;
   private readonly env: StudyAdminDOEnv;
   private hydrated = false;
@@ -47,6 +48,7 @@ export class StudyAdminDO {
     const res = await handleStudyAdminRequest(request, {
       store: this.store,
       envFlag: this.env.STUDY_ADMIN_UI_ENABLED,
+      acceptAttempts: this.acceptAttempts,
     });
     if (res) {
       if (request.method !== "GET" && request.method !== "HEAD" && res.ok) {
