@@ -678,7 +678,10 @@ function preferDeedOverAmbient(top: WatchEvent, window: WatchEvent[]): WatchEven
 
 export function holdHeadline(held: HeldHeadline, window: WatchEvent[]): WatchEvent | null {
   const inWindow = window.find((e) => e.sequence === held.sequence && e.projection_id === held.projection_id);
-  const higher = window.some((e) => TIER_RANK[e.tier] > TIER_RANK[held.tier] && !isAmbientPulse(e));
+  const heldDeed = Boolean(inWindow && isConcreteDeed(inWindow));
+  const higher = window.some(
+    (e) => TIER_RANK[e.tier] > TIER_RANK[held.tier] && !(heldDeed && isAmbientPulse(e)),
+  );
   // §4A step 5: age by newer PUBLIC candidates, never by raw ledger-sequence
   // arithmetic — private LOOK/MESSAGE traffic must not rotate the headline.
   const aged = window.filter((e) => e.sequence > held.sequence).length > 8;

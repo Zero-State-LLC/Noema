@@ -143,6 +143,38 @@ describe("WATCH live deed priority (ADR-0012)", () => {
     expect(picked.line).toBe("A public discovery was announced");
   });
 
+  it("still lets an ambient NOTABLE pulse replace a held non-deed NORMAL headline", () => {
+    const heldResource: WatchEvent = {
+      sequence: 40,
+      cycle: 10,
+      tier: "NORMAL",
+      projection_id: "resource_change",
+      line: "Extraction at a storage cache has fallen.",
+    };
+    const newerPulse: WatchEvent = {
+      sequence: 41,
+      cycle: 10,
+      tier: "NOTABLE",
+      projection_id: "organization",
+      line: "A maintenance custom has become widely observed.",
+    };
+    const window = [newerPulse, heldResource];
+    const held = {
+      sequence: heldResource.sequence,
+      tier: heldResource.tier,
+      projection_id: heldResource.projection_id,
+      line: heldResource.line,
+    };
+    expect(holdHeadline(held, window)?.line).toBe("A maintenance custom has become widely observed.");
+    const picked = selectNotableEvent({
+      freshness: "live",
+      players_present: 1,
+      candidates: window,
+      held,
+    });
+    expect(picked.line).toBe("A maintenance custom has become widely observed.");
+  });
+
   it("ages out a held deed even when an ambient pulse remains in the window", () => {
     const deed: WatchEvent = {
       sequence: 10,
