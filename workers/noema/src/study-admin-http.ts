@@ -68,7 +68,7 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
     });
   }
 
-  // Read-only audit log inspection
+  // Read-only audit log inspection (supports pagination & CSV/JSON export)
   const auditMatch = path.match(/^\/api\/admin\/studies\/([^/]+)\/audit$/);
   if (auditMatch && req.method === "GET") {
     const authEventId = req.headers.get("X-Noema-Admin-Auth-Event") || "";
@@ -76,8 +76,41 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
       return jsonResponse(401, { ok: false, code: "UNAUTHORIZED", message: "Fresh Admin auth event required." });
     }
     const studyId = decodeURIComponent(auditMatch[1]);
-    const events = ctx.store.getAuditLog().filter((e) => e.study_id === studyId);
-    return jsonResponse(200, { ok: true, study_id: studyId, events });
+    const allEvents = ctx.store.getAuditLog().filter((e) => e.study_id === studyId);
+    const offset = Math.max(0, Number.parseInt(url.searchParams.get("offset") || "0", 10) || 0);
+    const rawLimit = Number.parseInt(url.searchParams.get("limit") || "100", 10);
+    const limit = Math.min(500, Math.max(1, Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 100));
+    const events = allEvents.slice(offset, offset + limit);
+
+    if (url.searchParams.get("format") === "csv") {
+      const header = "event_id,event_type,actor_id,study_id,target_human_principal_id,auth_event_id,occurred_at_ms";
+      const neutralizeCsv = (v: unknown): string => {
+        const s = String(v);
+        const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+        return `"${safe.replace(/"/g, '""')}"`;
+      };
+      const rows = events.map((e) =>
+        [e.event_id, e.event_type, e.actor_id, e.study_id, e.target_human_principal_id, e.auth_event_id, e.occurred_at_ms]
+          .map(neutralizeCsv)
+          .join(","),
+      );
+      return new Response([header, ...rows].join("\n") + "\n", {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    return jsonResponse(200, {
+      ok: true,
+      study_id: studyId,
+      total: allEvents.length,
+      offset,
+      limit,
+      events,
+    });
   }
 
   if (req.method !== "POST") {
