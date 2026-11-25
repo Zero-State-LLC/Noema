@@ -16,6 +16,7 @@ import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer
 import {
   STAGE_CAMERA_EASE_MS,
   STAGE_PLAYBACK,
+  STAGE_TRAVEL_MS,
   buildStageModel,
   newStageCaptions,
   newStagePulses,
@@ -23,9 +24,11 @@ import {
   stageCameraLimits,
   stageCameraTarget,
   stageDefaultView,
+  stageHandleSites,
   stageLitRoutes,
   stagePlaybackOffset,
   stagePlaybackSchedule,
+  stageTravels,
 } from "./watch-stage-model";
 
 const LIFT = { NORMAL: 0.25, NOTABLE: 0.45, MAJOR: 0.7 };
@@ -114,6 +117,10 @@ function mount(frame, opts) {
   let routeEntries = [];
   let captions = [];
   const captionBoxes = new Map();
+  /** D6 route travel: public handle -> site id of the LAST applied model. */
+  let handleSites = new Map();
+  /** Travellers in flight right now (one per travelling handle). */
+  const travels = [];
 
   function size() {
     const w = Math.max(1, frame.clientWidth);
@@ -166,6 +173,30 @@ function mount(frame, opts) {
       busy = true;
       return true;
     });
+    // D6 route travel: a token slides along the drawn route to its new site.
+    for (let i = travels.length - 1; i >= 0; i--) {
+      const tr = travels[i];
+      if (tr.start < 0) tr.start = now;
+      const t = Math.min(1, (now - tr.start) / STAGE_TRAVEL_MS);
+      const k = easeOut(t);
+      tr.mesh.position.set(
+        tr.from.x + (tr.to.x - tr.from.x) * k,
+        tr.from.y + (tr.to.y - tr.from.y) * k + Math.sin(t * Math.PI) * 0.6,
+        tr.from.z + (tr.to.z - tr.from.z) * k,
+      );
+      if (t >= 1) {
+        world.remove(tr.mesh);
+        tr.mat.dispose();
+        tr.destMesh.visible = true;
+        if (tr.destPlate) {
+          tr.destPlate.visible = true;
+          if (tr.destPlate.element) tr.destPlate.element.style.visibility = "";
+        }
+        travels.splice(i, 1);
+      } else {
+        busy = true;
+      }
+    }
     // §18.6 exit lighting: while an agent-move pulse lives, routes that touch
     // its site read as lit. A brightness step, not a travelling animation.
     const lit = stageLitRoutes(pulses.filter((p) => p.projectionId === "agent_move"), model.routes);
@@ -295,6 +326,7 @@ function mount(frame, opts) {
     // One token per agent; the first six carry their public handle as a nameplate.
     const named = site.tokens.slice(0, 6);
     const tokenCount = named.length + site.unnamed;
+    const tokenMap = new Map();
     for (let i = 0; i < tokenCount; i++) {
       const tok = named[i];
       const pip = new Mesh(shared.pip, new MeshStandardMaterial({
@@ -306,6 +338,7 @@ function mount(frame, opts) {
       pip.position.set(-0.75 + (i % 3) * 0.75, plate.position.y + 0.4, -0.45 + Math.floor(i / 3) * 0.6);
       g.add(pip);
       if (tok) {
+        pip.userData.handle = tok.handle;
         const npel = document.createElement("div");
         npel.className = "stage3d-nameplate";
         npel.textContent = tok.handle;
@@ -313,8 +346,10 @@ function mount(frame, opts) {
         const nameplate = new CSS2DObject(npel);
         nameplate.position.set(pip.position.x, pip.position.y + 0.35, pip.position.z);
         g.add(nameplate);
+        tokenMap.set(tok.handle, { mesh: pip, nameplate });
       }
     }
+    g.userData.tokens = tokenMap;
     if (site.more > 0) {
       const moreEl = document.createElement("div");
       moreEl.className = "stage3d-more";
@@ -357,7 +392,17 @@ function mount(frame, opts) {
     return out;
   }
 
+  // A rebuild drops the old scene, so no traveller may outlive it.
+  function dropTravels() {
+    for (const tr of travels) {
+      world.remove(tr.mesh);
+      tr.mat.dispose();
+    }
+    travels.length = 0;
+  }
+
   function clearWorld() {
+    dropTravels();
     world.traverse((o) => {
       // Removing an ancestor does not detach CSS2D elements; do it explicitly.
       if (o.isCSS2DObject && o.element && o.element.parentNode) o.element.remove();
@@ -509,6 +554,40 @@ function mount(frame, opts) {
   const playback = [];
   let playbackPaused = false;
 
+  // D6 route travel: the token slides along the drawn route from the site it
+  // was shown at to the site its move lands in. The destination token is
+  // hidden while its traveller is in flight, then shown again.
+  function startTravel(t) {
+    if (reduce) return;
+    const a = groups.get(t.from);
+    const b = groups.get(t.to);
+    if (!a || !b) return;
+    const dest = b.userData.tokens && b.userData.tokens.get(t.handle);
+    if (!dest || !dest.mesh) return;
+    const y = dest.mesh.position.y;
+    const mat = new MeshStandardMaterial({
+      color: C.social, roughness: 0.6, emissive: C.active, emissiveIntensity: 0.8,
+    });
+    const mesh = new Mesh(shared.pip, mat);
+    mesh.position.set(a.position.x, y, a.position.z);
+    world.add(mesh);
+    dest.mesh.visible = false;
+    if (dest.nameplate) {
+      dest.nameplate.visible = false;
+      if (dest.nameplate.element) dest.nameplate.element.style.visibility = "hidden";
+    }
+    travels.push({
+      mesh,
+      mat,
+      from: new Vector3(a.position.x, y, a.position.z),
+      to: new Vector3(b.position.x, y, b.position.z),
+      start: -1,
+      destMesh: dest.mesh,
+      destPlate: dest.nameplate || null,
+    });
+    request();
+  }
+
   function playSequence(slot) {
     let majorRoom = "";
     for (const p of slot.pulses) {
@@ -521,6 +600,7 @@ function mount(frame, opts) {
       pulses.push(p);
     }
     for (const c of slot.captions) addCaption(c);
+    for (const t of slot.travels) startTravel(t);
     if (majorRoom && framed) {
       const target = stageCameraTarget(ctx, ctx, majorRoom, spectatorMoved);
       if (target) focus(target);
@@ -574,6 +654,8 @@ function mount(frame, opts) {
     const prevCtx = ctx;
     ctx = nextCtx || {};
     const prevRadius = model.radius;
+    // D6 route travel reads the previous scene's handle sites before the rebuild.
+    const prevHandleSites = handleSites;
     model = buildStageModel(live, ctx);
     clearWorld();
     for (const site of model.sites) {
@@ -612,6 +694,12 @@ function mount(frame, opts) {
     });
     const freshCaptions = newStageCaptions(live && live.recent_events, lastSeq, groups.keys());
     lastSeq = fresh.lastSequence;
+    // D6 route travel: a token may cross only a drawn public route, and only
+    // when the previous snapshot showed its handle at the other end of it.
+    const pendingTravels = reduce
+      ? []
+      : stageTravels(prevHandleSites, model, fresh.pulses, live && live.recent_events);
+    handleSites = stageHandleSites(model);
     // D6 paced playback: one slot per fresh sequence, spaced by the public
     // occurred_at deltas. A sequence's pulses and captions land together on
     // its slot, so a burst reads at reading speed instead of all at once.
@@ -626,13 +714,14 @@ function mount(frame, opts) {
     const slotFor = (sequence) => {
       let slot = slots.get(sequence);
       if (!slot) {
-        slot = { sequence: sequence, occurredAt: eventAt.get(sequence), pulses: [], captions: [] };
+        slot = { sequence: sequence, occurredAt: eventAt.get(sequence), pulses: [], captions: [], travels: [] };
         slots.set(sequence, slot);
       }
       return slot;
     };
     for (const p of fresh.pulses) slotFor(p.sequence).pulses.push(p);
     for (const c of freshCaptions) slotFor(c.sequence).captions.push(c);
+    for (const t of pendingTravels) slotFor(t.sequence).travels.push(t);
     // A snapshot can arrive while older slots are still waiting. Its rows must
     // not start before every one of those moments, or a newer event — and a
     // MAJOR camera move — would narrate ahead of an older sequence.
