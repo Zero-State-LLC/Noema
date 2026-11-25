@@ -175,6 +175,7 @@ jobs:
       - name: Open or update generated pin PR
         env:
           GH_TOKEN: ${{ secrets.NOEMA_PIN_PR_TOKEN }}
+          FALLBACK_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           if git diff --quiet -- spec-compat.json; then
@@ -194,7 +195,12 @@ jobs:
           git checkout -B "$BRANCH"
           git add spec-compat.json
           git commit -m "$TITLE"
-          git push --force-with-lease origin "$BRANCH"
+          if ! git push --force-with-lease origin "$BRANCH"; then
+            echo "::warning::NOEMA_PIN_PR_TOKEN push failed; retrying with GITHUB_TOKEN"
+            export GH_TOKEN="${FALLBACK_GH_TOKEN}"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git push --force-with-lease origin "$BRANCH"
+          fi
 
           if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
             gh pr edit "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/noema-pin/pr-body.md"

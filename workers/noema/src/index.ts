@@ -298,6 +298,15 @@ export default {
       if (request.method === "GET" && path === "/manifesto") {
         return html(manifestoHtml(), 200, "public, max-age=30");
       }
+      if ((request.method === "GET" || request.method === "HEAD") && path === "/whitepaper") {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: new URL("/NOEMA-Comprehensive-Whitepaper.docx", url).toString(),
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
       if (request.method === "GET" && path === "/privacy") {
         return html(privacyHtml(), 200, "public, max-age=300");
       }
