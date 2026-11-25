@@ -37,8 +37,21 @@ const RESERVED = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
+const PROTOTYPE_KEYS = new Set([
+  "__proto__",
+  "constructor",
+  "prototype",
+  "tostring",
+  "valueof",
+  "hasownproperty",
+  "isprototypeof",
+  "propertyisenumerable",
+  "tolocalestring",
+]);
+
 export function isReservedAliasName(name: string): boolean {
-  return RESERVED.has(String(name || "").trim().toLowerCase());
+  const low = String(name || "").trim().toLowerCase();
+  return RESERVED.has(low) || PROTOTYPE_KEYS.has(low);
 }
 
 export function splitMacroSteps(line: string): string[] {

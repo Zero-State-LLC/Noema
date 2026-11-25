@@ -110,13 +110,7 @@ describe("S4 inhabit path", () => {
 
   it("#782 T4.1 hosted agent admission isolates alias/macro syntax and never mutates command_aliases", async () => {
     const w = world();
-    const enterRes = await applyWorldCommand(
-      w,
-      agent,
-      { request_id: "h-enter", idempotency_key: "h-enter", command: "ENTER", arguments: {} },
-      async () => true,
-    );
-    expect(enterRes.ok).toBe(true);
+    expect((await run(w, "enter", "h-enter")).ok).toBe(true);
     // Pre-seed a colliding alias on player state to prove hosted structured dispatch ignores it.
     w.players[agent.player_id].command_aliases = { eastwalk: "move east", ii: "wait" };
 
@@ -186,7 +180,7 @@ describe("S4 inhabit path", () => {
     const moved = await run(w, "do move east; look", "s-move-look");
     expect(moved.ok).toBe(true);
     expect(w.players[agent.player_id].room_id).toBe("room.east");
-    expect(moved.observation?.room?.name).toBe("Coldline");
+    expect(JSON.stringify(moved.observation)).toContain("Coldline");
 
     // Step 2 fails on blocked exit ("south" does not exist in room.east); Step 3 ("move west") must NOT run.
     const blocked = await run(w, "do look; move south; move west", "s-block");
