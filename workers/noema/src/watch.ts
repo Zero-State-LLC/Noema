@@ -84,9 +84,18 @@ const EXTRA = `
   animation:banner-in 240ms var(--ease) 1 both;
 }
 @keyframes banner-in{from{opacity:0}to{opacity:1}}
-.watch-stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(17rem,.75fr);gap:1.15rem 1.75rem;margin-top:1.05rem;align-items:start}
-.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,1fr) minmax(17.5rem,22rem);align-items:start}
-body:has(.watch-stage[data-mode="map"]) .wrap{width:min(80rem,calc(100% - 2*var(--pad)))}
+.watch-stage{display:grid;grid-template-columns:minmax(0,2.15fr) minmax(19rem,24rem);gap:1rem 1.5rem;margin-top:.75rem;align-items:start}
+.watch-stage[data-mode="map"]{grid-template-columns:minmax(0,2.15fr) minmax(19rem,24rem);align-items:start}
+body:has(.watch-stage) .wrap{width:min(92rem,calc(100% - 2*var(--pad)))}
+.watch-stage .stage3d-frame{min-height:520px;border-radius:var(--r-xl,16px);overflow:hidden;border:1px solid var(--line)}
+.watch-side{display:flex;flex-direction:column;gap:.85rem}
+.watch-hero{border-radius:var(--r-xl,16px);border-left:3px solid var(--color-state-active);padding:.75rem .9rem}
+.watch-col{padding:.75rem .9rem;border:1px solid var(--line);border-radius:var(--r-xl,16px);background:color-mix(in srgb,var(--panel) 78%,var(--void))}
+.watch-feed{max-height:20rem;overflow-y:auto;padding-right:.25rem}
+#watch-live-agents{display:flex;flex-direction:column;gap:.35rem;margin-top:.6rem}
+.watch-agent-row{display:flex;flex-direction:column;gap:2px;padding:.4rem .55rem;border:1px solid color-mix(in srgb,var(--line) 75%,transparent);border-radius:var(--r-md,8px);background:rgba(14,17,20,.55);font:.74rem/1.3 var(--font-interface)}
+.watch-agent-row strong{color:var(--ink);font-weight:600}
+.watch-agent-row span{color:var(--muted);font:.68rem/1.25 var(--font-mono)}
 .watch-map-col{min-width:0}
 .watch-stage-story{margin:0 0 .65rem}
 .watch-stage-line{
@@ -343,7 +352,7 @@ export function watchHtml(opts?: { mode?: string }): string {
           <button type="button" class="btn quiet" id="watch-follow-site" hidden aria-label="Follow this site"></button>
           <button type="button" class="btn quiet" id="watch-follow-clear" hidden>Clear follow</button>
         </div>
-        <section id="watch-live-agents" aria-label="Active agents" style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.35rem"></section>
+        <section id="watch-live-agents" aria-label="Active agents"></section>
         <div class="watch-summary" id="watch-summary" hidden></div>
         <pre id="watch-low-noise" hidden></pre>
       </article>
@@ -962,11 +971,11 @@ export function watchHtml(opts?: { mode?: string }): string {
         agentsBox.textContent = "";
         const roster = Array.isArray(data.agents) ? data.agents : [];
         for (const ag of roster) {
-          const text = ag.label + " · " + (ag.room_name || ag.room_id || "—") + (ag.last_action ? " — " + ag.last_action : "");
-          const chip = el("span", "btn quiet", text);
-          chip.style.fontSize = "0.78rem";
-          chip.style.cursor = "default";
-          agentsBox.append(chip);
+          const row = el("div", "watch-agent-row");
+          const headLine = el("strong", "", ag.label + " · " + (ag.room_name || ag.room_id || "—"));
+          const subLine = el("span", "", ag.last_action || "Active on site");
+          row.append(headLine, subLine);
+          agentsBox.append(row);
         }
       }
       const ln = $("watch-low-noise");
