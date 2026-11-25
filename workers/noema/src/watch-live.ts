@@ -1032,12 +1032,13 @@ export function buildWatchLive(input: {
   const agents = live
     .filter((p) => p.room_id && publicRooms[p.room_id])
     .map((p) => {
+      const rid = p.room_id!;
       const label = publicPlayerLabel(p, roomRefs);
       const lastEv = latestActionByActor.get(label);
       return {
         label,
-        room_id: p.room_id,
-        room_name: publicRooms[p.room_id!]?.name || p.room_id,
+        room_id: rid,
+        room_name: publicRooms[rid]?.name || rid,
         last_action: lastEv?.line || null,
         last_action_at: lastEv?.occurred_at ?? null,
         active: true,
