@@ -723,7 +723,11 @@ function rankEvents(events: WatchEvent[]): WatchEvent[] {
   return [...events].sort((a, b) => {
     const tr = TIER_RANK[b.tier] - TIER_RANK[a.tier];
     if (tr) return tr;
-    return b.sequence - a.sequence;
+    const sq = b.sequence - a.sequence;
+    if (sq) return sq;
+    const pid = String(a.projection_id || "").localeCompare(String(b.projection_id || ""));
+    if (pid) return pid;
+    return String(a.line || "").localeCompare(String(b.line || ""));
   });
 }
 
