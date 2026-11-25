@@ -63,7 +63,7 @@ describe("Study Admin hardening (Wave 3: expiry sweep, rate limit, study-scoped 
       nowMs: t0,
     });
     expect(issued.ok).toBe(true);
-    if (issued.ok) {
+    if (issued.ok && issued.invite) {
       store.acceptInvite({
         enabled: true,
         inviteId: issued.invite.invite_id,
