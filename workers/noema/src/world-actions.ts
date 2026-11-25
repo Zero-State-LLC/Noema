@@ -3882,7 +3882,7 @@ export async function applyWorldCommand(
         player_id: principal.player_id, cost_paid: COSTS.ORG_OFFICE_ACT, reason: "SUPPLY",
       });
       pushEvent("RESOURCE_TRANSFER", {
-        kind: "supply", from_id: grant.org_id, to_id: toId, resource: res, amount,
+        transfer_id: `supply.${request_id}`, from_id: grant.org_id, to_id: toId, resource: res, amount,
       });
       const line = `You supply ${amount} ${res === "storage" ? "cargo" : res} to ${to.handle || toId}.`;
       const result = success(w, principal, request_id, events, line, settled, "supply", line);
