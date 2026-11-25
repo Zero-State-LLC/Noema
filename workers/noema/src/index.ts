@@ -81,6 +81,7 @@ import { getWorldHead, summarizeCanonicalHead } from "./settle";
 import { NoemaWorldDO } from "./world-do";
 import { StudyAdminDO } from "./study-admin-do";
 import { handleStudyAdminUiRequest } from "./study-admin-ui";
+import { buildVerifiedAdminRequest } from "./cf-access";
 
 export { NoemaWorldDO, StudyAdminDO };
 
@@ -246,7 +247,13 @@ export default {
     try {
       if (path === "/admin/studies") {
         const uiRes = handleStudyAdminUiRequest(request, env.STUDY_ADMIN_UI_ENABLED);
-        if (uiRes) return cors(uiRes);
+        if (uiRes) {
+          if (uiRes.status === 200 && env.CF_ACCESS_TEAM_DOMAIN && env.CF_ACCESS_AUD) {
+            const verified = await buildVerifiedAdminRequest(request, env);
+            if (!verified.ok) return cors(verified.response);
+          }
+          return cors(uiRes);
+        }
       }
 
       if (path.startsWith("/api/admin/studies/") || path.startsWith("/api/study-admin/invites/")) {
@@ -262,8 +269,14 @@ export default {
             ),
           );
         }
+        let forwardReq = request;
+        if (path.startsWith("/api/admin/studies/") && env.CF_ACCESS_TEAM_DOMAIN && env.CF_ACCESS_AUD) {
+          const verified = await buildVerifiedAdminRequest(request, env);
+          if (!verified.ok) return cors(verified.response);
+          forwardReq = verified.request;
+        }
         const stub = env.STUDY_ADMIN_DO.get(env.STUDY_ADMIN_DO.idFromName("study-admin-v1"));
-        return cors(await stub.fetch(request));
+        return cors(await stub.fetch(forwardReq));
       }
 
       // Product entry (Specs EXPERIENCE): landing + manifesto + PLAY / WATCH / STUDY / CONNECT

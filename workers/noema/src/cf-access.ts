@@ -270,3 +270,30 @@ export async function verifyCfAccessAdmin(
     exp: payload.exp,
   };
 }
+
+/**
+ * Strip any client-supplied X-Noema-Admin-* headers and, when Cloudflare Access
+ * is configured, verify Cf-Access-Jwt-Assertion and inject verified admin headers.
+ */
+export async function buildVerifiedAdminRequest(
+  request: Request,
+  env: CfAccessEnv,
+  options: VerifyCfAccessOptions = {},
+): Promise<{ ok: true; request: Request } | { ok: false; response: Response }> {
+  const verified = await verifyCfAccessAdmin(request, env, options);
+  if (!verified.ok) {
+    return {
+      ok: false,
+      response: new Response(
+        JSON.stringify({ ok: false, code: verified.code, message: verified.message }),
+        { status: verified.status, headers: { "Content-Type": "application/json; charset=utf-8" } },
+      ),
+    };
+  }
+  const headers = new Headers(request.headers);
+  headers.delete("X-Noema-Admin-Actor");
+  headers.delete("X-Noema-Admin-Auth-Event");
+  headers.set("X-Noema-Admin-Actor", verified.email);
+  headers.set("X-Noema-Admin-Auth-Event", verified.authEventId);
+  return { ok: true, request: new Request(request, { headers }) };
+}
