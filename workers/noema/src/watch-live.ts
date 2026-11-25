@@ -660,7 +660,7 @@ export function selectNotableEvent(opts: {
   }
   if (ranked[0]) {
     const top = ranked[0];
-    if (top.tier === "NOTABLE" && !top.actor_label && !top.room_id) {
+    if (top.tier === "NOTABLE" && !top.actor_label && !top.room_id && !top.consequence) {
       const concreteDeed = candidates.find((c) => Boolean(c.actor_label && c.room_id));
       if (concreteDeed) return concreteDeed;
     }
