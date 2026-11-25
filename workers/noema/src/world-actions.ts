@@ -4700,11 +4700,16 @@ export async function applyWorldCommand(
   );
 }
 
-export {
+import {
   rekeyLivePlayerId,
   rebindDeviceAgentOccupancy,
   evictLeftoverHumanOccupancy,
 } from "./world-occupancy";
+export {
+  rekeyLivePlayerId,
+  rebindDeviceAgentOccupancy,
+  evictLeftoverHumanOccupancy,
+};
 
 /** Migrate legacy player/entity shapes after load. */
 export function migrateWorldRuntime(w: WorldRuntime): void {

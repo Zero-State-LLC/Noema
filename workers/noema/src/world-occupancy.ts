@@ -3,8 +3,9 @@
  * extracted from world-actions.ts to keep world lifecycle concerns modular.
  */
 
-import { playerIdFromDeviceController } from "./identity";
-import type { PlayerPrincipal, WorldRuntime } from "./types";
+import { playerIdFromDeviceController } from "./device-enrollment";
+import type { PlayerPrincipal } from "./types";
+import type { WorldRuntime } from "./world-actions";
 
 /** Move live occupancy from a leftover human-bound Player id onto the device Agent Player. */
 export function rekeyLivePlayerId(w: WorldRuntime, from: string, to: string): void {
