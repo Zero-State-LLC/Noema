@@ -70,6 +70,7 @@ export interface StudyAdminSnapshot {
   grants: [string, StudyAdminGrant][];
   audit: StudyAdminAuditEvent[];
   seq: number;
+  accept_attempts?: [string, number][];
 }
 
 export class StudyAdminStore {
@@ -77,6 +78,7 @@ export class StudyAdminStore {
   private grants = new Map<string, StudyAdminGrant>();
   private audit: StudyAdminAuditEvent[] = [];
   private seq = 0;
+  readonly acceptAttempts = new Map<string, number>();
 
   serialize(): StudyAdminSnapshot {
     return {
@@ -84,6 +86,7 @@ export class StudyAdminStore {
       grants: Array.from(this.grants.entries()),
       audit: [...this.audit],
       seq: this.seq,
+      accept_attempts: Array.from(this.acceptAttempts.entries()),
     };
   }
 
@@ -93,6 +96,12 @@ export class StudyAdminStore {
     this.grants = new Map(snapshot.grants ?? []);
     this.audit = [...(snapshot.audit ?? [])];
     this.seq = typeof snapshot.seq === "number" ? snapshot.seq : 0;
+    this.acceptAttempts.clear();
+    for (const [k, v] of snapshot.accept_attempts ?? []) {
+      if (typeof k === "string" && typeof v === "number") {
+        this.acceptAttempts.set(k, v);
+      }
+    }
   }
 
   private nextId(prefix: string): string {

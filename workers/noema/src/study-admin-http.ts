@@ -120,6 +120,34 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
   const csrfErr = checkSameOriginCsrf(req, url);
   if (csrfErr) return csrfErr;
 
+async function parseRequestBody(
+  req: Request,
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false }> {
+  const ct = (req.headers.get("Content-Type") || "").toLowerCase();
+  if (ct.includes("application/x-www-form-urlencoded")) {
+    try {
+      const text = await req.text();
+      const params = new URLSearchParams(text);
+      const data: Record<string, unknown> = {};
+      for (const [k, v] of params.entries()) {
+        data[k] = v;
+      }
+      return { ok: true, data };
+    } catch {
+      return { ok: false };
+    }
+  }
+  try {
+    const parsed = (await req.json()) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false };
+    }
+    return { ok: true, data: parsed as Record<string, unknown> };
+  } catch {
+    return { ok: false };
+  }
+}
+
   // POST /api/admin/studies/:studyId/invites
   const issueMatch = path.match(/^\/api\/admin\/studies\/([^/]+)\/invites$/);
   if (issueMatch) {
@@ -128,19 +156,24 @@ export async function handleStudyAdminRequest(req: Request, ctx: StudyAdminHttpC
     if (!actorId || !authEventId) {
       return jsonResponse(401, { ok: false, code: "UNAUTHORIZED", message: "Fresh Admin auth event required." });
     }
-    let payload: { human_principal_id?: string; ttl_days?: number } = {};
-    try {
-      payload = (await req.json()) as { human_principal_id?: string; ttl_days?: number };
-    } catch {
-      return jsonResponse(400, { ok: false, code: "INVALID_REQUEST", message: "Invalid JSON body." });
+    const parsed = await parseRequestBody(req);
+    if (!parsed.ok) {
+      return jsonResponse(400, { ok: false, code: "INVALID_REQUEST", message: "Invalid JSON or form body." });
     }
+    const rawTtl = parsed.data.ttl_days;
+    const ttlDays =
+      typeof rawTtl === "number"
+        ? rawTtl
+        : typeof rawTtl === "string" && rawTtl.trim() !== ""
+          ? Number(rawTtl)
+          : undefined;
     const res = ctx.store.issueInvite({
       enabled,
       actorId,
       authEventId,
       studyId: decodeURIComponent(issueMatch[1]),
-      humanPrincipalId: payload.human_principal_id || "",
-      ttlDays: payload.ttl_days,
+      humanPrincipalId: typeof parsed.data.human_principal_id === "string" ? parsed.data.human_principal_id : "",
+      ttlDays: Number.isFinite(ttlDays) ? ttlDays : undefined,
       nowMs,
     });
     return jsonResponse(res.status, res);

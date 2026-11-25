@@ -134,4 +134,35 @@ describe("Study Admin hardening (Wave 3: expiry sweep, rate limit, study-scoped 
     expect(csvText).toContain("event_id,event_type,actor_id");
     expect(csvText).toContain("invite_issued");
   });
+
+  it("accepts application/x-www-form-urlencoded POST bodies on invite issue", async () => {
+    const store = new StudyAdminStore();
+    const res = await handleStudyAdminRequest(
+      new Request("https://noema.guru/api/admin/studies/study-form/invites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Origin: "https://noema.guru",
+          "X-Noema-Admin-Actor": "admin-1",
+          "X-Noema-Admin-Auth-Event": "evt-form-1",
+        },
+        body: "human_principal_id=human-form-alice&ttl_days=7",
+      }),
+      { store, envFlag: "true", nowMs: () => 1_700_000_000_000 },
+    );
+    expect(res!.status).toBe(201);
+    const body = (await res!.json()) as { ok: boolean; invite: { human_principal_id: string } };
+    expect(body.ok).toBe(true);
+    expect(body.invite.human_principal_id).toBe("human-form-alice");
+  });
+
+  it("persists acceptAttempts across serialize/hydrate for durable rate limiting", () => {
+    const store1 = new StudyAdminStore();
+    store1.acceptAttempts.set("inv_1", 5);
+    const snap = store1.serialize();
+
+    const store2 = new StudyAdminStore();
+    store2.hydrate(snap);
+    expect(store2.acceptAttempts.get("inv_1")).toBe(5);
+  });
 });

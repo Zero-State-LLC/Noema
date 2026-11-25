@@ -26,7 +26,6 @@ export interface StudyAdminDOEnv {
 
 export class StudyAdminDO {
   private readonly store = new StudyAdminStore();
-  private readonly acceptAttempts = new Map<string, number>();
   private readonly state: StudyAdminDOState;
   private readonly env: StudyAdminDOEnv;
   private hydrated = false;
@@ -45,13 +44,16 @@ export class StudyAdminDO {
 
   async fetch(request: Request): Promise<Response> {
     await this.ensureHydrated();
+    const pathname = new URL(request.url).pathname;
+    const isAcceptAttempt =
+      request.method === "POST" && /^\/api\/study-admin\/invites\/[^/]+\/accept$/.test(pathname);
     const res = await handleStudyAdminRequest(request, {
       store: this.store,
       envFlag: this.env.STUDY_ADMIN_UI_ENABLED,
-      acceptAttempts: this.acceptAttempts,
+      acceptAttempts: this.store.acceptAttempts,
     });
     if (res) {
-      if (request.method !== "GET" && request.method !== "HEAD" && res.ok) {
+      if (request.method !== "GET" && request.method !== "HEAD" && (res.ok || isAcceptAttempt)) {
         await this.state.storage.put(STORAGE_KEY, this.store.serialize());
       }
       return res;
